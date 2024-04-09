@@ -1,0 +1,111 @@
+{
+  "catalogue": {
+    "featured": "Featured",
+    "recently_added": "Recently added",
+    "trending": "Trending",
+    "surprise_me": "✨ Surprise me"
+  },
+  "sidebar": {
+    "catalogue": "Catalogue",
+    "downloads": "Downloads",
+    "settings": "Settings",
+    "my_library": "My library",
+    "downloading_metadata": "{{title}} (Downloading metadata…)",
+    "checking_files": "{{title}} ({{percentage}} - Checking files…)",
+    "paused": "{{title}} (Paused)",
+    "downloading": "{{title}} ({{percentage}} - Downloading…)",
+    "filter": "Filter library"
+  },
+  "header": {
+    "search": "Search",
+    "catalogue": "Catalogue",
+    "downloads": "Downloads",
+    "search_results": "Search results",
+    "settings": "Settings"
+  },
+  "bottom_panel": {
+    "no_downloads_in_progress": "No downloads in progress",
+    "downloading_metadata": "Downloading {{title}} metadata…",
+    "checking_files": "Checking {{title}} files… ({{percentage}} complete)",
+    "downloading": "Downloading {{title}}… ({{percentage}} complete) - Conclusion {{eta}} - {{speed}}",
+    "deleting": "Deleting files…"
+  },
+  "game_details": {
+    "open_download_options": "Open download options",
+    "download_options_zero": "No download option",
+    "download_options_one": "{{count}} download option",
+    "download_options_other": "{{count}} download options",
+    "updated_at": "Updated {{updated_at}}",
+    "launch": "Launch",
+    "resume": "Resume",
+    "pause": "Pause",
+    "cancel": "Cancel",
+    "remove": "Remove",
+    "space_left_on_disk": "{{space}} left on disk",
+    "eta": "Conclusion {{eta}}",
+    "downloading_metadata": "Downloading metadata…",
+    "checking_files": "Checking files…",
+    "filter": "Filter repacks",
+    "requirements": "System requirements",
+    "minimum": "Minimum",
+    "recommended": "Recommended",
+    "no_minimum_requirements": "{{title}} doesn't provide minimum requirements information",
+    "no_recommended_requirements": "{{title}} doesn't provide recommended requirements information",
+    "paused_progress": "{{progress}} (Paused)",
+    "deleting": "Deleting files…",
+    "delete": "Remove all files",
+    "release_date": "Released in {{date}}",
+    "publisher": "Published by {{publisher}}",
+    "copy_link_to_clipboard": "Copy link",
+    "copied_link_to_clipboard": "Link copied"
+  },
+  "activation": {
+    "title": "Activate Hydra",
+    "installation_id": "Installation ID:",
+    "enter_activation_code": "Enter your activation code",
+    "message": "If you don't know where to ask for this, then you shouldn't have this.",
+    "activate": "Activate",
+    "loading": "Loading…"
+  },
+  "downloads": {
+    "launch": "Launch",
+    "resume": "Resume",
+    "pause": "Pause",
+    "eta": "Conclusion {{eta}}",
+    "paused": "Paused",
+    "verifying": "Verifying…",
+    "completed_at": "Completed in {{date}}",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "download_again": "Download again",
+    "cancel": "Cancel",
+    "filter": "Filter downloaded games",
+    "remove": "Remove",
+    "downloading_metadata": "Downloading metadata…",
+    "checking_files": "Checking files…",
+    "starting_download": "Starting download…",
+    "deleting": "Deleting files…",
+    "delete": "Remove all files"
+  },
+  "settings": {
+    "downloads_path": "Downloads path",
+    "change": "Update",
+    "notifications": "Notifications",
+    "enable_download_notifications": "When a download is complete",
+    "enable_repack_list_notifications": "When a new repack is added"
+  },
+  "notifications": {
+    "download_complete": "Download complete",
+    "game_ready_to_install": "{{title}} is ready to install",
+    "repack_list_updated": "Repack list updated",
+    "repack_count_one": "{{count}} repack added",
+    "repack_count_other": "{{count}} repacks added"
+  },
+  "system_tray": {
+    "open": "Open Hydra",
+    "quit": "Quit"
+  },
+  "game_card": {
+    "no_downloads": "No downloads available"
+  }
+}
