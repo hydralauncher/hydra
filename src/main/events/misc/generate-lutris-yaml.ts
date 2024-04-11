@@ -1,13 +1,14 @@
 import { Document as YMLDocument } from 'yaml';
 import { Game } from '@main/entity';
+import path from "node:path";
 
 export function generateYML(game: Game) {
-  const slugfiedName = game.title.replace(/\s/g, '-').toLocaleLowerCase();
+  const slugfiedGameTitle = game.title.replace(/\s/g, '-').toLocaleLowerCase();
 
   const doc = new YMLDocument({
     name: game.title,
-    game_slug: slugfiedName,
-    slug: `${slugfiedName}-installer`,
+    game_slug: slugfiedGameTitle,
+    slug: `${slugfiedGameTitle}-installer`,
     version: 'Installer',
     runner: 'wine',
     script: {
@@ -19,7 +20,7 @@ export function generateYML(game: Game) {
         }
       }, {
         task: {
-          executable: `${game.downloadPath}/${game.folderName}/setup.exe`,
+          executable: path.join(game.downloadPath, game.folderName, 'setup.exe'),
           name: "wineexec",
           prefix: "$GAMEDIR/prefix"
         }
