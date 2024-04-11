@@ -88,6 +88,9 @@
     "delete": "Remove all files"
   },
   "settings": {
+    "error_title_modal": "Error",
+    "error_modal_download": "Your selected folder does not have write permissions or does not exist, please check the folder in your \"Settings\" tab",
+    "error_description_modal": "The selected directory does not have write permissions or does not exist, please choose another folder",
     "downloads_path": "Downloads path",
     "change": "Update",
     "notifications": "Notifications",
