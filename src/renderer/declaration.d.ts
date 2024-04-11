@@ -52,7 +52,7 @@ declare global {
     getUserPreferences: () => Promise<UserPreferences | null>;
     updateUserPreferences: (
       preferences: Partial<UserPreferences>
-    ) => Promise<void>;
+    ) => Promise<boolean>;
 
     /* Hardware */
     getDiskFreeSpace: () => Promise<DiskSpace>;
