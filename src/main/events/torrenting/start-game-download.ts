@@ -8,7 +8,7 @@ import type { GameShop } from "@types";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { getImageBase64 } from "@main/helpers";
 import { In } from "typeorm";
-import validatePath from "./helpers/validate-path";
+import validatePath from "../helpers/validate-path";
 import { dialog } from "electron";
 import { t } from "i18next";
 

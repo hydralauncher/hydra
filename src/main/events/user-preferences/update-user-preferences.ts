@@ -1,9 +1,9 @@
 import { userPreferencesRepository } from "@main/repository";
-import { registerEvent } from "./register-event";
+import { registerEvent } from "../register-event";
 import { dialog } from "electron";
 import { t } from "i18next";
 import type { UserPreferences } from "@types";
-import validatePath from "./helpers/validate-path";
+import validatePath from "../helpers/validate-path";
 
 const updateUserPreferences = async (
   _event: Electron.IpcMainInvokeEvent,
