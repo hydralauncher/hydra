@@ -32,14 +32,19 @@ const openGame = async (
         if (spawnSync('which', ['lutris']).status === 0) {
           const ymlPath = path.join(gamePath, "setup.yml");
           await writeFile(ymlPath, generateYML(game));
-          const subprocess = spawn(`lutris --install '${ymlPath}'`, {
+          const lutris = spawn('lutris', ['--install', `'${ymlPath}'`], {
             shell: true,
             detached: true,
             stdio: 'ignore'
           });
-          subprocess.unref();
+          lutris.unref();
         } else {
-          spawn(`wine '${setupPath}'`, { shell: true });
+          const wine = spawn('wine', [`'${setupPath}'`], {
+            shell: true,
+            detached: true,
+            stdio: 'ignore'
+          });
+          wine.unref();
         }
       }
     } else {
