@@ -1,9 +1,9 @@
-import { formatName, repackerFormatter } from "@main/helpers";
+import { formatName, getSteamAppAsset, repackerFormatter } from "@main/helpers";
 import { getTrendingGames } from "@main/services";
-import type { CatalogueCategory, CatalogueEntry } from "@types";
+import type { CatalogueCategory, CatalogueEntry, GameShop } from "@types";
 
 import { stateManager } from "@main/state-manager";
-import { searchGames } from "../helpers/search-games";
+import { searchGames, searchRepacks } from "../helpers/search-games";
 import { registerEvent } from "../register-event";
 
 const repacks = stateManager.getValue("repacks");
@@ -12,14 +12,7 @@ const getCatalogue = async (
   _event: Electron.IpcMainInvokeEvent,
   category: CatalogueCategory
 ) => {
-  const trendingGames = await getTrendingGames();
-
-  let i = 0;
-  const results: CatalogueEntry[] = [];
-
   const getStringForLookup = (index: number) => {
-    if (category === "trending") return trendingGames[index];
-
     const repack = repacks[index];
     const formatter =
       repackerFormatter[repack.repacker as keyof typeof repackerFormatter];
@@ -30,10 +23,56 @@ const getCatalogue = async (
   if (!repacks.length) return [];
 
   const resultSize = 12;
-  const requestSize = resultSize * 2;
-  let lookupRequest = [];
+  const requestSize = resultSize;
 
-  while (results.length < resultSize) {
+  if (category === "trending") {
+    return searchTrending(resultSize);
+  } else {
+    return searchRecentlyAdded(resultSize, requestSize, getStringForLookup);
+  }
+};
+
+const searchTrending = async (
+  resultSize: number
+): Promise<CatalogueEntry[]> => {
+  const results: CatalogueEntry[] = [];
+  const trendingGames = await getTrendingGames();
+  for (
+    let i = 0;
+    i < trendingGames.length && results.length < resultSize;
+    i++
+  ) {
+    if (!trendingGames[i]) continue;
+
+    const { title, objectID } = trendingGames[i];
+    const repacks = searchRepacks(title);
+
+    if (title && repacks.length) {
+      const catalogueEntry = {
+        objectID,
+        title,
+        shop: "steam" as GameShop,
+        cover: getSteamAppAsset("library", objectID),
+      };
+      repacks.sort(
+        (a, b) =>
+          new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+      );
+      results.push({ ...catalogueEntry, repacks });
+    }
+  }
+  return results;
+};
+
+const searchRecentlyAdded = async (
+  resultSize: number,
+  requestSize: number,
+  getStringForLookup: { (index: number): any; (arg0: any): any }
+): Promise<CatalogueEntry[]> => {
+  let lookupRequest = [];
+  const results: CatalogueEntry[] = [];
+
+  for (let i = 0; results.length < resultSize; i++) {
     const stringForLookup = getStringForLookup(i);
 
     if (!stringForLookup) {
@@ -42,8 +81,6 @@ const getCatalogue = async (
     }
 
     lookupRequest.push(searchGames(stringForLookup));
-
-    i++;
 
     if (lookupRequest.length < requestSize) {
       continue;

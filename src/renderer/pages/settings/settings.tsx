@@ -29,14 +29,15 @@ export function Settings() {
     });
   }, []);
 
-  const updateUserPreferences = async <T extends keyof UserPreferences>(
+  const updateUserPreferences = <T extends keyof UserPreferences>(
     field: T,
     value: UserPreferences[T]
   ) => {
-    const payload = await window.electron.updateUserPreferences({
+    setForm((prev) => ({ ...prev, [field]: value }));
+
+    window.electron.updateUserPreferences({
       [field]: value,
     });
-    setForm((prev) => (payload ? { ...prev, [field]: value } : prev));
   };
 
   const handleChooseDownloadsPath = async () => {
