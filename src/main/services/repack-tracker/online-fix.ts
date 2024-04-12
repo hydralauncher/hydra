@@ -23,7 +23,7 @@ export const getNewRepacksFromOnlineFix = async (
 ): Promise<void> => {
   const hasCredentials =
     process.env.ONLINEFIX_USERNAME && process.env.ONLINEFIX_PASSWORD;
-  if (hasCredentials) return;
+  if (!hasCredentials) return;
 
   const http = gotScraping.extend({
     headerGeneratorOptions: {
