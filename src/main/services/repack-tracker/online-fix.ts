@@ -75,99 +75,103 @@ export const getNewRepacksFromOnlineFix = async (
   const dom = new JSDOM(login);
   const document = dom.window.document;
   const repacks: GameRepackInput[] = [];
+  const articles = Array.from(document.querySelectorAll(".news"));
 
   try {
-    const articles = Array.from(document.querySelectorAll(".news"));
+    await Promise.all(
+      articles.map(async (article) => {
+        const gameName = decode(
+          article.querySelector("h2.title")?.textContent?.trim()
+        )
+          .replace("по сети", "")
+          .trim();
 
-    for await (const article of articles) {
-      const gameName = decode(
-        article.querySelector("h2.title")?.textContent?.trim()
-      )
-        .replace("по сети", "")
-        .trim();
+        const gameLink = article.querySelector("a")?.getAttribute("href");
 
-      const gameLink = article.querySelector("a")?.getAttribute("href");
+        if (!gameLink) return;
 
-      if (!gameLink) continue;
-
-      const gamePage = await http
-        .get(gameLink, {
-          encoding: "binary",
-        })
-        .text();
-
-      const gameDom = new JSDOM(gamePage);
-      const gameDocument = gameDom.window.document;
-
-      const uploadDateText = gameDocument.querySelector(
-        "#dle-content > div > article > div.full-story-header.wide-block.clr > div.full-story-top-panel.clr > div.date.left > time"
-      ).textContent;
-
-      let decodedDateText = decode(uploadDateText);
-
-      // "Вчера" significa ontem.
-      if (decodedDateText.includes("Вчера")) {
-        const yesterday = sub(new Date(), { days: 1 });
-        const formattedYesterday = format(yesterday, "d LLLL yyyy", {
-          locale: ru,
-        });
-        decodedDateText = decodedDateText.replace("Вчера", formattedYesterday);
-      }
-
-      const uploadDate = parse(
-        decodedDateText,
-        "d LLLL yyyy, HH:mm",
-        new Date(),
-        {
-          locale: ru,
-        }
-      );
-
-      const torrentButtons = Array.from(
-        gameDocument.querySelectorAll("a")
-      ).filter((a) => a.textContent?.includes("Torrent"));
-
-      const torrentPrePage = torrentButtons[0]?.getAttribute("href");
-      if (!torrentPrePage) continue;
-
-      const torrentPage = await http
-        .get(torrentPrePage, {
-          encoding: "binary",
-          headers: {
-            Referer: gameLink,
-          },
-        })
-        .text();
-
-      const torrentDom = new JSDOM(torrentPage);
-      const torrentDocument = torrentDom.window.document;
-
-      const torrentLink = torrentDocument
-        .querySelector("a:nth-child(2)")
-        ?.getAttribute("href");
-
-      const torrentFile = Buffer.from(
-        await http
-          .get(`${torrentPrePage}/${torrentLink}`, {
-            responseType: "buffer",
+        const gamePage = await http
+          .get(gameLink, {
+            encoding: "binary",
           })
-          .buffer()
-      );
+          .text();
 
-      const torrent = parseTorrent(torrentFile);
-      const magnetLink = toMagnetURI({
-        infoHash: torrent.infoHash,
-      });
+        const gameDom = new JSDOM(gamePage);
+        const gameDocument = gameDom.window.document;
 
-      repacks.push({
-        fileSize: "NA",
-        magnet: magnetLink,
-        page: 1,
-        repacker: "onlinefix",
-        title: gameName,
-        uploadDate: uploadDate,
-      });
-    }
+        const uploadDateText = gameDocument.querySelector(
+          "#dle-content > div > article > div.full-story-header.wide-block.clr > div.full-story-top-panel.clr > div.date.left > time"
+        ).textContent;
+
+        let decodedDateText = decode(uploadDateText);
+
+        // "Вчера" significa ontem.
+        if (decodedDateText.includes("Вчера")) {
+          const yesterday = sub(new Date(), { days: 1 });
+          const formattedYesterday = format(yesterday, "d LLLL yyyy", {
+            locale: ru,
+          });
+          decodedDateText = decodedDateText.replace(
+            "Вчера",
+            formattedYesterday
+          );
+        }
+
+        const uploadDate = parse(
+          decodedDateText,
+          "d LLLL yyyy, HH:mm",
+          new Date(),
+          {
+            locale: ru,
+          }
+        );
+
+        const torrentButtons = Array.from(
+          gameDocument.querySelectorAll("a")
+        ).filter((a) => a.textContent?.includes("Torrent"));
+
+        const torrentPrePage = torrentButtons[0]?.getAttribute("href");
+        if (!torrentPrePage) return;
+
+        const torrentPage = await http
+          .get(torrentPrePage, {
+            encoding: "binary",
+            headers: {
+              Referer: gameLink,
+            },
+          })
+          .text();
+
+        const torrentDom = new JSDOM(torrentPage);
+        const torrentDocument = torrentDom.window.document;
+
+        const torrentLink = torrentDocument
+          .querySelector("a:nth-child(2)")
+          ?.getAttribute("href");
+
+        const torrentFile = Buffer.from(
+          await http
+            .get(`${torrentPrePage}/${torrentLink}`, {
+              responseType: "buffer",
+            })
+            .buffer()
+        );
+
+        const torrent = parseTorrent(torrentFile);
+        const magnetLink = toMagnetURI({
+          infoHash: torrent.infoHash,
+        });
+
+        repacks.push({
+          fileSize: "NA",
+          magnet: magnetLink,
+          page: 1,
+          repacker: "onlinefix",
+          title: gameName,
+          uploadDate: uploadDate,
+        });
+      })
+    );
   } catch (err) {
     logger.error(err.message, { method: "getNewRepacksFromOnlineFix" });
   }
