@@ -3,7 +3,6 @@ import { savePage } from "./helpers";
 import type { GameRepackInput } from "./helpers";
 import { logger } from "../logger";
 import { stringify } from "qs";
-import { z } from "zod";
 import parseTorrent, { toMagnetURI } from "parse-torrent";
 import { JSDOM } from "jsdom";
 import { gotScraping } from "got-scraping";
@@ -12,11 +11,6 @@ import { CookieJar } from "tough-cookie";
 import { format, parse, sub } from "date-fns";
 import { ru } from "date-fns/locale";
 import { decode } from "windows-1251";
-
-const preLoginSchema = z.object({
-  field: z.string(),
-  value: z.string(),
-});
 
 export const getNewRepacksFromOnlineFix = async (
   existingRepacks: Repack[] = []
@@ -42,18 +36,23 @@ export const getNewRepacksFromOnlineFix = async (
   });
 
   await http.get("https://online-fix.me/");
-  const preLogin = await http
-    .get("https://online-fix.me/engine/ajax/authtoken.php", {
-      headers: {
-        "X-Requested-With": "XMLHttpRequest",
-        Referer: "https://online-fix.me/",
-      },
-    })
-    .json();
+  const preLogin =
+    ((await http
+      .get("https://online-fix.me/engine/ajax/authtoken.php", {
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          Referer: "https://online-fix.me/",
+        },
+      })
+      .json()) as {
+      field: string;
+      value: string;
+    }) || undefined;
 
-  const parsedPreLoginRes = preLoginSchema.parse(preLogin);
-  const tokenField = parsedPreLoginRes.field;
-  const tokenValue = parsedPreLoginRes.value;
+  if (!preLogin.field || !preLogin.value) return;
+
+  const tokenField = preLogin.field;
+  const tokenValue = preLogin.value;
 
   const login = await http
     .post("https://online-fix.me/", {
@@ -82,9 +81,7 @@ export const getNewRepacksFromOnlineFix = async (
       articles.map(async (article) => {
         const gameName = decode(
           article.querySelector("h2.title")?.textContent?.trim()
-        )
-          .replace("по сети", "")
-          .trim();
+        );
 
         const gameLink = article.querySelector("a")?.getAttribute("href");
 
@@ -99,20 +96,18 @@ export const getNewRepacksFromOnlineFix = async (
         const gameDom = new JSDOM(gamePage);
         const gameDocument = gameDom.window.document;
 
-        const uploadDateText = gameDocument.querySelector(
-          "#dle-content > div > article > div.full-story-header.wide-block.clr > div.full-story-top-panel.clr > div.date.left > time"
-        ).textContent;
+        const uploadDateText = gameDocument.querySelector("time").textContent;
 
         let decodedDateText = decode(uploadDateText);
 
-        // "Вчера" significa ontem.
+        // "Вчера" means yesterday.
         if (decodedDateText.includes("Вчера")) {
           const yesterday = sub(new Date(), { days: 1 });
           const formattedYesterday = format(yesterday, "d LLLL yyyy", {
             locale: ru,
           });
           decodedDateText = decodedDateText.replace(
-            "Вчера",
+            "Вчера", // "Change yesterday to the default expected date format"
             formattedYesterday
           );
         }
