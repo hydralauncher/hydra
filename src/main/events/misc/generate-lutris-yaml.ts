@@ -12,17 +12,22 @@ export function generateYML(game: Game) {
     version: 'Installer',
     runner: 'wine',
     script: {
+      game: {
+        prefix: '$GAMEDIR',
+        arch: 'win64',
+        working_dir: '$GAMEDIR'
+      },
       installer: [{
         task: {
           name: "create_prefix",
           arch: "win64",
-          prefix: "$GAMEDIR/prefix"
+          prefix: "$GAMEDIR"
         }
       }, {
         task: {
           executable: path.join(game.downloadPath, game.folderName, 'setup.exe'),
           name: "wineexec",
-          prefix: "$GAMEDIR/prefix"
+          prefix: "$GAMEDIR"
         }
       }]
     }
