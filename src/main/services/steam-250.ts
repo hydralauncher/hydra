@@ -19,7 +19,14 @@ export const getTrendingGames = async () => {
   const { document } = window;
 
   return Array.from(document.querySelectorAll(".appline .title a")).map(
-    ($title) => $title.textContent!
+    ($title: HTMLAnchorElement) => {
+      const steamGameUrld = $title.href;
+      if (!steamGameUrld) return null;
+      return {
+        title: $title.textContent,
+        objectID: steamGameUrld.split("/").pop(),
+      };
+    }
   );
 };
 

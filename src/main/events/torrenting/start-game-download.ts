@@ -8,9 +8,6 @@ import type { GameShop } from "@types";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { getImageBase64 } from "@main/helpers";
 import { In } from "typeorm";
-import validatePath from "../helpers/validate-path";
-import { dialog } from "electron";
-import { t } from "i18next";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -41,20 +38,6 @@ const startGameDownload = async (
   writePipe.write({ action: "pause" });
 
   const downloadsPath = game?.downloadPath ?? (await getDownloadsPath());
-  const error = validatePath(downloadsPath);
-  if (error) {
-    dialog.showErrorBox(
-      t("error_title_modal", {
-        ns: "settings",
-        lng: "en",
-      }),
-      `${t("error_modal_download", {
-        ns: "settings",
-        lng: "en",
-      })}${error instanceof Error ? "\n" + error.message : ""}`
-    );
-    return;
-  }
 
   await gameRepository.update(
     {

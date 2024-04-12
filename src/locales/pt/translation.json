@@ -88,9 +88,6 @@
     "delete": "Apagar arquivos"
   },
   "settings": {
-    "error_title_modal": "Erro",
-    "error_modal_download": "Você selecionou uma pasta que não tem permissão de escrita ou não existe, por favor verifique na área \"Configurações\"",
-    "error_description_modal": "O diretório selecionado não possui permissão de escrita ou não existe, favor selecione outra pasta",
     "downloads_path": "Diretório dos downloads",
     "change": "Mudar",
     "notifications": "Notificações",
