@@ -13,11 +13,15 @@ const repacksIndex = new Index();
 const repacks = stateManager.getValue("repacks");
 
 for (let i = 0; i < repacks.length; i++) {
-  const repack = repacks[i];
-  const formatter =
-    repackerFormatter[repack.repacker as keyof typeof repackerFormatter];
+  try {
+    const repack = repacks[i];
+    const formatter =
+      repackerFormatter[repack.repacker as keyof typeof repackerFormatter];
 
-  repacksIndex.add(i, formatName(formatter(repack.title)));
+    repacksIndex.add(i, formatName(formatter(repack.title)));
+  } catch (err) {
+    console.log(err);
+  }
 }
 
 export const HITS_PER_PAGE = 12;
