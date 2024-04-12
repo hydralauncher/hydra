@@ -24,6 +24,7 @@ const openGame = async (
 
   if (fs.existsSync(gamePath)) {
     const setupPath = path.join(gamePath, "setup.exe");
+    console.log(setupPath);
     if (fs.existsSync(setupPath)) {
       if (process.platform === "win32") {
         shell.openExternal(setupPath);
@@ -31,15 +32,16 @@ const openGame = async (
       if (process.platform === "linux") {
         if (spawnSync('which', ['lutris']).status === 0) {
           const ymlPath = path.join(gamePath, "setup.yml");
+          console.log(ymlPath)
           await writeFile(ymlPath, generateYML(game));
-          const lutris = spawn('lutris', ['--install', `'${ymlPath}'`], {
+          const lutris = spawn('lutris', ['--install', `"${ymlPath}"`], {
             shell: true,
             detached: true,
             stdio: 'ignore'
           });
           lutris.unref();
         } else {
-          const wine = spawn('wine', [`'${setupPath}'`], {
+          const wine = spawn('wine', [`"${setupPath}"`], {
             shell: true,
             detached: true,
             stdio: 'ignore'
