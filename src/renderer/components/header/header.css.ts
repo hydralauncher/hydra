@@ -89,3 +89,15 @@ export const leftContent = style({
   gap: `${SPACING_UNIT * 2}px`,
   height: "100%",
 });
+
+export const headerTitle = style({
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: `${SPACING_UNIT * 2}px`,
+})
+
+export const backButton = style({
+  color: "inherit",
+  cursor: "pointer",
+});
