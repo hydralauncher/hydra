@@ -1,5 +1,7 @@
 # Hydra
 
+<a href="https://discord.gg/hydralauncher" target="_blank">![Discord](https://img.shields.io/discord/1220692017311645737?style=flat&logo=discord&label=Hydra&labelColor=%231c1c1c)</a>
+
 Hydra is a game launcher with its own embedded bittorrent client and a self-managed repack scraper.
 The launcher is written in TypeScript (Electron) and Python, which handles the torrenting system by using [libtorrent](https://www.libtorrent.org/).
 
@@ -9,11 +11,11 @@ The launcher is written in TypeScript (Electron) and Python, which handles the t
 
 ### Install Node.js
 
-Ensure you have Node.js installed on your machine. If not, download and install it from [nodejs.org](nodejs.org).
+Ensure you have Node.js installed on your machine. If not, download and install it from [nodejs.org](https://nodejs.org/).
 
 ### Install Yarn
 
-Yarn is a package manager for Node.js. If you haven't installed Yarn yet, you can do so by following the instructions on [yarnpkg.com](yarnpkg.com).
+Yarn is a package manager for Node.js. If you haven't installed Yarn yet, you can do so by following the instructions on [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/).
 
 ### Clone the Repository
 
@@ -32,7 +34,7 @@ yarn
 
 ### Install Python 3.9
 
-Ensure you have Python installed on your machine. You can download and install it from [python.org](python.org).
+Ensure you have Python installed on your machine. You can download and install it from [python.org](https://www.python.org/downloads/release/python-3919/).
 
 ### Install Python Dependencies
 
@@ -49,7 +51,11 @@ Once you have it, you can paste the `.env.example` file and put it on `STEAMGRID
 
 ## Running
 
-Once you've installed all dependencies, you can build and run Hydra Download Manager. Here are the basic commands:
+Once you've got all things set up, you can run the following command to start both the Electron process and the bittorrent client:
+
+```bash
+yarn start
+```
 
 ## Build
 
@@ -68,6 +74,14 @@ Build the Electron application by using this command:
 ```bash
 yarn make
 ```
+
+## Contributors
+
+<a href="https://github.com/hydralauncher/hydra/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=hydralauncher/hydra" />
+</a>
+
+Made with [contrib.rocks](https://contrib.rocks).
 
 ## License
 

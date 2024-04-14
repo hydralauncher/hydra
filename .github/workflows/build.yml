@@ -10,7 +10,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-latest]
 
     steps:
       - name: Check out Git repository
@@ -40,6 +40,9 @@ jobs:
 
       - name: Publish
         run: yarn run publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STEAMGRIDDB_API_KEY: ${{ env.STEAMGRIDDB_API_KEY }}
 
       - name: Create artifact
         uses: actions/upload-artifact@v4
