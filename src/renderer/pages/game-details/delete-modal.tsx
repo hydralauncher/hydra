@@ -34,7 +34,7 @@ export function DeleteModal({
 						deleteGame()
 						onClose()
 					}}
-					theme='primary'
+					theme='outline'
 					disabled={deleting}
 				>
 					{t('delete')}
@@ -44,7 +44,7 @@ export function DeleteModal({
 					onClick={() => {
 						onClose()
 					}}
-					theme='outline'
+					theme='primary'
 					disabled={deleting}
 				>
 					{t('cancel')}
