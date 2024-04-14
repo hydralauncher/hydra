@@ -9,6 +9,7 @@ import type { Game } from "@types";
 
 import * as styles from "./downloads.css";
 import { useEffect, useState } from "react";
+import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 
 export function Downloads() {
   const { library, updateLibrary } = useLibrary();
@@ -18,6 +19,7 @@ export function Downloads() {
   const navigate = useNavigate();
 
   const [filteredLibrary, setFilteredLibrary] = useState<Game[]>([]);
+  const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState<boolean>(false);
 
   const {
     game: gameDownloading,
@@ -37,7 +39,8 @@ export function Downloads() {
   }, [library]);
 
   const openGame = (gameId: number) =>
-    window.electron.openGame(gameId).then(() => {
+    window.electron.openGame(gameId).then(res => {
+      if (!res) setShowBinaryNotFoundModal(true);
       updateLibrary();
     });
 
@@ -202,6 +205,7 @@ export function Downloads() {
 
   return (
     <section className={styles.downloadsContainer}>
+      <BinaryNotFoundModal visible={showBinaryNotFoundModal} onClose={() => setShowBinaryNotFoundModal(false)} />
       <TextField placeholder={t("filter")} onChange={handleFilter} />
 
       <ul className={styles.downloads}>
