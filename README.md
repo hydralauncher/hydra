@@ -9,7 +9,7 @@ The launcher is written in TypeScript (Electron) and Python, which handles the t
 
 ### Install Node.js
 
-Ensure you have Node.js installed on your machine. If not, download and install it from [nodejs.org](nodejs.org).
+Ensure you have Node.js installed on your machine. If not, download and install it from [nodejs.org](https://nodejs.org/).
 
 ### Install Yarn
 
