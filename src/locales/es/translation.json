@@ -58,12 +58,9 @@
     "publisher": "Publicado por {{publisher}}",
     "copy_link_to_clipboard": "Copiar enlace",
     "copied_link_to_clipboard": "Enlace copiado",
-    "main_story": "Historia principal",
-    "main_plus_sides": "Historia principal + extras",
-    "completionist": "Completista",
-    "all_styles": "Todo",
     "hours": "horas",
-    "minutes": "minutos"
+    "minutes": "minutos",
+    "accuracy": "{{accuracy}}% precisión"
   },
   "activation": {
     "title": "Activar Hydra",
