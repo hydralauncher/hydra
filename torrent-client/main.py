@@ -54,20 +54,20 @@ def cancel_download():
 
 def get_download_updates(download_limit = 0, upload_limit = 0):
     global torrent_handle
-
-    # Set download and upload limits
-    if download_limit > 0 and upload_limit > 0:
-        torrent_handle.set_download_limit(download_limit*1024)
-        torrent_handle.set_upload_limit(upload_limit*1024)
-    elif download_limit > 0:
-        torrent_handle.set_download_limit(download_limit*1024)
-    elif upload_limit > 0:
-        torrent_handle.set_upload_limit(upload_limit*1024)
     
     while True:
         if downloading_game_id == 0:
             time.sleep(0.5)
             continue
+
+        # Set download and upload limits
+        if download_limit > 0 and upload_limit > 0:
+            torrent_handle.set_download_limit(download_limit*1024)
+            torrent_handle.set_upload_limit(upload_limit*1024)
+        elif download_limit > 0:
+            torrent_handle.set_download_limit(download_limit*1024)
+        elif upload_limit > 0:
+            torrent_handle.set_upload_limit(upload_limit*1024)
 
         status = torrent_handle.status()
         info = torrent_handle.get_torrent_info()
