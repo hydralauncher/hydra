@@ -106,5 +106,5 @@ export interface UserPreferences {
 export interface HowLongToBeatCategory {
   title: string;
   duration: string;
-  color: string;
+  accuracy: string;
 }

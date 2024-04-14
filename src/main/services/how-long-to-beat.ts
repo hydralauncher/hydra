@@ -2,6 +2,7 @@ import { formatName } from "@main/helpers";
 import axios from "axios";
 import { JSDOM } from "jsdom";
 import { requestWebPage } from "./repack-tracker/helpers";
+import { HowLongToBeatCategory } from "@types";
 
 export interface HowLongToBeatResult {
   game_id: number;
@@ -27,23 +28,15 @@ export const searchHowLongToBeat = async (gameName: string) => {
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
         Referer: "https://howlongtobeat.com/",
       },
-    }
+    },
   );
 
   return response.data as HowLongToBeatSearchResponse;
 };
 
-export const classNameColor = {
-  time_40: "#ff3a3a",
-  time_50: "#cc3b51",
-  time_60: "#824985",
-  time_70: "#5650a1",
-  time_80: "#485cab",
-  time_90: "#3a6db5",
-  time_100: "#287fc2",
-};
-
-export const getHowLongToBeatGame = async (id: string) => {
+export const getHowLongToBeatGame = async (
+  id: string,
+): Promise<HowLongToBeatCategory[]> => {
   const response = await requestWebPage(`https://howlongtobeat.com/game/${id}`);
 
   const { window } = new JSDOM(response);
@@ -54,12 +47,14 @@ export const getHowLongToBeatGame = async (id: string) => {
 
   return $lis.map(($li) => {
     const title = $li.querySelector("h4").textContent;
-    const [, time] = Array.from(($li as HTMLElement).classList);
+    const [, accuracyClassName] = Array.from(($li as HTMLElement).classList);
+
+    const accuracy = accuracyClassName.split("time_").at(1);
 
     return {
       title,
       duration: $li.querySelector("h5").textContent,
-      color: classNameColor[time as keyof typeof classNameColor],
+      accuracy,
     };
   });
 };

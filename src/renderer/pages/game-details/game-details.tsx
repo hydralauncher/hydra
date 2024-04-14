@@ -31,9 +31,10 @@ export function GameDetails() {
   const [color, setColor] = useState("");
   const [clipboardLock, setClipboardLock] = useState(false);
   const [gameDetails, setGameDetails] = useState<ShopDetails | null>(null);
-  const [howLongToBeat, setHowLongToBeat] = useState<
-    HowLongToBeatCategory[] | null
-  >(null);
+  const [howLongToBeat, setHowLongToBeat] = useState<{
+    isLoading: boolean;
+    data: HowLongToBeatCategory[] | null;
+  }>({ isLoading: true, data: null });
 
   const [game, setGame] = useState<Game | null>(null);
   const [activeRequirement, setActiveRequirement] =
@@ -81,7 +82,7 @@ export function GameDetails() {
         window.electron
           .getHowLongToBeat(objectID, "steam", result.name)
           .then((data) => {
-            setHowLongToBeat(data);
+            setHowLongToBeat({ isLoading: false, data });
           });
 
         setGameDetails(result);
@@ -89,7 +90,7 @@ export function GameDetails() {
       });
 
     getGame();
-    setHowLongToBeat(null);
+    setHowLongToBeat({ isLoading: true, data: null });
     setClipboardLock(false);
   }, [getGame, dispatch, navigate, objectID, i18n.language]);
 
@@ -103,12 +104,12 @@ export function GameDetails() {
           shop,
           encodeURIComponent(gameDetails?.name),
           i18n.language,
-        ])
+        ]),
       ),
     });
 
     navigator.clipboard.writeText(
-      OPEN_HYDRA_URL + `/?${searchParams.toString()}`
+      OPEN_HYDRA_URL + `/?${searchParams.toString()}`,
     );
 
     const zero = performance.now();
@@ -134,7 +135,7 @@ export function GameDetails() {
       repackId,
       gameDetails.objectID,
       gameDetails.name,
-      shop as GameShop
+      shop as GameShop,
     ).then(() => {
       getGame();
       setShowRepacksModal(false);
@@ -217,7 +218,10 @@ export function GameDetails() {
           </div>
 
           <div className={styles.contentSidebar}>
-            <HowLongToBeatSection howLongToBeatData={howLongToBeat} />
+            <HowLongToBeatSection
+              howLongToBeatData={howLongToBeat.data}
+              isLoading={howLongToBeat.isLoading}
+            />
 
             <div
               className={styles.contentSidebarTitle}

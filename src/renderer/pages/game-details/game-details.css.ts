@@ -139,19 +139,19 @@ export const descriptionHeaderInfo = style({
 });
 
 export const howLongToBeatCategoriesList = style({
-  margin: 0,
-  padding: 16,
+  margin: "0",
+  padding: "16px",
   display: "flex",
   flexDirection: "column",
-  gap: 16,
+  gap: "16px",
 });
 
 export const howLongToBeatCategory = style({
   display: "flex",
   flexDirection: "column",
-  gap: 4,
+  gap: "4px",
   backgroundColor: vars.color.background,
-  borderRadius: 8,
+  borderRadius: "8px",
   padding: `8px 16px`,
   border: `solid 1px ${vars.color.borderColor}`,
 });
@@ -161,13 +161,19 @@ export const howLongToBeatCategoryLabel = style({
   color: "#DADBE1",
 });
 
+export const howLongToBeatCategorySkeleton = style({
+  border: `solid 1px ${vars.color.borderColor}`,
+  borderRadius: "8px",
+  height: "76px",
+});
+
 globalStyle(".bb_tag", {
   marginTop: `${SPACING_UNIT * 2}px`,
   marginBottom: `${SPACING_UNIT * 2}px`,
 });
 
 globalStyle(`${description} img`, {
-  borderRadius: 5,
+  borderRadius: "5px",
   marginTop: `${SPACING_UNIT}px`,
   marginBottom: `${SPACING_UNIT}px`,
   marginLeft: "auto",
