@@ -40,6 +40,8 @@ jobs:
 
       - name: Publish
         run: yarn run publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create artifact
         uses: actions/upload-artifact@v4
