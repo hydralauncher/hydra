@@ -19,6 +19,7 @@ import { Repack } from "./entity";
 import { Notification } from "electron";
 import { t } from "i18next";
 import { In } from "typeorm";
+import { getNewRepacksFromOnlineFix } from "./services/repack-tracker/online-fix";
 
 TorrentClient.startTorrentClient(writePipe.socketPath, readPipe.socketPath);
 
@@ -73,6 +74,9 @@ const checkForNewRepacks = async () => {
     ),
     getNewRepacksFromCPG(
       existingRepacks.filter((repack) => repack.repacker === "CPG")
+    ),
+    getNewRepacksFromOnlineFix(
+      existingRepacks.filter((repack) => repack.repacker === "onlinefix")
     ),
     track1337xUsers(existingRepacks),
   ]).then(() => {
