@@ -20,5 +20,6 @@ export const formatDownloadProgress = (progress?: number) => {
 export const getSteamLanguage = (language: string) => {
   if (language.startsWith("pt")) return "brazilian";
   if (language.startsWith("es")) return "spanish";
+  if (language.startsWith("fr")) return "french";
   return "english";
 };
