@@ -60,7 +60,7 @@
 		"copy_link_to_clipboard": "Copy link",
 		"copied_link_to_clipboard": "Link copied",
 		"delete_modal_title": "Are you sure?",
-		"delete_modal_description": "This will remove all game files from your system."
+		"delete_modal_description": "This will remove all game files from your system"
 	},
 	"activation": {
 		"title": "Activate Hydra",

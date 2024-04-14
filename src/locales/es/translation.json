@@ -60,7 +60,7 @@
 		"copy_link_to_clipboard": "Copiar enlace",
 		"copied_link_to_clipboard": "Enlace copiado",
 		"delete_modal_title": "¿Estás seguro de esto?",
-		"delete_modal_description": "Esto eliminará todos los archivos del juego de tu sistema."
+		"delete_modal_description": "Esto eliminará todos los archivos del juego de tu sistema"
 	},
 	"activation": {
 		"title": "Activar Hydra",

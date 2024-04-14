@@ -60,7 +60,7 @@
 		"copy_link_to_clipboard": "Copiar link",
 		"copied_link_to_clipboard": "Link copiado",
 		"delete_modal_title": "Tem certeza disso?",
-		"delete_modal_description": "Isso apagará todos os arquivos do jogo de seu sistema."
+		"delete_modal_description": "Isso apagará todos os arquivos do jogo do seu sistema"
 	},
 	"activation": {
 		"title": "Ativação",
