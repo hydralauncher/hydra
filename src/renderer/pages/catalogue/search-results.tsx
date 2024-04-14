@@ -17,7 +17,7 @@ export function SearchResults() {
 
   const handleGameClick = (game: CatalogueEntry) => {
     dispatch(clearSearch());
-    navigate(`/game/${game.shop}/${game.objectID}`, { replace: true });
+    navigate(`/game/${game.shop}/${game.objectID}`);
   };
 
   return (

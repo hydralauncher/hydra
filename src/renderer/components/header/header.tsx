@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
-import { SearchIcon, XIcon } from "@primer/octicons-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ArrowLeftIcon, SearchIcon, XIcon } from "@primer/octicons-react";
 
 import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 
@@ -24,12 +24,13 @@ const pathTitle: Record<string, string> = {
 export function Header({ onSearch, onClear, search }: HeaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const { headerTitle, draggingDisabled } = useAppSelector(
     (state) => state.window
   );
   const dispatch = useAppDispatch();
-
-  const location = useLocation();
 
   const [isFocused, setIsFocused] = useState(false);
 
@@ -56,6 +57,10 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
     setIsFocused(false);
   };
 
+  const handleBackButtonClick = () => {
+    navigate(-1);
+  };
+
   return (
     <header
       className={styles.header({
@@ -63,9 +68,26 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
         isWindows: window.electron.platform === "win32",
       })}
     >
-      <h3>{title}</h3>
+      <div className={styles.section}>
+        <button
+          type="button"
+          className={styles.backButton({ enabled: location.key !== "default" })}
+          onClick={handleBackButtonClick}
+          disabled={location.key === "default"}
+        >
+          <ArrowLeftIcon />
+        </button>
 
-      <section className={styles.leftContent}>
+        <h3
+          className={styles.title({
+            hasBackButton: location.key !== "default",
+          })}
+        >
+          {title}
+        </h3>
+      </div>
+
+      <section className={styles.section}>
         <div className={styles.search({ focused: isFocused })}>
           <button
             type="button"

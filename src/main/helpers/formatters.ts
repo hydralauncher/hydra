@@ -1,12 +1,14 @@
 /* String formatting */
 
-export const removeReleaseYearFromName = (name: string) => name;
+export const removeReleaseYearFromName = (name: string) =>
+  name.replace(/\([0-9]{4}\)/g, "");
 
-export const removeSymbolsFromName = (name: string) => name;
+export const removeSymbolsFromName = (name: string) =>
+  name.replace(/[^A-Za-z 0-9]/g, "");
 
 export const removeSpecialEditionFromName = (name: string) =>
   name.replace(
-    /(The |Digital )?(Deluxe|Standard|Ultimate|Definitive|Enhanced|Collector's|Premium|Digital|Limited) Edition/g,
+    /(The |Digital )?(Deluxe|Standard|Ultimate|Definitive|Enhanced|Collector's|Premium|Digital|Limited|Game of the Year) Edition/g,
     ""
   );
 

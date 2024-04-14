@@ -65,7 +65,7 @@ export const descriptionContent = style({
   height: "100%",
 });
 
-export const requirements = style({
+export const contentSidebar = style({
   borderLeft: `solid 1px ${vars.color.borderColor};`,
   width: "100%",
   height: "100%",
@@ -83,12 +83,13 @@ export const requirements = style({
   },
 });
 
-export const requirementsHeader = style({
-  height: "71px",
+export const contentSidebarTitle = style({
+  height: "72px",
   padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
   display: "flex",
   alignItems: "center",
   backgroundColor: vars.color.background,
+  borderBottom: `solid 1px ${vars.color.borderColor}`,
 });
 
 export const requirementButtonContainer = style({
@@ -105,7 +106,7 @@ export const requirementButton = style({
 });
 
 export const requirementsDetails = style({
-  padding: `${SPACING_UNIT * 3}px ${SPACING_UNIT * 2}px`,
+  padding: `${SPACING_UNIT * 2}px`,
   lineHeight: "22px",
   fontFamily: "'Fira Sans', sans-serif",
   fontSize: "16px",
