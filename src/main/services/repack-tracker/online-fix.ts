@@ -11,6 +11,7 @@ import { CookieJar } from "tough-cookie";
 import { format, parse, sub } from "date-fns";
 import { ru } from "date-fns/locale";
 import { decode } from "windows-1251";
+import { onlinefixFormatter } from "@main/helpers";
 
 export const getNewRepacksFromOnlineFix = async (
   existingRepacks: Repack[] = [],
@@ -20,6 +21,8 @@ export const getNewRepacksFromOnlineFix = async (
   const hasCredentials =
     process.env.ONLINEFIX_USERNAME && process.env.ONLINEFIX_PASSWORD;
   if (!hasCredentials) return;
+
+  console.log(`getting online fix page: ${page}`);
 
   const http = gotScraping.extend({
     headerGeneratorOptions: {
@@ -77,17 +80,22 @@ export const getNewRepacksFromOnlineFix = async (
 
   const pageParams = page > 1 ? `${`/page/${page}`}` : "";
 
-  const home = await http.get(`https://online-fix.me${pageParams}`);
+  const home = await http.get(`https://online-fix.me${pageParams}`, {
+    encoding: "binary",
+  });
   const document = new JSDOM(home.body).window.document;
 
   const repacks: GameRepackInput[] = [];
   const articles = Array.from(document.querySelectorAll(".news"));
+  const totalPages = Number(
+    document.querySelector("nav > a:nth-child(13)").textContent
+  );
 
   try {
     await Promise.all(
       articles.map(async (article) => {
-        const gameName = decode(
-          article.querySelector("h2.title")?.textContent?.trim()
+        const gameName = onlinefixFormatter(
+          decode(article.querySelector("h2.title")?.textContent?.trim())
         );
 
         const gameLink = article.querySelector("a")?.getAttribute("href");
@@ -184,7 +192,9 @@ export const getNewRepacksFromOnlineFix = async (
       )
   );
 
-  if (!newRepacks.length) return;
+  console.log(`${newRepacks.length} new repacks added at page ${page}`);
+
+  if (page === totalPages) return;
 
   await savePage(newRepacks);
 
