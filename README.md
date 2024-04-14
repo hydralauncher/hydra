@@ -13,7 +13,7 @@ Ensure you have Node.js installed on your machine. If not, download and install 
 
 ### Install Yarn
 
-Yarn is a package manager for Node.js. If you haven't installed Yarn yet, you can do so by following the instructions on [yarnpkg.com](yarnpkg.com).
+Yarn is a package manager for Node.js. If you haven't installed Yarn yet, you can do so by following the instructions on [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/).
 
 ### Clone the Repository
 
@@ -32,7 +32,7 @@ yarn
 
 ### Install Python 3.9
 
-Ensure you have Python installed on your machine. You can download and install it from [python.org](python.org).
+Ensure you have Python installed on your machine. You can download and install it from [python.org](https://www.python.org/downloads/release/python-3919/).
 
 ### Install Python Dependencies
 
@@ -49,7 +49,11 @@ Once you have it, you can paste the `.env.example` file and put it on `STEAMGRID
 
 ## Running
 
-Once you've installed all dependencies, you can build and run Hydra Download Manager. Here are the basic commands:
+Once you've got all things set up, you can run the following command to start both the Electron process and the bittorrent client:
+
+```bash
+yarn start
+```
 
 ## Build
 
