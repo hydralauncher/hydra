@@ -3,7 +3,8 @@
     "featured": "Destaque",
     "recently_added": "Novidades",
     "trending": "Populares",
-    "surprise_me": "✨ Me surpreenda"
+    "surprise_me": "✨ Me surpreenda",
+    "no_results": "Nenhum resultado encontrado"
   },
   "sidebar": {
     "catalogue": "Catálogo",

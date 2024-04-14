@@ -7,10 +7,13 @@ import { InboxIcon } from "@primer/octicons-react";
 import { clearSearch } from "@renderer/features";
 import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { vars } from "@renderer/theme.css";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import * as styles from "./catalogue.css";
 
 export function SearchResults() {
+  const { t } = useTranslation("catalogue");
+
   const { results, isLoading } = useAppSelector((state) => state.search);
   const dispatch = useAppDispatch();
 
@@ -51,7 +54,7 @@ export function SearchResults() {
 					<div className={styles.noResults}>
 						<InboxIcon size={56} />
 
-						<p>Nenhum resultado encontrado</p>
+						<p>{t('no_results')}</p>
 					</div>
 				)}
 			</main>
