@@ -1,0 +1,111 @@
+{
+  "catalogue": {
+    "featured": "Destaque",
+    "recently_added": "Novidades",
+    "trending": "Populares",
+    "surprise_me": "✨ Me surpreenda"
+  },
+  "sidebar": {
+    "catalogue": "Catálogo",
+    "downloads": "Downloads",
+    "settings": "Configurações",
+    "my_library": "Minha biblioteca",
+    "downloading_metadata": "{{title}} (Baixando metadados…)",
+    "checking_files": "{{title}} ({{percentage}} - Verificando arquivos…)",
+    "paused": "{{title}} (Pausado)",
+    "downloading": "{{title}} ({{percentage}} - Baixando…)",
+    "filter": "Filtrar biblioteca"
+  },
+  "header": {
+    "search": "Buscar",
+    "catalogue": "Catálogo",
+    "downloads": "Downloads",
+    "search_results": "Resultados da busca",
+    "settings": "Configurações"
+  },
+  "bottom_panel": {
+    "no_downloads_in_progress": "Sem downloads em andamento",
+    "downloading_metadata": "Baixando metadados de {{title}}…",
+    "checking_files": "Verificando arquivos de {{title}}… ({{percentage}} completo)",
+    "downloading": "Baixando {{title}}… ({{percentage}} completo) - Conclusão {{eta}} - {{speed}}",
+    "deleting": "Removendo arquivos…"
+  },
+  "game_details": {
+    "open_download_options": "Ver opções de download",
+    "download_options_zero": "Sem opções de download",
+    "download_options_one": "{{count}} opção de download",
+    "download_options_other": "{{count}} opções de download",
+    "updated_at": "Atualizado {{updated_at}}",
+    "launch": "Abrir",
+    "resume": "Resumir",
+    "pause": "Pausar",
+    "cancel": "Cancelar",
+    "remove": "Remover",
+    "space_left_on_disk": "{{space}} livres em disco",
+    "eta": "Conclusão {{eta}}",
+    "downloading_metadata": "Baixando metadados…",
+    "checking_files": "Verificando arquivos…",
+    "filter": "Filtrar repacks",
+    "requirements": "Requisitos do sistema",
+    "minimum": "Mínimos",
+    "recommended": "Recomendados",
+    "no_minimum_requirements": "{{title}} não possui informações de requisitos mínimos",
+    "no_recommended_requirements": "{{title}} não possui informações de requisitos recomendados",
+    "paused_progress": "{{progress}} (Pausado)",
+    "deleting": "Removendo arquivos…",
+    "delete": "Apagar arquivos",
+    "release_date": "Lançado em {{date}}",
+    "publisher": "Publicado por {{publisher}}",
+    "copy_link_to_clipboard": "Copiar link",
+    "copied_link_to_clipboard": "Link copiado"
+  },
+  "activation": {
+    "title": "Ativação",
+    "installation_id": "ID da instalação:",
+    "enter_activation_code": "Insira seu código de ativação",
+    "message": "Se você não sabe onde conseguir o código, talvez você não devesse estar aqui.",
+    "activate": "Ativar",
+    "loading": "Carregando…"
+  },
+  "downloads": {
+    "launch": "Abrir",
+    "resume": "Resumir",
+    "pause": "Pausar",
+    "eta": "Conclusão {{eta}}",
+    "paused": "Pausado",
+    "verifying": "Verificando…",
+    "completed_at": "Concluído em {{date}}",
+    "completed": "Concluído",
+    "cancelled": "Cancelado",
+    "download_again": "Baixar novamente",
+    "cancel": "Cancelar",
+    "filter": "Filtrar jogos baixados",
+    "remove": "Remover",
+    "downloading_metadata": "Baixando metadados…",
+    "checking_files": "Verificando arquivos…",
+    "starting_download": "Iniciando download…",
+    "deleting": "Removendo arquivos…",
+    "delete": "Apagar arquivos"
+  },
+  "settings": {
+    "downloads_path": "Diretório dos downloads",
+    "change": "Mudar",
+    "notifications": "Notificações",
+    "enable_download_notifications": "Quando um download for concluído",
+    "enable_repack_list_notifications": "Quando a lista de repacks for atualizada"
+  },
+  "notifications": {
+    "download_complete": "Download concluído",
+    "game_ready_to_install": "{{title}} está pronto para ser instalado",
+    "repack_list_updated": "Lista de repacks atualizada",
+    "repack_count_one": "{{count}} novo repack",
+    "repack_count_other": "{{count}} novos repacks"
+  },
+  "system_tray": {
+    "open": "Abrir Hydra",
+    "quit": "Fechar"
+  },
+  "game_card": {
+    "no_downloads": "Sem downloads disponíveis"
+  }
+}
