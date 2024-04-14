@@ -75,6 +75,14 @@ Build the Electron application by using this command:
 yarn make
 ```
 
+## Contributors
+
+<a href="https://github.com/hydralauncher/hydra/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=hydralauncher/hydra" />
+</a>
+
+Made with [contrib.rocks](https://contrib.rocks).
+
 ## License
 
 Hydra is licensed under the [MIT License](LICENSE).
