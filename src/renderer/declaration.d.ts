@@ -6,6 +6,7 @@ import type {
   TorrentProgress,
   ShopDetails,
   UserPreferences,
+  HowLongToBeatCategory,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -43,7 +44,7 @@ declare global {
       objectID: string,
       shop: GameShop,
       title: string
-    ) => Promise<Record<string, { time: string; color: string }> | null>;
+    ) => Promise<HowLongToBeatCategory[] | null>;
 
     /* Library */
     getLibrary: () => Promise<Game[]>;

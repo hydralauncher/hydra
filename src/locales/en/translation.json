@@ -57,7 +57,13 @@
     "release_date": "Released in {{date}}",
     "publisher": "Published by {{publisher}}",
     "copy_link_to_clipboard": "Copy link",
-    "copied_link_to_clipboard": "Link copied"
+    "copied_link_to_clipboard": "Link copied",
+    "main_story": "Main story",
+    "main_plus_sides": "Main story + sides",
+    "completionist": "Completionist",
+    "all_styles": "All styles",
+    "hours": "hours",
+    "minutes": "minutes"
   },
   "activation": {
     "title": "Activate Hydra",
