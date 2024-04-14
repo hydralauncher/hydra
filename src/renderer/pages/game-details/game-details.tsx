@@ -3,7 +3,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import Color from "color";
 import { average } from "color.js";
 
-import type { Game, GameShop, ShopDetails, SteamAppDetails } from "@types";
+import type {
+  Game,
+  GameShop,
+  HowLongToBeatCategory,
+  ShopDetails,
+  SteamAppDetails,
+} from "@types";
 
 import { AsyncImage, Button } from "@renderer/components";
 import { setHeaderTitle } from "@renderer/features";
@@ -15,7 +21,7 @@ import { RepacksModal } from "./repacks-modal";
 import { HeroPanel } from "./hero-panel";
 import { useTranslation } from "react-i18next";
 import { ShareAndroidIcon } from "@primer/octicons-react";
-import { vars } from "@renderer/theme.css";
+import { HowLongToBeatSection } from "./how-long-to-beat-section";
 
 const OPEN_HYDRA_URL = "https://open.hydralauncher.site";
 
@@ -25,12 +31,9 @@ export function GameDetails() {
   const [color, setColor] = useState("");
   const [clipboardLock, setClipboardLock] = useState(false);
   const [gameDetails, setGameDetails] = useState<ShopDetails | null>(null);
-  const [howLongToBeat, setHowLongToBeat] = useState<Record<
-    string,
-    { time: string; color: string }
-  > | null>(null);
-
-  console.log(howLongToBeat);
+  const [howLongToBeat, setHowLongToBeat] = useState<
+    HowLongToBeatCategory[] | null
+  >(null);
 
   const [game, setGame] = useState<Game | null>(null);
   const [activeRequirement, setActiveRequirement] =
@@ -87,6 +90,7 @@ export function GameDetails() {
 
     getGame();
     setHowLongToBeat(null);
+    setClipboardLock(false);
   }, [getGame, dispatch, navigate, objectID, i18n.language]);
 
   const handleCopyToClipboard = () => {
@@ -213,55 +217,7 @@ export function GameDetails() {
           </div>
 
           <div className={styles.contentSidebar}>
-            {howLongToBeat && (
-              <>
-                <div className={styles.contentSidebarTitle}>
-                  <h3>HowLongToBeat</h3>
-                </div>
-
-                <div
-                  style={{
-                    padding: 16,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 16,
-                  }}
-                >
-                  {Object.entries(howLongToBeat).map(([key, value]) => (
-                    <div
-                      key={key}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 4,
-                        backgroundColor: value.color ?? vars.color.background,
-                        borderRadius: 8,
-                        padding: `8px 16px`,
-                        border: `solid 1px ${vars.color.borderColor}`,
-                      }}
-                    >
-                      <p
-                        style={{
-                          fontSize: vars.size.bodyFontSize,
-                          color: "#DADBE1",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        {key}
-                      </p>
-                      <p
-                        style={{
-                          fontSize: vars.size.bodyFontSize,
-                          color: "#DADBE1",
-                        }}
-                      >
-                        {value.time}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
+            <HowLongToBeatSection howLongToBeatData={howLongToBeat} />
 
             <div
               className={styles.contentSidebarTitle}

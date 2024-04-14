@@ -138,6 +138,29 @@ export const descriptionHeaderInfo = style({
   fontSize: vars.size.bodyFontSize,
 });
 
+export const howLongToBeatCategoriesList = style({
+  margin: 0,
+  padding: 16,
+  display: "flex",
+  flexDirection: "column",
+  gap: 16,
+});
+
+export const howLongToBeatCategory = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: 4,
+  backgroundColor: vars.color.background,
+  borderRadius: 8,
+  padding: `8px 16px`,
+  border: `solid 1px ${vars.color.borderColor}`,
+});
+
+export const howLongToBeatCategoryLabel = style({
+  fontSize: vars.size.bodyFontSize,
+  color: "#DADBE1",
+});
+
 globalStyle(".bb_tag", {
   marginTop: `${SPACING_UNIT * 2}px`,
   marginBottom: `${SPACING_UNIT * 2}px`,

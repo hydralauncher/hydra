@@ -17,7 +17,6 @@ export interface HeaderProps {
 const pathTitle: Record<string, string> = {
   "/": "catalogue",
   "/downloads": "downloads",
-  "/search": "search_results",
   "/settings": "settings",
 };
 
@@ -38,12 +37,13 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
 
   const title = useMemo(() => {
     if (location.pathname.startsWith("/game")) return headerTitle;
+    if (location.pathname.startsWith("/search")) return t("search_results");
 
     return t(pathTitle[location.pathname]);
   }, [location.pathname, headerTitle, t]);
 
   useEffect(() => {
-    if (search && location.pathname !== "/search") {
+    if (search && !location.pathname.startsWith("/search")) {
       dispatch(clearSearch());
     }
   }, [location.pathname, search, dispatch]);

@@ -52,16 +52,14 @@ export const getHowLongToBeatGame = async (id: string) => {
   const $ul = document.querySelector(".shadow_shadow ul");
   const $lis = Array.from($ul.children);
 
-  return $lis.reduce((prev, next) => {
-    const name = next.querySelector("h4").textContent;
-    const [, time] = Array.from((next as HTMLElement).classList);
+  return $lis.map(($li) => {
+    const title = $li.querySelector("h4").textContent;
+    const [, time] = Array.from(($li as HTMLElement).classList);
 
     return {
-      ...prev,
-      [name]: {
-        time: next.querySelector("h5").textContent,
-        color: classNameColor[time as keyof typeof classNameColor],
-      },
+      title,
+      duration: $li.querySelector("h5").textContent,
+      color: classNameColor[time as keyof typeof classNameColor],
     };
-  }, {});
+  });
 };

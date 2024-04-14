@@ -102,3 +102,9 @@ export interface UserPreferences {
   downloadNotificationsEnabled: boolean;
   repackUpdatesNotificationsEnabled: boolean;
 }
+
+export interface HowLongToBeatCategory {
+  title: string;
+  duration: string;
+  color: string;
+}

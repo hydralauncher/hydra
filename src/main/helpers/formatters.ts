@@ -8,7 +8,7 @@ export const removeSymbolsFromName = (name: string) =>
 
 export const removeSpecialEditionFromName = (name: string) =>
   name.replace(
-    /(The |Digital )?(Deluxe|Standard|Ultimate|Definitive|Enhanced|Collector's|Premium|Digital|Limited|Game of the Year) Edition/g,
+    /(The |Digital )?(GOTY|Deluxe|Standard|Ultimate|Definitive|Enhanced|Collector's|Premium|Digital|Limited|Game of the Year|Reloaded|[0-9]{4}) Edition/g,
     ""
   );
 

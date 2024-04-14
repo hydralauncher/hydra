@@ -57,7 +57,13 @@
     "release_date": "Lançado em {{date}}",
     "publisher": "Publicado por {{publisher}}",
     "copy_link_to_clipboard": "Copiar link",
-    "copied_link_to_clipboard": "Link copiado"
+    "copied_link_to_clipboard": "Link copiado",
+    "main_story": "História principal",
+    "main_plus_sides": "Historia principal + extras",
+    "completionist": "Completista",
+    "all_styles": "Tudo",
+    "hours": "horas",
+    "minutes": "minutos"
   },
   "activation": {
     "title": "Ativação",
