@@ -1,0 +1,112 @@
+{
+    "catalogue": {
+      "featured": "En vedette",
+      "recently_added": "Récemment ajouté",
+      "trending": "Tendance",
+      "surprise_me": "✨ Surprenez-moi"
+    },
+    "sidebar": {
+      "catalogue": "Catalogue",
+      "downloads": "Téléchargements",
+      "settings": "Paramètres",
+      "my_library": "Ma bibliothèque",
+      "downloading_metadata": "{{title}} (Téléchargement des métadonnées…)",
+      "checking_files": "{{title}} ({{percentage}} - Vérification des fichiers…)",
+      "paused": "{{title}} (En pause)",
+      "downloading": "{{title}} ({{percentage}} - Téléchargement en cours…)",
+      "filter": "Filtrer la bibliothèque"
+    },
+    "header": {
+      "search": "Recherche",
+      "catalogue": "Catalogue",
+      "downloads": "Téléchargements",
+      "search_results": "Résultats de la recherche",
+      "settings": "Paramètres"
+    },
+    "bottom_panel": {
+      "no_downloads_in_progress": "Aucun téléchargement en cours",
+      "downloading_metadata": "Téléchargement des métadonnées de {{title}}…",
+      "checking_files": "Vérification des fichiers de {{title}}… ({{percentage}} complet)",
+      "downloading": "Téléchargement de {{title}}… ({{percentage}} complet) - Conclusion dans {{eta}} - {{speed}}",
+      "deleting": "Suppression des fichiers…"
+    },
+    "game_details": {
+      "open_download_options": "Ouvrir les options de téléchargement",
+      "download_options_zero": "Aucune option de téléchargement",
+      "download_options_one": "{{count}} option de téléchargement",
+      "download_options_other": "{{count}} options de téléchargement",
+      "updated_at": "Mis à jour le {{updated_at}}",
+      "launch": "Lancer",
+      "resume": "Reprendre",
+      "pause": "Pause",
+      "cancel": "Annuler",
+      "remove": "Supprimer",
+      "space_left_on_disk": "{{space}} restant sur le disque",
+      "eta": "Conclusion dans {{eta}}",
+      "downloading_metadata": "Téléchargement des métadonnées en cours…",
+      "checking_files": "Vérification des fichiers…",
+      "filter": "Filtrer les réductions",
+      "requirements": "Configuration requise",
+      "minimum": "Minimum",
+      "recommended": "Recommandée",
+      "no_minimum_requirements": "{{title}} ne fournit pas d'informations sur les exigences minimales",
+      "no_recommended_requirements": "{{title}} ne fournit pas d'informations sur les exigences recommandées",
+      "paused_progress": "{{progress}} (En pause)",
+      "deleting": "Suppression des fichiers…",
+      "delete": "Supprimer tous les fichiers",
+      "release_date": "Sorti le {{date}}",
+      "publisher": "Édité par {{publisher}}",
+      "copy_link_to_clipboard": "Copier le lien",
+      "copied_link_to_clipboard": "Lien copié"
+    },
+    "activation": {
+      "title": "Activer Hydra",
+      "installation_id": "ID d'installation :",
+      "enter_activation_code": "Entrez votre code d'activation",
+      "message": "Si vous ne savez pas où demander cela, vous ne devriez pas l'avoir.",
+      "activate": "Activer",
+      "loading": "Chargement en cours…"
+    },
+    "downloads": {
+      "launch": "Lancer",
+      "resume": "Reprendre",
+      "pause": "Pause",
+      "eta": "Conclusion dans {{eta}}",
+      "paused": "En pause",
+      "verifying": "Vérification en cours…",
+      "completed_at": "Terminé en {{date}}",
+      "completed": "Terminé",
+      "cancelled": "Annulé",
+      "download_again": "Télécharger à nouveau",
+      "cancel": "Annuler",
+      "filter": "Filtrer les jeux téléchargés",
+      "remove": "Supprimer",
+      "downloading_metadata": "Téléchargement des métadonnées en cours…",
+      "checking_files": "Vérification des fichiers…",
+      "starting_download": "Démarrage du téléchargement…",
+      "deleting": "Suppression des fichiers…",
+      "delete": "Supprimer tous les fichiers"
+    },
+    "settings": {
+      "downloads_path": "Chemin des téléchargements",
+      "change": "Mettre à jour",
+      "notifications": "Notifications",
+      "enable_download_notifications": "Quand un téléchargement est terminé",
+      "enable_repack_list_notifications": "Quand une nouvelle réduction est ajoutée"
+    },
+    "notifications": {
+      "download_complete": "Téléchargement terminé",
+      "game_ready_to_install": "{{title}} est prêt à être installé",
+      "repack_list_updated": "Liste de réductions mise à jour",
+      "repack_count_one": "{{count}} réduction ajoutée",
+      "repack_count_other": "{{count}} réductions ajoutées"
+    },
+    "system_tray": {
+      "open": "Ouvrir Hydra",
+      "quit": "Quitter"
+    },
+    "game_card": {
+      "no_downloads": "Aucun téléchargement disponible"
+    }
+  }
+  
