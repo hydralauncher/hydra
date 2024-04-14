@@ -78,8 +78,8 @@ export const getNewRepacksFromOnlineFix = async (
   const pageParams = page > 1 ? `${`/page/${page}`}` : "";
 
   const home = await http.get(`https://online-fix.me${pageParams}`);
-  const dom = new JSDOM(home.body);
-  const document = dom.window.document;
+  const document = new JSDOM(home.body).window.document;
+
   const repacks: GameRepackInput[] = [];
   const articles = Array.from(document.querySelectorAll(".news"));
 
@@ -100,8 +100,7 @@ export const getNewRepacksFromOnlineFix = async (
           })
           .text();
 
-        const gameDom = new JSDOM(gamePage);
-        const gameDocument = gameDom.window.document;
+        const gameDocument = new JSDOM(gamePage).window.document;
 
         const uploadDateText = gameDocument.querySelector("time").textContent;
 
@@ -144,8 +143,7 @@ export const getNewRepacksFromOnlineFix = async (
           })
           .text();
 
-        const torrentDom = new JSDOM(torrentPage);
-        const torrentDocument = torrentDom.window.document;
+        const torrentDocument = new JSDOM(torrentPage).window.document;
 
         const torrentLink = torrentDocument
           .querySelector("a:nth-child(2)")
