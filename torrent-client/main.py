@@ -24,7 +24,7 @@ def get_eta(status):
     else:
         return 1
 
-def start_download(game_id: int, magnet: str, save_path: str, download_limit = 0, upload_limit = 0):
+def start_download(game_id: int, magnet: str, save_path: str):
     global torrent_handle
     global downloading_game_id
 
@@ -32,16 +32,6 @@ def start_download(game_id: int, magnet: str, save_path: str, download_limit = 0
     torrent_handle = session.add_torrent(params)
     downloading_game_id = game_id
     torrent_handle.set_flags(lt.torrent_flags.auto_managed)
-
-    # Set download and upload limits
-    if download_limit > 0 and upload_limit > 0:
-        torrent_handle.set_download_limit(download_limit*1024)
-        torrent_handle.set_upload_limit(upload_limit*1024)
-    elif download_limit > 0:
-        torrent_handle.set_download_limit(download_limit*1024)
-    elif upload_limit > 0:
-        torrent_handle.set_upload_limit(upload_limit*1024)
-
     torrent_handle.resume()
 
 def pause_download():
@@ -62,7 +52,18 @@ def cancel_download():
         torrent_handle = None
         downloading_game_id = 0
 
-def get_download_updates():
+def get_download_updates(download_limit = 0, upload_limit = 0):
+    global torrent_handle
+
+    # Set download and upload limits
+    if download_limit > 0 and upload_limit > 0:
+        torrent_handle.set_download_limit(download_limit*1024)
+        torrent_handle.set_upload_limit(upload_limit*1024)
+    elif download_limit > 0:
+        torrent_handle.set_download_limit(download_limit*1024)
+    elif upload_limit > 0:
+        torrent_handle.set_upload_limit(upload_limit*1024)
+    
     while True:
         if downloading_game_id == 0:
             time.sleep(0.5)
