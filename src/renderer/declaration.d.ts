@@ -39,6 +39,11 @@ declare global {
       language: string
     ) => Promise<ShopDetails | null>;
     getRandomGame: () => Promise<string>;
+    getHowLongToBeat: (
+      objectID: string,
+      shop: GameShop,
+      title: string
+    ) => Promise<Record<string, { time: string; color: string }> | null>;
 
     /* Library */
     getLibrary: () => Promise<Game[]>;

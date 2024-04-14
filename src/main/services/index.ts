@@ -8,3 +8,4 @@ export * from "./update-resolver";
 export * from "./window-manager";
 export * from "./fifo";
 export * from "./torrent-client";
+export * from "./how-long-to-beat";

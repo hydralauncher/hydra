@@ -25,8 +25,6 @@ export const searchSlice = createSlice({
     },
     clearSearch: (state) => {
       state.value = "";
-      state.results = [];
-      state.isLoading = false;
     },
     setSearchResults: (state, action: PayloadAction<CatalogueEntry[]>) => {
       state.isLoading = false;
