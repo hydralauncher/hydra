@@ -3,7 +3,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import Color from "color";
 import { average } from "color.js";
 
-import type { Game, GameShop, ShopDetails, SteamAppDetails } from "@types";
+import type {
+  Game,
+  GameShop,
+  HowLongToBeatCategory,
+  ShopDetails,
+  SteamAppDetails,
+} from "@types";
 
 import { AsyncImage, Button } from "@renderer/components";
 import { setHeaderTitle } from "@renderer/features";
@@ -15,6 +21,7 @@ import { RepacksModal } from "./repacks-modal";
 import { HeroPanel } from "./hero-panel";
 import { useTranslation } from "react-i18next";
 import { ShareAndroidIcon } from "@primer/octicons-react";
+import { HowLongToBeatSection } from "./how-long-to-beat-section";
 
 const OPEN_HYDRA_URL = "https://open.hydralauncher.site";
 
@@ -24,6 +31,11 @@ export function GameDetails() {
   const [color, setColor] = useState("");
   const [clipboardLock, setClipboardLock] = useState(false);
   const [gameDetails, setGameDetails] = useState<ShopDetails | null>(null);
+  const [howLongToBeat, setHowLongToBeat] = useState<{
+    isLoading: boolean;
+    data: HowLongToBeatCategory[] | null;
+  }>({ isLoading: true, data: null });
+
   const [game, setGame] = useState<Game | null>(null);
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
@@ -67,11 +79,19 @@ export function GameDetails() {
           return;
         }
 
+        window.electron
+          .getHowLongToBeat(objectID, "steam", result.name)
+          .then((data) => {
+            setHowLongToBeat({ isLoading: false, data });
+          });
+
         setGameDetails(result);
         dispatch(setHeaderTitle(result.name));
       });
 
     getGame();
+    setHowLongToBeat({ isLoading: true, data: null });
+    setClipboardLock(false);
   }, [getGame, dispatch, navigate, objectID, i18n.language]);
 
   const handleCopyToClipboard = () => {
@@ -84,12 +104,12 @@ export function GameDetails() {
           shop,
           encodeURIComponent(gameDetails?.name),
           i18n.language,
-        ])
+        ]),
       ),
     });
 
     navigator.clipboard.writeText(
-      OPEN_HYDRA_URL + `/?${searchParams.toString()}`
+      OPEN_HYDRA_URL + `/?${searchParams.toString()}`,
     );
 
     const zero = performance.now();
@@ -115,7 +135,7 @@ export function GameDetails() {
       repackId,
       gameDetails.objectID,
       gameDetails.name,
-      shop as GameShop
+      shop as GameShop,
     ).then(() => {
       getGame();
       setShowRepacksModal(false);
@@ -196,8 +216,17 @@ export function GameDetails() {
               className={styles.description}
             />
           </div>
-          <div className={styles.requirements}>
-            <div className={styles.requirementsHeader}>
+
+          <div className={styles.contentSidebar}>
+            <HowLongToBeatSection
+              howLongToBeatData={howLongToBeat.data}
+              isLoading={howLongToBeat.isLoading}
+            />
+
+            <div
+              className={styles.contentSidebarTitle}
+              style={{ border: "none" }}
+            >
               <h3>{t("requirements")}</h3>
             </div>
 

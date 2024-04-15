@@ -57,7 +57,10 @@
     "release_date": "Lançado em {{date}}",
     "publisher": "Publicado por {{publisher}}",
     "copy_link_to_clipboard": "Copiar link",
-    "copied_link_to_clipboard": "Link copiado"
+    "copied_link_to_clipboard": "Link copiado",
+    "hours": "horas",
+    "minutes": "minutos",
+    "accuracy": "{{accuracy}}% de precisão"
   },
   "activation": {
     "title": "Ativação",
