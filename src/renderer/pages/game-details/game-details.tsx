@@ -104,12 +104,12 @@ export function GameDetails() {
           shop,
           encodeURIComponent(gameDetails?.name),
           i18n.language,
-        ]),
+        ])
       ),
     });
 
     navigator.clipboard.writeText(
-      OPEN_HYDRA_URL + `/?${searchParams.toString()}`,
+      OPEN_HYDRA_URL + `/?${searchParams.toString()}`
     );
 
     const zero = performance.now();
@@ -135,7 +135,7 @@ export function GameDetails() {
       repackId,
       gameDetails.objectID,
       gameDetails.name,
-      shop as GameShop,
+      shop as GameShop
     ).then(() => {
       getGame();
       setShowRepacksModal(false);

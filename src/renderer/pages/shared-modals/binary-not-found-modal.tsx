@@ -1,4 +1,4 @@
-import { Modal } from "@renderer/components"
+import { Modal } from "@renderer/components";
 import { useTranslation } from "react-i18next";
 
 interface BinaryNotFoundModalProps {
@@ -8,12 +8,12 @@ interface BinaryNotFoundModalProps {
 
 export const BinaryNotFoundModal = ({
   visible,
-  onClose
+  onClose,
 }: BinaryNotFoundModalProps) => {
   const { t } = useTranslation("binary_not_found_modal");
 
   return (
-    <Modal 
+    <Modal
       visible={visible}
       title={t("title")}
       description={t("description")}
@@ -21,5 +21,5 @@ export const BinaryNotFoundModal = ({
     >
       {t("instructions")}
     </Modal>
-  )
-}
+  );
+};

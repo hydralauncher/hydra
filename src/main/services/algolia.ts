@@ -14,17 +14,24 @@ export interface AlgoliaSearchParams {
 }
 
 export const getSteamDBAlgoliaCredentials = async () => {
+  const searchParams = new URLSearchParams({
+    t: new Date().getTime().toString(),
+  });
+
   const js = await requestWebPage(
-    "https://steamdb.info/static/js/instantsearch.js"
+    `https://steamdb.info/static/js/instantsearch.js?${searchParams.toString()}`
   );
 
   const algoliaCredentialsRegExp = new RegExp(
-    /algoliasearch\("(.*?)","(.*?)"\);/
+    /algoliasearch\("(.*?)",atob\("(.*?)"\)\);/
   );
 
-  const [, applicationId, apiKey] = algoliaCredentialsRegExp.exec(js);
+  const [, applicationId, encodedApiKey] = algoliaCredentialsRegExp.exec(js);
 
-  return { applicationId, apiKey };
+  return {
+    applicationId,
+    apiKey: Buffer.from(encodedApiKey, "base64").toString("utf-8"),
+  };
 };
 
 export const searchAlgolia = async <T>(
