@@ -4,16 +4,16 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import type { Game } from "@types";
 
-import { useDownload, useLibrary } from "@renderer/hooks";
 import { AsyncImage, TextField } from "@renderer/components";
+import { useDownload, useLibrary } from "@renderer/hooks";
 import { SPACING_UNIT } from "@renderer/theme.css";
 
-import * as styles from "./sidebar.css";
 import { routes } from "./routes";
+import * as styles from "./sidebar.css";
 
 const SIDEBAR_MIN_WIDTH = 200;
-const SIDEBAR_INITIAL_WIDTH = 250;
-const SIDEBAR_MAX_WIDTH = 450;
+const SIDEBAR_INITIAL_WIDTH = 270;
+const SIDEBAR_MAX_WIDTH = 400;
 
 const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 
