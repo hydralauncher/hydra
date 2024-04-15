@@ -1,7 +1,7 @@
 {
   "name": "hydra",
   "productName": "Hydra",
-  "version": "1.0.0+steamdb-rotation",
+  "version": "1.0.1",
   "description": "No bullshit. Just play.",
   "main": ".webpack/main",
   "repository": {
