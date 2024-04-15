@@ -17,10 +17,10 @@ export function DeleteModal({
 }: DeleteModalProps) {
   const { t } = useTranslation("game_details");
 
-  function handleDeleteGame() {
+  const handleDeleteGame = () => {
     deleteGame();
     onClose();
-  }
+  };
 
   return (
     <Modal
