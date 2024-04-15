@@ -1,7 +1,7 @@
 {
   "name": "hydra",
   "productName": "Hydra",
-  "version": "1.0.0+steamdb-rotation",
+  "version": "1.0.1",
   "description": "No bullshit. Just play.",
   "main": ".webpack/main",
   "repository": {
@@ -16,7 +16,8 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "format": "prettier . --write"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.3.0",
@@ -43,6 +44,7 @@
     "@typescript-eslint/parser": "^7.3.1",
     "@vanilla-extract/webpack-plugin": "^2.3.7",
     "@vercel/webpack-asset-relocator-loader": "1.7.3",
+    "@vitejs/plugin-react-swc": "^3.6.0",
     "css-loader": "^6.0.0",
     "dotenv-webpack": "^8.1.0",
     "electron": "29.1.4",
@@ -52,25 +54,26 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "fork-ts-checker-webpack-plugin": "^7.2.13",
     "node-loader": "^2.0.0",
+    "prettier": "^3.2.5",
     "style-loader": "^3.0.0",
     "ts-loader": "^9.2.2",
     "ts-node": "^10.0.0",
     "tsconfig-paths": "^4.2.0",
     "tsconfig-paths-webpack-plugin": "^4.1.0",
-    "typescript": "^5.4.3"
+    "typescript": "^5.4.3",
+    "vite-plugin-svgr": "^4.2.0",
+    "vite-tsconfig-paths": "^4.3.2"
   },
   "keywords": [],
   "license": "MIT",
   "dependencies": {
     "@fontsource/fira-mono": "^5.0.12",
     "@fontsource/fira-sans": "^5.0.19",
-    "@msgpack/msgpack": "^3.0.0-beta2",
     "@primer/octicons-react": "^19.8.0",
     "@reduxjs/toolkit": "^2.2.2",
     "@vanilla-extract/css": "^1.14.1",
     "@vanilla-extract/recipes": "^0.5.2",
     "@vanilla-extract/vite-plugin": "^4.0.6",
-    "@vitejs/plugin-react-swc": "^3.6.0",
     "axios": "^1.6.8",
     "check-disk-space": "^3.4.0",
     "classnames": "^2.5.1",
@@ -92,12 +95,10 @@
     "react-redux": "^9.1.0",
     "react-router-dom": "^6.22.3",
     "sqlite3": "^5.1.7",
-    "systeminformation": "^5.22.3",
     "typeorm": "^0.3.20",
     "update-electron-app": "^3.0.0",
     "uuid": "^9.0.1",
-    "vite-plugin-svgr": "^4.2.0",
-    "vite-tsconfig-paths": "^4.3.2",
-    "winston": "^3.12.0"
+    "winston": "^3.12.0",
+    "yaml": "^2.4.1"
   }
 }

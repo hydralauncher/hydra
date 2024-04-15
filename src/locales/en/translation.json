@@ -58,7 +58,10 @@
     "release_date": "Released in {{date}}",
     "publisher": "Published by {{publisher}}",
     "copy_link_to_clipboard": "Copy link",
-    "copied_link_to_clipboard": "Link copied"
+    "copied_link_to_clipboard": "Link copied",
+    "hours": "hours",
+    "minutes": "minutes",
+    "accuracy": "{{accuracy}}% accuracy"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -108,5 +111,10 @@
   },
   "game_card": {
     "no_downloads": "No downloads available"
+  },
+  "binary_not_found_modal": {
+    "title": "Programs not installed",
+    "description": "Wine or Lutris executables were not found on your system",
+    "instructions": "Check the correct way to install any of them on your Linux distro so that the game can run normally"
   }
 }

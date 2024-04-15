@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import prettyBytes from "pretty-bytes";
 import { format } from "date-fns";
@@ -9,6 +9,7 @@ import type { Game, ShopDetails } from "@types";
 
 import * as styles from "./hero-panel.css";
 import { formatDownloadProgress } from "@renderer/helpers";
+import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 
 export interface HeroPanelProps {
   game: Game | null;
@@ -26,6 +27,8 @@ export function HeroPanel({
   getGame,
 }: HeroPanelProps) {
   const { t } = useTranslation("game_details");
+
+  const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
 
   const {
     game: gameDownloading,
@@ -46,7 +49,8 @@ export function HeroPanel({
   const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
   const openGame = (gameId: number) =>
-    window.electron.openGame(gameId).then(() => {
+    window.electron.openGame(gameId).then((isBinaryInPath) => {
+      if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
       updateLibrary();
     });
 
@@ -202,6 +206,10 @@ export function HeroPanel({
 
   return (
     <div style={{ backgroundColor: color }} className={styles.panel}>
+      <BinaryNotFoundModal
+        visible={showBinaryNotFoundModal}
+        onClose={() => setShowBinaryNotFoundModal(false)}
+      />
       <div className={styles.content}>{getInfo()}</div>
       <div className={styles.actions}>{getActions()}</div>
     </div>
