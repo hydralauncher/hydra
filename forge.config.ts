@@ -39,13 +39,13 @@ const config: ForgeConfig = {
     new MakerRpm({
       options: {
         mimeType: ["x-scheme-handler/hydralauncher"],
-        bin: './Hydra'
+        bin: "./Hydra",
       },
     }),
     new MakerDeb({
       options: {
         mimeType: ["x-scheme-handler/hydralauncher"],
-        bin: './Hydra'
+        bin: "./Hydra",
       },
     }),
   ],

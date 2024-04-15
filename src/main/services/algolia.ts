@@ -19,11 +19,11 @@ export const getSteamDBAlgoliaCredentials = async () => {
   });
 
   const js = await requestWebPage(
-    `https://steamdb.info/static/js/instantsearch.js?${searchParams.toString()}`,
+    `https://steamdb.info/static/js/instantsearch.js?${searchParams.toString()}`
   );
 
   const algoliaCredentialsRegExp = new RegExp(
-    /algoliasearch\("(.*?)",atob\("(.*?)"\)\);/,
+    /algoliasearch\("(.*?)",atob\("(.*?)"\)\);/
   );
 
   const [, applicationId, encodedApiKey] = algoliaCredentialsRegExp.exec(js);
@@ -35,7 +35,7 @@ export const getSteamDBAlgoliaCredentials = async () => {
 };
 
 export const searchAlgolia = async <T>(
-  params: AlgoliaSearchParams,
+  params: AlgoliaSearchParams
 ): Promise<AlgoliaResponse<T>> => {
   const algoliaCredentials = stateManager.getValue("steamDBAlgoliaCredentials");
 
@@ -55,7 +55,7 @@ export const searchAlgolia = async <T>(
       }?${searchParams.toString()}`,
       {
         headers: params.headers,
-      },
+      }
     )
     .then((response) => response.data);
 };

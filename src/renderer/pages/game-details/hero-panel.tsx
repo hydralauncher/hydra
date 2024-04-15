@@ -49,7 +49,7 @@ export function HeroPanel({
   const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
   const openGame = (gameId: number) =>
-    window.electron.openGame(gameId).then(isBinaryInPath => {
+    window.electron.openGame(gameId).then((isBinaryInPath) => {
       if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
       updateLibrary();
     });
@@ -206,7 +206,10 @@ export function HeroPanel({
 
   return (
     <div style={{ backgroundColor: color }} className={styles.panel}>
-      <BinaryNotFoundModal visible={showBinaryNotFoundModal} onClose={() => setShowBinaryNotFoundModal(false)} />
+      <BinaryNotFoundModal
+        visible={showBinaryNotFoundModal}
+        onClose={() => setShowBinaryNotFoundModal(false)}
+      />
       <div className={styles.content}>{getInfo()}</div>
       <div className={styles.actions}>{getActions()}</div>
     </div>

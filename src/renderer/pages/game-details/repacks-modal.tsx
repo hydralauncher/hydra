@@ -56,8 +56,8 @@ export function RepacksModal({
       gameDetails.repacks.filter((repack) =>
         repack.title
           .toLowerCase()
-          .includes(event.target.value.toLocaleLowerCase()),
-      ),
+          .includes(event.target.value.toLocaleLowerCase())
+      )
     );
   };
 
