@@ -6,11 +6,15 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
-        os: [windows-latest]
+        os:
+          [
+            { name: windows-latest, build_path: out/Hydra-win32-x64 },
+            { name: ubuntu-latest, build_path: out/Hydra-linux-x64 },
+          ]
+
+    runs-on: ${{ matrix.os.name }}
 
     steps:
       - name: Check out Git repository
@@ -48,4 +52,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Build
-          path: out/Hydra-win32-x64
+          path: ${{ matrix.os.build_path }}
