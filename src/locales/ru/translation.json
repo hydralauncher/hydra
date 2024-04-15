@@ -1,0 +1,119 @@
+{
+  "catalogue": {
+    "featured": "Рекомендуемые",
+    "recently_added": "Новые",
+    "trending": "Популярные",
+    "surprise_me": "✨ Случайная"
+  },
+  "sidebar": {
+    "catalogue": "Каталог",
+    "downloads": "Загрузки",
+    "settings": "Настройки",
+    "my_library": "Библиотека",
+    "downloading_metadata": "{{title}} (Скачивание метаданных…)",
+    "checking_files": "{{title}} ({{percentage}} - Проверка файлов…)",
+    "paused": "{{title}} (Приостановлено)",
+    "downloading": "{{title}} ({{percentage}} - Скачивание…)",
+    "filter": "Фильтр библиотеки"
+  },
+  "header": {
+    "search": "Поиск",
+    "catalogue": "Каталог",
+    "downloads": "Загрузки",
+    "search_results": "Результаты поиска",
+    "settings": "Настройки"
+  },
+  "bottom_panel": {
+    "no_downloads_in_progress": "Скачиваний не выполняется",
+    "downloading_metadata": "Скачивание метаданных {{title}}…",
+    "checking_files": "({{percentage}}) Проверка файлов {{title}}…",
+    "downloading": "({{percentage}}) Скачивание {{title}}… Будет готово {{eta}} - {{speed}}",
+    "deleting": "Удаление файлов…"
+  },
+  "game_details": {
+    "open_download_options": "Открыть параметры загрузки",
+    "download_options_zero": "Нет вариантов для скачивания",
+    "download_options_one": "{{count}} вариант для скачивания",
+    "download_options_other": "Вариантов для скачивания {{count}}",
+    "updated_at": "Последнее обновление: {{updated_at}}",
+    "launch": "Запустить",
+    "resume": "Возобновить",
+    "pause": "Приостановить",
+    "cancel": "Отмена",
+    "remove": "Удалить",
+    "space_left_on_disk": "На диске осталось {{space}}",
+    "eta": "Будет готово {{eta}}",
+    "downloading_metadata": "Скачивание метаданных…",
+    "checking_files": "Проверка файлов…",
+    "filter": "Фильтр репаков",
+    "requirements": "Системные требования",
+    "minimum": "Минимальные",
+    "recommended": "Рекомендуемые",
+    "no_minimum_requirements": "У {{title}} не предоставлено информации о минимальных требованиях",
+    "no_recommended_requirements": "У {{title}} не предоставлено информации о рекомендуемых требованиях",
+    "paused_progress": "{{progress}} (Приостановлено)",
+    "deleting": "Удаление файлов…",
+    "delete": "Удалить все файлы",
+    "release_date": "Дата выхода: {{date}}",
+    "publisher": "Разработчик: {{publisher}}",
+    "copy_link_to_clipboard": "Копировать ссылку",
+    "copied_link_to_clipboard": "Ссылка скопирована",
+    "hours": "ч.",
+    "minutes": "мин.",
+    "accuracy": "точность {{accuracy}}%"
+  },
+  "activation": {
+    "title": "Активировать Hydra",
+    "installation_id": "ID установки:",
+    "enter_activation_code": "Введите код активации",
+    "message": "Если вы не знаете где его взять, значит вам это не нужно.",
+    "activate": "Активировать",
+    "loading": "Загрузка…"
+  },
+  "downloads": {
+    "launch": "Запустить",
+    "resume": "Возобновить",
+    "pause": "Приостановить",
+    "eta": "Будет готово {{eta}}",
+    "paused": "Приостановлено",
+    "verifying": "Проверка…",
+    "completed_at": "Завершено {{date}}",
+    "completed": "Завершено",
+    "cancelled": "Отменено",
+    "download_again": "Скачать заново",
+    "cancel": "Отмена",
+    "filter": "Фильтр скачанных игр",
+    "remove": "Удалить",
+    "downloading_metadata": "Скачивание метаданных…",
+    "checking_files": "Проверка файлов…",
+    "starting_download": "Запуск скачивания…",
+    "deleting": "Удаление файлов…",
+    "delete": "Удалить все файлы"
+  },
+  "settings": {
+    "downloads_path": "Папка для скачивания",
+    "change": "Обновить",
+    "notifications": "Уведомлять",
+    "enable_download_notifications": "Когда скачивание завершено",
+    "enable_repack_list_notifications": "Когда добавлен новый репак"
+  },
+  "notifications": {
+    "download_complete": "Скачивание завершено",
+    "game_ready_to_install": "Игра {{title}} готова к установке",
+    "repack_list_updated": "Список репаков обновлён",
+    "repack_count_one": "{{count}} репак добавлен",
+    "repack_count_other": "Добалвено репаков: {{count}}"
+  },
+  "system_tray": {
+    "open": "Открыть Hydra",
+    "quit": "Выйти"
+  },
+  "game_card": {
+    "no_downloads": "Нет доступных скачиваний"
+  },
+  "binary_not_found_modal": {
+    "title": "Программа не установлена",
+    "description": "В вашей системе не обнаружены исполняемые файлы Wine или Lutris",
+    "instructions": "Проверьте как правильно установить любой из них на ваш дистрибутив Linux, чтобы игра могла нормально запускаться"
+  }
+}
