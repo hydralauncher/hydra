@@ -19,7 +19,7 @@ export function Downloads() {
   const navigate = useNavigate();
 
   const [filteredLibrary, setFilteredLibrary] = useState<Game[]>([]);
-  const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState<boolean>(false);
+  const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
 
   const {
     game: gameDownloading,
@@ -39,8 +39,8 @@ export function Downloads() {
   }, [library]);
 
   const openGame = (gameId: number) =>
-    window.electron.openGame(gameId).then(res => {
-      if (!res) setShowBinaryNotFoundModal(true);
+    window.electron.openGame(gameId).then(isBinaryInPath => {
+      if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
       updateLibrary();
     });
 
