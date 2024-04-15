@@ -93,6 +93,8 @@ out/
 
 .vscode/
 
+.venv
+
 dev.db
 
 __pycache__
