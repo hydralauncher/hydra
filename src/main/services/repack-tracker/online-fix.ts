@@ -22,8 +22,6 @@ export const getNewRepacksFromOnlineFix = async (
     process.env.ONLINEFIX_USERNAME && process.env.ONLINEFIX_PASSWORD;
   if (!hasCredentials) return;
 
-  console.log(`getting online fix page: ${page}`);
-
   const http = gotScraping.extend({
     headerGeneratorOptions: {
       browsers: [
@@ -191,8 +189,6 @@ export const getNewRepacksFromOnlineFix = async (
         (existingRepack) => existingRepack.title === repack.title
       )
   );
-
-  console.log(`${newRepacks.length} new repacks added at page ${page}`);
 
   if (page === totalPages) return;
 
