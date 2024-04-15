@@ -1,14 +1,16 @@
-import { useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import prettyBytes from "pretty-bytes";
 import { format } from "date-fns";
+import prettyBytes from "pretty-bytes";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
 import type { Game, ShopDetails } from "@types";
 
-import * as styles from "./hero-panel.css";
 import { formatDownloadProgress } from "@renderer/helpers";
+import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
+import { DeleteModal } from "./delete-modal";
+import * as styles from "./hero-panel.css";
 
 export interface HeroPanelProps {
   game: Game | null;
@@ -27,6 +29,8 @@ export function HeroPanel({
 }: HeroPanelProps) {
   const { t } = useTranslation("game_details");
 
+  const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
+
   const {
     game: gameDownloading,
     isDownloading,
@@ -43,10 +47,13 @@ export function HeroPanel({
   } = useDownload();
   const { updateLibrary } = useLibrary();
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
   const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
   const openGame = (gameId: number) =>
-    window.electron.openGame(gameId).then(() => {
+    window.electron.openGame(gameId).then((isBinaryInPath) => {
+      if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
       updateLibrary();
     });
 
@@ -161,13 +168,21 @@ export function HeroPanel({
           >
             {t("launch")}
           </Button>
+
           <Button
-            onClick={() => deleteGame(game.id).then(getGame)}
+            onClick={() => setShowDeleteModal(true)}
             theme="outline"
             disabled={deleting}
           >
             {t("delete")}
           </Button>
+
+          <DeleteModal
+            visible={showDeleteModal}
+            onClose={() => setShowDeleteModal(false)}
+            deleting={deleting}
+            deleteGame={() => deleteGame(game.id).then(getGame)}
+          />
         </>
       );
     }
@@ -187,7 +202,7 @@ export function HeroPanel({
             theme="outline"
             disabled={deleting}
           >
-            {t("remove")}
+            {t("remove_from_list")}
           </Button>
         </>
       );
@@ -202,6 +217,10 @@ export function HeroPanel({
 
   return (
     <div style={{ backgroundColor: color }} className={styles.panel}>
+      <BinaryNotFoundModal
+        visible={showBinaryNotFoundModal}
+        onClose={() => setShowBinaryNotFoundModal(false)}
+      />
       <div className={styles.content}>{getInfo()}</div>
       <div className={styles.actions}>{getActions()}</div>
     </div>

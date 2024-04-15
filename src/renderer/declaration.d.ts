@@ -6,6 +6,7 @@ import type {
   TorrentProgress,
   ShopDetails,
   UserPreferences,
+  HowLongToBeatCategory,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -39,11 +40,16 @@ declare global {
       language: string
     ) => Promise<ShopDetails | null>;
     getRandomGame: () => Promise<string>;
+    getHowLongToBeat: (
+      objectID: string,
+      shop: GameShop,
+      title: string
+    ) => Promise<HowLongToBeatCategory[] | null>;
 
     /* Library */
     getLibrary: () => Promise<Game[]>;
     getRepackersFriendlyNames: () => Promise<Record<string, string>>;
-    openGame: (gameId: number) => Promise<void>;
+    openGame: (gameId: number) => Promise<boolean>;
     removeGame: (gameId: number) => Promise<void>;
     deleteGameFolder: (gameId: number) => Promise<unknown>;
     getGameByObjectID: (objectID: string) => Promise<Game | null>;

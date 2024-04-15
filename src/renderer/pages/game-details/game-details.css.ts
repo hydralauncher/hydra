@@ -65,30 +65,33 @@ export const descriptionContent = style({
   height: "100%",
 });
 
-export const requirements = style({
+export const contentSidebar = style({
   borderLeft: `solid 1px ${vars.color.borderColor};`,
   width: "100%",
   height: "100%",
   "@media": {
     "(min-width: 768px)": {
+      width: "100%",
       maxWidth: "200px",
-      width: "200px",
-      minWidth: "200px",
     },
     "(min-width: 1024px)": {
-      maxWidth: "325px",
-      width: "325px",
-      minWidth: "325px",
+      maxWidth: "300px",
+      width: "100%",
+    },
+    "(min-width: 1280px)": {
+      width: "100%",
+      maxWidth: "400px",
     },
   },
 });
 
-export const requirementsHeader = style({
-  height: "71px",
+export const contentSidebarTitle = style({
+  height: "72px",
   padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
   display: "flex",
   alignItems: "center",
   backgroundColor: vars.color.background,
+  borderBottom: `solid 1px ${vars.color.borderColor}`,
 });
 
 export const requirementButtonContainer = style({
@@ -105,7 +108,7 @@ export const requirementButton = style({
 });
 
 export const requirementsDetails = style({
-  padding: `${SPACING_UNIT * 3}px ${SPACING_UNIT * 2}px`,
+  padding: `${SPACING_UNIT * 2}px`,
   lineHeight: "22px",
   fontFamily: "'Fira Sans', sans-serif",
   fontSize: "16px",
@@ -117,6 +120,14 @@ export const description = style({
   fontFamily: "'Fira Sans', sans-serif",
   fontSize: "16px",
   padding: `${SPACING_UNIT * 3}px ${SPACING_UNIT * 2}px`,
+  "@media": {
+    "(min-width: 1280px)": {
+      width: "60%",
+    },
+  },
+  width: "100%",
+  marginLeft: "auto",
+  marginRight: "auto",
 });
 
 export const descriptionHeader = style({
@@ -137,19 +148,46 @@ export const descriptionHeaderInfo = style({
   fontSize: vars.size.bodyFontSize,
 });
 
+export const howLongToBeatCategoriesList = style({
+  margin: "0",
+  padding: "16px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "16px",
+});
+
+export const howLongToBeatCategory = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: "4px",
+  backgroundColor: vars.color.background,
+  borderRadius: "8px",
+  padding: `8px 16px`,
+  border: `solid 1px ${vars.color.borderColor}`,
+});
+
+export const howLongToBeatCategoryLabel = style({
+  fontSize: vars.size.bodyFontSize,
+  color: "#DADBE1",
+});
+
+export const howLongToBeatCategorySkeleton = style({
+  border: `solid 1px ${vars.color.borderColor}`,
+  borderRadius: "8px",
+  height: "76px",
+});
+
 globalStyle(".bb_tag", {
   marginTop: `${SPACING_UNIT * 2}px`,
   marginBottom: `${SPACING_UNIT * 2}px`,
 });
 
 globalStyle(`${description} img`, {
-  borderRadius: 5,
+  borderRadius: "5px",
   marginTop: `${SPACING_UNIT}px`,
-  marginBottom: `${SPACING_UNIT}px`,
-  marginLeft: "auto",
-  marginRight: "auto",
+  marginBottom: `${SPACING_UNIT * 3}px`,
   display: "block",
-  maxWidth: "100%",
+  width: "100%",
   boxShadow: "0px 0px 15px 0px #000000",
 });
 

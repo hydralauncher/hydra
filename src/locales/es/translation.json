@@ -3,7 +3,8 @@
     "featured": "Destacado",
     "recently_added": "Recién Añadidos",
     "trending": "Tendencias",
-    "surprise_me": "✨ ¡Sorpréndeme!"
+    "surprise_me": "✨ ¡Sorpréndeme!",
+    "no_results": "No se encontraron resultados"
   },
   "sidebar": {
     "catalogue": "Catálogo",
@@ -41,6 +42,7 @@
     "pause": "Pausa",
     "cancel": "Cancelar",
     "remove": "Eliminar",
+    "remove_from_list": "Quitar de la lista",
     "space_left_on_disk": "{{space}} restantes en el disco",
     "eta": "Finalizando {{eta}}",
     "downloading_metadata": "Descargando metadatos…",
@@ -57,7 +59,12 @@
     "release_date": "Fecha de lanzamiento {{date}}",
     "publisher": "Publicado por {{publisher}}",
     "copy_link_to_clipboard": "Copiar enlace",
-    "copied_link_to_clipboard": "Enlace copiado"
+    "copied_link_to_clipboard": "Enlace copiado",
+    "hours": "horas",
+    "minutes": "minutos",
+    "accuracy": "{{accuracy}}% precisión",
+    "delete_modal_title": "¿Estás seguro de esto?",
+    "delete_modal_description": "Esto eliminará todos los archivos del juego de tu sistema"
   },
   "activation": {
     "title": "Activar Hydra",
@@ -107,5 +114,10 @@
   },
   "game_card": {
     "no_downloads": "No hay descargas disponibles"
+  },
+  "binary_not_found_modal": {
+    "title": "Programas no instalados",
+    "description": "Los ejecutables de Wine o Lutris no se encontraron en su sistema",
+    "instructions": "Comprueba la forma correcta de instalar cualquiera de ellos en tu distro Linux para que el juego pueda ejecutarse con normalidad"
   }
 }

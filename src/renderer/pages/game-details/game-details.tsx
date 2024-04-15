@@ -3,7 +3,13 @@ import { average } from "color.js";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import type { Game, GameShop, ShopDetails, SteamAppDetails } from "@types";
+import type {
+  Game,
+  GameShop,
+  HowLongToBeatCategory,
+  ShopDetails,
+  SteamAppDetails,
+} from "@types";
 
 import { AsyncImage, Button } from "@renderer/components";
 import { setHeaderTitle } from "@renderer/features";
@@ -18,6 +24,10 @@ import { GameDetailsSkeleton } from "./game-details-skeleton";
 import * as styles from "./game-details.css";
 import { HeroPanel } from "./hero-panel";
 import { RepacksModal } from "./repacks-modal";
+import { HeroPanel } from "./hero-panel";
+import { useTranslation } from "react-i18next";
+import { ShareAndroidIcon } from "@primer/octicons-react";
+import { HowLongToBeatSection } from "./how-long-to-beat-section";
 
 const OPEN_HYDRA_URL = "https://open.hydralauncher.site";
 
@@ -28,6 +38,11 @@ export function GameDetails() {
   const [color, setColor] = useState("");
   const [clipboardLock, setClipboardLock] = useState(false);
   const [gameDetails, setGameDetails] = useState<ShopDetails | null>(null);
+  const [howLongToBeat, setHowLongToBeat] = useState<{
+    isLoading: boolean;
+    data: HowLongToBeatCategory[] | null;
+  }>({ isLoading: true, data: null });
+
   const [game, setGame] = useState<Game | null>(null);
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
@@ -71,6 +86,13 @@ export function GameDetails() {
           navigate(-1);
           return;
         }
+
+        window.electron
+          .getHowLongToBeat(objectID, "steam", result.name)
+          .then((data) => {
+            setHowLongToBeat({ isLoading: false, data });
+          });
+
         setGameDetails(result);
         dispatch(setHeaderTitle(result.name));
       })
@@ -79,6 +101,8 @@ export function GameDetails() {
       });
 
     getGame();
+    setHowLongToBeat({ isLoading: true, data: null });
+    setClipboardLock(false);
   }, [getGame, dispatch, navigate, objectID, i18n.language]);
 
   const handleCopyToClipboard = () => {
@@ -199,17 +223,26 @@ export function GameDetails() {
                 </Button>
               </div>
 
-              <div
-                dangerouslySetInnerHTML={{
-                  __html: gameDetails?.about_the_game ?? "",
-                }}
-                className={styles.description}
-              />
+            <div
+              dangerouslySetInnerHTML={{
+                __html: gameDetails?.about_the_game ?? "",
+              }}
+              className={styles.description}
+            />
+          </div>
+
+          <div className={styles.contentSidebar}>
+            <HowLongToBeatSection
+              howLongToBeatData={howLongToBeat.data}
+              isLoading={howLongToBeat.isLoading}
+            />
+
+            <div
+              className={styles.contentSidebarTitle}
+              style={{ border: "none" }}
+            >
+              <h3>{t("requirements")}</h3>
             </div>
-            <div className={styles.requirements}>
-              <div className={styles.requirementsHeader}>
-                <h3>{t("requirements")}</h3>
-              </div>
 
               <div className={styles.requirementButtonContainer}>
                 <Button

@@ -3,7 +3,8 @@
     "featured": "Destaque",
     "recently_added": "Novidades",
     "trending": "Populares",
-    "surprise_me": "✨ Me surpreenda"
+    "surprise_me": "✨ Me surpreenda",
+    "no_results": "Nenhum resultado encontrado"
   },
   "sidebar": {
     "catalogue": "Catálogo",
@@ -41,6 +42,7 @@
     "pause": "Pausar",
     "cancel": "Cancelar",
     "remove": "Remover",
+    "remove_from_list": "Remover da lista",
     "space_left_on_disk": "{{space}} livres em disco",
     "eta": "Conclusão {{eta}}",
     "downloading_metadata": "Baixando metadados…",
@@ -57,7 +59,12 @@
     "release_date": "Lançado em {{date}}",
     "publisher": "Publicado por {{publisher}}",
     "copy_link_to_clipboard": "Copiar link",
-    "copied_link_to_clipboard": "Link copiado"
+    "copied_link_to_clipboard": "Link copiado",
+    "hours": "horas",
+    "minutes": "minutos",
+    "accuracy": "{{accuracy}}% de precisão",
+    "delete_modal_title": "Tem certeza disso?",
+    "delete_modal_description": "Isso apagará todos os arquivos do jogo do seu sistema"
   },
   "activation": {
     "title": "Ativação",
@@ -107,5 +114,10 @@
   },
   "game_card": {
     "no_downloads": "Sem downloads disponíveis"
+  },
+  "binary_not_found_modal": {
+    "title": "Programas não instalados",
+    "description": "Não foram encontrados no seu sistema os executáveis do Wine ou Lutris",
+    "instructions": "Verifique a forma correta de instalar algum deles na sua distro Linux para que o jogo possa ser executado normalmente"
   }
 }
