@@ -12,15 +12,12 @@ import {
 import * as styles from "./app.css";
 import { themeClass } from "./theme.css";
 
-import debounce from "lodash/debounce";
-import type { DebouncedFunc } from "lodash";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   setSearch,
   clearSearch,
   setUserPreferences,
   setRepackersFriendlyNames,
-  setSearchResults,
 } from "@renderer/features";
 
 document.body.classList.add(themeClass);
@@ -35,8 +32,6 @@ export function App() {
 
   const navigate = useNavigate();
   const location = useLocation();
-
-  const debouncedFunc = useRef<DebouncedFunc<() => void | null>>(null);
 
   const search = useAppSelector((state) => state.search.value);
 
@@ -61,7 +56,7 @@ export function App() {
         }
 
         addPacket(downloadProgress);
-      }
+      },
     );
 
     return () => {
@@ -72,26 +67,17 @@ export function App() {
   const handleSearch = useCallback(
     (query: string) => {
       dispatch(setSearch(query));
-      if (debouncedFunc.current) debouncedFunc.current.cancel();
 
       if (query === "") {
         navigate(-1);
         return;
       }
 
-      if (location.pathname !== "/search") {
-        navigate("/search");
-      }
-
-      debouncedFunc.current = debounce(() => {
-        window.electron.searchGames(query).then((results) => {
-          dispatch(setSearchResults(results));
-        });
-      }, 300);
-
-      debouncedFunc.current();
+      navigate(`/search/${query}`, {
+        replace: location.pathname.startsWith("/search"),
+      });
     },
-    [dispatch, location.pathname, navigate]
+    [dispatch, location.pathname, navigate],
   );
 
   const handleClear = useCallback(() => {

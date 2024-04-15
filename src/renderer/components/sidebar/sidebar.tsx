@@ -115,6 +115,12 @@ export function Sidebar() {
     return game.title;
   };
 
+  const handleSidebarItemClick = (path: string) => {
+    if (path !== location.pathname) {
+      navigate(path);
+    }
+  };
+
   return (
     <aside
       ref={sidebarRef}
@@ -146,7 +152,7 @@ export function Sidebar() {
                 <button
                   type="button"
                   className={styles.menuItemButton}
-                  onClick={() => navigate(path)}
+                  onClick={() => handleSidebarItemClick(path)}
                 >
                   <Icon />
                   <span>{t(nameKey)}</span>
@@ -179,7 +185,9 @@ export function Sidebar() {
                   type="button"
                   className={styles.menuItemButton}
                   onClick={() =>
-                    navigate(`/game/${game.shop}/${game.objectID}`)
+                    handleSidebarItemClick(
+                      `/game/${game.shop}/${game.objectID}`
+                    )
                   }
                 >
                   <AsyncImage className={styles.gameIcon} src={game.iconUrl} />

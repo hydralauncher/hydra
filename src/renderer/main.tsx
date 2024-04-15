@@ -45,7 +45,7 @@ const router = createHashRouter([
         Component: GameDetails,
       },
       {
-        path: "/search",
+        path: "/search/:query",
         Component: SearchResults,
       },
       {

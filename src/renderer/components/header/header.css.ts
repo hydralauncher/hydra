@@ -1,7 +1,24 @@
 import type { ComplexStyleRule } from "@vanilla-extract/css";
-import { style } from "@vanilla-extract/css";
+import { keyframes, style } from "@vanilla-extract/css";
 import { recipe } from "@vanilla-extract/recipes";
-import { SPACING_UNIT, vars } from "../../theme.css";
+
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
+
+export const slideIn = keyframes({
+  "0%": { transform: "translateX(20px)", opacity: "0" },
+  "100%": {
+    transform: "translateX(0)",
+    opacity: "1",
+  },
+});
+
+export const slideOut = keyframes({
+  "0%": { transform: "translateX(0px)", opacity: "1" },
+  "100%": {
+    transform: "translateX(20px)",
+    opacity: "0",
+  },
+});
 
 export const header = recipe({
   base: {
@@ -83,9 +100,49 @@ export const actionButton = style({
   },
 });
 
-export const leftContent = style({
+export const section = style({
   display: "flex",
   alignItems: "center",
   gap: `${SPACING_UNIT * 2}px`,
   height: "100%",
+});
+
+export const backButton = recipe({
+  base: {
+    color: vars.color.bodyText,
+    cursor: "pointer",
+    WebkitAppRegion: "no-drag",
+    position: "absolute",
+    transition: "transform ease 0.2s",
+    animationDuration: "0.2s",
+    width: "16px",
+    height: "16px",
+    display: "flex",
+    alignItems: "center",
+  } as ComplexStyleRule,
+  variants: {
+    enabled: {
+      true: {
+        animationName: slideIn,
+      },
+      false: {
+        opacity: "0",
+        pointerEvents: "none",
+        animationName: slideOut,
+      },
+    },
+  },
+});
+
+export const title = recipe({
+  base: {
+    transition: "all ease 0.2s",
+  },
+  variants: {
+    hasBackButton: {
+      true: {
+        transform: "translateX(28px)",
+      },
+    },
+  },
 });
