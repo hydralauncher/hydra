@@ -6,7 +6,7 @@ import { ShopDetails } from "@types";
 import { getSteamLanguage, steamUrlBuilder } from "@renderer/helpers";
 import { useTranslation } from "react-i18next";
 
-const FEATURED_GAME_ID = "1144200";
+const FEATURED_GAME_ID = "1245620";
 
 export function Hero() {
   const [featuredGameDetails, setFeaturedGameDetails] =
