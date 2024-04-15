@@ -42,6 +42,7 @@
     "pause": "Pausar",
     "cancel": "Cancelar",
     "remove": "Remover",
+    "remove_from_list": "Remover da lista",
     "space_left_on_disk": "{{space}} livres em disco",
     "eta": "Conclusão {{eta}}",
     "downloading_metadata": "Baixando metadados…",
@@ -61,7 +62,9 @@
     "copied_link_to_clipboard": "Link copiado",
     "hours": "horas",
     "minutes": "minutos",
-    "accuracy": "{{accuracy}}% de precisão"
+    "accuracy": "{{accuracy}}% de precisão",
+    "delete_modal_title": "Tem certeza disso?",
+    "delete_modal_description": "Isso apagará todos os arquivos do jogo do seu sistema"
   },
   "activation": {
     "title": "Ativação",

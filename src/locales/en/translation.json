@@ -42,6 +42,7 @@
     "pause": "Pause",
     "cancel": "Cancel",
     "remove": "Remove",
+    "remove_from_list": "Remove from list",
     "space_left_on_disk": "{{space}} left on disk",
     "eta": "Conclusion {{eta}}",
     "downloading_metadata": "Downloading metadata…",
@@ -61,7 +62,9 @@
     "copied_link_to_clipboard": "Link copied",
     "hours": "hours",
     "minutes": "minutes",
-    "accuracy": "{{accuracy}}% accuracy"
+    "accuracy": "{{accuracy}}% accuracy",
+    "delete_modal_title": "Are you sure?",
+    "delete_modal_description": "This will remove all game files from your system"
   },
   "activation": {
     "title": "Activate Hydra",
