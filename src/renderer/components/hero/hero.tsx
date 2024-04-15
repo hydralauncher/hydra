@@ -31,7 +31,7 @@ export function Hero() {
   return (
     <button
       type="button"
-      onClick={() => navigate("/game/steam/1144200")}
+      onClick={() => navigate(`/game/steam/${FEATURED_GAME_ID}`)}
       className={styles.hero}
     >
       <div className={styles.backdrop}>
