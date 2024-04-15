@@ -28,14 +28,14 @@ export const searchHowLongToBeat = async (gameName: string) => {
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
         Referer: "https://howlongtobeat.com/",
       },
-    },
+    }
   );
 
   return response.data as HowLongToBeatSearchResponse;
 };
 
 export const getHowLongToBeatGame = async (
-  id: string,
+  id: string
 ): Promise<HowLongToBeatCategory[]> => {
   const response = await requestWebPage(`https://howlongtobeat.com/game/${id}`);
 
