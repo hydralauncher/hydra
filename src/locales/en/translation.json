@@ -91,9 +91,7 @@
     "checking_files": "Checking files…",
     "starting_download": "Starting download…",
     "deleting": "Deleting files…",
-    "delete": "Remove all files",
-    "delete_modal_title": "Are you sure?",
-    "delete_modal_description": "This will remove all game files from your system."
+    "delete": "Remove all files"
   },
   "settings": {
     "downloads_path": "Downloads path",

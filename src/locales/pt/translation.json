@@ -91,9 +91,7 @@
     "checking_files": "Verificando arquivos…",
     "starting_download": "Iniciando download…",
     "deleting": "Removendo arquivos…",
-    "delete": "Apagar arquivos",
-    "delete_modal_title": "Tem certeza disso?",
-    "delete_modal_description": "Isso apagará todos os arquivos do jogo de seu sistema."
+    "delete": "Apagar arquivos"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",

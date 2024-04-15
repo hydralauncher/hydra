@@ -91,9 +91,7 @@
     "checking_files": "Verificando archivos…",
     "starting_download": "Iniciando descarga…",
     "deleting": "Eliminando archivos…",
-    "delete": "Eliminar todos los archivos",
-    "delete_modal_title": "¿Estás seguro de esto?",
-    "delete_modal_description": "Esto eliminará todos los archivos del juego de tu sistema."
+    "delete": "Eliminar todos los archivos"
   },
   "settings": {
     "downloads_path": "Ruta de descarga",

@@ -9,6 +9,7 @@ import type { Game, ShopDetails } from "@types";
 
 import { formatDownloadProgress } from "@renderer/helpers";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
+import { DeleteModal } from "./delete-modal";
 import * as styles from "./hero-panel.css";
 
 export interface HeroPanelProps {

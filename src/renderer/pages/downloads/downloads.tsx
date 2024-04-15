@@ -187,7 +187,7 @@ export function Downloads() {
           theme="outline"
           disabled={deleting}
         >
-          {t("remove")}
+          {t("remove_from_list")}
         </Button>
       </>
     );
