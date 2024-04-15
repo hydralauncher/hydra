@@ -39,7 +39,7 @@ export function Downloads() {
   }, [library]);
 
   const openGame = (gameId: number) =>
-    window.electron.openGame(gameId).then(isBinaryInPath => {
+    window.electron.openGame(gameId).then((isBinaryInPath) => {
       if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
       updateLibrary();
     });
@@ -205,7 +205,10 @@ export function Downloads() {
 
   return (
     <section className={styles.downloadsContainer}>
-      <BinaryNotFoundModal visible={showBinaryNotFoundModal} onClose={() => setShowBinaryNotFoundModal(false)} />
+      <BinaryNotFoundModal
+        visible={showBinaryNotFoundModal}
+        onClose={() => setShowBinaryNotFoundModal(false)}
+      />
       <TextField placeholder={t("filter")} onChange={handleFilter} />
 
       <ul className={styles.downloads}>

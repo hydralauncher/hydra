@@ -23,7 +23,7 @@ const openGame = async (
   );
 
   if (!fs.existsSync(gamePath)) {
-    await gameRepository.delete({ id: gameId, });
+    await gameRepository.delete({ id: gameId });
     return true;
   }
 

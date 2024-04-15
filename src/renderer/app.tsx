@@ -56,7 +56,7 @@ export function App() {
         }
 
         addPacket(downloadProgress);
-      },
+      }
     );
 
     return () => {
@@ -77,7 +77,7 @@ export function App() {
         replace: location.pathname.startsWith("/search"),
       });
     },
-    [dispatch, location.pathname, navigate],
+    [dispatch, location.pathname, navigate]
   );
 
   const handleClear = useCallback(() => {
