@@ -16,6 +16,8 @@ export class WindowManager {
     this.mainWindow = new BrowserWindow({
       width: 1200,
       height: 720,
+      minWidth: 1024,
+      minHeight: 540,
       titleBarStyle: "hidden",
       icon: path.join(__dirname, "..", "..", "images", "icon.png"),
       trafficLightPosition: { x: 16, y: 16 },

@@ -112,5 +112,10 @@
   },
   "game_card": {
     "no_downloads": "No hay descargas disponibles"
+  },
+  "binary_not_found_modal": {
+    "title": "Programas no instalados",
+    "description": "Los ejecutables de Wine o Lutris no se encontraron en su sistema",
+    "instructions": "Comprueba la forma correcta de instalar cualquiera de ellos en tu distro Linux para que el juego pueda ejecutarse con normalidad"
   }
 }

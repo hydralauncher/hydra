@@ -10,6 +10,7 @@ import type { Game, ShopDetails } from "@types";
 import * as styles from "./hero-panel.css";
 import { formatDownloadProgress } from "@renderer/helpers";
 import { HeartFillIcon, HeartIcon } from "@primer/octicons-react";
+import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 
 export interface HeroPanelProps {
   game: Game | null;
@@ -27,6 +28,8 @@ export function HeroPanel({
   getGame,
 }: HeroPanelProps) {
   const { t } = useTranslation("game_details");
+
+  const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
 
   const {
     game: gameDownloading,
@@ -54,7 +57,8 @@ export function HeroPanel({
   const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
   const openGame = (gameId: number) =>
-    window.electron.openGame(gameId).then(() => {
+    window.electron.openGame(gameId).then((isBinaryInPath) => {
+      if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
       updateLibrary();
     });
 
@@ -240,9 +244,15 @@ export function HeroPanel({
   };
 
   return (
-    <div style={{ backgroundColor: color }} className={styles.panel}>
-      <div className={styles.content}>{getInfo()}</div>
-      <div className={styles.actions}>{getActions()}</div>
-    </div>
+    <>
+      <BinaryNotFoundModal
+        visible={showBinaryNotFoundModal}
+        onClose={() => setShowBinaryNotFoundModal(false)}
+      />
+      <div style={{ backgroundColor: color }} className={styles.panel}>
+        <div className={styles.content}>{getInfo()}</div>
+        <div className={styles.actions}>{getActions()}</div>
+      </div>
+    </>
   );
 }

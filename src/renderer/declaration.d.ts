@@ -54,7 +54,7 @@ declare global {
     ) => Promise<void>;
     getLibrary: () => Promise<Game[]>;
     getRepackersFriendlyNames: () => Promise<Record<string, string>>;
-    openGame: (gameId: number) => Promise<void>;
+    openGame: (gameId: number) => Promise<boolean>;
     removeGame: (gameId: number) => Promise<void>;
     deleteGameFolder: (gameId: number) => Promise<unknown>;
     getGameByObjectID: (objectID: string) => Promise<Game | null>;
