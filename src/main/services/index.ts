@@ -1,4 +1,3 @@
-export * from "./algolia";
 export * from "./logger";
 export * from "./repack-tracker";
 export * from "./steam";

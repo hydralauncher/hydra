@@ -4,7 +4,7 @@ import orderBy from "lodash/orderBy";
 import type { GameRepack, GameShop, CatalogueEntry } from "@types";
 
 import { formatName, getSteamAppAsset, repackerFormatter } from "@main/helpers";
-import { searchAlgolia } from "@main/services";
+import { searchSteamGame } from "@main/services";
 import { stateManager } from "@main/state-manager";
 
 const { Index } = flexSearch;
@@ -19,8 +19,6 @@ for (let i = 0; i < repacks.length; i++) {
 
   repacksIndex.add(i, formatName(formatter(repack.title)));
 }
-
-export const HITS_PER_PAGE = 12;
 
 export const searchRepacks = (title: string): GameRepack[] => {
   const repacks = stateManager.getValue("repacks");
@@ -37,23 +35,13 @@ export const searchRepacks = (title: string): GameRepack[] => {
 export const searchGames = async (query: string): Promise<CatalogueEntry[]> => {
   const formattedName = formatName(query);
 
-  const steamResults = await searchAlgolia<{ objectID: string; name: string }>({
-    index: "steamdb",
-    query: formattedName,
-    params: {
-      facetFilters: '["appType:Game"]',
-      hitsPerPage: `${HITS_PER_PAGE}`,
-    },
-    headers: {
-      Referer: "https://steamdb.info/",
-    },
-  });
+  const steamResults = await searchSteamGame(formattedName);
 
-  const results = steamResults.hits.map((hit) => ({
-    objectID: hit.objectID,
-    title: hit.name,
+  const results = steamResults.map((result) => ({
+    objectID: result.objectID,
+    title: result.name,
     shop: "steam" as GameShop,
-    cover: getSteamAppAsset("library", hit.objectID),
+    cover: getSteamAppAsset("library", result.objectID),
   }));
 
   const gamesIndex = new Index({
