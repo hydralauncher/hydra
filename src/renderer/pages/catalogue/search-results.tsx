@@ -1,21 +1,24 @@
-import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import { GameCard } from "@renderer/components";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
 import type { CatalogueEntry } from "@types";
 
-import debounce from "lodash/debounce";
 import type { DebouncedFunc } from "lodash";
+import debounce from "lodash/debounce";
 
-import * as styles from "./catalogue.css";
-import { useNavigate, useParams } from "react-router-dom";
-import { useAppDispatch } from "@renderer/hooks";
+import { InboxIcon } from "@primer/octicons-react";
 import { clearSearch } from "@renderer/features";
+import { useAppDispatch } from "@renderer/hooks";
 import { vars } from "@renderer/theme.css";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate, useParams } from "react-router-dom";
+import * as styles from "./catalogue.css";
 
 export function SearchResults() {
   const dispatch = useAppDispatch();
 
+  const { t } = useTranslation("catalogue");
   const { query } = useParams();
 
   const [searchResults, setSearchResults] = useState<CatalogueEntry[]>([]);
@@ -50,13 +53,16 @@ export function SearchResults() {
 
   return (
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
-      <section className={styles.content}>
+      <main className={styles.content}>
         <section className={styles.cards({ searching: false })}>
-          {isLoading
-            ? Array.from({ length: 12 }).map((_, index) => (
-                <Skeleton key={index} className={styles.cardSkeleton} />
-              ))
-            : searchResults.map((game) => (
+          {isLoading &&
+            Array.from({ length: 12 }).map((_, index) => (
+              <Skeleton key={index} className={styles.cardSkeleton} />
+            ))}
+
+          {!isLoading && searchResults.length > 0 && (
+            <>
+              {searchResults.map((game) => (
                 <GameCard
                   key={game.objectID}
                   game={game}
@@ -64,8 +70,18 @@ export function SearchResults() {
                   disabled={!game.repacks.length}
                 />
               ))}
+            </>
+          )}
         </section>
-      </section>
+
+        {!isLoading && searchResults.length === 0 && (
+          <div className={styles.noResults}>
+            <InboxIcon size={56} />
+
+            <p>{t("no_results")}</p>
+          </div>
+        )}
+      </main>
     </SkeletonTheme>
   );
 }
