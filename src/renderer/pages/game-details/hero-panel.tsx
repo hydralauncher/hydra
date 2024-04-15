@@ -28,7 +28,7 @@ export function HeroPanel({
 }: HeroPanelProps) {
   const { t } = useTranslation("game_details");
 
-  const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState<boolean>(false);
+  const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
 
   const {
     game: gameDownloading,
@@ -49,8 +49,8 @@ export function HeroPanel({
   const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
   const openGame = (gameId: number) =>
-    window.electron.openGame(gameId).then(res => {
-      if (!res) setShowBinaryNotFoundModal(true);
+    window.electron.openGame(gameId).then(isBinaryInPath => {
+      if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
       updateLibrary();
     });
 
