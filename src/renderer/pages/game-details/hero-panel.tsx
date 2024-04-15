@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import prettyBytes from "pretty-bytes";
 import { format } from "date-fns";
@@ -9,6 +9,7 @@ import type { Game, ShopDetails } from "@types";
 
 import * as styles from "./hero-panel.css";
 import { formatDownloadProgress } from "@renderer/helpers";
+import { HeartFillIcon, HeartIcon } from "@primer/octicons-react";
 
 export interface HeroPanelProps {
   game: Game | null;
@@ -41,7 +42,14 @@ export function HeroPanel({
     removeGame,
     isGameDeleting,
   } = useDownload();
-  const { updateLibrary } = useLibrary();
+  const { updateLibrary, library } = useLibrary();
+
+  const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
+    useState(false);
+
+  const gameOnLibrary = library.find(
+    ({ objectID }) => objectID === gameDetails?.objectID,
+  );
 
   const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
@@ -59,6 +67,26 @@ export function HeroPanel({
 
     return game.repack?.fileSize ?? "N/A";
   }, [game, isGameDownloading, gameDownloading]);
+
+  const toggleLibraryGame = async () => {
+    setToggleLibraryGameDisabled(true);
+
+    try {
+      if (gameOnLibrary) {
+        await window.electron.removeGame(gameOnLibrary.id);
+      } else {
+        await window.electron.addGameToLibrary(
+          gameDetails.objectID,
+          gameDetails.name,
+          "steam",
+        );
+      }
+
+      await updateLibrary();
+    } finally {
+      setToggleLibraryGameDisabled(false);
+    }
+  };
 
   const getInfo = () => {
     if (!gameDetails) return null;
@@ -194,9 +222,20 @@ export function HeroPanel({
     }
 
     return (
-      <Button onClick={openRepacksModal} theme="outline">
-        {t("open_download_options")}
-      </Button>
+      <>
+        <Button
+          theme="outline"
+          disabled={!gameDetails || toggleLibraryGameDisabled}
+          onClick={toggleLibraryGame}
+        >
+          {gameOnLibrary ? <HeartFillIcon /> : <HeartIcon />}
+          {gameOnLibrary ? t("added_to_library") : t("add_to_library")}
+        </Button>
+
+        <Button onClick={openRepacksModal} theme="outline">
+          {t("open_download_options")}
+        </Button>
+      </>
     );
   };
 

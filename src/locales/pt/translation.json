@@ -60,7 +60,9 @@
     "copied_link_to_clipboard": "Link copiado",
     "hours": "horas",
     "minutes": "minutos",
-    "accuracy": "{{accuracy}}% de precisão"
+    "accuracy": "{{accuracy}}% de precisão",
+    "add_to_library": "Adicionar à biblioteca",
+    "added_to_library": "Adicionado à biblioteca"
   },
   "activation": {
     "title": "Ativação",

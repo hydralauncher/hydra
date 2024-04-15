@@ -60,7 +60,9 @@
     "copied_link_to_clipboard": "Link copied",
     "hours": "hours",
     "minutes": "minutes",
-    "accuracy": "{{accuracy}}% accuracy"
+    "accuracy": "{{accuracy}}% accuracy",
+    "add_to_library": "Add to library",
+    "added_to_library": "Added to library"
   },
   "activation": {
     "title": "Activate Hydra",
