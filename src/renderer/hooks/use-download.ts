@@ -1,7 +1,7 @@
 import { addMilliseconds, formatDistance } from "date-fns";
 import prettyBytes from "pretty-bytes";
 
-import { ptBR, enUS, es } from "date-fns/locale";
+import { ptBR, enUS, es, fr } from "date-fns/locale";
 
 import { formatDownloadProgress } from "@renderer/helpers";
 import { useTranslation } from "react-i18next";
@@ -71,6 +71,7 @@ export function useDownload() {
   const getDateLocale = (language: string) => {
     if (language.startsWith("pt")) return ptBR;
     if (language.startsWith("es")) return es;
+    if (language.startsWith("fr")) return fr;
     return enUS;
   };
 
