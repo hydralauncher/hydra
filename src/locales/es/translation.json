@@ -3,7 +3,8 @@
     "featured": "Destacado",
     "recently_added": "Recién Añadidos",
     "trending": "Tendencias",
-    "surprise_me": "✨ ¡Sorpréndeme!"
+    "surprise_me": "✨ ¡Sorpréndeme!",
+    "no_results": "No se encontraron resultados"
   },
   "sidebar": {
     "catalogue": "Catálogo",
@@ -41,6 +42,7 @@
     "pause": "Pausa",
     "cancel": "Cancelar",
     "remove": "Eliminar",
+    "remove_from_list": "Quitar de la lista",
     "space_left_on_disk": "{{space}} restantes en el disco",
     "eta": "Finalizando {{eta}}",
     "downloading_metadata": "Descargando metadatos…",
@@ -60,7 +62,9 @@
     "copied_link_to_clipboard": "Enlace copiado",
     "hours": "horas",
     "minutes": "minutos",
-    "accuracy": "{{accuracy}}% precisión"
+    "accuracy": "{{accuracy}}% precisión",
+    "delete_modal_title": "¿Estás seguro de esto?",
+    "delete_modal_description": "Esto eliminará todos los archivos del juego de tu sistema"
   },
   "activation": {
     "title": "Activar Hydra",

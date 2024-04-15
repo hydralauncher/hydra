@@ -15,6 +15,7 @@ export const catalogueHeader = style({
 
 export const content = style({
   width: "100%",
+  height: "100%",
   display: "flex",
   flexDirection: "column",
   gap: `${SPACING_UNIT * 3}px`,
@@ -61,4 +62,14 @@ export const cardSkeleton = style({
   ":active": {
     opacity: vars.opacity.active,
   },
+});
+
+export const noResults = style({
+  height: "100%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexDirection: "column",
+  gap: "16px",
+  gridColumn: "1 / -1",
 });
