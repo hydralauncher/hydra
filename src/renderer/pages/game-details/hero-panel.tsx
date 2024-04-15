@@ -179,8 +179,6 @@ export function HeroPanel({
 
           <DeleteModal
             visible={showDeleteModal}
-            title={t("delete_modal_title")}
-            description={t("delete_modal_description")}
             onClose={() => setShowDeleteModal(false)}
             deleting={deleting}
             deleteGame={() => deleteGame(game.id).then(getGame)}
