@@ -71,14 +71,16 @@ export const contentSidebar = style({
   height: "100%",
   "@media": {
     "(min-width: 768px)": {
+      width: "100%",
       maxWidth: "200px",
-      width: "200px",
-      minWidth: "200px",
     },
     "(min-width: 1024px)": {
-      maxWidth: "325px",
-      width: "325px",
-      minWidth: "325px",
+      maxWidth: "300px",
+      width: "100%",
+    },
+    "(min-width: 1280px)": {
+      width: "100%",
+      maxWidth: "400px",
     },
   },
 });
@@ -118,6 +120,14 @@ export const description = style({
   fontFamily: "'Fira Sans', sans-serif",
   fontSize: "16px",
   padding: `${SPACING_UNIT * 3}px ${SPACING_UNIT * 2}px`,
+  "@media": {
+    "(min-width: 1280px)": {
+      width: "60%",
+    },
+  },
+  width: "100%",
+  marginLeft: "auto",
+  marginRight: "auto",
 });
 
 export const descriptionHeader = style({
@@ -175,11 +185,9 @@ globalStyle(".bb_tag", {
 globalStyle(`${description} img`, {
   borderRadius: "5px",
   marginTop: `${SPACING_UNIT}px`,
-  marginBottom: `${SPACING_UNIT}px`,
-  marginLeft: "auto",
-  marginRight: "auto",
+  marginBottom: `${SPACING_UNIT * 3}px`,
   display: "block",
-  maxWidth: "100%",
+  width: "100%",
   boxShadow: "0px 0px 15px 0px #000000",
 });
 
