@@ -35,12 +35,14 @@ export interface TorrentUpdate {
   bytesDownloaded: number;
 }
 
+export const BITTORRENT_PORT = "5881";
+
 export class TorrentClient {
   public static startTorrentClient(
     writePipePath: string,
     readPipePath: string
   ) {
-    const commonArgs = ["6881", writePipePath, readPipePath];
+    const commonArgs = [BITTORRENT_PORT, writePipePath, readPipePath];
 
     if (app.isPackaged) {
       const binaryName = binaryNameByPlatform[process.platform];
