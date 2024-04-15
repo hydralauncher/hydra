@@ -17,6 +17,7 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     icon: "./images/icon.png",
+    executableName: "Hydra",
     extraResource: [
       "./resources/hydra.db",
       "./resources/icon_tray.png",
@@ -34,11 +35,17 @@ const config: ForgeConfig = {
     new MakerSquirrel({
       setupIcon: "./images/icon.ico",
     }),
-    new MakerZIP({}, ["darwin"]),
-    new MakerRpm({}),
+    new MakerZIP({}, ["darwin", "linux"]),
+    new MakerRpm({
+      options: {
+        mimeType: ["x-scheme-handler/hydralauncher"],
+        bin: './Hydra'
+      },
+    }),
     new MakerDeb({
       options: {
         mimeType: ["x-scheme-handler/hydralauncher"],
+        bin: './Hydra'
       },
     }),
   ],
