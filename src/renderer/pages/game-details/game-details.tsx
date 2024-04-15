@@ -94,7 +94,7 @@ export function GameDetails() {
         dispatch(setHeaderTitle(result.name));
       })
       .finally(() => {
-        setIsLoading(true);
+        setIsLoading(false);
       });
 
     getGame();
