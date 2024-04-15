@@ -169,7 +169,7 @@ export const getNewRepacksFromOnlineFix = async (
         });
 
         repacks.push({
-          fileSize: "NA",
+          fileSize: "N/A",
           magnet: magnetLink,
           page: 1,
           repacker: "onlinefix",
@@ -190,6 +190,7 @@ export const getNewRepacksFromOnlineFix = async (
       )
   );
 
+  if (!newRepacks.length) return;
   if (page === totalPages) return;
 
   await savePage(newRepacks);
