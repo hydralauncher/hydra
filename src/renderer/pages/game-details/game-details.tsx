@@ -23,11 +23,8 @@ import { SkeletonTheme } from "react-loading-skeleton";
 import { GameDetailsSkeleton } from "./game-details-skeleton";
 import * as styles from "./game-details.css";
 import { HeroPanel } from "./hero-panel";
-import { RepacksModal } from "./repacks-modal";
-import { HeroPanel } from "./hero-panel";
-import { useTranslation } from "react-i18next";
-import { ShareAndroidIcon } from "@primer/octicons-react";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
+import { RepacksModal } from "./repacks-modal";
 
 const OPEN_HYDRA_URL = "https://open.hydralauncher.site";
 
@@ -97,7 +94,7 @@ export function GameDetails() {
         dispatch(setHeaderTitle(result.name));
       })
       .finally(() => {
-        setIsLoading(false);
+        setIsLoading(true);
       });
 
     getGame();
@@ -115,12 +112,12 @@ export function GameDetails() {
           shop,
           encodeURIComponent(gameDetails?.name),
           i18n.language,
-        ]),
+        ])
       ),
     });
 
     navigator.clipboard.writeText(
-      OPEN_HYDRA_URL + `/?${searchParams.toString()}`,
+      OPEN_HYDRA_URL + `/?${searchParams.toString()}`
     );
 
     const zero = performance.now();
@@ -146,7 +143,7 @@ export function GameDetails() {
       repackId,
       gameDetails.objectID,
       gameDetails.name,
-      shop as GameShop,
+      shop as GameShop
     ).then(() => {
       getGame();
       setShowRepacksModal(false);
@@ -223,26 +220,26 @@ export function GameDetails() {
                 </Button>
               </div>
 
-            <div
-              dangerouslySetInnerHTML={{
-                __html: gameDetails?.about_the_game ?? "",
-              }}
-              className={styles.description}
-            />
-          </div>
-
-          <div className={styles.contentSidebar}>
-            <HowLongToBeatSection
-              howLongToBeatData={howLongToBeat.data}
-              isLoading={howLongToBeat.isLoading}
-            />
-
-            <div
-              className={styles.contentSidebarTitle}
-              style={{ border: "none" }}
-            >
-              <h3>{t("requirements")}</h3>
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: gameDetails?.about_the_game ?? "",
+                }}
+                className={styles.description}
+              />
             </div>
+
+            <div className={styles.contentSidebar}>
+              <HowLongToBeatSection
+                howLongToBeatData={howLongToBeat.data}
+                isLoading={howLongToBeat.isLoading}
+              />
+
+              <div
+                className={styles.contentSidebarTitle}
+                style={{ border: "none" }}
+              >
+                <h3>{t("requirements")}</h3>
+              </div>
 
               <div className={styles.requirementButtonContainer}>
                 <Button
