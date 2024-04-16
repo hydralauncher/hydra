@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 
 import * as styles from "./header.css";
 import { clearSearch } from "@renderer/features";
+import { Button } from "../button/button";
 
 export interface HeaderProps {
   onSearch: (query: string) => void;
@@ -31,6 +32,8 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
   );
   const dispatch = useAppDispatch();
 
+  const [isLoadingRandomGame, setIsLoadingRandomGame] = useState(false);
+  
   const [isFocused, setIsFocused] = useState(false);
 
   const { t } = useTranslation("header");
@@ -61,6 +64,19 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
     navigate(-1);
   };
 
+  const handleRandomizerClick = () => {
+    setIsLoadingRandomGame(true);
+
+    window.electron
+      .getRandomGame()
+      .then((objectID) => {
+        navigate(`/game/steam/${objectID}`);
+      })
+      .finally(() => {
+        setIsLoadingRandomGame(false);
+      });
+  };
+
   return (
     <header
       className={styles.header({
@@ -88,6 +104,14 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
       </div>
 
       <section className={styles.section}>
+        <Button
+            onClick={handleRandomizerClick}
+            theme="outline"
+            disabled={isLoadingRandomGame}
+          >
+            {t("surprise_me")}
+        </Button>
+
         <div className={styles.search({ focused: isFocused })}>
           <button
             type="button"

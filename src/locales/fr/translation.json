@@ -3,7 +3,6 @@
     "featured": "En vedette",
     "recently_added": "Récemment ajouté",
     "trending": "Tendance",
-    "surprise_me": "✨ Surprenez-moi",
     "no_results": "Aucun résultat trouvé"
   },
   "sidebar": {
@@ -22,6 +21,7 @@
     "catalogue": "Catalogue",
     "downloads": "Téléchargements",
     "search_results": "Résultats de la recherche",
+    "surprise_me": "✨ Surprenez-moi",
     "settings": "Paramètres"
   },
   "bottom_panel": {

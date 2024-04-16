@@ -17,7 +17,6 @@ export function Catalogue() {
   const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingRandomGame, setIsLoadingRandomGame] = useState(false);
 
   const [currentCategory, setCurrentCategory] = useState(categories.at(0)!);
   const [catalogue, setCatalogue] = useState<
@@ -48,19 +47,6 @@ export function Catalogue() {
     }
   };
 
-  const handleRandomizerClick = () => {
-    setIsLoadingRandomGame(true);
-
-    window.electron
-      .getRandomGame()
-      .then((objectID) => {
-        navigate(`/game/steam/${objectID}`);
-      })
-      .finally(() => {
-        setIsLoadingRandomGame(false);
-      });
-  };
-
   useEffect(() => {
     setIsLoading(true);
     getCatalogue(categories.at(0)!);
@@ -85,14 +71,6 @@ export function Catalogue() {
               </Button>
             ))}
           </div>
-
-          <Button
-            onClick={handleRandomizerClick}
-            theme="outline"
-            disabled={isLoadingRandomGame}
-          >
-            {t("surprise_me")}
-          </Button>
         </section>
 
         <h2>{t(currentCategory)}</h2>

@@ -3,7 +3,6 @@
     "featured": "Featured",
     "recently_added": "Recently added",
     "trending": "Trending",
-    "surprise_me": "✨ Surprise me",
     "no_results": "No results found"
   },
   "sidebar": {
@@ -22,6 +21,7 @@
     "catalogue": "Catalogue",
     "downloads": "Downloads",
     "search_results": "Search results",
+    "surprise_me": "✨ Surprise me",
     "settings": "Settings"
   },
   "bottom_panel": {
