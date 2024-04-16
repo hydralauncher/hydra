@@ -12,14 +12,14 @@ import { useAppDispatch } from "@renderer/hooks";
 import { vars } from "@renderer/theme.css";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import * as styles from "./catalogue.css";
 
 export function SearchResults() {
   const dispatch = useAppDispatch();
 
   const { t } = useTranslation("catalogue");
-  const { query } = useParams();
+  const [searchParams] = useSearchParams();
 
   const [searchResults, setSearchResults] = useState<CatalogueEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,7 +39,7 @@ export function SearchResults() {
 
     debouncedFunc.current = debounce(() => {
       window.electron
-        .searchGames(query)
+        .searchGames(searchParams.get("query"))
         .then((results) => {
           setSearchResults(results);
         })
@@ -49,11 +49,11 @@ export function SearchResults() {
     }, 300);
 
     debouncedFunc.current();
-  }, [query, dispatch]);
+  }, [searchParams, dispatch]);
 
   return (
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
-      <main className={styles.content}>
+      <section className={styles.content}>
         <section className={styles.cards({ searching: false })}>
           {isLoading &&
             Array.from({ length: 12 }).map((_, index) => (
@@ -81,7 +81,7 @@ export function SearchResults() {
             <p>{t("no_results")}</p>
           </div>
         )}
-      </main>
+      </section>
     </SkeletonTheme>
   );
 }

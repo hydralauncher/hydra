@@ -73,7 +73,11 @@ export function App() {
         return;
       }
 
-      navigate(`/search/${query}`, {
+      const searchParams = new URLSearchParams({
+        query,
+      });
+
+      navigate(`/search?${searchParams.toString()}`, {
         replace: location.pathname.startsWith("/search"),
       });
     },
