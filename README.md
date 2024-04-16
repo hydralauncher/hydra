@@ -38,6 +38,8 @@ yarn
 
 Ensure you have Python installed on your machine. You can download and install it from [python.org](https://www.python.org/downloads/release/python-3919/).
 
+Python 3.9 is especially important for Windows users. Newer versions caused errors when for some users.
+
 ### Install Python Dependencies
 
 Install the required Python dependencies using pip:
