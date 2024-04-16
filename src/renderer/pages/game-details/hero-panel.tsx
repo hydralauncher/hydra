@@ -8,6 +8,7 @@ import { useDownload, useLibrary } from "@renderer/hooks";
 import type { Game, ShopDetails } from "@types";
 
 import { formatDownloadProgress } from "@renderer/helpers";
+import { NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import { DeleteModal } from "./delete-modal";
 import * as styles from "./hero-panel.css";
@@ -45,7 +46,14 @@ export function HeroPanel({
     removeGame,
     isGameDeleting,
   } = useDownload();
-  const { updateLibrary } = useLibrary();
+  const { updateLibrary, library } = useLibrary();
+
+  const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
+    useState(false);
+
+  const gameOnLibrary = library.find(
+    ({ objectID }) => objectID === gameDetails?.objectID
+  );
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -66,6 +74,26 @@ export function HeroPanel({
 
     return game.repack?.fileSize ?? "N/A";
   }, [game, isGameDownloading, gameDownloading]);
+
+  const toggleLibraryGame = async () => {
+    setToggleLibraryGameDisabled(true);
+
+    try {
+      if (gameOnLibrary) {
+        await window.electron.removeGame(gameOnLibrary.id);
+      } else {
+        await window.electron.addGameToLibrary(
+          gameDetails.objectID,
+          gameDetails.name,
+          "steam"
+        );
+      }
+
+      await updateLibrary();
+    } finally {
+      setToggleLibraryGameDisabled(false);
+    }
+  };
 
   const getInfo = () => {
     if (!gameDetails) return null;
@@ -209,20 +237,33 @@ export function HeroPanel({
     }
 
     return (
-      <Button onClick={openRepacksModal} theme="outline">
-        {t("open_download_options")}
-      </Button>
+      <>
+        <Button
+          theme="outline"
+          disabled={!gameDetails || toggleLibraryGameDisabled}
+          onClick={toggleLibraryGame}
+        >
+          {gameOnLibrary ? <NoEntryIcon /> : <PlusCircleIcon />}
+          {gameOnLibrary ? t("remove_from_library") : t("add_to_library")}
+        </Button>
+
+        <Button onClick={openRepacksModal} theme="outline">
+          {t("open_download_options")}
+        </Button>
+      </>
     );
   };
 
   return (
-    <div style={{ backgroundColor: color }} className={styles.panel}>
+    <>
       <BinaryNotFoundModal
         visible={showBinaryNotFoundModal}
         onClose={() => setShowBinaryNotFoundModal(false)}
       />
-      <div className={styles.content}>{getInfo()}</div>
-      <div className={styles.actions}>{getActions()}</div>
-    </div>
+      <div style={{ backgroundColor: color }} className={styles.panel}>
+        <div className={styles.content}>{getInfo()}</div>
+        <div className={styles.actions}>{getActions()}</div>
+      </div>
+    </>
   );
 }

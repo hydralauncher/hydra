@@ -60,8 +60,13 @@
     "publisher": "Édité par {{publisher}}",
     "copy_link_to_clipboard": "Copier le lien",
     "copied_link_to_clipboard": "Lien copié",
+    "hours": "heures",
+    "minutes": "minutes",
+    "accuracy": "{{accuracy}}% précision",
+    "add_to_library": "Ajouter à la bibliothèque",
     "delete_modal_title": "Êtes-vous sûr de cela?",
-    "delete_modal_description": "Cela effacera tous les fichiers de jeu de votre système"
+    "delete_modal_description": "Cela effacera tous les fichiers de jeu de votre système",
+    "remove_from_library": "Supprimer de la bibliothèque"
   },
   "activation": {
     "title": "Activer Hydra",
@@ -111,5 +116,10 @@
   },
   "game_card": {
     "no_downloads": "Aucun téléchargement disponible"
+  },
+  "binary_not_found_modal": {
+    "description": "Les exécutables Wine ou Lutris sont introuvables sur votre système",
+    "instructions": "Vérifiez la bonne façon d'installer l'un d'entre eux sur votre distribution Linux afin que le jeu puisse fonctionner normalement",
+    "title": "Programmes non installés"
   }
 }
