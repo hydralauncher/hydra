@@ -2,11 +2,12 @@ import { useTranslation } from "react-i18next";
 
 import { useDownload } from "@renderer/hooks";
 
-import * as styles from "./bottom-panel.css";
+import { VERSION_CODENAME } from "@renderer/constants";
 import { vars } from "@renderer/theme.css";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { VERSION_CODENAME } from "@renderer/constants";
+
+import * as styles from "./bottom-panel.css";
 
 export function BottomPanel() {
   const { t } = useTranslation("bottom_panel");

@@ -68,5 +68,6 @@ contextBridge.exposeInMainWorld("electron", {
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
+  openExternalUrl: (url: string) => ipcRenderer.invoke("openExternalUrl", url),
   platform: process.platform,
 });

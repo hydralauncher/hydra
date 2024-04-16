@@ -16,6 +16,7 @@
     "emitDecoratorMetadata": true,
     "paths": {
       "*": ["node_modules/*"],
+      "~": ["/"],
       "@main/*": ["src/main/*"],
       "@renderer/*": ["src/renderer/*"],
       "@types": ["src/types/index.ts"],
