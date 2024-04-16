@@ -63,6 +63,8 @@
     "hours": "hours",
     "minutes": "minutes",
     "accuracy": "{{accuracy}}% accuracy",
+    "add_to_library": "Add to library",
+    "remove_from_library": "Remove from library",
     "delete_modal_title": "Are you sure?",
     "delete_modal_description": "This will remove all game files from your system"
   },
