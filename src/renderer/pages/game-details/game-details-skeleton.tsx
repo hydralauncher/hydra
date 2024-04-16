@@ -3,20 +3,24 @@ import Skeleton from "react-loading-skeleton";
 import { Button } from "@renderer/components";
 import * as styles from "./game-details.css";
 import { useTranslation } from "react-i18next";
+import { ShareAndroidIcon } from "@primer/octicons-react";
 
 export function GameDetailsSkeleton() {
   const { t } = useTranslation("game_details");
 
   return (
     <div className={styles.container}>
-      <Skeleton className={styles.heroImage} height={400} />
+      <div className={styles.hero}>
+        <Skeleton className={styles.heroImageSkeleton} />
+      </div>
       <div className={styles.descriptionHeader}>
         <section className={styles.descriptionHeaderInfo}>
-          <Skeleton width={200} />
-          <Skeleton width={200} />
+          <Skeleton width={155} />
+          <Skeleton width={135} />
         </section>
 
-        <Button theme="outline" disabled>
+        <div className={styles.heroFooterButtonsSkeleton}>
+          <Button theme="outline" disabled>
             {t("add_to_library")}
           </Button>
           <Button theme="outline" disabled>
@@ -28,38 +32,24 @@ export function GameDetailsSkeleton() {
         <div className={styles.descriptionContent}>
           <div className={styles.descriptionHeader}>
             <section className={styles.descriptionHeaderInfo}>
-              <Skeleton width={200} />
-              <Skeleton width={200} />
+              <Skeleton width={145} />
+              <Skeleton width={150} />
             </section>
             <Button theme="outline" disabled>
-              <Skeleton width={150} />
+              <ShareAndroidIcon />
+              {t("copy_link_to_clipboard")}
             </Button>
           </div>
-          <div
-            className={styles.description}
-            style={{
-              width: "100%",
-            }}
-          >
-            <Skeleton
-              count={4}
-              width={"100%"}
-              height={20}
-              style={{ display: "flex" }}
-            />
-            <Skeleton
-              className={styles.heroImage}
-              height={300}
-              style={{
-                marginBottom: "12px",
-              }}
-            />
-            <Skeleton
-              count={2}
-              width={"100%"}
-              height={20}
-              style={{ display: "flex" }}
-            />
+          <div className={styles.descriptionSkeleton}>
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Skeleton key={index} />
+            ))}
+            <Skeleton className={styles.heroImageSkeleton} />
+            {Array.from({ length: 2 }).map((_, index) => (
+              <Skeleton key={index} />
+            ))}
+            <Skeleton className={styles.heroImageSkeleton} />
+            <Skeleton />
           </div>
         </div>
         <div className={styles.contentSidebar}>
@@ -96,8 +86,10 @@ export function GameDetailsSkeleton() {
               {t("recommended")}
             </Button>
           </div>
-          <div className={styles.requirementsDetails}>
-            <Skeleton count={6} height={18} />
+          <div className={styles.requirementsDetailsSkeleton}>
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Skeleton key={index} height={20} />
+            ))}
           </div>
         </div>
       </div>
