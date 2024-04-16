@@ -1,16 +1,22 @@
+import { format } from "date-fns";
+import prettyBytes from "pretty-bytes";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import prettyBytes from "pretty-bytes";
-import { format } from "date-fns";
 
 import { Button } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
 import type { Game, ShopDetails } from "@types";
 
-import * as styles from "./hero-panel.css";
 import { formatDownloadProgress } from "@renderer/helpers";
-import { HeartFillIcon, HeartIcon } from "@primer/octicons-react";
+import {
+  HeartFillIcon,
+  HeartIcon,
+  NoEntryIcon,
+  PlusCircleIcon,
+} from "@primer/octicons-react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
+import { DeleteModal } from "./delete-modal";
+import * as styles from "./hero-panel.css";
 
 export interface HeroPanelProps {
   game: Game | null;
@@ -51,8 +57,10 @@ export function HeroPanel({
     useState(false);
 
   const gameOnLibrary = library.find(
-    ({ objectID }) => objectID === gameDetails?.objectID,
+    ({ objectID }) => objectID === gameDetails?.objectID
   );
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
@@ -82,7 +90,7 @@ export function HeroPanel({
         await window.electron.addGameToLibrary(
           gameDetails.objectID,
           gameDetails.name,
-          "steam",
+          "steam"
         );
       }
 
@@ -193,13 +201,21 @@ export function HeroPanel({
           >
             {t("launch")}
           </Button>
+
           <Button
-            onClick={() => deleteGame(game.id).then(getGame)}
+            onClick={() => setShowDeleteModal(true)}
             theme="outline"
             disabled={deleting}
           >
             {t("delete")}
           </Button>
+
+          <DeleteModal
+            visible={showDeleteModal}
+            onClose={() => setShowDeleteModal(false)}
+            deleting={deleting}
+            deleteGame={() => deleteGame(game.id).then(getGame)}
+          />
         </>
       );
     }
@@ -219,7 +235,7 @@ export function HeroPanel({
             theme="outline"
             disabled={deleting}
           >
-            {t("remove")}
+            {t("remove_from_list")}
           </Button>
         </>
       );
@@ -232,8 +248,8 @@ export function HeroPanel({
           disabled={!gameDetails || toggleLibraryGameDisabled}
           onClick={toggleLibraryGame}
         >
-          {gameOnLibrary ? <HeartFillIcon /> : <HeartIcon />}
-          {gameOnLibrary ? t("added_to_library") : t("add_to_library")}
+          {gameOnLibrary ? <NoEntryIcon /> : <PlusCircleIcon />}
+          {gameOnLibrary ? t("remove_from_library") : t("add_to_library")}
         </Button>
 
         <Button onClick={openRepacksModal} theme="outline">

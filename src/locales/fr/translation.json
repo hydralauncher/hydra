@@ -3,7 +3,8 @@
     "featured": "En vedette",
     "recently_added": "Récemment ajouté",
     "trending": "Tendance",
-    "surprise_me": "✨ Surprenez-moi"
+    "surprise_me": "✨ Surprenez-moi",
+    "no_results": "Aucun résultat trouvé"
   },
   "sidebar": {
     "catalogue": "Catalogue",
@@ -41,6 +42,7 @@
     "pause": "Pause",
     "cancel": "Annuler",
     "remove": "Supprimer",
+    "remove_from_list": "Retirer de la liste",
     "space_left_on_disk": "{{space}} restant sur le disque",
     "eta": "Conclusion dans {{eta}}",
     "downloading_metadata": "Téléchargement des métadonnées en cours…",
@@ -62,7 +64,9 @@
     "minutes": "minutes",
     "accuracy": "{{accuracy}}% précision",
     "add_to_library": "Ajouter à la bibliothèque",
-    "added_to_library": "Ajouté à la bibliothèque"
+    "delete_modal_title": "Êtes-vous sûr de cela?",
+    "delete_modal_description": "Cela effacera tous les fichiers de jeu de votre système",
+    "remove_from_library": "Supprimer de la bibliothèque"
   },
   "activation": {
     "title": "Activer Hydra",
@@ -112,5 +116,10 @@
   },
   "game_card": {
     "no_downloads": "Aucun téléchargement disponible"
+  },
+  "binary_not_found_modal": {
+    "description": "Les exécutables Wine ou Lutris sont introuvables sur votre système",
+    "instructions": "Vérifiez la bonne façon d'installer l'un d'entre eux sur votre distribution Linux afin que le jeu puisse fonctionner normalement",
+    "title": "Programmes non installés"
   }
 }

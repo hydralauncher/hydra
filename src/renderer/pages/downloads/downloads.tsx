@@ -1,15 +1,15 @@
+import prettyBytes from "pretty-bytes";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import prettyBytes from "pretty-bytes";
 
 import { AsyncImage, Button, TextField } from "@renderer/components";
 import { formatDownloadProgress, steamUrlBuilder } from "@renderer/helpers";
 import { useDownload, useLibrary } from "@renderer/hooks";
 import type { Game } from "@types";
 
-import * as styles from "./downloads.css";
 import { useEffect, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
+import * as styles from "./downloads.css";
 
 export function Downloads() {
   const { library, updateLibrary } = useLibrary();
@@ -39,7 +39,7 @@ export function Downloads() {
   }, [library]);
 
   const openGame = (gameId: number) =>
-    window.electron.openGame(gameId).then(isBinaryInPath => {
+    window.electron.openGame(gameId).then((isBinaryInPath) => {
       if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
       updateLibrary();
     });
@@ -187,7 +187,7 @@ export function Downloads() {
           theme="outline"
           disabled={deleting}
         >
-          {t("remove")}
+          {t("remove_from_list")}
         </Button>
       </>
     );
@@ -205,7 +205,10 @@ export function Downloads() {
 
   return (
     <section className={styles.downloadsContainer}>
-      <BinaryNotFoundModal visible={showBinaryNotFoundModal} onClose={() => setShowBinaryNotFoundModal(false)} />
+      <BinaryNotFoundModal
+        visible={showBinaryNotFoundModal}
+        onClose={() => setShowBinaryNotFoundModal(false)}
+      />
       <TextField placeholder={t("filter")} onChange={handleFilter} />
 
       <ul className={styles.downloads}>

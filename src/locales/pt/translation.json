@@ -3,7 +3,8 @@
     "featured": "Destaque",
     "recently_added": "Novidades",
     "trending": "Populares",
-    "surprise_me": "✨ Me surpreenda"
+    "surprise_me": "✨ Me surpreenda",
+    "no_results": "Nenhum resultado encontrado"
   },
   "sidebar": {
     "catalogue": "Catálogo",
@@ -41,6 +42,7 @@
     "pause": "Pausar",
     "cancel": "Cancelar",
     "remove": "Remover",
+    "remove_from_list": "Remover da lista",
     "space_left_on_disk": "{{space}} livres em disco",
     "eta": "Conclusão {{eta}}",
     "downloading_metadata": "Baixando metadados…",
@@ -62,7 +64,9 @@
     "minutes": "minutos",
     "accuracy": "{{accuracy}}% de precisão",
     "add_to_library": "Adicionar à biblioteca",
-    "added_to_library": "Adicionado à biblioteca"
+    "remove_from_library": "Remover da biblioteca",
+    "delete_modal_title": "Tem certeza disso?",
+    "delete_modal_description": "Isso apagará todos os arquivos do jogo do seu sistema"
   },
   "activation": {
     "title": "Ativação",
