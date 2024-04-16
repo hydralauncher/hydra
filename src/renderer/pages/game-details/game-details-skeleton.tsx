@@ -17,8 +17,12 @@ export function GameDetailsSkeleton() {
         </section>
 
         <Button theme="outline" disabled>
-          <Skeleton width={150} />
-        </Button>
+            {t("add_to_library")}
+          </Button>
+          <Button theme="outline" disabled>
+            {t("open_download_options")}
+          </Button>
+        </div>
       </div>
       <div className={styles.descriptionContainer}>
         <div className={styles.descriptionContent}>
