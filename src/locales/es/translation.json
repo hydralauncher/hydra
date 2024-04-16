@@ -65,7 +65,9 @@
     "minutes": "minutos",
     "accuracy": "{{accuracy}}% precisión",
     "delete_modal_title": "¿Estás seguro de esto?",
-    "delete_modal_description": "Esto eliminará todos los archivos del juego de tu sistema"
+    "delete_modal_description": "Esto eliminará todos los archivos del juego de tu sistema",
+    "add_to_library": "Agregar a la biblioteca",
+    "remove_from_library": "Eliminar de la biblioteca"
   },
   "activation": {
     "title": "Activar Hydra",

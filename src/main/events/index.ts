@@ -1,12 +1,12 @@
 import { defaultDownloadsPath } from "@main/constants";
 import { app, ipcMain } from "electron";
 
-import "./catalogue/get-catalogue";
 import "./catalogue/get-game-shop-details";
 import "./catalogue/get-how-long-to-beat";
 import "./catalogue/get-random-game";
 import "./catalogue/search-games";
 import "./hardware/get-disk-free-space";
+import "./library/add-game-to-library";
 import "./library/delete-game-folder";
 import "./library/get-game-by-object-id";
 import "./library/get-library";
@@ -20,7 +20,6 @@ import "./torrenting/cancel-game-download";
 import "./torrenting/pause-game-download";
 import "./torrenting/resume-game-download";
 import "./torrenting/start-game-download";
-import "./user-preferences/get-user-preferences";
 import "./user-preferences/update-user-preferences";
 
 ipcMain.handle("ping", () => "pong");

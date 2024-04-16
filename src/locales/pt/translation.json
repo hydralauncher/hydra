@@ -64,6 +64,8 @@
     "hours": "horas",
     "minutes": "minutos",
     "accuracy": "{{accuracy}}% de precisão",
+    "add_to_library": "Adicionar à biblioteca",
+    "remove_from_library": "Remover da biblioteca",
     "delete_modal_title": "Tem certeza disso?",
     "delete_modal_description": "Isso apagará todos os arquivos do jogo do seu sistema"
   },

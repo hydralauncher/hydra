@@ -105,6 +105,7 @@ export const specificsItem = style({
   display: "flex",
   color: "#c0c1c7",
   fontSize: "12px",
+  alignItems: "flex-end",
 });
 
 export const titleContainer = style({
