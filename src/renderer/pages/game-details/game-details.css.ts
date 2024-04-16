@@ -159,12 +159,12 @@ export const descriptionSkeleton = style({
   gap: `${SPACING_UNIT}px`,
   padding: `${SPACING_UNIT * 3}px ${SPACING_UNIT * 2}px`,
   width: "100%",
-  // "@media": {
-  //   "(min-width: 1280px)": {
-  //     width: "60%",
-  //     lineHeight: "22px",
-  //   },
-  // },
+  "@media": {
+    "(min-width: 1280px)": {
+      width: "60%",
+      lineHeight: "22px",
+    },
+  },
   marginLeft: "auto",
   marginRight: "auto",
 });
