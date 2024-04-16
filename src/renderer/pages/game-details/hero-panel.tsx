@@ -8,12 +8,7 @@ import { useDownload, useLibrary } from "@renderer/hooks";
 import type { Game, ShopDetails } from "@types";
 
 import { formatDownloadProgress } from "@renderer/helpers";
-import {
-  HeartFillIcon,
-  HeartIcon,
-  NoEntryIcon,
-  PlusCircleIcon,
-} from "@primer/octicons-react";
+import { NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import { DeleteModal } from "./delete-modal";
 import * as styles from "./hero-panel.css";
