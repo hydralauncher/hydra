@@ -34,12 +34,6 @@ export const heroBackdrop = style({
   justifyContent: "space-between",
 });
 
-export const heroFooterButtonsSkeleton = style({
-  display: "flex",
-  flexDirection: "row",
-  gap: `${SPACING_UNIT}px`,
-});
-
 export const heroImage = style({
   width: "100%",
   height: "100%",

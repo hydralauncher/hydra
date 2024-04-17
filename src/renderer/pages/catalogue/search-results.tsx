@@ -67,7 +67,7 @@ export function SearchResults() {
                   key={game.objectID}
                   game={game}
                   onClick={() => handleGameClick(game)}
-                  disabled={!game.repacks.length}
+                  // disabled={!game.repacks.length}
                 />
               ))}
             </>
