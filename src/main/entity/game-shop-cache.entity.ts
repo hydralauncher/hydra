@@ -15,8 +15,11 @@ export class GameShopCache {
   @Column("text")
   shop: GameShop;
 
-  @Column("text")
+  @Column("text", { nullable: true })
   serializedData: string;
+
+  @Column("text", { nullable: true })
+  howLongToBeatSerializedData: string;
 
   @Column("text", { nullable: true })
   language: string;

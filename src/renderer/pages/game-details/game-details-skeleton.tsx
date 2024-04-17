@@ -18,15 +18,6 @@ export function GameDetailsSkeleton() {
           <Skeleton width={155} />
           <Skeleton width={135} />
         </section>
-
-        <div className={styles.heroFooterButtonsSkeleton}>
-          <Button theme="outline" disabled>
-            {t("add_to_library")}
-          </Button>
-          <Button theme="outline" disabled>
-            {t("open_download_options")}
-          </Button>
-        </div>
       </div>
       <div className={styles.descriptionContainer}>
         <div className={styles.descriptionContent}>
