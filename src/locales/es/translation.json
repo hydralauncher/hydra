@@ -42,7 +42,7 @@
     "pause": "Pausa",
     "cancel": "Cancelar",
     "remove": "Eliminar",
-    "remove_from_list": "Quitar de la lista",
+    "remove_from_list": "Quitar",
     "space_left_on_disk": "{{space}} restantes en el disco",
     "eta": "Finalizando {{eta}}",
     "downloading_metadata": "Descargando metadatos…",
@@ -64,7 +64,10 @@
     "minutes": "minutos",
     "accuracy": "{{accuracy}}% precisión",
     "delete_modal_title": "¿Estás seguro de esto?",
-    "delete_modal_description": "Esto eliminará todos los archivos del juego de tu sistema"
+    "delete_modal_description": "Esto eliminará todos los archivos del juego de tu sistema",
+    "add_to_library": "Agregar a la biblioteca",
+    "remove_from_library": "Eliminar de la biblioteca",
+    "no_downloads": "No hay descargas disponibles"
   },
   "activation": {
     "title": "Activar Hydra",
@@ -92,7 +95,8 @@
     "checking_files": "Verificando archivos…",
     "starting_download": "Iniciando descarga…",
     "deleting": "Eliminando archivos…",
-    "delete": "Eliminar todos los archivos"
+    "delete": "Eliminar todos los archivos",
+    "remove_from_list": "Eliminar"
   },
   "settings": {
     "downloads_path": "Ruta de descarga",

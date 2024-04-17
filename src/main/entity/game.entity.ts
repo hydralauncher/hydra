@@ -33,7 +33,7 @@ export class Game {
   @Column("text")
   shop: GameShop;
 
-  @Column("text")
+  @Column("text", { nullable: true })
   status: string;
 
   @Column("float", { default: 0 })
@@ -48,7 +48,7 @@ export class Game {
   @Column("float", { default: 0 })
   fileSize: number;
 
-  @OneToOne(() => Repack)
+  @OneToOne(() => Repack, { nullable: true })
   @JoinColumn()
   repack: Repack;
 

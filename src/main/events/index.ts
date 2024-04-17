@@ -1,7 +1,7 @@
 import { app, ipcMain } from "electron";
 import { defaultDownloadsPath } from "@main/constants";
 
-import "./torrenting/start-game-download";
+import "./library/add-game-to-library";
 import "./catalogue/search-games";
 import "./catalogue/get-game-shop-details";
 import "./catalogue/get-catalogue";
@@ -10,6 +10,7 @@ import "./hardware/get-disk-free-space";
 import "./torrenting/cancel-game-download";
 import "./torrenting/pause-game-download";
 import "./torrenting/resume-game-download";
+import "./torrenting/start-game-download";
 import "./misc/get-or-cache-image";
 import "./user-preferences/update-user-preferences";
 import "./user-preferences/get-user-preferences";

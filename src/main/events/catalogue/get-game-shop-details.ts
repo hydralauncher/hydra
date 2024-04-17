@@ -39,14 +39,14 @@ const getGameShopDetails = async (
       return [appDetails, localizedAppDetails];
     });
 
-    if (cachedData) {
-      const cachedDetails = JSON.parse(
-        cachedData.serializedData
-      ) as SteamAppDetails;
+    const cachedGame = cachedData?.serializedData
+      ? (JSON.parse(cachedData?.serializedData) as SteamAppDetails)
+      : null;
 
+    if (cachedGame) {
       return {
-        ...cachedDetails,
-        repacks: searchRepacks(cachedDetails.name),
+        ...cachedGame,
+        repacks: searchRepacks(cachedGame.name),
         objectID,
       } as ShopDetails;
     }

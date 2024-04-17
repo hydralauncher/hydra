@@ -73,7 +73,11 @@ export function App() {
         return;
       }
 
-      navigate(`/search/${query}`, {
+      const searchParams = new URLSearchParams({
+        query,
+      });
+
+      navigate(`/search?${searchParams.toString()}`, {
         replace: location.pathname.startsWith("/search"),
       });
     },
@@ -87,7 +91,7 @@ export function App() {
 
   useEffect(() => {
     if (contentRef.current) contentRef.current.scrollTop = 0;
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   return (
     <>

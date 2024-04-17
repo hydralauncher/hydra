@@ -7,7 +7,7 @@ import { formatDownloadProgress, steamUrlBuilder } from "@renderer/helpers";
 import { useDownload, useLibrary } from "@renderer/hooks";
 import type { Game } from "@types";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
 
@@ -34,9 +34,13 @@ export function Downloads() {
     isGameDeleting,
   } = useDownload();
 
-  useEffect(() => {
-    setFilteredLibrary(library);
+  const libraryWithDownloadedGamesOnly = useMemo(() => {
+    return library.filter((game) => game.status);
   }, [library]);
+
+  useEffect(() => {
+    setFilteredLibrary(libraryWithDownloadedGamesOnly);
+  }, [libraryWithDownloadedGamesOnly]);
 
   const openGame = (gameId: number) =>
     window.electron.openGame(gameId).then((isBinaryInPath) => {
@@ -182,6 +186,7 @@ export function Downloads() {
         >
           {t("download_again")}
         </Button>
+
         <Button
           onClick={() => removeGame(game.id)}
           theme="outline"
@@ -195,7 +200,7 @@ export function Downloads() {
 
   const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
     setFilteredLibrary(
-      library.filter((game) =>
+      libraryWithDownloadedGamesOnly.filter((game) =>
         game.title
           .toLowerCase()
           .includes(event.target.value.toLocaleLowerCase())

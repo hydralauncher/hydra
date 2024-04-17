@@ -44,7 +44,6 @@
     "@typescript-eslint/parser": "^7.3.1",
     "@vanilla-extract/webpack-plugin": "^2.3.7",
     "@vercel/webpack-asset-relocator-loader": "1.7.3",
-    "@vitejs/plugin-react-swc": "^3.6.0",
     "css-loader": "^6.0.0",
     "dotenv-webpack": "^8.1.0",
     "electron": "29.1.4",
@@ -58,11 +57,8 @@
     "style-loader": "^3.0.0",
     "ts-loader": "^9.2.2",
     "ts-node": "^10.0.0",
-    "tsconfig-paths": "^4.2.0",
     "tsconfig-paths-webpack-plugin": "^4.1.0",
-    "typescript": "^5.4.3",
-    "vite-plugin-svgr": "^4.2.0",
-    "vite-tsconfig-paths": "^4.3.2"
+    "typescript": "^5.4.3"
   },
   "keywords": [],
   "license": "MIT",
@@ -73,7 +69,6 @@
     "@reduxjs/toolkit": "^2.2.2",
     "@vanilla-extract/css": "^1.14.1",
     "@vanilla-extract/recipes": "^0.5.2",
-    "@vanilla-extract/vite-plugin": "^4.0.6",
     "axios": "^1.6.8",
     "check-disk-space": "^3.4.0",
     "classnames": "^2.5.1",

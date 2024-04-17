@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import Color from "color";
 import { average } from "color.js";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
 import type {
   Game,
@@ -13,21 +13,25 @@ import type {
 
 import { AsyncImage, Button } from "@renderer/components";
 import { setHeaderTitle } from "@renderer/features";
-import { useAppDispatch, useDownload } from "@renderer/hooks";
 import { getSteamLanguage, steamUrlBuilder } from "@renderer/helpers";
+import { useAppDispatch, useDownload } from "@renderer/hooks";
 
-import * as styles from "./game-details.css";
-import { RepacksModal } from "./repacks-modal";
-import { HeroPanel } from "./hero-panel";
-import { useTranslation } from "react-i18next";
 import { ShareAndroidIcon } from "@primer/octicons-react";
+import { vars } from "@renderer/theme.css";
+import { useTranslation } from "react-i18next";
+import { SkeletonTheme } from "react-loading-skeleton";
+import { GameDetailsSkeleton } from "./game-details-skeleton";
+import * as styles from "./game-details.css";
+import { HeroPanel } from "./hero-panel";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
+import { RepacksModal } from "./repacks-modal";
 
 const OPEN_HYDRA_URL = "https://open.hydralauncher.site";
 
 export function GameDetails() {
   const { objectID, shop } = useParams();
 
+  const [isLoading, setIsLoading] = useState(false);
   const [color, setColor] = useState("");
   const [clipboardLock, setClipboardLock] = useState(false);
   const [gameDetails, setGameDetails] = useState<ShopDetails | null>(null);
@@ -69,6 +73,7 @@ export function GameDetails() {
   }, [getGame, gameDownloading?.id]);
 
   useEffect(() => {
+    setIsLoading(true);
     dispatch(setHeaderTitle(""));
 
     window.electron
@@ -87,6 +92,9 @@ export function GameDetails() {
 
         setGameDetails(result);
         dispatch(setHeaderTitle(result.name));
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
 
     getGame();
@@ -143,7 +151,7 @@ export function GameDetails() {
   };
 
   return (
-    <>
+    <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
       {gameDetails && (
         <RepacksModal
           visible={showRepacksModal}
@@ -153,114 +161,120 @@ export function GameDetails() {
         />
       )}
 
-      <section className={styles.container}>
-        <div className={styles.hero}>
-          <AsyncImage
-            src={steamUrlBuilder.libraryHero(objectID)}
-            className={styles.heroImage}
-            alt={game?.title}
-            onSettled={handleImageSettled}
+      {isLoading ? (
+        <GameDetailsSkeleton />
+      ) : (
+        <section className={styles.container}>
+          <div className={styles.hero}>
+            <AsyncImage
+              src={steamUrlBuilder.libraryHero(objectID)}
+              className={styles.heroImage}
+              alt={game?.title}
+              onSettled={handleImageSettled}
+            />
+            <div className={styles.heroBackdrop}>
+              <div className={styles.heroContent}>
+                <AsyncImage
+                  src={steamUrlBuilder.logo(objectID)}
+                  style={{ width: 300, alignSelf: "flex-end" }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <HeroPanel
+            game={game}
+            color={color}
+            gameDetails={gameDetails}
+            openRepacksModal={() => setShowRepacksModal(true)}
+            getGame={getGame}
           />
-          <div className={styles.heroBackdrop}>
-            <div className={styles.heroContent}>
-              <AsyncImage
-                src={steamUrlBuilder.logo(objectID)}
-                style={{ width: 300, alignSelf: "flex-end" }}
+
+          <div className={styles.descriptionContainer}>
+            <div className={styles.descriptionContent}>
+              <div className={styles.descriptionHeader}>
+                <section className={styles.descriptionHeaderInfo}>
+                  <p>
+                    {t("release_date", {
+                      date: gameDetails?.release_date.date,
+                    })}
+                  </p>
+                  <p>
+                    {t("publisher", { publisher: gameDetails?.publishers[0] })}
+                  </p>
+                </section>
+
+                <Button
+                  theme="outline"
+                  onClick={handleCopyToClipboard}
+                  disabled={clipboardLock || !gameDetails}
+                >
+                  {clipboardLock ? (
+                    t("copied_link_to_clipboard")
+                  ) : (
+                    <>
+                      <ShareAndroidIcon />
+                      {t("copy_link_to_clipboard")}
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: gameDetails?.about_the_game ?? "",
+                }}
+                className={styles.description}
               />
             </div>
-          </div>
-        </div>
 
-        <HeroPanel
-          game={game}
-          color={color}
-          gameDetails={gameDetails}
-          openRepacksModal={() => setShowRepacksModal(true)}
-          getGame={getGame}
-        />
+            <div className={styles.contentSidebar}>
+              <HowLongToBeatSection
+                howLongToBeatData={howLongToBeat.data}
+                isLoading={howLongToBeat.isLoading}
+              />
 
-        <div className={styles.descriptionContainer}>
-          <div className={styles.descriptionContent}>
-            <div className={styles.descriptionHeader}>
-              <section className={styles.descriptionHeaderInfo}>
-                <p>
-                  {t("release_date", {
-                    date: gameDetails?.release_date.date,
-                  })}
-                </p>
-                <p>
-                  {t("publisher", { publisher: gameDetails?.publishers[0] })}
-                </p>
-              </section>
-
-              <Button
-                theme="outline"
-                onClick={handleCopyToClipboard}
-                disabled={clipboardLock || !gameDetails}
+              <div
+                className={styles.contentSidebarTitle}
+                style={{ border: "none" }}
               >
-                {clipboardLock ? (
-                  t("copied_link_to_clipboard")
-                ) : (
-                  <>
-                    <ShareAndroidIcon />
-                    {t("copy_link_to_clipboard")}
-                  </>
-                )}
-              </Button>
-            </div>
+                <h3>{t("requirements")}</h3>
+              </div>
 
-            <div
-              dangerouslySetInnerHTML={{
-                __html: gameDetails?.about_the_game ?? "",
-              }}
-              className={styles.description}
-            />
+              <div className={styles.requirementButtonContainer}>
+                <Button
+                  className={styles.requirementButton}
+                  onClick={() => setActiveRequirement("minimum")}
+                  theme={
+                    activeRequirement === "minimum" ? "primary" : "outline"
+                  }
+                >
+                  {t("minimum")}
+                </Button>
+                <Button
+                  className={styles.requirementButton}
+                  onClick={() => setActiveRequirement("recommended")}
+                  theme={
+                    activeRequirement === "recommended" ? "primary" : "outline"
+                  }
+                >
+                  {t("recommended")}
+                </Button>
+              </div>
+              <div
+                className={styles.requirementsDetails}
+                dangerouslySetInnerHTML={{
+                  __html:
+                    gameDetails?.pc_requirements?.[activeRequirement] ??
+                    t(`no_${activeRequirement}_requirements`, {
+                      title: gameDetails?.name,
+                    }),
+                }}
+              ></div>
+            </div>
           </div>
-
-          <div className={styles.contentSidebar}>
-            <HowLongToBeatSection
-              howLongToBeatData={howLongToBeat.data}
-              isLoading={howLongToBeat.isLoading}
-            />
-
-            <div
-              className={styles.contentSidebarTitle}
-              style={{ border: "none" }}
-            >
-              <h3>{t("requirements")}</h3>
-            </div>
-
-            <div className={styles.requirementButtonContainer}>
-              <Button
-                className={styles.requirementButton}
-                onClick={() => setActiveRequirement("minimum")}
-                theme={activeRequirement === "minimum" ? "primary" : "outline"}
-              >
-                {t("minimum")}
-              </Button>
-              <Button
-                className={styles.requirementButton}
-                onClick={() => setActiveRequirement("recommended")}
-                theme={
-                  activeRequirement === "recommended" ? "primary" : "outline"
-                }
-              >
-                {t("recommended")}
-              </Button>
-            </div>
-            <div
-              className={styles.requirementsDetails}
-              dangerouslySetInnerHTML={{
-                __html:
-                  gameDetails?.pc_requirements?.[activeRequirement] ??
-                  t(`no_${activeRequirement}_requirements`, {
-                    title: gameDetails?.name,
-                  }),
-              }}
-            ></div>
-          </div>
-        </div>
-      </section>
-    </>
+        </section>
+      )}
+    </SkeletonTheme>
   );
 }
