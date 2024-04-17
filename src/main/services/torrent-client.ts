@@ -1,6 +1,6 @@
 import path from "node:path";
 import cp from "node:child_process";
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/electron/main";
 import { Notification, app } from "electron";
 import type { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 

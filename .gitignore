@@ -103,3 +103,6 @@ __pycache__
 build/
 resources/dist/
 *.spec
+
+# Sentry Config File
+.env.sentry-build-plugin

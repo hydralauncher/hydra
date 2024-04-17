@@ -63,7 +63,11 @@
     "remove_from_library": "Remover da biblioteca",
     "no_downloads": "Nenhum download disponível",
     "play_time": "Jogado por {{amount}}",
-    "next_suggestion": "Próxima sugestão"
+    "next_suggestion": "Próxima sugestão",
+    "install": "Instalar",
+    "last_time_played": "Jogado pela última vez {{period}}",
+    "play": "Jogar",
+    "not_played_yet": "Você ainda não jogou {{title}}"
   },
   "activation": {
     "title": "Ativação",
@@ -93,7 +97,8 @@
     "delete": "Remover instalador",
     "delete_modal_description": "Isso removerá todos os arquivos de instalação do seu computador",
     "delete_modal_title": "Tem certeza?",
-    "deleting": "Excluindo instalador…"
+    "deleting": "Excluindo instalador…",
+    "install": "Instalar"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",

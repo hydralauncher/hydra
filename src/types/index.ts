@@ -84,6 +84,7 @@ export interface Game extends Omit<CatalogueEntry, "cover"> {
   fileVerificationProgress: number;
   bytesDownloaded: number;
   playTimeInMilliseconds: number;
+  executablePath: string | null;
   lastTimePlayed: Date | null;
   fileSize: number;
   createdAt: Date;

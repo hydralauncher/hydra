@@ -59,6 +59,7 @@ declare global {
     removeGame: (gameId: number) => Promise<void>;
     deleteGameFolder: (gameId: number) => Promise<unknown>;
     getGameByObjectID: (objectID: string) => Promise<Game | null>;
+    onPlayTime: (cb: (gameId: number) => void) => () => Electron.IpcRenderer;
 
     /* User preferences */
     getUserPreferences: () => Promise<UserPreferences | null>;

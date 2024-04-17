@@ -23,11 +23,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("pauseGameDownload", gameId),
   resumeGameDownload: (gameId: number) =>
     ipcRenderer.invoke("resumeGameDownload", gameId),
-  onDownloadProgress: (callback: (value: TorrentProgress) => void) => {
+  onDownloadProgress: (cb: (value: TorrentProgress) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
       value: TorrentProgress
-    ) => callback(value);
+    ) => cb(value);
     ipcRenderer.on("on-download-progress", listener);
     return () => ipcRenderer.removeListener("on-download-progress", listener);
   },
@@ -62,6 +62,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("deleteGameFolder", gameId),
   getGameByObjectID: (objectID: string) =>
     ipcRenderer.invoke("getGameByObjectID", objectID),
+  onPlayTime: (cb: (gameId: number) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, gameId: number) =>
+      cb(gameId);
+    ipcRenderer.on("on-playtime", listener);
+    return () => ipcRenderer.removeListener("on-playtime", listener);
+  },
 
   /* Hardware */
   getDiskFreeSpace: () => ipcRenderer.invoke("getDiskFreeSpace"),

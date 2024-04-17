@@ -57,11 +57,36 @@ export function HeroPanel({
 
   const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
-  const openGameInstaller = (gameId: number) =>
-    window.electron.openGameInstaller(gameId).then((isBinaryInPath) => {
+  const openGameInstaller = () => {
+    window.electron.openGameInstaller(game.id).then((isBinaryInPath) => {
       if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
       updateLibrary();
     });
+  };
+
+  const openGame = () => {
+    if (game.executablePath) {
+      window.electron.openGame(game.id, game.executablePath);
+      return;
+    }
+
+    if (game?.executablePath) {
+      window.electron.openGame(game.id, game.executablePath);
+      return;
+    }
+
+    window.electron
+      .showOpenDialog({
+        properties: ["openFile"],
+        filters: [{ name: "Game executable (.exe)", extensions: ["exe"] }],
+      })
+      .then(({ filePaths }) => {
+        if (filePaths && filePaths.length > 0) {
+          const path = filePaths[0];
+          window.electron.openGame(game.id, path);
+        }
+      });
+  };
 
   const finalDownloadSize = useMemo(() => {
     if (!game) return "N/A";
@@ -142,6 +167,10 @@ export function HeroPanel({
     }
 
     if (game?.status === "seeding") {
+      if (!game.lastTimePlayed) {
+        return <p>{t("not_played_yet", { title: game.title })}</p>;
+      }
+
       return (
         <>
           <p>
@@ -149,7 +178,14 @@ export function HeroPanel({
               amount: formatDistance(0, game.playTimeInMilliseconds),
             })}
           </p>
-          <p>{game?.lastTimePlayed}</p>
+
+          <p>
+            {t("last_time_played", {
+              period: formatDistance(game.lastTimePlayed, new Date(), {
+                addSuffix: true,
+              }),
+            })}
+          </p>
         </>
       );
     }
@@ -218,30 +254,14 @@ export function HeroPanel({
       return (
         <>
           <Button
-            onClick={() => openGameInstaller(game.id)}
+            onClick={openGameInstaller}
             theme="outline"
             disabled={deleting}
           >
             {t("install")}
           </Button>
 
-          <Button
-            onClick={() =>
-              window.electron
-                .showOpenDialog({
-                  properties: ["openFile"],
-                  filters: [{ name: "", extensions: [".exe"] }],
-                })
-                .then(({ filePaths }) => {
-                  if (filePaths && filePaths.length > 0) {
-                    const path = filePaths[0];
-                    window.electron.openGame(game.id, path);
-                  }
-                })
-            }
-            theme="outline"
-            disabled={deleting}
-          >
+          <Button onClick={openGame} theme="outline" disabled={deleting}>
             {t("play")}
           </Button>
         </>

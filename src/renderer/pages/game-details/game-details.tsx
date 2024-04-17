@@ -152,6 +152,18 @@ export function GameDetails() {
       setGame((prev) => ({ ...prev, status: gameDownloading?.status }));
   }, [isGameDownloading, gameDownloading?.status]);
 
+  useEffect(() => {
+    const unsubscribe = window.electron.onPlayTime((gameId) => {
+      if (gameId === game?.id) {
+        getGame();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [game?.id, getGame]);
+
   const handleStartDownload = async (repackId: number) => {
     return startDownload(
       repackId,

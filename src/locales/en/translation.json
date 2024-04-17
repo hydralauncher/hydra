@@ -64,6 +64,8 @@
     "remove_from_library": "Remove from library",
     "no_downloads": "No downloads available",
     "play_time": "Played for {{amount}}",
+    "last_time_played": "Played for the last time {{period}}",
+    "not_played_yet": "You haven't played {{title}} yet",
     "next_suggestion": "Next suggestion",
     "play": "Play"
   },

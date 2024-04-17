@@ -63,7 +63,11 @@
     "remove_from_library": "Eliminar de la biblioteca",
     "no_downloads": "No hay descargas disponibles",
     "next_suggestion": "Siguiente sugerencia",
-    "play_time": "Jugado por {{cantidad}}"
+    "play_time": "Jugado por {{cantidad}}",
+    "install": "Instalar",
+    "last_time_played": "Jugado por última vez {{period}}",
+    "play": "Jugar",
+    "not_played_yet": "Aún no has jugado a {{title}}"
   },
   "activation": {
     "title": "Activar Hydra",
@@ -93,7 +97,8 @@
     "delete": "Quitar instalador",
     "delete_modal_description": "Esto eliminará todos los archivos de instalación de su computadora.",
     "delete_modal_title": "¿Está seguro?",
-    "deleting": "Eliminando instalador…"
+    "deleting": "Eliminando instalador…",
+    "install": "Instalar"
   },
   "settings": {
     "downloads_path": "Ruta de descarga",
