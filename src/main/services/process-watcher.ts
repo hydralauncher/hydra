@@ -1,10 +1,10 @@
 import path from "node:path";
 
 import { IsNull, Not } from "typeorm";
-import psList from "ps-list";
 
 import { gameRepository } from "@main/repository";
 import { GameStatus } from "@main/constants";
+import { getProcesses } from "@main/helpers";
 import { WindowManager } from "./window-manager";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -22,7 +22,7 @@ export const startProcessWatcher = async () => {
       },
     });
 
-    const processes = await psList();
+    const processes = await getProcesses();
 
     for (const game of games) {
       const gameProcess = processes.find((runningProcess) => {

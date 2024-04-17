@@ -1,15 +1,15 @@
-import psList from "ps-list";
 import path from "node:path";
 
 import { gameRepository } from "@main/repository";
 
 import { registerEvent } from "../register-event";
+import { getProcesses } from "@main/helpers";
 
 const closeGame = async (
   _event: Electron.IpcMainInvokeEvent,
   gameId: number
 ) => {
-  const processes = await psList();
+  const processes = await getProcesses();
   const game = await gameRepository.findOne({ where: { id: gameId } });
 
   const gameProcess = processes.find((runningProcess) => {
