@@ -53,8 +53,6 @@ export function PatchNotes() {
     return <p>Loading...</p>;
   }
 
-  console.log(releases);
-
   return (
     <main className={styles.container}>
       <section className={styles.content}>
@@ -72,12 +70,12 @@ export function PatchNotes() {
               <ReactMarkdown>{release.body}</ReactMarkdown>
 
               {/* TO-DO: Add global accordion to design system */}
-              <Accordion.Root type="single">
+              <Accordion.Root type="single" collapsible>
                 <Accordion.Item value={`item-${release.id}`}>
                   <Accordion.Trigger className={styles.assetsHeader}>
                     <h4 className={styles.assetsHeaderTitle}>
-                      {" "}
-                      <ChevronDownIcon size={16} /> Assets
+                      <ChevronDownIcon className="rotateIcon" size={16} />
+                      Assets
                     </h4>
                     <span className={styles.assetsCount}>
                       {release.assets.length}

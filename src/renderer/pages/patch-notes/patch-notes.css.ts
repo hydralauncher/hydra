@@ -52,10 +52,6 @@ export const assetsHeader = style({
   justifyContent: "space-between",
   color: vars.color.bodyText,
   width: "100%",
-
-  // "&[data-state=open] > svg": {
-  //   transform: "rotate(180deg)",
-  // },
 });
 
 export const assetsHeaderTitle = style({
