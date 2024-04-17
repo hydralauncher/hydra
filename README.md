@@ -80,6 +80,44 @@ yarn make
 ## Contributors
 
 <!-- readme: contributors -start -->
+<table>
+<tr>
+    <td align="center">
+        <a href="https://github.com/hydralauncher">
+            <img src="https://avatars.githubusercontent.com/u/164102380?v=4" width="100;" alt="hydralauncher"/>
+            <br />
+            <sub><b>Hydra</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/fhilipecrash">
+            <img src="https://avatars.githubusercontent.com/u/36455575?v=4" width="100;" alt="fhilipecrash"/>
+            <br />
+            <sub><b>Fhilipe Coelho</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/xbozo">
+            <img src="https://avatars.githubusercontent.com/u/119091492?v=4" width="100;" alt="xbozo"/>
+            <br />
+            <sub><b>Guilherme Viana</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/peres07">
+            <img src="https://avatars.githubusercontent.com/u/82431727?v=4" width="100;" alt="peres07"/>
+            <br />
+            <sub><b>José Luís</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/Dougsan65">
+            <img src="https://avatars.githubusercontent.com/u/85745767?v=4" width="100;" alt="Dougsan65"/>
+            <br />
+            <sub><b>Douglas Nobre</b></sub>
+        </a>
+    </td></tr>
+</table>
 <!-- readme: contributors -end -->
 
 ## License
