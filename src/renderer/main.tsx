@@ -30,8 +30,6 @@ import { store } from "./store";
 
 import * as resources from "@locales";
 
-console.log(process.env.SENTRY_DSN)
-
 if (process.env.SENTRY_DSN) {
   init({ dsn: process.env.SENTRY_DSN }, reactInit);
 }

@@ -56,7 +56,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           STEAMGRIDDB_API_KEY: ${{ secrets.STEAMGRIDDB_API_KEY }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_DSN: ${{ env.SENTRY_DSN }}
+          SENTRY_DSN: ${{ vars.SENTRY_DSN }}
 
       - name: Create artifact
         uses: actions/upload-artifact@v4
