@@ -10,11 +10,6 @@ const openGame = async (
 ) => {
   await gameRepository.update({ id: gameId }, { executablePath });
 
-  if (process.platform === "win32") {
-    shell.openExternal(executablePath);
-    return;
-  }
-
   shell.openPath(executablePath);
 };
 

@@ -34,7 +34,7 @@ const openGameInstaller = async (
   }
 
   if (process.platform === "win32") {
-    shell.openExternal(setupPath);
+    shell.openPath(setupPath);
     return true;
   }
 
