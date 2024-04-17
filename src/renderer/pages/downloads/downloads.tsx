@@ -10,6 +10,7 @@ import type { Game } from "@types";
 import { useEffect, useMemo, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
+import { DeleteModal } from "./delete-modal";
 
 export function Downloads() {
   const { library, updateLibrary } = useLibrary();
@@ -33,6 +34,8 @@ export function Downloads() {
     deleteGame,
     isGameDeleting,
   } = useDownload();
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const libraryWithDownloadedGamesOnly = useMemo(() => {
     return library.filter((game) => game.status);
@@ -158,13 +161,21 @@ export function Downloads() {
           >
             {t("launch")}
           </Button>
+
           <Button
-            onClick={() => deleteGame(game.id)}
+            onClick={() => setShowDeleteModal(true)}
             theme="outline"
             disabled={deleting}
           >
             {t("delete")}
           </Button>
+
+          <DeleteModal
+            visible={showDeleteModal}
+            onClose={() => setShowDeleteModal(false)}
+            deleting={deleting}
+            deleteGame={() => deleteGame(game.id).then(updateLibrary)}
+          />
         </>
       );
     }

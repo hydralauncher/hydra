@@ -10,7 +10,6 @@ import type { Game, ShopDetails } from "@types";
 import { formatDownloadProgress } from "@renderer/helpers";
 import { NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
-import { DeleteModal } from "./delete-modal";
 import * as styles from "./hero-panel.css";
 
 export interface HeroPanelProps {
@@ -42,7 +41,6 @@ export function HeroPanel({
     resumeDownload,
     pauseDownload,
     cancelDownload,
-    deleteGame,
     removeGame,
     isGameDeleting,
   } = useDownload();
@@ -54,8 +52,6 @@ export function HeroPanel({
   const gameOnLibrary = library.find(
     ({ objectID }) => objectID === gameDetails?.objectID
   );
-
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
@@ -211,23 +207,21 @@ export function HeroPanel({
             theme="outline"
             disabled={deleting}
           >
-            {t("launch")}
+            {t("install")}
           </Button>
 
           <Button
-            onClick={() => setShowDeleteModal(true)}
+            onClick={() =>
+              window.electron.showOpenDialog({
+                properties: ["openFile"],
+                filters: [{ name: "", extensions: [".exe"] }],
+              })
+            }
             theme="outline"
             disabled={deleting}
           >
-            {t("delete")}
+            {t("launch")}
           </Button>
-
-          <DeleteModal
-            visible={showDeleteModal}
-            onClose={() => setShowDeleteModal(false)}
-            deleting={deleting}
-            deleteGame={() => deleteGame(game.id).then(getGame)}
-          />
         </>
       );
     }
