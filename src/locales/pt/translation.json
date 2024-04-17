@@ -15,7 +15,8 @@
     "checking_files": "{{title}} ({{percentage}} - Verificando arquivos…)",
     "paused": "{{title}} (Pausado)",
     "downloading": "{{title}} ({{percentage}} - Baixando…)",
-    "filter": "Filtrar biblioteca"
+    "filter": "Filtrar biblioteca",
+    "follow_us": "Acompanhe-nos"
   },
   "header": {
     "search": "Buscar",

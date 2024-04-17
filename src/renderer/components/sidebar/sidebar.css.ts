@@ -7,6 +7,7 @@ export const sidebar = recipe({
     backgroundColor: vars.color.darkBackground,
     color: "#c0c1c7",
     display: "flex",
+    flexDirection: "column",
     transition: "opacity ease 0.2s",
     borderRight: `solid 1px ${vars.color.borderColor}`,
     position: "relative",
@@ -25,10 +26,10 @@ export const content = recipe({
   base: {
     display: "flex",
     flexDirection: "column",
-    padding: `${SPACING_UNIT * 2}px`,
     paddingBottom: "0",
     width: "100%",
     overflow: "auto",
+    padding: `${SPACING_UNIT * 2}px`,
   },
   variants: {
     macos: {
@@ -74,7 +75,7 @@ export const menuItem = recipe({
         fontWeight: "bold",
       },
     },
-    muted: {
+    cancelled: {
       true: {
         opacity: vars.opacity.disabled,
         ":hover": {
@@ -131,4 +132,37 @@ export const section = recipe({
       },
     },
   },
+});
+
+export const sidebarFooter = style({
+  marginTop: "auto",
+  padding: `${SPACING_UNIT * 2}px`,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+});
+
+export const footerSocialsContainer = style({
+  display: "flex",
+  alignItems: "center",
+  gap: `${SPACING_UNIT * 1.5}px`,
+});
+
+export const footerSocialsItem = style({
+  color: vars.color.bodyText,
+  backgroundColor: vars.color.darkBackground,
+  width: "16px",
+  height: "16px",
+  display: "flex",
+  alignItems: "center",
+  transition: "all ease 0.15s",
+  ":hover": {
+    opacity: 0.75,
+    cursor: "pointer",
+  },
+});
+
+export const footerText = style({
+  color: vars.color.bodyText,
+  fontSize: "12px",
 });

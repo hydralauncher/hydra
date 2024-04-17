@@ -1,5 +1,5 @@
-import { SPACING_UNIT, vars } from "../../theme.css";
 import { style } from "@vanilla-extract/css";
+import { SPACING_UNIT, vars } from "../../theme.css";
 
 export const bottomPanel = style({
   width: "100%",
@@ -13,9 +13,10 @@ export const bottomPanel = style({
 });
 
 export const downloadsButton = style({
-  cursor: "pointer",
   color: vars.color.bodyText,
+  borderBottom: "1px solid transparent",
   ":hover": {
-    textDecoration: "underline",
+    borderBottom: `1px solid ${vars.color.bodyText}`,
+    cursor: "pointer",
   },
 });

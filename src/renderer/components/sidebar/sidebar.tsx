@@ -4,12 +4,16 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import type { Game } from "@types";
 
-import { useDownload, useLibrary } from "@renderer/hooks";
 import { AsyncImage, TextField } from "@renderer/components";
+import { useDownload, useLibrary } from "@renderer/hooks";
 import { SPACING_UNIT } from "@renderer/theme.css";
 
-import * as styles from "./sidebar.css";
 import { routes } from "./routes";
+
+import { MarkGithubIcon } from "@primer/octicons-react";
+import DiscordLogo from "../../../../images/logos/discord-icon.svg";
+import XLogo from "../../../../images/logos/x-icon.svg";
+import * as styles from "./sidebar.css";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -173,29 +177,35 @@ export function Sidebar() {
 
           <ul className={styles.menu}>
             {filteredLibrary.map((game) => (
-              <li
-                key={game.id}
-                className={styles.menuItem({
-                  active:
-                    location.pathname === `/game/${game.shop}/${game.objectID}`,
-                  muted: game.status === null || game.status === "cancelled",
-                })}
-              >
-                <button
-                  type="button"
-                  className={styles.menuItemButton}
-                  onClick={() =>
-                    handleSidebarItemClick(
-                      `/game/${game.shop}/${game.objectID}`
-                    )
-                  }
+              <>
+                <li
+                  key={game.id}
+                  className={styles.menuItem({
+                    active:
+                      location.pathname ===
+                      `/game/${game.shop}/${game.objectID}`,
+                    cancelled: game.status === "cancelled",
+                  })}
                 >
-                  <AsyncImage className={styles.gameIcon} src={game.iconUrl} />
-                  <span className={styles.menuItemButtonLabel}>
-                    {getGameTitle(game)}
-                  </span>
-                </button>
-              </li>
+                  <button
+                    type="button"
+                    className={styles.menuItemButton}
+                    onClick={() =>
+                      handleSidebarItemClick(
+                        `/game/${game.shop}/${game.objectID}`
+                      )
+                    }
+                  >
+                    <AsyncImage
+                      className={styles.gameIcon}
+                      src={game.iconUrl}
+                    />
+                    <span className={styles.menuItemButtonLabel}>
+                      {getGameTitle(game)}
+                    </span>
+                  </button>
+                </li>
+              </>
             ))}
           </ul>
         </section>
@@ -206,6 +216,45 @@ export function Sidebar() {
         className={styles.handle}
         onMouseDown={handleMouseDown}
       />
+
+      <footer className={styles.sidebarFooter}>
+        <div className={styles.footerText}>{t("follow_us")}</div>
+
+        <span className={styles.footerSocialsContainer}>
+          <button
+            className={styles.footerSocialsItem}
+            onClick={() =>
+              window.electron.openExternalUrl(
+                "https://discord.gg/hydralauncher"
+              )
+            }
+          >
+            <DiscordLogo />
+          </button>
+
+          <button
+            className={styles.footerSocialsItem}
+            onClick={() =>
+              window.electron.openExternalUrl(
+                "https://twitter.com/hydralauncher"
+              )
+            }
+          >
+            <XLogo />
+          </button>
+
+          <button
+            className={styles.footerSocialsItem}
+            onClick={() =>
+              window.electron.openExternalUrl(
+                "https://github.com/hydralauncher/hydra"
+              )
+            }
+          >
+            <MarkGithubIcon size={16} />
+          </button>
+        </span>
+      </footer>
     </aside>
   );
 }
