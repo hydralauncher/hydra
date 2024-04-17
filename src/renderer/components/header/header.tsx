@@ -1,12 +1,12 @@
-import { useTranslation } from "react-i18next";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeftIcon, SearchIcon, XIcon } from "@primer/octicons-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 
-import * as styles from "./header.css";
 import { clearSearch } from "@renderer/features";
+import * as styles from "./header.css";
 
 export interface HeaderProps {
   onSearch: (query: string) => void;
@@ -18,6 +18,7 @@ const pathTitle: Record<string, string> = {
   "/": "catalogue",
   "/downloads": "downloads",
   "/settings": "settings",
+  "/patch-notes": "patch-notes",
 };
 
 export function Header({ onSearch, onClear, search }: HeaderProps) {

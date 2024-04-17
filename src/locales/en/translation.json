@@ -15,14 +15,16 @@
     "checking_files": "{{title}} ({{percentage}} - Checking files…)",
     "paused": "{{title}} (Paused)",
     "downloading": "{{title}} ({{percentage}} - Downloading…)",
-    "filter": "Filter library"
+    "filter": "Filter library",
+    "patch-notes": "Patch Notes"
   },
   "header": {
     "search": "Search",
     "catalogue": "Catalogue",
     "downloads": "Downloads",
     "search_results": "Search results",
-    "settings": "Settings"
+    "settings": "Settings",
+    "patch-notes": "Patch Notes"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "No downloads in progress",
