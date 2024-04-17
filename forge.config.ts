@@ -13,6 +13,16 @@ import { ElectronegativityPlugin } from "@electron-forge/plugin-electronegativit
 import { mainConfig } from "./webpack.main.config";
 import { rendererConfig } from "./webpack.renderer.config";
 
+const linuxPkgOptions = {
+  mimeType: ["x-scheme-handler/hydralauncher"],
+  bin: "./Hydra",
+  genericName: "Games Launcher",
+  icon: "./images/icon.png",
+  name: "hydra-launcher",
+  productName: "Hydra",
+  desktopTemplate: "./resources/hydra-launcher.desktop"
+};
+
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
@@ -37,16 +47,10 @@ const config: ForgeConfig = {
     }),
     new MakerZIP({}, ["darwin", "linux"]),
     new MakerRpm({
-      options: {
-        mimeType: ["x-scheme-handler/hydralauncher"],
-        bin: "./Hydra",
-      },
+      options: linuxPkgOptions
     }),
     new MakerDeb({
-      options: {
-        mimeType: ["x-scheme-handler/hydralauncher"],
-        bin: "./Hydra",
-      },
+      options: linuxPkgOptions
     }),
   ],
   publishers: [
