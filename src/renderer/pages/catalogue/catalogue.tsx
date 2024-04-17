@@ -1,14 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
 import { Button, GameCard, Hero } from "@renderer/components";
 import type { CatalogueCategory, CatalogueEntry } from "@types";
 
+import starsAnimation from "@renderer/assets/lottie/stars.json";
+
 import * as styles from "./catalogue.css";
 import { vars } from "@renderer/theme.css";
+import Lottie from "lottie-react";
 
 const categories: CatalogueCategory[] = ["trending", "recently_added"];
 
@@ -18,8 +21,10 @@ export function Catalogue() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingRandomGame, setIsLoadingRandomGame] = useState(false);
+  const randomGameObjectID = useRef<string | null>(null);
 
-  const [currentCategory, setCurrentCategory] = useState(categories.at(0)!);
+  const [searchParams] = useSearchParams();
+
   const [catalogue, setCatalogue] = useState<
     Record<CatalogueCategory, CatalogueEntry[]>
   >({
@@ -41,30 +46,43 @@ export function Catalogue() {
       });
   }, []);
 
+  const currentCategory = searchParams.get("category") || categories[0];
+
   const handleSelectCategory = (category: CatalogueCategory) => {
     if (category !== currentCategory) {
       getCatalogue(category);
-      setCurrentCategory(category);
+      navigate(`/?category=${category}`, { replace: true });
     }
   };
 
-  const handleRandomizerClick = () => {
+  const getRandomGame = useCallback(() => {
     setIsLoadingRandomGame(true);
 
     window.electron
       .getRandomGame()
       .then((objectID) => {
-        navigate(`/game/steam/${objectID}`);
+        randomGameObjectID.current = objectID;
       })
       .finally(() => {
         setIsLoadingRandomGame(false);
       });
+  }, []);
+
+  const handleRandomizerClick = () => {
+    const searchParams = new URLSearchParams({
+      fromRandomizer: "1",
+    });
+
+    navigate(
+      `/game/steam/${randomGameObjectID.current}?${searchParams.toString()}`
+    );
   };
 
   useEffect(() => {
     setIsLoading(true);
-    getCatalogue(categories.at(0)!);
-  }, [getCatalogue]);
+    getCatalogue(currentCategory as CatalogueCategory);
+    getRandomGame();
+  }, [getCatalogue, currentCategory, getRandomGame]);
 
   return (
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
@@ -91,6 +109,13 @@ export function Catalogue() {
             theme="outline"
             disabled={isLoadingRandomGame}
           >
+            <div style={{ width: 16, height: 16, position: "relative" }}>
+              <Lottie
+                animationData={starsAnimation}
+                style={{ width: 70, position: "absolute", top: -28, left: -27 }}
+                loop
+              />
+            </div>
             {t("surprise_me")}
           </Button>
         </section>
@@ -102,7 +127,7 @@ export function Catalogue() {
             ? Array.from({ length: 12 }).map((_, index) => (
                 <Skeleton key={index} className={styles.cardSkeleton} />
               ))
-            : catalogue[currentCategory].map((result) => (
+            : catalogue[currentCategory as CatalogueCategory].map((result) => (
                 <GameCard
                   key={result.objectID}
                   game={result}

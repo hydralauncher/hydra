@@ -3,7 +3,7 @@
     "featured": "Destacado",
     "recently_added": "Recién Añadidos",
     "trending": "Tendencias",
-    "surprise_me": "✨ ¡Sorpréndeme!",
+    "surprise_me": "¡Sorpréndeme!",
     "no_results": "No se encontraron resultados"
   },
   "sidebar": {
@@ -28,8 +28,7 @@
     "no_downloads_in_progress": "Sin descargas en progreso",
     "downloading_metadata": "Descargando metadatos de {{title}}…",
     "checking_files": "Analizando archivos de {{title}} - ({{percentage}} completado)",
-    "downloading": "Descargando {{title}}… ({{percentage}} completado) - Finalizando {{eta}} - {{speed}}",
-    "deleting": "Eliminando archivos…"
+    "downloading": "Descargando {{title}}… ({{percentage}} completado) - Finalizando {{eta}} - {{speed}}"
   },
   "game_details": {
     "open_download_options": "Ver opciones de descargas",
@@ -37,7 +36,6 @@
     "download_options_one": "{{count}} opción de descarga",
     "download_options_other": "{{count}} opciones de descargas",
     "updated_at": "Actualizado el {{updated_at}}",
-    "launch": "Iniciar",
     "resume": "Continuar",
     "pause": "Pausa",
     "cancel": "Cancelar",
@@ -54,8 +52,6 @@
     "no_minimum_requirements": "Sin requisitos mínimos para {{title}}",
     "no_recommended_requirements": "{{title}} no tiene requisitos recomendados",
     "paused_progress": "{{progress}} (Pausado)",
-    "deleting": "Eliminando archivos…",
-    "delete": "Eliminar todos los archivos",
     "release_date": "Fecha de lanzamiento {{date}}",
     "publisher": "Publicado por {{publisher}}",
     "copy_link_to_clipboard": "Copiar enlace",
@@ -63,11 +59,11 @@
     "hours": "horas",
     "minutes": "minutos",
     "accuracy": "{{accuracy}}% precisión",
-    "delete_modal_title": "¿Estás seguro de esto?",
-    "delete_modal_description": "Esto eliminará todos los archivos del juego de tu sistema",
     "add_to_library": "Agregar a la biblioteca",
     "remove_from_library": "Eliminar de la biblioteca",
-    "no_downloads": "No hay descargas disponibles"
+    "no_downloads": "No hay descargas disponibles",
+    "next_suggestion": "Siguiente sugerencia",
+    "play_time": "Jugado por {{cantidad}}"
   },
   "activation": {
     "title": "Activar Hydra",
@@ -78,7 +74,6 @@
     "loading": "Cargando…"
   },
   "downloads": {
-    "launch": "Iniciar",
     "resume": "Resumir",
     "pause": "Pausa",
     "eta": "Finalizando {{eta}}",
@@ -94,9 +89,11 @@
     "downloading_metadata": "Descargando metadatos…",
     "checking_files": "Verificando archivos…",
     "starting_download": "Iniciando descarga…",
-    "deleting": "Eliminando archivos…",
-    "delete": "Eliminar todos los archivos",
-    "remove_from_list": "Eliminar"
+    "remove_from_list": "Eliminar",
+    "delete": "Quitar instalador",
+    "delete_modal_description": "Esto eliminará todos los archivos de instalación de su computadora.",
+    "delete_modal_title": "¿Está seguro?",
+    "deleting": "Eliminando instalador…"
   },
   "settings": {
     "downloads_path": "Ruta de descarga",

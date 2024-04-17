@@ -37,6 +37,12 @@ export function Sidebar() {
     updateLibrary();
   }, [gameDownloading?.id, updateLibrary]);
 
+  const isDownloading = library.some((game) =>
+    ["downloading", "checking_files", "downloading_metadata"].includes(
+      game.status
+    )
+  );
+
   const sidebarRef = useRef<HTMLElement>(null);
 
   const cursorPos = useRef({ x: 0 });
@@ -142,7 +148,7 @@ export function Sidebar() {
 
         <section className={styles.section({ hasBorder: false })}>
           <ul className={styles.menu}>
-            {routes.map(({ nameKey, path, Icon }) => (
+            {routes.map(({ nameKey, path, render }) => (
               <li
                 key={nameKey}
                 className={styles.menuItem({
@@ -154,7 +160,7 @@ export function Sidebar() {
                   className={styles.menuItemButton}
                   onClick={() => handleSidebarItemClick(path)}
                 >
-                  <Icon />
+                  {render(isDownloading)}
                   <span>{t(nameKey)}</span>
                 </button>
               </li>

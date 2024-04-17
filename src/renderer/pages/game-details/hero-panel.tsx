@@ -11,6 +11,7 @@ import { formatDownloadProgress } from "@renderer/helpers";
 import { NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./hero-panel.css";
+import { useDate } from "@renderer/hooks/use-date";
 
 export interface HeroPanelProps {
   game: Game | null;
@@ -30,6 +31,7 @@ export function HeroPanel({
   const { t } = useTranslation("game_details");
 
   const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
+  const { formatDistance } = useDate();
 
   const {
     game: gameDownloading,
@@ -55,8 +57,8 @@ export function HeroPanel({
 
   const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
-  const openGame = (gameId: number) =>
-    window.electron.openGame(gameId).then((isBinaryInPath) => {
+  const openGameInstaller = (gameId: number) =>
+    window.electron.openGameInstaller(gameId).then((isBinaryInPath) => {
       if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
       updateLibrary();
     });
@@ -139,6 +141,19 @@ export function HeroPanel({
       );
     }
 
+    if (game?.status === "seeding") {
+      return (
+        <>
+          <p>
+            {t("play_time", {
+              amount: formatDistance(0, game.playTimeInMilliseconds),
+            })}
+          </p>
+          <p>{game?.lastTimePlayed}</p>
+        </>
+      );
+    }
+
     const [latestRepack] = gameDetails.repacks;
 
     if (latestRepack) {
@@ -203,7 +218,7 @@ export function HeroPanel({
       return (
         <>
           <Button
-            onClick={() => openGame(game.id)}
+            onClick={() => openGameInstaller(game.id)}
             theme="outline"
             disabled={deleting}
           >
@@ -212,15 +227,22 @@ export function HeroPanel({
 
           <Button
             onClick={() =>
-              window.electron.showOpenDialog({
-                properties: ["openFile"],
-                filters: [{ name: "", extensions: [".exe"] }],
-              })
+              window.electron
+                .showOpenDialog({
+                  properties: ["openFile"],
+                  filters: [{ name: "", extensions: [".exe"] }],
+                })
+                .then(({ filePaths }) => {
+                  if (filePaths && filePaths.length > 0) {
+                    const path = filePaths[0];
+                    window.electron.openGame(game.id, path);
+                  }
+                })
             }
             theme="outline"
             disabled={deleting}
           >
-            {t("launch")}
+            {t("play")}
           </Button>
         </>
       );

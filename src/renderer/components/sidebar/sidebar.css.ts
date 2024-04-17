@@ -63,14 +63,16 @@ export const menuItem = recipe({
     cursor: "pointer",
     textWrap: "nowrap",
     display: "flex",
+    opacity: "0.9",
+    color: "#DADBE1",
     ":hover": {
-      color: "#DADBE1",
+      opacity: "1",
     },
   },
   variants: {
     active: {
       true: {
-        color: "#DADBE1",
+        opacity: "1",
         fontWeight: "bold",
       },
     },

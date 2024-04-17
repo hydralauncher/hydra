@@ -1,7 +1,7 @@
 import Color from "color";
 import { average } from "color.js";
-import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import type {
   Game,
@@ -16,6 +16,8 @@ import { setHeaderTitle } from "@renderer/features";
 import { getSteamLanguage, steamUrlBuilder } from "@renderer/helpers";
 import { useAppDispatch, useDownload } from "@renderer/hooks";
 
+import starsAnimation from "@renderer/assets/lottie/stars.json";
+
 import { ShareAndroidIcon } from "@primer/octicons-react";
 import { vars } from "@renderer/theme.css";
 import { useTranslation } from "react-i18next";
@@ -25,6 +27,7 @@ import * as styles from "./game-details.css";
 import { HeroPanel } from "./hero-panel";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { RepacksModal } from "./repacks-modal";
+import Lottie from "lottie-react";
 
 const OPEN_HYDRA_URL = "https://open.hydralauncher.site";
 
@@ -45,14 +48,23 @@ export function GameDetails() {
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const { t, i18n } = useTranslation("game_details");
 
   const [showRepacksModal, setShowRepacksModal] = useState(false);
 
+  const randomGameObjectID = useRef<string | null>(null);
+
   const dispatch = useAppDispatch();
 
   const { game: gameDownloading, startDownload, isDownloading } = useDownload();
+
+  const getRandomGame = useCallback(() => {
+    window.electron.getRandomGame().then((objectID) => {
+      randomGameObjectID.current = objectID;
+    });
+  }, []);
 
   const handleImageSettled = useCallback((url: string) => {
     average(url, { amount: 1, format: "hex" })
@@ -75,6 +87,8 @@ export function GameDetails() {
   useEffect(() => {
     setIsLoading(true);
     dispatch(setHeaderTitle(""));
+
+    getRandomGame();
 
     window.electron
       .getGameShopDetails(objectID, "steam", getSteamLanguage(i18n.language))
@@ -100,7 +114,7 @@ export function GameDetails() {
     getGame();
     setHowLongToBeat({ isLoading: true, data: null });
     setClipboardLock(false);
-  }, [getGame, dispatch, navigate, objectID, i18n.language]);
+  }, [getGame, getRandomGame, dispatch, navigate, objectID, i18n.language]);
 
   const handleCopyToClipboard = () => {
     setClipboardLock(true);
@@ -149,6 +163,20 @@ export function GameDetails() {
       setShowRepacksModal(false);
     });
   };
+
+  const handleRandomizerClick = () => {
+    if (!randomGameObjectID.current) return;
+
+    const searchParams = new URLSearchParams({
+      fromRandomizer: "1",
+    });
+
+    navigate(
+      `/game/steam/${randomGameObjectID.current}?${searchParams.toString()}`
+    );
+  };
+
+  const fromRandomizer = searchParams.get("fromRandomizer");
 
   return (
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
@@ -261,6 +289,7 @@ export function GameDetails() {
                   {t("recommended")}
                 </Button>
               </div>
+
               <div
                 className={styles.requirementsDetails}
                 dangerouslySetInnerHTML={{
@@ -274,6 +303,23 @@ export function GameDetails() {
             </div>
           </div>
         </section>
+      )}
+
+      {fromRandomizer && (
+        <Button
+          className={styles.randomizerButton}
+          onClick={handleRandomizerClick}
+          theme="outline"
+        >
+          <div style={{ width: 16, height: 16, position: "relative" }}>
+            <Lottie
+              animationData={starsAnimation}
+              style={{ width: 70, position: "absolute", top: -28, left: -27 }}
+              loop
+            />
+          </div>
+          {t("next_suggestion")}
+        </Button>
       )}
     </SkeletonTheme>
   );

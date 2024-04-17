@@ -6,6 +6,7 @@ import {
   getNewRepacksFromUser,
   getNewRepacksFromXatab,
   readPipe,
+  startProcessWatcher,
   writePipe,
 } from "./services";
 import {
@@ -19,6 +20,8 @@ import { Repack } from "./entity";
 import { Notification } from "electron";
 import { t } from "i18next";
 import { In } from "typeorm";
+
+startProcessWatcher();
 
 TorrentClient.startTorrentClient(writePipe.socketPath, readPipe.socketPath);
 

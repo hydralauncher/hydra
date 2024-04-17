@@ -1,5 +1,10 @@
-import { globalStyle, style } from "@vanilla-extract/css";
-import { SPACING_UNIT, vars } from "../../theme.css";
+import { globalStyle, keyframes, style } from "@vanilla-extract/css";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
+
+export const slideIn = keyframes({
+  "0%": { transform: `translateY(${40 + 16}px)` },
+  "100%": { transform: "translateY(0)" },
+});
 
 export const hero = style({
   width: "100%",
@@ -210,6 +215,24 @@ export const howLongToBeatCategorySkeleton = style({
   height: "76px",
 });
 
+export const randomizerButton = style({
+  animationName: slideIn,
+  animationDuration: "0.4s",
+  position: "fixed",
+  bottom: 26 + 16,
+  boxShadow: "rgba(255, 255, 255, 0.1) 0px 0px 10px 3px",
+  border: `solid 1px ${vars.color.borderColor}`,
+  backgroundColor: vars.color.darkBackground,
+  ":hover": {
+    backgroundColor: vars.color.background,
+    boxShadow: "rgba(255, 255, 255, 0.1) 0px 0px 15px 5px",
+    opacity: 1,
+  },
+  ":active": {
+    transform: "scale(0.98)",
+  },
+});
+
 globalStyle(".bb_tag", {
   marginTop: `${SPACING_UNIT * 2}px`,
   marginBottom: `${SPACING_UNIT * 2}px`,
@@ -220,8 +243,7 @@ globalStyle(`${description} img`, {
   marginTop: `${SPACING_UNIT}px`,
   marginBottom: `${SPACING_UNIT * 3}px`,
   display: "block",
-  width: "100%",
-  boxShadow: "0px 0px 15px 0px #000000",
+  maxWidth: "100%",
 });
 
 globalStyle(`${description} a`, {

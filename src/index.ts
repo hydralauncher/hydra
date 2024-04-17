@@ -1,4 +1,6 @@
 import { app, BrowserWindow } from "electron";
+import * as Sentry from "@sentry/node";
+import { nodeProfilingIntegration } from "@sentry/profiling-node";
 import i18n from "i18next";
 import path from "node:path";
 import { resolveDatabaseUpdates, WindowManager } from "@main/services";
@@ -15,6 +17,17 @@ if (require("electron-squirrel-startup")) app.quit();
 
 if (process.platform !== "darwin") {
   updateElectronApp();
+}
+
+if (process.env.SENTRY_MAIN_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_MAIN_DSN,
+    integrations: [nodeProfilingIntegration()],
+    // Performance Monitoring
+    tracesSampleRate: 1.0, //  Capture 100% of the transactions
+    // Set sampling rate for profiling - this is relative to tracesSampleRate
+    profilesSampleRate: 1.0,
+  });
 }
 
 i18n.init({

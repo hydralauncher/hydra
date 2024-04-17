@@ -16,6 +16,7 @@ import "./user-preferences/update-user-preferences";
 import "./user-preferences/get-user-preferences";
 import "./library/get-repackers-friendly-names";
 import "./library/get-game-by-object-id";
+import "./library/open-game-installer";
 import "./library/open-game";
 import "./misc/show-open-dialog";
 import "./library/remove-game";

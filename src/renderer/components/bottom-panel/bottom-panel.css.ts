@@ -10,6 +10,7 @@ export const bottomPanel = style({
   transition: "all ease 0.2s",
   justifyContent: "space-between",
   fontSize: vars.size.bodyFontSize,
+  zIndex: "1",
 });
 
 export const downloadsButton = style({

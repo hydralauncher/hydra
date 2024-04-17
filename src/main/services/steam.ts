@@ -38,7 +38,7 @@ export const getSteamAppDetails = async (
 export const searchSteamGame = async (term: string) => {
   const searchParams = new URLSearchParams({
     start: "0",
-    count: "50",
+    count: "12",
     sort_by: "_ASC",
     /* Games only */
     category1: "998",

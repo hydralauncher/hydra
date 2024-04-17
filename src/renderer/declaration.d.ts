@@ -22,13 +22,13 @@ declare global {
       repackId: number,
       objectID: string,
       title: string,
-      shop: GameShop,
+      shop: GameShop
     ) => Promise<Game>;
     cancelGameDownload: (gameId: number) => Promise<void>;
     pauseGameDownload: (gameId: number) => Promise<void>;
     resumeGameDownload: (gameId: number) => Promise<void>;
     onDownloadProgress: (
-      cb: (value: TorrentProgress) => void,
+      cb: (value: TorrentProgress) => void
     ) => () => Electron.IpcRenderer;
 
     /* Catalogue */
@@ -37,24 +37,25 @@ declare global {
     getGameShopDetails: (
       objectID: string,
       shop: GameShop,
-      language: string,
+      language: string
     ) => Promise<ShopDetails | null>;
     getRandomGame: () => Promise<string>;
     getHowLongToBeat: (
       objectID: string,
       shop: GameShop,
-      title: string,
+      title: string
     ) => Promise<HowLongToBeatCategory[] | null>;
 
     /* Library */
     addGameToLibrary: (
       objectID: string,
       title: string,
-      shop: GameShop,
+      shop: GameShop
     ) => Promise<void>;
     getLibrary: () => Promise<Game[]>;
     getRepackersFriendlyNames: () => Promise<Record<string, string>>;
-    openGame: (gameId: number) => Promise<boolean>;
+    openGameInstaller: (gameId: number) => Promise<boolean>;
+    openGame: (gameId: number, path: string) => Promise<void>;
     removeGame: (gameId: number) => Promise<void>;
     deleteGameFolder: (gameId: number) => Promise<unknown>;
     getGameByObjectID: (objectID: string) => Promise<Game | null>;
@@ -62,7 +63,7 @@ declare global {
     /* User preferences */
     getUserPreferences: () => Promise<UserPreferences | null>;
     updateUserPreferences: (
-      preferences: Partial<UserPreferences>,
+      preferences: Partial<UserPreferences>
     ) => Promise<void>;
 
     /* Hardware */
@@ -74,7 +75,7 @@ declare global {
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
     showOpenDialog: (
-      options: Electron.OpenDialogOptions,
+      options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
     platform: NodeJS.Platform;
   }

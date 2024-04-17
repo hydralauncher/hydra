@@ -15,7 +15,7 @@ contextBridge.exposeInMainWorld("electron", {
     repackId: number,
     objectID: string,
     title: string,
-    shop: GameShop,
+    shop: GameShop
   ) => ipcRenderer.invoke("startGameDownload", repackId, objectID, title, shop),
   cancelGameDownload: (gameId: number) =>
     ipcRenderer.invoke("cancelGameDownload", gameId),
@@ -26,7 +26,7 @@ contextBridge.exposeInMainWorld("electron", {
   onDownloadProgress: (callback: (value: TorrentProgress) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      value: TorrentProgress,
+      value: TorrentProgress
     ) => callback(value);
     ipcRenderer.on("on-download-progress", listener);
     return () => ipcRenderer.removeListener("on-download-progress", listener);
@@ -53,7 +53,10 @@ contextBridge.exposeInMainWorld("electron", {
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
   getRepackersFriendlyNames: () =>
     ipcRenderer.invoke("getRepackersFriendlyNames"),
-  openGame: (gameId: number) => ipcRenderer.invoke("openGame", gameId),
+  openGameInstaller: (gameId: number) =>
+    ipcRenderer.invoke("openGameInstaller", gameId),
+  openGame: (gameId: number, path: string) =>
+    ipcRenderer.invoke("openGame", gameId, path),
   removeGame: (gameId: number) => ipcRenderer.invoke("removeGame", gameId),
   deleteGameFolder: (gameId: number) =>
     ipcRenderer.invoke("deleteGameFolder", gameId),

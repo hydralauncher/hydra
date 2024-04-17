@@ -1,56 +1,21 @@
 import { gameRepository } from "@main/repository";
-import { generateYML } from "../misc/generate-lutris-yaml";
-import path from "node:path";
-import fs from "node:fs";
-import { writeFile } from "node:fs/promises";
-import { spawnSync, exec } from "node:child_process";
 
 import { registerEvent } from "../register-event";
 import { shell } from "electron";
-import { getDownloadsPath } from "../helpers/get-downloads-path";
 
 const openGame = async (
   _event: Electron.IpcMainInvokeEvent,
-  gameId: number
+  gameId: number,
+  executablePath: string
 ) => {
-  const game = await gameRepository.findOne({ where: { id: gameId } });
-
-  if (!game) return true;
-
-  const gamePath = path.join(
-    game.downloadPath ?? (await getDownloadsPath()),
-    game.folderName
-  );
-
-  if (!fs.existsSync(gamePath)) {
-    await gameRepository.delete({ id: gameId });
-    return true;
-  }
-
-  const setupPath = path.join(gamePath, "setup.exe");
-  if (!fs.existsSync(setupPath)) {
-    shell.openPath(gamePath);
-    return true;
-  }
+  await gameRepository.update({ id: gameId }, { executablePath });
 
   if (process.platform === "win32") {
-    shell.openExternal(setupPath);
-    return true;
+    shell.openExternal(executablePath);
+    return;
   }
 
-  if (spawnSync("which", ["lutris"]).status === 0) {
-    const ymlPath = path.join(gamePath, "setup.yml");
-    await writeFile(ymlPath, generateYML(game));
-    exec(`lutris --install "${ymlPath}"`);
-    return true;
-  }
-
-  if (spawnSync("which", ["wine"]).status === 0) {
-    exec(`wine "${setupPath}"`);
-    return true;
-  }
-
-  return false;
+  shell.openPath(executablePath);
 };
 
 registerEvent(openGame, {
