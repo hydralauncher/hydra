@@ -67,7 +67,9 @@
     "install": "Instalar",
     "last_time_played": "Jogado pela última vez {{period}}",
     "play": "Jogar",
-    "not_played_yet": "Você ainda não jogou {{title}}"
+    "not_played_yet": "Você ainda não jogou {{title}}",
+    "close": "Fechar",
+    "deleting": "Excluindo instalador…"
   },
   "activation": {
     "title": "Ativação",

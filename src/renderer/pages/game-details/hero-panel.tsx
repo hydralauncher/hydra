@@ -17,6 +17,7 @@ export interface HeroPanelProps {
   game: Game | null;
   gameDetails: ShopDetails | null;
   color: string;
+  isGamePlaying: boolean;
   openRepacksModal: () => void;
   getGame: () => void;
 }
@@ -27,6 +28,7 @@ export function HeroPanel({
   color,
   openRepacksModal,
   getGame,
+  isGamePlaying,
 }: HeroPanelProps) {
   const { t } = useTranslation("game_details");
 
@@ -86,6 +88,10 @@ export function HeroPanel({
           window.electron.openGame(game.id, path);
         }
       });
+  };
+
+  const closeGame = () => {
+    window.electron.closeGame(game.id);
   };
 
   const finalDownloadSize = useMemo(() => {
@@ -256,14 +262,24 @@ export function HeroPanel({
           <Button
             onClick={openGameInstaller}
             theme="outline"
-            disabled={deleting}
+            disabled={deleting || isGamePlaying}
           >
             {t("install")}
           </Button>
 
-          <Button onClick={openGame} theme="outline" disabled={deleting}>
-            {t("play")}
-          </Button>
+          {isGamePlaying ? (
+            <Button onClick={closeGame} theme="outline" disabled={deleting}>
+              {t("close")}
+            </Button>
+          ) : (
+            <Button
+              onClick={openGame}
+              theme="outline"
+              disabled={deleting || isGamePlaying}
+            >
+              {t("play")}
+            </Button>
+          )}
         </>
       );
     }

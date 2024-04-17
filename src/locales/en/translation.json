@@ -67,7 +67,9 @@
     "last_time_played": "Played for the last time {{period}}",
     "not_played_yet": "You haven't played {{title}} yet",
     "next_suggestion": "Next suggestion",
-    "play": "Play"
+    "play": "Play",
+    "deleting": "Deleting installer…",
+    "close": "Close"
   },
   "activation": {
     "title": "Activate Hydra",

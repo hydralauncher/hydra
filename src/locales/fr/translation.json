@@ -67,7 +67,9 @@
     "install": "Installer",
     "last_time_played": "Joué pour la dernière fois {{période}}",
     "play": "Jouer",
-    "not_played_yet": "Vous n'avez pas encore joué à {{title}}"
+    "not_played_yet": "Vous n'avez pas encore joué à {{title}}",
+    "close": "Fermer",
+    "deleting": "Suppression du programme d'installation…"
   },
   "activation": {
     "title": "Activer Hydra",

@@ -10,7 +10,7 @@ import { WindowManager } from "./window-manager";
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const startProcessWatcher = async () => {
-  const sleepTime = 1000;
+  const sleepTime = 100;
   const gamesPlaytime = new Map<number, number>();
 
   // eslint-disable-next-line no-constant-condition
@@ -26,14 +26,19 @@ export const startProcessWatcher = async () => {
 
     for (const game of games) {
       const gameProcess = processes.find((runningProcess) => {
+        const basename = path.win32.basename(game.executablePath);
+        const basenameWithoutExtension = path.win32.basename(
+          game.executablePath,
+          path.extname(game.executablePath)
+        );
+
         if (process.platform === "win32") {
-          return (
-            runningProcess.name === path.win32.basename(game.executablePath)
-          );
+          return runningProcess.name === basename;
         }
 
-        /* TODO: This has to be tested on Linux */
-        return runningProcess.cmd === path.win32.basename(game.executablePath);
+        return [basename, basenameWithoutExtension].includes(
+          runningProcess.name
+        );
       });
 
       if (gameProcess) {
@@ -61,7 +66,11 @@ export const startProcessWatcher = async () => {
         continue;
       }
 
-      if (gamesPlaytime.has(game.id)) gamesPlaytime.delete(game.id);
+      if (gamesPlaytime.has(game.id)) {
+        gamesPlaytime.delete(game.id);
+        WindowManager.mainWindow.webContents.send("on-game-close", game.id);
+      }
+
       await sleep(sleepTime);
     }
   }

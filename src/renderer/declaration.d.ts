@@ -56,10 +56,12 @@ declare global {
     getRepackersFriendlyNames: () => Promise<Record<string, string>>;
     openGameInstaller: (gameId: number) => Promise<boolean>;
     openGame: (gameId: number, path: string) => Promise<void>;
+    closeGame: (gameId: number) => Promise<boolean>;
     removeGame: (gameId: number) => Promise<void>;
     deleteGameFolder: (gameId: number) => Promise<unknown>;
     getGameByObjectID: (objectID: string) => Promise<Game | null>;
-    onPlayTime: (cb: (gameId: number) => void) => () => Electron.IpcRenderer;
+    onPlaytime: (cb: (gameId: number) => void) => () => Electron.IpcRenderer;
+    onGameClose: (cb: (gameId: number) => void) => () => Electron.IpcRenderer;
 
     /* User preferences */
     getUserPreferences: () => Promise<UserPreferences | null>;

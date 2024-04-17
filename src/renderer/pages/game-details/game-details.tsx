@@ -18,7 +18,6 @@ import { useAppDispatch, useDownload } from "@renderer/hooks";
 
 import starsAnimation from "@renderer/assets/lottie/stars.json";
 
-import { ShareAndroidIcon } from "@primer/octicons-react";
 import { vars } from "@renderer/theme.css";
 import { useTranslation } from "react-i18next";
 import { SkeletonTheme } from "react-loading-skeleton";
@@ -28,15 +27,13 @@ import { HeroPanel } from "./hero-panel";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { RepacksModal } from "./repacks-modal";
 import Lottie from "lottie-react";
-
-const OPEN_HYDRA_URL = "https://open.hydralauncher.site";
+import { DescriptionHeader } from "./description-header";
 
 export function GameDetails() {
   const { objectID, shop } = useParams();
 
   const [isLoading, setIsLoading] = useState(false);
   const [color, setColor] = useState("");
-  const [clipboardLock, setClipboardLock] = useState(false);
   const [gameDetails, setGameDetails] = useState<ShopDetails | null>(null);
   const [howLongToBeat, setHowLongToBeat] = useState<{
     isLoading: boolean;
@@ -44,6 +41,7 @@ export function GameDetails() {
   }>({ isLoading: true, data: null });
 
   const [game, setGame] = useState<Game | null>(null);
+  const [isGamePlaying, setIsGamePlaying] = useState(false);
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
@@ -113,37 +111,7 @@ export function GameDetails() {
 
     getGame();
     setHowLongToBeat({ isLoading: true, data: null });
-    setClipboardLock(false);
   }, [getGame, getRandomGame, dispatch, navigate, objectID, i18n.language]);
-
-  const handleCopyToClipboard = () => {
-    setClipboardLock(true);
-
-    const searchParams = new URLSearchParams({
-      p: btoa(
-        JSON.stringify([
-          objectID,
-          shop,
-          encodeURIComponent(gameDetails?.name),
-          i18n.language,
-        ])
-      ),
-    });
-
-    navigator.clipboard.writeText(
-      OPEN_HYDRA_URL + `/?${searchParams.toString()}`
-    );
-
-    const zero = performance.now();
-
-    requestAnimationFrame(function holdLock(time) {
-      if (time - zero <= 3000) {
-        requestAnimationFrame(holdLock);
-      } else {
-        setClipboardLock(false);
-      }
-    });
-  };
 
   const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
@@ -153,16 +121,22 @@ export function GameDetails() {
   }, [isGameDownloading, gameDownloading?.status]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onPlayTime((gameId) => {
-      if (gameId === game?.id) {
-        getGame();
-      }
-    });
+    const listeners = [
+      window.electron.onGameClose(() => {
+        if (isGamePlaying) setIsGamePlaying(false);
+      }),
+      window.electron.onPlaytime((gameId) => {
+        if (gameId === game?.id) {
+          if (!isGamePlaying) setIsGamePlaying(true);
+          getGame();
+        }
+      }),
+    ];
 
     return () => {
-      unsubscribe();
+      listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [game?.id, getGame]);
+  }, [game?.id, isGamePlaying, getGame]);
 
   const handleStartDownload = async (repackId: number) => {
     return startDownload(
@@ -228,37 +202,12 @@ export function GameDetails() {
             gameDetails={gameDetails}
             openRepacksModal={() => setShowRepacksModal(true)}
             getGame={getGame}
+            isGamePlaying={isGamePlaying}
           />
 
           <div className={styles.descriptionContainer}>
             <div className={styles.descriptionContent}>
-              <div className={styles.descriptionHeader}>
-                <section className={styles.descriptionHeaderInfo}>
-                  <p>
-                    {t("release_date", {
-                      date: gameDetails?.release_date.date,
-                    })}
-                  </p>
-                  <p>
-                    {t("publisher", { publisher: gameDetails?.publishers[0] })}
-                  </p>
-                </section>
-
-                <Button
-                  theme="outline"
-                  onClick={handleCopyToClipboard}
-                  disabled={clipboardLock || !gameDetails}
-                >
-                  {clipboardLock ? (
-                    t("copied_link_to_clipboard")
-                  ) : (
-                    <>
-                      <ShareAndroidIcon />
-                      {t("copy_link_to_clipboard")}
-                    </>
-                  )}
-                </Button>
-              </div>
+              <DescriptionHeader gameDetails={gameDetails} />
 
               <div
                 dangerouslySetInnerHTML={{

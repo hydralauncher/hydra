@@ -57,16 +57,23 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("openGameInstaller", gameId),
   openGame: (gameId: number, path: string) =>
     ipcRenderer.invoke("openGame", gameId, path),
+  closeGame: (gameId: number) => ipcRenderer.invoke("closeGame", gameId),
   removeGame: (gameId: number) => ipcRenderer.invoke("removeGame", gameId),
   deleteGameFolder: (gameId: number) =>
     ipcRenderer.invoke("deleteGameFolder", gameId),
   getGameByObjectID: (objectID: string) =>
     ipcRenderer.invoke("getGameByObjectID", objectID),
-  onPlayTime: (cb: (gameId: number) => void) => {
+  onPlaytime: (cb: (gameId: number) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, gameId: number) =>
       cb(gameId);
     ipcRenderer.on("on-playtime", listener);
     return () => ipcRenderer.removeListener("on-playtime", listener);
+  },
+  onGameClose: (cb: (gameId: number) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, gameId: number) =>
+      cb(gameId);
+    ipcRenderer.on("on-game-close", listener);
+    return () => ipcRenderer.removeListener("on-game-close", listener);
   },
 
   /* Hardware */
