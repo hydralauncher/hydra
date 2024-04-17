@@ -27,6 +27,12 @@ export const heroMedia = style({
   zIndex: "-1",
   width: "100%",
   height: "100%",
+  transition: "all ease 0.2s",
+  selectors: {
+    [`${hero}:hover &`]: {
+      transform: "scale(1.05)",
+    },
+  },
 });
 
 export const backdrop = style({

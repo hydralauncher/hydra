@@ -44,7 +44,7 @@
     "pause": "Pausar",
     "cancel": "Cancelar",
     "remove": "Remover",
-    "remove_from_list": "Remover da lista",
+    "remove_from_list": "Remover",
     "space_left_on_disk": "{{space}} livres em disco",
     "eta": "Conclusão {{eta}}",
     "downloading_metadata": "Baixando metadados…",
@@ -68,7 +68,8 @@
     "add_to_library": "Adicionar à biblioteca",
     "remove_from_library": "Remover da biblioteca",
     "delete_modal_title": "Tem certeza disso?",
-    "delete_modal_description": "Isso apagará todos os arquivos do jogo do seu sistema"
+    "delete_modal_description": "Isso apagará todos os arquivos do jogo do seu sistema",
+    "no_downloads": "Nenhum download disponível"
   },
   "activation": {
     "title": "Ativação",
@@ -96,7 +97,8 @@
     "checking_files": "Verificando arquivos…",
     "starting_download": "Iniciando download…",
     "deleting": "Removendo arquivos…",
-    "delete": "Apagar arquivos"
+    "delete": "Apagar arquivos",
+    "remove_from_list": "Remover"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",

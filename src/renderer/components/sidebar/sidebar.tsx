@@ -178,7 +178,7 @@ export function Sidebar() {
                 className={styles.menuItem({
                   active:
                     location.pathname === `/game/${game.shop}/${game.objectID}`,
-                  cancelled: game.status === "cancelled",
+                  muted: game.status === null || game.status === "cancelled",
                 })}
               >
                 <button

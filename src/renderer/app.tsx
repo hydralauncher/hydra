@@ -91,7 +91,7 @@ export function App() {
 
   useEffect(() => {
     if (contentRef.current) contentRef.current.scrollTop = 0;
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   return (
     <>

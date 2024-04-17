@@ -74,7 +74,7 @@ export const menuItem = recipe({
         fontWeight: "bold",
       },
     },
-    cancelled: {
+    muted: {
       true: {
         opacity: vars.opacity.disabled,
         ":hover": {

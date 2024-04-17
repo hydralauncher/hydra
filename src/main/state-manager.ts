@@ -4,20 +4,12 @@ interface State {
   repacks: Repack[];
   repackersFriendlyNames: RepackerFriendlyName[];
   eventResults: Map<[string, any[]], any>;
-  steamDBAlgoliaCredentials: {
-    applicationId: string;
-    apiKey: string;
-  };
 }
 
 const initialState: State = {
   repacks: [],
   repackersFriendlyNames: [],
   eventResults: new Map(),
-  steamDBAlgoliaCredentials: {
-    applicationId: "",
-    apiKey: "",
-  },
 };
 
 export class StateManager {

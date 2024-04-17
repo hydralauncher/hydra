@@ -47,6 +47,15 @@ export const heroImage = style({
   },
 });
 
+export const heroImageSkeleton = style({
+  height: "300px",
+  "@media": {
+    "(min-width: 1250px)": {
+      height: "350px",
+    },
+  },
+});
+
 export const container = style({
   width: "100%",
   height: "100%",
@@ -114,6 +123,14 @@ export const requirementsDetails = style({
   fontSize: "16px",
 });
 
+export const requirementsDetailsSkeleton = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: "8px",
+  padding: `${SPACING_UNIT * 2}px`,
+  fontSize: "16px",
+});
+
 export const description = style({
   userSelect: "text",
   lineHeight: "22px",
@@ -126,6 +143,22 @@ export const description = style({
     },
   },
   width: "100%",
+  marginLeft: "auto",
+  marginRight: "auto",
+});
+
+export const descriptionSkeleton = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT}px`,
+  padding: `${SPACING_UNIT * 3}px ${SPACING_UNIT * 2}px`,
+  width: "100%",
+  "@media": {
+    "(min-width: 1280px)": {
+      width: "60%",
+      lineHeight: "22px",
+    },
+  },
   marginLeft: "auto",
   marginRight: "auto",
 });

@@ -1,17 +1,11 @@
 import { app, BrowserWindow } from "electron";
 import i18n from "i18next";
 import path from "node:path";
-import {
-  getSteamDBAlgoliaCredentials,
-  logger,
-  resolveDatabaseUpdates,
-  WindowManager,
-} from "@main/services";
+import { resolveDatabaseUpdates, WindowManager } from "@main/services";
 import { updateElectronApp } from "update-electron-app";
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
-import { stateManager } from "@main/state-manager";
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
@@ -49,13 +43,6 @@ if (process.defaultApp) {
 // Some APIs can only be used after this event occurs.
 app.on("ready", () => {
   dataSource.initialize().then(async () => {
-    try {
-      const algoliaCredentials = await getSteamDBAlgoliaCredentials();
-      stateManager.setValue("steamDBAlgoliaCredentials", algoliaCredentials);
-    } catch (err) {
-      logger.error(err, { method: "getSteamDBAlgoliaCredentials" });
-    }
-
     await resolveDatabaseUpdates();
 
     await import("./main");

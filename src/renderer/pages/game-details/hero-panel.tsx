@@ -143,19 +143,36 @@ export function HeroPanel({
       );
     }
 
-    const lastUpdate = format(gameDetails.repacks[0].uploadDate!, "dd/MM/yyyy");
-    const repacksCount = gameDetails.repacks.length;
+    const [latestRepack] = gameDetails.repacks;
 
-    return (
-      <>
-        <p>{t("updated_at", { updated_at: lastUpdate })}</p>
-        <p>{t("download_options", { count: repacksCount })}</p>
-      </>
-    );
+    if (latestRepack) {
+      const lastUpdate = format(latestRepack.uploadDate!, "dd/MM/yyyy");
+      const repacksCount = gameDetails.repacks.length;
+
+      return (
+        <>
+          <p>{t("updated_at", { updated_at: lastUpdate })}</p>
+          <p>{t("download_options", { count: repacksCount })}</p>
+        </>
+      );
+    }
+
+    return <p>{t("no_downloads")}</p>;
   };
 
   const getActions = () => {
     const deleting = isGameDeleting(game?.id);
+
+    const toggleGameOnLibraryButton = (
+      <Button
+        theme="outline"
+        disabled={!gameDetails || toggleLibraryGameDisabled}
+        onClick={toggleLibraryGame}
+      >
+        {gameOnLibrary ? <NoEntryIcon /> : <PlusCircleIcon />}
+        {gameOnLibrary ? t("remove_from_library") : t("add_to_library")}
+      </Button>
+    );
 
     if (isGameDownloading) {
       return (
@@ -236,22 +253,18 @@ export function HeroPanel({
       );
     }
 
-    return (
-      <>
-        <Button
-          theme="outline"
-          disabled={!gameDetails || toggleLibraryGameDisabled}
-          onClick={toggleLibraryGame}
-        >
-          {gameOnLibrary ? <NoEntryIcon /> : <PlusCircleIcon />}
-          {gameOnLibrary ? t("remove_from_library") : t("add_to_library")}
-        </Button>
+    if (gameDetails && gameDetails.repacks.length) {
+      return (
+        <>
+          {toggleGameOnLibraryButton}
+          <Button onClick={openRepacksModal} theme="outline">
+            {t("open_download_options")}
+          </Button>
+        </>
+      );
+    }
 
-        <Button onClick={openRepacksModal} theme="outline">
-          {t("open_download_options")}
-        </Button>
-      </>
-    );
+    return toggleGameOnLibraryButton;
   };
 
   return (
