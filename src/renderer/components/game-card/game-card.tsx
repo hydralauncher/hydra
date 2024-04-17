@@ -36,7 +36,12 @@ export function GameCard({ game, disabled, ...props }: GameCardProps) {
   );
 
   return (
-    <button {...props} type="button" className={styles.card({ disabled })}>
+    <button
+      {...props}
+      type="button"
+      className={styles.card({ disabled })}
+      disabled={disabled}
+    >
       <div className={styles.backdrop}>
         <AsyncImage
           src={game.cover}
