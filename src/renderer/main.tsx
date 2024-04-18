@@ -19,11 +19,12 @@ import "react-loading-skeleton/dist/skeleton.css";
 
 import { App } from "./app";
 import {
-  Catalogue,
+  Home,
   Downloads,
   GameDetails,
   SearchResults,
   Settings,
+  Catalogue,
 } from "@renderer/pages";
 
 import { store } from "./store";
@@ -41,6 +42,10 @@ const router = createHashRouter([
     children: [
       {
         path: "/",
+        Component: Home,
+      },
+      {
+        path: "/catalogue",
         Component: Catalogue,
       },
       {

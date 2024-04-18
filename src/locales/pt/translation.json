@@ -1,5 +1,5 @@
 {
-  "catalogue": {
+  "home": {
     "featured": "Destaque",
     "recently_added": "Novidades",
     "trending": "Populares",
@@ -15,14 +15,16 @@
     "checking_files": "{{title}} ({{percentage}} - Verificando arquivos…)",
     "paused": "{{title}} (Pausado)",
     "downloading": "{{title}} ({{percentage}} - Baixando…)",
-    "filter": "Filtrar biblioteca"
+    "filter": "Filtrar biblioteca",
+    "home": "Início"
   },
   "header": {
     "search": "Buscar",
     "catalogue": "Catálogo",
     "downloads": "Downloads",
     "search_results": "Resultados da busca",
-    "settings": "Configurações"
+    "settings": "Configurações",
+    "home": "Início"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Sem downloads em andamento",
@@ -65,11 +67,12 @@
     "play_time": "Jogado por {{amount}}",
     "next_suggestion": "Próxima sugestão",
     "install": "Instalar",
-    "last_time_played": "Jogado pela última vez {{period}}",
+    "last_time_played": "Jogou por último {{period}}",
     "play": "Jogar",
     "not_played_yet": "Você ainda não jogou {{title}}",
     "close": "Fechar",
-    "deleting": "Excluindo instalador…"
+    "deleting": "Excluindo instalador…",
+    "playing_now": "Jogando agora"
   },
   "activation": {
     "title": "Ativação",
@@ -127,5 +130,9 @@
     "title": "Programas não instalados",
     "description": "Não foram encontrados no seu sistema os executáveis do Wine ou Lutris",
     "instructions": "Verifique a forma correta de instalar algum deles na sua distro Linux para que o jogo possa ser executado normalmente"
+  },
+  "catalogue": {
+    "next_page": "Próxima página",
+    "previous_page": "Página anterior"
   }
 }

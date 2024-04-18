@@ -1,5 +1,5 @@
 {
-  "catalogue": {
+  "home": {
     "featured": "En vedette",
     "recently_added": "Récemment ajouté",
     "trending": "Tendance",
@@ -15,14 +15,16 @@
     "checking_files": "{{title}} ({{percentage}} - Vérification des fichiers…)",
     "paused": "{{title}} (En pause)",
     "downloading": "{{title}} ({{percentage}} - Téléchargement en cours…)",
-    "filter": "Filtrer la bibliothèque"
+    "filter": "Filtrer la bibliothèque",
+    "home": "Maison"
   },
   "header": {
     "search": "Recherche",
     "catalogue": "Catalogue",
     "downloads": "Téléchargements",
     "search_results": "Résultats de la recherche",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "home": "Maison"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Aucun téléchargement en cours",
@@ -65,11 +67,12 @@
     "next_suggestion": "Suggestion suivante",
     "play_time": "Joué pour {{montant}}",
     "install": "Installer",
-    "last_time_played": "Joué pour la dernière fois {{période}}",
     "play": "Jouer",
     "not_played_yet": "Vous n'avez pas encore joué à {{title}}",
     "close": "Fermer",
-    "deleting": "Suppression du programme d'installation…"
+    "deleting": "Suppression du programme d'installation…",
+    "playing_now": "Je joue maintenant",
+    "last_time_played": "Dernière lecture {{période}}"
   },
   "activation": {
     "title": "Activer Hydra",
@@ -127,5 +130,9 @@
     "description": "Les exécutables Wine ou Lutris sont introuvables sur votre système",
     "instructions": "Vérifiez la bonne façon d'installer l'un d'entre eux sur votre distribution Linux afin que le jeu puisse fonctionner normalement",
     "title": "Programmes non installés"
+  },
+  "catalogue": {
+    "next_page": "Page suivante",
+    "previous_page": "Page précédente"
   }
 }

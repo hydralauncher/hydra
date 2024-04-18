@@ -1,11 +1,16 @@
-import { GearIcon, ListUnorderedIcon } from "@primer/octicons-react";
+import { AppsIcon, GearIcon, HomeIcon } from "@primer/octicons-react";
 import { DownloadIcon } from "./download-icon";
 
 export const routes = [
   {
     path: "/",
+    nameKey: "home",
+    render: () => <HomeIcon />,
+  },
+  {
+    path: "/catalogue",
     nameKey: "catalogue",
-    render: () => <ListUnorderedIcon />,
+    render: () => <AppsIcon />,
   },
   {
     path: "/downloads",

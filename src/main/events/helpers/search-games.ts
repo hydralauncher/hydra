@@ -4,8 +4,10 @@ import orderBy from "lodash/orderBy";
 import type { GameRepack, GameShop, CatalogueEntry } from "@types";
 
 import { formatName, getSteamAppAsset, repackerFormatter } from "@main/helpers";
-import { searchSteamGame } from "@main/services";
 import { stateManager } from "@main/state-manager";
+import { steamGameRepository } from "@main/repository";
+import { FindManyOptions, Like } from "typeorm";
+import { SteamGame } from "@main/entity";
 
 const { Index } = flexSearch;
 const repacksIndex = new Index();
@@ -32,33 +34,41 @@ export const searchRepacks = (title: string): GameRepack[] => {
   );
 };
 
-export const searchGames = async (query: string): Promise<CatalogueEntry[]> => {
-  const formattedName = formatName(query);
+export interface SearchGamesArgs {
+  query?: string;
+  take?: number;
+  skip?: number;
+}
 
-  const steamResults = await searchSteamGame(formattedName);
+export const searchGames = async ({
+  query,
+  take,
+  skip,
+}: SearchGamesArgs): Promise<CatalogueEntry[]> => {
+  const options: FindManyOptions<SteamGame> = {};
 
-  const results = steamResults.map((result) => ({
-    objectID: result.objectID,
-    title: result.name,
-    shop: "steam" as GameShop,
-    cover: getSteamAppAsset("library", result.objectID),
-  }));
-
-  const gamesIndex = new Index({
-    tokenize: "full",
-  });
-
-  for (let i = 0; i < results.length; i++) {
-    const game = results[i];
-    gamesIndex.add(i, game.title);
+  if (query) {
+    options.where = {
+      name: query ? Like(`%${formatName(query)}%`) : undefined,
+    };
   }
 
-  const filteredResults = gamesIndex
-    .search(query)
-    .map((index) => results[index as number]);
+  const steamResults = await steamGameRepository.find({
+    ...options,
+    take,
+    skip,
+    order: { name: "ASC" },
+  });
+
+  const results = steamResults.map((result) => ({
+    objectID: String(result.id),
+    title: result.name,
+    shop: "steam" as GameShop,
+    cover: getSteamAppAsset("library", String(result.id)),
+  }));
 
   return Promise.all(
-    filteredResults.map(async (result) => ({
+    results.map(async (result) => ({
       ...result,
       repacks: searchRepacks(result.title),
     }))

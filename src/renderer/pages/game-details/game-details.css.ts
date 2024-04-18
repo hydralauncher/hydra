@@ -217,16 +217,19 @@ export const howLongToBeatCategorySkeleton = style({
 
 export const randomizerButton = style({
   animationName: slideIn,
-  animationDuration: "0.4s",
+  animationDuration: "0.2s",
   position: "fixed",
-  bottom: 26 + 16,
+  /* Bottom panel height + spacing */
+  bottom: `${26 + SPACING_UNIT * 2}px`,
+  /* Scroll bar + spacing */
+  right: `${9 + SPACING_UNIT * 2}px`,
   boxShadow: "rgba(255, 255, 255, 0.1) 0px 0px 10px 3px",
-  border: `solid 1px ${vars.color.borderColor}`,
-  backgroundColor: vars.color.darkBackground,
+  border: `solid 2px ${vars.color.borderColor}`,
+  backgroundColor: vars.color.background,
   ":hover": {
     backgroundColor: vars.color.background,
     boxShadow: "rgba(255, 255, 255, 0.1) 0px 0px 15px 5px",
-    opacity: 1,
+    opacity: "1",
   },
   ":active": {
     transform: "scale(0.98)",

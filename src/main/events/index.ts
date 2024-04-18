@@ -24,6 +24,7 @@ import "./library/remove-game";
 import "./library/delete-game-folder";
 import "./catalogue/get-random-game";
 import "./catalogue/get-how-long-to-beat";
+import "./catalogue/get-games";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => app.getVersion());

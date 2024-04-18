@@ -46,7 +46,9 @@ export const startProcessWatcher = async () => {
           const zero = gamesPlaytime.get(game.id);
           const delta = performance.now() - zero;
 
-          WindowManager.mainWindow.webContents.send("on-playtime", game.id);
+          if (WindowManager.mainWindow) {
+            WindowManager.mainWindow.webContents.send("on-playtime", game.id);
+          }
 
           await gameRepository.update(game.id, {
             playTimeInMilliseconds: game.playTimeInMilliseconds + delta,
@@ -68,7 +70,9 @@ export const startProcessWatcher = async () => {
 
       if (gamesPlaytime.has(game.id)) {
         gamesPlaytime.delete(game.id);
-        WindowManager.mainWindow.webContents.send("on-game-close", game.id);
+        if (WindowManager.mainWindow) {
+          WindowManager.mainWindow.webContents.send("on-game-close", game.id);
+        }
       }
 
       await sleep(sleepTime);

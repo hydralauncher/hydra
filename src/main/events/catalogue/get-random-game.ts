@@ -11,10 +11,10 @@ const getRandomGame = async (_event: Electron.IpcMainInvokeEvent) => {
     const shuffledList = shuffle(games);
 
     for (const game of shuffledList) {
-      const repacks = searchRepacks(formatName(game));
+      const repacks = searchRepacks(formatName(game.title));
 
       if (repacks.length) {
-        const results = await searchGames(game);
+        const results = await searchGames({ query: game.title });
 
         if (results.length) {
           return results[0].objectID;
