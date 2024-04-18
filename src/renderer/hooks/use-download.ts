@@ -11,7 +11,7 @@ import {
 } from "@renderer/features";
 import type { GameShop, TorrentProgress } from "@types";
 import { useDate } from "./use-date";
-import { byteFormat } from "@renderer/utils";
+import { formatBytes } from "@renderer/utils";
 
 export function useDownload() {
   const { updateLibrary } = useLibrary();
@@ -113,7 +113,7 @@ export function useDownload() {
     fileSize: lastPacket?.game.fileSize,
     isVerifying,
     gameId: lastPacket?.game.id,
-    downloadSpeed: `${byteFormat(lastPacket?.downloadSpeed ?? 0)}/s`,
+    downloadSpeed: `${formatBytes(lastPacket?.downloadSpeed ?? 0)}/s`,
     isDownloading: Boolean(lastPacket),
     progress: getProgress(),
     numPeers: lastPacket?.numPeers,

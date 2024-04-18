@@ -1,1 +1,1 @@
-export * from "./byteFormat";
+export * from "./format-bytes";
