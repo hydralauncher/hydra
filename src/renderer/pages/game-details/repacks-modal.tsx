@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import prettyBytes from "pretty-bytes";
 
 import { Button, Modal, TextField } from "@renderer/components";
 import type { GameRepack, ShopDetails } from "@types";
@@ -10,6 +9,7 @@ import * as styles from "./repacks-modal.css";
 import type { DiskSpace } from "check-disk-space";
 import { format } from "date-fns";
 import { SPACING_UNIT } from "@renderer/theme.css";
+import { byteFormat } from "@renderer/utils";
 
 export interface RepacksModalProps {
   visible: boolean;
@@ -66,7 +66,7 @@ export function RepacksModal({
       visible={visible}
       title={`${gameDetails.name} Repacks`}
       description={t("space_left_on_disk", {
-        space: prettyBytes(diskFreeSpace?.free ?? 0),
+        space: byteFormat(diskFreeSpace?.free ?? 0),
       })}
       onClose={onClose}
     >
