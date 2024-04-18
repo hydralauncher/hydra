@@ -1,5 +1,4 @@
 import { addMilliseconds } from "date-fns";
-import prettyBytes from "pretty-bytes";
 
 import { formatDownloadProgress } from "@renderer/helpers";
 import { useLibrary } from "./use-library";
@@ -12,6 +11,7 @@ import {
 } from "@renderer/features";
 import type { GameShop, TorrentProgress } from "@types";
 import { useDate } from "./use-date";
+import { byteFormat } from "@renderer/utils";
 
 export function useDownload() {
   const { updateLibrary } = useLibrary();
@@ -113,9 +113,7 @@ export function useDownload() {
     fileSize: lastPacket?.game.fileSize,
     isVerifying,
     gameId: lastPacket?.game.id,
-    downloadSpeed: `${prettyBytes(lastPacket?.downloadSpeed ?? 0, {
-      bits: true,
-    })}/s`,
+    downloadSpeed: `${byteFormat(lastPacket?.downloadSpeed ?? 0)}/s`,
     isDownloading: Boolean(lastPacket),
     progress: getProgress(),
     numPeers: lastPacket?.numPeers,

@@ -1,4 +1,3 @@
-import prettyBytes from "pretty-bytes";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
@@ -11,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
 import { DeleteModal } from "./delete-modal";
+import { byteFormat } from "@renderer/utils";
 
 export function Downloads() {
   const { library, updateLibrary } = useLibrary();
@@ -61,10 +61,10 @@ export function Downloads() {
     const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
     if (!game) return "N/A";
-    if (game.fileSize) return prettyBytes(game.fileSize);
+    if (game.fileSize) return byteFormat(game.fileSize);
 
     if (gameDownloading?.fileSize && isGameDownloading)
-      return prettyBytes(gameDownloading.fileSize);
+      return byteFormat(gameDownloading.fileSize);
 
     return game.repack?.fileSize ?? "N/A";
   };
@@ -87,7 +87,7 @@ export function Downloads() {
           ) : (
             <>
               <p>
-                {prettyBytes(gameDownloading?.bytesDownloaded)} /{" "}
+                {byteFormat(gameDownloading?.bytesDownloaded)} /{" "}
                 {finalDownloadSize}
               </p>
               <p>
