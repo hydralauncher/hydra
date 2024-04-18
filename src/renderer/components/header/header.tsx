@@ -15,7 +15,8 @@ export interface HeaderProps {
 }
 
 const pathTitle: Record<string, string> = {
-  "/": "catalogue",
+  "/": "home",
+  "/catalogue": "catalogue",
   "/downloads": "downloads",
   "/settings": "settings",
 };

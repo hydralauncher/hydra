@@ -45,6 +45,10 @@ declare global {
       shop: GameShop,
       title: string
     ) => Promise<HowLongToBeatCategory[] | null>;
+    getGames: (
+      take?: number,
+      prevCursor?: number
+    ) => Promise<{ results: CatalogueEntry[]; cursor: number }>;
 
     /* Library */
     addGameToLibrary: (

@@ -1,5 +1,5 @@
 {
-  "catalogue": {
+  "home": {
     "featured": "Featured",
     "recently_added": "Recently added",
     "trending": "Trending",
@@ -7,6 +7,7 @@
     "no_results": "No results found"
   },
   "sidebar": {
+    "home": "Home",
     "catalogue": "Catalogue",
     "downloads": "Downloads",
     "settings": "Settings",
@@ -19,6 +20,7 @@
   },
   "header": {
     "search": "Search",
+    "home": "Home",
     "catalogue": "Catalogue",
     "downloads": "Downloads",
     "search_results": "Search results",
@@ -29,6 +31,10 @@
     "downloading_metadata": "Downloading {{title}} metadata…",
     "checking_files": "Checking {{title}} files… ({{percentage}} complete)",
     "downloading": "Downloading {{title}}… ({{percentage}} complete) - Conclusion {{eta}} - {{speed}}"
+  },
+  "catalogue": {
+    "next_page": "Next page",
+    "previous_page": "Previous page"
   },
   "game_details": {
     "open_download_options": "Open download options",
@@ -64,12 +70,13 @@
     "remove_from_library": "Remove from library",
     "no_downloads": "No downloads available",
     "play_time": "Played for {{amount}}",
-    "last_time_played": "Played for the last time {{period}}",
+    "last_time_played": "Last played {{period}}",
     "not_played_yet": "You haven't played {{title}} yet",
     "next_suggestion": "Next suggestion",
     "play": "Play",
     "deleting": "Deleting installer…",
-    "close": "Close"
+    "close": "Close",
+    "playing_now": "Playing now"
   },
   "activation": {
     "title": "Activate Hydra",

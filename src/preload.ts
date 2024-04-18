@@ -41,6 +41,8 @@ contextBridge.exposeInMainWorld("electron", {
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
   getHowLongToBeat: (objectID: string, shop: GameShop, title: string) =>
     ipcRenderer.invoke("getHowLongToBeat", objectID, shop, title),
+  getGames: (take?: number, prevCursor?: number) =>
+    ipcRenderer.invoke("getGames", take, prevCursor),
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),

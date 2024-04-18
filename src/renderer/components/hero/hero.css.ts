@@ -30,7 +30,7 @@ export const heroMedia = style({
   transition: "all ease 0.2s",
   selectors: {
     [`${hero}:hover &`]: {
-      transform: "scale(1.05)",
+      transform: "scale(1.02)",
     },
   },
 });

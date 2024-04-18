@@ -1,141 +1,113 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { useNavigate, useSearchParams } from "react-router-dom";
-
+import { Button, GameCard } from "@renderer/components";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import { useTranslation } from "react-i18next";
 
-import { Button, GameCard, Hero } from "@renderer/components";
-import type { CatalogueCategory, CatalogueEntry } from "@types";
+import type { CatalogueEntry } from "@types";
 
-import starsAnimation from "@renderer/assets/lottie/stars.json";
-
-import * as styles from "./catalogue.css";
+import { clearSearch } from "@renderer/features";
+import { useAppDispatch } from "@renderer/hooks";
 import { vars } from "@renderer/theme.css";
-import Lottie from "lottie-react";
-
-const categories: CatalogueCategory[] = ["trending", "recently_added"];
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import * as styles from "../home/home.css";
+import { ArrowLeftIcon, ArrowRightIcon } from "@primer/octicons-react";
 
 export function Catalogue() {
+  const dispatch = useAppDispatch();
+
   const { t } = useTranslation("catalogue");
+
+  const [searchResults, setSearchResults] = useState<CatalogueEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const contentRef = useRef<HTMLElement>(null);
+
+  const cursorRef = useRef<number>(0);
+
   const navigate = useNavigate();
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingRandomGame, setIsLoadingRandomGame] = useState(false);
-  const randomGameObjectID = useRef<string | null>(null);
-
   const [searchParams] = useSearchParams();
+  const cursor = Number(searchParams.get("cursor") ?? 0);
 
-  const [catalogue, setCatalogue] = useState<
-    Record<CatalogueCategory, CatalogueEntry[]>
-  >({
-    trending: [],
-    recently_added: [],
-  });
-
-  const getCatalogue = useCallback((category: CatalogueCategory) => {
-    setIsLoading(true);
-
-    window.electron
-      .getCatalogue(category)
-      .then((catalogue) => {
-        setCatalogue((prev) => ({ ...prev, [category]: catalogue }));
-      })
-      .catch(() => {})
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, []);
-
-  const currentCategory = searchParams.get("category") || categories[0];
-
-  const handleSelectCategory = (category: CatalogueCategory) => {
-    if (category !== currentCategory) {
-      getCatalogue(category);
-      navigate(`/?category=${category}`, { replace: true });
-    }
-  };
-
-  const getRandomGame = useCallback(() => {
-    setIsLoadingRandomGame(true);
-
-    window.electron
-      .getRandomGame()
-      .then((objectID) => {
-        randomGameObjectID.current = objectID;
-      })
-      .finally(() => {
-        setIsLoadingRandomGame(false);
-      });
-  }, []);
-
-  const handleRandomizerClick = () => {
-    const searchParams = new URLSearchParams({
-      fromRandomizer: "1",
-    });
-
-    navigate(
-      `/game/steam/${randomGameObjectID.current}?${searchParams.toString()}`
-    );
+  const handleGameClick = (game: CatalogueEntry) => {
+    dispatch(clearSearch());
+    navigate(`/game/${game.shop}/${game.objectID}`);
   };
 
   useEffect(() => {
+    if (contentRef.current) contentRef.current.scrollTop = 0;
     setIsLoading(true);
-    getCatalogue(currentCategory as CatalogueCategory);
-    getRandomGame();
-  }, [getCatalogue, currentCategory, getRandomGame]);
+    setSearchResults([]);
+
+    window.electron
+      .getGames(24, cursor)
+      .then(({ results, cursor }) => {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            cursorRef.current = cursor;
+            setSearchResults(results);
+            resolve(null);
+          }, 500);
+        });
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [dispatch, cursor, searchParams]);
+
+  const handleNextPage = () => {
+    const params = new URLSearchParams({
+      cursor: cursorRef.current.toString(),
+    });
+
+    navigate(`/catalogue?${params.toString()}`);
+  };
 
   return (
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
-      <section className={styles.content}>
-        <h2>{t("featured")}</h2>
+      <section
+        style={{
+          padding: `16px 32px`,
+          display: "flex",
+          width: "100%",
+          justifyContent: "space-between",
+          borderBottom: `1px solid ${vars.color.borderColor}`,
+        }}
+      >
+        <Button
+          onClick={() => navigate(-1)}
+          theme="outline"
+          disabled={cursor === 0 || isLoading}
+        >
+          <ArrowLeftIcon />
+          {t("previous_page")}
+        </Button>
 
-        <Hero />
+        <Button onClick={handleNextPage} theme="outline" disabled={isLoading}>
+          {t("next_page")}
+          <ArrowRightIcon />
+        </Button>
+      </section>
 
-        <section className={styles.catalogueHeader}>
-          <div className={styles.catalogueCategories}>
-            {categories.map((category) => (
-              <Button
-                key={category}
-                theme={currentCategory === category ? "primary" : "outline"}
-                onClick={() => handleSelectCategory(category)}
-              >
-                {t(category)}
-              </Button>
+      <section ref={contentRef} className={styles.content}>
+        <section className={styles.cards}>
+          {isLoading &&
+            Array.from({ length: 12 }).map((_, index) => (
+              <Skeleton key={index} className={styles.cardSkeleton} />
             ))}
-          </div>
 
-          <Button
-            onClick={handleRandomizerClick}
-            theme="outline"
-            disabled={isLoadingRandomGame}
-          >
-            <div style={{ width: 16, height: 16, position: "relative" }}>
-              <Lottie
-                animationData={starsAnimation}
-                style={{ width: 70, position: "absolute", top: -28, left: -27 }}
-                loop
-              />
-            </div>
-            {t("surprise_me")}
-          </Button>
-        </section>
-
-        <h2>{t(currentCategory)}</h2>
-
-        <section className={styles.cards({})}>
-          {isLoading
-            ? Array.from({ length: 12 }).map((_, index) => (
-                <Skeleton key={index} className={styles.cardSkeleton} />
-              ))
-            : catalogue[currentCategory as CatalogueCategory].map((result) => (
+          {!isLoading && searchResults.length > 0 && (
+            <>
+              {searchResults.map((game) => (
                 <GameCard
-                  key={result.objectID}
-                  game={result}
-                  onClick={() =>
-                    navigate(`/game/${result.shop}/${result.objectID}`)
-                  }
+                  key={game.objectID}
+                  game={game}
+                  onClick={() => handleGameClick(game)}
+                  disabled={!game.repacks.length}
                 />
               ))}
+            </>
+          )}
         </section>
       </section>
     </SkeletonTheme>

@@ -104,7 +104,9 @@ export function HeroPanel({
     window.electron
       .showOpenDialog({
         properties: ["openFile"],
-        filters: [{ name: "Game executable (.exe)", extensions: ["exe"] }],
+        filters: [
+          { name: "Game executable (.exe)", extensions: ["exe", "app"] },
+        ],
       })
       .then(({ filePaths }) => {
         if (filePaths && filePaths.length > 0) {
@@ -209,11 +211,15 @@ export function HeroPanel({
             })}
           </p>
 
-          <p>
-            {t("last_time_played", {
-              period: lastTimePlayed,
-            })}
-          </p>
+          {isGamePlaying ? (
+            <p>{t("playing_now")}</p>
+          ) : (
+            <p>
+              {t("last_time_played", {
+                period: lastTimePlayed,
+              })}
+            </p>
+          )}
         </>
       );
     }
