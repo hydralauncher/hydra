@@ -30,6 +30,12 @@ export class Game {
   @Column("text", { nullable: true })
   downloadPath: string | null;
 
+  @Column("text", { nullable: true })
+  executablePath: string | null;
+
+  @Column("int", { default: 0 })
+  playTimeInMilliseconds: number;
+
   @Column("text")
   shop: GameShop;
 
@@ -44,6 +50,9 @@ export class Game {
 
   @Column("int", { default: 0 })
   bytesDownloaded: number;
+
+  @Column("text", { nullable: true })
+  lastTimePlayed: Date | null;
 
   @Column("float", { default: 0 })
   fileSize: number;

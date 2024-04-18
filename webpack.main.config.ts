@@ -10,6 +10,7 @@ export const mainConfig: Configuration = {
    * that runs in the main process.
    */
   entry: "./src/index.ts",
+  devtool: "source-map",
   // Put your normal webpack config below here
   module: {
     rules,

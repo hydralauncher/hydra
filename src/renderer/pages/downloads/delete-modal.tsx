@@ -1,21 +1,21 @@
-import { Button, Modal } from "@renderer/components";
 import { useTranslation } from "react-i18next";
+
+import { Button, Modal } from "@renderer/components";
+
 import * as styles from "./delete-modal.css";
 
 interface DeleteModalProps {
   visible: boolean;
   onClose: () => void;
-  deleting: boolean;
   deleteGame: () => void;
 }
 
 export function DeleteModal({
   onClose,
   visible,
-  deleting,
   deleteGame,
 }: DeleteModalProps) {
-  const { t } = useTranslation("game_details");
+  const { t } = useTranslation("downloads");
 
   const handleDeleteGame = () => {
     deleteGame();
@@ -30,11 +30,11 @@ export function DeleteModal({
       onClose={onClose}
     >
       <div className={styles.deleteActionsButtonsCtn}>
-        <Button onClick={handleDeleteGame} theme="outline" disabled={deleting}>
+        <Button onClick={handleDeleteGame} theme="outline">
           {t("delete")}
         </Button>
 
-        <Button onClick={onClose} theme="primary" disabled={deleting}>
+        <Button onClick={onClose} theme="primary">
           {t("cancel")}
         </Button>
       </div>

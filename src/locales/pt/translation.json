@@ -3,7 +3,7 @@
     "featured": "Destaque",
     "recently_added": "Novidades",
     "trending": "Populares",
-    "surprise_me": "✨ Me surpreenda",
+    "surprise_me": "Me surpreenda",
     "no_results": "Nenhum resultado encontrado"
   },
   "sidebar": {
@@ -28,8 +28,7 @@
     "no_downloads_in_progress": "Sem downloads em andamento",
     "downloading_metadata": "Baixando metadados de {{title}}…",
     "checking_files": "Verificando arquivos de {{title}}… ({{percentage}} completo)",
-    "downloading": "Baixando {{title}}… ({{percentage}} completo) - Conclusão {{eta}} - {{speed}}",
-    "deleting": "Removendo arquivos…"
+    "downloading": "Baixando {{title}}… ({{percentage}} completo) - Conclusão {{eta}} - {{speed}}"
   },
   "game_details": {
     "open_download_options": "Ver opções de download",
@@ -37,7 +36,6 @@
     "download_options_one": "{{count}} opção de download",
     "download_options_other": "{{count}} opções de download",
     "updated_at": "Atualizado {{updated_at}}",
-    "launch": "Abrir",
     "resume": "Resumir",
     "pause": "Pausar",
     "cancel": "Cancelar",
@@ -54,8 +52,6 @@
     "no_minimum_requirements": "{{title}} não possui informações de requisitos mínimos",
     "no_recommended_requirements": "{{title}} não possui informações de requisitos recomendados",
     "paused_progress": "{{progress}} (Pausado)",
-    "deleting": "Removendo arquivos…",
-    "delete": "Apagar arquivos",
     "release_date": "Lançado em {{date}}",
     "publisher": "Publicado por {{publisher}}",
     "copy_link_to_clipboard": "Copiar link",
@@ -65,9 +61,15 @@
     "accuracy": "{{accuracy}}% de precisão",
     "add_to_library": "Adicionar à biblioteca",
     "remove_from_library": "Remover da biblioteca",
-    "delete_modal_title": "Tem certeza disso?",
-    "delete_modal_description": "Isso apagará todos os arquivos do jogo do seu sistema",
-    "no_downloads": "Nenhum download disponível"
+    "no_downloads": "Nenhum download disponível",
+    "play_time": "Jogado por {{amount}}",
+    "next_suggestion": "Próxima sugestão",
+    "install": "Instalar",
+    "last_time_played": "Jogado pela última vez {{period}}",
+    "play": "Jogar",
+    "not_played_yet": "Você ainda não jogou {{title}}",
+    "close": "Fechar",
+    "deleting": "Excluindo instalador…"
   },
   "activation": {
     "title": "Ativação",
@@ -78,7 +80,6 @@
     "loading": "Carregando…"
   },
   "downloads": {
-    "launch": "Abrir",
     "resume": "Resumir",
     "pause": "Pausar",
     "eta": "Conclusão {{eta}}",
@@ -94,9 +95,12 @@
     "downloading_metadata": "Baixando metadados…",
     "checking_files": "Verificando arquivos…",
     "starting_download": "Iniciando download…",
-    "deleting": "Removendo arquivos…",
-    "delete": "Apagar arquivos",
-    "remove_from_list": "Remover"
+    "remove_from_list": "Remover",
+    "delete": "Remover instalador",
+    "delete_modal_description": "Isso removerá todos os arquivos de instalação do seu computador",
+    "delete_modal_title": "Tem certeza?",
+    "deleting": "Excluindo instalador…",
+    "install": "Instalar"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",

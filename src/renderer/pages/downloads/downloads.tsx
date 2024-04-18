@@ -7,9 +7,10 @@ import { formatDownloadProgress, steamUrlBuilder } from "@renderer/helpers";
 import { useDownload, useLibrary } from "@renderer/hooks";
 import type { Game } from "@types";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
+import { DeleteModal } from "./delete-modal";
 
 export function Downloads() {
   const { library, updateLibrary } = useLibrary();
@@ -18,8 +19,11 @@ export function Downloads() {
 
   const navigate = useNavigate();
 
+  const gameToBeDeleted = useRef<number | null>(null);
+
   const [filteredLibrary, setFilteredLibrary] = useState<Game[]>([]);
   const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const {
     game: gameDownloading,
@@ -42,8 +46,8 @@ export function Downloads() {
     setFilteredLibrary(libraryWithDownloadedGamesOnly);
   }, [libraryWithDownloadedGamesOnly]);
 
-  const openGame = (gameId: number) =>
-    window.electron.openGame(gameId).then((isBinaryInPath) => {
+  const openGameInstaller = (gameId: number) =>
+    window.electron.openGameInstaller(gameId).then((isBinaryInPath) => {
       if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
       updateLibrary();
     });
@@ -117,6 +121,11 @@ export function Downloads() {
     }
   };
 
+  const openDeleteModal = (gameId: number) => {
+    gameToBeDeleted.current = gameId;
+    setShowDeleteModal(true);
+  };
+
   const getGameActions = (game: Game) => {
     const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
@@ -152,17 +161,14 @@ export function Downloads() {
       return (
         <>
           <Button
-            onClick={() => openGame(game.id)}
+            onClick={() => openGameInstaller(game.id)}
             theme="outline"
             disabled={deleting}
           >
-            {t("launch")}
+            {t("install")}
           </Button>
-          <Button
-            onClick={() => deleteGame(game.id)}
-            theme="outline"
-            disabled={deleting}
-          >
+
+          <Button onClick={() => openDeleteModal(game.id)} theme="outline">
             {t("delete")}
           </Button>
         </>
@@ -214,6 +220,14 @@ export function Downloads() {
         visible={showBinaryNotFoundModal}
         onClose={() => setShowBinaryNotFoundModal(false)}
       />
+      <DeleteModal
+        visible={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        deleteGame={() =>
+          deleteGame(gameToBeDeleted.current).then(updateLibrary)
+        }
+      />
+
       <TextField placeholder={t("filter")} onChange={handleFilter} />
 
       <ul className={styles.downloads}>

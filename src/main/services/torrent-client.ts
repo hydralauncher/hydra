@@ -1,5 +1,6 @@
 import path from "node:path";
 import cp from "node:child_process";
+import * as Sentry from "@sentry/electron/main";
 import { Notification, app } from "electron";
 import type { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
@@ -89,65 +90,72 @@ export class TorrentClient {
   }
 
   public static async onSocketData(data: Buffer) {
-    const payload = JSON.parse(
-      Buffer.from(data).toString("utf-8")
-    ) as TorrentUpdate;
+    const message = Buffer.from(data).toString("utf-8");
 
-    const updatePayload: QueryDeepPartialEntity<Game> = {
-      bytesDownloaded: payload.bytesDownloaded,
-      status: this.getTorrentStateName(payload.status),
-    };
+    try {
+      const payload = JSON.parse(message) as TorrentUpdate;
 
-    if (payload.status === TorrentState.CheckingFiles) {
-      updatePayload.fileVerificationProgress = payload.progress;
-    } else {
-      if (payload.folderName) {
-        updatePayload.folderName = payload.folderName;
-        updatePayload.fileSize = payload.fileSize;
+      const updatePayload: QueryDeepPartialEntity<Game> = {
+        bytesDownloaded: payload.bytesDownloaded,
+        status: this.getTorrentStateName(payload.status),
+      };
+
+      if (payload.status === TorrentState.CheckingFiles) {
+        updatePayload.fileVerificationProgress = payload.progress;
+      } else {
+        if (payload.folderName) {
+          updatePayload.folderName = payload.folderName;
+          updatePayload.fileSize = payload.fileSize;
+        }
       }
-    }
 
-    if (
-      [TorrentState.Downloading, TorrentState.Seeding].includes(payload.status)
-    ) {
-      updatePayload.progress = payload.progress;
-    }
+      if (
+        [TorrentState.Downloading, TorrentState.Seeding].includes(
+          payload.status
+        )
+      ) {
+        updatePayload.progress = payload.progress;
+      }
 
-    await gameRepository.update({ id: payload.gameId }, updatePayload);
+      await gameRepository.update({ id: payload.gameId }, updatePayload);
 
-    const game = await gameRepository.findOne({
-      where: { id: payload.gameId },
-      relations: { repack: true },
-    });
-
-    if (game.progress === 1) {
-      const userPreferences = await userPreferencesRepository.findOne({
-        where: { id: 1 },
+      const game = await gameRepository.findOne({
+        where: { id: payload.gameId },
+        relations: { repack: true },
       });
 
-      if (userPreferences?.downloadNotificationsEnabled) {
-        new Notification({
-          title: t("download_complete", {
-            ns: "notifications",
-            lng: userPreferences.language,
-          }),
-          body: t("game_ready_to_install", {
-            ns: "notifications",
-            lng: userPreferences.language,
-            title: game.title,
-          }),
-        }).show();
+      if (game.progress === 1) {
+        const userPreferences = await userPreferencesRepository.findOne({
+          where: { id: 1 },
+        });
+
+        if (userPreferences?.downloadNotificationsEnabled) {
+          new Notification({
+            title: t("download_complete", {
+              ns: "notifications",
+              lng: userPreferences.language,
+            }),
+            body: t("game_ready_to_install", {
+              ns: "notifications",
+              lng: userPreferences.language,
+              title: game.title,
+            }),
+          }).show();
+        }
       }
-    }
 
-    if (WindowManager.mainWindow) {
-      const progress = this.getGameProgress(game);
-      WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
+      if (WindowManager.mainWindow) {
+        const progress = this.getGameProgress(game);
+        WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
 
-      WindowManager.mainWindow.webContents.send(
-        "on-download-progress",
-        JSON.parse(JSON.stringify({ ...payload, game }))
-      );
+        WindowManager.mainWindow.webContents.send(
+          "on-download-progress",
+          JSON.parse(JSON.stringify({ ...payload, game }))
+        );
+      }
+    } catch (err) {
+      Sentry.captureException(err);
+      Sentry.captureMessage(message, "error");
     }
   }
 }

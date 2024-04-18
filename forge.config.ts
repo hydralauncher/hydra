@@ -39,6 +39,9 @@ const config: ForgeConfig = {
         schemes: ["hydralauncher"],
       },
     ],
+    win32metadata: {
+      "requested-execution-level": "requireAdministrator",
+    },
   },
   rebuildConfig: {},
   makers: [

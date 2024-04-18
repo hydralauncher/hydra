@@ -19,6 +19,7 @@ export const rendererConfig: Configuration = {
   module: {
     rules,
   },
+  devtool: "source-map",
   plugins: [...plugins, new VanillaExtractPlugin()],
   resolve: {
     extensions: [".js", ".ts", ".jsx", ".tsx", ".css"],

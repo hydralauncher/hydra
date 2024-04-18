@@ -50,7 +50,7 @@ export interface GameRepack {
   page: number;
   repacker: string;
   fileSize: string | null;
-  uploadDate: Date | null;
+  uploadDate: Date | string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -83,6 +83,9 @@ export interface Game extends Omit<CatalogueEntry, "cover"> {
   progress: number;
   fileVerificationProgress: number;
   bytesDownloaded: number;
+  playTimeInMilliseconds: number;
+  executablePath: string | null;
+  lastTimePlayed: Date | null;
   fileSize: number;
   createdAt: Date;
   updatedAt: Date;

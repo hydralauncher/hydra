@@ -1,10 +1,7 @@
-import { addMilliseconds, formatDistance } from "date-fns";
+import { addMilliseconds } from "date-fns";
 import prettyBytes from "pretty-bytes";
 
-import { ptBR, enUS, es, fr } from "date-fns/locale";
-
 import { formatDownloadProgress } from "@renderer/helpers";
-import { useTranslation } from "react-i18next";
 import { useLibrary } from "./use-library";
 import { useAppDispatch, useAppSelector } from "./redux";
 import {
@@ -14,10 +11,11 @@ import {
   removeGameFromDeleting,
 } from "@renderer/features";
 import type { GameShop, TorrentProgress } from "@types";
+import { useDate } from "./use-date";
 
 export function useDownload() {
-  const { i18n } = useTranslation();
   const { updateLibrary } = useLibrary();
+  const { formatDistance } = useDate();
 
   const { packets, gamesWithDeletionInProgress } = useAppSelector(
     (state) => state.download
@@ -68,13 +66,6 @@ export function useDownload() {
     lastPacket?.game.status
   );
 
-  const getDateLocale = (language: string) => {
-    if (language.startsWith("pt")) return ptBR;
-    if (language.startsWith("es")) return es;
-    if (language.startsWith("fr")) return fr;
-    return enUS;
-  };
-
   const getETA = () => {
     if (isVerifying || !isFinite(lastPacket?.timeRemaining)) {
       return "";
@@ -84,10 +75,7 @@ export function useDownload() {
       return formatDistance(
         addMilliseconds(new Date(), lastPacket?.timeRemaining ?? 1),
         new Date(),
-        {
-          addSuffix: true,
-          locale: getDateLocale(i18n.language),
-        }
+        { addSuffix: true }
       );
     } catch (err) {
       return "";

@@ -1,4 +1,5 @@
 import { app, BrowserWindow } from "electron";
+import { init } from "@sentry/electron/main";
 import i18n from "i18next";
 import path from "node:path";
 import { resolveDatabaseUpdates, WindowManager } from "@main/services";
@@ -15,6 +16,10 @@ if (require("electron-squirrel-startup")) app.quit();
 
 if (process.platform !== "darwin") {
   updateElectronApp();
+}
+
+if (process.env.SENTRY_DSN) {
+  init({ dsn: process.env.SENTRY_DSN });
 }
 
 i18n.init({

@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import prettyBytes from "pretty-bytes";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@renderer/components";
@@ -10,13 +10,14 @@ import type { Game, ShopDetails } from "@types";
 import { formatDownloadProgress } from "@renderer/helpers";
 import { NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
-import { DeleteModal } from "./delete-modal";
 import * as styles from "./hero-panel.css";
+import { useDate } from "@renderer/hooks/use-date";
 
 export interface HeroPanelProps {
   game: Game | null;
   gameDetails: ShopDetails | null;
   color: string;
+  isGamePlaying: boolean;
   openRepacksModal: () => void;
   getGame: () => void;
 }
@@ -27,10 +28,14 @@ export function HeroPanel({
   color,
   openRepacksModal,
   getGame,
+  isGamePlaying,
 }: HeroPanelProps) {
   const { t } = useTranslation("game_details");
 
   const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
+  const [lastTimePlayed, setLastTimePlayed] = useState("");
+
+  const { formatDistance } = useDate();
 
   const {
     game: gameDownloading,
@@ -42,7 +47,6 @@ export function HeroPanel({
     resumeDownload,
     pauseDownload,
     cancelDownload,
-    deleteGame,
     removeGame,
     isGameDeleting,
   } = useDownload();
@@ -55,15 +59,64 @@ export function HeroPanel({
     ({ objectID }) => objectID === gameDetails?.objectID
   );
 
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-
   const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
-  const openGame = (gameId: number) =>
-    window.electron.openGame(gameId).then((isBinaryInPath) => {
+  const updateLastTimePlayed = useCallback(() => {
+    setLastTimePlayed(
+      formatDistance(game.lastTimePlayed, new Date(), {
+        addSuffix: true,
+      })
+    );
+  }, [game?.lastTimePlayed, formatDistance]);
+
+  useEffect(() => {
+    if (game?.lastTimePlayed) {
+      updateLastTimePlayed();
+
+      const interval = setInterval(() => {
+        updateLastTimePlayed();
+      }, 1000);
+
+      return () => {
+        clearInterval(interval);
+      };
+    }
+  }, [game?.lastTimePlayed, updateLastTimePlayed]);
+
+  const openGameInstaller = () => {
+    window.electron.openGameInstaller(game.id).then((isBinaryInPath) => {
       if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
       updateLibrary();
     });
+  };
+
+  const openGame = () => {
+    if (game.executablePath) {
+      window.electron.openGame(game.id, game.executablePath);
+      return;
+    }
+
+    if (game?.executablePath) {
+      window.electron.openGame(game.id, game.executablePath);
+      return;
+    }
+
+    window.electron
+      .showOpenDialog({
+        properties: ["openFile"],
+        filters: [{ name: "Game executable (.exe)", extensions: ["exe"] }],
+      })
+      .then(({ filePaths }) => {
+        if (filePaths && filePaths.length > 0) {
+          const path = filePaths[0];
+          window.electron.openGame(game.id, path);
+        }
+      });
+  };
+
+  const closeGame = () => {
+    window.electron.closeGame(game.id);
+  };
 
   const finalDownloadSize = useMemo(() => {
     if (!game) return "N/A";
@@ -143,6 +196,28 @@ export function HeroPanel({
       );
     }
 
+    if (game?.status === "seeding") {
+      if (!game.lastTimePlayed) {
+        return <p>{t("not_played_yet", { title: game.title })}</p>;
+      }
+
+      return (
+        <>
+          <p>
+            {t("play_time", {
+              amount: formatDistance(0, game.playTimeInMilliseconds),
+            })}
+          </p>
+
+          <p>
+            {t("last_time_played", {
+              period: lastTimePlayed,
+            })}
+          </p>
+        </>
+      );
+    }
+
     const [latestRepack] = gameDetails.repacks;
 
     if (latestRepack) {
@@ -207,27 +282,26 @@ export function HeroPanel({
       return (
         <>
           <Button
-            onClick={() => openGame(game.id)}
+            onClick={openGameInstaller}
             theme="outline"
-            disabled={deleting}
+            disabled={deleting || isGamePlaying}
           >
-            {t("launch")}
+            {t("install")}
           </Button>
 
-          <Button
-            onClick={() => setShowDeleteModal(true)}
-            theme="outline"
-            disabled={deleting}
-          >
-            {t("delete")}
-          </Button>
-
-          <DeleteModal
-            visible={showDeleteModal}
-            onClose={() => setShowDeleteModal(false)}
-            deleting={deleting}
-            deleteGame={() => deleteGame(game.id).then(getGame)}
-          />
+          {isGamePlaying ? (
+            <Button onClick={closeGame} theme="outline" disabled={deleting}>
+              {t("close")}
+            </Button>
+          ) : (
+            <Button
+              onClick={openGame}
+              theme="outline"
+              disabled={deleting || isGamePlaying}
+            >
+              {t("play")}
+            </Button>
+          )}
         </>
       );
     }

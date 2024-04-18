@@ -21,6 +21,7 @@ export const content = style({
   gap: `${SPACING_UNIT * 3}px`,
   padding: `${SPACING_UNIT * 3}px`,
   flex: "1",
+  overflowY: "auto",
 });
 
 export const cards = recipe({

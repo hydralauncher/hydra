@@ -15,7 +15,7 @@ contextBridge.exposeInMainWorld("electron", {
     repackId: number,
     objectID: string,
     title: string,
-    shop: GameShop,
+    shop: GameShop
   ) => ipcRenderer.invoke("startGameDownload", repackId, objectID, title, shop),
   cancelGameDownload: (gameId: number) =>
     ipcRenderer.invoke("cancelGameDownload", gameId),
@@ -23,11 +23,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("pauseGameDownload", gameId),
   resumeGameDownload: (gameId: number) =>
     ipcRenderer.invoke("resumeGameDownload", gameId),
-  onDownloadProgress: (callback: (value: TorrentProgress) => void) => {
+  onDownloadProgress: (cb: (value: TorrentProgress) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      value: TorrentProgress,
-    ) => callback(value);
+      value: TorrentProgress
+    ) => cb(value);
     ipcRenderer.on("on-download-progress", listener);
     return () => ipcRenderer.removeListener("on-download-progress", listener);
   },
@@ -53,12 +53,28 @@ contextBridge.exposeInMainWorld("electron", {
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
   getRepackersFriendlyNames: () =>
     ipcRenderer.invoke("getRepackersFriendlyNames"),
-  openGame: (gameId: number) => ipcRenderer.invoke("openGame", gameId),
+  openGameInstaller: (gameId: number) =>
+    ipcRenderer.invoke("openGameInstaller", gameId),
+  openGame: (gameId: number, path: string) =>
+    ipcRenderer.invoke("openGame", gameId, path),
+  closeGame: (gameId: number) => ipcRenderer.invoke("closeGame", gameId),
   removeGame: (gameId: number) => ipcRenderer.invoke("removeGame", gameId),
   deleteGameFolder: (gameId: number) =>
     ipcRenderer.invoke("deleteGameFolder", gameId),
   getGameByObjectID: (objectID: string) =>
     ipcRenderer.invoke("getGameByObjectID", objectID),
+  onPlaytime: (cb: (gameId: number) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, gameId: number) =>
+      cb(gameId);
+    ipcRenderer.on("on-playtime", listener);
+    return () => ipcRenderer.removeListener("on-playtime", listener);
+  },
+  onGameClose: (cb: (gameId: number) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, gameId: number) =>
+      cb(gameId);
+    ipcRenderer.on("on-game-close", listener);
+    return () => ipcRenderer.removeListener("on-game-close", listener);
+  },
 
   /* Hardware */
   getDiskFreeSpace: () => ipcRenderer.invoke("getDiskFreeSpace"),

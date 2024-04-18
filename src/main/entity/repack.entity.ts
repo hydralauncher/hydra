@@ -27,7 +27,7 @@ export class Repack {
   fileSize: string;
 
   @Column("datetime")
-  uploadDate: Date;
+  uploadDate: Date | string;
 
   @CreateDateColumn()
   createdAt: Date;

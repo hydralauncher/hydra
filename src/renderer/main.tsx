@@ -6,6 +6,9 @@ import { Provider } from "react-redux";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { createHashRouter, RouterProvider } from "react-router-dom";
 
+import { init } from "@sentry/electron/renderer";
+import { init as reactInit } from "@sentry/react";
+
 import "@fontsource/fira-mono/400.css";
 import "@fontsource/fira-mono/500.css";
 import "@fontsource/fira-mono/700.css";
@@ -26,6 +29,10 @@ import {
 import { store } from "./store";
 
 import * as resources from "@locales";
+
+if (process.env.SENTRY_DSN) {
+  init({ dsn: process.env.SENTRY_DSN }, reactInit);
+}
 
 const router = createHashRouter([
   {

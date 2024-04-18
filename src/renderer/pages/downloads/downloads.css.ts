@@ -73,6 +73,7 @@ export const downloadRightContent = style({
   display: "flex",
   padding: `${SPACING_UNIT * 2}px`,
   flex: "1",
+  gap: `${SPACING_UNIT}px`,
 });
 
 export const downloadActions = style({
