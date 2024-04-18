@@ -86,7 +86,6 @@
     "lodash": "^4.17.21",
     "lottie-react": "^2.4.0",
     "parse-torrent": "9.1.5",
-    "pretty-bytes": "^6.1.1",
     "ps-list": "^8.1.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
