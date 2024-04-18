@@ -104,9 +104,7 @@ export function HeroPanel({
     window.electron
       .showOpenDialog({
         properties: ["openFile"],
-        filters: [
-          { name: "Game executable (.exe)", extensions: ["exe", "app"] },
-        ],
+        filters: [{ name: "Game executable (.exe)", extensions: ["exe"] }],
       })
       .then(({ filePaths }) => {
         if (filePaths && filePaths.length > 0) {
