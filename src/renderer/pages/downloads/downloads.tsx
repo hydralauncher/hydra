@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
 import { DeleteModal } from "./delete-modal";
-import { byteFormat } from "@renderer/utils";
+import { formatBytes } from "@renderer/utils";
 
 export function Downloads() {
   const { library, updateLibrary } = useLibrary();
@@ -61,10 +61,10 @@ export function Downloads() {
     const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
     if (!game) return "N/A";
-    if (game.fileSize) return byteFormat(game.fileSize);
+    if (game.fileSize) return formatBytes(game.fileSize);
 
     if (gameDownloading?.fileSize && isGameDownloading)
-      return byteFormat(gameDownloading.fileSize);
+      return formatBytes(gameDownloading.fileSize);
 
     return game.repack?.fileSize ?? "N/A";
   };
@@ -87,7 +87,7 @@ export function Downloads() {
           ) : (
             <>
               <p>
-                {byteFormat(gameDownloading?.bytesDownloaded)} /{" "}
+                {formatBytes(gameDownloading?.bytesDownloaded)} /{" "}
                 {finalDownloadSize}
               </p>
               <p>
