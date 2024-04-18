@@ -82,7 +82,7 @@ const checkForNewRepacks = async () => {
     repackRepository.count().then((count) => {
       const total = count - stateManager.getValue("repacks").length;
 
-      if (total > 0 && userPreferences.repackUpdatesNotificationsEnabled) {
+      if (total > 0 && userPreferences?.repackUpdatesNotificationsEnabled) {
         new Notification({
           title: t("repack_list_updated", {
             ns: "notifications",
