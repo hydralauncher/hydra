@@ -6,10 +6,11 @@ import { useTranslation } from "react-i18next";
 export function useDate() {
   const { i18n } = useTranslation();
 
-  const getDateLocale = (language: string) => {
-    if (language.startsWith("pt")) return ptBR;
-    if (language.startsWith("es")) return es;
-    if (language.startsWith("fr")) return fr;
+  const getDateLocale = () => {
+    if (i18n.language.startsWith("pt")) return ptBR;
+    if (i18n.language.startsWith("es")) return es;
+    if (i18n.language.startsWith("fr")) return fr;
+
     return enUS;
   };
 
@@ -22,7 +23,7 @@ export function useDate() {
       try {
         return formatDistance(date, baseDate, {
           ...options,
-          locale: getDateLocale(i18n.language),
+          locale: getDateLocale(),
         });
       } catch (err) {
         return "";

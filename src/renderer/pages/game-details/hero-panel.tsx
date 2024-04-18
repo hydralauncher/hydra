@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import prettyBytes from "pretty-bytes";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@renderer/components";
@@ -33,6 +33,8 @@ export function HeroPanel({
   const { t } = useTranslation("game_details");
 
   const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
+  const [lastTimePlayed, setLastTimePlayed] = useState("");
+
   const { formatDistance } = useDate();
 
   const {
@@ -58,6 +60,28 @@ export function HeroPanel({
   );
 
   const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
+
+  const updateLastTimePlayed = useCallback(() => {
+    setLastTimePlayed(
+      formatDistance(game.lastTimePlayed, new Date(), {
+        addSuffix: true,
+      })
+    );
+  }, [game?.lastTimePlayed, formatDistance]);
+
+  useEffect(() => {
+    if (game?.lastTimePlayed) {
+      updateLastTimePlayed();
+
+      const interval = setInterval(() => {
+        updateLastTimePlayed();
+      }, 1000);
+
+      return () => {
+        clearInterval(interval);
+      };
+    }
+  }, [game?.lastTimePlayed, updateLastTimePlayed]);
 
   const openGameInstaller = () => {
     window.electron.openGameInstaller(game.id).then((isBinaryInPath) => {
@@ -187,9 +211,7 @@ export function HeroPanel({
 
           <p>
             {t("last_time_played", {
-              period: formatDistance(game.lastTimePlayed, new Date(), {
-                addSuffix: true,
-              }),
+              period: lastTimePlayed,
             })}
           </p>
         </>
