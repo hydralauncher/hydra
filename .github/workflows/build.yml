@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: main
+    branches: "**"
 
 jobs:
   build:
@@ -47,8 +47,20 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Build with pyinstaller
-        run: pyinstaller torrent-client/main.py --distpath resources/dist --icon=images/icon.ico -n hydra-download-manager
+      - name: Build with Nuitka
+        uses: Nuitka/Nuitka-Action@main
+        with:
+          nuitka-version: main
+          working-directory: torrent-client
+          script-name: main.py
+          standalone: true
+          enable-plugins: libtorrent
+          output-dir: resources/dist
+          output-file: hydra-download-manager
+          windows-icon-from-ico: images/icon.ico
+
+      # - name: Build with pyinstaller
+      #   run: pyinstaller torrent-client/main.py --distpath resources/dist --icon=images/icon.ico -n hydra-download-manager
 
       - name: Publish
         run: yarn run publish
