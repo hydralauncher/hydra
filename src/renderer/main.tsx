@@ -1,9 +1,9 @@
+import i18n from "i18next";
+import LanguageDetector from "i18next-browser-languagedetector";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { Provider } from "react-redux";
-import LanguageDetector from "i18next-browser-languagedetector";
 import { createHashRouter, RouterProvider } from "react-router-dom";
 
 import { init } from "@sentry/electron/renderer";
@@ -17,15 +17,16 @@ import "@fontsource/fira-sans/500.css";
 import "@fontsource/fira-sans/700.css";
 import "react-loading-skeleton/dist/skeleton.css";
 
-import { App } from "./app";
 import {
-  Home,
+  Catalogue,
   Downloads,
   GameDetails,
+  Home,
+  PatchNotes,
   SearchResults,
   Settings,
-  Catalogue,
 } from "@renderer/pages";
+import { App } from "./app";
 
 import { store } from "./store";
 
@@ -63,6 +64,10 @@ const router = createHashRouter([
       {
         path: "/settings",
         Component: Settings,
+      },
+      {
+        path: "/patch-notes",
+        Component: PatchNotes,
       },
     ],
   },

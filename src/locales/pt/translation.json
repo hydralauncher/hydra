@@ -16,7 +16,8 @@
     "paused": "{{title}} (Pausado)",
     "downloading": "{{title}} ({{percentage}} - Baixando…)",
     "filter": "Filtrar biblioteca",
-    "home": "Início"
+    "home": "Início",
+    "patch-notes": "Notas de atualização"
   },
   "header": {
     "search": "Buscar",
@@ -24,7 +25,8 @@
     "downloads": "Downloads",
     "search_results": "Resultados da busca",
     "settings": "Configurações",
-    "home": "Início"
+    "home": "Início",
+    "patch-notes": "Notas de atualização"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Sem downloads em andamento",

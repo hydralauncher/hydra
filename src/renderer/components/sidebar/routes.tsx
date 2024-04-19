@@ -1,4 +1,9 @@
-import { AppsIcon, GearIcon, HomeIcon } from "@primer/octicons-react";
+import {
+  AppsIcon,
+  GearIcon,
+  HomeIcon,
+  PencilIcon,
+} from "@primer/octicons-react";
 import { DownloadIcon } from "./download-icon";
 
 export const routes = [
@@ -23,5 +28,10 @@ export const routes = [
     path: "/settings",
     nameKey: "settings",
     render: () => <GearIcon />,
+  },
+  {
+    path: "/patch-notes",
+    nameKey: "patch-notes",
+    render: () => <PencilIcon />,
   },
 ];

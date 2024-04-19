@@ -16,7 +16,8 @@
     "paused": "{{title}} (En pause)",
     "downloading": "{{title}} ({{percentage}} - Téléchargement en cours…)",
     "filter": "Filtrer la bibliothèque",
-    "home": "Maison"
+    "home": "Maison",
+    "patch-notes": "Notes de mise à jour"
   },
   "header": {
     "search": "Recherche",
@@ -24,7 +25,8 @@
     "downloads": "Téléchargements",
     "search_results": "Résultats de la recherche",
     "settings": "Paramètres",
-    "home": "Maison"
+    "home": "Maison",
+    "patch-notes": "Notes de mise à jour"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Aucun téléchargement en cours",
