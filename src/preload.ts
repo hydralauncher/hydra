@@ -86,6 +86,7 @@ contextBridge.exposeInMainWorld("electron", {
   ping: () => ipcRenderer.invoke("ping"),
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
+  openExternalUrl: (url: string) => ipcRenderer.invoke("openExternalUrl", url),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
   platform: process.platform,
