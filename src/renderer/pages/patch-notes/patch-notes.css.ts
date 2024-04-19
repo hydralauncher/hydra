@@ -43,29 +43,6 @@ export const releaseContainer = style({
   borderBottom: `dashed 1px ${vars.color.borderColor}`,
 });
 
-export const assetsHeader = style({
-  marginTop: `${SPACING_UNIT * 6}px`,
-  marginBottom: `${SPACING_UNIT * 2}px`,
-  gap: `${SPACING_UNIT}px`,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  color: vars.color.bodyText,
-  width: "100%",
-});
-
-export const assetsHeaderTitle = style({
-  display: "flex",
-  alignItems: "center",
-  gap: `${SPACING_UNIT / 2}px`,
-  transition: "all ease 0.2s",
-
-  ":hover": {
-    cursor: "pointer",
-    opacity: 0.75,
-  },
-});
-
 export const assetsTriggerContainer = style({
   display: "flex",
   width: "100%",
@@ -122,5 +99,3 @@ export const separator = style({
   marginBottom: `${SPACING_UNIT * 4}px`,
   borderRadius: "12px",
 });
-
-export const footer = style({});
