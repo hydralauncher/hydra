@@ -111,7 +111,7 @@ export function PatchNotes() {
                             <DownloadIcon size={16} />
                             <span>{asset.name}</span>
                           </a>
-                          <small>{formattedSize} MB</small>
+                          <small>{formattedSize}</small>
                         </div>
                       );
                     })}

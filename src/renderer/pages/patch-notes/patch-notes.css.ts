@@ -83,7 +83,7 @@ export const assetsItem = style({
   transition: "all ease 0.2s",
   display: "flex",
   alignItems: "center",
-  gap: `${SPACING_UNIT / 2}px`,
+  gap: `${SPACING_UNIT * 0.75}px`,
   ":hover": {
     opacity: 0.75,
   },
