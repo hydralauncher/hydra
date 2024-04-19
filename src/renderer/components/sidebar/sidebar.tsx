@@ -236,10 +236,10 @@ export function Sidebar() {
         <div className={styles.footerText}>{t("follow_us")}</div>
 
         <span className={styles.footerSocialsContainer}>
-          {socials.map((item, i) => {
+          {socials.map((item) => {
             return (
               <button
-                key={i}
+                key={item.url}
                 className={styles.footerSocialsItem}
                 onClick={() => window.electron.openExternal(item.url)}
               >
