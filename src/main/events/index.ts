@@ -18,7 +18,7 @@ import "./library/open-game";
 import "./library/open-game-installer";
 import "./library/remove-game";
 import "./misc/get-or-cache-image";
-import "./misc/open-external-url";
+import "./misc/open-external";
 import "./misc/show-open-dialog";
 import "./torrenting/cancel-game-download";
 import "./torrenting/pause-game-download";

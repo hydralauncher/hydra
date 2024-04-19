@@ -78,7 +78,7 @@ declare global {
 
     /* Misc */
     getOrCacheImage: (url: string) => Promise<string>;
-    openExternalUrl: (url: string) => void;
+    openExternal: (src: string) => Promise<void>;
     getVersion: () => Promise<string>;
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
