@@ -1,7 +1,8 @@
 import path from "node:path";
 import cp from "node:child_process";
+import fs from "node:fs";
 import * as Sentry from "@sentry/electron/main";
-import { Notification, app } from "electron";
+import { Notification, app, dialog } from "electron";
 import type { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
 import { Game } from "@main/entity";
@@ -53,6 +54,15 @@ export class TorrentClient {
         "hydra-download-manager",
         binaryName
       );
+
+      if (!fs.existsSync(binaryPath)) {
+        dialog.showErrorBox(
+          "Fatal",
+          "Hydra download manager binary not found. Please check if it has been removed by Windows Defender."
+        );
+
+        app.quit();
+      }
 
       cp.spawn(binaryPath, commonArgs, {
         stdio: "inherit",
@@ -155,7 +165,6 @@ export class TorrentClient {
       }
     } catch (err) {
       Sentry.captureException(err);
-      Sentry.captureMessage(message, "error");
     }
   }
 }
