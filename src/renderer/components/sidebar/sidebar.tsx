@@ -8,11 +8,27 @@ import { AsyncImage, TextField } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
 import { SPACING_UNIT } from "@renderer/theme.css";
 
-import { MarkGithubIcon } from "@primer/octicons-react";
-import DiscordLogo from "../../assets/discord-icon.svg";
-import XLogo from "../../assets/x-icon.svg";
 import { routes } from "./routes";
+
+import { MarkGithubIcon } from "@primer/octicons-react";
+import DiscordLogo from "@renderer/assets/discord-icon.svg";
+import XLogo from "@renderer/assets/x-icon.svg";
 import * as styles from "./sidebar.css";
+
+const socials = [
+  {
+    url: "https://discord.gg/hydralauncher",
+    icon: <DiscordLogo />,
+  },
+  {
+    url: "https://twitter.com/hydralauncher",
+    icon: <XLogo />,
+  },
+  {
+    url: "https://github.com/hydralauncher/hydra",
+    icon: <MarkGithubIcon size={16} />,
+  },
+];
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -220,38 +236,17 @@ export function Sidebar() {
         <div className={styles.footerText}>{t("follow_us")}</div>
 
         <span className={styles.footerSocialsContainer}>
-          <button
-            className={styles.footerSocialsItem}
-            onClick={() =>
-              window.electron.openExternalUrl(
-                "https://discord.gg/hydralauncher"
-              )
-            }
-          >
-            <DiscordLogo />
-          </button>
-
-          <button
-            className={styles.footerSocialsItem}
-            onClick={() =>
-              window.electron.openExternalUrl(
-                "https://twitter.com/hydralauncher"
-              )
-            }
-          >
-            <XLogo />
-          </button>
-
-          <button
-            className={styles.footerSocialsItem}
-            onClick={() =>
-              window.electron.openExternalUrl(
-                "https://github.com/hydralauncher/hydra"
-              )
-            }
-          >
-            <MarkGithubIcon size={16} />
-          </button>
+          {socials.map((item, i) => {
+            return (
+              <button
+                key={i}
+                className={styles.footerSocialsItem}
+                onClick={() => window.electron.openExternal(item.url)}
+              >
+                {item.icon}
+              </button>
+            );
+          })}
         </span>
       </footer>
     </aside>
