@@ -4,12 +4,15 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import type { Game } from "@types";
 
-import { useDownload, useLibrary } from "@renderer/hooks";
 import { AsyncImage, TextField } from "@renderer/components";
+import { useDownload, useLibrary } from "@renderer/hooks";
 import { SPACING_UNIT } from "@renderer/theme.css";
 
-import * as styles from "./sidebar.css";
+import { MarkGithubIcon } from "@primer/octicons-react";
+import DiscordLogo from "../../assets/discord-icon.svg";
+import XLogo from "../../assets/x-icon.svg";
 import { routes } from "./routes";
+import * as styles from "./sidebar.css";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -212,6 +215,45 @@ export function Sidebar() {
         className={styles.handle}
         onMouseDown={handleMouseDown}
       />
+
+      <footer className={styles.sidebarFooter}>
+        <div className={styles.footerText}>{t("follow_us")}</div>
+
+        <span className={styles.footerSocialsContainer}>
+          <button
+            className={styles.footerSocialsItem}
+            onClick={() =>
+              window.electron.openExternalUrl(
+                "https://discord.gg/hydralauncher"
+              )
+            }
+          >
+            <DiscordLogo />
+          </button>
+
+          <button
+            className={styles.footerSocialsItem}
+            onClick={() =>
+              window.electron.openExternalUrl(
+                "https://twitter.com/hydralauncher"
+              )
+            }
+          >
+            <XLogo />
+          </button>
+
+          <button
+            className={styles.footerSocialsItem}
+            onClick={() =>
+              window.electron.openExternalUrl(
+                "https://github.com/hydralauncher/hydra"
+              )
+            }
+          >
+            <MarkGithubIcon size={16} />
+          </button>
+        </span>
+      </footer>
     </aside>
   );
 }

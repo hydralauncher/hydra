@@ -1,12 +1,12 @@
 import type {
-  CatalogueEntry,
-  GameShop,
-  Game,
   CatalogueCategory,
-  TorrentProgress,
-  ShopDetails,
-  UserPreferences,
+  CatalogueEntry,
+  Game,
+  GameShop,
   HowLongToBeatCategory,
+  ShopDetails,
+  TorrentProgress,
+  UserPreferences,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -78,6 +78,7 @@ declare global {
 
     /* Misc */
     getOrCacheImage: (url: string) => Promise<string>;
+    openExternalUrl: (url: string) => void;
     getVersion: () => Promise<string>;
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
