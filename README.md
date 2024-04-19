@@ -66,7 +66,7 @@ yarn start
 Build the bittorrent client by using this command:
 
 ```bash
-pyinstaller torrent-client/main.py --distpath resources/dist --icon=images/icon.ico -n hydra-download-manager
+python torrent-client/setup.py build
 ```
 
 ### Build the Electron application
