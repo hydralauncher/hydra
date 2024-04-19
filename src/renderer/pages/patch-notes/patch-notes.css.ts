@@ -43,6 +43,10 @@ export const releaseContainer = style({
   borderBottom: `dashed 1px ${vars.color.borderColor}`,
 });
 
+export const accordionItem = style({
+  border: "none !important",
+});
+
 export const assetsTriggerContainer = style({
   display: "flex",
   width: "100%",

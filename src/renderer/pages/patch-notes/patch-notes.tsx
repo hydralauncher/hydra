@@ -81,7 +81,10 @@ export function PatchNotes() {
               <ReactMarkdown>{release.body}</ReactMarkdown>
 
               <Accordion type="single" collapsible>
-                <AccordionItem value={`item-${release.id}`}>
+                <AccordionItem
+                  value={`item-${release.id}`}
+                  className={styles.accordionItem}
+                >
                   <AccordionTrigger>
                     <div className={styles.assetsTriggerContainer}>
                       <h4>Assets</h4>

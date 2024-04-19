@@ -2,7 +2,7 @@ import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { keyframes, style } from "@vanilla-extract/css";
 
 export const accordionItem = style({
-  borderBottom: "1px solid transparent",
+  borderBottom: `1px solid ${vars.color.borderColor}`,
 });
 
 export const accordionHeader = style({
@@ -13,7 +13,7 @@ export const accordionTrigger = style({
   display: "flex",
   flex: 1,
   alignItems: "center",
-  padding: `${SPACING_UNIT * 2}px 0`,
+  padding: `${SPACING_UNIT * 1.5}px 0`,
   fontSize: vars.size.bodyFontSize,
   transition: "all cubic-bezier(0.4, 0, 0.2, 1) 150ms",
   color: vars.color.bodyText,
