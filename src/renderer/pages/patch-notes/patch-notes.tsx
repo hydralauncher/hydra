@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
 
 import { formatBytes } from "@renderer/utils/format-bytes";
+import { PatchNotesSkeleton } from "./patch-notes-skeleton";
 
 const owner = "hydralauncher";
 const repoName = "hydra";
@@ -48,12 +49,11 @@ export function PatchNotes() {
     })();
   }, []);
 
-  if (releases.length === 0) {
-    // TO-DO: Add skeleton
+  if (releases) {
     return (
       <main className={styles.container}>
         <div className={styles.content}>
-          <p>Loading...</p>
+          <PatchNotesSkeleton />
         </div>
       </main>
     );
