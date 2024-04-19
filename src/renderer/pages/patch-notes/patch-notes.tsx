@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 
-import { ChevronDownIcon, DownloadIcon } from "@primer/octicons-react";
+import { DownloadIcon } from "@primer/octicons-react";
 import * as styles from "./patch-notes.css";
 
-import * as Accordion from "@radix-ui/react-accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@renderer/components/accordion/accordion";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
 
@@ -49,7 +54,7 @@ export function PatchNotes() {
     })();
   }, []);
 
-  if (releases) {
+  if (releases.length === 0) {
     return (
       <main className={styles.container}>
         <div className={styles.content}>
@@ -75,20 +80,19 @@ export function PatchNotes() {
 
               <ReactMarkdown>{release.body}</ReactMarkdown>
 
-              {/* TO-DO: Add global accordion to design system */}
-              <Accordion.Root type="single" collapsible>
-                <Accordion.Item value={`item-${release.id}`}>
-                  <Accordion.Trigger className={styles.assetsHeader}>
-                    <h4 className={styles.assetsHeaderTitle}>
-                      {" "}
-                      <ChevronDownIcon size={16} /> Assets
-                    </h4>
-                    <span className={styles.assetsCount}>
-                      {release.assets.length}
-                    </span>
-                  </Accordion.Trigger>
+              <Accordion type="single" collapsible>
+                <AccordionItem value={`item-${release.id}`}>
+                  <AccordionTrigger>
+                    <div className={styles.assetsTriggerContainer}>
+                      <h4>Assets</h4>
 
-                  <Accordion.Content className={styles.assetsContainer}>
+                      <span className={styles.assetsCount}>
+                        {release.assets.length}
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+
+                  <AccordionContent className={styles.assetsContainer}>
                     {release.assets.map((asset) => {
                       const formattedSize = formatBytes(asset.size);
 
@@ -108,9 +112,9 @@ export function PatchNotes() {
                         </div>
                       );
                     })}
-                  </Accordion.Content>
-                </Accordion.Item>
-              </Accordion.Root>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </div>
           );
         })}

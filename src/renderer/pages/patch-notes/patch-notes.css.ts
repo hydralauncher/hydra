@@ -66,15 +66,11 @@ export const assetsHeaderTitle = style({
   },
 });
 
-export const assetsTitle = style({
-  backgroundColor: vars.color.borderColor,
-  borderRadius: "100%",
+export const assetsTriggerContainer = style({
   display: "flex",
+  width: "100%",
+  justifyContent: "space-between",
   alignItems: "center",
-  justifyContent: "center",
-  width: "20px",
-  height: "20px",
-  fontSize: "12px",
 });
 
 export const assetsCount = style({
@@ -86,6 +82,10 @@ export const assetsCount = style({
   width: "20px",
   height: "20px",
   fontSize: "12px",
+
+  ":hover": {
+    textDecoration: "none",
+  },
 });
 
 export const assetsContainer = style({

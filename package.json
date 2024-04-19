@@ -76,6 +76,7 @@
     "axios": "^1.6.8",
     "check-disk-space": "^3.4.0",
     "classnames": "^2.5.1",
+    "clsx": "^2.1.0",
     "color": "^4.2.3",
     "color.js": "^1.2.0",
     "date-fns": "^3.5.0",
