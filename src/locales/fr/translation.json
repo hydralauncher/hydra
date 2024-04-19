@@ -17,7 +17,8 @@
     "downloading": "{{title}} ({{percentage}} - Téléchargement en cours…)",
     "filter": "Filtrer la bibliothèque",
     "home": "Maison",
-    "patch-notes": "Notes de mise à jour"
+    "patch-notes": "Notes de mise à jour",
+    "follow_us": "Suivez-nous"
   },
   "header": {
     "search": "Recherche",

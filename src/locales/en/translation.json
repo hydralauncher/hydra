@@ -7,7 +7,6 @@
     "no_results": "No results found"
   },
   "sidebar": {
-    "home": "Home",
     "catalogue": "Catalogue",
     "downloads": "Downloads",
     "settings": "Settings",
@@ -17,7 +16,9 @@
     "paused": "{{title}} (Paused)",
     "downloading": "{{title}} ({{percentage}} - Downloading…)",
     "filter": "Filter library",
-    "patch-notes": "Patch Notes"
+    "patch-notes": "Patch Notes",
+    "follow_us": "Follow us",
+    "home": "Home"
   },
   "header": {
     "search": "Search",
