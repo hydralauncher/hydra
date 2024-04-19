@@ -20,6 +20,9 @@ export interface SteamAppDetails {
   publishers: string[];
   genres: SteamGenre[];
   screenshots: SteamScreenshot[];
+  price_overview: {
+    final_formatted: string;
+  };
   pc_requirements: {
     minimum: string;
     recommended: string;

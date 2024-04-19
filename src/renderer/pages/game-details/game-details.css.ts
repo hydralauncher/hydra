@@ -184,6 +184,10 @@ export const descriptionHeaderInfo = style({
   gap: `${SPACING_UNIT}px`,
   flexDirection: "column",
   fontSize: vars.size.bodyFontSize,
+  "& a": {
+    textDecoration: 'none',
+    color: vars.color.bodyText
+  }
 });
 
 export const howLongToBeatCategoriesList = style({

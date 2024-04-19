@@ -56,6 +56,7 @@
     "paused_progress": "{{progress}} (Pausado)",
     "release_date": "Lançado em {{date}}",
     "publisher": "Publicado por {{publisher}}",
+    "price": "Preço {{price}}",
     "copy_link_to_clipboard": "Copiar link",
     "copied_link_to_clipboard": "Link copiado",
     "hours": "horas",

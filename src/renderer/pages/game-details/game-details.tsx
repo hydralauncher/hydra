@@ -42,6 +42,7 @@ export function GameDetails() {
 
   const [game, setGame] = useState<Game | null>(null);
   const [isGamePlaying, setIsGamePlaying] = useState(false);
+  console.log(gameDetails)
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
@@ -208,7 +209,6 @@ export function GameDetails() {
           <div className={styles.descriptionContainer}>
             <div className={styles.descriptionContent}>
               <DescriptionHeader gameDetails={gameDetails} />
-
               <div
                 dangerouslySetInnerHTML={{
                   __html: gameDetails?.about_the_game ?? "",

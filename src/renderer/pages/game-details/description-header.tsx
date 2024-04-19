@@ -63,6 +63,7 @@ export function DescriptionHeader({ gameDetails }: DescriptionHeaderProps) {
           })}
         </p>
         <p>{t("publisher", { publisher: gameDetails?.publishers[0] })}</p>
+        <a target="_blank" href={'https://store.steampowered.com/app/' + gameDetails?.objectID}>{t("price", {price: gameDetails?.price_overview.final_formatted})}</a>
       </section>
 
       <Button
