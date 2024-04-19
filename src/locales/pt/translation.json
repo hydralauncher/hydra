@@ -109,6 +109,8 @@
     "downloads_path": "Diretório dos downloads",
     "change": "Mudar",
     "notifications": "Notificações",
+    "menu_options": "Opções",
+    "Shutdown_After_Downloads": "Desligar após o término do download",
     "enable_download_notifications": "Quando um download for concluído",
     "enable_repack_list_notifications": "Quando a lista de repacks for atualizada"
   },

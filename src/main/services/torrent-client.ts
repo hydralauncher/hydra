@@ -1,8 +1,9 @@
 import path from "node:path";
 import cp from "node:child_process";
 import * as Sentry from "@sentry/electron/main";
-import { Notification, app } from "electron";
+import { Notification, app, dialog } from "electron";
 import type { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+import * as os from "os";
 
 import { Game } from "@main/entity";
 import { gameRepository, userPreferencesRepository } from "@main/repository";
@@ -141,6 +142,83 @@ export class TorrentClient {
               title: game.title,
             }),
           }).show();
+        }
+
+        if (userPreferences?.ShutDownAfterDownloadEnabled) {
+          const dialogPromise = dialog.showMessageBox({
+            type: "question",
+            buttons: ["Cancelar", "Confirmar"],
+            defaultId: 1,
+            title: "Confirmar desligamento",
+            message: "O sistema será desligado em breve. Tem certeza de que deseja prosseguir?",
+            detail: "Se você estiver usando o computador, clique em 'Cancelar' para abortar o desligamento, caso não selecione nada dentro de alguns segudos o desligamento ocorrerá",
+            cancelId: 0,
+            noLink: true,
+            normalizeAccessKeys: false,
+          });
+          
+          const timer = setTimeout(() => {
+            userPreferencesRepository.update(
+              { id: 1 },
+              { ShutDownAfterDownloadEnabled: false }
+            ).catch(error => {
+              console.error("Erro ao redefinir o valor de ShutDownAfterDownloadEnabled:", error);
+            });
+        
+            let shutdownCommand;
+            switch (os.platform()) {
+              case 'win32':
+                shutdownCommand = 'shutdown /s /t 240'; // Comando de desligamento para Windows
+                break;
+              case 'darwin':
+                shutdownCommand = 'sudo shutdown -h +4'; // Comando de desligamento para MacOS
+                break;
+              case 'linux':
+                shutdownCommand = 'sudo shutdown -h +4'; // Comando de desligamento para Linux
+                break;
+              default:
+                console.error('Sistema operacional não suportado para desligamento.');
+                break;
+            }
+        
+            if (shutdownCommand) {
+              cp.exec(shutdownCommand, (error) => {
+                if (error) {
+                  console.error("Erro ao executar o comando de desligamento:", error);
+                }
+              });
+            }
+          }, 20000);
+        
+          dialogPromise.then(result => {
+            if (result && result.response === 0) {
+              clearTimeout(timer);
+              
+              let cancelShutdownCommand;
+              switch (os.platform()) {
+                case 'win32':
+                  cancelShutdownCommand = 'shutdown /a'; // Comando de cancelamento para Windows
+                  break;
+                case 'darwin':
+                  cancelShutdownCommand = 'sudo killall shutdown'; // Comando de cancelamento para MacOS
+                  break;
+                case 'linux':
+                  cancelShutdownCommand = 'sudo killall shutdown'; // Comando de cancelamento para Linux
+                  break;
+                default:
+                  console.error('Sistema operacional não suportado para cancelamento de desligamento.');
+                  break;
+              }
+        
+              if (cancelShutdownCommand) {
+                cp.exec(cancelShutdownCommand, (error) => {
+                  if (error) {
+                    console.error("Erro ao executar o comando de cancelamento de desligamento:", error);
+                  }
+                });
+              }
+            }
+          });
         }
       }
 
