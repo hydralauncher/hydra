@@ -10,7 +10,7 @@ export function Settings() {
     downloadsPath: "",
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
-    ShutDownAfterDownloadEnabled: false
+    shutDownAfterDownloadEnabled: false
   });
 
   const { t } = useTranslation("settings");
@@ -26,7 +26,7 @@ export function Settings() {
           userPreferences?.downloadNotificationsEnabled,
         repackUpdatesNotificationsEnabled:
           userPreferences?.repackUpdatesNotificationsEnabled,
-          ShutDownAfterDownloadEnabled: userPreferences?.ShutDownAfterDownloadEnabled,
+          shutDownAfterDownloadEnabled: userPreferences?.shutDownAfterDownloadEnabled,
       });
     });
   }, []);
@@ -77,12 +77,12 @@ export function Settings() {
         <h3>{t("menu_options")}</h3>
 
         <CheckboxField
-          label={t("Shutdown_After_Downloads")}
-          checked={form.ShutDownAfterDownloadEnabled}
+          label={t("shutdown_after_downloads")}
+          checked={form.shutDownAfterDownloadEnabled}
           onChange = {() =>
             updateUserPreferences(
-              "ShutDownAfterDownloadEnabled",
-             !form.ShutDownAfterDownloadEnabled
+              "shutDownAfterDownloadEnabled",
+             !form.shutDownAfterDownloadEnabled
             )
           }
         />
