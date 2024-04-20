@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: main
+    branches: "**"
 
 jobs:
   build:
@@ -47,8 +47,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Build with pyinstaller
-        run: pyinstaller torrent-client/main.py --distpath resources/dist --icon=images/icon.ico -n hydra-download-manager
+      - name: Build with cx_Freeze
+        run: python torrent-client/setup.py build
 
       - name: Publish
         run: yarn run publish

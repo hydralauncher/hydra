@@ -11,6 +11,7 @@ import {
   xatabFormatter,
   tinyRepacksFormatter,
   gogFormatter,
+  onlinefixFormatter,
 } from "./formatters";
 import { months, repackers } from "../constants";
 
@@ -40,6 +41,7 @@ export const repackerFormatter: Record<
   CPG: (title: string) => title,
   TinyRepacks: tinyRepacksFormatter,
   GOG: gogFormatter,
+  onlinefix: onlinefixFormatter,
 };
 
 export const formatUploadDate = (str: string) => {

@@ -16,6 +16,7 @@ export const repackers = [
   "CPG",
   "TinyRepacks",
   "GOG",
+  "onlinefix",
 ] as const;
 
 export const months = [

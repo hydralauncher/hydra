@@ -1,8 +1,8 @@
 const FORMAT = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
 
 export const formatBytes = (bytes: number): string => {
-  if (!Number.isFinite(bytes) || isNaN(bytes) || bytes < 0) {
-    return `N/A ${FORMAT[0]}`;
+  if (!Number.isFinite(bytes) || isNaN(bytes) || bytes <= 0) {
+    return `0 ${FORMAT[0]}`;
   }
 
   const byteKBase = 1024;
