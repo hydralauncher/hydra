@@ -22,7 +22,8 @@ declare global {
       repackId: number,
       objectID: string,
       title: string,
-      shop: GameShop
+      shop: GameShop,
+      downloadPath: string
     ) => Promise<Game>;
     cancelGameDownload: (gameId: number) => Promise<void>;
     pauseGameDownload: (gameId: number) => Promise<void>;

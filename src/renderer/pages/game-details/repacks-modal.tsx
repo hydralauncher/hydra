@@ -10,11 +10,12 @@ import type { DiskSpace } from "check-disk-space";
 import { format } from "date-fns";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { formatBytes } from "@renderer/utils";
+import { SelectFolderModal } from "./select-folder-modal";
 
 export interface RepacksModalProps {
   visible: boolean;
   gameDetails: ShopDetails;
-  startDownload: (repackId: number) => Promise<void>;
+  startDownload: (repackId: number, downloadPath: string) => Promise<void>;
   onClose: () => void;
 }
 
@@ -24,9 +25,10 @@ export function RepacksModal({
   startDownload,
   onClose,
 }: RepacksModalProps) {
-  const [downloadStarting, setDownloadStarting] = useState(false);
+  const [openSelectFolderModal, setOpenSelectFolderModal] = useState(false);
   const [diskFreeSpace, setDiskFreeSpace] = useState<DiskSpace>(null);
   const [filteredRepacks, setFilteredRepacks] = useState<GameRepack[]>([]);
+  const [repack, setRepack] = useState<GameRepack>(null);
 
   const { t } = useTranslation("game_details");
 
@@ -45,10 +47,8 @@ export function RepacksModal({
   }, [visible]);
 
   const handleRepackClick = (repack: GameRepack) => {
-    setDownloadStarting(true);
-    startDownload(repack.id).finally(() => {
-      setDownloadStarting(false);
-    });
+    setRepack(repack);
+    setOpenSelectFolderModal(true);
   };
 
   const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
@@ -70,6 +70,13 @@ export function RepacksModal({
       })}
       onClose={onClose}
     >
+      <SelectFolderModal
+        visible={openSelectFolderModal}
+        onClose={() => setOpenSelectFolderModal(false)}
+        gameDetails={gameDetails}
+        startDownload={startDownload}
+        repack={repack}
+      />
       <div style={{ marginBottom: `${SPACING_UNIT * 2}px` }}>
         <TextField placeholder={t("filter")} onChange={handleFilter} />
       </div>
@@ -80,7 +87,6 @@ export function RepacksModal({
             key={repack.id}
             theme="dark"
             onClick={() => handleRepackClick(repack)}
-            disabled={downloadStarting}
             className={styles.repackButton}
           >
             <p style={{ color: "#DADBE1" }}>{repack.title}</p>

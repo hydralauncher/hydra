@@ -138,12 +138,16 @@ export function GameDetails() {
     };
   }, [game?.id, isGamePlaying, getGame]);
 
-  const handleStartDownload = async (repackId: number) => {
+  const handleStartDownload = async (
+    repackId: number,
+    downloadPath: string
+  ) => {
     return startDownload(
       repackId,
       gameDetails.objectID,
       gameDetails.name,
-      shop as GameShop
+      shop as GameShop,
+      downloadPath
     ).then(() => {
       getGame();
       setShowRepacksModal(false);

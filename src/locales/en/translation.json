@@ -77,7 +77,13 @@
     "play": "Play",
     "deleting": "Deleting installer…",
     "close": "Close",
-    "playing_now": "Playing now"
+    "playing_now": "Playing now",
+    "change": "Change",
+    "select_folder_description": "Select the folder where the game will be installed",
+    "downloads_path": "Downloads path",
+    "select_folder_hint": "To change the default folder, access the",
+    "hydra_settings": "Hydra settings",
+    "download_now": "Download now"
   },
   "activation": {
     "title": "Activate Hydra",
