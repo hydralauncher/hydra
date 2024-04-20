@@ -5,14 +5,13 @@ import type { GameRepack, GameShop, CatalogueEntry } from "@types";
 
 import { formatName, getSteamAppAsset, repackerFormatter } from "@main/helpers";
 import { stateManager } from "@main/state-manager";
-import { steamGameRepository } from "@main/repository";
-import { FindManyOptions, Like } from "typeorm";
-import { SteamGame } from "@main/entity";
 
 const { Index } = flexSearch;
 const repacksIndex = new Index();
+const steamGamesIndex = new Index({ tokenize: "reverse" });
 
 const repacks = stateManager.getValue("repacks");
+const steamGames = stateManager.getValue("steamGames");
 
 for (let i = 0; i < repacks.length; i++) {
   const repack = repacks[i];
@@ -22,9 +21,12 @@ for (let i = 0; i < repacks.length; i++) {
   repacksIndex.add(i, formatName(formatter(repack.title)));
 }
 
-export const searchRepacks = (title: string): GameRepack[] => {
-  const repacks = stateManager.getValue("repacks");
+for (let i = 0; i < steamGames.length; i++) {
+  const steamGame = steamGames[i];
+  steamGamesIndex.add(i, formatName(steamGame.name));
+}
 
+export const searchRepacks = (title: string): GameRepack[] => {
   return orderBy(
     repacksIndex
       .search(formatName(title))
@@ -45,34 +47,21 @@ export const searchGames = async ({
   take,
   skip,
 }: SearchGamesArgs): Promise<CatalogueEntry[]> => {
-  const options: FindManyOptions<SteamGame> = {};
+  const results = steamGamesIndex
+    .search(formatName(query || ""), { limit: take, offset: skip })
+    .map((index) => {
+      const result = steamGames.at(index as number)!;
 
-  if (query) {
-    options.where = {
-      name: query ? Like(`%${formatName(query)}%`) : undefined,
-    };
-  }
+      return {
+        objectID: String(result.id),
+        title: result.name,
+        shop: "steam" as GameShop,
+        cover: getSteamAppAsset("library", String(result.id)),
+        repacks: searchRepacks(result.name),
+      };
+    });
 
-  const steamResults = await steamGameRepository.find({
-    ...options,
-    take,
-    skip,
-    order: { name: "ASC" },
-  });
-
-  const results = steamResults.map((result) => ({
-    objectID: String(result.id),
-    title: result.name,
-    shop: "steam" as GameShop,
-    cover: getSteamAppAsset("library", String(result.id)),
-  }));
-
-  return Promise.all(
-    results.map(async (result) => ({
-      ...result,
-      repacks: searchRepacks(result.title),
-    }))
-  ).then((resultsWithRepacks) =>
+  return Promise.all(results).then((resultsWithRepacks) =>
     orderBy(
       resultsWithRepacks,
       [({ repacks }) => repacks.length, "repacks"],

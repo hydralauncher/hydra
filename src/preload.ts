@@ -50,15 +50,26 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("updateUserPreferences", preferences),
 
   /* Library */
-  addGameToLibrary: (objectID: string, title: string, shop: GameShop) =>
-    ipcRenderer.invoke("addGameToLibrary", objectID, title, shop),
+  addGameToLibrary: (
+    objectID: string,
+    title: string,
+    shop: GameShop,
+    executablePath: string
+  ) =>
+    ipcRenderer.invoke(
+      "addGameToLibrary",
+      objectID,
+      title,
+      shop,
+      executablePath
+    ),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
   getRepackersFriendlyNames: () =>
     ipcRenderer.invoke("getRepackersFriendlyNames"),
   openGameInstaller: (gameId: number) =>
     ipcRenderer.invoke("openGameInstaller", gameId),
-  openGame: (gameId: number, path: string) =>
-    ipcRenderer.invoke("openGame", gameId, path),
+  openGame: (gameId: number, executablePath: string) =>
+    ipcRenderer.invoke("openGame", gameId, executablePath),
   closeGame: (gameId: number) => ipcRenderer.invoke("closeGame", gameId),
   removeGame: (gameId: number) => ipcRenderer.invoke("removeGame", gameId),
   deleteGameFolder: (gameId: number) =>
