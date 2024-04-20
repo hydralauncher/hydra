@@ -16,7 +16,7 @@
     "paused": "{{title}} (En pause)",
     "downloading": "{{title}} ({{percentage}} - Téléchargement en cours…)",
     "filter": "Filtrer la bibliothèque",
-    "home": "Maison",
+    "home": "Page d’accueil",
     "follow_us": "Suivez-nous"
   },
   "header": {
