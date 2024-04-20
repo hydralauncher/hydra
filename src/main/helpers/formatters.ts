@@ -49,6 +49,8 @@ export const xatabFormatter = (title: string) =>
     .replace(/(v\.?([0-9]| )+)+([0-9]|\.|-|_|\/|[a-zA-Z]| )+/, "");
 
 export const tinyRepacksFormatter = (title: string) => title;
+export const onlinefixFormatter = (title: string) =>
+  title.replace("по сети", "").trim();
 
 export const gogFormatter = (title: string) =>
   title.replace(/(v\.[0-9]+|v[0-9]+\.|v[0-9]{4})+.+/, "");

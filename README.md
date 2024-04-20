@@ -49,7 +49,9 @@ pip install -r requirements.txt
 ## Environment variables
 
 You'll need an SteamGridDB API Key in order to fetch the game icons on installation.
-Once you have it, you can paste the `.env.example` file and put it on `STEAMGRIDDB_API_KEY`.
+If you want to have onlinefix as a repacker you'll need to add your credentials to the .env
+
+Once you have it, you can paste the `.env.example` file and put it on `STEAMGRIDDB_API_KEY`, `ONLINEFIX_USERNAME`, `ONLINEFIX_PASSWORD`.
 
 ## Running
 
@@ -66,7 +68,7 @@ yarn start
 Build the bittorrent client by using this command:
 
 ```bash
-python torrent-client/setup.py build
+pyinstaller torrent-client/main.py --distpath resources/dist --icon=images/icon.ico -n hydra-download-manager
 ```
 
 ### Build the Electron application
