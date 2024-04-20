@@ -12,6 +12,7 @@ export interface HeroPanelActionsProps {
   isGamePlaying: boolean;
   isGameDownloading: boolean;
   openRepacksModal: () => void;
+  openBinaryNotFoundModal: () => void;
   getGame: () => void;
 }
 
@@ -21,6 +22,7 @@ export function HeroPanelActions({
   isGamePlaying,
   isGameDownloading,
   openRepacksModal,
+  openBinaryNotFoundModal,
   getGame,
 }: HeroPanelActionsProps) {
   const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
@@ -43,7 +45,10 @@ export function HeroPanelActions({
       .showOpenDialog({
         properties: ["openFile"],
         filters: [
-          { name: "Game executable (.exe)", extensions: ["exe", "app"] },
+          {
+            name: "Game executable",
+            extensions: window.electron.platform === "win32" ? ["exe"] : [],
+          },
         ],
       })
       .then(({ filePaths }) => {
@@ -78,8 +83,8 @@ export function HeroPanelActions({
   };
 
   const openGameInstaller = () => {
-    window.electron.openGameInstaller(game.id).then(() => {
-      //   if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
+    window.electron.openGameInstaller(game.id).then((isBinaryInPath) => {
+      if (!isBinaryInPath) openBinaryNotFoundModal();
       updateLibrary();
     });
   };

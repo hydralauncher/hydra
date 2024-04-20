@@ -176,6 +176,7 @@ export function HeroPanel({
         visible={showBinaryNotFoundModal}
         onClose={() => setShowBinaryNotFoundModal(false)}
       />
+
       <div style={{ backgroundColor: color }} className={styles.panel}>
         <div className={styles.content}>{getInfo()}</div>
         <div className={styles.actions}>
@@ -184,6 +185,7 @@ export function HeroPanel({
             gameDetails={gameDetails}
             getGame={getGame}
             openRepacksModal={openRepacksModal}
+            openBinaryNotFoundModal={() => setShowBinaryNotFoundModal(true)}
             isGamePlaying={isGamePlaying}
             isGameDownloading={isGameDownloading}
           />
