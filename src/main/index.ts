@@ -5,7 +5,7 @@ import {
   getNewRepacksFromCPG,
   getNewRepacksFromUser,
   getNewRepacksFromXatab,
-  getNewRepacksFromOnlineFix,
+  // getNewRepacksFromOnlineFix,
   readPipe,
   startProcessWatcher,
   writePipe,
@@ -14,6 +14,7 @@ import {
   gameRepository,
   repackRepository,
   repackerFriendlyNameRepository,
+  steamGameRepository,
   userPreferencesRepository,
 } from "./repository";
 import { TorrentClient } from "./services/torrent-client";
@@ -78,9 +79,9 @@ const checkForNewRepacks = async () => {
     getNewRepacksFromCPG(
       existingRepacks.filter((repack) => repack.repacker === "CPG")
     ),
-    getNewRepacksFromOnlineFix(
-      existingRepacks.filter((repack) => repack.repacker === "onlinefix")
-    ),
+    // getNewRepacksFromOnlineFix(
+    //   existingRepacks.filter((repack) => repack.repacker === "onlinefix")
+    // ),
     track1337xUsers(existingRepacks),
   ]).then(() => {
     repackRepository.count().then((count) => {
@@ -104,17 +105,23 @@ const checkForNewRepacks = async () => {
 };
 
 const loadState = async () => {
-  const [friendlyNames, repacks] = await Promise.all([
+  const [friendlyNames, repacks, steamGames] = await Promise.all([
     repackerFriendlyNameRepository.find(),
     repackRepository.find({
       order: {
         createdAt: "desc",
       },
     }),
+    steamGameRepository.find({
+      order: {
+        name: "asc",
+      },
+    }),
   ]);
 
   stateManager.setValue("repackersFriendlyNames", friendlyNames);
   stateManager.setValue("repacks", repacks);
+  stateManager.setValue("steamGames", steamGames);
 
   import("./events");
 };
