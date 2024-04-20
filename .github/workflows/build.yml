@@ -3,7 +3,10 @@ name: Build
 on:
   push:
     branches: "**"
-
+    
+permissions:
+  contents: write
+    
 jobs:
   build:
     strategy:
