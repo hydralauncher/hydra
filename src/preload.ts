@@ -15,8 +15,17 @@ contextBridge.exposeInMainWorld("electron", {
     repackId: number,
     objectID: string,
     title: string,
-    shop: GameShop
-  ) => ipcRenderer.invoke("startGameDownload", repackId, objectID, title, shop),
+    shop: GameShop,
+    downloadPath: string
+  ) =>
+    ipcRenderer.invoke(
+      "startGameDownload",
+      repackId,
+      objectID,
+      title,
+      shop,
+      downloadPath
+    ),
   cancelGameDownload: (gameId: number) =>
     ipcRenderer.invoke("cancelGameDownload", gameId),
   pauseGameDownload: (gameId: number) =>

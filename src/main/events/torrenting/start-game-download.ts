@@ -5,7 +5,6 @@ import { GameStatus } from "@main/constants";
 import { registerEvent } from "../register-event";
 
 import type { GameShop } from "@types";
-import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { getImageBase64 } from "@main/helpers";
 import { In } from "typeorm";
 
@@ -14,7 +13,8 @@ const startGameDownload = async (
   repackId: number,
   objectID: string,
   title: string,
-  gameShop: GameShop
+  gameShop: GameShop,
+  downloadPath: string
 ) => {
   const [game, repack] = await Promise.all([
     gameRepository.findOne({
@@ -37,7 +37,7 @@ const startGameDownload = async (
 
   writePipe.write({ action: "pause" });
 
-  const downloadsPath = game?.downloadPath ?? (await getDownloadsPath());
+  const downloadsPath = game?.downloadPath ?? downloadPath;
 
   await gameRepository.update(
     {
