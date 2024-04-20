@@ -16,8 +16,7 @@
     "paused": "{{title}} (Pausado)",
     "downloading": "{{title}} ({{percentage}} - Baixando…)",
     "filter": "Filtrar biblioteca",
-    "home": "Início",
-    "follow_us": "Acompanhe-nos"
+    "home": "Início"
   },
   "header": {
     "search": "Buscar",
@@ -110,8 +109,8 @@
     "downloads_path": "Diretório dos downloads",
     "change": "Mudar",
     "notifications": "Notificações",
-    "menu_options": "Opções",
-    "Shutdown_After_Downloads": "Desligar após o término do download",
+    "menu_options": "Opções do Torrent",
+    "shutdown_after_downloads": "Desligar após o término do download",
     "enable_download_notifications": "Quando um download for concluído",
     "enable_repack_list_notifications": "Quando a lista de repacks for atualizada"
   },
@@ -120,7 +119,11 @@
     "game_ready_to_install": "{{title}} está pronto para ser instalado",
     "repack_list_updated": "Lista de repacks atualizada",
     "repack_count_one": "{{count}} novo repack",
-    "repack_count_other": "{{count}} novos repacks"
+    "repack_count_other": "{{count}} novos repacks",
+    "shutdown_scheduled_title": "Quer mesmo desligar?",
+    "shutdown_scheduled_body": "Se você estiver usando o computador, clique aqui para abortar o desligamento", 
+    "shutdown_cancelled_title": "Cancelado com sucesso",
+    "shutdown_cancelled_body": "O agendamento foi abortado com sucesso"
   },
   "system_tray": {
     "open": "Abrir Hydra",
