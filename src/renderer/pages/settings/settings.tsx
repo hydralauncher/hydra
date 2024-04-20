@@ -10,6 +10,7 @@ export function Settings() {
     downloadsPath: "",
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
+    telemetryEnabled: false,
   });
 
   const { t } = useTranslation("settings");
@@ -25,6 +26,7 @@ export function Settings() {
           userPreferences?.downloadNotificationsEnabled,
         repackUpdatesNotificationsEnabled:
           userPreferences?.repackUpdatesNotificationsEnabled,
+        telemetryEnabled: userPreferences?.telemetryEnabled,
       });
     });
   }, []);
@@ -93,6 +95,16 @@ export function Settings() {
               "repackUpdatesNotificationsEnabled",
               !form.repackUpdatesNotificationsEnabled
             )
+          }
+        />
+
+        <h3>{t("telemetry")}</h3>
+
+        <CheckboxField
+          label={t("telemetry_description")}
+          checked={form.telemetryEnabled}
+          onChange={() =>
+            updateUserPreferences("telemetryEnabled", !form.telemetryEnabled)
           }
         />
       </div>

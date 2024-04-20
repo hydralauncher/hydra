@@ -1,29 +1,39 @@
-import type { CatalogueEntry } from "@types";
+import type { CatalogueEntry, GameShop } from "@types";
 
 import { registerEvent } from "../register-event";
-import { searchGames } from "../helpers/search-games";
-import slice from "lodash/slice";
+import { searchRepacks } from "../helpers/search-games";
+import { stateManager } from "@main/state-manager";
+import { getSteamAppAsset } from "@main/helpers";
+
+const steamGames = stateManager.getValue("steamGames");
 
 const getGames = async (
   _event: Electron.IpcMainInvokeEvent,
   take?: number,
-  prevCursor = 0
+  cursor = 0
 ): Promise<{ results: CatalogueEntry[]; cursor: number }> => {
-  let results: CatalogueEntry[] = [];
-  let i = 0;
+  const results: CatalogueEntry[] = [];
 
-  const batchSize = 100;
+  let i = 0 + cursor;
 
   while (results.length < take) {
-    const games = await searchGames({
-      take: batchSize,
-      skip: (i + prevCursor) * batchSize,
-    });
-    results = [...results, ...games.filter((game) => game.repacks.length)];
+    const game = steamGames[i];
+    const repacks = searchRepacks(game.name);
+
+    if (repacks.length) {
+      results.push({
+        objectID: String(game.id),
+        title: game.name,
+        shop: "steam" as GameShop,
+        cover: getSteamAppAsset("library", String(game.id)),
+        repacks,
+      });
+    }
+
     i++;
   }
 
-  return { results: slice(results, 0, take), cursor: prevCursor + i };
+  return { results, cursor: i };
 };
 
 registerEvent(getGames, {
