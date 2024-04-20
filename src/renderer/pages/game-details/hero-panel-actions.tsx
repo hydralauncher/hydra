@@ -78,7 +78,7 @@ export function HeroPanelActions({
   };
 
   const openGameInstaller = () => {
-    window.electron.openGameInstaller(game.id).then((isBinaryInPath) => {
+    window.electron.openGameInstaller(game.id).then(() => {
       //   if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
       updateLibrary();
     });
