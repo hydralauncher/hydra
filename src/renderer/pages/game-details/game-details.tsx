@@ -83,7 +83,9 @@ export function GameDetails() {
   }, [getGame, gameDownloading?.id]);
 
   useEffect(() => {
+    setGame(null);
     setIsLoading(true);
+    setIsGamePlaying(false);
     dispatch(setHeaderTitle(""));
 
     getRandomGame();

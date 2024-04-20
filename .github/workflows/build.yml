@@ -57,6 +57,8 @@ jobs:
           STEAMGRIDDB_API_KEY: ${{ secrets.STEAMGRIDDB_API_KEY }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_DSN: ${{ vars.SENTRY_DSN }}
+          ONLINEFIX_USERNAME: ${{ secrets.ONLINEFIX_USERNAME }}
+          ONLINEFIX_PASSWORD: ${{ secrets.ONLINEFIX_PASSWORD }}
 
       - name: Create artifact
         uses: actions/upload-artifact@v4

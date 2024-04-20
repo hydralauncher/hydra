@@ -2,7 +2,6 @@ import { Repack } from "@main/entity";
 import { savePage } from "./helpers";
 import type { GameRepackInput } from "./helpers";
 import { logger } from "../logger";
-import { stringify } from "qs";
 import parseTorrent, {
   toMagnetURI,
   Instance as TorrentInstance,
@@ -58,8 +57,12 @@ export const getNewRepacksFromOnlineFix = async (
 
     if (!preLogin.field || !preLogin.value) return;
 
-    const tokenField = preLogin.field;
-    const tokenValue = preLogin.value;
+    const params = new URLSearchParams({
+      login_name: process.env.ONLINEFIX_USERNAME,
+      login_password: process.env.ONLINEFIX_PASSWORD,
+      login: "submit",
+      [preLogin.field]: preLogin.value,
+    });
 
     await http
       .post("https://online-fix.me/", {
@@ -69,12 +72,7 @@ export const getNewRepacksFromOnlineFix = async (
           Origin: "https://online-fix.me",
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: stringify({
-          login_name: process.env.ONLINEFIX_USERNAME,
-          login_password: process.env.ONLINEFIX_PASSWORD,
-          login: "submit",
-          [tokenField]: tokenValue,
-        }),
+        body: params.toString(),
       })
       .text();
   }

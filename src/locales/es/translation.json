@@ -25,7 +25,7 @@
     "downloads": "Descargas",
     "search_results": "Resultados de búsqueda",
     "settings": "Ajustes",
-    "home": "Hogar"
+    "home": "Início"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Sin descargas en progreso",
@@ -111,7 +111,9 @@
     "change": "Cambiar",
     "notifications": "Notificaciones",
     "enable_download_notifications": "Cuando se completa una descarga",
-    "enable_repack_list_notifications": "Cuando se añade un repack nuevo"
+    "enable_repack_list_notifications": "Cuando se añade un repack nuevo",
+    "telemetry": "Telemetria",
+    "telemetry_description": "Habilitar estadísticas de uso anónimas"
   },
   "notifications": {
     "download_complete": "Descarga completada",

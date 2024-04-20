@@ -3,7 +3,6 @@ import path from "node:path";
 import { IsNull, Not } from "typeorm";
 
 import { gameRepository } from "@main/repository";
-import { GameStatus } from "@main/constants";
 import { getProcesses } from "@main/helpers";
 import { WindowManager } from "./window-manager";
 
@@ -18,7 +17,6 @@ export const startProcessWatcher = async () => {
     const games = await gameRepository.find({
       where: {
         executablePath: Not(IsNull()),
-        status: GameStatus.Seeding,
       },
     });
 
@@ -54,15 +52,16 @@ export const startProcessWatcher = async () => {
             playTimeInMilliseconds: game.playTimeInMilliseconds + delta,
           });
 
+          gameRepository.update(game.id, {
+            lastTimePlayed: new Date().toUTCString(),
+          });
+
           gamesPlaytime.set(game.id, performance.now());
           await sleep(sleepTime);
           continue;
         }
 
         gamesPlaytime.set(game.id, performance.now());
-        gameRepository.update(game.id, {
-          lastTimePlayed: new Date().toUTCString(),
-        });
 
         await sleep(sleepTime);
         continue;

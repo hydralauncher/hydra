@@ -10,6 +10,7 @@ import type { DiskSpace } from "check-disk-space";
 import { format } from "date-fns";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { formatBytes } from "@renderer/utils";
+import { useAppSelector } from "@renderer/hooks";
 import { SelectFolderModal } from "./select-folder-modal";
 
 export interface RepacksModalProps {
@@ -29,6 +30,10 @@ export function RepacksModal({
   const [diskFreeSpace, setDiskFreeSpace] = useState<DiskSpace>(null);
   const [filteredRepacks, setFilteredRepacks] = useState<GameRepack[]>([]);
   const [repack, setRepack] = useState<GameRepack>(null);
+
+  const repackersFriendlyNames = useAppSelector(
+    (state) => state.repackersFriendlyNames.value
+  );
 
   const { t } = useTranslation("game_details");
 
@@ -91,7 +96,7 @@ export function RepacksModal({
           >
             <p style={{ color: "#DADBE1" }}>{repack.title}</p>
             <p style={{ fontSize: "12px" }}>
-              {repack.fileSize} - {repack.repacker} -{" "}
+              {repack.fileSize} - {repackersFriendlyNames[repack.repacker]} -{" "}
               {format(repack.uploadDate, "dd/MM/yyyy")}
             </p>
           </Button>
