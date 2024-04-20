@@ -42,8 +42,6 @@ const getXatabRepack = async (url: string) => {
   if (!$downloadButton) throw new Error("Download button not found");
 
   const torrentBuffer = await getTorrentBuffer($downloadButton.href);
-  console.log(url);
-  console.log(torrentBuffer.byteLength);
 
   return {
     fileSize: formatXatabDownloadSize($size.textContent).toUpperCase(),
