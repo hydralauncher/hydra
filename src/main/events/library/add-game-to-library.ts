@@ -10,7 +10,7 @@ const addGameToLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
   objectID: string,
   title: string,
-  gameShop: GameShop,
+  gameShop: GameShop
 ) => {
   const iconUrl = await getImageBase64(await getSteamGameIconUrl(objectID));
 
