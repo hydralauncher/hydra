@@ -71,6 +71,7 @@ export function Catalogue() {
           display: "flex",
           width: "100%",
           justifyContent: "space-between",
+          alignItems: "center",
           borderBottom: `1px solid ${vars.color.borderColor}`,
         }}
       >
@@ -103,7 +104,6 @@ export function Catalogue() {
                   key={game.objectID}
                   game={game}
                   onClick={() => handleGameClick(game)}
-                  disabled={!game.repacks.length}
                 />
               ))}
             </>

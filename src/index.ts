@@ -19,7 +19,17 @@ if (process.platform !== "darwin") {
 }
 
 if (process.env.SENTRY_DSN) {
-  init({ dsn: process.env.SENTRY_DSN });
+  init({
+    dsn: process.env.SENTRY_DSN,
+    beforeSend: async (event) => {
+      const userPreferences = await userPreferencesRepository.findOne({
+        where: { id: 1 },
+      });
+
+      if (userPreferences?.telemetryEnabled) return event;
+      return null;
+    },
+  });
 }
 
 i18n.init({
