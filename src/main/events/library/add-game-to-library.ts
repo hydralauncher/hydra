@@ -11,6 +11,7 @@ const addGameToLibrary = async (
   objectID: string,
   title: string,
   gameShop: GameShop,
+  executablePath: string
 ) => {
   const iconUrl = await getImageBase64(await getSteamGameIconUrl(objectID));
 
@@ -19,6 +20,7 @@ const addGameToLibrary = async (
     iconUrl,
     objectID,
     shop: gameShop,
+    executablePath,
   });
 };
 

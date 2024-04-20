@@ -54,12 +54,13 @@ declare global {
     addGameToLibrary: (
       objectID: string,
       title: string,
-      shop: GameShop
+      shop: GameShop,
+      executablePath: string
     ) => Promise<void>;
     getLibrary: () => Promise<Game[]>;
     getRepackersFriendlyNames: () => Promise<Record<string, string>>;
     openGameInstaller: (gameId: number) => Promise<boolean>;
-    openGame: (gameId: number, path: string) => Promise<void>;
+    openGame: (gameId: number, executablePath: string) => Promise<void>;
     closeGame: (gameId: number) => Promise<boolean>;
     removeGame: (gameId: number) => Promise<void>;
     deleteGameFolder: (gameId: number) => Promise<unknown>;
