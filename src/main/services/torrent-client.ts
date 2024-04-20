@@ -4,6 +4,7 @@ import fs from "node:fs";
 import * as Sentry from "@sentry/electron/main";
 import { Notification, app, dialog } from "electron";
 import type { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+import * as os from "os";
 
 import { Game } from "@main/entity";
 import { gameRepository, userPreferencesRepository } from "@main/repository";
@@ -23,8 +24,6 @@ enum TorrentState {
   Finished = 4,
   Seeding = 5,
 }
-
-let reportNotification: Notification | null = null;
 
 export interface TorrentUpdate {
   gameId: number;
@@ -142,7 +141,7 @@ export class TorrentClient {
         });
 
         if (userPreferences?.downloadNotificationsEnabled) {
-          reportNotification = new Notification({
+          new Notification({
             title: t("download_complete", {
               ns: "notifications",
               lng: userPreferences.language,
@@ -152,12 +151,84 @@ export class TorrentClient {
               lng: userPreferences.language,
               title: game.title,
             }),
-          });
-          reportNotification.show();
+          }).show();
         }
 
-        if (userPreferences?.shutDownAfterDownloadEnabled) {
-          this.scheduleShutdown(userPreferences.language);
+        if (userPreferences?.ShutDownAfterDownloadEnabled) {
+          const dialogPromise = dialog.showMessageBox({
+            type: "question",
+            buttons: ["Cancelar", "Confirmar"],
+            defaultId: 1,
+            title: "Confirmar desligamento",
+            message: "O sistema será desligado em breve. Tem certeza de que deseja prosseguir?",
+            detail: "Se você estiver usando o computador, clique em 'Cancelar' para abortar o desligamento, caso não selecione nada dentro de alguns segudos o desligamento ocorrerá",
+            cancelId: 0,
+            noLink: true,
+            normalizeAccessKeys: false,
+          });
+          
+          const timer = setTimeout(() => {
+            userPreferencesRepository.update(
+              { id: 1 },
+              { ShutDownAfterDownloadEnabled: false }
+            ).catch(error => {
+              console.error("Erro ao redefinir o valor de ShutDownAfterDownloadEnabled:", error);
+            });
+        
+            let shutdownCommand;
+            switch (os.platform()) {
+              case 'win32':
+                shutdownCommand = 'shutdown /s /t 240'; // Comando de desligamento para Windows
+                break;
+              case 'darwin':
+                shutdownCommand = 'sudo shutdown -h +4'; // Comando de desligamento para MacOS
+                break;
+              case 'linux':
+                shutdownCommand = 'sudo shutdown -h +4'; // Comando de desligamento para Linux
+                break;
+              default:
+                console.error('Sistema operacional não suportado para desligamento.');
+                break;
+            }
+        
+            if (shutdownCommand) {
+              cp.exec(shutdownCommand, (error) => {
+                if (error) {
+                  console.error("Erro ao executar o comando de desligamento:", error);
+                }
+              });
+            }
+          }, 20000);
+        
+          dialogPromise.then(result => {
+            if (result && result.response === 0) {
+              clearTimeout(timer);
+              
+              let cancelShutdownCommand;
+              switch (os.platform()) {
+                case 'win32':
+                  cancelShutdownCommand = 'shutdown /a'; // Comando de cancelamento para Windows
+                  break;
+                case 'darwin':
+                  cancelShutdownCommand = 'sudo killall shutdown'; // Comando de cancelamento para MacOS
+                  break;
+                case 'linux':
+                  cancelShutdownCommand = 'sudo killall shutdown'; // Comando de cancelamento para Linux
+                  break;
+                default:
+                  console.error('Sistema operacional não suportado para cancelamento de desligamento.');
+                  break;
+              }
+        
+              if (cancelShutdownCommand) {
+                cp.exec(cancelShutdownCommand, (error) => {
+                  if (error) {
+                    console.error("Erro ao executar o comando de cancelamento de desligamento:", error);
+                  }
+                });
+              }
+            }
+          });
         }
       }
 
@@ -173,92 +244,5 @@ export class TorrentClient {
     } catch (err) {
       Sentry.captureException(err);
     }
-  }
-
-  private static scheduleShutdown(language: string) {
-    setTimeout(() => {
-      const shutdownCommand = this.getShutdownCommand();
-      if (shutdownCommand) {
-        this.resetShutDownAfterDownload();
-        this.executeShutdown(language);
-      }
-    }, 2000);
-  }
-  private static executeShutdown(language: string) {
-    const shutdownCommand = this.getShutdownCommand();
-    if (shutdownCommand) {
-      cp.exec(shutdownCommand, (error) => {
-        if (error) {
-          Sentry.captureException(new Error(`Error executing shutdown command: ${error}`));
-          return;
-        } else {
-          reportNotification = new Notification({
-            title: t("shutdown_scheduled_title", {
-              ns: "notifications",
-              lng: language,
-            }),
-            body: t("shutdown_scheduled_body", {
-              ns: "notifications",
-              lng: language,
-            }),
-          });
-
-          reportNotification.show();
-
-          reportNotification.on('click', () => {
-            this.cancelShutdown(language);
-            reportNotification!.close();
-          });
-        }
-      });
-    }
-  }
-
-  private static cancelShutdown(language: string) {
-    const cancelShutdownCommand: Partial<Record<NodeJS.Platform, string>> = {
-      darwin: "sudo shutdown -c",
-      linux: "sudo shutdown -c",
-      win32: "shutdown /a",
-    };
-
-    const command = cancelShutdownCommand[process.platform];
-    if (command) {
-      cp.exec(command, (error) => {
-        if (error) {
-          Sentry.captureException(new Error(`Error canceling shutdown: ${error}`));
-        }
-        reportNotification = new Notification({
-          title: t("shutdown_cancelled_title", {
-            ns: "notifications",
-            lng: language,
-          }),
-          body: t("shutdown_cancelled_body", {
-            ns: "notifications",
-            lng: language,
-          }),
-        });
-
-        reportNotification.show();
-      });
-
-    }
-    return cancelShutdownCommand[process.platform] || 'shutdown /a';
-  }
-
-  private static getShutdownCommand(): string | undefined {
-    const shutdownCommands: Partial<Record<NodeJS.Platform, string>> = {
-      darwin: 'sudo shutdown -h +4',
-      linux: 'sudo shutdown -h +4',
-      win32: 'shutdown /s /t 240',
-    };
-
-    return shutdownCommands[process.platform] || 'shutdown /s /t 240';
-  }
-
-  private static resetShutDownAfterDownload() {
-    userPreferencesRepository.update(
-      { id: 1 },
-      { shutDownAfterDownloadEnabled: false }
-    );
   }
 }

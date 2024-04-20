@@ -24,7 +24,7 @@ export class UserPreferences {
   repackUpdatesNotificationsEnabled: boolean;
 
   @Column("boolean", { default: false })
-  shutDownAfterDownloadEnabled: boolean;
+  ShutDownAfterDownloadEnabled: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

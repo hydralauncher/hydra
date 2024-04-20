@@ -100,7 +100,7 @@ export interface TorrentProgress {
 }
 
 export interface UserPreferences {
-  shutDownAfterDownloadEnabled: boolean;
+  ShutDownAfterDownloadEnabled: boolean;
   downloadsPath: string | null;
   language: string;
   downloadNotificationsEnabled: boolean;
