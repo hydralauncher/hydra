@@ -6,18 +6,16 @@ import type { GameRepack, ShopDetails } from "@types";
 
 import * as styles from "./repacks-modal.css";
 
-import type { DiskSpace } from "check-disk-space";
-import { format } from "date-fns";
+import { useAppSelector } from "@renderer/hooks";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { formatBytes } from "@renderer/utils";
-import { useAppSelector } from "@renderer/hooks";
-import { SelectFolderModal } from "./select-folder-modal";
+import type { DiskSpace } from "check-disk-space";
+import { format } from "date-fns";
+import { Link } from "react-router-dom";
 
 export interface RepacksModalProps {
   visible: boolean;
   gameDetails: ShopDetails;
-  showSelectFolderModal: boolean;
-  setShowSelectFolderModal: (value: boolean) => void;
   startDownload: (repackId: number, downloadPath: string) => Promise<void>;
   onClose: () => void;
 }
@@ -25,18 +23,13 @@ export interface RepacksModalProps {
 export function RepacksModal({
   visible,
   gameDetails,
-  showSelectFolderModal,
-  setShowSelectFolderModal,
   startDownload,
   onClose,
 }: RepacksModalProps) {
   const [diskFreeSpace, setDiskFreeSpace] = useState<DiskSpace>(null);
   const [filteredRepacks, setFilteredRepacks] = useState<GameRepack[]>([]);
-  const [repack, setRepack] = useState<GameRepack>(null);
-
-  const repackersFriendlyNames = useAppSelector(
-    (state) => state.repackersFriendlyNames.value
-  );
+  const [selectedPath, setSelectedPath] = useState("");
+  const [downloadStarting, setDownloadStarting] = useState(false);
 
   const { t } = useTranslation("game_details");
 
@@ -44,20 +37,22 @@ export function RepacksModal({
     setFilteredRepacks(gameDetails.repacks);
   }, [gameDetails.repacks]);
 
-  const getDiskFreeSpace = () => {
-    window.electron.getDiskFreeSpace().then((result) => {
-      setDiskFreeSpace(result);
-    });
-  };
+  useEffect(() => {
+    visible && getDiskFreeSpace(selectedPath);
+  }, [selectedPath, visible]);
 
   useEffect(() => {
-    getDiskFreeSpace();
-  }, [visible]);
+    Promise.all([
+      window.electron.getDefaultDownloadsPath(),
+      window.electron.getUserPreferences(),
+    ]).then(([path, userPreferences]) => {
+      setSelectedPath(userPreferences?.downloadsPath || path);
+    });
+  }, []);
 
-  const handleRepackClick = (repack: GameRepack) => {
-    setRepack(repack);
-    setShowSelectFolderModal(true);
-  };
+  const repackersFriendlyNames = useAppSelector(
+    (state) => state.repackersFriendlyNames.value
+  );
 
   const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
     setFilteredRepacks(
@@ -69,6 +64,32 @@ export function RepacksModal({
     );
   };
 
+  const handleChooseDownloadsPath = async () => {
+    const { filePaths } = await window.electron.showOpenDialog({
+      defaultPath: selectedPath,
+      properties: ["openDirectory"],
+    });
+
+    if (filePaths && filePaths.length > 0) {
+      const path = filePaths[0];
+      setSelectedPath(path);
+    }
+  };
+
+  const handleRepackClick = (repack: GameRepack) => {
+    setDownloadStarting(true);
+    startDownload(repack.id, selectedPath).finally(() => {
+      setDownloadStarting(false);
+    });
+  };
+  
+  const getDiskFreeSpace = (path: string) => {
+    window.electron.getDiskFreeSpace(path).then((result) => {
+      setDiskFreeSpace(result);
+    });
+  };
+
+
   return (
     <Modal
       visible={visible}
@@ -78,13 +99,37 @@ export function RepacksModal({
       })}
       onClose={onClose}
     >
-      <SelectFolderModal
-        visible={showSelectFolderModal}
-        onClose={() => setShowSelectFolderModal(false)}
-        gameDetails={gameDetails}
-        startDownload={startDownload}
-        repack={repack}
-      />
+      <div className={styles.container}>
+        <div className={styles.downloadsPathField}>
+          <TextField
+            label={t("downloads_path")}
+            value={selectedPath}
+            readOnly
+            disabled
+          />
+
+          <Button
+            style={{ alignSelf: "flex-end" }}
+            theme="outline"
+            onClick={handleChooseDownloadsPath}
+            disabled={downloadStarting}
+          >
+            {t("change")}
+          </Button>
+        </div>
+        <p className={styles.hintText}>
+          {t("select_folder_hint")}{" "}
+          <Link
+            to="/settings"
+            style={{
+              textDecoration: "none",
+              color: "#C0C1C7",
+            }}
+          >
+            {t("hydra_settings")}
+          </Link>
+        </p>
+      </div>
       <div style={{ marginBottom: `${SPACING_UNIT * 2}px` }}>
         <TextField placeholder={t("filter")} onChange={handleFilter} />
       </div>
@@ -96,6 +141,7 @@ export function RepacksModal({
             theme="dark"
             onClick={() => handleRepackClick(repack)}
             className={styles.repackButton}
+            disabled={downloadStarting}
           >
             <p style={{ color: "#DADBE1" }}>{repack.title}</p>
             <p style={{ fontSize: "12px" }}>
