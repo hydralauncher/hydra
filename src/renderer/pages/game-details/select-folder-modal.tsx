@@ -23,7 +23,7 @@ export function SelectFolderModal({
 }: SelectFolderModalProps) {
   const { t } = useTranslation("game_details");
 
-  const [selectedPath, setSelectedPath] = useState(null);
+  const [selectedPath, setSelectedPath] = useState("");
   const [downloadStarting, setDownloadStarting] = useState(false);
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export function SelectFolderModal({
 
   const handleChooseDownloadsPath = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
-      defaultPath: selectedPath.downloadsPath,
+      defaultPath: selectedPath,
       properties: ["openDirectory"],
     });
 
@@ -49,7 +49,7 @@ export function SelectFolderModal({
 
   const handleStartClick = () => {
     setDownloadStarting(true);
-    startDownload(repack.id, selectedPath.downloadsPath).finally(() => {
+    startDownload(repack.id, selectedPath).finally(() => {
       setDownloadStarting(false);
     });
   };
@@ -65,7 +65,7 @@ export function SelectFolderModal({
         <div className={styles.downloadsPathField}>
           <TextField
             label={t("downloads_path")}
-            value={selectedPath.downloadsPath}
+            value={selectedPath}
             readOnly
             disabled
           />
