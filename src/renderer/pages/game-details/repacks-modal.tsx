@@ -16,6 +16,8 @@ import { SelectFolderModal } from "./select-folder-modal";
 export interface RepacksModalProps {
   visible: boolean;
   gameDetails: ShopDetails;
+  showSelectFolderModal: boolean;
+  setShowSelectFolderModal: (value: boolean) => void;
   startDownload: (repackId: number, downloadPath: string) => Promise<void>;
   onClose: () => void;
 }
@@ -23,10 +25,11 @@ export interface RepacksModalProps {
 export function RepacksModal({
   visible,
   gameDetails,
+  showSelectFolderModal,
+  setShowSelectFolderModal,
   startDownload,
   onClose,
 }: RepacksModalProps) {
-  const [openSelectFolderModal, setOpenSelectFolderModal] = useState(false);
   const [diskFreeSpace, setDiskFreeSpace] = useState<DiskSpace>(null);
   const [filteredRepacks, setFilteredRepacks] = useState<GameRepack[]>([]);
   const [repack, setRepack] = useState<GameRepack>(null);
@@ -53,7 +56,7 @@ export function RepacksModal({
 
   const handleRepackClick = (repack: GameRepack) => {
     setRepack(repack);
-    setOpenSelectFolderModal(true);
+    setShowSelectFolderModal(true);
   };
 
   const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
@@ -76,8 +79,8 @@ export function RepacksModal({
       onClose={onClose}
     >
       <SelectFolderModal
-        visible={openSelectFolderModal}
-        onClose={() => setOpenSelectFolderModal(false)}
+        visible={showSelectFolderModal}
+        onClose={() => setShowSelectFolderModal(false)}
         gameDetails={gameDetails}
         startDownload={startDownload}
         repack={repack}
