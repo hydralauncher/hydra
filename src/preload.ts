@@ -99,7 +99,8 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   /* Hardware */
-  getDiskFreeSpace: (path: string) => ipcRenderer.invoke("getDiskFreeSpace", path),
+  getDiskFreeSpace: (path: string) =>
+    ipcRenderer.invoke("getDiskFreeSpace", path),
 
   /* Misc */
   getOrCacheImage: (url: string) => ipcRenderer.invoke("getOrCacheImage", url),
