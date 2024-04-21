@@ -1,0 +1,19 @@
+{
+  "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
+  "include": ["electron.vite.config.*", "src/main/**/*", "src/preload/**/*", "src/locales/index.ts"],
+  "compilerOptions": {
+    "module": "ESNext",
+    "composite": true,
+    "types": ["electron-vite/node"],
+    "baseUrl": ".",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "strictPropertyInitialization": false,
+    "paths": {
+      "@main/*": ["src/main/*"],
+      "@renderer/*": ["src/renderer/*"],
+      "@types": ["src/types/index.ts"],
+      "@locales": ["src/locales/index.ts"]
+    }
+  }
+}
