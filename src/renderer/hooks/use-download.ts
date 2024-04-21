@@ -57,8 +57,8 @@ export function useDownload() {
       deleteGame(gameId);
     });
 
-  const removeGame = (gameId: number) =>
-    window.electron.removeGame(gameId).then(() => {
+  const removeGameFromDownload = (gameId: number) =>
+    window.electron.removeGameFromDownload(gameId).then(() => {
       updateLibrary();
     });
 
@@ -123,7 +123,7 @@ export function useDownload() {
     pauseDownload,
     resumeDownload,
     cancelDownload,
-    removeGame,
+    removeGameFromDownload,
     deleteGame,
     isGameDeleting,
     clearDownload: () => dispatch(clearDownload()),
