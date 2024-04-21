@@ -82,13 +82,12 @@ export function RepacksModal({
       setDownloadStarting(false);
     });
   };
-  
+
   const getDiskFreeSpace = (path: string) => {
     window.electron.getDiskFreeSpace(path).then((result) => {
       setDiskFreeSpace(result);
     });
   };
-
 
   return (
     <Modal
