@@ -46,8 +46,7 @@ export enum GameStatus {
 export const defaultDownloadsPath = path.join(os.homedir(), "downloads");
 
 export const databasePath = path.join(
-  app.getPath("appData"),
-  app.getName(),
+  app.getPath("userData"),
   "hydra.db"
 );
 
