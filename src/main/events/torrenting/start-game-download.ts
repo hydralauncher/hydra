@@ -37,8 +37,6 @@ const startGameDownload = async (
 
   writePipe.write({ action: "pause" });
 
-  const downloadsPath = downloadPath;
-
   await gameRepository.update(
     {
       status: In([
@@ -57,7 +55,7 @@ const startGameDownload = async (
       },
       {
         status: GameStatus.DownloadingMetadata,
-        downloadPath: downloadsPath,
+        downloadPath: downloadPath,
         repack: { id: repackId },
       }
     );
@@ -66,7 +64,7 @@ const startGameDownload = async (
       action: "start",
       game_id: game.id,
       magnet: repack.magnet,
-      save_path: downloadsPath,
+      save_path: downloadPath,
     });
 
     game.status = GameStatus.DownloadingMetadata;
@@ -75,7 +73,7 @@ const startGameDownload = async (
       action: "start",
       game_id: game.id,
       magnet: repack.magnet,
-      save_path: downloadsPath,
+      save_path: downloadPath,
     });
 
     return game;
@@ -88,7 +86,7 @@ const startGameDownload = async (
       objectID,
       shop: gameShop,
       status: GameStatus.DownloadingMetadata,
-      downloadPath: downloadsPath,
+      downloadPath: downloadPath,
       repack: { id: repackId },
     });
 
@@ -96,7 +94,7 @@ const startGameDownload = async (
       action: "start",
       game_id: createdGame.id,
       magnet: repack.magnet,
-      save_path: downloadsPath,
+      save_path: downloadPath,
     });
 
     const { repack: _, ...rest } = createdGame;
