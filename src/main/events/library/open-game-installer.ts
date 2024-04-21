@@ -23,7 +23,7 @@ const openGameInstaller = async (
   );
 
   if (!fs.existsSync(gamePath)) {
-    await gameRepository.delete({ id: gameId });
+    await gameRepository.update({ id: gameId }, { status: null });
     return true;
   }
 
