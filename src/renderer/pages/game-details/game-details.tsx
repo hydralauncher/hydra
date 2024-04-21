@@ -51,6 +51,7 @@ export function GameDetails() {
   const { t, i18n } = useTranslation("game_details");
 
   const [showRepacksModal, setShowRepacksModal] = useState(false);
+  const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
 
   const randomGameObjectID = useRef<string | null>(null);
 
@@ -153,6 +154,7 @@ export function GameDetails() {
     ).then(() => {
       getGame();
       setShowRepacksModal(false);
+      setShowSelectFolderModal(false);
     });
   };
 
@@ -177,6 +179,8 @@ export function GameDetails() {
           visible={showRepacksModal}
           gameDetails={gameDetails}
           startDownload={handleStartDownload}
+          showSelectFolderModal={showSelectFolderModal}
+          setShowSelectFolderModal={setShowSelectFolderModal}
           onClose={() => setShowRepacksModal(false)}
         />
       )}
