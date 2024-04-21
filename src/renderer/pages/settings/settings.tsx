@@ -11,6 +11,8 @@ export function Settings() {
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
     telemetryEnabled: false,
+    debridServicesEnabled: false,
+    realDebridAPIKey: "",
   });
 
   const { t } = useTranslation("settings");
@@ -27,6 +29,8 @@ export function Settings() {
         repackUpdatesNotificationsEnabled:
           userPreferences?.repackUpdatesNotificationsEnabled,
         telemetryEnabled: userPreferences?.telemetryEnabled,
+        debridServicesEnabled: userPreferences?.debridServicesEnabled,
+        realDebridAPIKey: userPreferences?.realDebridAPIKey,
       });
     });
   }, []);
@@ -105,6 +109,25 @@ export function Settings() {
           checked={form.telemetryEnabled}
           onChange={() =>
             updateUserPreferences("telemetryEnabled", !form.telemetryEnabled)
+          }
+        />
+
+        <h3>{t("debrid_services")}</h3>
+
+        <CheckboxField
+          label={t("enable_debrid_services")}
+          checked={form.debridServicesEnabled}
+          onChange={() =>
+            updateUserPreferences("debridServicesEnabled", !form.debridServicesEnabled)
+          }
+        />
+        
+        <TextField
+          label={t("real_debrid")}
+          placeholder={t("real_debrid_api_key")}
+          value={form.realDebridAPIKey}
+          onChange={(event) =>
+            updateUserPreferences("realDebridAPIKey", event.target.value)
           }
         />
       </div>
