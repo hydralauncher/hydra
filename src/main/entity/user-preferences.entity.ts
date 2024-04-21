@@ -29,6 +29,12 @@ export class UserPreferences {
   @Column("boolean", { default: false })
   preferQuitInsteadOfHiding: boolean;
 
+  @Column("boolean", { default: false })
+  debridServicesEnabled: boolean;
+
+  @Column("text", { nullable: true })
+  realDebridAPIKey: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

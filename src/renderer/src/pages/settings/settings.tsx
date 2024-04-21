@@ -12,6 +12,8 @@ export function Settings() {
     repackUpdatesNotificationsEnabled: false,
     telemetryEnabled: false,
     preferQuitInsteadOfHiding: false,
+    debridServicesEnabled: false,
+    realDebridAPIKey: "",
   });
 
   const { t } = useTranslation("settings");
@@ -30,6 +32,8 @@ export function Settings() {
         telemetryEnabled: userPreferences?.telemetryEnabled ?? false,
         preferQuitInsteadOfHiding:
           userPreferences?.preferQuitInsteadOfHiding ?? false,
+        debridServicesEnabled: userPreferences?.debridServicesEnabled ?? false,
+        realDebridAPIKey: userPreferences?.realDebridAPIKey || "",
       });
     });
   }, []);
@@ -121,6 +125,25 @@ export function Settings() {
               "preferQuitInsteadOfHiding",
               !form.preferQuitInsteadOfHiding
             )
+          }
+        />
+
+        <h3>{t("debrid_services")}</h3>
+
+        <CheckboxField
+          label={t("enable_debrid_services")}
+          checked={form.debridServicesEnabled}
+          onChange={() =>
+            updateUserPreferences("debridServicesEnabled", !form.debridServicesEnabled)
+          }
+        />
+
+        <TextField
+          label={t("real_debrid")}
+          placeholder={t("real_debrid_api_key")}
+          value={form.realDebridAPIKey}
+          onChange={(event) =>
+            updateUserPreferences("realDebridAPIKey", event.target.value)
           }
         />
       </div>

@@ -106,6 +106,8 @@ export interface UserPreferences {
   repackUpdatesNotificationsEnabled: boolean;
   telemetryEnabled: boolean;
   preferQuitInsteadOfHiding: boolean;
+  debridServicesEnabled: boolean;
+  realDebridAPIKey: string | null;
 }
 
 export interface HowLongToBeatCategory {

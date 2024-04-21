@@ -138,7 +138,11 @@
     "telemetry": "Telemetry",
     "telemetry_description": "Enable anonymous usage statistics",
     "behavior": "Behavior",
-    "quit_app_instead_hiding": "Close app instead of minimizing to tray"
+    "quit_app_instead_hiding": "Close app instead of minimizing to tray",
+    "debrid_services": "Debrid services",
+    "enable_debrid_services": "Enable Debrid services",
+    "real_debrid": "Real-Debrid",
+    "real_debrid_api_key": "Real-Debrid API Key"
   },
   "notifications": {
     "download_complete": "Download complete",
