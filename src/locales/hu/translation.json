@@ -1,0 +1,141 @@
+{
+  "home": {
+    "featured": "Featured",
+    "recently_added": "Nemrég hozzáadott",
+    "trending": "Népszerű",
+    "surprise_me": "Lepj meg",
+    "no_results": "Nem található"
+  },
+  "sidebar": {
+    "catalogue": "Katalógus",
+    "downloads": "Letöltések",
+    "settings": "Beállítások",
+    "my_library": "Könyvtáram",
+    "downloading_metadata": "{{title}} (Metadata letöltése…)",
+    "checking_files": "{{title}} ({{percentage}} - Fájlok ellenőrzése…)",
+    "paused": "{{title}} (Szünet)",
+    "downloading": "{{title}} ({{percentage}} - Letöltés…)",
+    "filter": "Könyvtár szűrése",
+    "follow_us": "Kövess minket",
+    "home": "Főoldal"
+  },
+  "header": {
+    "search": "Keresés",
+    "home": "Főoldal",
+    "catalogue": "Katalógus",
+    "downloads": "Letöltések",
+    "search_results": "Keresési eredmények",
+    "settings": "Beállítások"
+  },
+  "bottom_panel": {
+    "no_downloads_in_progress": "Nincsenek folyamatban lévő letöltések",
+    "downloading_metadata": "{{title}} metaadatainak letöltése…",
+    "checking_files": "{{title}} fájlok ellenőrzése… ({{percentage}} kész)",
+    "downloading": "{{title}} letöltése… ({{percentage}} kész) - Befejezés {{eta}} - {{speed}}"
+  },
+  "catalogue": {
+    "next_page": "Következő olda",
+    "previous_page": "Előző olda"
+  },
+  "game_details": {
+    "open_download_options": "Letöltési lehetőségek",
+    "download_options_zero": "Nincs letöltési lehetőség",
+    "download_options_one": "{{count}} letöltési lehetőség",
+    "download_options_other": "{{count}} letöltési lehetőség",
+    "updated_at": "Frissítve: {{updated_at}}",
+    "install": "Letöltés",
+    "resume": "Folytatás",
+    "pause": "Szüneteltetés",
+    "cancel": "Mégse",
+    "remove": "Eltávolítás",
+    "remove_from_list": "Eltávolítás",
+    "space_left_on_disk": "{{space}} szabad hely a lemezen",
+    "eta": "Befejezés {{eta}}",
+    "downloading_metadata": "Metaadatok letöltése…",
+    "checking_files": "Fájlok ellenőrzése…",
+    "filter": "Repackek szűrése",
+    "requirements": "Rendszerkövetelmények",
+    "minimum": "Minimális",
+    "recommended": "Ajánlott",
+    "no_minimum_requirements": "{{title}} nem tartalmaz információt a minimális követelményekről",
+    "no_recommended_requirements": "{{title}} nem tartalmaz információt az ajánlott követelményekről",
+    "paused_progress": "{{progress}} (Szünetel)",
+    "release_date": "Megjelenés: {{date}}",
+    "publisher": "Kiadta: {{publisher}}",
+    "copy_link_to_clipboard": "Link másolása",
+    "copied_link_to_clipboard": "Link másolva",
+    "hours": "óra",
+    "minutes": "perc",
+    "accuracy": "{{accuracy}}% pontosság",
+    "add_to_library": "Hozzáadás a könyvtárhoz",
+    "remove_from_library": "Eltávolítás a könyvtárból",
+    "no_downloads": "Nincs elérhető letöltés",
+    "play_time": "Játszva: {{amount}}",
+    "last_time_played": "Utoljára játszva {{period}}",
+    "not_played_yet": "{{title}} még nem játszottál",
+    "next_suggestion": "Következő javaslat",
+    "play": "Játék",
+    "deleting": "Telepítő törlése…",
+    "close": "Bezárás",
+    "playing_now": "Jelenleg játszva"
+  },
+  "activation": {
+    "title": "Hydra Aktiválása",
+    "installation_id": "Telepítési ID:",
+    "enter_activation_code": "Add meg az aktiválási kódodat",
+    "message": "Ha nem tudod, hol kérdezd meg ezt, akkor nem is kellene, hogy legyen ilyened.",
+    "activate": "Aktiválás",
+    "loading": "Betöltés…"
+  },
+  "downloads": {
+    "resume": "Folytatás",
+    "pause": "Szüneteltetés",
+    "eta": "Befejezés {{eta}}",
+    "paused": "Szüneteltetve",
+    "verifying": "Ellenőrzés…",
+    "completed_at": "Befejezve {{date}}-kor",
+    "completed": "Befejezve",
+    "cancelled": "Megszakítva",
+    "download_again": "Újra letöltés",
+    "cancel": "Mégse",
+    "filter": "Letöltött játékok szűrése",
+    "remove": "Eltávolítás",
+    "downloading_metadata": "Metaadatok letöltése…",
+    "checking_files": "Fájlok ellenőrzése…",
+    "starting_download": "Letöltés indítása…",
+    "deleting": "Telepítő törlése…",
+    "delete": "Telepítő eltávolítása",
+    "remove_from_list": "Eltávolítás",
+    "delete_modal_title": "Biztos vagy benne?",
+    "delete_modal_description": "Ez eltávolít minden telepítési fájlt a számítógépedről",
+    "install": "Telepítés"
+  },
+  "settings": {
+    "downloads_path": "Letöltések helye",
+    "change": "Frissítés",
+    "notifications": "Értesítések",
+    "enable_download_notifications": "Amikor egy letöltés befejeződik",
+    "enable_repack_list_notifications": "Amikor egy új repack hozzáadásra kerül",
+    "telemetry": "Telemetria",
+    "telemetry_description": "Névtelen felhasználási statisztikák engedélyezése"
+  },
+  "notifications": {
+    "download_complete": "Letöltés befejeződött",
+    "game_ready_to_install": "{{title}} telepítésre kész",
+    "repack_list_updated": "Repack lista frissítve",
+    "repack_count_one": "{{count}} repack hozzáadva",
+    "repack_count_other": "{{count}} repack hozzáadva"
+  },
+  "system_tray": {
+    "open": "Hydra megnyitása",
+    "quit": "Kilépés"
+  },
+  "game_card": {
+    "no_downloads": "Nincs elérhető letöltés"
+  },
+  "binary_not_found_modal": {
+    "title": "A programok nincsenek telepítve",
+    "description": "A Wine vagy a Lutris végrehajtható fájljai nem találhatók a rendszereden",
+    "instructions": "Ellenőrizd a megfelelő telepítési módot bármelyiküknek a Linux disztribúciódon, hogy a játék normálisan fusson"
+  }
+}
