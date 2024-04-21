@@ -33,7 +33,18 @@ import { store } from "./store";
 import * as resources from "@locales";
 
 if (process.env.SENTRY_DSN) {
-  init({ dsn: process.env.SENTRY_DSN }, reactInit);
+  init(
+    {
+      dsn: process.env.SENTRY_DSN,
+      beforeSend: async (event) => {
+        const userPreferences = await window.electron.getUserPreferences();
+
+        if (userPreferences?.telemetryEnabled) return event;
+        return null;
+      },
+    },
+    reactInit
+  );
 }
 
 const router = createHashRouter([

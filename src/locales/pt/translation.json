@@ -113,7 +113,9 @@
     "change": "Mudar",
     "notifications": "Notificações",
     "enable_download_notifications": "Quando um download for concluído",
-    "enable_repack_list_notifications": "Quando a lista de repacks for atualizada"
+    "enable_repack_list_notifications": "Quando a lista de repacks for atualizada",
+    "telemetry": "Telemetria",
+    "telemetry_description": "Habilitar estatísticas de uso anônimas"
   },
   "notifications": {
     "download_complete": "Download concluído",
