@@ -37,7 +37,7 @@ const startGameDownload = async (
 
   writePipe.write({ action: "pause" });
 
-  const downloadsPath = game?.downloadPath ?? downloadPath;
+  const downloadsPath = downloadPath;
 
   await gameRepository.update(
     {
