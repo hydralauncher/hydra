@@ -23,9 +23,7 @@ export function SelectFolderModal({
 }: SelectFolderModalProps) {
   const { t } = useTranslation("game_details");
 
-  const [selectedPath, setSelectedPath] = useState({
-    downloadsPath: "",
-  });
+  const [selectedPath, setSelectedPath] = useState(null);
   const [downloadStarting, setDownloadStarting] = useState(false);
 
   useEffect(() => {
@@ -33,9 +31,7 @@ export function SelectFolderModal({
       window.electron.getDefaultDownloadsPath(),
       window.electron.getUserPreferences(),
     ]).then(([path, userPreferences]) => {
-      setSelectedPath({
-        downloadsPath: userPreferences?.downloadsPath || path,
-      });
+      setSelectedPath(userPreferences?.downloadsPath || path);
     });
   }, []);
 
@@ -47,7 +43,7 @@ export function SelectFolderModal({
 
     if (filePaths && filePaths.length > 0) {
       const path = filePaths[0];
-      setSelectedPath({ downloadsPath: path });
+      setSelectedPath(path);
     }
   };
 
