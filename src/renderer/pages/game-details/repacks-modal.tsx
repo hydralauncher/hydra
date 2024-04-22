@@ -6,11 +6,9 @@ import type { GameRepack, ShopDetails } from "@types";
 
 import * as styles from "./repacks-modal.css";
 
-import type { DiskSpace } from "check-disk-space";
-import { format } from "date-fns";
-import { SPACING_UNIT } from "@renderer/theme.css";
-import { formatBytes } from "@renderer/utils";
 import { useAppSelector } from "@renderer/hooks";
+import { SPACING_UNIT } from "@renderer/theme.css";
+import { format } from "date-fns";
 import { SelectFolderModal } from "./select-folder-modal";
 
 export interface RepacksModalProps {
@@ -30,7 +28,6 @@ export function RepacksModal({
   startDownload,
   onClose,
 }: RepacksModalProps) {
-  const [diskFreeSpace, setDiskFreeSpace] = useState<DiskSpace>(null);
   const [filteredRepacks, setFilteredRepacks] = useState<GameRepack[]>([]);
   const [repack, setRepack] = useState<GameRepack>(null);
 
@@ -43,16 +40,6 @@ export function RepacksModal({
   useEffect(() => {
     setFilteredRepacks(gameDetails.repacks);
   }, [gameDetails.repacks]);
-
-  const getDiskFreeSpace = () => {
-    window.electron.getDiskFreeSpace().then((result) => {
-      setDiskFreeSpace(result);
-    });
-  };
-
-  useEffect(() => {
-    getDiskFreeSpace();
-  }, [visible]);
 
   const handleRepackClick = (repack: GameRepack) => {
     setRepack(repack);
@@ -73,9 +60,7 @@ export function RepacksModal({
     <Modal
       visible={visible}
       title={`${gameDetails.name} Repacks`}
-      description={t("space_left_on_disk", {
-        space: formatBytes(diskFreeSpace?.free ?? 0),
-      })}
+      description={t("repacks_modal_description")}
       onClose={onClose}
     >
       <SelectFolderModal

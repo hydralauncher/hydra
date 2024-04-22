@@ -19,15 +19,15 @@ import { useAppDispatch, useDownload } from "@renderer/hooks";
 import starsAnimation from "@renderer/assets/lottie/stars.json";
 
 import { vars } from "@renderer/theme.css";
+import Lottie from "lottie-react";
 import { useTranslation } from "react-i18next";
 import { SkeletonTheme } from "react-loading-skeleton";
+import { DescriptionHeader } from "./description-header";
 import { GameDetailsSkeleton } from "./game-details-skeleton";
 import * as styles from "./game-details.css";
 import { HeroPanel } from "./hero-panel";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { RepacksModal } from "./repacks-modal";
-import Lottie from "lottie-react";
-import { DescriptionHeader } from "./description-header";
 
 export function GameDetails() {
   const { objectID, shop } = useParams();
