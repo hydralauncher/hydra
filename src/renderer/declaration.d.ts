@@ -76,7 +76,7 @@ declare global {
     ) => Promise<void>;
 
     /* Hardware */
-    getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
+    getDiskFreeSpace: () => Promise<DiskSpace>;
 
     /* Misc */
     getOrCacheImage: (url: string) => Promise<string>;
