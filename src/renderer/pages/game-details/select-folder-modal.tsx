@@ -89,6 +89,7 @@ export function SelectFolderModal({
             style={{ alignSelf: "flex-end" }}
             theme="outline"
             onClick={handleChooseDownloadsPath}
+            disabled={downloadStarting}
           >
             {t("change")}
           </Button>
