@@ -75,7 +75,7 @@
     "deleting": "Excluindo instalador…",
     "playing_now": "Jogando agora",
     "change": "Mudar",
-    "select_folder_description": "Selecione a pasta em que o jogo será baixado",
+    "repacks_modal_description": "Escolha o repack do jogo que deseja baixar",
     "downloads_path": "Diretório do download",
     "select_folder_hint": "Para trocar a pasta padrão, acesse as ",
     "hydra_settings": "Configurações do Hydra",

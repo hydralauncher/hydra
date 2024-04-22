@@ -3,8 +3,10 @@ import { GameRepack, ShopDetails } from "@types";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import * as styles from "./select-folder-modal.css";
+import { formatBytes } from "@renderer/utils";
+import { DiskSpace } from "check-disk-space";
 import { Link } from "react-router-dom";
+import * as styles from "./select-folder-modal.css";
 
 export interface SelectFolderModalProps {
   visible: boolean;
@@ -23,8 +25,13 @@ export function SelectFolderModal({
 }: SelectFolderModalProps) {
   const { t } = useTranslation("game_details");
 
+  const [diskFreeSpace, setDiskFreeSpace] = useState<DiskSpace>(null);
   const [selectedPath, setSelectedPath] = useState("");
   const [downloadStarting, setDownloadStarting] = useState(false);
+
+  useEffect(() => {
+    visible && getDiskFreeSpace(selectedPath);
+  }, [visible, selectedPath]);
 
   useEffect(() => {
     Promise.all([
@@ -34,6 +41,12 @@ export function SelectFolderModal({
       setSelectedPath(userPreferences?.downloadsPath || path);
     });
   }, []);
+
+  const getDiskFreeSpace = (path: string) => {
+    window.electron.getDiskFreeSpace(path).then((result) => {
+      setDiskFreeSpace(result);
+    });
+  };
 
   const handleChooseDownloadsPath = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
@@ -58,7 +71,9 @@ export function SelectFolderModal({
     <Modal
       visible={visible}
       title={`${gameDetails.name} Installation folder`}
-      description={t("select_folder_description")}
+      description={t("space_left_on_disk", {
+        space: formatBytes(diskFreeSpace?.free ?? 0),
+      })}
       onClose={onClose}
     >
       <div className={styles.container}>
