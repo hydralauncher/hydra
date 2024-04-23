@@ -73,7 +73,13 @@
     "not_played_yet": "Você ainda não jogou {{title}}",
     "close": "Fechar",
     "deleting": "Excluindo instalador…",
-    "playing_now": "Jogando agora"
+    "playing_now": "Jogando agora",
+    "change": "Mudar",
+    "repacks_modal_description": "Escolha o repack do jogo que deseja baixar",
+    "downloads_path": "Diretório do download",
+    "select_folder_hint": "Para trocar a pasta padrão, acesse as ",
+    "hydra_settings": "Configurações do Hydra",
+    "download_now": "Baixe agora"
   },
   "activation": {
     "title": "Ativação",
