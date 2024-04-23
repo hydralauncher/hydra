@@ -57,7 +57,7 @@ export function Modal({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [handleCloseClick]);
 
   useEffect(() => {
     const onMouseDown = (e: MouseEvent) => {
@@ -74,7 +74,7 @@ export function Modal({
 
     window.addEventListener("mousedown", onMouseDown);
     return () => window.removeEventListener("mousedown", onMouseDown);
-  }, []);
+  }, [handleCloseClick]);
 
   useEffect(() => {
     dispatch(toggleDragging(visible));
