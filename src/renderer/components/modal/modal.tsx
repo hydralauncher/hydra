@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { XIcon } from "@primer/octicons-react";
 
@@ -25,7 +25,7 @@ export function Modal({
   const dispatch = useAppDispatch();
   const modalContentRef = useRef<HTMLDivElement | null>(null);
 
-  const handleCloseClick = () => {
+  const handleCloseClick = useCallback(() => {
     setIsClosing(true);
     const zero = performance.now();
 
@@ -37,7 +37,7 @@ export function Modal({
         setIsClosing(false);
       }
     });
-  };
+  }, [onClose]);
 
   const isTopMostModal = () => {
     const openModals = document.querySelectorAll("[role=modal]");
