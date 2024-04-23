@@ -59,7 +59,7 @@ export function Modal({
   }, []);
 
   useEffect(() => {
-    const onMouseUp = (e: MouseEvent) => {
+    const onMouseDown = (e: MouseEvent) => {
       if (!isTopMostModal()) return;
 
       const modalContent = document.getElementById(
@@ -73,8 +73,8 @@ export function Modal({
       }
     };
 
-    window.addEventListener("mousedown", onMouseUp);
-    return () => window.removeEventListener("mousedown", onMouseUp);
+    window.addEventListener("mousedown", onMouseDown);
+    return () => window.removeEventListener("mousedown", onMouseDown);
   }, []);
 
   useEffect(() => {
