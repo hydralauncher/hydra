@@ -49,7 +49,7 @@
     "cancel": "Annulla",
     "remove": "Rimuovi",
     "remove_from_list": "Rimuovi",
-    "space_left_on_disk": "{{spazio}} rimasto sul disco",
+    "space_left_on_disk": "{{space}} rimasto sul disco",
     "eta": "Conclusione {{eta}}",
     "downloading_metadata": "Scaricamento metadati…",
     "checking_files": "Verifica file…",
