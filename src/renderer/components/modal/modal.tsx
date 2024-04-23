@@ -41,7 +41,7 @@ export function Modal({
   };
 
   const isTopMostModal = () => {
-    const openModals = document.querySelectorAll("[role=modal-content]");
+    const openModals = document.querySelectorAll("[role=modal]");
     return (
       openModals.length &&
       openModals[openModals.length - 1] === modalContentRef.current
@@ -86,7 +86,7 @@ export function Modal({
     <div className={styles.backdrop({ closing: isClosing })}>
       <div
         className={styles.modal({ closing: isClosing })}
-        role="modal-content"
+        role="modal"
         ref={modalContentRef}
       >
         <div className={styles.modalHeader}>
