@@ -5,7 +5,6 @@ import { GameStatus } from "@main/constants";
 import { registerEvent } from "../register-event";
 
 import type { GameShop } from "@types";
-import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { getImageBase64 } from "@main/helpers";
 import { In } from "typeorm";
 
@@ -14,7 +13,8 @@ const startGameDownload = async (
   repackId: number,
   objectID: string,
   title: string,
-  gameShop: GameShop
+  gameShop: GameShop,
+  downloadPath: string
 ) => {
   const [game, repack] = await Promise.all([
     gameRepository.findOne({
@@ -37,8 +37,6 @@ const startGameDownload = async (
 
   writePipe.write({ action: "pause" });
 
-  const downloadsPath = game?.downloadPath ?? (await getDownloadsPath());
-
   await gameRepository.update(
     {
       status: In([
@@ -57,7 +55,7 @@ const startGameDownload = async (
       },
       {
         status: GameStatus.DownloadingMetadata,
-        downloadPath: downloadsPath,
+        downloadPath: downloadPath,
         repack: { id: repackId },
         isDeleted: false,
       }
@@ -67,7 +65,7 @@ const startGameDownload = async (
       action: "start",
       game_id: game.id,
       magnet: repack.magnet,
-      save_path: downloadsPath,
+      save_path: downloadPath,
     });
 
     game.status = GameStatus.DownloadingMetadata;
@@ -82,7 +80,7 @@ const startGameDownload = async (
       objectID,
       shop: gameShop,
       status: GameStatus.DownloadingMetadata,
-      downloadPath: downloadsPath,
+      downloadPath: downloadPath,
       repack: { id: repackId },
     });
 
@@ -90,7 +88,7 @@ const startGameDownload = async (
       action: "start",
       game_id: createdGame.id,
       magnet: repack.magnet,
-      save_path: downloadsPath,
+      save_path: downloadPath,
     });
 
     const { repack: _, ...rest } = createdGame;
