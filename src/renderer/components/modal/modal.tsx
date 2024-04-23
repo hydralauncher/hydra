@@ -41,10 +41,10 @@ export function Modal({
   };
 
   const isTopMostModal = () => {
-    const openModals = document.querySelectorAll("[role=modal-container]");
+    const openModals = document.querySelectorAll("[role=modal-content]");
     return (
       openModals.length &&
-      openModals[openModals.length - 1].id === "modal-container-" + componentId
+      openModals[openModals.length - 1] === modalContentRef.current
     );
   };
 
@@ -63,7 +63,9 @@ export function Modal({
     const onMouseDown = (e: MouseEvent) => {
       if (!isTopMostModal()) return;
 
-      const clickedOutsideContent = !modalContentRef.current.contains(e.target as Node);
+      const clickedOutsideContent = !modalContentRef.current.contains(
+        e.target as Node
+      );
 
       if (clickedOutsideContent) {
         handleCloseClick();
@@ -81,13 +83,10 @@ export function Modal({
   if (!visible) return null;
 
   return createPortal(
-    <div
-      className={styles.backdrop({ closing: isClosing })}
-      role="modal-container"
-      id={"modal-container-" + componentId}
-    >
+    <div className={styles.backdrop({ closing: isClosing })}>
       <div
         className={styles.modal({ closing: isClosing })}
+        role="modal-content"
         ref={modalContentRef}
       >
         <div className={styles.modalHeader}>
