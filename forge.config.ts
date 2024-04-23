@@ -20,7 +20,7 @@ const linuxPkgConfig = {
   icon: "images/icon.png",
   genericName: "Games Launcher",
   name: "hydra-launcher",
-  productName: "Hydra"
+  productName: "Hydra",
 };
 
 const config: ForgeConfig = {
@@ -50,10 +50,10 @@ const config: ForgeConfig = {
     }),
     new MakerZIP({}, ["darwin", "linux"]),
     new MakerRpm({
-      options: linuxPkgConfig
+      options: linuxPkgConfig,
     }),
     new MakerDeb({
-      options: linuxPkgConfig
+      options: linuxPkgConfig,
     }),
   ],
   publishers: [
