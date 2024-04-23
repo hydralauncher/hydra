@@ -5,6 +5,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import type { Game } from "@types";
 
 import { AsyncImage, TextField } from "@renderer/components";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@renderer/components/context-menu/context-menu";
 import { useDownload, useLibrary } from "@renderer/hooks";
 import { SPACING_UNIT } from "@renderer/theme.css";
 
@@ -198,29 +204,44 @@ export function Sidebar() {
 
           <ul className={styles.menu}>
             {filteredLibrary.map((game) => (
-              <li
-                key={game.id}
-                className={styles.menuItem({
-                  active:
-                    location.pathname === `/game/${game.shop}/${game.objectID}`,
-                  muted: game.status === "cancelled",
-                })}
-              >
-                <button
-                  type="button"
-                  className={styles.menuItemButton}
-                  onClick={() =>
-                    handleSidebarItemClick(
-                      `/game/${game.shop}/${game.objectID}`
-                    )
-                  }
-                >
-                  <AsyncImage className={styles.gameIcon} src={game.iconUrl} />
-                  <span className={styles.menuItemButtonLabel}>
-                    {getGameTitle(game)}
-                  </span>
-                </button>
-              </li>
+              <ContextMenu>
+                <ContextMenuTrigger>
+                  <li
+                    key={game.id}
+                    className={styles.menuItem({
+                      active:
+                        location.pathname ===
+                        `/game/${game.shop}/${game.objectID}`,
+                      muted: game.status === "cancelled",
+                    })}
+                  >
+                    <button
+                      type="button"
+                      className={styles.menuItemButton}
+                      onClick={() =>
+                        handleSidebarItemClick(
+                          `/game/${game.shop}/${game.objectID}`
+                        )
+                      }
+                    >
+                      <AsyncImage
+                        className={styles.gameIcon}
+                        src={game.iconUrl}
+                      />
+                      <span className={styles.menuItemButtonLabel}>
+                        {getGameTitle(game)}
+                      </span>
+                    </button>
+                  </li>
+                </ContextMenuTrigger>
+
+                <ContextMenuContent>
+                  <ContextMenuItem>Profile</ContextMenuItem>
+                  <ContextMenuItem>Billing</ContextMenuItem>
+                  <ContextMenuItem>Team</ContextMenuItem>
+                  <ContextMenuItem>Subscription</ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             ))}
           </ul>
         </section>
