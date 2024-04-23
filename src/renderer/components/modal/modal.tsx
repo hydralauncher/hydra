@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { XIcon } from "@primer/octicons-react";
 
@@ -23,6 +23,7 @@ export function Modal({
 }: ModalProps) {
   const [isClosing, setIsClosing] = useState(false);
   const dispatch = useAppDispatch();
+  const componentId = useId();
 
   const handleCloseClick = () => {
     setIsClosing(true);
@@ -38,14 +39,39 @@ export function Modal({
     });
   };
 
+  const isTopMostModal = () => {
+    const openModals = document.getElementsByClassName("modal-container");
+    return openModals.length && openModals[openModals.length - 1].id === componentId;
+  };
+
   useEffect(() => {
-    const close = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isTopMostModal()) {
         handleCloseClick();
       }
     };
-    window.addEventListener("keydown", close);
-    return () => window.removeEventListener("keydown", close);
+
+    window.addEventListener("keydown", onKeyDown, false);
+    return () => window.removeEventListener("keydown", onKeyDown, false);
+  }, []);
+
+  useEffect(() => {
+    const onMouseUp = (e: MouseEvent) => {
+      if (!isTopMostModal()) return;
+
+      const modalContent = document.getElementById(
+        "modal-content-" + componentId
+      );
+
+      const clickInsideContent = modalContent.contains(e.target as Node);
+
+      if (!clickInsideContent) {
+        handleCloseClick();
+      }
+    };
+
+    window.addEventListener("mousedown", onMouseUp);
+    return () => window.removeEventListener("mousedown", onMouseUp);
   }, []);
 
   useEffect(() => {
@@ -55,8 +81,14 @@ export function Modal({
   if (!visible) return null;
 
   return createPortal(
-    <div className={styles.backdrop({ closing: isClosing })}>
-      <div className={styles.modal({ closing: isClosing })}>
+    <div
+      className={styles.backdrop({ closing: isClosing }) + " modal-container"}
+      id={componentId}
+    >
+      <div
+        className={styles.modal({ closing: isClosing })}
+        id={"modal-content-" + componentId}
+      >
         <div className={styles.modalHeader}>
           <div style={{ display: "flex", gap: 4, flexDirection: "column" }}>
             <h3>{title}</h3>
