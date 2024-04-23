@@ -40,7 +40,7 @@ export function Modal({
   };
 
   const isTopMostModal = () => {
-    const openModals = document.getElementsByClassName("modal-container");
+    const openModals = document.querySelectorAll("[role=modal-container]");
     return (
       openModals.length &&
       openModals[openModals.length - 1].id === "modal-container-" + componentId
@@ -85,7 +85,8 @@ export function Modal({
 
   return createPortal(
     <div
-      className={styles.backdrop({ closing: isClosing }) + " modal-container"}
+      className={styles.backdrop({ closing: isClosing })}
+      role="modal-container"
       id={"modal-container-" + componentId}
     >
       <div
