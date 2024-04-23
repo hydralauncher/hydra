@@ -15,8 +15,17 @@ contextBridge.exposeInMainWorld("electron", {
     repackId: number,
     objectID: string,
     title: string,
-    shop: GameShop
-  ) => ipcRenderer.invoke("startGameDownload", repackId, objectID, title, shop),
+    shop: GameShop,
+    downloadPath: string
+  ) =>
+    ipcRenderer.invoke(
+      "startGameDownload",
+      repackId,
+      objectID,
+      title,
+      shop,
+      downloadPath
+    ),
   cancelGameDownload: (gameId: number) =>
     ipcRenderer.invoke("cancelGameDownload", gameId),
   pauseGameDownload: (gameId: number) =>
@@ -90,7 +99,8 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   /* Hardware */
-  getDiskFreeSpace: () => ipcRenderer.invoke("getDiskFreeSpace"),
+  getDiskFreeSpace: (path: string) =>
+    ipcRenderer.invoke("getDiskFreeSpace", path),
 
   /* Misc */
   getOrCacheImage: (url: string) => ipcRenderer.invoke("getOrCacheImage", url),
