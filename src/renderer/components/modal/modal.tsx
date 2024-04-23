@@ -33,6 +33,7 @@ export function Modal({
       if (time - zero <= 400) {
         requestAnimationFrame(animateClosing);
       } else {
+        
         onClose();
         setIsClosing(false);
       }
