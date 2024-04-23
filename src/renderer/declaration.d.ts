@@ -22,7 +22,8 @@ declare global {
       repackId: number,
       objectID: string,
       title: string,
-      shop: GameShop
+      shop: GameShop,
+      downloadPath: string
     ) => Promise<Game>;
     cancelGameDownload: (gameId: number) => Promise<void>;
     pauseGameDownload: (gameId: number) => Promise<void>;
@@ -76,7 +77,7 @@ declare global {
     ) => Promise<void>;
 
     /* Hardware */
-    getDiskFreeSpace: () => Promise<DiskSpace>;
+    getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
 
     /* Misc */
     getOrCacheImage: (url: string) => Promise<string>;
