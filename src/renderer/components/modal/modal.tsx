@@ -41,7 +41,9 @@ export function Modal({
 
   const isTopMostModal = () => {
     const openModals = document.getElementsByClassName("modal-container");
-    return openModals.length && openModals[openModals.length - 1].id === componentId;
+    return (
+      openModals.length && openModals[openModals.length - 1].id === componentId
+    );
   };
 
   useEffect(() => {
@@ -63,9 +65,9 @@ export function Modal({
         "modal-content-" + componentId
       );
 
-      const clickInsideContent = modalContent.contains(e.target as Node);
+      const clickedOutsideContent = !modalContent.contains(e.target as Node);
 
-      if (!clickInsideContent) {
+      if (clickedOutsideContent) {
         handleCloseClick();
       }
     };
