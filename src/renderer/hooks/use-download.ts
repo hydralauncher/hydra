@@ -28,10 +28,11 @@ export function useDownload() {
     repackId: number,
     objectID: string,
     title: string,
-    shop: GameShop
+    shop: GameShop,
+    downloadPath: string
   ) =>
     window.electron
-      .startGameDownload(repackId, objectID, title, shop)
+      .startGameDownload(repackId, objectID, title, shop, downloadPath)
       .then((game) => {
         dispatch(clearDownload());
         updateLibrary();
