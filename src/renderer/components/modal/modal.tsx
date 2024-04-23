@@ -39,6 +39,16 @@ export function Modal({
   };
 
   useEffect(() => {
+    const close = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        handleCloseClick();
+      }
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, []);
+
+  useEffect(() => {
     dispatch(toggleDragging(visible));
   }, [dispatch, visible]);
 
