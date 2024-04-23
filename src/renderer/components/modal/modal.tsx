@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { XIcon } from "@primer/octicons-react";
 
@@ -24,7 +24,6 @@ export function Modal({
   const [isClosing, setIsClosing] = useState(false);
   const dispatch = useAppDispatch();
   const modalContentRef = useRef<HTMLDivElement | null>(null);
-  const componentId = useId();
 
   const handleCloseClick = () => {
     setIsClosing(true);
