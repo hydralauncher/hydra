@@ -23,7 +23,7 @@ import { Notification } from "electron";
 import { t } from "i18next";
 import { In } from "typeorm";
 
-startProcessWatcher();
+//startProcessWatcher();
 
 TorrentClient.startTorrentClient(writePipe.socketPath, readPipe.socketPath);
 
