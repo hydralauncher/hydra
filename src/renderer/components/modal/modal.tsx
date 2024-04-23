@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { XIcon } from "@primer/octicons-react";
 
@@ -23,6 +23,7 @@ export function Modal({
 }: ModalProps) {
   const [isClosing, setIsClosing] = useState(false);
   const dispatch = useAppDispatch();
+  const modalContentRef = useRef<HTMLDivElement | null>(null);
   const componentId = useId();
 
   const handleCloseClick = () => {
@@ -54,19 +55,15 @@ export function Modal({
       }
     };
 
-    window.addEventListener("keydown", onKeyDown, false);
-    return () => window.removeEventListener("keydown", onKeyDown, false);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   useEffect(() => {
     const onMouseDown = (e: MouseEvent) => {
       if (!isTopMostModal()) return;
 
-      const modalContent = document.getElementById(
-        "modal-content-" + componentId
-      );
-
-      const clickedOutsideContent = !modalContent.contains(e.target as Node);
+      const clickedOutsideContent = !modalContentRef.current.contains(e.target as Node);
 
       if (clickedOutsideContent) {
         handleCloseClick();
@@ -91,7 +88,7 @@ export function Modal({
     >
       <div
         className={styles.modal({ closing: isClosing })}
-        id={"modal-content-" + componentId}
+        ref={modalContentRef}
       >
         <div className={styles.modalHeader}>
           <div style={{ display: "flex", gap: 4, flexDirection: "column" }}>
