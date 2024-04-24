@@ -168,3 +168,21 @@ export const footerText = style({
   color: vars.color.bodyText,
   fontSize: "12px",
 });
+
+export const contextMenuItem = style({
+  display: "flex",
+  gap: `${SPACING_UNIT}px`,
+  alignItems: "center",
+  width: "100%",
+  color: vars.color.bodyText,
+
+  ":disabled": {
+    opacity: 0.5,
+    cursor: "not-allowed",
+  },
+});
+
+export const contextMenuItemIcon = style({
+  width: "14px",
+  height: "14px",
+});

@@ -15,6 +15,7 @@ import "./library/get-game-by-object-id";
 import "./library/get-library";
 import "./library/get-repackers-friendly-names";
 import "./library/open-game";
+import "./library/open-game-folder";
 import "./library/open-game-installer";
 import "./library/remove-game";
 import "./misc/get-or-cache-image";

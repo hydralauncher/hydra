@@ -55,7 +55,7 @@ export const contextMenuContent = style({
   borderRadius: `${SPACING_UNIT / 2}px`,
   border: `1px solid ${vars.color.borderColor}`,
   backgroundColor: `${vars.color.darkBackground}`,
-  padding: `${SPACING_UNIT / 4}px`,
+  padding: `${SPACING_UNIT * 0.75}px ${SPACING_UNIT / 4}px`,
   color: `${vars.color.bodyText}`,
   boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.08)",
 });
