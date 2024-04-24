@@ -22,7 +22,10 @@ const deleteGameFolder = async (
   if (!game) return;
 
   if (game.folderName) {
-    const folderPath = path.join(await getDownloadsPath(), game.folderName);
+    const folderPath = path.join(
+      game.downloadPath ?? (await getDownloadsPath()),
+      game.folderName
+    );
 
     if (fs.existsSync(folderPath)) {
       return new Promise((resolve, reject) => {
