@@ -8866,7 +8866,7 @@ proxy-from-env@^1.1.0:
 
 ps-list@^8.1.1:
   version "8.1.1"
-  resolved "https://registry.npmjs.org/ps-list/-/ps-list-8.1.1.tgz"
+  resolved "https://registry.yarnpkg.com/ps-list/-/ps-list-8.1.1.tgz#9ff1952b26a9a07fcc05270407e60544237ae581"
   integrity sha512-OPS9kEJYVmiO48u/B9qneqhkMvgCxT+Tm28VCEJpheTpl8cJ0ffZRRNgS5mrQRTrX5yRTpaJ+hRDeefXYmmorQ==
 
 psl@^1.1.33:
