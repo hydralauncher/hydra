@@ -295,13 +295,21 @@ export function Sidebar() {
                       </ContextMenuItem>
 
                       <ContextMenuItem
-                        className={styles.contextMenuItem}
                         onClick={() => updateExePath(game.id)}
+                        asChild
                       >
-                        <FileDirectorySymlinkIcon
-                          className={styles.contextMenuItemIcon}
-                        />
-                        <span>Alterar caminho do executável</span>
+                        <button
+                          className={styles.contextMenuItem}
+                          disabled={
+                            game.downloadPath === null ||
+                            game.folderName === null
+                          }
+                        >
+                          <FileDirectorySymlinkIcon
+                            className={styles.contextMenuItemIcon}
+                          />
+                          <span>Alterar caminho do executável</span>
+                        </button>
                       </ContextMenuItem>
 
                       <ContextMenuItem className={styles.contextMenuItem}>
