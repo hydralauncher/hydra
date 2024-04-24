@@ -16,6 +16,7 @@ export const startProcessWatcher = async () => {
   while (true) {
     await sleep(sleepTime);
 
+    console.log("loopTotalTime")
     const games = await gameRepository.find({
       where: {
         executablePath: Not(IsNull()),
@@ -31,13 +32,13 @@ export const startProcessWatcher = async () => {
     console.timeEnd("getProcesses")
 
     for (const game of games) {
-      const gameProcess = processes.find((runningProcess) => {
-        const basename = path.win32.basename(game.executablePath);
+      const basename = path.win32.basename(game.executablePath);
         const basenameWithoutExtension = path.win32.basename(
           game.executablePath,
           path.extname(game.executablePath)
         );
 
+      const gameProcess = processes.find((runningProcess) => {
         if (process.platform === "win32") {
           return runningProcess.name === basename;
         }
