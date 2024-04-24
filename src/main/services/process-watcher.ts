@@ -1,7 +1,7 @@
 import path from "node:path";
 
 import { IsNull, Not } from "typeorm";
-
+import { exec } from "child_process"
 import { gameRepository } from "@main/repository";
 import { getProcesses } from "@main/helpers";
 import { WindowManager } from "./window-manager";
@@ -14,13 +14,21 @@ export const startProcessWatcher = async () => {
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
+    await sleep(sleepTime);
+
     const games = await gameRepository.find({
       where: {
         executablePath: Not(IsNull()),
       },
     });
 
+    if (games.length == 0) {
+      continue;
+    }
+
+    console.time("getProcesses")
     const processes = await getProcesses();
+    console.timeEnd("getProcesses")
 
     for (const game of games) {
       const gameProcess = processes.find((runningProcess) => {
@@ -55,15 +63,10 @@ export const startProcessWatcher = async () => {
           gameRepository.update(game.id, {
             lastTimePlayed: new Date().toUTCString(),
           });
-
-          gamesPlaytime.set(game.id, performance.now());
-          await sleep(sleepTime);
-          continue;
         }
 
         gamesPlaytime.set(game.id, performance.now());
 
-        await sleep(sleepTime);
         continue;
       }
 
@@ -73,8 +76,6 @@ export const startProcessWatcher = async () => {
           WindowManager.mainWindow.webContents.send("on-game-close", game.id);
         }
       }
-
-      await sleep(sleepTime);
     }
   }
 };
