@@ -57,6 +57,7 @@ const startGameDownload = async (
         status: GameStatus.DownloadingMetadata,
         downloadPath: downloadPath,
         repack: { id: repackId },
+        isDeleted: false,
       }
     );
 
@@ -68,13 +69,6 @@ const startGameDownload = async (
     });
 
     game.status = GameStatus.DownloadingMetadata;
-
-    writePipe.write({
-      action: "start",
-      game_id: game.id,
-      magnet: repack.magnet,
-      save_path: downloadPath,
-    });
 
     return game;
   } else {

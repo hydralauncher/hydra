@@ -61,6 +61,9 @@ export class Game {
   @JoinColumn()
   repack: Repack;
 
+  @Column("boolean", { default: false })
+  isDeleted: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -32,11 +32,11 @@ export function HeroPanelActions({
     resumeDownload,
     pauseDownload,
     cancelDownload,
-    removeGame,
+    removeGameFromDownload,
     isGameDeleting,
   } = useDownload();
 
-  const { updateLibrary } = useLibrary();
+  const { updateLibrary, removeGameFromLibrary } = useLibrary();
 
   const { t } = useTranslation("game_details");
 
@@ -63,7 +63,7 @@ export function HeroPanelActions({
 
     try {
       if (game) {
-        await removeGame(game.id);
+        await removeGameFromLibrary(game.id);
       } else {
         const gameExecutablePath = await selectGameExecutable();
 
@@ -101,6 +101,9 @@ export function HeroPanelActions({
     }
 
     const gameExecutablePath = await selectGameExecutable();
+
+    if (!gameExecutablePath) return;
+
     window.electron.openGame(game.id, gameExecutablePath);
   };
 
@@ -187,7 +190,7 @@ export function HeroPanelActions({
           {t("open_download_options")}
         </Button>
         <Button
-          onClick={() => removeGame(game.id).then(getGame)}
+          onClick={() => removeGameFromDownload(game.id).then(getGame)}
           theme="outline"
           disabled={deleting}
         >

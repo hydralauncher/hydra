@@ -12,5 +12,10 @@ export function useLibrary() {
       .then((updatedLibrary) => dispatch(setLibrary(updatedLibrary)));
   }, [dispatch]);
 
-  return { library, updateLibrary };
+  const removeGameFromLibrary = (gameId: number) =>
+    window.electron.removeGameFromLibrary(gameId).then(() => {
+      updateLibrary();
+    });
+
+  return { library, updateLibrary, removeGameFromLibrary };
 }

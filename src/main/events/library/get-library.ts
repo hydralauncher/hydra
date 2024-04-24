@@ -8,6 +8,9 @@ import sortBy from "lodash/sortBy";
 const getLibrary = async (_event: Electron.IpcMainInvokeEvent) =>
   gameRepository
     .find({
+      where: {
+        isDeleted: false,
+      },
       order: {
         createdAt: "desc",
       },
