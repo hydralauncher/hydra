@@ -52,8 +52,8 @@ export function Downloads() {
       updateLibrary();
     });
 
-  const removeGame = (gameId: number) =>
-    window.electron.removeGame(gameId).then(() => {
+  const removeGameFromDownload = (gameId: number) =>
+    window.electron.removeGameFromDownload(gameId).then(() => {
       updateLibrary();
     });
 
@@ -194,7 +194,7 @@ export function Downloads() {
         </Button>
 
         <Button
-          onClick={() => removeGame(game.id)}
+          onClick={() => removeGameFromDownload(game.id)}
           theme="outline"
           disabled={deleting}
         >

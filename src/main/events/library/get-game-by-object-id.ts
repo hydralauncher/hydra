@@ -9,6 +9,7 @@ const getGameByObjectID = async (
   gameRepository.findOne({
     where: {
       objectID,
+      isDeleted: false,
     },
     relations: {
       repack: true,
