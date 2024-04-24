@@ -1,11 +1,10 @@
-import path from "node:path";
 import fs from "node:fs";
+import path from "node:path";
 
-import { GameStatus } from "@main/constants";
 import { gameRepository } from "@main/repository";
 
-import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { logger } from "@main/services";
+import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { registerEvent } from "../register-event";
 
 const deleteGameFolder = async (
@@ -15,7 +14,6 @@ const deleteGameFolder = async (
   const game = await gameRepository.findOne({
     where: {
       id: gameId,
-      status: GameStatus.Cancelled,
     },
   });
 

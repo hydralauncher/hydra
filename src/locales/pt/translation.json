@@ -17,7 +17,10 @@
     "downloading": "{{title}} ({{percentage}} - Baixando…)",
     "filter": "Filtrar biblioteca",
     "home": "Início",
-    "follow_us": "Acompanhe-nos"
+    "follow_us": "Acompanhe-nos",
+    "open_archive_path": "Abrir local do arquivo",
+    "change_exe_path": "Alterar caminho do executável",
+    "delete_installation_files": "Deletar arquivos de instalação"
   },
   "header": {
     "search": "Buscar",
@@ -106,7 +109,7 @@
     "checking_files": "Verificando arquivos…",
     "starting_download": "Iniciando download…",
     "remove_from_list": "Remover",
-    "delete": "Remover instalador",
+    "delete": "Remover arquivos",
     "delete_modal_description": "Isso removerá todos os arquivos de instalação do seu computador",
     "delete_modal_title": "Tem certeza?",
     "deleting": "Excluindo instalador…",

@@ -17,7 +17,10 @@
     "downloading": "{{title}} ({{percentage}} - Downloading…)",
     "filter": "Filter library",
     "follow_us": "Follow us",
-    "home": "Home"
+    "home": "Home",
+    "open_archive_path": "Open archive location",
+    "change_exe_path": "Change executable path",
+    "delete_installation_files": "Delete installation files"
   },
   "header": {
     "search": "Search",
@@ -110,7 +113,7 @@
     "checking_files": "Checking files…",
     "starting_download": "Starting download…",
     "deleting": "Deleting installer…",
-    "delete": "Remove installer",
+    "delete": "Remove archives",
     "remove_from_list": "Remove",
     "delete_modal_title": "Are you sure?",
     "delete_modal_description": "This will remove all the installation files from your computer",

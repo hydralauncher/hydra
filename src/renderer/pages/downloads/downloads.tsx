@@ -6,11 +6,11 @@ import { formatDownloadProgress, steamUrlBuilder } from "@renderer/helpers";
 import { useDownload, useLibrary } from "@renderer/hooks";
 import type { Game } from "@types";
 
+import { formatBytes } from "@renderer/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { DeleteModal } from "../../components/sidebar/delete-modal";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
-import { DeleteModal } from "./delete-modal";
-import { formatBytes } from "@renderer/utils";
 
 export function Downloads() {
   const { library, updateLibrary } = useLibrary();

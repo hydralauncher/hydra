@@ -24,6 +24,7 @@ import {
 } from "@primer/octicons-react";
 import DiscordLogo from "@renderer/assets/discord-icon.svg";
 import XLogo from "@renderer/assets/x-icon.svg";
+import { DeleteModal } from "./delete-modal";
 import * as styles from "./sidebar.css";
 
 const socials = [
@@ -53,6 +54,9 @@ export function Sidebar() {
   const navigate = useNavigate();
 
   const [filteredLibrary, setFilteredLibrary] = useState<Game[]>([]);
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [currentGameId, setCurrentGameId] = useState(0);
 
   const [isResizing, setIsResizing] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(
@@ -144,6 +148,11 @@ export function Sidebar() {
     window.electron
       .openGame(gameId, gameExecutablePath)
       .then(() => updateLibrary());
+  };
+
+  const handleOpenDeleteGameModal = async (gameId: number) => {
+    setShowDeleteModal(true);
+    setCurrentGameId(gameId);
   };
 
   useEffect(() => {
@@ -240,10 +249,6 @@ export function Sidebar() {
 
             <ul className={styles.menu}>
               {filteredLibrary.map((game) => {
-                if (game.id === 24) {
-                  console.log(game);
-                }
-
                 return (
                   <ContextMenu key={game.id}>
                     <ContextMenuTrigger>
@@ -290,7 +295,7 @@ export function Sidebar() {
                           <FileDirectoryIcon
                             className={styles.contextMenuItemIcon}
                           />
-                          <span>Abrir local do arquivo</span>
+                          <span>{t("open_archive_path")}</span>
                         </button>
                       </ContextMenuItem>
 
@@ -308,18 +313,35 @@ export function Sidebar() {
                           <FileDirectorySymlinkIcon
                             className={styles.contextMenuItemIcon}
                           />
-                          <span>Alterar caminho do executável</span>
+                          <span>{t("change_exe_path")}</span>
                         </button>
                       </ContextMenuItem>
 
-                      <ContextMenuItem className={styles.contextMenuItem}>
-                        <TrashIcon className={styles.contextMenuItemIcon} />
-                        <span>Remover arquivos de instalação</span>
+                      <ContextMenuItem
+                        onClick={() => handleOpenDeleteGameModal(game.id)}
+                        asChild
+                      >
+                        <button
+                          className={styles.contextMenuItem}
+                          disabled={
+                            game.downloadPath === null ||
+                            game.folderName === null
+                          }
+                        >
+                          <TrashIcon className={styles.contextMenuItemIcon} />
+                          <span>{t("delete_installation_files")}</span>
+                        </button>
                       </ContextMenuItem>
                     </ContextMenuContent>
                   </ContextMenu>
                 );
               })}
+
+              <DeleteModal
+                visible={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                gameId={currentGameId}
+              />
             </ul>
           </section>
         </div>
