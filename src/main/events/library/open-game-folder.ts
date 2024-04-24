@@ -13,17 +13,25 @@ const openGameFolder = async (
 
   if (!game) return true;
 
-  let gamePath = game.executablePath ?? (await getDownloadsPath());
-  gamePath = path.dirname(gamePath);
+  let gamePath;
 
-  const fullPath = path.join(gamePath, game.folderName);
+  if (game.executablePath) {
+    gamePath = path.dirname(game.executablePath);
+  } else {
+    gamePath = path.join(await getDownloadsPath(), game.folderName);
+  }
+
+  // let gamePath = game.executablePath ?? (await getDownloadsPath());
+  // gamePath = path.dirname(gamePath);
+
+  // const fullPath = path.join(gamePath, game.folderName);
 
   // if (!fs.existsSync(fullPath)) {
   //   await gameRepository.delete({ id: gameId });
   //   return true;
   // }
 
-  shell.openPath(fullPath);
+  shell.openPath(gamePath);
 };
 
 registerEvent(openGameFolder, {
