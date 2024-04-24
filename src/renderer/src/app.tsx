@@ -22,7 +22,7 @@ import {
 
 document.body.classList.add(themeClass);
 
-export function App() {
+export function App({ children }: any) {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary } = useLibrary();
 
@@ -112,7 +112,7 @@ export function App() {
           />
 
           <section ref={contentRef} className={styles.content}>
-            <Outlet />
+            {children}
           </section>
         </article>
       </main>

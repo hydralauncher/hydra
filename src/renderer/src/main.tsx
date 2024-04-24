@@ -4,7 +4,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { Provider } from "react-redux";
 import LanguageDetector from "i18next-browser-languagedetector";
-import { createHashRouter, RouterProvider } from "react-router-dom";
+import { HashRouter, Route, Routes } from "react-router-dom";
 
 import { init } from "@sentry/electron/renderer";
 import { init as reactInit } from "@sentry/react";
@@ -46,39 +46,6 @@ if (import.meta.env.RENDERER_VITE_SENTRY_DSN) {
   );
 }
 
-const router = createHashRouter([
-  {
-    path: "/",
-    Component: App,
-    children: [
-      {
-        path: "/",
-        Component: Home,
-      },
-      {
-        path: "/catalogue",
-        Component: Catalogue,
-      },
-      {
-        path: "/downloads",
-        Component: Downloads,
-      },
-      {
-        path: "/game/:shop/:objectID",
-        Component: GameDetails,
-      },
-      {
-        path: "/search",
-        Component: SearchResults,
-      },
-      {
-        path: "/settings",
-        Component: Settings,
-      },
-    ],
-  },
-]);
-
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -96,7 +63,19 @@ i18n
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Provider store={store}>
-      <RouterProvider router={router} />
+      <HashRouter>
+        <App>
+          <Routes>
+            <Route path="/" Component={Home} />
+            <Route path="/catalogue" Component={Catalogue} />
+            <Route path="/downloads" Component={Downloads} />
+            <Route path="/game/:shop/:objectID" Component={GameDetails} />
+            <Route path="/search" Component={SearchResults} />
+            <Route path="/settings" Component={Settings} />
+          </Routes>
+        </App>
+      </HashRouter>
+      {/* <RouterProvider router={router} /> */}
     </Provider>
   </React.StrictMode>
 );
