@@ -15,7 +15,7 @@ export const startProcessWatcher = async () => {
   while (true) {
     await sleep(sleepTime);
 
-    console.log("loopTotalTime");
+    console.time("loopTotalTime");
     const games = await gameRepository.find({
       where: {
         executablePath: Not(IsNull()),
@@ -66,16 +66,13 @@ export const startProcessWatcher = async () => {
         }
 
         gamesPlaytime.set(game.id, performance.now());
-
-        continue;
-      }
-
-      if (gamesPlaytime.has(game.id)) {
+      } else if (gamesPlaytime.has(game.id)) {
         gamesPlaytime.delete(game.id);
         if (WindowManager.mainWindow) {
           WindowManager.mainWindow.webContents.send("on-game-close", game.id);
         }
       }
     }
+    console.timeEnd("loopTotalTime");
   }
 };
