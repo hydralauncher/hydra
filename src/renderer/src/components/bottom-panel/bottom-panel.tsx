@@ -61,7 +61,7 @@ export function BottomPanel() {
       </button>
 
       <small>
-        v{version} "{VERSION_CODENAME}"
+        v{version} &quot;{VERSION_CODENAME}&quot;
       </small>
     </footer>
   );

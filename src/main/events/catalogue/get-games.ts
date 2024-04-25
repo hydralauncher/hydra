@@ -9,7 +9,7 @@ const steamGames = stateManager.getValue("steamGames");
 
 const getGames = async (
   _event: Electron.IpcMainInvokeEvent,
-  take?: number,
+  take = 12,
   cursor = 0
 ): Promise<{ results: CatalogueEntry[]; cursor: number }> => {
   const results: CatalogueEntry[] = [];
