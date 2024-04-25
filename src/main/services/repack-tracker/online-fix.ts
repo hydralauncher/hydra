@@ -88,7 +88,7 @@ export const getNewRepacksFromOnlineFix = async (
   const repacks: GameRepackInput[] = [];
   const articles = Array.from(document.querySelectorAll(".news"));
   const totalPages = Number(
-    document.querySelector("nav > a:nth-child(13)").textContent
+    document.querySelector("nav > a:nth-child(13)")?.textContent
   );
 
   try {
@@ -186,8 +186,10 @@ export const getNewRepacksFromOnlineFix = async (
         });
       })
     );
-  } catch (err) {
-    logger.error(err.message, { method: "getNewRepacksFromOnlineFix" });
+  } catch (err: unknown) {
+    logger.error((err as Error).message, {
+      method: "getNewRepacksFromOnlineFix",
+    });
   }
 
   const newRepacks = repacks.filter(

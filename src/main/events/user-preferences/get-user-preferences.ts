@@ -1,7 +1,7 @@
 import { userPreferencesRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
 
-const getUserPreferences = async (_event: Electron.IpcMainInvokeEvent) =>
+const getUserPreferences = async () =>
   userPreferencesRepository.findOne({
     where: { id: 1 },
   });

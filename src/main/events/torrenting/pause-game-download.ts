@@ -24,7 +24,7 @@ const pauseGameDownload = async (
     .then((result) => {
       if (result.affected) {
         writePipe.write({ action: "pause" });
-        WindowManager.mainWindow.setProgressBar(-1);
+        WindowManager.mainWindow?.setProgressBar(-1);
       }
     });
 };

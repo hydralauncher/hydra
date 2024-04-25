@@ -25,3 +25,5 @@ export const AsyncImage = forwardRef<HTMLImageElement, AsyncImageProps>(
     return <img ref={ref} {...props} src={source ?? props.src} />;
   }
 );
+
+AsyncImage.displayName = "AsyncImage";

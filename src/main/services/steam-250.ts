@@ -7,17 +7,16 @@ export const requestSteam250 = async (path: string) => {
     const { window } = new JSDOM(response.data);
     const { document } = window;
 
-    return Array.from(document.querySelectorAll(".appline .title a")).map(
-      ($title: HTMLAnchorElement) => {
-        const steamGameUrl = $title.href;
-        if (!steamGameUrl) return null;
+    return Array.from(document.querySelectorAll(".appline .title a"))
+      .filter(($title) => Boolean(($title as HTMLAnchorElement).href))
+      .map(($title) => {
+        const steamGameUrl = ($title as HTMLAnchorElement).href;
 
         return {
           title: $title.textContent,
           objectID: steamGameUrl.split("/").pop(),
         };
-      }
-    );
+      });
   });
 };
 

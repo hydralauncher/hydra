@@ -6,7 +6,7 @@ import { registerEvent } from "../register-event";
 import { searchGames, searchRepacks } from "../helpers/search-games";
 import { formatName } from "@main/helpers";
 
-const getRandomGame = async (_event: Electron.IpcMainInvokeEvent) => {
+const getRandomGame = async () => {
   return getRandomSteam250List().then(async (games) => {
     const shuffledList = shuffle(games);
 

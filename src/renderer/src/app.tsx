@@ -12,7 +12,7 @@ import {
 import * as styles from "./app.css";
 import { themeClass } from "./theme.css";
 
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   setSearch,
   clearSearch,
