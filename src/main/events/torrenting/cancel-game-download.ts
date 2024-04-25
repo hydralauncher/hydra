@@ -25,14 +25,13 @@ const cancelGameDownload = async (
 
   if (!game) return;
 
-  gameRepository
+  await gameRepository
     .update(
       {
         id: game.id,
       },
       {
         status: GameStatus.Cancelled,
-        downloadPath: null,
         bytesDownloaded: 0,
         progress: 0,
       }
