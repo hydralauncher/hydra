@@ -52,7 +52,7 @@ jobs:
         with:
           vt_api_key: ${{ secrets.VT_API_KEY }}
           files: |
-            .exe$
+            ./hydra-download-manager/hydra-download-manager.exe
 
       # - name: Publish
       #   run: yarn run publish
