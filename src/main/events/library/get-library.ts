@@ -5,9 +5,12 @@ import { searchRepacks } from "../helpers/search-games";
 import { registerEvent } from "../register-event";
 import { sortBy } from "lodash-es";
 
-const getLibrary = async (_event: Electron.IpcMainInvokeEvent) =>
+const getLibrary = async () =>
   gameRepository
     .find({
+      where: {
+        isDeleted: false,
+      },
       order: {
         createdAt: "desc",
       },

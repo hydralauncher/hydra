@@ -40,7 +40,7 @@ export class Game {
   shop: GameShop;
 
   @Column("text", { nullable: true })
-  status: string;
+  status: string | null;
 
   @Column("float", { default: 0 })
   progress: number;
@@ -60,6 +60,9 @@ export class Game {
   @OneToOne(() => Repack, { nullable: true })
   @JoinColumn()
   repack: Repack;
+
+  @Column("boolean", { default: false })
+  isDeleted: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

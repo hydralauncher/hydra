@@ -2,6 +2,7 @@ import { app, BrowserWindow } from "electron";
 import { init } from "@sentry/electron/main";
 import i18n from "i18next";
 import path from "node:path";
+import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { resolveDatabaseUpdates, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
@@ -49,8 +50,10 @@ if (process.defaultApp) {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  electronApp.setAppUserModelId("site.hydralauncher.hydra");
+
   dataSource.initialize().then(async () => {
-    // await resolveDatabaseUpdates();
+    await resolveDatabaseUpdates();
 
     await import("./main");
 
@@ -59,8 +62,12 @@ app.whenReady().then(() => {
     });
 
     WindowManager.createMainWindow();
-    // WindowManager.createSystemTray(userPreferences?.language || "en");
+    WindowManager.createSystemTray(userPreferences?.language || "en");
   });
+});
+
+app.on("browser-window-created", (_, window) => {
+  optimizer.watchWindowShortcuts(window);
 });
 
 app.on("second-instance", (_event, commandLine) => {
