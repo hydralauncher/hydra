@@ -19,17 +19,17 @@ export const getNewRepacksFromCPG = async (
   try {
     Array.from(window.document.querySelectorAll(".post")).forEach(($post) => {
       const $title = $post.querySelector(".entry-title");
-      const uploadDate = $post.querySelector("time").getAttribute("datetime");
+      const uploadDate = $post.querySelector("time")?.getAttribute("datetime");
 
       const $downloadInfo = Array.from(
         $post.querySelectorAll(".wp-block-heading")
-      ).find(($heading) => $heading.textContent.startsWith("Download"));
+      ).find(($heading) => $heading.textContent?.startsWith("Download"));
 
       /* Side note: CPG often misspells "Magnet" as "Magent" */
       const $magnet = Array.from($post.querySelectorAll("a")).find(
         ($a) =>
-          $a.textContent.startsWith("Magnet") ||
-          $a.textContent.startsWith("Magent")
+          $a.textContent?.startsWith("Magnet") ||
+          $a.textContent?.startsWith("Magent")
       );
 
       const fileSize = $downloadInfo.textContent

@@ -12,13 +12,16 @@ export class WindowManager {
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
     if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      this.mainWindow.loadURL(
+      this.mainWindow?.loadURL(
         `${process.env["ELECTRON_RENDERER_URL"]}#/${hash}`
       );
     } else {
-      this.mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"), {
-        hash,
-      });
+      this.mainWindow?.loadFile(
+        path.join(__dirname, "../renderer/index.html"),
+        {
+          hash,
+        }
+      );
     }
   }
 
@@ -47,7 +50,7 @@ export class WindowManager {
     this.mainWindow.removeMenu();
 
     this.mainWindow.on("close", () => {
-      WindowManager.mainWindow.setProgressBar(-1);
+      WindowManager.mainWindow?.setProgressBar(-1);
     });
   }
 
@@ -55,8 +58,8 @@ export class WindowManager {
     if (!this.mainWindow) this.createMainWindow();
     this.loadURL(hash);
 
-    if (this.mainWindow.isMinimized()) this.mainWindow.restore();
-    this.mainWindow.focus();
+    if (this.mainWindow?.isMinimized()) this.mainWindow.restore();
+    this.mainWindow?.focus();
   }
 
   public static createSystemTray(language: string) {
@@ -93,10 +96,10 @@ export class WindowManager {
     if (process.platform === "win32") {
       tray.addListener("click", () => {
         if (this.mainWindow) {
-          if (WindowManager.mainWindow.isMinimized())
+          if (WindowManager.mainWindow?.isMinimized())
             WindowManager.mainWindow.restore();
 
-          WindowManager.mainWindow.focus();
+          WindowManager.mainWindow?.focus();
           return;
         }
 

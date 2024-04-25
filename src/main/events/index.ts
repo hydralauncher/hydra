@@ -25,7 +25,6 @@ import "./torrenting/cancel-game-download";
 import "./torrenting/pause-game-download";
 import "./torrenting/resume-game-download";
 import "./torrenting/start-game-download";
-import "./torrenting/remove-game-from-download";
 import "./user-preferences/get-user-preferences";
 import "./user-preferences/update-user-preferences";
 
