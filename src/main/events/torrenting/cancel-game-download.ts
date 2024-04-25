@@ -42,7 +42,7 @@ const cancelGameDownload = async (
         game.status !== GameStatus.Seeding
       ) {
         writePipe.write({ action: "cancel" });
-        if (result.affected) WindowManager.mainWindow.setProgressBar(-1);
+        if (result.affected) WindowManager.mainWindow?.setProgressBar(-1);
       }
     });
 };
