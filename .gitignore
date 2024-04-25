@@ -7,3 +7,4 @@ out
 .DS_Store
 *.log*
 .env
+.vite

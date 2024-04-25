@@ -19,15 +19,15 @@ import { useAppDispatch, useDownload } from "@renderer/hooks";
 import starsAnimation from "@renderer/assets/lottie/stars.json";
 
 import { vars } from "../../theme.css";
+import Lottie from "lottie-react";
 import { useTranslation } from "react-i18next";
 import { SkeletonTheme } from "react-loading-skeleton";
+import { DescriptionHeader } from "./description-header";
 import { GameDetailsSkeleton } from "./game-details-skeleton";
 import * as styles from "./game-details.css";
 import { HeroPanel } from "./hero-panel";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { RepacksModal } from "./repacks-modal";
-import Lottie from "lottie-react";
-import { DescriptionHeader } from "./description-header";
 
 export function GameDetails() {
   const { objectID, shop } = useParams();
@@ -51,6 +51,7 @@ export function GameDetails() {
   const { t, i18n } = useTranslation("game_details");
 
   const [showRepacksModal, setShowRepacksModal] = useState(false);
+  const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
 
   const randomGameObjectID = useRef<string | null>(null);
 
@@ -140,15 +141,20 @@ export function GameDetails() {
     };
   }, [game?.id, isGamePlaying, getGame]);
 
-  const handleStartDownload = async (repackId: number) => {
+  const handleStartDownload = async (
+    repackId: number,
+    downloadPath: string
+  ) => {
     return startDownload(
       repackId,
       gameDetails.objectID,
       gameDetails.name,
-      shop as GameShop
+      shop as GameShop,
+      downloadPath
     ).then(() => {
       getGame();
       setShowRepacksModal(false);
+      setShowSelectFolderModal(false);
     });
   };
 
@@ -173,6 +179,8 @@ export function GameDetails() {
           visible={showRepacksModal}
           gameDetails={gameDetails}
           startDownload={handleStartDownload}
+          showSelectFolderModal={showSelectFolderModal}
+          setShowSelectFolderModal={setShowSelectFolderModal}
           onClose={() => setShowRepacksModal(false)}
         />
       )}

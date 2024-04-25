@@ -77,7 +77,13 @@
     "play": "Play",
     "deleting": "Deleting installer…",
     "close": "Close",
-    "playing_now": "Playing now"
+    "playing_now": "Playing now",
+    "change": "Change",
+    "repacks_modal_description": "Choose the repack you want to download",
+    "downloads_path": "Downloads path",
+    "select_folder_hint": "To change the default folder, access the",
+    "settings": "Hydra settings",
+    "download_now": "Download now"
   },
   "activation": {
     "title": "Activate Hydra",

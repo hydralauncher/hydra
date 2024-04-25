@@ -3,8 +3,12 @@
   "version": "1.0.0",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
-  "author": "Hydra Launcher",
+  "author": "Los Broxas",
   "homepage": "https://electron-vite.org",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hydralauncher/hydra.git"
+  },
   "type": "module",
   "scripts": {
     "format": "prettier --write .",
@@ -61,7 +65,7 @@
     "@electron-toolkit/tsconfig": "^1.0.1",
     "@swc/core": "^1.4.16",
     "@types/lodash-es": "^4.17.12",
-    "@types/node": "^18.19.9",
+    "@types/node": "^20.12.7",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
     "@vanilla-extract/vite-plugin": "^4.0.7",

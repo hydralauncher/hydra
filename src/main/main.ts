@@ -4,7 +4,7 @@ import {
   getNewGOGGames,
   getNewRepacksFromCPG,
   getNewRepacksFromUser,
-  getNewRepacksFromXatab,
+  // getNewRepacksFromXatab,
   // getNewRepacksFromOnlineFix,
   readPipe,
   startProcessWatcher,
@@ -73,9 +73,9 @@ const checkForNewRepacks = async () => {
     getNewGOGGames(
       existingRepacks.filter((repack) => repack.repacker === "GOG")
     ),
-    getNewRepacksFromXatab(
-      existingRepacks.filter((repack) => repack.repacker === "Xatab")
-    ),
+    // getNewRepacksFromXatab(
+    //   existingRepacks.filter((repack) => repack.repacker === "Xatab")
+    // ),
     getNewRepacksFromCPG(
       existingRepacks.filter((repack) => repack.repacker === "CPG")
     ),

@@ -16,8 +16,6 @@ const getGames = async (
 
   let i = 0 + cursor;
 
-  if (!steamGames.length) return [];
-
   while (results.length < take) {
     const game = steamGames[i];
     const repacks = searchRepacks(game.name);

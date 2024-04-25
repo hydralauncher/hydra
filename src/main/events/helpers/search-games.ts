@@ -7,8 +7,8 @@ import { formatName, getSteamAppAsset, repackerFormatter } from "@main/helpers";
 import { stateManager } from "@main/state-manager";
 
 const { Index } = flexSearch;
-const repacksIndex = new Index({ tokenize: "strict" });
-const steamGamesIndex = new Index({ tokenize: "forward" });
+const repacksIndex = new Index();
+const steamGamesIndex = new Index({ tokenize: "reverse" });
 
 const repacks = stateManager.getValue("repacks");
 const steamGames = stateManager.getValue("steamGames");
@@ -20,8 +20,6 @@ for (let i = 0; i < repacks.length; i++) {
 
   repacksIndex.add(i, formatName(formatter(repack.title)));
 }
-
-console.log(true);
 
 for (let i = 0; i < steamGames.length; i++) {
   const steamGame = steamGames[i];

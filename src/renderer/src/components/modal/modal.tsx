@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { XIcon } from "@primer/octicons-react";
 
@@ -23,8 +23,9 @@ export function Modal({
 }: ModalProps) {
   const [isClosing, setIsClosing] = useState(false);
   const dispatch = useAppDispatch();
+  const modalContentRef = useRef<HTMLDivElement | null>(null);
 
-  const handleCloseClick = () => {
+  const handleCloseClick = useCallback(() => {
     setIsClosing(true);
     const zero = performance.now();
 
@@ -36,7 +37,43 @@ export function Modal({
         setIsClosing(false);
       }
     });
+  }, [onClose]);
+
+  const isTopMostModal = () => {
+    const openModals = document.querySelectorAll("[role=modal]");
+    return (
+      openModals.length &&
+      openModals[openModals.length - 1] === modalContentRef.current
+    );
   };
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isTopMostModal()) {
+        handleCloseClick();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleCloseClick]);
+
+  useEffect(() => {
+    const onMouseDown = (e: MouseEvent) => {
+      if (!isTopMostModal()) return;
+
+      const clickedOutsideContent = !modalContentRef.current.contains(
+        e.target as Node
+      );
+
+      if (clickedOutsideContent) {
+        handleCloseClick();
+      }
+    };
+
+    window.addEventListener("mousedown", onMouseDown);
+    return () => window.removeEventListener("mousedown", onMouseDown);
+  }, [handleCloseClick]);
 
   useEffect(() => {
     dispatch(toggleDragging(visible));
@@ -46,7 +83,11 @@ export function Modal({
 
   return createPortal(
     <div className={styles.backdrop({ closing: isClosing })}>
-      <div className={styles.modal({ closing: isClosing })}>
+      <div
+        className={styles.modal({ closing: isClosing })}
+        role="modal"
+        ref={modalContentRef}
+      >
         <div className={styles.modalHeader}>
           <div style={{ display: "flex", gap: 4, flexDirection: "column" }}>
             <h3>{title}</h3>
