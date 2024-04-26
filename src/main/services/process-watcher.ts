@@ -4,18 +4,18 @@ import { IsNull, Not } from "typeorm";
 import { gameRepository } from "@main/repository";
 import { getProcesses } from "@main/helpers";
 import { WindowManager } from "./window-manager";
+import { app } from "electron";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const startProcessWatcher = async () => {
-  const sleepTime = 100;
+  const sleepTime = 300;
   const gamesPlaytime = new Map<number, number>();
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
     await sleep(sleepTime);
 
-    console.time("loopTotalTime");
     const games = await gameRepository.find({
       where: {
         executablePath: Not(IsNull()),
@@ -26,9 +26,7 @@ export const startProcessWatcher = async () => {
       continue;
     }
 
-    console.time("getProcesses");
-    const processes = await getProcesses();
-    console.timeEnd("getProcesses");
+    const processes = await getProcesses(app.isPackaged);
 
     for (const game of games) {
       const basename = path.win32.basename(game.executablePath);
@@ -73,6 +71,5 @@ export const startProcessWatcher = async () => {
         }
       }
     }
-    console.timeEnd("loopTotalTime");
   }
 };

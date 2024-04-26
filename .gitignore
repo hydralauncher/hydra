@@ -106,3 +106,6 @@ resources/dist/
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Fastlist binary
+resources/fastlist.exe

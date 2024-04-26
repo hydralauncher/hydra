@@ -17,7 +17,8 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint .",
-    "format": "prettier . --write"
+    "format": "prettier . --write",
+    "postinstall": "python3 ./postinstall.py"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.3.0",
