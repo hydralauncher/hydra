@@ -30,7 +30,6 @@ const config: ForgeConfig = {
     executableName: "Hydra",
     extraResource: [
       "./resources/hydra.db",
-      "./resources/fastlist.exe",
       "./resources/icon_tray.png",
       "./resources/dist",
     ],
