@@ -9,8 +9,8 @@ const execFile = promisify(childProcess.execFile);
 export const getProcesses = async (isPackaged: boolean) => {
   if (process.platform == "win32") {
     const binaryPath = isPackaged
-      ? path.join(process.resourcesPath, "fastlist.exe")
-      : path.join(__dirname, "..", "..", "resources", "fastlist.exe");
+      ? path.join(process.resourcesPath, "dist", "fastlist.exe")
+      : path.join(__dirname, "..", "..", "resources", "dist", "fastlist.exe");
 
     const { stdout } = await execFile(binaryPath, {
       maxBuffer: TEN_MEGABYTES,
