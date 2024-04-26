@@ -4,12 +4,13 @@ import { gameRepository } from "@main/repository";
 
 import { registerEvent } from "../register-event";
 import { getProcesses } from "@main/helpers";
+import { app } from "electron";
 
 const closeGame = async (
   _event: Electron.IpcMainInvokeEvent,
   gameId: number
 ) => {
-  const processes = await getProcesses();
+  const processes = await getProcesses(app.isPackaged);
   const game = await gameRepository.findOne({ where: { id: gameId } });
 
   const gameProcess = processes.find((runningProcess) => {
