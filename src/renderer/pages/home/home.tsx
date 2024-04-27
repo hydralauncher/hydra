@@ -58,14 +58,12 @@ export function Home() {
   const getRandomGame = useCallback(() => {
     setIsLoadingRandomGame(true);
 
-    window.electron
-      .getRandomGame()
-      .then((objectID) => {
+    window.electron.getRandomGame().then((objectID) => {
+      if (objectID) {
         randomGameObjectID.current = objectID;
-      })
-      .finally(() => {
         setIsLoadingRandomGame(false);
-      });
+      }
+    });
   }, []);
 
   const handleRandomizerClick = () => {
