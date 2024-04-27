@@ -6,7 +6,7 @@ import { registerEvent } from "../register-event";
 import { searchGames, searchRepacks } from "../helpers/search-games";
 import { formatName } from "@main/helpers";
 
-let gamesList = new Array<Steam250Game>();
+let gamesList: Steam250Game[] = [];
 let nextGameIndex = 0;
 
 const getRandomGame = async (_event: Electron.IpcMainInvokeEvent) => {
@@ -24,15 +24,15 @@ const getRandomGame = async (_event: Electron.IpcMainInvokeEvent) => {
     const repacks = searchRepacks(formatName(game.title));
 
     if (repacks.length) {
-      const results = await searchGames({ query: game.title });
+      const catalogueResults = await searchGames({ query: game.title });
 
-      if (results.length) {
-        resultObjectId = results[0].objectID;
+      if (catalogueResults.length) {
+        resultObjectId = catalogueResults[0].objectID;
       }
     }
     nextGameIndex += 1;
 
-    if (nextGameIndex == gamesList.length - 1) {
+    if (nextGameIndex == gamesList.length) {
       nextGameIndex = 0;
       gamesList = shuffle(gamesList);
     }

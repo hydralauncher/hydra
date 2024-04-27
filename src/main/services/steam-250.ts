@@ -11,17 +11,17 @@ export const requestSteam250 = async (path: string) => {
     const { window } = new JSDOM(response.data);
     const { document } = window;
 
-    return Array.from(document.querySelectorAll(".appline .title a")).map(
-      ($title: HTMLAnchorElement) => {
+    return Array.from(document.querySelectorAll(".appline .title a"))
+      .map(($title: HTMLAnchorElement) => {
         const steamGameUrl = $title.href;
         if (!steamGameUrl) return null;
 
         return {
           title: $title.textContent,
           objectID: steamGameUrl.split("/").pop(),
-        };
-      }
-    );
+        } as Steam250Game;
+      })
+      .filter((game) => game != null);
   });
 };
 
