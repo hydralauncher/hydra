@@ -4,7 +4,6 @@ import { IsNull, Not } from "typeorm";
 import { gameRepository } from "@main/repository";
 import { getProcesses } from "@main/helpers";
 import { WindowManager } from "./window-manager";
-import { app } from "electron";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -26,7 +25,7 @@ export const startProcessWatcher = async () => {
       continue;
     }
 
-    const processes = await getProcesses(app.isPackaged);
+    const processes = await getProcesses();
 
     for (const game of games) {
       const basename = path.win32.basename(game.executablePath);
