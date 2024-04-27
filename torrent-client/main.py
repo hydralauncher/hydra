@@ -1,20 +1,20 @@
-import libtorrent as lt
 import sys
 from fifo import Fifo
 import json
 import threading
 import time
+from torrent_downloader import TorrentDownloader
 
 torrent_port = sys.argv[1]
 read_sock_path = sys.argv[2]
 write_sock_path = sys.argv[3]
 
-session = lt.session({'listen_interfaces': '0.0.0.0:{port}'.format(port=torrent_port)})
 read_fifo = Fifo(read_sock_path)
 write_fifo = Fifo(write_sock_path)
 
-torrent_handle = None
 downloading_game_id = 0
+
+torrent_downloader = TorrentDownloader(torrent_port)
 
 def get_eta(status):
     remaining_bytes = status.total_wanted - status.total_wanted_done
@@ -25,31 +25,23 @@ def get_eta(status):
         return 1
 
 def start_download(game_id: int, magnet: str, save_path: str):
-    global torrent_handle
     global downloading_game_id
 
-    params = {'url': magnet, 'save_path': save_path}
-    torrent_handle = session.add_torrent(params)
     downloading_game_id = game_id
-    torrent_handle.set_flags(lt.torrent_flags.auto_managed)
-    torrent_handle.resume()
+    torrent_downloader.start_download(magnet, save_path)
 
 def pause_download():
     global downloading_game_id
 
-    if torrent_handle:
-        torrent_handle.pause()
-        torrent_handle.unset_flags(lt.torrent_flags.auto_managed)
+    if torrent_downloader.get_handler():
+        torrent_downloader.pause_download()
         downloading_game_id = 0
 
 def cancel_download():
     global downloading_game_id
-    global torrent_handle
 
-    if torrent_handle:
-        torrent_handle.pause()
-        session.remove_torrent(torrent_handle)
-        torrent_handle = None
+    if torrent_downloader.get_handler():
+        torrent_downloader.cancel_download()
         downloading_game_id = 0
 
 def get_download_updates():
@@ -58,8 +50,8 @@ def get_download_updates():
             time.sleep(0.5)
             continue
 
-        status = torrent_handle.status()
-        info = torrent_handle.get_torrent_info()
+        status = torrent_downloader.get_handler().status()
+        info = torrent_downloader.get_handler().get_torrent_info()
 
         write_fifo.send_message(json.dumps({
             'folderName': info.name() if info else "",
