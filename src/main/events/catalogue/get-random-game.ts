@@ -27,7 +27,7 @@ const getRandomGame = async (_event: Electron.IpcMainInvokeEvent) => {
       const catalogueResults = await searchGames({ query: game.title });
 
       if (catalogueResults.length) {
-        resultObjectId = catalogueResults[0].objectID;
+        resultObjectId = game.objectID;
       }
     }
     nextGameIndex += 1;
