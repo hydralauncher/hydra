@@ -35,5 +35,11 @@ const steam250Paths = [
 export const getSteam250List = async () => {
   const gamesPromises = steam250Paths.map((path) => requestSteam250(path));
   const gamesList = (await Promise.all(gamesPromises)).flat();
-  return [...new Set(gamesList)];
+
+  const gamesMap = gamesList.reduce((map, item) => {
+    map.set(item.objectID, item);
+    return map;
+  }, new Map<string, Steam250Game>());
+
+  return [...gamesMap.values()];
 };
