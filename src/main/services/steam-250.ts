@@ -1,6 +1,10 @@
 import axios from "axios";
 import { JSDOM } from "jsdom";
-import shuffle from "lodash/shuffle";
+
+export interface Steam250Game {
+  title: string;
+  objectID: string;
+}
 
 export const requestSteam250 = async (path: string) => {
   return axios.get(`https://steam250.com${path}`).then((response) => {
@@ -28,7 +32,8 @@ const steam250Paths = [
   "/most_played",
 ];
 
-export const getRandomSteam250List = async () => {
-  const [path] = shuffle(steam250Paths);
-  return requestSteam250(path);
+export const getSteam250List = async () => {
+  const gamesPromises = steam250Paths.map((path) => requestSteam250(path));
+  const gamesList = (await Promise.all(gamesPromises)).flat();
+  return [...new Set(gamesList)];
 };
