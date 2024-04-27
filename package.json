@@ -18,7 +18,7 @@
     "publish": "electron-forge publish",
     "lint": "eslint .",
     "format": "prettier . --write",
-    "postinstall": "python3 ./postinstall.py"
+    "postinstall": "node ./postinstall.js"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.3.0",
