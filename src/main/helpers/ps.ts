@@ -2,13 +2,14 @@ import psList from "ps-list";
 import path from "node:path";
 import childProcess from "node:child_process";
 import { promisify } from "node:util";
+import { app } from "electron";
 
 const TEN_MEGABYTES = 1000 * 1000 * 10;
 const execFile = promisify(childProcess.execFile);
 
-export const getProcesses = async (isPackaged: boolean) => {
+export const getProcesses = async () => {
   if (process.platform == "win32") {
-    const binaryPath = isPackaged
+    const binaryPath = app.isPackaged
       ? path.join(process.resourcesPath, "dist", "fastlist.exe")
       : path.join(__dirname, "..", "..", "resources", "dist", "fastlist.exe");
 
