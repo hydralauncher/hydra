@@ -53,17 +53,9 @@ export function GameDetails() {
   const [showRepacksModal, setShowRepacksModal] = useState(false);
   const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
 
-  const randomGameObjectID = useRef<string | null>(null);
-
   const dispatch = useAppDispatch();
 
   const { game: gameDownloading, startDownload, isDownloading } = useDownload();
-
-  const getRandomGame = useCallback(() => {
-    window.electron.getRandomGame().then((objectID) => {
-      randomGameObjectID.current = objectID;
-    });
-  }, []);
 
   const handleImageSettled = useCallback((url: string) => {
     average(url, { amount: 1, format: "hex" })
@@ -89,8 +81,6 @@ export function GameDetails() {
     setIsGamePlaying(false);
     dispatch(setHeaderTitle(""));
 
-    getRandomGame();
-
     window.electron
       .getGameShopDetails(objectID, "steam", getSteamLanguage(i18n.language))
       .then((result) => {
@@ -114,7 +104,7 @@ export function GameDetails() {
 
     getGame();
     setHowLongToBeat({ isLoading: true, data: null });
-  }, [getGame, getRandomGame, dispatch, navigate, objectID, i18n.language]);
+  }, [getGame, dispatch, navigate, objectID, i18n.language]);
 
   const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
@@ -158,16 +148,14 @@ export function GameDetails() {
     });
   };
 
-  const handleRandomizerClick = () => {
-    if (!randomGameObjectID.current) return;
+  const handleRandomizerClick = async () => {
+    const randomGameObjectID = await window.electron.getRandomGame();
 
     const searchParams = new URLSearchParams({
       fromRandomizer: "1",
     });
 
-    navigate(
-      `/game/steam/${randomGameObjectID.current}?${searchParams.toString()}`
-    );
+    navigate(`/game/steam/${randomGameObjectID}?${searchParams.toString()}`);
   };
 
   const fromRandomizer = searchParams.get("fromRandomizer");
