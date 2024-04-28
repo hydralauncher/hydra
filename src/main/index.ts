@@ -34,9 +34,14 @@ Promise.all([writePipe.createPipe(), readPipe.createPipe()]).then(async () => {
         GameStatus.Downloading,
         GameStatus.DownloadingMetadata,
         GameStatus.CheckingFiles,
+        GameStatus.DebridCaching,
       ]),
     },
     relations: { repack: true },
+  });
+
+  const userPreferences = await userPreferencesRepository.findOne({
+    where: { id: 1 },
   });
 
   if (game) {
@@ -45,6 +50,8 @@ Promise.all([writePipe.createPipe(), readPipe.createPipe()]).then(async () => {
       game_id: game.id,
       magnet: game.repack.magnet,
       save_path: game.downloadPath,
+      debrid_enabled: userPreferences?.debridServicesEnabled ?? false,
+      debrid_api_key: userPreferences?.realDebridAPIKey ?? "",
     });
   }
 

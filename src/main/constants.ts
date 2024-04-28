@@ -41,6 +41,7 @@ export enum GameStatus {
   CheckingFiles = "checking_files",
   DownloadingMetadata = "downloading_metadata",
   Cancelled = "cancelled",
+  DebridCaching = "debrid_caching",
 }
 
 export const defaultDownloadsPath = path.join(os.homedir(), "downloads");

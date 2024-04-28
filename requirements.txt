@@ -1,4 +1,5 @@
 libtorrent
+pySmartDL
 cx_Freeze
 cx_Logging; sys_platform == 'win32'
 lief; sys_platform == 'win32'

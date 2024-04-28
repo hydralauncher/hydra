@@ -1,5 +1,5 @@
 import { getSteamGameIconUrl, writePipe } from "@main/services";
-import { gameRepository, repackRepository } from "@main/repository";
+import {gameRepository, repackRepository, userPreferencesRepository} from "@main/repository";
 import { GameStatus } from "@main/constants";
 
 import { registerEvent } from "../register-event";
@@ -43,10 +43,15 @@ const startGameDownload = async (
         GameStatus.Downloading,
         GameStatus.DownloadingMetadata,
         GameStatus.CheckingFiles,
+        GameStatus.DebridCaching
       ]),
     },
     { status: GameStatus.Paused }
   );
+
+  const userPreferences = await userPreferencesRepository.findOne({
+    where: { id: 1 },
+  });
 
   if (game) {
     await gameRepository.update(
@@ -66,6 +71,8 @@ const startGameDownload = async (
       game_id: game.id,
       magnet: repack.magnet,
       save_path: downloadPath,
+      debrid_enabled: userPreferences?.debridServicesEnabled ?? false,
+      debrid_api_key: userPreferences?.realDebridAPIKey ?? "",
     });
 
     game.status = GameStatus.DownloadingMetadata;
@@ -89,6 +96,8 @@ const startGameDownload = async (
       game_id: createdGame.id,
       magnet: repack.magnet,
       save_path: downloadPath,
+      debrid_enabled: userPreferences?.debridServicesEnabled ?? false,
+      debrid_api_key: userPreferences?.realDebridAPIKey ?? "",
     });
 
     const { repack: _, ...rest } = createdGame;

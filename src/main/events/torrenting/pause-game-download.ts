@@ -17,6 +17,7 @@ const pauseGameDownload = async (
           GameStatus.Downloading,
           GameStatus.DownloadingMetadata,
           GameStatus.CheckingFiles,
+          GameStatus.DebridCaching,
         ]),
       },
       { status: GameStatus.Paused }

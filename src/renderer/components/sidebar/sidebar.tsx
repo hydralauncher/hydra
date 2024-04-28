@@ -57,7 +57,7 @@ export function Sidebar() {
   }, [gameDownloading?.id, updateLibrary]);
 
   const isDownloading = library.some((game) =>
-    ["downloading", "checking_files", "downloading_metadata"].includes(
+    ["downloading", "checking_files", "downloading_metadata", "debrid_caching"].includes(
       game.status
     )
   );
