@@ -47,7 +47,7 @@ export class TorrentClient {
     const commonArgs = [BITTORRENT_PORT, writePipePath, readPipePath];
 
     if (app.isPackaged) {
-      const binaryName = binaryNameByPlatform[process.platform];
+      const binaryName = binaryNameByPlatform[process.platform]!;
       const binaryPath = path.join(
         process.resourcesPath,
         "hydra-download-manager",
@@ -133,7 +133,7 @@ export class TorrentClient {
         relations: { repack: true },
       });
 
-      if (game.progress === 1) {
+      if (game?.progress === 1) {
         const userPreferences = await userPreferencesRepository.findOne({
           where: { id: 1 },
         });
@@ -153,7 +153,7 @@ export class TorrentClient {
         }
       }
 
-      if (WindowManager.mainWindow) {
+      if (WindowManager.mainWindow && game) {
         const progress = this.getGameProgress(game);
         WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
 

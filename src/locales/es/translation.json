@@ -16,8 +16,8 @@
     "paused": "{{title}} (Pausado)",
     "downloading": "{{title}} ({{percentage}} - Descargando…)",
     "filter": "Filtrar biblioteca",
-    "home": "Hogar",
-    "follow_us": "Síganos"
+    "home": "Inicio",
+    "follow_us": "Síguenos"
   },
   "header": {
     "search": "Buscar",
@@ -25,7 +25,7 @@
     "downloads": "Descargas",
     "search_results": "Resultados de búsqueda",
     "settings": "Ajustes",
-    "home": "Início"
+    "home": "Inicio"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Sin descargas en progreso",
@@ -70,7 +70,7 @@
     "install": "Instalar",
     "play": "Jugar",
     "not_played_yet": "Aún no has jugado a {{title}}",
-    "close": "Cerca",
+    "close": "Cerrar",
     "deleting": "Eliminando instalador…",
     "playing_now": "Jugando ahora",
     "last_time_played": "Jugado por última vez {{period}}"
@@ -100,7 +100,7 @@
     "checking_files": "Verificando archivos…",
     "starting_download": "Iniciando descarga…",
     "remove_from_list": "Eliminar",
-    "delete": "Quitar instalador",
+    "delete": "Eliminar instalador",
     "delete_modal_description": "Esto eliminará todos los archivos de instalación de su computadora.",
     "delete_modal_title": "¿Está seguro?",
     "deleting": "Eliminando instalador…",
@@ -112,8 +112,8 @@
     "notifications": "Notificaciones",
     "enable_download_notifications": "Cuando se completa una descarga",
     "enable_repack_list_notifications": "Cuando se añade un repack nuevo",
-    "telemetry": "Telemetria",
-    "telemetry_description": "Habilitar estadísticas de uso anónimas"
+    "telemetry": "Telemetría",
+    "telemetry_description": "Habilitar recopilación de datos de manera anónima"
   },
   "notifications": {
     "download_complete": "Descarga completada",
@@ -132,7 +132,7 @@
   "binary_not_found_modal": {
     "title": "Programas no instalados",
     "description": "Los ejecutables de Wine o Lutris no se encontraron en su sistema",
-    "instructions": "Comprueba la forma correcta de instalar cualquiera de ellos en tu distro Linux para que el juego pueda ejecutarse con normalidad"
+    "instructions": "Comprueba como instalar de forma correcta uno de los dos en tu distro de Linux para ejecutar el juego con normalidad"
   },
   "catalogue": {
     "next_page": "Siguiente página",

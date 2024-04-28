@@ -13,8 +13,8 @@ export const requestSteam250 = async (path: string) => {
         const steamGameUrl = ($title as HTMLAnchorElement).href;
 
         return {
-          title: $title.textContent,
-          objectID: steamGameUrl.split("/").pop(),
+          title: $title.textContent!,
+          objectID: steamGameUrl.split("/").pop()!,
         };
       });
   });
