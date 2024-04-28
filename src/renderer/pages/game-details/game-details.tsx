@@ -33,6 +33,7 @@ export function GameDetails() {
   const { objectID, shop } = useParams();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingRandomGame, setIsLoadingRandomGame] = useState(false);
   const [color, setColor] = useState("");
   const [gameDetails, setGameDetails] = useState<ShopDetails | null>(null);
   const [howLongToBeat, setHowLongToBeat] = useState<{
@@ -97,6 +98,7 @@ export function GameDetails() {
 
         setGameDetails(result);
         dispatch(setHeaderTitle(result.name));
+        setIsLoadingRandomGame(false);
       })
       .finally(() => {
         setIsLoading(false);
@@ -149,6 +151,7 @@ export function GameDetails() {
   };
 
   const handleRandomizerClick = async () => {
+    setIsLoadingRandomGame(true);
     const randomGameObjectID = await window.electron.getRandomGame();
 
     const searchParams = new URLSearchParams({
@@ -269,6 +272,7 @@ export function GameDetails() {
           className={styles.randomizerButton}
           onClick={handleRandomizerClick}
           theme="outline"
+          disabled={isLoadingRandomGame}
         >
           <div style={{ width: 16, height: 16, position: "relative" }}>
             <Lottie
