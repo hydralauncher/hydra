@@ -42,7 +42,6 @@ export interface SearchGamesArgs {
   skip?: number;
 }
 
-// Check if this function really needed to be an async function
 export const searchGames = ({
   query,
   take,

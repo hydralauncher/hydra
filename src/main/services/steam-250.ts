@@ -25,7 +25,7 @@ export const requestSteam250 = async (path: string) => {
         })
         .filter((game) => game != null);
     })
-    .catch((_) => []);
+    .catch((_) => [] as Steam250Game[]);
 };
 
 const steam250Paths = [
