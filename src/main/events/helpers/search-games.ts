@@ -42,11 +42,12 @@ export interface SearchGamesArgs {
   skip?: number;
 }
 
-export const searchGames = async ({
+// Check if this function really needed to be an async function
+export const searchGames = ({
   query,
   take,
   skip,
-}: SearchGamesArgs): Promise<CatalogueEntry[]> => {
+}: SearchGamesArgs): CatalogueEntry[] => {
   const results = steamGamesIndex
     .search(formatName(query || ""), { limit: take, offset: skip })
     .map((index) => {
@@ -61,11 +62,9 @@ export const searchGames = async ({
       };
     });
 
-  return Promise.all(results).then((resultsWithRepacks) =>
-    orderBy(
-      resultsWithRepacks,
-      [({ repacks }) => repacks.length, "repacks"],
-      ["desc"]
-    )
+  return orderBy(
+    results,
+    [({ repacks }) => repacks.length, "repacks"],
+    ["desc"]
   );
 };
