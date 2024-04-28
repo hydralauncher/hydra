@@ -22,6 +22,13 @@ import { Repack } from "./entity";
 import { Notification } from "electron";
 import { t } from "i18next";
 import { In } from "typeorm";
+import creatWorker from "./workers/test?nodeWorker";
+
+creatWorker({ workerData: "worker" })
+  .on("message", (message) => {
+    console.log(`\nMessage from worker: ${message}`);
+  })
+  .postMessage("");
 
 startProcessWatcher();
 
