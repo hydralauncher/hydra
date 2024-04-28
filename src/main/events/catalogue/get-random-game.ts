@@ -4,37 +4,35 @@ import { Steam250Game, getSteam250List } from "@main/services";
 
 import { registerEvent } from "../register-event";
 import { searchGames, searchRepacks } from "../helpers/search-games";
-import { formatName } from "@main/helpers";
 
 let gamesList: Steam250Game[] = [];
 let nextGameIndex = 0;
 
 const getRandomGame = async (_event: Electron.IpcMainInvokeEvent) => {
   if (gamesList.length == 0) {
-    console.log("fetching steam 250 pages");
-    gamesList = shuffle(await getSteam250List());
-  } else {
-    console.log("getting cached list");
+    const steam250List = await getSteam250List();
+
+    const filteredSteam250List = steam250List.filter((game) => {
+      const repacks = searchRepacks(game.title);
+      const catalogue = searchGames({ query: game.title });
+
+      return repacks.length && catalogue.length;
+    });
+
+    gamesList = shuffle(filteredSteam250List);
   }
 
-  let resultObjectId = "";
+  if (gamesList.length == 0) {
+    return "";
+  }
 
-  while (!resultObjectId) {
-    const nextGame = gamesList[nextGameIndex];
-    const repacks = searchRepacks(formatName(nextGame.title));
+  const resultObjectId = gamesList[nextGameIndex].objectID;
 
-    if (repacks.length) {
-      const catalogueResults = await searchGames({ query: nextGame.title });
-      if (catalogueResults.length) {
-        resultObjectId = nextGame.objectID;
-      }
-    }
-    nextGameIndex += 1;
+  nextGameIndex += 1;
 
-    if (nextGameIndex == gamesList.length) {
-      nextGameIndex = 0;
-      gamesList = shuffle(gamesList);
-    }
+  if (nextGameIndex == gamesList.length) {
+    nextGameIndex = 0;
+    gamesList = shuffle(gamesList);
   }
 
   return resultObjectId;
