@@ -48,7 +48,7 @@ pip install -r requirements.txt
 
 ## Environment variables
 
-You'll need an SteamGridDB API Key in order to fetch the game icons on installation.
+You'll need a SteamGridDB API Key in order to fetch the game icons on installation.
 If you want to have onlinefix as a repacker you'll need to add your credentials to the .env
 
 Once you have it, you can paste the `.env.example` file and put it on `STEAMGRIDDB_API_KEY`, `ONLINEFIX_USERNAME`, `ONLINEFIX_PASSWORD`.
