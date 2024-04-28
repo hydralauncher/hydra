@@ -34,6 +34,7 @@
     "@reduxjs/toolkit": "^2.2.3",
     "@sentry/electron": "^4.23.0",
     "@sentry/react": "^7.111.0",
+    "@sentry/vite-plugin": "^2.16.1",
     "@vanilla-extract/css": "^1.14.2",
     "@vanilla-extract/recipes": "^0.5.2",
     "axios": "^1.6.8",
