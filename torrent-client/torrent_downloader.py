@@ -23,3 +23,27 @@ class TorrentDownloader:
         self.torrent_handler.pause()
         self.session.remove_torrent(self.torrent_handler)
         self.torrent_handler = None
+
+    def get_status(self, downloading_game_id):
+        info = self.torrent_handler.get_torrent_info()
+        status = self.torrent_handler.status()
+        return {
+            'folderName': info.name() if info else "",
+            'fileSize': info.total_size() if info else 0,
+            'gameId': downloading_game_id,
+            'progress': status.progress,
+            'downloadSpeed': status.download_rate,
+            'timeRemaining': self.__get_eta(status),
+            'numPeers': status.num_peers,
+            'numSeeds': status.num_seeds,
+            'status': status.state,
+            'bytesDownloaded': status.progress * info.total_size() if info else status.all_time_download,
+        }
+    
+    def __get_eta(self, status):
+        remaining_bytes = status.total_wanted - status.total_wanted_done
+
+        if remaining_bytes >= 0 and status.download_rate > 0:
+            return (remaining_bytes / status.download_rate) * 1000
+        else:
+            return 1

@@ -13,7 +13,7 @@ export function BottomPanel() {
 
   const navigate = useNavigate();
 
-  const { game, progress, downloadSpeed, eta, isDownloading } = useDownload();
+  const { game, progress, downloadSpeed, eta, isDownloading, debridCachingProgress } = useDownload();
 
   const [version, setVersion] = useState("");
 
@@ -30,6 +30,12 @@ export function BottomPanel() {
         return t("checking_files", {
           title: game.title,
           percentage: progress,
+        });
+
+      if (game.status === "debrid_caching")
+        return t("debrid_caching", {
+          title: game.title,
+          percentage: debridCachingProgress,
         });
 
       return t("downloading", {

@@ -2,7 +2,7 @@ from cx_Freeze import setup, Executable
 
 # Dependencies are automatically detected, but it might need fine tuning.
 build_exe_options = {
-    "packages": ["libtorrent"],
+    "packages": ["libtorrent", "pySmartDL"],
     "build_exe": "hydra-download-manager",
     "include_msvcr": True
 }

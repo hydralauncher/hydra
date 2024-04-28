@@ -12,6 +12,7 @@
     "settings": "Settings",
     "my_library": "My library",
     "downloading_metadata": "{{title}} (Downloading metadata…)",
+    "debrid_caching": "{{title}} ({{percentage}}% - Debrid caching…)",
     "checking_files": "{{title}} ({{percentage}} - Checking files…)",
     "paused": "{{title}} (Paused)",
     "downloading": "{{title}} ({{percentage}} - Downloading…)",
@@ -33,6 +34,7 @@
   "bottom_panel": {
     "no_downloads_in_progress": "No downloads in progress",
     "downloading_metadata": "Downloading {{title}} metadata…",
+    "debrid_caching": "Caching {{title}} in Debrid… ({{percentage}}% complete)",
     "checking_files": "Checking {{title}} files… ({{percentage}} complete)",
     "downloading": "Downloading {{title}}… ({{percentage}} complete) - Conclusion {{eta}} - {{speed}}"
   },
@@ -55,6 +57,7 @@
     "space_left_on_disk": "{{space}} left on disk",
     "eta": "Conclusion {{eta}}",
     "downloading_metadata": "Downloading metadata…",
+    "debrid_caching": "Caching in Debrid…",
     "checking_files": "Checking files…",
     "filter": "Filter repacks",
     "requirements": "System requirements",
@@ -120,6 +123,7 @@
     "filter": "Filter downloaded games",
     "remove": "Remove",
     "downloading_metadata": "Downloading metadata…",
+    "debrid_caching": "Caching in Debrid…",
     "checking_files": "Checking files…",
     "starting_download": "Starting download…",
     "deleting": "Deleting installer…",

@@ -23,6 +23,7 @@ enum TorrentState {
   Downloading = 3,
   Finished = 4,
   Seeding = 5,
+  DebridCaching = 6,
 }
 
 export interface TorrentUpdate {
@@ -36,6 +37,7 @@ export interface TorrentUpdate {
   folderName: string;
   fileSize: number;
   bytesDownloaded: number;
+  debridCachingProgress: number;
 }
 
 export const BITTORRENT_PORT = "5881";
@@ -91,6 +93,7 @@ export class TorrentClient {
       return "downloading_metadata";
     if (state === TorrentState.Finished) return "finished";
     if (state === TorrentState.Seeding) return "seeding";
+    if (state === TorrentState.DebridCaching) return "debrid_caching";
     return "";
   }
 
@@ -144,6 +147,10 @@ export class TorrentClient {
         )
       ) {
         updatePayload.progress = payload.progress;
+      }
+
+      if (payload.status === TorrentState.DebridCaching) {
+        updatePayload.debridCachingProgress = payload.debridCachingProgress;
       }
 
       await gameRepository.update({ id: payload.gameId }, updatePayload);

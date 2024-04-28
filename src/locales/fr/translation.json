@@ -12,6 +12,7 @@
     "settings": "Paramètres",
     "my_library": "Ma bibliothèque",
     "downloading_metadata": "{{title}} (Téléchargement des métadonnées…)",
+    "debrid_caching": "{{title}} ({{percentage}}% - En attente du débrideur…)",
     "checking_files": "{{title}} ({{percentage}} - Vérification des fichiers…)",
     "paused": "{{title}} (En pause)",
     "downloading": "{{title}} ({{percentage}} - Téléchargement en cours…)",
@@ -30,6 +31,7 @@
   "bottom_panel": {
     "no_downloads_in_progress": "Aucun téléchargement en cours",
     "downloading_metadata": "Téléchargement des métadonnées de {{title}}…",
+    "debrid_caching": "Traitement de {{title}} par le débrideur… ({{percentage}}% complet)",
     "checking_files": "Vérification des fichiers de {{title}}… ({{percentage}} terminé)",
     "downloading": "Téléchargement de {{title}}… ({{percentage}} terminé) - Fin dans {{eta}} - {{speed}}"
   },
@@ -47,6 +49,7 @@
     "space_left_on_disk": "{{space}} restant sur le disque",
     "eta": "Fin dans {{eta}}",
     "downloading_metadata": "Téléchargement des métadonnées en cours…",
+    "debrid_caching": "En attente du débrideur…",
     "checking_files": "Vérification des fichiers…",
     "filter": "Filtrer les repacks",
     "requirements": "Configuration requise",
@@ -99,6 +102,7 @@
     "filter": "Filtrer les jeux téléchargés",
     "remove": "Supprimer",
     "downloading_metadata": "Téléchargement des métadonnées en cours…",
+    "debrid_caching": "En attente du débrideur…",
     "checking_files": "Vérification des fichiers…",
     "starting_download": "Démarrage du téléchargement…",
     "remove_from_list": "Retirer",

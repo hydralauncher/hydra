@@ -111,6 +111,7 @@ export function useDownload() {
   return {
     game: lastPacket?.game,
     bytesDownloaded: lastPacket?.game.bytesDownloaded,
+    debridCachingProgress: lastPacket?.game.debridCachingProgress,
     fileSize: lastPacket?.game.fileSize,
     isVerifying,
     gameId: lastPacket?.game.id,

@@ -46,6 +46,9 @@ export class Game {
   progress: number;
 
   @Column("float", { default: 0 })
+  debridCachingProgress: number;
+
+  @Column("float", { default: 0 })
   fileVerificationProgress: number;
 
   @Column("int", { default: 0 })

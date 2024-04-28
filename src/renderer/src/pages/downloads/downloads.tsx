@@ -106,7 +106,7 @@ export function Downloads() {
     if (game?.status === "cancelled") return <p>{t("cancelled")}</p>;
     if (game?.status === "downloading_metadata")
       return <p>{t("starting_download")}</p>;
-
+    if (game?.status === "debrid_caching") return <p>{t("debrid_caching")}</p>;
     if (game?.status === "paused") {
       return (
         <>
