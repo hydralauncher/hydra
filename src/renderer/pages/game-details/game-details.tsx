@@ -1,6 +1,6 @@
 import Color from "color";
 import { average } from "color.js";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import type {
