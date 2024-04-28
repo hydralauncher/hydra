@@ -1,13 +1,9 @@
+import type { Repack } from "@main/entity";
 import { repackRepository } from "@main/repository";
 
-import type { GameRepack } from "@types";
+import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
-export type GameRepackInput = Omit<
-  GameRepack,
-  "id" | "repackerFriendlyName" | "createdAt" | "updatedAt"
->;
-
-export const savePage = async (repacks: GameRepackInput[]) =>
+export const savePage = async (repacks: QueryDeepPartialEntity<Repack>[]) =>
   Promise.all(
     repacks.map((repack) => repackRepository.insert(repack).catch(() => {}))
   );

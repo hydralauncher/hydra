@@ -48,7 +48,7 @@ Promise.all([writePipe.createPipe(), readPipe.createPipe()]).then(async () => {
     });
   }
 
-  readPipe.socket.on("data", (data) => {
+  readPipe.socket?.on("data", (data) => {
     TorrentClient.onSocketData(data);
   });
 });

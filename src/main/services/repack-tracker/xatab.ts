@@ -31,11 +31,12 @@ const formatXatabDownloadSize = (str: string) =>
 const getXatabRepack = async (url: string) => {
   const data = await requestWebPage(url);
   const { window } = new JSDOM(data);
+  const { document } = window;
 
-  const $uploadDate = window.document.querySelector(".entry__date");
-  const $size = window.document.querySelector(".entry__info-size");
+  const $uploadDate = document.querySelector(".entry__date");
+  const $size = document.querySelector(".entry__info-size");
 
-  const $downloadButton = window.document.querySelector(
+  const $downloadButton = document.querySelector(
     ".download-torrent"
   ) as HTMLAnchorElement;
 
@@ -74,8 +75,10 @@ export const getNewRepacksFromXatab = async (
         ...repack,
         page,
       });
-    } catch (err) {
-      logger.error(err.message, { method: "getNewRepacksFromXatab" });
+    } catch (err: unknown) {
+      logger.error((err as Error).message, {
+        method: "getNewRepacksFromXatab",
+      });
     }
   }
 

@@ -6,7 +6,7 @@ import { ShopDetails } from "@types";
 import { getSteamLanguage, steamUrlBuilder } from "@renderer/helpers";
 import { useTranslation } from "react-i18next";
 
-const FEATURED_GAME_ID = "377160";
+const FEATURED_GAME_ID = "253230";
 
 export function Hero() {
   const [featuredGameDetails, setFeaturedGameDetails] =
@@ -36,7 +36,7 @@ export function Hero() {
     >
       <div className={styles.backdrop}>
         <AsyncImage
-          src="https://cdn2.steamgriddb.com/hero/e7a7ba56b1be30e178cd52820e063396.png"
+          src="https://cdn2.steamgriddb.com/hero/a6115ed32394915aac1e5502382eaaea.jpg"
           alt={featuredGameDetails?.name}
           className={styles.heroMedia}
         />

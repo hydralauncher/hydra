@@ -21,6 +21,8 @@ const getRandomGame = async () => {
         }
       }
     }
+
+    return null;
   });
 };
 
