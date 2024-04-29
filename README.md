@@ -1,4 +1,4 @@
-[Leia-me em Português](./README-pt.md)
+[Leia-me em Português](./README-pt.md) (Read-me in Portuguese)
 
 # Hydra
 
