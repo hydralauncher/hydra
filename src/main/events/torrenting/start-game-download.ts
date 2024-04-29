@@ -1,12 +1,12 @@
 import { getSteamGameIconUrl, writePipe } from "@main/services";
 import { gameRepository, repackRepository } from "@main/repository";
-import { GameStatus } from "@main/constants";
 
 import { registerEvent } from "../register-event";
 
 import type { GameShop } from "@types";
 import { getImageBase64 } from "@main/helpers";
 import { In } from "typeorm";
+import { GameStatus } from "@globals";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,

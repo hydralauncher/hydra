@@ -1,5 +1,5 @@
 import { stateManager } from "./state-manager";
-import { GameStatus, repackers } from "./constants";
+import { repackers } from "./constants";
 import {
   getNewGOGGames,
   getNewRepacksFromCPG,
@@ -22,6 +22,7 @@ import { Repack } from "./entity";
 import { Notification } from "electron";
 import { t } from "i18next";
 import { In } from "typeorm";
+import { GameStatus } from "@globals";
 
 startProcessWatcher();
 

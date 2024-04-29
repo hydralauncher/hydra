@@ -1,9 +1,9 @@
 import { registerEvent } from "../register-event";
-import { GameStatus } from "../../constants";
 import { gameRepository } from "../../repository";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { In } from "typeorm";
 import { writePipe } from "@main/services";
+import { GameStatus } from "@globals";
 
 const resumeGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,

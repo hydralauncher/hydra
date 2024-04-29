@@ -1,3 +1,5 @@
+import { GameStatus } from "@globals";
+
 export type GameShop = "steam" | "epic";
 export type CatalogueCategory = "recently_added" | "trending";
 
@@ -75,7 +77,7 @@ export interface Game extends Omit<CatalogueEntry, "cover"> {
   id: number;
   title: string;
   iconUrl: string;
-  status: string;
+  status: GameStatus | "";
   folderName: string;
   downloadPath: string | null;
   repacks: GameRepack[];

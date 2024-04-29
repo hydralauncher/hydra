@@ -1,7 +1,7 @@
 import path from "node:path";
 import fs from "node:fs";
 
-import { GameStatus } from "@main/constants";
+import { GameStatus } from "@globals";
 import { gameRepository } from "@main/repository";
 
 import { getDownloadsPath } from "../helpers/get-downloads-path";
