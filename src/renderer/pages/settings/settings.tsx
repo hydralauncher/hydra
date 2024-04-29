@@ -118,10 +118,13 @@ export function Settings() {
           label={t("enable_debrid_services")}
           checked={form.debridServicesEnabled}
           onChange={() =>
-            updateUserPreferences("debridServicesEnabled", !form.debridServicesEnabled)
+            updateUserPreferences(
+              "debridServicesEnabled",
+              !form.debridServicesEnabled
+            )
           }
         />
-        
+
         <TextField
           label={t("real_debrid")}
           placeholder={t("real_debrid_api_key")}
