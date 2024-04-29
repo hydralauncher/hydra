@@ -75,7 +75,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           </Routes>
         </App>
       </HashRouter>
-      {/* <RouterProvider router={router} /> */}
     </Provider>
   </React.StrictMode>
 );
