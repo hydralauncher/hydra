@@ -17,6 +17,9 @@ export class UserPreferences {
   @Column("text", { default: "en" })
   language: string;
 
+  @Column("text", { nullable: true })
+  realDebridApiToken: string | null;
+
   @Column("boolean", { default: false })
   downloadNotificationsEnabled: boolean;
 
@@ -32,3 +35,4 @@ export class UserPreferences {
   @UpdateDateColumn()
   updatedAt: Date;
 }
+
