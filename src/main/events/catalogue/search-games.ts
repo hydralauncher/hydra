@@ -6,7 +6,7 @@ const searchGamesEvent = async (
   _event: Electron.IpcMainInvokeEvent,
   query: string
 ): Promise<CatalogueEntry[]> => {
-  return Promise.all(searchGames({ query, take: 12 }));
+  return searchGames({ query, take: 12 });
 };
 
 registerEvent(searchGamesEvent, {

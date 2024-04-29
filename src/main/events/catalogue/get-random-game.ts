@@ -5,11 +5,10 @@ import { Steam250Game, getSteam250List } from "@main/services";
 import { registerEvent } from "../register-event";
 import { searchGames, searchRepacks } from "../helpers/search-games";
 
-let gamesList: Steam250Game[] = [];
-let nextGameIndex = 0;
+const state = { games: Array<Steam250Game>(), index: 0 };
 
 const getRandomGame = async (_event: Electron.IpcMainInvokeEvent) => {
-  if (gamesList.length == 0) {
+  if (state.games.length == 0) {
     const steam250List = await getSteam250List();
 
     const filteredSteam250List = steam250List.filter((game) => {
@@ -19,20 +18,20 @@ const getRandomGame = async (_event: Electron.IpcMainInvokeEvent) => {
       return repacks.length && catalogue.length;
     });
 
-    gamesList = shuffle(filteredSteam250List);
+    state.games = shuffle(filteredSteam250List);
   }
 
-  if (gamesList.length == 0) {
+  if (state.games.length == 0) {
     return "";
   }
 
-  const resultObjectId = gamesList[nextGameIndex].objectID;
+  const resultObjectId = state.games[state.index].objectID;
 
-  nextGameIndex += 1;
+  state.index += 1;
 
-  if (nextGameIndex == gamesList.length) {
-    nextGameIndex = 0;
-    gamesList = shuffle(gamesList);
+  if (state.index == state.games.length) {
+    state.index = 0;
+    state.games = shuffle(state.games);
   }
 
   return resultObjectId;
