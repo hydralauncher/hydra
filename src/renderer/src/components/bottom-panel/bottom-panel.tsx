@@ -13,7 +13,14 @@ export function BottomPanel() {
 
   const navigate = useNavigate();
 
-  const { game, progress, downloadSpeed, eta, isDownloading, debridCachingProgress } = useDownload();
+  const {
+    game,
+    progress,
+    downloadSpeed,
+    eta,
+    isDownloading,
+    debridCachingProgress,
+  } = useDownload();
 
   const [version, setVersion] = useState("");
 

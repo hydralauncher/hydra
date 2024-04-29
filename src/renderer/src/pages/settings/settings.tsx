@@ -134,7 +134,10 @@ export function Settings() {
           label={t("enable_debrid_services")}
           checked={form.debridServicesEnabled}
           onChange={() =>
-            updateUserPreferences("debridServicesEnabled", !form.debridServicesEnabled)
+            updateUserPreferences(
+              "debridServicesEnabled",
+              !form.debridServicesEnabled
+            )
           }
         />
 

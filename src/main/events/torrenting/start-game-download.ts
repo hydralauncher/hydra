@@ -1,5 +1,9 @@
 import { getSteamGameIconUrl, writePipe } from "@main/services";
-import {gameRepository, repackRepository, userPreferencesRepository} from "@main/repository";
+import {
+  gameRepository,
+  repackRepository,
+  userPreferencesRepository,
+} from "@main/repository";
 import { GameStatus } from "@main/constants";
 
 import { registerEvent } from "../register-event";
@@ -43,7 +47,7 @@ const startGameDownload = async (
         GameStatus.Downloading,
         GameStatus.DownloadingMetadata,
         GameStatus.CheckingFiles,
-        GameStatus.DebridCaching
+        GameStatus.DebridCaching,
       ]),
     },
     { status: GameStatus.Paused }
