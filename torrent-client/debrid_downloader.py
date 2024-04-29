@@ -115,7 +115,7 @@ class DebridDownloader:
     def __get_generic_progress(self, status, download_progress):
         if status == 5 or status == 0:
             return 1
-        elif status == 6:
+        elif status == 8:
             return 0
         else:
             return download_progress
@@ -127,6 +127,6 @@ class DebridDownloader:
         elif state == 'finished' or self.is_debrid_caching_failed():
             return 5
         elif state == 'debrid_busy':
-            return 6
+            return 8
         else:
             return 0

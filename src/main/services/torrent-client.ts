@@ -22,7 +22,7 @@ enum TorrentState {
   Downloading = 3,
   Finished = 4,
   Seeding = 5,
-  DebridCaching = 6,
+  DebridCaching = 8,
 }
 
 export interface TorrentUpdate {
