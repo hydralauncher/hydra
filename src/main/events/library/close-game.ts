@@ -1,9 +1,9 @@
 import path from "node:path";
 
 import { gameRepository } from "@main/repository";
+import { getProcesses } from "@main/helpers";
 
 import { registerEvent } from "../register-event";
-import { getProcesses } from "@main/helpers";
 
 const closeGame = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -12,13 +12,17 @@ const closeGame = async (
   const processes = await getProcesses();
   const game = await gameRepository.findOne({ where: { id: gameId } });
 
-  const gameProcess = processes.find((runningProcess) => {
-    const basename = path.win32.basename(game.executablePath);
-    const basenameWithoutExtension = path.win32.basename(
-      game.executablePath,
-      path.extname(game.executablePath)
-    );
+  if (!game) return false;
 
+  const executablePath = game.executablePath!;
+
+  const basename = path.win32.basename(executablePath);
+  const basenameWithoutExtension = path.win32.basename(
+    executablePath,
+    path.extname(executablePath)
+  );
+
+  const gameProcess = processes.find((runningProcess) => {
     if (process.platform === "win32") {
       return runningProcess.name === basename;
     }

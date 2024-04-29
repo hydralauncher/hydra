@@ -4,7 +4,6 @@ import { formatUploadDate } from "@main/helpers";
 
 import { Repack } from "@main/entity";
 import { requestWebPage, savePage } from "./helpers";
-import type { GameRepackInput } from "./helpers";
 
 export const request1337x = async (path: string) =>
   requestWebPage(`https://1337xx.to${path}`);
@@ -68,7 +67,7 @@ export const extractTorrentsFromDocument = async (
   user: string,
   document: Document,
   existingRepacks: Repack[] = []
-): Promise<GameRepackInput[]> => {
+) => {
   const $trs = Array.from(document.querySelectorAll("tbody tr"));
 
   return Promise.all(
@@ -108,7 +107,7 @@ export const getNewRepacksFromUser = async (
   user: string,
   existingRepacks: Repack[],
   page = 1
-): Promise<Repack[]> => {
+) => {
   const response = await request1337x(`/user/${user}/${page}`);
   const { window } = new JSDOM(response);
 

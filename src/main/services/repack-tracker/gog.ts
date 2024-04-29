@@ -1,7 +1,8 @@
 import { JSDOM, VirtualConsole } from "jsdom";
-import { GameRepackInput, requestWebPage, savePage } from "./helpers";
+import { requestWebPage, savePage } from "./helpers";
 import { Repack } from "@main/entity";
-import { logger } from "../logger";
+
+import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
 const virtualConsole = new VirtualConsole();
 
@@ -36,43 +37,35 @@ const getGOGGame = async (url: string) => {
 };
 
 export const getNewGOGGames = async (existingRepacks: Repack[] = []) => {
-  try {
-    const data = await requestWebPage(
-      "https://freegogpcgames.com/a-z-games-list/"
-    );
+  const data = await requestWebPage(
+    "https://freegogpcgames.com/a-z-games-list/"
+  );
 
-    const { window } = new JSDOM(data, { virtualConsole });
+  const { window } = new JSDOM(data, { virtualConsole });
 
-    const $uls = Array.from(window.document.querySelectorAll(".az-columns"));
+  const $uls = Array.from(window.document.querySelectorAll(".az-columns"));
 
-    for (const $ul of $uls) {
-      const repacks: GameRepackInput[] = [];
-      const $lis = Array.from($ul.querySelectorAll("li"));
+  for (const $ul of $uls) {
+    const repacks: QueryDeepPartialEntity<Repack>[] = [];
+    const $lis = Array.from($ul.querySelectorAll("li"));
 
-      for (const $li of $lis) {
-        const $a = $li.querySelector("a");
-        const href = $a.href;
+    for (const $li of $lis) {
+      const $a = $li.querySelector("a");
+      const href = $a.href;
 
-        const title = $a.textContent.trim();
+      const title = $a.textContent.trim();
 
-        const gameExists = existingRepacks.some(
-          (existingRepack) => existingRepack.title === title
-        );
+      const gameExists = existingRepacks.some(
+        (existingRepack) => existingRepack.title === title
+      );
 
-        if (!gameExists) {
-          try {
-            const game = await getGOGGame(href);
+      if (!gameExists) {
+        const game = await getGOGGame(href);
 
-            repacks.push({ ...game, title });
-          } catch (err) {
-            logger.error(err.message, { method: "getGOGGame", url: href });
-          }
-        }
+        repacks.push({ ...game, title });
       }
-
-      if (repacks.length) await savePage(repacks);
     }
-  } catch (err) {
-    logger.error(err.message, { method: "getNewGOGGames" });
+
+    if (repacks.length) await savePage(repacks);
   }
 };
