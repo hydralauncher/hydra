@@ -32,7 +32,7 @@ export function HeroPanelActions({
     resumeDownload,
     pauseDownload,
     cancelDownload,
-    removeGame,
+    removeGameFromLibrary,
     isGameDeleting,
   } = useDownload();
 
@@ -63,7 +63,7 @@ export function HeroPanelActions({
 
     try {
       if (game) {
-        await removeGame(game.id);
+        await removeGameFromLibrary(game.id);
       } else {
         const gameExecutablePath = await selectGameExecutable();
 
@@ -187,7 +187,7 @@ export function HeroPanelActions({
           {t("open_download_options")}
         </Button>
         <Button
-          onClick={() => removeGame(game.id).then(getGame)}
+          onClick={() => removeGameFromLibrary(game.id).then(getGame)}
           theme="outline"
           disabled={deleting}
         >

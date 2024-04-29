@@ -33,6 +33,7 @@ export function Downloads() {
     numSeeds,
     pauseDownload,
     resumeDownload,
+    removeGameFromLibrary,
     cancelDownload,
     deleteGame,
     isGameDeleting,
@@ -49,11 +50,6 @@ export function Downloads() {
   const openGameInstaller = (gameId: number) =>
     window.electron.openGameInstaller(gameId).then((isBinaryInPath) => {
       if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
-      updateLibrary();
-    });
-
-  const removeGame = (gameId: number) =>
-    window.electron.removeGame(gameId).then(() => {
       updateLibrary();
     });
 
@@ -194,7 +190,7 @@ export function Downloads() {
         </Button>
 
         <Button
-          onClick={() => removeGame(game.id)}
+          onClick={() => removeGameFromLibrary(game.id)}
           theme="outline"
           disabled={deleting}
         >

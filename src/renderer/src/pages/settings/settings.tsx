@@ -23,10 +23,10 @@ export function Settings() {
       setForm({
         downloadsPath: userPreferences?.downloadsPath || path,
         downloadNotificationsEnabled:
-          userPreferences?.downloadNotificationsEnabled,
+          userPreferences?.downloadNotificationsEnabled ?? false,
         repackUpdatesNotificationsEnabled:
-          userPreferences?.repackUpdatesNotificationsEnabled,
-        telemetryEnabled: userPreferences?.telemetryEnabled,
+          userPreferences?.repackUpdatesNotificationsEnabled ?? false,
+        telemetryEnabled: userPreferences?.telemetryEnabled ?? false,
       });
     });
   }, []);
