@@ -58,17 +58,17 @@ export function useDownload() {
       deleteGame(gameId);
     });
 
-  const removeGame = (gameId: number) =>
-    window.electron.removeGame(gameId).then(() => {
+  const removeGameFromLibrary = (gameId: number) =>
+    window.electron.removeGameFromLibrary(gameId).then(() => {
       updateLibrary();
     });
 
   const isVerifying = ["downloading_metadata", "checking_files"].includes(
-    lastPacket?.game.status
+    lastPacket?.game.status ?? ""
   );
 
   const getETA = () => {
-    if (isVerifying || !isFinite(lastPacket?.timeRemaining)) {
+    if (isVerifying || !isFinite(lastPacket?.timeRemaining ?? 0)) {
       return "";
     }
 
@@ -124,7 +124,7 @@ export function useDownload() {
     pauseDownload,
     resumeDownload,
     cancelDownload,
-    removeGame,
+    removeGameFromLibrary,
     deleteGame,
     isGameDeleting,
     clearDownload: () => dispatch(clearDownload()),

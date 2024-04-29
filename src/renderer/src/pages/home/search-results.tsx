@@ -24,7 +24,7 @@ export function SearchResults() {
   const [searchResults, setSearchResults] = useState<CatalogueEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const debouncedFunc = useRef<DebouncedFunc<() => void | null>>(null);
+  const debouncedFunc = useRef<DebouncedFunc<() => void> | null>(null);
 
   const navigate = useNavigate();
 
@@ -39,7 +39,7 @@ export function SearchResults() {
 
     debouncedFunc.current = debounce(() => {
       window.electron
-        .searchGames(searchParams.get("query"))
+        .searchGames(searchParams.get("query") ?? "")
         .then((results) => {
           setSearchResults(results);
         })
