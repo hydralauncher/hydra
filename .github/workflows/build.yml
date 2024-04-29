@@ -8,21 +8,9 @@ jobs:
   build:
     strategy:
       matrix:
-        os:
-          [
-            {
-              name: windows-latest,
-              build_path: out/Hydra-win32-x64,
-              artifact: Hydra-win32-x64,
-            },
-            {
-              name: ubuntu-latest,
-              build_path: out/Hydra-linux-x64,
-              artifact: Hydra-linux-x64,
-            },
-          ]
+        os: [windows-latest, ubuntu-latest]
 
-    runs-on: ${{ matrix.os.name }}
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Check out Git repository
@@ -47,10 +35,10 @@ jobs:
       - name: Build with cx_Freeze
         run: python torrent-client/setup.py build
 
-      - name: Publish
-        run: yarn run publish
+      - name: Build Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: yarn build:linux
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAIN_VITE_STEAMGRIDDB_API_KEY: ${{ secrets.STEAMGRIDDB_API_KEY }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           MAIN_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
@@ -58,15 +46,55 @@ jobs:
           MAIN_VITE_ONLINEFIX_USERNAME: ${{ secrets.ONLINEFIX_USERNAME }}
           MAIN_VITE_ONLINEFIX_PASSWORD: ${{ secrets.ONLINEFIX_PASSWORD }}
 
-      - name: VirusTotal Scan
-        uses: crazy-max/ghaction-virustotal@v4
-        with:
-          vt_api_key: ${{ secrets.VT_API_KEY }}
-          files: |
-            ./hydra-download-manager/hydra-download-manager.exe
+      - name: Build Windows
+        if: matrix.os == 'windows-latest'
+        run: yarn build:win
+        env:
+          MAIN_VITE_STEAMGRIDDB_API_KEY: ${{ secrets.STEAMGRIDDB_API_KEY }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          MAIN_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
+          RENDERER_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
+          MAIN_VITE_ONLINEFIX_USERNAME: ${{ secrets.ONLINEFIX_USERNAME }}
+          MAIN_VITE_ONLINEFIX_PASSWORD: ${{ secrets.ONLINEFIX_PASSWORD }}
 
       - name: Create artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os.artifact }}
-          path: ${{ matrix.os.build_path }}
+          name: Build-${{ matrix.os }}
+          path: |
+            dist/*.exe
+            dist/*.zip
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*.snap
+            dist/*.deb
+            dist/*.rpm
+            dist/*.tar.gz
+            dist/*.yml
+            dist/*.blockmap
+
+      - name: VirusTotal Scan
+        uses: crazy-max/ghaction-virustotal@v4
+        if: matrix.os == 'windows-latest'
+        with:
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+          files: |
+            ./dist/*.exe
+
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          files: |
+            dist/*.exe
+            dist/*.zip
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*.snap
+            dist/*.deb
+            dist/*.rpm
+            dist/*.tar.gz
+            dist/*.yml
+            dist/*.blockmap
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

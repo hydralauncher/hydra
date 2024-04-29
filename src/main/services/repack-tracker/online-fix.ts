@@ -1,6 +1,5 @@
 import { Repack } from "@main/entity";
 import { savePage } from "./helpers";
-import type { GameRepackInput } from "./helpers";
 import { logger } from "../logger";
 import parseTorrent, {
   toMagnetURI,
@@ -85,7 +84,7 @@ export const getNewRepacksFromOnlineFix = async (
   });
   const document = new JSDOM(home.body).window.document;
 
-  const repacks: GameRepackInput[] = [];
+  const repacks = [];
   const articles = Array.from(document.querySelectorAll(".news"));
   const totalPages = Number(
     document.querySelector("nav > a:nth-child(13)")?.textContent

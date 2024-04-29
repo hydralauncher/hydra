@@ -25,7 +25,7 @@ export function SelectFolderModal({
 }: SelectFolderModalProps) {
   const { t } = useTranslation("game_details");
 
-  const [diskFreeSpace, setDiskFreeSpace] = useState<DiskSpace>(null);
+  const [diskFreeSpace, setDiskFreeSpace] = useState<DiskSpace | null>(null);
   const [selectedPath, setSelectedPath] = useState("");
   const [downloadStarting, setDownloadStarting] = useState(false);
 

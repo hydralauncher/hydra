@@ -71,7 +71,8 @@ contextBridge.exposeInMainWorld("electron", {
   openGame: (gameId: number, executablePath: string) =>
     ipcRenderer.invoke("openGame", gameId, executablePath),
   closeGame: (gameId: number) => ipcRenderer.invoke("closeGame", gameId),
-  removeGame: (gameId: number) => ipcRenderer.invoke("removeGame", gameId),
+  removeGameFromLibrary: (gameId: number) =>
+    ipcRenderer.invoke("removeGameFromLibrary", gameId),
   deleteGameFolder: (gameId: number) =>
     ipcRenderer.invoke("deleteGameFolder", gameId),
   getGameByObjectID: (objectID: string) =>

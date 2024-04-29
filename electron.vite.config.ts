@@ -31,6 +31,7 @@ export default defineConfig(({ mode }) => {
         alias: {
           "@main": resolve("src/main"),
           "@locales": resolve("src/locales"),
+          "@resources": resolve("resources"),
         },
       },
       plugins: [

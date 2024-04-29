@@ -4,7 +4,7 @@ import {
   getNewGOGGames,
   getNewRepacksFromCPG,
   getNewRepacksFromUser,
-  // getNewRepacksFromXatab,
+  getNewRepacksFromXatab,
   getNewRepacksFromOnlineFix,
   readPipe,
   startProcessWatcher,
@@ -22,13 +22,6 @@ import { Repack } from "./entity";
 import { Notification } from "electron";
 import { t } from "i18next";
 import { In } from "typeorm";
-import creatWorker from "./workers/test?nodeWorker";
-
-creatWorker({ workerData: "worker" })
-  .on("message", (message) => {
-    console.log(`\nMessage from worker: ${message}`);
-  })
-  .postMessage("");
 
 startProcessWatcher();
 
@@ -80,9 +73,9 @@ const checkForNewRepacks = async () => {
     getNewGOGGames(
       existingRepacks.filter((repack) => repack.repacker === "GOG")
     ),
-    // getNewRepacksFromXatab(
-    //   existingRepacks.filter((repack) => repack.repacker === "Xatab")
-    // ),
+    getNewRepacksFromXatab(
+      existingRepacks.filter((repack) => repack.repacker === "Xatab")
+    ),
     getNewRepacksFromCPG(
       existingRepacks.filter((repack) => repack.repacker === "CPG")
     ),

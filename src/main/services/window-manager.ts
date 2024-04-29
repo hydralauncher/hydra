@@ -2,8 +2,8 @@ import { BrowserWindow, Menu, Tray, app } from "electron";
 import { is } from "@electron-toolkit/utils";
 import { t } from "i18next";
 import path from "node:path";
-import icon from "../../../resources/icon.png?asset";
-import trayIcon from "../../../resources/tray-icon.png?asset";
+import icon from "@resources/icon.png?asset";
+import trayIcon from "@resources/tray-icon.png?asset";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;

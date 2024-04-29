@@ -22,7 +22,7 @@ export function BottomPanel() {
   }, []);
 
   const status = useMemo(() => {
-    if (isDownloading) {
+    if (isDownloading && game) {
       if (game.status === "downloading_metadata")
         return t("downloading_metadata", { title: game.title });
 
