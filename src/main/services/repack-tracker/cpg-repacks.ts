@@ -3,7 +3,6 @@ import { JSDOM } from "jsdom";
 import { Repack } from "@main/entity";
 
 import { requestWebPage, savePage } from "./helpers";
-import type { GameRepackInput } from "./helpers";
 import { logger } from "../logger";
 
 export const getNewRepacksFromCPG = async (
@@ -14,7 +13,7 @@ export const getNewRepacksFromCPG = async (
 
   const { window } = new JSDOM(data);
 
-  const repacks: GameRepackInput[] = [];
+  const repacks = [];
 
   try {
     Array.from(window.document.querySelectorAll(".post")).forEach(($post) => {

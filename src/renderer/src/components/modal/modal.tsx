@@ -62,12 +62,14 @@ export function Modal({
     const onMouseDown = (e: MouseEvent) => {
       if (!isTopMostModal()) return;
 
-      const clickedOutsideContent = !modalContentRef.current.contains(
-        e.target as Node
-      );
+      if (modalContentRef.current) {
+        const clickedOutsideContent = modalContentRef.current.contains(
+          e.target as Node
+        );
 
-      if (clickedOutsideContent) {
-        handleCloseClick();
+        if (clickedOutsideContent) {
+          handleCloseClick();
+        }
       }
     };
 
