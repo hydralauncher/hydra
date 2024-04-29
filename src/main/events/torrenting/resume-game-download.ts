@@ -2,7 +2,7 @@ import { registerEvent } from "../register-event";
 import { gameRepository } from "../../repository";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { In } from "typeorm";
-import { writePipe } from "@main/services";
+import { Downloader } from "@main/services/donwloaders/downloader";
 import { GameStatus } from "@globals";
 
 const resumeGameDownload = async (
@@ -18,17 +18,12 @@ const resumeGameDownload = async (
 
   if (!game) return;
 
-  writePipe.write({ action: "pause" });
+  Downloader.resumeDownload();
 
   if (game.status === GameStatus.Paused) {
     const downloadsPath = game.downloadPath ?? (await getDownloadsPath());
 
-    writePipe.write({
-      action: "start",
-      game_id: gameId,
-      magnet: game.repack.magnet,
-      save_path: downloadsPath,
-    });
+    Downloader.downloadGame(game, game.repack);
 
     await gameRepository.update(
       {
