@@ -2,13 +2,12 @@ import path from "node:path";
 import cp from "node:child_process";
 import fs from "node:fs";
 import * as Sentry from "@sentry/electron/main";
-import { Notification, app, dialog } from "electron";
+import { app, dialog } from "electron";
 import type { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
 import { Game } from "@main/entity";
-import { gameRepository, userPreferencesRepository } from "@main/repository";
-import { t } from "i18next";
-import { WindowManager } from "./window-manager";
+import { Downloader } from "./downloader";
+import { GameStatus } from "@globals";
 
 const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
   darwin: "hydra-download-manager",
@@ -75,6 +74,7 @@ export class TorrentClient {
       __dirname,
       "..",
       "..",
+      "..",
       "torrent-client",
       "main.py"
     );
@@ -85,18 +85,13 @@ export class TorrentClient {
   }
 
   private static getTorrentStateName(state: TorrentState) {
-    if (state === TorrentState.CheckingFiles) return "checking_files";
-    if (state === TorrentState.Downloading) return "downloading";
+    if (state === TorrentState.CheckingFiles) return GameStatus.CheckingFiles;
+    if (state === TorrentState.Downloading) return GameStatus.Downloading;
     if (state === TorrentState.DownloadingMetadata)
-      return "downloading_metadata";
-    if (state === TorrentState.Finished) return "finished";
-    if (state === TorrentState.Seeding) return "seeding";
+      return GameStatus.DownloadingMetadata;
+    if (state === TorrentState.Finished) return GameStatus.Finished;
+    if (state === TorrentState.Seeding) return GameStatus.Seeding;
     return "";
-  }
-
-  private static getGameProgress(game: Game) {
-    if (game.status === "checking_files") return game.fileVerificationProgress;
-    return game.progress;
   }
 
   public static async onSocketData(data: Buffer) {
@@ -127,42 +122,12 @@ export class TorrentClient {
         updatePayload.progress = payload.progress;
       }
 
-      await gameRepository.update({ id: payload.gameId }, updatePayload);
-
-      const game = await gameRepository.findOne({
-        where: { id: payload.gameId },
-        relations: { repack: true },
+      Downloader.updateGameProgress(payload.gameId, updatePayload, {
+        numPeers: payload.numPeers,
+        numSeeds: payload.numSeeds,
+        downloadSpeed: payload.downloadSpeed,
+        timeRemaining: payload.timeRemaining,
       });
-
-      if (game.progress === 1) {
-        const userPreferences = await userPreferencesRepository.findOne({
-          where: { id: 1 },
-        });
-
-        if (userPreferences?.downloadNotificationsEnabled) {
-          new Notification({
-            title: t("download_complete", {
-              ns: "notifications",
-              lng: userPreferences.language,
-            }),
-            body: t("game_ready_to_install", {
-              ns: "notifications",
-              lng: userPreferences.language,
-              title: game.title,
-            }),
-          }).show();
-        }
-      }
-
-      if (WindowManager.mainWindow) {
-        const progress = this.getGameProgress(game);
-        WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
-
-        WindowManager.mainWindow.webContents.send(
-          "on-download-progress",
-          JSON.parse(JSON.stringify({ ...payload, game }))
-        );
-      }
     } catch (err) {
       Sentry.captureException(err);
     }

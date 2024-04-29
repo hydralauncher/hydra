@@ -1,8 +1,9 @@
-import { WindowManager, writePipe } from "@main/services";
+import { WindowManager } from "@main/services";
 
 import { registerEvent } from "../register-event";
 import { gameRepository } from "../../repository";
 import { In } from "typeorm";
+import { Downloader } from "@main/services/donwloaders/downloader";
 import { GameStatus } from "@globals";
 
 const pauseGameDownload = async (
@@ -23,7 +24,7 @@ const pauseGameDownload = async (
     )
     .then((result) => {
       if (result.affected) {
-        writePipe.write({ action: "pause" });
+        Downloader.pauseDownload();
         WindowManager.mainWindow.setProgressBar(-1);
       }
     });

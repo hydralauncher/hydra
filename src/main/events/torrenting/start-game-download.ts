@@ -6,6 +6,7 @@ import { registerEvent } from "../register-event";
 import type { GameShop } from "@types";
 import { getImageBase64 } from "@main/helpers";
 import { In } from "typeorm";
+import { Downloader } from "@main/services/donwloaders/downloader";
 import { GameStatus } from "@globals";
 
 const startGameDownload = async (
@@ -35,7 +36,7 @@ const startGameDownload = async (
     return;
   }
 
-  writePipe.write({ action: "pause" });
+  Downloader.pauseDownload();
 
   await gameRepository.update(
     {
@@ -61,12 +62,7 @@ const startGameDownload = async (
       }
     );
 
-    writePipe.write({
-      action: "start",
-      game_id: game.id,
-      magnet: repack.magnet,
-      save_path: downloadPath,
-    });
+    Downloader.downloadGame(game, repack);
 
     game.status = GameStatus.DownloadingMetadata;
 
@@ -84,12 +80,7 @@ const startGameDownload = async (
       repack: { id: repackId },
     });
 
-    writePipe.write({
-      action: "start",
-      game_id: createdGame.id,
-      magnet: repack.magnet,
-      save_path: downloadPath,
-    });
+    Downloader.downloadGame(createdGame, repack);
 
     const { repack: _, ...rest } = createdGame;
 

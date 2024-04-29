@@ -1,9 +1,10 @@
 import { gameRepository } from "@main/repository";
 
 import { registerEvent } from "../register-event";
-import { WindowManager, writePipe } from "@main/services";
+import { WindowManager } from "@main/services";
 
 import { In } from "typeorm";
+import { Downloader } from "@main/services/donwloaders/downloader";
 import { GameStatus } from "@globals";
 
 const cancelGameDownload = async (
@@ -41,7 +42,7 @@ const cancelGameDownload = async (
         game.status !== GameStatus.Paused &&
         game.status !== GameStatus.Seeding
       ) {
-        writePipe.write({ action: "cancel" });
+        Downloader.cancelDownload();
         if (result.affected) WindowManager.mainWindow.setProgressBar(-1);
       }
     });
