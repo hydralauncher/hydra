@@ -4,7 +4,7 @@ directories:
   buildResources: build
 extraResources:
   - hydra-download-manager
-  - resources/hydra.db
+  - hydra.db
 files:
   - "!**/.vscode/*"
   - "!src/*"
