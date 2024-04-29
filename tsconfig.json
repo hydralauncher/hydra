@@ -19,7 +19,8 @@
       "@main/*": ["src/main/*"],
       "@renderer/*": ["src/renderer/*"],
       "@types": ["src/types/index.ts"],
-      "@locales": ["src/locales/index.ts"]
+      "@locales": ["src/locales/index.ts"],
+      "@globals": ["src/globals.ts"]
     }
   },
   "include": ["src/**/*"]

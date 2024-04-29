@@ -1,9 +1,9 @@
 import { gameRepository } from "@main/repository";
-import { GameStatus } from "@main/constants";
 
 import { searchRepacks } from "../helpers/search-games";
 import { registerEvent } from "../register-event";
 import sortBy from "lodash/sortBy";
+import { GameStatus } from "@globals";
 
 const getLibrary = async (_event: Electron.IpcMainInvokeEvent) =>
   gameRepository

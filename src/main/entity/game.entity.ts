@@ -9,6 +9,7 @@ import {
 } from "typeorm";
 import type { GameShop } from "@types";
 import { Repack } from "./repack.entity";
+import { GameStatus } from "@globals";
 
 @Entity("game")
 export class Game {
@@ -40,7 +41,7 @@ export class Game {
   shop: GameShop;
 
   @Column("text", { nullable: true })
-  status: string;
+  status: GameStatus | "";
 
   @Column("float", { default: 0 })
   progress: number;

@@ -1,9 +1,9 @@
 import { WindowManager, writePipe } from "@main/services";
 
 import { registerEvent } from "../register-event";
-import { GameStatus } from "../../constants";
 import { gameRepository } from "../../repository";
 import { In } from "typeorm";
+import { GameStatus } from "@globals";
 
 const pauseGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,

@@ -1,4 +1,4 @@
-import { GameStatus } from "@main/constants";
+import { GameStatus } from "@globals";
 import { gameRepository } from "@main/repository";
 
 import { registerEvent } from "../register-event";
