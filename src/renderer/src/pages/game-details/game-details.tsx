@@ -75,7 +75,7 @@ export function GameDetails() {
 
   const getGame = useCallback(() => {
     window.electron
-      .getGameByObjectID(objectID)
+      .getGameByObjectID(objectID!)
       .then((result) => setGame(result));
   }, [setGame, objectID]);
 
@@ -92,7 +92,7 @@ export function GameDetails() {
     getRandomGame();
 
     window.electron
-      .getGameShopDetails(objectID, "steam", getSteamLanguage(i18n.language))
+      .getGameShopDetails(objectID!, "steam", getSteamLanguage(i18n.language))
       .then((result) => {
         if (!result) {
           navigate(-1);
@@ -100,7 +100,7 @@ export function GameDetails() {
         }
 
         window.electron
-          .getHowLongToBeat(objectID, "steam", result.name)
+          .getHowLongToBeat(objectID!, "steam", result.name)
           .then((data) => {
             setHowLongToBeat({ isLoading: false, data });
           });
@@ -191,7 +191,7 @@ export function GameDetails() {
         <section className={styles.container}>
           <div className={styles.hero}>
             <AsyncImage
-              src={steamUrlBuilder.libraryHero(objectID)}
+              src={steamUrlBuilder.libraryHero(objectID!)}
               className={styles.heroImage}
               alt={game?.title}
               onSettled={handleImageSettled}
@@ -199,7 +199,7 @@ export function GameDetails() {
             <div className={styles.heroBackdrop}>
               <div className={styles.heroContent}>
                 <AsyncImage
-                  src={steamUrlBuilder.logo(objectID)}
+                  src={steamUrlBuilder.logo(objectID!)}
                   style={{ width: 300, alignSelf: "flex-end" }}
                 />
               </div>

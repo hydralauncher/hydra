@@ -21,6 +21,7 @@ declare global {
     startGameDownload: (
       repackId: number,
       objectID: string,
+      title: string,
       shop: GameShop,
       downloadPath: string
     ) => Promise<Game>;
