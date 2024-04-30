@@ -1,6 +1,6 @@
-/// <reference path="./real-debrid.d.ts" />
 import { userPreferencesRepository } from "@main/repository";
 import fetch from "node-fetch";
+import { RealDebridAddMagnet, RealDebridTorrentInfo, RealDebridUnrestrictLink } from "./real-debrid-types";
 
 const base = "https://api.real-debrid.com/rest/1.0";
 
@@ -50,6 +50,6 @@ export class RealDebridClient {
     }
 
     static getApiToken() {
-        return userPreferencesRepository.findOne({ where: { id: 1 } }).then(userPreferences => userPreferences.realDebridApiToken);
+        return userPreferencesRepository.findOne({ where: { id: 1 } }).then(userPreferences => userPreferences!.realDebridApiToken);
     }
 }
