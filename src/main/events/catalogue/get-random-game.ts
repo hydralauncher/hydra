@@ -21,7 +21,7 @@ const getRandomGame = async (_event: Electron.IpcMainInvokeEvent) => {
     state.games = shuffle(filteredSteam250List);
   }
 
-  if (state.games.length == 0) {
+  if (state.games === null || state.games === undefined || state.games.length === 0) {
     return "";
   }
 
