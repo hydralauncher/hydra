@@ -20,6 +20,8 @@ const cancelGameDownload = async (
         GameStatus.CheckingFiles,
         GameStatus.Paused,
         GameStatus.Seeding,
+        GameStatus.Finished,
+        GameStatus.Decompressing,
       ]),
     },
   });
