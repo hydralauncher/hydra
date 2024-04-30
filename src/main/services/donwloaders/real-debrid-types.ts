@@ -1,4 +1,4 @@
-interface RealDebridUnrestrictLink {
+export interface RealDebridUnrestrictLink {
     id:         string;
     filename:   string;
     mimeType:   string;
@@ -12,13 +12,13 @@ interface RealDebridUnrestrictLink {
     streamable: number;
 }
 
-interface RealDebridAddMagnet {
+export interface RealDebridAddMagnet {
     "id": string,
     // URL of the created ressource
     "uri": string
 }
 
-interface RealDebridTorrentInfo {
+export interface RealDebridTorrentInfo {
     "id": string,
     "filename": string,
     "original_filename": string, // Original name of the torrent
@@ -50,16 +50,4 @@ interface RealDebridTorrentInfo {
     "ended": string, // !! Only present when finished, jsonDate
     "speed": number, // !! Only present in "downloading", "compressing", "uploading" status
     "seeders": number // !! Only present in "downloading", "magnet_conversion" status
-}
-
-declare module 'real-debrid-api' {
-    interface Torrent {
-        addMagnet(magnet: string): Promise<RealDebridAddMagnet>;
-        info(id: string): Promise<RealDebridTorrentInfo[]>;
-    }
-
-    export default class {
-        constructor(token: string);
-        torrents: Torrent;
-    }
 }
