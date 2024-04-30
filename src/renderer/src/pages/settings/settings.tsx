@@ -111,12 +111,12 @@ export function Settings() {
         />
 
         <TextField
-            label={t("real_debrid_api_token")}
-            value={form.realDebridApiToken ?? ""}
-            onChange={(event) => {
-              updateUserPreferences("realDebridApiToken", event.target.value);
-            }}
-          />
+          label={t("real_debrid_api_token")}
+          value={form.realDebridApiToken ?? ""}
+          onChange={(event) => {
+            updateUserPreferences("realDebridApiToken", event.target.value);
+          }}
+        />
       </div>
     </section>
   );

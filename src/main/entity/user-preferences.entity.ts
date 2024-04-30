@@ -35,4 +35,3 @@ export class UserPreferences {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-

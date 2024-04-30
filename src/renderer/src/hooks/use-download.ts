@@ -99,7 +99,7 @@ export function useDownload() {
         dispatch(setGameDeleting(gameId));
         return window.electron.deleteGameFolder(gameId);
       })
-      .catch(() => { })
+      .catch(() => {})
       .finally(() => {
         updateLibrary();
         dispatch(removeGameFromDeleting(gameId));

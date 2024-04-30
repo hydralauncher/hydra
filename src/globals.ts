@@ -21,6 +21,5 @@ export namespace GameStatus {
     GameStatus.Decompressing == status;
 
   export const isReady = (status: GameStatus | null) =>
-    status === GameStatus.Finished ||
-    status === GameStatus.Seeding;
+    status === GameStatus.Finished || status === GameStatus.Seeding;
 }

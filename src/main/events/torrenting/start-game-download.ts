@@ -1,4 +1,4 @@
-import { getSteamGameIconUrl, writePipe } from "@main/services";
+import { getSteamGameIconUrl } from "@main/services";
 import { gameRepository, repackRepository } from "@main/repository";
 
 import { registerEvent } from "../register-event";
