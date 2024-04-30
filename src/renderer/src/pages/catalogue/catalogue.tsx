@@ -34,13 +34,34 @@ export function Catalogue() {
     navigate(`/game/${game.shop}/${game.objectID}`);
   };
 
+  const [paginationSettings, setPaginationSettings] = useState({ resultsPerPage: 30 });
+
+  useEffect(() => {
+    async function fetchUserPreferences() {
+      try {
+        const [, userPreferences] = await Promise.all([
+          window.electron.getDefaultDownloadsPath(),
+          window.electron.getUserPreferences(),
+        ]);
+        const resultsPerPage = userPreferences?.resultsPerPage ?? 30;
+        setPaginationSettings({ resultsPerPage });
+      } catch (error) {
+        console.error("Failed to fetch user preferences:", error);
+      }
+    };
+
+    fetchUserPreferences();
+  }, []);
+
+  const resultsPerPage = paginationSettings.resultsPerPage;
+
   useEffect(() => {
     if (contentRef.current) contentRef.current.scrollTop = 0;
     setIsLoading(true);
     setSearchResults([]);
 
     window.electron
-      .getGames(24, cursor)
+      .getGames(resultsPerPage, cursor)
       .then(({ results, cursor }) => {
         return new Promise((resolve) => {
           setTimeout(() => {
@@ -53,7 +74,7 @@ export function Catalogue() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [dispatch, cursor, searchParams]);
+  }, [dispatch, cursor, searchParams, resultsPerPage]);
 
   const handleNextPage = () => {
     const params = new URLSearchParams({

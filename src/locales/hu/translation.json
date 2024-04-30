@@ -123,7 +123,8 @@
     "enable_download_notifications": "Amikor egy letöltés befejeződik",
     "enable_repack_list_notifications": "Amikor egy új repack hozzáadásra kerül",
     "telemetry": "Telemetria",
-    "telemetry_description": "Névtelen felhasználási statisztikák engedélyezése"
+    "telemetry_description": "Névtelen felhasználási statisztikák engedélyezése",
+    "results_per_page": "Válaszok oldalszám:"
   },
   "notifications": {
     "download_complete": "Letöltés befejeződött",

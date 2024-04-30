@@ -4,6 +4,7 @@ import { Button, CheckboxField, TextField } from "@renderer/components";
 import * as styles from "./settings.css";
 import { useTranslation } from "react-i18next";
 import { UserPreferences } from "@types";
+import { RadioField } from "@renderer/components/radio-field/radio-field";
 
 export function Settings() {
   const [form, setForm] = useState({
@@ -11,6 +12,7 @@ export function Settings() {
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
     telemetryEnabled: false,
+    resultsPerPage: 30,
   });
 
   const { t } = useTranslation("settings");
@@ -27,6 +29,7 @@ export function Settings() {
         repackUpdatesNotificationsEnabled:
           userPreferences?.repackUpdatesNotificationsEnabled ?? false,
         telemetryEnabled: userPreferences?.telemetryEnabled ?? false,
+        resultsPerPage: userPreferences?.resultsPerPage ?? 30,
       });
     });
   }, []);
@@ -57,7 +60,7 @@ export function Settings() {
   return (
     <section className={styles.container}>
       <div className={styles.content}>
-        <div className={styles.downloadsPathField}>
+        <div className={styles.flexRowStyle}>
           <TextField
             label={t("downloads_path")}
             value={form.downloadsPath}
@@ -107,6 +110,42 @@ export function Settings() {
             updateUserPreferences("telemetryEnabled", !form.telemetryEnabled)
           }
         />
+
+        <h3>{t("results_per_page")}</h3>
+
+        <div className={styles.flexRowStyle}>
+          <RadioField
+            label={'24'}
+            checked={form.resultsPerPage === 30}
+            onChange={() =>
+              updateUserPreferences("resultsPerPage", 30)
+            }
+          />
+
+          <RadioField
+            label={'48'}
+            checked={form.resultsPerPage === 50}
+            onChange={() =>
+              updateUserPreferences("resultsPerPage", 50)
+            }
+          />
+
+          <RadioField
+            label={'72'}
+            checked={form.resultsPerPage === 70}
+            onChange={() =>
+              updateUserPreferences("resultsPerPage", 70)
+            }
+          />
+
+          <RadioField
+            label={'96'}
+            checked={form.resultsPerPage === 100}
+            onChange={() =>
+              updateUserPreferences("resultsPerPage", 100)
+            }
+          />
+        </div>
       </div>
     </section>
   );

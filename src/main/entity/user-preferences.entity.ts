@@ -26,6 +26,9 @@ export class UserPreferences {
   @Column("boolean", { default: true })
   telemetryEnabled: boolean;
 
+  @Column("int", { default: 30 })
+  resultsPerPage: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

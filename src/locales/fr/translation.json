@@ -113,7 +113,8 @@
     "enable_download_notifications": "Quand un téléchargement est terminé",
     "enable_repack_list_notifications": "Quand un nouveau repack est ajouté",
     "telemetry": "Télémétrie",
-    "telemetry_description": "Activer les statistiques d'utilisation anonymes"
+    "telemetry_description": "Activer les statistiques d'utilisation anonymes",
+    "results_per_page": "Resultats par page"
   },
   "notifications": {
     "download_complete": "Téléchargement terminé",
