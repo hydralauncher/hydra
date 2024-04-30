@@ -44,7 +44,7 @@ export class Game {
   shop: GameShop;
 
   @Column("text", { nullable: true })
-  status: GameStatus | "";
+  status: GameStatus | null;
 
   /** 
    * Progress is a float between 0 and 1

@@ -1,1 +1,4 @@
-postinstall.js
+node_modules
+dist
+out
+.gitignore

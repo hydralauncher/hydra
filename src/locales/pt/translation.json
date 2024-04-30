@@ -3,7 +3,7 @@
     "featured": "Destaque",
     "recently_added": "Novidades",
     "trending": "Populares",
-    "surprise_me": "Me surpreenda",
+    "surprise_me": "Surpreenda-me",
     "no_results": "Nenhum resultado encontrado"
   },
   "sidebar": {
@@ -78,7 +78,7 @@
     "repacks_modal_description": "Escolha o repack do jogo que deseja baixar",
     "downloads_path": "Diretório do download",
     "select_folder_hint": "Para trocar a pasta padrão, acesse as ",
-    "hydra_settings": "Configurações do Hydra",
+    "settings": "Configurações do Hydra",
     "download_now": "Baixe agora"
   },
   "activation": {

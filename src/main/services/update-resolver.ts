@@ -1,7 +1,7 @@
 import path from "node:path";
 import { app } from "electron";
 
-import chunk from "lodash/chunk";
+import { chunk } from "lodash-es";
 
 import { createDataSource, dataSource } from "@main/data-source";
 import { Repack, RepackerFriendlyName, SteamGame } from "@main/entity";
@@ -109,7 +109,7 @@ export const resolveDatabaseUpdates = async () => {
   const updateDataSource = createDataSource({
     database: app.isPackaged
       ? path.join(process.resourcesPath, "hydra.db")
-      : path.join(__dirname, "..", "..", "resources", "hydra.db"),
+      : path.join(__dirname, "..", "..", "hydra.db"),
   });
 
   return updateDataSource.initialize().then(async () => {

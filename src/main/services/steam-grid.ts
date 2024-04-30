@@ -32,7 +32,7 @@ export const getSteamGridData = async (
     {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${process.env.STEAMGRIDDB_API_KEY}`,
+        Authorization: `Bearer ${import.meta.env.MAIN_VITE_STEAMGRIDDB_API_KEY}`,
       },
     }
   );

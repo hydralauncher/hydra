@@ -1,6 +1,5 @@
 import { Repack } from "@main/entity";
 import { savePage } from "./helpers";
-import type { GameRepackInput } from "./helpers";
 import { logger } from "../logger";
 import parseTorrent, {
   toMagnetURI,
@@ -21,7 +20,8 @@ export const getNewRepacksFromOnlineFix = async (
   cookieJar = new CookieJar()
 ): Promise<void> => {
   const hasCredentials =
-    process.env.ONLINEFIX_USERNAME && process.env.ONLINEFIX_PASSWORD;
+    import.meta.env.MAIN_VITE_ONLINEFIX_USERNAME &&
+    import.meta.env.MAIN_VITE_ONLINEFIX_PASSWORD;
   if (!hasCredentials) return;
 
   const http = gotScraping.extend({
@@ -58,8 +58,8 @@ export const getNewRepacksFromOnlineFix = async (
     if (!preLogin.field || !preLogin.value) return;
 
     const params = new URLSearchParams({
-      login_name: process.env.ONLINEFIX_USERNAME,
-      login_password: process.env.ONLINEFIX_PASSWORD,
+      login_name: import.meta.env.MAIN_VITE_ONLINEFIX_USERNAME,
+      login_password: import.meta.env.MAIN_VITE_ONLINEFIX_PASSWORD,
       login: "submit",
       [preLogin.field]: preLogin.value,
     });
@@ -84,10 +84,10 @@ export const getNewRepacksFromOnlineFix = async (
   });
   const document = new JSDOM(home.body).window.document;
 
-  const repacks: GameRepackInput[] = [];
+  const repacks = [];
   const articles = Array.from(document.querySelectorAll(".news"));
   const totalPages = Number(
-    document.querySelector("nav > a:nth-child(13)").textContent
+    document.querySelector("nav > a:nth-child(13)")?.textContent
   );
 
   try {
@@ -185,8 +185,10 @@ export const getNewRepacksFromOnlineFix = async (
         });
       })
     );
-  } catch (err) {
-    logger.error(err.message, { method: "getNewRepacksFromOnlineFix" });
+  } catch (err: unknown) {
+    logger.error((err as Error).message, {
+      method: "getNewRepacksFromOnlineFix",
+    });
   }
 
   const newRepacks = repacks.filter(

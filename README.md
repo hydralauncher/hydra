@@ -81,11 +81,89 @@ yarn make
 
 ## Contributors
 
-<a href="https://github.com/hydralauncher/hydra/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=hydralauncher/hydra" />
-</a>
-
-Made with [contrib.rocks](https://contrib.rocks).
+<!-- readme: contributors -start -->
+<table>
+<tr>
+    <td align="center">
+        <a href="https://github.com/hydralauncher">
+            <img src="https://avatars.githubusercontent.com/u/164102380?v=4" width="100;" alt="hydralauncher"/>
+            <br />
+            <sub><b>Hydra</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/zamitto">
+            <img src="https://avatars.githubusercontent.com/u/167933696?v=4" width="100;" alt="zamitto"/>
+            <br />
+            <sub><b>Null</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/fzanutto">
+            <img src="https://avatars.githubusercontent.com/u/15229294?v=4" width="100;" alt="fzanutto"/>
+            <br />
+            <sub><b>Null</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/JackEnx">
+            <img src="https://avatars.githubusercontent.com/u/167036558?v=4" width="100;" alt="JackEnx"/>
+            <br />
+            <sub><b>Null</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/fhilipecrash">
+            <img src="https://avatars.githubusercontent.com/u/36455575?v=4" width="100;" alt="fhilipecrash"/>
+            <br />
+            <sub><b>Fhilipe Coelho</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/Magrid0">
+            <img src="https://avatars.githubusercontent.com/u/73496008?v=4" width="100;" alt="Magrid0"/>
+            <br />
+            <sub><b>Magrid</b></sub>
+        </a>
+    </td></tr>
+<tr>
+    <td align="center">
+        <a href="https://github.com/ferivoq">
+            <img src="https://avatars.githubusercontent.com/u/36544651?v=4" width="100;" alt="ferivoq"/>
+            <br />
+            <sub><b>FeriVOQ</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/xbozo">
+            <img src="https://avatars.githubusercontent.com/u/119091492?v=4" width="100;" alt="xbozo"/>
+            <br />
+            <sub><b>Guilherme Viana</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/pmenta">
+            <img src="https://avatars.githubusercontent.com/u/71457671?v=4" width="100;" alt="pmenta"/>
+            <br />
+            <sub><b>João Martins</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/eltociear">
+            <img src="https://avatars.githubusercontent.com/u/22633385?v=4" width="100;" alt="eltociear"/>
+            <br />
+            <sub><b>Ikko Eltociear Ashimine</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/Netflixyapp">
+            <img src="https://avatars.githubusercontent.com/u/91623880?v=4" width="100;" alt="Netflixyapp"/>
+            <br />
+            <sub><b>Netflixy</b></sub>
+        </a>
+    </td></tr>
+</table>
+<!-- readme: contributors -end -->
 
 ## License
 

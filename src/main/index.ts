@@ -1,52 +1,68 @@
-import { stateManager } from "./state-manager";
-import { repackers } from "./constants";
-import {
-  getNewGOGGames,
-  getNewRepacksFromCPG,
-  getNewRepacksFromUser,
-  getNewRepacksFromXatab,
-  // getNewRepacksFromOnlineFix,
-  readPipe,
-  startProcessWatcher,
-  writePipe,
-} from "./services";
-import {
-  gameRepository,
-  repackRepository,
-  repackerFriendlyNameRepository,
-  steamGameRepository,
-  userPreferencesRepository,
-} from "./repository";
-import { TorrentClient } from "./services/donwloaders/torrent-client";
-import { Repack } from "./entity";
-import { Notification } from "electron";
-import { t } from "i18next";
-import { In } from "typeorm";
-import { Downloader } from "./services/donwloaders/downloader";
-import { GameStatus } from "@globals";
+import { app, BrowserWindow } from "electron";
+import { init } from "@sentry/electron/main";
+import i18n from "i18next";
+import path from "node:path";
+import { electronApp, optimizer } from "@electron-toolkit/utils";
+import { resolveDatabaseUpdates, WindowManager } from "@main/services";
+import { dataSource } from "@main/data-source";
+import * as resources from "@locales";
+import { userPreferencesRepository } from "@main/repository";
 
-startProcessWatcher();
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) app.quit();
 
-TorrentClient.startTorrentClient(writePipe.socketPath, readPipe.socketPath);
+if (import.meta.env.MAIN_VITE_SENTRY_DSN) {
+  init({
+    dsn: import.meta.env.MAIN_VITE_SENTRY_DSN,
+    beforeSend: async (event) => {
+      const userPreferences = await userPreferencesRepository.findOne({
+        where: { id: 1 },
+      });
 
-Promise.all([writePipe.createPipe(), readPipe.createPipe()]).then(async () => {
-  const game = await gameRepository.findOne({
-    where: {
-      status: In([
-        GameStatus.Downloading,
-        GameStatus.DownloadingMetadata,
-        GameStatus.CheckingFiles,
-      ]),
+      if (userPreferences?.telemetryEnabled) return event;
+      return null;
     },
-    relations: { repack: true },
   });
+}
 
-  if (game) {
-    Downloader.downloadGame(game, game.repack);
+i18n.init({
+  resources,
+  lng: "en",
+  fallbackLng: "en",
+  interpolation: {
+    escapeValue: false,
+  },
+});
+
+const PROTOCOL = "hydralauncher";
+
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [
+      path.resolve(process.argv[1]),
+    ]);
   }
+} else {
+  app.setAsDefaultProtocolClient(PROTOCOL);
+}
 
-  readPipe.socket.on("data", (data) => {
-    TorrentClient.onSocketData(data);
+// This method will be called when Electron has finished
+// initialization and is ready to create browser windows.
+// Some APIs can only be used after this event occurs.
+app.whenReady().then(() => {
+  electronApp.setAppUserModelId("site.hydralauncher.hydra");
+
+  dataSource.initialize().then(async () => {
+    await resolveDatabaseUpdates();
+
+    await import("./main");
+
+    const userPreferences = await userPreferencesRepository.findOne({
+      where: { id: 1 },
+    });
+
+    WindowManager.createMainWindow();
+    WindowManager.createSystemTray(userPreferences?.language || "en");
   });
 });
 
@@ -64,63 +80,49 @@ const checkForNewRepacks = async () => {
     where: { id: 1 },
   });
 
-  const existingRepacks = stateManager.getValue("repacks");
-
-  Promise.allSettled([
-    getNewGOGGames(
-      existingRepacks.filter((repack) => repack.repacker === "GOG")
-    ),
-    getNewRepacksFromXatab(
-      existingRepacks.filter((repack) => repack.repacker === "Xatab")
-    ),
-    getNewRepacksFromCPG(
-      existingRepacks.filter((repack) => repack.repacker === "CPG")
-    ),
-    // getNewRepacksFromOnlineFix(
-    //   existingRepacks.filter((repack) => repack.repacker === "onlinefix")
-    // ),
-    track1337xUsers(existingRepacks),
-  ]).then(() => {
-    repackRepository.count().then((count) => {
-      const total = count - stateManager.getValue("repacks").length;
-
-      if (total > 0 && userPreferences?.repackUpdatesNotificationsEnabled) {
-        new Notification({
-          title: t("repack_list_updated", {
-            ns: "notifications",
-            lng: userPreferences?.language || "en",
-          }),
-          body: t("repack_count", {
-            ns: "notifications",
-            lng: userPreferences?.language || "en",
-            count: total,
-          }),
-        }).show();
-      }
-    });
+    WindowManager.createMainWindow();
+    WindowManager.createSystemTray(userPreferences?.language || "en");
   });
-};
+});
 
-const loadState = async () => {
-  const [friendlyNames, repacks, steamGames] = await Promise.all([
-    repackerFriendlyNameRepository.find(),
-    repackRepository.find({
-      order: {
-        createdAt: "desc",
-      },
-    }),
-    steamGameRepository.find({
-      order: {
-        name: "asc",
-      },
-    }),
-  ]);
+app.on("browser-window-created", (_, window) => {
+  optimizer.watchWindowShortcuts(window);
+});
 
-  stateManager.setValue("repackersFriendlyNames", friendlyNames);
-  stateManager.setValue("repacks", repacks);
-  stateManager.setValue("steamGames", steamGames);
+app.on("second-instance", (_event, commandLine) => {
+  // Someone tried to run a second instance, we should focus our window.
+  if (WindowManager.mainWindow) {
+    if (WindowManager.mainWindow.isMinimized())
+      WindowManager.mainWindow.restore();
 
-  import("./events");
-};
+    WindowManager.mainWindow.focus();
+  } else {
+    WindowManager.createMainWindow();
+  }
 
-loadState().then(() => checkForNewRepacks());
+  const [, path] = commandLine.pop().split("://");
+  if (path) WindowManager.redirect(path);
+});
+
+app.on("open-url", (_event, url) => {
+  const [, path] = url.split("://");
+  WindowManager.redirect(path);
+});
+
+// Quit when all windows are closed, except on macOS. There, it's common
+// for applications and their menu bar to stay active until the user quits
+// explicitly with Cmd + Q.
+app.on("window-all-closed", () => {
+  WindowManager.mainWindow = null;
+});
+
+app.on("activate", () => {
+  // On OS X it's common to re-create a window in the app when the
+  // dock icon is clicked and there are no other windows open.
+  if (BrowserWindow.getAllWindows().length === 0) {
+    WindowManager.createMainWindow();
+  }
+});
+
+// In this file you can include the rest of your app's specific main process
+// code. You can also put them in separate files and import them here.

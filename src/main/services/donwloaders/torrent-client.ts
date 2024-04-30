@@ -46,10 +46,9 @@ export class TorrentClient {
     const commonArgs = [BITTORRENT_PORT, writePipePath, readPipePath];
 
     if (app.isPackaged) {
-      const binaryName = binaryNameByPlatform[process.platform];
+      const binaryName = binaryNameByPlatform[process.platform]!;
       const binaryPath = path.join(
         process.resourcesPath,
-        "dist",
         "hydra-download-manager",
         binaryName
       );
