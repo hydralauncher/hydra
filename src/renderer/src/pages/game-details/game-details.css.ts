@@ -246,7 +246,9 @@ globalStyle(`${description} img`, {
   marginTop: `${SPACING_UNIT}px`,
   marginBottom: `${SPACING_UNIT * 3}px`,
   display: "block",
-  maxWidth: "100%",
+  width: "100%",
+  height: "auto",
+  objectFit: "cover",
 });
 
 globalStyle(`${description} a`, {
