@@ -52,9 +52,23 @@ export class RealDebridClient {
     return response.json() as Promise<RealDebridUnrestrictLink>;
   }
 
+  static async getAllTorrents() {
+    const response = await fetch(`${base}/torrents`, {
+      headers: {
+        Authorization: `Bearer ${await this.getApiToken()}`,
+      },
+    });
+
+    return response.json() as Promise<RealDebridTorrentInfo[]>;
+  }
+
   static getApiToken() {
     return userPreferencesRepository
       .findOne({ where: { id: 1 } })
       .then((userPreferences) => userPreferences!.realDebridApiToken);
+  }
+
+  static extractSHA1FromMagnet(magnet: string) {
+    return magnet.match(/btih:([0-9a-fA-F]*)/)?.[1].toLowerCase();
   }
 }

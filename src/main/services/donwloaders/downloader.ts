@@ -69,10 +69,22 @@ export class Downloader {
       });
     } else {
       try {
-        const torrent = await RealDebridClient.addMagnet(repack.magnet);
-        if (torrent && torrent.id) {
-          await RealDebridClient.selectAllFiles(torrent.id);
-          const { links } = await RealDebridClient.getInfo(torrent.id);
+        // Lets try first to find the torrent on RealDebrid
+        const torrents = await RealDebridClient.getAllTorrents();
+        const hash = RealDebridClient.extractSHA1FromMagnet(repack.magnet);
+        let torrent = torrents.find((t) => t.hash === hash);
+
+        if (!torrent) {
+          // Torrent is missing, lets add it
+          const magnet = await RealDebridClient.addMagnet(repack.magnet);
+          if (magnet && magnet.id) {
+            await RealDebridClient.selectAllFiles(magnet.id);
+            torrent = await RealDebridClient.getInfo(magnet.id);
+          }
+        }
+
+        if (torrent) {
+          const { links } = torrent;
           const { download } = await RealDebridClient.unrestrictLink(links[0]);
           this.lastHttpDownloader = new HTTPDownloader();
           this.lastHttpDownloader.download(
