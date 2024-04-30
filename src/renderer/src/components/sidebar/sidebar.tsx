@@ -118,7 +118,8 @@ export function Sidebar() {
   }, [isResizing]);
 
   const getGameTitle = (game: Game) => {
-    if (game.status === GameStatus.Paused) return t("paused", { title: game.title });
+    if (game.status === GameStatus.Paused)
+      return t("paused", { title: game.title });
 
     if (gameDownloading?.id === game.id) {
       const isVerifying = GameStatus.isVerifying(gameDownloading.status);
