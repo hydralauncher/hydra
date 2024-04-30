@@ -11,6 +11,7 @@ import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
 import { DeleteModal } from "./delete-modal";
 import { formatBytes } from "@renderer/utils";
+import { GameStatus } from "@globals";
 
 export function Downloads() {
   const { library, updateLibrary } = useLibrary();
@@ -82,7 +83,7 @@ export function Downloads() {
         <>
           <p>{progress}</p>
 
-          {gameDownloading?.status !== "downloading" ? (
+          {gameDownloading?.status !== GameStatus.Downloading ? (
             <p>{t(gameDownloading?.status)}</p>
           ) : (
             <>
@@ -99,7 +100,7 @@ export function Downloads() {
       );
     }
 
-    if (game?.status === "seeding") {
+    if (GameStatus.isReady(game?.status)) {
       return (
         <>
           <p>{game?.repack.title}</p>
@@ -107,11 +108,11 @@ export function Downloads() {
         </>
       );
     }
-    if (game?.status === "cancelled") return <p>{t("cancelled")}</p>;
-    if (game?.status === "downloading_metadata")
+    if (game?.status === GameStatus.Cancelled) return <p>{t("cancelled")}</p>;
+    if (game?.status === GameStatus.DownloadingMetadata)
       return <p>{t("starting_download")}</p>;
 
-    if (game?.status === "paused") {
+    if (game?.status === GameStatus.Paused) {
       return (
         <>
           <p>{formatDownloadProgress(game.progress)}</p>
@@ -144,7 +145,7 @@ export function Downloads() {
       );
     }
 
-    if (game?.status === "paused") {
+    if (game?.status === GameStatus.Paused) {
       return (
         <>
           <Button onClick={() => resumeDownload(game.id)} theme="outline">
@@ -157,7 +158,7 @@ export function Downloads() {
       );
     }
 
-    if (game?.status === "seeding") {
+    if (GameStatus.isReady(game?.status)) {
       return (
         <>
           <Button
@@ -175,7 +176,7 @@ export function Downloads() {
       );
     }
 
-    if (game?.status === "downloading_metadata") {
+    if (game?.status === GameStatus.DownloadingMetadata) {
       return (
         <Button onClick={() => cancelDownload(game.id)} theme="outline">
           {t("cancel")}
@@ -236,7 +237,7 @@ export function Downloads() {
             <li
               key={game.id}
               className={styles.download({
-                cancelled: game.status === "cancelled",
+                cancelled: game.status === GameStatus.Cancelled,
               })}
             >
               <AsyncImage

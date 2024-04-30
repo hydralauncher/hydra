@@ -64,10 +64,7 @@ export function useDownload() {
       updateLibrary();
     });
 
-  const isVerifying =
-    GameStatus.DownloadingMetadata == lastPacket?.game.status ||
-    GameStatus.CheckingFiles == lastPacket?.game.status ||
-    GameStatus.Decompressing == lastPacket?.game.status;
+  const isVerifying = GameStatus.isVerifying(lastPacket?.game.status);
 
   const getETA = () => {
     if (isVerifying || !isFinite(lastPacket?.timeRemaining)) {

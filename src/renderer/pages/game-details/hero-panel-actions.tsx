@@ -1,3 +1,4 @@
+import { GameStatus } from "@globals";
 import { NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
 
 import { Button } from "@renderer/components";
@@ -135,7 +136,7 @@ export function HeroPanelActions({
     );
   }
 
-  if (game?.status === "paused") {
+  if (game?.status === GameStatus.Paused) {
     return (
       <>
         <Button onClick={() => resumeDownload(game.id)} theme="outline">
@@ -151,10 +152,10 @@ export function HeroPanelActions({
     );
   }
 
-  if (game?.status === "seeding" || (game && !game.status)) {
+  if (GameStatus.isReady(game?.status) || (game && !game.status)) {
     return (
       <>
-        {game?.status === "seeding" ? (
+        {GameStatus.isReady(game?.status) ? (
           <Button
             onClick={openGameInstaller}
             theme="outline"
@@ -183,7 +184,7 @@ export function HeroPanelActions({
     );
   }
 
-  if (game?.status === "cancelled") {
+  if (game?.status === GameStatus.Cancelled) {
     return (
       <>
         <Button onClick={openRepacksModal} theme="outline" disabled={deleting}>

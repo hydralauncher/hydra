@@ -7,6 +7,7 @@ import { vars } from "@renderer/theme.css";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { VERSION_CODENAME } from "@renderer/constants";
+import { GameStatus } from "@globals";
 
 export function BottomPanel() {
   const { t } = useTranslation("bottom_panel");
@@ -23,10 +24,10 @@ export function BottomPanel() {
 
   const status = useMemo(() => {
     if (isDownloading) {
-      if (game.status === "downloading_metadata")
+      if (game.status === GameStatus.DownloadingMetadata)
         return t("downloading_metadata", { title: game.title });
 
-      if (game.status === "checking_files")
+      if (game.status === GameStatus.CheckingFiles)
         return t("checking_files", {
           title: game.title,
           percentage: progress,
