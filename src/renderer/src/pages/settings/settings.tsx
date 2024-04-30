@@ -115,7 +115,7 @@ export function Settings() {
 
         <div className={styles.flexRowStyle}>
           <RadioField
-            label={'24'}
+            label={'30'}
             checked={form.resultsPerPage === 30}
             onChange={() =>
               updateUserPreferences("resultsPerPage", 30)
@@ -123,7 +123,7 @@ export function Settings() {
           />
 
           <RadioField
-            label={'48'}
+            label={'50'}
             checked={form.resultsPerPage === 50}
             onChange={() =>
               updateUserPreferences("resultsPerPage", 50)
@@ -131,7 +131,7 @@ export function Settings() {
           />
 
           <RadioField
-            label={'72'}
+            label={'70'}
             checked={form.resultsPerPage === 70}
             onChange={() =>
               updateUserPreferences("resultsPerPage", 70)
@@ -139,7 +139,7 @@ export function Settings() {
           />
 
           <RadioField
-            label={'96'}
+            label={'100'}
             checked={form.resultsPerPage === 100}
             onChange={() =>
               updateUserPreferences("resultsPerPage", 100)
