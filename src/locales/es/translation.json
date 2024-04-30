@@ -66,11 +66,11 @@
     "remove_from_library": "Eliminar de la biblioteca",
     "no_downloads": "No hay descargas disponibles",
     "next_suggestion": "Siguiente sugerencia",
-    "play_time": "Jugado por {{cantidad}}",
+    "play_time": "Jugado {{amount}}",
     "install": "Instalar",
     "play": "Jugar",
     "not_played_yet": "Aún no has jugado a {{title}}",
-    "close": "Cerca",
+    "close": "Cerrar",
     "deleting": "Eliminando instalador…",
     "playing_now": "Jugando ahora",
     "last_time_played": "Jugado por última vez {{period}}"
