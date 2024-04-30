@@ -1,6 +1,7 @@
 .vscode
 node_modules
 hydra-download-manager
+fastlist.exe
 __pycache__
 dist
 out
