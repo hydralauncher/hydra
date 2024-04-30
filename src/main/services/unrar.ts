@@ -7,7 +7,6 @@ export class Unrar {
     private constructor(private extractor: Extractor<Uint8Array>) { }
 
     static async fromFilePath(filePath: string, targetFolder: string) {
-        console.log(filePath, targetFolder);
         const extractor = await createExtractorFromFile({
             filepath: filePath,
             targetPath: targetFolder,

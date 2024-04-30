@@ -77,7 +77,7 @@ export interface Game extends Omit<CatalogueEntry, "cover"> {
   id: number;
   title: string;
   iconUrl: string;
-  status: GameStatus | "";
+  status: GameStatus | null;
   folderName: string;
   downloadPath: string | null;
   repacks: GameRepack[];

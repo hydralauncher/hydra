@@ -90,7 +90,7 @@ export class TorrentClient {
       return GameStatus.DownloadingMetadata;
     if (state === TorrentState.Finished) return GameStatus.Finished;
     if (state === TorrentState.Seeding) return GameStatus.Seeding;
-    return "";
+    return null;
   }
 
   public static async onSocketData(data: Buffer) {
