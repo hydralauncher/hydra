@@ -29,7 +29,7 @@ export function RepacksModal({
   onClose,
 }: RepacksModalProps) {
   const [filteredRepacks, setFilteredRepacks] = useState<GameRepack[]>([]);
-  const [repack, setRepack] = useState<GameRepack>(null);
+  const [repack, setRepack] = useState<GameRepack | null>(null);
 
   const repackersFriendlyNames = useAppSelector(
     (state) => state.repackersFriendlyNames.value

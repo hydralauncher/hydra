@@ -2,10 +2,10 @@ name: Contributors
 
 on:
   push:
-    branches: "**"
+    branches: main
 
 jobs:
-  lint:
+  contributors:
     runs-on: ubuntu-latest
 
     steps:
