@@ -1,5 +1,4 @@
 import { userPreferencesRepository } from "@main/repository";
-import fetch from "node-fetch";
 import {
   RealDebridAddMagnet,
   RealDebridTorrentInfo,

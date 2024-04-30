@@ -26,7 +26,6 @@
     "build:linux": "electron-vite build && electron-builder --linux"
   },
   "dependencies": {
-    "@types/node-fetch": "^2.6.11",
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/utils": "^3.0.0",
     "@fontsource/fira-mono": "^5.0.13",
@@ -43,8 +42,8 @@
     "check-disk-space": "^3.4.0",
     "classnames": "^2.5.1",
     "color.js": "^1.2.0",
-    "electron-dl-manager": "^3.0.0",
     "date-fns": "^3.6.0",
+    "electron-dl-manager": "^3.0.0",
     "flexsearch": "^0.7.43",
     "got-scraping": "^4.0.5",
     "i18next": "^23.11.2",
@@ -52,7 +51,6 @@
     "jsdom": "^24.0.0",
     "lodash-es": "^4.17.21",
     "lottie-react": "^2.4.0",
-    "node-fetch": "^2.6.1",
     "node-unrar-js": "^2.0.2",
     "parse-torrent": "^11.0.16",
     "ps-list": "^8.1.1",
