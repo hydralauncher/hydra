@@ -5,6 +5,7 @@ import { XIcon } from "@primer/octicons-react";
 import * as styles from "./modal.css";
 import { useAppDispatch } from "@renderer/hooks";
 import { toggleDragging } from "@renderer/features";
+import { Backdrop } from "../backdrop/backdrop";
 
 export interface ModalProps {
   visible: boolean;
@@ -88,7 +89,7 @@ export function Modal({
   if (!visible) return null;
 
   return createPortal(
-    <div className={styles.backdrop({ closing: isClosing })}>
+    <Backdrop isClosing={isClosing}>
       <div
         className={styles.modal({ closing: isClosing })}
         role="modal"
@@ -110,7 +111,7 @@ export function Modal({
         </div>
         <div className={styles.modalContent}>{children}</div>
       </div>
-    </div>,
+    </Backdrop>,
     document.body
   );
 }

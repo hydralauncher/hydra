@@ -28,6 +28,7 @@ import * as styles from "./game-details.css";
 import { HeroPanel } from "./hero-panel";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { RepacksModal } from "./repacks-modal";
+import { OnlineFixInstallationGuide } from "./online-fix-installation-guide";
 
 export function GameDetails() {
   const { objectID, shop } = useParams();
@@ -167,6 +168,8 @@ export function GameDetails() {
 
   return (
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
+      {/* <OnlineFixInstallationGuide /> */}
+
       {gameDetails && (
         <RepacksModal
           visible={showRepacksModal}
