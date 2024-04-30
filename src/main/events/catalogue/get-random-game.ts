@@ -8,7 +8,7 @@ import { searchGames, searchRepacks } from "../helpers/search-games";
 const state = { games: Array<Steam250Game>(), index: 0 };
 
 const getRandomGame = async (_event: Electron.IpcMainInvokeEvent) => {
-  if (state.games.length == 0) {
+  if (state.games === null || state.games === undefined || state.games.length === 0) {
     const steam250List = await getSteam250List();
 
     const filteredSteam250List = steam250List.filter((game) => {
