@@ -1,11 +1,15 @@
 import { registerEvent } from "../register-event";
 import { searchGames } from "../helpers/search-games";
+import { CatalogueEntry } from "@types";
 
-registerEvent(
-  (_event: Electron.IpcMainInvokeEvent, query: string) =>
-    searchGames({ query, take: 12 }),
-  {
-    name: "searchGames",
-    memoize: true,
-  }
-);
+const searchGamesEvent = async (
+  _event: Electron.IpcMainInvokeEvent,
+  query: string
+): Promise<CatalogueEntry[]> => {
+  return searchGames({ query, take: 12 });
+};
+
+registerEvent(searchGamesEvent, {
+  name: "searchGames",
+  memoize: true,
+});
