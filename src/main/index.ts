@@ -66,25 +66,6 @@ app.whenReady().then(() => {
   });
 });
 
-const track1337xUsers = async (existingRepacks: Repack[]) => {
-  for (const repacker of repackers) {
-    await getNewRepacksFromUser(
-      repacker,
-      existingRepacks.filter((repack) => repack.repacker === repacker)
-    );
-  }
-};
-
-const checkForNewRepacks = async () => {
-  const userPreferences = await userPreferencesRepository.findOne({
-    where: { id: 1 },
-  });
-
-    WindowManager.createMainWindow();
-    WindowManager.createSystemTray(userPreferences?.language || "en");
-  });
-});
-
 app.on("browser-window-created", (_, window) => {
   optimizer.watchWindowShortcuts(window);
 });
@@ -100,7 +81,7 @@ app.on("second-instance", (_event, commandLine) => {
     WindowManager.createMainWindow();
   }
 
-  const [, path] = commandLine.pop().split("://");
+  const [, path] = commandLine.pop()!.split("://");
   if (path) WindowManager.redirect(path);
 });
 
