@@ -1,5 +1,5 @@
 import { stateManager } from "./state-manager";
-import { GameStatus, repackers } from "./constants";
+import { repackers } from "./constants";
 import {
   getNewGOGGames,
   getNewRepacksFromCPG,
@@ -17,11 +17,13 @@ import {
   steamGameRepository,
   userPreferencesRepository,
 } from "./repository";
-import { TorrentClient } from "./services/torrent-client";
+import { TorrentClient } from "./services/donwloaders/torrent-client";
 import { Repack } from "./entity";
 import { Notification } from "electron";
 import { t } from "i18next";
 import { In } from "typeorm";
+import { Downloader } from "./services/donwloaders/downloader";
+import { GameStatus } from "@globals";
 
 startProcessWatcher();
 
@@ -40,12 +42,7 @@ Promise.all([writePipe.createPipe(), readPipe.createPipe()]).then(async () => {
   });
 
   if (game) {
-    writePipe.write({
-      action: "start",
-      game_id: game.id,
-      magnet: game.repack.magnet,
-      save_path: game.downloadPath,
-    });
+    Downloader.downloadGame(game, game.repack);
   }
 
   readPipe.socket?.on("data", (data) => {
