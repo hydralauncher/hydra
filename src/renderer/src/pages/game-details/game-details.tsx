@@ -137,17 +137,19 @@ export function GameDetails() {
     repackId: number,
     downloadPath: string
   ) => {
-    return startDownload(
-      repackId,
-      gameDetails.objectID,
-      gameDetails.name,
-      shop as GameShop,
-      downloadPath
-    ).then(() => {
-      getGame();
-      setShowRepacksModal(false);
-      setShowSelectFolderModal(false);
-    });
+    if (gameDetails) {
+      return startDownload(
+        repackId,
+        gameDetails.objectID,
+        gameDetails.name,
+        shop as GameShop,
+        downloadPath
+      ).then(() => {
+        getGame();
+        setShowRepacksModal(false);
+        setShowSelectFolderModal(false);
+      });
+    }
   };
 
   const handleRandomizerClick = async () => {
@@ -261,7 +263,7 @@ export function GameDetails() {
                       title: gameDetails?.name,
                     }),
                 }}
-              ></div>
+              />
             </div>
           </div>
         </section>
