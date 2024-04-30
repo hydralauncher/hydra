@@ -41,6 +41,7 @@ export function Modal({
 
   const isTopMostModal = () => {
     const openModals = document.querySelectorAll("[role=modal]");
+
     return (
       openModals.length &&
       openModals[openModals.length - 1] === modalContentRef.current
@@ -48,34 +49,37 @@ export function Modal({
   };
 
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isTopMostModal()) {
-        handleCloseClick();
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleCloseClick]);
-
-  useEffect(() => {
-    const onMouseDown = (e: MouseEvent) => {
-      if (!isTopMostModal()) return;
-
-      if (modalContentRef.current) {
-        const clickedOutsideContent = modalContentRef.current.contains(
-          e.target as Node
-        );
-
-        if (clickedOutsideContent) {
+    if (visible) {
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape" && isTopMostModal()) {
           handleCloseClick();
         }
-      }
-    };
+      };
 
-    window.addEventListener("mousedown", onMouseDown);
-    return () => window.removeEventListener("mousedown", onMouseDown);
-  }, [handleCloseClick]);
+      const onMouseDown = (e: MouseEvent) => {
+        if (!isTopMostModal()) return;
+        if (modalContentRef.current) {
+          const clickedWithinModal = modalContentRef.current.contains(
+            e.target as Node
+          );
+
+          if (!clickedWithinModal) {
+            handleCloseClick();
+          }
+        }
+      };
+
+      window.addEventListener("keydown", onKeyDown);
+      window.addEventListener("mousedown", onMouseDown);
+
+      return () => {
+        window.removeEventListener("keydown", onKeyDown);
+        window.removeEventListener("mousedown", onMouseDown);
+      };
+    }
+
+    return () => {};
+  }, [handleCloseClick, visible]);
 
   useEffect(() => {
     dispatch(toggleDragging(visible));

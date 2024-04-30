@@ -1,10 +1,10 @@
 {
   "name": "hydra",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
-  "homepage": "https://electron-vite.org",
+  "homepage": "https://hydralauncher.site",
   "repository": {
     "type": "git",
     "url": "https://github.com/hydralauncher/hydra.git"
