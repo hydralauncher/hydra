@@ -10,6 +10,7 @@ import { TorrentUpdate } from "./torrent-client";
 import { HTTPDownloader } from "./http-downloader";
 import { Unrar } from "../unrar";
 import { GameStatus } from "@globals";
+import path from 'node:path';
 
 interface DownloadStatus {
     numPeers: number;
@@ -23,7 +24,7 @@ export class Downloader {
 
     static async usesRealDebrid() {
         const userPreferences = await userPreferencesRepository.findOne({ where: { id: 1 } });
-        return userPreferences.realDebridApiToken !== null;
+        return userPreferences!.realDebridApiToken !== null;
     }
 
     static async cancelDownload() {
@@ -72,7 +73,7 @@ export class Downloader {
                     const { links } = await RealDebridClient.getInfo(torrent.id);
                     const { download } = await RealDebridClient.unrestrictLink(links[0]);
                     this.lastHttpDownloader = new HTTPDownloader();
-                    this.lastHttpDownloader.download(download, game.downloadPath, game.id);
+                    this.lastHttpDownloader.download(download, game.downloadPath!, game.id);
                 }
             } catch (e) {
                 console.error(e);
@@ -102,14 +103,14 @@ export class Downloader {
                     body: t("game_ready_to_install", {
                         ns: "notifications",
                         lng: userPreferences.language,
-                        title: game.title,
+                        title: game?.title,
                     }),
                 }).show();
             }
         }
 
-        if (gameUpdate.decompressionProgress === 0 && gameUpdate.status === GameStatus.Decompressing) {
-            const unrar = await Unrar.fromFilePath(game.rarPath, game.downloadPath);
+        if (game && gameUpdate.decompressionProgress === 0 && gameUpdate.status === GameStatus.Decompressing) {
+            const unrar = await Unrar.fromFilePath(game.rarPath!, path.join(game.downloadPath!, game.folderName!));
             unrar.extract();
             this.updateGameProgress(gameId, { 
                 decompressionProgress: 1,
@@ -117,7 +118,7 @@ export class Downloader {
             }, downloadStatus);
         }
 
-        if (WindowManager.mainWindow) {
+        if (WindowManager.mainWindow && game) {
             const progress = this.getGameProgress(game);
             WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
 
