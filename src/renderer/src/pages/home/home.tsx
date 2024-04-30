@@ -51,7 +51,7 @@ export function Home() {
   const handleSelectCategory = (category: CatalogueCategory) => {
     if (category !== currentCategory) {
       getCatalogue(category);
-      navigate(`/?category=${category}`, { replace: true });
+      navigate(`/?category=${category}`);
     }
   };
 

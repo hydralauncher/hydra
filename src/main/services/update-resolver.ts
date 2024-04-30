@@ -109,7 +109,7 @@ export const resolveDatabaseUpdates = async () => {
   const updateDataSource = createDataSource({
     database: app.isPackaged
       ? path.join(process.resourcesPath, "hydra.db")
-      : path.join(__dirname, "..", "..", "resources", "hydra.db"),
+      : path.join(__dirname, "..", "..", "hydra.db"),
   });
 
   return updateDataSource.initialize().then(async () => {
