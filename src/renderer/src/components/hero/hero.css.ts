@@ -13,11 +13,6 @@ export const hero = style({
   cursor: "pointer",
   border: `solid 1px ${vars.color.borderColor}`,
   zIndex: "1",
-  "@media": {
-    "(min-width: 1250px)": {
-      backgroundPosition: "center",
-    },
-  },
 });
 
 export const heroMedia = style({
