@@ -5,6 +5,10 @@ import { WindowManager } from '../window-manager';
 import { Downloader } from './downloader';
 import { GameStatus } from '@globals';
 
+function dropExtension(fileName: string) {
+    return fileName.split('.').slice(0, -1).join('.');
+}
+
 export class HTTPDownloader {
     private downloadManager: ElectronDownloadManager;
     private downloadId: string | null = null;
@@ -18,7 +22,7 @@ export class HTTPDownloader {
 
         this.downloadId = await this.downloadManager.download({
             url,
-            window: window,
+            window: window!,
             callbacks: {
                 onDownloadStarted: async (ev) => {
                     const updatePayload: QueryDeepPartialEntity<Game> = {
@@ -27,6 +31,7 @@ export class HTTPDownloader {
                         bytesDownloaded: 0,
                         fileSize: ev.item.getTotalBytes(),
                         rarPath: `${destination}/.rd/${ev.resolvedFilename}`,
+                        folderName: dropExtension(ev.resolvedFilename)
                     };
                     const downloadStatus = {
                         numPeers: 0,
