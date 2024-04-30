@@ -13,7 +13,7 @@ export interface SelectFolderModalProps {
   gameDetails: ShopDetails;
   onClose: () => void;
   startDownload: (repackId: number, downloadPath: string) => Promise<void>;
-  repack: GameRepack;
+  repack: GameRepack | null;
 }
 
 export function SelectFolderModal({
@@ -61,10 +61,12 @@ export function SelectFolderModal({
   };
 
   const handleStartClick = () => {
-    setDownloadStarting(true);
-    startDownload(repack.id, selectedPath).finally(() => {
-      setDownloadStarting(false);
-    });
+    if (repack) {
+      setDownloadStarting(true);
+      startDownload(repack.id, selectedPath).finally(() => {
+        setDownloadStarting(false);
+      });
+    }
   };
 
   return (
