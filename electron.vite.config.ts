@@ -32,6 +32,7 @@ export default defineConfig(({ mode }) => {
           "@main": resolve("src/main"),
           "@locales": resolve("src/locales"),
           "@resources": resolve("resources"),
+          "@globals": resolve("src/globals"),
         },
       },
       plugins: [
@@ -52,6 +53,7 @@ export default defineConfig(({ mode }) => {
         alias: {
           "@renderer": resolve("src/renderer/src"),
           "@locales": resolve("src/locales"),
+          "@globals": resolve("src/globals"),
         },
       },
       plugins: [
