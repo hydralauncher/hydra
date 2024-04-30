@@ -28,10 +28,11 @@ export const startProcessWatcher = async () => {
     const processes = await getProcesses();
 
     for (const game of games) {
-      const basename = path.win32.basename(game.executablePath);
+      const executablePath = game.executablePath!;
+      const basename = path.win32.basename(executablePath);
       const basenameWithoutExtension = path.win32.basename(
-        game.executablePath,
-        path.extname(game.executablePath)
+        executablePath,
+        path.extname(executablePath)
       );
 
       const gameProcess = processes.find((runningProcess) => {
@@ -46,7 +47,7 @@ export const startProcessWatcher = async () => {
 
       if (gameProcess) {
         if (gamesPlaytime.has(game.id)) {
-          const zero = gamesPlaytime.get(game.id);
+          const zero = gamesPlaytime.get(game.id) ?? 0;
           const delta = performance.now() - zero;
 
           if (WindowManager.mainWindow) {

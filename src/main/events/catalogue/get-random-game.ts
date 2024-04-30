@@ -1,27 +1,40 @@
-import shuffle from "lodash/shuffle";
+import { shuffle } from "lodash-es";
 
-import { getRandomSteam250List } from "@main/services";
+import { Steam250Game, getSteam250List } from "@main/services";
 
 import { registerEvent } from "../register-event";
 import { searchGames, searchRepacks } from "../helpers/search-games";
-import { formatName } from "@main/helpers";
+
+const state = { games: Array<Steam250Game>(), index: 0 };
 
 const getRandomGame = async (_event: Electron.IpcMainInvokeEvent) => {
-  return getRandomSteam250List().then(async (games) => {
-    const shuffledList = shuffle(games);
+  if (state.games.length == 0) {
+    const steam250List = await getSteam250List();
 
-    for (const game of shuffledList) {
-      const repacks = searchRepacks(formatName(game.title));
+    const filteredSteam250List = steam250List.filter((game) => {
+      const repacks = searchRepacks(game.title);
+      const catalogue = searchGames({ query: game.title });
 
-      if (repacks.length) {
-        const results = await searchGames({ query: game.title });
+      return repacks.length && catalogue.length;
+    });
 
-        if (results.length) {
-          return results[0].objectID;
-        }
-      }
-    }
-  });
+    state.games = shuffle(filteredSteam250List);
+  }
+
+  if (state.games.length == 0) {
+    return "";
+  }
+
+  const resultObjectId = state.games[state.index].objectID;
+
+  state.index += 1;
+
+  if (state.index == state.games.length) {
+    state.index = 0;
+    state.games = shuffle(state.games);
+  }
+
+  return resultObjectId;
 };
 
 registerEvent(getRandomGame, {

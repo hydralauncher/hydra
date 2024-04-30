@@ -15,7 +15,7 @@ import { databasePath } from "./constants";
 
 export const createDataSource = (options: Partial<SqliteConnectionOptions>) =>
   new DataSource({
-    type: "sqlite",
+    type: "better-sqlite3",
     database: databasePath,
     entities: [
       Game,

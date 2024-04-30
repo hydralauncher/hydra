@@ -25,7 +25,7 @@ const pauseGameDownload = async (
     .then((result) => {
       if (result.affected) {
         Downloader.pauseDownload();
-        WindowManager.mainWindow.setProgressBar(-1);
+        WindowManager.mainWindow?.setProgressBar(-1);
       }
     });
 };

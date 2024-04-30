@@ -82,7 +82,7 @@
     "repacks_modal_description": "Choose the repack you want to download",
     "downloads_path": "Downloads path",
     "select_folder_hint": "To change the default folder, access the",
-    "hydra_settings": "Hydra settings",
+    "settings": "Hydra settings",
     "download_now": "Download now"
   },
   "activation": {

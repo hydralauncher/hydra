@@ -3,7 +3,6 @@ import { JSDOM } from "jsdom";
 import { Repack } from "@main/entity";
 
 import { requestWebPage, savePage } from "./helpers";
-import type { GameRepackInput } from "./helpers";
 import { logger } from "../logger";
 
 export const getNewRepacksFromCPG = async (
@@ -14,22 +13,22 @@ export const getNewRepacksFromCPG = async (
 
   const { window } = new JSDOM(data);
 
-  const repacks: GameRepackInput[] = [];
+  const repacks = [];
 
   try {
     Array.from(window.document.querySelectorAll(".post")).forEach(($post) => {
       const $title = $post.querySelector(".entry-title");
-      const uploadDate = $post.querySelector("time").getAttribute("datetime");
+      const uploadDate = $post.querySelector("time")?.getAttribute("datetime");
 
       const $downloadInfo = Array.from(
         $post.querySelectorAll(".wp-block-heading")
-      ).find(($heading) => $heading.textContent.startsWith("Download"));
+      ).find(($heading) => $heading.textContent?.startsWith("Download"));
 
       /* Side note: CPG often misspells "Magnet" as "Magent" */
       const $magnet = Array.from($post.querySelectorAll("a")).find(
         ($a) =>
-          $a.textContent.startsWith("Magnet") ||
-          $a.textContent.startsWith("Magent")
+          $a.textContent?.startsWith("Magnet") ||
+          $a.textContent?.startsWith("Magent")
       );
 
       const fileSize = $downloadInfo.textContent

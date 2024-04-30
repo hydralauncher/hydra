@@ -40,11 +40,6 @@ export interface SteamAppDetails {
   };
 }
 
-export type ShopDetails = SteamAppDetails & {
-  objectID: string;
-  repacks: GameRepack[];
-};
-
 export interface GameRepack {
   id: number;
   title: string;
@@ -56,6 +51,11 @@ export interface GameRepack {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export type ShopDetails = SteamAppDetails & {
+  objectID: string;
+  repacks: GameRepack[];
+};
 
 export interface TorrentFile {
   path: string;
