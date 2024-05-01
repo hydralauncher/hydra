@@ -66,7 +66,7 @@ export function HeroPanel({
       }
 
       const hours = minutes / 60
-      return hours.toFixed(0)  + " " + t("hours")
+      return hours.toFixed(1)  + " " + t("hours")
   }
 
   const finalDownloadSize = useMemo(() => {
