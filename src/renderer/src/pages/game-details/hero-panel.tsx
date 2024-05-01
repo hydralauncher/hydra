@@ -29,7 +29,7 @@ export function HeroPanel({
   getGame,
   isGamePlaying,
 }: HeroPanelProps) {
-  const { t } = useTranslation("game_details");
+  const { t, i18n } = useTranslation("game_details");
 
   const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
   const [lastTimePlayed, setLastTimePlayed] = useState("");
@@ -65,8 +65,10 @@ export function HeroPanel({
         return minutes.toFixed(0) + " " + t("minutes")
       }
 
+      const numberFormat = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 })
+
       const hours = minutes / 60
-      return hours.toFixed(1)  + " " + t("hours")
+      return numberFormat.format(hours)  + " " + t("hours")
   }
 
   const finalDownloadSize = useMemo(() => {
