@@ -29,7 +29,6 @@ const openGame = async (
         await exec(`lutris -e "${escapedPath}"`);
       } catch (err) {
         console.error('Error launching with Lutris:', err);
-        shell.openPath(executablePath); // Fallback if Lutris fails
       }
     } else {
       // Lutris is not installed, use the default method
