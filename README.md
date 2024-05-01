@@ -99,15 +99,15 @@ yarn make
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/lilezek">
-            <img src="https://avatars.githubusercontent.com/u/2767229?v=4" width="100;" alt="lilezek"/>
+        <a href="https://github.com/fzanutto">
+            <img src="https://avatars.githubusercontent.com/u/15229294?v=4" width="100;" alt="fzanutto"/>
             <br />
             <sub><b>Null</b></sub>
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/fzanutto">
-            <img src="https://avatars.githubusercontent.com/u/15229294?v=4" width="100;" alt="fzanutto"/>
+        <a href="https://github.com/lilezek">
+            <img src="https://avatars.githubusercontent.com/u/2767229?v=4" width="100;" alt="lilezek"/>
             <br />
             <sub><b>Null</b></sub>
         </a>
