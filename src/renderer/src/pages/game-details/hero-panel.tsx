@@ -62,12 +62,22 @@ export function HeroPanel({
       const interval = setInterval(() => {
         updateLastTimePlayed();
       }, 1000);
+  const formatPlayTime = (milliseconds: number) => {
+      const seconds = milliseconds / 1000
+      const minutes = seconds / 60
 
       return () => {
         clearInterval(interval);
       };
     }
   }, [game?.lastTimePlayed, updateLastTimePlayed]);
+      if (minutes < 120) {
+        return minutes.toFixed(0) + " " + t("minutes")
+      }
+
+      const hours = minutes / 60
+      return hours.toFixed(0)  + " " + t("hours")
+  }
 
   const finalDownloadSize = useMemo(() => {
     if (!game) return "N/A";
@@ -136,7 +146,7 @@ export function HeroPanel({
         <>
           <p>
             {t("play_time", {
-              amount: formatDistance(0, game.playTimeInMilliseconds),
+              amount: formatPlayTime(game.playTimeInMilliseconds),
             })}
           </p>
 
