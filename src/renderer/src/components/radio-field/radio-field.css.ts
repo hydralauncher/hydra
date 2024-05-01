@@ -12,7 +12,7 @@ export const radioField = style({
 export const radio = style({
   width: "20px",
   height: "20px",
-  borderRadius: "4px",
+  borderRadius: "50%",
   backgroundColor: vars.color.darkBackground,
   display: "flex",
   justifyContent: "center",

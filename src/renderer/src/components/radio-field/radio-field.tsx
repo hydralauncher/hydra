@@ -1,6 +1,6 @@
 import { useId } from "react";
 import * as styles from "./radio-field.css";
-import { CheckIcon } from "@primer/octicons-react";
+import { DotFillIcon } from "@primer/octicons-react";
 
 export interface RadioFieldProps
   extends React.DetailedHTMLProps<
@@ -22,7 +22,7 @@ export function RadioField({ label, ...props }: RadioFieldProps) {
             className={styles.radioInput}
             {...props}
           />
-          {props.checked && <CheckIcon />}
+          {props.checked && <DotFillIcon />}
         </div>
         <label htmlFor={id} className={styles.radioLabel}>
             {label}
