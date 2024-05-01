@@ -8,7 +8,7 @@ import { WindowManager } from "./window-manager";
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const startProcessWatcher = async () => {
-  const sleepTime = 300;
+  const sleepTime = 5000;
   const gamesPlaytime = new Map<number, number>();
 
   // eslint-disable-next-line no-constant-condition
