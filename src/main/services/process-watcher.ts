@@ -13,15 +13,13 @@ export const startProcessWatcher = async () => {
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    await sleep(sleepTime);
-
     const games = await gameRepository.find({
       where: {
         executablePath: Not(IsNull()),
       },
     });
 
-    if (games.length == 0) {
+    if (games.length === 0) {
       continue;
     }
 
@@ -71,5 +69,7 @@ export const startProcessWatcher = async () => {
         }
       }
     }
+
+    await sleep(sleepTime);
   }
 };
