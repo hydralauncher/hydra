@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDownload } from "@renderer/hooks";
@@ -47,30 +47,20 @@ export function HeroPanel({
   } = useDownload();
   const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
-  const updateLastTimePlayed = useCallback(() => {
-    setLastTimePlayed(
-      formatDistance(game.lastTimePlayed, new Date(), {
-        addSuffix: true,
-      })
-    );
-  }, [game?.lastTimePlayed, formatDistance]);
-
   useEffect(() => {
     if (game?.lastTimePlayed) {
-      updateLastTimePlayed();
+      setLastTimePlayed(
+        formatDistance(game.lastTimePlayed, new Date(), {
+          addSuffix: true,
+        })
+      );
+    }
+  }, [game?.lastTimePlayed, formatDistance]);
 
-      const interval = setInterval(() => {
-        updateLastTimePlayed();
-      }, 1000);
   const formatPlayTime = (milliseconds: number) => {
       const seconds = milliseconds / 1000
       const minutes = seconds / 60
 
-      return () => {
-        clearInterval(interval);
-      };
-    }
-  }, [game?.lastTimePlayed, updateLastTimePlayed]);
       if (minutes < 120) {
         return minutes.toFixed(0) + " " + t("minutes")
       }
