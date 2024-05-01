@@ -47,7 +47,7 @@ export function HeroPanelActions({
         filters: [
           {
             name: "Game executable",
-            extensions: window.electron.platform === "win32" ? ["exe"] : [],
+            extensions: ["exe"],
           },
         ],
       })
