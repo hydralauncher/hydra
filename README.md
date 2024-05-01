@@ -106,13 +106,6 @@ yarn make
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/lilezek">
-            <img src="https://avatars.githubusercontent.com/u/2767229?v=4" width="100;" alt="lilezek"/>
-            <br />
-            <sub><b>Null</b></sub>
-        </a>
-    </td>
-    <td align="center">
         <a href="https://github.com/JackEnx">
             <img src="https://avatars.githubusercontent.com/u/167036558?v=4" width="100;" alt="JackEnx"/>
             <br />
@@ -120,18 +113,25 @@ yarn make
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/fhilipecrash">
-            <img src="https://avatars.githubusercontent.com/u/36455575?v=4" width="100;" alt="fhilipecrash"/>
+        <a href="https://github.com/lilezek">
+            <img src="https://avatars.githubusercontent.com/u/2767229?v=4" width="100;" alt="lilezek"/>
             <br />
-            <sub><b>Fhilipe Coelho</b></sub>
+            <sub><b>Null</b></sub>
         </a>
-    </td></tr>
-<tr>
+    </td>
     <td align="center">
         <a href="https://github.com/Magrid0">
             <img src="https://avatars.githubusercontent.com/u/73496008?v=4" width="100;" alt="Magrid0"/>
             <br />
             <sub><b>Magrid</b></sub>
+        </a>
+    </td></tr>
+<tr>
+    <td align="center">
+        <a href="https://github.com/fhilipecrash">
+            <img src="https://avatars.githubusercontent.com/u/36455575?v=4" width="100;" alt="fhilipecrash"/>
+            <br />
+            <sub><b>Fhilipe Coelho</b></sub>
         </a>
     </td>
     <td align="center">
