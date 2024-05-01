@@ -123,7 +123,8 @@
     "enable_download_notifications": "Amikor egy letöltés befejeződik",
     "enable_repack_list_notifications": "Amikor egy új repack hozzáadásra kerül",
     "telemetry": "Telemetria",
-    "telemetry_description": "Névtelen felhasználási statisztikák engedélyezése"
+    "telemetry_description": "Névtelen felhasználási statisztikák engedélyezése",
+    "real_debrid_api_token_description": "(Választható) Real Debrid API token"
   },
   "notifications": {
     "download_complete": "Letöltés befejeződött",
