@@ -2,7 +2,10 @@
   "home": {
     "featured": "Featured",
     "recently_added": "Recently added",
-    "trending": "Trending",
+    "trending_7day": "Weekly Trending",
+    "trending_30day": "Monthly Trending ",
+    "trending_90day": "Quarter Trending",
+    "most_played": "Most Played",
     "surprise_me": "Surprise me",
     "no_results": "No results found"
   },

@@ -25,25 +25,38 @@ const getCatalogue = async (
   };
 
   if (!repacks.length) return [];
-
   const resultSize = 12;
 
-  if (category === "trending") {
-    return getTrendingCatalogue(resultSize);
-  } else {
-    return getRecentlyAddedCatalogue(
-      resultSize,
-      resultSize,
-      getStringForLookup
-    );
+  switch (category) {
+    case "trending_7day":
+    case "trending_30day":
+    case "trending_90day":
+      return getTrendingCatalogue(category, 
+        resultSize
+      );
+    case "most_played":
+      return getMostPlayedCatalogue(resultSize);
+    default:
+      return getRecentlyAddedCatalogue(
+        resultSize,
+        resultSize,
+        getStringForLookup
+      );
   }
 };
 
 const getTrendingCatalogue = async (
+  category: CatalogueCategory,
   resultSize: number
 ): Promise<CatalogueEntry[]> => {
   const results: CatalogueEntry[] = [];
-  const trendingGames = await requestSteam250("/30day");
+  const periodMap = {
+    trending_7day: "/7day",
+    trending_30day: "/30day",
+    trending_90day: "/90day"
+  };
+  const trendingGames = await requestSteam250(periodMap[category as keyof typeof periodMap]);
+
   for (
     let i = 0;
     i < trendingGames.length && results.length < resultSize;
@@ -52,6 +65,35 @@ const getTrendingCatalogue = async (
     if (!trendingGames[i]) continue;
 
     const { title, objectID } = trendingGames[i];
+    const repacks = searchRepacks(title);
+
+    if (title && repacks.length) {
+      const catalogueEntry = {
+        objectID,
+        title,
+        shop: "steam" as GameShop,
+        cover: getSteamAppAsset("library", objectID),
+      };
+
+      results.push({ ...catalogueEntry, repacks });
+    }
+  }
+  return results;
+};
+
+const getMostPlayedCatalogue = async (
+  resultSize: number
+): Promise<CatalogueEntry[]> => {
+  const results: CatalogueEntry[] = [];
+  const MostPlayedGames = await requestSteam250("/most_played");
+  for (
+    let i = 0;
+    i < MostPlayedGames.length && results.length < resultSize;
+    i++
+  ) {
+    if (!MostPlayedGames[i]) continue;
+
+    const { title, objectID } = MostPlayedGames[i];
     const repacks = searchRepacks(title);
 
     if (title && repacks.length) {

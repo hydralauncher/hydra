@@ -13,7 +13,7 @@ import * as styles from "./home.css";
 import { vars } from "../../theme.css";
 import Lottie from "lottie-react";
 
-const categories: CatalogueCategory[] = ["trending", "recently_added"];
+const categories: CatalogueCategory[] = ["trending_7day", "trending_30day", "trending_90day", "most_played", "recently_added" ];
 
 export function Home() {
   const { t } = useTranslation("home");
@@ -28,7 +28,10 @@ export function Home() {
   const [catalogue, setCatalogue] = useState<
     Record<CatalogueCategory, CatalogueEntry[]>
   >({
-    trending: [],
+    trending_7day: [],
+    trending_30day: [],
+    trending_90day: [],
+    most_played: [],
     recently_added: [],
   });
 

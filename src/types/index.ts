@@ -1,5 +1,5 @@
 export type GameShop = "steam" | "epic";
-export type CatalogueCategory = "recently_added" | "trending";
+export type CatalogueCategory = "recently_added" | "trending_7day" | "trending_30day" | "trending_90day" | "most_played";
 
 export interface SteamGenre {
   id: string;
