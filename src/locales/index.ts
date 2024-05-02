@@ -4,3 +4,4 @@ export { default as es } from "./es/translation.json";
 export { default as fr } from "./fr/translation.json";
 export { default as hu } from "./hu/translation.json";
 export { default as it } from "./it/translation.json";
+export { default as ru } from "./ru/translation.json";
