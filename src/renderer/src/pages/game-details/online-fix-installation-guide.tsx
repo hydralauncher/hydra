@@ -1,5 +1,4 @@
 import { Button, CheckboxField, Modal, TextField } from "@renderer/components";
-import { Backdrop } from "@renderer/components/backdrop/backdrop";
 import { createPortal } from "react-dom";
 
 export function OnlineFixInstallationGuide() {
