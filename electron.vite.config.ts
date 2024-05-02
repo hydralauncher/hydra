@@ -12,11 +12,12 @@ import { sentryVitePlugin } from "@sentry/vite-plugin";
 import svgr from "vite-plugin-svgr";
 export default defineConfig(({ mode }) => {
   loadEnv(mode);
-
+  
   const sentryPlugin = sentryVitePlugin({
     authToken: process.env.SENTRY_AUTH_TOKEN,
     org: "hydra-launcher",
     project: "hydra-launcher",
+    telemetry:false,
   });
 
   return {
@@ -60,7 +61,7 @@ export default defineConfig(({ mode }) => {
         vanillaExtractPlugin(),
         bytecodePlugin(),
         sentryPlugin,
-      ],
+      ],     
     },
   };
 });
