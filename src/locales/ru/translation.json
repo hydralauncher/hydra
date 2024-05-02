@@ -4,7 +4,7 @@
     "recently_added": "Недавно добавленное",
     "trending": "Тенденции",
     "surprise_me": "Удиви меня",
-    "no_results": "Нет результатов"
+    "no_results": "Результатов не найдено"
   },
   "sidebar": {
     "catalogue": "Каталог",
@@ -15,7 +15,7 @@
     "checking_files": "{{title}} ({{percentage}} - Проверка файлов…)",
     "paused": "{{title}} (Приостановлено)",
     "downloading": "{{title}} ({{percentage}} - Загрузка…)",
-    "filter": "Фильтр библиотеки",
+    "filter": "Фильтровать библиотеку",
     "follow_us": "Подписывайтесь на нас",
     "home": "Главная"
   },
@@ -104,7 +104,7 @@
     "cancelled": "Отменено",
     "download_again": "Загрузить снова",
     "cancel": "Отменить",
-    "filter": "Фильтр загруженных игр",
+    "filter": "Фильтровать загруженные игры",
     "remove": "Удалить",
     "downloading_metadata": "Загрузка метаданных…",
     "checking_files": "Проверка файлов…",
@@ -118,10 +118,10 @@
   },
   "settings": {
     "downloads_path": "Путь загрузок",
-    "change": "Изменить",
+    "change": "Изменить путь",
     "notifications": "Уведомления",
-    "enable_download_notifications": "Когда загрузка завершена",
-    "enable_repack_list_notifications": "Когда новый репак добавлен",
+    "enable_download_notifications": "По завершении загрузки",
+    "enable_repack_list_notifications": "При добавлении нового репака",
     "telemetry": "Телеметрия",
     "telemetry_description": "Включить анонимную статистику использования"
   },
