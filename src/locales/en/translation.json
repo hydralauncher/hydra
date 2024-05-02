@@ -17,7 +17,10 @@
     "downloading": "{{title}} ({{percentage}} - Downloading…)",
     "filter": "Filter library",
     "follow_us": "Follow us",
-    "home": "Home"
+    "home": "Home",
+    "discord": "Join our Discord",
+    "x": "Follow on X",
+    "github": "Contribute on GitHub"
   },
   "header": {
     "search": "Search",
@@ -82,8 +85,16 @@
     "repacks_modal_description": "Choose the repack you want to download",
     "downloads_path": "Downloads path",
     "select_folder_hint": "To change the default folder, access the",
-    "settings": "Hydra settings",
-    "download_now": "Download now"
+    "settings": "Settings",
+    "download_now": "Download now",
+    "installation_instructions": "Installation Instructions",
+    "installation_instructions_description": "Additional steps are required to install this game",
+    "online_fix_instruction": "OnlineFix games requires a password to be extracted. When required, use the following password:",
+    "dodi_installation_instruction": "When you open DODI installer, press your keyboard up key <0 /> to start the installation process:",
+    "dont_show_it_again": "Don't show it again",
+    "copy_to_clipboard": "Copy",
+    "copied_to_clipboard": "Copied",
+    "got_it": "Got it"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -143,5 +154,8 @@
     "title": "Programs not installed",
     "description": "Wine or Lutris executables were not found on your system",
     "instructions": "Check the correct way to install any of them on your Linux distro so that the game can run normally"
+  },
+  "modal": {
+    "close": "Close button"
   }
 }

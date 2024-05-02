@@ -7,12 +7,13 @@ import { formatBytes } from "@renderer/utils";
 import { DiskSpace } from "check-disk-space";
 import { Link } from "react-router-dom";
 import * as styles from "./select-folder-modal.css";
+import { DownloadIcon } from "@primer/octicons-react";
 
 export interface SelectFolderModalProps {
   visible: boolean;
   gameDetails: ShopDetails;
   onClose: () => void;
-  startDownload: (repackId: number, downloadPath: string) => Promise<void>;
+  startDownload: (repack: GameRepack, downloadPath: string) => Promise<void>;
   repack: GameRepack | null;
 }
 
@@ -63,8 +64,10 @@ export function SelectFolderModal({
   const handleStartClick = () => {
     if (repack) {
       setDownloadStarting(true);
-      startDownload(repack.id, selectedPath).finally(() => {
+
+      startDownload(repack, selectedPath).finally(() => {
         setDownloadStarting(false);
+        onClose();
       });
     }
   };
@@ -98,17 +101,12 @@ export function SelectFolderModal({
         </div>
         <p className={styles.hintText}>
           {t("select_folder_hint")}{" "}
-          <Link
-            to="/settings"
-            style={{
-              textDecoration: "none",
-              color: "#C0C1C7",
-            }}
-          >
+          <Link to="/settings" className={styles.settingsLink}>
             {t("settings")}
           </Link>
         </p>
         <Button onClick={handleStartClick} disabled={downloadStarting}>
+          <DownloadIcon />
           {t("download_now")}
         </Button>
       </div>

@@ -10,10 +10,18 @@ export const container = style({
 
 export const downloadsPathField = style({
   display: "flex",
-  gap: `${SPACING_UNIT * 2}px`,
+  gap: `${SPACING_UNIT}px`,
 });
 
 export const hintText = style({
   fontSize: "12px",
   color: vars.color.bodyText,
+});
+
+export const settingsLink = style({
+  textDecoration: "none",
+  color: "#C0C1C7",
+  ":hover": {
+    textDecoration: "underline",
+  },
 });

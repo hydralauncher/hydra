@@ -80,7 +80,7 @@ export const descriptionContent = style({
 });
 
 export const contentSidebar = style({
-  borderLeft: `solid 1px ${vars.color.borderColor};`,
+  borderLeft: `solid 1px ${vars.color.border};`,
   width: "100%",
   height: "100%",
   "@media": {
@@ -105,7 +105,6 @@ export const contentSidebarTitle = style({
   display: "flex",
   alignItems: "center",
   backgroundColor: vars.color.background,
-  borderBottom: `solid 1px ${vars.color.borderColor}`,
 });
 
 export const requirementButtonContainer = style({
@@ -114,7 +113,7 @@ export const requirementButtonContainer = style({
 });
 
 export const requirementButton = style({
-  border: `solid 1px ${vars.color.borderColor};`,
+  border: `solid 1px ${vars.color.border};`,
   borderLeft: "none",
   borderRight: "none",
   borderRadius: "0",
@@ -171,11 +170,11 @@ export const descriptionSkeleton = style({
 export const descriptionHeader = style({
   width: "100%",
   padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
-  borderBottom: `solid 1px ${vars.color.borderColor}`,
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   backgroundColor: vars.color.background,
+  borderBottom: `solid 1px ${vars.color.border}`,
   height: "72px",
 });
 
@@ -183,7 +182,6 @@ export const descriptionHeaderInfo = style({
   display: "flex",
   gap: `${SPACING_UNIT}px`,
   flexDirection: "column",
-  fontSize: vars.size.bodyFontSize,
 });
 
 export const howLongToBeatCategoriesList = style({
@@ -201,16 +199,15 @@ export const howLongToBeatCategory = style({
   backgroundColor: vars.color.background,
   borderRadius: "8px",
   padding: `8px 16px`,
-  border: `solid 1px ${vars.color.borderColor}`,
+  border: `solid 1px ${vars.color.border}`,
 });
 
 export const howLongToBeatCategoryLabel = style({
-  fontSize: vars.size.bodyFontSize,
-  color: "#DADBE1",
+  color: vars.color.muted,
 });
 
 export const howLongToBeatCategorySkeleton = style({
-  border: `solid 1px ${vars.color.borderColor}`,
+  border: `solid 1px ${vars.color.border}`,
   borderRadius: "8px",
   height: "76px",
 });
@@ -224,7 +221,7 @@ export const randomizerButton = style({
   /* Scroll bar + spacing */
   right: `${9 + SPACING_UNIT * 2}px`,
   boxShadow: "rgba(255, 255, 255, 0.1) 0px 0px 10px 3px",
-  border: `solid 2px ${vars.color.borderColor}`,
+  border: `solid 2px ${vars.color.border}`,
   backgroundColor: vars.color.background,
   ":hover": {
     backgroundColor: vars.color.background,
