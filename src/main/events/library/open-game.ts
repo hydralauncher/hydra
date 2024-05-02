@@ -3,12 +3,18 @@ import { gameRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
 import { shell } from "electron";
 import { promisify } from 'util';
+import os from 'os';
 
 const exec = promisify(execCallback);
 
 const escapeShellPath = (path: string) => {
-  // Escapes spaces, parentheses for commands
-  return path.replace(/ /g, '\\ ').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  if (os.platform() === 'win32') {
+    // Windows paths should be enclosed in quotes if they contain spaces
+    return `"${path}"`;
+  } else {
+    // Escapes spaces, parentheses for commands in Linux
+    return path.replace(/ /g, '\\ ').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  }
 };
 
 const openGame = async (
@@ -18,20 +24,22 @@ const openGame = async (
 ) => {
   try {
     await gameRepository.update({ id: gameId }, { executablePath });
-    await exec(`chmod +x "${executablePath}"`);
 
-    const { stdout: lutrisPath } = await exec('which lutris');
-    
-    if (lutrisPath.trim()) {
-      const escapedPath = escapeShellPath(executablePath);
-      try {
-        // Lutris is installed, use it to open the game
-        await exec(`lutris -e "${escapedPath}"`);
-      } catch (err) {
-        console.error('Error launching with Lutris:', err);
+    // Check for Lutris only on Linux systems
+    if (os.platform() === 'linux') {
+      const { stdout: lutrisPath } = await exec('which lutris');
+      if (lutrisPath.trim()) {
+        // Lutris is installed
+        await exec(`chmod +x "${executablePath}"`); // Make executable only if Lutris is found
+        const escapedPath = escapeShellPath(executablePath);
+        try {
+          await exec(`lutris -e "${escapedPath}"`); // Use Lutris to open the game
+        } catch (err) {
+          console.error('Error launching with Lutris:', err);
+        }
       }
     } else {
-      // Lutris is not installed, use the default method
+      // For non-Linux systems, just open the path
       shell.openPath(executablePath);
     }
   } catch (err) {
