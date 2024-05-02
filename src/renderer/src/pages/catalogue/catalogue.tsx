@@ -38,17 +38,10 @@ export function Catalogue() {
 
   useEffect(() => {
     async function fetchUserPreferences() {
-      try {
-        const [, userPreferences] = await Promise.all([
-          window.electron.getDefaultDownloadsPath(),
-          window.electron.getUserPreferences(),
-        ]);
+        const [ userPreferences ] = await Promise.all([window.electron.getUserPreferences()]);
         const resultsPerPage = userPreferences?.resultsPerPage ?? 30;
         setPaginationSettings({ resultsPerPage });
-      } catch (error) {
-        console.error("Failed to fetch user preferences:", error);
-      }
-    };
+    }
 
     fetchUserPreferences();
   }, []);
