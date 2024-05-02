@@ -5,6 +5,7 @@ directories:
 extraResources:
   - hydra-download-manager
   - hydra.db
+  - fastlist.exe
 files:
   - "!**/.vscode/*"
   - "!src/*"
