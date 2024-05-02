@@ -31,7 +31,7 @@ export const downloadCover = style({
   height: "auto",
   objectFit: "cover",
   objectPosition: "center",
-  borderRight: `solid 1px ${vars.color.borderColor}`,
+  borderRight: `solid 1px ${vars.color.border}`,
 });
 
 export const download = recipe({
@@ -40,7 +40,7 @@ export const download = recipe({
     backgroundColor: vars.color.background,
     display: "flex",
     borderRadius: "8px",
-    border: `solid 1px ${vars.color.borderColor}`,
+    border: `solid 1px ${vars.color.border}`,
     overflow: "hidden",
     boxShadow: "0px 0px 15px 0px #000000",
     transition: "all ease 0.2s",

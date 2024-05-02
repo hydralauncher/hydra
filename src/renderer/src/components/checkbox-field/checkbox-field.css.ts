@@ -19,7 +19,7 @@ export const checkbox = style({
   alignItems: "center",
   position: "relative",
   transition: "all ease 0.2s",
-  border: `solid 1px ${vars.color.borderColor}`,
+  border: `solid 1px ${vars.color.border}`,
   ":hover": {
     borderColor: "rgba(255, 255, 255, 0.5)",
   },
