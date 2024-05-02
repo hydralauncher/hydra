@@ -25,7 +25,7 @@ export const modal = recipe({
     maxWidth: "600px",
     color: vars.color.bodyText,
     maxHeight: "100%",
-    border: `solid 1px ${vars.color.borderColor}`,
+    border: `solid 1px ${vars.color.border}`,
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
@@ -50,13 +50,18 @@ export const modalHeader = style({
   display: "flex",
   gap: `${SPACING_UNIT}px`,
   padding: `${SPACING_UNIT * 2}px`,
-  borderBottom: `solid 1px ${vars.color.borderColor}`,
+  borderBottom: `solid 1px ${vars.color.border}`,
   justifyContent: "space-between",
-  alignItems: "flex-start",
+  alignItems: "center",
 });
 
 export const closeModalButton = style({
   cursor: "pointer",
+  transition: "all ease 0.2s",
+  alignSelf: "flex-start",
+  ":hover": {
+    opacity: "0.75",
+  },
 });
 
 export const closeModalButtonIcon = style({

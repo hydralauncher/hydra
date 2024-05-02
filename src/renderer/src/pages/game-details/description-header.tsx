@@ -15,43 +15,45 @@ export interface DescriptionHeaderProps {
 }
 
 export function DescriptionHeader({ gameDetails }: DescriptionHeaderProps) {
-  const [clipboardLock, setClipboardLock] = useState(false);
+  const [clipboardLocked, setClipboardLocked] = useState(false);
   const { t, i18n } = useTranslation("game_details");
 
   const { objectID, shop } = useParams();
 
   useEffect(() => {
-    if (!gameDetails) return setClipboardLock(true);
-    setClipboardLock(false);
+    if (!gameDetails) return setClipboardLocked(true);
+    setClipboardLocked(false);
   }, [gameDetails]);
 
   const handleCopyToClipboard = () => {
-    setClipboardLock(true);
+    if (gameDetails) {
+      setClipboardLocked(true);
 
-    const searchParams = new URLSearchParams({
-      p: btoa(
-        JSON.stringify([
-          objectID,
-          shop,
-          encodeURIComponent(gameDetails?.name),
-          i18n.language,
-        ])
-      ),
-    });
+      const searchParams = new URLSearchParams({
+        p: btoa(
+          JSON.stringify([
+            objectID,
+            shop,
+            encodeURIComponent(gameDetails.name),
+            i18n.language,
+          ])
+        ),
+      });
 
-    navigator.clipboard.writeText(
-      OPEN_HYDRA_URL + `/?${searchParams.toString()}`
-    );
+      navigator.clipboard.writeText(
+        OPEN_HYDRA_URL + `/?${searchParams.toString()}`
+      );
 
-    const zero = performance.now();
+      const zero = performance.now();
 
-    requestAnimationFrame(function holdLock(time) {
-      if (time - zero <= 3000) {
-        requestAnimationFrame(holdLock);
-      } else {
-        setClipboardLock(false);
-      }
-    });
+      requestAnimationFrame(function holdLock(time) {
+        if (time - zero <= 3000) {
+          requestAnimationFrame(holdLock);
+        } else {
+          setClipboardLocked(false);
+        }
+      });
+    }
   };
 
   return (
@@ -68,9 +70,9 @@ export function DescriptionHeader({ gameDetails }: DescriptionHeaderProps) {
       <Button
         theme="outline"
         onClick={handleCopyToClipboard}
-        disabled={clipboardLock || !gameDetails}
+        disabled={clipboardLocked || !gameDetails}
       >
-        {clipboardLock ? (
+        {clipboardLocked ? (
           t("copied_link_to_clipboard")
         ) : (
           <>
