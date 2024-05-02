@@ -18,11 +18,16 @@ import {
   clearSearch,
   setUserPreferences,
   setRepackersFriendlyNames,
+  toggleDraggingDisabled,
 } from "@renderer/features";
 
 document.body.classList.add(themeClass);
 
-export function App({ children }: any) {
+export interface AppProps {
+  children: React.ReactNode;
+}
+
+export function App({ children }: AppProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary } = useLibrary();
 
@@ -34,6 +39,9 @@ export function App({ children }: any) {
   const location = useLocation();
 
   const search = useAppSelector((state) => state.search.value);
+  const draggingDisabled = useAppSelector(
+    (state) => state.window.draggingDisabled
+  );
 
   useEffect(() => {
     Promise.all([
@@ -92,6 +100,17 @@ export function App({ children }: any) {
   useEffect(() => {
     if (contentRef.current) contentRef.current.scrollTop = 0;
   }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    new MutationObserver(() => {
+      const modal = document.body.querySelector("[role=modal]");
+
+      dispatch(toggleDraggingDisabled(Boolean(modal)));
+    }).observe(document.body, {
+      attributes: false,
+      childList: true,
+    });
+  }, [dispatch, draggingDisabled]);
 
   return (
     <>

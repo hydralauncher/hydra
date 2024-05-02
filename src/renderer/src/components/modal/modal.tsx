@@ -3,14 +3,14 @@ import { createPortal } from "react-dom";
 import { XIcon } from "@primer/octicons-react";
 
 import * as styles from "./modal.css";
-import { useAppDispatch } from "@renderer/hooks";
-import { toggleDragging } from "@renderer/features";
+
 import { Backdrop } from "../backdrop/backdrop";
+import { useTranslation } from "react-i18next";
 
 export interface ModalProps {
   visible: boolean;
   title: string;
-  description: string;
+  description?: string;
   onClose: () => void;
   children: React.ReactNode;
 }
@@ -23,8 +23,9 @@ export function Modal({
   children,
 }: ModalProps) {
   const [isClosing, setIsClosing] = useState(false);
-  const dispatch = useAppDispatch();
   const modalContentRef = useRef<HTMLDivElement | null>(null);
+
+  const { t } = useTranslation("modal");
 
   const handleCloseClick = useCallback(() => {
     setIsClosing(true);
@@ -82,10 +83,6 @@ export function Modal({
     return () => {};
   }, [handleCloseClick, visible]);
 
-  useEffect(() => {
-    dispatch(toggleDragging(visible));
-  }, [dispatch, visible]);
-
   if (!visible) return null;
 
   return createPortal(
@@ -98,13 +95,14 @@ export function Modal({
         <div className={styles.modalHeader}>
           <div style={{ display: "flex", gap: 4, flexDirection: "column" }}>
             <h3>{title}</h3>
-            <p style={{ fontSize: 14 }}>{description}</p>
+            {description && <p>{description}</p>}
           </div>
 
           <button
             type="button"
             onClick={handleCloseClick}
             className={styles.closeModalButton}
+            aria-label={t("close")}
           >
             <XIcon className={styles.closeModalButtonIcon} size={24} />
           </button>
