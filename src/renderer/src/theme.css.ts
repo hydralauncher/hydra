@@ -6,8 +6,9 @@ export const [themeClass, vars] = createTheme({
   color: {
     background: "#1c1c1c",
     darkBackground: "#151515",
+    muted: "#c0c1c7",
     bodyText: "#8e919b",
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    border: "#424244",
   },
   opacity: {
     disabled: "0.5",

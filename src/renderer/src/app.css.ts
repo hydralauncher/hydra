@@ -26,6 +26,7 @@ globalStyle("body", {
   overflow: "hidden",
   userSelect: "none",
   fontFamily: "'Fira Mono', monospace",
+  fontSize: vars.size.bodyFontSize,
   background: vars.color.background,
   color: vars.color.bodyText,
   margin: "0",
@@ -36,11 +37,14 @@ globalStyle("button", {
   backgroundColor: "transparent",
   border: "none",
   fontFamily: "inherit",
-  fontSize: vars.size.bodyFontSize,
 });
 
 globalStyle("h1, h2, h3, h4, h5, h6, p", {
   margin: 0,
+});
+
+globalStyle("p", {
+  lineHeight: "20px",
 });
 
 globalStyle("#root, main", {
@@ -103,5 +107,5 @@ export const titleBar = style({
   padding: `0 ${SPACING_UNIT * 2}px`,
   WebkitAppRegion: "drag",
   zIndex: "2",
-  borderBottom: `1px solid ${vars.color.borderColor}`,
+  borderBottom: `1px solid ${vars.color.border}`,
 } as ComplexStyleRule);

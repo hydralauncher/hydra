@@ -1,6 +1,6 @@
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-import type { HowLongToBeatCategory } from "@types";
 import { useTranslation } from "react-i18next";
+import type { HowLongToBeatCategory } from "@types";
 import { vars } from "../../theme.css";
 import * as styles from "./game-details.css";
 
