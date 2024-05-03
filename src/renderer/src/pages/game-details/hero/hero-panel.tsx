@@ -148,7 +148,7 @@ export function HeroPanel({
         <>
           <p>
             {t("play_time", {
-              amount: formatPlayTime(game.playTimeInMilliseconds),
+              amount: formatPlayTime(),
             })}
           </p>
 

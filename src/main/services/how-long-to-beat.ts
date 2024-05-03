@@ -28,7 +28,7 @@ export const searchHowLongToBeat = async (gameName: string) => {
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
         Referer: "https://howlongtobeat.com/",
       },
-    },
+    }
   );
 
   return response.data as HowLongToBeatSearchResponse;
@@ -49,18 +49,16 @@ const parseListItems = ($lis: HTMLElement[]) => {
   });
 };
 
+// prettier-ignore
 export const getHowLongToBeatGame = async (
-  id: string,
+  id: string
 ): Promise<HowLongToBeatCategory[]> => {
   const response = await requestWebPage(`https://howlongtobeat.com/game/${id}`);
 
   const { window } = new JSDOM(response);
   const { document } = window;
 
-  const $ul = document.querySelector(".shadow_shadow ul");
-  if (!$ul) return [];
-
-  const $lis = Array.from($ul.children);
+  const $lis = Array.from(document.querySelectorAll<HTMLElement>(".shadow_shadow ul > *"));
   const [$firstLi] = $lis;
 
   if ($firstLi.tagName === "DIV") {
