@@ -142,6 +142,13 @@ yarn make
         </a>
     </td>
     <td align="center">
+        <a href="https://github.com/pmenta">
+            <img src="https://avatars.githubusercontent.com/u/71457671?v=4" width="100;" alt="pmenta"/>
+            <br />
+            <sub><b>João Martins</b></sub>
+        </a>
+    </td>
+    <td align="center">
         <a href="https://github.com/ferivoq">
             <img src="https://avatars.githubusercontent.com/u/36544651?v=4" width="100;" alt="ferivoq"/>
             <br />
@@ -153,13 +160,6 @@ yarn make
             <img src="https://avatars.githubusercontent.com/u/119091492?v=4" width="100;" alt="xbozo"/>
             <br />
             <sub><b>Guilherme Viana</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/pmenta">
-            <img src="https://avatars.githubusercontent.com/u/71457671?v=4" width="100;" alt="pmenta"/>
-            <br />
-            <sub><b>João Martins</b></sub>
         </a>
     </td>
     <td align="center">
@@ -175,6 +175,13 @@ yarn make
             <img src="https://avatars.githubusercontent.com/u/91623880?v=4" width="100;" alt="Netflixyapp"/>
             <br />
             <sub><b>Netflixy</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/Hachi-R">
+            <img src="https://avatars.githubusercontent.com/u/58823742?v=4" width="100;" alt="Hachi-R"/>
+            <br />
+            <sub><b>Hachi</b></sub>
         </a>
     </td>
     <td align="center">
