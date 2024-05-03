@@ -2,22 +2,6 @@ import { keyframes, style } from "@vanilla-extract/css";
 import { recipe } from "@vanilla-extract/recipes";
 import { SPACING_UNIT, vars } from "../../theme.css";
 
-export const backdropFadeIn = keyframes({
-  "0%": { backdropFilter: "blur(0px)", backgroundColor: "rgba(0, 0, 0, 0.5)" },
-  "100%": {
-    backdropFilter: "blur(2px)",
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-  },
-});
-
-export const backdropFadeOut = keyframes({
-  "0%": { backdropFilter: "blur(2px)", backgroundColor: "rgba(0, 0, 0, 0.7)" },
-  "100%": {
-    backdropFilter: "blur(0px)",
-    backgroundColor: "rgba(0, 0, 0, 0)",
-  },
-});
-
 export const modalSlideIn = keyframes({
   "0%": { opacity: 0 },
   "100%": {
@@ -32,34 +16,6 @@ export const modalSlideOut = keyframes({
   },
 });
 
-export const backdrop = recipe({
-  base: {
-    animationName: backdropFadeIn,
-    animationDuration: "0.4s",
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1,
-    top: 0,
-    padding: `${SPACING_UNIT * 3}px`,
-    backdropFilter: "blur(2px)",
-    transition: "all ease 0.2s",
-  },
-  variants: {
-    closing: {
-      true: {
-        animationName: backdropFadeOut,
-        backdropFilter: "blur(0px)",
-        backgroundColor: "rgba(0, 0, 0, 0)",
-      },
-    },
-  },
-});
-
 export const modal = recipe({
   base: {
     animationName: modalSlideIn,
@@ -69,7 +25,7 @@ export const modal = recipe({
     maxWidth: "600px",
     color: vars.color.bodyText,
     maxHeight: "100%",
-    border: `solid 1px ${vars.color.borderColor}`,
+    border: `solid 1px ${vars.color.border}`,
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
@@ -94,13 +50,18 @@ export const modalHeader = style({
   display: "flex",
   gap: `${SPACING_UNIT}px`,
   padding: `${SPACING_UNIT * 2}px`,
-  borderBottom: `solid 1px ${vars.color.borderColor}`,
+  borderBottom: `solid 1px ${vars.color.border}`,
   justifyContent: "space-between",
-  alignItems: "flex-start",
+  alignItems: "center",
 });
 
 export const closeModalButton = style({
   cursor: "pointer",
+  transition: "all ease 0.2s",
+  alignSelf: "flex-start",
+  ":hover": {
+    opacity: "0.75",
+  },
 });
 
 export const closeModalButtonIcon = style({

@@ -9,11 +9,16 @@ export interface TextFieldProps
   > {
   theme?: NonNullable<RecipeVariants<typeof styles.textField>>["theme"];
   label?: string;
+  textFieldProps?: React.DetailedHTMLProps<
+    React.HTMLAttributes<HTMLDivElement>,
+    HTMLDivElement
+  >;
 }
 
 export function TextField({
   theme = "primary",
   label,
+  textFieldProps,
   ...props
 }: TextFieldProps) {
   const [isFocused, setIsFocused] = useState(false);
@@ -27,7 +32,10 @@ export function TextField({
         </label>
       )}
 
-      <div className={styles.textField({ focused: isFocused, theme })}>
+      <div
+        className={styles.textField({ focused: isFocused, theme })}
+        {...textFieldProps}
+      >
         <input
           id={id}
           type="text"

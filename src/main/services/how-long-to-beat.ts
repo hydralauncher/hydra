@@ -34,6 +34,21 @@ export const searchHowLongToBeat = async (gameName: string) => {
   return response.data as HowLongToBeatSearchResponse;
 };
 
+const parseListItems = ($lis: Element[]) => {
+  return $lis.map(($li) => {
+    const title = $li.querySelector("h4")?.textContent;
+    const [, accuracyClassName] = Array.from(($li as HTMLElement).classList);
+
+    const accuracy = accuracyClassName.split("time_").at(1);
+
+    return {
+      title: title ?? "",
+      duration: $li.querySelector("h5")?.textContent ?? "",
+      accuracy: accuracy ?? "",
+    };
+  });
+};
+
 export const getHowLongToBeatGame = async (
   id: string
 ): Promise<HowLongToBeatCategory[]> => {
@@ -43,18 +58,16 @@ export const getHowLongToBeatGame = async (
   const { document } = window;
 
   const $ul = document.querySelector(".shadow_shadow ul");
+  if (!$ul) return [];
+
   const $lis = Array.from($ul.children);
 
-  return $lis.map(($li) => {
-    const title = $li.querySelector("h4").textContent;
-    const [, accuracyClassName] = Array.from(($li as HTMLElement).classList);
+  const [$firstLi] = $lis;
 
-    const accuracy = accuracyClassName.split("time_").at(1);
+  if ($firstLi.tagName === "DIV") {
+    const $pcData = $lis.find(($li) => $li.textContent?.includes("PC"));
+    return parseListItems(Array.from($pcData?.querySelectorAll("li") ?? []));
+  }
 
-    return {
-      title,
-      duration: $li.querySelector("h5").textContent,
-      accuracy,
-    };
-  });
+  return parseListItems($lis);
 };

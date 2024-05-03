@@ -1,5 +1,4 @@
 import { app } from "electron";
-import os from "node:os";
 import path from "node:path";
 
 export const repackersOn1337x = [
@@ -34,7 +33,8 @@ export const months = [
   "Dec",
 ];
 
-export const defaultDownloadsPath = path.join(os.homedir(), "downloads");
+
+export const defaultDownloadsPath = app.getPath("downloads");
 
 export const databasePath = path.join(
   app.getPath("appData"),

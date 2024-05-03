@@ -12,7 +12,7 @@ export const content = style({
   width: "100%",
   height: "100%",
   padding: `${SPACING_UNIT * 3}px`,
-  border: `solid 1px ${vars.color.borderColor}`,
+  border: `solid 1px ${vars.color.border}`,
   boxShadow: "0px 0px 15px 0px #000000",
   borderRadius: "8px",
   gap: `${SPACING_UNIT * 2}px`,
@@ -22,5 +22,5 @@ export const content = style({
 
 export const downloadsPathField = style({
   display: "flex",
-  gap: `${SPACING_UNIT * 2}px`,
+  gap: `${SPACING_UNIT}px`,
 });

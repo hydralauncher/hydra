@@ -6,12 +6,13 @@ import { useDownload } from "@renderer/hooks";
 import type { Game, ShopDetails } from "@types";
 
 import { formatDownloadProgress } from "@renderer/helpers";
-import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
-import * as styles from "./hero-panel.css";
 import { useDate } from "@renderer/hooks/use-date";
 import { formatBytes } from "@renderer/utils";
 import { HeroPanelActions } from "./hero-panel-actions";
 import { GameStatus } from "@globals";
+
+import { BinaryNotFoundModal } from "../../shared-modals/binary-not-found-modal";
+import * as styles from "./hero-panel.css";
 
 export interface HeroPanelProps {
   game: Game | null;
@@ -68,6 +69,8 @@ export function HeroPanel({
         clearInterval(interval);
       };
     }
+
+    return () => {};
   }, [game?.lastTimePlayed, updateLastTimePlayed]);
 
   const finalDownloadSize = useMemo(() => {
@@ -83,7 +86,7 @@ export function HeroPanel({
   const getInfo = () => {
     if (!gameDetails) return null;
 
-    if (isGameDeleting(game?.id)) {
+    if (isGameDeleting(game?.id ?? -1)) {
       return <p>{t("deleting")}</p>;
     }
 
