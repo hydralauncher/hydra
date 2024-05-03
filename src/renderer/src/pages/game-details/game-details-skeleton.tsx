@@ -13,7 +13,7 @@ export function GameDetailsSkeleton() {
       <div className={styles.hero}>
         <Skeleton className={styles.heroImageSkeleton} />
       </div>
-      <div className={styles.descriptionHeader}>
+      <div className={styles.heroPanelSkeleton}>
         <section className={styles.descriptionHeaderInfo}>
           <Skeleton width={155} />
           <Skeleton width={135} />

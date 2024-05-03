@@ -67,8 +67,6 @@ jobs:
             dist/*.exe
             dist/*.zip
             dist/*.dmg
-            dist/*.AppImage
-            dist/*.snap
             dist/*.deb
             dist/*.rpm
             dist/*.tar.gz
