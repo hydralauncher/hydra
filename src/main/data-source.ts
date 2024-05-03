@@ -2,7 +2,6 @@ import { DataSource } from "typeorm";
 import {
   Game,
   GameShopCache,
-  ImageCache,
   Repack,
   RepackerFriendlyName,
   UserPreferences,
@@ -19,7 +18,6 @@ export const createDataSource = (options: Partial<SqliteConnectionOptions>) =>
     database: databasePath,
     entities: [
       Game,
-      ImageCache,
       Repack,
       RepackerFriendlyName,
       UserPreferences,

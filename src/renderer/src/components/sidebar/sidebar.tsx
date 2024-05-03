@@ -6,7 +6,6 @@ import type { Game } from "@types";
 
 import { AsyncImage, TextField } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
-import { SPACING_UNIT } from "../../theme.css";
 
 import { routes } from "./routes";
 
@@ -15,6 +14,7 @@ import DiscordLogo from "@renderer/assets/discord-icon.svg?react";
 import XLogo from "@renderer/assets/x-icon.svg?react";
 
 import * as styles from "./sidebar.css";
+import { vars } from "@renderer/theme.css";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -95,7 +95,7 @@ export function Sidebar() {
   }, [library]);
 
   useEffect(() => {
-    window.onmousemove = (event) => {
+    window.onmousemove = (event: MouseEvent) => {
       if (isResizing) {
         const cursorXDelta = event.screenX - cursorPos.current.x;
         const newWidth = Math.max(
@@ -165,11 +165,9 @@ export function Sidebar() {
           macos: window.electron.platform === "darwin",
         })}
       >
-        {window.electron.platform === "darwin" && (
-          <h2 style={{ marginBottom: SPACING_UNIT }}>Hydra</h2>
-        )}
+        {window.electron.platform === "darwin" && <h2>Hydra</h2>}
 
-        <section className={styles.section({ hasBorder: false })}>
+        <section className={styles.section}>
           <ul className={styles.menu}>
             {routes.map(({ nameKey, path, render }) => (
               <li
@@ -191,7 +189,7 @@ export function Sidebar() {
           </ul>
         </section>
 
-        <section className={styles.section({ hasBorder: false })}>
+        <section className={styles.section}>
           <small className={styles.sectionTitle}>{t("my_library")}</small>
 
           <TextField

@@ -22,7 +22,7 @@ export function OnlineFixInstallationGuide({
   const [clipboardLocked, setClipboardLocked] = useState(false);
   const { t } = useTranslation("game_details");
 
-  const [dontShowAgain, setDontShowAgain] = useState(true);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
 
   const handleCopyToClipboard = () => {
     setClipboardLocked(true);

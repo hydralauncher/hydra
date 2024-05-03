@@ -21,7 +21,7 @@ export function DODIInstallationGuide({
 }: DODIInstallationGuideProps) {
   const { t } = useTranslation("game_details");
 
-  const [dontShowAgain, setDontShowAgain] = useState(true);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
 
   const handleClose = () => {
     if (dontShowAgain) {

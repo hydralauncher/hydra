@@ -174,7 +174,6 @@ export const descriptionHeader = style({
   justifyContent: "space-between",
   alignItems: "center",
   backgroundColor: vars.color.background,
-  borderBottom: `solid 1px ${vars.color.border}`,
   height: "72px",
 });
 
@@ -231,6 +230,16 @@ export const randomizerButton = style({
   ":active": {
     transform: "scale(0.98)",
   },
+});
+
+export const heroPanelSkeleton = style({
+  width: "100%",
+  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
+  display: "flex",
+  alignItems: "center",
+  backgroundColor: vars.color.background,
+  height: "72px",
+  borderBottom: `solid 1px ${vars.color.border}`,
 });
 
 globalStyle(".bb_tag", {

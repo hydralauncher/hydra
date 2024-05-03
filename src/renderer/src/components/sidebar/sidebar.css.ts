@@ -52,7 +52,7 @@ export const menu = style({
   listStyle: "none",
   padding: "0",
   margin: "0",
-  gap: `${SPACING_UNIT * 2}px`,
+  gap: `${SPACING_UNIT / 2}px`,
   display: "flex",
   flexDirection: "column",
   overflow: "hidden",
@@ -64,16 +64,16 @@ export const menuItem = recipe({
     cursor: "pointer",
     textWrap: "nowrap",
     display: "flex",
-    opacity: "0.9",
     color: vars.color.muted,
+    borderRadius: "4px",
     ":hover": {
-      opacity: "1",
+      backgroundColor: "rgba(255, 255, 255, 0.15)",
     },
   },
   variants: {
     active: {
       true: {
-        opacity: "1",
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
         fontWeight: "bold",
       },
     },
@@ -96,6 +96,7 @@ export const menuItemButton = style({
   cursor: "pointer",
   overflow: "hidden",
   width: "100%",
+  padding: `9px ${SPACING_UNIT}px`,
   selectors: {
     [`${menuItem({ active: true }).split(" ")[1]} &`]: {
       fontWeight: "bold",
@@ -120,20 +121,12 @@ export const sectionTitle = style({
   fontWeight: "bold",
 });
 
-export const section = recipe({
-  base: {
-    padding: `${SPACING_UNIT * 2}px 0`,
-    gap: `${SPACING_UNIT * 2}px`,
-    display: "flex",
-    flexDirection: "column",
-  },
-  variants: {
-    hasBorder: {
-      true: {
-        borderBottom: `solid 1px ${vars.color.border}`,
-      },
-    },
-  },
+export const section = style({
+  padding: `${SPACING_UNIT * 2}px 0`,
+  gap: `${SPACING_UNIT * 2}px`,
+  display: "flex",
+  flexDirection: "column",
+  paddingBottom: `${SPACING_UNIT}px`,
 });
 
 export const sidebarFooter = style({
