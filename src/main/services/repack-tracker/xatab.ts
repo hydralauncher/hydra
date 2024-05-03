@@ -52,8 +52,7 @@ const getXatabRepack = (url: string) => {
         worker.removeListener("message", onMessage);
       };
 
-      worker.on("message", onMessage);
-      worker.postMessage($downloadButton.href);
+      worker.once("message", onMessage);
     })();
   });
 };
