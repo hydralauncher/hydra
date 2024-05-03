@@ -6,6 +6,8 @@ import type { Game, ShopDetails } from "@types";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import * as styles from "./hero-panel-actions.css";
+
 export interface HeroPanelActionsProps {
   game: Game | null;
   gameDetails: ShopDetails | null;
@@ -55,6 +57,8 @@ export function HeroPanelActions({
         if (filePaths && filePaths.length > 0) {
           return filePaths[0];
         }
+
+        return null;
       });
   };
 
@@ -113,6 +117,7 @@ export function HeroPanelActions({
       theme="outline"
       disabled={!gameDetails || toggleLibraryGameDisabled}
       onClick={toggleGameOnLibrary}
+      className={styles.heroPanelAction}
     >
       {game ? <NoEntryIcon /> : <PlusCircleIcon />}
       {game ? t("remove_from_library") : t("add_to_library")}
@@ -122,10 +127,18 @@ export function HeroPanelActions({
   if (isGameDownloading) {
     return (
       <>
-        <Button onClick={() => pauseDownload(game.id)} theme="outline">
+        <Button
+          onClick={() => pauseDownload(game.id)}
+          theme="outline"
+          className={styles.heroPanelAction}
+        >
           {t("pause")}
         </Button>
-        <Button onClick={() => cancelDownload(game.id)} theme="outline">
+        <Button
+          onClick={() => cancelDownload(game.id)}
+          theme="outline"
+          className={styles.heroPanelAction}
+        >
           {t("cancel")}
         </Button>
       </>
@@ -135,12 +148,17 @@ export function HeroPanelActions({
   if (game?.status === "paused") {
     return (
       <>
-        <Button onClick={() => resumeDownload(game.id)} theme="outline">
+        <Button
+          onClick={() => resumeDownload(game.id)}
+          theme="outline"
+          className={styles.heroPanelAction}
+        >
           {t("resume")}
         </Button>
         <Button
           onClick={() => cancelDownload(game.id).then(getGame)}
           theme="outline"
+          className={styles.heroPanelAction}
         >
           {t("cancel")}
         </Button>
@@ -156,6 +174,7 @@ export function HeroPanelActions({
             onClick={openGameInstaller}
             theme="outline"
             disabled={deleting || isGamePlaying}
+            className={styles.heroPanelAction}
           >
             {t("install")}
           </Button>
@@ -164,7 +183,12 @@ export function HeroPanelActions({
         )}
 
         {isGamePlaying ? (
-          <Button onClick={closeGame} theme="outline" disabled={deleting}>
+          <Button
+            onClick={closeGame}
+            theme="outline"
+            disabled={deleting}
+            className={styles.heroPanelAction}
+          >
             {t("close")}
           </Button>
         ) : (
@@ -172,6 +196,7 @@ export function HeroPanelActions({
             onClick={openGame}
             theme="outline"
             disabled={deleting || isGamePlaying}
+            className={styles.heroPanelAction}
           >
             {t("play")}
           </Button>
@@ -183,13 +208,19 @@ export function HeroPanelActions({
   if (game?.status === "cancelled") {
     return (
       <>
-        <Button onClick={openRepacksModal} theme="outline" disabled={deleting}>
+        <Button
+          onClick={openRepacksModal}
+          theme="outline"
+          disabled={deleting}
+          className={styles.heroPanelAction}
+        >
           {t("open_download_options")}
         </Button>
         <Button
           onClick={() => removeGameFromLibrary(game.id).then(getGame)}
           theme="outline"
           disabled={deleting}
+          className={styles.heroPanelAction}
         >
           {t("remove_from_list")}
         </Button>
@@ -201,7 +232,11 @@ export function HeroPanelActions({
     return (
       <>
         {toggleGameOnLibraryButton}
-        <Button onClick={openRepacksModal} theme="outline">
+        <Button
+          onClick={openRepacksModal}
+          theme="outline"
+          className={styles.heroPanelAction}
+        >
           {t("open_download_options")}
         </Button>
       </>

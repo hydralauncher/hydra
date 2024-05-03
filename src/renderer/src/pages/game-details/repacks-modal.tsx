@@ -14,22 +14,19 @@ import { SelectFolderModal } from "./select-folder-modal";
 export interface RepacksModalProps {
   visible: boolean;
   gameDetails: ShopDetails;
-  showSelectFolderModal: boolean;
-  setShowSelectFolderModal: (value: boolean) => void;
-  startDownload: (repackId: number, downloadPath: string) => Promise<void>;
+  startDownload: (repack: GameRepack, downloadPath: string) => Promise<void>;
   onClose: () => void;
 }
 
 export function RepacksModal({
   visible,
   gameDetails,
-  showSelectFolderModal,
-  setShowSelectFolderModal,
   startDownload,
   onClose,
 }: RepacksModalProps) {
   const [filteredRepacks, setFilteredRepacks] = useState<GameRepack[]>([]);
   const [repack, setRepack] = useState<GameRepack | null>(null);
+  const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
 
   const repackersFriendlyNames = useAppSelector(
     (state) => state.repackersFriendlyNames.value
@@ -57,12 +54,7 @@ export function RepacksModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      title={`${gameDetails.name} Repacks`}
-      description={t("repacks_modal_description")}
-      onClose={onClose}
-    >
+    <>
       <SelectFolderModal
         visible={showSelectFolderModal}
         onClose={() => setShowSelectFolderModal(false)}
@@ -70,26 +62,34 @@ export function RepacksModal({
         startDownload={startDownload}
         repack={repack}
       />
-      <div style={{ marginBottom: `${SPACING_UNIT * 2}px` }}>
-        <TextField placeholder={t("filter")} onChange={handleFilter} />
-      </div>
 
-      <div className={styles.repacks}>
-        {filteredRepacks.map((repack) => (
-          <Button
-            key={repack.id}
-            theme="dark"
-            onClick={() => handleRepackClick(repack)}
-            className={styles.repackButton}
-          >
-            <p style={{ color: "#DADBE1" }}>{repack.title}</p>
-            <p style={{ fontSize: "12px" }}>
-              {repack.fileSize} - {repackersFriendlyNames[repack.repacker]} -{" "}
-              {format(repack.uploadDate, "dd/MM/yyyy")}
-            </p>
-          </Button>
-        ))}
-      </div>
-    </Modal>
+      <Modal
+        visible={visible}
+        title={`${gameDetails.name} Repacks`}
+        description={t("repacks_modal_description")}
+        onClose={onClose}
+      >
+        <div style={{ marginBottom: `${SPACING_UNIT * 2}px` }}>
+          <TextField placeholder={t("filter")} onChange={handleFilter} />
+        </div>
+
+        <div className={styles.repacks}>
+          {filteredRepacks.map((repack) => (
+            <Button
+              key={repack.id}
+              theme="dark"
+              onClick={() => handleRepackClick(repack)}
+              className={styles.repackButton}
+            >
+              <p style={{ color: "#DADBE1" }}>{repack.title}</p>
+              <p style={{ fontSize: "12px" }}>
+                {repack.fileSize} - {repackersFriendlyNames[repack.repacker]} -{" "}
+                {format(repack.uploadDate, "dd/MM/yyyy")}
+              </p>
+            </Button>
+          ))}
+        </div>
+      </Modal>
+    </>
   );
 }
