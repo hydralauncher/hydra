@@ -9,7 +9,7 @@ import { JSDOM } from "jsdom";
 
 import { format, parse, sub } from "date-fns";
 import { ru } from "date-fns/locale";
-import { decode } from "windows-1251";
+
 import { onlinefixFormatter } from "@main/helpers";
 import makeFetchCookie from "fetch-cookie";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
@@ -93,7 +93,7 @@ export const getNewRepacksFromOnlineFix = async (
         const uploadDateText = gameDocument.querySelector("time")?.textContent;
         if (!uploadDateText) return;
 
-        let decodedDateText = decode(uploadDateText);
+        let decodedDateText = uploadDateText;
 
         // "Вчера" means yesterday.
         if (decodedDateText.includes("Вчера")) {

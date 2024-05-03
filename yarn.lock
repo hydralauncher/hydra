@@ -5993,11 +5993,6 @@ which@^2.0.1, which@^2.0.2:
   dependencies:
     isexe "^2.0.0"
 
-windows-1251@^3.0.4:
-  version "3.0.4"
-  resolved "https://registry.npmjs.org/windows-1251/-/windows-1251-3.0.4.tgz"
-  integrity sha512-H6W68MVertlR74xVuwa2pdQ1jR5qksk+oZX6QXFhL5OYj/ZZxViob8UyGLfXPwsCijuaV7NUYOYkK0oXSaWW5g==
-
 winston-transport@^4.7.0:
   version "4.7.0"
   resolved "https://registry.npmjs.org/winston-transport/-/winston-transport-4.7.0.tgz"
