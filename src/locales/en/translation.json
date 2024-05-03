@@ -134,7 +134,9 @@
     "enable_download_notifications": "When a download is complete",
     "enable_repack_list_notifications": "When a new repack is added",
     "telemetry": "Telemetry",
-    "telemetry_description": "Enable anonymous usage statistics"
+    "telemetry_description": "Enable anonymous usage statistics",
+    "behavior": "Behavior",
+    "quit_app_instead_hiding": "Close app instead of minimizing to tray"
   },
   "notifications": {
     "download_complete": "Download complete",
