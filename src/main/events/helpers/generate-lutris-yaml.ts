@@ -3,6 +3,9 @@ import { Game } from "@main/entity";
 import path from "node:path";
 
 export const generateYML = (game: Game) => {
+  console.assert(game.downloadPath, "Download path is required");
+  console.assert(game.folderName, "Folder name is required");
+
   const slugifiedGameTitle = game.title.replace(/\s/g, "-").toLocaleLowerCase();
 
   const doc = new YMLDocument({
@@ -27,10 +30,11 @@ export const generateYML = (game: Game) => {
         },
         {
           task: {
-            executable:
-              game.downloadPath &&
-              game.folderName &&
-              path.join(game.downloadPath, game.folderName, "setup.exe"),
+            executable: path.join(
+              game.downloadPath!,
+              game.folderName!,
+              "setup.exe"
+            ),
             name: "wineexec",
             prefix: "$GAMEDIR",
           },
