@@ -17,11 +17,12 @@ import { onlinefixFormatter } from "@main/helpers";
 export const getNewRepacksFromOnlineFix = async (
   existingRepacks: Repack[] = [],
   page = 1,
-  cookieJar = new CookieJar()
+  cookieJar = new CookieJar(),
 ): Promise<void> => {
   const hasCredentials =
     import.meta.env.MAIN_VITE_ONLINEFIX_USERNAME &&
     import.meta.env.MAIN_VITE_ONLINEFIX_PASSWORD;
+
   if (!hasCredentials) return;
 
   const http = gotScraping.extend({
@@ -42,18 +43,16 @@ export const getNewRepacksFromOnlineFix = async (
 
   if (page === 1) {
     await http.get("https://online-fix.me/");
-    const preLogin =
-      ((await http
+
+    const preLogin: Partial<Record<"field" | "value", string>> =
+      (await http
         .get("https://online-fix.me/engine/ajax/authtoken.php", {
           headers: {
             "X-Requested-With": "XMLHttpRequest",
             Referer: "https://online-fix.me/",
           },
         })
-        .json()) as {
-        field: string;
-        value: string;
-      }) || undefined;
+        .json()) || {};
 
     if (!preLogin.field || !preLogin.value) return;
 
@@ -82,19 +81,19 @@ export const getNewRepacksFromOnlineFix = async (
   const home = await http.get(`https://online-fix.me${pageParams}`, {
     encoding: "binary",
   });
-  const document = new JSDOM(home.body).window.document;
+  const { document } = new JSDOM(home.body).window;
 
-  const repacks = [];
+  const repacks: Partial<Repack>[] = [];
   const articles = Array.from(document.querySelectorAll(".news"));
   const totalPages = Number(
-    document.querySelector("nav > a:nth-child(13)")?.textContent
+    document.querySelector("nav > a:nth-child(13)")?.textContent,
   );
 
   try {
     await Promise.all(
       articles.map(async (article) => {
         const gameName = onlinefixFormatter(
-          decode(article.querySelector("h2.title")?.textContent?.trim())
+          decode(article.querySelector("h2.title")?.textContent?.trim() ?? ""),
         );
 
         const gameLink = article.querySelector("a")?.getAttribute("href");
@@ -107,9 +106,10 @@ export const getNewRepacksFromOnlineFix = async (
           })
           .text();
 
-        const gameDocument = new JSDOM(gamePage).window.document;
+        const { document } = new JSDOM(gamePage).window;
 
-        const uploadDateText = gameDocument.querySelector("time").textContent;
+        const uploadDateText =
+          document.querySelector("time")?.textContent ?? "";
 
         let decodedDateText = decode(uploadDateText);
 
@@ -121,7 +121,7 @@ export const getNewRepacksFromOnlineFix = async (
           });
           decodedDateText = decodedDateText.replace(
             "Вчера", // "Change yesterday to the default expected date format"
-            formattedYesterday
+            formattedYesterday,
           );
         }
 
@@ -131,11 +131,11 @@ export const getNewRepacksFromOnlineFix = async (
           new Date(),
           {
             locale: ru,
-          }
+          },
         );
 
         const torrentButtons = Array.from(
-          gameDocument.querySelectorAll("a")
+          document.querySelectorAll("a"),
         ).filter((a) => a.textContent?.includes("Torrent"));
 
         const torrentPrePage = torrentButtons[0]?.getAttribute("href");
@@ -161,7 +161,7 @@ export const getNewRepacksFromOnlineFix = async (
             .get(`${torrentPrePage}/${torrentLink}`, {
               responseType: "buffer",
             })
-            .buffer()
+            .buffer(),
         );
 
         const torrent = parseTorrent(torrentFile) as TorrentInstance;
@@ -169,7 +169,7 @@ export const getNewRepacksFromOnlineFix = async (
           infoHash: torrent.infoHash,
         });
 
-        const torrentSizeInBytes = torrent.length;
+        const torrentSizeInBytes = torrent.length ?? 0;
         const fileSizeFormatted =
           torrentSizeInBytes >= 1024 ** 3
             ? `${(torrentSizeInBytes / 1024 ** 3).toFixed(1)}GBs`
@@ -183,7 +183,7 @@ export const getNewRepacksFromOnlineFix = async (
           title: gameName,
           uploadDate: uploadDate,
         });
-      })
+      }),
     );
   } catch (err: unknown) {
     logger.error((err as Error).message, {
@@ -195,8 +195,8 @@ export const getNewRepacksFromOnlineFix = async (
     (repack) =>
       repack.uploadDate &&
       !existingRepacks.some(
-        (existingRepack) => existingRepack.title === repack.title
-      )
+        (existingRepack) => existingRepack.title === repack.title,
+      ),
   );
 
   if (!newRepacks.length) return;

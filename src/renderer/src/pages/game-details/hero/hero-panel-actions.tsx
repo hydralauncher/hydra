@@ -71,6 +71,8 @@ export function HeroPanelActions({
       } else {
         const gameExecutablePath = await selectGameExecutable();
 
+        gameDetails &&
+        gameExecutablePath &&
         await window.electron.addGameToLibrary(
           gameDetails.objectID,
           gameDetails.name,
@@ -87,6 +89,8 @@ export function HeroPanelActions({
   };
 
   const openGameInstaller = () => {
+    if (!game) return;
+
     window.electron.openGameInstaller(game.id).then((isBinaryInPath) => {
       if (!isBinaryInPath) openBinaryNotFoundModal();
       updateLibrary();
@@ -94,6 +98,8 @@ export function HeroPanelActions({
   };
 
   const openGame = async () => {
+    if (!game) return;
+
     if (game.executablePath) {
       window.electron.openGame(game.id, game.executablePath);
       return;
@@ -105,12 +111,14 @@ export function HeroPanelActions({
     }
 
     const gameExecutablePath = await selectGameExecutable();
+    if (!gameExecutablePath) return;
+
     window.electron.openGame(game.id, gameExecutablePath);
   };
 
-  const closeGame = () => window.electron.closeGame(game.id);
+  const closeGame = () => game && window.electron.closeGame(game.id);
 
-  const deleting = isGameDeleting(game?.id);
+  const deleting = !!game && isGameDeleting(game.id);
 
   const toggleGameOnLibraryButton = (
     <Button
@@ -128,14 +136,14 @@ export function HeroPanelActions({
     return (
       <>
         <Button
-          onClick={() => pauseDownload(game.id)}
+          onClick={() => game && pauseDownload(game.id)}
           theme="outline"
           className={styles.heroPanelAction}
         >
           {t("pause")}
         </Button>
         <Button
-          onClick={() => cancelDownload(game.id)}
+          onClick={() => game && cancelDownload(game.id)}
           theme="outline"
           className={styles.heroPanelAction}
         >

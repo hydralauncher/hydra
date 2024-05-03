@@ -26,77 +26,76 @@ const formatXatabDate = (str: string) => {
 const formatXatabDownloadSize = (str: string) =>
   str.replace(",", ".").replace(/Гб/g, "GB").replace(/Мб/g, "MB");
 
-const getXatabRepack = (url: string) => {
-  return new Promise((resolve) => {
-    (async () => {
-      const data = await requestWebPage(url);
-      const { window } = new JSDOM(data);
-      const { document } = window;
+// prettier-ignore
+const getXatabRepack = async (url: string) => {
+  const data = await requestWebPage(url);
+  const { window } = new JSDOM(data);
+  const { document } = window;
 
-      const $uploadDate = document.querySelector(".entry__date");
-      const $size = document.querySelector(".entry__info-size");
+  const uploadDate = document.querySelector(".entry__date")?.textContent ?? "";
+  const size = document.querySelector(".entry__info-size")?.textContent ?? "";
 
-      const $downloadButton = document.querySelector(
-        ".download-torrent"
-      ) as HTMLAnchorElement;
+  const $downloadButton = document.querySelector<HTMLAnchorElement>(".download-torrent[href]");
+  if (!$downloadButton) throw new Error("Download button not found");
 
-      if (!$downloadButton) throw new Error("Download button not found");
+  const { promise, resolve, reject } = Promise.withResolvers<Partial<Repack>>();
 
-      const onMessage = (torrent: Instance) => {
-        resolve({
-          fileSize: formatXatabDownloadSize($size.textContent).toUpperCase(),
-          magnet: toMagnetURI(torrent),
-          uploadDate: formatXatabDate($uploadDate.textContent),
-        });
-
-        worker.removeListener("message", onMessage);
-      };
-
-      worker.on("message", onMessage);
-      worker.postMessage($downloadButton.href);
-    })();
+  worker.once("error", reject);
+  worker.once("message", (torrent: Instance) => {
+    resolve({
+      fileSize: formatXatabDownloadSize(size).toUpperCase(),
+      magnet: toMagnetURI(torrent),
+      uploadDate: formatXatabDate(uploadDate),
+    });
   });
+
+  worker.postMessage($downloadButton.href);
+  return await promise;
 };
 
 export const getNewRepacksFromXatab = async (
   existingRepacks: Repack[] = [],
-  page = 1
+  page = 1,
 ): Promise<void> => {
   const data = await requestWebPage(`https://byxatab.com/page/${page}`);
 
   const { window } = new JSDOM(data);
+  const { document } = window;
 
-  const repacks = [];
+  const repacks: Repack[] = [];
 
-  for (const $a of Array.from(
-    window.document.querySelectorAll(".entry__title a")
-  )) {
+  const entries =
+    document.querySelectorAll<HTMLAnchorElement>(".entry__title a");
+
+  for (const { textContent: title, href } of entries) {
+    const repack: Partial<Repack> = {
+      repacker: "Xatab",
+      title: title!,
+      page,
+    };
+
     try {
-      const repack = await getXatabRepack(($a as HTMLAnchorElement).href);
-
-      repacks.push({
-        title: $a.textContent,
-        repacker: "Xatab",
-        ...repack,
-        page,
-      });
+      Object.assign(repack, await getXatabRepack(href));
     } catch (err: unknown) {
-      logger.error((err as Error).message, {
-        method: "getNewRepacksFromXatab",
-      });
+      let msg = "An error occurred while parsing Xatab repack";
+      if (err instanceof Error) msg = err.message;
+
+      logger.error(msg, { method: "getNewRepacksFromXatab" });
+      continue;
     }
+
+    repacks.push(<Repack>repack);
   }
 
   const newRepacks = repacks.filter(
     (repack) =>
       !existingRepacks.some(
-        (existingRepack) => existingRepack.title === repack.title
-      )
+        (existingRepack) => existingRepack.title === repack.title,
+      ),
   );
 
   if (!newRepacks.length) return;
 
   await savePage(newRepacks);
-
   return getNewRepacksFromXatab(existingRepacks, page + 1);
 };

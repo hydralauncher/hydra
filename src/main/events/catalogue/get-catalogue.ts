@@ -14,7 +14,7 @@ interface GetStringForLookup {
 
 const getCatalogue = async (
   _event: Electron.IpcMainInvokeEvent,
-  category: CatalogueCategory
+  category: CatalogueCategory,
 ) => {
   const getStringForLookup = (index: number): string => {
     const repack = repacks[index];
@@ -34,46 +34,45 @@ const getCatalogue = async (
     return getRecentlyAddedCatalogue(
       resultSize,
       resultSize,
-      getStringForLookup
+      getStringForLookup,
     );
   }
 };
 
 const getTrendingCatalogue = async (
-  resultSize: number
+  resultSize: number,
 ): Promise<CatalogueEntry[]> => {
   const results: CatalogueEntry[] = [];
   const trendingGames = await requestSteam250("/30day");
-  for (
-    let i = 0;
-    i < trendingGames.length && results.length < resultSize;
-    i++
-  ) {
-    if (!trendingGames[i]) continue;
 
-    const { title, objectID } = trendingGames[i];
+  for (let i = 0; i < resultSize; i++) {
+    const game = trendingGames.shift();
+    if (!game) break;
+
+    const { title, objectID } = game;
     const repacks = searchRepacks(title);
 
-    if (title && repacks.length) {
-      const catalogueEntry = {
-        objectID,
-        title,
-        shop: "steam" as GameShop,
-        cover: getSteamAppAsset("library", objectID),
-      };
+    if (!title || !repacks.length) continue;
 
-      results.push({ ...catalogueEntry, repacks });
-    }
+    const catalogueEntry = {
+      objectID,
+      title,
+      shop: <GameShop>"steam",
+      cover: getSteamAppAsset("library", objectID),
+    };
+
+    results.push({ ...catalogueEntry, repacks });
   }
+
   return results;
 };
 
 const getRecentlyAddedCatalogue = async (
   resultSize: number,
   requestSize: number,
-  getStringForLookup: GetStringForLookup
+  getStringForLookup: GetStringForLookup,
 ): Promise<CatalogueEntry[]> => {
-  let lookupRequest = [];
+  let lookupRequest: CatalogueEntry[] = [];
   const results: CatalogueEntry[] = [];
 
   for (let i = 0; results.length < resultSize; i++) {
@@ -84,19 +83,18 @@ const getRecentlyAddedCatalogue = async (
       continue;
     }
 
-    lookupRequest.push(searchGames({ query: stringForLookup }));
+    lookupRequest.push(...searchGames({ query: stringForLookup }));
 
     if (lookupRequest.length < requestSize) {
       continue;
     }
 
-    const games = (await Promise.all(lookupRequest)).map((value) =>
-      value.at(0)
-    );
+    // prettier-ignore
+    const games = await Promise.all(lookupRequest).then(games => games.map((value) => value?.[0]));
 
     for (const game of games) {
       const isAlreadyIncluded = results.some(
-        (result) => result.objectID === game?.objectID
+        (result) => result.objectID === game?.objectID,
       );
 
       if (!game || !game.repacks.length || isAlreadyIncluded) {

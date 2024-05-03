@@ -220,7 +220,7 @@ export function Downloads() {
         visible={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         deleteGame={() =>
-          deleteGame(gameToBeDeleted.current).then(updateLibrary)
+          gameToBeDeleted.current && deleteGame(gameToBeDeleted.current).then(updateLibrary)
         }
       />
 

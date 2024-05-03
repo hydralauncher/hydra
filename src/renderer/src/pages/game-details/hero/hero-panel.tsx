@@ -49,6 +49,8 @@ export function HeroPanel({
   const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
   const updateLastTimePlayed = useCallback(() => {
+    if (!game?.lastTimePlayed) return;
+
     setLastTimePlayed(
       formatDistance(game.lastTimePlayed, new Date(), {
         addSuffix: true,
@@ -99,7 +101,7 @@ export function HeroPanel({
 
           {gameDownloading?.status !== "downloading" ? (
             <>
-              <p>{t(gameDownloading?.status)}</p>
+              <p>{t(gameDownloading?.status ?? "N/A")}</p>
               {eta && <small>{t("eta", { eta })}</small>}
             </>
           ) : (

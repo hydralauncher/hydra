@@ -16,11 +16,11 @@ const getTorrentDetails = async (path: string) => {
   const { document } = window;
 
   const $a = window.document.querySelector(
-    ".torrentdown1"
+    ".torrentdown1",
   ) as HTMLAnchorElement;
 
   const $ul = Array.from(
-    document.querySelectorAll(".torrent-detail-page .list")
+    document.querySelectorAll(".torrent-detail-page .list"),
   );
   const [$firstColumn, $secondColumn] = $ul;
 
@@ -33,9 +33,9 @@ const getTorrentDetails = async (path: string) => {
 
   return {
     magnet: $a?.href,
-    fileSize: $totalSize.querySelector("span").textContent ?? undefined,
+    fileSize: $totalSize.querySelector("span")?.textContent ?? undefined,
     uploadDate: formatUploadDate(
-      $dateUploaded.querySelector("span").textContent!
+      $dateUploaded.querySelector("span")?.textContent ?? "",
     ),
   };
 };
@@ -66,8 +66,8 @@ export const extractTorrentsFromDocument = async (
   page: number,
   user: string,
   document: Document,
-  existingRepacks: Repack[] = []
-) => {
+  existingRepacks: Repack[] = [],
+): Promise<Repack[]> => {
   const $trs = Array.from(document.querySelectorAll("tbody tr"));
 
   return Promise.all(
@@ -79,11 +79,9 @@ export const extractTorrentsFromDocument = async (
       const title = $name.textContent ?? "";
 
       if (existingRepacks.some((repack) => repack.title === title)) {
-        return {
+        return <Repack>{
           title,
           magnet: "",
-          fileSize: null,
-          uploadDate: null,
           repacker: user,
           page,
         };
@@ -91,7 +89,7 @@ export const extractTorrentsFromDocument = async (
 
       const details = await getTorrentDetails(url);
 
-      return {
+      return <Repack>{
         title,
         magnet: details.magnet,
         fileSize: details.fileSize ?? null,
@@ -99,36 +97,36 @@ export const extractTorrentsFromDocument = async (
         repacker: user,
         page,
       };
-    })
+    }),
   );
 };
 
 export const getNewRepacksFromUser = async (
   user: string,
   existingRepacks: Repack[],
-  page = 1
+  page = 1,
 ) => {
   const response = await request1337x(`/user/${user}/${page}`);
   const { window } = new JSDOM(response);
+  const { document } = window;
 
   const repacks = await extractTorrentsFromDocument(
     page,
     user,
-    window.document,
-    existingRepacks
+    document,
+    existingRepacks,
   );
 
   const newRepacks = repacks.filter(
     (repack) =>
       repack.uploadDate &&
       !existingRepacks.some(
-        (existingRepack) => existingRepack.title === repack.title
-      )
+        (existingRepack) => existingRepack.title === repack.title,
+      ),
   );
 
   if (!newRepacks.length) return;
 
   await savePage(newRepacks);
-
   return getNewRepacksFromUser(user, existingRepacks, page + 1);
 };

@@ -73,23 +73,22 @@ export function RepacksModal({
           <TextField placeholder={t("filter")} onChange={handleFilter} />
         </div>
 
-        <div className={styles.repacks}>
-          {filteredRepacks.map((repack) => (
-            <Button
-              key={repack.id}
-              theme="dark"
-              onClick={() => handleRepackClick(repack)}
-              className={styles.repackButton}
-            >
-              <p style={{ color: "#DADBE1" }}>{repack.title}</p>
-              <p style={{ fontSize: "12px" }}>
-                {repack.fileSize} - {repackersFriendlyNames[repack.repacker]} -{" "}
-                {format(repack.uploadDate, "dd/MM/yyyy")}
-              </p>
-            </Button>
-          ))}
-        </div>
-      </Modal>
-    </>
+      <div className={styles.repacks}>
+        {filteredRepacks.map((repack) => (
+          <Button
+            key={repack.id}
+            theme="dark"
+            onClick={() => handleRepackClick(repack)}
+            className={styles.repackButton}
+          >
+            <p style={{ color: "#DADBE1" }}>{repack.title}</p>
+            <p style={{ fontSize: "12px" }}>
+              {repack.fileSize} - {repackersFriendlyNames[repack.repacker]} -{" "}
+              {repack.uploadDate && format(repack.uploadDate, "dd/MM/yyyy")}
+            </p>
+          </Button>
+        ))}
+      </div>
+    </Modal>
   );
 }

@@ -11,15 +11,15 @@ import { getDownloadsPath } from "../helpers/get-downloads-path";
 
 const openGameInstaller = async (
   _event: Electron.IpcMainInvokeEvent,
-  gameId: number
+  gameId: number,
 ) => {
   const game = await gameRepository.findOne({ where: { id: gameId } });
 
-  if (!game) return true;
+  if (!game || !game.folderName) return true;
 
   const gamePath = path.join(
     game.downloadPath ?? (await getDownloadsPath()),
-    game.folderName
+    game.folderName,
   );
 
   if (!fs.existsSync(gamePath)) {

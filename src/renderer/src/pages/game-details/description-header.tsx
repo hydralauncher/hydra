@@ -29,16 +29,16 @@ export function DescriptionHeader({ gameDetails }: DescriptionHeaderProps) {
     if (gameDetails) {
       setClipboardLocked(true);
 
-      const searchParams = new URLSearchParams({
-        p: btoa(
-          JSON.stringify([
-            objectID,
-            shop,
-            encodeURIComponent(gameDetails.name),
-            i18n.language,
-          ])
-        ),
-      });
+    const searchParams = new URLSearchParams({
+      p: btoa(
+        JSON.stringify([
+          objectID,
+          shop,
+          encodeURIComponent(gameDetails?.name ?? ""),
+          i18n.language,
+        ])
+      ),
+    });
 
       navigator.clipboard.writeText(
         OPEN_HYDRA_URL + `/?${searchParams.toString()}`

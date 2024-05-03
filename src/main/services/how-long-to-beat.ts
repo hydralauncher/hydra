@@ -28,32 +28,32 @@ export const searchHowLongToBeat = async (gameName: string) => {
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
         Referer: "https://howlongtobeat.com/",
       },
-    }
+    },
   );
 
   return response.data as HowLongToBeatSearchResponse;
 };
 
+// prettier-ignore
 export const getHowLongToBeatGame = async (
-  id: string
+  id: string,
 ): Promise<HowLongToBeatCategory[]> => {
   const response = await requestWebPage(`https://howlongtobeat.com/game/${id}`);
 
   const { window } = new JSDOM(response);
   const { document } = window;
 
-  const $ul = document.querySelector(".shadow_shadow ul");
-  const $lis = Array.from($ul.children);
+  const items = document.querySelectorAll<HTMLLIElement>(".shadow_shadow ul > li");
 
-  return $lis.map(($li) => {
-    const title = $li.querySelector("h4").textContent;
-    const [, accuracyClassName] = Array.from(($li as HTMLElement).classList);
+  return Array.from(items, (item) => {
+    const title = item.querySelector("h4")?.textContent;
+    const [, accuracyClassName] = Array.from(item.classList);
 
     const accuracy = accuracyClassName.split("time_").at(1);
 
-    return {
+    return <HowLongToBeatCategory>{
       title,
-      duration: $li.querySelector("h5").textContent,
+      duration: item.querySelector("h5")?.textContent,
       accuracy,
     };
   });

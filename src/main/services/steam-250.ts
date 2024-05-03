@@ -38,7 +38,9 @@ const steam250Paths = [
 export const getSteam250List = async () => {
   const gamesList = (
     await Promise.all(steam250Paths.map((path) => requestSteam250(path)))
-  ).flat();
+  )
+    .flat()
+    .filter(Boolean) as Steam250Game[];
 
   const gamesMap: Map<string, Steam250Game> = gamesList.reduce((map, item) => {
     map.set(item.objectID, item);

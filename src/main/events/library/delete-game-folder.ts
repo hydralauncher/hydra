@@ -10,7 +10,7 @@ import { registerEvent } from "../register-event";
 
 const deleteGameFolder = async (
   _event: Electron.IpcMainInvokeEvent,
-  gameId: number
+  gameId: number,
 ) => {
   const game = await gameRepository.findOne({
     where: {
@@ -19,30 +19,28 @@ const deleteGameFolder = async (
     },
   });
 
-  if (!game) return;
+  if (!game || !game.folderName) return;
 
-  if (game.folderName) {
-    const folderPath = path.join(
-      game.downloadPath ?? (await getDownloadsPath()),
-      game.folderName
+  const folderPath = path.join(
+    game.downloadPath ?? (await getDownloadsPath()),
+    game.folderName,
+  );
+
+  if (!fs.existsSync(folderPath)) return;
+
+  return new Promise((resolve, reject) => {
+    fs.rm(
+      folderPath,
+      { recursive: true, force: true, maxRetries: 5, retryDelay: 200 },
+      (error) => {
+        if (error) {
+          logger.error(error);
+          reject();
+        }
+        resolve(null);
+      },
     );
-
-    if (fs.existsSync(folderPath)) {
-      return new Promise((resolve, reject) => {
-        fs.rm(
-          folderPath,
-          { recursive: true, force: true, maxRetries: 5, retryDelay: 200 },
-          (error) => {
-            if (error) {
-              logger.error(error);
-              reject();
-            }
-            resolve(null);
-          }
-        );
-      });
-    }
-  }
+  });
 };
 
 registerEvent(deleteGameFolder, {

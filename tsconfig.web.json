@@ -17,6 +17,8 @@
       ],
       "@types": ["src/types/index.ts"],
       "@locales": ["src/locales/index.ts"]
-    }
+    },
+
+    "noImplicitReturns": false,
   }
 }

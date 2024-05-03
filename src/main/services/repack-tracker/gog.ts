@@ -1,35 +1,35 @@
 import { JSDOM, VirtualConsole } from "jsdom";
 import { requestWebPage, savePage } from "./helpers";
 import { Repack } from "@main/entity";
-
-import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+import { logger } from "../logger";
 
 const virtualConsole = new VirtualConsole();
 
+// prettier-ignore
 const getGOGGame = async (url: string) => {
   const data = await requestWebPage(url);
+
   const { window } = new JSDOM(data, { virtualConsole });
+  const { document } = window;
 
-  const $modifiedTime = window.document.querySelector(
-    '[property="article:modified_time"]'
-  ) as HTMLMetaElement;
+  const $modifiedTime = document.querySelector<HTMLMetaElement>('[property="article:modified_time"]');
+  const $em = document.querySelector("p:not(.lightweight-accordion *) em");
 
-  const $em = window.document.querySelector(
-    "p:not(.lightweight-accordion *) em"
-  );
-  const fileSize = $em.textContent.split("Size: ").at(1);
-  const $downloadButton = window.document.querySelector(
-    ".download-btn:not(.lightweight-accordion *)"
-  ) as HTMLAnchorElement;
+  const fileSize = $em?.textContent?.split("Size: ").at(1);
+  const $downloadButton = document.querySelector<HTMLAnchorElement>(".download-btn[href]:not(.lightweight-accordion *)");
+
+  if (!$downloadButton) throw new Error("No download button found");
 
   const { searchParams } = new URL($downloadButton.href);
-  const magnet = Buffer.from(searchParams.get("url"), "base64").toString(
-    "utf-8"
-  );
+  if (!searchParams.has("url")) throw new Error("No magnet found");
 
-  return {
+  const magnet = Buffer
+    .from(searchParams.get("url")!, "base64")
+    .toString("utf-8");
+
+  return <Repack>{
     fileSize: fileSize ?? "N/A",
-    uploadDate: new Date($modifiedTime.content),
+    uploadDate: $modifiedTime && new Date($modifiedTime.content),
     repacker: "GOG",
     magnet,
     page: 1,
@@ -38,7 +38,7 @@ const getGOGGame = async (url: string) => {
 
 export const getNewGOGGames = async (existingRepacks: Repack[] = []) => {
   const data = await requestWebPage(
-    "https://freegogpcgames.com/a-z-games-list/"
+    "https://freegogpcgames.com/a-z-games-list/",
   );
 
   const { window } = new JSDOM(data, { virtualConsole });
@@ -46,23 +46,30 @@ export const getNewGOGGames = async (existingRepacks: Repack[] = []) => {
   const $uls = Array.from(window.document.querySelectorAll(".az-columns"));
 
   for (const $ul of $uls) {
-    const repacks: QueryDeepPartialEntity<Repack>[] = [];
+    const repacks: Partial<Repack>[] = [];
     const $lis = Array.from($ul.querySelectorAll("li"));
 
     for (const $li of $lis) {
-      const $a = $li.querySelector("a");
-      const href = $a.href;
+      const $a = $li.querySelector<HTMLAnchorElement>("a");
+      if (!$a) continue;
 
-      const title = $a.textContent.trim();
+      const { href, textContent: text } = $a;
+      const title = text?.trim();
 
       const gameExists = existingRepacks.some(
-        (existingRepack) => existingRepack.title === title
+        (existingRepack) => existingRepack.title === title,
       );
 
       if (!gameExists) {
-        const game = await getGOGGame(href);
+        try {
+          const game = await getGOGGame(href);
+          repacks.push({ ...game, title });
+        } catch (e) {
+          let msg = `${e}`;
+          if (e instanceof Error) msg = e.message;
 
-        repacks.push({ ...game, title });
+          logger.error(`Error getting ${title} from GOG: ${msg}`);
+        }
       }
     }
 
