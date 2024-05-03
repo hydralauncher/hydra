@@ -17,7 +17,10 @@
     "downloading": "{{title}} ({{percentage}} - Загрузка…)",
     "filter": "Фильтровать библиотеку",
     "follow_us": "Подписывайтесь на нас",
-    "home": "Главная"
+    "home": "Главная",
+    "discord": "Присоединяйся к Discord",
+    "x": "Подписывайтесь на X",
+    "github": "Внести свой вклад в GitHub"
   },
   "header": {
     "search": "Поиск",
@@ -66,6 +69,8 @@
     "copied_link_to_clipboard": "Ссылка скопирована",
     "hours": "часов",
     "minutes": "минут",
+    "amount_hours": "{{amount}} часов",
+    "amount_minutes": "{{amount}} минут",
     "accuracy": "{{accuracy}}% точность",
     "add_to_library": "Добавить в библиотеку",
     "remove_from_library": "Удалить из библиотеки",
@@ -83,7 +88,15 @@
     "downloads_path": "Путь загрузок",
     "select_folder_hint": "Чтобы изменить папку по умолчанию, откройте",
     "settings": "Настройки Hydra",
-    "download_now": "Загрузить сейчас"
+    "download_now": "Загрузить сейчас",
+    "installation_instructions": "Инструкция по установке",
+    "installation_instructions_description": "Для установки этой игры требуются дополнительные шаги",
+    "online_fix_instruction": "В играх с OnlineFix требуется ввести пароль для извлеченияя.При необходимости используйте следующий пароль:",
+    "dodi_installation_instruction": "При открытии установщика Dodi нажмите клавишу вверх клавиатуру <0 />, чтобы запустить процесс установки:",
+    "dont_show_it_again": "Не показывать это снова",
+    "copy_to_clipboard": "Копировать",
+    "copied_to_clipboard": "Скопировано",
+    "got_it": "Понятно"
   },
   "activation": {
     "title": "Активировать Hydra",
@@ -123,7 +136,9 @@
     "enable_download_notifications": "По завершении загрузки",
     "enable_repack_list_notifications": "При добавлении нового репака",
     "telemetry": "Телеметрия",
-    "telemetry_description": "Включить анонимную статистику использования"
+    "telemetry_description": "Включить анонимную статистику использования",
+    "behavior": "Поведение",
+    "quit_app_instead_hiding": "Закрывать приложение вместо того, чтобы сворачивать его в трей"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -143,5 +158,8 @@
     "title": "Программы не установлены",
     "description": "Исполняемые файлы Wine или Lutris не найдены на вашей системе",
     "instructions": "Узнайте правильный способ установить любой из них на вашем дистрибутиве Linux, чтобы игра могла нормально работать"
+  },
+  "modal": {
+    "close": "Кнопка закрытия"
   }
 }

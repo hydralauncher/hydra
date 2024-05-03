@@ -17,7 +17,7 @@
     "downloading": "{{title}} ({{percentage}} - Завантаження...)",
     "filter": "Фільтрувати бібліотеку",
     "follow_us": "Підписуйтесь на нас",
-    "home":"Головна"
+    "home":"Головна",
     "discord": "Приєднуйтесь до нашого Discord",
     "x": "Слідувати у X",
     "github": "Внести свій вклад в GitHub"
@@ -88,7 +88,7 @@
     "downloads_path": "Шлях завантажень",
     "select_folder_hint": "Щоб змінити папку за замовчуванням, відкрийте",
     "settings": "Налаштування Hydra",
-    "download_now": "Завантажити зараз"
+    "download_now": "Завантажити зараз",
     "installation_instructions": "Інструкції по установці",
     "installation_instructions_description": "Для встановлення цієї гри потрібні додаткові дії",
     "online_fix_instruction": "Для онлайн-ігор з OnlineFix потрібно отримати пароль. При необхідності використовуйте наступний пароль:",
@@ -136,9 +136,9 @@
     "enable_download_notifications": "Коли завантаження завершено",
     "enable_repack_list_notifications": "Коли новий репак додано",
     "телеметрія":"Телеметрія",
-    "telemetry_description": "Увімкнути анонімну статистику використання"
+    "telemetry_description": "Увімкнути анонімну статистику використання",
     "behavior": "Поведінка",
-    "quit_app_instead_hiding": "Закрийте додаток замість того, щоб згортати його в трей"
+    "quit_app_instead_hiding": "Закривати додаток замість того, щоб згортати його в трей"
   },
   "notifications": {
     "download_complete": "Завантаження завершено",
