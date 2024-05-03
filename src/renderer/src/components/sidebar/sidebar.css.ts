@@ -5,11 +5,11 @@ import { SPACING_UNIT, vars } from "../../theme.css";
 export const sidebar = recipe({
   base: {
     backgroundColor: vars.color.darkBackground,
-    color: "#c0c1c7",
+    color: vars.color.muted,
     flexDirection: "column",
     display: "flex",
     transition: "opacity ease 0.2s",
-    borderRight: `solid 1px ${vars.color.borderColor}`,
+    borderRight: `solid 1px ${vars.color.border}`,
     position: "relative",
   },
   variants: {
@@ -65,7 +65,7 @@ export const menuItem = recipe({
     textWrap: "nowrap",
     display: "flex",
     opacity: "0.9",
-    color: "#DADBE1",
+    color: vars.color.muted,
     ":hover": {
       opacity: "1",
     },
@@ -130,7 +130,7 @@ export const section = recipe({
   variants: {
     hasBorder: {
       true: {
-        borderBottom: `solid 1px ${vars.color.borderColor}`,
+        borderBottom: `solid 1px ${vars.color.border}`,
       },
     },
   },
@@ -157,10 +157,10 @@ export const footerSocialsItem = style({
   height: "16px",
   display: "flex",
   alignItems: "center",
-  transition: "all ease 0.15s",
+  transition: "all ease 0.2s",
+  cursor: "pointer",
   ":hover": {
-    opacity: 0.75,
-    cursor: "pointer",
+    opacity: "0.75",
   },
 });
 

@@ -1,5 +1,5 @@
 import { style } from "@vanilla-extract/css";
-import { SPACING_UNIT, vars } from "../../theme.css";
+import { SPACING_UNIT, vars } from "../../../theme.css";
 
 export const panel = style({
   width: "100%",
@@ -9,7 +9,8 @@ export const panel = style({
   alignItems: "center",
   justifyContent: "space-between",
   transition: "all ease 0.2s",
-  borderBottom: `solid 1px ${vars.color.borderColor}`,
+  borderBottom: `solid 1px ${vars.color.border}`,
+  color: "#8e919b",
   boxShadow: "0px 0px 15px 0px #000000",
 });
 
@@ -17,7 +18,6 @@ export const content = style({
   display: "flex",
   flexDirection: "column",
   gap: `${SPACING_UNIT}px`,
-  fontSize: vars.size.bodyFontSize,
 });
 
 export const actions = style({
