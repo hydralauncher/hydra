@@ -22,6 +22,8 @@ export interface HeroPanelProps {
   getGame: () => void;
 }
 
+const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
+
 export function HeroPanel({
   game,
   gameDetails,
@@ -58,23 +60,25 @@ export function HeroPanel({
     }
   }, [game?.lastTimePlayed, formatDistance]);
 
+  const numberFormatter = useMemo(() => {
+    return new Intl.NumberFormat(i18n.language, {
+      maximumFractionDigits: 1,
+    });
+  }, [i18n]);
+
   const formatPlayTime = () => {
     const milliseconds = game?.playTimeInMilliseconds || 0;
     const seconds = milliseconds / 1000;
     const minutes = seconds / 60;
 
-    if (minutes < 120) {
+    if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
       return t("amount_minutes", {
         amount: minutes.toFixed(0),
       });
     }
 
-    const numberFormat = new Intl.NumberFormat(i18n.language, {
-      maximumFractionDigits: 1,
-    });
-
     const hours = minutes / 60;
-    return t("amount_hours", { amount: numberFormat.format(hours) });
+    return t("amount_hours", { amount: numberFormatter.format(hours) });
   };
 
   const finalDownloadSize = useMemo(() => {
