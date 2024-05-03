@@ -8,7 +8,7 @@ import { stateManager } from "@main/state-manager";
 
 const { Index } = flexSearch;
 const repacksIndex = new Index();
-const steamGamesIndex = new Index();
+const steamGamesIndex = new Index({ tokenize: "forward" });
 
 const repacks = stateManager.getValue("repacks");
 const steamGames = stateManager.getValue("steamGames");
