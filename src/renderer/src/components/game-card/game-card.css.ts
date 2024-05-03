@@ -10,7 +10,7 @@ export const card = recipe({
     overflow: "hidden",
     borderRadius: "4px",
     transition: "all ease 0.2s",
-    border: `solid 1px ${vars.color.borderColor}`,
+    border: `solid 1px ${vars.color.border}`,
     cursor: "pointer",
     zIndex: "1",
     ":active": {
@@ -103,7 +103,7 @@ export const specifics = style({
 export const specificsItem = style({
   gap: `${SPACING_UNIT}px`,
   display: "flex",
-  color: "#c0c1c7",
+  color: vars.color.muted,
   fontSize: "12px",
   alignItems: "flex-end",
 });
@@ -112,7 +112,7 @@ export const titleContainer = style({
   display: "flex",
   alignItems: "center",
   gap: `${SPACING_UNIT}px`,
-  color: "#c0c1c7",
+  color: vars.color.muted,
 });
 
 export const shopIcon = style({

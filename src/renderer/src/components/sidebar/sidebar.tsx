@@ -17,21 +17,6 @@ import XLogo from "@renderer/assets/x-icon.svg?react";
 import * as styles from "./sidebar.css";
 import { GameStatus } from "@globals";
 
-const socials = [
-  {
-    url: "https://discord.gg/hydralauncher",
-    icon: <DiscordLogo />,
-  },
-  {
-    url: "https://twitter.com/hydralauncher",
-    icon: <XLogo />,
-  },
-  {
-    url: "https://github.com/hydralauncher/hydra",
-    icon: <MarkGithubIcon size={16} />,
-  },
-];
-
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
 const SIDEBAR_MAX_WIDTH = 450;
@@ -49,6 +34,24 @@ export function Sidebar() {
   const [sidebarWidth, setSidebarWidth] = useState(
     initialSidebarWidth ? Number(initialSidebarWidth) : SIDEBAR_INITIAL_WIDTH
   );
+
+  const socials = [
+    {
+      url: "https://discord.gg/hydralauncher",
+      icon: <DiscordLogo />,
+      label: t("discord"),
+    },
+    {
+      url: "https://twitter.com/hydralauncher",
+      icon: <XLogo />,
+      label: t("x"),
+    },
+    {
+      url: "https://github.com/hydralauncher/hydra",
+      icon: <MarkGithubIcon size={16} />,
+      label: t("github"),
+    },
+  ];
 
   const location = useLocation();
 
@@ -241,6 +244,8 @@ export function Sidebar() {
                 key={item.url}
                 className={styles.footerSocialsItem}
                 onClick={() => window.electron.openExternal(item.url)}
+                title={item.label}
+                aria-label={item.label}
               >
                 {item.icon}
               </button>
