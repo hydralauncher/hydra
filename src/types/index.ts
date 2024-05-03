@@ -105,6 +105,7 @@ export interface UserPreferences {
   downloadNotificationsEnabled: boolean;
   repackUpdatesNotificationsEnabled: boolean;
   telemetryEnabled: boolean;
+  preferQuitInsteadOfHiding: boolean;
 }
 
 export interface HowLongToBeatCategory {

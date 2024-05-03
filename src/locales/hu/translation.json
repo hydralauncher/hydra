@@ -66,6 +66,8 @@
     "copied_link_to_clipboard": "Link másolva",
     "hours": "óra",
     "minutes": "perc",
+    "amount_hours": "{{amount}} óra",
+    "amount_minutes": "{{amount}} perc",
     "accuracy": "{{accuracy}}% pontosság",
     "add_to_library": "Hozzáadás a könyvtárhoz",
     "remove_from_library": "Eltávolítás a könyvtárból",

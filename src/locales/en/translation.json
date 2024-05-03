@@ -69,6 +69,8 @@
     "copied_link_to_clipboard": "Link copied",
     "hours": "hours",
     "minutes": "minutes",
+    "amount_hours": "{{amount}} hours",
+    "amount_minutes": "{{amount}} minutes",
     "accuracy": "{{accuracy}}% accuracy",
     "add_to_library": "Add to library",
     "remove_from_library": "Remove from library",
@@ -134,7 +136,9 @@
     "enable_download_notifications": "When a download is complete",
     "enable_repack_list_notifications": "When a new repack is added",
     "telemetry": "Telemetry",
-    "telemetry_description": "Enable anonymous usage statistics"
+    "telemetry_description": "Enable anonymous usage statistics",
+    "behavior": "Behavior",
+    "quit_app_instead_hiding": "Close app instead of minimizing to tray"
   },
   "notifications": {
     "download_complete": "Download complete",
