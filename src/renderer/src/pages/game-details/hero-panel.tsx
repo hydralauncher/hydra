@@ -57,19 +57,24 @@ export function HeroPanel({
     }
   }, [game?.lastTimePlayed, formatDistance]);
 
-  const formatPlayTime = (milliseconds: number) => {
-      const seconds = milliseconds / 1000
-      const minutes = seconds / 60
+  const formatPlayTime = () => {
+    const milliseconds = game?.playTimeInMilliseconds || 0;
+    const seconds = milliseconds / 1000;
+    const minutes = seconds / 60;
 
-      if (minutes < 120) {
-        return minutes.toFixed(0) + " " + t("minutes")
-      }
+    if (minutes < 120) {
+      return t("amount_minutes", {
+        amount: minutes.toFixed(0),
+      });
+    }
 
-      const numberFormat = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 })
+    const numberFormat = new Intl.NumberFormat(i18n.language, {
+      maximumFractionDigits: 1,
+    });
 
-      const hours = minutes / 60
-      return numberFormat.format(hours)  + " " + t("hours")
-  }
+    const hours = minutes / 60;
+    return t("amount_hours", { amount: numberFormat.format(hours) });
+  };
 
   const finalDownloadSize = useMemo(() => {
     if (!game) return "N/A";
