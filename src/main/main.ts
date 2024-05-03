@@ -5,7 +5,7 @@ import {
   getNewRepacksFromCPG,
   getNewRepacksFromUser,
   getNewRepacksFromXatab,
-  // getNewRepacksFromOnlineFix,
+  getNewRepacksFromOnlineFix,
   readPipe,
   startProcessWatcher,
   writePipe,
@@ -76,9 +76,9 @@ const checkForNewRepacks = async () => {
     getNewRepacksFromCPG(
       existingRepacks.filter((repack) => repack.repacker === "CPG")
     ),
-    // getNewRepacksFromOnlineFix(
-    //   existingRepacks.filter((repack) => repack.repacker === "onlinefix")
-    // ),
+    getNewRepacksFromOnlineFix(
+      existingRepacks.filter((repack) => repack.repacker === "onlinefix")
+    ),
     track1337xUsers(existingRepacks),
   ]).then(() => {
     repackRepository.count().then((count) => {

@@ -20,3 +20,19 @@ export const requestWebPage = async (url: string) => {
     },
   }).then((response) => response.text());
 };
+
+export const decodeNonUtf8Response = async (res: Response) => {
+  const contentType = res.headers.get("content-type");
+  if (!contentType) return res.text();
+
+  const charset = contentType.substring(contentType.indexOf("charset=") + 8);
+
+  const text = await res.arrayBuffer().then((ab) => {
+    const dataView = new DataView(ab);
+    const decoder = new TextDecoder(charset);
+
+    return decoder.decode(dataView);
+  });
+
+  return text;
+};

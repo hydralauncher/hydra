@@ -61,6 +61,8 @@
     "copied_link_to_clipboard": "Lien copié",
     "hours": "heures",
     "minutes": "minutes",
+    "amount_hours": "{{amount}} heures",
+    "amount_minutes": "{{amount}} minutes",
     "accuracy": "{{accuracy}}% précision",
     "add_to_library": "Ajouter à la bibliothèque",
     "remove_from_library": "Supprimer de la bibliothèque",
