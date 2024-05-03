@@ -11,6 +11,7 @@ export function Settings() {
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
     telemetryEnabled: false,
+    quitInXButtonEnabled: false,
   });
 
   const { t } = useTranslation("settings");
@@ -27,6 +28,7 @@ export function Settings() {
         repackUpdatesNotificationsEnabled:
           userPreferences?.repackUpdatesNotificationsEnabled ?? false,
         telemetryEnabled: userPreferences?.telemetryEnabled ?? false,
+        quitInXButtonEnabled: userPreferences?.quitInXButtonEnabled ?? false,
       });
     });
   }, []);
@@ -66,7 +68,7 @@ export function Settings() {
           />
 
           <Button
-            style={{ alignSelf: "flex-end" }}
+            style={{alignSelf: "flex-end"}}
             theme="outline"
             onClick={handleChooseDownloadsPath}
           >
@@ -107,6 +109,17 @@ export function Settings() {
             updateUserPreferences("telemetryEnabled", !form.telemetryEnabled)
           }
         />
+
+        <h3>{t("behavior")}</h3>
+
+        <CheckboxField
+          label={t("quit_app_instead_minimizing")}
+          checked={form.quitInXButtonEnabled}
+          onChange={() =>
+            updateUserPreferences("quitInXButtonEnabled", !form.quitInXButtonEnabled)
+          }
+        />
+
       </div>
     </section>
   );

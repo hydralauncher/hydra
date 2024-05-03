@@ -130,7 +130,9 @@
     "enable_download_notifications": "Quando um download for concluído",
     "enable_repack_list_notifications": "Quando a lista de repacks for atualizada",
     "telemetry": "Telemetria",
-    "telemetry_description": "Habilitar estatísticas de uso anônimas"
+    "telemetry_description": "Habilitar estatísticas de uso anônimas",
+    "behavior": "Comportamento",
+    "quit_app_instead_minimizing": "Fechar o aplicativo em vez de minimizá-lo"
   },
   "notifications": {
     "download_complete": "Download concluído",
