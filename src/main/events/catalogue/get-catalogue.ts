@@ -14,13 +14,14 @@ interface GetStringForLookup {
 
 const getCatalogue = async (
   _event: Electron.IpcMainInvokeEvent,
-  category: CatalogueCategory,
+  category: CatalogueCategory
 ) => {
+  // prettier-ignore
   const getStringForLookup = (index: number): string => {
     const repack = repacks[index];
-    const formatter =
-      repackerFormatter[repack.repacker as keyof typeof repackerFormatter];
+    if (!repack) return "";
 
+    const formatter = repackerFormatter[repack.repacker as keyof typeof repackerFormatter];
     return formatName(formatter(repack.title));
   };
 
@@ -34,13 +35,13 @@ const getCatalogue = async (
     return getRecentlyAddedCatalogue(
       resultSize,
       resultSize,
-      getStringForLookup,
+      getStringForLookup
     );
   }
 };
 
 const getTrendingCatalogue = async (
-  resultSize: number,
+  resultSize: number
 ): Promise<CatalogueEntry[]> => {
   const results: CatalogueEntry[] = [];
   const trendingGames = await requestSteam250("/30day");
@@ -66,13 +67,12 @@ const getTrendingCatalogue = async (
 
   return results;
 };
-
 const getRecentlyAddedCatalogue = async (
   resultSize: number,
   requestSize: number,
-  getStringForLookup: GetStringForLookup,
+  getStringForLookup: GetStringForLookup
 ): Promise<CatalogueEntry[]> => {
-  let lookupRequest: CatalogueEntry[] = [];
+  let lookupRequest: CatalogueEntry[][] = [];
   const results: CatalogueEntry[] = [];
 
   for (let i = 0; results.length < resultSize; i++) {
@@ -83,18 +83,19 @@ const getRecentlyAddedCatalogue = async (
       continue;
     }
 
-    lookupRequest.push(...searchGames({ query: stringForLookup }));
+    lookupRequest.push(searchGames({ query: stringForLookup }));
 
     if (lookupRequest.length < requestSize) {
       continue;
     }
 
-    // prettier-ignore
-    const games = await Promise.all(lookupRequest).then(games => games.map((value) => value?.[0]));
+    const games = (await Promise.all(lookupRequest)).map((value) =>
+      value.at(0)
+    );
 
     for (const game of games) {
       const isAlreadyIncluded = results.some(
-        (result) => result.objectID === game?.objectID,
+        (result) => result.objectID === game?.objectID
       );
 
       if (!game || !game.repacks.length || isAlreadyIncluded) {

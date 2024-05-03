@@ -7,9 +7,14 @@ import { resolveDatabaseUpdates, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
+import EventEmitter from "node:events";
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
+
+// The default value is 10, anything above that will throw a warning
+// So we set it to 20 to avoid the warning
+EventEmitter.setMaxListeners(20);
 
 if (import.meta.env.MAIN_VITE_SENTRY_DSN) {
   init({
