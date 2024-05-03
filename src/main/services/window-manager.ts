@@ -34,8 +34,8 @@ export class WindowManager {
       minWidth: 1024,
       minHeight: 540,
       titleBarStyle: "hidden",
-      ...(process.platform === "linux" ? {icon} : {}),
-      trafficLightPosition: {x: 16, y: 16},
+      ...(process.platform === "linux" ? { icon } : {}),
+      trafficLightPosition: { x: 16, y: 16 },
       titleBarOverlay: {
         symbolColor: "#DADBE1",
         color: "#151515",

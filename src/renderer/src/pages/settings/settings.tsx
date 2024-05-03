@@ -68,7 +68,7 @@ export function Settings() {
           />
 
           <Button
-            style={{alignSelf: "flex-end"}}
+            style={{ alignSelf: "flex-end" }}
             theme="outline"
             onClick={handleChooseDownloadsPath}
           >
