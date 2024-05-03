@@ -1,0 +1,68 @@
+[
+  {
+    "name": "Hydra",
+    "createdBy": "Hydra",
+    "scheme": {
+      "font": "#8e919b",
+      "background": "#1c1c1c",
+      "darkBackground": "#151515",
+      "border": "#424244",
+      "muted": "#c0c1c7"
+    }
+  },
+  {
+    "name": "Ayu-light",
+    "createdBy": "Igber",
+    "scheme": {
+      "font": "#26292f",
+      "background": "#fafafa",
+      "darkBackground": "#efefef",
+      "border": "#e1e1e1",
+      "muted": "#5C6166"
+    }
+  },
+  {
+    "name": "Catppucin",
+    "createdBy": "Igber",
+    "scheme": {
+      "font": "#D9E0EE",
+      "background": "#1E1D2D",
+      "darkBackground": "#252434",
+      "border": "#383747",
+      "muted": "#89B4FA"
+    }
+  },
+  {
+    "name": "Tokyonight",
+    "createdBy": "Igber",
+    "scheme": {
+      "font": "#c0caf5",
+      "background": "#1a1b26",
+      "darkBackground": "#1f2336",
+      "border": "#32333e",
+      "muted": "#7aa2f7"
+    }
+  },
+  {
+    "name": "Nord",
+    "createdBy": "Igber",
+    "scheme": {
+      "font": "#abb2bf",
+      "background": "#2E3440",
+      "darkBackground": "#343a46",
+      "border": "#414753",
+      "muted": "#7797b7"
+    }
+  },
+  {
+    "name": "Gruvbox",
+    "createdBy": "Igber",
+    "scheme": {
+      "font": "#ebdbb2",
+      "background": "#282828",
+      "darkBackground": "#2e2e2e",
+      "border": "#414753",
+      "muted": "#749689"
+    }
+  }
+]

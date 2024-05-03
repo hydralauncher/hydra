@@ -1,14 +1,17 @@
 import { createTheme } from "@vanilla-extract/css";
+import themes from "./themes/themes.json"
+
+const theme = themes[0]
 
 export const SPACING_UNIT = 8;
 
 export const [themeClass, vars] = createTheme({
   color: {
-    background: "#1c1c1c",
-    darkBackground: "#151515",
-    muted: "#c0c1c7",
-    bodyText: "#8e919b",
-    border: "#424244",
+    background: theme.scheme.background,
+    darkBackground: theme.scheme.darkBackground,
+    muted: theme.scheme.muted,
+    bodyText: theme.scheme.font,
+    border: theme.scheme.border,
   },
   opacity: {
     disabled: "0.5",
