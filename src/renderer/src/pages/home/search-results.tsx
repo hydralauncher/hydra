@@ -3,7 +3,7 @@ import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
 import type { CatalogueEntry } from "@types";
 
-import type { DebouncedFunc } from "lodash";
+import type { DebouncedFunc } from "lodash-es";
 import { debounce } from "lodash-es";
 
 import { InboxIcon } from "@primer/octicons-react";
