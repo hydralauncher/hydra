@@ -51,11 +51,14 @@ export class WindowManager {
     this.mainWindow.removeMenu();
 
     const userPreferences = await userPreferencesRepository.findOne({
-      where: {id: 1},
+      where: { id: 1 },
     });
 
     this.mainWindow.on("close", () => {
-      userPreferences?.quitInXButtonEnabled ? app.quit() : WindowManager.mainWindow?.setProgressBar(-1);
+      if (userPreferences?.preferQuitInsteadOfHiding) {
+        app.quit();
+      }
+      WindowManager.mainWindow?.setProgressBar(-1);
     });
   }
 

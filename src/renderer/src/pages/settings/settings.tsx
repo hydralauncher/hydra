@@ -11,7 +11,7 @@ export function Settings() {
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
     telemetryEnabled: false,
-    quitInXButtonEnabled: false,
+    preferQuitInsteadOfHiding: false,
   });
 
   const { t } = useTranslation("settings");
@@ -28,7 +28,8 @@ export function Settings() {
         repackUpdatesNotificationsEnabled:
           userPreferences?.repackUpdatesNotificationsEnabled ?? false,
         telemetryEnabled: userPreferences?.telemetryEnabled ?? false,
-        quitInXButtonEnabled: userPreferences?.quitInXButtonEnabled ?? false,
+        preferQuitInsteadOfHiding:
+          userPreferences?.preferQuitInsteadOfHiding ?? false,
       });
     });
   }, []);
@@ -113,13 +114,15 @@ export function Settings() {
         <h3>{t("behavior")}</h3>
 
         <CheckboxField
-          label={t("quit_app_instead_minimizing")}
-          checked={form.quitInXButtonEnabled}
+          label={t("quit_app_instead_hiding")}
+          checked={form.preferQuitInsteadOfHiding}
           onChange={() =>
-            updateUserPreferences("quitInXButtonEnabled", !form.quitInXButtonEnabled)
+            updateUserPreferences(
+              "preferQuitInsteadOfHiding",
+              !form.preferQuitInsteadOfHiding
+            )
           }
         />
-
       </div>
     </section>
   );
