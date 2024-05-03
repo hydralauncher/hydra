@@ -29,6 +29,9 @@ export class UserPreferences {
   @Column("boolean", { default: true })
   telemetryEnabled: boolean;
 
+  @Column("boolean", { default: false })
+  preferQuitInsteadOfHiding: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

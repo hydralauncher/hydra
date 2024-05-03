@@ -64,6 +64,8 @@
     "copied_link_to_clipboard": "Link copiado",
     "hours": "horas",
     "minutes": "minutos",
+    "amount_hours": "{{amount}} horas",
+    "amount_minutes": "{{amount}} minutos",
     "accuracy": "{{accuracy}}% de precisão",
     "add_to_library": "Adicionar à biblioteca",
     "remove_from_library": "Remover da biblioteca",
@@ -131,7 +133,9 @@
     "enable_repack_list_notifications": "Quando a lista de repacks for atualizada",
     "telemetry": "Telemetria",
     "telemetry_description": "Habilitar estatísticas de uso anônimas",
-    "real_debrid_api_token_description": "(Opcional) Real Debrid API token"
+    "real_debrid_api_token_description": "(Opcional) Real Debrid API token",
+    "behavior": "Comportamento",
+    "quit_app_instead_hiding": "Fechar o aplicativo em vez de minimizá-lo"
   },
   "notifications": {
     "download_complete": "Download concluído",

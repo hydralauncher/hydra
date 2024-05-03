@@ -11,7 +11,8 @@ export function Settings() {
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
     telemetryEnabled: false,
-    realDebridApiToken: null,
+    realDebridApiToken: null as string | null,
+    preferQuitInsteadOfHiding: false,
   });
 
   const { t } = useTranslation("settings");
@@ -28,7 +29,9 @@ export function Settings() {
         repackUpdatesNotificationsEnabled:
           userPreferences?.repackUpdatesNotificationsEnabled ?? false,
         telemetryEnabled: userPreferences?.telemetryEnabled ?? false,
-        realDebridApiToken: userPreferences.realDebridApiToken,
+        realDebridApiToken: userPreferences?.realDebridApiToken ?? null,
+        preferQuitInsteadOfHiding:
+          userPreferences?.preferQuitInsteadOfHiding ?? false,
       });
     });
   }, []);
@@ -110,13 +113,25 @@ export function Settings() {
           }
         />
 
+        <h3>{t("behavior")}</h3>
+
+        <CheckboxField
+          label={t("quit_app_instead_hiding")}
+          checked={form.preferQuitInsteadOfHiding}
+          onChange={() =>
+            updateUserPreferences(
+              "preferQuitInsteadOfHiding",
+              !form.preferQuitInsteadOfHiding
+            )
+          }
+        />
+
         <TextField
           label={t("real_debrid_api_token_description")}
           value={form.realDebridApiToken ?? ""}
           onChange={(event) => {
             updateUserPreferences("realDebridApiToken", event.target.value);
-          }}
-        />
+          }} />
       </div>
     </section>
   );
