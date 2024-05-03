@@ -1,23 +1,23 @@
 import { Repack } from "@main/entity";
-import { savePage } from "./helpers";
+import { decodeNonUtf8Response, savePage } from "./helpers";
 import { logger } from "../logger";
 import parseTorrent, {
   toMagnetURI,
   Instance as TorrentInstance,
 } from "parse-torrent";
 import { JSDOM } from "jsdom";
-import { gotScraping } from "got-scraping";
-import { CookieJar } from "tough-cookie";
 
 import { format, parse, sub } from "date-fns";
 import { ru } from "date-fns/locale";
-import { decode } from "windows-1251";
+
 import { onlinefixFormatter } from "@main/helpers";
+import makeFetchCookie from "fetch-cookie";
+import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
 export const getNewRepacksFromOnlineFix = async (
   existingRepacks: Repack[] = [],
   page = 1,
-  cookieJar = new CookieJar(),
+  cookieJar = new makeFetchCookie.toughCookie.CookieJar()
 ): Promise<void> => {
   const hasCredentials =
     import.meta.env.MAIN_VITE_ONLINEFIX_USERNAME &&
@@ -25,34 +25,22 @@ export const getNewRepacksFromOnlineFix = async (
 
   if (!hasCredentials) return;
 
-  const http = gotScraping.extend({
-    headerGeneratorOptions: {
-      browsers: [
-        {
-          name: "chrome",
-          minVersion: 87,
-          maxVersion: 89,
-        },
-      ],
-      devices: ["desktop"],
-      locales: ["en-US"],
-      operatingSystems: ["windows", "linux"],
-    },
-    cookieJar: cookieJar,
-  });
+  const http = makeFetchCookie(fetch, cookieJar);
 
   if (page === 1) {
-    await http.get("https://online-fix.me/");
+    await http("https://online-fix.me/");
 
-    const preLogin: Partial<Record<"field" | "value", string>> =
-      (await http
-        .get("https://online-fix.me/engine/ajax/authtoken.php", {
-          headers: {
-            "X-Requested-With": "XMLHttpRequest",
-            Referer: "https://online-fix.me/",
-          },
-        })
-        .json()) || {};
+    const preLogin =
+      ((await http("https://online-fix.me/engine/ajax/authtoken.php", {
+        method: "GET",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          Referer: "https://online-fix.me/",
+        },
+      }).then((res) => res.json())) as {
+        field: string;
+        value: string;
+      }) || undefined;
 
     if (!preLogin.field || !preLogin.value) return;
 
@@ -63,27 +51,26 @@ export const getNewRepacksFromOnlineFix = async (
       [preLogin.field]: preLogin.value,
     });
 
-    await http
-      .post("https://online-fix.me/", {
-        encoding: "binary",
-        headers: {
-          Referer: "https://online-fix.me",
-          Origin: "https://online-fix.me",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: params.toString(),
-      })
-      .text();
+    await http("https://online-fix.me/", {
+      method: "POST",
+      headers: {
+        Referer: "https://online-fix.me",
+        Origin: "https://online-fix.me",
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: params.toString(),
+    });
   }
 
   const pageParams = page > 1 ? `${`/page/${page}`}` : "";
 
-  const home = await http.get(`https://online-fix.me${pageParams}`, {
-    encoding: "binary",
-  });
-  const { document } = new JSDOM(home.body).window;
+  const home = await http(`https://online-fix.me${pageParams}`).then((res) =>
+    decodeNonUtf8Response(res)
+  );
+  const document = new JSDOM(home).window.document;
 
-  const repacks: Partial<Repack>[] = [];
+  const repacks: QueryDeepPartialEntity<Repack>[] = [];
+
   const articles = Array.from(document.querySelectorAll(".news"));
   const totalPages = Number(
     document.querySelector("nav > a:nth-child(13)")?.textContent,
@@ -92,26 +79,23 @@ export const getNewRepacksFromOnlineFix = async (
   try {
     await Promise.all(
       articles.map(async (article) => {
-        const gameName = onlinefixFormatter(
-          decode(article.querySelector("h2.title")?.textContent?.trim() ?? ""),
-        );
+        const gameText = article.querySelector("h2.title")?.textContent?.trim();
+        if (!gameText) return;
+
+        const gameName = onlinefixFormatter(gameText);
 
         const gameLink = article.querySelector("a")?.getAttribute("href");
-
         if (!gameLink) return;
 
-        const gamePage = await http
-          .get(gameLink, {
-            encoding: "binary",
-          })
-          .text();
+        const gamePage = await http(gameLink).then((res) =>
+          decodeNonUtf8Response(res)
+        );
+        const gameDocument = new JSDOM(gamePage).window.document;
 
-        const { document } = new JSDOM(gamePage).window;
+        const uploadDateText = gameDocument.querySelector("time")?.textContent;
+        if (!uploadDateText) return;
 
-        const uploadDateText =
-          document.querySelector("time")?.textContent ?? "";
-
-        let decodedDateText = decode(uploadDateText);
+        let decodedDateText = uploadDateText;
 
         // "Вчера" means yesterday.
         if (decodedDateText.includes("Вчера")) {
@@ -141,14 +125,11 @@ export const getNewRepacksFromOnlineFix = async (
         const torrentPrePage = torrentButtons[0]?.getAttribute("href");
         if (!torrentPrePage) return;
 
-        const torrentPage = await http
-          .get(torrentPrePage, {
-            encoding: "binary",
-            headers: {
-              Referer: gameLink,
-            },
-          })
-          .text();
+        const torrentPage = await http(torrentPrePage, {
+          headers: {
+            Referer: gameLink,
+          },
+        }).then((res) => res.text());
 
         const torrentDocument = new JSDOM(torrentPage).window.document;
 
@@ -157,11 +138,9 @@ export const getNewRepacksFromOnlineFix = async (
           ?.getAttribute("href");
 
         const torrentFile = Buffer.from(
-          await http
-            .get(`${torrentPrePage}/${torrentLink}`, {
-              responseType: "buffer",
-            })
-            .buffer(),
+          await http(`${torrentPrePage}/${torrentLink}`).then((res) =>
+            res.arrayBuffer()
+          )
         );
 
         const torrent = parseTorrent(torrentFile) as TorrentInstance;
@@ -169,7 +148,9 @@ export const getNewRepacksFromOnlineFix = async (
           infoHash: torrent.infoHash,
         });
 
-        const torrentSizeInBytes = torrent.length ?? 0;
+        const torrentSizeInBytes = torrent.length;
+        if (!torrentSizeInBytes) return;
+
         const fileSizeFormatted =
           torrentSizeInBytes >= 1024 ** 3
             ? `${(torrentSizeInBytes / 1024 ** 3).toFixed(1)}GBs`

@@ -34,7 +34,21 @@ export const searchHowLongToBeat = async (gameName: string) => {
   return response.data as HowLongToBeatSearchResponse;
 };
 
-// prettier-ignore
+const parseListItems = ($lis: HTMLElement[]) => {
+  return $lis.map<HowLongToBeatCategory>(($li) => {
+    const title = $li.querySelector("h4")?.textContent;
+    const [, accuracyClassName] = Array.from($li.classList);
+
+    const accuracy = accuracyClassName.split("time_").at(1);
+
+    return <HowLongToBeatCategory>{
+      title: title ?? "",
+      duration: $li.querySelector("h5")?.textContent ?? "",
+      accuracy: accuracy ?? "",
+    };
+  });
+};
+
 export const getHowLongToBeatGame = async (
   id: string,
 ): Promise<HowLongToBeatCategory[]> => {
@@ -43,18 +57,16 @@ export const getHowLongToBeatGame = async (
   const { window } = new JSDOM(response);
   const { document } = window;
 
-  const items = document.querySelectorAll<HTMLLIElement>(".shadow_shadow ul > li");
+  const $ul = document.querySelector(".shadow_shadow ul");
+  if (!$ul) return [];
 
-  return Array.from(items, (item) => {
-    const title = item.querySelector("h4")?.textContent;
-    const [, accuracyClassName] = Array.from(item.classList);
+  const $lis = Array.from($ul.children);
+  const [$firstLi] = $lis;
 
-    const accuracy = accuracyClassName.split("time_").at(1);
+  if ($firstLi.tagName === "DIV") {
+    const $pcData = $lis.find(($li) => $li.textContent?.includes("PC"));
+    return parseListItems(Array.from($pcData?.querySelectorAll("li") ?? []));
+  }
 
-    return <HowLongToBeatCategory>{
-      title,
-      duration: item.querySelector("h5")?.textContent,
-      accuracy,
-    };
-  });
+  return parseListItems($lis);
 };

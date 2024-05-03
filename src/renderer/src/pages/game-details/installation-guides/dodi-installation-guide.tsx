@@ -26,8 +26,9 @@ export function DODIInstallationGuide({
   const handleClose = () => {
     if (dontShowAgain) {
       window.localStorage.setItem(DONT_SHOW_DODI_INSTRUCTIONS_KEY, "1");
-      onClose();
     }
+
+    onClose();
   };
 
   return (
