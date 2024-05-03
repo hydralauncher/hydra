@@ -42,6 +42,7 @@
     "check-disk-space": "^3.4.0",
     "classnames": "^2.5.1",
     "color.js": "^1.2.0",
+    "color": "^4.2.3",
     "date-fns": "^3.6.0",
     "fetch-cookie": "^3.0.1",
     "flexsearch": "^0.7.43",
