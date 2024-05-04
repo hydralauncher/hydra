@@ -32,8 +32,22 @@
 - [Features](#features)
 - [Installation](#installation)
 - [Contributing](#contributing)
+  - [Join our Discord](#join-our-discord)
+  - [Fork and clone your repository](#fork-and-clone-your-repository)
+  - [Ways you can contribute](#ways-you-can-contribute)
+  - [Project Structure](#project-structure)
+- [Build from source](#build-from-source)
+  - [Install Node.js](#install-nodejs)
+  - [Install Yarn](#install-yarn)
+  - [Install Node Dependencies](#install-node-dependencies)
+  - [Install Python 3.9](#install-python-39)
+  - [Install Python Dependencies](#install-python-dependencies)
+- [Environment variables](#environment-variables)
 - [Running](#running)
 - [Build](#build)
+  - [Build the bittorrent client](#build-the-bittorrent-client)
+  - [Build the Electron application](#build-the-electron-application)
+- [Contributors](#contributors)
 
 ## About
 
@@ -80,6 +94,17 @@ We concentrate our discussions on our [Discord](https://discord.gg/hydralauncher
 4. Push your commits
 5. Submit a new Pull Request
 
+### Ways you can contribute
+
+- Translation: We want Hydra to be available to as many people as possible. Feel free to help translate to new languages or update and improve the ones that are already available on Hydra.
+- Code: Hydra is built with Typescript, Electron and a little bit of Python. If you want to contribute, join our Discord server!
+
+### Project Structure
+
+- torrent-client: We use libtorrent, a Python library, to manage torrent downloads
+- src/renderer: the UI of the application
+- src/main: all the logic rests here.
+
 ## Build from source
 
 ### Install Node.js
@@ -116,7 +141,7 @@ pip install -r requirements.txt
 You'll need an SteamGridDB API Key in order to fetch the game icons on installation.
 If you want to have onlinefix as a repacker you'll need to add your credentials to the .env
 
-Once you have it, you can paste the `.env.example` file and put it on `STEAMGRIDDB_API_KEY`, `ONLINEFIX_USERNAME`, `ONLINEFIX_PASSWORD`.
+Once you have it, you can copy or rename the `.env.example` file to `.env`and put it on`STEAMGRIDDB_API_KEY`, `ONLINEFIX_USERNAME`, `ONLINEFIX_PASSWORD`.
 
 ## Running
 
