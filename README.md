@@ -135,17 +135,17 @@ yarn make
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/jps14">
-            <img src="https://avatars.githubusercontent.com/u/168477146?v=4" width="100;" alt="jps14"/>
-            <br />
-            <sub><b>José Luís</b></sub>
-        </a>
-    </td>
-    <td align="center">
         <a href="https://github.com/shadowtosser">
             <img src="https://avatars.githubusercontent.com/u/168544958?v=4" width="100;" alt="shadowtosser"/>
             <br />
             <sub><b>Null</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/jps14">
+            <img src="https://avatars.githubusercontent.com/u/168477146?v=4" width="100;" alt="jps14"/>
+            <br />
+            <sub><b>José Luís</b></sub>
         </a>
     </td>
     <td align="center">
