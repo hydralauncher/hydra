@@ -10,7 +10,6 @@ export const panel = style({
   justifyContent: "space-between",
   transition: "all ease 0.2s",
   borderBottom: `solid 1px ${vars.color.border}`,
-  color: "#8e919b",
   boxShadow: "0px 0px 15px 0px #000000",
 });
 

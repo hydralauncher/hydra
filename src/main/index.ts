@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, net, protocol } from "electron";
 import { init } from "@sentry/electron/main";
 import i18n from "i18next";
 import path from "node:path";
@@ -51,6 +51,10 @@ if (process.defaultApp) {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   electronApp.setAppUserModelId("site.hydralauncher.hydra");
+
+  protocol.handle("hydra", (request) =>
+    net.fetch("file://" + request.url.slice("hydra://".length))
+  );
 
   dataSource.initialize().then(async () => {
     await resolveDatabaseUpdates();

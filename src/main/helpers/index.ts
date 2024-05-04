@@ -74,12 +74,15 @@ export const getSteamAppAsset = (
   return `https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/${objectID}/${clientIcon}.ico`;
 };
 
-export const getImageBase64 = async (url: string) =>
+export const getFileBuffer = async (url: string) =>
   fetch(url, { method: "GET" }).then((response) =>
-    response.arrayBuffer().then((buffer) => {
-      return `data:image/jpeg;base64,${Buffer.from(buffer).toString("base64")}`;
-    })
+    response.arrayBuffer().then((buffer) => Buffer.from(buffer))
   );
+
+export const getImageBase64 = async (url: string) =>
+  getFileBuffer(url).then((buffer) => {
+    return `data:image/jpeg;base64,${Buffer.from(buffer).toString("base64")}`;
+  });
 
 export * from "./formatters";
 export * from "./ps";

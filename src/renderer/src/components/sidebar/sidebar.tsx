@@ -6,7 +6,6 @@ import type { Game } from "@types";
 
 import { AsyncImage, TextField } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
-import { SPACING_UNIT } from "../../theme.css";
 
 import { routes } from "./routes";
 
@@ -94,7 +93,7 @@ export function Sidebar() {
   }, [library]);
 
   useEffect(() => {
-    window.onmousemove = (event) => {
+    window.onmousemove = (event: MouseEvent) => {
       if (isResizing) {
         const cursorXDelta = event.screenX - cursorPos.current.x;
         const newWidth = Math.max(
@@ -128,7 +127,7 @@ export function Sidebar() {
       const isVerifying = GameStatus.isVerifying(gameDownloading.status);
 
       if (isVerifying)
-        return t(gameDownloading.status, {
+        return t(gameDownloading.status!, {
           title: game.title,
           percentage: progress,
         });
@@ -163,11 +162,9 @@ export function Sidebar() {
           macos: window.electron.platform === "darwin",
         })}
       >
-        {window.electron.platform === "darwin" && (
-          <h2 style={{ marginBottom: SPACING_UNIT }}>Hydra</h2>
-        )}
+        {window.electron.platform === "darwin" && <h2>Hydra</h2>}
 
-        <section className={styles.section({ hasBorder: false })}>
+        <section className={styles.section}>
           <ul className={styles.menu}>
             {routes.map(({ nameKey, path, render }) => (
               <li
@@ -189,7 +186,7 @@ export function Sidebar() {
           </ul>
         </section>
 
-        <section className={styles.section({ hasBorder: false })}>
+        <section className={styles.section}>
           <small className={styles.sectionTitle}>{t("my_library")}</small>
 
           <TextField
