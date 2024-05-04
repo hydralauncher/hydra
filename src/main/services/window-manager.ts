@@ -1,4 +1,4 @@
-import { BrowserWindow, Menu, Tray, app } from "electron";
+import { BrowserWindow, Menu, Notification, Tray, app } from "electron";
 import { is } from "@electron-toolkit/utils";
 import { t } from "i18next";
 import path from "node:path";
@@ -52,6 +52,10 @@ export class WindowManager {
 
     const userPreferences = await userPreferencesRepository.findOne({
       where: { id: 1 },
+    });
+
+    this.mainWindow.on("ready-to-show", () => {
+      if (!app.isPackaged) WindowManager.mainWindow?.webContents.openDevTools();
     });
 
     this.mainWindow.on("close", () => {

@@ -5,6 +5,5 @@ export * from "./header/header";
 export * from "./hero/hero";
 export * from "./modal/modal";
 export * from "./sidebar/sidebar";
-export * from "./async-image/async-image";
 export * from "./text-field/text-field";
 export * from "./checkbox-field/checkbox-field";

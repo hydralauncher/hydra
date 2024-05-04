@@ -79,7 +79,6 @@ declare global {
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
 
     /* Misc */
-    getOrCacheImage: (url: string) => Promise<string>;
     openExternal: (src: string) => Promise<void>;
     getVersion: () => Promise<string>;
     ping: () => string;
