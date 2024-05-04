@@ -137,6 +137,7 @@
     "enable_repack_list_notifications": "When a new repack is added",
     "telemetry": "Telemetry",
     "telemetry_description": "Enable anonymous usage statistics",
+    "real_debrid_api_token_description": "(Optional) Real Debrid API token",
     "behavior": "Behavior",
     "quit_app_instead_hiding": "Close app instead of minimizing to tray"
   },

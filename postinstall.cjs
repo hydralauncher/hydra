@@ -6,3 +6,5 @@ if (process.platform === "win32") {
     "fastlist.exe"
   );
 }
+
+fs.copyFileSync("node_modules/node-unrar-js/esm/js/unrar.wasm", "unrar.wasm");

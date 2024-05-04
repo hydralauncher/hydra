@@ -14,6 +14,7 @@ import DiscordLogo from "@renderer/assets/discord-icon.svg?react";
 import XLogo from "@renderer/assets/x-icon.svg?react";
 
 import * as styles from "./sidebar.css";
+import { GameStatus } from "@globals";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -60,9 +61,7 @@ export function Sidebar() {
   }, [gameDownloading?.id, updateLibrary]);
 
   const isDownloading = library.some((game) =>
-    ["downloading", "checking_files", "downloading_metadata"].includes(
-      game.status
-    )
+    GameStatus.isDownloading(game.status)
   );
 
   const sidebarRef = useRef<HTMLElement>(null);
@@ -121,15 +120,14 @@ export function Sidebar() {
   }, [isResizing]);
 
   const getGameTitle = (game: Game) => {
-    if (game.status === "paused") return t("paused", { title: game.title });
+    if (game.status === GameStatus.Paused)
+      return t("paused", { title: game.title });
 
     if (gameDownloading?.id === game.id) {
-      const isVerifying = ["downloading_metadata", "checking_files"].includes(
-        gameDownloading?.status
-      );
+      const isVerifying = GameStatus.isVerifying(gameDownloading.status);
 
       if (isVerifying)
-        return t(gameDownloading.status, {
+        return t(gameDownloading.status!, {
           title: game.title,
           percentage: progress,
         });
@@ -204,7 +202,7 @@ export function Sidebar() {
                 className={styles.menuItem({
                   active:
                     location.pathname === `/game/${game.shop}/${game.objectID}`,
-                  muted: game.status === "cancelled",
+                  muted: game.status === GameStatus.Cancelled,
                 })}
               >
                 <button

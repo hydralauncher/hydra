@@ -1,8 +1,8 @@
 import { gameRepository } from "@main/repository";
-import { GameStatus } from "@main/constants";
 
 import { searchRepacks } from "../helpers/search-games";
 import { registerEvent } from "../register-event";
+import { GameStatus } from "@globals";
 import { sortBy } from "lodash-es";
 
 const getLibrary = async () =>
