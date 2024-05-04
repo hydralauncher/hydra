@@ -11,6 +11,9 @@ import { HTTPDownloader } from "./http-downloader";
 import { Unrar } from "../unrar";
 import { GameStatus } from "@globals";
 import path from "node:path";
+import crypto from "node:crypto";
+import fs from "node:fs";
+
 
 interface DownloadStatus {
   numPeers: number;
@@ -112,7 +115,7 @@ export class Downloader {
     });
 
     if (
-      gameUpdate.progress === 1 &&
+      game?.progress === 1 &&
       gameUpdate.status !== GameStatus.Decompressing
     ) {
       const userPreferences = await userPreferencesRepository.findOne({
@@ -120,7 +123,10 @@ export class Downloader {
       });
 
       if (userPreferences?.downloadNotificationsEnabled) {
+        const iconPath = await this.createTempIcon(game.iconUrl);
+
         new Notification({
+          icon: iconPath,
           title: t("download_complete", {
             ns: "notifications",
             lng: userPreferences.language,
@@ -185,5 +191,24 @@ export class Downloader {
     if (game.status === GameStatus.Decompressing)
       return game.decompressionProgress;
     return game.progress;
+  }
+
+  private static createTempIcon(encodedIcon: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const hash = crypto.randomBytes(16).toString("hex");
+      const iconPath = path.join(app.getPath("temp"), `${hash}.png`);
+
+      fs.writeFile(
+        iconPath,
+        Buffer.from(
+          encodedIcon.replace("data:image/jpeg;base64,", ""),
+          "base64"
+        ),
+        (err) => {
+          if (err) reject(err);
+          resolve(iconPath);
+        }
+      );
+    });
   }
 }

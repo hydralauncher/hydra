@@ -4,7 +4,7 @@ import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import type { CatalogueEntry } from "@types";
 
 import type { DebouncedFunc } from "lodash";
-import { debounce } from "lodash-es";
+import { debounce } from "lodash";
 
 import { InboxIcon } from "@primer/octicons-react";
 import { clearSearch } from "@renderer/features";

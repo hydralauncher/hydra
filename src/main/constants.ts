@@ -42,5 +42,7 @@ export const databasePath = path.join(
   "hydra.db"
 );
 
+export const imageCachePath = path.join(app.getPath("userData"), ".imagecache");
+
 export const INSTALLATION_ID_LENGTH = 6;
 export const ACTIVATION_KEY_MULTIPLIER = 7;

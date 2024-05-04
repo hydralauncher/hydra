@@ -44,12 +44,17 @@ export function RepacksModal({
   };
 
   const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
+    const term = event.target.value.toLocaleLowerCase();
+
     setFilteredRepacks(
-      gameDetails.repacks.filter((repack) =>
-        repack.title
-          .toLowerCase()
-          .includes(event.target.value.toLocaleLowerCase())
-      )
+      gameDetails.repacks.filter((repack) => {
+        const lowerCaseTitle = repack.title.toLowerCase();
+        const lowerCaseRepacker = repack.repacker.toLowerCase();
+
+        return [lowerCaseTitle, lowerCaseRepacker].some((value) =>
+          value.includes(term)
+        );
+      })
     );
   };
 

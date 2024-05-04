@@ -20,6 +20,7 @@ export const startProcessWatcher = async () => {
     });
 
     if (games.length === 0) {
+      await sleep(sleepTime);
       continue;
     }
 

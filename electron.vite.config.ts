@@ -4,7 +4,6 @@ import {
   loadEnv,
   swcPlugin,
   externalizeDepsPlugin,
-  bytecodePlugin,
 } from "electron-vite";
 import react from "@vitejs/plugin-react";
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
@@ -35,12 +34,7 @@ export default defineConfig(({ mode }) => {
           "@globals": resolve("src/globals"),
         },
       },
-      plugins: [
-        externalizeDepsPlugin(),
-        swcPlugin(),
-        bytecodePlugin(),
-        sentryPlugin,
-      ],
+      plugins: [externalizeDepsPlugin(), swcPlugin(), sentryPlugin],
     },
     preload: {
       plugins: [externalizeDepsPlugin()],
@@ -56,13 +50,7 @@ export default defineConfig(({ mode }) => {
           "@globals": resolve("src/globals"),
         },
       },
-      plugins: [
-        svgr(),
-        react(),
-        vanillaExtractPlugin(),
-        bytecodePlugin(),
-        sentryPlugin,
-      ],
+      plugins: [svgr(), react(), vanillaExtractPlugin(), sentryPlugin],
     },
   };
 });
