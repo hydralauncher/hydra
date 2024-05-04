@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { AsyncImage } from "@renderer/components";
 import * as styles from "./hero.css";
 import { useEffect, useState } from "react";
 import { ShopDetails } from "@types";
@@ -35,14 +34,14 @@ export function Hero() {
       className={styles.hero}
     >
       <div className={styles.backdrop}>
-        <AsyncImage
+        <img
           src="https://cdn2.steamgriddb.com/hero/4ef10445b952a8b3c93a9379d581146a.jpg"
           alt={featuredGameDetails?.name}
           className={styles.heroMedia}
         />
 
         <div className={styles.content}>
-          <AsyncImage
+          <img
             src={steamUrlBuilder.logo(FEATURED_GAME_ID)}
             width="250px"
             alt={featuredGameDetails?.name}

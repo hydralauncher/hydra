@@ -99,7 +99,7 @@ export function HeroPanel({
       return <p>{t("deleting")}</p>;
     }
 
-    if (isGameDownloading) {
+    if (isGameDownloading && gameDownloading?.status) {
       return (
         <>
           <p className={styles.downloadDetailsRow}>
@@ -107,14 +107,14 @@ export function HeroPanel({
             {eta && <small>{t("eta", { eta })}</small>}
           </p>
 
-          {gameDownloading?.status !== GameStatus.Downloading ? (
+          {gameDownloading.status !== GameStatus.Downloading ? (
             <>
-              <p>{t(gameDownloading?.status)}</p>
+              <p>{t(gameDownloading.status)}</p>
               {eta && <small>{t("eta", { eta })}</small>}
             </>
           ) : (
             <p className={styles.downloadDetailsRow}>
-              {formatBytes(gameDownloading?.bytesDownloaded)} /{" "}
+              {formatBytes(gameDownloading.bytesDownloaded)} /{" "}
               {finalDownloadSize}
               <small>
                 {numPeers} peers / {numSeeds} seeds
@@ -149,7 +149,7 @@ export function HeroPanel({
         <>
           <p>
             {t("play_time", {
-              amount: formatPlayTime(game.playTimeInMilliseconds),
+              amount: formatPlayTime(),
             })}
           </p>
 
