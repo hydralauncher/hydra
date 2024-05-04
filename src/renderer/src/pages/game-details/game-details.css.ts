@@ -79,6 +79,44 @@ export const descriptionContent = style({
   height: "100%",
 });
 
+export const gallerySliderContainer = style({
+  padding: `${SPACING_UNIT * 3}px ${SPACING_UNIT * 2}px`,
+  width: "100%",
+  position: "relative",
+});
+
+export const gallerySliderTitle = style({
+  padding: `${SPACING_UNIT}px 0`,
+});
+
+export const gallerySliderImage = style({
+
+  width: "100%",
+  display: "block",
+});
+
+export const gallerySliderButton = style({
+  all: "unset",
+  display: "block",
+  position: "absolute",
+  top: 0,
+  bottom: 0,
+  padding: "1rem",
+  cursor: "pointer",
+  transition: "background-color 100ms ease-in-out",
+  margin: `${SPACING_UNIT * 8}px ${SPACING_UNIT * 2}px ${SPACING_UNIT * 3}px ${SPACING_UNIT * 2}px `,
+  ":hover": {
+    backgroundColor: "rgb(0,0,0, 0.2)",
+  },
+});
+
+export const gallerySliderIcons = style({
+  stroke: "white",
+  fill: "black",
+  width: "2rem",
+  height: "2rem",
+});
+
 export const contentSidebar = style({
   borderLeft: `solid 1px ${vars.color.border};`,
   width: "100%",
