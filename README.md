@@ -106,6 +106,13 @@ yarn make
         </a>
     </td>
     <td align="center">
+        <a href="https://github.com/lilezek">
+            <img src="https://avatars.githubusercontent.com/u/2767229?v=4" width="100;" alt="lilezek"/>
+            <br />
+            <sub><b>Null</b></sub>
+        </a>
+    </td>
+    <td align="center">
         <a href="https://github.com/JackEnx">
             <img src="https://avatars.githubusercontent.com/u/167036558?v=4" width="100;" alt="JackEnx"/>
             <br />
@@ -118,20 +125,13 @@ yarn make
             <br />
             <sub><b>Magrid</b></sub>
         </a>
-    </td>
+    </td></tr>
+<tr>
     <td align="center">
         <a href="https://github.com/fhilipecrash">
             <img src="https://avatars.githubusercontent.com/u/36455575?v=4" width="100;" alt="fhilipecrash"/>
             <br />
             <sub><b>Fhilipe Coelho</b></sub>
-        </a>
-    </td></tr>
-<tr>
-    <td align="center">
-        <a href="https://github.com/jps14">
-            <img src="https://avatars.githubusercontent.com/u/168477146?v=4" width="100;" alt="jps14"/>
-            <br />
-            <sub><b>José Luís</b></sub>
         </a>
     </td>
     <td align="center">
@@ -139,6 +139,13 @@ yarn make
             <img src="https://avatars.githubusercontent.com/u/168544958?v=4" width="100;" alt="shadowtosser"/>
             <br />
             <sub><b>Null</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/jps14">
+            <img src="https://avatars.githubusercontent.com/u/168477146?v=4" width="100;" alt="jps14"/>
+            <br />
+            <sub><b>José Luís</b></sub>
         </a>
     </td>
     <td align="center">
@@ -161,15 +168,15 @@ yarn make
             <br />
             <sub><b>Guilherme Viana</b></sub>
         </a>
-    </td>
+    </td></tr>
+<tr>
     <td align="center">
         <a href="https://github.com/eltociear">
             <img src="https://avatars.githubusercontent.com/u/22633385?v=4" width="100;" alt="eltociear"/>
             <br />
             <sub><b>Ikko Eltociear Ashimine</b></sub>
         </a>
-    </td></tr>
-<tr>
+    </td>
     <td align="center">
         <a href="https://github.com/Netflixyapp">
             <img src="https://avatars.githubusercontent.com/u/91623880?v=4" width="100;" alt="Netflixyapp"/>

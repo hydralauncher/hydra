@@ -11,6 +11,7 @@ export function Settings() {
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
     telemetryEnabled: false,
+    realDebridApiToken: null as string | null,
     preferQuitInsteadOfHiding: false,
   });
 
@@ -28,6 +29,7 @@ export function Settings() {
         repackUpdatesNotificationsEnabled:
           userPreferences?.repackUpdatesNotificationsEnabled ?? false,
         telemetryEnabled: userPreferences?.telemetryEnabled ?? false,
+        realDebridApiToken: userPreferences?.realDebridApiToken ?? null,
         preferQuitInsteadOfHiding:
           userPreferences?.preferQuitInsteadOfHiding ?? false,
       });
@@ -122,6 +124,14 @@ export function Settings() {
               !form.preferQuitInsteadOfHiding
             )
           }
+        />
+
+        <TextField
+          label={t("real_debrid_api_token_description")}
+          value={form.realDebridApiToken ?? ""}
+          onChange={(event) => {
+            updateUserPreferences("realDebridApiToken", event.target.value);
+          }}
         />
       </div>
     </section>

@@ -9,6 +9,7 @@ import { formatDownloadProgress } from "@renderer/helpers";
 import { useDate } from "@renderer/hooks/use-date";
 import { formatBytes } from "@renderer/utils";
 import { HeroPanelActions } from "./hero-panel-actions";
+import { GameStatus } from "@globals";
 
 import { BinaryNotFoundModal } from "../../shared-modals/binary-not-found-modal";
 import * as styles from "./hero-panel.css";
@@ -106,7 +107,7 @@ export function HeroPanel({
             {eta && <small>{t("eta", { eta })}</small>}
           </p>
 
-          {gameDownloading.status !== "downloading" ? (
+          {gameDownloading.status !== GameStatus.Downloading ? (
             <>
               <p>{t(gameDownloading.status)}</p>
               {eta && <small>{t("eta", { eta })}</small>}
@@ -124,7 +125,7 @@ export function HeroPanel({
       );
     }
 
-    if (game?.status === "paused") {
+    if (game?.status === GameStatus.Paused) {
       return (
         <>
           <p>
@@ -139,7 +140,7 @@ export function HeroPanel({
       );
     }
 
-    if (game?.status === "seeding" || (game && !game.status)) {
+    if (GameStatus.isReady(game?.status) || (game && !game.status)) {
       if (!game.lastTimePlayed) {
         return <p>{t("not_played_yet", { title: game.title })}</p>;
       }

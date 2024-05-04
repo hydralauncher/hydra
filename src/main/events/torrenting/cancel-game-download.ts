@@ -1,10 +1,11 @@
-import { GameStatus } from "@main/constants";
 import { gameRepository } from "@main/repository";
 
 import { registerEvent } from "../register-event";
-import { WindowManager, writePipe } from "@main/services";
+import { WindowManager } from "@main/services";
 
 import { In } from "typeorm";
+import { Downloader } from "@main/services/downloaders/downloader";
+import { GameStatus } from "@globals";
 
 const cancelGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -19,6 +20,8 @@ const cancelGameDownload = async (
         GameStatus.CheckingFiles,
         GameStatus.Paused,
         GameStatus.Seeding,
+        GameStatus.Finished,
+        GameStatus.Decompressing,
       ]),
     },
   });
@@ -41,7 +44,7 @@ const cancelGameDownload = async (
         game.status !== GameStatus.Paused &&
         game.status !== GameStatus.Seeding
       ) {
-        writePipe.write({ action: "cancel" });
+        Downloader.cancelDownload();
         if (result.affected) WindowManager.mainWindow?.setProgressBar(-1);
       }
     });

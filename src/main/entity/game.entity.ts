@@ -9,6 +9,7 @@ import {
 } from "typeorm";
 import type { GameShop } from "@types";
 import { Repack } from "./repack.entity";
+import { GameStatus } from "@globals";
 
 @Entity("game")
 export class Game {
@@ -33,6 +34,9 @@ export class Game {
   @Column("text", { nullable: true })
   executablePath: string | null;
 
+  @Column("text", { nullable: true })
+  rarPath: string | null;
+
   @Column("int", { default: 0 })
   playTimeInMilliseconds: number;
 
@@ -40,13 +44,19 @@ export class Game {
   shop: GameShop;
 
   @Column("text", { nullable: true })
-  status: string | null;
+  status: GameStatus | null;
 
+  /**
+   * Progress is a float between 0 and 1
+   */
   @Column("float", { default: 0 })
   progress: number;
 
   @Column("float", { default: 0 })
   fileVerificationProgress: number;
+
+  @Column("float", { default: 0 })
+  decompressionProgress: number;
 
   @Column("int", { default: 0 })
   bytesDownloaded: number;

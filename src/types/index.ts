@@ -1,3 +1,5 @@
+import { GameStatus } from "@globals";
+
 export type GameShop = "steam" | "epic";
 export type CatalogueCategory = "recently_added" | "trending";
 
@@ -75,13 +77,14 @@ export interface Game extends Omit<CatalogueEntry, "cover"> {
   id: number;
   title: string;
   iconUrl: string;
-  status: string;
+  status: GameStatus | null;
   folderName: string;
   downloadPath: string | null;
   repacks: GameRepack[];
   repack: GameRepack;
   progress: number;
   fileVerificationProgress: number;
+  decompressionProgress: number;
   bytesDownloaded: number;
   playTimeInMilliseconds: number;
   executablePath: string | null;
@@ -105,6 +108,7 @@ export interface UserPreferences {
   downloadNotificationsEnabled: boolean;
   repackUpdatesNotificationsEnabled: boolean;
   telemetryEnabled: boolean;
+  realDebridApiToken: string | null;
   preferQuitInsteadOfHiding: boolean;
 }
 

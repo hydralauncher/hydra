@@ -33,15 +33,6 @@ export const months = [
   "Dec",
 ];
 
-export enum GameStatus {
-  Seeding = "seeding",
-  Downloading = "downloading",
-  Paused = "paused",
-  CheckingFiles = "checking_files",
-  DownloadingMetadata = "downloading_metadata",
-  Cancelled = "cancelled",
-}
-
 export const defaultDownloadsPath = app.getPath("downloads");
 
 export const databasePath = path.join(
