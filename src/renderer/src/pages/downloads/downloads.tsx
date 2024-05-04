@@ -103,6 +103,7 @@ export function Downloads() {
         </>
       );
     }
+
     if (game?.status === "cancelled") return <p>{t("cancelled")}</p>;
     if (game?.status === "downloading_metadata")
       return <p>{t("starting_download")}</p>;
@@ -115,6 +116,8 @@ export function Downloads() {
         </>
       );
     }
+
+    return null;
   };
 
   const openDeleteModal = (gameId: number) => {
@@ -210,6 +213,12 @@ export function Downloads() {
     );
   };
 
+  const handleDeleteGame = () => {
+    if (gameToBeDeleted.current) {
+      deleteGame(gameToBeDeleted.current).then(updateLibrary);
+    }
+  };
+
   return (
     <section className={styles.downloadsContainer}>
       <BinaryNotFoundModal
@@ -219,9 +228,7 @@ export function Downloads() {
       <DeleteModal
         visible={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        deleteGame={() =>
-          deleteGame(gameToBeDeleted.current).then(updateLibrary)
-        }
+        deleteGame={handleDeleteGame}
       />
 
       <TextField placeholder={t("filter")} onChange={handleFilter} />

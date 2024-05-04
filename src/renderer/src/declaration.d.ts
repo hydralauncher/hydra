@@ -56,7 +56,7 @@ declare global {
       objectID: string,
       title: string,
       shop: GameShop,
-      executablePath: string
+      executablePath: string | null
     ) => Promise<void>;
     getLibrary: () => Promise<Game[]>;
     getRepackersFriendlyNames: () => Promise<Record<string, string>>;
