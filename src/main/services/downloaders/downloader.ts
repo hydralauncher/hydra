@@ -15,7 +15,6 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import { app } from "electron";
 
-
 interface DownloadStatus {
   numPeers: number;
   numSeeds: number;

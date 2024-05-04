@@ -7,12 +7,10 @@ const wasmPath = app.isPackaged
   ? path.join(process.resourcesPath, "unrar.wasm")
   : path.join(__dirname, "..", "..", "unrar.wasm");
 
-const wasmBinary = fs.readFileSync(
-  require.resolve(wasmPath)
-);
+const wasmBinary = fs.readFileSync(require.resolve(wasmPath));
 
 export class Unrar {
-  private constructor(private extractor: Extractor<Uint8Array>) { }
+  private constructor(private extractor: Extractor<Uint8Array>) {}
 
   static async fromFilePath(filePath: string, targetFolder: string) {
     const extractor = await createExtractorFromFile({
