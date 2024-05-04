@@ -295,6 +295,13 @@ yarn build:linux
             <br />
             <sub><b>Maciej Ratyński</b></sub>
         </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/Tunchichi">
+            <img src="https://avatars.githubusercontent.com/u/118926729?v=4" width="100;" alt="Tunchichi"/>
+            <br />
+            <sub><b>Ruslan</b></sub>
+        </a>
     </td></tr>
 </table>
 <!-- readme: contributors -end -->
