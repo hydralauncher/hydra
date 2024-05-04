@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import type { Game } from "@types";
 
-import { AsyncImage, TextField } from "@renderer/components";
+import { TextField } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
 
 import { routes } from "./routes";
@@ -14,7 +14,6 @@ import DiscordLogo from "@renderer/assets/discord-icon.svg?react";
 import XLogo from "@renderer/assets/x-icon.svg?react";
 
 import * as styles from "./sidebar.css";
-import { vars } from "@renderer/theme.css";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -217,7 +216,11 @@ export function Sidebar() {
                     )
                   }
                 >
-                  <AsyncImage className={styles.gameIcon} src={game.iconUrl} />
+                  <img
+                    className={styles.gameIcon}
+                    src={game.iconUrl}
+                    alt={game.title}
+                  />
                   <span className={styles.menuItemButtonLabel}>
                     {getGameTitle(game)}
                   </span>

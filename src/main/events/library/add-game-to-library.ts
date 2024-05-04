@@ -3,7 +3,7 @@ import { gameRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
 
 import type { GameShop } from "@types";
-import { getImageBase64 } from "@main/helpers";
+import { getFileBase64 } from "@main/helpers";
 import { getSteamGameIconUrl } from "@main/services";
 
 const addGameToLibrary = async (
@@ -31,7 +31,7 @@ const addGameToLibrary = async (
       }
     );
   } else {
-    const iconUrl = await getImageBase64(await getSteamGameIconUrl(objectID));
+    const iconUrl = await getFileBase64(await getSteamGameIconUrl(objectID));
 
     return gameRepository.insert({
       title,

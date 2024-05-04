@@ -1,6 +1,5 @@
 import path from "node:path";
 import cp from "node:child_process";
-import crypto from "node:crypto";
 import fs from "node:fs";
 import * as Sentry from "@sentry/electron/main";
 import { Notification, app, dialog } from "electron";
@@ -99,25 +98,6 @@ export class TorrentClient {
     return game.progress;
   }
 
-  private static createTempIcon(encodedIcon: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const hash = crypto.randomBytes(16).toString("hex");
-      const iconPath = path.join(app.getPath("temp"), `${hash}.png`);
-
-      fs.writeFile(
-        iconPath,
-        Buffer.from(
-          encodedIcon.replace("data:image/jpeg;base64,", ""),
-          "base64"
-        ),
-        (err) => {
-          if (err) reject(err);
-          resolve(iconPath);
-        }
-      );
-    });
-  }
-
   public static async onSocketData(data: Buffer) {
     const message = Buffer.from(data).toString("utf-8");
 
@@ -159,10 +139,7 @@ export class TorrentClient {
         });
 
         if (userPreferences?.downloadNotificationsEnabled) {
-          const iconPath = await this.createTempIcon(game.iconUrl);
-
           new Notification({
-            icon: iconPath,
             title: t("download_complete", {
               ns: "notifications",
               lng: userPreferences.language,

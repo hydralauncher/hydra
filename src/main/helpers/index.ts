@@ -79,10 +79,24 @@ export const getFileBuffer = async (url: string) =>
     response.arrayBuffer().then((buffer) => Buffer.from(buffer))
   );
 
-export const getImageBase64 = async (url: string) =>
-  getFileBuffer(url).then((buffer) => {
-    return `data:image/jpeg;base64,${Buffer.from(buffer).toString("base64")}`;
-  });
+export const getFileBase64 = async (url: string) =>
+  fetch(url, { method: "GET" }).then((response) =>
+    response.arrayBuffer().then((buffer) => {
+      const base64 = Buffer.from(buffer).toString("base64");
+      const contentType = response.headers.get("content-type");
+
+      return `data:${contentType};base64,${base64}`;
+    })
+  );
+
+export const steamUrlBuilder = {
+  library: (objectID: string) =>
+    `https://steamcdn-a.akamaihd.net/steam/apps/${objectID}/header.jpg`,
+  libraryHero: (objectID: string) =>
+    `https://steamcdn-a.akamaihd.net/steam/apps/${objectID}/library_hero.jpg`,
+  logo: (objectID: string) =>
+    `https://cdn.cloudflare.steamstatic.com/steam/apps/${objectID}/logo.png`,
+};
 
 export * from "./formatters";
 export * from "./ps";

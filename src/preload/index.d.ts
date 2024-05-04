@@ -94,7 +94,6 @@ contextBridge.exposeInMainWorld("electron", {
   getDiskFreeSpace: () => ipcRenderer.invoke("getDiskFreeSpace"),
 
   /* Misc */
-  getOrCacheImage: (url: string) => ipcRenderer.invoke("getOrCacheImage", url),
   ping: () => ipcRenderer.invoke("ping"),
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
-import { AsyncImage, Button, TextField } from "@renderer/components";
+import { Button, TextField } from "@renderer/components";
 import { formatDownloadProgress, steamUrlBuilder } from "@renderer/helpers";
 import { useDownload, useLibrary } from "@renderer/hooks";
 import type { Game } from "@types";
@@ -235,7 +235,7 @@ export function Downloads() {
                 cancelled: game.status === "cancelled",
               })}
             >
-              <AsyncImage
+              <img
                 src={steamUrlBuilder.library(game.objectID)}
                 className={styles.downloadCover}
                 alt={game.title}
