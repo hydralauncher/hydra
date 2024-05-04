@@ -1,6 +1,5 @@
-### Landuage
+### Язык
 [![ru](https://img.shields.io/badge/lang-ru-red)](https://github.com/hydralauncher/hydra/blob/main/README.ru.md)
-
 
 # Hydra
 
@@ -8,82 +7,80 @@
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)
 ![GitHub package.json version](https://img.shields.io/github/package-json/v/hydralauncher/hydra)
 
-Hydra is a game launcher with its own embedded bittorrent client and a self-managed repack scraper.
-The launcher is written in TypeScript (Electron) and Python, which handles the torrenting system by using [libtorrent](https://www.libtorrent.org/).
+Hydra представляет собой игровой лаунчер со встроенным bittorrent-клиентом и автономным средством очистки репаков.
+Лаунчер написан на TypeScript (Electron) и Python, которые управляют системой обмена торрентами с помощью [libtorrent](https://www.libtorrent.org/).
 
 ![Hydra Catalogue](./docs/screenshot.png)
 
-## Installation
+## Установка
 
-### Install Node.js
+### Установить Node.js
 
-Ensure you have Node.js installed on your machine. If not, download and install it from [nodejs.org](https://nodejs.org/).
+Убедитесь, что у вас установлен Node.js на вашем компьютере.Если нет, загрузите и установите из [nodejs.org](https://nodejs.org/).
 
-### Install Yarn
+### Установить Yarn
 
-Yarn is a package manager for Node.js. If you haven't installed Yarn yet, you can do so by following the instructions on [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/).
+Yarn - менеджер пакетов для node.js.Если вы еще не установили пряжу, вы можете сделать это, следуя инструкциям на [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/).
 
-### Clone the Repository
+### Клонировать репозиторий
 
 ```bash
 git clone https://github.com/hydralauncher/hydra.git
 ```
 
-### Install Node Dependencies
+### Установите зависимости Node
 
-Navigate to the project directory and install the Node dependencies using Yarn:
+Перейдите к каталогу проекта и установите зависимости Node с помощью Yarn:
 
 ```bash
 cd hydra
 yarn
 ```
 
-### Install Python 3.9
+### Установить Python 3.9
 
-Ensure you have Python installed on your machine. You can download and install it from [python.org](https://www.python.org/downloads/release/python-3919/).
+Убедитесь, что на вашем компьютере установлен Python. Вы можете скачать и установить его из [python.org](https://www.python.org/downloads/release/python-3919/).
 
-### Install Python Dependencies
+### Установите зависимости Python
 
-Install the required Python dependencies using pip:
+Установите необходимые зависимости от Python, используя pip:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Environment variables
+## Переменные среды
 
-You'll need a SteamGridDB API Key in order to fetch the game icons on installation.
-If you want to have onlinefix as a repacker you'll need to add your credentials to the .env
+Вам понадобится ключ API SteamGridDB, чтобы получить значки игры при установке.
+Если вы хотите получить OnlineFix в качестве репака, вам нужно добавить свои учетные данные в .env
 
-Once you have it, you can paste the `.env.example` file and put it on `STEAMGRIDDB_API_KEY`, `ONLINEFIX_USERNAME`, `ONLINEFIX_PASSWORD`.
-
-## Running
-
-Once you've got all things set up, you can run the following command to start both the Electron process and the bittorrent client:
+Как только он у вас будет, вы можете вставить в `.env.example` и поместить его в `steamgriddb_api_key`, `onlinefix_username`,`onlinefix_password`.
+## Запуск
+После того, как у вас все настроено, вы можете запустить следующую команду, чтобы запустить Electron и клиент BitTorrent:
 
 ```bash
 yarn start
 ```
 
-## Build
+## Создание
 
-### Build the bittorrent client
+### Создайте клиент BitTorrent
 
-Build the bittorrent client by using this command:
+Создайте клиент BitTorrent, используя эту команду:
 
 ```bash
 python torrent-client/setup.py build
 ```
 
-### Build the Electron application
+### Создайте приложение Electron
 
-Build the Electron application by using this command:
+Создайте приложение Electron, используя эту команду:
 
 ```bash
 yarn make
 ```
 
-## Contributors
+## Участники
 
 <!-- readme: contributors -start -->
 <table>
@@ -146,13 +143,6 @@ yarn make
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/pmenta">
-            <img src="https://avatars.githubusercontent.com/u/71457671?v=4" width="100;" alt="pmenta"/>
-            <br />
-            <sub><b>João Martins</b></sub>
-        </a>
-    </td>
-    <td align="center">
         <a href="https://github.com/ferivoq">
             <img src="https://avatars.githubusercontent.com/u/36544651?v=4" width="100;" alt="ferivoq"/>
             <br />
@@ -164,6 +154,13 @@ yarn make
             <img src="https://avatars.githubusercontent.com/u/119091492?v=4" width="100;" alt="xbozo"/>
             <br />
             <sub><b>Guilherme Viana</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/pmenta">
+            <img src="https://avatars.githubusercontent.com/u/71457671?v=4" width="100;" alt="pmenta"/>
+            <br />
+            <sub><b>João Martins</b></sub>
         </a>
     </td>
     <td align="center">
@@ -182,29 +179,15 @@ yarn make
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/Hachi-R">
-            <img src="https://avatars.githubusercontent.com/u/58823742?v=4" width="100;" alt="Hachi-R"/>
-            <br />
-            <sub><b>Hachi</b></sub>
-        </a>
-    </td>
-    <td align="center">
         <a href="https://github.com/FerNikoMF">
             <img src="https://avatars.githubusercontent.com/u/76095334?v=4" width="100;" alt="FerNikoMF"/>
             <br />
             <sub><b>Firdavs</b></sub>
         </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/userMacieG">
-            <img src="https://avatars.githubusercontent.com/u/24211405?v=4" width="100;" alt="userMacieG"/>
-            <br />
-            <sub><b>Maciej Ratyński</b></sub>
-        </a>
     </td></tr>
 </table>
 <!-- readme: contributors -end -->
 
-## License
+## Лицензия
 
-Hydra is licensed under the [MIT License](LICENSE).
+Hydra лицензирована в соответствии с лицензией [MIT](LICENSE).
