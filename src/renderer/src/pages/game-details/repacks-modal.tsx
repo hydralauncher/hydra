@@ -89,7 +89,9 @@ export function RepacksModal({
               <p style={{ color: "#DADBE1" }}>{repack.title}</p>
               <p style={{ fontSize: "12px" }}>
                 {repack.fileSize} - {repackersFriendlyNames[repack.repacker]} -{" "}
-                {format(repack.uploadDate, "dd/MM/yyyy")}
+                {repack.uploadDate
+                  ? format(repack.uploadDate, "dd/MM/yyyy")
+                  : ""}
               </p>
             </Button>
           ))}

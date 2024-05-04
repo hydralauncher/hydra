@@ -11,7 +11,7 @@ const addGameToLibrary = async (
   objectID: string,
   title: string,
   gameShop: GameShop,
-  executablePath: string
+  executablePath: string | null
 ) => {
   const game = await gameRepository.findOne({
     where: {

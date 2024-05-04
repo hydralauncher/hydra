@@ -68,7 +68,7 @@ export function HeroPanelActions({
     try {
       if (game) {
         await removeGameFromLibrary(game.id);
-      } else {
+      } else if (gameDetails) {
         const gameExecutablePath = await selectGameExecutable();
 
         await window.electron.addGameToLibrary(
@@ -87,30 +87,37 @@ export function HeroPanelActions({
   };
 
   const openGameInstaller = () => {
-    window.electron.openGameInstaller(game.id).then((isBinaryInPath) => {
-      if (!isBinaryInPath) openBinaryNotFoundModal();
-      updateLibrary();
-    });
+    if (game) {
+      window.electron.openGameInstaller(game.id).then((isBinaryInPath) => {
+        if (!isBinaryInPath) openBinaryNotFoundModal();
+        updateLibrary();
+      });
+    }
   };
 
   const openGame = async () => {
-    if (game.executablePath) {
-      window.electron.openGame(game.id, game.executablePath);
-      return;
-    }
+    if (game) {
+      if (game.executablePath) {
+        window.electron.openGame(game.id, game.executablePath);
+        return;
+      }
 
-    if (game?.executablePath) {
-      window.electron.openGame(game.id, game.executablePath);
-      return;
-    }
+      if (game?.executablePath) {
+        window.electron.openGame(game.id, game.executablePath);
+        return;
+      }
 
-    const gameExecutablePath = await selectGameExecutable();
-    window.electron.openGame(game.id, gameExecutablePath);
+      const gameExecutablePath = await selectGameExecutable();
+      if (gameExecutablePath)
+        window.electron.openGame(game.id, gameExecutablePath);
+    }
   };
 
-  const closeGame = () => window.electron.closeGame(game.id);
+  const closeGame = () => {
+    if (game) window.electron.closeGame(game.id);
+  };
 
-  const deleting = isGameDeleting(game?.id);
+  const deleting = game ? isGameDeleting(game?.id) : false;
 
   const toggleGameOnLibraryButton = (
     <Button
@@ -124,7 +131,7 @@ export function HeroPanelActions({
     </Button>
   );
 
-  if (isGameDownloading) {
+  if (game && isGameDownloading) {
     return (
       <>
         <Button
