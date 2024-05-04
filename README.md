@@ -190,6 +190,13 @@ yarn make
             <br />
             <sub><b>Firdavs</b></sub>
         </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/userMacieG">
+            <img src="https://avatars.githubusercontent.com/u/24211405?v=4" width="100;" alt="userMacieG"/>
+            <br />
+            <sub><b>Maciej Ratyński</b></sub>
+        </a>
     </td></tr>
 </table>
 <!-- readme: contributors -end -->
