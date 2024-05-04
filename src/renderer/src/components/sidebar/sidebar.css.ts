@@ -74,7 +74,6 @@ export const menuItem = recipe({
     active: {
       true: {
         backgroundColor: "rgba(255, 255, 255, 0.1)",
-        fontWeight: "bold",
       },
     },
     muted: {
@@ -97,11 +96,6 @@ export const menuItemButton = style({
   overflow: "hidden",
   width: "100%",
   padding: `9px ${SPACING_UNIT}px`,
-  selectors: {
-    [`${menuItem({ active: true }).split(" ")[1]} &`]: {
-      fontWeight: "bold",
-    },
-  },
 });
 
 export const menuItemButtonLabel = style({

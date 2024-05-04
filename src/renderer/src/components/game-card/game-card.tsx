@@ -4,8 +4,6 @@ import type { CatalogueEntry } from "@types";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import EpicGamesLogo from "@renderer/assets/epic-games-logo.svg?react";
 
-import { AsyncImage } from "../async-image/async-image";
-
 import * as styles from "./game-card.css";
 import { useAppSelector } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
@@ -43,11 +41,7 @@ export function GameCard({ game, disabled, ...props }: GameCardProps) {
       disabled={disabled}
     >
       <div className={styles.backdrop}>
-        <AsyncImage
-          src={game.cover}
-          alt={game.title}
-          className={styles.cover}
-        />
+        <img src={game.cover} alt={game.title} className={styles.cover} />
 
         <div className={styles.content}>
           <div className={styles.titleContainer}>

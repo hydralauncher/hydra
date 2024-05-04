@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
-import { AsyncImage, Button, TextField } from "@renderer/components";
+import { Button, TextField } from "@renderer/components";
 import { formatDownloadProgress, steamUrlBuilder } from "@renderer/helpers";
 import { useDownload, useLibrary } from "@renderer/hooks";
 import type { Game } from "@types";
@@ -116,6 +116,8 @@ export function Downloads() {
         </>
       );
     }
+
+    return null;
   };
 
   const openDeleteModal = (gameId: number) => {
@@ -211,6 +213,12 @@ export function Downloads() {
     );
   };
 
+  const handleDeleteGame = () => {
+    if (gameToBeDeleted.current) {
+      deleteGame(gameToBeDeleted.current).then(updateLibrary);
+    }
+  };
+
   return (
     <section className={styles.downloadsContainer}>
       <BinaryNotFoundModal
@@ -220,9 +228,7 @@ export function Downloads() {
       <DeleteModal
         visible={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        deleteGame={() =>
-          deleteGame(gameToBeDeleted.current).then(updateLibrary)
-        }
+        deleteGame={handleDeleteGame}
       />
 
       <TextField placeholder={t("filter")} onChange={handleFilter} />
@@ -236,7 +242,7 @@ export function Downloads() {
                 cancelled: game.status === GameStatus.Cancelled,
               })}
             >
-              <AsyncImage
+              <img
                 src={steamUrlBuilder.library(game.objectID)}
                 className={styles.downloadCover}
                 alt={game.title}

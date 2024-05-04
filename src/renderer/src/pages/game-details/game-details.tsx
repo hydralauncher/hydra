@@ -12,7 +12,7 @@ import type {
   SteamAppDetails,
 } from "@types";
 
-import { AsyncImage, Button } from "@renderer/components";
+import { Button } from "@renderer/components";
 import { setHeaderTitle } from "@renderer/features";
 import { getSteamLanguage, steamUrlBuilder } from "@renderer/helpers";
 import { useAppDispatch, useDownload } from "@renderer/hooks";
@@ -69,14 +69,16 @@ export function GameDetails() {
 
   const { game: gameDownloading, startDownload, isDownloading } = useDownload();
 
-  const handleImageSettled = useCallback((url: string) => {
-    average(url, { amount: 1, format: "hex" })
+  const heroImage = steamUrlBuilder.libraryHero(objectID!);
+
+  const handleHeroLoad = () => {
+    average(heroImage, { amount: 1, format: "hex" })
       .then((color) => {
         const darkColor = new Color(color).darken(0.6).toString() as string;
         setColor({ light: color as string, dark: darkColor });
       })
       .catch(() => {});
-  }, []);
+  };
 
   const getGame = useCallback(() => {
     window.electron
@@ -218,15 +220,15 @@ export function GameDetails() {
       ) : (
         <section className={styles.container}>
           <div className={styles.hero}>
-            <AsyncImage
-              src={steamUrlBuilder.libraryHero(objectID!)}
+            <img
+              src={heroImage}
               className={styles.heroImage}
               alt={game?.title}
-              onSettled={handleImageSettled}
+              onLoad={handleHeroLoad}
             />
             <div className={styles.heroBackdrop}>
               <div className={styles.heroContent}>
-                <AsyncImage
+                <img
                   src={steamUrlBuilder.logo(objectID!)}
                   style={{ width: 300, alignSelf: "flex-end" }}
                 />

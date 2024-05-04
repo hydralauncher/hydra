@@ -4,7 +4,7 @@ import { gameRepository, repackRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
 
 import type { GameShop } from "@types";
-import { getImageBase64 } from "@main/helpers";
+import { getFileBase64 } from "@main/helpers";
 import { In } from "typeorm";
 import { Downloader } from "@main/services/downloaders/downloader";
 import { GameStatus } from "@globals";
@@ -68,7 +68,7 @@ const startGameDownload = async (
 
     return game;
   } else {
-    const iconUrl = await getImageBase64(await getSteamGameIconUrl(objectID));
+    const iconUrl = await getFileBase64(await getSteamGameIconUrl(objectID));
 
     const createdGame = await gameRepository.save({
       title,

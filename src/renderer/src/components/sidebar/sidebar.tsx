@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import type { Game } from "@types";
 
-import { AsyncImage, TextField } from "@renderer/components";
+import { TextField } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
 
 import { routes } from "./routes";
@@ -214,7 +214,11 @@ export function Sidebar() {
                     )
                   }
                 >
-                  <AsyncImage className={styles.gameIcon} src={game.iconUrl} />
+                  <img
+                    className={styles.gameIcon}
+                    src={game.iconUrl}
+                    alt={game.title}
+                  />
                   <span className={styles.menuItemButtonLabel}>
                     {getGameTitle(game)}
                   </span>
