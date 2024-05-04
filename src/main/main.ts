@@ -17,12 +17,12 @@ import {
   steamGameRepository,
   userPreferencesRepository,
 } from "./repository";
-import { TorrentClient } from "./services/donwloaders/torrent-client";
+import { TorrentClient } from "./services/downloaders/torrent-client";
 import { Repack } from "./entity";
 import { Notification } from "electron";
 import { t } from "i18next";
 import { In } from "typeorm";
-import { Downloader } from "./services/donwloaders/downloader";
+import { Downloader } from "./services/downloaders/downloader";
 import { GameStatus } from "@globals";
 
 startProcessWatcher();
