@@ -131,7 +131,8 @@ export function Settings() {
           value={form.realDebridApiToken ?? ""}
           onChange={(event) => {
             updateUserPreferences("realDebridApiToken", event.target.value);
-          }} />
+          }}
+        />
       </div>
     </section>
   );

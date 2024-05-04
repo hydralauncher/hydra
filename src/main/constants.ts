@@ -33,7 +33,6 @@ export const months = [
   "Dec",
 ];
 
-
 export const defaultDownloadsPath = app.getPath("downloads");
 
 export const databasePath = path.join(
