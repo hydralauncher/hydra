@@ -78,11 +78,10 @@ Ensure you have Node.js installed on your machine. If not, download and install 
 
 Yarn is a package manager for Node.js. If you haven't installed Yarn yet, you can do so by following the instructions on [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/).
 
-### Clone the Repository
+### Fork and clone your repository
 
-```bash
-git clone https://github.com/hydralauncher/hydra.git
-```
+1. Fork the repository [(click here to fork now)](https://github.com/hydralauncher/hydra/fork)
+2. Clone your forked code `git clone https://github.com/your_username/hydra`
 
 ### Install Node Dependencies
 
