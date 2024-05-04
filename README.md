@@ -163,25 +163,25 @@ yarn make
         </a>
     </td>
     <td align="center">
+        <a href="https://github.com/Hachi-R">
+            <img src="https://avatars.githubusercontent.com/u/58823742?v=4" width="100;" alt="Hachi-R"/>
+            <br />
+            <sub><b>Hachi</b></sub>
+        </a>
+    </td></tr>
+<tr>
+    <td align="center">
         <a href="https://github.com/eltociear">
             <img src="https://avatars.githubusercontent.com/u/22633385?v=4" width="100;" alt="eltociear"/>
             <br />
             <sub><b>Ikko Eltociear Ashimine</b></sub>
         </a>
-    </td></tr>
-<tr>
+    </td>
     <td align="center">
         <a href="https://github.com/Netflixyapp">
             <img src="https://avatars.githubusercontent.com/u/91623880?v=4" width="100;" alt="Netflixyapp"/>
             <br />
             <sub><b>Netflixy</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/Hachi-R">
-            <img src="https://avatars.githubusercontent.com/u/58823742?v=4" width="100;" alt="Hachi-R"/>
-            <br />
-            <sub><b>Hachi</b></sub>
         </a>
     </td>
     <td align="center">
