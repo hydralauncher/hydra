@@ -31,7 +31,9 @@
 - [About](#about)
 - [Features](#features)
 - [Installation](#installation)
-- [How to Open Dev Mode](#how-to-open-dev-mode)
+- [Contributing](#contributing)
+- [Running](#running)
+- [Build](#build)
 
 ## About
 
