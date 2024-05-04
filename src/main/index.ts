@@ -85,7 +85,7 @@ app.on("second-instance", (_event, commandLine) => {
     WindowManager.createMainWindow();
   }
 
-  const [, path] = commandLine.pop().split("://");
+  const [, path] = commandLine.pop()?.split("://") ?? [];
   if (path) WindowManager.redirect(path);
 });
 
