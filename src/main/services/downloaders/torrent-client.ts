@@ -73,7 +73,6 @@ export class TorrentClient {
       __dirname,
       "..",
       "..",
-      "..",
       "torrent-client",
       "main.py"
     );
