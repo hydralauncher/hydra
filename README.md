@@ -68,7 +68,19 @@ Follow the steps below to install:
 
 We concentrate our discussions on our [Discord](https://discord.gg/hydralauncher) server.
 
-Join, grab the Collaborator role, go the dev channel and we talk to us and share your ideas.
+1. Join our server
+2. Go to the roles channel and grab the Collaborator role
+3. Go to the dev channel, talk to us and share your ideas.
+
+### Fork and clone your repository
+
+1. Fork the repository [(click here to fork now)](https://github.com/hydralauncher/hydra/fork)
+2. Clone your forked code `git clone https://github.com/your_username/hydra`
+3. Create a new branch
+4. Push your commits
+5. Submit a new Pull Request
+
+## Build from source
 
 ### Install Node.js
 
@@ -77,11 +89,6 @@ Ensure you have Node.js installed on your machine. If not, download and install 
 ### Install Yarn
 
 Yarn is a package manager for Node.js. If you haven't installed Yarn yet, you can do so by following the instructions on [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/).
-
-### Fork and clone your repository
-
-1. Fork the repository [(click here to fork now)](https://github.com/hydralauncher/hydra/fork)
-2. Clone your forked code `git clone https://github.com/your_username/hydra`
 
 ### Install Node Dependencies
 
@@ -160,6 +167,13 @@ yarn build:linux
     <td align="center">
         <a href="https://github.com/zamitto">
             <img src="https://avatars.githubusercontent.com/u/167933696?v=4" width="100;" alt="zamitto"/>
+            <br />
+            <sub><b>Null</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/fzanutto">
+            <img src="https://avatars.githubusercontent.com/u/15229294?v=4" width="100;" alt="fzanutto"/>
             <br />
             <sub><b>Null</b></sub>
         </a>
