@@ -3,7 +3,7 @@ import { WindowManager } from "@main/services";
 import { registerEvent } from "../register-event";
 import { gameRepository } from "../../repository";
 import { In } from "typeorm";
-import { Downloader } from "@main/services/donwloaders/downloader";
+import { Downloader } from "@main/services/downloaders/downloader";
 import { GameStatus } from "@globals";
 
 const pauseGameDownload = async (

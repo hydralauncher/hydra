@@ -6,7 +6,7 @@ import { registerEvent } from "../register-event";
 import type { GameShop } from "@types";
 import { getImageBase64 } from "@main/helpers";
 import { In } from "typeorm";
-import { Downloader } from "@main/services/donwloaders/downloader";
+import { Downloader } from "@main/services/downloaders/downloader";
 import { GameStatus } from "@globals";
 
 const startGameDownload = async (
