@@ -62,7 +62,7 @@ The launcher is written in TypeScript (Electron) and Python, which handles the t
 - How Long To Beat (HLTB) integration on game page
 - Downloads path customization
 - Repack list update notifications
-- Windows, Linux and MacOS support
+- Windows and Linux support
 - Constantly updated
 - And more ...
 
