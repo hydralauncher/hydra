@@ -129,6 +129,7 @@ export function Settings() {
         <TextField
           label={t("real_debrid_api_token_description")}
           value={form.realDebridApiToken ?? ""}
+          type="password"
           onChange={(event) => {
             updateUserPreferences("realDebridApiToken", event.target.value);
           }}

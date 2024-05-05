@@ -1,4 +1,4 @@
-import { GameStatus } from "@globals";
+import { GameStatus, GameStatusHelper } from "@shared";
 import { NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
 
 import { Button } from "@renderer/components";
@@ -174,10 +174,13 @@ export function HeroPanelActions({
     );
   }
 
-  if (GameStatus.isReady(game?.status) || (game && !game.status)) {
+  if (
+    GameStatusHelper.isReady(game?.status ?? null) ||
+    (game && !game.status)
+  ) {
     return (
       <>
-        {GameStatus.isReady(game?.status) ? (
+        {GameStatusHelper.isReady(game?.status ?? null) ? (
           <Button
             onClick={openGameInstaller}
             theme="outline"

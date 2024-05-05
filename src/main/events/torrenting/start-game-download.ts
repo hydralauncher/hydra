@@ -1,13 +1,17 @@
 import { getSteamGameIconUrl } from "@main/services";
-import { gameRepository, repackRepository } from "@main/repository";
+import {
+  gameRepository,
+  repackRepository,
+  userPreferencesRepository,
+} from "@main/repository";
 
 import { registerEvent } from "../register-event";
 
 import type { GameShop } from "@types";
 import { getFileBase64 } from "@main/helpers";
 import { In } from "typeorm";
-import { Downloader } from "@main/services/downloaders/downloader";
-import { GameStatus } from "@globals";
+import { DownloadManager } from "@main/services";
+import { Downloader, GameStatus } from "@shared";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -17,6 +21,14 @@ const startGameDownload = async (
   gameShop: GameShop,
   downloadPath: string
 ) => {
+  const userPreferences = await userPreferencesRepository.findOne({
+    where: { id: 1 },
+  });
+
+  const downloader = userPreferences?.realDebridApiToken
+    ? Downloader.Http
+    : Downloader.Torrent;
+
   const [game, repack] = await Promise.all([
     gameRepository.findOne({
       where: {
@@ -30,13 +42,8 @@ const startGameDownload = async (
     }),
   ]);
 
-  if (!repack) return;
-
-  if (game?.status === GameStatus.Downloading) {
-    return;
-  }
-
-  Downloader.pauseDownload();
+  if (!repack || game?.status === GameStatus.Downloading) return;
+  DownloadManager.pauseDownload();
 
   await gameRepository.update(
     {
@@ -57,12 +64,13 @@ const startGameDownload = async (
       {
         status: GameStatus.DownloadingMetadata,
         downloadPath: downloadPath,
+        downloader,
         repack: { id: repackId },
         isDeleted: false,
       }
     );
 
-    Downloader.downloadGame(game, repack);
+    DownloadManager.downloadGame(game.id);
 
     game.status = GameStatus.DownloadingMetadata;
 
@@ -74,13 +82,14 @@ const startGameDownload = async (
       title,
       iconUrl,
       objectID,
+      downloader,
       shop: gameShop,
-      status: GameStatus.DownloadingMetadata,
-      downloadPath: downloadPath,
+      status: GameStatus.Downloading,
+      downloadPath,
       repack: { id: repackId },
     });
 
-    Downloader.downloadGame(createdGame, repack);
+    DownloadManager.downloadGame(createdGame.id);
 
     const { repack: _, ...rest } = createdGame;
 

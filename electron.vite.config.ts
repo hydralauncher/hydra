@@ -31,7 +31,7 @@ export default defineConfig(({ mode }) => {
           "@main": resolve("src/main"),
           "@locales": resolve("src/locales"),
           "@resources": resolve("resources"),
-          "@globals": resolve("src/globals"),
+          "@shared": resolve("src/shared"),
         },
       },
       plugins: [externalizeDepsPlugin(), swcPlugin(), sentryPlugin],
@@ -47,7 +47,7 @@ export default defineConfig(({ mode }) => {
         alias: {
           "@renderer": resolve("src/renderer/src"),
           "@locales": resolve("src/locales"),
-          "@globals": resolve("src/globals"),
+          "@shared": resolve("src/shared"),
         },
       },
       plugins: [svgr(), react(), vanillaExtractPlugin(), sentryPlugin],

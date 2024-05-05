@@ -16,6 +16,7 @@ const addGameToLibrary = async (
   const game = await gameRepository.findOne({
     where: {
       objectID,
+      isDeleted: false,
     },
   });
 

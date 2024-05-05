@@ -2,7 +2,6 @@
 node_modules
 hydra-download-manager
 fastlist.exe
-unrar.wasm
 __pycache__
 dist
 out

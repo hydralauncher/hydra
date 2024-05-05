@@ -6,7 +6,6 @@ extraResources:
   - hydra-download-manager
   - hydra.db
   - fastlist.exe
-  - unrar.wasm
 files:
   - "!**/.vscode/*"
   - "!src/*"

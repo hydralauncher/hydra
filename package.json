@@ -43,7 +43,7 @@
     "classnames": "^2.5.1",
     "color.js": "^1.2.0",
     "date-fns": "^3.6.0",
-    "electron-dl-manager": "^3.0.0",
+    "easydl": "^1.1.1",
     "fetch-cookie": "^3.0.1",
     "flexsearch": "^0.7.43",
     "i18next": "^23.11.2",

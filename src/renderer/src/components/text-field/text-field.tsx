@@ -27,7 +27,7 @@ export function TextField({
   return (
     <div style={{ flex: 1 }}>
       {label && (
-        <label htmlFor={id} className={styles.label}>
+        <label htmlFor={id} className={styles.label} tabIndex={0}>
           {label}
         </label>
       )}

@@ -4,8 +4,8 @@ import { registerEvent } from "../register-event";
 import { WindowManager } from "@main/services";
 
 import { In } from "typeorm";
-import { Downloader } from "@main/services/downloaders/downloader";
-import { GameStatus } from "@globals";
+import { DownloadManager } from "@main/services";
+import { GameStatus } from "@shared";
 
 const cancelGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -14,6 +14,7 @@ const cancelGameDownload = async (
   const game = await gameRepository.findOne({
     where: {
       id: gameId,
+      isDeleted: false,
       status: In([
         GameStatus.Downloading,
         GameStatus.DownloadingMetadata,
@@ -21,12 +22,12 @@ const cancelGameDownload = async (
         GameStatus.Paused,
         GameStatus.Seeding,
         GameStatus.Finished,
-        GameStatus.Decompressing,
       ]),
     },
   });
 
   if (!game) return;
+  DownloadManager.cancelDownload();
 
   await gameRepository
     .update(
@@ -44,7 +45,6 @@ const cancelGameDownload = async (
         game.status !== GameStatus.Paused &&
         game.status !== GameStatus.Seeding
       ) {
-        Downloader.cancelDownload();
         if (result.affected) WindowManager.mainWindow?.setProgressBar(-1);
       }
     });
