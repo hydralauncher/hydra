@@ -2,7 +2,6 @@ import { dataSource } from "./data-source";
 import {
   Game,
   GameShopCache,
-  ImageCache,
   Repack,
   RepackerFriendlyName,
   UserPreferences,
@@ -11,8 +10,6 @@ import {
 } from "@main/entity";
 
 export const gameRepository = dataSource.getRepository(Game);
-
-export const imageCacheRepository = dataSource.getRepository(ImageCache);
 
 export const repackRepository = dataSource.getRepository(Repack);
 

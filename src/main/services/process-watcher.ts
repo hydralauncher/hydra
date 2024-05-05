@@ -8,20 +8,19 @@ import { WindowManager } from "./window-manager";
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const startProcessWatcher = async () => {
-  const sleepTime = 300;
+  const sleepTime = 500;
   const gamesPlaytime = new Map<number, number>();
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    await sleep(sleepTime);
-
     const games = await gameRepository.find({
       where: {
         executablePath: Not(IsNull()),
       },
     });
 
-    if (games.length == 0) {
+    if (games.length === 0) {
+      await sleep(sleepTime);
       continue;
     }
 
@@ -71,5 +70,7 @@ export const startProcessWatcher = async () => {
         }
       }
     }
+
+    await sleep(sleepTime);
   }
 };

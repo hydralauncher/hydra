@@ -5,11 +5,11 @@ import { SPACING_UNIT, vars } from "../../theme.css";
 export const sidebar = recipe({
   base: {
     backgroundColor: vars.color.darkBackground,
-    color: "#c0c1c7",
+    color: vars.color.muted,
     flexDirection: "column",
     display: "flex",
     transition: "opacity ease 0.2s",
-    borderRight: `solid 1px ${vars.color.borderColor}`,
+    borderRight: `solid 1px ${vars.color.border}`,
     position: "relative",
   },
   variants: {
@@ -52,7 +52,7 @@ export const menu = style({
   listStyle: "none",
   padding: "0",
   margin: "0",
-  gap: `${SPACING_UNIT * 2}px`,
+  gap: `${SPACING_UNIT / 2}px`,
   display: "flex",
   flexDirection: "column",
   overflow: "hidden",
@@ -64,17 +64,16 @@ export const menuItem = recipe({
     cursor: "pointer",
     textWrap: "nowrap",
     display: "flex",
-    opacity: "0.9",
-    color: "#DADBE1",
+    color: vars.color.muted,
+    borderRadius: "4px",
     ":hover": {
-      opacity: "1",
+      backgroundColor: "rgba(255, 255, 255, 0.15)",
     },
   },
   variants: {
     active: {
       true: {
-        opacity: "1",
-        fontWeight: "bold",
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
       },
     },
     muted: {
@@ -96,11 +95,7 @@ export const menuItemButton = style({
   cursor: "pointer",
   overflow: "hidden",
   width: "100%",
-  selectors: {
-    [`${menuItem({ active: true }).split(" ")[1]} &`]: {
-      fontWeight: "bold",
-    },
-  },
+  padding: `9px ${SPACING_UNIT}px`,
 });
 
 export const menuItemButtonLabel = style({
@@ -120,20 +115,12 @@ export const sectionTitle = style({
   fontWeight: "bold",
 });
 
-export const section = recipe({
-  base: {
-    padding: `${SPACING_UNIT * 2}px 0`,
-    gap: `${SPACING_UNIT * 2}px`,
-    display: "flex",
-    flexDirection: "column",
-  },
-  variants: {
-    hasBorder: {
-      true: {
-        borderBottom: `solid 1px ${vars.color.borderColor}`,
-      },
-    },
-  },
+export const section = style({
+  padding: `${SPACING_UNIT * 2}px 0`,
+  gap: `${SPACING_UNIT * 2}px`,
+  display: "flex",
+  flexDirection: "column",
+  paddingBottom: `${SPACING_UNIT}px`,
 });
 
 export const sidebarFooter = style({
@@ -157,10 +144,10 @@ export const footerSocialsItem = style({
   height: "16px",
   display: "flex",
   alignItems: "center",
-  transition: "all ease 0.15s",
+  transition: "all ease 0.2s",
+  cursor: "pointer",
   ":hover": {
-    opacity: 0.75,
-    cursor: "pointer",
+    opacity: "0.75",
   },
 });
 

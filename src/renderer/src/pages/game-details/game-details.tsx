@@ -5,36 +5,44 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import type {
   Game,
+  GameRepack,
   GameShop,
   HowLongToBeatCategory,
   ShopDetails,
   SteamAppDetails,
 } from "@types";
 
-import { AsyncImage, Button } from "@renderer/components";
+import { Button } from "@renderer/components";
 import { setHeaderTitle } from "@renderer/features";
 import { getSteamLanguage, steamUrlBuilder } from "@renderer/helpers";
 import { useAppDispatch, useDownload } from "@renderer/hooks";
 
 import starsAnimation from "@renderer/assets/lottie/stars.json";
 
-import { vars } from "../../theme.css";
 import Lottie from "lottie-react";
 import { useTranslation } from "react-i18next";
 import { SkeletonTheme } from "react-loading-skeleton";
 import { DescriptionHeader } from "./description-header";
 import { GameDetailsSkeleton } from "./game-details-skeleton";
 import * as styles from "./game-details.css";
-import { HeroPanel } from "./hero-panel";
+import { HeroPanel } from "./hero";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { RepacksModal } from "./repacks-modal";
+
+import { vars } from "../../theme.css";
+import {
+  DODIInstallationGuide,
+  DONT_SHOW_DODI_INSTRUCTIONS_KEY,
+  DONT_SHOW_ONLINE_FIX_INSTRUCTIONS_KEY,
+  OnlineFixInstallationGuide,
+} from "./installation-guides";
 
 export function GameDetails() {
   const { objectID, shop } = useParams();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingRandomGame, setIsLoadingRandomGame] = useState(false);
-  const [color, setColor] = useState("");
+  const [color, setColor] = useState({ dark: "", light: "" });
   const [gameDetails, setGameDetails] = useState<ShopDetails | null>(null);
   const [howLongToBeat, setHowLongToBeat] = useState<{
     isLoading: boolean;
@@ -43,6 +51,10 @@ export function GameDetails() {
 
   const [game, setGame] = useState<Game | null>(null);
   const [isGamePlaying, setIsGamePlaying] = useState(false);
+  const [showInstructionsModal, setShowInstructionsModal] = useState<
+    null | "onlinefix" | "DODI"
+  >(null);
+
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
@@ -52,19 +64,21 @@ export function GameDetails() {
   const { t, i18n } = useTranslation("game_details");
 
   const [showRepacksModal, setShowRepacksModal] = useState(false);
-  const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
 
   const dispatch = useAppDispatch();
 
   const { game: gameDownloading, startDownload, isDownloading } = useDownload();
 
-  const handleImageSettled = useCallback((url: string) => {
-    average(url, { amount: 1, format: "hex" })
+  const heroImage = steamUrlBuilder.libraryHero(objectID!);
+
+  const handleHeroLoad = () => {
+    average(heroImage, { amount: 1, format: "hex" })
       .then((color) => {
-        setColor(new Color(color).darken(0.6).toString() as string);
+        const darkColor = new Color(color).darken(0.6).toString() as string;
+        setColor({ light: color as string, dark: darkColor });
       })
       .catch(() => {});
-  }, []);
+  };
 
   const getGame = useCallback(() => {
     window.electron
@@ -112,7 +126,10 @@ export function GameDetails() {
 
   useEffect(() => {
     if (isGameDownloading)
-      setGame((prev) => ({ ...prev, status: gameDownloading?.status }));
+      setGame((prev) => {
+        if (prev === null || !gameDownloading?.status) return prev;
+        return { ...prev, status: gameDownloading?.status };
+      });
   }, [isGameDownloading, gameDownloading?.status]);
 
   useEffect(() => {
@@ -134,12 +151,12 @@ export function GameDetails() {
   }, [game?.id, isGamePlaying, getGame]);
 
   const handleStartDownload = async (
-    repackId: number,
+    repack: GameRepack,
     downloadPath: string
   ) => {
     if (gameDetails) {
       return startDownload(
-        repackId,
+        repack.id,
         gameDetails.objectID,
         gameDetails.name,
         shop as GameShop,
@@ -147,7 +164,18 @@ export function GameDetails() {
       ).then(() => {
         getGame();
         setShowRepacksModal(false);
-        setShowSelectFolderModal(false);
+
+        if (
+          repack.repacker === "onlinefix" &&
+          !window.localStorage.getItem(DONT_SHOW_ONLINE_FIX_INSTRUCTIONS_KEY)
+        ) {
+          setShowInstructionsModal("onlinefix");
+        } else if (
+          repack.repacker === "DODI" &&
+          !window.localStorage.getItem(DONT_SHOW_DODI_INSTRUCTIONS_KEY)
+        ) {
+          setShowInstructionsModal("DODI");
+        }
       });
     }
   };
@@ -172,26 +200,35 @@ export function GameDetails() {
           visible={showRepacksModal}
           gameDetails={gameDetails}
           startDownload={handleStartDownload}
-          showSelectFolderModal={showSelectFolderModal}
-          setShowSelectFolderModal={setShowSelectFolderModal}
           onClose={() => setShowRepacksModal(false)}
         />
       )}
+
+      <OnlineFixInstallationGuide
+        visible={showInstructionsModal === "onlinefix"}
+        onClose={() => setShowInstructionsModal(null)}
+      />
+
+      <DODIInstallationGuide
+        windowColor={color.light}
+        visible={showInstructionsModal === "DODI"}
+        onClose={() => setShowInstructionsModal(null)}
+      />
 
       {isLoading ? (
         <GameDetailsSkeleton />
       ) : (
         <section className={styles.container}>
           <div className={styles.hero}>
-            <AsyncImage
-              src={steamUrlBuilder.libraryHero(objectID!)}
+            <img
+              src={heroImage}
               className={styles.heroImage}
               alt={game?.title}
-              onSettled={handleImageSettled}
+              onLoad={handleHeroLoad}
             />
             <div className={styles.heroBackdrop}>
               <div className={styles.heroContent}>
-                <AsyncImage
+                <img
                   src={steamUrlBuilder.logo(objectID!)}
                   style={{ width: 300, alignSelf: "flex-end" }}
                 />
@@ -201,7 +238,7 @@ export function GameDetails() {
 
           <HeroPanel
             game={game}
-            color={color}
+            color={color.dark}
             gameDetails={gameDetails}
             openRepacksModal={() => setShowRepacksModal(true)}
             getGame={getGame}

@@ -17,7 +17,10 @@
     "downloading": "{{title}} ({{percentage}} - Downloading…)",
     "filter": "Filter library",
     "follow_us": "Follow us",
-    "home": "Home"
+    "home": "Home",
+    "discord": "Join our Discord",
+    "x": "Follow on X",
+    "github": "Contribute on GitHub"
   },
   "header": {
     "search": "Search",
@@ -66,6 +69,8 @@
     "copied_link_to_clipboard": "Link copied",
     "hours": "hours",
     "minutes": "minutes",
+    "amount_hours": "{{amount}} hours",
+    "amount_minutes": "{{amount}} minutes",
     "accuracy": "{{accuracy}}% accuracy",
     "add_to_library": "Add to library",
     "remove_from_library": "Remove from library",
@@ -82,8 +87,16 @@
     "repacks_modal_description": "Choose the repack you want to download",
     "downloads_path": "Downloads path",
     "select_folder_hint": "To change the default folder, access the",
-    "settings": "Hydra settings",
-    "download_now": "Download now"
+    "settings": "Settings",
+    "download_now": "Download now",
+    "installation_instructions": "Installation Instructions",
+    "installation_instructions_description": "Additional steps are required to install this game",
+    "online_fix_instruction": "OnlineFix games requires a password to be extracted. When required, use the following password:",
+    "dodi_installation_instruction": "When you open DODI installer, press your keyboard up key <0 /> to start the installation process:",
+    "dont_show_it_again": "Don't show it again",
+    "copy_to_clipboard": "Copy",
+    "copied_to_clipboard": "Copied",
+    "got_it": "Got it"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -123,7 +136,9 @@
     "enable_download_notifications": "When a download is complete",
     "enable_repack_list_notifications": "When a new repack is added",
     "telemetry": "Telemetry",
-    "telemetry_description": "Enable anonymous usage statistics"
+    "telemetry_description": "Enable anonymous usage statistics",
+    "behavior": "Behavior",
+    "quit_app_instead_hiding": "Close app instead of minimizing to tray"
   },
   "notifications": {
     "download_complete": "Download complete",
@@ -143,5 +158,8 @@
     "title": "Programs not installed",
     "description": "Wine or Lutris executables were not found on your system",
     "instructions": "Check the correct way to install any of them on your Linux distro so that the game can run normally"
+  },
+  "modal": {
+    "close": "Close button"
   }
 }

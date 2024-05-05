@@ -1,16 +1,17 @@
 import { format } from "date-fns";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDownload } from "@renderer/hooks";
 import type { Game, ShopDetails } from "@types";
 
 import { formatDownloadProgress } from "@renderer/helpers";
-import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
-import * as styles from "./hero-panel.css";
 import { useDate } from "@renderer/hooks/use-date";
 import { formatBytes } from "@renderer/utils";
 import { HeroPanelActions } from "./hero-panel-actions";
+
+import { BinaryNotFoundModal } from "../../shared-modals/binary-not-found-modal";
+import * as styles from "./hero-panel.css";
 
 export interface HeroPanelProps {
   game: Game | null;
@@ -21,6 +22,8 @@ export interface HeroPanelProps {
   getGame: () => void;
 }
 
+const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
+
 export function HeroPanel({
   game,
   gameDetails,
@@ -29,7 +32,7 @@ export function HeroPanel({
   getGame,
   isGamePlaying,
 }: HeroPanelProps) {
-  const { t } = useTranslation("game_details");
+  const { t, i18n } = useTranslation("game_details");
 
   const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
   const [lastTimePlayed, setLastTimePlayed] = useState("");
@@ -47,27 +50,36 @@ export function HeroPanel({
   } = useDownload();
   const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
 
-  const updateLastTimePlayed = useCallback(() => {
-    setLastTimePlayed(
-      formatDistance(game.lastTimePlayed, new Date(), {
-        addSuffix: true,
-      })
-    );
-  }, [game?.lastTimePlayed, formatDistance]);
-
   useEffect(() => {
     if (game?.lastTimePlayed) {
-      updateLastTimePlayed();
-
-      const interval = setInterval(() => {
-        updateLastTimePlayed();
-      }, 1000);
-
-      return () => {
-        clearInterval(interval);
-      };
+      setLastTimePlayed(
+        formatDistance(game.lastTimePlayed, new Date(), {
+          addSuffix: true,
+        })
+      );
     }
-  }, [game?.lastTimePlayed, updateLastTimePlayed]);
+  }, [game?.lastTimePlayed, formatDistance]);
+
+  const numberFormatter = useMemo(() => {
+    return new Intl.NumberFormat(i18n.language, {
+      maximumFractionDigits: 1,
+    });
+  }, [i18n]);
+
+  const formatPlayTime = () => {
+    const milliseconds = game?.playTimeInMilliseconds || 0;
+    const seconds = milliseconds / 1000;
+    const minutes = seconds / 60;
+
+    if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
+      return t("amount_minutes", {
+        amount: minutes.toFixed(0),
+      });
+    }
+
+    const hours = minutes / 60;
+    return t("amount_hours", { amount: numberFormatter.format(hours) });
+  };
 
   const finalDownloadSize = useMemo(() => {
     if (!game) return "N/A";
@@ -82,11 +94,11 @@ export function HeroPanel({
   const getInfo = () => {
     if (!gameDetails) return null;
 
-    if (isGameDeleting(game?.id)) {
+    if (isGameDeleting(game?.id ?? -1)) {
       return <p>{t("deleting")}</p>;
     }
 
-    if (isGameDownloading) {
+    if (isGameDownloading && gameDownloading?.status) {
       return (
         <>
           <p className={styles.downloadDetailsRow}>
@@ -94,14 +106,14 @@ export function HeroPanel({
             {eta && <small>{t("eta", { eta })}</small>}
           </p>
 
-          {gameDownloading?.status !== "downloading" ? (
+          {gameDownloading.status !== "downloading" ? (
             <>
-              <p>{t(gameDownloading?.status)}</p>
+              <p>{t(gameDownloading.status)}</p>
               {eta && <small>{t("eta", { eta })}</small>}
             </>
           ) : (
             <p className={styles.downloadDetailsRow}>
-              {formatBytes(gameDownloading?.bytesDownloaded)} /{" "}
+              {formatBytes(gameDownloading.bytesDownloaded)} /{" "}
               {finalDownloadSize}
               <small>
                 {numPeers} peers / {numSeeds} seeds
@@ -136,7 +148,7 @@ export function HeroPanel({
         <>
           <p>
             {t("play_time", {
-              amount: formatDistance(0, game.playTimeInMilliseconds),
+              amount: formatPlayTime(),
             })}
           </p>
 

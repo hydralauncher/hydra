@@ -1,12 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import { AsyncImage } from "@renderer/components";
 import * as styles from "./hero.css";
 import { useEffect, useState } from "react";
 import { ShopDetails } from "@types";
 import { getSteamLanguage, steamUrlBuilder } from "@renderer/helpers";
 import { useTranslation } from "react-i18next";
 
-const FEATURED_GAME_ID = "253230";
+const FEATURED_GAME_ID = "2420110";
 
 export function Hero() {
   const [featuredGameDetails, setFeaturedGameDetails] =
@@ -35,14 +34,14 @@ export function Hero() {
       className={styles.hero}
     >
       <div className={styles.backdrop}>
-        <AsyncImage
-          src="https://cdn2.steamgriddb.com/hero/a6115ed32394915aac1e5502382eaaea.jpg"
+        <img
+          src="https://cdn2.steamgriddb.com/hero/4ef10445b952a8b3c93a9379d581146a.jpg"
           alt={featuredGameDetails?.name}
           className={styles.heroMedia}
         />
 
         <div className={styles.content}>
-          <AsyncImage
+          <img
             src={steamUrlBuilder.logo(FEATURED_GAME_ID)}
             width="250px"
             alt={featuredGameDetails?.name}

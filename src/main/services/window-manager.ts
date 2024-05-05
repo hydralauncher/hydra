@@ -4,6 +4,7 @@ import { t } from "i18next";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
+import { userPreferencesRepository } from "@main/repository";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -25,7 +26,7 @@ export class WindowManager {
     }
   }
 
-  public static createMainWindow() {
+  public static async createMainWindow() {
     // Create the browser window.
     this.mainWindow = new BrowserWindow({
       width: 1200,
@@ -49,7 +50,18 @@ export class WindowManager {
     this.loadURL();
     this.mainWindow.removeMenu();
 
-    this.mainWindow.on("close", () => {
+    this.mainWindow.on("ready-to-show", () => {
+      if (!app.isPackaged) WindowManager.mainWindow?.webContents.openDevTools();
+    });
+
+    this.mainWindow.on("close", async () => {
+      const userPreferences = await userPreferencesRepository.findOne({
+        where: { id: 1 },
+      });
+
+      if (userPreferences?.preferQuitInsteadOfHiding) {
+        app.quit();
+      }
       WindowManager.mainWindow?.setProgressBar(-1);
     });
   }

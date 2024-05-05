@@ -1,5 +1,4 @@
 import { app } from "electron";
-import os from "node:os";
 import path from "node:path";
 
 export const repackersOn1337x = [
@@ -43,13 +42,15 @@ export enum GameStatus {
   Cancelled = "cancelled",
 }
 
-export const defaultDownloadsPath = path.join(os.homedir(), "downloads");
+export const defaultDownloadsPath = app.getPath("downloads");
 
 export const databasePath = path.join(
   app.getPath("appData"),
   app.getName(),
   "hydra.db"
 );
+
+export const imageCachePath = path.join(app.getPath("userData"), ".imagecache");
 
 export const INSTALLATION_ID_LENGTH = 6;
 export const ACTIVATION_KEY_MULTIPLIER = 7;

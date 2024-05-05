@@ -4,9 +4,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import type { Game } from "@types";
 
-import { AsyncImage, TextField } from "@renderer/components";
+import { TextField } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
-import { SPACING_UNIT } from "../../theme.css";
 
 import { routes } from "./routes";
 
@@ -15,21 +14,6 @@ import DiscordLogo from "@renderer/assets/discord-icon.svg?react";
 import XLogo from "@renderer/assets/x-icon.svg?react";
 
 import * as styles from "./sidebar.css";
-
-const socials = [
-  {
-    url: "https://discord.gg/hydralauncher",
-    icon: <DiscordLogo />,
-  },
-  {
-    url: "https://twitter.com/hydralauncher",
-    icon: <XLogo />,
-  },
-  {
-    url: "https://github.com/hydralauncher/hydra",
-    icon: <MarkGithubIcon size={16} />,
-  },
-];
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -48,6 +32,24 @@ export function Sidebar() {
   const [sidebarWidth, setSidebarWidth] = useState(
     initialSidebarWidth ? Number(initialSidebarWidth) : SIDEBAR_INITIAL_WIDTH
   );
+
+  const socials = [
+    {
+      url: "https://discord.gg/hydralauncher",
+      icon: <DiscordLogo />,
+      label: t("discord"),
+    },
+    {
+      url: "https://twitter.com/hydralauncher",
+      icon: <XLogo />,
+      label: t("x"),
+    },
+    {
+      url: "https://github.com/hydralauncher/hydra",
+      icon: <MarkGithubIcon size={16} />,
+      label: t("github"),
+    },
+  ];
 
   const location = useLocation();
 
@@ -92,7 +94,7 @@ export function Sidebar() {
   }, [library]);
 
   useEffect(() => {
-    window.onmousemove = (event) => {
+    window.onmousemove = (event: MouseEvent) => {
       if (isResizing) {
         const cursorXDelta = event.screenX - cursorPos.current.x;
         const newWidth = Math.max(
@@ -162,11 +164,9 @@ export function Sidebar() {
           macos: window.electron.platform === "darwin",
         })}
       >
-        {window.electron.platform === "darwin" && (
-          <h2 style={{ marginBottom: SPACING_UNIT }}>Hydra</h2>
-        )}
+        {window.electron.platform === "darwin" && <h2>Hydra</h2>}
 
-        <section className={styles.section({ hasBorder: false })}>
+        <section className={styles.section}>
           <ul className={styles.menu}>
             {routes.map(({ nameKey, path, render }) => (
               <li
@@ -188,7 +188,7 @@ export function Sidebar() {
           </ul>
         </section>
 
-        <section className={styles.section({ hasBorder: false })}>
+        <section className={styles.section}>
           <small className={styles.sectionTitle}>{t("my_library")}</small>
 
           <TextField
@@ -216,7 +216,11 @@ export function Sidebar() {
                     )
                   }
                 >
-                  <AsyncImage className={styles.gameIcon} src={game.iconUrl} />
+                  <img
+                    className={styles.gameIcon}
+                    src={game.iconUrl}
+                    alt={game.title}
+                  />
                   <span className={styles.menuItemButtonLabel}>
                     {getGameTitle(game)}
                   </span>
@@ -243,6 +247,8 @@ export function Sidebar() {
                 key={item.url}
                 className={styles.footerSocialsItem}
                 onClick={() => window.electron.openExternal(item.url)}
+                title={item.label}
+                aria-label={item.label}
               >
                 {item.icon}
               </button>

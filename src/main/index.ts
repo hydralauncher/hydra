@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, net, protocol } from "electron";
 import { init } from "@sentry/electron/main";
 import i18n from "i18next";
 import path from "node:path";
@@ -52,6 +52,10 @@ if (process.defaultApp) {
 app.whenReady().then(() => {
   electronApp.setAppUserModelId("site.hydralauncher.hydra");
 
+  protocol.handle("hydra", (request) =>
+    net.fetch("file://" + request.url.slice("hydra://".length))
+  );
+
   dataSource.initialize().then(async () => {
     await resolveDatabaseUpdates();
 
@@ -81,7 +85,7 @@ app.on("second-instance", (_event, commandLine) => {
     WindowManager.createMainWindow();
   }
 
-  const [, path] = commandLine.pop().split("://");
+  const [, path] = commandLine.pop()?.split("://") ?? [];
   if (path) WindowManager.redirect(path);
 });
 

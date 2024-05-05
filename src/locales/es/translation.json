@@ -15,9 +15,12 @@
     "checking_files": "{{title}} ({{percentage}} - Analizando archivos…)",
     "paused": "{{title}} (Pausado)",
     "downloading": "{{title}} ({{percentage}} - Descargando…)",
-    "filter": "Filtrar biblioteca",
+    "filter": "Buscar en la biblioteca",
+    "follow_us": "Síguenos",
     "home": "Inicio",
-    "follow_us": "Síguenos"
+    "discord": "Únete a nuestro Discord",
+    "x": "Síguenos en X",
+    "github": "Contribuye en GitHub"
   },
   "header": {
     "search": "Buscar",
@@ -45,7 +48,7 @@
     "remove": "Eliminar",
     "remove_from_list": "Quitar",
     "space_left_on_disk": "{{space}} restantes en el disco",
-    "eta": "Finalizando {{eta}}",
+    "eta": "Finalizando en {{eta}}",
     "downloading_metadata": "Descargando metadatos…",
     "checking_files": "Analizando archivos…",
     "filter": "Filtrar repacks",
@@ -55,8 +58,8 @@
     "no_minimum_requirements": "Sin requisitos mínimos para {{title}}",
     "no_recommended_requirements": "{{title}} no tiene requisitos recomendados",
     "paused_progress": "{{progress}} (Pausado)",
-    "release_date": "Fecha de lanzamiento {{date}}",
-    "publisher": "Publicado por {{publisher}}",
+    "release_date": "Fecha de lanzamiento: {{date}}",
+    "publisher": "Publicado por: {{publisher}}",
     "copy_link_to_clipboard": "Copiar enlace",
     "copied_link_to_clipboard": "Enlace copiado",
     "hours": "horas",
@@ -73,7 +76,21 @@
     "close": "Cerrar",
     "deleting": "Eliminando instalador…",
     "playing_now": "Jugando ahora",
-    "last_time_played": "Jugado por última vez {{period}}"
+    "last_time_played": "Jugado por última vez {{period}}",
+    "got_it": "Entendido",
+    "change": "Cambiar",
+    "repacks_modal_description": "Selecciona el repack que quieres descargar",
+    "downloads_path": "Ruta de descarga",
+    "select_folder_hint": "Para cambiar la carpeta predeterminada, accede a",
+    "settings": "Ajustes",
+    "download_now": "Descargar ahora",
+    "installation_instructions": "Instrucciones de instalación",
+    "installation_instructions_description": "Se requieren de pasos adicionales para instalar este juego",
+    "online_fix_instruction": "Los juegos de OnlineFix requieren una contraseña para ser extraídos. Cuando se requiera, usa la siguiente contraseña:",
+    "dodi_installation_instruction": "Cuando abras el instalador de DODI, presiona la tecla hacia arriba del teclado <0 /> para iniciar el proceso de instalación:",
+    "dont_show_it_again": "No mostrar de nuevo",
+    "copy_to_clipboard": "Copiar",
+    "copied_to_clipboard": "Copiado"
   },
   "activation": {
     "title": "Activar Hydra",
@@ -86,7 +103,7 @@
   "downloads": {
     "resume": "Resumir",
     "pause": "Pausa",
-    "eta": "Finalizando {{eta}}",
+    "eta": "Finalizando en {{eta}}",
     "paused": "En Pausa",
     "verifying": "Verificando…",
     "completed_at": "Completado el {{date}}",
@@ -101,8 +118,8 @@
     "starting_download": "Iniciando descarga…",
     "remove_from_list": "Eliminar",
     "delete": "Eliminar instalador",
-    "delete_modal_description": "Esto eliminará todos los archivos de instalación de su computadora.",
-    "delete_modal_title": "¿Está seguro?",
+    "delete_modal_description": "Esto eliminará todos los archivos de instalación de tu computadora.",
+    "delete_modal_title": "¿Estás seguro?",
     "deleting": "Eliminando instalador…",
     "install": "Instalar"
   },
@@ -133,6 +150,9 @@
     "title": "Programas no instalados",
     "description": "Los ejecutables de Wine o Lutris no se encontraron en su sistema",
     "instructions": "Comprueba como instalar de forma correcta uno de los dos en tu distro de Linux para ejecutar el juego con normalidad"
+  },
+  "modal": {
+    "close": "Botón de cierre"
   },
   "catalogue": {
     "next_page": "Siguiente página",
