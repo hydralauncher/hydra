@@ -47,15 +47,15 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
         <>
             {gameDetails?.screenshots && (
                 <div className={styles.gallerySliderContainer}>
-                    <h2 className={styles.gallerySliderTitle}>{t('Videos and screenshots')}</h2>
+                    <h2 className={styles.gallerySliderTitle}>{t('gallery')}</h2>
                     <div className={styles.gallerySliderAnimationContainer}>
                         {gameDetails.movies.map((video: SteamMovies) => (
-                            <video controls className={styles.gallerySliderMedia} poster={video.thumbnail} style={{translate: `${-100 * mediaIndex}%`}}>
+                            <video controls className={styles.gallerySliderMedia} poster={video.thumbnail} style={{ translate: `${-100 * mediaIndex}%` }}>
                                 <source src={video.webm.max.replace('http', 'https')} />
                             </video>
                         ))}
                         {gameDetails.screenshots.map((image: SteamScreenshot) => (
-                            <img className={styles.gallerySliderMedia} src={image.path_full} style={{translate: `${ -100 * mediaIndex}%`}}/>
+                            <img className={styles.gallerySliderMedia} src={image.path_full} style={{ translate: `${-100 * mediaIndex}%` }} />
                         ))}
                     </div>
                     <button onClick={showPrevImage} className={styles.gallerySliderButton} style={{ left: 0 }}><ChevronLeftIcon className={styles.gallerySliderIcons} /></button>
