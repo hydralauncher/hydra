@@ -71,8 +71,8 @@ The launcher is written in TypeScript (Electron) and Python, which handles the t
 Follow the steps below to install:
 
 1. Download the latest version of Hydra from the [Releases](https://github.com/hydralauncher/hydra/releases/latest) page.
-   - Download only .exe if you want to install Hydra on Windows.
-   - Download .deb or .rpm or .zip if you want to install Hydra on Linux. (depends on your Linux distro)
+  - Download only .exe if you want to install Hydra on Windows.
+  - Download .deb or .rpm or .zip if you want to install Hydra on Linux. (depends on your Linux distro)
 2. Run the downloaded file.
 3. Enjoy Hydra!
 
@@ -261,25 +261,25 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/Hachi-R">
-            <img src="https://avatars.githubusercontent.com/u/58823742?v=4" width="100;" alt="Hachi-R"/>
-            <br />
-            <sub><b>Hachi</b></sub>
-        </a>
-    </td></tr>
-<tr>
-    <td align="center">
         <a href="https://github.com/eltociear">
             <img src="https://avatars.githubusercontent.com/u/22633385?v=4" width="100;" alt="eltociear"/>
             <br />
             <sub><b>Ikko Eltociear Ashimine</b></sub>
         </a>
-    </td>
+    </td></tr>
+<tr>
     <td align="center">
         <a href="https://github.com/Netflixyapp">
             <img src="https://avatars.githubusercontent.com/u/91623880?v=4" width="100;" alt="Netflixyapp"/>
             <br />
             <sub><b>Netflixy</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/Hachi-R">
+            <img src="https://avatars.githubusercontent.com/u/58823742?v=4" width="100;" alt="Hachi-R"/>
+            <br />
+            <sub><b>Hachi</b></sub>
         </a>
     </td>
     <td align="center">
