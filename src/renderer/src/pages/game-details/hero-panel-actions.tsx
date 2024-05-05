@@ -49,7 +49,7 @@ export function HeroPanelActions({
             name: "Game executable",
             extensions: ["exe"]
           }
-        ] : [] // No filter for non Windows aka Linux
+        ] : []
       })
       .then(({ filePaths }) => {
         if (filePaths && filePaths.length > 0) {
