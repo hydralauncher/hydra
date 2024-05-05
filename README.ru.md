@@ -1,49 +1,139 @@
-### Язык
-[![ru](https://img.shields.io/badge/lang-ru-red)](https://github.com/hydralauncher/hydra/blob/main/README.ru.md)
+<br>
 
-# Hydra
-
-<a href="https://discord.gg/hydralauncher" target="_blank">![Discord](https://img.shields.io/discord/1220692017311645737?style=flat&logo=discord&label=Hydra&labelColor=%231c1c1c)</a>
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)
-![GitHub package.json version](https://img.shields.io/github/package-json/v/hydralauncher/hydra)
-
-Hydra представляет собой игровой лаунчер со встроенным bittorrent-клиентом и автономным средством очистки репаков.
-Лаунчер написан на TypeScript (Electron) и Python, которые управляют системой обмена торрентами с помощью [libtorrent](https://www.libtorrent.org/).
+<div align="center">
+  <a href="https://hydralauncher.site">
+    <img src="./resources/icon.png" width="144"/>
+  </a>
+  <h1 align="center">Hydra Launcher</h1>
+  <p align="center">
+    <strong>Hydra-это игровой лаунчер со своим собственным встроенным клиентом BitTorrent и самоуправляемым скребком репаков.</strong>
+  </p>
+  <p>
+    <a href="https://discord.gg/hydralauncher">
+      <img src ="https://img.shields.io/discord/1220692017311645737?style=flat&logo=discord&label=Hydra&labelColor=%231c1c1c"/>
+    </a>
+    <a href="https://github.com/hydralauncher/hydra">
+      <img src="https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml" />
+    </a>
+    <a href="https://github.com/hydralauncher/hydra">
+      <img src="https://img.shields.io/github/package-json/v/hydralauncher/hydra" />
+    </a>
+  </p>
 
 ![Hydra Catalogue](./docs/screenshot.png)
 
+</div>
+
+<br>
+
+### Язык
+[![ru](https://img.shields.io/badge/lang-ru-red)](https://github.com/hydralauncher/hydra/blob/main/README.ru.md)
+
+## Содержание
+
+- [О нас](#о-нас)
+- [Функции](#функции)
+- [Установка](#установка)
+- [Сотрудничество](#сотрудничество)
+  - [Присоединяйтесь к нашему Discord](#присоединяйтесь-к-нашему-discord)
+  - [Ответвлить и клонировать свой репозиторий](#ответвлить-и-клонировать-свой-репозиторий)
+  - [Способы внести свой вклад](#способы-внести-свой-вклад)
+  - [Структура проекта](#структура-проекта)
+- [Создать из источника](#создать-из-источника)
+  - [Установите Node.js](#установите-nodejs)
+  - [Установите Yarn](#установите-yarn)
+  - [Установите зависимости Node](#установите-зависимости-node)
+  - [Установите Python 3.9](#установите-python-39)
+  - [Установите зависимости Python](#установите-зависимости-python)
+- [Переменные среды](#переменные-среды)
+- [Запуск](#запуск)
+- [Создание](#создание)
+  - [Создайте клиент BitTorrent](#создайте-клиент-bittorrent)
+  - [Создайте приложение Electron](#создайте-приложение-electron)
+- [Участники](#участники)
+
+## О нас
+
+**Hydra**-это **Игровой Лаунчер** со своим собственным встроенным **BitTorrent Client** и **самоуправляемым скребком репаков**.
+<br>
+Лаунчер написан на TypeScript (Electron) и Python, который обрабатывает систему торрента с использованием LibTorrent.
+
+## Функции
+
+- Самоуправляемый скребок репаков среди всех самых надежных веб-сайтов на [Megathread]("https://www.reddit.com/r/Piracy/wiki/megathread/")
+- Собственный встроенный клиент BitTorrent
+- Как долго пробиться (HLTB) интеграция на странице игры
+- Загрузка настройки пути
+- Уведомления об обновлении списка репаков
+- Поддержка Windows и Linux
+- Постоянно обновляется
+- И более ...
+
 ## Установка
 
-### Установить Node.js
+Следуйте приведенным ниже шагам, чтобы установить:
+
+1. Загрузите последнюю версию Hydra из [Выпуски](https://github.com/hydralauncher/hydra/releases/latest).
+   - Загрузите только .exe, если вы хотите установить Hydra в Windows.
+   - Скачать .deb или .rpm или .zip, если вы хотите установить Hydra на Linux.(Зависит от вашего дистрибутива Linux)
+2. Запустите загруженный файл.
+3. Наслаждаться Hydra!
+
+## Сотрудничество
+
+### Присоединяйтесь к нашему Discord
+
+Мы концентрируем наши обсуждения на нашем [Discord](https://discord.gg/hydralauncher) сервере.
+
+1. Присоединяйтесь к нашему серверу
+2. Перейдите на роли канала и возьмите роль сотрудничества
+3. Зайдите на канал Dev, поговорите с нами и поделитесь своими идеями.
+
+### Ответвлить и клонировать свой репозиторий
+
+1. Ответвление репозитория [(Нажмите здесь, чтобы сейчас ответвлить)](https://github.com/hydralauncher/hydra/fork)
+2. Клонировать свой ответвленный код `git clone https://github.com/your_username/hydra`
+3. Создать новую ветку
+4. Подтолкнуть свои коммиты
+5. Отправить новый запрос на привлечение
+
+### Способы внести свой вклад
+
+- Перевод: Мы хотим, чтобы Hydra была доступна как можно большему количеству людей. Не стесняйтесь переводить на новые языки или обновить и улучшить те, которые уже доступны на Hydra.
+- Код: Hydra построена на TypeScript, Electron и немного Python.Если вы хотите внести свой вклад, присоединяйтесь к нашему серверу Discord!
+
+### Структура проекта
+
+- torrent-client: Мы используем LibTorrent, библиотеку Python, чтобы управлять загрузками торрента
+- src/renderer: пользовательский интерфейс приложения
+- src/main: Вся логика отдыхает здесь.
+
+## Создать из источника
+
+### Установите Node.js
 
 Убедитесь, что у вас установлен Node.js на вашем компьютере.Если нет, загрузите и установите из [nodejs.org](https://nodejs.org/).
 
-### Установить Yarn
+### Установите Yarn
 
-Yarn - менеджер пакетов для node.js.Если вы еще не установили пряжу, вы можете сделать это, следуя инструкциям на [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/).
-
-### Клонировать репозиторий
-
-```bash
-git clone https://github.com/hydralauncher/hydra.git
-```
+Yarn является менеджером пакетов для node.js. Если вы еще не установили Yarn, вы можете сделать это, следуя инструкциям на [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/).
 
 ### Установите зависимости Node
 
-Перейдите к каталогу проекта и установите зависимости Node с помощью Yarn:
+Перейдите к каталогу проекта и установите Node зависимости с использованием Yarn:
 
 ```bash
 cd hydra
 yarn
 ```
 
-### Установить Python 3.9
+### Установите Python 3.9
 
-Убедитесь, что на вашем компьютере установлен Python. Вы можете скачать и установить его из [python.org](https://www.python.org/downloads/release/python-3919/).
+Убедитесь, что на вашем компьютере установлен Python 3.9. Вы можете скачать и установить его из [python.org](https://www.python.org/downloads/release/python-3919/).
 
 ### Установите зависимости Python
 
-Установите необходимые зависимости от Python, используя pip:
+Установите необходимые зависимости Python, используя pip:
 
 ```bash
 pip install -r requirements.txt
@@ -51,15 +141,17 @@ pip install -r requirements.txt
 
 ## Переменные среды
 
-Вам понадобится ключ API SteamGridDB, чтобы получить значки игры при установке.
-Если вы хотите получить OnlineFix в качестве репака, вам нужно добавить свои учетные данные в .env
+Вам понадобится ключ API SteamGridDB, чтобы принести значки игры при установке.
+Если вы хотите получить онлайн -фикс в качестве репака, вам нужно добавить свои учетные данные в .env
 
-Как только он у вас будет, вы можете вставить в `.env.example` и поместить его в `steamgriddb_api_key`, `onlinefix_username`,`onlinefix_password`.
+Как только он у вас есть, вы можете скопировать или переименовать `.env.example` файл в `.env`и заполнить это`STEAMGRIDDB_API_KEY`, `ONLINEFIX_USERNAME`, `ONLINEFIX_PASSWORD`.
+
 ## Запуск
-После того, как у вас все настроено, вы можете запустить следующую команду, чтобы запустить Electron и клиент BitTorrent:
+
+После того, как у вас все настроено, вы можете запустить следующую команду, чтобы запустить приложение Electron и клиент BitTorrent:
 
 ```bash
-yarn start
+yarn dev
 ```
 
 ## Создание
@@ -74,10 +166,18 @@ python torrent-client/setup.py build
 
 ### Создайте приложение Electron
 
-Создайте приложение Electron, используя эту команду:
+Создайте приложение Electron с помощью этой команды:
+
+В Windows:
 
 ```bash
-yarn make
+yarn build:win
+```
+
+В Linux:
+
+```bash
+yarn build:linux
 ```
 
 ## Участники
@@ -143,6 +243,13 @@ yarn make
         </a>
     </td>
     <td align="center">
+        <a href="https://github.com/pmenta">
+            <img src="https://avatars.githubusercontent.com/u/71457671?v=4" width="100;" alt="pmenta"/>
+            <br />
+            <sub><b>João Martins</b></sub>
+        </a>
+    </td>
+    <td align="center">
         <a href="https://github.com/ferivoq">
             <img src="https://avatars.githubusercontent.com/u/36544651?v=4" width="100;" alt="ferivoq"/>
             <br />
@@ -154,13 +261,6 @@ yarn make
             <img src="https://avatars.githubusercontent.com/u/119091492?v=4" width="100;" alt="xbozo"/>
             <br />
             <sub><b>Guilherme Viana</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/pmenta">
-            <img src="https://avatars.githubusercontent.com/u/71457671?v=4" width="100;" alt="pmenta"/>
-            <br />
-            <sub><b>João Martins</b></sub>
         </a>
     </td>
     <td align="center">
@@ -179,15 +279,36 @@ yarn make
         </a>
     </td>
     <td align="center">
+        <a href="https://github.com/Hachi-R">
+            <img src="https://avatars.githubusercontent.com/u/58823742?v=4" width="100;" alt="Hachi-R"/>
+            <br />
+            <sub><b>Hachi</b></sub>
+        </a>
+    </td>
+    <td align="center">
         <a href="https://github.com/FerNikoMF">
             <img src="https://avatars.githubusercontent.com/u/76095334?v=4" width="100;" alt="FerNikoMF"/>
             <br />
             <sub><b>Firdavs</b></sub>
         </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/userMacieG">
+            <img src="https://avatars.githubusercontent.com/u/24211405?v=4" width="100;" alt="userMacieG"/>
+            <br />
+            <sub><b>Maciej Ratyński</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/Tunchichi">
+            <img src="https://avatars.githubusercontent.com/u/118926729?v=4" width="100;" alt="Tunchichi"/>
+            <br />
+            <sub><b>Ruslan</b></sub>
+        </a>
     </td></tr>
 </table>
 <!-- readme: contributors -end -->
 
-## Лицензия
+## License
 
-Hydra лицензирована в соответствии с лицензией [MIT](LICENSE).
+Hydra лицензирована в соответствии с лицензией [MIT License](LICENSE).
