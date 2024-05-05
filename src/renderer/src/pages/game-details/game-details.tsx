@@ -88,7 +88,6 @@ export function GameDetails() {
   useEffect(() => {
     getGame();
   }, [getGame, gameDownloading?.id]);
-  console.log(gameDetails)
   useEffect(() => {
     setGame(null);
     setIsLoading(true);
