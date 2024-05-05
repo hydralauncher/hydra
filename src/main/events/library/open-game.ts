@@ -1,9 +1,9 @@
-import { exec as execCallback } from 'child_process';
 import { gameRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
 import { shell } from "electron";
 import { promisify } from 'node:util';
 import { logger } from "@main/services";
+import { exec as execCallback } from "node:child_process";
 
 const exec = promisify(execCallback);
 
