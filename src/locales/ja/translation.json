@@ -1,0 +1,147 @@
+{
+    "home": {
+        "featured": "強調",
+        "recently_added": "ニュース",
+        "trending": "人気のある",
+        "surprise_me": "驚かせてください",
+        "no_results": "結果が見つかりません"
+    },
+    "sidebar": {
+        "catalogue": "カタログ",
+        "downloads": "ダウンロード",
+        "settings": "設定",
+        "my_library": "私の図書館",
+        "downloading_metadata": "{{title}} (メタデータをダウンロード中…)",
+        "checking_files": "{{title}} ({{percentage}} - ファイルをチェック中…)",
+        "paused": "{{title}} (一時停止中)",
+        "downloading": "{{title}} ({{percentage}} - ダウンロード中…)",
+        "filter": "フィルターライブラリ",
+        "home": "始める",
+        "follow_us": "私たちに従ってください"
+    },
+    "header": {
+        "search": "検索",
+        "catalogue": "カタログ",
+        "downloads": "ダウンロード",
+        "search_results": "の検索結果",
+        "settings": "設定",
+        "home": "始める"
+    },
+    "bottom_panel": {
+        "no_downloads_in_progress": "進行中のダウンロードはありません",
+        "downloading_metadata": "{{title}} からメタデータをダウンロードしています…",
+        "checking_files": "{{title}}… ファイルをチェックしています ({{percentage}} が完了しました)",
+        "downloading": "{{title}} をダウンロード中… ({{percentage}} がフル) - 結論 {{eta}} - {{speed}}"
+    },
+    "game_details": {
+        "open_download_options": "ダウンロード オプションを表示する",
+        "download_options_zero": "ダウンロードオプションはありません",
+        "download_options_one": "{{count}} 個のダウンロード オプション",
+        "download_options_other": "{{count}} 個のダウンロード オプション",
+        "updated_at": "を更新しました {{updated_at}}",
+        "resume": "まとめる",
+        "pause": "一時停止",
+        "cancel": "キャンセル",
+        "remove": "削除する",
+        "remove_from_list": "削除する",
+        "space_left_on_disk": "ディスク上に {{space}} の空きがあります",
+        "eta": "結論 {{eta}}",
+        "downloading_metadata": "メタデータをダウンロードしています…",
+        "checking_files": "ファイルをチェック中…",
+        "filter": "フィルターの再パック",
+        "requirements": "システム要求",
+        "minimum": "最小",
+        "recommended": "推奨",
+        "no_minimum_requirements": "{{title}} には最小要件の情報がありません",
+        "no_recommended_requirements": "{{title}} には推奨要件情報がありません",
+        "paused_progress": "{{progress}} (一時停止)",
+        "release_date": " にリリースされました {{date}}",
+        "publisher": "発行者: {{publisher}}",
+        "copy_link_to_clipboard": "リンクをコピーする",
+        "copied_link_to_clipboard": "リンクがコピーされました",
+        "hours": "時間",
+        "minutes": "分",
+        "accuracy": "{{accuracy}}% 精度",
+        "add_to_library": "ライブラリに追加",
+        "remove_from_library": "ライブラリから削除",
+        "no_downloads": "ダウンロードはできません",
+        "play_time": "{{amount}} がプレイ",
+        "next_suggestion": "次の提案",
+        "install": "インストール",
+        "last_time_played": "最後にプレイしたのは {{period}}",
+        "play": "遊ぶために",
+        "not_played_yet": "まだ {{title}} をプレイしていません",
+        "close": "閉じるには",
+        "deleting": "インストーラーを削除しています…",
+        "playing_now": "今プレイ中",
+        "change": "変更するには",
+        "repacks_modal_description": "ダウンロードしたいゲームのリパックを選択してください",
+        "downloads_path": "ダウンロードディレクトリ",
+        "select_folder_hint": "デフォルトのフォルダーを変更するには、",
+        "settings": "ヒドラ設定",
+        "download_now": "ダウンロード中"
+    },
+    "activation": {
+        "title": "アクティベーション",
+        "installation_id": "インストールID:",
+        "enter_activation_code": "アクティベーション コードを入力してください",
+        "message": "コードをどこで入手できるかわからない場合は、ここに来るべきではないかもしれません。",
+        "activate": "活性化",
+        "loading": "読み込み中…"
+    },
+    "downloads": {
+        "resume": "まとめる",
+        "pause": "一時停止",
+        "eta": "結論 {{eta}}",
+        "paused": "一時停止中",
+        "verifying": "チェック中…",
+        "completed_at": "に完了しました {{date}}",
+        "completed": "結論",
+        "cancelled": "キャンセル",
+        "download_again": "再度ダウンロードする",
+        "cancel": "キャンセル",
+        "filter": "ダウンロードしたゲームをフィルタリングする",
+        "remove": "削除する",
+        "downloading_metadata": "メタデータをダウンロードしています…",
+        "checking_files": "ファイルをチェック中…",
+        "starting_download": "ダウンロードの開始…",
+        "remove_from_list": "削除する",
+        "delete": "インストーラーを削除する",
+        "delete_modal_description": "これにより、すべてのインストール ファイルがコンピュータから削除されます",
+        "delete_modal_title": "彼は確信していますか？",
+        "deleting": "インストーラーを削除しています…",
+        "install": "インストール"
+    },
+    "settings": {
+        "downloads_path": "ダウンロードディレクトリ",
+        "change": "変更するには",
+        "notifications": "通知",
+        "enable_download_notifications": "ダウンロードが完了したら",
+        "enable_repack_list_notifications": "リパックリストが更新されたとき",
+        "telemetry": "テレメトリー",
+        "telemetry_description": "匿名の使用状況統計を有効にする"
+    },
+    "notifications": {
+        "download_complete": "ダウンロード完了",
+        "game_ready_to_install": "{{title}} をインストールする準備ができました",
+        "repack_list_updated": "リパックリストを更新しました",
+        "repack_count_one": "{{count}} 個の新しいリパック",
+        "repack_count_other": "{{count}} 個の新しいリパック"
+    },
+    "system_tray": {
+        "open": "オープンヒドラ",
+        "quit": "閉じるには"
+    },
+    "game_card": {
+        "no_downloads": "ダウンロードはできません"
+    },
+    "binary_not_found_modal": {
+        "title": "プログラムがインストールされていません",
+        "description": "Wine または Lutris 実行可能ファイルがシステム上に見つかりませんでした",
+        "instructions": "ゲームが正常に実行できるように、Linux ディストリビューションにそれらのいずれかをインストールする正しい方法を確認してください。"
+    },
+    "catalogue": {
+        "next_page": "次のページ",
+        "previous_page": "前のページ"
+    }
+}
