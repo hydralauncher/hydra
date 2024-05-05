@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ShopDetails, SteamMovies, SteamScreenshot } from "@types";
 import { ChevronRightIcon, ChevronLeftIcon } from "@primer/octicons-react";
 import * as styles from "./game-details.css";
@@ -9,46 +9,31 @@ export interface GallerySliderProps {
 }
 
 export function GallerySlider({ gameDetails }: GallerySliderProps) {
+  const [mediaCount, setMediaCount] = useState<number>(() => {
+    if (gameDetails) {
+      if (gameDetails.screenshots && gameDetails.movies) {
+        return gameDetails.screenshots.length + gameDetails.movies.length;
+      } else if (gameDetails.movies) {
+        return gameDetails.movies.length;
+      } else if (gameDetails.screenshots) {
+        return gameDetails.screenshots.length;
+      }
+    }
+    return 0;
+  });
   const [mediaIndex, setMediaIndex] = useState<number>(0);
-  const [mediaType, setMediaType] = useState<"video" | "image">("video");
   const { t } = useTranslation("game_details");
 
   const showNextImage = () => {
     setMediaIndex((index: number) => {
-      if (
-        gameDetails?.movies.length &&
-        index === gameDetails?.movies.length - 1 &&
-        mediaType === "video"
-      ) {
-        setMediaType("image");
-        return 1;
-      }
-      if (
-        gameDetails?.screenshots.length &&
-        index === gameDetails?.screenshots.length - 1 &&
-        mediaType === "image"
-      ) {
-        setMediaType("video");
-        return 0;
-      }
+      if (index === mediaCount - 1) return 0;
 
       return index + 1;
     });
   };
   const showPrevImage = () => {
     setMediaIndex((index: number) => {
-      if (
-        gameDetails?.screenshots.length &&
-        index === 0 &&
-        mediaType === "video"
-      ) {
-        setMediaType("image");
-        return gameDetails?.screenshots.length - 1;
-      }
-      if (gameDetails?.movies.length && index === 1 && mediaType === "image") {
-        setMediaType("video");
-        return gameDetails?.movies.length - 1;
-      }
+      if (index === 0) return mediaCount - 1;
 
       return index - 1;
     });
@@ -60,23 +45,25 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
         <div className={styles.gallerySliderContainer}>
           <h2 className={styles.gallerySliderTitle}>{t("gallery")}</h2>
           <div className={styles.gallerySliderAnimationContainer}>
-            {gameDetails.movies.map((video: SteamMovies) => (
-              <video
-                controls
-                className={styles.gallerySliderMedia}
-                poster={video.thumbnail}
-                style={{ translate: `${-100 * mediaIndex}%` }}
-              >
-                <source src={video.webm.max.replace("http", "https")} />
-              </video>
-            ))}
-            {gameDetails.screenshots.map((image: SteamScreenshot) => (
-              <img
-                className={styles.gallerySliderMedia}
-                src={image.path_full}
-                style={{ translate: `${-100 * mediaIndex}%` }}
-              />
-            ))}
+            {gameDetails.movies &&
+              gameDetails.movies.map((video: SteamMovies) => (
+                <video
+                  controls
+                  className={styles.gallerySliderMedia}
+                  poster={video.thumbnail}
+                  style={{ translate: `${-100 * mediaIndex}%` }}
+                >
+                  <source src={video.webm.max.replace("http", "https")} />
+                </video>
+              ))}
+            {gameDetails.screenshots &&
+              gameDetails.screenshots.map((image: SteamScreenshot) => (
+                <img
+                  className={styles.gallerySliderMedia}
+                  src={image.path_full}
+                  style={{ translate: `${-100 * mediaIndex}%` }}
+                />
+              ))}
           </div>
           <button
             onClick={showPrevImage}
