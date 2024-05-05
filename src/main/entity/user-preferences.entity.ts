@@ -30,7 +30,7 @@ export class UserPreferences {
   preferQuitInsteadOfHiding: boolean;
 
   @Column("boolean", { default: false })
-  startWithSystem: boolean;
+  runAtStartup: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

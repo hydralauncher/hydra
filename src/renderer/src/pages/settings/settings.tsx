@@ -12,7 +12,7 @@ export function Settings() {
     repackUpdatesNotificationsEnabled: false,
     telemetryEnabled: false,
     preferQuitInsteadOfHiding: false,
-    startWithSystem: false,
+    runAtStartup: false,
   });
 
   const { t } = useTranslation("settings");
@@ -31,7 +31,7 @@ export function Settings() {
         telemetryEnabled: userPreferences?.telemetryEnabled ?? false,
         preferQuitInsteadOfHiding:
           userPreferences?.preferQuitInsteadOfHiding ?? false,
-        startWithSystem: userPreferences?.startWithSystem ?? false,
+        runAtStartup: userPreferences?.runAtStartup ?? false,
       });
     });
   }, []);
@@ -129,10 +129,10 @@ export function Settings() {
         <CheckboxField
           label={t("launch_with_system")}
           onChange={() => {
-            updateUserPreferences("startWithSystem", !form.startWithSystem);
-            window.electron.autoLaunch(!form.startWithSystem);
+            updateUserPreferences("runAtStartup", !form.runAtStartup);
+            window.electron.autoLaunch(!form.runAtStartup);
           }}
-          checked={form.startWithSystem}
+          checked={form.runAtStartup}
         />
       </div>
     </section>
