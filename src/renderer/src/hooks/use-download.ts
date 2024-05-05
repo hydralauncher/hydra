@@ -12,7 +12,7 @@ import {
 import type { GameShop, TorrentProgress } from "@types";
 import { useDate } from "./use-date";
 import { formatBytes } from "@renderer/utils";
-import { GameStatus } from "@globals";
+import { GameStatus, GameStatusHelper } from "@shared";
 
 export function useDownload() {
   const { updateLibrary } = useLibrary();
@@ -64,7 +64,9 @@ export function useDownload() {
       updateLibrary();
     });
 
-  const isVerifying = GameStatus.isVerifying(lastPacket?.game.status);
+  const isVerifying = GameStatusHelper.isVerifying(
+    lastPacket?.game.status ?? null
+  );
 
   const getETA = () => {
     if (isVerifying || !isFinite(lastPacket?.timeRemaining ?? 0)) {
@@ -85,8 +87,6 @@ export function useDownload() {
   const getProgress = () => {
     if (lastPacket?.game.status === GameStatus.CheckingFiles) {
       return formatDownloadProgress(lastPacket?.game.fileVerificationProgress);
-    } else if (lastPacket?.game.status === GameStatus.Decompressing) {
-      return formatDownloadProgress(lastPacket?.game.decompressionProgress);
     }
 
     return formatDownloadProgress(lastPacket?.game.progress);
@@ -116,7 +116,6 @@ export function useDownload() {
     isVerifying,
     gameId: lastPacket?.game.id,
     downloadSpeed: `${formatBytes(lastPacket?.downloadSpeed ?? 0)}/s`,
-    isDownloading: Boolean(lastPacket),
     progress: getProgress(),
     numPeers: lastPacket?.numPeers,
     numSeeds: lastPacket?.numSeeds,

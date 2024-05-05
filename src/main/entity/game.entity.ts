@@ -7,9 +7,10 @@ import {
   OneToOne,
   JoinColumn,
 } from "typeorm";
-import type { GameShop } from "@types";
 import { Repack } from "./repack.entity";
-import { GameStatus } from "@globals";
+
+import type { GameShop } from "@types";
+import { Downloader, GameStatus } from "@shared";
 
 @Entity("game")
 export class Game {
@@ -34,9 +35,6 @@ export class Game {
   @Column("text", { nullable: true })
   executablePath: string | null;
 
-  @Column("text", { nullable: true })
-  rarPath: string | null;
-
   @Column("int", { default: 0 })
   playTimeInMilliseconds: number;
 
@@ -46,6 +44,9 @@ export class Game {
   @Column("text", { nullable: true })
   status: GameStatus | null;
 
+  @Column("int", { default: Downloader.Torrent })
+  downloader: Downloader;
+
   /**
    * Progress is a float between 0 and 1
    */
@@ -54,9 +55,6 @@ export class Game {
 
   @Column("float", { default: 0 })
   fileVerificationProgress: number;
-
-  @Column("float", { default: 0 })
-  decompressionProgress: number;
 
   @Column("int", { default: 0 })
   bytesDownloaded: number;

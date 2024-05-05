@@ -1,4 +1,4 @@
-import { GameStatus } from "@globals";
+import type { Downloader, GameStatus } from "@shared";
 
 export type GameShop = "steam" | "epic";
 export type CatalogueCategory = "recently_added" | "trending";
@@ -87,6 +87,7 @@ export interface Game extends Omit<CatalogueEntry, "cover"> {
   decompressionProgress: number;
   bytesDownloaded: number;
   playTimeInMilliseconds: number;
+  downloader: Downloader;
   executablePath: string | null;
   lastTimePlayed: Date | null;
   fileSize: number;

@@ -11,7 +11,7 @@ import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
 import { DeleteModal } from "./delete-modal";
 import { formatBytes } from "@renderer/utils";
-import { GameStatus } from "@globals";
+import { Downloader, GameStatus, GameStatusHelper } from "@shared";
 
 export function Downloads() {
   const { library, updateLibrary } = useLibrary();
@@ -29,7 +29,6 @@ export function Downloads() {
   const {
     game: gameDownloading,
     progress,
-    isDownloading,
     numPeers,
     numSeeds,
     pauseDownload,
@@ -55,7 +54,7 @@ export function Downloads() {
     });
 
   const getFinalDownloadSize = (game: Game) => {
-    const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
+    const isGameDownloading = gameDownloading?.id === game?.id;
 
     if (!game) return "N/A";
     if (game.fileSize) return formatBytes(game.fileSize);
@@ -67,7 +66,7 @@ export function Downloads() {
   };
 
   const getGameInfo = (game: Game) => {
-    const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
+    const isGameDownloading = gameDownloading?.id === game?.id;
     const finalDownloadSize = getFinalDownloadSize(game);
 
     if (isGameDeleting(game?.id)) {
@@ -79,7 +78,8 @@ export function Downloads() {
         <>
           <p>{progress}</p>
 
-          {gameDownloading?.status !== GameStatus.Downloading ? (
+          {gameDownloading?.status &&
+          gameDownloading?.status !== GameStatus.Downloading ? (
             <p>{t(gameDownloading?.status)}</p>
           ) : (
             <>
@@ -87,16 +87,18 @@ export function Downloads() {
                 {formatBytes(gameDownloading?.bytesDownloaded)} /{" "}
                 {finalDownloadSize}
               </p>
-              <p>
-                {numPeers} peers / {numSeeds} seeds
-              </p>
+              {game.downloader === Downloader.Torrent && (
+                <p>
+                  {numPeers} peers / {numSeeds} seeds
+                </p>
+              )}
             </>
           )}
         </>
       );
     }
 
-    if (GameStatus.isReady(game?.status)) {
+    if (GameStatusHelper.isReady(game?.status)) {
       return (
         <>
           <p>{game?.repack.title}</p>
@@ -126,7 +128,7 @@ export function Downloads() {
   };
 
   const getGameActions = (game: Game) => {
-    const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
+    const isGameDownloading = gameDownloading?.id === game?.id;
 
     const deleting = isGameDeleting(game.id);
 
@@ -156,7 +158,7 @@ export function Downloads() {
       );
     }
 
-    if (GameStatus.isReady(game?.status)) {
+    if (GameStatusHelper.isReady(game?.status)) {
       return (
         <>
           <Button

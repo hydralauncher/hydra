@@ -13,7 +13,9 @@ const openGameInstaller = async (
   _event: Electron.IpcMainInvokeEvent,
   gameId: number
 ) => {
-  const game = await gameRepository.findOne({ where: { id: gameId } });
+  const game = await gameRepository.findOne({
+    where: { id: gameId, isDeleted: false },
+  });
 
   if (!game) return true;
 

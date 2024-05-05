@@ -14,7 +14,7 @@ import DiscordLogo from "@renderer/assets/discord-icon.svg?react";
 import XLogo from "@renderer/assets/x-icon.svg?react";
 
 import * as styles from "./sidebar.css";
-import { GameStatus } from "@globals";
+import { GameStatus, GameStatusHelper } from "@shared";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -61,7 +61,7 @@ export function Sidebar() {
   }, [gameDownloading?.id, updateLibrary]);
 
   const isDownloading = library.some((game) =>
-    GameStatus.isDownloading(game.status)
+    GameStatusHelper.isDownloading(game.status)
   );
 
   const sidebarRef = useRef<HTMLElement>(null);
@@ -124,7 +124,7 @@ export function Sidebar() {
       return t("paused", { title: game.title });
 
     if (gameDownloading?.id === game.id) {
-      const isVerifying = GameStatus.isVerifying(gameDownloading.status);
+      const isVerifying = GameStatusHelper.isVerifying(gameDownloading.status);
 
       if (isVerifying)
         return t(gameDownloading.status!, {

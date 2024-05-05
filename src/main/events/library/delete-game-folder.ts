@@ -1,7 +1,7 @@
 import path from "node:path";
 import fs from "node:fs";
 
-import { GameStatus } from "@globals";
+import { GameStatus } from "@shared";
 import { gameRepository } from "@main/repository";
 
 import { getDownloadsPath } from "../helpers/get-downloads-path";
@@ -16,6 +16,7 @@ const deleteGameFolder = async (
     where: {
       id: gameId,
       status: GameStatus.Cancelled,
+      isDeleted: false,
     },
   });
 

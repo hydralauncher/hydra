@@ -2,7 +2,7 @@ import { gameRepository } from "@main/repository";
 
 import { searchRepacks } from "../helpers/search-games";
 import { registerEvent } from "../register-event";
-import { GameStatus } from "@globals";
+import { GameStatus } from "@shared";
 import { sortBy } from "lodash-es";
 
 const getLibrary = async () =>

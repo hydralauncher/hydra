@@ -1,15 +1,15 @@
-import { WindowManager } from "@main/services";
-
 import { registerEvent } from "../register-event";
 import { gameRepository } from "../../repository";
 import { In } from "typeorm";
-import { Downloader } from "@main/services/downloaders/downloader";
-import { GameStatus } from "@globals";
+import { DownloadManager, WindowManager } from "@main/services";
+import { GameStatus } from "@shared";
 
 const pauseGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
   gameId: number
 ) => {
+  DownloadManager.pauseDownload();
+
   await gameRepository
     .update(
       {
@@ -23,10 +23,7 @@ const pauseGameDownload = async (
       { status: GameStatus.Paused }
     )
     .then((result) => {
-      if (result.affected) {
-        Downloader.pauseDownload();
-        WindowManager.mainWindow?.setProgressBar(-1);
-      }
+      if (result.affected) WindowManager.mainWindow?.setProgressBar(-1);
     });
 };
 
