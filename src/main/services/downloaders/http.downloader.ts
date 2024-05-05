@@ -1,6 +1,7 @@
 import { Game } from "@main/entity";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import path from "node:path";
+import fs from "node:fs";
 import EasyDL from "easydl";
 import { GameStatus } from "@shared";
 
@@ -49,14 +50,24 @@ export class HTTPDownloader extends Downloader {
     throw new Error();
   }
 
+  private static createFolderIfNotExists(path: string) {
+    if (!fs.existsSync(path)) {
+      fs.mkdirSync(path);
+    }
+  }
+
   static async startDownload(game: Game) {
     if (this.download) this.download.destroy();
-    const download = await this.getDownloadUrl(game);
+    const downloadUrl = await this.getDownloadUrl(game);
 
-    this.download = new EasyDL(
-      download,
-      path.join(game.downloadPath!, game.repack.title)
-    );
+    const filename = path.basename(downloadUrl);
+    const folderName = path.basename(filename, path.extname(filename));
+
+    const fullDownloadPath = path.join(game.downloadPath!, folderName);
+
+    this.createFolderIfNotExists(fullDownloadPath);
+
+    this.download = new EasyDL(downloadUrl, fullDownloadPath);
 
     const metadata = await this.download.metadata();
 
@@ -65,7 +76,7 @@ export class HTTPDownloader extends Downloader {
     const updatePayload: QueryDeepPartialEntity<Game> = {
       status: GameStatus.Downloading,
       fileSize: metadata.size,
-      folderName: game.repack.title,
+      folderName: folderName,
     };
 
     const downloadStatus = {
