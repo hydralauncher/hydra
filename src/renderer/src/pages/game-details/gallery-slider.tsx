@@ -110,7 +110,9 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
                     }
                     className={`${styles.gallerySliderMediaPreview} ${mediaIndex === i + (gameDetails.movies ? gameDetails.movies.length : 0) ? styles.gallerySliderMediaPreviewActive : ""}`}
                     src={image.path_full}
-                    style={{ translate: `${-85 * mediaIndex}%` }}
+                    style={{
+                      translate: `${mediaIndex >= mediaCount - 3 ? -85 * (mediaCount - 4) : -85 * mediaIndex}%`,
+                    }}
                   />
                 )
               )}

@@ -135,6 +135,7 @@ export const gallerySliderMediaPreview = style({
   flexShrink: 0,
   flexGrow: 0,
   opacity: 0.3,
+  paddingRight: "0.5rem",
   transition: "translate 300ms ease-in-out",
   ":hover": {
     opacity: 1,
