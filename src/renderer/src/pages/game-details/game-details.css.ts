@@ -89,11 +89,21 @@ export const gallerySliderTitle = style({
   padding: `${SPACING_UNIT}px 0`,
 });
 
-export const gallerySliderImage = style({
-
+export const gallerySliderMedia = style({
   width: "100%",
+  height: "100%",
   display: "block",
+  flexShrink: 0,
+  flexGrow: 0,
+  transition: "translate 300ms ease-in-out"
 });
+
+export const gallerySliderAnimationContainer = style({
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  overflow: "hidden"
+})
 
 export const gallerySliderButton = style({
   all: "unset",
