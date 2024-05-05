@@ -17,10 +17,7 @@
     "downloading": "{{title}} ({{percentage}} - Download…)",
     "filter": "Filtra libreria",
     "follow_us": "Seguici",
-    "home": "Home",
-    "discord": "Unisciti al nostro Discord",
-    "x": "Segui su X",
-    "github": "Contribuisci su GitHub"
+    "home": "Home"
   },
   "header": {
     "search": "Cerca",
@@ -69,8 +66,6 @@
     "copied_link_to_clipboard": "Link copiato",
     "hours": "ore",
     "minutes": "minuti",
-    "amount_hours": "{{amount}} ore",
-    "amount_minutes": "{{amount}} minuti",
     "accuracy": "{{accuratezza}}% di accuratezza",
     "add_to_library": "Aggiungi alla libreria",
     "remove_from_library": "Rimuovi dalla libreria",
@@ -82,21 +77,7 @@
     "play": "Gioca",
     "deleting": "Eliminazione dell'installer…",
     "close": "Chiudi",
-    "playing_now": "Stai giocando adesso",
-    "change": "Aggiorna",
-    "repacks_modal_description": "Scegli il repack che vuoi scaricare",
-    "downloads_path": "Percorso dei download",
-    "select_folder_hint": "Per cambiare la cartella predefinita, accedi alle",
-    "settings": "Impostazioni",
-    "download_now": "Scarica ora",
-    "installation_instructions": "Istruzioni di installazione",
-    "installation_instructions_description": "Sono necessari passaggi aggiuntivi per installare questo gioco",
-    "online_fix_instruction": "I giochi OnlineFix richiedono una password per essere estratti. Quando richiesto, utilizza la seguente password:",
-    "dodi_installation_instruction": "Quando apri l'installatore di DODI, premi il tasto su della tua tastiera <0 /> per avviare il processo di installazione:",
-    "dont_show_it_again": "Non mostrarlo più",
-    "copy_to_clipboard": "Copia",
-    "copied_to_clipboard": "Copiato",
-    "got_it": "Capito"
+    "playing_now": "Stai giocando adesso"
   },
   "activation": {
     "title": "Attiva Hydra",
@@ -155,9 +136,6 @@
   "binary_not_found_modal": {
     "title": "Programmi non installati",
     "description": "Gli eseguibili di Wine o Lutris non sono stati trovati sul tuo sistema",
-    "instructions": "Verifica il modo corretto di installare uno di essi sulla tua distribuzione Linux in modo che il gioco possa funzionare normalmente"
-  },
-  "modal": {
-    "close": "Pulsante Chiudi"
+    "instructions": "Verifica il modo  corretto di installare uno di essi sulla tua distribuzione Linux in modo che il gioco possa funzionare normalmente"
   }
 }

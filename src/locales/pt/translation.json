@@ -1,7 +1,7 @@
 {
   "home": {
     "featured": "Destaque",
-    "recently_added": "Recém adicionados",
+    "recently_added": "Novidades",
     "trending": "Populares",
     "surprise_me": "Surpreenda-me",
     "no_results": "Nenhum resultado encontrado"
@@ -17,10 +17,7 @@
     "downloading": "{{title}} ({{percentage}} - Baixando…)",
     "filter": "Filtrar biblioteca",
     "home": "Início",
-    "follow_us": "Acompanhe-nos",
-    "discord": "Entre no nosso Discord",
-    "x": "Siga-nos no X",
-    "github": "Contribua no GitHub"
+    "follow_us": "Acompanhe-nos"
   },
   "header": {
     "search": "Buscar",
@@ -64,8 +61,6 @@
     "copied_link_to_clipboard": "Link copiado",
     "hours": "horas",
     "minutes": "minutos",
-    "amount_hours": "{{amount}} horas",
-    "amount_minutes": "{{amount}} minutos",
     "accuracy": "{{accuracy}}% de precisão",
     "add_to_library": "Adicionar à biblioteca",
     "remove_from_library": "Remover da biblioteca",
@@ -84,15 +79,7 @@
     "downloads_path": "Diretório do download",
     "select_folder_hint": "Para trocar a pasta padrão, acesse as ",
     "settings": "Configurações do Hydra",
-    "download_now": "Baixe agora",
-    "installation_instructions": "Instruções de Instalação",
-    "installation_instructions_description": "Passos adicionais são necessários para instalar esse jogo",
-    "online_fix_instruction": "Jogos OnlineFix precisam de uma senha para serem extraídos. Quando solicitado, utilize a seguinte senha:",
-    "dodi_installation_instruction": "Quando o instalador do DODI for aberto, pressione a seta para cima <0 /> do teclado para iniciar o processo de instalação:",
-    "dont_show_it_again": "Não mostrar novamente",
-    "copy_to_clipboard": "Copiar",
-    "copied_to_clipboard": "Copiado",
-    "got_it": "Entendi"
+    "download_now": "Baixe agora"
   },
   "activation": {
     "title": "Ativação",
@@ -132,9 +119,7 @@
     "enable_download_notifications": "Quando um download for concluído",
     "enable_repack_list_notifications": "Quando a lista de repacks for atualizada",
     "telemetry": "Telemetria",
-    "telemetry_description": "Habilitar estatísticas de uso anônimas",
-    "behavior": "Comportamento",
-    "quit_app_instead_hiding": "Fechar o aplicativo em vez de minimizá-lo"
+    "telemetry_description": "Habilitar estatísticas de uso anônimas"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -158,8 +143,5 @@
   "catalogue": {
     "next_page": "Próxima página",
     "previous_page": "Página anterior"
-  },
-  "modal": {
-    "close": "Botão de fechar"
   }
 }
