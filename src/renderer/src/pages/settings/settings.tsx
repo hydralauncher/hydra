@@ -4,7 +4,6 @@ import { Button, CheckboxField, TextField } from "@renderer/components";
 import * as styles from "./settings.css";
 import { useTranslation } from "react-i18next";
 import { UserPreferences } from "@types";
-// import { autoLaunch } from "./auto-launch";
 
 export function Settings() {
   const [form, setForm] = useState({
@@ -128,10 +127,10 @@ export function Settings() {
         />
 
         <CheckboxField
-          label={"autoLaunch"}
+          label={t("launch_with_system")}
           onChange={() => {
             updateUserPreferences("startWithSystem", !form.startWithSystem);
-            // autoLaunch();
+            window.electron.autoLaunch(!form.startWithSystem);
           }}
           checked={form.startWithSystem}
         />

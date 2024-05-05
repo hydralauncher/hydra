@@ -138,7 +138,8 @@
     "telemetry": "Telemetry",
     "telemetry_description": "Enable anonymous usage statistics",
     "behavior": "Behavior",
-    "quit_app_instead_hiding": "Close app instead of minimizing to tray"
+    "quit_app_instead_hiding": "Close app instead of minimizing to tray",
+    "launch_with_system": "Launch app on system start-up"
   },
   "notifications": {
     "download_complete": "Download complete",
