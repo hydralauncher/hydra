@@ -8,7 +8,7 @@ import type { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialE
 import { WindowManager } from "../window-manager";
 import type { TorrentUpdate } from "./torrent.downloader";
 
-import { GameStatus, GameStatusHelper } from "@shared";
+import { GameStatus } from "@shared";
 import { gameRepository, userPreferencesRepository } from "@main/repository";
 
 interface DownloadStatus {
