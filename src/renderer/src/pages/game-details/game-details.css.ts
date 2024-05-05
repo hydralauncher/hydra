@@ -82,7 +82,9 @@ export const descriptionContent = style({
 export const gallerySliderContainer = style({
   padding: `${SPACING_UNIT * 3}px ${SPACING_UNIT * 2}px`,
   width: "100%",
-  position: "relative",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
 });
 
 export const gallerySliderTitle = style({
@@ -95,15 +97,53 @@ export const gallerySliderMedia = style({
   display: "block",
   flexShrink: 0,
   flexGrow: 0,
-  transition: "translate 300ms ease-in-out"
+  transition: "translate 300ms ease-in-out",
 });
 
 export const gallerySliderAnimationContainer = style({
   width: "100%",
   height: "100%",
   display: "flex",
-  overflow: "hidden"
-})
+  position: "relative",
+  overflow: "hidden",
+  "@media": {
+    "(min-width: 1280px)": {
+      width: "60%",
+    },
+  },
+});
+
+export const gallerySliderPreview = style({
+  width: "100%",
+  paddingTop: "0.5rem",
+  height: "100%",
+  display: "flex",
+  position: "relative",
+  overflow: "hidden",
+  "@media": {
+    "(min-width: 1280px)": {
+      width: "60%",
+    },
+  },
+});
+
+export const gallerySliderMediaPreview = style({
+  cursor: "pointer",
+  width: "20%",
+  height: "20%",
+  display: "block",
+  flexShrink: 0,
+  flexGrow: 0,
+  opacity: 0.3,
+  transition: "translate 300ms ease-in-out",
+  ":hover": {
+    opacity: 1,
+  },
+});
+
+export const gallerySliderMediaPreviewActive = style({
+  opacity: 1,
+});
 
 export const gallerySliderButton = style({
   all: "unset",
@@ -114,7 +154,6 @@ export const gallerySliderButton = style({
   padding: "1rem",
   cursor: "pointer",
   transition: "background-color 100ms ease-in-out",
-  margin: `${SPACING_UNIT * 8}px ${SPACING_UNIT * 2}px ${SPACING_UNIT * 3}px ${SPACING_UNIT * 2}px `,
   ":hover": {
     backgroundColor: "rgb(0,0,0, 0.2)",
   },
