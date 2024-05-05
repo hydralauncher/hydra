@@ -106,6 +106,7 @@ export interface UserPreferences {
   repackUpdatesNotificationsEnabled: boolean;
   telemetryEnabled: boolean;
   preferQuitInsteadOfHiding: boolean;
+  startWithSystem: boolean;
 }
 
 export interface HowLongToBeatCategory {

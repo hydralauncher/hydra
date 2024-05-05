@@ -4,6 +4,7 @@ import { Button, CheckboxField, TextField } from "@renderer/components";
 import * as styles from "./settings.css";
 import { useTranslation } from "react-i18next";
 import { UserPreferences } from "@types";
+// import { autoLaunch } from "./auto-launch";
 
 export function Settings() {
   const [form, setForm] = useState({
@@ -12,6 +13,7 @@ export function Settings() {
     repackUpdatesNotificationsEnabled: false,
     telemetryEnabled: false,
     preferQuitInsteadOfHiding: false,
+    startWithSystem: false,
   });
 
   const { t } = useTranslation("settings");
@@ -30,6 +32,7 @@ export function Settings() {
         telemetryEnabled: userPreferences?.telemetryEnabled ?? false,
         preferQuitInsteadOfHiding:
           userPreferences?.preferQuitInsteadOfHiding ?? false,
+        startWithSystem: userPreferences?.startWithSystem ?? false,
       });
     });
   }, []);
@@ -122,6 +125,15 @@ export function Settings() {
               !form.preferQuitInsteadOfHiding
             )
           }
+        />
+
+        <CheckboxField
+          label={"autoLaunch"}
+          onChange={() => {
+            updateUserPreferences("startWithSystem", !form.startWithSystem);
+            // autoLaunch();
+          }}
+          checked={form.startWithSystem}
         />
       </div>
     </section>

@@ -29,6 +29,9 @@ export class UserPreferences {
   @Column("boolean", { default: false })
   preferQuitInsteadOfHiding: boolean;
 
+  @Column("boolean", { default: false })
+  startWithSystem: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
