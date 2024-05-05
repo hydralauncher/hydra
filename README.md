@@ -71,8 +71,8 @@ The launcher is written in TypeScript (Electron) and Python, which handles the t
 Follow the steps below to install:
 
 1. Download the latest version of Hydra from the [Releases](https://github.com/hydralauncher/hydra/releases/latest) page.
-  - Download only .exe if you want to install Hydra on Windows.
-  - Download .deb or .rpm or .zip if you want to install Hydra on Linux. (depends on your Linux distro)
+   - Download only .exe if you want to install Hydra on Windows.
+   - Download .deb or .rpm or .zip if you want to install Hydra on Linux. (depends on your Linux distro)
 2. Run the downloaded file.
 3. Enjoy Hydra!
 
