@@ -38,7 +38,7 @@ const openGame = async (
       shell.openPath(executablePath);
     }
   } catch (err) {
-    logger.error('Failed operation:', err);
+    logger.error('Failed to openGame:', err);
   }
 };
 
