@@ -12,6 +12,7 @@ export function Settings() {
     repackUpdatesNotificationsEnabled: false,
     telemetryEnabled: false,
     preferQuitInsteadOfHiding: false,
+    runAtStartup: false,
   });
 
   const { t } = useTranslation("settings");
@@ -30,6 +31,7 @@ export function Settings() {
         telemetryEnabled: userPreferences?.telemetryEnabled ?? false,
         preferQuitInsteadOfHiding:
           userPreferences?.preferQuitInsteadOfHiding ?? false,
+        runAtStartup: userPreferences?.runAtStartup ?? false,
       });
     });
   }, []);
@@ -122,6 +124,15 @@ export function Settings() {
               !form.preferQuitInsteadOfHiding
             )
           }
+        />
+
+        <CheckboxField
+          label={t("launch_with_system")}
+          onChange={() => {
+            updateUserPreferences("runAtStartup", !form.runAtStartup);
+            window.electron.autoLaunch(!form.runAtStartup);
+          }}
+          checked={form.runAtStartup}
         />
       </div>
     </section>
