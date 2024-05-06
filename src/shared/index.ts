@@ -9,7 +9,7 @@ export enum GameStatus {
 }
 
 export enum Downloader {
-  Http,
+  RealDebrid,
   Torrent,
 }
 

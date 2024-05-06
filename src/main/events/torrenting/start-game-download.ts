@@ -26,7 +26,7 @@ const startGameDownload = async (
   });
 
   const downloader = userPreferences?.realDebridApiToken
-    ? Downloader.Http
+    ? Downloader.RealDebrid
     : Downloader.Torrent;
 
   const [game, repack] = await Promise.all([
