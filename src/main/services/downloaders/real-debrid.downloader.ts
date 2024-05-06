@@ -8,6 +8,10 @@ import { fullArchive } from "node-7z-archive";
 import { Downloader } from "./downloader";
 import { RealDebridClient } from "../real-debrid";
 
+function getFileNameWithoutExtension(fullPath: string) {
+  return path.basename(fullPath, path.extname(fullPath));
+}
+
 export class RealDebridDownloader extends Downloader {
   private static download: EasyDL;
   private static downloadSize = 0;
@@ -30,6 +34,7 @@ export class RealDebridDownloader extends Downloader {
       downloadUrl,
       path.join(game.downloadPath!, ".rd")
     );
+
     const metadata = await this.download.metadata();
 
     this.downloadSize = metadata.size;
@@ -37,7 +42,7 @@ export class RealDebridDownloader extends Downloader {
     const updatePayload: QueryDeepPartialEntity<Game> = {
       status: GameStatus.Downloading,
       fileSize: metadata.size,
-      folderName: game.repack.title,
+      folderName: getFileNameWithoutExtension(metadata.savedFilePath),
     };
 
     const downloadStatus = {
@@ -71,12 +76,12 @@ export class RealDebridDownloader extends Downloader {
         timeRemaining: 0,
       });
 
-      this.startDecompression(this.download.savedFilePath!, game);
+      this.startDecompression(this.download.savedFilePath!, getFileNameWithoutExtension(metadata.savedFilePath), game);
     });
   }
 
-  static async startDecompression(rarFile: string, game: Game) {
-    const directory = path.join(game.downloadPath!, game.repack.title);
+  static async startDecompression(rarFile: string, destiny: string, game: Game) {
+    const directory = path.join(game.downloadPath!, destiny);
 
     await fullArchive(rarFile, directory);
     const updatePayload: QueryDeepPartialEntity<Game> = {
