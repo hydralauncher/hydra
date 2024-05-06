@@ -12,19 +12,9 @@ export interface SteamScreenshot {
   path_full: string;
 }
 
-export interface SteamHighlighted {
-  name: string;
-  path: string
-}
-
-export interface SteamAchievements {
-  total: number;
-  highlighted: SteamHighlighted[]
-}
 export interface SteamAppDetails {
   name: string;
   detailed_description: string;
-  achievements: string[]
   about_the_game: string;
   short_description: string;
   publishers: string[];
@@ -75,7 +65,7 @@ export interface CatalogueEntry {
   objectID: string;
   shop: GameShop;
   title: string;
-  achievementsLength: number;
+  /* Epic Games covers cannot be guessed with objectID */
   cover: string;
   repacks: GameRepack[];
 }
