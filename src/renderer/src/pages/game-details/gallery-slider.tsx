@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { RefObject, useEffect, useRef, useState } from "react";
 import { ShopDetails, SteamMovies, SteamScreenshot } from "@types";
 import { ChevronRightIcon, ChevronLeftIcon } from "@primer/octicons-react";
 import * as styles from "./game-details.css";
-import { useTranslation } from "react-i18next";
 
 export interface GallerySliderProps {
   gameDetails: ShopDetails | null;
 }
 
 export function GallerySlider({ gameDetails }: GallerySliderProps) {
+  const scrollContainerRef: RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
   const [mediaCount] = useState<number>(() => {
     if (gameDetails) {
       if (gameDetails.screenshots && gameDetails.movies) {
@@ -23,7 +24,16 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
   });
   const [mediaIndex, setMediaIndex] = useState<number>(0);
   const [arrowShow, setArrowShow] = useState(false);
-  const { t } = useTranslation("game_details");
+
+  const scrollHorizontallyToPercentage = () => {
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const totalWidth = container.scrollWidth - container.clientWidth;
+      const itemWidth = totalWidth / (mediaCount - 1);
+      const scrollLeft = mediaIndex * itemWidth;
+      container.scrollLeft = scrollLeft;
+    }
+  };
 
   const showNextImage = () => {
     setMediaIndex((index: number) => {
@@ -40,11 +50,13 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
     });
   };
 
+  useEffect(() => {
+    scrollHorizontallyToPercentage();
+  }, [mediaIndex]);
   return (
     <>
       {gameDetails?.screenshots && (
         <div className={styles.gallerySliderContainer}>
-          <h2 className={styles.gallerySliderTitle}>{t("gallery")}</h2>
           <div
             onMouseEnter={() => setArrowShow(true)}
             onMouseLeave={() => setArrowShow(false)}
@@ -89,14 +101,13 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
             )}
           </div>
 
-          <div className={styles.gallerySliderPreview}>
+          <div className={styles.gallerySliderPreview} ref={scrollContainerRef}>
             {gameDetails.movies &&
               gameDetails.movies.map((video: SteamMovies, i: number) => (
                 <img
                   onClick={() => setMediaIndex(i)}
                   src={video.thumbnail}
                   className={`${styles.gallerySliderMediaPreview} ${mediaIndex === i ? styles.gallerySliderMediaPreviewActive : ""}`}
-                  style={{ translate: `${-85 * mediaIndex}%` }}
                 />
               ))}
             {gameDetails.screenshots &&
@@ -110,26 +121,9 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
                     }
                     className={`${styles.gallerySliderMediaPreview} ${mediaIndex === i + (gameDetails.movies ? gameDetails.movies.length : 0) ? styles.gallerySliderMediaPreviewActive : ""}`}
                     src={image.path_full}
-                    style={{
-                      translate: `${mediaIndex >= mediaCount - 3 ? -85 * (mediaCount - 4) : -85 * mediaIndex}%`,
-                    }}
                   />
                 )
               )}
-            <button
-              onClick={showPrevImage}
-              className={styles.gallerySliderButton}
-              style={{ left: 0 }}
-            >
-              <ChevronLeftIcon className={styles.gallerySliderIcons} />
-            </button>
-            <button
-              onClick={showNextImage}
-              className={styles.gallerySliderButton}
-              style={{ right: 0 }}
-            >
-              <ChevronRightIcon className={styles.gallerySliderIcons} />
-            </button>
           </div>
         </div>
       )}

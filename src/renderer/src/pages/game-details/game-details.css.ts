@@ -87,10 +87,6 @@ export const gallerySliderContainer = style({
   alignItems: "center",
 });
 
-export const gallerySliderTitle = style({
-  padding: `${SPACING_UNIT}px 0`,
-});
-
 export const gallerySliderMedia = style({
   width: "100%",
   height: "100%",
@@ -119,12 +115,15 @@ export const gallerySliderPreview = style({
   height: "100%",
   display: "flex",
   position: "relative",
-  overflow: "hidden",
+  overflowX: "scroll",
+  overflowY: "hidden",
   "@media": {
     "(min-width: 1280px)": {
       width: "60%",
     },
   },
+  "::-webkit-scrollbar": {
+  }
 });
 
 export const gallerySliderMediaPreview = style({
@@ -135,7 +134,7 @@ export const gallerySliderMediaPreview = style({
   flexShrink: 0,
   flexGrow: 0,
   opacity: 0.3,
-  paddingRight: "0.5rem",
+  paddingRight: "5px",
   transition: "translate 300ms ease-in-out",
   ":hover": {
     opacity: 1,
