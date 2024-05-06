@@ -115,14 +115,15 @@ export const gallerySliderPreview = style({
   height: "100%",
   display: "flex",
   position: "relative",
-  overflowX: "scroll",
+  overflowX: "auto",
   overflowY: "hidden",
   "@media": {
     "(min-width: 1280px)": {
       width: "60%",
     },
   },
-  "::-webkit-scrollbar": {
+  "::-webkit-scrollbar-thumb": {
+    width: "20%"
   }
 });
 
