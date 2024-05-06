@@ -65,6 +65,11 @@ export function Downloads() {
     return game.repack?.fileSize ?? "N/A";
   };
 
+  const downloaderName = {
+    [Downloader.Http]: t("real_debrid"),
+    [Downloader.Torrent]: t("torrent"),
+  };
+
   const getGameInfo = (game: Game) => {
     const isGameDownloading = gameDownloading?.id === game?.id;
     const finalDownloadSize = getFinalDownloadSize(game);
@@ -251,15 +256,21 @@ export function Downloads() {
               />
               <div className={styles.downloadRightContent}>
                 <div className={styles.downloadDetails}>
-                  <button
-                    type="button"
-                    className={styles.downloadTitle}
-                    onClick={() =>
-                      navigate(`/game/${game.shop}/${game.objectID}`)
-                    }
-                  >
-                    {game.title}
-                  </button>
+                  <div className={styles.downloadTitleWrapper}>
+                    <button
+                      type="button"
+                      className={styles.downloadTitle}
+                      onClick={() =>
+                        navigate(`/game/${game.shop}/${game.objectID}`)
+                      }
+                    >
+                      {game.title}
+                    </button>
+
+                    <small className={styles.downloaderName}>
+                      {downloaderName[game?.downloader]}
+                    </small>
+                  </div>
 
                   {getGameInfo(game)}
                 </div>
