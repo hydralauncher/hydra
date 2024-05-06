@@ -47,11 +47,8 @@ export class RealDebridDownloader extends Downloader {
 
     this.download.on("progress", async ({ total }) => {
       const updatePayload: QueryDeepPartialEntity<Game> = {
-        status:
-          total.percentage === 100
-            ? GameStatus.Finished
-            : GameStatus.Downloading,
-        progress: total.percentage / 100,
+        status: GameStatus.Downloading,
+        progress: Math.min(0.99, total.percentage / 100),
         bytesDownloaded: total.bytes,
       };
 
@@ -61,6 +58,17 @@ export class RealDebridDownloader extends Downloader {
       };
 
       await this.updateGameProgress(game.id, updatePayload, downloadStatus);
+    });
+
+    this.download.on("end", async () => {
+      const updatePayload: QueryDeepPartialEntity<Game> = {
+        status: GameStatus.Finished,
+        progress: 1,
+      };
+
+      await this.updateGameProgress(game.id, updatePayload, {
+        timeRemaining: 0,
+      });
     });
   }
 
