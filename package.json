@@ -51,7 +51,7 @@
     "jsdom": "^24.0.0",
     "lodash-es": "^4.17.21",
     "lottie-react": "^2.4.0",
-    "node-unrar-js": "^2.0.2",
+    "node-7z-archive": "^1.1.7",
     "parse-torrent": "^11.0.16",
     "ps-list": "^8.1.1",
     "react-i18next": "^14.1.0",
