@@ -5,7 +5,9 @@ import { ShopDetails } from "@types";
 import { getSteamLanguage, steamUrlBuilder } from "@renderer/helpers";
 import { useTranslation } from "react-i18next";
 
-const FEATURED_GAME_ID = "2420110";
+let FEATURED_GAME_ID = "1245620"; // id do Horizon 2420110
+
+
 
 export function Hero() {
   const [featuredGameDetails, setFeaturedGameDetails] =
@@ -20,7 +22,7 @@ export function Hero() {
       .getGameShopDetails(
         FEATURED_GAME_ID,
         "steam",
-        getSteamLanguage(i18n.language)
+        getSteamLanguage(i18n.language) 
       )
       .then((result) => {
         setFeaturedGameDetails(result);
@@ -35,17 +37,16 @@ export function Hero() {
     >
       <div className={styles.backdrop}>
         <img
-          src="https://cdn2.steamgriddb.com/hero/4ef10445b952a8b3c93a9379d581146a.jpg"
+          src={steamUrlBuilder.libraryHero(FEATURED_GAME_ID)}
           alt={featuredGameDetails?.name}
           className={styles.heroMedia}
-        />
+        /> 
 
         <div className={styles.content}>
           <img
             src={steamUrlBuilder.logo(FEATURED_GAME_ID)}
             width="250px"
             alt={featuredGameDetails?.name}
-            style={{ marginBottom: 16 }}
           />
 
           <p className={styles.description}>
