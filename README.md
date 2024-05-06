@@ -290,6 +290,13 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
+        <a href="https://github.com/Chr1s0Blood">
+            <img src="https://avatars.githubusercontent.com/u/166660500?v=4" width="100;" alt="Chr1s0Blood"/>
+            <br />
+            <sub><b>Cristian S.</b></sub>
+        </a>
+    </td>
+    <td align="center">
         <a href="https://github.com/userMacieG">
             <img src="https://avatars.githubusercontent.com/u/24211405?v=4" width="100;" alt="userMacieG"/>
             <br />
