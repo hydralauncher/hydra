@@ -8,7 +8,7 @@ const autoLaunch = async (
 ) => {
   const appLauncher = new AutoLaunch({
     name: app.getName(),
-    path: app.getPath('exe')
+    // path: app.getPath('exe')
   });
   if (enabled) {
     appLauncher.enable().catch();
