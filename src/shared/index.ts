@@ -5,6 +5,7 @@ export enum GameStatus {
   CheckingFiles = "checking_files",
   DownloadingMetadata = "downloading_metadata",
   Cancelled = "cancelled",
+  Decompressing = "decompressing",
   Finished = "finished",
 }
 

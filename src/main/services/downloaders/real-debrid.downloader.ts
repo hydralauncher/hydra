@@ -3,6 +3,7 @@ import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity
 import path from "node:path";
 import EasyDL from "easydl";
 import { GameStatus } from "@shared";
+import { fullArchive } from "node-7z-archive";
 
 import { Downloader } from "./downloader";
 import { RealDebridClient } from "../real-debrid";
@@ -62,13 +63,29 @@ export class RealDebridDownloader extends Downloader {
 
     this.download.on("end", async () => {
       const updatePayload: QueryDeepPartialEntity<Game> = {
-        status: GameStatus.Finished,
-        progress: 1,
+        status: GameStatus.Decompressing,
+        progress: 0.99,
       };
 
       await this.updateGameProgress(game.id, updatePayload, {
         timeRemaining: 0,
       });
+
+      this.startDecompression(this.download.savedFilePath!, game);
+    });
+  }
+
+  static async startDecompression(rarFile: string, game: Game) {
+    const directory = path.join(game.downloadPath!, game.repack.title);
+
+    await fullArchive(rarFile, directory);
+    const updatePayload: QueryDeepPartialEntity<Game> = {
+      status: GameStatus.Finished,
+      progress: 1,
+    };
+
+    await this.updateGameProgress(game.id, updatePayload, {
+      timeRemaining: 0,
     });
   }
 
