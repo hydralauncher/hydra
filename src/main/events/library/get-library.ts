@@ -24,10 +24,11 @@ const getLibrary = async () =>
           ...game,
           repacks: searchRepacks(game.title),
         })),
-        (game) => (game.status !== GameStatus.Cancelled ? 0 : 1)
+        ['title']
       )
     );
 
 registerEvent(getLibrary, {
   name: "getLibrary",
 });
+
