@@ -7,7 +7,7 @@ import { GameStatus } from "@shared";
 import { Downloader } from "./downloader";
 import { RealDebridClient } from "../real-debrid";
 
-export class HTTPDownloader extends Downloader {
+export class RealDebridDownloader extends Downloader {
   private static download: EasyDL;
   private static downloadSize = 0;
 
@@ -21,43 +21,14 @@ export class HTTPDownloader extends Downloader {
     return 1;
   }
 
-  static async getDownloadUrl(game: Game) {
-    const torrents = await RealDebridClient.getAllTorrentsFromUser();
-    const hash = RealDebridClient.extractSHA1FromMagnet(game!.repack.magnet);
-    let torrent = torrents.find((t) => t.hash === hash);
-
-    if (!torrent) {
-      const magnet = await RealDebridClient.addMagnet(game!.repack.magnet);
-
-      if (magnet && magnet.id) {
-        await RealDebridClient.selectAllFiles(magnet.id);
-        torrent = await RealDebridClient.getInfo(magnet.id);
-      }
-    }
-
-    if (torrent) {
-      const { links } = torrent;
-      const { download } = await RealDebridClient.unrestrictLink(links[0]);
-
-      if (!download) {
-        throw new Error("Torrent not cached on Real Debrid");
-      }
-
-      return download;
-    }
-
-    throw new Error();
-  }
-
   static async startDownload(game: Game) {
     if (this.download) this.download.destroy();
-    const download = await this.getDownloadUrl(game);
+    const downloadUrl = await RealDebridClient.getDownloadUrl(game);
 
     this.download = new EasyDL(
-      download,
-      path.join(game.downloadPath!, game.repack.title)
+      downloadUrl,
+      path.join(game.downloadPath!, ".rd")
     );
-
     const metadata = await this.download.metadata();
 
     this.downloadSize = metadata.size;
