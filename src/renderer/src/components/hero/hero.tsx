@@ -40,7 +40,7 @@ export function Hero() {
           src={steamUrlBuilder.libraryHero(FEATURED_GAME_ID)}
           alt={featuredGameDetails?.name}
           className={styles.heroMedia}
-        />
+        /> 
 
         <div className={styles.content}>
           <img
