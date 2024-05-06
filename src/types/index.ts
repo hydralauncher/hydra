@@ -38,7 +38,7 @@ export interface SteamAppDetails {
     minimum: string;
     recommended: string;
   };
-  linux_requirmenets: {
+  linux_requirements: {
     minimum: string;
     recommended: string;
   };
