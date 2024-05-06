@@ -17,7 +17,7 @@ asarUnpack:
   - resources/**
 win:
   executableName: Hydra
-  requestedExecutionLevel: requireAdministrator
+  requestedExecutionLevel: asInvoker
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
