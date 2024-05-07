@@ -4,12 +4,19 @@ import path from "node:path";
 import EasyDL from "easydl";
 import { GameStatus } from "@shared";
 import { fullArchive } from "node-7z-archive";
+import fs from "fs";
 
 import { Downloader } from "./downloader";
 import { RealDebridClient } from "../real-debrid";
 
 function getFileNameWithoutExtension(fullPath: string) {
   return path.basename(fullPath, path.extname(fullPath));
+}
+
+function maybeMkdir(directory: string) {
+  if (!fs.existsSync(directory)) {
+    fs.mkdirSync(directory);
+  }
 }
 
 export class RealDebridDownloader extends Downloader {
@@ -29,6 +36,8 @@ export class RealDebridDownloader extends Downloader {
   static async startDownload(game: Game) {
     if (this.download) this.download.destroy();
     const downloadUrl = await RealDebridClient.getDownloadUrl(game);
+
+    maybeMkdir(path.join(game.downloadPath!, ".rd"));
 
     this.download = new EasyDL(
       downloadUrl,
