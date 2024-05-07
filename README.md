@@ -240,6 +240,13 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
+        <a href="https://github.com/Hachi-R">
+            <img src="https://avatars.githubusercontent.com/u/58823742?v=4" width="100;" alt="Hachi-R"/>
+            <br />
+            <sub><b>Hachi</b></sub>
+        </a>
+    </td>
+    <td align="center">
         <a href="https://github.com/pmenta">
             <img src="https://avatars.githubusercontent.com/u/71457671?v=4" width="100;" alt="pmenta"/>
             <br />
@@ -259,15 +266,15 @@ yarn build:linux
             <br />
             <sub><b>Guilherme Viana</b></sub>
         </a>
-    </td>
+    </td></tr>
+<tr>
     <td align="center">
         <a href="https://github.com/eltociear">
             <img src="https://avatars.githubusercontent.com/u/22633385?v=4" width="100;" alt="eltociear"/>
             <br />
             <sub><b>Ikko Eltociear Ashimine</b></sub>
         </a>
-    </td></tr>
-<tr>
+    </td>
     <td align="center">
         <a href="https://github.com/Netflixyapp">
             <img src="https://avatars.githubusercontent.com/u/91623880?v=4" width="100;" alt="Netflixyapp"/>
@@ -276,17 +283,17 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/Hachi-R">
-            <img src="https://avatars.githubusercontent.com/u/58823742?v=4" width="100;" alt="Hachi-R"/>
-            <br />
-            <sub><b>Hachi</b></sub>
-        </a>
-    </td>
-    <td align="center">
         <a href="https://github.com/FerNikoMF">
             <img src="https://avatars.githubusercontent.com/u/76095334?v=4" width="100;" alt="FerNikoMF"/>
             <br />
             <sub><b>Firdavs</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/Tunchichi">
+            <img src="https://avatars.githubusercontent.com/u/118926729?v=4" width="100;" alt="Tunchichi"/>
+            <br />
+            <sub><b>Ruslan</b></sub>
         </a>
     </td>
     <td align="center">
@@ -301,13 +308,6 @@ yarn build:linux
             <img src="https://avatars.githubusercontent.com/u/24211405?v=4" width="100;" alt="userMacieG"/>
             <br />
             <sub><b>Maciej Ratyński</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/Tunchichi">
-            <img src="https://avatars.githubusercontent.com/u/118926729?v=4" width="100;" alt="Tunchichi"/>
-            <br />
-            <sub><b>Ruslan</b></sub>
         </a>
     </td></tr>
 </table>
