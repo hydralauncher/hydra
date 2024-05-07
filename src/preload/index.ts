@@ -57,6 +57,7 @@ contextBridge.exposeInMainWorld("electron", {
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
   updateUserPreferences: (preferences: UserPreferences) =>
     ipcRenderer.invoke("updateUserPreferences", preferences),
+  autoLaunch: (enabled: boolean) => ipcRenderer.invoke("autoLaunch", enabled),
 
   /* Library */
   addGameToLibrary: (

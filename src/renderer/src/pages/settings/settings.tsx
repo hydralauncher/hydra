@@ -13,6 +13,7 @@ export function Settings() {
     telemetryEnabled: false,
     realDebridApiToken: null as string | null,
     preferQuitInsteadOfHiding: false,
+    runAtStartup: false,
   });
 
   const { t } = useTranslation("settings");
@@ -32,6 +33,7 @@ export function Settings() {
         realDebridApiToken: userPreferences?.realDebridApiToken ?? null,
         preferQuitInsteadOfHiding:
           userPreferences?.preferQuitInsteadOfHiding ?? false,
+        runAtStartup: userPreferences?.runAtStartup ?? false,
       });
     });
   }, []);
@@ -133,6 +135,15 @@ export function Settings() {
           onChange={(event) => {
             updateUserPreferences("realDebridApiToken", event.target.value);
           }}
+        />
+
+        <CheckboxField
+          label={t("launch_with_system")}
+          onChange={() => {
+            updateUserPreferences("runAtStartup", !form.runAtStartup);
+            window.electron.autoLaunch(!form.runAtStartup);
+          }}
+          checked={form.runAtStartup}
         />
       </div>
     </section>
