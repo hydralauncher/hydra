@@ -4,7 +4,7 @@ import type { Game } from "@main/entity";
 import { Downloader } from "@shared";
 
 import { writePipe } from "./fifo";
-import { HTTPDownloader } from "./downloaders";
+import { RealDebridDownloader } from "./downloaders";
 
 export class DownloadManager {
   private static gameDownloading: Game;
@@ -25,7 +25,7 @@ export class DownloadManager {
     ) {
       writePipe.write({ action: "cancel" });
     } else {
-      HTTPDownloader.destroy();
+      RealDebridDownloader.destroy();
     }
   }
 
@@ -36,7 +36,7 @@ export class DownloadManager {
     ) {
       writePipe.write({ action: "pause" });
     } else {
-      HTTPDownloader.destroy();
+      RealDebridDownloader.destroy();
     }
   }
 
@@ -51,7 +51,7 @@ export class DownloadManager {
         save_path: game!.downloadPath,
       });
     } else {
-      HTTPDownloader.startDownload(game!);
+      RealDebridDownloader.startDownload(game!);
     }
 
     this.gameDownloading = game!;
@@ -68,7 +68,7 @@ export class DownloadManager {
         save_path: game!.downloadPath,
       });
     } else {
-      HTTPDownloader.startDownload(game!);
+      RealDebridDownloader.startDownload(game!);
     }
 
     this.gameDownloading = game!;

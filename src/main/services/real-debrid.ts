@@ -62,6 +62,34 @@ export class RealDebridClient {
     return magnet.match(/btih:([0-9a-fA-F]*)/)?.[1].toLowerCase();
   }
 
+  static async getDownloadUrl(game: Game) {
+    const torrents = await RealDebridClient.getAllTorrentsFromUser();
+    const hash = RealDebridClient.extractSHA1FromMagnet(game!.repack.magnet);
+    let torrent = torrents.find((t) => t.hash === hash);
+
+    if (!torrent) {
+      const magnet = await RealDebridClient.addMagnet(game!.repack.magnet);
+
+      if (magnet && magnet.id) {
+        await RealDebridClient.selectAllFiles(magnet.id);
+        torrent = await RealDebridClient.getInfo(magnet.id);
+      }
+    }
+
+    if (torrent) {
+      const { links } = torrent;
+      const { download } = await RealDebridClient.unrestrictLink(links[0]);
+
+      if (!download) {
+        throw new Error("Torrent not cached on Real Debrid");
+      }
+
+      return download;
+    }
+
+    throw new Error();
+  }
+
   static async authorize(apiToken: string) {
     this.instance = axios.create({
       baseURL: base,

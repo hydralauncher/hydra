@@ -1,2 +1,2 @@
-export * from "./http.downloader";
+export * from "./real-debrid.downloader";
 export * from "./torrent.downloader";
