@@ -26,7 +26,7 @@ export class WindowManager {
     }
   }
 
-  public static async createMainWindow() {
+  public static createMainWindow() {
     // Create the browser window.
     this.mainWindow = new BrowserWindow({
       width: 1200,

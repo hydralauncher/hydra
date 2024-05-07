@@ -8,7 +8,7 @@ export interface TextFieldProps
     HTMLInputElement
   > {
   theme?: NonNullable<RecipeVariants<typeof styles.textField>>["theme"];
-  label?: string;
+  label?: string | React.ReactNode;
   textFieldProps?: React.DetailedHTMLProps<
     React.HTMLAttributes<HTMLDivElement>,
     HTMLDivElement

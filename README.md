@@ -240,10 +240,10 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/jps14">
-            <img src="https://avatars.githubusercontent.com/u/168477146?v=4" width="100;" alt="jps14"/>
+        <a href="https://github.com/Hachi-R">
+            <img src="https://avatars.githubusercontent.com/u/58823742?v=4" width="100;" alt="Hachi-R"/>
             <br />
-            <sub><b>José Luís</b></sub>
+            <sub><b>Hachi</b></sub>
         </a>
     </td>
     <td align="center">
@@ -283,13 +283,6 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/Hachi-R">
-            <img src="https://avatars.githubusercontent.com/u/58823742?v=4" width="100;" alt="Hachi-R"/>
-            <br />
-            <sub><b>Hachi</b></sub>
-        </a>
-    </td>
-    <td align="center">
         <a href="https://github.com/FerNikoMF">
             <img src="https://avatars.githubusercontent.com/u/76095334?v=4" width="100;" alt="FerNikoMF"/>
             <br />
@@ -297,17 +290,24 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/userMacieG">
-            <img src="https://avatars.githubusercontent.com/u/24211405?v=4" width="100;" alt="userMacieG"/>
-            <br />
-            <sub><b>Maciej Ratyński</b></sub>
-        </a>
-    </td>
-    <td align="center">
         <a href="https://github.com/Tunchichi">
             <img src="https://avatars.githubusercontent.com/u/118926729?v=4" width="100;" alt="Tunchichi"/>
             <br />
             <sub><b>Ruslan</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/Chr1s0Blood">
+            <img src="https://avatars.githubusercontent.com/u/166660500?v=4" width="100;" alt="Chr1s0Blood"/>
+            <br />
+            <sub><b>Cristian S.</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/userMacieG">
+            <img src="https://avatars.githubusercontent.com/u/24211405?v=4" width="100;" alt="userMacieG"/>
+            <br />
+            <sub><b>Maciej Ratyński</b></sub>
         </a>
     </td></tr>
 </table>

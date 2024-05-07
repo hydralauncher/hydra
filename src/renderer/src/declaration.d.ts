@@ -74,6 +74,7 @@ declare global {
     updateUserPreferences: (
       preferences: Partial<UserPreferences>
     ) => Promise<void>;
+    autoLaunch: (enabled: boolean) => Promise<void>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
