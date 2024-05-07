@@ -36,6 +36,7 @@ import {
   DONT_SHOW_ONLINE_FIX_INSTRUCTIONS_KEY,
   OnlineFixInstallationGuide,
 } from "./installation-guides";
+import { GallerySlider } from "./gallery-slider";
 
 export function GameDetails() {
   const { objectID, shop } = useParams();
@@ -89,7 +90,6 @@ export function GameDetails() {
   useEffect(() => {
     getGame();
   }, [getGame, gameDownloading?.id]);
-
   useEffect(() => {
     setGame(null);
     setIsLoading(true);
@@ -248,6 +248,8 @@ export function GameDetails() {
           <div className={styles.descriptionContainer}>
             <div className={styles.descriptionContent}>
               <DescriptionHeader gameDetails={gameDetails} />
+
+              <GallerySlider gameDetails={gameDetails} />
 
               <div
                 dangerouslySetInnerHTML={{

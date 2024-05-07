@@ -14,6 +14,20 @@ export interface SteamScreenshot {
   path_full: string;
 }
 
+export interface SteamVideoSource {
+  max: string;
+  '480': string;
+}
+
+export interface SteamMovies {
+  id: number;
+  mp4: SteamVideoSource;
+  webm: SteamVideoSource;
+  thumbnail: string;
+  name: string;
+  highlight: boolean;
+}
+
 export interface SteamAppDetails {
   name: string;
   detailed_description: string;
@@ -21,6 +35,7 @@ export interface SteamAppDetails {
   short_description: string;
   publishers: string[];
   genres: SteamGenre[];
+  movies: SteamMovies[];
   screenshots: SteamScreenshot[];
   pc_requirements: {
     minimum: string;
@@ -30,7 +45,7 @@ export interface SteamAppDetails {
     minimum: string;
     recommended: string;
   };
-  linux_requirmenets: {
+  linux_requirements: {
     minimum: string;
     recommended: string;
   };
@@ -111,6 +126,7 @@ export interface UserPreferences {
   telemetryEnabled: boolean;
   realDebridApiToken: string | null;
   preferQuitInsteadOfHiding: boolean;
+  runAtStartup: boolean;
 }
 
 export interface HowLongToBeatCategory {
