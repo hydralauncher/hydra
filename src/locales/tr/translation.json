@@ -69,6 +69,8 @@
       "copied_link_to_clipboard": "Link kopyalandı",
       "hours": "saatler",
       "minutes": "dakikalar",
+      "amount_hours": "{{amount}} saat",
+      "amount_minutes": "{{amount}} dakika",
       "accuracy": "{{accuracy}}% doğruluk",
       "add_to_library": "Kütüphaneye ekle",
       "remove_from_library": "Kütüphaneden kaldır",
