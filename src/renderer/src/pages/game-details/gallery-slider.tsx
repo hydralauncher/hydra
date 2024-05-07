@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ShopDetails, SteamMovies, SteamScreenshot } from "@types";
 import { ChevronRightIcon, ChevronLeftIcon } from "@primer/octicons-react";
-import * as styles from "./game-details.css";
+import * as styles from "./gallery-slider.css";
 
 export interface GallerySliderProps {
   gameDetails: ShopDetails | null;
@@ -22,6 +22,7 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
     }
     return 0;
   });
+
   const [mediaIndex, setMediaIndex] = useState<number>(0);
   const [arrowShow, setArrowShow] = useState(false);
 
@@ -42,6 +43,10 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
   };
 
   useEffect(() => {
+    setMediaIndex(0);
+  }, [gameDetails]);
+
+  useEffect(() => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
       const totalWidth = container.scrollWidth - container.clientWidth;
@@ -49,10 +54,10 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
       const scrollLeft = mediaIndex * itemWidth;
       container.scrollLeft = scrollLeft;
     }
-  }, [mediaIndex, mediaCount]);
+  }, [gameDetails, mediaIndex, mediaCount]);
 
-  const hasScreenshots = gameDetails && gameDetails.screenshots.length > 0;
-  const hasMovies = gameDetails && gameDetails.movies.length > 0;
+  const hasScreenshots = gameDetails && gameDetails.screenshots.length;
+  const hasMovies = gameDetails && gameDetails.movies?.length;
 
   return (
     <>
@@ -72,6 +77,7 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
                   poster={video.thumbnail}
                   style={{ translate: `${-100 * mediaIndex}%` }}
                   autoPlay
+                  loop
                   muted
                 >
                   <source src={video.webm.max.replace("http", "https")} />
@@ -112,7 +118,7 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
 
           <div className={styles.gallerySliderPreview} ref={scrollContainerRef}>
             {hasMovies &&
-              gameDetails.movies.map((video: SteamMovies, i: number) => (
+              gameDetails.movies?.map((video: SteamMovies, i: number) => (
                 <img
                   key={video.id}
                   onClick={() => setMediaIndex(i)}

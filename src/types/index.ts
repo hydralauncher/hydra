@@ -16,7 +16,7 @@ export interface SteamScreenshot {
 
 export interface SteamVideoSource {
   max: string;
-  '480': string;
+  "480": string;
 }
 
 export interface SteamMovies {
@@ -35,7 +35,7 @@ export interface SteamAppDetails {
   short_description: string;
   publishers: string[];
   genres: SteamGenre[];
-  movies: SteamMovies[];
+  movies?: SteamMovies[];
   screenshots: SteamScreenshot[];
   pc_requirements: {
     minimum: string;

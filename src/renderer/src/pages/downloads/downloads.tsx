@@ -66,7 +66,7 @@ export function Downloads() {
   };
 
   const downloaderName = {
-    [Downloader.Http]: t("real_debrid"),
+    [Downloader.RealDebrid]: t("real_debrid"),
     [Downloader.Torrent]: t("torrent"),
   };
 

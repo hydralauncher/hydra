@@ -127,7 +127,9 @@
     "remove_from_list": "Remove",
     "delete_modal_title": "Are you sure?",
     "delete_modal_description": "This will remove all the installation files from your computer",
-    "install": "Install"
+    "install": "Install",
+    "real_debrid": "Real Debrid",
+    "torrent": "Torrent"
   },
   "settings": {
     "downloads_path": "Downloads path",
@@ -138,9 +140,11 @@
     "telemetry": "Telemetry",
     "telemetry_description": "Enable anonymous usage statistics",
     "real_debrid_api_token_description": "(Optional) Real Debrid API token",
+    "quit_app_instead_hiding": "Quit Hydra instead of minimizing to tray",
+    "launch_with_system": "Launch Hydra on system start-up",
+    "general": "General",
     "behavior": "Behavior",
-    "quit_app_instead_hiding": "Close app instead of minimizing to tray",
-    "launch_with_system": "Launch app on system start-up"
+    "real_debrid": "Real Debrid"
   },
   "notifications": {
     "download_complete": "Download complete",
