@@ -7,8 +7,9 @@ const showOpenDialog = async (
   options: Electron.OpenDialogOptions
 ) => {
   if (WindowManager.mainWindow) {
-    dialog.showOpenDialog(WindowManager.mainWindow, options);
+    return await dialog.showOpenDialog(WindowManager.mainWindow, options);
   }
+  return undefined;
 };
 
 registerEvent(showOpenDialog, {
