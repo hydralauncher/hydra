@@ -257,6 +257,13 @@ export function GameDetails() {
                 }}
                 className={styles.description}
               />
+
+              <small>
+                All screenshots and movies displayed on this page are the
+                property of Steam and/or their respective owners. We do not
+                claim ownership of any content unless otherwise stated. All
+                content is used for informational and promotional purposes only.
+              </small>
             </div>
 
             <div className={styles.contentSidebar}>

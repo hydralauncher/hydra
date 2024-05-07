@@ -5,7 +5,11 @@ import * as styles from "./settings.css";
 import { useTranslation } from "react-i18next";
 import { UserPreferences } from "@types";
 
+const categories = ["general", "behavior", "real_debrid"];
+
 export function Settings() {
+  const [currentCategory, setCurrentCategory] = useState(categories.at(0)!);
+
   const [form, setForm] = useState({
     downloadsPath: "",
     downloadNotificationsEnabled: false,
@@ -61,62 +65,80 @@ export function Settings() {
     }
   };
 
-  return (
-    <section className={styles.container}>
-      <div className={styles.content}>
-        <div className={styles.downloadsPathField}>
-          <TextField
-            label={t("downloads_path")}
-            value={form.downloadsPath}
-            readOnly
-            disabled
+  const renderCategory = () => {
+    if (currentCategory === "general") {
+      return (
+        <>
+          <div className={styles.downloadsPathField}>
+            <TextField
+              label={t("downloads_path")}
+              value={form.downloadsPath}
+              readOnly
+              disabled
+            />
+
+            <Button
+              style={{ alignSelf: "flex-end" }}
+              theme="outline"
+              onClick={handleChooseDownloadsPath}
+            >
+              {t("change")}
+            </Button>
+          </div>
+
+          <h3>{t("notifications")}</h3>
+
+          <CheckboxField
+            label={t("enable_download_notifications")}
+            checked={form.downloadNotificationsEnabled}
+            onChange={() =>
+              updateUserPreferences(
+                "downloadNotificationsEnabled",
+                !form.downloadNotificationsEnabled
+              )
+            }
           />
 
-          <Button
-            style={{ alignSelf: "flex-end" }}
-            theme="outline"
-            onClick={handleChooseDownloadsPath}
-          >
-            {t("change")}
-          </Button>
-        </div>
+          <CheckboxField
+            label={t("enable_repack_list_notifications")}
+            checked={form.repackUpdatesNotificationsEnabled}
+            onChange={() =>
+              updateUserPreferences(
+                "repackUpdatesNotificationsEnabled",
+                !form.repackUpdatesNotificationsEnabled
+              )
+            }
+          />
 
-        <h3>{t("notifications")}</h3>
+          <h3>{t("telemetry")}</h3>
 
-        <CheckboxField
-          label={t("enable_download_notifications")}
-          checked={form.downloadNotificationsEnabled}
-          onChange={() =>
-            updateUserPreferences(
-              "downloadNotificationsEnabled",
-              !form.downloadNotificationsEnabled
-            )
-          }
+          <CheckboxField
+            label={t("telemetry_description")}
+            checked={form.telemetryEnabled}
+            onChange={() =>
+              updateUserPreferences("telemetryEnabled", !form.telemetryEnabled)
+            }
+          />
+        </>
+      );
+    }
+
+    if (currentCategory === "real_debrid") {
+      return (
+        <TextField
+          label={t("real_debrid_api_token_description")}
+          value={form.realDebridApiToken ?? ""}
+          type="password"
+          onChange={(event) => {
+            updateUserPreferences("realDebridApiToken", event.target.value);
+          }}
+          placeholder="API Token"
         />
+      );
+    }
 
-        <CheckboxField
-          label={t("enable_repack_list_notifications")}
-          checked={form.repackUpdatesNotificationsEnabled}
-          onChange={() =>
-            updateUserPreferences(
-              "repackUpdatesNotificationsEnabled",
-              !form.repackUpdatesNotificationsEnabled
-            )
-          }
-        />
-
-        <h3>{t("telemetry")}</h3>
-
-        <CheckboxField
-          label={t("telemetry_description")}
-          checked={form.telemetryEnabled}
-          onChange={() =>
-            updateUserPreferences("telemetryEnabled", !form.telemetryEnabled)
-          }
-        />
-
-        <h3>{t("behavior")}</h3>
-
+    return (
+      <>
         <CheckboxField
           label={t("quit_app_instead_hiding")}
           checked={form.preferQuitInsteadOfHiding}
@@ -128,15 +150,6 @@ export function Settings() {
           }
         />
 
-        <TextField
-          label={t("real_debrid_api_token_description")}
-          value={form.realDebridApiToken ?? ""}
-          type="password"
-          onChange={(event) => {
-            updateUserPreferences("realDebridApiToken", event.target.value);
-          }}
-        />
-
         <CheckboxField
           label={t("launch_with_system")}
           onChange={() => {
@@ -145,6 +158,27 @@ export function Settings() {
           }}
           checked={form.runAtStartup}
         />
+      </>
+    );
+  };
+
+  return (
+    <section className={styles.container}>
+      <div className={styles.content}>
+        <section className={styles.settingsCategories}>
+          {categories.map((category) => (
+            <Button
+              key={category}
+              theme={currentCategory === category ? "primary" : "outline"}
+              onClick={() => setCurrentCategory(category)}
+            >
+              {t(category)}
+            </Button>
+          ))}
+        </section>
+
+        <h3>{t(currentCategory)}</h3>
+        {renderCategory()}
       </div>
     </section>
   );

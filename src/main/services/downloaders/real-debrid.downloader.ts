@@ -4,11 +4,12 @@ import path from "node:path";
 import fs from "node:fs";
 import EasyDL from "easydl";
 import { GameStatus } from "@shared";
+import { fullArchive } from "node-7z-archive";
 
 import { Downloader } from "./downloader";
 import { RealDebridClient } from "../real-debrid";
 
-export class HTTPDownloader extends Downloader {
+export class RealDebridDownloader extends Downloader {
   private static download: EasyDL;
   private static downloadSize = 0;
 
@@ -22,52 +23,48 @@ export class HTTPDownloader extends Downloader {
     return 1;
   }
 
-  static async getDownloadUrl(game: Game) {
-    const torrents = await RealDebridClient.getAllTorrentsFromUser();
-    const hash = RealDebridClient.extractSHA1FromMagnet(game!.repack.magnet);
-    let torrent = torrents.find((t) => t.hash === hash);
-
-    if (!torrent) {
-      const magnet = await RealDebridClient.addMagnet(game!.repack.magnet);
-
-      if (magnet && magnet.id) {
-        await RealDebridClient.selectAllFiles(magnet.id);
-        torrent = await RealDebridClient.getInfo(magnet.id);
-      }
-    }
-
-    if (torrent) {
-      const { links } = torrent;
-      const { download } = await RealDebridClient.unrestrictLink(links[0]);
-
-      if (!download) {
-        throw new Error("Torrent not cached on Real Debrid");
-      }
-
-      return download;
-    }
-
-    throw new Error();
-  }
-
   private static createFolderIfNotExists(path: string) {
     if (!fs.existsSync(path)) {
       fs.mkdirSync(path);
     }
   }
 
+  private static async startDecompression(
+    rarFile: string,
+    dest: string,
+    game: Game
+  ) {
+    await fullArchive(rarFile, dest);
+
+    const updatePayload: QueryDeepPartialEntity<Game> = {
+      status: GameStatus.Finished,
+      progress: 1,
+    };
+
+    await this.updateGameProgress(game.id, updatePayload, {
+      timeRemaining: 0,
+    });
+  }
+
+  static destroy() {
+    if (this.download) {
+      this.download.destroy();
+    }
+  }
+
   static async startDownload(game: Game) {
     if (this.download) this.download.destroy();
-    const downloadUrl = await this.getDownloadUrl(game);
+    const downloadUrl = decodeURIComponent(
+      await RealDebridClient.getDownloadUrl(game)
+    );
 
     const filename = path.basename(downloadUrl);
     const folderName = path.basename(filename, path.extname(filename));
 
-    const fullDownloadPath = path.join(game.downloadPath!, folderName);
+    const downloadPath = path.join(game.downloadPath!, folderName);
+    this.createFolderIfNotExists(downloadPath);
 
-    this.createFolderIfNotExists(fullDownloadPath);
-
-    this.download = new EasyDL(downloadUrl, fullDownloadPath);
+    this.download = new EasyDL(downloadUrl, path.join(downloadPath, filename));
 
     const metadata = await this.download.metadata();
 
@@ -76,7 +73,7 @@ export class HTTPDownloader extends Downloader {
     const updatePayload: QueryDeepPartialEntity<Game> = {
       status: GameStatus.Downloading,
       fileSize: metadata.size,
-      folderName: folderName,
+      folderName,
     };
 
     const downloadStatus = {
@@ -87,11 +84,8 @@ export class HTTPDownloader extends Downloader {
 
     this.download.on("progress", async ({ total }) => {
       const updatePayload: QueryDeepPartialEntity<Game> = {
-        status:
-          total.percentage === 100
-            ? GameStatus.Finished
-            : GameStatus.Downloading,
-        progress: total.percentage / 100,
+        status: GameStatus.Downloading,
+        progress: Math.min(0.99, total.percentage / 100),
         bytesDownloaded: total.bytes,
       };
 
@@ -102,11 +96,22 @@ export class HTTPDownloader extends Downloader {
 
       await this.updateGameProgress(game.id, updatePayload, downloadStatus);
     });
-  }
 
-  static destroy() {
-    if (this.download) {
-      this.download.destroy();
-    }
+    this.download.on("end", async () => {
+      const updatePayload: QueryDeepPartialEntity<Game> = {
+        status: GameStatus.Decompressing,
+        progress: 0.99,
+      };
+
+      await this.updateGameProgress(game.id, updatePayload, {
+        timeRemaining: 0,
+      });
+
+      this.startDecompression(
+        path.join(downloadPath, filename),
+        downloadPath,
+        game
+      );
+    });
   }
 }
