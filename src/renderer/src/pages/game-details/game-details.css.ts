@@ -92,8 +92,9 @@ export const gallerySliderMedia = style({
   height: "100%",
   display: "block",
   flexShrink: 0,
-  flexGrow: 0,
-  transition: "translate 300ms ease-in-out",
+  flexGrow: "0",
+  transition: "translate 0.3s ease-in-out",
+  borderRadius: "4px",
 });
 
 export const gallerySliderAnimationContainer = style({
@@ -123,8 +124,8 @@ export const gallerySliderPreview = style({
     },
   },
   "::-webkit-scrollbar-thumb": {
-    width: "20%"
-  }
+    width: "20%",
+  },
 });
 
 export const gallerySliderMediaPreview = style({
@@ -137,6 +138,7 @@ export const gallerySliderMediaPreview = style({
   opacity: 0.3,
   paddingRight: "5px",
   transition: "translate 300ms ease-in-out",
+  borderRadius: "4px",
   ":hover": {
     opacity: 1,
   },
@@ -156,13 +158,12 @@ export const gallerySliderButton = style({
   cursor: "pointer",
   transition: "background-color 100ms ease-in-out",
   ":hover": {
-    backgroundColor: "rgb(0,0,0, 0.2)",
+    backgroundColor: "rgb(0, 0, 0, 0.2)",
   },
 });
 
 export const gallerySliderIcons = style({
-  stroke: "white",
-  fill: "black",
+  fill: vars.color.muted,
   width: "2rem",
   height: "2rem",
 });
