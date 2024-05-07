@@ -247,6 +247,13 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
+        <a href="https://github.com/Mkdantas">
+            <img src="https://avatars.githubusercontent.com/u/50972667?v=4" width="100;" alt="Mkdantas"/>
+            <br />
+            <sub><b>Matheus Dantas</b></sub>
+        </a>
+    </td>
+    <td align="center">
         <a href="https://github.com/pmenta">
             <img src="https://avatars.githubusercontent.com/u/71457671?v=4" width="100;" alt="pmenta"/>
             <br />
@@ -259,15 +266,15 @@ yarn build:linux
             <br />
             <sub><b>FeriVOQ</b></sub>
         </a>
-    </td>
+    </td></tr>
+<tr>
     <td align="center">
         <a href="https://github.com/xbozo">
             <img src="https://avatars.githubusercontent.com/u/119091492?v=4" width="100;" alt="xbozo"/>
             <br />
             <sub><b>Guilherme Viana</b></sub>
         </a>
-    </td></tr>
-<tr>
+    </td>
     <td align="center">
         <a href="https://github.com/eltociear">
             <img src="https://avatars.githubusercontent.com/u/22633385?v=4" width="100;" alt="eltociear"/>
@@ -283,17 +290,17 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/FerNikoMF">
-            <img src="https://avatars.githubusercontent.com/u/76095334?v=4" width="100;" alt="FerNikoMF"/>
-            <br />
-            <sub><b>Firdavs</b></sub>
-        </a>
-    </td>
-    <td align="center">
         <a href="https://github.com/Tunchichi">
             <img src="https://avatars.githubusercontent.com/u/118926729?v=4" width="100;" alt="Tunchichi"/>
             <br />
             <sub><b>Ruslan</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/FerNikoMF">
+            <img src="https://avatars.githubusercontent.com/u/76095334?v=4" width="100;" alt="FerNikoMF"/>
+            <br />
+            <sub><b>Firdavs</b></sub>
         </a>
     </td>
     <td align="center">
@@ -302,7 +309,8 @@ yarn build:linux
             <br />
             <sub><b>Cristian S.</b></sub>
         </a>
-    </td>
+    </td></tr>
+<tr>
     <td align="center">
         <a href="https://github.com/userMacieG">
             <img src="https://avatars.githubusercontent.com/u/24211405?v=4" width="100;" alt="userMacieG"/>
