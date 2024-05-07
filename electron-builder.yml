@@ -6,6 +6,7 @@ extraResources:
   - hydra-download-manager
   - hydra.db
   - fastlist.exe
+  - aria2c.exe
 files:
   - "!**/.vscode/*"
   - "!src/*"

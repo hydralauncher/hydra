@@ -2,6 +2,7 @@
 node_modules
 hydra-download-manager
 fastlist.exe
+aria2c.exe
 __pycache__
 dist
 out

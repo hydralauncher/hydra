@@ -1,3 +1,4 @@
+import { Game } from "@main/entity";
 import type {
   RealDebridAddMagnet,
   RealDebridTorrentInfo,

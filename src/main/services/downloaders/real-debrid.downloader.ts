@@ -1,13 +1,13 @@
 import { Game } from "@main/entity";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import path from "node:path";
-import EasyDL from "easydl";
 import { GameStatus } from "@shared";
 import { fullArchive } from "node-7z-archive";
 import fs from "fs";
 
 import { Downloader } from "./downloader";
 import { RealDebridClient } from "../real-debrid";
+import { Aria2Download, Aria2DownloadStatus, Aria2Service } from "../aria2";
 
 function getFileNameWithoutExtension(fullPath: string) {
   return path.basename(fullPath, path.extname(fullPath));
@@ -20,62 +20,39 @@ function maybeMkdir(directory: string) {
 }
 
 export class RealDebridDownloader extends Downloader {
-  private static download: EasyDL;
-  private static downloadSize = 0;
-
-  private static getEta(bytesDownloaded: number, speed: number) {
-    const remainingBytes = this.downloadSize - bytesDownloaded;
-
-    if (remainingBytes >= 0 && speed > 0) {
-      return (remainingBytes / speed) * 1000;
-    }
-
-    return 1;
-  }
+  private static download: Aria2Download | null = null;
 
   static async startDownload(game: Game) {
-    if (this.download) this.download.destroy();
+    if (this.download) this.download.cancel();
     const downloadUrl = await RealDebridClient.getDownloadUrl(game);
+    const rdPath = path.join(game.downloadPath!, ".rd");
 
-    maybeMkdir(path.join(game.downloadPath!, ".rd"));
+    maybeMkdir(rdPath);
 
-    this.download = new EasyDL(
-      downloadUrl,
-      path.join(game.downloadPath!, ".rd")
-    );
+    this.download = await Aria2Service.addHttpDownload(downloadUrl, rdPath);
+  
+    let lastStatus: Aria2DownloadStatus;
 
-    const metadata = await this.download.metadata();
-
-    this.downloadSize = metadata.size;
-
-    const updatePayload: QueryDeepPartialEntity<Game> = {
-      status: GameStatus.Downloading,
-      fileSize: metadata.size,
-      folderName: getFileNameWithoutExtension(metadata.savedFilePath),
-    };
-
-    const downloadStatus = {
-      timeRemaining: Number.POSITIVE_INFINITY,
-    };
-
-    await this.updateGameProgress(game.id, updatePayload, downloadStatus);
-
-    this.download.on("progress", async ({ total }) => {
+    this.download.on("onPoll", async (status) => {
+      lastStatus = status;
+      console.log(status);
       const updatePayload: QueryDeepPartialEntity<Game> = {
+        fileSize: status.size,
         status: GameStatus.Downloading,
-        progress: Math.min(0.99, total.percentage / 100),
-        bytesDownloaded: total.bytes,
+        progress: Math.min(0.99, status.progress),
+        bytesDownloaded: status.bytesDownloaded,
+        folderName: getFileNameWithoutExtension(status.filePath),
       };
 
       const downloadStatus = {
-        downloadSpeed: total.speed,
-        timeRemaining: this.getEta(total.bytes ?? 0, total.speed ?? 0),
+        downloadSpeed: status.downloadSpeed,
+        timeRemaining: status.timeRemaining * 1000,
       };
 
       await this.updateGameProgress(game.id, updatePayload, downloadStatus);
     });
 
-    this.download.on("end", async () => {
+    this.download.on("onDownloadComplete", async () => {
       const updatePayload: QueryDeepPartialEntity<Game> = {
         status: GameStatus.Decompressing,
         progress: 0.99,
@@ -85,13 +62,20 @@ export class RealDebridDownloader extends Downloader {
         timeRemaining: 0,
       });
 
-      this.startDecompression(this.download.savedFilePath!, getFileNameWithoutExtension(metadata.savedFilePath), game);
+      this.startDecompression(
+        lastStatus.filePath,
+        getFileNameWithoutExtension(lastStatus.filePath),
+        game
+      );
     });
   }
 
-  static async startDecompression(rarFile: string, destiny: string, game: Game) {
+  static async startDecompression(
+    rarFile: string,
+    destiny: string,
+    game: Game
+  ) {
     const directory = path.join(game.downloadPath!, destiny);
-
     await fullArchive(rarFile, directory);
     const updatePayload: QueryDeepPartialEntity<Game> = {
       status: GameStatus.Finished,
@@ -103,9 +87,23 @@ export class RealDebridDownloader extends Downloader {
     });
   }
 
-  static destroy() {
+  static cancelDownload() {
     if (this.download) {
-      this.download.destroy();
+      this.download.cancel();
+    }
+  }
+
+  static resumeDownload(game: Game) {
+    if (this.download) {
+      this.download.resume();
+    } else {
+      this.startDownload(game);
+    }
+  }
+
+  static pauseDownload() {
+    if (this.download) {
+      this.download.pause();
     }
   }
 }

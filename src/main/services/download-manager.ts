@@ -25,7 +25,7 @@ export class DownloadManager {
     ) {
       writePipe.write({ action: "cancel" });
     } else {
-      RealDebridDownloader.destroy();
+      RealDebridDownloader.cancelDownload();
     }
   }
 
@@ -36,7 +36,7 @@ export class DownloadManager {
     ) {
       writePipe.write({ action: "pause" });
     } else {
-      RealDebridDownloader.destroy();
+      RealDebridDownloader.pauseDownload();
     }
   }
 
@@ -51,7 +51,7 @@ export class DownloadManager {
         save_path: game!.downloadPath,
       });
     } else {
-      RealDebridDownloader.startDownload(game!);
+      RealDebridDownloader.resumeDownload(game!);
     }
 
     this.gameDownloading = game!;
