@@ -26,7 +26,7 @@ export class WindowManager {
     }
   }
 
-  public static async createMainWindow() {
+  public static createMainWindow() {
     // Create the browser window.
     this.mainWindow = new BrowserWindow({
       width: 1200,
@@ -50,11 +50,15 @@ export class WindowManager {
     this.loadURL();
     this.mainWindow.removeMenu();
 
-    const userPreferences = await userPreferencesRepository.findOne({
-      where: { id: 1 },
+    this.mainWindow.on("ready-to-show", () => {
+      if (!app.isPackaged) WindowManager.mainWindow?.webContents.openDevTools();
     });
 
-    this.mainWindow.on("close", () => {
+    this.mainWindow.on("close", async () => {
+      const userPreferences = await userPreferencesRepository.findOne({
+        where: { id: 1 },
+      });
+
       if (userPreferences?.preferQuitInsteadOfHiding) {
         app.quit();
       }

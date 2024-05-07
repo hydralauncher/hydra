@@ -15,6 +15,6 @@ setup(
     executables=[Executable(
       "torrent-client/main.py",
       target_name="hydra-download-manager",
-      icon="images/icon.ico"
+      icon="build/icon.ico"
     )]
 )
