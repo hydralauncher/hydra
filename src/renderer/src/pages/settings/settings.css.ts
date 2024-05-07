@@ -24,3 +24,8 @@ export const downloadsPathField = style({
   display: "flex",
   gap: `${SPACING_UNIT}px`,
 });
+
+export const settingsCategories = style({
+  display: "flex",
+  gap: `${SPACING_UNIT}px`,
+});

@@ -9,28 +9,45 @@ import { Downloader } from "./downloader";
 import { RealDebridClient } from "../real-debrid";
 import { Aria2Download, Aria2DownloadStatus, Aria2Service } from "../aria2";
 
-function getFileNameWithoutExtension(fullPath: string) {
-  return path.basename(fullPath, path.extname(fullPath));
-}
-
-function maybeMkdir(directory: string) {
-  if (!fs.existsSync(directory)) {
-    fs.mkdirSync(directory);
-  }
-}
-
 export class RealDebridDownloader extends Downloader {
   private static download: Aria2Download | null = null;
+
+  private static createFolderIfNotExists(path: string) {
+    if (!fs.existsSync(path)) {
+      fs.mkdirSync(path);
+    }
+  }
+
+  private static getFileNameWithoutExtension(filePath: string) {
+    return path.basename(filePath, path.extname(filePath));
+  }
+
+  static async startDecompression(
+    rarFile: string,
+    dest: string,
+    game: Game
+  ) {
+    const directory = path.join(game.downloadPath!, dest);
+    await fullArchive(rarFile, directory);
+    const updatePayload: QueryDeepPartialEntity<Game> = {
+      status: GameStatus.Finished,
+      progress: 1,
+    };
+
+    await this.updateGameProgress(game.id, updatePayload, {
+      timeRemaining: 0,
+    });
+  }
 
   static async startDownload(game: Game) {
     if (this.download) this.download.cancel();
     const downloadUrl = await RealDebridClient.getDownloadUrl(game);
     const rdPath = path.join(game.downloadPath!, ".rd");
 
-    maybeMkdir(rdPath);
+    this.createFolderIfNotExists(rdPath);
 
     this.download = await Aria2Service.addHttpDownload(downloadUrl, rdPath);
-  
+
     let lastStatus: Aria2DownloadStatus;
 
     this.download.on("onPoll", async (status) => {
@@ -41,7 +58,7 @@ export class RealDebridDownloader extends Downloader {
         status: GameStatus.Downloading,
         progress: Math.min(0.99, status.progress),
         bytesDownloaded: status.bytesDownloaded,
-        folderName: getFileNameWithoutExtension(status.filePath),
+        folderName: this.getFileNameWithoutExtension(status.filePath),
       };
 
       const downloadStatus = {
@@ -64,26 +81,9 @@ export class RealDebridDownloader extends Downloader {
 
       this.startDecompression(
         lastStatus.filePath,
-        getFileNameWithoutExtension(lastStatus.filePath),
+        this.getFileNameWithoutExtension(lastStatus.filePath),
         game
       );
-    });
-  }
-
-  static async startDecompression(
-    rarFile: string,
-    destiny: string,
-    game: Game
-  ) {
-    const directory = path.join(game.downloadPath!, destiny);
-    await fullArchive(rarFile, directory);
-    const updatePayload: QueryDeepPartialEntity<Game> = {
-      status: GameStatus.Finished,
-      progress: 1,
-    };
-
-    await this.updateGameProgress(game.id, updatePayload, {
-      timeRemaining: 0,
     });
   }
 
