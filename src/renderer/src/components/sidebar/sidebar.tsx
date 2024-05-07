@@ -9,7 +9,12 @@ import { useDownload, useLibrary } from "@renderer/hooks";
 
 import { routes } from "./routes";
 
-import { MarkGithubIcon } from "@primer/octicons-react";
+import {
+  FileDirectoryIcon,
+  FileDirectorySymlinkIcon,
+  MarkGithubIcon,
+  TrashIcon,
+} from "@primer/octicons-react";
 import DiscordLogo from "@renderer/assets/discord-icon.svg?react";
 import XLogo from "@renderer/assets/x-icon.svg?react";
 
@@ -33,6 +38,12 @@ export function Sidebar() {
     initialSidebarWidth ? Number(initialSidebarWidth) : SIDEBAR_INITIAL_WIDTH
   );
 
+  const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+  const [axilCoordinates, setAxilCoordinates] = useState({
+    x: 0,
+    y: 0,
+  });
+
   const socials = [
     {
       url: "https://discord.gg/hydralauncher",
@@ -54,10 +65,6 @@ export function Sidebar() {
   const location = useLocation();
 
   const { game: gameDownloading, progress } = useDownload();
-
-  useEffect(() => {
-    updateLibrary();
-  }, [gameDownloading?.id, updateLibrary]);
 
   const isDownloading = library.some((game) =>
     ["downloading", "checking_files", "downloading_metadata"].includes(
@@ -88,6 +95,39 @@ export function Sidebar() {
       )
     );
   };
+
+  const getGameTitle = (game: Game) => {
+    if (game.status === "paused") return t("paused", { title: game.title });
+
+    if (gameDownloading?.id === game.id) {
+      const isVerifying = ["downloading_metadata", "checking_files"].includes(
+        gameDownloading?.status
+      );
+
+      if (isVerifying)
+        return t(gameDownloading.status, {
+          title: game.title,
+          percentage: progress,
+        });
+
+      return t("downloading", {
+        title: game.title,
+        percentage: progress,
+      });
+    }
+
+    return game.title;
+  };
+
+  const handleSidebarItemClick = (path: string) => {
+    if (path !== location.pathname) {
+      navigate(path);
+    }
+  };
+
+  useEffect(() => {
+    updateLibrary();
+  }, [gameDownloading?.id, updateLibrary]);
 
   useEffect(() => {
     setFilteredLibrary(library);
@@ -120,142 +160,191 @@ export function Sidebar() {
     };
   }, [isResizing]);
 
-  const getGameTitle = (game: Game) => {
-    if (game.status === "paused") return t("paused", { title: game.title });
-
-    if (gameDownloading?.id === game.id) {
-      const isVerifying = ["downloading_metadata", "checking_files"].includes(
-        gameDownloading?.status
-      );
-
-      if (isVerifying)
-        return t(gameDownloading.status, {
-          title: game.title,
-          percentage: progress,
-        });
-
-      return t("downloading", {
-        title: game.title,
-        percentage: progress,
-      });
-    }
-
-    return game.title;
-  };
-
-  const handleSidebarItemClick = (path: string) => {
-    if (path !== location.pathname) {
-      navigate(path);
-    }
-  };
+  useEffect(() => {
+    // closes context menu if click out of focus
+    const handleClick = () => setIsContextMenuOpen(false);
+    window.addEventListener("click", handleClick);
+    return () => {
+      window.removeEventListener("click", handleClick);
+    };
+  }, []);
 
   return (
-    <aside
-      ref={sidebarRef}
-      className={styles.sidebar({ resizing: isResizing })}
-      style={{
-        width: sidebarWidth,
-        minWidth: sidebarWidth,
-        maxWidth: sidebarWidth,
-      }}
-    >
-      <div
-        className={styles.content({
-          macos: window.electron.platform === "darwin",
-        })}
+    <>
+      <aside
+        ref={sidebarRef}
+        className={styles.sidebar({ resizing: isResizing })}
+        style={{
+          width: sidebarWidth,
+          minWidth: sidebarWidth,
+          maxWidth: sidebarWidth,
+        }}
       >
-        {window.electron.platform === "darwin" && <h2>Hydra</h2>}
-
-        <section className={styles.section}>
-          <ul className={styles.menu}>
-            {routes.map(({ nameKey, path, render }) => (
-              <li
-                key={nameKey}
-                className={styles.menuItem({
-                  active: location.pathname === path,
-                })}
-              >
-                <button
-                  type="button"
-                  className={styles.menuItemButton}
-                  onClick={() => handleSidebarItemClick(path)}
-                >
-                  {render(isDownloading)}
-                  <span>{t(nameKey)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className={styles.section}>
-          <small className={styles.sectionTitle}>{t("my_library")}</small>
-
-          <TextField
-            placeholder={t("filter")}
-            onChange={handleFilter}
-            theme="dark"
-          />
-
-          <ul className={styles.menu}>
-            {filteredLibrary.map((game) => (
-              <li
-                key={game.id}
-                className={styles.menuItem({
-                  active:
-                    location.pathname === `/game/${game.shop}/${game.objectID}`,
-                  muted: game.status === "cancelled",
-                })}
-              >
-                <button
-                  type="button"
-                  className={styles.menuItemButton}
-                  onClick={() =>
-                    handleSidebarItemClick(
-                      `/game/${game.shop}/${game.objectID}`
-                    )
-                  }
-                >
-                  <img
-                    className={styles.gameIcon}
-                    src={game.iconUrl}
-                    alt={game.title}
-                  />
-                  <span className={styles.menuItemButtonLabel}>
-                    {getGameTitle(game)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      </div>
-
-      <button
-        type="button"
-        className={styles.handle}
-        onMouseDown={handleMouseDown}
-      />
-
-      <footer className={styles.sidebarFooter}>
-        <div className={styles.footerText}>{t("follow_us")}</div>
-
-        <span className={styles.footerSocialsContainer}>
-          {socials.map((item) => {
-            return (
-              <button
-                key={item.url}
-                className={styles.footerSocialsItem}
-                onClick={() => window.electron.openExternal(item.url)}
-                title={item.label}
-                aria-label={item.label}
-              >
-                {item.icon}
-              </button>
-            );
+        <div
+          className={styles.content({
+            macos: window.electron.platform === "darwin",
           })}
-        </span>
-      </footer>
-    </aside>
+        >
+          {window.electron.platform === "darwin" && <h2>Hydra</h2>}
+
+          <section className={styles.section}>
+            <ul className={styles.menu}>
+              {routes.map(({ nameKey, path, render }) => (
+                <li
+                  key={nameKey}
+                  className={styles.menuItem({
+                    active: location.pathname === path,
+                  })}
+                >
+                  <button
+                    type="button"
+                    className={styles.menuItemButton}
+                    onClick={() => handleSidebarItemClick(path)}
+                  >
+                    {render(isDownloading)}
+                    <span>{t(nameKey)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className={styles.section}>
+            <small className={styles.sectionTitle}>{t("my_library")}</small>
+
+            <TextField
+              placeholder={t("filter")}
+              onChange={handleFilter}
+              theme="dark"
+            />
+
+            {filteredLibrary.map((game) => (
+              <>
+                <ul className={styles.menu}>
+                  <li
+                    key={game.id}
+                    className={styles.menuItem({
+                      active:
+                        location.pathname ===
+                        `/game/${game.shop}/${game.objectID}`,
+                      muted: game.status === "cancelled",
+                    })}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+
+                      setIsContextMenuOpen(true);
+                      setAxilCoordinates({
+                        x: e.pageX,
+                        y: e.pageY,
+                      });
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className={styles.menuItemButton}
+                      onClick={() =>
+                        handleSidebarItemClick(
+                          `/game/${game.shop}/${game.objectID}`
+                        )
+                      }
+                    >
+                      <img
+                        className={styles.gameIcon}
+                        src={game.iconUrl}
+                        alt={game.title}
+                      />
+                      <span className={styles.menuItemButtonLabel}>
+                        {getGameTitle(game)}
+                      </span>
+                    </button>
+                  </li>
+                </ul>
+
+                {isContextMenuOpen && (
+                  <div
+                    className={styles.contextMenu}
+                    style={{
+                      top: axilCoordinates.y - 15,
+                      left: axilCoordinates.x,
+                    }}
+                  >
+                    <menu className={styles.contextMenuList}>
+                      <button
+                        // onClick={() => openGameFolder(game.id)}
+                        className={styles.contextMenuListItem}
+                        // disabled={
+                        //   game.downloadPath === null ||
+                        //   game.folderName === null
+                        // }
+                        onClick={() => {
+                          setIsContextMenuOpen(false);
+                          console.log("clicou");
+                        }}
+                      >
+                        <FileDirectoryIcon
+                          className={styles.contextMenuItemIcon}
+                        />
+                        <span>Abrir local do arquivo</span>
+                      </button>
+
+                      <button
+                        className={styles.contextMenuListItem}
+                        // onClick={() => updateExePath(game.id)}
+                        onClick={() => {
+                          setIsContextMenuOpen(false);
+                          console.log("clicou");
+                        }}
+                      >
+                        <FileDirectorySymlinkIcon
+                          className={styles.contextMenuItemIcon}
+                        />
+                        <span>Alterar caminho do executável</span>
+                      </button>
+
+                      <button
+                        className={styles.contextMenuListItem}
+                        onClick={() => {
+                          setIsContextMenuOpen(false);
+                          console.log("clicou");
+                        }}
+                      >
+                        <TrashIcon className={styles.contextMenuItemIcon} />
+                        <span>Remover arquivos de instalação</span>
+                      </button>
+                    </menu>
+                  </div>
+                )}
+              </>
+            ))}
+          </section>
+        </div>
+
+        <button
+          type="button"
+          className={styles.handle}
+          onMouseDown={handleMouseDown}
+        />
+
+        <footer className={styles.sidebarFooter}>
+          <div className={styles.footerText}>{t("follow_us")}</div>
+
+          <span className={styles.footerSocialsContainer}>
+            {socials.map((item) => {
+              return (
+                <button
+                  key={item.url}
+                  className={styles.footerSocialsItem}
+                  onClick={() => window.electron.openExternal(item.url)}
+                  title={item.label}
+                  aria-label={item.label}
+                >
+                  {item.icon}
+                </button>
+              );
+            })}
+          </span>
+        </footer>
+      </aside>
+    </>
   );
 }

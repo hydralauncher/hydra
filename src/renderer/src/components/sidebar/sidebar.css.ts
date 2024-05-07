@@ -155,3 +155,50 @@ export const footerText = style({
   color: vars.color.bodyText,
   fontSize: "12px",
 });
+
+export const contextMenu = style({
+  position: "absolute",
+
+  minWidth: "280px",
+  backgroundColor: vars.color.darkBackground,
+  border: vars.color.border,
+  borderRadius: "6px",
+  zIndex: "99",
+  transition: "all ease 0.1s",
+  textAlign: "start",
+});
+
+export const contextMenuList = style({
+  listStyle: "none",
+  paddingLeft: "0",
+  margin: "0",
+  border: `1px solid ${vars.color.border}`,
+  borderRadius: `4px`,
+  width: "100%",
+});
+
+export const contextMenuListItem = style({
+  position: "relative",
+  display: "flex",
+  cursor: "default",
+  gap: "8px",
+  userSelect: "none",
+  borderRadius: `4px`,
+  padding: `6px 16px`,
+  fontSize: `12px`,
+  outline: "none",
+  width: "100%",
+  color: vars.color.bodyText,
+
+  ":hover": {
+    backgroundColor: vars.color.border,
+    transition: "all ease 0.15s",
+    color: vars.color.bodyText,
+    cursor: "pointer",
+  },
+});
+
+export const contextMenuItemIcon = style({
+  width: "14px",
+  height: "14px",
+});
