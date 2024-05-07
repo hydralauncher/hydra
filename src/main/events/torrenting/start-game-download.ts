@@ -5,7 +5,7 @@ import { GameStatus } from "@main/constants";
 import { registerEvent } from "../register-event";
 
 import type { GameShop } from "@types";
-import { getImageBase64 } from "@main/helpers";
+import { getFileBase64 } from "@main/helpers";
 import { In } from "typeorm";
 
 const startGameDownload = async (
@@ -72,7 +72,7 @@ const startGameDownload = async (
 
     return game;
   } else {
-    const iconUrl = await getImageBase64(await getSteamGameIconUrl(objectID));
+    const iconUrl = await getFileBase64(await getSteamGameIconUrl(objectID));
 
     const createdGame = await gameRepository.save({
       title,

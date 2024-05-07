@@ -57,6 +57,7 @@ contextBridge.exposeInMainWorld("electron", {
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
   updateUserPreferences: (preferences: UserPreferences) =>
     ipcRenderer.invoke("updateUserPreferences", preferences),
+  autoLaunch: (enabled: boolean) => ipcRenderer.invoke("autoLaunch", enabled),
 
   /* Library */
   addGameToLibrary: (
@@ -104,7 +105,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getDiskFreeSpace", path),
 
   /* Misc */
-  getOrCacheImage: (url: string) => ipcRenderer.invoke("getOrCacheImage", url),
   ping: () => ipcRenderer.invoke("ping"),
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),

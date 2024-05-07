@@ -41,7 +41,8 @@ export const getSteam250List = async () => {
   ).flat();
 
   const gamesMap: Map<string, Steam250Game> = gamesList.reduce((map, item) => {
-    map.set(item.objectID, item);
+    if (item) map.set(item.objectID, item);
+
     return map;
   }, new Map());
 

@@ -56,7 +56,7 @@ declare global {
       objectID: string,
       title: string,
       shop: GameShop,
-      executablePath: string
+      executablePath: string | null
     ) => Promise<void>;
     getLibrary: () => Promise<Game[]>;
     getRepackersFriendlyNames: () => Promise<Record<string, string>>;
@@ -74,12 +74,12 @@ declare global {
     updateUserPreferences: (
       preferences: Partial<UserPreferences>
     ) => Promise<void>;
+    autoLaunch: (enabled: boolean) => Promise<void>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
 
     /* Misc */
-    getOrCacheImage: (url: string) => Promise<string>;
     openExternal: (src: string) => Promise<void>;
     getVersion: () => Promise<string>;
     ping: () => string;
