@@ -139,6 +139,7 @@
     "telemetry_description": "Включить анонимную статистику использования",
     "behavior": "Поведение",
     "quit_app_instead_hiding": "Закрывать приложение вместо того, чтобы сворачивать его в трей"
+    "launch_with_system": "Запуск приложения при запуске системы"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
