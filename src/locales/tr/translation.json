@@ -71,7 +71,7 @@
       "minutes": "dakikalar",
       "amount_hours": "{{amount}} saat",
       "amount_minutes": "{{amount}} dakika",
-      "accuracy": "{{accuracy}}% doğruluk",
+      "accuracy": "%{{accuracy}} doğruluk",
       "add_to_library": "Kütüphaneye ekle",
       "remove_from_library": "Kütüphaneden kaldır",
       "no_downloads": "İndirme yok",
