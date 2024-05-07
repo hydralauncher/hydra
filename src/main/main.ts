@@ -23,7 +23,13 @@ import { Notification } from "electron";
 import { t } from "i18next";
 import { In } from "typeorm";
 
+
+
 startProcessWatcher();
+
+const {autoUpdater} = require("electron-updater");
+autoUpdater.checkForUpdatesAndNotify()
+
 
 TorrentClient.startTorrentClient(writePipe.socketPath, readPipe.socketPath);
 
