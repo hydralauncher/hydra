@@ -123,7 +123,12 @@
     "enable_download_notifications": "When a download is complete",
     "enable_repack_list_notifications": "When a new repack is added",
     "telemetry": "Telemetry",
-    "telemetry_description": "Enable anonymous usage statistics"
+    "telemetry_description": "Enable anonymous usage statistics",
+    "fullscreen": "Fullscreen",
+    "fullscreen_description": "Start in fullscreen mode",
+    "title_language": "Language",
+    "system_language": "System Language",
+    "language_name": "English"
   },
   "notifications": {
     "download_complete": "Download complete",

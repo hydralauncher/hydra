@@ -24,3 +24,21 @@ export const downloadsPathField = style({
   display: "flex",
   gap: `${SPACING_UNIT * 2}px`,
 });
+
+export const resolutionContent = style({
+  backgroundColor: vars.color.background,
+  width: "fit-content",
+  height: "100%",
+  padding: `${SPACING_UNIT * 3}px`,
+  border: `solid 1px ${vars.color.borderColor}`,
+  boxShadow: "0px 0px 15px 0px #000000",
+  borderRadius: "8px",
+  gap: `${SPACING_UNIT * 2}px`,
+  display: "flex",
+  flexDirection: "column",
+});
+
+export const resolutionField = style({
+  display: "flex",
+  gap: `${SPACING_UNIT * 2}px`,
+});

@@ -105,7 +105,7 @@ export interface UserPreferences {
   downloadNotificationsEnabled: boolean;
   repackUpdatesNotificationsEnabled: boolean;
   telemetryEnabled: boolean;
-  startEnabled: boolean;
+  fullscreenEnabled: boolean;
   width: number;
   height: number;
 }

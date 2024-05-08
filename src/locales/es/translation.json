@@ -113,7 +113,12 @@
     "enable_download_notifications": "Cuando se completa una descarga",
     "enable_repack_list_notifications": "Cuando se añade un repack nuevo",
     "telemetry": "Telemetría",
-    "telemetry_description": "Habilitar recopilación de datos de manera anónima"
+    "telemetry_description": "Habilitar recopilación de datos de manera anónima",
+    "fullscreen": "Pantalla completa",
+    "fullscreen_description": "Comenzar en pantalla completa",
+    "title_language": "Idioma",
+    "system_language": "Lenguaje del sistema",
+    "language_name": "Español"
   },
   "notifications": {
     "download_complete": "Descarga completada",

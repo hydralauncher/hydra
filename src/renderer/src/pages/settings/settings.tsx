@@ -12,7 +12,7 @@ export function Settings() {
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
     telemetryEnabled: false,
-    startEnabled: true,
+    fullscreenEnabled: false,
     width: 0,
     height: 0
   });
@@ -31,7 +31,7 @@ export function Settings() {
         repackUpdatesNotificationsEnabled:
           userPreferences?.repackUpdatesNotificationsEnabled ?? false,
         telemetryEnabled: userPreferences?.telemetryEnabled ?? false,
-        startEnabled: false,
+        fullscreenEnabled: userPreferences?.fullscreenEnabled ?? false,
         width: userPreferences?.width ?? 1200,
         height: userPreferences?.height ?? 800
       });
@@ -163,37 +163,39 @@ export function Settings() {
           }
         />
 
-        <h3>{t("Fullscreen")}</h3>
+        <h3>{t("fullscreen")}</h3>
 
         <CheckboxField
-          label={t("Iniciar em tela cheia")}
-          checked={form.startEnabled}
+          label={t("fullscreen_description")}
+          checked={form.fullscreenEnabled}
           onChange={() =>
-            updateUserPreferences("startEnabled", !form.startEnabled)
+            updateUserPreferences("fullscreenEnabled", !form.fullscreenEnabled)
           }
         />
-          <div className={styles.content}>
-            <div className={styles.downloadsPathField}>
-              {form.startEnabled === false && (
-                <>
-                  <input
-                    type="text"
-                    value={form.width}
-                    onChange={handleWidthChange}
-                    placeholder="Resolução X"
-                  />
-                  <input
-                    type="text"
-                    value={form.height}
-                    onChange={handleHeightChange}
-                    placeholder="Resolução Y"
-                  />
-                </>
-              )}
-            </div>
-          </div>
 
-        <h3>{t("Idioma")}</h3>
+        {form.fullscreenEnabled === false && (
+          <div className={styles.resolutionContent}>
+          <div className={styles.resolutionField}>
+          <>
+            <input
+              type="text"
+              value={form.width}
+              onChange={handleWidthChange}
+              placeholder="Resolução X"
+            />
+            <input
+              type="text"
+              value={form.height}
+              onChange={handleHeightChange}
+              placeholder="Resolução Y"
+            />
+          </>
+          </div>
+          </div>
+        )}
+
+
+        <h3>{t("title_language")}</h3>
 
           <select value={selectedOption} onChange={handleLanguageChange}>
             <option value="">Selecione...</option>
@@ -204,7 +206,7 @@ export function Settings() {
           </select>
 
           {selectedOption && (
-            <p>{getLanguage()}: {getLanguageName()}</p>
+            <p>{t("system_language")}: {t("language_name")}</p>
           )}
       </div>
     </section>
