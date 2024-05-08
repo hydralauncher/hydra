@@ -5,6 +5,10 @@ import { createGame, updateGamePlaytime } from "./library-sync";
 import { GameRunning } from "@types";
 import { PythonInstance } from "./download";
 import { Game } from "@main/entity";
+import {
+  startGameAchievementObserver,
+  stopGameAchievementObserver,
+} from "@main/events/achievements/game-achievements-observer";
 
 export const gamesPlaytime = new Map<
   number,
@@ -74,6 +78,8 @@ function onOpenGame(game: Game) {
   } else {
     createGame({ ...game, lastTimePlayed: new Date() }).catch(() => {});
   }
+
+  startGameAchievementObserver(game.id);
 }
 
 function onTickGame(game: Game) {
@@ -125,4 +131,6 @@ const onCloseGame = (game: Game) => {
   } else {
     createGame(game).catch(() => {});
   }
+
+  stopGameAchievementObserver(game.id);
 };
