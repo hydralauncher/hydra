@@ -112,4 +112,5 @@ contextBridge.exposeInMainWorld("electron", {
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
   platform: process.platform,
+  getThemes: () => ipcRenderer.invoke("getThemes"),
 });

@@ -5,6 +5,7 @@ import type {
   GameShop,
   HowLongToBeatCategory,
   ShopDetails,
+  Theme,
   TorrentProgress,
   UserPreferences,
 } from "@types";
@@ -88,6 +89,7 @@ declare global {
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
     platform: NodeJS.Platform;
+    getThemes: () => Promise<Theme[]>
   }
 
   interface Window {

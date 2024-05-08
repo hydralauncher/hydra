@@ -129,3 +129,15 @@ export interface HowLongToBeatCategory {
   duration: string;
   accuracy: string;
 }
+
+export interface Theme {
+  name: string
+  createdBy: string
+  scheme: {
+    background: string
+    darkBackground: string
+    muted: string
+    bodyText: string
+    border: string
+  }
+}

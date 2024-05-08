@@ -36,6 +36,7 @@
     "@sentry/react": "^7.111.0",
     "@sentry/vite-plugin": "^2.16.1",
     "@vanilla-extract/css": "^1.14.2",
+    "@vanilla-extract/dynamic": "^2.1.0",
     "@vanilla-extract/recipes": "^0.5.2",
     "auto-launch": "^5.0.6",
     "axios": "^1.6.8",
@@ -60,7 +61,8 @@
     "typeorm": "^0.3.20",
     "user-agents": "^1.1.193",
     "winston": "^3.13.0",
-    "yaml": "^2.4.1"
+    "yaml": "^2.4.1",
+    "zod": "^3.23.7"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^2.0.0",

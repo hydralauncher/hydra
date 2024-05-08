@@ -4,6 +4,7 @@ import { Button, CheckboxField, TextField } from "@renderer/components";
 import * as styles from "./settings.css";
 import { useTranslation } from "react-i18next";
 import { UserPreferences } from "@types";
+import ThemesList from "@renderer/components/theme/theme";
 
 export function Settings() {
   const [form, setForm] = useState({
@@ -15,13 +16,17 @@ export function Settings() {
     runAtStartup: false,
   });
 
+
+  const [themes, setThemes] = useState([]);
+
   const { t } = useTranslation("settings");
 
   useEffect(() => {
     Promise.all([
       window.electron.getDefaultDownloadsPath(),
       window.electron.getUserPreferences(),
-    ]).then(([path, userPreferences]) => {
+      window.electron.getThemes(),
+    ]).then(([path, userPreferences, themes]) => {
       setForm({
         downloadsPath: userPreferences?.downloadsPath || path,
         downloadNotificationsEnabled:
@@ -33,6 +38,7 @@ export function Settings() {
           userPreferences?.preferQuitInsteadOfHiding ?? false,
         runAtStartup: userPreferences?.runAtStartup ?? false,
       });
+      setThemes(themes);
     });
   }, []);
 
@@ -134,6 +140,11 @@ export function Settings() {
           }}
           checked={form.runAtStartup}
         />
+
+
+        <h3>{t("themes")}</h3>
+
+        <ThemesList themes={themes} />
       </div>
     </section>
   );

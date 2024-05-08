@@ -22,8 +22,10 @@ import { Repack } from "./entity";
 import { Notification } from "electron";
 import { t } from "i18next";
 import { In } from "typeorm";
+import { loadthemesPath } from "./theme/path";
 
 startProcessWatcher();
+loadthemesPath()
 
 TorrentClient.startTorrentClient(writePipe.socketPath, readPipe.socketPath);
 

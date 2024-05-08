@@ -27,7 +27,9 @@ import "./torrenting/start-game-download";
 import "./user-preferences/get-user-preferences";
 import "./user-preferences/update-user-preferences";
 import "./user-preferences/auto-launch";
+import { loadThemes } from "@main/theme/path";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => app.getVersion());
 ipcMain.handle("getDefaultDownloadsPath", () => defaultDownloadsPath);
+ipcMain.handle("getThemes", async () => await loadThemes())
