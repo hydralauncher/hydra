@@ -28,6 +28,9 @@ startProcessWatcher();
 TorrentClient.startTorrentClient(writePipe.socketPath, readPipe.socketPath);
 
 Promise.all([writePipe.createPipe(), readPipe.createPipe()]).then(async () => {
+  const userPreferences = await userPreferencesRepository.findOne({
+    where: { id: 1 },
+  });
   const game = await gameRepository.findOne({
     where: {
       status: In([
@@ -45,6 +48,7 @@ Promise.all([writePipe.createPipe(), readPipe.createPipe()]).then(async () => {
       game_id: game.id,
       magnet: game.repack.magnet,
       save_path: game.downloadPath,
+      seed_mode: userPreferences?.seedMode
     });
   }
 

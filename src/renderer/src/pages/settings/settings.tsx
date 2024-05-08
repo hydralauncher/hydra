@@ -13,6 +13,7 @@ export function Settings() {
     telemetryEnabled: false,
     preferQuitInsteadOfHiding: false,
     runAtStartup: false,
+    seedMode: true,
   });
 
   const { t } = useTranslation("settings");
@@ -32,6 +33,7 @@ export function Settings() {
         preferQuitInsteadOfHiding:
           userPreferences?.preferQuitInsteadOfHiding ?? false,
         runAtStartup: userPreferences?.runAtStartup ?? false,
+        seedMode: userPreferences?.seedMode ?? true
       });
     });
   }, []);
@@ -133,6 +135,15 @@ export function Settings() {
             window.electron.autoLaunch(!form.runAtStartup);
           }}
           checked={form.runAtStartup}
+        />
+
+        <CheckboxField
+          label={t("seed_mode")}
+          onChange={() => {
+            updateUserPreferences("seedMode", !form.seedMode);
+            window.electron.autoLaunch(!form.seedMode);
+          }}
+          checked={form.seedMode}
         />
       </div>
     </section>

@@ -135,7 +135,8 @@
     "telemetry_description": "Habilitar estatísticas de uso anônimas",
     "behavior": "Comportamento",
     "quit_app_instead_hiding": "Fechar o aplicativo em vez de minimizá-lo",
-    "launch_with_system": "Iniciar aplicativo na inicialização do sistema"
+    "launch_with_system": "Iniciar aplicativo na inicialização do sistema",
+    "seed_mode": "Semear"
   },
   "notifications": {
     "download_complete": "Download concluído",

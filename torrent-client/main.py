@@ -24,11 +24,11 @@ def get_eta(status):
     else:
         return 1
 
-def start_download(game_id: int, magnet: str, save_path: str):
+def start_download(game_id: int, magnet: str, save_path: str, seed_mode: bool):
     global torrent_handle
     global downloading_game_id
 
-    params = {'url': magnet, 'save_path': save_path}
+    params = {'url': magnet, 'save_path': save_path, 'seed_mode': seed_mode}
     torrent_handle = session.add_torrent(params)
     downloading_game_id = game_id
     torrent_handle.set_flags(lt.torrent_flags.auto_managed)
@@ -85,7 +85,7 @@ def listen_to_socket():
         payload = json.loads(msg.decode("utf-8"))
 
         if payload['action'] == "start":
-            start_download(payload['game_id'], payload['magnet'], payload['save_path'])
+            start_download(payload['game_id'], payload['magnet'], payload['save_path'], payload['seed_mode'])
             continue
         
         if payload['action'] == "pause":

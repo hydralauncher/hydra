@@ -122,6 +122,7 @@ export interface UserPreferences {
   telemetryEnabled: boolean;
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;
+  seedMode: boolean;
 }
 
 export interface HowLongToBeatCategory {
