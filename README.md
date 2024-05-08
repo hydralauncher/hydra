@@ -240,17 +240,17 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/Hachi-R">
-            <img src="https://avatars.githubusercontent.com/u/58823742?v=4" width="100;" alt="Hachi-R"/>
-            <br />
-            <sub><b>Hachi</b></sub>
-        </a>
-    </td>
-    <td align="center">
         <a href="https://github.com/Mkdantas">
             <img src="https://avatars.githubusercontent.com/u/50972667?v=4" width="100;" alt="Mkdantas"/>
             <br />
             <sub><b>Matheus Dantas</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/Hachi-R">
+            <img src="https://avatars.githubusercontent.com/u/58823742?v=4" width="100;" alt="Hachi-R"/>
+            <br />
+            <sub><b>Hachi</b></sub>
         </a>
     </td>
     <td align="center">
@@ -311,6 +311,13 @@ yarn build:linux
         </a>
     </td></tr>
 <tr>
+    <td align="center">
+        <a href="https://github.com/PCTroller">
+            <img src="https://avatars.githubusercontent.com/u/146987801?v=4" width="100;" alt="PCTroller"/>
+            <br />
+            <sub><b>Null</b></sub>
+        </a>
+    </td>
     <td align="center">
         <a href="https://github.com/Chr1s0Blood">
             <img src="https://avatars.githubusercontent.com/u/166660500?v=4" width="100;" alt="Chr1s0Blood"/>
