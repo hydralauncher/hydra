@@ -17,7 +17,10 @@
     "downloading": "{{title}} ({{percentage}} - Letöltés…)",
     "filter": "Könyvtár szűrése",
     "follow_us": "Kövess minket",
-    "home": "Főoldal"
+    "home": "Főoldal",
+    "delete_installation_files": "Telepítési fájlok eltávolítása",
+    "change_exe_path": "Végrehajtható útvonalának módosítása",
+    "open_archive_path": "Fájl helyének megnyitása"
   },
   "header": {
     "search": "Keresés",

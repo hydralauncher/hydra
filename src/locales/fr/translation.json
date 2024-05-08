@@ -17,7 +17,10 @@
     "downloading": "{{title}} ({{percentage}} - Téléchargement en cours…)",
     "filter": "Filtrer la bibliothèque",
     "home": "Page d’accueil",
-    "follow_us": "Suivez-nous"
+    "follow_us": "Suivez-nous",
+    "delete_installation_files": "Supprimer les fichiers d'installation",
+    "change_exe_path": "Modifier le chemin de l'exécutable",
+    "open_archive_path": "Ouvrir l'emplacement du fichier"
   },
   "header": {
     "search": "Recherche",

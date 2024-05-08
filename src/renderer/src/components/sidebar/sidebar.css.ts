@@ -196,6 +196,11 @@ export const contextMenuListItem = style({
     color: vars.color.bodyText,
     cursor: "pointer",
   },
+
+  ":disabled": {
+    opacity: vars.opacity.disabled,
+    cursor: "not-allowed",
+  },
 });
 
 export const contextMenuItemIcon = style({

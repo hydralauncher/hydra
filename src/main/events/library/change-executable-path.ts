@@ -1,23 +1,22 @@
 import { gameRepository } from "@main/repository";
 
-import { shell } from "electron";
 import { registerEvent } from "../register-event";
 
-const openGame = async (
+const changeExecutablePath = async (
   _event: Electron.IpcMainInvokeEvent,
   gameId: number,
-  executablePath: string
+  newExecutablePath: string
 ) => {
   await gameRepository.update(
     {
       id: gameId,
     },
-    { executablePath }
+    {
+      executablePath: newExecutablePath,
+    }
   );
-
-  shell.openPath(executablePath);
 };
 
-registerEvent(openGame, {
-  name: "openGame",
+registerEvent(changeExecutablePath, {
+  name: "changeExecutablePath",
 });

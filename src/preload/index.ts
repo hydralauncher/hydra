@@ -80,6 +80,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("openGameInstaller", gameId),
   openGame: (gameId: number, executablePath: string) =>
     ipcRenderer.invoke("openGame", gameId, executablePath),
+  changeExecutablePath: (gameId: number, newExecutablePath: string) =>
+    ipcRenderer.invoke("changeExecutablePath", gameId, newExecutablePath),
   closeGame: (gameId: number) => ipcRenderer.invoke("closeGame", gameId),
   removeGameFromLibrary: (gameId: number) =>
     ipcRenderer.invoke("removeGameFromLibrary", gameId),
@@ -99,6 +101,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-game-close", listener);
     return () => ipcRenderer.removeListener("on-game-close", listener);
   },
+  openGameFolder: (gameId: number) =>
+    ipcRenderer.invoke("openGameFolder", gameId),
 
   /* Hardware */
   getDiskFreeSpace: (path: string) =>

@@ -20,7 +20,10 @@
     "home": "Home",
     "discord": "Unisciti al nostro Discord",
     "x": "Segui su X",
-    "github": "Contribuisci su GitHub"
+    "github": "Contribuisci su GitHub",
+    "delete_installation_files": "Rimuovi file di installazione",
+    "change_exe_path": "Modifica percorso dell'eseguibile",
+    "open_archive_path": "Apri posizione del file"
   },
   "header": {
     "search": "Cerca",

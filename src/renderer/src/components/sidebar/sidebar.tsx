@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -18,6 +18,7 @@ import {
 import DiscordLogo from "@renderer/assets/discord-icon.svg?react";
 import XLogo from "@renderer/assets/x-icon.svg?react";
 
+import { DeleteModal } from "./delete-modal";
 import * as styles from "./sidebar.css";
 
 const SIDEBAR_MIN_WIDTH = 200;
@@ -43,6 +44,9 @@ export function Sidebar() {
     x: 0,
     y: 0,
   });
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [currentGame, setCurrentGame] = useState<Game>();
 
   const socials = [
     {
@@ -77,6 +81,50 @@ export function Sidebar() {
   const cursorPos = useRef({ x: 0 });
   const sidebarInitialWidth = useRef(0);
 
+  const selectGameExecutable = async () => {
+    const { filePaths } = await window.electron.showOpenDialog({
+      properties: ["openFile"],
+      filters: [
+        {
+          name: "Game executable",
+          extensions: window.electron.platform === "win32" ? ["exe"] : [],
+        },
+      ],
+    });
+
+    if (filePaths && filePaths.length > 0) {
+      return filePaths[0];
+    }
+
+    return null;
+  };
+
+  const updateExePath = async () => {
+    try {
+      const gameExecutablePath = await selectGameExecutable();
+      if (gameExecutablePath) {
+        await window.electron.changeExecutablePath(
+          currentGame?.id ?? 0,
+          gameExecutablePath
+        );
+
+        await window.electron.openGame(
+          currentGame?.id ?? 0,
+          gameExecutablePath
+        );
+
+        updateLibrary();
+      }
+    } catch (error) {
+      console.error("Error updating game executable path: ", error);
+    }
+  };
+
+  const openGameFolder = () =>
+    window.electron.openGameFolder(currentGame?.id ?? 0).then(() => {
+      updateLibrary();
+    });
+
   const handleMouseDown: React.MouseEventHandler<HTMLButtonElement> = (
     event
   ) => {
@@ -94,6 +142,11 @@ export function Sidebar() {
           .includes(event.target.value.toLocaleLowerCase())
       )
     );
+  };
+
+  const handleOpenDeleteGameModal = async () => {
+    setShowDeleteModal(true);
+    setIsContextMenuOpen(false);
   };
 
   const getGameTitle = (game: Game) => {
@@ -218,104 +271,118 @@ export function Sidebar() {
               theme="dark"
             />
 
-            {filteredLibrary.map((game) => (
-              <>
-                <ul className={styles.menu}>
-                  <li
-                    key={game.id}
-                    className={styles.menuItem({
-                      active:
-                        location.pathname ===
-                        `/game/${game.shop}/${game.objectID}`,
-                      muted: game.status === "cancelled",
-                    })}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-
-                      setIsContextMenuOpen(true);
-                      setAxilCoordinates({
-                        x: e.pageX,
-                        y: e.pageY,
-                      });
-                    }}
-                  >
-                    <button
-                      type="button"
-                      className={styles.menuItemButton}
-                      onClick={() =>
-                        handleSidebarItemClick(
-                          `/game/${game.shop}/${game.objectID}`
-                        )
-                      }
+            <div className={styles.menu}>
+              {filteredLibrary.map((game) => {
+                return (
+                  <Fragment key={game.id}>
+                    <li
+                      key={game.id}
+                      className={styles.menuItem({
+                        active:
+                          location.pathname ===
+                          `/game/${game.shop}/${game.objectID}`,
+                        muted: game.status === "cancelled",
+                      })}
+                      onContextMenu={(e) => {
+                        setIsContextMenuOpen(true);
+                        setCurrentGame(game);
+                        setAxilCoordinates({
+                          x: e.pageX,
+                          y: e.pageY,
+                        });
+                      }}
                     >
-                      <img
-                        className={styles.gameIcon}
-                        src={game.iconUrl}
-                        alt={game.title}
-                      />
-                      <span className={styles.menuItemButtonLabel}>
-                        {getGameTitle(game)}
-                      </span>
-                    </button>
-                  </li>
-                </ul>
-
-                {isContextMenuOpen && (
-                  <div
-                    className={styles.contextMenu}
-                    style={{
-                      top: axilCoordinates.y - 15,
-                      left: axilCoordinates.x,
-                    }}
-                  >
-                    <menu className={styles.contextMenuList}>
                       <button
-                        // onClick={() => openGameFolder(game.id)}
-                        className={styles.contextMenuListItem}
-                        // disabled={
-                        //   game.downloadPath === null ||
-                        //   game.folderName === null
-                        // }
-                        onClick={() => {
-                          setIsContextMenuOpen(false);
-                          console.log("clicou");
-                        }}
+                        type="button"
+                        className={styles.menuItemButton}
+                        onClick={() =>
+                          handleSidebarItemClick(
+                            `/game/${game.shop}/${game.objectID}`
+                          )
+                        }
                       >
-                        <FileDirectoryIcon
-                          className={styles.contextMenuItemIcon}
+                        <img
+                          className={styles.gameIcon}
+                          src={game.iconUrl}
+                          alt={game.title}
                         />
-                        <span>Abrir local do arquivo</span>
+                        <span className={styles.menuItemButtonLabel}>
+                          {getGameTitle(game)}
+                        </span>
                       </button>
+                    </li>
 
-                      <button
-                        className={styles.contextMenuListItem}
-                        // onClick={() => updateExePath(game.id)}
-                        onClick={() => {
-                          setIsContextMenuOpen(false);
-                          console.log("clicou");
+                    {isContextMenuOpen && (
+                      <div
+                        className={styles.contextMenu}
+                        style={{
+                          top: axilCoordinates.y - 15,
+                          left: axilCoordinates.x,
                         }}
                       >
-                        <FileDirectorySymlinkIcon
-                          className={styles.contextMenuItemIcon}
-                        />
-                        <span>Alterar caminho do executável</span>
-                      </button>
+                        <menu className={styles.contextMenuList}>
+                          <button
+                            onClick={() => {
+                              openGameFolder();
+                              setIsContextMenuOpen(false);
+                            }}
+                            className={styles.contextMenuListItem}
+                            disabled={
+                              currentGame?.downloadPath === null ||
+                              currentGame?.folderName === null
+                            }
+                          >
+                            <FileDirectoryIcon
+                              className={styles.contextMenuItemIcon}
+                            />
+                            <span>{t("open_archive_path")}</span>
+                          </button>
 
-                      <button
-                        className={styles.contextMenuListItem}
-                        onClick={() => {
-                          setIsContextMenuOpen(false);
-                          console.log("clicou");
-                        }}
-                      >
-                        <TrashIcon className={styles.contextMenuItemIcon} />
-                        <span>Remover arquivos de instalação</span>
-                      </button>
-                    </menu>
-                  </div>
-                )}
-              </>
-            ))}
+                          <button
+                            className={styles.contextMenuListItem}
+                            onClick={async () => {
+                              // TO-DO: add toast or desktop notification
+                              await updateExePath();
+                              setIsContextMenuOpen(false);
+                            }}
+                            disabled={
+                              currentGame?.downloadPath === null ||
+                              currentGame?.folderName === null
+                            }
+                          >
+                            <FileDirectorySymlinkIcon
+                              className={styles.contextMenuItemIcon}
+                            />
+                            <span>{t("change_exe_path")}</span>
+                          </button>
+
+                          <button
+                            className={styles.contextMenuListItem}
+                            onClick={() => {
+                              // TO-DO: add toast or desktop notification
+                              handleOpenDeleteGameModal();
+                            }}
+                            disabled={
+                              currentGame?.downloadPath === null ||
+                              currentGame?.folderName === null
+                            }
+                          >
+                            <TrashIcon className={styles.contextMenuItemIcon} />
+                            <span>{t("delete_installation_files")}</span>
+                          </button>
+                        </menu>
+                      </div>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </div>
+
+            <DeleteModal
+              visible={showDeleteModal}
+              onClose={() => setShowDeleteModal(false)}
+              gameId={currentGame?.id ?? 0}
+            />
           </section>
         </div>
 

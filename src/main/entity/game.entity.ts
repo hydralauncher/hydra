@@ -1,13 +1,13 @@
+import type { GameShop } from "@types";
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
-  OneToOne,
+  Entity,
   JoinColumn,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from "typeorm";
-import type { GameShop } from "@types";
 import { Repack } from "./repack.entity";
 
 @Entity("game")
