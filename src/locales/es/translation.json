@@ -130,8 +130,7 @@
     "enable_download_notifications": "Cuando se completa una descarga",
     "enable_repack_list_notifications": "Cuando se añade un repack nuevo",
     "telemetry": "Telemetría",
-    "telemetry_description": "Habilitar recopilación de datos de manera anónima",
-    "real_debrid_api_token_description": "(Opcional) Real Debrid API token"
+    "telemetry_description": "Habilitar recopilación de datos de manera anónima"
   },
   "notifications": {
     "download_complete": "Descarga completada",
