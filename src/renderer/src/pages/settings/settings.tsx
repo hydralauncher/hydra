@@ -63,25 +63,17 @@ export function Settings() {
 
   const handleWidthChange = async (e) => {
     const value = e.target.value;
-    // Validar se o valor inserido contém apenas números
+    // Validate numbers only (regex)
     if (/^\d*$/.test(value)) {
       updateUserPreferences("resX", value);
-      // setForm(prevState => ({
-      //   ...prevState,
-      //   resX: value
-      // }));
     }
   };
 
   const handleHeightChange = (e) => {
     const value = e.target.value;
-    // Validar se o valor inserido contém apenas números
+    // Validate numbers only (regex)
     if (/^\d*$/.test(value)) {
       updateUserPreferences("resY", value);
-      // setForm(prevState => ({
-      //   ...prevState,
-      //   resY: value
-      // }));
     }
   };
 
@@ -167,13 +159,13 @@ export function Settings() {
               type="text"
               value={form.resX}
               onChange={handleWidthChange}
-              placeholder="Resolução X"
+              placeholder="X"
             />
             <input
               type="text"
               value={form.resY}
               onChange={handleHeightChange}
-              placeholder="Resolução Y"
+              placeholder="Y"
             />
           </>
           </div>
@@ -183,17 +175,22 @@ export function Settings() {
 
         <h3>{t("title_language")}</h3>
 
-          <select value={selectedOption} onChange={handleLanguageChange}>
-            <option value="">Selecione...</option>
-            <option value="en">English</option>
-            <option value="pt">Português Brasil</option>
-            <option value="es">Español</option>
-            <option value="fr">Français</option>
-          </select>
+          <div className={styles.resolutionContent}>
+          <div className={styles.resolutionField}>
+            <select value={selectedOption} onChange={handleLanguageChange}>
+              <option value="">{t("system_language")}</option>
+              <option value="en">English</option>
+              <option value="pt">Português Brasil</option>
+              <option value="es">Español</option>
+              <option value="fr">Français</option>
+            </select>
+          </div>
+          </div>
 
-          {selectedOption && (
-            <p>{t("system_language")}: {t("language_name")}</p>
-          )}
+            {selectedOption && (
+              <p>{t("system_language")}: {t("language_name")}</p>
+            )}
+
       </div>
     </section>
   );
