@@ -1,9 +1,10 @@
-import { BrowserWindow, Menu, Tray, app } from "electron";
+import { BrowserWindow, Menu, Tray, app, screen } from "electron";
 import { is } from "@electron-toolkit/utils";
 import { t } from "i18next";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
+import { userPreferencesRepository } from "@main/repository";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -25,11 +26,45 @@ export class WindowManager {
     }
   }
 
-  public static createMainWindow() {
+
+
+  public static async createMainWindow() {
+    //LOGIC FOR SCREEN RESOLUTION
+    const userPreferences = await userPreferencesRepository.findOne({
+      where: { id: 1 },
+    });
+
+    let width = Number(userPreferences?.resX);
+    let height = Number(userPreferences?.resY);
+
+    if (userPreferences?.fullscreenEnabled == true) {
+       const primaryDisplay = screen.getPrimaryDisplay()
+       const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+       width = screenWidth;
+       height = screenHeight;
+    }
+    if (userPreferences?.fullscreenEnabled == false) {
+      // width = 1200;
+      // height = 720;
+      if (!userPreferences?.resX || userPreferences.resX.trim() == '') {
+         width = 1200; //default value in null cases
+      }
+      if (!userPreferences?.resY || userPreferences.resY.trim() == '') {
+        height = 720; //default value in null cases
+      }
+      if (width < 1024){
+         width = 1024;
+      }
+      if (height < 540){
+        height = 540;
+      }
+    }
+    //END LOGIC SCREEN RESOLUTION
+
     // Create the browser window.
     this.mainWindow = new BrowserWindow({
-      width: 1200,
-      height: 720,
+      width,
+      height,
       minWidth: 1024,
       minHeight: 540,
       titleBarStyle: "hidden",

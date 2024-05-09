@@ -13,8 +13,8 @@ export function Settings() {
     repackUpdatesNotificationsEnabled: false,
     telemetryEnabled: false,
     fullscreenEnabled: false,
-    width: 0,
-    height: 0
+    resX: '',
+    resY: ''
   });
 
   const { t } = useTranslation("settings");
@@ -32,8 +32,8 @@ export function Settings() {
           userPreferences?.repackUpdatesNotificationsEnabled ?? false,
         telemetryEnabled: userPreferences?.telemetryEnabled ?? false,
         fullscreenEnabled: userPreferences?.fullscreenEnabled ?? false,
-        width: userPreferences?.width ?? 1200,
-        height: userPreferences?.height ?? 800
+        resX: userPreferences?.resX ?? '',
+        resY: userPreferences?.resY ?? '',
       });
     });
   }, []);
@@ -61,14 +61,15 @@ export function Settings() {
     }
   };
 
-  const handleWidthChange = (e) => {
+  const handleWidthChange = async (e) => {
     const value = e.target.value;
     // Validar se o valor inserido contém apenas números
     if (/^\d*$/.test(value)) {
-      setForm(prevState => ({
-        ...prevState,
-        width: value
-      }));
+      updateUserPreferences("resX", value);
+      // setForm(prevState => ({
+      //   ...prevState,
+      //   resX: value
+      // }));
     }
   };
 
@@ -76,10 +77,11 @@ export function Settings() {
     const value = e.target.value;
     // Validar se o valor inserido contém apenas números
     if (/^\d*$/.test(value)) {
-      setForm(prevState => ({
-        ...prevState,
-        height: value
-      }));
+      updateUserPreferences("resY", value);
+      // setForm(prevState => ({
+      //   ...prevState,
+      //   resY: value
+      // }));
     }
   };
 
@@ -91,22 +93,6 @@ export function Settings() {
     const value = e.target.value;
     setSelectedOption(value);
     changeLanguage(value);
-  };
-
-  const getLanguage = () => {
-    if (i18n.language.startsWith("pt")) return "Idioma do sistema";
-    if (i18n.language.startsWith("es")) return "Lenguaje del sistema";
-    if (i18n.language.startsWith("fr")) return "Langue du système";
-
-    return "System Language";
-  };
-
-  const getLanguageName = () => {
-    if (i18n.language.startsWith("pt")) return "Português";
-    if (i18n.language.startsWith("es")) return "Español";
-    if (i18n.language.startsWith("fr")) return "Français";
-
-    return "English";
   };
 
   return (
@@ -179,13 +165,13 @@ export function Settings() {
           <>
             <input
               type="text"
-              value={form.width}
+              value={form.resX}
               onChange={handleWidthChange}
               placeholder="Resolução X"
             />
             <input
               type="text"
-              value={form.height}
+              value={form.resY}
               onChange={handleHeightChange}
               placeholder="Resolução Y"
             />

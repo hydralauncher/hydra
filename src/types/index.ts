@@ -106,8 +106,8 @@ export interface UserPreferences {
   repackUpdatesNotificationsEnabled: boolean;
   telemetryEnabled: boolean;
   fullscreenEnabled: boolean;
-  width: number;
-  height: number;
+  resX: string;
+  resY: string;
 }
 
 export interface HowLongToBeatCategory {
