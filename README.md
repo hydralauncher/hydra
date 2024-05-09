@@ -326,6 +326,13 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
+        <a href="https://github.com/ChristoferMendes">
+            <img src="https://avatars.githubusercontent.com/u/107426464?v=4" width="100;" alt="ChristoferMendes"/>
+            <br />
+            <sub><b>Christofer Luiz Dos Santos Mendes</b></sub>
+        </a>
+    </td>
+    <td align="center">
         <a href="https://github.com/userMacieG">
             <img src="https://avatars.githubusercontent.com/u/24211405?v=4" width="100;" alt="userMacieG"/>
             <br />
