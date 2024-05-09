@@ -139,7 +139,7 @@
     "enable_repack_list_notifications": "When a new repack is added",
     "telemetry": "Telemetry",
     "telemetry_description": "Enable anonymous usage statistics",
-    "real_debrid_api_token_description": "(Optional) Real Debrid API token",
+    "real_debrid_api_token_description": "Real Debrid API token",
     "quit_app_instead_hiding": "Quit Hydra instead of minimizing to tray",
     "launch_with_system": "Launch Hydra on system start-up",
     "general": "General",

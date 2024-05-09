@@ -133,7 +133,6 @@
     "enable_repack_list_notifications": "Quando a lista de repacks for atualizada",
     "telemetry": "Telemetria",
     "telemetry_description": "Habilitar estatísticas de uso anônimas",
-    "real_debrid_api_token_description": "(Opcional) Real Debrid API token",
     "behavior": "Comportamento",
     "quit_app_instead_hiding": "Fechar o aplicativo em vez de minimizá-lo",
     "launch_with_system": "Iniciar aplicativo na inicialização do sistema"
