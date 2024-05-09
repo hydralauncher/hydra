@@ -124,7 +124,8 @@
     "delete_modal_description": "Esto eliminará todos los archivos de instalación de tu computadora.",
     "delete_modal_title": "¿Estás seguro?",
     "deleting": "Eliminando instalador…",
-    "install": "Instalar"
+    "install": "Instalar",
+    "delete_installation_modal_description": "Esto eliminará la carpeta donde se descargó el juego. Si instalaste el juego en la misma ubicación donde lo descargaste, se eliminará."
   },
   "settings": {
     "downloads_path": "Ruta de descarga",

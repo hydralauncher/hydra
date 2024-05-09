@@ -130,7 +130,8 @@
     "remove_from_list": "Kaldır",
     "delete_modal_title": "Emin misiniz?",
     "delete_modal_description": "Bu bilgisayarınızdan tüm kurulum dosyalarını silecek",
-    "install": "Kur"
+    "install": "Kur",
+    "delete_installation_modal_description": "Bu, oyununuzun indirildiği klasörü kaldıracaktır. \nOyununuzu indirdiğiniz yere yüklediyseniz silinecektir."
   },
   "settings": {
     "downloads_path": "İndirme yolu",

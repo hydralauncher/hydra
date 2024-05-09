@@ -118,7 +118,8 @@
     "remove_from_list": "Eltávolítás",
     "delete_modal_title": "Biztos vagy benne?",
     "delete_modal_description": "Ez eltávolít minden telepítési fájlt a számítógépedről",
-    "install": "Telepítés"
+    "install": "Telepítés",
+    "delete_installation_modal_description": "Ezzel eltávolítja azt a mappát, ahová a játékot letöltötte. Ha a játékot ugyanarra a helyre telepítette, ahol letöltötte, akkor az törlődik."
   },
   "settings": {
     "downloads_path": "Letöltések helye",

@@ -117,7 +117,8 @@
     "remove_from_list": "Usuń",
     "delete_modal_title": "Czy na pewno?",
     "delete_modal_description": "Spowoduje to usunięcie wszystkich plików instalacyjnych z komputera",
-    "install": "Instaluj"
+    "install": "Instaluj",
+    "delete_installation_modal_description": "Spowoduje to usunięcie folderu, do którego została pobrana gra. Jeśli zainstalowałeś grę w tym samym miejscu, w którym ją pobrałeś, zostanie ona usunięta."
   },
   "settings": {
     "downloads_path": "Ścieżka pobierania",

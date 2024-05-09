@@ -124,6 +124,7 @@
     "remove_from_list": "Remover",
     "delete": "Remover instalador",
     "delete_modal_description": "Isso removerá todos os arquivos de instalação do seu computador",
+    "delete_installation_modal_description": "Isso removerá a pasta onde seu jogo foi baixado. Caso você tenha instalado o jogo no mesmo local onde o baixou, ele será excluído.",
     "delete_modal_title": "Tem certeza?",
     "deleting": "Excluindo instalador…",
     "install": "Instalar"

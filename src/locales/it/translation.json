@@ -130,7 +130,8 @@
     "remove_from_list": "Rimuovi",
     "delete_modal_title": "Sei sicuro?",
     "delete_modal_description": "Questo rimuoverà tutti i file di installazione dal tuo computer",
-    "install": "Installa"
+    "install": "Installa",
+    "delete_installation_modal_description": "Ciò rimuoverà la cartella in cui è stato scaricato il gioco. Se hai installato il gioco nella stessa posizione in cui lo hai scaricato, verrà eliminato."
   },
   "settings": {
     "downloads_path": "Percorso dei download",

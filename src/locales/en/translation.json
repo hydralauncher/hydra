@@ -130,7 +130,8 @@
     "remove_from_list": "Remove",
     "delete_modal_title": "Are you sure?",
     "delete_modal_description": "This will remove all the installation files from your computer",
-    "install": "Install"
+    "install": "Install",
+    "delete_installation_modal_description": "This will remove the folder where your game was downloaded. If you have installed your game on the same place where you downloaded it, it will be deleted."
   },
   "settings": {
     "downloads_path": "Downloads path",

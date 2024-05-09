@@ -109,7 +109,8 @@
     "delete_modal_description": "Cela supprimera tous les fichiers d'installation de votre ordinateur",
     "delete_modal_title": "Es-tu sûr?",
     "deleting": "Suppression du programme d'installation…",
-    "install": "Installer"
+    "install": "Installer",
+    "delete_installation_modal_description": "Cela supprimera le dossier dans lequel votre jeu a été téléchargé. Si vous avez installé le jeu au même endroit où vous l'avez téléchargé, il sera supprimé."
   },
   "settings": {
     "downloads_path": "Chemin des téléchargements",

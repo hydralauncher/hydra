@@ -25,7 +25,7 @@ export function DeleteModal({ gameId, onClose, visible }: DeleteModalProps) {
     <Modal
       visible={visible}
       title={t("delete_modal_title")}
-      description={t("delete_modal_description")}
+      description={t("delete_installation_modal_description")}
       onClose={onClose}
     >
       <div className={styles.deleteActionsButtonsCtn}>
