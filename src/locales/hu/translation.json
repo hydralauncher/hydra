@@ -20,7 +20,8 @@
     "home": "Főoldal",
     "delete_installation_files": "Telepítési fájlok eltávolítása",
     "change_exe_path": "Végrehajtható útvonalának módosítása",
-    "open_archive_path": "Fájl helyének megnyitása"
+    "open_archive_path": "Fájl helyének megnyitása",
+    "game_executable": "A játék futtatható"
   },
   "header": {
     "search": "Keresés",
@@ -87,7 +88,8 @@
     "repacks_modal_description": "Choose the repack you want to download",
     "downloads_path": "Letöltések helye",
     "select_folder_hint": "Ahhoz, hogy megváltoztasd a helyet, hozzákell férned a",
-    "download_now": "Töltsd le most"
+    "download_now": "Töltsd le most",
+    "game_executable": "A játék futtatható"
   },
   "activation": {
     "title": "Hydra Aktiválása",

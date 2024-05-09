@@ -47,7 +47,7 @@ export function HeroPanelActions({
       properties: ["openFile"],
       filters: [
         {
-          name: "Game executable",
+          name: t("game_executable"),
           extensions: window.electron.platform === "win32" ? ["exe"] : [],
         },
       ],
@@ -94,8 +94,6 @@ export function HeroPanelActions({
   };
 
   const openGame = async () => {
-    await updateLibrary();
-
     if (game?.executablePath) {
       window.electron.openGame(game.id, game.executablePath);
       return;

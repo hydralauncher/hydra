@@ -40,7 +40,7 @@ export function Sidebar() {
   );
 
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
-  const [axilCoordinates, setAxilCoordinates] = useState({
+  const [axisCoordinates, setAxisCoordinates] = useState({
     x: 0,
     y: 0,
   });
@@ -86,7 +86,7 @@ export function Sidebar() {
       properties: ["openFile"],
       filters: [
         {
-          name: "Game executable",
+          name: t("game_executable"),
           extensions: window.electron.platform === "win32" ? ["exe"] : [],
         },
       ],
@@ -271,7 +271,7 @@ export function Sidebar() {
               theme="dark"
             />
 
-            <div className={styles.menu}>
+            <ul className={styles.menu}>
               {filteredLibrary.map((game) => {
                 return (
                   <Fragment key={game.id}>
@@ -286,7 +286,7 @@ export function Sidebar() {
                       onContextMenu={(e) => {
                         setIsContextMenuOpen(true);
                         setCurrentGame(game);
-                        setAxilCoordinates({
+                        setAxisCoordinates({
                           x: e.pageX,
                           y: e.pageY,
                         });
@@ -316,8 +316,8 @@ export function Sidebar() {
                       <div
                         className={styles.contextMenu}
                         style={{
-                          top: axilCoordinates.y - 15,
-                          left: axilCoordinates.x,
+                          top: axisCoordinates.y - 15,
+                          left: axisCoordinates.x,
                         }}
                       >
                         <menu className={styles.contextMenuList}>
@@ -376,7 +376,7 @@ export function Sidebar() {
                   </Fragment>
                 );
               })}
-            </div>
+            </ul>
 
             <DeleteModal
               visible={showDeleteModal}

@@ -23,7 +23,8 @@
     "github": "GitHub'da bize katkı yap",
     "delete_installation_files": "Kurulum dosyalarını kaldır",
     "change_exe_path": "Yürütülebilir yolu değiştir",
-    "open_archive_path": "Dosya konumunu aç"
+    "open_archive_path": "Dosya konumunu aç",
+    "game_executable": "Yürütülebilir oyun"
   },
   "header": {
     "search": "Ara",
@@ -99,7 +100,8 @@
     "dont_show_it_again": "Tekrar gösterme",
     "copy_to_clipboard": "Kopyala",
     "copied_to_clipboard": "Kopyalandı",
-    "got_it": "Tamam"
+    "got_it": "Tamam",
+    "game_executable": "Yürütülebilir oyun"
   },
   "activation": {
     "title": "Hydra'yı aktif et",

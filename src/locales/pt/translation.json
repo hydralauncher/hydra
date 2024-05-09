@@ -23,7 +23,8 @@
     "github": "Contribua no GitHub",
     "delete_installation_files": "Remover arquivos de instalação",
     "change_exe_path": "Alterar caminho do executável",
-    "open_archive_path": "Abrir local do arquivo"
+    "open_archive_path": "Abrir local do arquivo",
+    "game_executable": "Executável do jogo"
   },
   "header": {
     "search": "Buscar",
@@ -95,7 +96,8 @@
     "dont_show_it_again": "Não mostrar novamente",
     "copy_to_clipboard": "Copiar",
     "copied_to_clipboard": "Copiado",
-    "got_it": "Entendi"
+    "got_it": "Entendi",
+    "game_executable": "Executável do jogo"
   },
   "activation": {
     "title": "Ativação",

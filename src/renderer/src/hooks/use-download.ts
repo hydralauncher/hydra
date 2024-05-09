@@ -98,19 +98,15 @@ export function useDownload() {
         dispatch(setGameDeleting(gameId));
         return window.electron.deleteGameFolder(gameId);
       })
-      .catch(() => {})
       .finally(() => {
         updateLibrary();
         dispatch(removeGameFromDeleting(gameId));
       });
 
   const removeInstallationFolder = (gameId: number) => {
-    window.electron
-      .deleteGameFolder(gameId)
-      .catch(() => {})
-      .finally(() => {
-        updateLibrary();
-      });
+    window.electron.deleteGameFolder(gameId).finally(() => {
+      updateLibrary();
+    });
   };
 
   const isGameDeleting = (gameId: number) => {

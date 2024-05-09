@@ -20,7 +20,8 @@
     "home": "Главная",
     "discord": "Присоединяйся к Discord",
     "x": "Подписывайтесь на X",
-    "github": "Внести свой вклад в GitHub"
+    "github": "Внести свой вклад в GitHub",
+    "game_executable": "Исполняемый файл игры"
   },
   "header": {
     "search": "Поиск",
@@ -96,7 +97,8 @@
     "dont_show_it_again": "Не показывать это снова",
     "copy_to_clipboard": "Копировать",
     "copied_to_clipboard": "Скопировано",
-    "got_it": "Понятно"
+    "got_it": "Понятно",
+    "game_executable": "Исполняемый файл игры"
   },
   "activation": {
     "title": "Активировать Hydra",

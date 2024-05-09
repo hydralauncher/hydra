@@ -23,7 +23,8 @@
     "github": "Contribuisci su GitHub",
     "delete_installation_files": "Rimuovi file di installazione",
     "change_exe_path": "Modifica percorso dell'eseguibile",
-    "open_archive_path": "Apri posizione del file"
+    "open_archive_path": "Apri posizione del file",
+    "game_executable": "Eseguibile del gioco"
   },
   "header": {
     "search": "Cerca",
@@ -99,7 +100,8 @@
     "dont_show_it_again": "Non mostrarlo più",
     "copy_to_clipboard": "Copia",
     "copied_to_clipboard": "Copiato",
-    "got_it": "Capito"
+    "got_it": "Capito",
+    "game_executable": "Eseguibile del gioco"
   },
   "activation": {
     "title": "Attiva Hydra",

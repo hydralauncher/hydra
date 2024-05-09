@@ -20,7 +20,8 @@
     "home": "Główna",
     "delete_installation_files": "Usuń pliki instalacyjne",
     "change_exe_path": "Zmień ścieżkę wykonywalną",
-    "open_archive_path": "Otwórz lokalizację pliku"
+    "open_archive_path": "Otwórz lokalizację pliku",
+    "game_executable": "Plik wykonywalny gry"
   },
   "header": {
     "search": "Szukaj",
@@ -86,7 +87,8 @@
     "downloads_path": "Ścieżka pobierania",
     "select_folder_hint": "Aby zmienić domyślny folder, przejdź do",
     "settings": "Ustawienia Hydra",
-    "download_now": "Pobierz teraz"
+    "download_now": "Pobierz teraz",
+    "game_executable": "Plik wykonywalny gry"
   },
   "activation": {
     "title": "Aktywuj Hydra",
