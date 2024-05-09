@@ -276,6 +276,13 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
+        <a href="https://github.com/Tunchichi">
+            <img src="https://avatars.githubusercontent.com/u/118926729?v=4" width="100;" alt="Tunchichi"/>
+            <br />
+            <sub><b>Ruslan</b></sub>
+        </a>
+    </td>
+    <td align="center">
         <a href="https://github.com/eltociear">
             <img src="https://avatars.githubusercontent.com/u/22633385?v=4" width="100;" alt="eltociear"/>
             <br />
@@ -294,13 +301,6 @@ yarn build:linux
             <img src="https://avatars.githubusercontent.com/u/10434535?v=4" width="100;" alt="vnumex"/>
             <br />
             <sub><b>Vnumex</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/Tunchichi">
-            <img src="https://avatars.githubusercontent.com/u/118926729?v=4" width="100;" alt="Tunchichi"/>
-            <br />
-            <sub><b>Ruslan</b></sub>
         </a>
     </td>
     <td align="center">
