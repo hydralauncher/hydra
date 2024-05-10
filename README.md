@@ -261,18 +261,18 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/ferivoq">
-            <img src="https://avatars.githubusercontent.com/u/36544651?v=4" width="100;" alt="ferivoq"/>
-            <br />
-            <sub><b>FeriVOQ</b></sub>
-        </a>
-    </td></tr>
-<tr>
-    <td align="center">
         <a href="https://github.com/xbozo">
             <img src="https://avatars.githubusercontent.com/u/119091492?v=4" width="100;" alt="xbozo"/>
             <br />
             <sub><b>Guilherme Viana</b></sub>
+        </a>
+    </td></tr>
+<tr>
+    <td align="center">
+        <a href="https://github.com/ferivoq">
+            <img src="https://avatars.githubusercontent.com/u/36544651?v=4" width="100;" alt="ferivoq"/>
+            <br />
+            <sub><b>FeriVOQ</b></sub>
         </a>
     </td>
     <td align="center">
@@ -337,6 +337,13 @@ yarn build:linux
             <img src="https://avatars.githubusercontent.com/u/24211405?v=4" width="100;" alt="userMacieG"/>
             <br />
             <sub><b>Maciej Ratyński</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/cardosource">
+            <img src="https://avatars.githubusercontent.com/u/29387672?v=4" width="100;" alt="cardosource"/>
+            <br />
+            <sub><b>Cardoso</b></sub>
         </a>
     </td></tr>
 </table>
