@@ -3,7 +3,7 @@ import { JSDOM } from "jsdom";
 import { formatUploadDate } from "@main/helpers";
 
 import { Repack } from "@main/entity";
-import { requestWebPage, savePage } from "./helpers";
+import { requestWebPage, saveRepacks } from "./helpers";
 
 export const request1337x = async (path: string) =>
   requestWebPage(`https://1337xx.to${path}`);
@@ -128,7 +128,7 @@ export const getNewRepacksFromUser = async (
 
   if (!newRepacks.length) return;
 
-  await savePage(newRepacks);
+  await saveRepacks(newRepacks);
 
   return getNewRepacksFromUser(user, existingRepacks, page + 1);
 };

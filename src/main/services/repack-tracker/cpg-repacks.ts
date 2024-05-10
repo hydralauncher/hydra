@@ -2,7 +2,7 @@ import { JSDOM } from "jsdom";
 
 import { Repack } from "@main/entity";
 
-import { requestWebPage, savePage } from "./helpers";
+import { requestWebPage, saveRepacks } from "./helpers";
 import { logger } from "../logger";
 
 export const getNewRepacksFromCPG = async (
@@ -58,7 +58,7 @@ export const getNewRepacksFromCPG = async (
 
   if (!newRepacks.length) return;
 
-  await savePage(newRepacks);
+  await saveRepacks(newRepacks);
 
   return getNewRepacksFromCPG(existingRepacks, page + 1);
 };
