@@ -35,18 +35,15 @@ const startGameDownload = async (
     return;
   }
 
-  writePipe.write({ action: "pause" });
-
-  await gameRepository.update(
-    {
+  const hasGameInDownloading = await gameRepository.exists({
+    where: {
       status: In([
         GameStatus.Downloading,
         GameStatus.DownloadingMetadata,
         GameStatus.CheckingFiles,
       ]),
     },
-    { status: GameStatus.Paused }
-  );
+  });
 
   if (game) {
     await gameRepository.update(
@@ -54,21 +51,23 @@ const startGameDownload = async (
         id: game.id,
       },
       {
-        status: GameStatus.DownloadingMetadata,
-        downloadPath: downloadPath,
+        status: hasGameInDownloading ? GameStatus.Queue : GameStatus.DownloadingMetadata,
+        downloadPath: downloadPath == "" || downloadPath == null ? game.downloadPath : downloadPath,
         repack: { id: repackId },
         isDeleted: false,
       }
     );
 
-    writePipe.write({
-      action: "start",
-      game_id: game.id,
-      magnet: repack.magnet,
-      save_path: downloadPath,
-    });
+    if(!hasGameInDownloading){
+      writePipe.write({
+        action: "start",
+        game_id: game.id,
+        magnet: repack.magnet,
+        save_path: downloadPath,
+      });
 
-    game.status = GameStatus.DownloadingMetadata;
+      game.status = GameStatus.DownloadingMetadata;
+    }
 
     return game;
   } else {
@@ -79,24 +78,55 @@ const startGameDownload = async (
       iconUrl,
       objectID,
       shop: gameShop,
-      status: GameStatus.DownloadingMetadata,
+      status: hasGameInDownloading ? GameStatus.Queue : GameStatus.DownloadingMetadata,
       downloadPath: downloadPath,
       repack: { id: repackId },
     });
 
-    writePipe.write({
-      action: "start",
-      game_id: createdGame.id,
-      magnet: repack.magnet,
-      save_path: downloadPath,
-    });
-
+    if(!hasGameInDownloading){
+      writePipe.write({
+        action: "start",
+        game_id: createdGame.id,
+        magnet: repack.magnet,
+        save_path: downloadPath,
+      });
+    }
+    
     const { repack: _, ...rest } = createdGame;
 
     return rest;
   }
 };
 
+const monitorGameDownload = async (
+  _event: Electron.IpcMainInvokeEvent
+) => {
+  const nextGame = await gameRepository.findOne({
+    where: { 
+      status: GameStatus.Queue
+    },
+    relations: { repack: true }
+  });
+
+  const hasGameInDownloading = await gameRepository.exists({
+    where: {
+      status: In([
+        GameStatus.Downloading,
+        GameStatus.DownloadingMetadata,
+        GameStatus.CheckingFiles,
+      ]),
+    },
+  });
+
+  if(nextGame != null && !hasGameInDownloading){
+    await startGameDownload(_event, nextGame.repack.id, nextGame.objectID, nextGame.title, nextGame.shop, nextGame.downloadPath ?? "");
+  }
+};
+
 registerEvent(startGameDownload, {
   name: "startGameDownload",
+});
+
+registerEvent(monitorGameDownload, {
+  name: "monitorGameDownload",
 });

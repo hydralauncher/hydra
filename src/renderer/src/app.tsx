@@ -31,7 +31,7 @@ export function App({ children }: AppProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary } = useLibrary();
 
-  const { clearDownload, addPacket } = useDownload();
+  const { monitorDownload, clearDownload, addPacket } = useDownload();
 
   const dispatch = useAppDispatch();
 
@@ -42,6 +42,15 @@ export function App({ children }: AppProps) {
   const draggingDisabled = useAppSelector(
     (state) => state.window.draggingDisabled
   );
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      monitorDownload();
+    }, 1000); // 1000 ms = 1 segundo
+
+    // Retorna uma função de limpeza para cancelar o intervalo quando o componente é desmontado
+    return () => clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     Promise.all([

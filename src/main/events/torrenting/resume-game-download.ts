@@ -18,17 +18,18 @@ const resumeGameDownload = async (
 
   if (!game) return;
 
-  writePipe.write({ action: "pause" });
+  let hasGameInDownloading = await gameRepository.exists({
+    where: {
+      status: In([
+        GameStatus.Downloading,
+        GameStatus.DownloadingMetadata,
+        GameStatus.CheckingFiles,
+      ]),
+    },
+  });
 
-  if (game.status === GameStatus.Paused) {
-    const downloadsPath = game.downloadPath ?? (await getDownloadsPath());
-
-    writePipe.write({
-      action: "start",
-      game_id: gameId,
-      magnet: game.repack.magnet,
-      save_path: downloadsPath,
-    });
+  if(game.status === GameStatus.Queue && hasGameInDownloading){
+    writePipe.write({ action: "pause" });
 
     await gameRepository.update(
       {
@@ -38,16 +39,31 @@ const resumeGameDownload = async (
           GameStatus.CheckingFiles,
         ]),
       },
-      { status: GameStatus.Paused }
+      { status: GameStatus.Queue }
     );
+
+    hasGameInDownloading = false;
+  }
+
+  if (game.status === GameStatus.Paused || game.status === GameStatus.Queue) {
+    const downloadsPath = game.downloadPath ?? (await getDownloadsPath());
 
     await gameRepository.update(
       { id: game.id },
       {
-        status: GameStatus.DownloadingMetadata,
+        status: hasGameInDownloading ? GameStatus.Queue : GameStatus.DownloadingMetadata,
         downloadPath: downloadsPath,
       }
     );
+
+    if(!hasGameInDownloading){
+      writePipe.write({
+        action: "start",
+        game_id: gameId,
+        magnet: game.repack.magnet,
+        save_path: downloadsPath,
+      });
+    }
   }
 };
 

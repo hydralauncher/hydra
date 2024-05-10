@@ -107,6 +107,7 @@
     "loading": "Загрузка…"
   },
   "downloads": {
+    "start_download": "Начать загрузку",
     "resume": "Возобновить",
     "pause": "Приостановить",
     "eta": "Окончание {{eta}}",
@@ -122,6 +123,7 @@
     "downloading_metadata": "Загрузка метаданных…",
     "checking_files": "Проверка файлов…",
     "starting_download": "Начало загрузки…",
+    "in_queue" : "В очереди",
     "deleting": "Удаление установщика…",
     "delete": "Удалить установщик",
     "remove_from_list": "Удалить",
@@ -138,7 +140,7 @@
     "telemetry": "Телеметрия",
     "telemetry_description": "Включить анонимную статистику использования",
     "behavior": "Поведение",
-    "quit_app_instead_hiding": "Закрывать приложение вместо того, чтобы сворачивать его в трей"
+    "quit_app_instead_hiding": "Закрывать приложение вместо того, чтобы сворачивать его в трей",
     "launch_with_system": "Запуск приложения при запуске системы"
   },
   "notifications": {

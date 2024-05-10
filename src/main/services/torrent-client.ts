@@ -17,6 +17,7 @@ const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
 };
 
 enum TorrentState {
+  Queue = 0,
   CheckingFiles = 1,
   DownloadingMetadata = 2,
   Downloading = 3,
@@ -84,6 +85,7 @@ export class TorrentClient {
   }
 
   private static getTorrentStateName(state: TorrentState) {
+    if (state === TorrentState.Queue) return "in_queue";
     if (state === TorrentState.CheckingFiles) return "checking_files";
     if (state === TorrentState.Downloading) return "downloading";
     if (state === TorrentState.DownloadingMetadata)
@@ -100,7 +102,7 @@ export class TorrentClient {
 
   public static async onSocketData(data: Buffer) {
     const message = Buffer.from(data).toString("utf-8");
-
+    
     try {
       const payload = JSON.parse(message) as TorrentUpdate;
 

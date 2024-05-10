@@ -40,6 +40,11 @@ export function useDownload() {
         return game;
       });
 
+  const monitorDownload = () =>
+    window.electron.monitorGameDownload().then(() => {
+      updateLibrary();
+    });
+
   const pauseDownload = (gameId: number) =>
     window.electron.pauseGameDownload(gameId).then(() => {
       dispatch(clearDownload());
@@ -121,6 +126,7 @@ export function useDownload() {
     numSeeds: lastPacket?.numSeeds,
     eta: getETA(),
     startDownload,
+    monitorDownload,
     pauseDownload,
     resumeDownload,
     cancelDownload,

@@ -25,6 +25,7 @@ declare global {
       shop: GameShop,
       downloadPath: string
     ) => Promise<Game>;
+    monitorGameDownload: () => Promise<void>;
     cancelGameDownload: (gameId: number) => Promise<void>;
     pauseGameDownload: (gameId: number) => Promise<void>;
     resumeGameDownload: (gameId: number) => Promise<void>;

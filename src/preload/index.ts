@@ -26,6 +26,8 @@ contextBridge.exposeInMainWorld("electron", {
       shop,
       downloadPath
     ),
+    monitorGameDownload: () =>
+    ipcRenderer.invoke("monitorGameDownload"),
   cancelGameDownload: (gameId: number) =>
     ipcRenderer.invoke("cancelGameDownload", gameId),
   pauseGameDownload: (gameId: number) =>

@@ -36,6 +36,7 @@ export const months = [
 export enum GameStatus {
   Seeding = "seeding",
   Downloading = "downloading",
+  Queue = "in_queue",
   Paused = "paused",
   CheckingFiles = "checking_files",
   DownloadingMetadata = "downloading_metadata",

@@ -94,6 +94,7 @@
     "loading": "Ładowanie…"
   },
   "downloads": {
+    "start_download": "Rozpocznij pobieranie",
     "resume": "Wznów",
     "pause": "Zatrzymaj",
     "eta": "Podsumowanie {{eta}}",
@@ -109,6 +110,7 @@
     "downloading_metadata": "Pobieranie metadata…",
     "checking_files": "Sprawdzanie plików…",
     "starting_download": "Rozpoczęto pobieranie…",
+    "in_queue" : "W kolejce",
     "deleting": "Usuwanie instalatora…",
     "delete": "Usuń instalator",
     "remove_from_list": "Usuń",

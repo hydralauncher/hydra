@@ -107,6 +107,7 @@
       "loading": "Yükleniyor…"
     },
     "downloads": {
+      "start_download": "İndirmeye başla",
       "resume": "Devam et",
       "pause": "Duraklat",
       "eta": "Bitiş {{eta}}",
@@ -122,6 +123,7 @@
       "downloading_metadata": "Metadata indiriliyor…",
       "checking_files": "Dosyalar kontrol ediliyor…",
       "starting_download": "İndirme başlatılıyor…",
+      "in_queue" : "Sırada",
       "deleting": "Installer siliniyor…",
       "delete": "Installer'ı sil",
       "remove_from_list": "Kaldır",

@@ -107,6 +107,7 @@
     "loading": "Caricamento…"
   },
   "downloads": {
+    "start_download": "Inizia il download",
     "resume": "Riprendi",
     "pause": "Metti in pausa",
     "eta": "Conclusione {{eta}}",
@@ -122,6 +123,7 @@
     "downloading_metadata": "Scaricamento metadati…",
     "checking_files": "Verifica file…",
     "starting_download": "Avvio download…",
+    "in_queue" : "In coda",
     "deleting": "Eliminazione dell'installer…",
     "delete": "Rimuovi installer",
     "remove_from_list": "Rimuovi",

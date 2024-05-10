@@ -101,6 +101,7 @@
     "loading": "Cargando…"
   },
   "downloads": {
+    "start_download": "Comienza a descargar",
     "resume": "Resumir",
     "pause": "Pausa",
     "eta": "Finalizando en {{eta}}",
@@ -116,6 +117,7 @@
     "downloading_metadata": "Descargando metadatos…",
     "checking_files": "Verificando archivos…",
     "starting_download": "Iniciando descarga…",
+    "in_queue" : "En fila",
     "remove_from_list": "Eliminar",
     "delete": "Eliminar instalador",
     "delete_modal_description": "Esto eliminará todos los archivos de instalación de tu computadora.",

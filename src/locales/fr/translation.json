@@ -86,6 +86,7 @@
     "loading": "Chargement en cours…"
   },
   "downloads": {
+    "start_download": "Commencer Le Téléchargement",
     "resume": "Reprendre",
     "pause": "Pause",
     "eta": "Fin dans {{eta}}",
@@ -101,6 +102,7 @@
     "downloading_metadata": "Téléchargement des métadonnées en cours…",
     "checking_files": "Vérification des fichiers…",
     "starting_download": "Démarrage du téléchargement…",
+    "in_queue" : "Dans la queue",
     "remove_from_list": "Retirer",
     "delete": "Supprimer le programme d'installation",
     "delete_modal_description": "Cela supprimera tous les fichiers d'installation de votre ordinateur",

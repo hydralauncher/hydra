@@ -107,6 +107,7 @@
     "loading": "Loading…"
   },
   "downloads": {
+    "start_download": "Start download",
     "resume": "Resume",
     "pause": "Pause",
     "eta": "Conclusion {{eta}}",
@@ -122,6 +123,7 @@
     "downloading_metadata": "Downloading metadata…",
     "checking_files": "Checking files…",
     "starting_download": "Starting download…",
+    "in_queue" : "In queue",
     "deleting": "Deleting installer…",
     "delete": "Remove installer",
     "remove_from_list": "Remove",

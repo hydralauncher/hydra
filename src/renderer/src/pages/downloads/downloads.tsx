@@ -105,8 +105,12 @@ export function Downloads() {
     }
 
     if (game?.status === "cancelled") return <p>{t("cancelled")}</p>;
+
     if (game?.status === "downloading_metadata")
       return <p>{t("starting_download")}</p>;
+
+    if (game?.status === "in_queue")
+      return <p>{t("in_queue")}</p>;
 
     if (game?.status === "paused") {
       return (
@@ -179,6 +183,19 @@ export function Downloads() {
         <Button onClick={() => cancelDownload(game.id)} theme="outline">
           {t("cancel")}
         </Button>
+      );
+    }
+
+    if (game?.status === "in_queue") {
+      return (
+        <>
+          <Button onClick={() => resumeDownload(game.id)} theme="outline">
+            {t("start_download")}
+          </Button>
+          <Button onClick={() => cancelDownload(game.id)} theme="outline">
+            {t("cancel")}
+          </Button>
+        </>
       );
     }
 

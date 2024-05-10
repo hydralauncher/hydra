@@ -95,6 +95,7 @@
     "loading": "Betöltés…"
   },
   "downloads": {
+    "start_download": "Letöltés indítása",
     "resume": "Folytatás",
     "pause": "Szüneteltetés",
     "eta": "Befejezés {{eta}}",
@@ -110,6 +111,7 @@
     "downloading_metadata": "Metaadatok letöltése…",
     "checking_files": "Fájlok ellenőrzése…",
     "starting_download": "Letöltés indítása…",
+    "in_queue" : "Sorban",
     "deleting": "Telepítő törlése…",
     "delete": "Telepítő eltávolítása",
     "remove_from_list": "Eltávolítás",

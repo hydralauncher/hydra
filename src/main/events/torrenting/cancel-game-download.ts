@@ -14,6 +14,7 @@ const cancelGameDownload = async (
     where: {
       id: gameId,
       status: In([
+        GameStatus.Queue,
         GameStatus.Downloading,
         GameStatus.DownloadingMetadata,
         GameStatus.CheckingFiles,
