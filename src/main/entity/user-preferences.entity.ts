@@ -29,12 +29,6 @@ export class UserPreferences {
   @Column("boolean", { default: false })
   fullscreenEnabled: boolean;
 
-  @Column("text", { nullable: true })
-  resX: string;
-
-  @Column("text", { nullable: true })
-  resY: string;
-
   @CreateDateColumn()
   createdAt: Date;
 
