@@ -90,7 +90,18 @@
     "dodi_installation_instruction": "Cuando abras el instalador de DODI, presiona la tecla hacia arriba del teclado <0 /> para iniciar el proceso de instalación:",
     "dont_show_it_again": "No mostrar de nuevo",
     "copy_to_clipboard": "Copiar",
-    "copied_to_clipboard": "Copiado"
+    "copied_to_clipboard": "Copiado",
+    "repack_language_code": {
+      "en": "Inglés",
+      "es": "Español",
+      "fr": "Francés",
+      "hu": "Húngaro",
+      "it": "Italiano",
+      "pl": "Polaco",
+      "pt": "Portugués",
+      "ru": "Ruso",
+      "tr": "Turco"
+    }
   },
   "activation": {
     "title": "Activar Hydra",

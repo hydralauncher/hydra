@@ -96,7 +96,18 @@
     "dont_show_it_again": "Non mostrarlo più",
     "copy_to_clipboard": "Copia",
     "copied_to_clipboard": "Copiato",
-    "got_it": "Capito"
+    "got_it": "Capito",
+    "repack_language_code": {
+      "en": "Inglese",
+      "es": "Spagnolo",
+      "fr": "Francese",
+      "hu": "Ungherese",
+      "it": "Italiano",
+      "pl": "Polacco",
+      "pt": "Portoghese",
+      "ru": "Russo",
+      "tr": "Turco"
+    }
   },
   "activation": {
     "title": "Attiva Hydra",

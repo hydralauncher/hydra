@@ -84,7 +84,18 @@
     "repacks_modal_description": "Choose the repack you want to download",
     "downloads_path": "Letöltések helye",
     "select_folder_hint": "Ahhoz, hogy megváltoztasd a helyet, hozzákell férned a",
-    "download_now": "Töltsd le most"
+    "download_now": "Töltsd le most",
+    "repack_language_code": {
+      "en": "Angol",
+      "es": "Spanyol",
+      "fr": "Francia",
+      "hu": "Magyar",
+      "it": "Olasz",
+      "pl": "Lengyel",
+      "pt": "Portugál",
+      "ru": "Orosz",
+      "tr": "Török"
+    }
   },
   "activation": {
     "title": "Hydra Aktiválása",
