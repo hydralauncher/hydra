@@ -340,6 +340,13 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
+        <a href="https://github.com/HOLKus">
+            <img src="https://avatars.githubusercontent.com/u/66418078?v=4" width="100;" alt="HOLKus"/>
+            <br />
+            <sub><b>Redulum</b></sub>
+        </a>
+    </td>
+    <td align="center">
         <a href="https://github.com/cardosource">
             <img src="https://avatars.githubusercontent.com/u/29387672?v=4" width="100;" alt="cardosource"/>
             <br />
