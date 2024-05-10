@@ -10,6 +10,13 @@ import { useAppSelector } from "@renderer/hooks";
 import { SPACING_UNIT } from "../../theme.css";
 import { format } from "date-fns";
 import { SelectFolderModal } from "./select-folder-modal";
+import { SeedersAndPeers } from "./seeders-and-peers/seeders-and-peers";
+import {
+  isMultiplayerRepack,
+  supportMultiLanguage,
+} from "@renderer/helpers/searcher";
+import { Tag } from "@renderer/components/tag/tag";
+import {getRepackLanguageBasedOnRepacker} from '../../helpers/searcher';
 
 export interface RepacksModalProps {
   visible: boolean;
@@ -87,12 +94,34 @@ export function RepacksModal({
               className={styles.repackButton}
             >
               <p style={{ color: "#DADBE1" }}>{repack.title}</p>
-              <p style={{ fontSize: "12px" }}>
-                {repack.fileSize} - {repackersFriendlyNames[repack.repacker]} -{" "}
-                {repack.uploadDate
-                  ? format(repack.uploadDate, "dd/MM/yyyy")
-                  : ""}
-              </p>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "100%",
+                }}
+              >
+                <div>
+                  <p style={{ fontSize: "12px" }}>
+                    {repack.fileSize} -{" "}
+                    {repackersFriendlyNames[repack.repacker]} -{" "}
+                    {repack.uploadDate
+                      ? format(repack.uploadDate, "dd/MM/yyyy")
+                      : ""}
+                    {" - " + t(`repack_language_code.${getRepackLanguageBasedOnRepacker(repack.repacker)}`)}
+                  </p>
+                </div>
+                <SeedersAndPeers
+                  repack={repack}
+                />
+              </div>
+              <div className={styles.tagsContainer}>
+                {supportMultiLanguage(repack.title) && (
+                  <Tag>Multi Language</Tag>
+                )}
+                {isMultiplayerRepack(repack.title) && <Tag>Multiplayer</Tag>}
+              </div>
             </Button>
           ))}
         </div>
