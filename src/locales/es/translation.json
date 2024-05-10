@@ -101,7 +101,9 @@
       "pt": "Portugués",
       "ru": "Ruso",
       "tr": "Turco"
-    }
+    },
+    "multi_language": "Multi Idioma",
+    "multi_player": "Multijugador"
   },
   "activation": {
     "title": "Activar Hydra",

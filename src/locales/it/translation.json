@@ -107,7 +107,9 @@
       "pt": "Portoghese",
       "ru": "Russo",
       "tr": "Turco"
-    }
+    },
+    "multi_language": "Multilingua",
+    "multi_player": "Multigiocatore"
   },
   "activation": {
     "title": "Attiva Hydra",

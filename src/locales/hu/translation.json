@@ -95,7 +95,9 @@
       "pt": "Portugál",
       "ru": "Orosz",
       "tr": "Török"
-    }
+    },
+    "multi_language": "Többnyelvű",
+    "multi_player": "Többjátékos"
   },
   "activation": {
     "title": "Hydra Aktiválása",

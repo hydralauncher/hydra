@@ -103,7 +103,9 @@
       "pt": "Português",
       "ru": "Russo",
       "tr": "Turco"
-    }
+    },
+    "multi_language": "Multi Idioma",
+    "multi_player": "Multijogador"
   },
   "activation": {
     "title": "Ativação",
