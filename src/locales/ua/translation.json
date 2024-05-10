@@ -60,11 +60,11 @@
     "requirements": "Системні вимоги",
     "minimum": "Мінімальні",
     "recommended": "Рекомендовані",
-    "no_minimum_requirements": "{{title}} не надає інформації про мінімальні вимоги",
-    "no_recommended_requirements": "{{title}} не надає інформації про рекомендовані вимоги",
+    "no_minimum_requirements": "Для {{title}} не вказані мінімальні вимоги",
+    "no_recommended_requirements": "Для {{title}} не вказані рекомендовані вимоги",
     "paused_progress": "{{progress}} (Призупинено)",
     "release_date": "Випущено {{date}}",
-    "publisher": "Опубліковано {{publisher}}",
+    "publisher": "Видавець {{publisher}}",
     "copy_link_to_clipboard": "Скопіювати посилання",
     "copied_link_to_clipboard": "Посилання скопійовано",
     "hours": "годин",
@@ -82,7 +82,7 @@
     "play": "Грати",
     "deleting": "Видалення інсталятора…",
     "close": "Закрити",
-    "playing_now": "Зараз у грі",
+    "playing_now": "Поточна гра",
     "change": "Змінити",
     "repacks_modal_description": "Виберіть репак, який хочете завантажити",
     "downloads_path": "Шлях завантажень",
@@ -158,7 +158,7 @@
   "binary_not_found_modal": {
     "title": "Програми не встановлені",
     "description": "Виконувані файли Wine або Lutris не знайдено у вашій системі",
-    "instructions": "Дізнайтеся правильний спосіб встановити будь-який з них на вашому дистрибутиві Linux, щоб гра могла нормально працювати"
+    "instructions": "Дізнайтеся правильний спосіб встановити будь-який з них на ваш дистрибутив Linux, щоб гра могла нормально працювати"
   },
   "modal": {
     "close": "Кнопка закриття"
