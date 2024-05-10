@@ -261,18 +261,25 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
+        <a href="https://github.com/xbozo">
+            <img src="https://avatars.githubusercontent.com/u/119091492?v=4" width="100;" alt="xbozo"/>
+            <br />
+            <sub><b>Guilherme Viana</b></sub>
+        </a>
+    </td></tr>
+<tr>
+    <td align="center">
         <a href="https://github.com/ferivoq">
             <img src="https://avatars.githubusercontent.com/u/36544651?v=4" width="100;" alt="ferivoq"/>
             <br />
             <sub><b>FeriVOQ</b></sub>
         </a>
-    </td></tr>
-<tr>
+    </td>
     <td align="center">
-        <a href="https://github.com/xbozo">
-            <img src="https://avatars.githubusercontent.com/u/119091492?v=4" width="100;" alt="xbozo"/>
+        <a href="https://github.com/Tunchichi">
+            <img src="https://avatars.githubusercontent.com/u/118926729?v=4" width="100;" alt="Tunchichi"/>
             <br />
-            <sub><b>Guilherme Viana</b></sub>
+            <sub><b>Ruslan</b></sub>
         </a>
     </td>
     <td align="center">
@@ -294,13 +301,6 @@ yarn build:linux
             <img src="https://avatars.githubusercontent.com/u/10434535?v=4" width="100;" alt="vnumex"/>
             <br />
             <sub><b>Vnumex</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/Tunchichi">
-            <img src="https://avatars.githubusercontent.com/u/118926729?v=4" width="100;" alt="Tunchichi"/>
-            <br />
-            <sub><b>Ruslan</b></sub>
         </a>
     </td>
     <td align="center">
@@ -326,10 +326,24 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
+        <a href="https://github.com/ChristoferMendes">
+            <img src="https://avatars.githubusercontent.com/u/107426464?v=4" width="100;" alt="ChristoferMendes"/>
+            <br />
+            <sub><b>Christofer Luiz Dos Santos Mendes</b></sub>
+        </a>
+    </td>
+    <td align="center">
         <a href="https://github.com/userMacieG">
             <img src="https://avatars.githubusercontent.com/u/24211405?v=4" width="100;" alt="userMacieG"/>
             <br />
             <sub><b>Maciej Ratyński</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/cardosource">
+            <img src="https://avatars.githubusercontent.com/u/29387672?v=4" width="100;" alt="cardosource"/>
+            <br />
+            <sub><b>Cardoso</b></sub>
         </a>
     </td></tr>
 </table>
