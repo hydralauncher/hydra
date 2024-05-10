@@ -96,7 +96,18 @@
     "dont_show_it_again": "Don't show it again",
     "copy_to_clipboard": "Copy",
     "copied_to_clipboard": "Copied",
-    "got_it": "Got it"
+    "got_it": "Got it",
+    "repack_language_code": {
+      "en": "English",
+      "es": "Spanish",
+      "fr": "French",
+      "hu": "Hungarian",
+      "it": "Italian",
+      "pl": "Polish",
+      "pt": "Portuguese",
+      "ru": "Russian",
+      "tr": "Turkish"
+    }
   },
   "activation": {
     "title": "Activate Hydra",

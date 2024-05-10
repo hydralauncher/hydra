@@ -75,7 +75,18 @@
     "close": "Fermer",
     "deleting": "Suppression du programme d'installation…",
     "playing_now": "Jeu en cours",
-    "last_time_played": "Dernièrement joué {{période}}"
+    "last_time_played": "Dernièrement joué {{période}}",
+    "repack_language_code": {
+      "en": "Anglais",
+      "es": "Espagnol",
+      "fr": "Français",
+      "hu": "Hongrois",
+      "it": "Italien",
+      "pl": "Polonais",
+      "pt": "Portugais",
+      "ru": "Russe",
+      "tr": "Turc"
+    }
   },
   "activation": {
     "title": "Activer Hydra",
