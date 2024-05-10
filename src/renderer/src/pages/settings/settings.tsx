@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Button, CheckboxField, TextField } from "@renderer/components";
+import { Button, CheckboxField, TextField, Select} from "@renderer/components";
 
 import * as styles from "./settings.css";
 import { useTranslation } from "react-i18next";
 import { UserPreferences } from "@types";
 import { changeLanguage } from "i18next";
+import { useDate } from "@renderer/hooks/use-date";
 
 export function Settings() {
   const [form, setForm] = useState({
@@ -12,9 +13,7 @@ export function Settings() {
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
     telemetryEnabled: false,
-    fullscreenEnabled: false,
-    resX: '',
-    resY: ''
+    fullscreenEnabled: false
   });
 
   const { t } = useTranslation("settings");
@@ -31,9 +30,7 @@ export function Settings() {
         repackUpdatesNotificationsEnabled:
           userPreferences?.repackUpdatesNotificationsEnabled ?? false,
         telemetryEnabled: userPreferences?.telemetryEnabled ?? false,
-        fullscreenEnabled: userPreferences?.fullscreenEnabled ?? false,
-        resX: userPreferences?.resX ?? '',
-        resY: userPreferences?.resY ?? '',
+        fullscreenEnabled: userPreferences?.fullscreenEnabled ?? false
       });
     });
   }, []);
@@ -58,22 +55,6 @@ export function Settings() {
     if (filePaths && filePaths.length > 0) {
       const path = filePaths[0];
       updateUserPreferences("downloadsPath", path);
-    }
-  };
-
-  const handleWidthChange = async (e) => {
-    const value = e.target.value;
-    // Validate numbers only (regex)
-    if (/^\d*$/.test(value)) {
-      updateUserPreferences("resX", value);
-    }
-  };
-
-  const handleHeightChange = (e) => {
-    const value = e.target.value;
-    // Validate numbers only (regex)
-    if (/^\d*$/.test(value)) {
-      updateUserPreferences("resY", value);
     }
   };
 
@@ -151,41 +132,23 @@ export function Settings() {
           }
         />
 
-        {form.fullscreenEnabled === false && (
-          <div className={styles.resolutionContent}>
-          <div className={styles.resolutionField}>
-          <>
-            <input
-              type="text"
-              value={form.resX}
-              onChange={handleWidthChange}
-              placeholder="X"
-            />
-            <input
-              type="text"
-              value={form.resY}
-              onChange={handleHeightChange}
-              placeholder="Y"
-            />
-          </>
-          </div>
-          </div>
-        )}
-
-
         <h3>{t("title_language")}</h3>
 
-          <div className={styles.resolutionContent}>
-          <div className={styles.resolutionField}>
-            <select value={selectedOption} onChange={handleLanguageChange}>
-              <option value="">{t("system_language")}</option>
+            {/* <select value={selectedOption} onChange={handleLanguageChange}>
+              <option value="">{}</option>
               <option value="en">English</option>
               <option value="pt">Português Brasil</option>
               <option value="es">Español</option>
               <option value="fr">Français</option>
-            </select>
-          </div>
-          </div>
+            </select> */}
+
+            <Select value={selectedOption} onChange={handleLanguageChange}>
+              <option value="">{}</option>
+              <option value="en">English</option>
+              <option value="pt">Português Brasil</option>
+              <option value="es">Español</option>
+              <option value="fr">Français</option>
+            </Select>
 
             {selectedOption && (
               <p>{t("system_language")}: {t("language_name")}</p>

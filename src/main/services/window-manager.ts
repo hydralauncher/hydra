@@ -34,8 +34,8 @@ export class WindowManager {
       where: { id: 1 },
     });
 
-    let width = Number(userPreferences?.resX);
-    let height = Number(userPreferences?.resY);
+    let width = 1200;
+    let height = 720;
 
     if (userPreferences?.fullscreenEnabled == true) {
        const primaryDisplay = screen.getPrimaryDisplay()
@@ -44,20 +44,8 @@ export class WindowManager {
        height = screenHeight;
     }
     if (userPreferences?.fullscreenEnabled == false) {
-      // width = 1200;
-      // height = 720;
-      if (!userPreferences?.resX || userPreferences.resX.trim() == '') {
-         width = 1200; //default value in null cases
-      }
-      if (!userPreferences?.resY || userPreferences.resY.trim() == '') {
-        height = 720; //default value in null cases
-      }
-      if (width < 1024){
-         width = 1024;
-      }
-      if (height < 540){
-        height = 540;
-      }
+      //Resize function here if interested
+      //Remember respect minWidth and minHeight value
     }
     //END LOGIC SCREEN RESOLUTION
 

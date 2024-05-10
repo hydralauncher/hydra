@@ -4,6 +4,7 @@ export * from "./game-card/game-card";
 export * from "./header/header";
 export * from "./hero/hero";
 export * from "./modal/modal";
+export * from "./select/select";
 export * from "./sidebar/sidebar";
 export * from "./async-image/async-image";
 export * from "./text-field/text-field";
