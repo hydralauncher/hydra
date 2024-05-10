@@ -1,5 +1,5 @@
 import { Repack } from "@main/entity";
-import { decodeNonUtf8Response, savePage } from "./helpers";
+import { decodeNonUtf8Response, saveRepacks } from "./helpers";
 import { logger } from "../logger";
 import parseTorrent, {
   toMagnetURI,
@@ -181,7 +181,7 @@ export const getNewRepacksFromOnlineFix = async (
   if (!newRepacks.length) return;
   if (page === totalPages) return;
 
-  await savePage(newRepacks);
+  await saveRepacks(newRepacks);
 
   return getNewRepacksFromOnlineFix(existingRepacks, page + 1, cookieJar);
 };
