@@ -94,7 +94,9 @@
       "pt": "Portugalski",
       "ru": "Rosyjski",
       "tr": "Turecki"
-    }
+    },
+    "multi_language": "Wielojęzyczny",
+    "multi_player": "Wieloosobowy"
   },
   "activation": {
     "title": "Aktywuj Hydra",

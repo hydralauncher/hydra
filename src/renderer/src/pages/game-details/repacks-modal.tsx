@@ -118,9 +118,9 @@ export function RepacksModal({
               </div>
               <div className={styles.tagsContainer}>
                 {supportMultiLanguage(repack.title) && (
-                  <Tag>Multi Language</Tag>
+                  <Tag>{t('multi_language')}</Tag>
                 )}
-                {isMultiplayerRepack(repack.title) && <Tag>Multiplayer</Tag>}
+                {isMultiplayerRepack(repack.title) && <Tag>{t('multiplayer')}</Tag>}
               </div>
             </Button>
           ))}
