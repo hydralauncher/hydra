@@ -82,7 +82,7 @@
 2. Запустите скачанный файл.
 3. Наслаждайтесь Hydra!
 
-## <a name="contributing"> Вклад
+## <a name="contributing"> Сотрудничество
 
 ### <a name="join-our-telegram"></a> Присоединяйтесь к нашему Telegram
 
