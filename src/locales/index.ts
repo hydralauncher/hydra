@@ -6,5 +6,6 @@ export { default as hu } from "./hu/translation.json";
 export { default as it } from "./it/translation.json";
 export { default as pl } from "./pl/translation.json";
 export { default as ru } from "./ru/translation.json";
+export { default as uk } from "./uk/translation.json";
 export { default as tr } from "./tr/translation.json";
 export { default as be } from "./be/translation.json";
