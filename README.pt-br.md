@@ -1,29 +1,25 @@
 <br>
 
 <div align="center">
-  <a href="https://hydralauncher.site">
-    <img src="./resources/icon.png" width="144"/>
-  </a>
+
+  [<img src="./resources/icon.png" width="144"/>](https://hydralauncher.site)
+
   <h1 align="center">Hydra Launcher</h1>
+  
   <p align="center">
     <strong>Hydra é um Game Launcher com seu próprio cliente de bittorrent integrado e um wrapper autogerenciado para busca de repacks.</strong>
   </p>
-  <p>
-    <a href="https://github.com/hydralauncher/hydra/actions" style="display: inline-block;">
-      <img src="https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml" />
-    </a>
-    <a href="https://github.com/hydralauncher/hydra/releases" style="display: inline-block;">
-      <img src="https://img.shields.io/github/package-json/v/hydralauncher/hydra" />
-    </a>
-  </p>
 
-Para este README em outros idiomas, escolha aqui:
+  [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
+  [![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
 
-[![pt-br](https://img.shields.io/badge/lang-pt--br-green.svg)](README.pt-br.md)
-[![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
-[![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
+  Para este README em outros idiomas, escolha aqui:
 
-![Catalogue do Hydra](./docs/screenshot.png)
+  [![pt-br](https://img.shields.io/badge/lang-pt--br-green.svg)](README.pt-br.md)
+  [![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
+  [![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
+
+  ![Hydra Catalogue](./docs/screenshot.png)
 
 </div>
 
