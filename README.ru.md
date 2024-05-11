@@ -25,9 +25,6 @@
 
 <br>
 
-### Язык
-[![ru](https://img.shields.io/badge/lang-ru-red)](https://github.com/hydralauncher/hydra/blob/main/README.ru.md)
-
 ## Содержание
 
 - [Описание](#описание)

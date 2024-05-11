@@ -25,7 +25,7 @@
 
 <br>
 
-## Table of Contents
+## Índice
 
 - [Sobre](#about)
 - [Recursos](#features)
