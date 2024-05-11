@@ -27,7 +27,7 @@
 <br>
 
 ### Мова
-[![ua](https://img.shields.io/badge/lang-ua-red)](https://github.com/hydralauncher/hydra/blob/main/README.ru.md)
+[![ua](https://img.shields.io/badge/lang-ua-red)](https://github.com/hydralauncher/hydra/blob/main/README.ua.md)
 
 ## Зміст
 
