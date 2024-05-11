@@ -1,8 +1,8 @@
 {
   "home": {
     "featured": "Рекомендоване",
-    "recently_added": "Нещодавно додане",
-    "trending": "Актуальне",
+    "recently_added": "Нове",
+    "trending": "У тренді",
     "surprise_me": "Здивуй мене",
     "no_results": "Результатів не знайдено"
   },
@@ -10,7 +10,7 @@
     "catalogue": "Каталог",
     "downloads": "Завантаження",
     "settings": "Налаштування",
-    "my_library": "Моя бібліотека",
+    "my_library": "Бібліотека",
     "downloading_metadata": "{{title}} (Завантаження метаданих…)",
     "checking_files": "{{title}} ({{percentage}} - Перевірка файлів…)",
     "paused": "{{title}} (Призупинено)",
@@ -18,9 +18,9 @@
     "filter": "Фільтр бібліотеки",
     "follow_us": "Підписуйтесь на нас",
     "home": "Головна",
-    "discord": "Приєднуйся до Discord",
+    "discord": "Приєднуйтесь до Discord",
     "x": "Підписуйтесь на X",
-    "github": "Зробити свій внесок у GitHub"
+    "github": "Зробіть свій внесок на GitHub"
   },
   "header": {
     "search": "Пошук",
@@ -41,7 +41,7 @@
     "previous_page": "Попередня сторінка"
   },
   "game_details": {
-    "open_download_options": "Відкрити опції завантаження",
+    "open_download_options": "Відкрити варіанти завантаження",
     "download_options_zero": "Немає варіантів завантаження",
     "download_options_one": "{{count}} варіант завантаження",
     "download_options_other": "{{count}} варіантів завантаження",
@@ -52,7 +52,7 @@
     "cancel": "Скасувати",
     "remove": "Видалити",
     "remove_from_list": "Видалити",
-    "space_left_on_disk": "{{space}} залишилося на диску",
+    "space_left_on_disk": "{{space}} вільно на диску",
     "eta": "Закінчення {{eta}}",
     "downloading_metadata": "Завантаження метаданих…",
     "checking_files": "Перевірка файлів…",
@@ -92,7 +92,7 @@
     "installation_instructions": "Інструкція зі встановлення",
     "installation_instructions_description": "Для встановлення цієї гри потрібні додаткові кроки",
     "online_fix_instruction": "В іграх з OnlineFix потрібно ввести пароль для вилучення. За необхідності використовуйте наступний пароль:",
-    "dodi_installation_instruction": "Коли ви відкриєте програму встановлення DODI, натисніть на клавіатурі клавішу 'вгору' <0 />, щоб почати процес встановлення:",
+    "dodi_installation_instruction": "Коли ви відкриєте інсталятор DODI, натисніть на клавіатурі клавішу 'вгору' <0 />, щоб почати процес встановлення:",
     "dont_show_it_again": "Не показувати це знову",
     "copy_to_clipboard": "Копіювати",
     "copied_to_clipboard": "Скопійовано",
@@ -131,15 +131,15 @@
   },
   "settings": {
     "downloads_path": "Тека завантажень",
-    "change": "Змінити теку",
+    "change": "Змінити",
     "notifications": "Повідомлення",
     "enable_download_notifications": "Після завершення завантаження",
-    "enable_repack_list_notifications": "Під час додавання нового репаку",
+    "enable_repack_list_notifications": "Коли додається новий репак",
     "telemetry": "Телеметрія",
-    "telemetry_description": "Увімкнути анонімну статистику використання",
+    "telemetry_description": "Відправляти анонімну статистику використання",
     "behavior": "Поведінка",
     "quit_app_instead_hiding": "Закривати програму замість того, щоб згортати її в трей",
-    "launch_with_system": "Запуск програми під час запуску системи"
+    "launch_with_system": "Запускати програми із запуском комп'ютера"
   },
   "notifications": {
     "download_complete": "Завантаження завершено",
@@ -161,6 +161,6 @@
     "instructions": "Дізнайтеся правильний спосіб встановити будь-який з них на ваш дистрибутив Linux, щоб гра могла нормально працювати"
   },
   "modal": {
-    "close": "Кнопка закриття"
+    "close": "Закрити"
   }
 }
