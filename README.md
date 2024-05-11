@@ -333,6 +333,13 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
+        <a href="https://github.com/IWareQ">
+            <img src="https://avatars.githubusercontent.com/u/51165317?v=4" width="100;" alt="IWareQ"/>
+            <br />
+            <sub><b>Dmitry Luk</b></sub>
+        </a>
+    </td>
+    <td align="center">
         <a href="https://github.com/userMacieG">
             <img src="https://avatars.githubusercontent.com/u/24211405?v=4" width="100;" alt="userMacieG"/>
             <br />
@@ -345,7 +352,8 @@ yarn build:linux
             <br />
             <sub><b>Redulum</b></sub>
         </a>
-    </td>
+    </td></tr>
+<tr>
     <td align="center">
         <a href="https://github.com/cardosource">
             <img src="https://avatars.githubusercontent.com/u/29387672?v=4" width="100;" alt="cardosource"/>
