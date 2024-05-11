@@ -27,9 +27,16 @@ import { In } from "typeorm";
 
 startProcessWatcher();
 
-const {autoUpdater} = require("electron-updater");
-autoUpdater.checkForUpdatesAndNotify()
 
+const {autoUpdater} = require("electron-updater");
+autoUpdater.setFeedURL({
+  provider: "github",
+  owner: "hydralauncher",
+  repo: "hydra",
+  token: import.meta.env.MAIN_VITE_GITHUB_ACCESS_TOKEN
+});
+autoUpdater.checkForUpdatesAndNotify()
+autoUpdater.quitAndInstall()
 
 TorrentClient.startTorrentClient(writePipe.socketPath, readPipe.socketPath);
 
