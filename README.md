@@ -261,18 +261,18 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/xbozo">
-            <img src="https://avatars.githubusercontent.com/u/119091492?v=4" width="100;" alt="xbozo"/>
-            <br />
-            <sub><b>Guilherme Viana</b></sub>
-        </a>
-    </td></tr>
-<tr>
-    <td align="center">
         <a href="https://github.com/ferivoq">
             <img src="https://avatars.githubusercontent.com/u/36544651?v=4" width="100;" alt="ferivoq"/>
             <br />
             <sub><b>FeriVOQ</b></sub>
+        </a>
+    </td></tr>
+<tr>
+    <td align="center">
+        <a href="https://github.com/xbozo">
+            <img src="https://avatars.githubusercontent.com/u/119091492?v=4" width="100;" alt="xbozo"/>
+            <br />
+            <sub><b>Guilherme Viana</b></sub>
         </a>
     </td>
     <td align="center">
@@ -283,10 +283,10 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/eltociear">
-            <img src="https://avatars.githubusercontent.com/u/22633385?v=4" width="100;" alt="eltociear"/>
+        <a href="https://github.com/vnumex">
+            <img src="https://avatars.githubusercontent.com/u/10434535?v=4" width="100;" alt="vnumex"/>
             <br />
-            <sub><b>Ikko Eltociear Ashimine</b></sub>
+            <sub><b>Vnumex</b></sub>
         </a>
     </td>
     <td align="center">
@@ -297,10 +297,10 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/vnumex">
-            <img src="https://avatars.githubusercontent.com/u/10434535?v=4" width="100;" alt="vnumex"/>
+        <a href="https://github.com/eltociear">
+            <img src="https://avatars.githubusercontent.com/u/22633385?v=4" width="100;" alt="eltociear"/>
             <br />
-            <sub><b>Vnumex</b></sub>
+            <sub><b>Ikko Eltociear Ashimine</b></sub>
         </a>
     </td>
     <td align="center">
@@ -347,18 +347,32 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
+        <a href="https://github.com/Latgardi">
+            <img src="https://avatars.githubusercontent.com/u/85876063?v=4" width="100;" alt="Latgardi"/>
+            <br />
+            <sub><b>Null</b></sub>
+        </a>
+    </td></tr>
+<tr>
+    <td align="center">
         <a href="https://github.com/userMacieG">
             <img src="https://avatars.githubusercontent.com/u/24211405?v=4" width="100;" alt="userMacieG"/>
             <br />
             <sub><b>Maciej Ratyński</b></sub>
         </a>
-    </td></tr>
-<tr>
+    </td>
     <td align="center">
         <a href="https://github.com/HOLKus">
             <img src="https://avatars.githubusercontent.com/u/66418078?v=4" width="100;" alt="HOLKus"/>
             <br />
             <sub><b>Redulum</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/savelevvo">
+            <img src="https://avatars.githubusercontent.com/u/4262882?v=4" width="100;" alt="savelevvo"/>
+            <br />
+            <sub><b>Viktor Savelev</b></sub>
         </a>
     </td>
     <td align="center">
