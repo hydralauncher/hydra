@@ -43,7 +43,7 @@
   "game_details": {
     "open_download_options": "Открыть варианты загрузки",
     "download_options_zero": "Нет вариантов загрузки",
-    "download_options_one": "{{count}} вариантов загрузки",
+    "download_options_one": "{{count}} вариант загрузки",
     "download_options_other": "{{count}} вариантов загрузки",
     "updated_at": "Обновлено {{updated_at}}",
     "install": "Установить",
