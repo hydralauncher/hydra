@@ -13,18 +13,14 @@
   [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
   [![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
 
-  Para este README em outros idiomas, escolha aqui:
-
-  [![pt-br](https://img.shields.io/badge/lang-pt--br-green.svg)](README.pt-br.md)
+  [![pt-BR](https://img.shields.io/badge/lang-pt--br-green.svg)](README.pt-BR.md)
   [![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
   [![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
-  [![ua](https://img.shields.io/badge/lang-ua-blue)](README.ua.md)
+  [![uk-UA](https://img.shields.io/badge/lang-ua-blue)](README.uk-UA.md)
 
   ![Hydra Catalogue](./docs/screenshot.png)
 
 </div>
-
-<br>
 
 ## Índice
 
@@ -174,15 +170,10 @@ yarn build:linux
 ```
 
 ## Contributors
-Feito com [contrib.rocks](https://contrib.rocks).
-
-> [!NOTE]
-> Pode levar ate um dia para a lista ser atualizada.
 
 <a href="https://github.com/hydralauncher/hydra/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=hydralauncher/hydra" />
 </a>
-
 
 ## License
 
