@@ -6,7 +6,7 @@
   </a>
   <h1 align="center">Hydra Launcher</h1>
   <p align="center">
-    <strong>Hydra is a game launcher with its own embedded bittorrent client and a self-managed repack scraper.</strong>
+    <strong>Hydra é um Game Launcher com seu próprio cliente de bittorrent integrado e um wrapper autogerenciado para busca de repacks.</strong>
   </p>
   <p>
     <a href="https://github.com/hydralauncher/hydra">
@@ -17,13 +17,13 @@
     </a>
   </p>
 
-For this readme in other languages, choose here:
+Para este README em outros idiomas, escolha aqui:
 
 [![pt-br](https://img.shields.io/badge/lang-pt--br-green.svg)](README.pt-br.md)
 [![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
 [![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
 
-![Hydra Catalogue](./docs/screenshot.png)
+![Catalogue do Hydra](./docs/screenshot.png)
 
 </div>
 
@@ -31,26 +31,26 @@ For this readme in other languages, choose here:
 
 ## Table of Contents
 
-- [About](#about)
-- [Features](#features)
-- [Installation](#installation)
+- [Sobre](#about)
+- [Recursos](#features)
+- [Instalação](#installation)
 - [Contributing](#contributing)
-  - [Join our Telegram](#join-our-telegram)
-  - [Fork and clone your repository](#fork-and-clone-your-repository)
-  - [Ways you can contribute](#ways-you-can-contribute)
-  - [Project Structure](#project-structure)
-- [Build from source](#build-from-source)
-  - [Install Node.js](#install-nodejs)
-  - [Install Yarn](#install-yarn)
-  - [Install Node Dependencies](#install-node-dependencies)
-  - [Install Python 3.9](#install-python-39)
-  - [Install Python Dependencies](#install-python-dependencies)
-- [Environment variables](#environment-variables)
-- [Running](#running)
-- [Build](#build)
-  - [Build the bittorrent client](#build-the-bittorrent-client)
-  - [Build the Electron application](#build-the-electron-application)
-- [Contributors](#contributors)
+  - [Junte-se ao nosso Telegram](#join-our-telegram)
+  - [Fork e clone seu repositorio](#fork-and-clone-your-repository)
+  - [Como contribuir](#ways-you-can-contribute)
+  - [Estrutura do projeto](#project-structure)
+- [Compile a partir do codigo fonte](#build-from-source)
+  - [Instale Node.js](#install-nodejs)
+  - [Instale Yarn](#install-yarn)
+  - [Instale Node Dependencies](#install-node-dependencies)
+  - [Instale Python 3.9](#install-python-39)
+  - [Instale Python Dependencies](#install-python-dependencies)
+- [variaveis de ambiente](#environment-variables)
+- [Rodando o programa](#running)
+- [Compilando](#build)
+  - [Compile o client bittorrent](#build-the-bittorrent-client)
+  - [Compile a aplicação Electron](#build-the-electron-application)
+- [Contribuidores](#contributors)
 
 ## About
 
@@ -79,11 +79,11 @@ Follow the steps below to install:
 2. Run the downloaded file.
 3. Enjoy Hydra!
 
-## <a name="contributing"> Contributing
+## <a name="contributing"> Contribuindo
 
-### <a name="join-our-telegram"></a> Join our Telegram
+### <a name="join-our-telegram"></a> Junte-se ao nosso Telegram
 
-We concentrate our discussions on our [Telegram](https://t.me/hydralauncher) channel.
+Concentramos nossas discussões no nosso canal do [Telegram](https://t.me/hydralauncher).
 
 ### Fork and clone your repository
 
@@ -177,10 +177,10 @@ yarn build:linux
 ```
 
 ## Contributors
-Made with [contrib.rocks](https://contrib.rocks).
+Feito com [contrib.rocks](https://contrib.rocks).
 
 > [!NOTE]
-> It may take up to a day for the list to be updated.
+> Pode levar ate um dia para a lista ser atualizada.
 
 <a href="https://github.com/hydralauncher/hydra/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=hydralauncher/hydra" />
