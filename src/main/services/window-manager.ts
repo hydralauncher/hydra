@@ -1,10 +1,13 @@
-import { BrowserWindow, Menu, Tray, app } from "electron";
+import { BrowserWindow, Menu, Tray, app, screen } from "electron";
 import { is } from "@electron-toolkit/utils";
 import { t } from "i18next";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
 import { userPreferencesRepository } from "@main/repository";
+
+const WINDOW_MIN_HEIGHT = 540;
+const WINDOW_MIN_WIDTH = 1024;
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -27,12 +30,16 @@ export class WindowManager {
   }
 
   public static createMainWindow() {
-    // Create the browser window.
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width, height } = primaryDisplay.workAreaSize;
+
     this.mainWindow = new BrowserWindow({
-      width: 1200,
-      height: 720,
-      minWidth: 1024,
-      minHeight: 540,
+      height: height,
+      width: width,
+      minHeight: WINDOW_MIN_HEIGHT,
+      minWidth: WINDOW_MIN_WIDTH,
+      x: primaryDisplay.bounds.x,
+      y: primaryDisplay.bounds.y,
       titleBarStyle: "hidden",
       ...(process.platform === "linux" ? { icon } : {}),
       trafficLightPosition: { x: 16, y: 16 },
