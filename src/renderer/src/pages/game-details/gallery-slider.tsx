@@ -86,14 +86,14 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
                 <button
                   onClick={showPrevImage}
                   className={styles.gallerySliderButton}
-                  style={{ left: 0 }}
+                  style={{ left: 0, borderRadius: "0 100% 100% 0"}}
                 >
                   <ChevronLeftIcon className={styles.gallerySliderIcons} />
                 </button>
                 <button
                   onClick={showNextImage}
                   className={styles.gallerySliderButton}
-                  style={{ right: 0 }}
+                  style={{ right: 0, borderRadius: "100% 0 0 100%"}}
                 >
                   <ChevronRightIcon className={styles.gallerySliderIcons} />
                 </button>
