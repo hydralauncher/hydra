@@ -27,7 +27,10 @@
 <br>
 
 ### Язык
-[![ru](https://img.shields.io/badge/lang-ru-red)](https://github.com/hydralauncher/hydra/blob/main/README.ru.md)
+[![en](https://img.shields.io/badge/lang-en-red)](https://github.com/hydralauncher/hydra/blob/main/README.md)
+[![ua](https://img.shields.io/badge/lang-ru-red)](https://github.com/hydralauncher/hydra/blob/main/README.ru.md)
+[![ua](https://img.shields.io/badge/lang-ua-red)](https://github.com/hydralauncher/hydra/blob/main/README.ua.md)
+
 
 ## Содержание
 
