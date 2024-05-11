@@ -9,10 +9,10 @@
     <strong>Hydra is a game launcher with its own embedded bittorrent client and a self-managed repack scraper.</strong>
   </p>
   <p>
-    <a href="https://github.com/hydralauncher/hydra">
+    <a href="https://github.com/hydralauncher/hydra/actions" style="display: inline-block;">
       <img src="https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml" />
     </a>
-    <a href="https://github.com/hydralauncher/hydra">
+    <a href="https://github.com/hydralauncher/hydra/releases" style="display: inline-block;">
       <img src="https://img.shields.io/github/package-json/v/hydralauncher/hydra" />
     </a>
   </p>
