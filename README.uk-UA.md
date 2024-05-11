@@ -13,10 +13,10 @@
   [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
   [![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
 
-  [![pt-BR](https://img.shields.io/badge/lang-pt--br-green.svg)](README.pt-BR.md)
+  [![pt-BR](https://img.shields.io/badge/lang-pt--BR-green.svg)](README.pt-BR.md)
   [![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
   [![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
-  [![uk-UA](https://img.shields.io/badge/lang-ua-blue)](README.uk-UA.md)
+  [![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
 
   ![Hydra Catalogue](./docs/screenshot.png)
 
