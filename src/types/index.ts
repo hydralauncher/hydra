@@ -69,7 +69,6 @@ export interface GameRepack {
 
 export type ShopDetails = SteamAppDetails & {
   objectID: string;
-  repacks: GameRepack[];
 };
 
 export interface TorrentFile {

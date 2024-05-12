@@ -2,6 +2,7 @@ import type {
   CatalogueCategory,
   CatalogueEntry,
   Game,
+  GameRepack,
   GameShop,
   HowLongToBeatCategory,
   ShopDetails,
@@ -50,6 +51,7 @@ declare global {
       take?: number,
       prevCursor?: number
     ) => Promise<{ results: CatalogueEntry[]; cursor: number }>;
+    searchGameRepacks: (query: string) => Promise<GameRepack[]>;
 
     /* Library */
     addGameToLibrary: (
