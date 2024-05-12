@@ -84,16 +84,17 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
                   <source src={video.webm.max.replace("http", "https")} />
                 </video>
               ))}
-
-            {gameDetails.screenshots.map((image: SteamScreenshot) => (
-              <img
-                key={image.id}
-                className={styles.gallerySliderMedia}
-                src={image.path_full}
-                style={{ translate: `${-100 * mediaIndex}%` }}
-              />
-            ))}
-
+            {gameDetails.screenshots &&
+              gameDetails.screenshots.map(
+                (image: SteamScreenshot, i: number) => (
+                  <img
+                    key={"image-" + i}
+                    className={styles.gallerySliderMedia}
+                    src={image.path_full}
+                    style={{ translate: `${-100 * mediaIndex}%` }}
+                  />
+                )
+              )}
             {arrowShow && (
               <>
                 <button
@@ -127,21 +128,21 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
                   className={`${styles.gallerySliderMediaPreview} ${mediaIndex === i ? styles.gallerySliderMediaPreviewActive : ""}`}
                 />
               ))}
-
-            {gameDetails.screenshots.map(
-              (image: SteamScreenshot, i: number) => (
-                <img
-                  key={image.id}
-                  onClick={() =>
-                    setMediaIndex(
-                      i + (gameDetails.movies ? gameDetails.movies.length : 0)
-                    )
-                  }
-                  className={`${styles.gallerySliderMediaPreview} ${mediaIndex === i + (gameDetails.movies ? gameDetails.movies.length : 0) ? styles.gallerySliderMediaPreviewActive : ""}`}
-                  src={image.path_full}
-                />
-              )
-            )}
+            {gameDetails.screenshots &&
+              gameDetails.screenshots.map(
+                (image: SteamScreenshot, i: number) => (
+                  <img
+                    key={"image-thumb-" + i}
+                    onClick={() =>
+                      setMediaIndex(
+                        i + (gameDetails.movies ? gameDetails.movies.length : 0)
+                      )
+                    }
+                    className={`${styles.gallerySliderMediaPreview} ${mediaIndex === i + (gameDetails.movies ? gameDetails.movies.length : 0) ? styles.gallerySliderMediaPreviewActive : ""}`}
+                    src={image.path_full}
+                  />
+                )
+              )}
           </div>
         </div>
       )}

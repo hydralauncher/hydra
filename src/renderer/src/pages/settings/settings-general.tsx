@@ -57,6 +57,11 @@ export function SettingsGeneral({
     }
   };
 
+  const handleChange = (values: Partial<typeof form>) => {
+    setForm((prev) => ({ ...prev, ...values }));
+    updateUserPreferences(values);
+  };
+
   return (
     <>
       <div className={styles.downloadsPathField}>
@@ -82,7 +87,7 @@ export function SettingsGeneral({
         label={t("enable_download_notifications")}
         checked={form.downloadNotificationsEnabled}
         onChange={() =>
-          updateUserPreferences({
+          handleChange({
             downloadNotificationsEnabled: !form.downloadNotificationsEnabled,
           })
         }
@@ -92,7 +97,7 @@ export function SettingsGeneral({
         label={t("enable_repack_list_notifications")}
         checked={form.repackUpdatesNotificationsEnabled}
         onChange={() =>
-          updateUserPreferences({
+          handleChange({
             repackUpdatesNotificationsEnabled:
               !form.repackUpdatesNotificationsEnabled,
           })
@@ -105,7 +110,7 @@ export function SettingsGeneral({
         label={t("telemetry_description")}
         checked={form.telemetryEnabled}
         onChange={() =>
-          updateUserPreferences({
+          handleChange({
             telemetryEnabled: !form.telemetryEnabled,
           })
         }

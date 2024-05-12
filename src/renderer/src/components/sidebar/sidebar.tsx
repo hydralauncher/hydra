@@ -10,7 +10,7 @@ import { useDownload, useLibrary } from "@renderer/hooks";
 import { routes } from "./routes";
 
 import { MarkGithubIcon } from "@primer/octicons-react";
-import DiscordLogo from "@renderer/assets/discord-icon.svg?react";
+import TelegramLogo from "@renderer/assets/telegram-icon.svg?react";
 import XLogo from "@renderer/assets/x-icon.svg?react";
 
 import * as styles from "./sidebar.css";
@@ -36,9 +36,9 @@ export function Sidebar() {
 
   const socials = [
     {
-      url: "https://discord.gg/hydralauncher",
-      icon: <DiscordLogo />,
-      label: t("discord"),
+      url: "https://t.me/hydralauncher",
+      icon: <TelegramLogo />,
+      label: t("telegram"),
     },
     {
       url: "https://twitter.com/hydralauncher",

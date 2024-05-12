@@ -19,6 +19,7 @@
     "follow_us": "Follow us",
     "home": "Home",
     "discord": "Join our Discord",
+    "telegram": "Join our Telegram",
     "x": "Follow on X",
     "github": "Contribute on GitHub"
   },
@@ -63,7 +64,7 @@
     "no_minimum_requirements": "{{title}} doesn't provide minimum requirements information",
     "no_recommended_requirements": "{{title}} doesn't provide recommended requirements information",
     "paused_progress": "{{progress}} (Paused)",
-    "release_date": "Released in {{date}}",
+    "release_date": "Released on {{date}}",
     "publisher": "Published by {{publisher}}",
     "copy_link_to_clipboard": "Copy link",
     "copied_link_to_clipboard": "Link copied",

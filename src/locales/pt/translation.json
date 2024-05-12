@@ -19,6 +19,7 @@
     "home": "Início",
     "follow_us": "Acompanhe-nos",
     "discord": "Entre no nosso Discord",
+    "telegram": "Entre no nosso Telegram",
     "x": "Siga-nos no X",
     "github": "Contribua no GitHub"
   },
@@ -153,7 +154,7 @@
   "binary_not_found_modal": {
     "title": "Programas não instalados",
     "description": "Não foram encontrados no seu sistema os executáveis do Wine ou Lutris",
-    "instructions": "Verifique a forma correta de instalar algum deles na sua distro Linux para que o jogo possa ser executado normalmente"
+    "instructions": "Verifique a forma correta de instalar algum deles no seu distro Linux, garantindo assim a execução normal do jogo"
   },
   "catalogue": {
     "next_page": "Próxima página",
