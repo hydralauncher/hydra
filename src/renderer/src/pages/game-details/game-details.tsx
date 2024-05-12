@@ -68,7 +68,7 @@ export function GameDetails() {
 
   const dispatch = useAppDispatch();
 
-  const { game: gameDownloading, startDownload, isDownloading } = useDownload();
+  const { game: gameDownloading, startDownload } = useDownload();
 
   const heroImage = steamUrlBuilder.libraryHero(objectID!);
 
@@ -122,7 +122,7 @@ export function GameDetails() {
     setHowLongToBeat({ isLoading: true, data: null });
   }, [getGame, dispatch, navigate, objectID, i18n.language]);
 
-  const isGameDownloading = isDownloading && gameDownloading?.id === game?.id;
+  const isGameDownloading = gameDownloading?.id === game?.id;
 
   useEffect(() => {
     if (isGameDownloading)

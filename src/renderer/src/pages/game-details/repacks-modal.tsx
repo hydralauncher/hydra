@@ -36,7 +36,7 @@ export function RepacksModal({
 
   useEffect(() => {
     setFilteredRepacks(gameDetails.repacks);
-  }, [gameDetails.repacks]);
+  }, [gameDetails.repacks, visible]);
 
   const handleRepackClick = (repack: GameRepack) => {
     setRepack(repack);
