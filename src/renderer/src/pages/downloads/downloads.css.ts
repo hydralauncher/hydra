@@ -29,6 +29,7 @@ export const downloaderName = style({
   borderRadius: "4px",
   display: "flex",
   alignItems: "center",
+  alignSelf: "flex-start",
 });
 
 export const downloads = style({

@@ -20,6 +20,7 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
         return gameDetails.screenshots.length;
       }
     }
+
     return 0;
   });
 

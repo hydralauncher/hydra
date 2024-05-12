@@ -4,7 +4,7 @@ import { formatDownloadProgress } from "@renderer/helpers";
 import { useLibrary } from "./use-library";
 import { useAppDispatch, useAppSelector } from "./redux";
 import {
-  addPacket,
+  setLastPacket,
   clearDownload,
   setGameDeleting,
   removeGameFromDeleting,
@@ -18,12 +18,10 @@ export function useDownload() {
   const { updateLibrary } = useLibrary();
   const { formatDistance } = useDate();
 
-  const { packets, gamesWithDeletionInProgress } = useAppSelector(
+  const { lastPacket, gamesWithDeletionInProgress } = useAppSelector(
     (state) => state.download
   );
   const dispatch = useAppDispatch();
-
-  const lastPacket = packets.at(-1);
 
   const startDownload = (
     repackId: number,
@@ -128,6 +126,6 @@ export function useDownload() {
     deleteGame,
     isGameDeleting,
     clearDownload: () => dispatch(clearDownload()),
-    addPacket: (packet: TorrentProgress) => dispatch(addPacket(packet)),
+    setLastPacket: (packet: TorrentProgress) => dispatch(setLastPacket(packet)),
   };
 }

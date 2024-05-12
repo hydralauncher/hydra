@@ -32,7 +32,7 @@ export function App({ children }: AppProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary } = useLibrary();
 
-  const { clearDownload, addPacket } = useDownload();
+  const { clearDownload, setLastPacket } = useDownload();
 
   const dispatch = useAppDispatch();
 
@@ -64,14 +64,14 @@ export function App({ children }: AppProps) {
           return;
         }
 
-        addPacket(downloadProgress);
+        setLastPacket(downloadProgress);
       }
     );
 
     return () => {
       unsubscribe();
     };
-  }, [clearDownload, addPacket, updateLibrary]);
+  }, [clearDownload, setLastPacket, updateLibrary]);
 
   const handleSearch = useCallback(
     (query: string) => {

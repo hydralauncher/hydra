@@ -9,7 +9,12 @@ export interface TextFieldProps
   > {
   theme?: NonNullable<RecipeVariants<typeof styles.textField>>["theme"];
   label?: string | React.ReactNode;
+  hint?: string | React.ReactNode;
   textFieldProps?: React.DetailedHTMLProps<
+    React.HTMLAttributes<HTMLDivElement>,
+    HTMLDivElement
+  >;
+  containerProps?: React.DetailedHTMLProps<
     React.HTMLAttributes<HTMLDivElement>,
     HTMLDivElement
   >;
@@ -18,19 +23,17 @@ export interface TextFieldProps
 export function TextField({
   theme = "primary",
   label,
+  hint,
   textFieldProps,
+  containerProps,
   ...props
 }: TextFieldProps) {
   const [isFocused, setIsFocused] = useState(false);
   const id = useId();
 
   return (
-    <div style={{ flex: 1 }}>
-      {label && (
-        <label htmlFor={id} className={styles.label} tabIndex={0}>
-          {label}
-        </label>
-      )}
+    <div className={styles.textFieldContainer} {...containerProps}>
+      {label && <label tabIndex={0}>{label}</label>}
 
       <div
         className={styles.textField({ focused: isFocused, theme })}
@@ -45,6 +48,8 @@ export function TextField({
           {...props}
         />
       </div>
+
+      {hint && <small tabIndex={0}>{hint}</small>}
     </div>
   );
 }

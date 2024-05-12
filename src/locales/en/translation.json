@@ -23,7 +23,7 @@
     "github": "Contribute on GitHub"
   },
   "header": {
-    "search": "Search",
+    "search": "Search games",
     "home": "Home",
     "catalogue": "Catalogue",
     "downloads": "Downloads",
@@ -86,8 +86,7 @@
     "change": "Change",
     "repacks_modal_description": "Choose the repack you want to download",
     "downloads_path": "Downloads path",
-    "select_folder_hint": "To change the default folder, access the",
-    "settings": "Settings",
+    "select_folder_hint": "To change the default folder, go to the <0>Settings</0>",
     "download_now": "Download now",
     "installation_instructions": "Installation Instructions",
     "installation_instructions_description": "Additional steps are required to install this game",
@@ -144,7 +143,9 @@
     "launch_with_system": "Launch Hydra on system start-up",
     "general": "General",
     "behavior": "Behavior",
-    "real_debrid": "Real Debrid"
+    "enable_real_debrid": "Enable Real Debrid",
+    "real_debrid": "Real Debrid",
+    "real_debrid_api_token_hint": "You can get your API key <0>here</0>"
   },
   "notifications": {
     "download_complete": "Download complete",
