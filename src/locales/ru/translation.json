@@ -110,7 +110,7 @@
       "tr": "Турецкий"
     },
     "multi_language": "Мультиязычный",
-    "multi_player": "Многопользовательский"
+    "multiplayer": "Многопользовательский"
   },
   "activation": {
     "title": "Активировать Hydra",
