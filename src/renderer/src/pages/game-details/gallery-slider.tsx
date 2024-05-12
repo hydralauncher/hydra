@@ -67,8 +67,6 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
           if (node instanceof HTMLVideoElement) {
             node.play()
             currentVideoRef.current = node
-          } else {
-            console.log(" nao é video")
           }
         }
       })
