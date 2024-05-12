@@ -18,7 +18,7 @@ const httpsAgent = new Agent({
 });
 const axiosRef = axios.create({
   baseURL: "https://checker.openwebtorrent.com",
-  httpsAgent
+  httpsAgent,
 });
 
 export const openWebTorrent = {
@@ -34,17 +34,12 @@ export const openWebTorrent = {
     const params = new URLSearchParams();
     params.append("magnet", magnet);
 
-    try {
-      const response = await axiosRef.get(endpoint, { params });
-      const { seeds, peers } = this.transformResponseError(response);
+    const response = await axiosRef.get(endpoint, { params });
+    const { seeds, peers } = this.transformResponseError(response);
 
-      return {
-        seeders: seeds,
-        peers: peers,
-      };
-    } catch (e) {
-      const error = e as Error;
-      throw new Error(error.message);
-    }
+    return {
+      seeders: seeds,
+      peers: peers,
+    };
   },
 };
