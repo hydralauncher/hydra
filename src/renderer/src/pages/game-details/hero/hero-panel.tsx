@@ -106,7 +106,7 @@ export function HeroPanel({
       );
     }
 
-    if (game && GameStatusHelper.isReady(game?.status ?? null)) {
+    if (game && GameStatusHelper.isReady(game?.status ?? GameStatus.Finished)) {
       return <HeroPanelPlaytime game={game} isGamePlaying={isGamePlaying} />;
     }
 
