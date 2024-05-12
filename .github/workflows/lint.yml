@@ -1,8 +1,6 @@
 name: Lint
 
-on:
-  push:
-    branches: "**"
+on: [pull_request, push]
 
 jobs:
   lint:
