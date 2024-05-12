@@ -2,7 +2,7 @@
 
 <div align="center">
 
-  [<img src="./resources/icon.png" width="144"/>](https://hydralauncher.site)
+[<img src="./resources/icon.png" width="144"/>](https://hydralauncher.site)
 
   <h1 align="center">Hydra Launcher</h1>
   
@@ -10,15 +10,15 @@
     <strong>Hydra - это игровой лаунчер с собственным встроенным клиентом BitTorrent и самостоятельным scraper`ом для репаков.</strong>
   </p>
 
-  [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
-  [![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
+[![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
+[![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
 
-  [![pt-BR](https://img.shields.io/badge/lang-pt--BR-green.svg)](README.pt-BR.md)
-  [![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
-  [![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
-  [![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
+[![pt-BR](https://img.shields.io/badge/lang-pt--BR-green.svg)](README.pt-BR.md)
+[![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
+[![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
+[![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
 
-  ![Hydra Catalogue](./docs/screenshot.png)
+![Hydra Catalogue](./docs/screenshot.png)
 
 </div>
 
@@ -67,8 +67,8 @@
 Чтобы установить, выполните следующие шаги:
 
 1. Скачайте последнюю версию Hydra с [страницы релизов](https://github.com/hydralauncher/hydra/releases/latest).
-    - Загрузите только .exe, если хотите установить Hydra на Windows.
-    - Загрузите .deb или .rpm или .zip, если хотите установить Hydra на Linux (в зависимости от вашего дистрибутива Linux).
+   - Загрузите только .exe, если хотите установить Hydra на Windows.
+   - Загрузите .deb или .rpm или .zip, если хотите установить Hydra на Linux (в зависимости от вашего дистрибутива Linux).
 2. Запустите скачанный файл.
 3. Наслаждайтесь Hydra!
 
@@ -89,7 +89,7 @@
 ### Способы внести свой вклад
 
 - Перевод: Мы хотим, чтобы Hydra была доступна как можно большему количеству людей. Не стесняйтесь помогать переводить на новые языки или обновлять и улучшать те, которые уже доступны в Hydra.
-- Код: Hydra создан с использованием TypeScript, Electron и немного Python. Если хотите внести свой вклад, присоединяйтесь к нашему серверу [Telegram](https://t.me/hydralauncher)!
+- Код: Hydra создан с использованием TypeScript, Electron и немного Python. Если хотите внести свой вклад, присоединяйтесь к нашему каналу [Telegram](https://t.me/hydralauncher)!
 
 ### Структура проекта
 
