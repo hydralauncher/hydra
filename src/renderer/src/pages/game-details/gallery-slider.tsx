@@ -63,11 +63,9 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
   useEffect(() => {
     if (hasMovies && mediaContainerRef.current) {
       mediaContainerRef.current.childNodes.forEach((node, index) => {
-        if (index == mediaIndex) {
-          if (node instanceof HTMLVideoElement) {
-            node.play()
-            currentVideoRef.current = node
-          }
+        if (index == mediaIndex && node instanceof HTMLVideoElement) {
+          node.play()
+          currentVideoRef.current = node
         }
       })
     }
