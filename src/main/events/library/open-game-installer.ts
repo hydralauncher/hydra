@@ -21,7 +21,7 @@ const openGameInstaller = async (
 
   const gamePath = path.join(
     game.downloadPath ?? (await getDownloadsPath()),
-    game.folderName
+    game.folderName!
   );
 
   if (!fs.existsSync(gamePath)) {

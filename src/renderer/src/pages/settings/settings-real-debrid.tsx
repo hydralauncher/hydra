@@ -78,7 +78,7 @@ export function SettingsRealDebrid({
         style={{ alignSelf: "flex-end" }}
         disabled={isButtonDisabled}
       >
-        Save changes
+        {t("save_changes")}
       </Button>
     </form>
   );

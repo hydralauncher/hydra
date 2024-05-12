@@ -6,9 +6,8 @@ import { useDownload } from "@renderer/hooks";
 import type { Game, ShopDetails } from "@types";
 
 import { formatDownloadProgress } from "@renderer/helpers";
-import { formatBytes } from "@renderer/utils";
 import { HeroPanelActions } from "./hero-panel-actions";
-import { Downloader, GameStatus, GameStatusHelper } from "@shared";
+import { Downloader, GameStatus, GameStatusHelper, formatBytes } from "@shared";
 
 import { BinaryNotFoundModal } from "../../shared-modals/binary-not-found-modal";
 import * as styles from "./hero-panel.css";

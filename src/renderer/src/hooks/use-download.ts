@@ -11,8 +11,7 @@ import {
 } from "@renderer/features";
 import type { GameShop, TorrentProgress } from "@types";
 import { useDate } from "./use-date";
-import { formatBytes } from "@renderer/utils";
-import { GameStatus, GameStatusHelper } from "@shared";
+import { GameStatus, GameStatusHelper, formatBytes } from "@shared";
 
 export function useDownload() {
   const { updateLibrary } = useLibrary();

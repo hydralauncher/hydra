@@ -10,8 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
 import { DeleteModal } from "./delete-modal";
-import { formatBytes } from "@renderer/utils";
-import { Downloader, GameStatus, GameStatusHelper } from "@shared";
+import { Downloader, GameStatus, GameStatusHelper, formatBytes } from "@shared";
 
 export function Downloads() {
   const { library, updateLibrary } = useLibrary();

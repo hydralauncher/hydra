@@ -133,9 +133,14 @@
     "enable_repack_list_notifications": "Quando a lista de repacks for atualizada",
     "telemetry": "Telemetria",
     "telemetry_description": "Habilitar estatísticas de uso anônimas",
-    "behavior": "Comportamento",
     "quit_app_instead_hiding": "Fechar o aplicativo em vez de minimizá-lo",
-    "launch_with_system": "Iniciar aplicativo na inicialização do sistema"
+    "launch_with_system": "Iniciar aplicativo na inicialização do sistema",
+    "general": "Geral",
+    "behavior": "Comportamento",
+    "enable_real_debrid": "Habilitar Real Debrid",
+    "real_debrid": "Real Debrid",
+    "real_debrid_api_token_hint": "Você pode obter sua chave de API <0>aqui</0>.",
+    "save_changes": "Salvar mudanças"
   },
   "notifications": {
     "download_complete": "Download concluído",
