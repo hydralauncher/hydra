@@ -96,7 +96,15 @@
     "dont_show_it_again": "Don't show it again",
     "copy_to_clipboard": "Copy",
     "copied_to_clipboard": "Copied",
-    "got_it": "Got it"
+    "got_it": "Got it",
+    "game_executable_selection": {
+      "title": "Select the game executable file",
+      "executable_files": "Executable Files (.exe)",
+      "all_files": "All Files (.*)"
+    },
+    "download_path_selection": {
+      "title": "Select the download folder"
+    }
   },
   "activation": {
     "title": "Activate Hydra",
@@ -139,7 +147,10 @@
     "telemetry_description": "Enable anonymous usage statistics",
     "behavior": "Behavior",
     "quit_app_instead_hiding": "Close app instead of minimizing to tray",
-    "launch_with_system": "Launch app on system start-up"
+    "launch_with_system": "Launch app on system start-up",
+    "download_path_selection": {
+      "title": "Select the downloads folder"
+    }
   },
   "notifications": {
     "download_complete": "Download complete",

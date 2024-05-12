@@ -43,23 +43,18 @@ export function HeroPanelActions({
   const { t } = useTranslation("game_details");
 
   const selectGameExecutable = async () => {
-    return window.electron
-      .showOpenDialog({
-        properties: ["openFile"],
-        filters: [
-          {
-            name: "Game executable",
-            extensions: window.electron.platform === "win32" ? ["exe"] : [],
-          },
-        ],
-      })
-      .then(({ filePaths }) => {
-        if (filePaths && filePaths.length > 0) {
-          return filePaths[0];
-        }
+    const { canceled, filePaths } = await window.electron.showOpenDialog({
+      title: t("game_executable_selection.title"),
+      properties: ["openFile"],
+      filters: [
+        {
+          name: window.electron.platform === "win32" ? t("game_executable_selection.executable_files") : t("game_executable_selection.all_files"),
+          extensions: window.electron.platform === "win32" ? ["exe"] : ["*"],
+        },
+      ],
+    });
 
-        return null;
-      });
+    return canceled ? null : filePaths[0];
   };
 
   const toggleGameOnLibrary = async () => {
@@ -71,12 +66,14 @@ export function HeroPanelActions({
       } else if (gameDetails) {
         const gameExecutablePath = await selectGameExecutable();
 
-        await window.electron.addGameToLibrary(
-          gameDetails.objectID,
-          gameDetails.name,
-          "steam",
-          gameExecutablePath
-        );
+        if (gameExecutablePath) {
+          await window.electron.addGameToLibrary(
+            gameDetails.objectID,
+            gameDetails.name,
+            "steam",
+            gameExecutablePath
+          );
+        }
       }
 
       updateLibrary();

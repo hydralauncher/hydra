@@ -92,7 +92,15 @@
     "dont_show_it_again": "Não mostrar novamente",
     "copy_to_clipboard": "Copiar",
     "copied_to_clipboard": "Copiado",
-    "got_it": "Entendi"
+    "got_it": "Entendi",
+    "game_executable_selection": {
+      "title": "Selecione o arquivo executável do jogo",
+      "executable_files": "Arquivos Executáveis (.exe)",
+      "all_files": "Todos os Arquivos (.*)"
+    },
+    "download_path_selection": {
+      "title": "Selecione o diretório para download"
+    }
   },
   "activation": {
     "title": "Ativação",
@@ -135,7 +143,10 @@
     "telemetry_description": "Habilitar estatísticas de uso anônimas",
     "behavior": "Comportamento",
     "quit_app_instead_hiding": "Fechar o aplicativo em vez de minimizá-lo",
-    "launch_with_system": "Iniciar aplicativo na inicialização do sistema"
+    "launch_with_system": "Iniciar aplicativo na inicialização do sistema",
+    "download_path_selection": {
+      "title": "Selecione o diretório de downloads"
+    }
   },
   "notifications": {
     "download_complete": "Download concluído",
