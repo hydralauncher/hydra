@@ -5,17 +5,6 @@ import json
 import threading
 import time
 
-torrent_port = sys.argv[1]
-read_sock_path = sys.argv[2]
-write_sock_path = sys.argv[3]
-
-session = lt.session({'listen_interfaces': '0.0.0.0:{port}'.format(port=torrent_port)})
-read_fifo = Fifo(read_sock_path)
-write_fifo = Fifo(write_sock_path)
-
-torrent_handle = None
-downloading_game_id = 0
-
 def get_eta(status):
     remaining_bytes = status.total_wanted - status.total_wanted_done
 
@@ -24,35 +13,24 @@ def get_eta(status):
     else:
         return 1
 
-def start_download(game_id: int, magnet: str, save_path: str):
-    global torrent_handle
-    global downloading_game_id
-
+def start_download(session, game_id: int, magnet: str, save_path: str):
     params = {'url': magnet, 'save_path': save_path}
     torrent_handle = session.add_torrent(params)
-    downloading_game_id = game_id
     torrent_handle.set_flags(lt.torrent_flags.auto_managed)
     torrent_handle.resume()
+    return torrent_handle
 
-def pause_download():
-    global downloading_game_id
-
+def pause_download(torrent_handle):
     if torrent_handle:
         torrent_handle.pause()
         torrent_handle.unset_flags(lt.torrent_flags.auto_managed)
-        downloading_game_id = 0
 
-def cancel_download():
-    global downloading_game_id
-    global torrent_handle
-
+def cancel_download(session, torrent_handle):
     if torrent_handle:
         torrent_handle.pause()
         session.remove_torrent(torrent_handle)
-        torrent_handle = None
-        downloading_game_id = 0
 
-def get_download_updates():
+def get_download_updates(torrent_handle, downloading_game_id, write_fifo):
     while True:
         if downloading_game_id == 0:
             time.sleep(0.5)
@@ -75,29 +53,38 @@ def get_download_updates():
         }))
 
         if status.progress == 1:
-            cancel_download()
+            cancel_download(session, torrent_handle)
+            break
 
         time.sleep(0.5)
 
-def listen_to_socket():
+def listen_to_socket(session, read_fifo, write_fifo):
+    downloading_game_id = 0
+    torrent_handle = None
     while True:
         msg = read_fifo.recv(1024 * 2)
         payload = json.loads(msg.decode("utf-8"))
 
         if payload['action'] == "start":
-            start_download(payload['game_id'], payload['magnet'], payload['save_path'])
-            continue
-        
-        if payload['action'] == "pause":
-            pause_download()
-            continue
-            
-        if payload['action'] == "cancel":
-            cancel_download()
+            torrent_handle = start_download(session, payload['game_id'], payload['magnet'], payload['save_path'])
+            downloading_game_id = payload['game_id']
+        elif payload['action'] == "pause":
+            pause_download(torrent_handle)
+        elif payload['action'] == "cancel":
+            cancel_download(session, torrent_handle)
+            downloading_game_id = 0
 
 if __name__ == "__main__":
-    p1 = threading.Thread(target=get_download_updates)
-    p2 = threading.Thread(target=listen_to_socket)
+    torrent_port = sys.argv[1]
+    read_sock_path = sys.argv[2]
+    write_sock_path = sys.argv[3]
+
+    session = lt.session({'listen_interfaces': '0.0.0.0:{port}'.format(port=torrent_port)})
+    read_fifo = Fifo(read_sock_path)
+    write_fifo = Fifo(write_sock_path)
+
+    p1 = threading.Thread(target=get_download_updates, args=(None, 0, write_fifo))
+    p2 = threading.Thread(target=listen_to_socket, args=(session, read_fifo, write_fifo))
 
     p1.start()
     p2.start()
