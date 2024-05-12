@@ -16,14 +16,14 @@ const getGOGGame = async (url: string) => {
 
   const $em = window.document.querySelector(
     "p:not(.lightweight-accordion *) em"
-  );
-  const fileSize = $em.textContent.split("Size: ").at(1);
+  )!;
+  const fileSize = $em.textContent!.split("Size: ").at(1);
   const $downloadButton = window.document.querySelector(
     ".download-btn:not(.lightweight-accordion *)"
   ) as HTMLAnchorElement;
 
   const { searchParams } = new URL($downloadButton.href);
-  const magnet = Buffer.from(searchParams.get("url"), "base64").toString(
+  const magnet = Buffer.from(searchParams.get("url")!, "base64").toString(
     "utf-8"
   );
 
@@ -50,10 +50,10 @@ export const getNewGOGGames = async (existingRepacks: Repack[] = []) => {
     const $lis = Array.from($ul.querySelectorAll("li"));
 
     for (const $li of $lis) {
-      const $a = $li.querySelector("a");
+      const $a = $li.querySelector("a")!;
       const href = $a.href;
 
-      const title = $a.textContent.trim();
+      const title = $a.textContent!.trim();
 
       const gameExists = existingRepacks.some(
         (existingRepack) => existingRepack.title === title

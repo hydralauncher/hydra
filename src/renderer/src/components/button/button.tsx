@@ -17,9 +17,9 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      {...props}
       type="button"
       className={cn(styles.button[theme], className)}
+      {...props}
     >
       {children}
     </button>
