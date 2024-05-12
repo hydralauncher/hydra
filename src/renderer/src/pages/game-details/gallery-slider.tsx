@@ -112,6 +112,7 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
                 (image: SteamScreenshot, i: number) => (
                   <img
                     key={"image-" + i}
+                    loading="lazy"
                     className={styles.gallerySliderMedia}
                     src={image.path_full}
                     style={{ translate: `${-100 * mediaIndex}%` }}
@@ -146,6 +147,7 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
               gameDetails.movies?.map((video: SteamMovies, i: number) => (
                 <img
                   key={video.id}
+                  loading="lazy"
                   onClick={() => setMediaIndex(i)}
                   src={video.thumbnail}
                   className={`${styles.gallerySliderMediaPreview} ${mediaIndex === i ? styles.gallerySliderMediaPreviewActive : ""}`}
@@ -156,6 +158,7 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
                 (image: SteamScreenshot, i: number) => (
                   <img
                     key={"image-thumb-" + i}
+                    loading="lazy"
                     onClick={() =>
                       setMediaIndex(
                         i + (gameDetails.movies ? gameDetails.movies.length : 0)
