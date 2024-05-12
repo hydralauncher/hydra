@@ -13,6 +13,9 @@ import { ru } from "date-fns/locale";
 import { onlinefixFormatter } from "@main/helpers";
 import makeFetchCookie from "fetch-cookie";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+import { formatBytes } from "@shared";
+
+const ONLINE_FIX_URL = "https://online-fix.me/";
 
 export const getNewRepacksFromOnlineFix = async (
   existingRepacks: Repack[] = [],
@@ -27,14 +30,14 @@ export const getNewRepacksFromOnlineFix = async (
   const http = makeFetchCookie(fetch, cookieJar);
 
   if (page === 1) {
-    await http("https://online-fix.me/");
+    await http(ONLINE_FIX_URL);
 
     const preLogin =
       ((await http("https://online-fix.me/engine/ajax/authtoken.php", {
         method: "GET",
         headers: {
           "X-Requested-With": "XMLHttpRequest",
-          Referer: "https://online-fix.me/",
+          Referer: ONLINE_FIX_URL,
         },
       }).then((res) => res.json())) as {
         field: string;
@@ -50,11 +53,11 @@ export const getNewRepacksFromOnlineFix = async (
       [preLogin.field]: preLogin.value,
     });
 
-    await http("https://online-fix.me/", {
+    await http(ONLINE_FIX_URL, {
       method: "POST",
       headers: {
-        Referer: "https://online-fix.me",
-        Origin: "https://online-fix.me",
+        Referer: ONLINE_FIX_URL,
+        Origin: ONLINE_FIX_URL,
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: params.toString(),
@@ -149,13 +152,8 @@ export const getNewRepacksFromOnlineFix = async (
         const torrentSizeInBytes = torrent.length;
         if (!torrentSizeInBytes) return;
 
-        const fileSizeFormatted =
-          torrentSizeInBytes >= 1024 ** 3
-            ? `${(torrentSizeInBytes / 1024 ** 3).toFixed(1)}GBs`
-            : `${(torrentSizeInBytes / 1024 ** 2).toFixed(1)}MBs`;
-
         repacks.push({
-          fileSize: fileSizeFormatted,
+          fileSize: formatBytes(torrentSizeInBytes),
           magnet: magnetLink,
           page: 1,
           repacker: "onlinefix",
