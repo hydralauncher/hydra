@@ -9,6 +9,11 @@ export interface GallerySliderProps {
 
 export function GallerySlider({ gameDetails }: GallerySliderProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const mediaContainerRef = useRef<HTMLDivElement>(null);
+  const currentVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  const hasScreenshots = gameDetails && gameDetails.screenshots.length;
+  const hasMovies = gameDetails && gameDetails.movies?.length;
 
   const [mediaCount] = useState<number>(() => {
     if (gameDetails) {
@@ -28,6 +33,10 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
   const [arrowShow, setArrowShow] = useState(false);
 
   const showNextImage = () => {
+    if (currentVideoRef.current) {
+      currentVideoRef.current.pause()
+    }
+
     setMediaIndex((index: number) => {
       if (index === mediaCount - 1) return 0;
 
@@ -36,6 +45,10 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
   };
 
   const showPrevImage = () => {
+    if (currentVideoRef.current) {
+      currentVideoRef.current.pause()
+    }
+
     setMediaIndex((index: number) => {
       if (index === 0) return mediaCount - 1;
 
@@ -48,6 +61,21 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
   }, [gameDetails]);
 
   useEffect(() => {
+    if (hasMovies && mediaContainerRef.current) {
+      mediaContainerRef.current.childNodes.forEach((node, index) => {
+        if (index == mediaIndex) {
+          if (node instanceof HTMLVideoElement) {
+            node.play()
+            currentVideoRef.current = node
+          } else {
+            console.log(" nao é video")
+          }
+        }
+      })
+    }
+  }, [hasMovies, mediaContainerRef, mediaIndex])
+
+  useEffect(() => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
       const totalWidth = container.scrollWidth - container.clientWidth;
@@ -57,9 +85,6 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
     }
   }, [gameDetails, mediaIndex, mediaCount]);
 
-  const hasScreenshots = gameDetails && gameDetails.screenshots.length;
-  const hasMovies = gameDetails && gameDetails.movies?.length;
-
   return (
     <>
       {hasScreenshots && (
@@ -68,6 +93,7 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
             onMouseEnter={() => setArrowShow(true)}
             onMouseLeave={() => setArrowShow(false)}
             className={styles.gallerySliderAnimationContainer}
+            ref={mediaContainerRef}
           >
             {gameDetails.movies &&
               gameDetails.movies.map((video: SteamMovies) => (
@@ -77,7 +103,6 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
                   className={styles.gallerySliderMedia}
                   poster={video.thumbnail}
                   style={{ translate: `${-100 * mediaIndex}%` }}
-                  autoPlay
                   loop
                   muted
                 >
