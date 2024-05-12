@@ -6,6 +6,7 @@ export * from "./steam-grid";
 export * from "./update-resolver";
 export * from "./window-manager";
 export * from "./fifo";
-export * from "./torrent-client";
+export * from "./downloaders";
+export * from "./download-manager";
 export * from "./how-long-to-beat";
 export * from "./process-watcher";
