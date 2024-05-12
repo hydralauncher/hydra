@@ -18,6 +18,9 @@ jobs:
       - name: Install dependencies
         run: yarn
 
+      - name: Check formatting
+        run: yarn format:check
+
       - name: Typecheck
         run: yarn typecheck
 
