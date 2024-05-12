@@ -106,7 +106,7 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
                   loop
                   muted
                 >
-                  <source src={video.webm.max.replace("http", "https")} />
+                  <source src={video.mp4.max.replace("http", "https")} />
                 </video>
               ))}
             {gameDetails.screenshots &&
