@@ -33,10 +33,6 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
   const [arrowShow, setArrowShow] = useState(false);
 
   const showNextImage = () => {
-    if (currentVideoRef.current) {
-      currentVideoRef.current.pause()
-    }
-
     setMediaIndex((index: number) => {
       if (index === mediaCount - 1) return 0;
 
@@ -45,10 +41,6 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
   };
 
   const showPrevImage = () => {
-    if (currentVideoRef.current) {
-      currentVideoRef.current.pause()
-    }
-
     setMediaIndex((index: number) => {
       if (index === 0) return mediaCount - 1;
 
@@ -61,6 +53,10 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
   }, [gameDetails]);
 
   useEffect(() => {
+    if (currentVideoRef.current) {
+      currentVideoRef.current.pause()
+    }
+
     if (hasMovies && mediaContainerRef.current) {
       mediaContainerRef.current.childNodes.forEach((node, index) => {
         if (index == mediaIndex && node instanceof HTMLVideoElement) {
