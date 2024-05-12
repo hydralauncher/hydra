@@ -19,11 +19,12 @@
     "follow_us": "Follow us",
     "home": "Home",
     "discord": "Join our Discord",
+    "telegram": "Join our Telegram",
     "x": "Follow on X",
     "github": "Contribute on GitHub"
   },
   "header": {
-    "search": "Search",
+    "search": "Search games",
     "home": "Home",
     "catalogue": "Catalogue",
     "downloads": "Downloads",
@@ -86,8 +87,7 @@
     "change": "Change",
     "repacks_modal_description": "Choose the repack you want to download",
     "downloads_path": "Downloads path",
-    "select_folder_hint": "To change the default folder, access the",
-    "settings": "Settings",
+    "select_folder_hint": "To change the default folder, go to the <0>Settings</0>",
     "download_now": "Download now",
     "installation_instructions": "Installation Instructions",
     "installation_instructions_description": "Additional steps are required to install this game",
@@ -127,7 +127,9 @@
     "remove_from_list": "Remove",
     "delete_modal_title": "Are you sure?",
     "delete_modal_description": "This will remove all the installation files from your computer",
-    "install": "Install"
+    "install": "Install",
+    "real_debrid": "Real Debrid",
+    "torrent": "Torrent"
   },
   "settings": {
     "downloads_path": "Downloads path",
@@ -137,9 +139,15 @@
     "enable_repack_list_notifications": "When a new repack is added",
     "telemetry": "Telemetry",
     "telemetry_description": "Enable anonymous usage statistics",
+    "real_debrid_api_token_description": "Real Debrid API token",
+    "quit_app_instead_hiding": "Quit Hydra instead of minimizing to tray",
+    "launch_with_system": "Launch Hydra on system start-up",
+    "general": "General",
     "behavior": "Behavior",
-    "quit_app_instead_hiding": "Close app instead of minimizing to tray",
-    "launch_with_system": "Launch app on system start-up"
+    "enable_real_debrid": "Enable Real Debrid",
+    "real_debrid": "Real Debrid",
+    "real_debrid_api_token_hint": "You can get your API key <0>here</0>.",
+    "save_changes": "Save changes"
   },
   "notifications": {
     "download_complete": "Download complete",

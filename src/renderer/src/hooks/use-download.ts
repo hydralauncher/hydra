@@ -4,25 +4,23 @@ import { formatDownloadProgress } from "@renderer/helpers";
 import { useLibrary } from "./use-library";
 import { useAppDispatch, useAppSelector } from "./redux";
 import {
-  addPacket,
+  setLastPacket,
   clearDownload,
   setGameDeleting,
   removeGameFromDeleting,
 } from "@renderer/features";
 import type { GameShop, TorrentProgress } from "@types";
 import { useDate } from "./use-date";
-import { formatBytes } from "@renderer/utils";
+import { GameStatus, GameStatusHelper, formatBytes } from "@shared";
 
 export function useDownload() {
   const { updateLibrary } = useLibrary();
   const { formatDistance } = useDate();
 
-  const { packets, gamesWithDeletionInProgress } = useAppSelector(
+  const { lastPacket, gamesWithDeletionInProgress } = useAppSelector(
     (state) => state.download
   );
   const dispatch = useAppDispatch();
-
-  const lastPacket = packets.at(-1);
 
   const startDownload = (
     repackId: number,
@@ -63,8 +61,8 @@ export function useDownload() {
       updateLibrary();
     });
 
-  const isVerifying = ["downloading_metadata", "checking_files"].includes(
-    lastPacket?.game.status ?? ""
+  const isVerifying = GameStatusHelper.isVerifying(
+    lastPacket?.game.status ?? null
   );
 
   const getETA = () => {
@@ -84,7 +82,7 @@ export function useDownload() {
   };
 
   const getProgress = () => {
-    if (lastPacket?.game.status === "checking_files") {
+    if (lastPacket?.game.status === GameStatus.CheckingFiles) {
       return formatDownloadProgress(lastPacket?.game.fileVerificationProgress);
     }
 
@@ -115,7 +113,6 @@ export function useDownload() {
     isVerifying,
     gameId: lastPacket?.game.id,
     downloadSpeed: `${formatBytes(lastPacket?.downloadSpeed ?? 0)}/s`,
-    isDownloading: Boolean(lastPacket),
     progress: getProgress(),
     numPeers: lastPacket?.numPeers,
     numSeeds: lastPacket?.numSeeds,
@@ -128,6 +125,6 @@ export function useDownload() {
     deleteGame,
     isGameDeleting,
     clearDownload: () => dispatch(clearDownload()),
-    addPacket: (packet: TorrentProgress) => dispatch(addPacket(packet)),
+    setLastPacket: (packet: TorrentProgress) => dispatch(setLastPacket(packet)),
   };
 }

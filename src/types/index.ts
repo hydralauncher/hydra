@@ -1,3 +1,5 @@
+import type { Downloader, GameStatus } from "@shared";
+
 export type GameShop = "steam" | "epic";
 export type CatalogueCategory = "recently_added" | "trending";
 
@@ -14,7 +16,7 @@ export interface SteamScreenshot {
 
 export interface SteamVideoSource {
   max: string;
-  '480': string;
+  "480": string;
 }
 
 export interface SteamMovies {
@@ -33,7 +35,7 @@ export interface SteamAppDetails {
   short_description: string;
   publishers: string[];
   genres: SteamGenre[];
-  movies: SteamMovies[];
+  movies?: SteamMovies[];
   screenshots: SteamScreenshot[];
   pc_requirements: {
     minimum: string;
@@ -90,15 +92,17 @@ export interface Game extends Omit<CatalogueEntry, "cover"> {
   id: number;
   title: string;
   iconUrl: string;
-  status: string;
+  status: GameStatus | null;
   folderName: string;
   downloadPath: string | null;
   repacks: GameRepack[];
   repack: GameRepack;
   progress: number;
   fileVerificationProgress: number;
+  decompressionProgress: number;
   bytesDownloaded: number;
   playTimeInMilliseconds: number;
+  downloader: Downloader;
   executablePath: string | null;
   lastTimePlayed: Date | null;
   fileSize: number;
@@ -120,6 +124,7 @@ export interface UserPreferences {
   downloadNotificationsEnabled: boolean;
   repackUpdatesNotificationsEnabled: boolean;
   telemetryEnabled: boolean;
+  realDebridApiToken: string | null;
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;
 }

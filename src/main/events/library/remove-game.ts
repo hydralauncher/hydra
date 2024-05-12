@@ -1,6 +1,6 @@
 import { registerEvent } from "../register-event";
 import { gameRepository } from "../../repository";
-import { GameStatus } from "@main/constants";
+import { GameStatus } from "@shared";
 
 const removeGame = async (
   _event: Electron.IpcMainInvokeEvent,

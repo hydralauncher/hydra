@@ -28,8 +28,8 @@ export const generateYML = (game: Game) => {
         {
           task: {
             executable: path.join(
-              game.downloadPath,
-              game.folderName,
+              game.downloadPath!,
+              game.folderName!,
               "setup.exe"
             ),
             name: "wineexec",

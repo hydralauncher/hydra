@@ -8,42 +8,35 @@ import { requestSteam250 } from "@main/services";
 
 const repacks = stateManager.getValue("repacks");
 
-interface GetStringForLookup {
-  (index: number): string;
-}
+const getStringForLookup = (index: number): string => {
+  const repack = repacks[index];
+  const formatter =
+    repackerFormatter[repack.repacker as keyof typeof repackerFormatter];
+
+  return formatName(formatter(repack.title));
+};
+
+const resultSize = 12;
 
 const getCatalogue = async (
   _event: Electron.IpcMainInvokeEvent,
   category: CatalogueCategory
 ) => {
-  const getStringForLookup = (index: number): string => {
-    const repack = repacks[index];
-    const formatter =
-      repackerFormatter[repack.repacker as keyof typeof repackerFormatter];
-
-    return formatName(formatter(repack.title));
-  };
-
   if (!repacks.length) return [];
-
-  const resultSize = 12;
 
   if (category === "trending") {
     return getTrendingCatalogue(resultSize);
-  } else {
-    return getRecentlyAddedCatalogue(
-      resultSize,
-      resultSize,
-      getStringForLookup
-    );
   }
+
+  return getRecentlyAddedCatalogue(resultSize);
 };
 
 const getTrendingCatalogue = async (
   resultSize: number
 ): Promise<CatalogueEntry[]> => {
   const results: CatalogueEntry[] = [];
-  const trendingGames = await requestSteam250("/30day");
+  const trendingGames = await requestSteam250("/90day");
+
   for (
     let i = 0;
     i < trendingGames.length && results.length < resultSize;
@@ -51,7 +44,7 @@ const getTrendingCatalogue = async (
   ) {
     if (!trendingGames[i]) continue;
 
-    const { title, objectID } = trendingGames[i];
+    const { title, objectID } = trendingGames[i]!;
     const repacks = searchRepacks(title);
 
     if (title && repacks.length) {
@@ -69,11 +62,8 @@ const getTrendingCatalogue = async (
 };
 
 const getRecentlyAddedCatalogue = async (
-  resultSize: number,
-  requestSize: number,
-  getStringForLookup: GetStringForLookup
+  resultSize: number
 ): Promise<CatalogueEntry[]> => {
-  let lookupRequest = [];
   const results: CatalogueEntry[] = [];
 
   for (let i = 0; results.length < resultSize; i++) {
@@ -84,15 +74,7 @@ const getRecentlyAddedCatalogue = async (
       continue;
     }
 
-    lookupRequest.push(searchGames({ query: stringForLookup }));
-
-    if (lookupRequest.length < requestSize) {
-      continue;
-    }
-
-    const games = (await Promise.all(lookupRequest)).map((value) =>
-      value.at(0)
-    );
+    const games = searchGames({ query: stringForLookup });
 
     for (const game of games) {
       const isAlreadyIncluded = results.some(
@@ -105,7 +87,6 @@ const getRecentlyAddedCatalogue = async (
 
       results.push(game);
     }
-    lookupRequest = [];
   }
 
   return results.slice(0, resultSize);
