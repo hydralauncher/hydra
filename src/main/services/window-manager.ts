@@ -105,7 +105,7 @@ export class WindowManager {
     tray.setToolTip("Hydra");
     tray.setContextMenu(contextMenu);
 
-    if (process.platform === "win32") {
+    if (process.platform === "win32" || process.platform === "linux") {
       tray.addListener("click", () => {
         if (this.mainWindow) {
           if (WindowManager.mainWindow?.isMinimized())
