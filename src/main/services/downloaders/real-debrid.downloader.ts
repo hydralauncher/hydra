@@ -38,12 +38,9 @@ export class RealDebridDownloader extends Downloader {
 
     const updatePayload: QueryDeepPartialEntity<Game> = {
       status: GameStatus.Finished,
-      progress: 1,
     };
 
-    await this.updateGameProgress(game.id, updatePayload, {
-      timeRemaining: 0,
-    });
+    await this.updateGameProgress(game.id, updatePayload, {});
   }
 
   static destroy() {
@@ -100,7 +97,7 @@ export class RealDebridDownloader extends Downloader {
     this.download.on("end", async () => {
       const updatePayload: QueryDeepPartialEntity<Game> = {
         status: GameStatus.Decompressing,
-        progress: 0.99,
+        progress: 1,
       };
 
       await this.updateGameProgress(game.id, updatePayload, {

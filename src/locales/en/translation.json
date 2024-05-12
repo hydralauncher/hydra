@@ -146,7 +146,8 @@
     "behavior": "Behavior",
     "enable_real_debrid": "Enable Real Debrid",
     "real_debrid": "Real Debrid",
-    "real_debrid_api_token_hint": "You can get your API key <0>here</0>"
+    "real_debrid_api_token_hint": "You can get your API key <0>here</0>.",
+    "save_changes": "Save changes"
   },
   "notifications": {
     "download_complete": "Download complete",

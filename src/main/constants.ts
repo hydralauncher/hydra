@@ -41,7 +41,5 @@ export const databasePath = path.join(
   "hydra.db"
 );
 
-console.log(databasePath);
-
 export const INSTALLATION_ID_LENGTH = 6;
 export const ACTIVATION_KEY_MULTIPLIER = 7;

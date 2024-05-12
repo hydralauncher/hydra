@@ -3,10 +3,10 @@ import { GameRepack, ShopDetails } from "@types";
 import { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { formatBytes } from "@renderer/utils";
 import { DiskSpace } from "check-disk-space";
 import * as styles from "./select-folder-modal.css";
 import { DownloadIcon } from "@primer/octicons-react";
+import { formatBytes } from "@shared";
 
 export interface SelectFolderModalProps {
   visible: boolean;
@@ -74,7 +74,7 @@ export function SelectFolderModal({
   return (
     <Modal
       visible={visible}
-      title={`${gameDetails.name} Installation folder`}
+      title={t("installation_folder", { name: gameDetails.name })}
       description={t("space_left_on_disk", {
         space: formatBytes(diskFreeSpace?.free ?? 0),
       })}
