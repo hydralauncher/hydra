@@ -63,8 +63,9 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
             className={styles.gallerySliderAnimationContainer}
           >
             {gameDetails.movies &&
-              gameDetails.movies.map((video: SteamMovies) => (
+              gameDetails.movies.map((video: SteamMovies, i: number) => (
                 <video
+                  key={"video-" + i}
                   controls
                   className={styles.gallerySliderMedia}
                   poster={video.thumbnail}
@@ -74,8 +75,9 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
                 </video>
               ))}
             {gameDetails.screenshots &&
-              gameDetails.screenshots.map((image: SteamScreenshot) => (
+              gameDetails.screenshots.map((image: SteamScreenshot, i: number) => (
                 <img
+                  key={"image-" + i}
                   className={styles.gallerySliderMedia}
                   src={image.path_full}
                   style={{ translate: `${-100 * mediaIndex}%` }}
@@ -105,6 +107,7 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
             {gameDetails.movies &&
               gameDetails.movies.map((video: SteamMovies, i: number) => (
                 <img
+                  key={"video-thumb-" + i}
                   onClick={() => setMediaIndex(i)}
                   src={video.thumbnail}
                   className={`${styles.gallerySliderMediaPreview} ${mediaIndex === i ? styles.gallerySliderMediaPreviewActive : ""}`}
@@ -114,6 +117,7 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
               gameDetails.screenshots.map(
                 (image: SteamScreenshot, i: number) => (
                   <img
+                    key={"image-thumb-" + i}
                     onClick={() =>
                       setMediaIndex(
                         i + (gameDetails.movies ? gameDetails.movies.length : 0)
