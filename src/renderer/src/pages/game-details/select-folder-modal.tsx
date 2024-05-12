@@ -1,5 +1,5 @@
 import { Button, Link, Modal, TextField } from "@renderer/components";
-import { GameRepack, ShopDetails } from "@types";
+import type { GameRepack } from "@types";
 import { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
@@ -10,7 +10,6 @@ import { formatBytes } from "@shared";
 
 export interface SelectFolderModalProps {
   visible: boolean;
-  gameDetails: ShopDetails;
   onClose: () => void;
   startDownload: (repack: GameRepack, downloadPath: string) => Promise<void>;
   repack: GameRepack | null;
@@ -18,7 +17,6 @@ export interface SelectFolderModalProps {
 
 export function SelectFolderModal({
   visible,
-  gameDetails,
   onClose,
   startDownload,
   repack,
@@ -74,7 +72,7 @@ export function SelectFolderModal({
   return (
     <Modal
       visible={visible}
-      title={t("installation_folder", { name: gameDetails.name })}
+      title={t("installation_folder")}
       description={t("space_left_on_disk", {
         space: formatBytes(diskFreeSpace?.free ?? 0),
       })}

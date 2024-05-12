@@ -4,21 +4,19 @@ import { ChevronRightIcon, ChevronLeftIcon } from "@primer/octicons-react";
 import * as styles from "./gallery-slider.css";
 
 export interface GallerySliderProps {
-  gameDetails: ShopDetails | null;
+  gameDetails: ShopDetails;
 }
 
 export function GallerySlider({ gameDetails }: GallerySliderProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const [mediaCount] = useState<number>(() => {
-    if (gameDetails) {
-      if (gameDetails.screenshots && gameDetails.movies) {
-        return gameDetails.screenshots.length + gameDetails.movies.length;
-      } else if (gameDetails.movies) {
-        return gameDetails.movies.length;
-      } else if (gameDetails.screenshots) {
-        return gameDetails.screenshots.length;
-      }
+    if (gameDetails.screenshots && gameDetails.movies) {
+      return gameDetails.screenshots.length + gameDetails.movies.length;
+    } else if (gameDetails.movies) {
+      return gameDetails.movies.length;
+    } else if (gameDetails.screenshots) {
+      return gameDetails.screenshots.length;
     }
 
     return 0;
@@ -57,8 +55,8 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
     }
   }, [gameDetails, mediaIndex, mediaCount]);
 
-  const hasScreenshots = gameDetails && gameDetails.screenshots.length;
-  const hasMovies = gameDetails && gameDetails.movies?.length;
+  const hasScreenshots = gameDetails.screenshots.length;
+  const hasMovies = gameDetails.movies?.length;
 
   return (
     <>
@@ -84,7 +82,7 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
                   <source src={video.webm.max.replace("http", "https")} />
                 </video>
               ))}
-            {gameDetails.screenshots &&
+            {hasScreenshots &&
               gameDetails.screenshots.map(
                 (image: SteamScreenshot, i: number) => (
                   <img
@@ -128,7 +126,8 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
                   className={`${styles.gallerySliderMediaPreview} ${mediaIndex === i ? styles.gallerySliderMediaPreviewActive : ""}`}
                 />
               ))}
-            {gameDetails.screenshots &&
+
+            {hasScreenshots &&
               gameDetails.screenshots.map(
                 (image: SteamScreenshot, i: number) => (
                   <img

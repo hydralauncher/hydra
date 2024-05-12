@@ -12,6 +12,7 @@ import starsAnimation from "@renderer/assets/lottie/stars.json";
 import * as styles from "./home.css";
 import { vars } from "../../theme.css";
 import Lottie from "lottie-react";
+import { buildGameDetailsPath } from "@renderer/helpers";
 
 const categories: CatalogueCategory[] = ["trending", "recently_added"];
 
@@ -129,9 +130,7 @@ export function Home() {
                 <GameCard
                   key={result.objectID}
                   game={result}
-                  onClick={() =>
-                    navigate(`/game/${result.shop}/${result.objectID}`)
-                  }
+                  onClick={() => navigate(buildGameDetailsPath(result))}
                 />
               ))}
         </section>
