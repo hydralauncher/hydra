@@ -1,5 +1,4 @@
 <br>
-
 <div align="center">
 
   [<img src="./resources/icon.png" width="144"/>](https://hydralauncher.site)
