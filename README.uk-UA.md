@@ -64,7 +64,7 @@
 
 ## Встановлення
 
-Follow the steps below to install:
+Щоб встановити, виконайте наведені нижче кроки:
 
 1. Завантажте останню версію Hydra зі сторінки [Releases](https://github.com/hydralauncher/hydra/releases/latest).
    - Завантажте лише .exe, якщо ви хочете встановити Hydra на Windows.
@@ -92,8 +92,8 @@ Follow the steps below to install:
 
 ### Як ви можете зробити свій внесок
 
-- Translation: We want Hydra to be available to as many people as possible. Feel free to help translate to new languages or update and improve the ones that are already available on Hydra.
-- Code: Hydra is built with Typescript, Electron and a little bit of Python. If you want to contribute, join our Telegram!
+- Переклад: Ми хочемо, щоб Hydra була доступна якомога більшій кількості людей. Не соромтеся допомагати перекладати на нові мови або оновлювати і покращувати ті, які вже доступні на Hydra.
+- Код: Hydra створена за допомогою Typescript, Electron і трохи Python. Якщо ви хочете зробити свій внесок, приєднуйтесь до нашого Telegram!
 
 ### Структура проекту
 
