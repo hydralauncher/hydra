@@ -1,9 +1,9 @@
 import { registerEvent } from "../register-event";
-import { GameStatus } from "../../constants";
 import { gameRepository } from "../../repository";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { In } from "typeorm";
-import { writePipe } from "@main/services";
+import { DownloadManager } from "@main/services";
+import { GameStatus } from "@shared";
 
 const resumeGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -12,23 +12,18 @@ const resumeGameDownload = async (
   const game = await gameRepository.findOne({
     where: {
       id: gameId,
+      isDeleted: false,
     },
     relations: { repack: true },
   });
 
   if (!game) return;
-
-  writePipe.write({ action: "pause" });
+  DownloadManager.pauseDownload();
 
   if (game.status === GameStatus.Paused) {
     const downloadsPath = game.downloadPath ?? (await getDownloadsPath());
 
-    writePipe.write({
-      action: "start",
-      game_id: gameId,
-      magnet: game.repack.magnet,
-      save_path: downloadsPath,
-    });
+    DownloadManager.resumeDownload(gameId);
 
     await gameRepository.update(
       {
@@ -44,7 +39,7 @@ const resumeGameDownload = async (
     await gameRepository.update(
       { id: game.id },
       {
-        status: GameStatus.DownloadingMetadata,
+        status: GameStatus.Downloading,
         downloadPath: downloadsPath,
       }
     );

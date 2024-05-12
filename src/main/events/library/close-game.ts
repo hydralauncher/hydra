@@ -10,7 +10,9 @@ const closeGame = async (
   gameId: number
 ) => {
   const processes = await getProcesses();
-  const game = await gameRepository.findOne({ where: { id: gameId } });
+  const game = await gameRepository.findOne({
+    where: { id: gameId, isDeleted: false },
+  });
 
   if (!game) return false;
 

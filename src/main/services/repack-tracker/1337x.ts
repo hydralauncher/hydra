@@ -33,9 +33,9 @@ const getTorrentDetails = async (path: string) => {
 
   return {
     magnet: $a?.href,
-    fileSize: $totalSize.querySelector("span").textContent ?? undefined,
+    fileSize: $totalSize.querySelector("span")!.textContent,
     uploadDate: formatUploadDate(
-      $dateUploaded.querySelector("span").textContent!
+      $dateUploaded.querySelector("span")!.textContent!
     ),
   };
 };
@@ -65,8 +65,7 @@ export const getTorrentListLastPage = async (user: string) => {
 export const extractTorrentsFromDocument = async (
   page: number,
   user: string,
-  document: Document,
-  existingRepacks: Repack[] = []
+  document: Document
 ) => {
   const $trs = Array.from(document.querySelectorAll("tbody tr"));
 
@@ -78,24 +77,13 @@ export const extractTorrentsFromDocument = async (
       const url = $name.href;
       const title = $name.textContent ?? "";
 
-      if (existingRepacks.some((repack) => repack.title === title)) {
-        return {
-          title,
-          magnet: "",
-          fileSize: null,
-          uploadDate: null,
-          repacker: user,
-          page,
-        };
-      }
-
       const details = await getTorrentDetails(url);
 
       return {
         title,
         magnet: details.magnet,
-        fileSize: details.fileSize ?? null,
-        uploadDate: details.uploadDate ?? null,
+        fileSize: details.fileSize ?? "N/A",
+        uploadDate: details.uploadDate ?? new Date(),
         repacker: user,
         page,
       };
@@ -114,13 +102,11 @@ export const getNewRepacksFromUser = async (
   const repacks = await extractTorrentsFromDocument(
     page,
     user,
-    window.document,
-    existingRepacks
+    window.document
   );
 
   const newRepacks = repacks.filter(
     (repack) =>
-      repack.uploadDate &&
       !existingRepacks.some(
         (existingRepack) => existingRepack.title === repack.title
       )

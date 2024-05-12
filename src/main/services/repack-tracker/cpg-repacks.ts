@@ -4,6 +4,7 @@ import { Repack } from "@main/entity";
 
 import { requestWebPage, savePage } from "./helpers";
 import { logger } from "../logger";
+import type { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
 export const getNewRepacksFromCPG = async (
   existingRepacks: Repack[] = [],
@@ -13,11 +14,11 @@ export const getNewRepacksFromCPG = async (
 
   const { window } = new JSDOM(data);
 
-  const repacks = [];
+  const repacks: QueryDeepPartialEntity<Repack>[] = [];
 
   try {
     Array.from(window.document.querySelectorAll(".post")).forEach(($post) => {
-      const $title = $post.querySelector(".entry-title");
+      const $title = $post.querySelector(".entry-title")!;
       const uploadDate = $post.querySelector("time")?.getAttribute("datetime");
 
       const $downloadInfo = Array.from(
@@ -31,26 +32,25 @@ export const getNewRepacksFromCPG = async (
           $a.textContent?.startsWith("Magent")
       );
 
-      const fileSize = $downloadInfo.textContent
+      const fileSize = ($downloadInfo?.textContent ?? "")
         .split("Download link => ")
         .at(1);
 
       repacks.push({
-        title: $title.textContent,
+        title: $title.textContent!,
         fileSize: fileSize ?? "N/A",
-        magnet: $magnet.href,
+        magnet: $magnet!.href,
         repacker: "CPG",
         page,
-        uploadDate: new Date(uploadDate),
+        uploadDate: uploadDate ? new Date(uploadDate) : new Date(),
       });
     });
-  } catch (err) {
-    logger.error(err.message, { method: "getNewRepacksFromCPG" });
+  } catch (err: unknown) {
+    logger.error((err as Error).message, { method: "getNewRepacksFromCPG" });
   }
 
   const newRepacks = repacks.filter(
     (repack) =>
-      repack.uploadDate &&
       !existingRepacks.some(
         (existingRepack) => existingRepack.title === repack.title
       )
