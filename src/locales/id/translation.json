@@ -66,8 +66,8 @@
     "paused_progress": "{{progress}} (Terhenti)",
     "release_date": "Dirilis pada {{date}}",
     "publisher": "Dipublikasikan oleh {{publisher}}",
-    "copy_link_to_clipboard": "Copy tautan",
-    "copied_link_to_clipboard": "Tautan dicopy",
+    "copy_link_to_clipboard": "Salin tautan",
+    "copied_link_to_clipboard": "Tautan tersalin",
     "hours": "jam",
     "minutes": "menit",
     "amount_hours": "{{amount}} jam",
@@ -95,8 +95,8 @@
     "online_fix_instruction": "OnlineFix games mebutuhkan kata sandi untuk ekstraksi. Saat diperlukan, gunakan kata sandi ini:",
     "dodi_installation_instruction": "Saat menjalankan DODI installer, tekan tombol atas pada keyboard <0 /> untuk melanjutkan proses instalasi:",
     "dont_show_it_again": "Jangan tunjukkan lagi",
-    "copy_to_clipboard": "Copy",
-    "copied_to_clipboard": "Copied",
+    "copy_to_clipboard": "Salin",
+    "copied_to_clipboard": "Tersalin",
     "got_it": "Paham"
   },
   "activation": {
