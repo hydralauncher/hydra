@@ -18,6 +18,10 @@ jobs:
       - name: Install dependencies
         run: yarn
 
+      - name: Validate current commit (last commit) with commitlint
+        if: github.event_name == 'push'
+        run: npx commitlint --last --verbose
+
       - name: Check formatting
         run: yarn format:check
 
