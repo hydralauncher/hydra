@@ -69,7 +69,7 @@ export function RepacksModal({
 
       <Modal
         visible={visible}
-        title={`Download options`}
+        title={t("download_options")}
         description={t("repacks_modal_description")}
         onClose={onClose}
       >

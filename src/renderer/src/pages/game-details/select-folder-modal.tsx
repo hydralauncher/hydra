@@ -72,7 +72,7 @@ export function SelectFolderModal({
   return (
     <Modal
       visible={visible}
-      title={t("installation_folder")}
+      title={t("download_folder")}
       description={t("space_left_on_disk", {
         space: formatBytes(diskFreeSpace?.free ?? 0),
       })}

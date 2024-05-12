@@ -92,7 +92,10 @@
     "dont_show_it_again": "Não mostrar novamente",
     "copy_to_clipboard": "Copiar",
     "copied_to_clipboard": "Copiado",
-    "got_it": "Entendi"
+    "got_it": "Entendi",
+    "no_shop_details": "Não foi possível obter os detalhes da loja.",
+    "download_options": "Opções de download",
+    "download_folder": "Diretório de download"
   },
   "activation": {
     "title": "Ativação",
@@ -123,7 +126,9 @@
     "delete_modal_description": "Isso removerá todos os arquivos de instalação do seu computador",
     "delete_modal_title": "Tem certeza?",
     "deleting": "Excluindo instalador…",
-    "install": "Instalar"
+    "install": "Instalar",
+    "torrent": "Torrent",
+    "real_debrid": "Real Debrid"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",
@@ -133,6 +138,7 @@
     "enable_repack_list_notifications": "Quando a lista de repacks for atualizada",
     "telemetry": "Telemetria",
     "telemetry_description": "Habilitar estatísticas de uso anônimas",
+    "real_debrid_api_token_label": "Token de API do Real Debrid",
     "quit_app_instead_hiding": "Fechar o aplicativo em vez de minimizá-lo",
     "launch_with_system": "Iniciar aplicativo na inicialização do sistema",
     "general": "Geral",
