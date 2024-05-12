@@ -24,9 +24,12 @@ class Fifo:
             return self.socket_handle.recv(bufSize)
 
     def send_message(self, msg: str):
+        buffer = bytearray(1024 * 2)
+        buffer[:len(msg)] = bytes(msg, "utf-8")
+
         if platform.system() == "Windows":
             import win32file
 
-            win32file.WriteFile(self.socket_handle, bytes(msg, "utf-8"))
+            win32file.WriteFile(self.socket_handle, buffer)
         else:
-            self.socket_handle.send(bytes(msg, "utf-8"))
+            self.socket_handle.send(buffer)
