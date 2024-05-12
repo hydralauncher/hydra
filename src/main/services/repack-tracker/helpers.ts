@@ -5,7 +5,7 @@ import { repackRepository } from "@main/repository";
 
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
-export const saveRepacks = async (repacks: QueryDeepPartialEntity<Repack>[]) =>
+export const savePage = async (repacks: QueryDeepPartialEntity<Repack>[]) =>
   Promise.all(
     repacks.map((repack) => repackRepository.insert(repack).catch(() => {}))
   );

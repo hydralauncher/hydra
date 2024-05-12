@@ -2,7 +2,7 @@ import { JSDOM } from "jsdom";
 
 import { Repack } from "@main/entity";
 import { logger } from "../logger";
-import { requestWebPage, saveRepacks } from "./helpers";
+import { requestWebPage, savePage } from "./helpers";
 
 import createWorker from "@main/workers/torrent-parser.worker?nodeWorker";
 import { toMagnetURI } from "parse-torrent";
@@ -91,7 +91,7 @@ export const getNewRepacksFromXatab = async (
 
   if (!newRepacks.length) return;
 
-  await saveRepacks(newRepacks);
+  await savePage(newRepacks);
 
   return getNewRepacksFromXatab(existingRepacks, page + 1);
 };
