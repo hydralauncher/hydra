@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { TorrentData } from "./types";
 
 const cache: Record<string, TorrentData> = {};
 
 export function useMagnetData(magnet: string) {
-  const [magnetData, setMagnetData] = useState<TorrentData | null>(cache[magnet] || null);
+  const [magnetData, setMagnetData] = useState<TorrentData | null>(
+    cache[magnet] || null
+  );
   const [isLoading, setIsLoading] = useState(() => {
     if (cache[magnet]) {
       return false;
@@ -40,31 +42,32 @@ export function useMagnetData(magnet: string) {
         setIsLoading(false);
       }
     );
-  }, []);
+  }, [magnet]);
 
-  const invalidateCache = useCallback(() => {
-    const TWO_MINUTES = 2 * 60 * 1000;
-    const cacheExpiresIn = TWO_MINUTES;
-
-    Object.keys(cache).forEach((key) => {
-      const lastTracked = cache[key].lastTracked;
-
-      if (!lastTracked) {
-        return;
-      }
-
-      if (Date.now() - lastTracked.getTime() > cacheExpiresIn) {
-        delete cache[key];
-      }
-    });
-  }, []);
 
   useEffect(() => {
+    function invalidateCache() {
+      const TWO_MINUTES = 2 * 60 * 1000;
+      const cacheExpiresIn = TWO_MINUTES;
+
+      Object.keys(cache).forEach((key) => {
+        const lastTracked = cache[key].lastTracked;
+
+        if (!lastTracked) {
+          return;
+        }
+
+        if (Date.now() - lastTracked.getTime() > cacheExpiresIn) {
+          delete cache[key];
+        }
+      });
+    }
+
     invalidateCache();
 
     return () => {
       invalidateCache();
-    }
+    };
   }, []);
 
   return {
