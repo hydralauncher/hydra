@@ -1,3 +1,4 @@
+import axios from "axios";
 import { getSteamAppAsset } from "@main/helpers";
 
 export interface SteamGridResponse {
@@ -27,33 +28,35 @@ export const getSteamGridData = async (
 ): Promise<SteamGridResponse> => {
   const searchParams = new URLSearchParams(params);
 
-  const response = await fetch(
+  if (!import.meta.env.MAIN_VITE_STEAMGRIDDB_API_KEY) {
+    throw new Error("STEAMGRIDDB_API_KEY is not set");
+  }
+
+  const response = await axios.get(
     `https://www.steamgriddb.com/api/v2/${path}/${shop}/${objectID}?${searchParams.toString()}`,
     {
-      method: "GET",
       headers: {
         Authorization: `Bearer ${import.meta.env.MAIN_VITE_STEAMGRIDDB_API_KEY}`,
       },
     }
   );
 
-  return response.json();
+  return response.data;
 };
 
 export const getSteamGridGameById = async (
   id: number
 ): Promise<SteamGridGameResponse> => {
-  const response = await fetch(
+  const response = await axios.get(
     `https://www.steamgriddb.com/api/public/game/${id}`,
     {
-      method: "GET",
       headers: {
         Referer: "https://www.steamgriddb.com/",
       },
     }
   );
 
-  return response.json();
+  return response.data;
 };
 
 export const getSteamGameIconUrl = async (objectID: string) => {

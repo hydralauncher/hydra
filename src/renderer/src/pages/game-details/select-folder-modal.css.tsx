@@ -17,11 +17,3 @@ export const hintText = style({
   fontSize: "12px",
   color: vars.color.bodyText,
 });
-
-export const settingsLink = style({
-  textDecoration: "none",
-  color: "#C0C1C7",
-  ":hover": {
-    textDecoration: "underline",
-  },
-});

@@ -20,7 +20,7 @@ export const content = style({
   flexDirection: "column",
 });
 
-export const downloadsPathField = style({
+export const settingsCategories = style({
   display: "flex",
   gap: `${SPACING_UNIT}px`,
 });
