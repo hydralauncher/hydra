@@ -1,138 +1,46 @@
 import { useEffect, useState } from "react";
-import { Button, CheckboxField, TextField } from "@renderer/components";
+import { Button, CheckboxField } from "@renderer/components";
 
 import * as styles from "./settings.css";
 import { useTranslation } from "react-i18next";
 import { UserPreferences } from "@types";
+import { SettingsRealDebrid } from "./settings-real-debrid";
+import { SettingsGeneral } from "./settings-general";
 
 const categories = ["general", "behavior", "real_debrid"];
 
 export function Settings() {
   const [currentCategory, setCurrentCategory] = useState(categories.at(0)!);
-
-  const [form, setForm] = useState({
-    downloadsPath: "",
-    downloadNotificationsEnabled: false,
-    repackUpdatesNotificationsEnabled: false,
-    telemetryEnabled: false,
-    realDebridApiToken: null as string | null,
-    preferQuitInsteadOfHiding: false,
-    runAtStartup: false,
-  });
+  const [userPreferences, setUserPreferences] =
+    useState<UserPreferences | null>(null);
 
   const { t } = useTranslation("settings");
 
   useEffect(() => {
-    Promise.all([
-      window.electron.getDefaultDownloadsPath(),
-      window.electron.getUserPreferences(),
-    ]).then(([path, userPreferences]) => {
-      setForm({
-        downloadsPath: userPreferences?.downloadsPath || path,
-        downloadNotificationsEnabled:
-          userPreferences?.downloadNotificationsEnabled ?? false,
-        repackUpdatesNotificationsEnabled:
-          userPreferences?.repackUpdatesNotificationsEnabled ?? false,
-        telemetryEnabled: userPreferences?.telemetryEnabled ?? false,
-        realDebridApiToken: userPreferences?.realDebridApiToken ?? null,
-        preferQuitInsteadOfHiding:
-          userPreferences?.preferQuitInsteadOfHiding ?? false,
-        runAtStartup: userPreferences?.runAtStartup ?? false,
-      });
+    window.electron.getUserPreferences().then((userPreferences) => {
+      setUserPreferences(userPreferences);
     });
   }, []);
 
-  const updateUserPreferences = <T extends keyof UserPreferences>(
-    field: T,
-    value: UserPreferences[T]
-  ) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-
-    window.electron.updateUserPreferences({
-      [field]: value,
-    });
-  };
-
-  const handleChooseDownloadsPath = async () => {
-    const { filePaths } = await window.electron.showOpenDialog({
-      defaultPath: form.downloadsPath,
-      properties: ["openDirectory"],
-    });
-
-    if (filePaths && filePaths.length > 0) {
-      const path = filePaths[0];
-      updateUserPreferences("downloadsPath", path);
-    }
+  const handleUpdateUserPreferences = (values: Partial<UserPreferences>) => {
+    window.electron.updateUserPreferences(values);
   };
 
   const renderCategory = () => {
     if (currentCategory === "general") {
       return (
-        <>
-          <div className={styles.downloadsPathField}>
-            <TextField
-              label={t("downloads_path")}
-              value={form.downloadsPath}
-              readOnly
-              disabled
-            />
-
-            <Button
-              style={{ alignSelf: "flex-end" }}
-              theme="outline"
-              onClick={handleChooseDownloadsPath}
-            >
-              {t("change")}
-            </Button>
-          </div>
-
-          <h3>{t("notifications")}</h3>
-
-          <CheckboxField
-            label={t("enable_download_notifications")}
-            checked={form.downloadNotificationsEnabled}
-            onChange={() =>
-              updateUserPreferences(
-                "downloadNotificationsEnabled",
-                !form.downloadNotificationsEnabled
-              )
-            }
-          />
-
-          <CheckboxField
-            label={t("enable_repack_list_notifications")}
-            checked={form.repackUpdatesNotificationsEnabled}
-            onChange={() =>
-              updateUserPreferences(
-                "repackUpdatesNotificationsEnabled",
-                !form.repackUpdatesNotificationsEnabled
-              )
-            }
-          />
-
-          <h3>{t("telemetry")}</h3>
-
-          <CheckboxField
-            label={t("telemetry_description")}
-            checked={form.telemetryEnabled}
-            onChange={() =>
-              updateUserPreferences("telemetryEnabled", !form.telemetryEnabled)
-            }
-          />
-        </>
+        <SettingsGeneral
+          userPreferences={userPreferences}
+          updateUserPreferences={handleUpdateUserPreferences}
+        />
       );
     }
 
     if (currentCategory === "real_debrid") {
       return (
-        <TextField
-          label={t("real_debrid_api_token_description")}
-          value={form.realDebridApiToken ?? ""}
-          type="password"
-          onChange={(event) => {
-            updateUserPreferences("realDebridApiToken", event.target.value);
-          }}
-          placeholder="API Token"
+        <SettingsRealDebrid
+          userPreferences={userPreferences}
+          updateUserPreferences={handleUpdateUserPreferences}
         />
       );
     }
@@ -177,7 +85,7 @@ export function Settings() {
           ))}
         </section>
 
-        <h3>{t(currentCategory)}</h3>
+        <h2>{t(currentCategory)}</h2>
         {renderCategory()}
       </div>
     </section>

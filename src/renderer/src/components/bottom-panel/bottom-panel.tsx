@@ -64,7 +64,7 @@ export function BottomPanel() {
         <small>{status}</small>
       </button>
 
-      <small>
+      <small tabIndex={0}>
         v{version} &quot;{VERSION_CODENAME}&quot;
       </small>
     </footer>

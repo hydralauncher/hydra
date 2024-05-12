@@ -11,7 +11,7 @@ import { registerEvent } from "../register-event";
 const deleteGameFolder = async (
   _event: Electron.IpcMainInvokeEvent,
   gameId: number
-) => {
+): Promise<void> => {
   const game = await gameRepository.findOne({
     where: {
       id: gameId,
@@ -38,7 +38,8 @@ const deleteGameFolder = async (
               logger.error(error);
               reject();
             }
-            resolve(null);
+
+            resolve();
           }
         );
       });

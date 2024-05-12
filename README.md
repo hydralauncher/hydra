@@ -240,6 +240,13 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
+        <a href="https://github.com/Mkdantas">
+            <img src="https://avatars.githubusercontent.com/u/50972667?v=4" width="100;" alt="Mkdantas"/>
+            <br />
+            <sub><b>Matheus Dantas</b></sub>
+        </a>
+    </td>
+    <td align="center">
         <a href="https://github.com/Hachi-R">
             <img src="https://avatars.githubusercontent.com/u/58823742?v=4" width="100;" alt="Hachi-R"/>
             <br />
@@ -259,15 +266,15 @@ yarn build:linux
             <br />
             <sub><b>FeriVOQ</b></sub>
         </a>
-    </td>
+    </td></tr>
+<tr>
     <td align="center">
         <a href="https://github.com/xbozo">
             <img src="https://avatars.githubusercontent.com/u/119091492?v=4" width="100;" alt="xbozo"/>
             <br />
             <sub><b>Guilherme Viana</b></sub>
         </a>
-    </td></tr>
-<tr>
+    </td>
     <td align="center">
         <a href="https://github.com/eltociear">
             <img src="https://avatars.githubusercontent.com/u/22633385?v=4" width="100;" alt="eltociear"/>
@@ -283,10 +290,10 @@ yarn build:linux
         </a>
     </td>
     <td align="center">
-        <a href="https://github.com/FerNikoMF">
-            <img src="https://avatars.githubusercontent.com/u/76095334?v=4" width="100;" alt="FerNikoMF"/>
+        <a href="https://github.com/vnumex">
+            <img src="https://avatars.githubusercontent.com/u/10434535?v=4" width="100;" alt="vnumex"/>
             <br />
-            <sub><b>Firdavs</b></sub>
+            <sub><b>Vnumex</b></sub>
         </a>
     </td>
     <td align="center">
@@ -294,6 +301,21 @@ yarn build:linux
             <img src="https://avatars.githubusercontent.com/u/118926729?v=4" width="100;" alt="Tunchichi"/>
             <br />
             <sub><b>Ruslan</b></sub>
+        </a>
+    </td>
+    <td align="center">
+        <a href="https://github.com/FerNikoMF">
+            <img src="https://avatars.githubusercontent.com/u/76095334?v=4" width="100;" alt="FerNikoMF"/>
+            <br />
+            <sub><b>Firdavs</b></sub>
+        </a>
+    </td></tr>
+<tr>
+    <td align="center">
+        <a href="https://github.com/PCTroller">
+            <img src="https://avatars.githubusercontent.com/u/146987801?v=4" width="100;" alt="PCTroller"/>
+            <br />
+            <sub><b>Null</b></sub>
         </a>
     </td>
     <td align="center">

@@ -266,12 +266,11 @@ export function Downloads() {
                     >
                       {game.title}
                     </button>
-
-                    <small className={styles.downloaderName}>
-                      {downloaderName[game?.downloader]}
-                    </small>
                   </div>
 
+                  <small className={styles.downloaderName}>
+                    {downloaderName[game?.downloader]}
+                  </small>
                   {getGameInfo(game)}
                 </div>
 

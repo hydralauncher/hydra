@@ -1,11 +1,10 @@
-import { Button, Modal, TextField } from "@renderer/components";
+import { Button, Link, Modal, TextField } from "@renderer/components";
 import { GameRepack, ShopDetails } from "@types";
 import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 
 import { formatBytes } from "@renderer/utils";
 import { DiskSpace } from "check-disk-space";
-import { Link } from "react-router-dom";
 import * as styles from "./select-folder-modal.css";
 import { DownloadIcon } from "@primer/octicons-react";
 
@@ -100,10 +99,9 @@ export function SelectFolderModal({
           </Button>
         </div>
         <p className={styles.hintText}>
-          {t("select_folder_hint")}{" "}
-          <Link to="/settings" className={styles.settingsLink}>
-            {t("settings")}
-          </Link>
+          <Trans i18nKey="select_folder_hint" ns="game_details">
+            <Link to="/settings" />
+          </Trans>
         </p>
         <Button onClick={handleStartClick} disabled={downloadStarting}>
           <DownloadIcon />
