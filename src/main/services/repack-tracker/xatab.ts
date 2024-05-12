@@ -7,6 +7,8 @@ import { requestWebPage, savePage } from "./helpers";
 import createWorker from "@main/workers/torrent-parser.worker?nodeWorker";
 import { toMagnetURI } from "parse-torrent";
 import type { Instance } from "parse-torrent";
+import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+import { formatBytes } from "@shared";
 
 const worker = createWorker({});
 
@@ -23,10 +25,9 @@ const formatXatabDate = (str: string) => {
   return date;
 };
 
-const formatXatabDownloadSize = (str: string) =>
-  str.replace(",", ".").replace(/Гб/g, "GB").replace(/Мб/g, "MB");
-
-const getXatabRepack = (url: string) => {
+const getXatabRepack = (
+  url: string
+): Promise<{ fileSize: string; magnet: string; uploadDate: Date }> => {
   return new Promise((resolve) => {
     (async () => {
       const data = await requestWebPage(url);
@@ -34,7 +35,6 @@ const getXatabRepack = (url: string) => {
       const { document } = window;
 
       const $uploadDate = document.querySelector(".entry__date");
-      const $size = document.querySelector(".entry__info-size");
 
       const $downloadButton = document.querySelector(
         ".download-torrent"
@@ -42,17 +42,13 @@ const getXatabRepack = (url: string) => {
 
       if (!$downloadButton) throw new Error("Download button not found");
 
-      const onMessage = (torrent: Instance) => {
+      worker.once("message", (torrent: Instance) => {
         resolve({
-          fileSize: formatXatabDownloadSize($size.textContent).toUpperCase(),
+          fileSize: formatBytes(torrent.length ?? 0),
           magnet: toMagnetURI(torrent),
-          uploadDate: formatXatabDate($uploadDate.textContent),
+          uploadDate: formatXatabDate($uploadDate!.textContent!),
         });
-
-        worker.removeListener("message", onMessage);
-      };
-
-      worker.once("message", onMessage);
+      });
     })();
   });
 };
@@ -65,7 +61,7 @@ export const getNewRepacksFromXatab = async (
 
   const { window } = new JSDOM(data);
 
-  const repacks = [];
+  const repacks: QueryDeepPartialEntity<Repack>[] = [];
 
   for (const $a of Array.from(
     window.document.querySelectorAll(".entry__title a")
@@ -74,7 +70,7 @@ export const getNewRepacksFromXatab = async (
       const repack = await getXatabRepack(($a as HTMLAnchorElement).href);
 
       repacks.push({
-        title: $a.textContent,
+        title: $a.textContent!,
         repacker: "Xatab",
         ...repack,
         page,

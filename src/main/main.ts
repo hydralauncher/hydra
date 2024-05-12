@@ -1,14 +1,13 @@
 import { stateManager } from "./state-manager";
-import { GameStatus, repackers } from "./constants";
+import { repackers } from "./constants";
 import {
   getNewGOGGames,
   getNewRepacksFromCPG,
   getNewRepacksFromUser,
   getNewRepacksFromXatab,
   getNewRepacksFromOnlineFix,
-  readPipe,
   startProcessWatcher,
-  writePipe,
+  DownloadManager,
 } from "./services";
 import {
   gameRepository,
@@ -17,41 +16,15 @@ import {
   steamGameRepository,
   userPreferencesRepository,
 } from "./repository";
-import { TorrentClient } from "./services/torrent-client";
-import { Repack } from "./entity";
+import { TorrentDownloader } from "./services";
+import { Repack, UserPreferences } from "./entity";
 import { Notification } from "electron";
 import { t } from "i18next";
+import { GameStatus } from "@shared";
 import { In } from "typeorm";
+import { RealDebridClient } from "./services/real-debrid";
 
 startProcessWatcher();
-
-TorrentClient.startTorrentClient(writePipe.socketPath, readPipe.socketPath);
-
-Promise.all([writePipe.createPipe(), readPipe.createPipe()]).then(async () => {
-  const game = await gameRepository.findOne({
-    where: {
-      status: In([
-        GameStatus.Downloading,
-        GameStatus.DownloadingMetadata,
-        GameStatus.CheckingFiles,
-      ]),
-    },
-    relations: { repack: true },
-  });
-
-  if (game) {
-    writePipe.write({
-      action: "start",
-      game_id: game.id,
-      magnet: game.repack.magnet,
-      save_path: game.downloadPath,
-    });
-  }
-
-  readPipe.socket?.on("data", (data) => {
-    TorrentClient.onSocketData(data);
-  });
-});
 
 const track1337xUsers = async (existingRepacks: Repack[]) => {
   for (const repacker of repackers) {
@@ -62,11 +35,7 @@ const track1337xUsers = async (existingRepacks: Repack[]) => {
   }
 };
 
-const checkForNewRepacks = async () => {
-  const userPreferences = await userPreferencesRepository.findOne({
-    where: { id: 1 },
-  });
-
+const checkForNewRepacks = async (userPreferences: UserPreferences | null) => {
   const existingRepacks = stateManager.getValue("repacks");
 
   Promise.allSettled([
@@ -104,7 +73,7 @@ const checkForNewRepacks = async () => {
   });
 };
 
-const loadState = async () => {
+const loadState = async (userPreferences: UserPreferences | null) => {
   const [friendlyNames, repacks, steamGames] = await Promise.all([
     repackerFriendlyNameRepository.find(),
     repackRepository.find({
@@ -124,6 +93,33 @@ const loadState = async () => {
   stateManager.setValue("steamGames", steamGames);
 
   import("./events");
+
+  if (userPreferences?.realDebridApiToken)
+    await RealDebridClient.authorize(userPreferences?.realDebridApiToken);
+
+  const game = await gameRepository.findOne({
+    where: {
+      status: In([
+        GameStatus.Downloading,
+        GameStatus.DownloadingMetadata,
+        GameStatus.CheckingFiles,
+      ]),
+      isDeleted: false,
+    },
+    relations: { repack: true },
+  });
+
+  await TorrentDownloader.startClient();
+
+  if (game) {
+    DownloadManager.resumeDownload(game.id);
+  }
 };
 
-loadState().then(() => checkForNewRepacks());
+userPreferencesRepository
+  .findOne({
+    where: { id: 1 },
+  })
+  .then((userPreferences) => {
+    loadState(userPreferences).then(() => checkForNewRepacks(userPreferences));
+  });

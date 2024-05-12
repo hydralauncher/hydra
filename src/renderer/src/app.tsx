@@ -20,6 +20,7 @@ import {
   setRepackersFriendlyNames,
   toggleDraggingDisabled,
 } from "@renderer/features";
+import { GameStatusHelper } from "@shared";
 
 document.body.classList.add(themeClass);
 
@@ -31,7 +32,7 @@ export function App({ children }: AppProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary } = useLibrary();
 
-  const { clearDownload, addPacket } = useDownload();
+  const { clearDownload, setLastPacket } = useDownload();
 
   const dispatch = useAppDispatch();
 
@@ -57,20 +58,20 @@ export function App({ children }: AppProps) {
   useEffect(() => {
     const unsubscribe = window.electron.onDownloadProgress(
       (downloadProgress) => {
-        if (downloadProgress.game.progress === 1) {
+        if (GameStatusHelper.isReady(downloadProgress.game.status)) {
           clearDownload();
           updateLibrary();
           return;
         }
 
-        addPacket(downloadProgress);
+        setLastPacket(downloadProgress);
       }
     );
 
     return () => {
       unsubscribe();
     };
-  }, [clearDownload, addPacket, updateLibrary]);
+  }, [clearDownload, setLastPacket, updateLibrary]);
 
   const handleSearch = useCallback(
     (query: string) => {

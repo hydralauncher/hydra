@@ -1,16 +1,16 @@
 {
   "home": {
     "featured": "Рекомендованное",
-    "recently_added": "Недавно добавленное",
-    "trending": "Актуальное",
+    "recently_added": "Новинки",
+    "trending": "В тренде",
     "surprise_me": "Удиви меня",
-    "no_results": "Результатов не найдено"
+    "no_results": "Ничего не найдено"
   },
   "sidebar": {
     "catalogue": "Каталог",
     "downloads": "Загрузки",
     "settings": "Настройки",
-    "my_library": "Моя библиотека",
+    "my_library": "Библиотека",
     "downloading_metadata": "{{title}} (Загрузка метаданных…)",
     "checking_files": "{{title}} ({{percentage}} - Проверка файлов…)",
     "paused": "{{title}} (Приостановлено)",
@@ -18,9 +18,10 @@
     "filter": "Фильтр библиотеки",
     "follow_us": "Подписывайтесь на нас",
     "home": "Главная",
-    "discord": "Присоединяйся к Discord",
+    "discord": "Присоединяйтесь к Discord",
+    "telegram": "Присоединяйтесь к Telegram",
     "x": "Подписывайтесь на X",
-    "github": "Внести свой вклад в GitHub"
+    "github": "Внести свой вклад на GitHub"
   },
   "header": {
     "search": "Поиск",
@@ -41,7 +42,7 @@
     "previous_page": "Предыдущая страница"
   },
   "game_details": {
-    "open_download_options": "Открыть опции загрузки",
+    "open_download_options": "Открыть варианты загрузки",
     "download_options_zero": "Нет вариантов загрузки",
     "download_options_one": "{{count}} вариант загрузки",
     "download_options_other": "{{count}} вариантов загрузки",
@@ -52,7 +53,7 @@
     "cancel": "Отменить",
     "remove": "Удалить",
     "remove_from_list": "Удалить",
-    "space_left_on_disk": "{{space}} осталось на диске",
+    "space_left_on_disk": "{{space}} свободно на диске",
     "eta": "Окончание {{eta}}",
     "downloading_metadata": "Загрузка метаданных…",
     "checking_files": "Проверка файлов…",
@@ -65,35 +66,35 @@
     "paused_progress": "{{progress}} (Приостановлено)",
     "release_date": "Выпущено {{date}}",
     "publisher": "Издатель {{publisher}}",
-    "copy_link_to_clipboard": "Скопировать ссылку",
+    "copy_link_to_clipboard": "Копировать ссылку",
     "copied_link_to_clipboard": "Ссылка скопирована",
     "hours": "часов",
     "minutes": "минут",
     "amount_hours": "{{amount}} часов",
     "amount_minutes": "{{amount}} минут",
-    "accuracy": "{{accuracy}}% точность",
+    "accuracy": "точность {{accuracy}}%",
     "add_to_library": "Добавить в библиотеку",
     "remove_from_library": "Удалить из библиотеки",
     "no_downloads": "Нет доступных загрузок",
     "play_time": "Сыграно {{amount}}",
-    "last_time_played": "Последний раз сыграно {{period}}",
+    "last_time_played": "Последний запуск {{period}}",
     "not_played_yet": "Вы ещё не играли в {{title}}",
     "next_suggestion": "Следующее предложение",
     "play": "Играть",
     "deleting": "Удаление установщика…",
     "close": "Закрыть",
-    "playing_now": "Текущая игра",
+    "playing_now": "Запущено",
     "change": "Изменить",
-    "repacks_modal_description": "Выберите репак, который хотите загрузить",
+    "repacks_modal_description": "Выберите репак для загрузки",
     "downloads_path": "Путь загрузок",
-    "select_folder_hint": "Чтобы изменить папку по умолчанию, откройте",
+    "select_folder_hint": "Изменить папку по умолчанию",
     "settings": "Настройки Hydra",
     "download_now": "Загрузить сейчас",
     "installation_instructions": "Инструкция по установке",
     "installation_instructions_description": "Для установки этой игры требуются дополнительные шаги",
     "online_fix_instruction": "В играх с OnlineFix требуется ввести пароль для извлечения. При необходимости используйте следующий пароль:",
-    "dodi_installation_instruction": "Когда вы откроете программу установки DODI, нажмите на клавиатуре клавишу 'вверх' <0 />, чтобы начать процесс установки:",
-    "dont_show_it_again": "Не показывать это снова",
+    "dodi_installation_instruction": "Когда вы откроете установщик DODI, нажмите на клавиатуре клавишу 'вверх' <0 />, чтобы начать процесс установки:",
+    "dont_show_it_again": "Не показывать снова",
     "copy_to_clipboard": "Копировать",
     "copied_to_clipboard": "Скопировано",
     "got_it": "Понятно"
@@ -126,20 +127,20 @@
     "delete": "Удалить установщик",
     "remove_from_list": "Удалить",
     "delete_modal_title": "Вы уверены?",
-    "delete_modal_description": "Это удалит все установочные файлы с вашего компьютера",
+    "delete_modal_description": "Это удалит все установщики с вашего компьютера",
     "install": "Установить"
   },
   "settings": {
     "downloads_path": "Путь загрузок",
-    "change": "Изменить путь",
+    "change": "Изменить",
     "notifications": "Уведомления",
     "enable_download_notifications": "По завершении загрузки",
     "enable_repack_list_notifications": "При добавлении нового репака",
     "telemetry": "Телеметрия",
     "telemetry_description": "Отправлять анонимную статистику использования",
     "behavior": "Поведение",
-    "quit_app_instead_hiding": "Закрывать приложение вместо того, чтобы сворачивать его в трей",
-    "launch_with_system": "Запуск приложения при запуске системы"
+    "quit_app_instead_hiding": "Закрывать Hydra вместо того, чтобы сворачивать его в трей",
+    "launch_with_system": "Запуск Hydra вместе с системой"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -157,10 +158,10 @@
   },
   "binary_not_found_modal": {
     "title": "Программы не установлены",
-    "description": "Исполняемые файлы Wine или Lutris не найдены на вашей системе",
-    "instructions": "Узнайте правильный способ установить любой из них в ваш дистрибутив Linux, чтобы игра могла нормально работать"
+    "description": "Wine или Lutris не найдены",
+    "instructions": "Узнайте правильный способ установить любой из них на ваш дистрибутив Linux, чтобы игра могла нормально работать"
   },
   "modal": {
-    "close": "Кнопка закрытия"
+    "close": "Закрыть"
   }
 }

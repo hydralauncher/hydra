@@ -1,41 +1,34 @@
 <br>
 
 <div align="center">
-  <a href="https://hydralauncher.site">
-    <img src="./resources/icon.png" width="144"/>
-  </a>
+
+  [<img src="./resources/icon.png" width="144"/>](https://hydralauncher.site)
+
   <h1 align="center">Hydra Launcher</h1>
+  
   <p align="center">
     <strong>Hydra - это игровой лаунчер с собственным встроенным клиентом BitTorrent и самостоятельным scraper`ом для репаков.</strong>
   </p>
-  <p>
-    <a href="https://discord.gg/hydralauncher">
-      <img src ="https://img.shields.io/discord/1220692017311645737?style=flat&logo=discord&label=Hydra&labelColor=%231c1c1c"/>
-    </a>
-    <a href="https://github.com/hydralauncher/hydra">
-      <img src="https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml" />
-    </a>
-    <a href="https://github.com/hydralauncher/hydra">
-      <img src="https://img.shields.io/github/package-json/v/hydralauncher/hydra" />
-    </a>
-  </p>
 
-![Hydra Catalogue](./docs/screenshot.png)
+  [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
+  [![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
+
+  [![pt-BR](https://img.shields.io/badge/lang-pt--BR-green.svg)](README.pt-BR.md)
+  [![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
+  [![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
+  [![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
+
+  ![Hydra Catalogue](./docs/screenshot.png)
 
 </div>
-
-<br>
-
-### Язык
-[![ru](https://img.shields.io/badge/lang-ru-red)](https://github.com/hydralauncher/hydra/blob/main/README.ru.md)
 
 ## Содержание
 
 - [Описание](#описание)
 - [Особенности](#особенности)
 - [Установка](#установка)
-- [Сотрудничество](#сотрудничество)
-  - [Присоединяйтесь к нашему Discord](#присоединяйтесь-к-нашему-discord)
+- [Вклад](#contributing)
+  - [Присоединяйтесь к нашему Telegram](#join-our-telegram)
   - [Форк и клонирование репозитория](#форк-и-клонирование-репозитория)
   - [Способы внести свой вклад](#способы-внести-свой-вклад)
   - [Структура проекта](#структура-проекта)
@@ -79,15 +72,11 @@
 2. Запустите скачанный файл.
 3. Наслаждайтесь Hydra!
 
-## Сотрудничество
+## <a name="contributing"> Вклад
 
-### Присоединяйтесь к нашему Discord
+### <a name="join-our-telegram"></a> Присоединяйтесь к нашему Telegram
 
-Мы сосредотачиваем наши обсуждения на нашем [Discord](https://discord.gg/hydralauncher) сервере.
-
-1. Присоединитесь к нашему серверу.
-2. Перейдите в канал ролей и получите роль Collaborator.
-3. Перейдите в канал Dev, общайтесь с нами и делитесь своими идеями.
+Мы сосредотачиваем наши обсуждения в нашем канале [Telegram](https://t.me/hydralauncher).
 
 ### Форк и клонирование репозитория
 
@@ -100,7 +89,7 @@
 ### Способы внести свой вклад
 
 - Перевод: Мы хотим, чтобы Hydra была доступна как можно большему количеству людей. Не стесняйтесь помогать переводить на новые языки или обновлять и улучшать те, которые уже доступны в Hydra.
-- Код: Hydra создан с использованием TypeScript, Electron и немного Python. Если хотите внести свой вклад, присоединяйтесь к нашему серверу Discord!
+- Код: Hydra создан с использованием TypeScript, Electron и немного Python. Если хотите внести свой вклад, присоединяйтесь к нашему серверу [Telegram](https://t.me/hydralauncher)!
 
 ### Структура проекта
 
@@ -182,132 +171,9 @@ yarn build:linux
 
 ## Участники
 
-<!-- readme: contributors -start -->
-<table>
-<tr>
-    <td align="center">
-        <a href="https://github.com/hydralauncher">
-            <img src="https://avatars.githubusercontent.com/u/164102380?v=4" width="100;" alt="hydralauncher"/>
-            <br />
-            <sub><b>Hydra</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/zamitto">
-            <img src="https://avatars.githubusercontent.com/u/167933696?v=4" width="100;" alt="zamitto"/>
-            <br />
-            <sub><b>Null</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/fzanutto">
-            <img src="https://avatars.githubusercontent.com/u/15229294?v=4" width="100;" alt="fzanutto"/>
-            <br />
-            <sub><b>Null</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/JackEnx">
-            <img src="https://avatars.githubusercontent.com/u/167036558?v=4" width="100;" alt="JackEnx"/>
-            <br />
-            <sub><b>Null</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/Magrid0">
-            <img src="https://avatars.githubusercontent.com/u/73496008?v=4" width="100;" alt="Magrid0"/>
-            <br />
-            <sub><b>Magrid</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/fhilipecrash">
-            <img src="https://avatars.githubusercontent.com/u/36455575?v=4" width="100;" alt="fhilipecrash"/>
-            <br />
-            <sub><b>Fhilipe Coelho</b></sub>
-        </a>
-    </td></tr>
-<tr>
-    <td align="center">
-        <a href="https://github.com/jps14">
-            <img src="https://avatars.githubusercontent.com/u/168477146?v=4" width="100;" alt="jps14"/>
-            <br />
-            <sub><b>José Luís</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/shadowtosser">
-            <img src="https://avatars.githubusercontent.com/u/168544958?v=4" width="100;" alt="shadowtosser"/>
-            <br />
-            <sub><b>Null</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/pmenta">
-            <img src="https://avatars.githubusercontent.com/u/71457671?v=4" width="100;" alt="pmenta"/>
-            <br />
-            <sub><b>João Martins</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/ferivoq">
-            <img src="https://avatars.githubusercontent.com/u/36544651?v=4" width="100;" alt="ferivoq"/>
-            <br />
-            <sub><b>FeriVOQ</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/xbozo">
-            <img src="https://avatars.githubusercontent.com/u/119091492?v=4" width="100;" alt="xbozo"/>
-            <br />
-            <sub><b>Guilherme Viana</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/eltociear">
-            <img src="https://avatars.githubusercontent.com/u/22633385?v=4" width="100;" alt="eltociear"/>
-            <br />
-            <sub><b>Ikko Eltociear Ashimine</b></sub>
-        </a>
-    </td></tr>
-<tr>
-    <td align="center">
-        <a href="https://github.com/Netflixyapp">
-            <img src="https://avatars.githubusercontent.com/u/91623880?v=4" width="100;" alt="Netflixyapp"/>
-            <br />
-            <sub><b>Netflixy</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/Hachi-R">
-            <img src="https://avatars.githubusercontent.com/u/58823742?v=4" width="100;" alt="Hachi-R"/>
-            <br />
-            <sub><b>Hachi</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/FerNikoMF">
-            <img src="https://avatars.githubusercontent.com/u/76095334?v=4" width="100;" alt="FerNikoMF"/>
-            <br />
-            <sub><b>Firdavs</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/userMacieG">
-            <img src="https://avatars.githubusercontent.com/u/24211405?v=4" width="100;" alt="userMacieG"/>
-            <br />
-            <sub><b>Maciej Ratyński</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/Tunchichi">
-            <img src="https://avatars.githubusercontent.com/u/118926729?v=4" width="100;" alt="Tunchichi"/>
-            <br />
-            <sub><b>Ruslan</b></sub>
-        </a>
-    </td></tr>
-</table>
-<!-- readme: contributors -end -->
+<a href="https://github.com/hydralauncher/hydra/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=hydralauncher/hydra" />
+</a>
 
 ## License
 
