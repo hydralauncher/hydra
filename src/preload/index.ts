@@ -26,8 +26,8 @@ contextBridge.exposeInMainWorld("electron", {
       shop,
       downloadPath
     ),
-    monitorGameDownload: () =>
-    ipcRenderer.invoke("monitorGameDownload"),
+  gameDownloadQueueMonitor: () =>
+    ipcRenderer.invoke("gameDownloadQueueMonitor"),
   cancelGameDownload: (gameId: number) =>
     ipcRenderer.invoke("cancelGameDownload", gameId),
   pauseGameDownload: (gameId: number) =>
@@ -111,7 +111,7 @@ contextBridge.exposeInMainWorld("electron", {
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
-  showOpenDialog: async (options: Electron.OpenDialogOptions) =>
-    await ipcRenderer.invoke("showOpenDialog", options),
+  showOpenDialog: (options: Electron.OpenDialogOptions) =>
+    ipcRenderer.invoke("showOpenDialog", options),
   platform: process.platform,
 });

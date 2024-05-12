@@ -98,7 +98,7 @@ const startGameDownload = async (
   }
 };
 
-const monitorGameDownload = async (
+const gameDownloadQueueMonitor = async (
   _event: Electron.IpcMainInvokeEvent
 ) => {
   const nextGame = await gameRepository.findOne({
@@ -127,6 +127,6 @@ registerEvent(startGameDownload, {
   name: "startGameDownload",
 });
 
-registerEvent(monitorGameDownload, {
-  name: "monitorGameDownload",
+registerEvent(gameDownloadQueueMonitor, {
+  name: "gameDownloadQueueMonitor",
 });

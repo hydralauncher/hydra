@@ -31,7 +31,7 @@ export function App({ children }: AppProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary } = useLibrary();
 
-  const { monitorDownload, clearDownload, addPacket } = useDownload();
+  const { downloadQueueMonitor, clearDownload, addPacket } = useDownload();
 
   const dispatch = useAppDispatch();
 
@@ -45,10 +45,9 @@ export function App({ children }: AppProps) {
 
   useEffect(() => {
     const intervalId = setInterval(() => {
-      monitorDownload();
-    }, 1000); // 1000 ms = 1 segundo
+      downloadQueueMonitor();
+    }, 1000);
 
-    // Retorna uma função de limpeza para cancelar o intervalo quando o componente é desmontado
     return () => clearInterval(intervalId);
   }, []);
 

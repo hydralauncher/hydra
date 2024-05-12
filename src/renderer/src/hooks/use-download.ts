@@ -40,8 +40,8 @@ export function useDownload() {
         return game;
       });
 
-  const monitorDownload = () =>
-    window.electron.monitorGameDownload().then(() => {
+  const downloadQueueMonitor = () =>
+    window.electron.gameDownloadQueueMonitor().then(() => {
       updateLibrary();
     });
 
@@ -126,7 +126,7 @@ export function useDownload() {
     numSeeds: lastPacket?.numSeeds,
     eta: getETA(),
     startDownload,
-    monitorDownload,
+    downloadQueueMonitor,
     pauseDownload,
     resumeDownload,
     cancelDownload,
