@@ -2,6 +2,13 @@ import { SPACING_UNIT, vars } from "../../theme.css";
 import { style } from "@vanilla-extract/css";
 import { recipe } from "@vanilla-extract/recipes";
 
+export const textFieldContainer = style({
+  flex: "1",
+  gap: `${SPACING_UNIT}px`,
+  display: "flex",
+  flexDirection: "column",
+});
+
 export const textField = recipe({
   base: {
     display: "inline-flex",
@@ -49,10 +56,4 @@ export const textFieldInput = style({
   ":focus": {
     cursor: "text",
   },
-});
-
-export const label = style({
-  marginBottom: `${SPACING_UNIT}px`,
-  display: "block",
-  color: vars.color.bodyText,
 });
