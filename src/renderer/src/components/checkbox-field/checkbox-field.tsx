@@ -24,7 +24,7 @@ export function CheckboxField({ label, ...props }: CheckboxFieldProps) {
         />
         {props.checked && <CheckIcon />}
       </div>
-      <label htmlFor={id} className={styles.checkboxLabel}>
+      <label htmlFor={id} className={styles.checkboxLabel} tabIndex={0}>
         {label}
       </label>
     </div>
