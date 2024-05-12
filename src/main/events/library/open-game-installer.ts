@@ -13,13 +13,15 @@ const openGameInstaller = async (
   _event: Electron.IpcMainInvokeEvent,
   gameId: number
 ) => {
-  const game = await gameRepository.findOne({ where: { id: gameId } });
+  const game = await gameRepository.findOne({
+    where: { id: gameId, isDeleted: false },
+  });
 
   if (!game) return true;
 
   const gamePath = path.join(
     game.downloadPath ?? (await getDownloadsPath()),
-    game.folderName
+    game.folderName!
   );
 
   if (!fs.existsSync(gamePath)) {
