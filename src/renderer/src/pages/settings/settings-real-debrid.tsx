@@ -35,7 +35,9 @@ export function SettingsRealDebrid({
 
   const handleFormSubmit: React.FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
-    updateUserPreferences({ realDebridApiToken: form.realDebridApiToken });
+    updateUserPreferences({
+      realDebridApiToken: form.useRealDebrid ? form.realDebridApiToken : null,
+    });
   };
 
   const isButtonDisabled = form.useRealDebrid && !form.realDebridApiToken;
