@@ -1,5 +1,5 @@
 import { JSDOM, VirtualConsole } from "jsdom";
-import { requestWebPage, saveRepacks } from "./helpers";
+import { requestWebPage, savePage } from "./helpers";
 import { Repack } from "@main/entity";
 
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
@@ -66,6 +66,6 @@ export const getNewGOGGames = async (existingRepacks: Repack[] = []) => {
       }
     }
 
-    if (repacks.length) await saveRepacks(repacks);
+    if (repacks.length) await savePage(repacks);
   }
 };

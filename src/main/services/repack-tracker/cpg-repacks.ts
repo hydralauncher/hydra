@@ -2,7 +2,7 @@ import { JSDOM } from "jsdom";
 
 import { Repack } from "@main/entity";
 
-import { requestWebPage, saveRepacks } from "./helpers";
+import { requestWebPage, savePage } from "./helpers";
 import { logger } from "../logger";
 import type { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
@@ -58,7 +58,7 @@ export const getNewRepacksFromCPG = async (
 
   if (!newRepacks.length) return;
 
-  await saveRepacks(newRepacks);
+  await savePage(newRepacks);
 
   return getNewRepacksFromCPG(existingRepacks, page + 1);
 };
