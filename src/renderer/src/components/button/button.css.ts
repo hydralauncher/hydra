@@ -19,6 +19,7 @@ const base = style({
   ":disabled": {
     opacity: vars.opacity.disabled,
     pointerEvents: "none",
+    cursor: "not-allowed",
   },
 });
 

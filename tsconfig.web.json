@@ -5,7 +5,8 @@
     "src/renderer/src/**/*",
     "src/renderer/src/**/*.tsx",
     "src/preload/*.d.ts",
-    "src/locales/index.ts"
+    "src/locales/index.ts",
+    "src/shared/index.ts"
   ],
   "compilerOptions": {
     "composite": true,
@@ -16,7 +17,8 @@
         "src/renderer/src/*"
       ],
       "@types": ["src/types/index.ts"],
-      "@locales": ["src/locales/index.ts"]
+      "@locales": ["src/locales/index.ts"],
+      "@shared": ["src/shared/index.ts"]
     }
   }
 }

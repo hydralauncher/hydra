@@ -19,11 +19,12 @@
     "home": "Início",
     "follow_us": "Acompanhe-nos",
     "discord": "Entre no nosso Discord",
+    "telegram": "Entre no nosso Telegram",
     "x": "Siga-nos no X",
     "github": "Contribua no GitHub"
   },
   "header": {
-    "search": "Buscar",
+    "search": "Buscar jogos",
     "catalogue": "Catálogo",
     "downloads": "Downloads",
     "search_results": "Resultados da busca",
@@ -82,8 +83,7 @@
     "change": "Mudar",
     "repacks_modal_description": "Escolha o repack do jogo que deseja baixar",
     "downloads_path": "Diretório do download",
-    "select_folder_hint": "Para trocar a pasta padrão, acesse as ",
-    "settings": "Configurações do Hydra",
+    "select_folder_hint": "Para trocar a pasta padrão, acesse a <0>Tela de Configurações</0>",
     "download_now": "Baixe agora",
     "installation_instructions": "Instruções de Instalação",
     "installation_instructions_description": "Passos adicionais são necessários para instalar esse jogo",
@@ -146,9 +146,14 @@
     "enable_repack_list_notifications": "Quando a lista de repacks for atualizada",
     "telemetry": "Telemetria",
     "telemetry_description": "Habilitar estatísticas de uso anônimas",
-    "behavior": "Comportamento",
     "quit_app_instead_hiding": "Fechar o aplicativo em vez de minimizá-lo",
-    "launch_with_system": "Iniciar aplicativo na inicialização do sistema"
+    "launch_with_system": "Iniciar aplicativo na inicialização do sistema",
+    "general": "Geral",
+    "behavior": "Comportamento",
+    "enable_real_debrid": "Habilitar Real Debrid",
+    "real_debrid": "Real Debrid",
+    "real_debrid_api_token_hint": "Você pode obter sua chave de API <0>aqui</0>.",
+    "save_changes": "Salvar mudanças"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -167,7 +172,7 @@
   "binary_not_found_modal": {
     "title": "Programas não instalados",
     "description": "Não foram encontrados no seu sistema os executáveis do Wine ou Lutris",
-    "instructions": "Verifique a forma correta de instalar algum deles na sua distro Linux para que o jogo possa ser executado normalmente"
+    "instructions": "Verifique a forma correta de instalar algum deles no seu distro Linux, garantindo assim a execução normal do jogo"
   },
   "catalogue": {
     "next_page": "Próxima página",

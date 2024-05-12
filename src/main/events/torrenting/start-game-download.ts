@@ -1,12 +1,17 @@
-import { getSteamGameIconUrl, writePipe } from "@main/services";
-import { gameRepository, repackRepository } from "@main/repository";
-import { GameStatus } from "@main/constants";
+import { getSteamGameIconUrl } from "@main/services";
+import {
+  gameRepository,
+  repackRepository,
+  userPreferencesRepository,
+} from "@main/repository";
 
 import { registerEvent } from "../register-event";
 
 import type { GameShop } from "@types";
 import { getFileBase64 } from "@main/helpers";
 import { In } from "typeorm";
+import { DownloadManager } from "@main/services";
+import { Downloader, GameStatus } from "@shared";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -16,6 +21,14 @@ const startGameDownload = async (
   gameShop: GameShop,
   downloadPath: string
 ) => {
+  const userPreferences = await userPreferencesRepository.findOne({
+    where: { id: 1 },
+  });
+
+  const downloader = userPreferences?.realDebridApiToken
+    ? Downloader.RealDebrid
+    : Downloader.Torrent;
+
   const [game, repack] = await Promise.all([
     gameRepository.findOne({
       where: {
@@ -29,13 +42,8 @@ const startGameDownload = async (
     }),
   ]);
 
-  if (!repack) return;
-
-  if (game?.status === GameStatus.Downloading) {
-    return;
-  }
-
-  writePipe.write({ action: "pause" });
+  if (!repack || game?.status === GameStatus.Downloading) return;
+  DownloadManager.pauseDownload();
 
   await gameRepository.update(
     {
@@ -56,17 +64,13 @@ const startGameDownload = async (
       {
         status: GameStatus.DownloadingMetadata,
         downloadPath: downloadPath,
+        downloader,
         repack: { id: repackId },
         isDeleted: false,
       }
     );
 
-    writePipe.write({
-      action: "start",
-      game_id: game.id,
-      magnet: repack.magnet,
-      save_path: downloadPath,
-    });
+    DownloadManager.downloadGame(game.id);
 
     game.status = GameStatus.DownloadingMetadata;
 
@@ -78,18 +82,14 @@ const startGameDownload = async (
       title,
       iconUrl,
       objectID,
+      downloader,
       shop: gameShop,
-      status: GameStatus.DownloadingMetadata,
-      downloadPath: downloadPath,
+      status: GameStatus.Downloading,
+      downloadPath,
       repack: { id: repackId },
     });
 
-    writePipe.write({
-      action: "start",
-      game_id: createdGame.id,
-      magnet: repack.magnet,
-      save_path: downloadPath,
-    });
+    DownloadManager.downloadGame(createdGame.id);
 
     const { repack: _, ...rest } = createdGame;
 
