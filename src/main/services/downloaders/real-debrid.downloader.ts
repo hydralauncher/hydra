@@ -4,7 +4,7 @@ import path from "node:path";
 import fs from "node:fs";
 import EasyDL from "easydl";
 import { GameStatus } from "@shared";
-import { fullArchive } from "node-7z-archive";
+// import { fullArchive } from "node-7z-archive";
 
 import { Downloader } from "./downloader";
 import { RealDebridClient } from "../real-debrid";
@@ -29,19 +29,19 @@ export class RealDebridDownloader extends Downloader {
     }
   }
 
-  private static async startDecompression(
-    rarFile: string,
-    dest: string,
-    game: Game
-  ) {
-    await fullArchive(rarFile, dest);
+  // private static async startDecompression(
+  //   rarFile: string,
+  //   dest: string,
+  //   game: Game
+  // ) {
+  //   await fullArchive(rarFile, dest);
 
-    const updatePayload: QueryDeepPartialEntity<Game> = {
-      status: GameStatus.Finished,
-    };
+  //   const updatePayload: QueryDeepPartialEntity<Game> = {
+  //     status: GameStatus.Finished,
+  //   };
 
-    await this.updateGameProgress(game.id, updatePayload, {});
-  }
+  //   await this.updateGameProgress(game.id, updatePayload, {});
+  // }
 
   static destroy() {
     if (this.download) {
@@ -96,7 +96,7 @@ export class RealDebridDownloader extends Downloader {
 
     this.download.on("end", async () => {
       const updatePayload: QueryDeepPartialEntity<Game> = {
-        status: GameStatus.Decompressing,
+        status: GameStatus.Finished,
         progress: 1,
       };
 
@@ -104,11 +104,12 @@ export class RealDebridDownloader extends Downloader {
         timeRemaining: 0,
       });
 
-      this.startDecompression(
-        path.join(downloadPath, filename),
-        downloadPath,
-        game
-      );
+      /* This has to be improved */
+      // this.startDecompression(
+      //   path.join(downloadPath, filename),
+      //   downloadPath,
+      //   game
+      // );
     });
   }
 }
