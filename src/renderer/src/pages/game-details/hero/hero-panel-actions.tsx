@@ -1,3 +1,4 @@
+import { GameStatus, GameStatusHelper } from "@shared";
 import { NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
 
 import { Button } from "@renderer/components";
@@ -49,7 +50,7 @@ export function HeroPanelActions({
         filters: [
           {
             name: "Game executable",
-            extensions: window.electron.platform === "win32" ? ["exe"] : [],
+            extensions: ["exe"],
           },
         ],
       })
@@ -152,7 +153,7 @@ export function HeroPanelActions({
     );
   }
 
-  if (game?.status === "paused") {
+  if (game?.status === GameStatus.Paused) {
     return (
       <>
         <Button
@@ -173,10 +174,13 @@ export function HeroPanelActions({
     );
   }
 
-  if (game?.status === "seeding" || (game && !game.status)) {
+  if (
+    GameStatusHelper.isReady(game?.status ?? null) ||
+    (game && !game.status)
+  ) {
     return (
       <>
-        {game?.status === "seeding" ? (
+        {GameStatusHelper.isReady(game?.status ?? null) ? (
           <Button
             onClick={openGameInstaller}
             theme="outline"
@@ -212,7 +216,7 @@ export function HeroPanelActions({
     );
   }
 
-  if (game?.status === "cancelled") {
+  if (game?.status === GameStatus.Cancelled) {
     return (
       <>
         <Button
