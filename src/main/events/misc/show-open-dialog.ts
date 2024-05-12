@@ -6,11 +6,11 @@ const showOpenDialog = async (
   _event: Electron.IpcMainInvokeEvent,
   options: Electron.OpenDialogOptions
 ) => {
-  if (!WindowManager.mainWindow) {
-    throw new Error("Unable to open a dialog without having a main window");
+  if (WindowManager.mainWindow) {
+    return await dialog.showOpenDialog(WindowManager.mainWindow, options);
   }
 
-  return await dialog.showOpenDialog(WindowManager.mainWindow, options);
+  throw new Error("Main window is not available");
 };
 
 registerEvent(showOpenDialog, {

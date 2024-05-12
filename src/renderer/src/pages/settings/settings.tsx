@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Button, CheckboxField } from "@renderer/components";
+import { Button } from "@renderer/components";
 
 import * as styles from "./settings.css";
 import { useTranslation } from "react-i18next";
 import { UserPreferences } from "@types";
 import { SettingsRealDebrid } from "./settings-real-debrid";
 import { SettingsGeneral } from "./settings-general";
+import { SettingsBehavior } from "./settings-behavior";
 
 const categories = ["general", "behavior", "real_debrid"];
 
@@ -46,27 +47,10 @@ export function Settings() {
     }
 
     return (
-      <>
-        <CheckboxField
-          label={t("quit_app_instead_hiding")}
-          checked={form.preferQuitInsteadOfHiding}
-          onChange={() =>
-            updateUserPreferences(
-              "preferQuitInsteadOfHiding",
-              !form.preferQuitInsteadOfHiding
-            )
-          }
-        />
-
-        <CheckboxField
-          label={t("launch_with_system")}
-          onChange={() => {
-            updateUserPreferences("runAtStartup", !form.runAtStartup);
-            window.electron.autoLaunch(!form.runAtStartup);
-          }}
-          checked={form.runAtStartup}
-        />
-      </>
+      <SettingsBehavior
+        userPreferences={userPreferences}
+        updateUserPreferences={handleUpdateUserPreferences}
+      />
     );
   };
 
