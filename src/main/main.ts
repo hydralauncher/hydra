@@ -8,6 +8,7 @@ import {
   getNewRepacksFromOnlineFix,
   startProcessWatcher,
   DownloadManager,
+  getNewRepacksFromByrut,
 } from "./services";
 import {
   gameRepository,
@@ -39,6 +40,9 @@ const checkForNewRepacks = async (userPreferences: UserPreferences | null) => {
   const existingRepacks = stateManager.getValue("repacks");
 
   Promise.allSettled([
+    getNewRepacksFromByrut(
+      existingRepacks.filter((repack) => repack.repacker === 'ByRutor')
+    ),
     getNewGOGGames(
       existingRepacks.filter((repack) => repack.repacker === "GOG")
     ),

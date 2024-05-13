@@ -3,3 +3,4 @@ export * from "./xatab";
 export * from "./cpg-repacks";
 export * from "./gog";
 export * from "./online-fix";
+export * from './thebyrut'
