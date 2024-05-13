@@ -86,7 +86,6 @@
     "playing_now": "Playing now",
     "change": "Change",
     "repacks_modal_description": "Choose the repack you want to download",
-    "downloads_path": "Downloads path",
     "select_folder_hint": "To change the default folder, go to the <0>Settings</0>",
     "download_now": "Download now",
     "installation_instructions": "Installation Instructions",
@@ -96,7 +95,14 @@
     "dont_show_it_again": "Don't show it again",
     "copy_to_clipboard": "Copy",
     "copied_to_clipboard": "Copied",
-    "got_it": "Got it"
+    "got_it": "Got it",
+    "no_shop_details": "Could not retrieve shop details.",
+    "download_options": "Download options",
+    "download_path": "Download path",
+    "previous_screenshot": "Previous screenshot",
+    "next_screenshot": "Next screenshot",
+    "screenshot": "Screenshot {{number}}",
+    "open_screenshot": "Open screenshot {{number}}"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -139,7 +145,7 @@
     "enable_repack_list_notifications": "When a new repack is added",
     "telemetry": "Telemetry",
     "telemetry_description": "Enable anonymous usage statistics",
-    "real_debrid_api_token_description": "Real Debrid API token",
+    "real_debrid_api_token_label": "Real Debrid API token",
     "quit_app_instead_hiding": "Quit Hydra instead of minimizing to tray",
     "launch_with_system": "Launch Hydra on system start-up",
     "general": "General",
