@@ -10,10 +10,12 @@ export const webTorrentData = {
     return new Promise((resolve, reject) => {
       WebTorrentHealth(magnet, (err: Error, data: WebTorrentHealthData) => {
         if (err) {
-          reject(err);
-        } else {
-          resolve(data);
+          return reject(err);
         }
+
+        const { peers, seeds } = data;
+
+        return resolve({ peers, seeders: seeds });
       });
     });
   },

@@ -7,6 +7,7 @@ import "./catalogue/get-games";
 import "./catalogue/get-how-long-to-beat";
 import "./catalogue/get-random-game";
 import "./catalogue/search-games";
+import "./catalogue/repacks/get-magnet-health"
 import "./hardware/get-disk-free-space";
 import "./library/add-game-to-library";
 import "./library/close-game";
@@ -27,7 +28,6 @@ import "./torrenting/start-game-download";
 import "./user-preferences/get-user-preferences";
 import "./user-preferences/update-user-preferences";
 import "./user-preferences/auto-launch";
-import "./repacks/get-magnet-health"
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => app.getVersion());
