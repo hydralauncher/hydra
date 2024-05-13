@@ -34,7 +34,7 @@ export function SeedersAndPeers({ repack }: Readonly<SeedersAndPeersProps>) {
         <span
           style={{
             marginLeft: `${SPACING_UNIT - 5}px`,
-            marginRight: `${SPACING_UNIT}px`
+            marginRight: `${SPACING_UNIT}px`,
           }}
         >
           {magnetData?.seeders}

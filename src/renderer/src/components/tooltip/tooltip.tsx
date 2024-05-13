@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import * as styles from './tooltip.css'
+import { useState } from "react";
+import * as styles from "./tooltip.css";
 
 interface TooltipProps {
   children: React.ReactNode;
@@ -11,12 +11,16 @@ export function Tooltip({ children, tooltipText }: Readonly<TooltipProps>) {
 
   return (
     <div
-    className={styles.tooltipStyle}
-    onMouseEnter={() => setIsVisible(true)}
-    onMouseLeave={() => setIsVisible(false)}
-  >
-    {children}
-    <span className={`${styles.tooltipTextStyle} ${isVisible ? styles.tooltipVisible : ''}`}>{tooltipText}</span>
-  </div>
+      className={styles.tooltipStyle}
+      onMouseEnter={() => setIsVisible(true)}
+      onMouseLeave={() => setIsVisible(false)}
+    >
+      {children}
+      <span
+        className={`${styles.tooltipTextStyle} ${isVisible ? styles.tooltipVisible : ""}`}
+      >
+        {tooltipText}
+      </span>
+    </div>
   );
 }
