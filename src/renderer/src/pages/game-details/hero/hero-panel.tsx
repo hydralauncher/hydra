@@ -62,8 +62,6 @@ export function HeroPanel({
   }, [game, isGameDownloading, gameDownloading]);
 
   const getInfo = () => {
-    if (!repacks.length) return null;
-
     if (isGameDeleting(game?.id ?? -1)) {
       return <p>{t("deleting")}</p>;
     }
