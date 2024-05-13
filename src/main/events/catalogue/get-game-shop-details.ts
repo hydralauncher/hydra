@@ -1,4 +1,4 @@
-import { gameShopCacheRepository } from "@main/repository";
+import { gameShopCacheRepository, steamGameRepository } from "@main/repository";
 import { getSteamAppDetails } from "@main/services";
 
 import type { ShopDetails, GameShop, SteamAppDetails } from "@types";
@@ -9,18 +9,18 @@ const getLocalizedSteamAppDetails = (
   objectID: string,
   language: string
 ): Promise<ShopDetails | null> => {
-  const englishAppDetails = getSteamAppDetails(objectID, "english");
-
-  if (language === "english") return englishAppDetails;
+  if (language === "english") {
+    return getSteamAppDetails(objectID, language);
+  }
 
   return Promise.all([
-    englishAppDetails,
+    steamGameRepository.findOne({ where: { id: Number(objectID) } }),
     getSteamAppDetails(objectID, language),
-  ]).then(([appDetails, localizedAppDetails]) => {
-    if (appDetails && localizedAppDetails) {
+  ]).then(([steamGame, localizedAppDetails]) => {
+    if (steamGame && localizedAppDetails) {
       return {
         ...localizedAppDetails,
-        name: appDetails.name,
+        name: steamGame.name,
       };
     }
 

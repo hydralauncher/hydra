@@ -98,7 +98,11 @@
     "got_it": "Got it",
     "no_shop_details": "Could not retrieve shop details.",
     "download_options": "Download options",
-    "download_path": "Download path"
+    "download_path": "Download path",
+    "previous_screenshot": "Previous screenshot",
+    "next_screenshot": "Next screenshot",
+    "screenshot": "Screenshot {{number}}",
+    "open_screenshot": "Open screenshot {{number}}"
   },
   "activation": {
     "title": "Activate Hydra",
