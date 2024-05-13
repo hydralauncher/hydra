@@ -2,7 +2,7 @@
 
 <div align="center">
 
-  [<img src="./resources/icon.png" width="144"/>](https://hydralauncher.site)
+[<img src="./resources/icon.png" width="144"/>](https://hydralauncher.site)
 
   <h1 align="center">Hydra Launcher</h1>
   
@@ -10,15 +10,15 @@
     <strong>Hydra - це ігровий лаунчер з власним вбудованим bittorrent-клієнтом і самокерованим збирачем репаків.</strong>
   </p>
 
-  [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
-  [![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
+[![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
+[![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
 
-  [![pt-BR](https://img.shields.io/badge/lang-pt--BR-green.svg)](README.pt-BR.md)
-  [![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
-  [![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
-  [![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
+[![pt-BR](https://img.shields.io/badge/lang-pt--BR-green.svg)](README.pt-BR.md)
+[![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
+[![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
+[![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
 
-  ![Hydra Catalogue](./docs/screenshot.png)
+![Hydra Catalogue](./docs/screenshot.png)
 
 </div>
 
@@ -76,9 +76,9 @@
 
 ### <a name="join-our-telegram"></a> Приєднуйтесь до нашого Telegram
 
-Ми зосереджуємо наші дискусії на нашому сервері [Telegram](https://t.me/hydralauncher).
+Ми зосереджуємо наші дискусії на нашому каналі [Telegram](https://t.me/hydralauncher).
 
-1. Приєднуйтесь до нашого сервера
+1. Приєднуйтесь до нашого канала
 2. Перейдіть на канал ролей і виберіть роль Співробітник
 3. Заходьте на dev-канал, спілкуйтеся з нами та діліться своїми ідеями.
 
