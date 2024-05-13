@@ -1,31 +1,18 @@
 import { style } from "@vanilla-extract/css";
-import { recipe } from "@vanilla-extract/recipes";
 import { SPACING_UNIT, vars } from "../../theme.css";
 
-export const card = recipe({
-  base: {
-    width: "100%",
-    height: "180px",
-    boxShadow: "0px 0px 15px 0px #000000",
-    overflow: "hidden",
-    borderRadius: "4px",
-    transition: "all ease 0.2s",
-    border: `solid 1px ${vars.color.border}`,
-    cursor: "pointer",
-    zIndex: "1",
-    ":active": {
-      opacity: vars.opacity.active,
-    },
-  },
-  variants: {
-    disabled: {
-      true: {
-        pointerEvents: "none",
-        boxShadow: "none",
-        opacity: vars.opacity.disabled,
-        filter: "grayscale(50%)",
-      },
-    },
+export const card = style({
+  width: "100%",
+  height: "180px",
+  boxShadow: "0px 0px 15px 0px #000000",
+  overflow: "hidden",
+  borderRadius: "4px",
+  transition: "all ease 0.2s",
+  border: `solid 1px ${vars.color.border}`,
+  cursor: "pointer",
+  zIndex: "1",
+  ":active": {
+    opacity: vars.opacity.active,
   },
 });
 
@@ -48,7 +35,7 @@ export const cover = style({
   zIndex: "-1",
   transition: "all ease 0.2s",
   selectors: {
-    [`${card({})}:hover &`]: {
+    [`${card}:hover &`]: {
       transform: "scale(1.05)",
     },
   },
@@ -64,7 +51,7 @@ export const content = style({
   transition: "all ease 0.2s",
   transform: "translateY(24px)",
   selectors: {
-    [`${card({})}:hover &`]: {
+    [`${card}:hover &`]: {
       transform: "translateY(0px)",
     },
   },

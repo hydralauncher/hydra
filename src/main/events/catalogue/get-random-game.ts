@@ -1,9 +1,10 @@
 import { shuffle } from "lodash-es";
 
-import { Steam250Game, getSteam250List } from "@main/services";
+import { getSteam250List } from "@main/services";
 
 import { registerEvent } from "../register-event";
 import { searchGames, searchRepacks } from "../helpers/search-games";
+import type { Steam250Game } from "@types";
 
 const state = { games: Array<Steam250Game>(), index: 0 };
 
@@ -25,8 +26,6 @@ const getRandomGame = async (_event: Electron.IpcMainInvokeEvent) => {
     return "";
   }
 
-  const resultObjectId = state.games[state.index].objectID;
-
   state.index += 1;
 
   if (state.index == state.games.length) {
@@ -34,7 +33,7 @@ const getRandomGame = async (_event: Electron.IpcMainInvokeEvent) => {
     state.games = shuffle(state.games);
   }
 
-  return resultObjectId;
+  return state.games[state.index];
 };
 
 registerEvent(getRandomGame, {

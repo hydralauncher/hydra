@@ -1,3 +1,4 @@
+import { recipe } from "@vanilla-extract/recipes";
 import { SPACING_UNIT, vars } from "../../theme.css";
 import { style } from "@vanilla-extract/css";
 
@@ -13,7 +14,7 @@ export const gallerySliderMedia = style({
   width: "100%",
   height: "100%",
   display: "block",
-  flexShrink: 0,
+  flexShrink: "0",
   flexGrow: "0",
   transition: "translate 0.3s ease-in-out",
   borderRadius: "4px",
@@ -54,42 +55,77 @@ export const gallerySliderPreview = style({
   },
 });
 
-export const gallerySliderMediaPreview = style({
-  cursor: "pointer",
-  width: "20%",
-  height: "20%",
-  display: "block",
-  flexShrink: 0,
-  flexGrow: 0,
-  opacity: 0.3,
-  transition: "translate 0.3s ease-in-out, opacity 0.2s ease",
-  borderRadius: "4px",
-  border: `solid 1px ${vars.color.border}`,
-  ":hover": {
-    opacity: "1",
+export const mediaPreviewButton = recipe({
+  base: {
+    cursor: "pointer",
+    width: "20%",
+    height: "20%",
+    display: "block",
+    flexShrink: "0",
+    flexGrow: "0",
+    opacity: "0.3",
+    transition: "translate 0.3s ease-in-out, opacity 0.2s ease",
+    borderRadius: "4px",
+    border: `solid 1px ${vars.color.border}`,
+    ":hover": {
+      opacity: "0.8",
+    },
+  },
+  variants: {
+    active: {
+      true: {
+        opacity: "1",
+      },
+    },
   },
 });
 
-export const gallerySliderMediaPreviewActive = style({
-  opacity: 1,
+export const mediaPreview = style({
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  flex: "1",
 });
 
-export const gallerySliderButton = style({
-  all: "unset",
-  display: "block",
-  position: "absolute",
-  top: 0,
-  bottom: 0,
-  padding: "1rem",
-  cursor: "pointer",
-  transition: "background-color 100ms ease-in-out",
-  ":hover": {
-    backgroundColor: "rgb(0, 0, 0, 0.2)",
+export const gallerySliderButton = recipe({
+  base: {
+    position: "absolute",
+    alignSelf: "center",
+    cursor: "pointer",
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    transition: "all 0.2s ease-in-out",
+    borderRadius: "50%",
+    color: vars.color.muted,
+    width: "48px",
+    height: "48px",
+    ":hover": {
+      backgroundColor: "rgba(0, 0, 0, 0.6)",
+    },
+    ":active": {
+      transform: "scale(0.95)",
+    },
   },
-});
-
-export const gallerySliderIcons = style({
-  fill: vars.color.muted,
-  width: "2rem",
-  height: "2rem",
+  variants: {
+    direction: {
+      left: {
+        left: "0",
+        marginLeft: `${SPACING_UNIT}px`,
+        transform: `translateX(${-(48 + SPACING_UNIT)}px)`,
+      },
+      right: {
+        right: "0",
+        marginRight: `${SPACING_UNIT}px`,
+        transform: `translateX(${48 + SPACING_UNIT}px)`,
+      },
+    },
+    visible: {
+      true: {
+        transform: "translateX(0)",
+        opacity: "1",
+      },
+      false: {
+        opacity: "0",
+      },
+    },
+  },
 });
