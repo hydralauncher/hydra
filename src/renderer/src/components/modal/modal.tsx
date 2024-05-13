@@ -89,7 +89,9 @@ export function Modal({
     <Backdrop isClosing={isClosing}>
       <div
         className={styles.modal({ closing: isClosing })}
-        role="modal"
+        role="dialog"
+        aria-labelledby={title}
+        aria-describedby={description}
         ref={modalContentRef}
       >
         <div className={styles.modalHeader}>
