@@ -17,8 +17,8 @@ export class Aria2Service {
 
   private static startAria2cProcess(secret: string) {
     const aria2cPath = app.isPackaged
-    ? path.join(process.resourcesPath, "aria2c.exe")
-    : path.join(__dirname, "..", "..", "aria2c.exe")
+      ? path.join(process.resourcesPath, "aria2c.exe")
+      : path.join(__dirname, "..", "..", "aria2c.exe");
 
     this.aria2cProcess = cp.spawn(aria2cPath, [
       "--enable-rpc",
@@ -99,8 +99,8 @@ export class Aria2Download {
       size: parseInt(status.totalLength),
       downloadSpeed: parseInt(status.downloadSpeed),
       timeRemaining:
-        (parseInt(status.totalLength) -
-          parseInt(status.completedLength)) / parseInt(status.downloadSpeed),
+        (parseInt(status.totalLength) - parseInt(status.completedLength)) /
+        parseInt(status.downloadSpeed),
       status: status.status,
       folderName: status.dir,
       filePath: status.files[0].path,
@@ -110,6 +110,7 @@ export class Aria2Download {
   }
 
   async pause() {
+    this.stopPoll();
     await this.aria2.call("pause", this.id);
   }
 
@@ -118,13 +119,11 @@ export class Aria2Download {
   }
 
   async cancel() {
+    this.stopPoll();
     await this.aria2.call("remove", this.id);
   }
 
-  on(
-    event: "onPoll",
-    listener: (payload: Aria2DownloadStatus) => void
-  );
+  on(event: "onPoll", listener: (payload: Aria2DownloadStatus) => void);
   on(event: "onDownloadPause", listener: () => void);
   on(event: "onDownloadResume", listener: () => void);
   on(event: "onDownloadCancel", listener: () => void);
