@@ -124,20 +124,19 @@ export class TorrentDownloader extends Downloader {
           stdio: "inherit",
           windowsHide: true,
         });
-        return;
+      } else {
+        const scriptPath = path.join(
+          __dirname,
+          "..",
+          "..",
+          "torrent-client",
+          "main.py"
+        );
+
+        cp.spawn("python3", [scriptPath, ...commonArgs], {
+          stdio: "inherit",
+        });
       }
-
-      const scriptPath = path.join(
-        __dirname,
-        "..",
-        "..",
-        "torrent-client",
-        "main.py"
-      );
-
-      cp.spawn("python3", [scriptPath, ...commonArgs], {
-        stdio: "inherit",
-      });
 
       Promise.all([writePipe.createPipe(), readPipe.createPipe()]).then(
         async () => {
