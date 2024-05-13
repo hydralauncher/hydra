@@ -12,3 +12,4 @@ export { default as be } from "./be/translation.json";
 export { default as uk } from "./uk/translation.json";
 export { default as id } from "./id/translation.json";
 export { default as da } from "./da/translation.json";
+export { default as ar } from "./ar/translation.json";
