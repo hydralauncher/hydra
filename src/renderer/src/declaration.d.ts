@@ -6,6 +6,7 @@ import type {
   GameShop,
   HowLongToBeatCategory,
   ShopDetails,
+  Steam250Game,
   TorrentProgress,
   UserPreferences,
 } from "@types";
@@ -41,7 +42,7 @@ declare global {
       shop: GameShop,
       language: string
     ) => Promise<ShopDetails | null>;
-    getRandomGame: () => Promise<string>;
+    getRandomGame: () => Promise<Steam250Game>;
     getHowLongToBeat: (
       objectID: string,
       shop: GameShop,

@@ -3,11 +3,21 @@ import { average } from "color.js";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import type { Game, GameRepack, GameShop, ShopDetails } from "@types";
+import {
+  Steam250Game,
+  type Game,
+  type GameRepack,
+  type GameShop,
+  type ShopDetails,
+} from "@types";
 
 import { Button } from "@renderer/components";
 import { setHeaderTitle } from "@renderer/features";
-import { getSteamLanguage, steamUrlBuilder } from "@renderer/helpers";
+import {
+  buildGameDetailsPath,
+  getSteamLanguage,
+  steamUrlBuilder,
+} from "@renderer/helpers";
 import { useAppDispatch, useDownload } from "@renderer/hooks";
 
 import starsAnimation from "@renderer/assets/lottie/stars.json";
@@ -35,7 +45,7 @@ export function GameDetails() {
   const { objectID, shop } = useParams();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingRandomGame, setIsLoadingRandomGame] = useState(false);
+  const [randomGame, setRandomGame] = useState<Steam250Game | null>(null);
   const [color, setColor] = useState({ dark: "", light: "" });
   const [gameDetails, setGameDetails] = useState<ShopDetails | null>(null);
   const [repacks, setRepacks] = useState<GameRepack[]>([]);
@@ -87,6 +97,10 @@ export function GameDetails() {
     setIsGamePlaying(false);
     dispatch(setHeaderTitle(title));
 
+    window.electron.getRandomGame().then((randomGame) => {
+      setRandomGame(randomGame);
+    });
+
     Promise.all([
       window.electron.getGameShopDetails(
         objectID!,
@@ -98,7 +112,6 @@ export function GameDetails() {
       .then(([appDetails, repacks]) => {
         if (appDetails) setGameDetails(appDetails);
         setRepacks(repacks);
-        setIsLoadingRandomGame(false);
       })
       .finally(() => {
         setIsLoading(false);
@@ -163,15 +176,15 @@ export function GameDetails() {
     });
   };
 
-  const handleRandomizerClick = async () => {
-    setIsLoadingRandomGame(true);
-    const randomGameObjectID = await window.electron.getRandomGame();
-
-    const searchParams = new URLSearchParams({
-      fromRandomizer: "1",
-    });
-
-    navigate(`/game/steam/${randomGameObjectID}?${searchParams.toString()}`);
+  const handleRandomizerClick = () => {
+    if (randomGame) {
+      navigate(
+        buildGameDetailsPath(
+          { ...randomGame, shop: "steam" },
+          { fromRandomizer: "1" }
+        )
+      );
+    }
   };
 
   return (
@@ -254,7 +267,7 @@ export function GameDetails() {
           className={styles.randomizerButton}
           onClick={handleRandomizerClick}
           theme="outline"
-          disabled={isLoadingRandomGame}
+          disabled={!randomGame}
         >
           <div style={{ width: 16, height: 16, position: "relative" }}>
             <Lottie
