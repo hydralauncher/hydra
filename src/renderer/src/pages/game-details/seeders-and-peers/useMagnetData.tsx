@@ -27,7 +27,7 @@ export function useMagnetData(magnet: string) {
       return;
     }
 
-    window.electron.getMagnetData(magnet).then(
+    window.electron.getMagnetHealth(magnet).then(
       (result) => {
         if (result) {
           setMagnetData(result);
