@@ -14,20 +14,17 @@ export const supportMultiLanguage = (title: string) => {
   return multiFollowedByDigitsRegex.test(title.toLowerCase());
 };
 
-// const languageCode = 'en';
-// const displayNames = new Intl.DisplayNames([languageCode], { type: 'language' });
-// const englishLanguage = displayNames.of(languageCode);
-
-// console.log(englishLanguage); // Output: "English"
-
-export const getRepackLanguageBasedOnRepacker = (repacker: string) => {
+export const getRepackLanguageBasedOnRepacker = (
+  repacker: string,
+  userLanguage: string
+) => {
   const languageCodes = {
     xatab: "ru",
   };
 
-  const languageCode = languageCodes[repacker.toLowerCase()] || "en";
+  const languageCode = languageCodes[repacker.toLowerCase()] || userLanguage;
 
-  const displayNames = new Intl.DisplayNames([languageCode], {
+  const displayNames = new Intl.DisplayNames([userLanguage.slice(0, 2)], {
     type: "language",
   });
 
