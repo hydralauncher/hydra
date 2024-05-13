@@ -7,7 +7,7 @@ import * as styles from "./gallery-slider.css";
 import { useTranslation } from "react-i18next";
 
 export interface GallerySliderProps {
-  gameDetails: ShopDetails | null;
+  gameDetails: ShopDetails;
 }
 
 export function GallerySlider({ gameDetails }: GallerySliderProps) {
@@ -20,14 +20,12 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
   const hasMovies = gameDetails && gameDetails.movies?.length;
 
   const [mediaCount] = useState<number>(() => {
-    if (gameDetails) {
-      if (gameDetails.screenshots && gameDetails.movies) {
-        return gameDetails.screenshots.length + gameDetails.movies.length;
-      } else if (gameDetails.movies) {
-        return gameDetails.movies.length;
-      } else if (gameDetails.screenshots) {
-        return gameDetails.screenshots.length;
-      }
+    if (gameDetails.screenshots && gameDetails.movies) {
+      return gameDetails.screenshots.length + gameDetails.movies.length;
+    } else if (gameDetails.movies) {
+      return gameDetails.movies.length;
+    } else if (gameDetails.screenshots) {
+      return gameDetails.screenshots.length;
     }
 
     return 0;
