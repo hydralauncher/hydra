@@ -14,4 +14,5 @@ export { default as zh } from "./zh/translation.json";
 export { default as id } from "./id/translation.json";
 export { default as ko } from "./ko/translation.json";
 export { default as da } from "./da/translation.json";
+export { default as ar } from "./ar/translation.json";
 export { default as fa } from "./fa/translation.json";
