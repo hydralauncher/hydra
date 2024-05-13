@@ -3,18 +3,21 @@ import { average } from "color.js";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import type {
-  Game,
-  GameRepack,
-  GameShop,
-  HowLongToBeatCategory,
-  ShopDetails,
-  SteamAppDetails,
+import {
+  Steam250Game,
+  type Game,
+  type GameRepack,
+  type GameShop,
+  type ShopDetails,
 } from "@types";
 
 import { Button } from "@renderer/components";
 import { setHeaderTitle } from "@renderer/features";
-import { getSteamLanguage, steamUrlBuilder } from "@renderer/helpers";
+import {
+  buildGameDetailsPath,
+  getSteamLanguage,
+  steamUrlBuilder,
+} from "@renderer/helpers";
 import { useAppDispatch, useDownload } from "@renderer/hooks";
 
 import starsAnimation from "@renderer/assets/lottie/stars.json";
@@ -26,7 +29,6 @@ import { DescriptionHeader } from "./description-header";
 import { GameDetailsSkeleton } from "./game-details-skeleton";
 import * as styles from "./game-details.css";
 import { HeroPanel } from "./hero";
-import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { RepacksModal } from "./repacks-modal";
 
 import { vars } from "../../theme.css";
@@ -37,18 +39,16 @@ import {
   OnlineFixInstallationGuide,
 } from "./installation-guides";
 import { GallerySlider } from "./gallery-slider";
+import { Sidebar } from "./sidebar/sidebar";
 
 export function GameDetails() {
   const { objectID, shop } = useParams();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingRandomGame, setIsLoadingRandomGame] = useState(false);
+  const [randomGame, setRandomGame] = useState<Steam250Game | null>(null);
   const [color, setColor] = useState({ dark: "", light: "" });
   const [gameDetails, setGameDetails] = useState<ShopDetails | null>(null);
-  const [howLongToBeat, setHowLongToBeat] = useState<{
-    isLoading: boolean;
-    data: HowLongToBeatCategory[] | null;
-  }>({ isLoading: true, data: null });
+  const [repacks, setRepacks] = useState<GameRepack[]>([]);
 
   const [game, setGame] = useState<Game | null>(null);
   const [isGamePlaying, setIsGamePlaying] = useState(false);
@@ -56,11 +56,11 @@ export function GameDetails() {
     null | "onlinefix" | "DODI"
   >(null);
 
-  const [activeRequirement, setActiveRequirement] =
-    useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
-
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  const fromRandomizer = searchParams.get("fromRandomizer");
+  const title = searchParams.get("title")!;
 
   const { t, i18n } = useTranslation("game_details");
 
@@ -90,37 +90,35 @@ export function GameDetails() {
   useEffect(() => {
     getGame();
   }, [getGame, gameDownloading?.id]);
+
   useEffect(() => {
     setGame(null);
     setIsLoading(true);
     setIsGamePlaying(false);
-    dispatch(setHeaderTitle(""));
+    dispatch(setHeaderTitle(title));
 
-    window.electron
-      .getGameShopDetails(objectID!, "steam", getSteamLanguage(i18n.language))
-      .then((result) => {
-        if (!result) {
-          navigate(-1);
-          return;
-        }
+    window.electron.getRandomGame().then((randomGame) => {
+      setRandomGame(randomGame);
+    });
 
-        window.electron
-          .getHowLongToBeat(objectID!, "steam", result.name)
-          .then((data) => {
-            setHowLongToBeat({ isLoading: false, data });
-          });
-
-        setGameDetails(result);
-        dispatch(setHeaderTitle(result.name));
-        setIsLoadingRandomGame(false);
+    Promise.all([
+      window.electron.getGameShopDetails(
+        objectID!,
+        "steam",
+        getSteamLanguage(i18n.language)
+      ),
+      window.electron.searchGameRepacks(title),
+    ])
+      .then(([appDetails, repacks]) => {
+        if (appDetails) setGameDetails(appDetails);
+        setRepacks(repacks);
       })
       .finally(() => {
         setIsLoading(false);
       });
 
     getGame();
-    setHowLongToBeat({ isLoading: true, data: null });
-  }, [getGame, dispatch, navigate, objectID, i18n.language]);
+  }, [getGame, dispatch, navigate, title, objectID, i18n.language]);
 
   const isGameDownloading = gameDownloading?.id === game?.id;
 
@@ -154,55 +152,49 @@ export function GameDetails() {
     repack: GameRepack,
     downloadPath: string
   ) => {
-    if (gameDetails) {
-      return startDownload(
-        repack.id,
-        gameDetails.objectID,
-        gameDetails.name,
-        shop as GameShop,
-        downloadPath
-      ).then(() => {
-        getGame();
-        setShowRepacksModal(false);
+    return startDownload(
+      repack.id,
+      objectID!,
+      title,
+      shop as GameShop,
+      downloadPath
+    ).then(() => {
+      getGame();
+      setShowRepacksModal(false);
 
-        if (
-          repack.repacker === "onlinefix" &&
-          !window.localStorage.getItem(DONT_SHOW_ONLINE_FIX_INSTRUCTIONS_KEY)
-        ) {
-          setShowInstructionsModal("onlinefix");
-        } else if (
-          repack.repacker === "DODI" &&
-          !window.localStorage.getItem(DONT_SHOW_DODI_INSTRUCTIONS_KEY)
-        ) {
-          setShowInstructionsModal("DODI");
-        }
-      });
+      if (
+        repack.repacker === "onlinefix" &&
+        !window.localStorage.getItem(DONT_SHOW_ONLINE_FIX_INSTRUCTIONS_KEY)
+      ) {
+        setShowInstructionsModal("onlinefix");
+      } else if (
+        repack.repacker === "DODI" &&
+        !window.localStorage.getItem(DONT_SHOW_DODI_INSTRUCTIONS_KEY)
+      ) {
+        setShowInstructionsModal("DODI");
+      }
+    });
+  };
+
+  const handleRandomizerClick = () => {
+    if (randomGame) {
+      navigate(
+        buildGameDetailsPath(
+          { ...randomGame, shop: "steam" },
+          { fromRandomizer: "1" }
+        )
+      );
     }
   };
 
-  const handleRandomizerClick = async () => {
-    setIsLoadingRandomGame(true);
-    const randomGameObjectID = await window.electron.getRandomGame();
-
-    const searchParams = new URLSearchParams({
-      fromRandomizer: "1",
-    });
-
-    navigate(`/game/steam/${randomGameObjectID}?${searchParams.toString()}`);
-  };
-
-  const fromRandomizer = searchParams.get("fromRandomizer");
-
   return (
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
-      {gameDetails && (
-        <RepacksModal
-          visible={showRepacksModal}
-          gameDetails={gameDetails}
-          startDownload={handleStartDownload}
-          onClose={() => setShowRepacksModal(false)}
-        />
-      )}
+      <RepacksModal
+        visible={showRepacksModal}
+        repacks={repacks}
+        startDownload={handleStartDownload}
+        onClose={() => setShowRepacksModal(false)}
+      />
 
       <OnlineFixInstallationGuide
         visible={showInstructionsModal === "onlinefix"}
@@ -240,7 +232,9 @@ export function GameDetails() {
           <HeroPanel
             game={game}
             color={color.dark}
-            gameDetails={gameDetails}
+            objectID={objectID!}
+            title={title}
+            repacks={repacks}
             openRepacksModal={() => setShowRepacksModal(true)}
             getGame={getGame}
             isGamePlaying={isGamePlaying}
@@ -248,63 +242,22 @@ export function GameDetails() {
 
           <div className={styles.descriptionContainer}>
             <div className={styles.descriptionContent}>
-              <DescriptionHeader gameDetails={gameDetails} />
-
-              <GallerySlider gameDetails={gameDetails} />
+              {gameDetails && <DescriptionHeader gameDetails={gameDetails} />}
+              {gameDetails && <GallerySlider gameDetails={gameDetails} />}
 
               <div
                 dangerouslySetInnerHTML={{
-                  __html: gameDetails?.about_the_game ?? "",
+                  __html: gameDetails?.about_the_game ?? t("no_shop_details"),
                 }}
                 className={styles.description}
               />
             </div>
 
-            <div className={styles.contentSidebar}>
-              <HowLongToBeatSection
-                howLongToBeatData={howLongToBeat.data}
-                isLoading={howLongToBeat.isLoading}
-              />
-
-              <div
-                className={styles.contentSidebarTitle}
-                style={{ border: "none" }}
-              >
-                <h3>{t("requirements")}</h3>
-              </div>
-
-              <div className={styles.requirementButtonContainer}>
-                <Button
-                  className={styles.requirementButton}
-                  onClick={() => setActiveRequirement("minimum")}
-                  theme={
-                    activeRequirement === "minimum" ? "primary" : "outline"
-                  }
-                >
-                  {t("minimum")}
-                </Button>
-                <Button
-                  className={styles.requirementButton}
-                  onClick={() => setActiveRequirement("recommended")}
-                  theme={
-                    activeRequirement === "recommended" ? "primary" : "outline"
-                  }
-                >
-                  {t("recommended")}
-                </Button>
-              </div>
-
-              <div
-                className={styles.requirementsDetails}
-                dangerouslySetInnerHTML={{
-                  __html:
-                    gameDetails?.pc_requirements?.[activeRequirement] ??
-                    t(`no_${activeRequirement}_requirements`, {
-                      title: gameDetails?.name,
-                    }),
-                }}
-              />
-            </div>
+            <Sidebar
+              objectID={objectID!}
+              title={title}
+              gameDetails={gameDetails}
+            />
           </div>
         </section>
       )}
@@ -314,7 +267,7 @@ export function GameDetails() {
           className={styles.randomizerButton}
           onClick={handleRandomizerClick}
           theme="outline"
-          disabled={isLoadingRandomGame}
+          disabled={!randomGame}
         >
           <div style={{ width: 16, height: 16, position: "relative" }}>
             <Lottie
