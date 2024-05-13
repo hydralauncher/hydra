@@ -55,7 +55,7 @@ export const gallerySliderPreview = style({
   },
 });
 
-export const gallerySliderMediaPreview = recipe({
+export const mediaPreviewButton = recipe({
   base: {
     cursor: "pointer",
     width: "20%",
@@ -78,6 +78,13 @@ export const gallerySliderMediaPreview = recipe({
       },
     },
   },
+});
+
+export const mediaPreview = style({
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  flex: "1",
 });
 
 export const gallerySliderButton = recipe({

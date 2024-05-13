@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRightIcon, ChevronLeftIcon } from "@primer/octicons-react";
 
-import type { ShopDetails, SteamMovies, SteamScreenshot } from "@types";
+import type { ShopDetails } from "@types";
 
 import * as styles from "./gallery-slider.css";
 import { useTranslation } from "react-i18next";
@@ -13,7 +13,6 @@ export interface GallerySliderProps {
 export function GallerySlider({ gameDetails }: GallerySliderProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const mediaContainerRef = useRef<HTMLDivElement>(null);
-  const currentVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const { t } = useTranslation("game_details");
 
@@ -58,15 +57,14 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
   }, [gameDetails]);
 
   useEffect(() => {
-    if (currentVideoRef.current) {
-      currentVideoRef.current.pause();
-    }
-
     if (hasMovies && mediaContainerRef.current) {
       mediaContainerRef.current.childNodes.forEach((node, index) => {
-        if (index == mediaIndex && node instanceof HTMLVideoElement) {
-          node.play();
-          currentVideoRef.current = node;
+        if (node instanceof HTMLVideoElement) {
+          if (index == mediaIndex) {
+            node.play();
+          } else {
+            node.pause();
+          }
         }
       });
     }
@@ -82,6 +80,25 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
     }
   }, [gameDetails, mediaIndex, mediaCount]);
 
+  const previews = useMemo(() => {
+    const screenshotPreviews =
+      gameDetails?.screenshots.map(({ id, path_thumbnail }) => ({
+        id,
+        thumbnail: path_thumbnail,
+      })) ?? [];
+
+    if (gameDetails?.movies) {
+      const moviePreviews = gameDetails.movies.map(({ id, thumbnail }) => ({
+        id,
+        thumbnail,
+      }));
+
+      return [...moviePreviews, ...screenshotPreviews];
+    }
+
+    return screenshotPreviews;
+  }, [gameDetails]);
+
   return (
     <>
       {hasScreenshots && (
@@ -93,7 +110,7 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
             ref={mediaContainerRef}
           >
             {gameDetails.movies &&
-              gameDetails.movies.map((video: SteamMovies) => (
+              gameDetails.movies.map((video) => (
                 <video
                   key={video.id}
                   controls
@@ -107,19 +124,17 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
                   <source src={video.mp4.max.replace("http", "https")} />
                 </video>
               ))}
-            {gameDetails.screenshots &&
-              gameDetails.screenshots.map(
-                (image: SteamScreenshot, i: number) => (
-                  <img
-                    key={"image-" + i}
-                    loading="lazy"
-                    className={styles.gallerySliderMedia}
-                    src={image.path_full}
-                    style={{ translate: `${-100 * mediaIndex}%` }}
-                    tabIndex={-1}
-                  />
-                )
-              )}
+
+            {hasScreenshots &&
+              gameDetails.screenshots.map((image, i) => (
+                <img
+                  key={image.id}
+                  className={styles.gallerySliderMedia}
+                  src={image.path_full}
+                  style={{ translate: `${-100 * mediaIndex}%` }}
+                  alt={t("screenshot", { number: i + 1 })}
+                />
+              ))}
 
             <button
               onClick={showPrevImage}
@@ -149,39 +164,23 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
           </div>
 
           <div className={styles.gallerySliderPreview} ref={scrollContainerRef}>
-            {hasMovies &&
-              gameDetails.movies?.map((video: SteamMovies, i: number) => (
+            {previews.map((media, i) => (
+              <button
+                key={media.id}
+                type="button"
+                className={styles.mediaPreviewButton({
+                  active: mediaIndex === i,
+                })}
+                onClick={() => setMediaIndex(i)}
+                aria-label={t("open_screenshot", { number: i + 1 })}
+              >
                 <img
-                  key={video.id}
-                  loading="lazy"
-                  onClick={() => setMediaIndex(i)}
-                  src={video.thumbnail}
-                  className={styles.gallerySliderMediaPreview({
-                    active: mediaIndex === i,
-                  })}
+                  src={media.thumbnail}
+                  className={styles.mediaPreview}
+                  alt={t("screenshot", { number: i + 1 })}
                 />
-              ))}
-            {gameDetails.screenshots &&
-              gameDetails.screenshots.map(
-                (image: SteamScreenshot, i: number) => (
-                  <img
-                    key={"image-thumb-" + i}
-                    loading="lazy"
-                    onClick={() =>
-                      setMediaIndex(
-                        i + (gameDetails.movies ? gameDetails.movies.length : 0)
-                      )
-                    }
-                    className={styles.gallerySliderMediaPreview({
-                      active:
-                        mediaIndex ===
-                        i +
-                          (gameDetails.movies ? gameDetails.movies.length : 0),
-                    })}
-                    src={image.path_full}
-                  />
-                )
-              )}
+              </button>
+            ))}
           </div>
         </div>
       )}

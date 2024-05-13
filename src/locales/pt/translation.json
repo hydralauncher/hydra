@@ -94,7 +94,9 @@
     "copied_to_clipboard": "Copiado",
     "got_it": "Entendi",
     "previous_screenshot": "Captura de tela anterior",
-    "next_screenshot": "Próxima captura de tela"
+    "next_screenshot": "Próxima captura de tela",
+    "screenshot": "Captura de tela {{number}}",
+    "open_screenshot": "Ver captura de tela {{number}}"
   },
   "activation": {
     "title": "Ativação",
