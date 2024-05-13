@@ -33,7 +33,7 @@ export function TextField({
 
   return (
     <div className={styles.textFieldContainer} {...containerProps}>
-      {label && <label tabIndex={0}>{label}</label>}
+      {label && <label htmlFor={id}>{label}</label>}
 
       <div
         className={styles.textField({ focused: isFocused, theme })}
@@ -49,7 +49,7 @@ export function TextField({
         />
       </div>
 
-      {hint && <small tabIndex={0}>{hint}</small>}
+      {hint && <small>{hint}</small>}
     </div>
   );
 }
