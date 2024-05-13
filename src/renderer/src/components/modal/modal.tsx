@@ -24,6 +24,7 @@ export function Modal({
 }: ModalProps) {
   const [isClosing, setIsClosing] = useState(false);
   const modalContentRef = useRef<HTMLDivElement | null>(null);
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
 
   const { t } = useTranslation("modal");
 
@@ -52,6 +53,8 @@ export function Modal({
 
   useEffect(() => {
     if (visible) {
+      if (titleRef.current) titleRef.current.focus();
+
       const onKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Escape" && isTopMostModal()) {
           handleCloseClick();
@@ -94,8 +97,10 @@ export function Modal({
       >
         <div className={styles.modalHeader}>
           <div style={{ display: "flex", gap: 4, flexDirection: "column" }}>
-            <h3>{title}</h3>
-            {description && <p>{description}</p>}
+            <h3 ref={titleRef} tabIndex={0}>
+              {title}
+            </h3>
+            {description && <p tabIndex={0}>{description}</p>}
           </div>
 
           <button
