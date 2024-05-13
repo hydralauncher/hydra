@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, Modal, TextField } from "@renderer/components";
-import type { GameRepack, ShopDetails } from "@types";
+import type { GameRepack } from "@types";
 
 import * as styles from "./repacks-modal.css";
 
@@ -13,14 +13,14 @@ import { SelectFolderModal } from "./select-folder-modal";
 
 export interface RepacksModalProps {
   visible: boolean;
-  gameDetails: ShopDetails;
+  repacks: GameRepack[];
   startDownload: (repack: GameRepack, downloadPath: string) => Promise<void>;
   onClose: () => void;
 }
 
 export function RepacksModal({
   visible,
-  gameDetails,
+  repacks,
   startDownload,
   onClose,
 }: RepacksModalProps) {
@@ -35,8 +35,8 @@ export function RepacksModal({
   const { t } = useTranslation("game_details");
 
   useEffect(() => {
-    setFilteredRepacks(gameDetails.repacks);
-  }, [gameDetails.repacks, visible]);
+    setFilteredRepacks(repacks);
+  }, [repacks, visible]);
 
   const handleRepackClick = (repack: GameRepack) => {
     setRepack(repack);
@@ -47,7 +47,7 @@ export function RepacksModal({
     const term = event.target.value.toLocaleLowerCase();
 
     setFilteredRepacks(
-      gameDetails.repacks.filter((repack) => {
+      repacks.filter((repack) => {
         const lowerCaseTitle = repack.title.toLowerCase();
         const lowerCaseRepacker = repack.repacker.toLowerCase();
 
@@ -63,14 +63,13 @@ export function RepacksModal({
       <SelectFolderModal
         visible={showSelectFolderModal}
         onClose={() => setShowSelectFolderModal(false)}
-        gameDetails={gameDetails}
         startDownload={startDownload}
         repack={repack}
       />
 
       <Modal
         visible={visible}
-        title={`${gameDetails.name} Repacks`}
+        title={t("download_options")}
         description={t("repacks_modal_description")}
         onClose={onClose}
       >

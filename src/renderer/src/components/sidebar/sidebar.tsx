@@ -15,6 +15,7 @@ import XLogo from "@renderer/assets/x-icon.svg?react";
 
 import * as styles from "./sidebar.css";
 import { GameStatus, GameStatusHelper } from "@shared";
+import { buildGameDetailsPath } from "@renderer/helpers";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -209,9 +210,7 @@ export function Sidebar() {
                   type="button"
                   className={styles.menuItemButton}
                   onClick={() =>
-                    handleSidebarItemClick(
-                      `/game/${game.shop}/${game.objectID}`
-                    )
+                    handleSidebarItemClick(buildGameDetailsPath(game))
                   }
                 >
                   <img

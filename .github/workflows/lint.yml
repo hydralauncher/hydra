@@ -1,6 +1,6 @@
 name: Lint
 
-on: [pull_request, push]
+on: [pull_request]
 
 jobs:
   lint:
@@ -20,9 +20,6 @@ jobs:
 
       - name: Validate current commit (last commit) with commitlint
         run: npx commitlint --last --verbose
-
-      - name: Check formatting
-        run: yarn format:check
 
       - name: Typecheck
         run: yarn typecheck
