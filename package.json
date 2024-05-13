@@ -53,7 +53,6 @@
     "jsdom": "^24.0.0",
     "lodash-es": "^4.17.21",
     "lottie-react": "^2.4.0",
-    "lucide-react": "^0.378.0",
     "node-7z-archive": "^1.1.7",
     "parse-torrent": "^11.0.16",
     "ps-list": "^8.1.1",

@@ -1,10 +1,11 @@
 import { GameRepack } from "@types";
-import { Sprout, Users } from "lucide-react";
+import UsersIcon from "@renderer/assets/users-icon.svg?react";
+import SproutIcon from "@renderer/assets/sprout-icon.svg?react";
 
 import { useMagnetHealth } from "./useMagnetHealth";
 import { Tooltip } from "@renderer/components/tooltip/tooltip";
 import { SeedersAndPeersSkeleton } from "./seeders-and-peers-skeleton";
-import { vars } from "@renderer/theme.css";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 
 interface SeedersAndPeersProps {
   repack: GameRepack;
@@ -29,21 +30,21 @@ export function SeedersAndPeers({ repack }: Readonly<SeedersAndPeersProps>) {
       }}
     >
       <Tooltip tooltipText="Seeders">
-        <Sprout size={16} stroke={vars.color.bodyText} />
+        <SproutIcon stroke={vars.color.bodyText} />
         <span
           style={{
-            marginLeft: "7px",
-            marginRight: "8px",
+            marginLeft: `${SPACING_UNIT - 5}px`,
+            marginRight: `${SPACING_UNIT}px`
           }}
         >
           {magnetData?.seeders}
         </span>
       </Tooltip>
       <Tooltip tooltipText="Peers">
-        <Users size={16} stroke={vars.color.bodyText} />
+        <UsersIcon stroke={vars.color.bodyText} />
         <span
           style={{
-            marginLeft: "7px",
+            marginLeft: `${SPACING_UNIT - 5}px`,
           }}
         >
           {magnetData?.peers}
