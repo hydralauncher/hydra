@@ -52,6 +52,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getHowLongToBeat", objectID, shop, title),
   getGames: (take?: number, prevCursor?: number) =>
     ipcRenderer.invoke("getGames", take, prevCursor),
+  searchGameRepacks: (query: string) =>
+    ipcRenderer.invoke("searchGameRepacks", query),
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
