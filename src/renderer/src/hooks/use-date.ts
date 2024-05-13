@@ -1,5 +1,6 @@
 import { formatDistance } from "date-fns";
 import type { FormatDistanceOptions } from "date-fns";
+
 import {
   ptBR,
   enUS,
@@ -12,7 +13,9 @@ import {
   it,
   be,
   zhCN,
+  da
 } from "date-fns/locale";
+
 import { useTranslation } from "react-i18next";
 
 export function useDate() {
@@ -31,6 +34,7 @@ export function useDate() {
     if (language.startsWith("it")) return it;
     if (language.startsWith("be")) return be;
     if (language.startsWith("zh")) return zhCN;
+    if (language.startsWith("da")) return da;
 
     return enUS;
   };
