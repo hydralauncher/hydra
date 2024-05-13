@@ -6,7 +6,7 @@ export const hero = style({
   height: "280px",
   minHeight: "280px",
   maxHeight: "280px",
-  borderRadius: "8px",
+  borderRadius: "4px",
   color: "#DADBE1",
   overflow: "hidden",
   boxShadow: "0px 0px 15px 0px #000000",
@@ -45,6 +45,7 @@ export const description = style({
   textAlign: "left",
   fontFamily: "'Fira Sans', sans-serif",
   lineHeight: "20px",
+  marginTop: `${SPACING_UNIT * 2}px`,
 });
 
 export const content = style({

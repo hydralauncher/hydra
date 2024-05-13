@@ -1,10 +1,7 @@
 import axios from "axios";
 import { JSDOM } from "jsdom";
 
-export interface Steam250Game {
-  title: string;
-  objectID: string;
-}
+import type { Steam250Game } from "@types";
 
 export const requestSteam250 = async (path: string) => {
   return axios

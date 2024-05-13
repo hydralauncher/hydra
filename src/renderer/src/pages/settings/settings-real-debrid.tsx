@@ -57,7 +57,7 @@ export function SettingsRealDebrid({
 
       {form.useRealDebrid && (
         <TextField
-          label={t("real_debrid_api_token_description")}
+          label={t("real_debrid_api_token_label")}
           value={form.realDebridApiToken ?? ""}
           type="password"
           onChange={(event) =>
