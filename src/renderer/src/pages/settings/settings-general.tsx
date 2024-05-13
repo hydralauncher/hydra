@@ -45,6 +45,11 @@ export function SettingsGeneral({
 
   const { t } = useTranslation("settings");
 
+  const handleChange = (values: Partial<typeof form>) => {
+    setForm((prev) => ({ ...prev, ...values }));
+    updateUserPreferences(values);
+  };
+
   const handleChooseDownloadsPath = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
       defaultPath: form.downloadsPath,
@@ -53,13 +58,9 @@ export function SettingsGeneral({
 
     if (filePaths && filePaths.length > 0) {
       const path = filePaths[0];
+      handleChange({ downloadsPath: path });
       updateUserPreferences({ downloadsPath: path });
     }
-  };
-
-  const handleChange = (values: Partial<typeof form>) => {
-    setForm((prev) => ({ ...prev, ...values }));
-    updateUserPreferences(values);
   };
 
   return (
