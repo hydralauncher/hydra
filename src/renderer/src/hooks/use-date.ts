@@ -14,7 +14,6 @@ import {
   zhCN,
   da,
 } from "date-fns/locale";
-
 import { useTranslation } from "react-i18next";
 
 export function useDate() {
