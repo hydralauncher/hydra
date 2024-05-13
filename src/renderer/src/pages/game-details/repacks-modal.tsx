@@ -85,7 +85,9 @@ export function RepacksModal({
               onClick={() => handleRepackClick(repack)}
               className={styles.repackButton}
             >
-              <p style={{ color: "#DADBE1" }}>{repack.title}</p>
+              <p style={{ color: "#DADBE1", wordBreak: "break-word" }}>
+                {repack.title}
+              </p>
               <p style={{ fontSize: "12px" }}>
                 {repack.fileSize} - {repackersFriendlyNames[repack.repacker]} -{" "}
                 {repack.uploadDate
