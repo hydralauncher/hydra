@@ -133,3 +133,8 @@ export interface HowLongToBeatCategory {
   duration: string;
   accuracy: string;
 }
+
+export interface Steam250Game {
+  title: string;
+  objectID: string;
+}

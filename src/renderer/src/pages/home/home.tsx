@@ -1,11 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
 import { Button, GameCard, Hero } from "@renderer/components";
-import type { CatalogueCategory, CatalogueEntry } from "@types";
+import {
+  Steam250Game,
+  type CatalogueCategory,
+  type CatalogueEntry,
+} from "@types";
 
 import starsAnimation from "@renderer/assets/lottie/stars.json";
 
@@ -21,8 +25,7 @@ export function Home() {
   const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingRandomGame, setIsLoadingRandomGame] = useState(false);
-  const randomGameObjectID = useRef<string | null>(null);
+  const [randomGame, setRandomGame] = useState<Steam250Game | null>(null);
 
   const [searchParams] = useSearchParams();
 
@@ -57,24 +60,22 @@ export function Home() {
   };
 
   const getRandomGame = useCallback(() => {
-    setIsLoadingRandomGame(true);
-
-    window.electron.getRandomGame().then((objectID) => {
-      if (objectID) {
-        randomGameObjectID.current = objectID;
-        setIsLoadingRandomGame(false);
-      }
+    window.electron.getRandomGame().then((game) => {
+      if (game) setRandomGame(game);
     });
   }, []);
 
   const handleRandomizerClick = () => {
-    const searchParams = new URLSearchParams({
-      fromRandomizer: "1",
-    });
-
-    navigate(
-      `/game/steam/${randomGameObjectID.current}?${searchParams.toString()}`
-    );
+    if (randomGame) {
+      navigate(
+        buildGameDetailsPath(
+          { ...randomGame, shop: "steam" },
+          {
+            fromRandomizer: "1",
+          }
+        )
+      );
+    }
   };
 
   useEffect(() => {
@@ -106,7 +107,7 @@ export function Home() {
           <Button
             onClick={handleRandomizerClick}
             theme="outline"
-            disabled={isLoadingRandomGame}
+            disabled={!randomGame}
           >
             <div style={{ width: 16, height: 16, position: "relative" }}>
               <Lottie
