@@ -19,5 +19,11 @@ module.exports = {
       },
     ],
     "@typescript-eslint/no-explicit-any": "warn",
+    "prettier/prettier": [
+      "error",
+      {
+        endOfLine: "auto",
+      },
+    ],
   },
 };
