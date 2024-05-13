@@ -11,7 +11,7 @@ import * as styles from "./game-details.css";
 const OPEN_HYDRA_URL = "https://open.hydralauncher.site";
 
 export interface DescriptionHeaderProps {
-  gameDetails: ShopDetails | null;
+  gameDetails: ShopDetails;
 }
 
 export function DescriptionHeader({ gameDetails }: DescriptionHeaderProps) {
@@ -64,7 +64,7 @@ export function DescriptionHeader({ gameDetails }: DescriptionHeaderProps) {
             date: gameDetails?.release_date.date,
           })}
         </p>
-        <p>{t("publisher", { publisher: gameDetails?.publishers[0] })}</p>
+        <p>{t("publisher", { publisher: gameDetails.publishers[0] })}</p>
       </section>
 
       <Button

@@ -3,7 +3,7 @@ import { NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
 
 import { Button } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
-import type { Game, ShopDetails } from "@types";
+import type { Game, GameRepack } from "@types";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -11,9 +11,11 @@ import * as styles from "./hero-panel-actions.css";
 
 export interface HeroPanelActionsProps {
   game: Game | null;
-  gameDetails: ShopDetails | null;
+  repacks: GameRepack[];
   isGamePlaying: boolean;
   isGameDownloading: boolean;
+  objectID: string;
+  title: string;
   openRepacksModal: () => void;
   openBinaryNotFoundModal: () => void;
   getGame: () => void;
@@ -21,9 +23,11 @@ export interface HeroPanelActionsProps {
 
 export function HeroPanelActions({
   game,
-  gameDetails,
   isGamePlaying,
   isGameDownloading,
+  repacks,
+  objectID,
+  title,
   openRepacksModal,
   openBinaryNotFoundModal,
   getGame,
@@ -69,12 +73,12 @@ export function HeroPanelActions({
     try {
       if (game) {
         await removeGameFromLibrary(game.id);
-      } else if (gameDetails) {
+      } else {
         const gameExecutablePath = await selectGameExecutable();
 
         await window.electron.addGameToLibrary(
-          gameDetails.objectID,
-          gameDetails.name,
+          objectID,
+          title,
           "steam",
           gameExecutablePath
         );
@@ -123,7 +127,7 @@ export function HeroPanelActions({
   const toggleGameOnLibraryButton = (
     <Button
       theme="outline"
-      disabled={!gameDetails || toggleLibraryGameDisabled}
+      disabled={toggleLibraryGameDisabled}
       onClick={toggleGameOnLibrary}
       className={styles.heroPanelAction}
     >
@@ -239,7 +243,7 @@ export function HeroPanelActions({
     );
   }
 
-  if (gameDetails && gameDetails.repacks.length) {
+  if (repacks.length) {
     return (
       <>
         {toggleGameOnLibraryButton}
