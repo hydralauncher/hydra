@@ -12,8 +12,7 @@ export class RealDebridClient {
   private static instance: AxiosInstance;
 
   static async addMagnet(magnet: string) {
-    const searchParams = new URLSearchParams();
-    searchParams.append("magnet", magnet);
+    const searchParams = new URLSearchParams({ magnet });
 
     const response = await this.instance.post<RealDebridAddMagnet>(
       "/torrents/addMagnet",
@@ -31,8 +30,7 @@ export class RealDebridClient {
   }
 
   static async selectAllFiles(id: string) {
-    const searchParams = new URLSearchParams();
-    searchParams.append("files", "all");
+    const searchParams = new URLSearchParams({ files: "all" });
 
     await this.instance.post(
       `/torrents/selectFiles/${id}`,
@@ -41,8 +39,7 @@ export class RealDebridClient {
   }
 
   static async unrestrictLink(link: string) {
-    const searchParams = new URLSearchParams();
-    searchParams.append("link", link);
+    const searchParams = new URLSearchParams({ link });
 
     const response = await this.instance.post<RealDebridUnrestrictLink>(
       "/unrestrict/link",

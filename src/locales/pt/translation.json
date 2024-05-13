@@ -82,7 +82,6 @@
     "playing_now": "Jogando agora",
     "change": "Mudar",
     "repacks_modal_description": "Escolha o repack do jogo que deseja baixar",
-    "downloads_path": "Diretório do download",
     "select_folder_hint": "Para trocar a pasta padrão, acesse a <0>Tela de Configurações</0>",
     "download_now": "Baixe agora",
     "installation_instructions": "Instruções de Instalação",
@@ -94,7 +93,14 @@
     "copied_to_clipboard": "Copiado",
     "got_it": "Entendi",
     "multi_language": "Multi Idioma",
-    "multiplayer": "Multijogador"
+    "multiplayer": "Multijogador",
+    "no_shop_details": "Não foi possível obter os detalhes da loja.",
+    "download_options": "Opções de download",
+    "download_path": "Diretório de download",
+    "previous_screenshot": "Captura de tela anterior",
+    "next_screenshot": "Próxima captura de tela",
+    "screenshot": "Captura de tela {{number}}",
+    "open_screenshot": "Ver captura de tela {{number}}"
   },
   "activation": {
     "title": "Ativação",
@@ -125,7 +131,9 @@
     "delete_modal_description": "Isso removerá todos os arquivos de instalação do seu computador",
     "delete_modal_title": "Tem certeza?",
     "deleting": "Excluindo instalador…",
-    "install": "Instalar"
+    "install": "Instalar",
+    "torrent": "Torrent",
+    "real_debrid": "Real Debrid"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",
@@ -135,6 +143,7 @@
     "enable_repack_list_notifications": "Quando a lista de repacks for atualizada",
     "telemetry": "Telemetria",
     "telemetry_description": "Habilitar estatísticas de uso anônimas",
+    "real_debrid_api_token_label": "Token de API do Real Debrid",
     "quit_app_instead_hiding": "Fechar o aplicativo em vez de minimizá-lo",
     "launch_with_system": "Iniciar aplicativo na inicialização do sistema",
     "general": "Geral",
