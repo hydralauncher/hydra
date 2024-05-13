@@ -86,9 +86,7 @@
     "playing_now": "Запущено",
     "change": "Изменить",
     "repacks_modal_description": "Выберите репак для загрузки",
-    "downloads_path": "Путь загрузок",
-    "select_folder_hint": "Изменить папку по умолчанию",
-    "settings": "Настройки Hydra",
+    "select_folder_hint": "Чтобы изменить папку загрузок по умолчанию, откройте <0>Настройки</0>",
     "download_now": "Загрузить сейчас",
     "installation_instructions": "Инструкция по установке",
     "installation_instructions_description": "Для установки этой игры требуются дополнительные шаги",
@@ -97,7 +95,14 @@
     "dont_show_it_again": "Не показывать снова",
     "copy_to_clipboard": "Копировать",
     "copied_to_clipboard": "Скопировано",
-    "got_it": "Понятно"
+    "got_it": "Понятно",
+    "no_shop_details": "Не удалось получить описание",
+    "download_options": "Вариантов загрузки",
+    "download_path": "Путь для загрузок",
+    "previous_screenshot": "Предыдущий скриншот",
+    "next_screenshot": "Следующий скриншот",
+    "screenshot": "Скриншот {{number}}",
+    "open_screenshot": "Открыть скриншот {{number}}"
   },
   "activation": {
     "title": "Активировать Hydra",
@@ -128,7 +133,9 @@
     "remove_from_list": "Удалить",
     "delete_modal_title": "Вы уверены?",
     "delete_modal_description": "Это удалит все установщики с вашего компьютера",
-    "install": "Установить"
+    "install": "Установить",
+    "real_debrid": "Real Debrid",
+    "torrent": "Torrent"
   },
   "settings": {
     "downloads_path": "Путь загрузок",
@@ -138,9 +145,15 @@
     "enable_repack_list_notifications": "При добавлении нового репака",
     "telemetry": "Телеметрия",
     "telemetry_description": "Отправлять анонимную статистику использования",
-    "behavior": "Поведение",
+    "real_debrid_api_token_label": "Real Debrid API-токен",
     "quit_app_instead_hiding": "Закрывать Hydra вместо того, чтобы сворачивать его в трей",
-    "launch_with_system": "Запуск Hydra вместе с системой"
+    "launch_with_system": "Запуск Hydra вместе с системой",
+    "general": "Основные",
+    "behavior": "Поведение",
+    "enable_real_debrid": "Включить Real Debrid",
+    "real_debrid": "Real Debrid",
+    "real_debrid_api_token_hint": "API ключ можно получить <0>здесь/0>.",
+    "save_changes": "Сохранить изменения"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",

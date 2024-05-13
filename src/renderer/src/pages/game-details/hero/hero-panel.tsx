@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDownload } from "@renderer/hooks";
-import type { Game, ShopDetails } from "@types";
+import type { Game, GameRepack } from "@types";
 
 import { formatDownloadProgress } from "@renderer/helpers";
 import { HeroPanelActions } from "./hero-panel-actions";
@@ -15,20 +15,24 @@ import { HeroPanelPlaytime } from "./hero-panel-playtime";
 
 export interface HeroPanelProps {
   game: Game | null;
-  gameDetails: ShopDetails | null;
   color: string;
   isGamePlaying: boolean;
+  objectID: string;
+  title: string;
+  repacks: GameRepack[];
   openRepacksModal: () => void;
   getGame: () => void;
 }
 
 export function HeroPanel({
   game,
-  gameDetails,
   color,
+  repacks,
+  objectID,
+  title,
+  isGamePlaying,
   openRepacksModal,
   getGame,
-  isGamePlaying,
 }: HeroPanelProps) {
   const { t } = useTranslation("game_details");
 
@@ -58,8 +62,6 @@ export function HeroPanel({
   }, [game, isGameDownloading, gameDownloading]);
 
   const getInfo = () => {
-    if (!gameDetails) return null;
-
     if (isGameDeleting(game?.id ?? -1)) {
       return <p>{t("deleting")}</p>;
     }
@@ -110,11 +112,11 @@ export function HeroPanel({
       return <HeroPanelPlaytime game={game} isGamePlaying={isGamePlaying} />;
     }
 
-    const [latestRepack] = gameDetails.repacks;
+    const [latestRepack] = repacks;
 
     if (latestRepack) {
       const lastUpdate = format(latestRepack.uploadDate!, "dd/MM/yyyy");
-      const repacksCount = gameDetails.repacks.length;
+      const repacksCount = repacks.length;
 
       return (
         <>
@@ -139,7 +141,9 @@ export function HeroPanel({
         <div className={styles.actions}>
           <HeroPanelActions
             game={game}
-            gameDetails={gameDetails}
+            repacks={repacks}
+            objectID={objectID}
+            title={title}
             getGame={getGame}
             openRepacksModal={openRepacksModal}
             openBinaryNotFoundModal={() => setShowBinaryNotFoundModal(true)}

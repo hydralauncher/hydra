@@ -2,7 +2,7 @@
 
 <div align="center">
 
-  [<img src="./resources/icon.png" width="144"/>](https://hydralauncher.site)
+[<img src="./resources/icon.png" width="144"/>](https://hydralauncher.site)
 
   <h1 align="center">Hydra Launcher</h1>
   
@@ -10,15 +10,17 @@
     <strong>Hydra é um Launcher de Jogos com seu próprio cliente de bittorrent integrado e um wrapper autogerenciado para busca de repacks.</strong>
   </p>
 
-  [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
-  [![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
+[![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
+[![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
 
-  [![pt-BR](https://img.shields.io/badge/lang-pt--BR-green.svg)](README.pt-BR.md)
-  [![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
-  [![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
-  [![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
+[![pt-BR](https://img.shields.io/badge/lang-pt--BR-green.svg)](README.pt-BR.md)
+[![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
+[![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
+[![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
+[![be](https://img.shields.io/badge/lang-be-orange)](README.be.md)
 
-  ![Hydra Catalogue](./docs/screenshot.png)
+
+![Hydra Catalogue](./docs/screenshot.png)
 
 </div>
 
