@@ -14,7 +14,6 @@ export interface GameCardProps
     HTMLButtonElement
   > {
   game: CatalogueEntry;
-  disabled?: boolean;
 }
 
 const shopIcon = {
@@ -22,7 +21,7 @@ const shopIcon = {
   steam: <SteamLogo className={styles.shopIcon} />,
 };
 
-export function GameCard({ game, disabled, ...props }: GameCardProps) {
+export function GameCard({ game, ...props }: GameCardProps) {
   const { t } = useTranslation("game_card");
 
   const repackersFriendlyNames = useAppSelector(
@@ -34,12 +33,7 @@ export function GameCard({ game, disabled, ...props }: GameCardProps) {
   );
 
   return (
-    <button
-      {...props}
-      type="button"
-      className={styles.card({ disabled })}
-      disabled={disabled}
-    >
+    <button {...props} type="button" className={styles.card}>
       <div className={styles.backdrop}>
         <img src={game.cover} alt={game.title} className={styles.cover} />
 

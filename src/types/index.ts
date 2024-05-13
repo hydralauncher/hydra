@@ -69,7 +69,6 @@ export interface GameRepack {
 
 export type ShopDetails = SteamAppDetails & {
   objectID: string;
-  repacks: GameRepack[];
 };
 
 export interface TorrentFile {
@@ -133,4 +132,9 @@ export interface HowLongToBeatCategory {
   title: string;
   duration: string;
   accuracy: string;
+}
+
+export interface Steam250Game {
+  title: string;
+  objectID: string;
 }
