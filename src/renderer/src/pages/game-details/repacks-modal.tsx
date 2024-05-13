@@ -34,6 +34,9 @@ export function RepacksModal({
   const [filteredRepacks, setFilteredRepacks] = useState<GameRepack[]>([]);
   const [repack, setRepack] = useState<GameRepack | null>(null);
   const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
+  const { value: userPreferences } = useAppSelector(
+    (state) => state.userPreferences
+  );
 
   const repackersFriendlyNames = useAppSelector(
     (state) => state.repackersFriendlyNames.value
@@ -109,7 +112,15 @@ export function RepacksModal({
                     {repack.uploadDate
                       ? format(repack.uploadDate, "dd/MM/yyyy")
                       : ""}
-                    {" - " + getRepackLanguageBasedOnRepacker(repack.repacker)}
+                    {userPreferences?.language && (
+                      <>
+                        {" - " +
+                          getRepackLanguageBasedOnRepacker(
+                            repack.repacker,
+                            userPreferences?.language
+                          )}
+                      </>
+                    )}
                   </p>
                 </div>
                 <SeedersAndPeers repack={repack} />

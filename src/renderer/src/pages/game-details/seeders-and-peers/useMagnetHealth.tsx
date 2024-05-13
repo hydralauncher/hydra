@@ -27,21 +27,24 @@ export function useMagnetHealth(magnet: string) {
       return;
     }
 
-    window.electron.getMagnetHealth(magnet).then(
-      (result) => {
-        if (result) {
-          setMagnetData(result);
-          setIsLoading(false);
+    window.electron
+      .getMagnetHealth(magnet)
+      .then(
+        (result) => {
+          if (result) {
+            setMagnetData(result);
+            setIsLoading(false);
 
-          cache[magnet] = result;
-          cache[magnet].lastTracked = new Date();
+            cache[magnet] = result;
+            cache[magnet].lastTracked = new Date();
+          }
+        },
+        (error) => {
+          setError(error);
+          setIsLoading(false);
         }
-      },
-      (error) => {
-        setError(error);
-        setIsLoading(false);
-      }
-    );
+      )
+      .catch(() => {});
   }, [magnet]);
 
   useEffect(() => {
