@@ -86,7 +86,6 @@
     "playing_now": "Playing now",
     "change": "Change",
     "repacks_modal_description": "Choose the repack you want to download",
-    "downloads_path": "Downloads path",
     "select_folder_hint": "To change the default folder, go to the <0>Settings</0>",
     "download_now": "Download now",
     "installation_instructions": "Installation Instructions",
@@ -99,7 +98,7 @@
     "got_it": "Got it",
     "no_shop_details": "Could not retrieve shop details.",
     "download_options": "Download options",
-    "download_folder": "Download folder"
+    "download_path": "Download path"
   },
   "activation": {
     "title": "Activate Hydra",
