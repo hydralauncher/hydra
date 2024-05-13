@@ -94,17 +94,6 @@
     "dont_show_it_again": "No mostrar de nuevo",
     "copy_to_clipboard": "Copiar",
     "copied_to_clipboard": "Copiado",
-    "repack_language_code": {
-      "en": "Inglés",
-      "es": "Español",
-      "fr": "Francés",
-      "hu": "Húngaro",
-      "it": "Italiano",
-      "pl": "Polaco",
-      "pt": "Portugués",
-      "ru": "Ruso",
-      "tr": "Turco"
-    },
     "multi_language": "Multi Idioma",
     "multiplayer": "Multijugador"
   },

@@ -10,10 +10,21 @@ export const supportMultiLanguage = (title: string) => {
   return multiFollowedByDigitsRegex.test(title.toLowerCase());
 }
 
+// const languageCode = 'en';
+// const displayNames = new Intl.DisplayNames([languageCode], { type: 'language' });
+// const englishLanguage = displayNames.of(languageCode);
+
+// console.log(englishLanguage); // Output: "English"
+
+
 export const getRepackLanguageBasedOnRepacker = (repacker: string) => {
-  const repackMap = {
-    'xatab': 'ru',
+  const languageCodes = {
+    xatab: 'ru',
   }
 
-  return repackMap[repacker.toLowerCase()] || 'en';
+  const languageCode = languageCodes[repacker.toLowerCase()] || 'en';
+
+  const displayNames = new Intl.DisplayNames([languageCode], { type: 'language' });
+
+  return displayNames.of(languageCode);
 }

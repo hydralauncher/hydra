@@ -109,7 +109,7 @@ export function RepacksModal({
                     {repack.uploadDate
                       ? format(repack.uploadDate, "dd/MM/yyyy")
                       : ""}
-                    {" - " + t(`repack_language_code.${getRepackLanguageBasedOnRepacker(repack.repacker)}`)}
+                    {" - " + getRepackLanguageBasedOnRepacker(repack.repacker)}
                   </p>
                 </div>
                 <SeedersAndPeers

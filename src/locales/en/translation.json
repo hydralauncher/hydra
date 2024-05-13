@@ -97,17 +97,6 @@
     "copy_to_clipboard": "Copy",
     "copied_to_clipboard": "Copied",
     "got_it": "Got it",
-    "repack_language_code": {
-      "en": "English",
-      "es": "Spanish",
-      "fr": "French",
-      "hu": "Hungarian",
-      "it": "Italian",
-      "pl": "Polish",
-      "pt": "Portuguese",
-      "ru": "Russian",
-      "tr": "Turkish"
-    },
     "multi_language": "Multi Language",
     "multiplayer": "Multi Player"
   },

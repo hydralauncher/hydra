@@ -93,17 +93,6 @@
     "copy_to_clipboard": "Copiar",
     "copied_to_clipboard": "Copiado",
     "got_it": "Entendi",
-    "repack_language_code": {
-      "en": "Inglês",
-      "es": "Espanhol",
-      "fr": "Francês",
-      "hu": "Húngaro",
-      "it": "Italiano",
-      "pl": "Polonês",
-      "pt": "Português",
-      "ru": "Russo",
-      "tr": "Turco"
-    },
     "multi_language": "Multi Idioma",
     "multiplayer": "Multijogador"
   },
