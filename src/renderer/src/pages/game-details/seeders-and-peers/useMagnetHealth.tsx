@@ -3,7 +3,7 @@ import { TorrentData } from "./types";
 
 const cache: Record<string, TorrentData> = {};
 
-export function useMagnetData(magnet: string) {
+export function useMagnetHealth(magnet: string) {
   const [magnetData, setMagnetData] = useState<TorrentData | null>(
     cache[magnet] || null
   );

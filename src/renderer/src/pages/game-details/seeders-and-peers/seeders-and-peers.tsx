@@ -1,7 +1,7 @@
 import { GameRepack } from "@types";
 import { Sprout, Users } from "lucide-react";
 
-import { useMagnetData } from "./useMagnetData";
+import { useMagnetHealth } from "./useMagnetHealth";
 import { Tooltip } from "@renderer/components/tooltip/tooltip";
 import { SeedersAndPeersSkeleton } from "./seeders-and-peers-skeleton";
 import { vars } from "@renderer/theme.css";
@@ -11,7 +11,7 @@ interface SeedersAndPeersProps {
 }
 
 export function SeedersAndPeers({ repack }: Readonly<SeedersAndPeersProps>) {
-  const { magnetData, isLoading, error } = useMagnetData(repack.magnet);
+  const { magnetData, isLoading, error } = useMagnetHealth(repack.magnet);
 
   if (isLoading) {
     return <SeedersAndPeersSkeleton />;

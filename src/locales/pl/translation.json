@@ -84,17 +84,6 @@
     "select_folder_hint": "Aby zmienić domyślny folder, przejdź do",
     "settings": "Ustawienia Hydra",
     "download_now": "Pobierz teraz",
-    "repack_language_code": {
-      "en": "Angielski",
-      "es": "Hiszpański",
-      "fr": "Francuski",
-      "hu": "Węgierski",
-      "it": "Włoski",
-      "pl": "Polski",
-      "pt": "Portugalski",
-      "ru": "Rosyjski",
-      "tr": "Turecki"
-    },
     "multi_language": "Wielojęzyczny",
     "multiplayer": "Wieloosobowy"
   },
