@@ -25,6 +25,7 @@ export const getSteamLanguage = (language: string) => {
   if (language.startsWith("it")) return "italian";
   if (language.startsWith("hu")) return "hungarian";
   if (language.startsWith("pl")) return "polish";
+  if (language.startsWith("da")) return "danish";
 
   return "english";
 };
