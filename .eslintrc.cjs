@@ -6,7 +6,7 @@ module.exports = {
     "plugin:react-hooks/recommended",
     "plugin:jsx-a11y/recommended",
     "@electron-toolkit/eslint-config-ts/recommended",
-    "prettier",
+    "plugin:prettier/recommended",
   ],
   rules: {
     "@typescript-eslint/explicit-function-return-type": "off",

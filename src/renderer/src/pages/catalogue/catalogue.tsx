@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import * as styles from "../home/home.css";
 import { ArrowLeftIcon, ArrowRightIcon } from "@primer/octicons-react";
+import { buildGameDetailsPath } from "@renderer/helpers";
 
 export function Catalogue() {
   const dispatch = useAppDispatch();
@@ -31,7 +32,7 @@ export function Catalogue() {
 
   const handleGameClick = (game: CatalogueEntry) => {
     dispatch(clearSearch());
-    navigate(`/game/${game.shop}/${game.objectID}`);
+    navigate(buildGameDetailsPath(game));
   };
 
   useEffect(() => {

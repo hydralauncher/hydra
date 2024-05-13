@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import * as styles from "./home.css";
+import { buildGameDetailsPath } from "@renderer/helpers";
 
 export function SearchResults() {
   const dispatch = useAppDispatch();
@@ -30,7 +31,7 @@ export function SearchResults() {
 
   const handleGameClick = (game: CatalogueEntry) => {
     dispatch(clearSearch());
-    navigate(`/game/${game.shop}/${game.objectID}`);
+    navigate(buildGameDetailsPath(game));
   };
 
   useEffect(() => {
