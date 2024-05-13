@@ -29,7 +29,7 @@ export const getSteamGridData = async (
   const searchParams = new URLSearchParams(params);
 
   if (!import.meta.env.MAIN_VITE_STEAMGRIDDB_API_KEY) {
-    throw new Error("STEAMGRIDDB_API_KEY is not set");
+    throw new Error("MAIN_VITE_STEAMGRIDDB_API_KEY is not set");
   }
 
   const response = await axios.get(
