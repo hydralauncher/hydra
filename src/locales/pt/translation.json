@@ -94,7 +94,11 @@
     "got_it": "Entendi",
     "no_shop_details": "Não foi possível obter os detalhes da loja.",
     "download_options": "Opções de download",
-    "download_path": "Diretório de download"
+    "download_path": "Diretório de download",
+    "previous_screenshot": "Captura de tela anterior",
+    "next_screenshot": "Próxima captura de tela",
+    "screenshot": "Captura de tela {{number}}",
+    "open_screenshot": "Ver captura de tela {{number}}"
   },
   "activation": {
     "title": "Ativação",
