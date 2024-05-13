@@ -96,7 +96,11 @@
     "dont_show_it_again": "Don't show it again",
     "copy_to_clipboard": "Copy",
     "copied_to_clipboard": "Copied",
-    "got_it": "Got it"
+    "got_it": "Got it",
+    "previous_screenshot": "Previous screenshot",
+    "next_screenshot": "Next screenshot",
+    "screenshot": "Screenshot {{number}}",
+    "open_screenshot": "Open screenshot {{number}}"
   },
   "activation": {
     "title": "Activate Hydra",

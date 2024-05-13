@@ -1,6 +1,6 @@
 name: Lint
 
-on: [pull_request, push]
+on: [push]
 
 jobs:
   lint:
