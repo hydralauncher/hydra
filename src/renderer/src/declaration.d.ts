@@ -88,7 +88,7 @@ declare global {
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
     platform: NodeJS.Platform;
-    getMagnetData: (magnet: string) => Promise<{ seeders: number; peers: number }>;
+    getMagnetHealth: (magnet: string) => Promise<{ seeders: number; peers: number }>;
   }
 
   interface Window {

@@ -112,5 +112,5 @@ contextBridge.exposeInMainWorld("electron", {
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
   platform: process.platform,
-  getMagnetData: (magnet: string) => ipcRenderer.invoke("getMagnetData", magnet),
+  getMagnetHealth: (magnet: string) => ipcRenderer.invoke("getMagnetHealth", magnet),
 });
