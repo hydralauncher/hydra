@@ -57,7 +57,6 @@ i18n
     },
   })
   .then(() => {
-    i18n.changeLanguage("pt-BR");
     window.electron.updateUserPreferences({ language: i18n.language });
   });
 
