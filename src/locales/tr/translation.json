@@ -19,6 +19,7 @@
     "follow_us": "Bizi takip et",
     "home": "Ana menü",
     "discord": "Discord'umuza katıl",
+    "telegram": "Telegram'umuza katıl",
     "x": "X'te bizi takip et",
     "github": "GitHub'da bize katkı yap"
   },
@@ -312,9 +313,6 @@
       "title": "Programlar yüklü değil",
       "description": "Sisteminizde Wine veya Lutris çalıştırılabiliri bulunamadı",
       "instructions": "Oyunları düzgün şekilde çalıştırmak için Linux distronuza bunlardan birini nasıl yükleyebileceğinize bakın"
-    },
-    "modal": {
-      "close": "Kapat tuşu"
     }
   }
 }
