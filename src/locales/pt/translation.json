@@ -82,7 +82,6 @@
     "playing_now": "Jogando agora",
     "change": "Mudar",
     "repacks_modal_description": "Escolha o repack do jogo que deseja baixar",
-    "downloads_path": "Diretório do download",
     "select_folder_hint": "Para trocar a pasta padrão, acesse a <0>Tela de Configurações</0>",
     "download_now": "Baixe agora",
     "installation_instructions": "Instruções de Instalação",
@@ -95,7 +94,7 @@
     "got_it": "Entendi",
     "no_shop_details": "Não foi possível obter os detalhes da loja.",
     "download_options": "Opções de download",
-    "download_folder": "Diretório de download"
+    "download_path": "Diretório de download"
   },
   "activation": {
     "title": "Ativação",

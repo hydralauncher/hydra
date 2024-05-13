@@ -72,7 +72,7 @@ export function SelectFolderModal({
   return (
     <Modal
       visible={visible}
-      title={t("download_folder")}
+      title={t("download_path")}
       description={t("space_left_on_disk", {
         space: formatBytes(diskFreeSpace?.free ?? 0),
       })}
@@ -80,12 +80,7 @@ export function SelectFolderModal({
     >
       <div className={styles.container}>
         <div className={styles.downloadsPathField}>
-          <TextField
-            label={t("downloads_path")}
-            value={selectedPath}
-            readOnly
-            disabled
-          />
+          <TextField value={selectedPath} readOnly disabled />
 
           <Button
             style={{ alignSelf: "flex-end" }}
