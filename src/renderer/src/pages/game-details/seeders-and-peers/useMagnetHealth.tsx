@@ -44,7 +44,6 @@ export function useMagnetHealth(magnet: string) {
     );
   }, [magnet]);
 
-
   useEffect(() => {
     function invalidateCache() {
       const TWO_MINUTES = 2 * 60 * 1000;

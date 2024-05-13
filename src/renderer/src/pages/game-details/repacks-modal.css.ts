@@ -22,4 +22,3 @@ export const tagsContainer = style({
   gap: `${SPACING_UNIT}px`,
   flexWrap: "wrap",
 });
-

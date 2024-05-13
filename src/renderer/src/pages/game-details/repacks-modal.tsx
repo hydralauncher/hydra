@@ -16,7 +16,7 @@ import {
   supportMultiLanguage,
 } from "@renderer/helpers/searcher";
 import { Tag } from "@renderer/components/tag/tag";
-import {getRepackLanguageBasedOnRepacker} from '../../helpers/searcher';
+import { getRepackLanguageBasedOnRepacker } from "../../helpers/searcher";
 
 export interface RepacksModalProps {
   visible: boolean;
@@ -112,15 +112,15 @@ export function RepacksModal({
                     {" - " + getRepackLanguageBasedOnRepacker(repack.repacker)}
                   </p>
                 </div>
-                <SeedersAndPeers
-                  repack={repack}
-                />
+                <SeedersAndPeers repack={repack} />
               </div>
               <div className={styles.tagsContainer}>
                 {supportMultiLanguage(repack.title) && (
-                  <Tag>{t('multi_language')}</Tag>
+                  <Tag>{t("multi_language")}</Tag>
                 )}
-                {isMultiplayerRepack(repack.title) && <Tag>{t('multiplayer')}</Tag>}
+                {isMultiplayerRepack(repack.title) && (
+                  <Tag>{t("multiplayer")}</Tag>
+                )}
               </div>
             </Button>
           ))}
