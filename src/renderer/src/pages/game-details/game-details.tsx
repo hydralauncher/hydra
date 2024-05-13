@@ -210,6 +210,7 @@ export function GameDetails() {
                 <img
                   src={steamUrlBuilder.logo(objectID!)}
                   style={{ width: 300, alignSelf: "flex-end" }}
+                  alt={game?.title}
                 />
               </div>
             </div>
