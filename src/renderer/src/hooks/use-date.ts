@@ -11,6 +11,7 @@ import {
   ru,
   it,
   be,
+  zhCN,
   da,
 } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
@@ -30,6 +31,7 @@ export function useDate() {
     if (language.startsWith("ru")) return ru;
     if (language.startsWith("it")) return it;
     if (language.startsWith("be")) return be;
+    if (language.startsWith("zh")) return zhCN;
     if (language.startsWith("da")) return da;
 
     return enUS;
