@@ -152,7 +152,7 @@
     "behavior": "Поведение",
     "enable_real_debrid": "Включить Real Debrid",
     "real_debrid": "Real Debrid",
-    "real_debrid_api_token_hint": "API ключ можно получить <0>здесь/0>.",
+    "real_debrid_api_token_hint": "API ключ можно получить <0>здесь</0>.",
     "save_changes": "Сохранить изменения"
   },
   "notifications": {
