@@ -1,4 +1,5 @@
 import { app, BrowserWindow, net, protocol } from "electron";
+import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
@@ -6,6 +7,14 @@ import { resolveDatabaseUpdates, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
+
+const { autoUpdater } = updater;
+
+autoUpdater.setFeedURL({
+  provider: "github",
+  owner: "hydralauncher",
+  repo: "hydra",
+});
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
@@ -52,6 +61,10 @@ app.whenReady().then(() => {
 
     WindowManager.createMainWindow();
     WindowManager.createSystemTray(userPreferences?.language || "en");
+
+    WindowManager.mainWindow?.on("ready-to-show", () => {
+      autoUpdater.checkForUpdatesAndNotify();
+    });
   });
 });
 

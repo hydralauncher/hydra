@@ -15,9 +15,8 @@ export const createDataSource = (options: Partial<SqliteConnectionOptions>) =>
     type: "better-sqlite3",
     database: databasePath,
     entities: [Game, Repack, UserPreferences, GameShopCache, SteamGame],
+    synchronize: true,
     ...options,
   });
 
-export const dataSource = createDataSource({
-  synchronize: true,
-});
+export const dataSource = createDataSource({});
