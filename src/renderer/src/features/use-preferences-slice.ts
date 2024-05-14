@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import type { UserPreferences } from "@types";
 
-interface UserPreferencesState {
+export interface UserPreferencesState {
   value: UserPreferences | null;
 }
 

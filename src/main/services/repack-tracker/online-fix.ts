@@ -1,14 +1,15 @@
 import { Repack } from "@main/entity";
 import { decodeNonUtf8Response, savePage } from "./helpers";
 import { logger } from "../logger";
-import parseTorrent, {
-  toMagnetURI,
-  Instance as TorrentInstance,
-} from "parse-torrent";
 import { JSDOM } from "jsdom";
 
 import { format, parse, sub } from "date-fns";
 import { ru } from "date-fns/locale";
+
+import createWorker from "@main/workers/torrent-parser.worker?nodeWorker";
+import { toMagnetURI } from "parse-torrent";
+
+const worker = createWorker({});
 
 import { onlinefixFormatter } from "@main/helpers";
 import makeFetchCookie from "fetch-cookie";
@@ -139,27 +140,23 @@ export const getNewRepacksFromOnlineFix = async (
           ?.getAttribute("href");
 
         const torrentFile = Buffer.from(
-          await http(`${torrentPrePage}/${torrentLink}`).then((res) =>
+          await http(`${torrentPrePage}${torrentLink}`).then((res) =>
             res.arrayBuffer()
           )
         );
 
-        const torrent = parseTorrent(torrentFile) as TorrentInstance;
-        const magnetLink = toMagnetURI({
-          infoHash: torrent.infoHash,
+        worker.once("message", (torrent) => {
+          repacks.push({
+            fileSize: formatBytes(torrent.length ?? 0),
+            magnet: toMagnetURI(torrent),
+            page: 1,
+            repacker: "onlinefix",
+            title: gameName,
+            uploadDate: uploadDate,
+          });
         });
 
-        const torrentSizeInBytes = torrent.length;
-        if (!torrentSizeInBytes) return;
-
-        repacks.push({
-          fileSize: formatBytes(torrentSizeInBytes),
-          magnet: magnetLink,
-          page: 1,
-          repacker: "onlinefix",
-          title: gameName,
-          uploadDate: uploadDate,
-        });
+        worker.postMessage(torrentFile);
       })
     );
   } catch (err: unknown) {

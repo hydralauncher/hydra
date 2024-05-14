@@ -76,8 +76,6 @@ contextBridge.exposeInMainWorld("electron", {
       executablePath
     ),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
-  getRepackersFriendlyNames: () =>
-    ipcRenderer.invoke("getRepackersFriendlyNames"),
   openGameInstaller: (gameId: number) =>
     ipcRenderer.invoke("openGameInstaller", gameId),
   openGame: (gameId: number, executablePath: string) =>

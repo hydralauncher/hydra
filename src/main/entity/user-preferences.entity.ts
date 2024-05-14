@@ -26,9 +26,6 @@ export class UserPreferences {
   @Column("boolean", { default: false })
   repackUpdatesNotificationsEnabled: boolean;
 
-  @Column("boolean", { default: true })
-  telemetryEnabled: boolean;
-
   @Column("boolean", { default: false })
   preferQuitInsteadOfHiding: boolean;
 

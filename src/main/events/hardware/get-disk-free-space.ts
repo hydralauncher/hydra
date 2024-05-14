@@ -7,6 +7,4 @@ const getDiskFreeSpace = async (
   path: string
 ) => checkDiskSpace(path);
 
-registerEvent(getDiskFreeSpace, {
-  name: "getDiskFreeSpace",
-});
+registerEvent("getDiskFreeSpace", getDiskFreeSpace);

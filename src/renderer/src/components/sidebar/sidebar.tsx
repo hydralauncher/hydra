@@ -9,10 +9,6 @@ import { useDownload, useLibrary } from "@renderer/hooks";
 
 import { routes } from "./routes";
 
-import { MarkGithubIcon } from "@primer/octicons-react";
-import TelegramLogo from "@renderer/assets/telegram-icon.svg?react";
-import XLogo from "@renderer/assets/x-icon.svg?react";
-
 import * as styles from "./sidebar.css";
 import { GameStatus, GameStatusHelper } from "@shared";
 import { buildGameDetailsPath } from "@renderer/helpers";
@@ -34,24 +30,6 @@ export function Sidebar() {
   const [sidebarWidth, setSidebarWidth] = useState(
     initialSidebarWidth ? Number(initialSidebarWidth) : SIDEBAR_INITIAL_WIDTH
   );
-
-  const socials = [
-    {
-      url: "https://t.me/hydralauncher",
-      icon: <TelegramLogo />,
-      label: t("telegram"),
-    },
-    {
-      url: "https://twitter.com/hydralauncher",
-      icon: <XLogo />,
-      label: t("x"),
-    },
-    {
-      url: "https://github.com/hydralauncher/hydra",
-      icon: <MarkGithubIcon size={16} />,
-      label: t("github"),
-    },
-  ];
 
   const location = useLocation();
 
@@ -233,26 +211,6 @@ export function Sidebar() {
         className={styles.handle}
         onMouseDown={handleMouseDown}
       />
-
-      <footer className={styles.sidebarFooter}>
-        <div className={styles.footerText}>{t("follow_us")}</div>
-
-        <span className={styles.footerSocialsContainer}>
-          {socials.map((item) => {
-            return (
-              <button
-                key={item.url}
-                className={styles.footerSocialsItem}
-                onClick={() => window.electron.openExternal(item.url)}
-                title={item.label}
-                aria-label={item.label}
-              >
-                {item.icon}
-              </button>
-            );
-          })}
-        </span>
-      </footer>
     </aside>
   );
 }
