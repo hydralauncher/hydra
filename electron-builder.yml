@@ -46,5 +46,7 @@ appImage:
 npmRebuild: false
 publish:
   provider: github
+  owner: hydralauncher
+  repo: hydra
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/
