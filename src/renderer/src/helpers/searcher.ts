@@ -1,10 +1,13 @@
-export const isMultiplayerRepack = (title: string) => {
-  const toLower = title.toLowerCase();
+export const isMultiplayerRepack = (title: string, repacker: string) => {
+  const titleToLower = title.toLowerCase();
+  const repackerToLower = repacker.toLowerCase();
 
   return (
-    toLower.includes("multiplayer") ||
-    toLower.includes("onlinefix") ||
-    toLower.includes("online fix")
+    titleToLower.includes("multiplayer") ||
+    titleToLower.includes("onlinefix") ||
+    titleToLower.includes("online fix") ||
+    repackerToLower.includes("onlinefix") ||
+    repackerToLower.includes("online fix")
   );
 };
 

@@ -128,7 +128,7 @@ export function RepacksModal({
                 {supportMultiLanguage(repack.title) && (
                   <Tag>{t("multi_language")}</Tag>
                 )}
-                {isMultiplayerRepack(repack.title) && (
+                {isMultiplayerRepack(repack.title, repack.repacker) && (
                   <Tag>{t("multiplayer")}</Tag>
                 )}
               </div>
