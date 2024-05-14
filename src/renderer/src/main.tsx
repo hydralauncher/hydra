@@ -6,9 +6,6 @@ import { Provider } from "react-redux";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { HashRouter, Route, Routes } from "react-router-dom";
 
-import { init } from "@sentry/electron/renderer";
-import { init as reactInit } from "@sentry/react";
-
 import "@fontsource/fira-mono/400.css";
 import "@fontsource/fira-mono/500.css";
 import "@fontsource/fira-mono/700.css";
@@ -30,21 +27,6 @@ import {
 import { store } from "./store";
 
 import * as resources from "@locales";
-
-if (import.meta.env.RENDERER_VITE_SENTRY_DSN) {
-  init(
-    {
-      dsn: import.meta.env.RENDERER_VITE_SENTRY_DSN,
-      beforeSend: async (event) => {
-        const userPreferences = await window.electron.getUserPreferences();
-
-        if (userPreferences?.telemetryEnabled) return event;
-        return null;
-      },
-    },
-    reactInit
-  );
-}
 
 i18n
   .use(LanguageDetector)

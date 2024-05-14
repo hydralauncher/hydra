@@ -1,5 +1,4 @@
 import { app, BrowserWindow, net, protocol } from "electron";
-import { init } from "@sentry/electron/main";
 import i18n from "i18next";
 import path from "node:path";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
@@ -10,20 +9,6 @@ import { userPreferencesRepository } from "@main/repository";
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
-
-if (import.meta.env.MAIN_VITE_SENTRY_DSN) {
-  init({
-    dsn: import.meta.env.MAIN_VITE_SENTRY_DSN,
-    beforeSend: async (event) => {
-      const userPreferences = await userPreferencesRepository.findOne({
-        where: { id: 1 },
-      });
-
-      if (userPreferences?.telemetryEnabled) return event;
-      return null;
-    },
-  });
-}
 
 i18n.init({
   resources,

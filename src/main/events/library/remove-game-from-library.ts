@@ -8,6 +8,4 @@ const removeGameFromLibrary = async (
   gameRepository.update({ id: gameId }, { isDeleted: true });
 };
 
-registerEvent(removeGameFromLibrary, {
-  name: "removeGameFromLibrary",
-});
+registerEvent("removeGameFromLibrary", removeGameFromLibrary);

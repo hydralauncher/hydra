@@ -36,6 +36,4 @@ const getRandomGame = async (_event: Electron.IpcMainInvokeEvent) => {
   return state.games[state.index];
 };
 
-registerEvent(getRandomGame, {
-  name: "getRandomGame",
-});
+registerEvent("getRandomGame", getRandomGame);
