@@ -13,34 +13,33 @@ const addGameToLibrary = async (
   gameShop: GameShop,
   executablePath: string | null
 ) => {
-  const game = await gameRepository.findOne({
-    where: {
-      objectID,
-    },
-  });
-
-  if (game) {
-    return gameRepository.update(
+  return gameRepository
+    .update(
       {
-        id: game.id,
+        objectID,
       },
       {
         shop: gameShop,
+        status: null,
         executablePath,
         isDeleted: false,
       }
-    );
-  } else {
-    const iconUrl = await getFileBase64(await getSteamGameIconUrl(objectID));
+    )
+    .then(async ({ affected }) => {
+      if (!affected) {
+        const iconUrl = await getFileBase64(
+          await getSteamGameIconUrl(objectID)
+        );
 
-    return gameRepository.insert({
-      title,
-      iconUrl,
-      objectID,
-      shop: gameShop,
-      executablePath,
+        await gameRepository.insert({
+          title,
+          iconUrl,
+          objectID,
+          shop: gameShop,
+          executablePath,
+        });
+      }
     });
-  }
 };
 
 registerEvent(addGameToLibrary, {
