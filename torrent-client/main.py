@@ -52,6 +52,15 @@ def cancel_download():
         torrent_handle = None
         downloading_game_id = 0
 
+def handle_action(payload):
+    action = payload.get('action')
+    if action == "start":
+        start_download(payload['game_id'], payload['magnet'], payload['save_path'])
+    elif action == "pause":
+        pause_download()
+    elif action == "cancel":
+        cancel_download()
+
 def get_download_updates():
     while True:
         if downloading_game_id == 0:
@@ -83,17 +92,7 @@ def listen_to_socket():
     while True:
         msg = read_fifo.recv(1024 * 2)
         payload = json.loads(msg.decode("utf-8"))
-
-        if payload['action'] == "start":
-            start_download(payload['game_id'], payload['magnet'], payload['save_path'])
-            continue
-        
-        if payload['action'] == "pause":
-            pause_download()
-            continue
-            
-        if payload['action'] == "cancel":
-            cancel_download()
+        handle_action(payload)
 
 if __name__ == "__main__":
     p1 = threading.Thread(target=get_download_updates)
@@ -101,3 +100,4 @@ if __name__ == "__main__":
 
     p1.start()
     p2.start()
+
