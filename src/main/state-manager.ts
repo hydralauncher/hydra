@@ -1,17 +1,13 @@
-import type { Repack, RepackerFriendlyName, SteamGame } from "@main/entity";
+import type { Repack, SteamGame } from "@main/entity";
 
 interface State {
   repacks: Repack[];
-  repackersFriendlyNames: RepackerFriendlyName[];
   steamGames: SteamGame[];
-  eventResults: Map<[string, any[]], any>;
 }
 
 const initialState: State = {
   repacks: [],
-  repackersFriendlyNames: [],
   steamGames: [],
-  eventResults: new Map(),
 };
 
 export class StateManager {

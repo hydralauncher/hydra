@@ -6,7 +6,6 @@ import type { GameRepack } from "@types";
 
 import * as styles from "./repacks-modal.css";
 
-import { useAppSelector } from "@renderer/hooks";
 import { SPACING_UNIT } from "../../theme.css";
 import { format } from "date-fns";
 import { SelectFolderModal } from "./select-folder-modal";
@@ -17,6 +16,7 @@ import {
 } from "@renderer/helpers/searcher";
 import { Tag } from "@renderer/components/tag/tag";
 import { getRepackLanguageBasedOnRepacker } from "../../helpers/searcher";
+import { useAppSelector } from "@renderer/hooks";
 
 export interface RepacksModalProps {
   visible: boolean;
@@ -36,10 +36,6 @@ export function RepacksModal({
   const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
   const { value: userPreferences } = useAppSelector(
     (state) => state.userPreferences
-  );
-
-  const repackersFriendlyNames = useAppSelector(
-    (state) => state.repackersFriendlyNames.value
   );
 
   const { t } = useTranslation("game_details");
@@ -108,8 +104,7 @@ export function RepacksModal({
               >
                 <div>
                   <p style={{ fontSize: "12px" }}>
-                    {repack.fileSize} -{" "}
-                    {repackersFriendlyNames[repack.repacker]} -{" "}
+                    {repack.fileSize} - {repack.repacker} -{" "}
                     {repack.uploadDate
                       ? format(repack.uploadDate, "dd/MM/yyyy")
                       : ""}

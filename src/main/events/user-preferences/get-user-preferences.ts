@@ -6,6 +6,4 @@ const getUserPreferences = async () =>
     where: { id: 1 },
   });
 
-registerEvent(getUserPreferences, {
-  name: "getUserPreferences",
-});
+registerEvent("getUserPreferences", getUserPreferences);

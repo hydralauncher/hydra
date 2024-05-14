@@ -47,6 +47,4 @@ const deleteGameFolder = async (
   }
 };
 
-registerEvent(deleteGameFolder, {
-  name: "deleteGameFolder",
-});
+registerEvent("deleteGameFolder", deleteGameFolder);

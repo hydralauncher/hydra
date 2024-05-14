@@ -16,6 +16,4 @@ const getGameByObjectID = async (
     },
   });
 
-registerEvent(getGameByObjectID, {
-  name: "getGameByObjectID",
-});
+registerEvent("getGameByObjectID", getGameByObjectID);

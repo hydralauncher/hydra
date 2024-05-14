@@ -8,6 +8,4 @@ const getMagnetHealth = async (
   return webTorrentData.getSeedersAndPeers(magnet);
 };
 
-registerEvent(getMagnetHealth, {
-  name: "getMagnetHealth",
-});
+registerEvent("getMagnetHealth", getMagnetHealth);

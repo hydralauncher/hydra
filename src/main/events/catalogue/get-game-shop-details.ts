@@ -72,7 +72,4 @@ const getGameShopDetails = async (
   throw new Error("Not implemented");
 };
 
-registerEvent(getGameShopDetails, {
-  name: "getGameShopDetails",
-  memoize: true,
-});
+registerEvent("getGameShopDetails", getGameShopDetails);

@@ -12,8 +12,8 @@ export const repackersOn1337x = [
 export const repackers = [
   ...repackersOn1337x,
   "Xatab",
-  "CPG",
   "TinyRepacks",
+  "CPG",
   "GOG",
   "onlinefix",
 ] as const;

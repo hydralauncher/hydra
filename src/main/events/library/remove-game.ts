@@ -20,6 +20,4 @@ const removeGame = async (
   );
 };
 
-registerEvent(removeGame, {
-  name: "removeGame",
-});
+registerEvent("removeGame", removeGame);
