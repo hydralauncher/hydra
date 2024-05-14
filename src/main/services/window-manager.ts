@@ -1,10 +1,19 @@
-import { BrowserWindow, Menu, Tray, app } from "electron";
+import {
+  BrowserWindow,
+  Menu,
+  MenuItem,
+  MenuItemConstructorOptions,
+  Tray,
+  app,
+  shell,
+} from "electron";
 import { is } from "@electron-toolkit/utils";
 import { t } from "i18next";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
-import { userPreferencesRepository } from "@main/repository";
+import { gameRepository, userPreferencesRepository } from "@main/repository";
+import { IsNull, Not } from "typeorm";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -77,33 +86,66 @@ export class WindowManager {
   public static createSystemTray(language: string) {
     const tray = new Tray(trayIcon);
 
-    const contextMenu = Menu.buildFromTemplate([
-      {
-        label: t("open", {
-          ns: "system_tray",
-          lng: language,
-        }),
-        type: "normal",
-        click: () => {
-          if (this.mainWindow) {
-            this.mainWindow.show();
-          } else {
-            this.createMainWindow();
-          }
+    const updateSystemTray = async () => {
+      const games = await gameRepository.find({
+        where: {
+          isDeleted: false,
+          executablePath: Not(IsNull()),
         },
-      },
-      {
-        label: t("quit", {
-          ns: "system_tray",
-          lng: language,
-        }),
-        type: "normal",
-        click: () => app.quit(),
-      },
-    ]);
+        take: 5,
+        order: {
+          lastTimePlayed: "DESC",
+        },
+      });
+
+      const recentlyPlayedGames: Array<MenuItemConstructorOptions | MenuItem> =
+        games.map(({ title, id, executablePath }) => ({
+          label: title,
+          type: "normal",
+          click: async () => {
+            if (!executablePath) return;
+            await gameRepository.update({ id }, { executablePath });
+
+            shell.openPath(executablePath);
+          },
+        }));
+
+      const contextMenu = Menu.buildFromTemplate([
+        {
+          label: t("open", {
+            ns: "system_tray",
+            lng: language,
+          }),
+          type: "normal",
+          click: () => {
+            if (this.mainWindow) {
+              this.mainWindow.show();
+            } else {
+              this.createMainWindow();
+            }
+          },
+        },
+        {
+          type: "separator",
+        },
+        ...recentlyPlayedGames,
+        {
+          type: "separator",
+        },
+        {
+          label: t("quit", {
+            ns: "system_tray",
+            lng: language,
+          }),
+          type: "normal",
+          click: () => app.quit(),
+        },
+      ]);
+
+      return contextMenu;
+    };
 
     tray.setToolTip("Hydra");
-    tray.setContextMenu(contextMenu);
 
     if (process.platform === "win32" || process.platform === "linux") {
       tray.addListener("click", () => {
@@ -116,6 +158,11 @@ export class WindowManager {
         }
 
         this.createMainWindow();
+      });
+
+      tray.addListener("right-click", async () => {
+        const contextMenu = await updateSystemTray();
+        tray.popUpContextMenu(contextMenu);
       });
     }
   }
