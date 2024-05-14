@@ -1,3 +1,5 @@
+import { toCapitalize } from "./string";
+
 export const isMultiplayerRepack = (title: string, repacker: string) => {
   const titleToLower = title.toLowerCase();
   const repackerToLower = repacker.toLowerCase();
@@ -25,11 +27,13 @@ export const getRepackLanguageBasedOnRepacker = (
     xatab: "ru",
   };
 
-  const languageCode = languageCodes[repacker.toLowerCase()] || userLanguage;
+  const languageCode = languageCodes[repacker.toLowerCase()] || "en";
 
-  const displayNames = new Intl.DisplayNames([userLanguage.slice(0, 2)], {
+  const displayNames = new Intl.DisplayNames([userLanguage], {
     type: "language",
   });
 
-  return displayNames.of(languageCode);
+  const language = displayNames.of(languageCode);
+
+  return language ? toCapitalize(language) : "English";
 };
