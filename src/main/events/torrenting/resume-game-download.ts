@@ -46,6 +46,4 @@ const resumeGameDownload = async (
   }
 };
 
-registerEvent(resumeGameDownload, {
-  name: "resumeGameDownload",
-});
+registerEvent("resumeGameDownload", resumeGameDownload);

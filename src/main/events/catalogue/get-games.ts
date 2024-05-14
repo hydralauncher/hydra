@@ -36,7 +36,4 @@ const getGames = async (
   return { results, cursor: i };
 };
 
-registerEvent(getGames, {
-  name: "getGames",
-  memoize: true,
-});
+registerEvent("getGames", getGames);

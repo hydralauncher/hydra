@@ -1,5 +1,5 @@
 import { app, BrowserWindow, net, protocol } from "electron";
-import { init } from "@sentry/electron/main";
+import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
@@ -8,22 +8,16 @@ import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
 
+const { autoUpdater } = updater;
+
+autoUpdater.setFeedURL({
+  provider: "github",
+  owner: "hydralauncher",
+  repo: "hydra",
+});
+
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
-
-if (import.meta.env.MAIN_VITE_SENTRY_DSN) {
-  init({
-    dsn: import.meta.env.MAIN_VITE_SENTRY_DSN,
-    beforeSend: async (event) => {
-      const userPreferences = await userPreferencesRepository.findOne({
-        where: { id: 1 },
-      });
-
-      if (userPreferences?.telemetryEnabled) return event;
-      return null;
-    },
-  });
-}
 
 i18n.init({
   resources,
@@ -67,6 +61,10 @@ app.whenReady().then(() => {
 
     WindowManager.createMainWindow();
     WindowManager.createSystemTray(userPreferences?.language || "en");
+
+    WindowManager.mainWindow?.on("ready-to-show", () => {
+      autoUpdater.checkForUpdatesAndNotify();
+    });
   });
 });
 

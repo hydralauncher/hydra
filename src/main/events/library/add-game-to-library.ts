@@ -42,6 +42,4 @@ const addGameToLibrary = async (
     });
 };
 
-registerEvent(addGameToLibrary, {
-  name: "addGameToLibrary",
-});
+registerEvent("addGameToLibrary", addGameToLibrary);

@@ -47,10 +47,19 @@ export function HeroPanelActions({
 
   const { t } = useTranslation("game_details");
 
+  const getDownloadsPath = async () => {
+    const userPreferences = await window.electron.getUserPreferences();
+    if (userPreferences?.downloadsPath) return userPreferences.downloadsPath;
+    return window.electron.getDefaultDownloadsPath();
+  };
+
   const selectGameExecutable = async () => {
+    const downloadsPath = await getDownloadsPath();
+
     return window.electron
       .showOpenDialog({
         properties: ["openFile"],
+        defaultPath: downloadsPath,
         filters: [
           {
             name: "Game executable",
