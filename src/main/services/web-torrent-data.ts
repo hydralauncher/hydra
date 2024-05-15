@@ -6,17 +6,27 @@ type WebTorrentHealthData = {
 };
 
 export const webTorrentData = {
-  async getSeedersAndPeers(magnet: string) {
+  async getSeedersAndPeers(magnet: string, retry = 0, timeout = 1500) {
     return new Promise((resolve, reject) => {
-      WebTorrentHealth(magnet, (err: Error, data: WebTorrentHealthData) => {
-        if (err) {
-          return reject(err);
+      WebTorrentHealth(
+        magnet,
+        { timeout },
+        (err: Error, data: WebTorrentHealthData) => {
+          if (err) {
+            return reject(err);
+          }
+
+          const { peers, seeds } = data;
+
+          if ((!peers || !seeds) && retry < 3) {
+            return resolve(
+              webTorrentData.getSeedersAndPeers(magnet, retry + 1, timeout * 2)
+            );
+          }
+
+          return resolve({ peers, seeders: seeds });
         }
-
-        const { peers, seeds } = data;
-
-        return resolve({ peers, seeders: seeds });
-      });
+      );
     });
   },
 };
