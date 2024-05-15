@@ -37,10 +37,14 @@ dmg:
 linux:
   target:
     - AppImage
-    - snap
+    - rpm
     - deb
+    - flatpak
   maintainer: electronjs.org
   category: Utility
+  icon: icon.png
+  mimeTypes:
+    - x-scheme-handler/hydralauncher
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
