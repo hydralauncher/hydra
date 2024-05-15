@@ -6,7 +6,6 @@ import * as styles from "./game-details.css";
 import * as sidebarStyles from "./sidebar/sidebar.css";
 
 import { useTranslation } from "react-i18next";
-import { ShareAndroidIcon } from "@primer/octicons-react";
 
 export function GameDetailsSkeleton() {
   const { t } = useTranslation("game_details");
@@ -29,10 +28,6 @@ export function GameDetailsSkeleton() {
               <Skeleton width={145} />
               <Skeleton width={150} />
             </section>
-            <Button theme="outline" disabled>
-              <ShareAndroidIcon />
-              {t("copy_link_to_clipboard")}
-            </Button>
           </div>
           <div className={styles.descriptionSkeleton}>
             {Array.from({ length: 3 }).map((_, index) => (

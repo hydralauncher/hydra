@@ -14,7 +14,6 @@ import "./library/close-game";
 import "./library/delete-game-folder";
 import "./library/get-game-by-object-id";
 import "./library/get-library";
-import "./library/get-repackers-friendly-names";
 import "./library/open-game";
 import "./library/open-game-installer";
 import "./library/remove-game";

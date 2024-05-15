@@ -9,6 +9,7 @@ import { toMagnetURI } from "parse-torrent";
 import type { Instance } from "parse-torrent";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { formatBytes } from "@shared";
+import { getFileBuffer } from "@main/helpers";
 
 const worker = createWorker({});
 
@@ -27,7 +28,7 @@ const formatXatabDate = (str: string) => {
 
 const getXatabRepack = (
   url: string
-): Promise<{ fileSize: string; magnet: string; uploadDate: Date }> => {
+): Promise<{ fileSize: string; magnet: string; uploadDate: Date } | null> => {
   return new Promise((resolve) => {
     (async () => {
       const data = await requestWebPage(url);
@@ -40,15 +41,20 @@ const getXatabRepack = (
         ".download-torrent"
       ) as HTMLAnchorElement;
 
-      if (!$downloadButton) throw new Error("Download button not found");
+      if (!$downloadButton) return resolve(null);
 
-      worker.once("message", (torrent: Instance) => {
+      worker.once("message", (torrent: Instance | null) => {
+        if (!torrent) return resolve(null);
+
         resolve({
           fileSize: formatBytes(torrent.length ?? 0),
           magnet: toMagnetURI(torrent),
           uploadDate: formatXatabDate($uploadDate!.textContent!),
         });
       });
+
+      const buffer = await getFileBuffer($downloadButton.href);
+      worker.postMessage(buffer);
     })();
   });
 };
@@ -69,12 +75,14 @@ export const getNewRepacksFromXatab = async (
     try {
       const repack = await getXatabRepack(($a as HTMLAnchorElement).href);
 
-      repacks.push({
-        title: $a.textContent!,
-        repacker: "Xatab",
-        ...repack,
-        page,
-      });
+      if (repack) {
+        repacks.push({
+          title: $a.textContent!,
+          repacker: "Xatab",
+          ...repack,
+          page,
+        });
+      }
     } catch (err: unknown) {
       logger.error((err as Error).message, {
         method: "getNewRepacksFromXatab",

@@ -1,8 +1,7 @@
 import { stateManager } from "./state-manager";
-import { repackers } from "./constants";
+import { repackersOn1337x } from "./constants";
 import {
   getNewGOGGames,
-  getNewRepacksFromCPG,
   getNewRepacksFromUser,
   getNewRepacksFromXatab,
   getNewRepacksFromOnlineFix,
@@ -12,7 +11,6 @@ import {
 import {
   gameRepository,
   repackRepository,
-  repackerFriendlyNameRepository,
   steamGameRepository,
   userPreferencesRepository,
 } from "./repository";
@@ -27,7 +25,7 @@ import { RealDebridClient } from "./services/real-debrid";
 startProcessWatcher();
 
 const track1337xUsers = async (existingRepacks: Repack[]) => {
-  for (const repacker of repackers) {
+  for (const repacker of repackersOn1337x) {
     await getNewRepacksFromUser(
       repacker,
       existingRepacks.filter((repack) => repack.repacker === repacker)
@@ -39,19 +37,16 @@ const checkForNewRepacks = async (userPreferences: UserPreferences | null) => {
   const existingRepacks = stateManager.getValue("repacks");
 
   Promise.allSettled([
-    getNewGOGGames(
-      existingRepacks.filter((repack) => repack.repacker === "GOG")
-    ),
+    track1337xUsers(existingRepacks),
     getNewRepacksFromXatab(
       existingRepacks.filter((repack) => repack.repacker === "Xatab")
     ),
-    getNewRepacksFromCPG(
-      existingRepacks.filter((repack) => repack.repacker === "CPG")
+    getNewGOGGames(
+      existingRepacks.filter((repack) => repack.repacker === "GOG")
     ),
     getNewRepacksFromOnlineFix(
       existingRepacks.filter((repack) => repack.repacker === "onlinefix")
     ),
-    track1337xUsers(existingRepacks),
   ]).then(() => {
     repackRepository.count().then((count) => {
       const total = count - stateManager.getValue("repacks").length;
@@ -74,8 +69,7 @@ const checkForNewRepacks = async (userPreferences: UserPreferences | null) => {
 };
 
 const loadState = async (userPreferences: UserPreferences | null) => {
-  const [friendlyNames, repacks, steamGames] = await Promise.all([
-    repackerFriendlyNameRepository.find(),
+  const [repacks, steamGames] = await Promise.all([
     repackRepository.find({
       order: {
         createdAt: "desc",
@@ -88,7 +82,6 @@ const loadState = async (userPreferences: UserPreferences | null) => {
     }),
   ]);
 
-  stateManager.setValue("repackersFriendlyNames", friendlyNames);
   stateManager.setValue("repacks", repacks);
   stateManager.setValue("steamGames", steamGames);
 

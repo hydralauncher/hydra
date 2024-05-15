@@ -17,7 +17,6 @@ import {
   setSearch,
   clearSearch,
   setUserPreferences,
-  setRepackersFriendlyNames,
   toggleDraggingDisabled,
 } from "@renderer/features";
 import { GameStatusHelper } from "@shared";
@@ -45,14 +44,11 @@ export function App({ children }: AppProps) {
   );
 
   useEffect(() => {
-    Promise.all([
-      window.electron.getUserPreferences(),
-      window.electron.getRepackersFriendlyNames(),
-      updateLibrary(),
-    ]).then(([preferences, repackersFriendlyNames]) => {
-      dispatch(setUserPreferences(preferences));
-      dispatch(setRepackersFriendlyNames(repackersFriendlyNames));
-    });
+    Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
+      ([preferences]) => {
+        dispatch(setUserPreferences(preferences));
+      }
+    );
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   useEffect(() => {

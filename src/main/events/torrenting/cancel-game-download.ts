@@ -50,6 +50,4 @@ const cancelGameDownload = async (
     });
 };
 
-registerEvent(cancelGameDownload, {
-  name: "cancelGameDownload",
-});
+registerEvent("cancelGameDownload", cancelGameDownload);
