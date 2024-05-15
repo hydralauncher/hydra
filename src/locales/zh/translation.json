@@ -150,7 +150,7 @@
     "launch_with_system": "随系统启动时运行应用程序",
     "enable_real_debrid": "启用 Real Debrid",
     "real_debrid": "Real Debrid",
-    "real_debrid_api_token_hint": "您可以将API密钥填入<0>这里</0>.",
+    "real_debrid_api_token_hint": "您可以从<0>这里</0>获取API密钥.",
     "save_changes": "保存更改"
   },
   "notifications": {
