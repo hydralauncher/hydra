@@ -5,7 +5,6 @@ import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import EpicGamesLogo from "@renderer/assets/epic-games-logo.svg?react";
 
 import * as styles from "./game-card.css";
-import { useAppSelector } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
 
 export interface GameCardProps
@@ -23,10 +22,6 @@ const shopIcon = {
 
 export function GameCard({ game, ...props }: GameCardProps) {
   const { t } = useTranslation("game_card");
-
-  const repackersFriendlyNames = useAppSelector(
-    (state) => state.repackersFriendlyNames.value
-  );
 
   const uniqueRepackers = Array.from(
     new Set(game.repacks.map(({ repacker }) => repacker))
@@ -47,7 +42,7 @@ export function GameCard({ game, ...props }: GameCardProps) {
             <ul className={styles.downloadOptions}>
               {uniqueRepackers.map((repacker) => (
                 <li key={repacker} className={styles.downloadOption}>
-                  <span>{repackersFriendlyNames[repacker]}</span>
+                  <span>{repacker}</span>
                 </li>
               ))}
             </ul>

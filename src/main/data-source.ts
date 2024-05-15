@@ -3,9 +3,7 @@ import {
   Game,
   GameShopCache,
   Repack,
-  RepackerFriendlyName,
   UserPreferences,
-  MigrationScript,
   SteamGame,
 } from "@main/entity";
 import type { SqliteConnectionOptions } from "typeorm/driver/sqlite/SqliteConnectionOptions";
@@ -16,18 +14,9 @@ export const createDataSource = (options: Partial<SqliteConnectionOptions>) =>
   new DataSource({
     type: "better-sqlite3",
     database: databasePath,
-    entities: [
-      Game,
-      Repack,
-      RepackerFriendlyName,
-      UserPreferences,
-      GameShopCache,
-      MigrationScript,
-      SteamGame,
-    ],
+    entities: [Game, Repack, UserPreferences, GameShopCache, SteamGame],
+    synchronize: true,
     ...options,
   });
 
-export const dataSource = createDataSource({
-  synchronize: true,
-});
+export const dataSource = createDataSource({});

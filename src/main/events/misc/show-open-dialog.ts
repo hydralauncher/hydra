@@ -13,6 +13,4 @@ const showOpenDialog = async (
   throw new Error("Main window is not available");
 };
 
-registerEvent(showOpenDialog, {
-  name: "showOpenDialog",
-});
+registerEvent("showOpenDialog", showOpenDialog);

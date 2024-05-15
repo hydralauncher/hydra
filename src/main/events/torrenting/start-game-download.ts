@@ -97,6 +97,4 @@ const startGameDownload = async (
   }
 };
 
-registerEvent(startGameDownload, {
-  name: "startGameDownload",
-});
+registerEvent("startGameDownload", startGameDownload);
