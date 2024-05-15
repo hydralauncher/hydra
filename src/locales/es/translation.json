@@ -25,7 +25,7 @@
   },
   "header": {
     "search": "Buscar juegos",
-    "home": "Inicio"
+    "home": "Inicio",
     "catalogue": "Catálogo",
     "downloads": "Descargas",
     "search_results": "Resultados de búsqueda",
@@ -94,7 +94,7 @@
     "dodi_installation_instruction": "Cuando abras el instalador de DODI, presiona la tecla hacia arriba del teclado <0 /> para iniciar el proceso de instalación:",
     "dont_show_it_again": "No mostrar de nuevo",
     "copy_to_clipboard": "Copiar",
-    "copied_to_clipboard": "Copiado"
+    "copied_to_clipboard": "Copiado",
     "got_it": "Entendido",
     "no_shop_details": "No se pudieron obtener detalles de la tienda.",
     "download_options": "Opciones de descarga",
@@ -133,7 +133,7 @@
     "remove_from_list": "Eliminar",
     "delete_modal_title": "¿Estás seguro?",
     "delete_modal_description": "Esto eliminará todos los archivos de instalación de tu computadora.",
-    "install": "Instalar"
+    "install": "Instalar",
     "real_debrid": "Real Debrid",
     "torrent": "Torrent"
   },
@@ -144,7 +144,7 @@
     "enable_download_notifications": "Cuando se completa una descarga",
     "enable_repack_list_notifications": "Cuando se añade un repack nuevo",
     "telemetry": "Telemetría",
-    "telemetry_description": "Habilitar recopilación de datos de manera anónima"
+    "telemetry_description": "Habilitar recopilación de datos de manera anónima",
     "real_debrid_api_token_label": "Token API de Real Debrid",
     "quit_app_instead_hiding": "Salir de Hydra en vez de minimizar en la bandeja del sistema",
     "launch_with_system": "Iniciar Hydra al inicio del sistema",
