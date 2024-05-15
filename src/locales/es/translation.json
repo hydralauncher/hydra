@@ -24,12 +24,12 @@
     "github": "Contribuye en GitHub"
   },
   "header": {
-    "search": "Buscar",
+    "search": "Buscar juegos",
+    "home": "Inicio"
     "catalogue": "Catálogo",
     "downloads": "Descargas",
     "search_results": "Resultados de búsqueda",
     "settings": "Ajustes",
-    "home": "Inicio"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Sin descargas en progreso",
@@ -86,7 +86,7 @@
     "playing_now": "Jugando ahora",
     "change": "Cambiar",
     "repacks_modal_description": "Selecciona el repack que quieres descargar",
-    "select_folder_hint": "Puedes cambiar la ruta de descarga pulsando Cambiar",
+    "select_folder_hint": "Para cambiar la carpeta predeterminada, ve a <0>Ajustes</0>",
     "download_now": "Descargar ahora",
     "installation_instructions": "Instrucciones de instalación",
     "installation_instructions_description": "Se requieren de pasos adicionales para instalar este juego",
@@ -145,11 +145,11 @@
     "enable_repack_list_notifications": "Cuando se añade un repack nuevo",
     "telemetry": "Telemetría",
     "telemetry_description": "Habilitar recopilación de datos de manera anónima"
-    "real_debrid_api_token_label": "Token de API de Real Debrid",
+    "real_debrid_api_token_label": "Token API de Real Debrid",
     "quit_app_instead_hiding": "Salir de Hydra en vez de minimizar en la bandeja del sistema",
     "launch_with_system": "Iniciar Hydra al inicio del sistema",
     "general": "General",
-    "behavior": "Conducta",
+    "behavior": "Otros",
     "enable_real_debrid": "Activar Real Debrid",
     "real_debrid": "Real Debrid",
     "real_debrid_api_token_hint": "Puedes obtener tu clave de API <0>aquí</0>.",
