@@ -37,12 +37,17 @@
     "checking_files": "Analizando archivos de {{title}} - ({{percentage}} completado)",
     "downloading": "Descargando {{title}}… ({{percentage}} completado) - Finalizando {{eta}} - {{speed}}"
   },
+"catalogue": {
+  "next_page": "Siguiente página",
+  "previous_page": "Pagina anterior"
+},
   "game_details": {
     "open_download_options": "Ver opciones de descargas",
     "download_options_zero": "No hay opciones de descargas disponibles",
     "download_options_one": "{{count}} opción de descarga",
     "download_options_other": "{{count}} opciones de descargas",
     "updated_at": "Actualizado el {{updated_at}}",
+    "install": "Instalar",
     "resume": "Continuar",
     "pause": "Pausa",
     "cancel": "Cancelar",
@@ -52,7 +57,7 @@
     "eta": "Finalizando en {{eta}}",
     "downloading_metadata": "Descargando metadatos…",
     "checking_files": "Analizando archivos…",
-    "filter": "Filtrar repacks",
+    "filter": "Buscar repacks",
     "requirements": "Requisitos del Sistema",
     "minimum": "Mínimos",
     "recommended": "Recomendados",
@@ -71,20 +76,17 @@
     "add_to_library": "Agregar a la biblioteca",
     "remove_from_library": "Eliminar de la biblioteca",
     "no_downloads": "No hay descargas disponibles",
-    "next_suggestion": "Siguiente sugerencia",
     "play_time": "Jugado por {{amount}}",
-    "install": "Instalar",
-    "play": "Jugar",
-    "not_played_yet": "Aún no has jugado a {{title}}",
-    "close": "Cerrar",
-    "deleting": "Eliminando instalador…",
-    "playing_now": "Jugando ahora",
     "last_time_played": "Jugado por última vez {{period}}",
-    "got_it": "Entendido",
+    "not_played_yet": "Aún no has jugado a {{title}}",
+    "next_suggestion": "Siguiente sugerencia",
+    "play": "Jugar",
+    "deleting": "Eliminando instalador…",
+    "close": "Cerrar",
+    "playing_now": "Jugando ahora",
     "change": "Cambiar",
     "repacks_modal_description": "Selecciona el repack que quieres descargar",
-    "downloads_path": "Ruta de descarga",
-    "select_folder_hint": "Para cambiar la carpeta predeterminada, accede a",
+    "select_folder_hint": "Puedes cambiar la ruta de descarga pulsando Cambiar",
     "download_now": "Descargar ahora",
     "installation_instructions": "Instrucciones de instalación",
     "installation_instructions_description": "Se requieren de pasos adicionales para instalar este juego",
@@ -93,6 +95,14 @@
     "dont_show_it_again": "No mostrar de nuevo",
     "copy_to_clipboard": "Copiar",
     "copied_to_clipboard": "Copiado"
+    "got_it": "Entendido",
+    "no_shop_details": "No se pudieron obtener detalles de la tienda.",
+    "download_options": "Opciones de descarga",
+    "download_path": "Ruta de descarga",
+    "previous_screenshot": "Anterior captura",
+    "next_screenshot": "Siguiente captura",
+    "screenshot": "Captura {{number}}",
+    "open_screenshot": "Abrir captura {{number}}"
   },
   "activation": {
     "title": "Activar Hydra",
@@ -118,12 +128,14 @@
     "downloading_metadata": "Descargando metadatos…",
     "checking_files": "Verificando archivos…",
     "starting_download": "Iniciando descarga…",
-    "remove_from_list": "Eliminar",
-    "delete": "Eliminar instalador",
-    "delete_modal_description": "Esto eliminará todos los archivos de instalación de tu computadora.",
-    "delete_modal_title": "¿Estás seguro?",
     "deleting": "Eliminando instalador…",
+    "delete": "Eliminar instalador",
+    "remove_from_list": "Eliminar",
+    "delete_modal_title": "¿Estás seguro?",
+    "delete_modal_description": "Esto eliminará todos los archivos de instalación de tu computadora.",
     "install": "Instalar"
+    "real_debrid": "Real Debrid",
+    "torrent": "Torrent"
   },
   "settings": {
     "downloads_path": "Ruta de descarga",
@@ -133,6 +145,15 @@
     "enable_repack_list_notifications": "Cuando se añade un repack nuevo",
     "telemetry": "Telemetría",
     "telemetry_description": "Habilitar recopilación de datos de manera anónima"
+    "real_debrid_api_token_label": "Token de API de Real Debrid",
+    "quit_app_instead_hiding": "Salir de Hydra en vez de minimizar en la bandeja del sistema",
+    "launch_with_system": "Iniciar Hydra al inicio del sistema",
+    "general": "General",
+    "behavior": "Conducta",
+    "enable_real_debrid": "Activar Real Debrid",
+    "real_debrid": "Real Debrid",
+    "real_debrid_api_token_hint": "Puedes obtener tu clave de API <0>aquí</0>.",
+    "save_changes": "Guardar cambios"
   },
   "notifications": {
     "download_complete": "Descarga completada",
@@ -155,9 +176,5 @@
   },
   "modal": {
     "close": "Botón de cierre"
-  },
-  "catalogue": {
-    "next_page": "Siguiente página",
-    "previous_page": "Pagina anterior"
   }
 }
