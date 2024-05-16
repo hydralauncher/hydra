@@ -92,13 +92,14 @@ export const steamUserRatingContainer = style({
   alignItems: "center",
   flexDirection: "column",
   gap: "5px",
-  marginBottom: "1rem",
+  marginBottom: "10px",
 });
 
 export const userRatingStars = style({
-  width: "70%",
+  listStyle: "none",
   display: "flex",
-  justifyContent: "center",
+  gap: "10px",
+  margin: "10px",
 });
 
 globalStyle(`${requirementsDetails} a`, {
