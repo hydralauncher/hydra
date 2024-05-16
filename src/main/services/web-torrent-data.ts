@@ -1,4 +1,4 @@
-import WebTorrentHealth from "webtorrent-health";
+import webTorrentHealth from "webtorrent-health";
 
 type WebTorrentHealthData = {
   seeds: number;
@@ -6,27 +6,26 @@ type WebTorrentHealthData = {
 };
 
 export const webTorrentData = {
-  async getSeedersAndPeers(magnet: string, retry = 0, timeout = 1500) {
-    return new Promise((resolve, reject) => {
-      WebTorrentHealth(
-        magnet,
-        { timeout },
-        (err: Error, data: WebTorrentHealthData) => {
-          if (err) {
-            return reject(err);
-          }
+  async getSeedersAndPeers(
+    magnet: string
+  ): Promise<{ seeders: number; peers: number }> {
+    let peers = 0;
+    let seeds = 0;
+    let retry = 0;
 
-          const { peers, seeds } = data;
+    while (retry < 3 && (!peers || !seeds)) {
+      try {
+        const data: WebTorrentHealthData = await webTorrentHealth(magnet, {
+          timeout: 1500 * (retry + 1),
+        });
 
-          if ((!peers || !seeds) && retry < 3) {
-            return resolve(
-              webTorrentData.getSeedersAndPeers(magnet, retry + 1, timeout * 2)
-            );
-          }
+        peers = data.peers;
+        seeds = data.seeds;
+      } catch (e) {
+        retry++;
+      }
+    }
 
-          return resolve({ peers, seeders: seeds });
-        }
-      );
-    });
+    return { peers, seeders: seeds };
   },
 };
