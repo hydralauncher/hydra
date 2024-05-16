@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class FixRepackUploadDate1715900413313 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `UPDATE repack SET uploadDate = datetime('now') WHERE uploadDate LIKE '%NaN%';`
+      `UPDATE repack SET uploadDate = createdAt WHERE uploadDate LIKE '%NaN%';`
     );
   }
 
