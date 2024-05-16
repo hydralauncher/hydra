@@ -146,6 +146,8 @@ export const getNewRepacksFromOnlineFix = async (
         );
 
         worker.once("message", (torrent) => {
+          if (!torrent) return;
+
           repacks.push({
             fileSize: formatBytes(torrent.length ?? 0),
             magnet: toMagnetURI(torrent),
