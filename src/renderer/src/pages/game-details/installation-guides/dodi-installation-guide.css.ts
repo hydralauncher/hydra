@@ -1,4 +1,4 @@
-import { vars } from "../../../theme.css";
+import { vars } from "@renderer/theme.css";
 import { keyframes, style } from "@vanilla-extract/css";
 
 export const slideIn = keyframes({

@@ -1,5 +1,5 @@
 import { style } from "@vanilla-extract/css";
-import { SPACING_UNIT, vars } from "../../../theme.css";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 
 export const panel = style({
   width: "100%",

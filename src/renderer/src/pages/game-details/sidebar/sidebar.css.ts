@@ -1,6 +1,6 @@
 import { globalStyle, style } from "@vanilla-extract/css";
 
-import { SPACING_UNIT, vars } from "../../../theme.css";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 
 export const contentSidebar = style({
   borderLeft: `solid 1px ${vars.color.border};`,
