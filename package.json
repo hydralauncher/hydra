@@ -10,6 +10,10 @@
     "url": "https://github.com/hydralauncher/hydra.git"
   },
   "type": "module",
+  "engines": {
+    "npm": "please-use-yarn",
+    "yarn": ">= 1.19.1"
+  },
   "scripts": {
     "format": "prettier --write .",
     "format-check": "prettier --check .",
