@@ -9,6 +9,7 @@ import {
 import type { SqliteConnectionOptions } from "typeorm/driver/sqlite/SqliteConnectionOptions";
 
 import { databasePath } from "./constants";
+import migrations from "./migrations";
 
 export const createDataSource = (options: Partial<SqliteConnectionOptions>) =>
   new DataSource({
@@ -16,6 +17,8 @@ export const createDataSource = (options: Partial<SqliteConnectionOptions>) =>
     database: databasePath,
     entities: [Game, Repack, UserPreferences, GameShopCache, SteamGame],
     synchronize: true,
+    migrations: migrations,
+    migrationsRun: true,
     ...options,
   });
 
