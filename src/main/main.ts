@@ -21,8 +21,10 @@ import { t } from "i18next";
 import { GameStatus } from "@shared";
 import { In } from "typeorm";
 import { RealDebridClient } from "./services/real-debrid";
+import { loadthemesPath } from "./theme/path";
 
 startProcessWatcher();
+loadthemesPath();
 
 const track1337xUsers = async (existingRepacks: Repack[]) => {
   for (const repacker of repackersOn1337x) {

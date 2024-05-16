@@ -125,6 +125,7 @@ export interface UserPreferences {
   realDebridApiToken: string | null;
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;
+  theme: Theme;
 }
 
 export interface HowLongToBeatCategory {
@@ -136,4 +137,16 @@ export interface HowLongToBeatCategory {
 export interface Steam250Game {
   title: string;
   objectID: string;
+}
+
+export interface Theme {
+  name: string;
+  createdBy: string;
+  scheme: {
+    background: string;
+    darkBackground: string;
+    muted: string;
+    bodyText: string;
+    border: string;
+  };
 }

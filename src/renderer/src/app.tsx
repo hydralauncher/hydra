@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Sidebar, BottomPanel, Header } from "@renderer/components";
 
@@ -10,7 +10,7 @@ import {
 } from "@renderer/hooks";
 
 import * as styles from "./app.css";
-import { themeClass } from "./theme.css";
+import { vars } from "./theme.css";
 
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -20,8 +20,8 @@ import {
   toggleDraggingDisabled,
 } from "@renderer/features";
 import { GameStatusHelper } from "@shared";
-
-document.body.classList.add(themeClass);
+import { Theme } from "@types";
+import { setElementVars } from "@vanilla-extract/dynamic";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -43,13 +43,33 @@ export function App({ children }: AppProps) {
     (state) => state.window.draggingDisabled
   );
 
+  const [themeLoaded, setThemeLoaded] = useState(false);
+
   useEffect(() => {
     Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
       ([preferences]) => {
         dispatch(setUserPreferences(preferences));
+        if (!themeLoaded) {
+          const storedTheme = localStorage.getItem("theme");
+          if (storedTheme) {
+            const theme = JSON.parse(storedTheme) as Theme;
+            applyTheme(theme);
+            setThemeLoaded(true);
+          }
+        }
       }
     );
-  }, [navigate, location.pathname, dispatch, updateLibrary]);
+  }, [navigate, location.pathname, dispatch, updateLibrary, themeLoaded]);
+
+  const applyTheme = (theme: Theme) => {
+    setElementVars(document.body, {
+      [vars.color.background]: theme.scheme.background,
+      [vars.color.darkBackground]: theme.scheme.darkBackground,
+      [vars.color.muted]: theme.scheme.muted,
+      [vars.color.bodyText]: theme.scheme.bodyText,
+      [vars.color.border]: theme.scheme.border,
+    });
+  };
 
   useEffect(() => {
     const unsubscribe = window.electron.onDownloadProgress(
