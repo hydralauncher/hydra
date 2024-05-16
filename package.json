@@ -1,6 +1,6 @@
 {
   "name": "hydra",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
@@ -12,6 +12,7 @@
   "type": "module",
   "scripts": {
     "format": "prettier --write .",
+    "format-check": "prettier --check .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
