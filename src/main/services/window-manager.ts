@@ -91,20 +91,20 @@ export class WindowManager {
         where: {
           isDeleted: false,
           executablePath: Not(IsNull()),
+          lastTimePlayed: Not(IsNull()),
         },
         take: 5,
         order: {
-          lastTimePlayed: "DESC",
+          updatedAt: "DESC",
         },
       });
 
       const recentlyPlayedGames: Array<MenuItemConstructorOptions | MenuItem> =
-        games.map(({ title, id, executablePath }) => ({
+        games.map(({ title, executablePath }) => ({
           label: title,
           type: "normal",
           click: async () => {
             if (!executablePath) return;
-            await gameRepository.update({ id }, { executablePath });
 
             shell.openPath(executablePath);
           },
