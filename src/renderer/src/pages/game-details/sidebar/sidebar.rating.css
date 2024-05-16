@@ -1,104 +1,128 @@
-.steamuserrating input { display: none; }
-
-.steamuserrating label {
-	width: 40px;
-	height: 40px;
-	background: #111;
-	display: inline-flex;
-	cursor: pointer;
-	margin: 0.5vmin 0.65vmin;
-	transition: all 1s ease 0s;
-	clip-path: polygon(50% 0%, 66% 32%, 100% 38%, 78% 64%, 83% 100%, 50% 83%, 17% 100%, 22% 64%, 0 38%, 34% 32%);
+.steamuserrating input {
+  display: none;
 }
 
-.steamuserrating label[for=rs0] {
-	display: none;
+.steamuserrating label {
+  width: 40px;
+  height: 40px;
+  background: #111;
+  display: inline-flex;
+  cursor: pointer;
+  margin: 0.5vmin 0.65vmin;
+  transition: all 1s ease 0s;
+  clip-path: polygon(
+    50% 0%,
+    66% 32%,
+    100% 38%,
+    78% 64%,
+    83% 100%,
+    50% 83%,
+    17% 100%,
+    22% 64%,
+    0 38%,
+    34% 32%
+  );
+}
+
+.steamuserrating label[for="rs0"] {
+  display: none;
 }
 
 .steamuserrating label:before {
-	width: 90%;
-	height: 90%;
-	content: "";
-	z-index: -1;
-	margin-left: 5%;
-	margin-top: 5%;
-    border-radius: 15px;
-	clip-path: polygon(50% 0%, 66% 32%, 100% 38%, 78% 64%, 83% 100%, 50% 83%, 17% 100%, 22% 64%, 0 38%, 34% 32%);
-	background: linear-gradient(90deg, #666, #444 30% 50%, var(--color-darkBackground__jwuf9v2) 50%, 70%, var(--color-darkBackground__jwuf9v2) 100%);
-	background-size: 205% 100%;
-	background-position: 0 0;
+  width: 90%;
+  height: 90%;
+  content: "";
+  z-index: -1;
+  margin-left: 5%;
+  margin-top: 5%;
+  border-radius: 15px;
+  clip-path: polygon(
+    50% 0%,
+    66% 32%,
+    100% 38%,
+    78% 64%,
+    83% 100%,
+    50% 83%,
+    17% 100%,
+    22% 64%,
+    0 38%,
+    34% 32%
+  );
+  background: linear-gradient(
+    90deg,
+    #666,
+    #444 30% 50%,
+    var(--color-darkBackground__jwuf9v2) 50%,
+    70%,
+    var(--color-darkBackground__jwuf9v2) 100%
+  );
+  background-size: 205% 100%;
+  background-position: 0 0;
 }
 
 .steamuserrating input:checked + label ~ label:before {
-	background-position: 100% 0;
-	transition: all 0.25s ease 0s;	
+  background-position: 100% 0;
+  transition: all 0.25s ease 0s;
 }
 
-
-
-
-
 .steamuserrating #rs1:checked ~ .rating-counter:before {
-	content: "1";
+  content: "1";
 }
 
 .steamuserrating #rs2:checked ~ .rating-counter:before {
-	content: "2";
+  content: "2";
 }
 
 .steamuserrating #rs3:checked ~ .rating-counter:before {
-	content: "3";
+  content: "3";
 }
 
 .steamuserrating #rs4:checked ~ .rating-counter:before {
-	content: "4";
+  content: "4";
 }
 
 .steamuserrating #rs5:checked ~ .rating-counter:before {
-	content: "5";
+  content: "5";
 }
 
 .steamuserrating label + input:checked ~ .rating-counter:before {
-	color: #ffab00 !important;
-	transition: all 0.25s ease 0s;
+  color: #ffab00 !important;
+  transition: all 0.25s ease 0s;
 }
 
-
-
-
-
 .steamuserrating label:hover ~ .rating-counter:before {
-	color: #9aacc6 !important;
-	transition: all 0.5s ease 0s;	
-	animation: pulse 1s ease 0s infinite;
+  color: #9aacc6 !important;
+  transition: all 0.5s ease 0s;
+  animation: pulse 1s ease 0s infinite;
 }
 
 @keyframes pulse {
-	50% { font-size: 6.25vmin; }
+  50% {
+    font-size: 6.25vmin;
+  }
 }
 
-.steamuserrating label[for=rs1]:hover ~ .rating-counter:before {
-	content: "1" !important;
+.steamuserrating label[for="rs1"]:hover ~ .rating-counter:before {
+  content: "1" !important;
 }
 
-.steamuserrating label[for=rs2]:hover ~ .rating-counter:before {
-	content: "2" !important;
+.steamuserrating label[for="rs2"]:hover ~ .rating-counter:before {
+  content: "2" !important;
 }
 
-.steamuserrating label[for=rs3]:hover ~ .rating-counter:before {
-	content: "3" !important;
+.steamuserrating label[for="rs3"]:hover ~ .rating-counter:before {
+  content: "3" !important;
 }
 
-.steamuserrating label[for=rs4]:hover ~ .rating-counter:before {
-	content: "4" !important;
+.steamuserrating label[for="rs4"]:hover ~ .rating-counter:before {
+  content: "4" !important;
 }
 
-.steamuserrating label[for=rs5]:hover ~ .rating-counter:before {
-	content: "5" !important;
+.steamuserrating label[for="rs5"]:hover ~ .rating-counter:before {
+  content: "5" !important;
 }
-
 
 .steamuserrating input:checked:hover ~ .rating-counter:before {
-	animation: none !important;
-	color: #ffab00 !important ;
+  animation: none !important;
+  color: #ffab00 !important ;
 }
