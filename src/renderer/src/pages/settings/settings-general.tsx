@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import ISO6391 from 'iso-639-1'
+import ISO6391 from "iso-639-1";
 
-import { TextField, Button, CheckboxField, Select} from "@renderer/components";
+import { TextField, Button, CheckboxField, Select } from "@renderer/components";
 import { useTranslation } from "react-i18next";
 import * as styles from "./settings-general.css";
 import type { UserPreferences } from "@types";
@@ -18,29 +18,29 @@ export function SettingsGeneral({
   userPreferences,
   updateUserPreferences,
 }: SettingsGeneralProps) {
-
   const { t } = useTranslation("settings");
 
-  const [form, setForm] = useState(
-    {
-      downloadsPath: '',
-      downloadNotificationsEnabled: false,
-      repackUpdatesNotificationsEnabled: false,
-      language: '',
-    }
-  );
-  
-  const [defaultDownloadsPath, setdefaultDownloadsPath] = useState('');
-  
+  const [form, setForm] = useState({
+    downloadsPath: "",
+    downloadNotificationsEnabled: false,
+    repackUpdatesNotificationsEnabled: false,
+    language: "",
+  });
+
+  const [defaultDownloadsPath, setdefaultDownloadsPath] = useState("");
+
   useEffect(() => {
     async function fetchdefaultDownloadsPath() {
-      setdefaultDownloadsPath(await window.electron.getDefaultDownloadsPath())
+      setdefaultDownloadsPath(await window.electron.getDefaultDownloadsPath());
     }
-    
+
     fetchdefaultDownloadsPath();
   }, []);
-  
-  useEffect(updateFormWithUserPreferences, [userPreferences, defaultDownloadsPath]);
+
+  useEffect(updateFormWithUserPreferences, [
+    userPreferences,
+    defaultDownloadsPath,
+  ]);
 
   const handleLanguageChange = (event) => {
     const value = event.target.value;
@@ -69,14 +69,16 @@ export function SettingsGeneral({
     }
   };
 
-  function updateFormWithUserPreferences(){
+  function updateFormWithUserPreferences() {
     if (userPreferences) {
       setForm((prev) => ({
         ...prev,
         downloadsPath: userPreferences.downloadsPath ?? defaultDownloadsPath,
-        downloadNotificationsEnabled: userPreferences.downloadNotificationsEnabled,
-        repackUpdatesNotificationsEnabled: userPreferences.repackUpdatesNotificationsEnabled,
-        language: userPreferences.language
+        downloadNotificationsEnabled:
+          userPreferences.downloadNotificationsEnabled,
+        repackUpdatesNotificationsEnabled:
+          userPreferences.repackUpdatesNotificationsEnabled,
+        language: userPreferences.language,
       }));
     }
   }
@@ -103,8 +105,10 @@ export function SettingsGeneral({
       <h3>{t("language")}</h3>
       <>
         <Select value={form.language} onChange={handleLanguageChange}>
-          {Object.keys(languageResources).map(language => (
-            <option key={language} value={language}>{ISO6391.getName(language)}</option>
+          {Object.keys(languageResources).map((language) => (
+            <option key={language} value={language}>
+              {ISO6391.getName(language)}
+            </option>
           ))}
         </Select>
       </>
