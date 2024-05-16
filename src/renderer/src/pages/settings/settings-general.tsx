@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
+import ISO6391 from 'iso-639-1'
 
-import { TextField, Button, CheckboxField } from "@renderer/components";
+import { TextField, Button, CheckboxField, Select} from "@renderer/components";
 import { useTranslation } from "react-i18next";
-
 import * as styles from "./settings-general.css";
 import type { UserPreferences } from "@types";
+
+import { changeLanguage } from "i18next";
+import * as languageResources from "@locales";
 
 export interface SettingsGeneralProps {
   userPreferences: UserPreferences | null;
@@ -15,34 +18,41 @@ export function SettingsGeneral({
   userPreferences,
   updateUserPreferences,
 }: SettingsGeneralProps) {
-  const [form, setForm] = useState({
-    downloadsPath: "",
-    downloadNotificationsEnabled: false,
-    repackUpdatesNotificationsEnabled: false,
-  });
-
-  useEffect(() => {
-    if (userPreferences) {
-      const {
-        downloadsPath,
-        downloadNotificationsEnabled,
-        repackUpdatesNotificationsEnabled,
-      } = userPreferences;
-
-      window.electron.getDefaultDownloadsPath().then((defaultDownloadsPath) => {
-        setForm((prev) => ({
-          ...prev,
-          downloadsPath: downloadsPath ?? defaultDownloadsPath,
-          downloadNotificationsEnabled,
-          repackUpdatesNotificationsEnabled,
-        }));
-      });
-    }
-  }, [userPreferences]);
 
   const { t } = useTranslation("settings");
 
+  const [form, setForm] = useState(
+    {
+      downloadsPath: '',
+      downloadNotificationsEnabled: false,
+      repackUpdatesNotificationsEnabled: false,
+      language: '',
+    }
+  );
+  
+  const [defaultDownloadsPath, setdefaultDownloadsPath] = useState('');
+  
+  useEffect(() => {
+    async function fetchdefaultDownloadsPath() {
+      setdefaultDownloadsPath(await window.electron.getDefaultDownloadsPath())
+    }
+    
+    fetchdefaultDownloadsPath();
+  }, []);
+  
+  useEffect(updateFormWithUserPreferences, [userPreferences, defaultDownloadsPath]);
+
+  const handleLanguageChange = (event) => {
+    const value = event.target.value;
+
+    handleChange({ language: value });
+    changeLanguage(value);
+  };
+
   const handleChange = (values: Partial<typeof form>) => {
+    // TODO: why is the setForm needed if updateUserPreferences already changes the
+    // UserPreferences and useEffect(updateFormWithUserPreferences)
+    // does the setForm((prev) in the callback function?
     setForm((prev) => ({ ...prev, ...values }));
     updateUserPreferences(values);
   };
@@ -56,9 +66,20 @@ export function SettingsGeneral({
     if (filePaths && filePaths.length > 0) {
       const path = filePaths[0];
       handleChange({ downloadsPath: path });
-      updateUserPreferences({ downloadsPath: path });
     }
   };
+
+  function updateFormWithUserPreferences(){
+    if (userPreferences) {
+      setForm((prev) => ({
+        ...prev,
+        downloadsPath: userPreferences.downloadsPath ?? defaultDownloadsPath,
+        downloadNotificationsEnabled: userPreferences.downloadNotificationsEnabled,
+        repackUpdatesNotificationsEnabled: userPreferences.repackUpdatesNotificationsEnabled,
+        language: userPreferences.language
+      }));
+    }
+  }
 
   return (
     <>
@@ -79,28 +100,38 @@ export function SettingsGeneral({
         </Button>
       </div>
 
+      <h3>{t("language")}</h3>
+      <>
+        <Select value={form.language} onChange={handleLanguageChange}>
+          {Object.keys(languageResources).map(language => (
+            <option key={language} value={language}>{ISO6391.getName(language)}</option>
+          ))}
+        </Select>
+      </>
+
       <h3>{t("notifications")}</h3>
+      <>
+        <CheckboxField
+          label={t("enable_download_notifications")}
+          checked={form.downloadNotificationsEnabled}
+          onChange={() =>
+            handleChange({
+              downloadNotificationsEnabled: !form.downloadNotificationsEnabled,
+            })
+          }
+        />
 
-      <CheckboxField
-        label={t("enable_download_notifications")}
-        checked={form.downloadNotificationsEnabled}
-        onChange={() =>
-          handleChange({
-            downloadNotificationsEnabled: !form.downloadNotificationsEnabled,
-          })
-        }
-      />
-
-      <CheckboxField
-        label={t("enable_repack_list_notifications")}
-        checked={form.repackUpdatesNotificationsEnabled}
-        onChange={() =>
-          handleChange({
-            repackUpdatesNotificationsEnabled:
-              !form.repackUpdatesNotificationsEnabled,
-          })
-        }
-      />
+        <CheckboxField
+          label={t("enable_repack_list_notifications")}
+          checked={form.repackUpdatesNotificationsEnabled}
+          onChange={() =>
+            handleChange({
+              repackUpdatesNotificationsEnabled:
+                !form.repackUpdatesNotificationsEnabled,
+            })
+          }
+        />
+      </>
     </>
   );
 }

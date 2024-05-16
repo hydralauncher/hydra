@@ -27,32 +27,31 @@ export function Settings() {
     window.electron.updateUserPreferences(values);
   };
 
-  const renderCategory = () => {
-    if (currentCategory === "general") {
-      return (
-        <SettingsGeneral
-          userPreferences={userPreferences}
-          updateUserPreferences={handleUpdateUserPreferences}
-        />
-      );
+  function renderCategory() {
+    switch (currentCategory) {
+      case "general":
+        return (
+          <SettingsGeneral
+            userPreferences={userPreferences}
+            updateUserPreferences={handleUpdateUserPreferences}
+          />
+        );
+      case "real_debrid":
+        return (
+          <SettingsRealDebrid
+            userPreferences={userPreferences}
+            updateUserPreferences={handleUpdateUserPreferences}
+          />
+        );
+      default:
+        return (
+          <SettingsBehavior
+            userPreferences={userPreferences}
+            updateUserPreferences={handleUpdateUserPreferences}
+          />
+        );
     }
-
-    if (currentCategory === "real_debrid") {
-      return (
-        <SettingsRealDebrid
-          userPreferences={userPreferences}
-          updateUserPreferences={handleUpdateUserPreferences}
-        />
-      );
-    }
-
-    return (
-      <SettingsBehavior
-        userPreferences={userPreferences}
-        updateUserPreferences={handleUpdateUserPreferences}
-      />
-    );
-  };
+  }
 
   return (
     <section className={styles.container}>

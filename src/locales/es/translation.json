@@ -153,7 +153,8 @@
     "enable_real_debrid": "Activar Real Debrid",
     "real_debrid": "Real Debrid",
     "real_debrid_api_token_hint": "Puedes obtener tu clave de API <0>aquí</0>.",
-    "save_changes": "Guardar cambios"
+    "save_changes": "Guardar cambios",
+    "language": "Idioma"
   },
   "notifications": {
     "download_complete": "Descarga completada",
