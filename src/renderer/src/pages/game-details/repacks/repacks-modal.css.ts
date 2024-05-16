@@ -1,5 +1,5 @@
 import { style } from "@vanilla-extract/css";
-import { SPACING_UNIT, vars } from "../../theme.css";
+import { SPACING_UNIT, vars } from "../../../theme.css";
 
 export const repacks = style({
   display: "flex",

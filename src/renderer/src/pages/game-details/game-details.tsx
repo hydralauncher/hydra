@@ -29,7 +29,7 @@ import { DescriptionHeader } from "./description-header";
 import { GameDetailsSkeleton } from "./game-details-skeleton";
 import * as styles from "./game-details.css";
 import { HeroPanel } from "./hero";
-import { RepacksModal } from "./repacks-modal";
+import { RepacksModal } from "./repacks/repacks-modal";
 
 import { vars } from "../../theme.css";
 import {
