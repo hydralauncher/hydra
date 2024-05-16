@@ -8,7 +8,7 @@ import * as styles from "./repacks-modal.css";
 
 import { SPACING_UNIT } from "../../../theme.css";
 import { format } from "date-fns";
-import { SelectFolderModal } from "../select-folder-modal";
+import { SelectFolderModal } from "../select-folder";
 
 export interface RepacksModalProps {
   visible: boolean;
