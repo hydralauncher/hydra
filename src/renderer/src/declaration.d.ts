@@ -53,6 +53,7 @@ declare global {
       prevCursor?: number
     ) => Promise<{ results: CatalogueEntry[]; cursor: number }>;
     searchGameRepacks: (query: string) => Promise<GameRepack[]>;
+    getSteamUserRating: (objectID: string) => Promise<SteamUserRating | null>;
 
     /* Library */
     addGameToLibrary: (

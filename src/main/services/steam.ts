@@ -33,3 +33,20 @@ export const getSteamAppDetails = async (
       throw new Error(err);
     });
 };
+
+export const getSteamAppRating = async (objectID: string) => {
+  return axios
+    .get(
+      `http://store.steampowered.com/appreviews/${objectID}?json=1&language=all`
+    )
+    .then((response) => {
+      if (response.data.success) {
+        return response.data.query_summary;
+      }
+      return null;
+    })
+    .catch((err) => {
+      logger.error(err, { method: "getSteamAppRating" });
+      throw new Error(err);
+    });
+};

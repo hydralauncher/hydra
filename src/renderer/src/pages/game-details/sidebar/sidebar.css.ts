@@ -86,6 +86,21 @@ export const howLongToBeatCategorySkeleton = style({
   height: "76px",
 });
 
+export const steamUserRatingContainer = style({
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  flexDirection: "column",
+  gap: "5px",
+  marginBottom: "1rem",
+});
+
+export const userRatingStars = style({
+  width: "70%",
+  display: "flex",
+  justifyContent: "center",
+});
+
 globalStyle(`${requirementsDetails} a`, {
   display: "flex",
   color: vars.color.bodyText,

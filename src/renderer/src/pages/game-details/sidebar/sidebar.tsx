@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
-import type {
-  HowLongToBeatCategory,
-  ShopDetails,
-  SteamAppDetails,
+import {
+  type SteamUserRating,
+  type HowLongToBeatCategory,
+  type ShopDetails,
+  type SteamAppDetails,
 } from "@types";
 import { useTranslation } from "react-i18next";
 import { Button } from "@renderer/components";
 
 import * as styles from "./sidebar.css";
+import SteamUserRatingSection from "./steam-user-rating";
 
 export interface SidebarProps {
   objectID: string;
@@ -16,7 +18,11 @@ export interface SidebarProps {
   gameDetails: ShopDetails | null;
 }
 
-export function Sidebar({ objectID, title, gameDetails }: SidebarProps) {
+export function Sidebar({
+  objectID,
+  title,
+  gameDetails,
+}: Readonly<SidebarProps>) {
   const [howLongToBeat, setHowLongToBeat] = useState<{
     isLoading: boolean;
     data: HowLongToBeatCategory[] | null;
@@ -24,6 +30,8 @@ export function Sidebar({ objectID, title, gameDetails }: SidebarProps) {
 
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
+  const [steamUserRating, setSteamUserRating] =
+    useState<SteamUserRating | null>(null);
 
   const { t } = useTranslation("game_details");
 
@@ -38,10 +46,22 @@ export function Sidebar({ objectID, title, gameDetails }: SidebarProps) {
       .catch(() => {
         setHowLongToBeat({ isLoading: false, data: null });
       });
+
+    window.electron
+      .getSteamUserRating(objectID)
+      .then((userRating) => {
+        setSteamUserRating(userRating);
+      })
+      .catch(() => {
+        setSteamUserRating(null);
+      });
   }, [objectID, title]);
 
   return (
     <aside className={styles.contentSidebar}>
+      {/* Rating Section */}
+      <SteamUserRatingSection steamUserRating={steamUserRating} />
+
       <HowLongToBeatSection
         howLongToBeatData={howLongToBeat.data}
         isLoading={howLongToBeat.isLoading}

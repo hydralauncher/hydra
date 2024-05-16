@@ -54,6 +54,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGames", take, prevCursor),
   searchGameRepacks: (query: string) =>
     ipcRenderer.invoke("searchGameRepacks", query),
+  getSteamUserRating: (objectID: string) =>
+    ipcRenderer.invoke("getSteamUserRating", objectID),
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),

@@ -59,6 +59,8 @@
     "checking_files": "Checking files…",
     "filter": "Filter repacks",
     "requirements": "System requirements",
+    "total_reviews": "Total reviews",
+    "rating_steam": "Rating Steam",
     "minimum": "Minimum",
     "recommended": "Recommended",
     "no_minimum_requirements": "{{title}} doesn't provide minimum requirements information",

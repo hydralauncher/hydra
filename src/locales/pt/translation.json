@@ -54,6 +54,8 @@
     "checking_files": "Verificando arquivos…",
     "filter": "Filtrar repacks",
     "requirements": "Requisitos do sistema",
+    "total_reviews": "Total de reviews",
+    "rating_steam": "Pontuação Steam",
     "minimum": "Mínimos",
     "recommended": "Recomendados",
     "no_minimum_requirements": "{{title}} não possui informações de requisitos mínimos",
