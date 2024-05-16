@@ -4,7 +4,7 @@ import { XIcon } from "@primer/octicons-react";
 
 import * as styles from "./modal.css";
 
-import { Backdrop } from "../backdrop/backdrop";
+import { Backdrop } from "../backdrop";
 import { useTranslation } from "react-i18next";
 
 export interface ModalProps {
