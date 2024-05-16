@@ -1,5 +1,5 @@
 import { recipe } from "@vanilla-extract/recipes";
-import { SPACING_UNIT, vars } from "../../theme.css";
+import { SPACING_UNIT, vars } from "../../../theme.css";
 import { style } from "@vanilla-extract/css";
 
 export const gallerySliderContainer = style({
