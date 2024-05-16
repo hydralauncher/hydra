@@ -37,10 +37,10 @@
     "checking_files": "Analizando archivos de {{title}} - ({{percentage}} completado)",
     "downloading": "Descargando {{title}}… ({{percentage}} completado) - Finalizando {{eta}} - {{speed}}"
   },
-"catalogue": {
-  "next_page": "Siguiente página",
-  "previous_page": "Pagina anterior"
-},
+  "catalogue": {
+    "next_page": "Siguiente página",
+    "previous_page": "Pagina anterior"
+  },
   "game_details": {
     "open_download_options": "Ver opciones de descargas",
     "download_options_zero": "No hay opciones de descargas disponibles",
