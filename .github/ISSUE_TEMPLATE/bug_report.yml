@@ -1,0 +1,58 @@
+name: Bug Report
+description: Create a report to help us improve. Write in English, please.
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for creating a bug report to help us improve!
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: bug-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior. For example, "1. Go to '...', 2. Click on '...', 3. See error"
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem.
+    validations:
+      required: false
+  - type: input
+    id: OS
+    attributes:
+      label: Operating System
+      description: Which operating system are you using (e.g., Windows 11/Linux Distro/Steam Deck)?
+    validations:
+      required: true
+  - type: input
+    id: hydra-version
+    attributes:
+      label: Hydra Version
+      description: Please provide the version of Hydra you are using.
+    validations:
+      required: true
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional Information
+      description: Please provide any additional information and context about your problem.
+    validations:
+      required: false
