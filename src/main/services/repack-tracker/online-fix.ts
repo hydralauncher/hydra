@@ -14,6 +14,8 @@ import { formatBytes } from "@shared";
 
 const ONLINE_FIX_URL = "https://online-fix.me/";
 
+let totalPages = 1;
+
 export const getNewRepacksFromOnlineFix = async (
   existingRepacks: Repack[] = [],
   page = 1,
@@ -70,9 +72,12 @@ export const getNewRepacksFromOnlineFix = async (
 
   const repacks: QueryDeepPartialEntity<Repack>[] = [];
   const articles = Array.from(document.querySelectorAll(".news"));
-  const totalPages = Number(
-    document.querySelector("nav > a:nth-child(13)")?.textContent
-  );
+
+  if (page == 1) {
+    totalPages = Number(
+      document.querySelector("nav > a:nth-child(13)")?.textContent
+    );
+  }
 
   try {
     await Promise.all(
