@@ -22,7 +22,9 @@ export class FixRepackUploadDate1715900413313 implements MigrationInterface {
       `INSERT INTO repack_temp (title, old_id) SELECT title, id FROM repack WHERE repacker IN ('onlinefix', 'Xatab');`
     );
 
-    await queryRunner.query(`DELETE FROM repack WHERE repacker = 'onlinefix';`);
+    await queryRunner.query(
+      `DELETE FROM repack WHERE repacker IN ('onlinefix', 'Xatab');`
+    );
 
     const updateDataSource = createDataSource({
       database: app.isPackaged
