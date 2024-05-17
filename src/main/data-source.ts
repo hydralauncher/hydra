@@ -17,9 +17,10 @@ export const createDataSource = (options: Partial<SqliteConnectionOptions>) =>
     database: databasePath,
     entities: [Game, Repack, UserPreferences, GameShopCache, SteamGame],
     synchronize: true,
-    migrations: migrations,
-    migrationsRun: true,
     ...options,
   });
 
-export const dataSource = createDataSource({});
+export const dataSource = createDataSource({
+  migrations: migrations,
+  migrationsRun: true,
+});
