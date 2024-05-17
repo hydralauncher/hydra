@@ -1,6 +1,9 @@
 import { SizeProp } from "@fortawesome/fontawesome-svg-core";
 import { faStar as EstrelaVazia } from "@fortawesome/free-regular-svg-icons";
-import { faStar as EstrelaPreenchida } from "@fortawesome/free-solid-svg-icons";
+import {
+  faStar as EstrelaPreenchida,
+  faStarHalfStroke as EstrelaParcialmentePreenchida,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { type SteamUserRating } from "@types";
 import { FC } from "react";
@@ -11,14 +14,25 @@ import * as styles from "./sidebar.css";
 interface StarProps {
   selected: boolean;
   size?: SizeProp;
+  partial?: boolean;
 }
 
-const Star: FC<StarProps> = ({ selected, size }) => {
-  return selected ? (
-    <FontAwesomeIcon icon={EstrelaPreenchida} size={size ?? "xl"} />
-  ) : (
-    <FontAwesomeIcon icon={EstrelaVazia} size={size ?? "xl"} />
-  );
+const Star: FC<StarProps> = ({ selected, size, partial = false }) => {
+  let finalIcon = <FontAwesomeIcon icon={EstrelaVazia} size={size ?? "xl"} />;
+  if (selected) {
+    finalIcon = (
+      <FontAwesomeIcon icon={EstrelaPreenchida} size={size ?? "xl"} />
+    );
+  }
+  if (partial) {
+    finalIcon = (
+      <FontAwesomeIcon
+        icon={EstrelaParcialmentePreenchida}
+        size={size ?? "xl"}
+      />
+    );
+  }
+  return finalIcon;
 };
 
 export interface RatingProps {
@@ -36,13 +50,13 @@ const Rating: FC<RatingProps> = ({
 }) => {
   return (
     <div className={styles.userRatingStars}>
-      {Array(hideInactive ? value : maxStars)
+      {Array(hideInactive ? value / 2 : maxStars)
         .fill(null)
-        .map((_, i) => i + 1)
-        .map((starNumber) => (
+        .map((_, i) => (
           <Star
-            key={starNumber}
-            selected={starNumber <= (value + 1) / 2}
+            key={_}
+            selected={i < Math.floor(value / 2)}
+            partial={i === Math.floor(value / 2) && !!(value % 2)}
             size={size}
           />
         ))}
