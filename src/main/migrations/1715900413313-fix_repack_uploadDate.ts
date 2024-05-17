@@ -73,7 +73,7 @@ export class FixRepackUploadDate1715900413313 implements MigrationInterface {
       `DELETE FROM repack WHERE repacker = 'onlinefix-old';`
     );
 
-    queryRunner.dropTable("repack_temp");
+    await queryRunner.dropTable("repack_temp");
   }
 
   public async down(_: QueryRunner): Promise<void> {
