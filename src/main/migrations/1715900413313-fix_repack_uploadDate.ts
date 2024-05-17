@@ -7,16 +7,6 @@ import { In, MigrationInterface, QueryRunner, Table } from "typeorm";
 
 export class FixRepackUploadDate1715900413313 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    const existsTable = await queryRunner.query(
-      `SELECT name FROM sqlite_master WHERE type='table' AND name='repack';`
-    );
-
-    if (!existsTable.length) return;
-
-    const repackCount = await queryRunner.manager.count(Repack);
-
-    if (!repackCount) return;
-
     await queryRunner.createTable(
       new Table({
         name: "repack_temp",
