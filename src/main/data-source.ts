@@ -22,5 +22,4 @@ export const createDataSource = (options: Partial<SqliteConnectionOptions>) =>
 
 export const dataSource = createDataSource({
   migrations: migrations,
-  migrationsRun: true,
 });
