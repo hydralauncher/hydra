@@ -22,7 +22,9 @@ export class FixRepackUploadDate1715900413313 implements MigrationInterface {
       `INSERT INTO repack_temp (title, old_id) SELECT title, id FROM repack WHERE repacker = 'onlinefix';`
     );
 
-    await queryRunner.query(`DELETE FROM repack WHERE repacker = 'onlinefix';`);
+    await queryRunner.query(
+      `UPDATE repack SET repacker = 'onlinefix-old' WHERE repacker = 'onlinefix';`
+    );
 
     const updateDataSource = createDataSource({
       database: app.isPackaged
@@ -59,15 +61,19 @@ export class FixRepackUploadDate1715900413313 implements MigrationInterface {
 
     await queryRunner.query(
       `UPDATE game 
-      set repackId = (
+      SET repackId = (
         SELECT id 
         from repack LEFT JOIN repack_temp ON repack_temp.title = repack.title
+        WHERE repack_temp.old_id = game.repackId
       ) 
       WHERE EXISTS (select old_id from repack_temp WHERE old_id = game.repackId)`
     );
 
-    // uncomment this line after debug and test
-    //queryRunner.dropTable("repack_temp");
+    await queryRunner.query(
+      `DELETE FROM repack WHERE repacker = 'onlinefix-old';`
+    );
+
+    queryRunner.dropTable("repack_temp");
   }
 
   public async down(_: QueryRunner): Promise<void> {
