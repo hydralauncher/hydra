@@ -48,7 +48,7 @@ export const searchGames = ({
   skip,
 }: SearchGamesArgs): CatalogueEntry[] => {
   const results = steamGamesIndex
-    .search(formatName(query || ""), { limit: take, offset: skip })
+    .search(formatName(query ?? ""), { limit: take, offset: skip })
     .map((index) => {
       const result = steamGames.at(index as number)!;
 
@@ -66,4 +66,30 @@ export const searchGames = ({
     [({ repacks }) => repacks.length, "repacks"],
     ["desc"]
   );
+};
+
+export const searchGamesByID = (gameID: string | string[] | undefined) => {
+  if (!gameID) return [];
+
+  const idGameList = Array.isArray(gameID) ? [...new Set(gameID)] : [gameID];
+
+  const results = idGameList
+    .map((id) => {
+      const result = steamGames.find((game) => game.id === Number(id));
+
+      if (!result) {
+        return null;
+      }
+
+      return {
+        objectID: String(result.id),
+        title: result.name,
+        shop: "steam" as GameShop,
+        cover: getSteamAppAsset("library", String(result.id)),
+        repacks: searchRepacks(result.name),
+      };
+    })
+    .filter(Boolean);
+
+  return results as CatalogueEntry[];
 };

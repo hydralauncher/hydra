@@ -100,7 +100,8 @@
     "previous_screenshot": "Captura de tela anterior",
     "next_screenshot": "Próxima captura de tela",
     "screenshot": "Captura de tela {{number}}",
-    "open_screenshot": "Ver captura de tela {{number}}"
+    "open_screenshot": "Ver captura de tela {{number}}",
+    "recommended_games": "Jogos recomendados"
   },
   "activation": {
     "title": "Ativação",
