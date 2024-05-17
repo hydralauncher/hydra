@@ -17,7 +17,11 @@
     "downloading": "{{title}} ({{percentage}} - Pobieranie…)",
     "filter": "Filtruj biblioteke",
     "follow_us": "Śledź nas",
-    "home": "Główna"
+    "home": "Główna",
+    "discord": "Dołącz nasz Discord",
+    "telegram": "Dołącz nasz Telegram",
+    "x": "Śledź na X",
+    "github": "Przyczyń się na GitHub"
   },
   "header": {
     "search": "Szukaj",
@@ -66,6 +70,8 @@
     "copied_link_to_clipboard": "Skopiowano łącze",
     "hours": "godzin",
     "minutes": "minut",
+    "amount_hours": "{{amount}} godzin",
+    "amount_minutes": "{{amount}} minut",
     "accuracy": "{{accuracy}}% dokładność",
     "add_to_library": "Dodaj do biblioteki",
     "remove_from_library": "Usuń z biblioteki",
@@ -80,9 +86,23 @@
     "playing_now": "Granie teraz",
     "change": "Zmień",
     "repacks_modal_description": "Wybierz repack, który chcesz pobrać",
-    "downloads_path": "Ścieżka pobierania",
     "select_folder_hint": "Aby zmienić domyślny folder, przejdź do",
-    "download_now": "Pobierz teraz"
+    "download_now": "Pobierz teraz",
+    "installation_instructions": "Instrukcja instalacji",
+    "installation_instructions_description": "Do zainstalowania tej gry wymagane są dodatkowe kroki",
+    "online_fix_instruction": "Gry OnlineFix wymagają hasła do wyodrębnienia. W razie potrzeby użyj następującego hasła:",
+    "dodi_installation_instruction": "Po otwarciu instalatora DODI naciśnij klawisz <0 /> w górę, aby rozpocząć proces instalacji:",
+    "dont_show_it_again": "Nie pokazuj tego ponownie",
+    "copy_to_clipboard": "Skopiuj",
+    "copied_to_clipboard": "Skopiowano",
+    "got_it": "Rozumiem",
+    "no_shop_details": "Nie udało się pobrać danych sklepu.",
+    "download_options": "Opcje pobierania",
+    "download_path": "Ścieżka pobierania",
+    "previous_screenshot": "Poprzedni zrzut ekranu",
+    "next_screenshot": "Następny zrzut ekranu",
+    "screenshot": "Zrzut ekranu {{number}}",
+    "open_screenshot": "Otwórz zrzut ekranu {{number}}"
   },
   "activation": {
     "title": "Aktywuj Hydra",
@@ -113,7 +133,9 @@
     "remove_from_list": "Usuń",
     "delete_modal_title": "Czy na pewno?",
     "delete_modal_description": "Spowoduje to usunięcie wszystkich plików instalacyjnych z komputera",
-    "install": "Instaluj"
+    "install": "Instaluj",
+    "real_debrid": "Real Debrid",
+    "torrent": "Torrent"
   },
   "settings": {
     "downloads_path": "Ścieżka pobierania",
@@ -122,7 +144,16 @@
     "enable_download_notifications": "Gdy pobieranie zostanie zakończone",
     "enable_repack_list_notifications": "Gdy dodawany jest nowy repack",
     "telemetry": "Telemetria",
-    "telemetry_description": "Włącz anonimowe statystyki użycia"
+    "telemetry_description": "Włącz anonimowe statystyki użycia",
+    "real_debrid_api_token_label": "Real Debrid API token",
+    "quit_app_instead_hiding": "Zamknij Hydr zamiast minimalizować do zasobnika",
+    "launch_with_system": "Uruchom Hydra przy starcie systemu",
+    "general": "Ogólne",
+    "behavior": "Zachowania",
+    "enable_real_debrid": "Włącz Real Debrid",
+    "real_debrid": "Real Debrid",
+    "real_debrid_api_token_hint": "Możesz uzyskać swój klucz API <0>tutaj</0>.",
+    "save_changes": "Zapisz zmiany"
   },
   "notifications": {
     "download_complete": "Pobieranie zakończone",
@@ -142,5 +173,8 @@
     "title": "Programy nie są zainstalowane",
     "description": "Pliki wykonywalne Wine lub Lutris nie zostały znalezione na twoim systemie",
     "instructions": "Sprawdź prawidłowy sposób instalacji dowolnego z nich w swojej dystrybucji Linuksa, aby gra działała normalnie"
+  },
+  "modal": {
+    "close": "Zamknij"
   }
 }
