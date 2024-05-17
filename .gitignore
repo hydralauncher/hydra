@@ -10,3 +10,4 @@ out
 .env
 .vite
 
+yarn.lock

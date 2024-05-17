@@ -104,7 +104,8 @@
     "previous_screenshot": "Previous screenshot",
     "next_screenshot": "Next screenshot",
     "screenshot": "Screenshot {{number}}",
-    "open_screenshot": "Open screenshot {{number}}"
+    "open_screenshot": "Open screenshot {{number}}",
+    "recommended_games": "Recommended games"
   },
   "activation": {
     "title": "Activate Hydra",

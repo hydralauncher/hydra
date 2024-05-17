@@ -146,3 +146,8 @@ export interface SteamUserRating {
   total_negative: number;
   total_reviews: number;
 }
+
+export interface SteamGenreGame {
+  id: number;
+  type: number;
+}
