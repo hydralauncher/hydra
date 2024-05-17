@@ -11,6 +11,7 @@ import { Button } from "@renderer/components";
 
 import * as styles from "./sidebar.css";
 import SteamUserRatingSection from "./steam-user-rating";
+import SteamGameRecommendations from "./game-recommendations";
 
 export interface SidebarProps {
   objectID: string;
@@ -99,6 +100,8 @@ export function Sidebar({
             }),
         }}
       />
+
+      <SteamGameRecommendations gameID={objectID} />
     </aside>
   );
 }

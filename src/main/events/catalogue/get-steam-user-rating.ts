@@ -3,9 +3,9 @@ import { registerEvent } from "../register-event";
 
 const getSteamUserRating = async (
   _event: Electron.IpcMainInvokeEvent,
-  objectID: string
+  gameID: string
 ) => {
-  return getSteamAppRating(objectID);
+  return getSteamAppRating(gameID);
 };
 
 registerEvent("getSteamUserRating", getSteamUserRating);

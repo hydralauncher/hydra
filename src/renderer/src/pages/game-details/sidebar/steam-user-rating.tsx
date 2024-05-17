@@ -1,8 +1,54 @@
-import { useTranslation } from "react-i18next";
+import { SizeProp } from "@fortawesome/fontawesome-svg-core";
+import { faStar as EstrelaVazia } from "@fortawesome/free-regular-svg-icons";
+import { faStar as EstrelaPreenchida } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { type SteamUserRating } from "@types";
+import { FC } from "react";
+import { useTranslation } from "react-i18next";
 
 import * as styles from "./sidebar.css";
-import "./sidebar.rating.css";
+
+interface StarProps {
+  selected: boolean;
+  size?: SizeProp;
+}
+
+const Star: FC<StarProps> = ({ selected, size }) => {
+  return selected ? (
+    <FontAwesomeIcon icon={EstrelaPreenchida} size={size ?? "xl"} />
+  ) : (
+    <FontAwesomeIcon icon={EstrelaVazia} size={size ?? "xl"} />
+  );
+};
+
+export interface RatingProps {
+  maxStars?: number;
+  value?: number;
+  size?: SizeProp;
+  hideInactive?: boolean;
+}
+
+const Rating: FC<RatingProps> = ({
+  maxStars = 5,
+  value = 0,
+  size = "2xl",
+  hideInactive = false,
+}) => {
+  return (
+    <div className={styles.userRatingStars}>
+      {Array(hideInactive ? value : maxStars)
+        .fill(null)
+        .map((_, i) => i + 1)
+        .map((starNumber) => (
+          <Star
+            key={starNumber}
+            selected={starNumber <= (value + 1) / 2}
+            size={size}
+          />
+        ))}
+    </div>
+  );
+};
 
 export default function SteamUserRatingSection({
   steamUserRating,
@@ -19,82 +65,7 @@ export default function SteamUserRatingSection({
         className={`steamuserrating ${styles.steamUserRatingContainer}`}
         title={`${steamUserRating?.review_score.toFixed(1) ?? 0.0} - ${steamUserRating?.review_score_desc ?? ""} (${steamUserRating?.total_positive ?? 0})`}
       >
-        <div className={styles.userRatingStars}>
-          <input
-            readOnly
-            type="radio"
-            id="rs0"
-            checked={(steamUserRating?.review_score ?? 0) < 1}
-          />
-          <label htmlFor="rs0">
-            <span>0</span>
-          </label>
-
-          <input
-            readOnly
-            type="radio"
-            id="rs1"
-            checked={
-              (steamUserRating?.review_score ?? 0) >= 1 &&
-              (steamUserRating?.review_score ?? 0) <= 2
-            }
-          />
-          <label htmlFor="rs1">
-            <span>1</span>
-          </label>
-
-          <input
-            readOnly
-            type="radio"
-            id="rs2"
-            checked={
-              (steamUserRating?.review_score ?? 0) > 2 &&
-              (steamUserRating?.review_score ?? 0) <= 4
-            }
-          />
-          <label htmlFor="rs2">
-            <span>2</span>
-          </label>
-
-          <input
-            readOnly
-            type="radio"
-            id="rs3"
-            checked={
-              (steamUserRating?.review_score ?? 0) > 4 &&
-              (steamUserRating?.review_score ?? 0) <= 6
-            }
-          />
-          <label htmlFor="rs3">
-            <span>3</span>
-          </label>
-
-          <input
-            readOnly
-            type="radio"
-            id="rs4"
-            checked={
-              (steamUserRating?.review_score ?? 0) > 6 &&
-              (steamUserRating?.review_score ?? 0) <= 8
-            }
-          />
-          <label htmlFor="rs4">
-            <span>4</span>
-          </label>
-
-          <input
-            readOnly
-            type="radio"
-            id="rs5"
-            checked={
-              (steamUserRating?.review_score ?? 0) > 8 &&
-              (steamUserRating?.review_score ?? 0) <= 10
-            }
-          />
-          <label htmlFor="rs5">
-            <span>5</span>
-          </label>
-        </div>
+        <Rating value={steamUserRating?.review_score ?? 0} size="xl" />
 
         <span className="rating">
           {`${t("total_reviews")}: ${steamUserRating?.total_reviews ?? 0}`}
