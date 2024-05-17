@@ -3,7 +3,7 @@ import { Repack } from "@main/entity";
 import { app } from "electron";
 import { chunk } from "lodash-es";
 import path from "path";
-import { MigrationInterface, QueryRunner, Table } from "typeorm";
+import { In, MigrationInterface, QueryRunner, Table } from "typeorm";
 
 export class FixRepackUploadDate1715900413313 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -19,7 +19,7 @@ export class FixRepackUploadDate1715900413313 implements MigrationInterface {
     );
 
     await queryRunner.query(
-      `INSERT INTO repack_temp (title, old_id) SELECT title, id FROM repack WHERE repacker = 'onlinefix';`
+      `INSERT INTO repack_temp (title, old_id) SELECT title, id FROM repack WHERE repacker IN ('onlinefix', 'Xatab');`
     );
 
     await queryRunner.query(`DELETE FROM repack WHERE repacker = 'onlinefix';`);
@@ -34,14 +34,14 @@ export class FixRepackUploadDate1715900413313 implements MigrationInterface {
 
     const updateRepackRepository = updateDataSource.getRepository(Repack);
 
-    const updatedOnlineFix = await updateRepackRepository.find({
+    const updatedRepacks = await updateRepackRepository.find({
       where: {
-        repacker: "onlinefix",
+        repacker: In(["onlinefix", "Xatab"]),
       },
     });
 
     const chunks = chunk(
-      updatedOnlineFix.map((repack) => {
+      updatedRepacks.map((repack) => {
         const { id: _, ...rest } = repack;
         return rest;
       }),
