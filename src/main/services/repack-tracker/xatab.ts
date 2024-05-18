@@ -12,6 +12,9 @@ import { formatBytes } from "@shared";
 import { getFileBuffer } from "@main/helpers";
 
 const worker = createWorker({});
+worker.setMaxListeners(11);
+
+let totalPages = 1;
 
 const formatXatabDate = (str: string) => {
   const date = new Date();
@@ -69,26 +72,36 @@ export const getNewRepacksFromXatab = async (
 
   const repacks: QueryDeepPartialEntity<Repack>[] = [];
 
-  for (const $a of Array.from(
-    window.document.querySelectorAll(".entry__title a")
-  )) {
-    try {
-      const repack = await getXatabRepack(($a as HTMLAnchorElement).href);
-
-      if (repack) {
-        repacks.push({
-          title: $a.textContent!,
-          repacker: "Xatab",
-          ...repack,
-          page,
-        });
-      }
-    } catch (err: unknown) {
-      logger.error((err as Error).message, {
-        method: "getNewRepacksFromXatab",
-      });
-    }
+  if (page === 1) {
+    totalPages = Number(
+      window.document.querySelector(
+        "#bottom-nav > div.pagination > a:nth-child(12)"
+      )?.textContent
+    );
   }
+
+  const repacksFromPage = Array.from(
+    window.document.querySelectorAll(".entry__title a")
+  ).map(($a) => {
+    return getXatabRepack(($a as HTMLAnchorElement).href)
+      .then((repack) => {
+        if (repack) {
+          repacks.push({
+            title: $a.textContent!,
+            repacker: "Xatab",
+            ...repack,
+            page,
+          });
+        }
+      })
+      .catch((err: unknown) => {
+        logger.error((err as Error).message, {
+          method: "getNewRepacksFromXatab",
+        });
+      });
+  });
+
+  await Promise.all(repacksFromPage);
 
   const newRepacks = repacks.filter(
     (repack) =>
@@ -98,6 +111,7 @@ export const getNewRepacksFromXatab = async (
   );
 
   if (!newRepacks.length) return;
+  if (page === totalPages) return;
 
   await savePage(newRepacks);
 
