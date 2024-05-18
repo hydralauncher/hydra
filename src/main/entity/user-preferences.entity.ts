@@ -32,6 +32,9 @@ export class UserPreferences {
   @Column("boolean", { default: false })
   runAtStartup: boolean;
 
+  @Column("text", { nullable: false, default: "star" })
+  userRatingStyle: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

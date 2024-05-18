@@ -54,8 +54,6 @@
     "checking_files": "Verificando arquivos…",
     "filter": "Filtrar repacks",
     "requirements": "Requisitos do sistema",
-    "total_reviews": "Total de reviews",
-    "rating_steam": "Pontuação Steam",
     "minimum": "Mínimos",
     "recommended": "Recomendados",
     "no_minimum_requirements": "{{title}} não possui informações de requisitos mínimos",
@@ -101,7 +99,9 @@
     "next_screenshot": "Próxima captura de tela",
     "screenshot": "Captura de tela {{number}}",
     "open_screenshot": "Ver captura de tela {{number}}",
-    "recommended_games": "Jogos recomendados"
+    "recommended_games": "Jogos recomendados",
+    "total_reviews": "Total Reviews",
+    "reviews_steam": "Avaliações Steam"
   },
   "activation": {
     "title": "Ativação",
@@ -152,7 +152,13 @@
     "enable_real_debrid": "Habilitar Real Debrid",
     "real_debrid": "Real Debrid",
     "real_debrid_api_token_hint": "Você pode obter sua chave de API <0>aqui</0>.",
-    "save_changes": "Salvar mudanças"
+    "save_changes": "Salvar mudanças",
+    "interface": "Interface",
+    "ratingStyle": "Estilo de rating da Steam",
+    "choose": "Escolha...",
+    "none": "Nenhum",
+    "bar": "Barra",
+    "star": "Estrela"
   },
   "notifications": {
     "download_complete": "Download concluído",

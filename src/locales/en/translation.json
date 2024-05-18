@@ -59,8 +59,6 @@
     "checking_files": "Checking files…",
     "filter": "Filter repacks",
     "requirements": "System requirements",
-    "total_reviews": "Total reviews",
-    "rating_steam": "Rating Steam",
     "minimum": "Minimum",
     "recommended": "Recommended",
     "no_minimum_requirements": "{{title}} doesn't provide minimum requirements information",
@@ -105,7 +103,9 @@
     "next_screenshot": "Next screenshot",
     "screenshot": "Screenshot {{number}}",
     "open_screenshot": "Open screenshot {{number}}",
-    "recommended_games": "Recommended games"
+    "recommended_games": "Recommended games",
+    "total_reviews": "Total reviews",
+    "reviews_steam": "Steam Reviews"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -156,7 +156,13 @@
     "enable_real_debrid": "Enable Real Debrid",
     "real_debrid": "Real Debrid",
     "real_debrid_api_token_hint": "You can get your API key <0>here</0>.",
-    "save_changes": "Save changes"
+    "save_changes": "Save changes",
+    "interface": "Interface",
+    "ratingStyle": "Rating style",
+    "choose": "Choose...",
+    "none": "None",
+    "bar": "Bar",
+    "star": "Star"
   },
   "notifications": {
     "download_complete": "Download complete",

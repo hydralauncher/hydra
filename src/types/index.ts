@@ -125,6 +125,7 @@ export interface UserPreferences {
   realDebridApiToken: string | null;
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;
+  userRatingStyle: string;
 }
 
 export interface HowLongToBeatCategory {

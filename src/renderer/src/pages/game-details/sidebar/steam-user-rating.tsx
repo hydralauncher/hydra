@@ -5,8 +5,8 @@ import {
   faStarHalfStroke as EstrelaParcialmentePreenchida,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { type SteamUserRating } from "@types";
-import { FC } from "react";
+import { UserPreferences, type SteamUserRating } from "@types";
+import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as styles from "./sidebar.css";
@@ -39,6 +39,7 @@ export interface RatingProps {
   maxStars?: number;
   value?: number;
   size?: SizeProp;
+  title?: string;
   hideInactive?: boolean;
 }
 
@@ -46,15 +47,16 @@ const Rating: FC<RatingProps> = ({
   maxStars = 5,
   value = 0,
   size = "2xl",
+  title,
   hideInactive = false,
 }) => {
   return (
-    <div className={styles.userRatingStars}>
+    <div className={styles.userRatingStars} title={title ?? ""}>
       {Array(hideInactive ? value / 2 : maxStars)
         .fill(null)
         .map((_, i) => (
           <Star
-            key={_}
+            key={`${_}-${i}`}
             selected={i < Math.floor(value / 2)}
             partial={i === Math.floor(value / 2) && !!(value % 2)}
             size={size}
@@ -68,23 +70,70 @@ export default function SteamUserRatingSection({
   steamUserRating,
 }: Readonly<{ steamUserRating: SteamUserRating | null }>) {
   const { t } = useTranslation("game_details");
+  const [userPreferences, setUserPreferences] =
+    useState<UserPreferences | null>(null);
 
-  return (
-    <>
-      <div className={styles.contentSidebarTitle}>
-        <h3>{t("rating_steam")}</h3>
-      </div>
+  useEffect(() => {
+    window.electron.getUserPreferences().then((userPreferences) => {
+      setUserPreferences(userPreferences);
+    });
+  }, []);
 
-      <div
-        className={`steamuserrating ${styles.steamUserRatingContainer}`}
-        title={`${steamUserRating?.review_score.toFixed(1) ?? 0.0} - ${steamUserRating?.review_score_desc ?? ""} (${steamUserRating?.total_positive ?? 0})`}
-      >
-        <Rating value={steamUserRating?.review_score ?? 0} size="xl" />
+  if (userPreferences?.userRatingStyle === "bar") {
+    return (
+      <>
+        <div className={styles.contentSidebarTitle}>
+          <h3>{t("reviews_steam")}</h3>
+        </div>
+        <div
+          className={`steamuserrating ${styles.steamUserRatingBarContainer}`}
+        >
+          <div
+            className={styles.bar}
+            title={`${steamUserRating?.review_score.toFixed(1) ?? 0.0} - ${steamUserRating?.review_score_desc ?? ""} (${steamUserRating?.total_positive ?? 0})`}
+          >
+            <div
+              className={styles.barfilling}
+              style={{ width: `${(steamUserRating?.review_score ?? 0) * 10}%` }}
+            />
+          </div>
+          <div className={styles.rating}>
+            <span>{t("total_reviews")}:</span>
+            <span>
+              {steamUserRating?.review_score_desc ?? ""} (
+              {steamUserRating?.total_reviews ?? 0})
+            </span>
+          </div>
+        </div>
+      </>
+    );
+  }
 
-        <span className="rating">
-          {`${t("total_reviews")}: ${steamUserRating?.total_reviews ?? 0}`}
-        </span>
-      </div>
-    </>
-  );
+  if (userPreferences?.userRatingStyle === "star") {
+    return (
+      <>
+        <div className={styles.contentSidebarTitle}>
+          <h3>{t("reviews_steam")}</h3>
+        </div>
+
+        <div className={`steamuserrating ${styles.steamUserRatingContainer}`}>
+          <Rating
+            value={steamUserRating?.review_score ?? 0}
+            title={`${steamUserRating?.review_score.toFixed(1) ?? 0.0} - ${steamUserRating?.review_score_desc ?? ""} (${steamUserRating?.total_positive ?? 0})`}
+            size="xl"
+          />
+
+          <div className={styles.rating}>
+            <span>{t("total_reviews")}:</span>
+            <span>
+              {steamUserRating?.review_score_desc ?? ""} (
+              {steamUserRating?.total_reviews ?? 0})
+            </span>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  return <></>;
 }
