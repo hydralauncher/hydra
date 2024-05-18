@@ -53,6 +53,8 @@ app.whenReady().then(() => {
   );
 
   dataSource.initialize().then(async () => {
+    await dataSource.runMigrations();
+
     await resolveDatabaseUpdates();
 
     await import("./main");
