@@ -5,26 +5,28 @@ import { contextBridge, ipcRenderer } from "electron";
 import type {
   CatalogueCategory,
   GameShop,
-  DownloadProgress,
+  TorrentProgress,
   UserPreferences,
-  AppUpdaterEvent,
-  StartGameDownloadPayload,
 } from "@types";
 
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
-  startGameDownload: (payload: StartGameDownloadPayload) =>
-    ipcRenderer.invoke("startGameDownload", payload),
+  startGameDownload: (
+    repackId: number,
+    objectID: string,
+    title: string,
+    shop: GameShop
+  ) => ipcRenderer.invoke("startGameDownload", repackId, objectID, title, shop),
   cancelGameDownload: (gameId: number) =>
     ipcRenderer.invoke("cancelGameDownload", gameId),
   pauseGameDownload: (gameId: number) =>
     ipcRenderer.invoke("pauseGameDownload", gameId),
   resumeGameDownload: (gameId: number) =>
     ipcRenderer.invoke("resumeGameDownload", gameId),
-  onDownloadProgress: (cb: (value: DownloadProgress) => void) => {
+  onDownloadProgress: (cb: (value: TorrentProgress) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      value: DownloadProgress
+      value: TorrentProgress
     ) => cb(value);
     ipcRenderer.on("on-download-progress", listener);
     return () => ipcRenderer.removeListener("on-download-progress", listener);
@@ -41,16 +43,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getHowLongToBeat", objectID, shop, title),
   getGames: (take?: number, prevCursor?: number) =>
     ipcRenderer.invoke("getGames", take, prevCursor),
-  searchGameRepacks: (query: string) =>
-    ipcRenderer.invoke("searchGameRepacks", query),
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
   updateUserPreferences: (preferences: UserPreferences) =>
     ipcRenderer.invoke("updateUserPreferences", preferences),
   autoLaunch: (enabled: boolean) => ipcRenderer.invoke("autoLaunch", enabled),
-  authenticateRealDebrid: (apiToken: string) =>
-    ipcRenderer.invoke("authenticateRealDebrid", apiToken),
 
   /* Library */
   addGameToLibrary: (
@@ -67,6 +65,8 @@ contextBridge.exposeInMainWorld("electron", {
       executablePath
     ),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
+  getRepackersFriendlyNames: () =>
+    ipcRenderer.invoke("getRepackersFriendlyNames"),
   openGameInstaller: (gameId: number) =>
     ipcRenderer.invoke("openGameInstaller", gameId),
   openGame: (gameId: number, executablePath: string) =>
@@ -74,7 +74,6 @@ contextBridge.exposeInMainWorld("electron", {
   closeGame: (gameId: number) => ipcRenderer.invoke("closeGame", gameId),
   removeGameFromLibrary: (gameId: number) =>
     ipcRenderer.invoke("removeGameFromLibrary", gameId),
-  removeGame: (gameId: number) => ipcRenderer.invoke("removeGame", gameId),
   deleteGameFolder: (gameId: number) =>
     ipcRenderer.invoke("deleteGameFolder", gameId),
   getGameByObjectID: (objectID: string) =>
@@ -93,8 +92,7 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   /* Hardware */
-  getDiskFreeSpace: (path: string) =>
-    ipcRenderer.invoke("getDiskFreeSpace", path),
+  getDiskFreeSpace: () => ipcRenderer.invoke("getDiskFreeSpace"),
 
   /* Misc */
   ping: () => ipcRenderer.invoke("ping"),
@@ -104,22 +102,6 @@ contextBridge.exposeInMainWorld("electron", {
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
   platform: process.platform,
-
-  /* Auto update */
-  onAutoUpdaterEvent: (cb: (value: AppUpdaterEvent) => void) => {
-    const listener = (
-      _event: Electron.IpcRendererEvent,
-      value: AppUpdaterEvent
-    ) => cb(value);
-
-    ipcRenderer.on("autoUpdaterEvent", listener);
-
-    return () => {
-      ipcRenderer.removeListener("autoUpdaterEvent", listener);
-    };
-  },
-  checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
-  restartAndInstallUpdate: () => ipcRenderer.invoke("restartAndInstallUpdate"),
   getMagnetHealth: (magnet: string) =>
     ipcRenderer.invoke("getMagnetHealth", magnet),
 });

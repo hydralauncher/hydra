@@ -98,7 +98,9 @@
     "previous_screenshot": "Screenshot precedente",
     "next_screenshot": "Screenshot successivo",
     "screenshot": "Screenshot {{number}}",
-    "open_screenshot": "Apri screenshot {{number}}"
+    "open_screenshot": "Apri screenshot {{number}}",
+    "multi_language": "Multilingua",
+    "multiplayer": "Multigiocatore"
   },
   "activation": {
     "title": "Attiva Hydra",

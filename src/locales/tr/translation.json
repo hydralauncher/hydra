@@ -91,7 +91,9 @@
     "dont_show_it_again": "Tekrar gösterme",
     "copy_to_clipboard": "Kopyala",
     "copied_to_clipboard": "Kopyalandı",
-    "got_it": "Tamam"
+    "got_it": "Tamam",
+    "multi_language": "Çoklu Dil",
+    "multiplayer": "Çok Oyunculu"
   },
   "activation": {
     "title": "Hydra'yı aktif et",

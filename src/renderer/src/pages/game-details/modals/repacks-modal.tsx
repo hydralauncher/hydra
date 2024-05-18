@@ -11,6 +11,14 @@ import { format } from "date-fns";
 import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "../game-details.context";
 import { Downloader } from "@shared";
+import {
+  getRepackLanguageBasedOnRepacker,
+  isMultiplayerRepack,
+  supportMultiLanguage,
+} from "@renderer/helpers/searcher";
+import { Tag } from "@renderer/components/tag/tag";
+import { useAppSelector } from "@renderer/hooks";
+import { SeedersAndPeers } from "../seeders-and-peers/seeders-and-peers";
 
 export interface RepacksModalProps {
   visible: boolean;
@@ -30,6 +38,9 @@ export function RepacksModal({
   const [filteredRepacks, setFilteredRepacks] = useState<GameRepack[]>([]);
   const [repack, setRepack] = useState<GameRepack | null>(null);
   const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
+  const { value: userPreferences } = useAppSelector(
+    (state) => state.userPreferences
+  );
 
   const { repacks } = useContext(gameDetailsContext);
 
@@ -89,12 +100,41 @@ export function RepacksModal({
               <p style={{ color: "#DADBE1", wordBreak: "break-word" }}>
                 {repack.title}
               </p>
-              <p style={{ fontSize: "12px" }}>
-                {repack.fileSize} - {repack.repacker} -{" "}
-                {repack.uploadDate
-                  ? format(repack.uploadDate, "dd/MM/yyyy")
-                  : ""}
-              </p>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "100%",
+                }}
+              >
+                <div>
+                  <p style={{ fontSize: "12px" }}>
+                    {repack.fileSize} - {repack.repacker} -{" "}
+                    {repack.uploadDate
+                      ? format(repack.uploadDate, "dd/MM/yyyy")
+                      : ""}
+                    {userPreferences?.language && (
+                      <>
+                        {" - " +
+                          getRepackLanguageBasedOnRepacker(
+                            repack.repacker,
+                            userPreferences?.language
+                          )}
+                      </>
+                    )}
+                  </p>
+                </div>
+                <SeedersAndPeers repack={repack} />
+              </div>
+              <div className={styles.tagsContainer}>
+                {supportMultiLanguage(repack.title) && (
+                  <Tag>{t("multi_language")}</Tag>
+                )}
+                {isMultiplayerRepack(repack.title, repack.repacker) && (
+                  <Tag>{t("multiplayer")}</Tag>
+                )}
+              </div>
             </Button>
           ))}
         </div>

@@ -79,7 +79,9 @@
     "change": "Változtatás",
     "repacks_modal_description": "Choose the repack you want to download",
     "select_folder_hint": "Ahhoz, hogy megváltoztasd a helyet, hozzákell férned a",
-    "download_now": "Töltsd le most"
+    "download_now": "Töltsd le most",
+    "multi_language": "Többnyelvű",
+    "multiplayer": "Többjátékos"
   },
   "activation": {
     "title": "Hydra Aktiválása",

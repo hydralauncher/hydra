@@ -96,6 +96,9 @@ declare global {
     ) => () => Electron.IpcRenderer;
     checkForUpdates: () => Promise<void>;
     restartAndInstallUpdate: () => Promise<void>;
+    getMagnetHealth: (
+      magnet: string
+    ) => Promise<{ seeders: number; peers: number }>;
   }
 
   interface Window {

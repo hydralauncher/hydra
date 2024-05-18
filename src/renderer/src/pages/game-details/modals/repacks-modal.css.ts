@@ -16,3 +16,9 @@ export const repackButton = style({
   color: vars.color.body,
   padding: `${SPACING_UNIT * 2}px`,
 });
+
+export const tagsContainer = style({
+  display: "flex",
+  gap: `${SPACING_UNIT}px`,
+  flexWrap: "wrap",
+});
