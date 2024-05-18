@@ -51,7 +51,7 @@ export function Settings() {
           />
         );
       default:
-        return <></>
+        return <></>;
     }
   }
 
