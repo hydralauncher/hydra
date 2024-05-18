@@ -137,3 +137,9 @@ export interface Steam250Game {
   title: string;
   objectID: string;
 }
+
+export interface SteamGame {
+  id: number;
+  name: string;
+  clientIcon: string | null;
+}
