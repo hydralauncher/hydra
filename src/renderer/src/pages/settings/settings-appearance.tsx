@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { setElementVars } from "@vanilla-extract/dynamic";
 import * as styles from "./settings-appearance.css";
+import { Button } from "@renderer/components";
 
 export interface SettingsAppearanceProps {
   userPreferences: UserPreferences | null;
@@ -19,24 +20,11 @@ export function SettingsAppearance({
   const { t } = useTranslation("settings");
 
   useEffect(() => {
-    const initializeTheme = () => {
-      const storedTheme = localStorage.getItem("theme");
-      if (storedTheme) {
-        const theme = JSON.parse(storedTheme) as Theme;
-        setSelectedTheme(theme);
-        applyTheme(theme);
-      } else if (userPreferences?.theme) {
-        setSelectedTheme(userPreferences.theme);
-        applyTheme(userPreferences.theme);
-      }
-    };
-
     const loadAvailableThemes = async () => {
       const loadedThemes = await window.electron.loadThemes();
       setThemes(loadedThemes);
     };
 
-    initializeTheme();
     loadAvailableThemes();
   }, [userPreferences?.theme]);
 
@@ -71,15 +59,19 @@ export function SettingsAppearance({
     }
   };
 
+  const openFolder = () => {
+    window.electron.openPath();
+  };
+
   return (
     <>
       <h3>{t("Available Themes")}:</h3>
+      <Button onClick={openFolder} style={{ alignSelf: "flex-start" }}>
+        {t("Open folder")}
+      </Button>
       <ul className={styles.themeContainer}>
         {themes.map((theme) => (
-          <li
-            key={theme.name}
-            className={styles.themeItem}
-          >
+          <li key={theme.name} className={styles.themeItem}>
             <div
               className={styles.themePreview}
               style={{
@@ -116,4 +108,3 @@ export function SettingsAppearance({
     </>
   );
 }
-

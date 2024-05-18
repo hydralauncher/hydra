@@ -21,12 +21,18 @@ export const readJSONFiles = async (directory: string): Promise<Theme[]> => {
     (file) => path.extname(file) === ".json"
   );
 
-  const promises: Promise<Theme>[] = jsonFiles.map(async (file) => {
-    const filepath: string = path.join(directory, file);
-    const data: string = await fs.promises.readFile(filepath, "utf8");
-    const json: string = JSON.parse(data);
-    return themeSchema.parse(json);
+  const promises: Promise<Theme | null>[] = jsonFiles.map(async (file) => {
+    try {
+      const filepath: string = path.join(directory, file);
+      const data: string = await fs.promises.readFile(filepath, "utf8");
+      const json: any = JSON.parse(data);
+      return themeSchema.parse(json);
+    } catch (error) {
+      console.error(`Error parsing ${file}:`, error);
+      return null;
+    }
   });
 
-  return Promise.all(promises);
+  const results = await Promise.all(promises);
+  return results.filter((theme): theme is Theme => theme !== null);
 };

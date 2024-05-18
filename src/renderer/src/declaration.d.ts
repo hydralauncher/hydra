@@ -92,6 +92,7 @@ declare global {
     ) => Promise<Electron.OpenDialogReturnValue>;
     platform: NodeJS.Platform;
     loadThemes: () => Promise<Theme[]>;
+    openPath: () => Promise<void>;
   }
 
   interface Window {
