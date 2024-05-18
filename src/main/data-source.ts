@@ -9,6 +9,7 @@ import {
 import type { SqliteConnectionOptions } from "typeorm/driver/sqlite/SqliteConnectionOptions";
 
 import { databasePath } from "./constants";
+import migrations from "./migrations";
 
 export const createDataSource = (options: Partial<SqliteConnectionOptions>) =>
   new DataSource({
@@ -19,4 +20,6 @@ export const createDataSource = (options: Partial<SqliteConnectionOptions>) =>
     ...options,
   });
 
-export const dataSource = createDataSource({});
+export const dataSource = createDataSource({
+  migrations: migrations,
+});
