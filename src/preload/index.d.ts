@@ -15,17 +15,8 @@ contextBridge.exposeInMainWorld("electron", {
     repackId: number,
     objectID: string,
     title: string,
-    shop: GameShop,
-    downloadPath: string
-  ) =>
-    ipcRenderer.invoke(
-      "startGameDownload",
-      repackId,
-      objectID,
-      title,
-      shop,
-      downloadPath
-    ),
+    shop: GameShop
+  ) => ipcRenderer.invoke("startGameDownload", repackId, objectID, title, shop),
   cancelGameDownload: (gameId: number) =>
     ipcRenderer.invoke("cancelGameDownload", gameId),
   pauseGameDownload: (gameId: number) =>
@@ -52,8 +43,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getHowLongToBeat", objectID, shop, title),
   getGames: (take?: number, prevCursor?: number) =>
     ipcRenderer.invoke("getGames", take, prevCursor),
-  searchGameRepacks: (query: string) =>
-    ipcRenderer.invoke("searchGameRepacks", query),
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
@@ -76,6 +65,8 @@ contextBridge.exposeInMainWorld("electron", {
       executablePath
     ),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
+  getRepackersFriendlyNames: () =>
+    ipcRenderer.invoke("getRepackersFriendlyNames"),
   openGameInstaller: (gameId: number) =>
     ipcRenderer.invoke("openGameInstaller", gameId),
   openGame: (gameId: number, executablePath: string) =>
@@ -101,8 +92,7 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   /* Hardware */
-  getDiskFreeSpace: (path: string) =>
-    ipcRenderer.invoke("getDiskFreeSpace", path),
+  getDiskFreeSpace: () => ipcRenderer.invoke("getDiskFreeSpace"),
 
   /* Misc */
   ping: () => ipcRenderer.invoke("ping"),

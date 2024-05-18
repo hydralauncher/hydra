@@ -96,7 +96,9 @@
     "dont_show_it_again": "Non mostrarlo più",
     "copy_to_clipboard": "Copia",
     "copied_to_clipboard": "Copiato",
-    "got_it": "Capito"
+    "got_it": "Capito",
+    "multi_language": "Multilingua",
+    "multiplayer": "Multigiocatore"
   },
   "activation": {
     "title": "Attiva Hydra",
