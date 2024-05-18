@@ -43,13 +43,15 @@ export function Settings() {
             updateUserPreferences={handleUpdateUserPreferences}
           />
         );
-      default:
+      case "behavior":
         return (
           <SettingsBehavior
             userPreferences={userPreferences}
             updateUserPreferences={handleUpdateUserPreferences}
           />
         );
+      default:
+        return <></>
     }
   }
 

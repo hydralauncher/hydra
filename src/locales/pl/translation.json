@@ -122,7 +122,8 @@
     "enable_download_notifications": "Gdy pobieranie zostanie zakończone",
     "enable_repack_list_notifications": "Gdy dodawany jest nowy repack",
     "telemetry": "Telemetria",
-    "telemetry_description": "Włącz anonimowe statystyki użycia"
+    "telemetry_description": "Włącz anonimowe statystyki użycia",
+    "language": "Język"
   },
   "notifications": {
     "download_complete": "Pobieranie zakończone",

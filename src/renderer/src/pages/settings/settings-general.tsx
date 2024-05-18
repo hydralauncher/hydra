@@ -27,11 +27,11 @@ export function SettingsGeneral({
     language: "",
   });
 
-  const [defaultDownloadsPath, setdefaultDownloadsPath] = useState("");
+  const [defaultDownloadsPath, setDefaultDownloadsPath] = useState("");
 
   useEffect(() => {
     async function fetchdefaultDownloadsPath() {
-      setdefaultDownloadsPath(await window.electron.getDefaultDownloadsPath());
+      setDefaultDownloadsPath(await window.electron.getDefaultDownloadsPath());
     }
 
     fetchdefaultDownloadsPath();
@@ -107,7 +107,7 @@ export function SettingsGeneral({
         <Select value={form.language} onChange={handleLanguageChange}>
           {Object.keys(languageResources).map((language) => (
             <option key={language} value={language}>
-              {ISO6391.getName(language)}
+              {ISO6391.getNativeName(language)}
             </option>
           ))}
         </Select>
