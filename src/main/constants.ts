@@ -18,21 +18,6 @@ export const repackers = [
   "onlinefix",
 ] as const;
 
-export const months = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
-
 export const defaultDownloadsPath = app.getPath("downloads");
 
 export const databasePath = path.join(
@@ -41,5 +26,6 @@ export const databasePath = path.join(
   "hydra.db"
 );
 
-export const INSTALLATION_ID_LENGTH = 6;
-export const ACTIVATION_KEY_MULTIPLIER = 7;
+export const seedsPath = app.isPackaged
+  ? path.join(process.resourcesPath, "seeds")
+  : path.join(__dirname, "..", "..", "seeds");
