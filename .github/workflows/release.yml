@@ -1,6 +1,8 @@
 name: Build
 
-on: [pull_request]
+on:
+  push:
+    branches: main
 
 jobs:
   build:
@@ -64,3 +66,21 @@ jobs:
             dist/*.tar.gz
             dist/*.yml
             dist/*.blockmap
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          files: |
+            dist/*.exe
+            dist/*.zip
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*.snap
+            dist/*.deb
+            dist/*.rpm
+            dist/*.tar.gz
+            dist/*.yml
+            dist/*.blockmap
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
