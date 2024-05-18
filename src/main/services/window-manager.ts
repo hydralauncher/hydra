@@ -17,6 +17,7 @@ import { IsNull, Not } from "typeorm";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
+  public static splashWindow: Electron.BrowserWindow | null = null;
 
   private static loadURL(hash = "") {
     // HMR for renderer base on electron-vite cli.
@@ -33,6 +34,49 @@ export class WindowManager {
         }
       );
     }
+  }
+
+  private static loadSplashURL() {
+    // HMR for renderer base on electron-vite cli.
+    // Load the remote URL for development or the local html file for production.
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+      this.splashWindow?.loadURL(
+        `${process.env["ELECTRON_RENDERER_URL"]}#/splash`
+      );
+    } else {
+      this.splashWindow?.loadFile(
+        path.join(__dirname, "../renderer/index.html"),
+        {
+          hash: "splash",
+        }
+      );
+    }
+  }
+
+  public static createSplashScreen() {
+    this.splashWindow = new BrowserWindow({
+      width: 810,
+      height: 610,
+      minWidth: 810,
+      minHeight: 610,
+      titleBarStyle: "hidden",
+      ...(process.platform === "linux" ? { icon } : {}),
+      transparent: true,
+      frame: false,
+      alwaysOnTop: true,
+      trafficLightPosition: { x: 16, y: 16 },
+      titleBarOverlay: {
+        symbolColor: "#DADBE1",
+        color: "#151515",
+        height: 34,
+      },
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+    });
+
+    this.loadSplashURL();
   }
 
   public static createMainWindow() {

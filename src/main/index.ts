@@ -63,11 +63,18 @@ app.whenReady().then(() => {
       where: { id: 1 },
     });
 
-    WindowManager.createMainWindow();
+    WindowManager.createSplashScreen();
+
     WindowManager.createSystemTray(userPreferences?.language || "en");
 
-    WindowManager.mainWindow?.on("ready-to-show", () => {
-      autoUpdater.checkForUpdatesAndNotify();
+    WindowManager.splashWindow?.on("ready-to-show", () => {
+      console.log("ready to show");
+      autoUpdater.checkForUpdates().then((r) => {
+        console.log(r);
+
+        WindowManager.splashWindow?.close();
+        WindowManager.createMainWindow();
+      });
     });
   });
 });
