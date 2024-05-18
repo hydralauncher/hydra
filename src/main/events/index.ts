@@ -5,6 +5,8 @@ import "./catalogue/get-catalogue";
 import "./catalogue/get-game-shop-details";
 import "./catalogue/get-games";
 import "./catalogue/get-how-long-to-beat";
+import "./catalogue/get-steam-user-rating";
+import "./catalogue/get-recommendations-by-steam";
 import "./catalogue/get-random-game";
 import "./catalogue/search-games";
 import "./catalogue/search-game-repacks";

@@ -86,6 +86,55 @@ export const howLongToBeatCategorySkeleton = style({
   height: "76px",
 });
 
+export const steamUserRatingContainer = style({
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  flexDirection: "column",
+  gap: "5px",
+  marginBottom: "10px",
+});
+
+export const userRatingStars = style({
+  listStyle: "none",
+  display: "flex",
+  gap: "10px",
+  margin: "10px 0 5px",
+});
+
+export const steamUserRatingBarContainer = style({
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  flexDirection: "column",
+  gap: "5px",
+  margin: "20px 0 10px",
+});
+
+export const bar = style({
+  width: "90%",
+  height: "8px",
+  backgroundColor: vars.color.border,
+  borderRadius: "10px",
+  overflow: "hidden",
+});
+
+export const barfilling = style({
+  height: "8px",
+  backgroundColor: "#7f7f7f",
+  borderRadius: "10px",
+  overflow: "hidden",
+});
+
+export const rating = style({
+  display: "flex",
+  justifyContent: "space-between",
+  fontFamily: "'Fira Sans', sans-serif",
+  fontSize: "16px",
+  width: "90%",
+  padding: "5px",
+});
+
 globalStyle(`${requirementsDetails} a`, {
   display: "flex",
   color: vars.color.bodyText,

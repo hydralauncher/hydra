@@ -7,8 +7,9 @@ import { UserPreferences } from "@types";
 import { SettingsRealDebrid } from "./settings-real-debrid";
 import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
+import { SettingsUI } from "./settings-ui";
 
-const categories = ["general", "behavior", "real_debrid"];
+const categories = ["general", "behavior", "real_debrid", "interface"];
 
 export function Settings() {
   const [currentCategory, setCurrentCategory] = useState(categories.at(0)!);
@@ -40,6 +41,15 @@ export function Settings() {
     if (currentCategory === "real_debrid") {
       return (
         <SettingsRealDebrid
+          userPreferences={userPreferences}
+          updateUserPreferences={handleUpdateUserPreferences}
+        />
+      );
+    }
+
+    if (currentCategory === "interface") {
+      return (
+        <SettingsUI
           userPreferences={userPreferences}
           updateUserPreferences={handleUpdateUserPreferences}
         />

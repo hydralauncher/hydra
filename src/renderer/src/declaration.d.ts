@@ -36,6 +36,7 @@ declare global {
 
     /* Catalogue */
     searchGames: (query: string) => Promise<CatalogueEntry[]>;
+    searchGamesByID: (gameID: string | string[]) => Promise<CatalogueEntry[]>;
     getCatalogue: (category: CatalogueCategory) => Promise<CatalogueEntry[]>;
     getGameShopDetails: (
       objectID: string,
@@ -53,6 +54,10 @@ declare global {
       prevCursor?: number
     ) => Promise<{ results: CatalogueEntry[]; cursor: number }>;
     searchGameRepacks: (query: string) => Promise<GameRepack[]>;
+    getSteamUserRating: (gameID: string) => Promise<SteamUserRating | null>;
+    getSteamRecommendationsByGenre: (
+      gameID: string
+    ) => Promise<SteamGenreGame[]>;
 
     /* Library */
     addGameToLibrary: (

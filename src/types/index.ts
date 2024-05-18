@@ -125,6 +125,7 @@ export interface UserPreferences {
   realDebridApiToken: string | null;
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;
+  userRatingStyle: string;
 }
 
 export interface HowLongToBeatCategory {
@@ -136,4 +137,18 @@ export interface HowLongToBeatCategory {
 export interface Steam250Game {
   title: string;
   objectID: string;
+}
+
+export interface SteamUserRating {
+  num_reviews: number;
+  review_score: number;
+  review_score_desc: string;
+  total_positive: number;
+  total_negative: number;
+  total_reviews: number;
+}
+
+export interface SteamGenreGame {
+  id: number;
+  type: number;
 }

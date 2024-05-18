@@ -43,6 +43,8 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Catalogue */
   searchGames: (query: string) => ipcRenderer.invoke("searchGames", query),
+  searchGamesByID: (gameID: string | string[]) =>
+    ipcRenderer.invoke("searchGamesByID", gameID),
   getCatalogue: (category: CatalogueCategory) =>
     ipcRenderer.invoke("getCatalogue", category),
   getGameShopDetails: (objectID: string, shop: GameShop, language: string) =>
@@ -54,6 +56,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGames", take, prevCursor),
   searchGameRepacks: (query: string) =>
     ipcRenderer.invoke("searchGameRepacks", query),
+  getSteamUserRating: (gameID: string) =>
+    ipcRenderer.invoke("getSteamUserRating", gameID),
+  getSteamRecommendationsByGenre: (gameID: string) =>
+    ipcRenderer.invoke("getSteamRecommendationsByGenre", gameID),
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
