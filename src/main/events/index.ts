@@ -7,7 +7,6 @@ import "./catalogue/get-games";
 import "./catalogue/get-how-long-to-beat";
 import "./catalogue/get-random-game";
 import "./catalogue/search-games";
-import "./catalogue/repacks/get-magnet-health";
 import "./catalogue/search-game-repacks";
 import "./hardware/get-disk-free-space";
 import "./library/add-game-to-library";
