@@ -42,7 +42,7 @@ export function Modal({
   }, [onClose]);
 
   const isTopMostModal = () => {
-    const openModals = document.querySelectorAll("[role=modal]");
+    const openModals = document.querySelectorAll("[role=dialog]");
 
     return (
       openModals.length &&

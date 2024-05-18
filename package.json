@@ -1,6 +1,6 @@
 {
   "name": "hydra",
-  "version": "1.2.0",
+  "version": "1.2.2",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
@@ -10,6 +10,10 @@
     "url": "https://github.com/hydralauncher/hydra.git"
   },
   "type": "module",
+  "engines": {
+    "npm": "please-use-yarn",
+    "yarn": ">= 1.19.1"
+  },
   "scripts": {
     "format": "prettier --write .",
     "format-check": "prettier --check .",
@@ -25,7 +29,8 @@
     "build:win": "electron-vite build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
-    "prepare": "husky"
+    "prepare": "husky",
+    "typeorm:migration-create": "yarn typeorm migration:create"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.0",
