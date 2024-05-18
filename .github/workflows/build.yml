@@ -54,7 +54,7 @@ jobs:
         with:
           name: Build-${{ matrix.os }}
           path: |
-            dist/*.exe
+            dist/win-unpacked/*
             dist/*.zip
             dist/*.dmg
             dist/*.deb
