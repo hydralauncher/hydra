@@ -33,7 +33,7 @@ export function HeroPanelPlaytime({
 
   const numberFormatter = useMemo(() => {
     return new Intl.NumberFormat(i18n.language, {
-      maximumFractionDigits: 1,
+      maximumFractionDigits: 0,
     });
   }, [i18n.language]);
 
