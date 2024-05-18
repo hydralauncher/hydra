@@ -19,7 +19,7 @@ autoUpdater.setFeedURL({
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
 
-app.disableHardwareAcceleration();
+app.commandLine.appendSwitch("--no-sandbox");
 
 i18n.init({
   resources,
