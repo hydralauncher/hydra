@@ -75,9 +75,7 @@
     "close": "Fermer",
     "deleting": "Suppression du programme d'installation…",
     "playing_now": "Jeu en cours",
-    "last_time_played": "Dernièrement joué {{période}}",
-    "multi_language": "Multilingue",
-    "multiplayer": "Multijoueur"
+    "last_time_played": "Dernièrement joué {{période}}"
   },
   "activation": {
     "title": "Activer Hydra",
