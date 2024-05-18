@@ -22,6 +22,8 @@ import { In } from "typeorm";
 import fs from "node:fs";
 import path from "node:path";
 import { RealDebridClient } from "./services/real-debrid";
+import { orderBy } from "lodash-es";
+import { SteamGame } from "@types";
 
 startProcessWatcher();
 
@@ -78,10 +80,10 @@ const loadState = async (userPreferences: UserPreferences | null) => {
 
   const steamGames = JSON.parse(
     fs.readFileSync(path.join(seedsPath, "steam-games.json"), "utf-8")
-  );
+  ) as SteamGame[];
 
   stateManager.setValue("repacks", repacks);
-  stateManager.setValue("steamGames", steamGames);
+  stateManager.setValue("steamGames", orderBy(steamGames, ["name"], "asc"));
 
   import("./events");
 
