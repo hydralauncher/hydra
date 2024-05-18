@@ -19,8 +19,6 @@ autoUpdater.setFeedURL({
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
 
-app.disableHardwareAcceleration();
-
 i18n.init({
   resources,
   lng: "en",

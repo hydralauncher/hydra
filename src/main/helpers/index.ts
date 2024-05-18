@@ -13,7 +13,7 @@ import {
   gogFormatter,
   onlinefixFormatter,
 } from "./formatters";
-import { months, repackers } from "../constants";
+import { repackers } from "../constants";
 
 export const pipe =
   <T>(...fns: ((arg: T) => any)[]) =>
@@ -42,19 +42,6 @@ export const repackerFormatter: Record<
   TinyRepacks: tinyRepacksFormatter,
   GOG: gogFormatter,
   onlinefix: onlinefixFormatter,
-};
-
-export const formatUploadDate = (str: string) => {
-  const date = new Date();
-
-  const [month, day, year] = str.split(" ");
-
-  date.setMonth(months.indexOf(month.replace(".", "")));
-  date.setDate(Number(day.substring(0, 2)));
-  date.setFullYear(Number("20" + year.replace("'", "")));
-  date.setHours(0, 0, 0, 0);
-
-  return date;
 };
 
 export const getSteamAppAsset = (
