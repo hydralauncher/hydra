@@ -13,6 +13,8 @@ import * as styles from "./sidebar.css";
 import { GameStatus, GameStatusHelper } from "@shared";
 import { buildGameDetailsPath } from "@renderer/helpers";
 
+import SteamLogo from "@renderer/assets/steam-logo.svg?react";
+
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
 const SIDEBAR_MAX_WIDTH = 450;
@@ -191,11 +193,16 @@ export function Sidebar() {
                     handleSidebarItemClick(buildGameDetailsPath(game))
                   }
                 >
-                  <img
-                    className={styles.gameIcon}
-                    src={game.iconUrl}
-                    alt={game.title}
-                  />
+                  {game.iconUrl ? (
+                    <img
+                      className={styles.gameIcon}
+                      src={game.iconUrl}
+                      alt={game.title}
+                    />
+                  ) : (
+                    <SteamLogo className={styles.gameIcon} />
+                  )}
+
                   <span className={styles.menuItemButtonLabel}>
                     {getGameTitle(game)}
                   </span>

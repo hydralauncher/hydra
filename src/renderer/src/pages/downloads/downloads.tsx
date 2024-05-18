@@ -105,7 +105,7 @@ export function Downloads() {
     if (GameStatusHelper.isReady(game?.status)) {
       return (
         <>
-          <p>{game?.repack.title}</p>
+          <p>{game?.repack?.title}</p>
           <p>{t("completed")}</p>
         </>
       );

@@ -1,5 +1,5 @@
 import { stateManager } from "./state-manager";
-import { repackersOn1337x } from "./constants";
+import { repackersOn1337x, seedsPath } from "./constants";
 import {
   getNewGOGGames,
   getNewRepacksFromUser,
@@ -11,7 +11,6 @@ import {
 import {
   gameRepository,
   repackRepository,
-  steamGameRepository,
   userPreferencesRepository,
 } from "./repository";
 import { TorrentDownloader } from "./services";
@@ -20,7 +19,11 @@ import { Notification } from "electron";
 import { t } from "i18next";
 import { GameStatus } from "@shared";
 import { In } from "typeorm";
+import fs from "node:fs";
+import path from "node:path";
 import { RealDebridClient } from "./services/real-debrid";
+import { orderBy } from "lodash-es";
+import { SteamGame } from "@types";
 
 startProcessWatcher();
 
@@ -69,21 +72,18 @@ const checkForNewRepacks = async (userPreferences: UserPreferences | null) => {
 };
 
 const loadState = async (userPreferences: UserPreferences | null) => {
-  const [repacks, steamGames] = await Promise.all([
-    repackRepository.find({
-      order: {
-        createdAt: "desc",
-      },
-    }),
-    steamGameRepository.find({
-      order: {
-        name: "asc",
-      },
-    }),
-  ]);
+  const repacks = await repackRepository.find({
+    order: {
+      createdAt: "desc",
+    },
+  });
+
+  const steamGames = JSON.parse(
+    fs.readFileSync(path.join(seedsPath, "steam-games.json"), "utf-8")
+  ) as SteamGame[];
 
   stateManager.setValue("repacks", repacks);
-  stateManager.setValue("steamGames", steamGames);
+  stateManager.setValue("steamGames", orderBy(steamGames, ["name"], "asc"));
 
   import("./events");
 

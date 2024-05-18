@@ -1,4 +1,5 @@
-import type { Repack, SteamGame } from "@main/entity";
+import type { Repack } from "@main/entity";
+import type { SteamGame } from "@types";
 
 interface State {
   repacks: Repack[];

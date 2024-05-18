@@ -106,6 +106,8 @@ export const menuItemButtonLabel = style({
 export const gameIcon = style({
   width: "20px",
   height: "20px",
+  minWidth: "20px",
+  minHeight: "20px",
   borderRadius: "4px",
   backgroundSize: "cover",
 });
