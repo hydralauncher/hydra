@@ -16,6 +16,9 @@ write_fifo = Fifo(write_sock_path)
 torrent_handle = None
 downloading_game_id = 0
 
+# Global lock creation
+lock = threading.RLock()
+
 def get_eta(status):
     remaining_bytes = status.total_wanted - status.total_wanted_done
 
@@ -28,54 +31,78 @@ def start_download(game_id: int, magnet: str, save_path: str):
     global torrent_handle
     global downloading_game_id
 
-    params = {'url': magnet, 'save_path': save_path}
-    torrent_handle = session.add_torrent(params)
-    downloading_game_id = game_id
-    torrent_handle.set_flags(lt.torrent_flags.auto_managed)
-    torrent_handle.resume()
+    if lock.acquire(False): 
+        try:
+            params = {'url': magnet, 'save_path': save_path}
+            torrent_handle = session.add_torrent(params)
+            downloading_game_id = game_id
+            torrent_handle.set_flags(lt.torrent_flags.auto_managed)
+            torrent_handle.resume()
+        finally:
+            lock.release()  
+    else:
+        print("Could not acquire the lock to start the download")
 
 def pause_download():
     global downloading_game_id
 
-    if torrent_handle:
-        torrent_handle.pause()
-        torrent_handle.unset_flags(lt.torrent_flags.auto_managed)
-        downloading_game_id = 0
+    if lock.acquire(False): 
+        try:
+            if torrent_handle:
+                torrent_handle.pause()
+                torrent_handle.unset_flags(lt.torrent_flags.auto_managed)
+                downloading_game_id = 0
+        finally:
+            lock.release()  
+    else:
+        print("Could not acquire the lock to pause the download")
 
 def cancel_download():
     global downloading_game_id
     global torrent_handle
 
-    if torrent_handle:
-        torrent_handle.pause()
-        session.remove_torrent(torrent_handle)
-        torrent_handle = None
-        downloading_game_id = 0
+    if lock.acquire(False): 
+        try:
+            if torrent_handle:
+                torrent_handle.pause()
+                session.remove_torrent(torrent_handle)
+                torrent_handle = None
+                downloading_game_id = 0
+        finally:
+            lock.release() 
+    else:
+        print("Could not acquire the lock to cancel the download")
 
 def get_download_updates():
     while True:
-        if downloading_game_id == 0:
-            time.sleep(0.5)
-            continue
+        if lock.acquire(False):  
+            try:
+                if downloading_game_id == 0:
+                    time.sleep(0.5)
+                    continue
 
-        status = torrent_handle.status()
-        info = torrent_handle.get_torrent_info()
+                status = torrent_handle.status()
+                info = torrent_handle.get_torrent_info()
 
-        write_fifo.send_message(json.dumps({
-            'folderName': info.name() if info else "",
-            'fileSize': info.total_size() if info else 0,
-            'gameId': downloading_game_id,
-            'progress': status.progress,
-            'downloadSpeed': status.download_rate,
-            'timeRemaining': get_eta(status),
-            'numPeers': status.num_peers,
-            'numSeeds': status.num_seeds,
-            'status': status.state,
-            'bytesDownloaded': status.progress * info.total_size() if info else status.all_time_download,
-        }))
+                write_fifo.send_message(json.dumps({
+                    'folderName': info.name() if info else "",
+                    'fileSize': info.total_size() if info else 0,
+                    'gameId': downloading_game_id,
+                    'progress': status.progress,
+                    'downloadSpeed': status.download_rate,
+                    'timeRemaining': get_eta(status),
+                    'numPeers': status.num_peers,
+                    'numSeeds': status.num_seeds,
+                    'status': status.state,
+                    'bytesDownloaded': status.progress * info.total_size() if info else status.all_time_download,
+                }))
 
-        if status.progress == 1:
-            cancel_download()
+                if status.progress == 1:
+                    cancel_download()
+            finally:
+                lock.release() 
+        else:
+            print("Could not acquire the lock to get download updates")
 
         time.sleep(0.5)
 
@@ -86,13 +113,9 @@ def listen_to_socket():
 
         if payload['action'] == "start":
             start_download(payload['game_id'], payload['magnet'], payload['save_path'])
-            continue
-        
-        if payload['action'] == "pause":
+        elif payload['action'] == "pause":
             pause_download()
-            continue
-            
-        if payload['action'] == "cancel":
+        elif payload['action'] == "cancel":
             cancel_download()
 
 if __name__ == "__main__":
