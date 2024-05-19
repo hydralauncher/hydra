@@ -27,6 +27,7 @@ import "./torrenting/start-game-download";
 import "./user-preferences/get-user-preferences";
 import "./user-preferences/update-user-preferences";
 import "./user-preferences/auto-launch";
+import "./autoupdater/check-for-updates";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => app.getVersion());

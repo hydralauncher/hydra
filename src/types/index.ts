@@ -1,4 +1,9 @@
 import type { Downloader, GameStatus } from "@shared";
+import {
+  ProgressInfo,
+  UpdateDownloadedEvent,
+  UpdateInfo,
+} from "electron-updater";
 
 export type GameShop = "steam" | "epic";
 export type CatalogueCategory = "recently_added" | "trending";
@@ -143,3 +148,32 @@ export interface SteamGame {
   name: string;
   clientIcon: string | null;
 }
+
+interface ErrorEvent {
+  error: Error;
+  message?: string;
+}
+
+interface UpdateNotAvailable {
+  info: UpdateInfo;
+}
+interface UpdateAvailable {
+  info: UpdateInfo;
+}
+interface UpdateDownloaded {
+  event: UpdateDownloadedEvent;
+}
+interface DownloadProgress {
+  info: ProgressInfo;
+}
+interface UpdateCancelled {
+  info: UpdateInfo;
+}
+
+export type AppUpdaterEvents =
+  | ErrorEvent
+  | UpdateNotAvailable
+  | UpdateAvailable
+  | UpdateDownloaded
+  | DownloadProgress
+  | UpdateCancelled;

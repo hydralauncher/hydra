@@ -7,6 +7,7 @@ import type {
   GameShop,
   TorrentProgress,
   UserPreferences,
+  AppUpdaterEvents,
 } from "@types";
 
 contextBridge.exposeInMainWorld("electron", {
@@ -112,4 +113,8 @@ contextBridge.exposeInMainWorld("electron", {
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
   platform: process.platform,
+
+  /* Splash */
+  checkForUpdates: (cb: (value: AppUpdaterEvents) => void) =>
+    ipcRenderer.invoke("checkForUpdates", cb),
 });
