@@ -54,6 +54,8 @@ export class WindowManager {
   }
 
   public static createSplashScreen() {
+    if (this.splashWindow) return;
+
     this.splashWindow = new BrowserWindow({
       width: 400,
       height: 400,
@@ -70,7 +72,8 @@ export class WindowManager {
   }
 
   public static createMainWindow() {
-    // Create the browser window.
+    if (this.mainWindow) return;
+
     this.mainWindow = new BrowserWindow({
       width: 1200,
       height: 720,
