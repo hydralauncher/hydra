@@ -115,6 +115,19 @@ contextBridge.exposeInMainWorld("electron", {
   platform: process.platform,
 
   /* Splash */
-  checkForUpdates: (cb: (value: AppUpdaterEvents) => void) =>
-    ipcRenderer.invoke("checkForUpdates", cb),
+  onAutoUpdaterEvent: (cb: (value: AppUpdaterEvents) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      value: AppUpdaterEvents
+    ) => cb(value);
+
+    ipcRenderer.on("autoUpdaterEvent", listener);
+
+    return () => {
+      ipcRenderer.removeListener("autoUpdaterEvent", listener);
+    };
+  },
+  checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
+  restartAndInstallUpdate: () => ipcRenderer.invoke("restartAndInstallUpdate"),
+  continueToMainWindow: () => ipcRenderer.invoke("continueToMainWindow"),
 });

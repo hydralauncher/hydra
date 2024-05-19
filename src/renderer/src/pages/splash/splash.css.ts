@@ -14,5 +14,5 @@ export const main = style({
 });
 
 export const splashIcon = style({
-  width: "300px",
+  width: "250px",
 });

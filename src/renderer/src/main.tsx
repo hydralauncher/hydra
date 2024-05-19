@@ -48,9 +48,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <Provider store={store}>
       <HashRouter>
         <Routes>
-          <Route path="/" Component={Splash} />
+          <Route path="/splash" Component={Splash} />
           <Route element={<App />}>
-            <Route path="/teste" Component={Home} />
+            <Route path="/" Component={Home} />
             <Route path="/catalogue" Component={Catalogue} />
             <Route path="/downloads" Component={Downloads} />
             <Route path="/game/:shop/:objectID" Component={GameDetails} />

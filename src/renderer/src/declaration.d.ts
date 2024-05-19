@@ -1,4 +1,5 @@
 import type {
+  AppUpdaterEvents,
   CatalogueCategory,
   CatalogueEntry,
   Game,
@@ -92,7 +93,12 @@ declare global {
     platform: NodeJS.Platform;
 
     /* Splash */
-    checkForUpdates: (cb: (value: AppUpdaterEvents) => void) => Promise<void>;
+    onAutoUpdaterEvent: (
+      cb: (event: AppUpdaterEvents) => void
+    ) => () => Electron.IpcRenderer;
+    checkForUpdates: () => Promise<void>;
+    restartAndInstallUpdate: () => Promise<void>;
+    continueToMainWindow: () => Promise<void>;
   }
 
   interface Window {

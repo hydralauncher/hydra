@@ -57,7 +57,7 @@ export class WindowManager {
     this.splashWindow = new BrowserWindow({
       width: 400,
       height: 400,
-      frame: true,
+      frame: false,
       alwaysOnTop: false,
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.mjs"),

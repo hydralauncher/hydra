@@ -7,7 +7,7 @@ import { resolveDatabaseUpdates, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
-import electronLog from "electron-log";
+import electronLog, { MainLogger } from "electron-log";
 const { autoUpdater } = updater;
 
 autoUpdater.setFeedURL({
@@ -17,7 +17,7 @@ autoUpdater.setFeedURL({
 });
 
 autoUpdater.logger = electronLog;
-autoUpdater.logger.transports.file.level = "info";
+(autoUpdater.logger as MainLogger).transports.file.level = "info";
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
@@ -67,18 +67,7 @@ app.whenReady().then(() => {
     });
 
     WindowManager.createSplashScreen();
-
     WindowManager.createSystemTray(userPreferences?.language || "en");
-
-    WindowManager.splashWindow?.on("ready-to-show", () => {
-      console.log("ready to show");
-      autoUpdater.checkForUpdates().then((r) => {
-        console.log(r);
-
-        //WindowManager.splashWindow?.close();
-        //WindowManager.createMainWindow();
-      });
-    });
   });
 });
 
