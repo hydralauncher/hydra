@@ -34,7 +34,7 @@ const formatUploadDate = (str: string) => {
   return date;
 };
 
-/* TODO: $a will often be null */
+
 const getTorrentDetails = async (path: string) => {
   const response = await request1337x(path);
 
@@ -44,6 +44,8 @@ const getTorrentDetails = async (path: string) => {
   const $a = window.document.querySelector(
     ".torrentdown1"
   ) as HTMLAnchorElement;
+
+  if(!$a) return getTorrentDetails(path)
 
   const $ul = Array.from(
     document.querySelectorAll(".torrent-detail-page .list")
