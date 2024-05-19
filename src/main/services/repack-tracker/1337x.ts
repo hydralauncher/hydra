@@ -22,9 +22,11 @@ export const request1337x = async (path: string) =>
   requestWebPage(`https://1337xx.to${path}`);
 
 const formatUploadDate = (str: string) => {
+  let dateSplit = Array.from(str.split(" "));
+  if(dateSplit.length > 3) dateSplit.splice(2, 1);
+  
   const date = new Date();
-
-  const [month, day, year] = str.split(" ");
+  const [month, day, year] = dateSplit;
 
   date.setMonth(months.indexOf(month.replace(".", "")));
   date.setDate(Number(day.substring(0, 2)));
