@@ -1,6 +1,6 @@
 {
   "name": "hydra",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
@@ -29,7 +29,8 @@
     "build:win": "electron-vite build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
-    "prepare": "husky"
+    "prepare": "husky",
+    "typeorm:migration-create": "yarn typeorm migration:create"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.0",

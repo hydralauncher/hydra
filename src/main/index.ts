@@ -19,7 +19,7 @@ autoUpdater.setFeedURL({
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
 
-app.disableHardwareAcceleration();
+app.commandLine.appendSwitch("--no-sandbox");
 
 i18n.init({
   resources,
@@ -53,6 +53,8 @@ app.whenReady().then(() => {
   );
 
   dataSource.initialize().then(async () => {
+    await dataSource.runMigrations();
+
     await resolveDatabaseUpdates();
 
     await import("./main");
