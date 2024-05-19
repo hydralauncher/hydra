@@ -10,6 +10,7 @@ document.body.classList.add(themeClass);
 
 export default function Splash() {
   const [status, setStatus] = useState<AppUpdaterEvents | null>(null);
+  const [newVersion, setNewVersion] = useState("");
 
   useEffect(() => {
     console.log("subscribing");
@@ -27,6 +28,7 @@ export default function Splash() {
             window.electron.continueToMainWindow();
             break;
           case "update-available":
+            setNewVersion(event.info.version);
             break;
           case "update-cancelled":
             window.electron.continueToMainWindow();
@@ -53,14 +55,14 @@ export default function Splash() {
       case "download-progress":
         return (
           <>
-            <p>Baixando</p>
-            <p>{status.info.percent}</p>
+            <p>Baixando atualização {newVersion}</p>
+            <p>{status.info.percent.toFixed(2)} %</p>
           </>
         );
       case "checking-for-updates":
         return <p>Buscando atualizações</p>;
       case "update-available":
-        return <p>Atualização encontrada</p>;
+        return <p>Atualização {status.info.version} encontrada</p>;
       default:
         return <></>;
     }

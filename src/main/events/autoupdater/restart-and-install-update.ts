@@ -7,7 +7,7 @@ const { autoUpdater } = updater;
 
 const restartAndInstallUpdate = async (_event: Electron.IpcMainInvokeEvent) => {
   if (app.isPackaged) {
-    autoUpdater.quitAndInstall();
+    autoUpdater.quitAndInstall(true, true);
   } else {
     WindowManager.splashWindow?.close();
     WindowManager.createMainWindow();
