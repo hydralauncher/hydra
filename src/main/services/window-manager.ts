@@ -41,42 +41,25 @@ export class WindowManager {
     // Load the remote URL for development or the local html file for production.
     if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
       this.splashWindow?.loadURL(
-        `${process.env["ELECTRON_RENDERER_URL"]}#/splash`
+        `${process.env["ELECTRON_RENDERER_URL"]}/splash.html`
       );
     } else {
       this.splashWindow?.loadFile(
-        path.join(__dirname, "../renderer/index.html"),
-        {
-          hash: "splash",
-        }
+        path.join(__dirname, "../renderer/splash.html")
       );
     }
   }
 
   public static createSplashScreen() {
     this.splashWindow = new BrowserWindow({
-      width: 810,
-      height: 610,
-      minWidth: 810,
-      minHeight: 610,
-      titleBarStyle: "hidden",
-      ...(process.platform === "linux" ? { icon } : {}),
-      transparent: true,
-      frame: false,
-      alwaysOnTop: true,
-      trafficLightPosition: { x: 16, y: 16 },
-      titleBarOverlay: {
-        symbolColor: "#DADBE1",
-        color: "#151515",
-        height: 34,
-      },
-      webPreferences: {
-        preload: path.join(__dirname, "../preload/index.mjs"),
-        sandbox: false,
-      },
+      width: 400,
+      height: 400,
+      frame: true,
+      alwaysOnTop: false,
     });
 
     this.loadSplashURL();
+    this.splashWindow.removeMenu();
   }
 
   public static createMainWindow() {
