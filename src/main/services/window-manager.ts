@@ -41,11 +41,14 @@ export class WindowManager {
     // Load the remote URL for development or the local html file for production.
     if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
       this.splashWindow?.loadURL(
-        `${process.env["ELECTRON_RENDERER_URL"]}/splash.html`
+        `${process.env["ELECTRON_RENDERER_URL"]}#/splash`
       );
     } else {
       this.splashWindow?.loadFile(
-        path.join(__dirname, "../renderer/splash.html")
+        path.join(__dirname, "../renderer/index.html"),
+        {
+          hash: "splash",
+        }
       );
     }
   }
@@ -56,6 +59,10 @@ export class WindowManager {
       height: 400,
       frame: true,
       alwaysOnTop: false,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
     });
 
     this.loadSplashURL();

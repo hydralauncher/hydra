@@ -27,6 +27,7 @@ import {
 import { store } from "./store";
 
 import * as resources from "@locales";
+import Splash from "./pages/splash/splash";
 
 i18n
   .use(LanguageDetector)
@@ -46,16 +47,17 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Provider store={store}>
       <HashRouter>
-        <App>
-          <Routes>
-            <Route path="/" Component={Home} />
+        <Routes>
+          <Route path="/" Component={Splash} />
+          <Route element={<App />}>
+            <Route path="/teste" Component={Home} />
             <Route path="/catalogue" Component={Catalogue} />
             <Route path="/downloads" Component={Downloads} />
             <Route path="/game/:shop/:objectID" Component={GameDetails} />
             <Route path="/search" Component={SearchResults} />
             <Route path="/settings" Component={Settings} />
-          </Routes>
-        </App>
+          </Route>
+        </Routes>
       </HashRouter>
     </Provider>
   </React.StrictMode>

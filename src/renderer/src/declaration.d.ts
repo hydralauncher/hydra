@@ -90,6 +90,9 @@ declare global {
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
     platform: NodeJS.Platform;
+
+    /* Splash */
+    checkForUpdates: (cb: (value: AppUpdaterEvents) => void) => Promise<void>;
   }
 
   interface Window {
