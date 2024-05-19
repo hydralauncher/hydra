@@ -37,7 +37,6 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: yarn build:linux
         env:
-          MAIN_VITE_STEAMGRIDDB_API_KEY: ${{ secrets.STEAMGRIDDB_API_KEY }}
           MAIN_VITE_ONLINEFIX_USERNAME: ${{ secrets.ONLINEFIX_USERNAME }}
           MAIN_VITE_ONLINEFIX_PASSWORD: ${{ secrets.ONLINEFIX_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -46,7 +45,6 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: yarn build:win
         env:
-          MAIN_VITE_STEAMGRIDDB_API_KEY: ${{ secrets.STEAMGRIDDB_API_KEY }}
           MAIN_VITE_ONLINEFIX_USERNAME: ${{ secrets.ONLINEFIX_USERNAME }}
           MAIN_VITE_ONLINEFIX_PASSWORD: ${{ secrets.ONLINEFIX_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -56,7 +54,7 @@ jobs:
         with:
           name: Build-${{ matrix.os }}
           path: |
-            dist/*.exe
+            dist/win-unpacked/**
             dist/*.zip
             dist/*.dmg
             dist/*.deb
