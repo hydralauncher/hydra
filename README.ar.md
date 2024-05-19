@@ -144,7 +144,7 @@ Una vez que haya configurado todo, puede ejecutar el siguiente comando para inic
 yarn dev
 ```
 
-## <a name="build"></a> Construir
+## <a name="build"></a> Construya
 
 ### <a name="build-the-bittorrent-client"></a> Construya el cliente bittorrent
 
