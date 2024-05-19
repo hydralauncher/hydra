@@ -34,12 +34,14 @@ const formatUploadDate = (str: string) => {
   return date;
 };
 
-/* TODO: $a will often be null */
 const getTorrentDetails = async (path: string) => {
   const response = await request1337x(path);
 
   const { window } = new JSDOM(response);
   const { document } = window;
+
+  const details = window.document.querySelector(".torrent-detail-page");
+  if(!details) return null;
 
   const $a = window.document.querySelector(
     ".torrentdown1"
@@ -103,13 +105,13 @@ export const extractTorrentsFromDocument = async (
       const url = $name.href;
       const title = $name.textContent ?? "";
 
-      const details = await getTorrentDetails(url);
+      const details = await getTorrentDetails(url) ?? await getTorrentDetails(url);
 
       return {
         title,
-        magnet: details.magnet,
-        fileSize: details.fileSize ?? "N/A",
-        uploadDate: details.uploadDate ?? new Date(),
+        magnet: details?.magnet,
+        fileSize: details?.fileSize ?? "N/A",
+        uploadDate: details?.uploadDate ?? new Date(),
         repacker: user,
         page,
       };
@@ -122,6 +124,7 @@ export const getNewRepacksFromUser = async (
   existingRepacks: Repack[],
   page = 1
 ) => {
+  const lastPage = await getTorrentListLastPage(user);
   const response = await request1337x(`/user/${user}/${page}`);
   const { window } = new JSDOM(response);
 
@@ -135,12 +138,14 @@ export const getNewRepacksFromUser = async (
     (repack) =>
       !existingRepacks.some(
         (existingRepack) => existingRepack.title === repack.title
-      )
+      ) && repack.magnet
   );
 
   if (!newRepacks.length) return;
 
   await savePage(newRepacks);
+
+  if(page === lastPage) return;
 
   return getNewRepacksFromUser(user, existingRepacks, page + 1);
 };
