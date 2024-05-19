@@ -7,7 +7,7 @@ import { resolveDatabaseUpdates, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
-
+import electronLog from "electron-log";
 const { autoUpdater } = updater;
 
 autoUpdater.setFeedURL({
@@ -15,6 +15,9 @@ autoUpdater.setFeedURL({
   owner: "hydralauncher",
   repo: "hydra",
 });
+
+autoUpdater.logger = electronLog;
+autoUpdater.logger.transports.file.level = "info";
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
@@ -72,8 +75,8 @@ app.whenReady().then(() => {
       autoUpdater.checkForUpdates().then((r) => {
         console.log(r);
 
-        WindowManager.splashWindow?.close();
-        WindowManager.createMainWindow();
+        //WindowManager.splashWindow?.close();
+        //WindowManager.createMainWindow();
       });
     });
   });

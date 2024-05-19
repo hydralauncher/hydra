@@ -1,6 +1,6 @@
 {
   "name": "hydra",
-  "version": "1.2.2",
+  "version": "1.2.1",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
@@ -50,6 +50,7 @@
     "color.js": "^1.2.0",
     "date-fns": "^3.6.0",
     "easydl": "^1.1.1",
+    "electron-log": "^5.1.4",
     "electron-updater": "^6.1.8",
     "fetch-cookie": "^3.0.1",
     "flexsearch": "^0.7.43",
