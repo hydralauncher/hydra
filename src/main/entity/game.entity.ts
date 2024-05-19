@@ -23,8 +23,8 @@ export class Game {
   @Column("text")
   title: string;
 
-  @Column("text")
-  iconUrl: string;
+  @Column("text", { nullable: true })
+  iconUrl: string | null;
 
   @Column("text", { nullable: true })
   folderName: string | null;
