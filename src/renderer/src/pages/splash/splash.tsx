@@ -16,14 +16,9 @@ export default function Splash() {
     console.log("subscribing");
     const unsubscribe = window.electron.onAutoUpdaterEvent(
       (event: AppUpdaterEvents) => {
-        console.log("event from screen: " + event.type);
         setStatus(event);
+
         switch (event.type) {
-          case "download-progress":
-            console.log(event.info);
-            break;
-          case "checking-for-updates":
-            break;
           case "error":
             window.electron.continueToMainWindow();
             break;
@@ -55,14 +50,24 @@ export default function Splash() {
       case "download-progress":
         return (
           <>
-            <p>Baixando atualização {newVersion}</p>
-            <p>{status.info.percent.toFixed(2)} %</p>
+            <p>Baixando versão {newVersion}</p>
+            <div className={styles.progressBarContainer}>
+              <div
+                className={styles.progressBarFill}
+                style={{ width: `${status.info.percent}%` }}
+              ></div>
+              <span className={styles.progressBarText}>
+                {status.info.percent.toFixed(2)} %
+              </span>
+            </div>
           </>
         );
       case "checking-for-updates":
         return <p>Buscando atualizações</p>;
       case "update-available":
-        return <p>Atualização {status.info.version} encontrada</p>;
+        return <p>Versão {status.info.version} encontrada</p>;
+      case "update-downloaded":
+        return <p>Reiniciando e aplicando atualização</p>;
       default:
         return <></>;
     }
@@ -70,8 +75,8 @@ export default function Splash() {
 
   return (
     <main className={styles.main}>
-      <img src={icon} className={styles.splashIcon} alt="" />
-      {renderSwitch()}
+      <img src={icon} className={styles.splashIcon} alt="Hydra Logo" />
+      <section className={styles.updateInfoSection}>{renderSwitch()}</section>
     </main>
   );
 }
