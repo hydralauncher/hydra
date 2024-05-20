@@ -123,7 +123,7 @@ yarn
 
 ### Встановіть Python 3.9
 
-Переконайтеся, що на вашому комп'ютері встановлено Python 3.9. Ви можете завантажити та встановити його з [python.org](https://www.python.org/downloads/release/python-3919/).
+Переконайтеся, що на вашому комп'ютері встановлено Python 3.9. Ви можете завантажити та встановити його з [python.org](https://www.python.org/downloads/release/python-3913/).
 
 ### Встановіть Python залежності
 
