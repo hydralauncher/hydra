@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
 import { DeleteModal } from "./delete-modal";
-import { Downloader, GameStatus, GameStatusHelper, formatBytes } from "@shared";
+import { Downloader, formatBytes } from "@shared";
 
 export function Downloads() {
   const { library, updateLibrary } = useLibrary();
@@ -26,6 +26,7 @@ export function Downloads() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const {
+    lastPacket,
     progress,
     pauseDownload,
     resumeDownload,
@@ -50,13 +51,13 @@ export function Downloads() {
     });
 
   const getFinalDownloadSize = (game: Game) => {
-    const isGameDownloading = gameDownloading?.id === game?.id;
+    const isGameDownloading = lastPacket?.game.id === game?.id;
 
     if (!game) return "N/A";
     if (game.fileSize) return formatBytes(game.fileSize);
 
-    if (gameDownloading?.fileSize && isGameDownloading)
-      return formatBytes(gameDownloading.fileSize);
+    if (lastPacket?.game.fileSize && isGameDownloading)
+      return formatBytes(lastPacket?.game.fileSize);
 
     return game.repack?.fileSize ?? "N/A";
   };
@@ -67,7 +68,7 @@ export function Downloads() {
   };
 
   const getGameInfo = (game: Game) => {
-    const isGameDownloading = gameDownloading?.id === game?.id;
+    const isGameDownloading = lastPacket?.game.id === game?.id;
     const finalDownloadSize = getFinalDownloadSize(game);
 
     if (isGameDeleting(game?.id)) {
@@ -79,27 +80,21 @@ export function Downloads() {
         <>
           <p>{progress}</p>
 
-          {gameDownloading?.status &&
-          gameDownloading?.status !== GameStatus.Downloading ? (
-            <p>{t(gameDownloading?.status)}</p>
-          ) : (
-            <>
-              <p>
-                {formatBytes(gameDownloading?.bytesDownloaded)} /{" "}
-                {finalDownloadSize}
-              </p>
-              {game.downloader === Downloader.Torrent && (
-                <p>
-                  {numPeers} peers / {numSeeds} seeds
-                </p>
-              )}
-            </>
+          <p>
+            {formatBytes(lastPacket?.game.bytesDownloaded)} /{" "}
+            {finalDownloadSize}
+          </p>
+
+          {game.downloader === Downloader.Torrent && (
+            <p>
+              {lastPacket?.numPeers} peers / {lastPacket?.numSeeds} seeds
+            </p>
           )}
         </>
       );
     }
 
-    if (GameStatusHelper.isReady(game?.status)) {
+    if (game?.progress === 1) {
       return (
         <>
           <p>{game?.repack?.title}</p>
@@ -107,11 +102,9 @@ export function Downloads() {
         </>
       );
     }
-    if (game?.status === GameStatus.Cancelled) return <p>{t("cancelled")}</p>;
-    if (game?.status === GameStatus.DownloadingMetadata)
-      return <p>{t("starting_download")}</p>;
+    if (game?.status === "removed") return <p>{t("cancelled")}</p>;
 
-    if (game?.status === GameStatus.Paused) {
+    if (game?.status === "paused") {
       return (
         <>
           <p>{formatDownloadProgress(game.progress)}</p>
@@ -129,7 +122,7 @@ export function Downloads() {
   };
 
   const getGameActions = (game: Game) => {
-    const isGameDownloading = gameDownloading?.id === game?.id;
+    const isGameDownloading = lastPacket?.game.id === game?.id;
 
     const deleting = isGameDeleting(game.id);
 
@@ -146,7 +139,7 @@ export function Downloads() {
       );
     }
 
-    if (game?.status === GameStatus.Paused) {
+    if (game?.status === "paused") {
       return (
         <>
           <Button onClick={() => resumeDownload(game.id)} theme="outline">
@@ -159,7 +152,7 @@ export function Downloads() {
       );
     }
 
-    if (GameStatusHelper.isReady(game?.status)) {
+    if (game?.progress === 1) {
       return (
         <>
           <Button
@@ -174,14 +167,6 @@ export function Downloads() {
             {t("delete")}
           </Button>
         </>
-      );
-    }
-
-    if (game?.status === GameStatus.DownloadingMetadata) {
-      return (
-        <Button onClick={() => cancelDownload(game.id)} theme="outline">
-          {t("cancel")}
-        </Button>
       );
     }
 
@@ -242,7 +227,7 @@ export function Downloads() {
             <li
               key={game.id}
               className={styles.download({
-                cancelled: game.status === GameStatus.Cancelled,
+                cancelled: game.status === "removed",
               })}
             >
               <img
