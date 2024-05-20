@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { Sidebar, BottomPanel, Header } from "@renderer/components";
 
@@ -10,7 +10,7 @@ import {
 } from "@renderer/hooks";
 
 import * as styles from "./app.css";
-import { vars } from "./theme.css";
+import { themeClass, vars } from "./theme.css";
 
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -22,6 +22,8 @@ import {
 import { GameStatusHelper } from "@shared";
 import { Theme } from "@types";
 import { setElementVars } from "@vanilla-extract/dynamic";
+
+document.body.classList.add(themeClass);
 
 export interface AppProps {
   children: React.ReactNode;
@@ -43,23 +45,17 @@ export function App({ children }: AppProps) {
     (state) => state.window.draggingDisabled
   );
 
-  const [themeLoaded, setThemeLoaded] = useState(false);
-
   useEffect(() => {
     Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
       ([preferences]) => {
         dispatch(setUserPreferences(preferences));
-        if (!themeLoaded) {
-          const storedTheme = localStorage.getItem("theme");
-          if (storedTheme) {
-            const theme = JSON.parse(storedTheme) as Theme;
-            applyTheme(theme);
-            setThemeLoaded(true);
-          }
+        const theme = localStorage.getItem("theme")
+        if (theme) {
+          applyTheme(JSON.parse(theme))
         }
       }
     );
-  }, [navigate, location.pathname, dispatch, updateLibrary, themeLoaded]);
+  }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   const applyTheme = (theme: Theme) => {
     setElementVars(document.body, {

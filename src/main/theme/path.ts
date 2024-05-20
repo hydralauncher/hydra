@@ -3,13 +3,14 @@ import fs from "fs";
 import path from "path";
 import defaultThemes from "./default-themes";
 import { app } from "electron";
+import { logger } from "@main/services";
 
-const writeTheme = (pathName: string, theme: Theme) => {
+const writeTheme = (pathName: string, theme: Theme): void => {
   try {
     const filePath = path.join(pathName, `${theme.name}.json`);
     fs.writeFileSync(filePath, JSON.stringify(theme));
   } catch (err) {
-    console.error(err);
+    logger.log("error", `Error parsing ${err}`);
   }
 };
 
@@ -25,11 +26,11 @@ export const verifyFolderTheme = (path: string) => {
       defaultThemes.forEach((theme) => writeTheme(path, theme));
     }
   } catch (err) {
-    console.error(err);
+    logger.log("error", `Error parsing ${err}`);
   }
 };
 
-export const loadthemesPath = (): void => {
+export const loadThemesPath = (): void => {
   const themePath = mountPath(process.platform);
   verifyFolderTheme(themePath);
 };

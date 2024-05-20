@@ -2,6 +2,7 @@ import { z } from "zod";
 import fs from "fs";
 import path from "path";
 import { Theme } from "@types";
+import { logger } from "@main/services";
 
 const themeSchema = z.object({
   name: z.string().min(3).max(12),
@@ -28,7 +29,7 @@ export const readJSONFiles = async (directory: string): Promise<Theme[]> => {
       const json: any = JSON.parse(data);
       return themeSchema.parse(json);
     } catch (error) {
-      console.error(`Error parsing ${file}:`, error);
+      logger.log("error", `Error parsing ${error}`);
       return null;
     }
   });
