@@ -119,7 +119,7 @@ yarn
 
 ### Install Python 3.9
 
-Ensure you have Python 3.9 installed on your machine. You can download and install it from [python.org](https://www.python.org/downloads/release/python-3919/).
+Ensure you have Python 3.9 installed on your machine. You can download and install it from [python.org](https://www.python.org/downloads/release/python-3913/).
 
 ### Install Python Dependencies
 
