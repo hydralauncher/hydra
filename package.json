@@ -1,5 +1,5 @@
 {
-  "name": "hydra-launcher",
+  "name": "hydralauncher",
   "version": "1.2.3",
   "description": "Hydra",
   "main": "./out/main/index.js",
