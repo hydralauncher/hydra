@@ -119,7 +119,7 @@ yarn
 
 ### Установка Python 3.9
 
-Убедитесь, что у вас установлен Python 3.9 на вашем компьютере. Вы можете загрузить и установить его с [python.org](https://www.python.org/downloads/release/python-3919/).
+Убедитесь, что у вас установлен Python 3.9 на вашем компьютере. Вы можете загрузить и установить его с [python.org](https://www.python.org/downloads/release/python-3913/).
 
 ### Установка зависимостей Python
 
