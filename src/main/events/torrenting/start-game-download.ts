@@ -1,4 +1,3 @@
-import { getSteamGameIconUrl } from "@main/services";
 import {
   gameRepository,
   repackRepository,
@@ -8,10 +7,11 @@ import {
 import { registerEvent } from "../register-event";
 
 import type { GameShop } from "@types";
-import { getFileBase64 } from "@main/helpers";
+import { getFileBase64, getSteamAppAsset } from "@main/helpers";
 import { In } from "typeorm";
 import { DownloadManager } from "@main/services";
 import { Downloader, GameStatus } from "@shared";
+import { stateManager } from "@main/state-manager";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -76,18 +76,34 @@ const startGameDownload = async (
 
     return game;
   } else {
-    const iconUrl = await getFileBase64(await getSteamGameIconUrl(objectID));
+    const steamGame = stateManager
+      .getValue("steamGames")
+      .find((game) => game.id === Number(objectID));
 
-    const createdGame = await gameRepository.save({
-      title,
-      iconUrl,
-      objectID,
-      downloader,
-      shop: gameShop,
-      status: GameStatus.Downloading,
-      downloadPath,
-      repack: { id: repackId },
-    });
+    const iconUrl = steamGame?.clientIcon
+      ? getSteamAppAsset("icon", objectID, steamGame.clientIcon)
+      : null;
+
+    const createdGame = await gameRepository
+      .save({
+        title,
+        iconUrl,
+        objectID,
+        downloader,
+        shop: gameShop,
+        status: GameStatus.Downloading,
+        downloadPath,
+        repack: { id: repackId },
+      })
+      .then((result) => {
+        if (iconUrl) {
+          getFileBase64(iconUrl).then((base64) =>
+            gameRepository.update({ objectID }, { iconUrl: base64 })
+          );
+        }
+
+        return result;
+      });
 
     DownloadManager.downloadGame(createdGame.id);
 

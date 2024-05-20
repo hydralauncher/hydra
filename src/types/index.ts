@@ -95,7 +95,7 @@ export interface Game extends Omit<CatalogueEntry, "cover"> {
   folderName: string;
   downloadPath: string | null;
   repacks: GameRepack[];
-  repack: GameRepack;
+  repack: GameRepack | null;
   progress: number;
   fileVerificationProgress: number;
   decompressionProgress: number;
@@ -136,4 +136,10 @@ export interface HowLongToBeatCategory {
 export interface Steam250Game {
   title: string;
   objectID: string;
+}
+
+export interface SteamGame {
+  id: number;
+  name: string;
+  clientIcon: string | null;
 }
