@@ -42,7 +42,7 @@ const mockValuesForDebug = async () => {
         bytesPerSecond: 4568,
       },
     });
-    await sleep(1000);
+    await sleep(800);
   }
 
   sendEvent({ type: "update-downloaded" });
