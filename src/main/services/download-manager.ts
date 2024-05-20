@@ -10,6 +10,8 @@ import { Notification } from "electron";
 import { t } from "i18next";
 import { Downloader } from "@shared";
 import { DownloadProgress } from "@types";
+import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+import { Game } from "@main/entity";
 
 export class DownloadManager {
   private static downloads = new Map<number, string>();
@@ -94,17 +96,24 @@ export class DownloadManager {
         const progress =
           Number(status.completedLength) / Number(status.totalLength);
 
-        await gameRepository.update(
-          { id: this.gameId },
-          {
-            progress:
-              isNaN(progress) || downloadingMetadata ? undefined : progress,
+        if (!downloadingMetadata) {
+          const update: QueryDeepPartialEntity<Game> = {
             bytesDownloaded: Number(status.completedLength),
             fileSize: Number(status.totalLength),
             status: status.status,
-            folderName: this.getFolderName(status),
-          }
-        );
+          };
+
+          if (!isNaN(progress)) update.progress = progress;
+
+          await gameRepository.update(
+            { id: this.gameId },
+            {
+              ...update,
+              status: status.status,
+              folderName: this.getFolderName(status),
+            }
+          );
+        }
 
         const game = await gameRepository.findOne({
           where: { id: this.gameId, isDeleted: false },

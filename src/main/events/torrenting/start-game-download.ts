@@ -11,6 +11,7 @@ import { getFileBase64, getSteamAppAsset } from "@main/helpers";
 import { DownloadManager } from "@main/services";
 import { Downloader } from "@shared";
 import { stateManager } from "@main/state-manager";
+import { Not } from "typeorm";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -43,7 +44,10 @@ const startGameDownload = async (
 
   if (!repack || game?.status === "active") return;
 
-  await gameRepository.update({ status: "active" }, { status: "paused" });
+  await gameRepository.update(
+    { status: "active", progress: Not(1) },
+    { status: "paused" }
+  );
 
   if (game) {
     await gameRepository.update(

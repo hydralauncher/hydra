@@ -38,7 +38,9 @@ export function HeroPanel() {
 
     if (game?.progress === 1) return <HeroPanelPlaytime />;
 
-    if (game?.status === "active") {
+    console.log(lastPacket?.game.id, game?.id);
+
+    if (game?.status === "active" && lastPacket?.game.id === game?.id) {
       if (lastPacket?.downloadingMetadata) {
         return <p>{t("downloading_metadata")}</p>;
       }

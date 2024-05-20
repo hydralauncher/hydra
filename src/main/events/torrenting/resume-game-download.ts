@@ -20,7 +20,7 @@ const resumeGameDownload = async (
   if (game.status === "paused") {
     await DownloadManager.pauseDownload();
 
-    await gameRepository.update({ status: "active" }, { status: "paused" });
+    await gameRepository.update({ id: gameId }, { status: "active" });
 
     await DownloadManager.resumeDownload(gameId);
   }
