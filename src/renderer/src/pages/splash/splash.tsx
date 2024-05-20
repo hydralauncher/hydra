@@ -47,7 +47,7 @@ export default function Splash() {
     };
   }, []);
 
-  const renderSwitch = () => {
+  const renderUpdateInfo = () => {
     switch (status?.type) {
       case "download-progress":
         return (
@@ -78,7 +78,9 @@ export default function Splash() {
   return (
     <main className={styles.main}>
       <img src={icon} className={styles.splashIcon} alt="Hydra Logo" />
-      <section className={styles.updateInfoSection}>{renderSwitch()}</section>
+      <section className={styles.updateInfoSection}>
+        {renderUpdateInfo()}
+      </section>
     </main>
   );
 }
