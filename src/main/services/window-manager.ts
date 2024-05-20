@@ -18,6 +18,7 @@ import { IsNull, Not } from "typeorm";
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
   public static splashWindow: Electron.BrowserWindow | null = null;
+  public static isReadyToShowMainWindow = false;
 
   private static loadURL(hash = "") {
     // HMR for renderer base on electron-vite cli.
@@ -60,7 +61,8 @@ export class WindowManager {
       width: 380,
       height: 380,
       frame: false,
-      alwaysOnTop: false,
+      resizable: false,
+      backgroundColor: "#1c1c1c",
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.mjs"),
         sandbox: false,
@@ -72,13 +74,14 @@ export class WindowManager {
   }
 
   public static createMainWindow() {
-    if (this.mainWindow) return;
+    if (this.mainWindow || !this.isReadyToShowMainWindow) return;
 
     this.mainWindow = new BrowserWindow({
       width: 1200,
       height: 720,
       minWidth: 1024,
       minHeight: 540,
+      backgroundColor: "#1c1c1c",
       titleBarStyle: "hidden",
       ...(process.platform === "linux" ? { icon } : {}),
       trafficLightPosition: { x: 16, y: 16 },
@@ -110,6 +113,12 @@ export class WindowManager {
       }
       WindowManager.mainWindow?.setProgressBar(-1);
     });
+  }
+
+  public static prepareMainWindowAndCloseSplash() {
+    this.isReadyToShowMainWindow = true;
+    this.splashWindow?.close();
+    this.createMainWindow();
   }
 
   public static redirect(hash: string) {

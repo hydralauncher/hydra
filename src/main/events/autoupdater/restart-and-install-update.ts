@@ -10,8 +10,7 @@ const restartAndInstallUpdate = async (_event: Electron.IpcMainInvokeEvent) => {
     autoUpdater.quitAndInstall(true, true);
   } else {
     autoUpdater.removeAllListeners();
-    WindowManager.splashWindow?.close();
-    WindowManager.createMainWindow();
+    WindowManager.prepareMainWindowAndCloseSplash();
   }
 };
 

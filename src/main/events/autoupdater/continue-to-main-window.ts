@@ -6,8 +6,7 @@ const { autoUpdater } = updater;
 
 const continueToMainWindow = async (_event: Electron.IpcMainInvokeEvent) => {
   autoUpdater.removeAllListeners();
-  WindowManager.splashWindow?.close();
-  WindowManager.createMainWindow();
+  WindowManager.prepareMainWindowAndCloseSplash();
 };
 
 registerEvent("continueToMainWindow", continueToMainWindow);
