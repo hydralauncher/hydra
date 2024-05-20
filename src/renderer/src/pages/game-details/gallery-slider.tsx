@@ -1,37 +1,36 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronRightIcon, ChevronLeftIcon } from "@primer/octicons-react";
 
-import type { ShopDetails } from "@types";
-
 import * as styles from "./gallery-slider.css";
-import { useTranslation } from "react-i18next";
+import { gameDetailsContext } from "./game-details.context";
 
-export interface GallerySliderProps {
-  gameDetails: ShopDetails;
-}
+export function GallerySlider() {
+  const { shopDetails } = useContext(gameDetailsContext);
 
-export function GallerySlider({ gameDetails }: GallerySliderProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const mediaContainerRef = useRef<HTMLDivElement>(null);
 
   const { t } = useTranslation("game_details");
 
-  const hasScreenshots = gameDetails && gameDetails.screenshots.length;
-  const hasMovies = gameDetails && gameDetails.movies?.length;
+  const hasScreenshots = shopDetails && shopDetails.screenshots.length;
+  const hasMovies = shopDetails && shopDetails.movies?.length;
 
-  const [mediaCount] = useState<number>(() => {
-    if (gameDetails.screenshots && gameDetails.movies) {
-      return gameDetails.screenshots.length + gameDetails.movies.length;
-    } else if (gameDetails.movies) {
-      return gameDetails.movies.length;
-    } else if (gameDetails.screenshots) {
-      return gameDetails.screenshots.length;
+  const mediaCount = useMemo(() => {
+    if (!shopDetails) return 0;
+
+    if (shopDetails.screenshots && shopDetails.movies) {
+      return shopDetails.screenshots.length + shopDetails.movies.length;
+    } else if (shopDetails.movies) {
+      return shopDetails.movies.length;
+    } else if (shopDetails.screenshots) {
+      return shopDetails.screenshots.length;
     }
 
     return 0;
-  });
+  }, [shopDetails]);
 
-  const [mediaIndex, setMediaIndex] = useState<number>(0);
+  const [mediaIndex, setMediaIndex] = useState(0);
   const [showArrows, setShowArrows] = useState(false);
 
   const showNextImage = () => {
@@ -52,7 +51,7 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
 
   useEffect(() => {
     setMediaIndex(0);
-  }, [gameDetails]);
+  }, [shopDetails]);
 
   useEffect(() => {
     if (hasMovies && mediaContainerRef.current) {
@@ -76,17 +75,17 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
       const scrollLeft = mediaIndex * itemWidth;
       container.scrollLeft = scrollLeft;
     }
-  }, [gameDetails, mediaIndex, mediaCount]);
+  }, [shopDetails, mediaIndex, mediaCount]);
 
   const previews = useMemo(() => {
     const screenshotPreviews =
-      gameDetails?.screenshots.map(({ id, path_thumbnail }) => ({
+      shopDetails?.screenshots.map(({ id, path_thumbnail }) => ({
         id,
         thumbnail: path_thumbnail,
       })) ?? [];
 
-    if (gameDetails?.movies) {
-      const moviePreviews = gameDetails.movies.map(({ id, thumbnail }) => ({
+    if (shopDetails?.movies) {
+      const moviePreviews = shopDetails.movies.map(({ id, thumbnail }) => ({
         id,
         thumbnail,
       }));
@@ -95,7 +94,7 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
     }
 
     return screenshotPreviews;
-  }, [gameDetails]);
+  }, [shopDetails]);
 
   return (
     <>
@@ -107,8 +106,8 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
             className={styles.gallerySliderAnimationContainer}
             ref={mediaContainerRef}
           >
-            {gameDetails.movies &&
-              gameDetails.movies.map((video) => (
+            {shopDetails.movies &&
+              shopDetails.movies.map((video) => (
                 <video
                   key={video.id}
                   controls
@@ -124,7 +123,7 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
               ))}
 
             {hasScreenshots &&
-              gameDetails.screenshots.map((image, i) => (
+              shopDetails.screenshots.map((image, i) => (
                 <img
                   key={image.id}
                   className={styles.gallerySliderMedia}

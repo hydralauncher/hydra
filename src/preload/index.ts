@@ -5,7 +5,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import type {
   CatalogueCategory,
   GameShop,
-  TorrentProgress,
+  DownloadProgress,
   UserPreferences,
 } from "@types";
 
@@ -32,10 +32,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("pauseGameDownload", gameId),
   resumeGameDownload: (gameId: number) =>
     ipcRenderer.invoke("resumeGameDownload", gameId),
-  onDownloadProgress: (cb: (value: TorrentProgress) => void) => {
+  onDownloadProgress: (cb: (value: DownloadProgress) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      value: TorrentProgress
+      value: DownloadProgress
     ) => cb(value);
     ipcRenderer.on("on-download-progress", listener);
     return () => ipcRenderer.removeListener("on-download-progress", listener);

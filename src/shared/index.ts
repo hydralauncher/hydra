@@ -31,22 +31,11 @@ export const formatBytes = (bytes: number): string => {
 };
 
 export class GameStatusHelper {
-  public static isDownloading(status: GameStatus | null) {
-    return (
-      status === GameStatus.Downloading ||
-      status === GameStatus.DownloadingMetadata ||
-      status === GameStatus.CheckingFiles
-    );
+  public static isDownloading(status: string | null) {
+    return status === "active";
   }
 
-  public static isVerifying(status: GameStatus | null) {
-    return (
-      GameStatus.DownloadingMetadata == status ||
-      GameStatus.CheckingFiles == status
-    );
-  }
-
-  public static isReady(status: GameStatus | null) {
-    return status === GameStatus.Finished || status === GameStatus.Seeding;
+  public static isReady(status: string | null) {
+    return status === "complete";
   }
 }

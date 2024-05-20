@@ -1,4 +1,5 @@
-import type { Downloader, GameStatus } from "@shared";
+import type { Downloader } from "@shared";
+import type { Aria2Status } from "aria2";
 
 export type GameShop = "steam" | "epic";
 export type CatalogueCategory = "recently_added" | "trending";
@@ -91,14 +92,12 @@ export interface Game extends Omit<CatalogueEntry, "cover"> {
   id: number;
   title: string;
   iconUrl: string;
-  status: GameStatus | null;
+  status: Aria2Status | null;
   folderName: string;
   downloadPath: string | null;
   repacks: GameRepack[];
   repack: GameRepack | null;
   progress: number;
-  fileVerificationProgress: number;
-  decompressionProgress: number;
   bytesDownloaded: number;
   playTimeInMilliseconds: number;
   downloader: Downloader;
@@ -109,11 +108,15 @@ export interface Game extends Omit<CatalogueEntry, "cover"> {
   updatedAt: Date;
 }
 
-export interface TorrentProgress {
+export interface DownloadProgress {
   downloadSpeed: number;
   timeRemaining: number;
   numPeers: number;
   numSeeds: number;
+  downloadingMetadata: boolean;
+  progress: number;
+  bytesDownloaded: number;
+  fileSize: number;
   game: Omit<Game, "repacks">;
 }
 

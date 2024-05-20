@@ -26,10 +26,7 @@ export function Downloads() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const {
-    game: gameDownloading,
     progress,
-    numPeers,
-    numSeeds,
     pauseDownload,
     resumeDownload,
     removeGameFromLibrary,

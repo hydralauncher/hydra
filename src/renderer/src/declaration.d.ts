@@ -7,7 +7,7 @@ import type {
   HowLongToBeatCategory,
   ShopDetails,
   Steam250Game,
-  TorrentProgress,
+  DownloadProgress,
   UserPreferences,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
@@ -31,7 +31,7 @@ declare global {
     pauseGameDownload: (gameId: number) => Promise<void>;
     resumeGameDownload: (gameId: number) => Promise<void>;
     onDownloadProgress: (
-      cb: (value: TorrentProgress) => void
+      cb: (value: DownloadProgress) => void
     ) => () => Electron.IpcRenderer;
 
     /* Catalogue */

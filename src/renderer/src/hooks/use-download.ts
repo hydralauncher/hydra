@@ -9,9 +9,9 @@ import {
   setGameDeleting,
   removeGameFromDeleting,
 } from "@renderer/features";
-import type { GameShop, TorrentProgress } from "@types";
+import type { DownloadProgress, GameShop } from "@types";
 import { useDate } from "./use-date";
-import { GameStatus, GameStatusHelper, formatBytes } from "@shared";
+import { formatBytes } from "@shared";
 
 export function useDownload() {
   const { updateLibrary } = useLibrary();
@@ -38,16 +38,16 @@ export function useDownload() {
         return game;
       });
 
-  const pauseDownload = (gameId: number) =>
-    window.electron.pauseGameDownload(gameId).then(() => {
-      dispatch(clearDownload());
-      updateLibrary();
-    });
+  const pauseDownload = async (gameId: number) => {
+    await window.electron.pauseGameDownload(gameId);
+    await updateLibrary();
+    dispatch(clearDownload());
+  };
 
-  const resumeDownload = (gameId: number) =>
-    window.electron.resumeGameDownload(gameId).then(() => {
-      updateLibrary();
-    });
+  const resumeDownload = async (gameId: number) => {
+    await window.electron.resumeGameDownload(gameId);
+    return updateLibrary();
+  };
 
   const cancelDownload = (gameId: number) =>
     window.electron.cancelGameDownload(gameId).then(() => {
@@ -61,14 +61,8 @@ export function useDownload() {
       updateLibrary();
     });
 
-  const isVerifying = GameStatusHelper.isVerifying(
-    lastPacket?.game.status ?? null
-  );
-
   const getETA = () => {
-    if (isVerifying || !isFinite(lastPacket?.timeRemaining ?? 0)) {
-      return "";
-    }
+    if (lastPacket && lastPacket.timeRemaining < 0) return "";
 
     try {
       return formatDistance(
@@ -79,14 +73,6 @@ export function useDownload() {
     } catch (err) {
       return "";
     }
-  };
-
-  const getProgress = () => {
-    if (lastPacket?.game.status === GameStatus.CheckingFiles) {
-      return formatDownloadProgress(lastPacket?.game.fileVerificationProgress);
-    }
-
-    return formatDownloadProgress(lastPacket?.game.progress);
   };
 
   const deleteGame = (gameId: number) =>
@@ -107,15 +93,9 @@ export function useDownload() {
   };
 
   return {
-    game: lastPacket?.game,
-    bytesDownloaded: lastPacket?.game.bytesDownloaded,
-    fileSize: lastPacket?.game.fileSize,
-    isVerifying,
-    gameId: lastPacket?.game.id,
     downloadSpeed: `${formatBytes(lastPacket?.downloadSpeed ?? 0)}/s`,
-    progress: getProgress(),
-    numPeers: lastPacket?.numPeers,
-    numSeeds: lastPacket?.numSeeds,
+    progress: formatDownloadProgress(lastPacket?.game.progress ?? 0),
+    lastPacket,
     eta: getETA(),
     startDownload,
     pauseDownload,
@@ -125,6 +105,7 @@ export function useDownload() {
     deleteGame,
     isGameDeleting,
     clearDownload: () => dispatch(clearDownload()),
-    setLastPacket: (packet: TorrentProgress) => dispatch(setLastPacket(packet)),
+    setLastPacket: (packet: DownloadProgress) =>
+      dispatch(setLastPacket(packet)),
   };
 }

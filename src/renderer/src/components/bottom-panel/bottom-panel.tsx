@@ -7,17 +7,16 @@ import { vars } from "../../theme.css";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { VERSION_CODENAME } from "@renderer/constants";
-import { GameStatus, GameStatusHelper } from "@shared";
 
 export function BottomPanel() {
   const { t } = useTranslation("bottom_panel");
 
   const navigate = useNavigate();
 
-  const { game, progress, downloadSpeed, eta } = useDownload();
+  const { lastPacket, progress, downloadSpeed, eta } = useDownload();
 
   const isGameDownloading =
-    game && GameStatusHelper.isDownloading(game.status ?? null);
+    lastPacket?.game && lastPacket?.game.status === "active";
 
   const [version, setVersion] = useState("");
 
@@ -27,17 +26,8 @@ export function BottomPanel() {
 
   const status = useMemo(() => {
     if (isGameDownloading) {
-      if (game.status === GameStatus.DownloadingMetadata)
-        return t("downloading_metadata", { title: game.title });
-
-      if (game.status === GameStatus.CheckingFiles)
-        return t("checking_files", {
-          title: game.title,
-          percentage: progress,
-        });
-
       return t("downloading", {
-        title: game?.title,
+        title: lastPacket?.game.title,
         percentage: progress,
         eta,
         speed: downloadSpeed,
@@ -45,7 +35,7 @@ export function BottomPanel() {
     }
 
     return t("no_downloads_in_progress");
-  }, [t, isGameDownloading, game, progress, eta, downloadSpeed]);
+  }, [t, isGameDownloading, lastPacket?.game, progress, eta, downloadSpeed]);
 
   return (
     <footer
