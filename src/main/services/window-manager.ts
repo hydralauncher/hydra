@@ -57,8 +57,8 @@ export class WindowManager {
     if (this.splashWindow) return;
 
     this.splashWindow = new BrowserWindow({
-      width: 400,
-      height: 400,
+      width: 380,
+      height: 380,
       frame: false,
       alwaysOnTop: false,
       webPreferences: {

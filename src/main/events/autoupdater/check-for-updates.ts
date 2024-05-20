@@ -65,11 +65,11 @@ const checkForUpdates = async (_event: Electron.IpcMainInvokeEvent) => {
           total: total,
           delta: 123,
           transferred: (total * i) / 5,
-          percent: (total * i) / 5 / total,
+          percent: ((total * i) / 5 / total) * 100,
           bytesPerSecond: 4568,
         },
       });
-      await sleep(500);
+      await sleep(1000);
     }
 
     sendEvent({ type: "update-downloaded" });
