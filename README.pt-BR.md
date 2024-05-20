@@ -118,7 +118,7 @@ yarn
 
 ### <a name="install-python-39"></a> Instale Python 3.9
 
-Certifique-se de ter o Python 3.9 instalado em sua máquina. Você pode baixá-lo e instalá-lo em [python.org](https://www.python.org/downloads/release/python-3919/).
+Certifique-se de ter o Python 3.9 instalado em sua máquina. Você pode baixá-lo e instalá-lo em [python.org](https://www.python.org/downloads/release/python-3913/).
 
 ### <a name="install-python-dependencies"></a> Instale Python Dependencies
 

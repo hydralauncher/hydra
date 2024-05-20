@@ -123,7 +123,7 @@ yarn
 
 ### Zainstaluj Python 3.9
 
-Upewnij się, że masz zainstalowany Python 3.9 na swoim komputerze. Można go pobrać i zainstalować ze strony [python.org](https://www.python.org/downloads/release/python-3919/).
+Upewnij się, że masz zainstalowany Python 3.9 na swoim komputerze. Można go pobrać i zainstalować ze strony [python.org](https://www.python.org/downloads/release/python-3913/).
 
 ### Zainstaluj zależności Pythona
 
