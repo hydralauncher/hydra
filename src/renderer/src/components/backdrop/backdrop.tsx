@@ -7,6 +7,13 @@ export interface BackdropProps {
 
 export function Backdrop({ isClosing = false, children }: BackdropProps) {
   return (
-    <div className={styles.backdrop({ closing: isClosing })}>{children}</div>
+    <div
+      className={styles.backdrop({
+        closing: isClosing,
+        windows: window.electron.platform === "win32",
+      })}
+    >
+      {children}
+    </div>
   );
 }

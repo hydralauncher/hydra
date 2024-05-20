@@ -1,37 +1,14 @@
-import { GameStatus, GameStatusHelper } from "@shared";
 import { NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
 
 import { Button } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
-import type { Game, GameRepack } from "@types";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as styles from "./hero-panel-actions.css";
+import { gameDetailsContext } from "../game-details.context";
 
-export interface HeroPanelActionsProps {
-  game: Game | null;
-  repacks: GameRepack[];
-  isGamePlaying: boolean;
-  isGameDownloading: boolean;
-  objectID: string;
-  title: string;
-  openRepacksModal: () => void;
-  openBinaryNotFoundModal: () => void;
-  getGame: () => void;
-}
-
-export function HeroPanelActions({
-  game,
-  isGamePlaying,
-  isGameDownloading,
-  repacks,
-  objectID,
-  title,
-  openRepacksModal,
-  openBinaryNotFoundModal,
-  getGame,
-}: HeroPanelActionsProps) {
+export function HeroPanelActions() {
   const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
     useState(false);
 
@@ -42,6 +19,16 @@ export function HeroPanelActions({
     removeGameFromLibrary,
     isGameDeleting,
   } = useDownload();
+
+  const {
+    game,
+    repacks,
+    isGameRunning,
+    objectID,
+    gameTitle,
+    openRepacksModal,
+    updateGame,
+  } = useContext(gameDetailsContext);
 
   const { updateLibrary } = useLibrary();
 
@@ -86,15 +73,15 @@ export function HeroPanelActions({
         const gameExecutablePath = await selectGameExecutable();
 
         await window.electron.addGameToLibrary(
-          objectID,
-          title,
+          objectID!,
+          gameTitle,
           "steam",
           gameExecutablePath
         );
       }
 
       updateLibrary();
-      getGame();
+      updateGame();
     } finally {
       setToggleLibraryGameDisabled(false);
     }
@@ -145,59 +132,14 @@ export function HeroPanelActions({
     </Button>
   );
 
-  if (game && isGameDownloading) {
+  if (game?.progress === 1) {
     return (
       <>
-        <Button
-          onClick={() => pauseDownload(game.id)}
-          theme="outline"
-          className={styles.heroPanelAction}
-        >
-          {t("pause")}
-        </Button>
-        <Button
-          onClick={() => cancelDownload(game.id)}
-          theme="outline"
-          className={styles.heroPanelAction}
-        >
-          {t("cancel")}
-        </Button>
-      </>
-    );
-  }
-
-  if (game?.status === GameStatus.Paused) {
-    return (
-      <>
-        <Button
-          onClick={() => resumeDownload(game.id)}
-          theme="outline"
-          className={styles.heroPanelAction}
-        >
-          {t("resume")}
-        </Button>
-        <Button
-          onClick={() => cancelDownload(game.id).then(getGame)}
-          theme="outline"
-          className={styles.heroPanelAction}
-        >
-          {t("cancel")}
-        </Button>
-      </>
-    );
-  }
-
-  if (
-    GameStatusHelper.isReady(game?.status ?? null) ||
-    (game && !game.status)
-  ) {
-    return (
-      <>
-        {GameStatusHelper.isReady(game?.status ?? null) ? (
+        {game?.progress === 1 ? (
           <Button
             onClick={openGameInstaller}
             theme="outline"
-            disabled={deleting || isGamePlaying}
+            disabled={deleting || isGameRunning}
             className={styles.heroPanelAction}
           >
             {t("install")}
@@ -206,7 +148,7 @@ export function HeroPanelActions({
           toggleGameOnLibraryButton
         )}
 
-        {isGamePlaying ? (
+        {isGameRunning ? (
           <Button
             onClick={closeGame}
             theme="outline"
@@ -219,7 +161,7 @@ export function HeroPanelActions({
           <Button
             onClick={openGame}
             theme="outline"
-            disabled={deleting || isGamePlaying}
+            disabled={deleting || isGameRunning}
             className={styles.heroPanelAction}
           >
             {t("play")}
@@ -229,7 +171,49 @@ export function HeroPanelActions({
     );
   }
 
-  if (game?.status === GameStatus.Cancelled) {
+  if (game?.status === "active") {
+    return (
+      <>
+        <Button
+          onClick={() => pauseDownload(game.id).then(updateGame)}
+          theme="outline"
+          className={styles.heroPanelAction}
+        >
+          {t("pause")}
+        </Button>
+        <Button
+          onClick={() => cancelDownload(game.id).then(updateGame)}
+          theme="outline"
+          className={styles.heroPanelAction}
+        >
+          {t("cancel")}
+        </Button>
+      </>
+    );
+  }
+
+  if (game?.status === "paused") {
+    return (
+      <>
+        <Button
+          onClick={() => resumeDownload(game.id).then(updateGame)}
+          theme="outline"
+          className={styles.heroPanelAction}
+        >
+          {t("resume")}
+        </Button>
+        <Button
+          onClick={() => cancelDownload(game.id).then(updateGame)}
+          theme="outline"
+          className={styles.heroPanelAction}
+        >
+          {t("cancel")}
+        </Button>
+      </>
+    );
+  }
+
+  if (game?.status === "removed") {
     return (
       <>
         <Button
@@ -240,8 +224,9 @@ export function HeroPanelActions({
         >
           {t("open_download_options")}
         </Button>
+
         <Button
-          onClick={() => removeGameFromLibrary(game.id).then(getGame)}
+          onClick={() => removeGameFromLibrary(game.id).then(updateGame)}
           theme="outline"
           disabled={deleting}
           className={styles.heroPanelAction}

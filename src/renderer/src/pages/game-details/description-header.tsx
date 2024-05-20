@@ -1,25 +1,25 @@
 import { useTranslation } from "react-i18next";
 
-import type { ShopDetails } from "@types";
-
 import * as styles from "./game-details.css";
+import { useContext } from "react";
+import { gameDetailsContext } from "./game-details.context";
 
-export interface DescriptionHeaderProps {
-  gameDetails: ShopDetails;
-}
+export function DescriptionHeader() {
+  const { shopDetails } = useContext(gameDetailsContext);
 
-export function DescriptionHeader({ gameDetails }: DescriptionHeaderProps) {
   const { t } = useTranslation("game_details");
+
+  if (!shopDetails) return null;
 
   return (
     <div className={styles.descriptionHeader}>
       <section className={styles.descriptionHeaderInfo}>
         <p>
           {t("release_date", {
-            date: gameDetails?.release_date.date,
+            date: shopDetails?.release_date.date,
           })}
         </p>
-        <p>{t("publisher", { publisher: gameDetails.publishers[0] })}</p>
+        <p>{t("publisher", { publisher: shopDetails.publishers[0] })}</p>
       </section>
     </div>
   );

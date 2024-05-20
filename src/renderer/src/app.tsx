@@ -19,7 +19,6 @@ import {
   setUserPreferences,
   toggleDraggingDisabled,
 } from "@renderer/features";
-import { GameStatusHelper } from "@shared";
 
 document.body.classList.add(themeClass);
 
@@ -54,7 +53,7 @@ export function App({ children }: AppProps) {
   useEffect(() => {
     const unsubscribe = window.electron.onDownloadProgress(
       (downloadProgress) => {
-        if (GameStatusHelper.isReady(downloadProgress.game.status)) {
+        if (downloadProgress.game.progress === 1) {
           clearDownload();
           updateLibrary();
           return;

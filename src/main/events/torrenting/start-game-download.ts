@@ -8,9 +8,8 @@ import { registerEvent } from "../register-event";
 
 import type { GameShop } from "@types";
 import { getFileBase64, getSteamAppAsset } from "@main/helpers";
-import { In } from "typeorm";
 import { DownloadManager } from "@main/services";
-import { Downloader, GameStatus } from "@shared";
+import { Downloader } from "@shared";
 import { stateManager } from "@main/state-manager";
 
 const startGameDownload = async (
@@ -42,19 +41,9 @@ const startGameDownload = async (
     }),
   ]);
 
-  if (!repack || game?.status === GameStatus.Downloading) return;
-  DownloadManager.pauseDownload();
+  if (!repack || game?.status === "active") return;
 
-  await gameRepository.update(
-    {
-      status: In([
-        GameStatus.Downloading,
-        GameStatus.DownloadingMetadata,
-        GameStatus.CheckingFiles,
-      ]),
-    },
-    { status: GameStatus.Paused }
-  );
+  await gameRepository.update({ status: "active" }, { status: "paused" });
 
   if (game) {
     await gameRepository.update(
@@ -62,17 +51,17 @@ const startGameDownload = async (
         id: game.id,
       },
       {
-        status: GameStatus.DownloadingMetadata,
-        downloadPath: downloadPath,
+        status: "active",
+        downloadPath,
         downloader,
         repack: { id: repackId },
         isDeleted: false,
       }
     );
 
-    DownloadManager.downloadGame(game.id);
+    await DownloadManager.startDownload(game.id);
 
-    game.status = GameStatus.DownloadingMetadata;
+    game.status = "active";
 
     return game;
   } else {
@@ -91,7 +80,7 @@ const startGameDownload = async (
         objectID,
         downloader,
         shop: gameShop,
-        status: GameStatus.Downloading,
+        status: "active",
         downloadPath,
         repack: { id: repackId },
       })
@@ -105,7 +94,7 @@ const startGameDownload = async (
         return result;
       });
 
-    DownloadManager.downloadGame(createdGame.id);
+    DownloadManager.startDownload(createdGame.id);
 
     const { repack: _, ...rest } = createdGame;
 
