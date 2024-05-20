@@ -3,11 +3,10 @@ import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
-import { resolveDatabaseUpdates, WindowManager } from "@main/services";
+import { logger, resolveDatabaseUpdates, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
-import electronLog, { MainLogger } from "electron-log";
 const { autoUpdater } = updater;
 
 autoUpdater.setFeedURL({
@@ -16,8 +15,7 @@ autoUpdater.setFeedURL({
   repo: "hydra",
 });
 
-autoUpdater.logger = electronLog;
-(autoUpdater.logger as MainLogger).transports.file.level = "info";
+autoUpdater.logger = logger;
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
