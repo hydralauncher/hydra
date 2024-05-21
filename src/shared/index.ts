@@ -1,14 +1,3 @@
-export enum GameStatus {
-  Seeding = "seeding",
-  Downloading = "downloading",
-  Paused = "paused",
-  CheckingFiles = "checking_files",
-  DownloadingMetadata = "downloading_metadata",
-  Cancelled = "cancelled",
-  Decompressing = "decompressing",
-  Finished = "finished",
-}
-
 export enum Downloader {
   RealDebrid,
   Torrent,
@@ -29,13 +18,3 @@ export const formatBytes = (bytes: number): string => {
 
   return `${Math.trunc(formatedByte * 10) / 10} ${FORMAT[base]}`;
 };
-
-export class GameStatusHelper {
-  public static isDownloading(status: string | null) {
-    return status === "active";
-  }
-
-  public static isReady(status: string | null) {
-    return status === "complete";
-  }
-}

@@ -2,7 +2,11 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { Button, TextField } from "@renderer/components";
-import { formatDownloadProgress, steamUrlBuilder } from "@renderer/helpers";
+import {
+  buildGameDetailsPath,
+  formatDownloadProgress,
+  steamUrlBuilder,
+} from "@renderer/helpers";
 import { useDownload, useLibrary } from "@renderer/hooks";
 import type { Game } from "@types";
 
@@ -86,9 +90,9 @@ export function Downloads() {
           </p>
 
           {game.downloader === Downloader.Torrent && (
-            <p>
+            <small>
               {lastPacket?.numPeers} peers / {lastPacket?.numSeeds} seeds
-            </p>
+            </small>
           )}
         </>
       );
@@ -102,7 +106,6 @@ export function Downloads() {
         </>
       );
     }
-    if (game?.status === "removed") return <p>{t("cancelled")}</p>;
 
     if (game?.status === "paused") {
       return (
@@ -113,7 +116,7 @@ export function Downloads() {
       );
     }
 
-    return null;
+    return <p>{t(game?.status)}</p>;
   };
 
   const openDeleteModal = (gameId: number) => {
@@ -173,7 +176,7 @@ export function Downloads() {
     return (
       <>
         <Button
-          onClick={() => navigate(`/game/${game.shop}/${game.objectID}`)}
+          onClick={() => navigate(buildGameDetailsPath(game))}
           theme="outline"
           disabled={deleting}
         >
@@ -230,11 +233,21 @@ export function Downloads() {
                 cancelled: game.status === "removed",
               })}
             >
-              <img
-                src={steamUrlBuilder.library(game.objectID)}
-                className={styles.downloadCover}
-                alt={game.title}
-              />
+              <div className={styles.downloadCover}>
+                <div className={styles.downloadCoverBackdrop}>
+                  <img
+                    src={steamUrlBuilder.library(game.objectID)}
+                    className={styles.downloadCoverImage}
+                    alt={game.title}
+                  />
+
+                  <div className={styles.downloadCoverContent}>
+                    <small className={styles.downloaderName}>
+                      {downloaderName[game?.downloader]}
+                    </small>
+                  </div>
+                </div>
+              </div>
               <div className={styles.downloadRightContent}>
                 <div className={styles.downloadDetails}>
                   <div className={styles.downloadTitleWrapper}>
@@ -249,9 +262,6 @@ export function Downloads() {
                     </button>
                   </div>
 
-                  <small className={styles.downloaderName}>
-                    {downloaderName[game?.downloader]}
-                  </small>
                   {getGameInfo(game)}
                 </div>
 

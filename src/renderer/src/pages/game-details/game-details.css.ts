@@ -2,7 +2,7 @@ import { globalStyle, keyframes, style } from "@vanilla-extract/css";
 import { SPACING_UNIT, vars } from "../../theme.css";
 
 export const slideIn = keyframes({
-  "0%": { transform: `translateY(${40 + 16}px)` },
+  "0%": { transform: `translateY(${40 + SPACING_UNIT * 2}px)` },
   "100%": { transform: "translateY(0)" },
 });
 

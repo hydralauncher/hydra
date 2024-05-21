@@ -44,6 +44,8 @@ const startGameDownload = async (
 
   if (!repack || game?.status === "active") return;
 
+  await DownloadManager.pauseDownload();
+
   await gameRepository.update(
     { status: "active", progress: Not(1) },
     { status: "paused" }
@@ -65,9 +67,7 @@ const startGameDownload = async (
 
     await DownloadManager.startDownload(game.id);
 
-    game.status = "active";
-
-    return game;
+    return { ...game, stauts: "active" };
   } else {
     const steamGame = stateManager
       .getValue("steamGames")
@@ -98,11 +98,9 @@ const startGameDownload = async (
         return result;
       });
 
-    DownloadManager.startDownload(createdGame.id);
+    await DownloadManager.startDownload(createdGame.id);
 
-    const { repack: _, ...rest } = createdGame;
-
-    return rest;
+    return createdGame;
   }
 };
 

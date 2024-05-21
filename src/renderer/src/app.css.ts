@@ -79,6 +79,10 @@ globalStyle("img", {
   WebkitUserDrag: "none",
 } as Record<string, string>);
 
+globalStyle("progress[value]", {
+  WebkitAppearance: "none",
+});
+
 export const container = style({
   width: "100%",
   height: "100%",
