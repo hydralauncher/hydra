@@ -22,7 +22,7 @@ export const defaultDownloadsPath = app.getPath("downloads");
 
 export const databasePath = path.join(
   app.getPath("appData"),
-  app.getName(),
+  "hydra",
   "hydra.db"
 );
 
