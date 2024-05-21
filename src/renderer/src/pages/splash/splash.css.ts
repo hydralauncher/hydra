@@ -27,22 +27,14 @@ export const updateInfoSection = style({
   justifyContent: "center",
 });
 
-export const progressBarContainer = style({
-  width: "100%",
-  borderRadius: "24px",
-  display: "flex",
-  alignItems: "center",
-  position: "relative",
-  justifyContent: "center",
-  border: `solid 1px ${vars.color.border}`,
-  overflow: "hidden",
-});
-
 export const progressBar = style({
   WebkitAppearance: "none",
   appearance: "none",
-  position: "absolute",
+  borderRadius: "4px",
   width: "100%",
+  border: `solid 1px ${vars.color.border}`,
+  overflow: "hidden",
+  height: "18px",
   "::-webkit-progress-value": {
     backgroundColor: vars.color.background,
     transition: "width 0.2s",
