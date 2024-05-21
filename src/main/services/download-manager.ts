@@ -30,7 +30,16 @@ export class DownloadManager {
       "aria2c"
     );
 
-    spawn(binary, ["--enable-rpc", "--rpc-listen-all"], { stdio: "inherit" });
+    spawn(
+      binary,
+      [
+        "--enable-rpc",
+        "--rpc-listen-all",
+        "--file-allocation=none",
+        "--allow-overwrite=true",
+      ],
+      { stdio: "inherit" }
+    );
 
     await this.aria2.open();
     this.attachListener();
@@ -76,6 +85,7 @@ export class DownloadManager {
   }
 
   private static async attachListener() {
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
         if (!this.gid || !this.gameId) {
@@ -205,8 +215,6 @@ export class DownloadManager {
   }
 
   static async resumeDownload(gameId: number) {
-    await this.aria2.call("forcePauseAll");
-
     if (this.downloads.has(gameId)) {
       const gid = this.downloads.get(gameId)!;
       await this.aria2.call("unpause", gid);
@@ -219,8 +227,6 @@ export class DownloadManager {
   }
 
   static async startDownload(gameId: number) {
-    await this.aria2.call("forcePauseAll");
-
     const game = await this.getGame(gameId)!;
 
     if (game) {

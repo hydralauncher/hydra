@@ -120,7 +120,7 @@
     "verifying": "Verifying…",
     "completed_at": "Completed in {{date}}",
     "completed": "Completed",
-    "cancelled": "Cancelled",
+    "removed": "Removed",
     "download_again": "Download again",
     "cancel": "Cancel",
     "filter": "Filter downloaded games",

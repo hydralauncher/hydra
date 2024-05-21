@@ -1,7 +1,11 @@
+import { Not } from "typeorm";
+
 import { registerEvent } from "../register-event";
 import { gameRepository } from "../../repository";
 
 import { DownloadManager } from "@main/services";
+import { dataSource } from "@main/data-source";
+import { Game } from "@main/entity";
 
 const resumeGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -18,11 +22,19 @@ const resumeGameDownload = async (
   if (!game) return;
 
   if (game.status === "paused") {
-    await DownloadManager.pauseDownload();
+    await dataSource.transaction(async (transactionalEntityManager) => {
+      await DownloadManager.pauseDownload();
 
-    await gameRepository.update({ id: gameId }, { status: "active" });
+      await transactionalEntityManager
+        .getRepository(Game)
+        .update({ status: "active", progress: Not(1) }, { status: "paused" });
 
-    await DownloadManager.resumeDownload(gameId);
+      await DownloadManager.resumeDownload(gameId);
+
+      await transactionalEntityManager
+        .getRepository(Game)
+        .update({ id: gameId }, { status: "active" });
+    });
   }
 };
 
