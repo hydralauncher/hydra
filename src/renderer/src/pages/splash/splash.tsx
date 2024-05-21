@@ -77,7 +77,7 @@ export default function Splash() {
 
   return (
     <main className={styles.main}>
-      <img src={icon} className={styles.splashIcon} alt="Hydra Logo" />
+      <img src={icon} className={styles.splashIcon} alt="Hydra Launcher Logo" />
       <section className={styles.updateInfoSection}>
         {renderUpdateInfo()}
       </section>
