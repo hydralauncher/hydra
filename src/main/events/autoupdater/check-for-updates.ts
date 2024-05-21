@@ -11,40 +11,6 @@ const sendEvent = (event: AppUpdaterEvents) => {
 };
 
 const mockValuesForDebug = async () => {
-  const sleep = (ms: number) =>
-    new Promise((resolve) => setTimeout(resolve, ms));
-
-  sendEvent({ type: "checking-for-updates" });
-
-  await sleep(1500);
-  sendEvent({
-    type: "update-available",
-    info: {
-      version: "1.2.3",
-      files: [],
-      releaseDate: "19/05/2024",
-      path: "",
-      sha512: "",
-    },
-  });
-
-  await sleep(1000);
-
-  const total = 123456;
-  for (let i = 0; i <= 5; i++) {
-    sendEvent({
-      type: "download-progress",
-      info: {
-        total: total,
-        delta: 123,
-        transferred: (total * i) / 5,
-        percent: ((total * i) / 5 / total) * 100,
-        bytesPerSecond: 4568,
-      },
-    });
-    await sleep(800);
-  }
-
   sendEvent({ type: "update-downloaded" });
 };
 
