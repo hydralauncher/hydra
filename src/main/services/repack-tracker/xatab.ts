@@ -111,9 +111,10 @@ export const getNewRepacksFromXatab = async (
   );
 
   if (!newRepacks.length) return;
-  if (page === totalPages) return;
 
   await savePage(newRepacks);
+
+  if (page === totalPages) return;
 
   return getNewRepacksFromXatab(existingRepacks, page + 1);
 };
