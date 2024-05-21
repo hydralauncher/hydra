@@ -22,8 +22,8 @@ const checkForUpdates = async (_event: Electron.IpcMainInvokeEvent) => {
     .addListener("checking-for-update", () => {
       sendEvent({ type: "checking-for-updates" });
     })
-    .addListener("update-not-available", (info: UpdateInfo) => {
-      sendEvent({ type: "update-not-available", info });
+    .addListener("update-not-available", () => {
+      sendEvent({ type: "update-not-available" });
     })
     .addListener("update-available", (info: UpdateInfo) => {
       sendEvent({ type: "update-available", info });
@@ -34,8 +34,8 @@ const checkForUpdates = async (_event: Electron.IpcMainInvokeEvent) => {
     .addListener("download-progress", (info: ProgressInfo) => {
       sendEvent({ type: "download-progress", info });
     })
-    .addListener("update-cancelled", (info: UpdateInfo) => {
-      sendEvent({ type: "update-cancelled", info });
+    .addListener("update-cancelled", () => {
+      sendEvent({ type: "update-cancelled" });
     });
 
   if (app.isPackaged) {
