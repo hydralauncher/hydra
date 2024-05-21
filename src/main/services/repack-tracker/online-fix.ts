@@ -148,9 +148,10 @@ export const getNewRepacksFromOnlineFix = async (
   );
 
   if (!newRepacks.length) return;
-  if (page === totalPages) return;
 
   await savePage(newRepacks);
+
+  if (page === totalPages) return;
 
   return getNewRepacksFromOnlineFix(existingRepacks, page + 1, cookieJar);
 };
