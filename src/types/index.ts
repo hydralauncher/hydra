@@ -148,8 +148,8 @@ export interface SteamGame {
 export type AppUpdaterEvents =
   | { type: "error" }
   | { type: "checking-for-updates" }
-  | { type: "update-not-available"; info: UpdateInfo }
+  | { type: "update-not-available" }
   | { type: "update-available"; info: UpdateInfo }
   | { type: "update-downloaded" }
   | { type: "download-progress"; info: ProgressInfo }
-  | { type: "update-cancelled"; info: UpdateInfo };
+  | { type: "update-cancelled" };
