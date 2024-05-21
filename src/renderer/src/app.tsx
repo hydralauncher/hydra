@@ -10,7 +10,7 @@ import {
 } from "@renderer/hooks";
 
 import * as styles from "./app.css";
-import { themeClass } from "./theme.css";
+import { themeClass, vars } from "./theme.css";
 
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -20,6 +20,8 @@ import {
   toggleDraggingDisabled,
 } from "@renderer/features";
 import { GameStatusHelper } from "@shared";
+import { Theme } from "@types";
+import { setElementVars } from "@vanilla-extract/dynamic";
 
 document.body.classList.add(themeClass);
 
@@ -47,9 +49,23 @@ export function App({ children }: AppProps) {
     Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
       ([preferences]) => {
         dispatch(setUserPreferences(preferences));
+        const theme = localStorage.getItem("theme")
+        if (theme) {
+          applyTheme(JSON.parse(theme))
+        }
       }
     );
   }, [navigate, location.pathname, dispatch, updateLibrary]);
+
+  const applyTheme = (theme: Theme) => {
+    setElementVars(document.body, {
+      [vars.color.background]: theme.scheme.background,
+      [vars.color.darkBackground]: theme.scheme.darkBackground,
+      [vars.color.muted]: theme.scheme.muted,
+      [vars.color.bodyText]: theme.scheme.bodyText,
+      [vars.color.border]: theme.scheme.border,
+    });
+  };
 
   useEffect(() => {
     const unsubscribe = window.electron.onDownloadProgress(

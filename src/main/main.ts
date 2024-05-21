@@ -24,8 +24,10 @@ import path from "node:path";
 import { RealDebridClient } from "./services/real-debrid";
 import { orderBy } from "lodash-es";
 import { SteamGame } from "@types";
+import { loadThemesPath } from "./theme/path";
 
 startProcessWatcher();
+loadThemesPath();
 
 const track1337xUsers = async (existingRepacks: Repack[]) => {
   for (const repacker of repackersOn1337x) {

@@ -9,6 +9,7 @@ import type {
   Steam250Game,
   TorrentProgress,
   UserPreferences,
+  Theme,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -90,6 +91,8 @@ declare global {
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
     platform: NodeJS.Platform;
+    loadThemes: () => Promise<Theme[]>;
+    openPath: () => Promise<void>;
   }
 
   interface Window {
