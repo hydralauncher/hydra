@@ -36,7 +36,7 @@ export const progressBar = style({
   overflow: "hidden",
   height: "18px",
   "::-webkit-progress-value": {
-    backgroundColor: vars.color.background,
+    backgroundColor: vars.color.muted,
     transition: "width 0.2s",
   },
   "::-webkit-progress-bar": {
