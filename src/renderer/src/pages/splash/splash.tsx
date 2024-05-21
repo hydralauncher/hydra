@@ -53,16 +53,11 @@ export default function Splash() {
         return (
           <>
             <p>{t("downloading_version", { version: newVersion })}</p>
-            <div className={styles.progressBarContainer}>
-              <progress
-                className={styles.progressBar}
-                max="100"
-                value={status.info.percent}
-              />
-              <span className={styles.progressBarText}>
-                {status.info.percent.toFixed(2)} %
-              </span>
-            </div>
+            <progress
+              className={styles.progressBar}
+              max="100"
+              value={status.info.percent}
+            />
           </>
         );
       case "checking-for-updates":
