@@ -54,10 +54,11 @@ export default function Splash() {
           <>
             <p>{t("downloading_version", { version: newVersion })}</p>
             <div className={styles.progressBarContainer}>
-              <div
-                className={styles.progressBarFill}
-                style={{ width: `${status.info.percent}%` }}
-              ></div>
+              <progress
+                className={styles.progressBar}
+                max="100"
+                value={status.info.percent}
+              />
               <span className={styles.progressBarText}>
                 {status.info.percent.toFixed(2)} %
               </span>

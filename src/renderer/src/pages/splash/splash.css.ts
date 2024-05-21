@@ -34,17 +34,22 @@ export const progressBarContainer = style({
   alignItems: "center",
   position: "relative",
   justifyContent: "center",
-  backgroundColor: vars.color.darkBackground,
   border: `solid 1px ${vars.color.border}`,
   overflow: "hidden",
 });
 
-export const progressBarFill = style({
+export const progressBar = style({
+  WebkitAppearance: "none",
+  appearance: "none",
   position: "absolute",
-  transition: "width 0.1s",
-  height: "100%",
-  left: 0,
-  background: vars.color.background,
+  width: "100%",
+  "::-webkit-progress-value": {
+    backgroundColor: vars.color.background,
+    transition: "width 0.2s",
+  },
+  "::-webkit-progress-bar": {
+    backgroundColor: vars.color.darkBackground,
+  },
 });
 
 export const progressBarText = style({
