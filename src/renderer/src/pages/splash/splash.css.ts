@@ -29,7 +29,6 @@ export const updateInfoSection = style({
 
 export const progressBarContainer = style({
   width: "100%",
-  height: "18px",
   borderRadius: "24px",
   display: "flex",
   alignItems: "center",
