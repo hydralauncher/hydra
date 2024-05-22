@@ -177,7 +177,7 @@
   "modal": {
     "close": "Botón de cierre"
   }
-    "splash": {
+  "splash": {
     "downloading_version": "Descargando versión {{version}}",
     "searching_updates": "Buscando actualizaciones",
     "update_found": "Actualización {{version}} encontrada",
