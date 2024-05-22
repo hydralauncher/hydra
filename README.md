@@ -75,11 +75,11 @@ Follow the steps below to install:
 
 ## <a name="contributing"> Contributing
 
-### <a name="join-our-telegram"></a> Join our Telegram
+### <a name="join-our-telegram"></a> Join Our Telegram
 
 We concentrate our discussions on our [Telegram](https://t.me/hydralauncher) channel.
 
-### Fork and clone your repository
+### Fork and Clone Your Repository
 
 1. Fork the repository [(click here to fork now)](https://github.com/hydralauncher/hydra/fork)
 2. Clone your forked code `git clone https://github.com/your_username/hydra`
@@ -87,7 +87,7 @@ We concentrate our discussions on our [Telegram](https://t.me/hydralauncher) cha
 4. Push your commits
 5. Submit a new Pull Request
 
-### Ways you can contribute
+### Ways You Can Contribute
 
 - Translation: We want Hydra to be available to as many people as possible. Feel free to help translate to new languages or update and improve the ones that are already available on Hydra.
 - Code: Hydra is built with Typescript, Electron and a little bit of Python. If you want to contribute, join our [Telegram](https://t.me/hydralauncher)!
@@ -98,7 +98,7 @@ We concentrate our discussions on our [Telegram](https://t.me/hydralauncher) cha
 - src/renderer: the UI of the application
 - src/main: all the logic rests here.
 
-## Build from source
+## Build From Source
 
 ### Install Node.js
 
@@ -129,7 +129,7 @@ Install the required Python dependencies using pip:
 pip install -r requirements.txt
 ```
 
-## Environment variables
+## Environment Variables
 
 You'll need an SteamGridDB API Key in order to fetch the game icons on installation.
 If you want to have onlinefix as a repacker you'll need to add your credentials to the .env
@@ -146,7 +146,7 @@ yarn dev
 
 ## Build
 
-### Build the bittorrent client
+### Build the Bittorrent Client
 
 Build the bittorrent client by using this command:
 
@@ -154,7 +154,7 @@ Build the bittorrent client by using this command:
 python torrent-client/setup.py build
 ```
 
-### Build the Electron application
+### Build the Electron Application
 
 Build the Electron application by using this command:
 
