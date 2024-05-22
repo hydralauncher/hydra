@@ -17,3 +17,12 @@ export const hintText = style({
   fontSize: "12px",
   color: vars.color.bodyText,
 });
+
+export const downloaders = style({
+  display: "flex",
+  gap: `${SPACING_UNIT}px`,
+});
+
+export const downloaderOption = style({
+  flex: "1",
+});

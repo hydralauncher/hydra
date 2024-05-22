@@ -176,5 +176,11 @@
   },
   "modal": {
     "close": "Botão de fechar"
+  },
+  "splash": {
+    "downloading_version": "Baixando versão {{version}}",
+    "searching_updates": "Buscando atualizações",
+    "update_found": "Versão {{version}} encontrada",
+    "restarting_and_applying": "Reiniciando e aplicando atualização"
   }
 }

@@ -3,7 +3,7 @@ import { keyframes, style } from "@vanilla-extract/css";
 import { SPACING_UNIT, vars } from "../../theme.css";
 import { recipe } from "@vanilla-extract/recipes";
 
-const TOAST_HEIGHT = 60;
+const TOAST_HEIGHT = 55;
 
 export const slideIn = keyframes({
   "0%": { transform: `translateY(${TOAST_HEIGHT + SPACING_UNIT * 2}px)` },

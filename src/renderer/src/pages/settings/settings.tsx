@@ -28,6 +28,8 @@ export function Settings() {
   const handleUpdateUserPreferences = async (
     values: Partial<UserPreferences>
   ) => {
+    setIsToastVisible(false);
+
     await window.electron.updateUserPreferences(values);
     window.electron.getUserPreferences().then((userPreferences) => {
       setUserPreferences(userPreferences);

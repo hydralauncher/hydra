@@ -85,6 +85,7 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
           type="button"
           className={styles.closeButton}
           onClick={startAnimateClosing}
+          aria-label="Close toast"
         >
           <XCircleIcon />
         </button>
