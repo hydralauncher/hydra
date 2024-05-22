@@ -60,7 +60,7 @@ jobs:
             dist/*.zip
             dist/*.dmg
             dist/*.AppImage
-            dist/*.snap
+            dist/*.flatpak
             dist/*.deb
             dist/*.rpm
             dist/*.tar.gz
