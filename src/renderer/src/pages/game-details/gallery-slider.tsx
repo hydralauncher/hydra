@@ -58,9 +58,7 @@ export function GallerySlider({ gameDetails }: GallerySliderProps) {
     if (hasMovies && mediaContainerRef.current) {
       mediaContainerRef.current.childNodes.forEach((node, index) => {
         if (node instanceof HTMLVideoElement) {
-          if (index == mediaIndex) {
-            node.play();
-          } else {
+          if (index !== mediaIndex) {
             node.pause();
           }
         }

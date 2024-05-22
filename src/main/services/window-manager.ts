@@ -17,6 +17,8 @@ import { IsNull, Not } from "typeorm";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
+  public static splashWindow: Electron.BrowserWindow | null = null;
+  public static isReadyToShowMainWindow = false;
 
   private static loadURL(hash = "") {
     // HMR for renderer base on electron-vite cli.
@@ -35,13 +37,51 @@ export class WindowManager {
     }
   }
 
+  private static loadSplashURL() {
+    // HMR for renderer base on electron-vite cli.
+    // Load the remote URL for development or the local html file for production.
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+      this.splashWindow?.loadURL(
+        `${process.env["ELECTRON_RENDERER_URL"]}#/splash`
+      );
+    } else {
+      this.splashWindow?.loadFile(
+        path.join(__dirname, "../renderer/index.html"),
+        {
+          hash: "splash",
+        }
+      );
+    }
+  }
+
+  public static createSplashScreen() {
+    if (this.splashWindow) return;
+
+    this.splashWindow = new BrowserWindow({
+      width: 380,
+      height: 380,
+      frame: false,
+      resizable: false,
+      backgroundColor: "#1c1c1c",
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+    });
+
+    this.loadSplashURL();
+    this.splashWindow.removeMenu();
+  }
+
   public static createMainWindow() {
-    // Create the browser window.
+    if (this.mainWindow || !this.isReadyToShowMainWindow) return;
+
     this.mainWindow = new BrowserWindow({
       width: 1200,
       height: 720,
       minWidth: 1024,
       minHeight: 540,
+      backgroundColor: "#1c1c1c",
       titleBarStyle: "hidden",
       ...(process.platform === "linux" ? { icon } : {}),
       trafficLightPosition: { x: 16, y: 16 },
@@ -73,6 +113,12 @@ export class WindowManager {
       }
       WindowManager.mainWindow?.setProgressBar(-1);
     });
+  }
+
+  public static prepareMainWindowAndCloseSplash() {
+    this.isReadyToShowMainWindow = true;
+    this.splashWindow?.close();
+    this.createMainWindow();
   }
 
   public static redirect(hash: string) {
