@@ -24,7 +24,7 @@
 
 </div>
 
-## Table of Contents
+## Tabla de Contenidos
 
 - [Acerca de](#acerca-de)
 - [Características](#caracteristicas)
