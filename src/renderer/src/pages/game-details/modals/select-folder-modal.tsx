@@ -80,8 +80,24 @@ export function SelectFolderModal({
       onClose={onClose}
     >
       <div className={styles.container}>
+        <div>
+          <label style={{ marginBottom: 0, padding: 0 }}>Download method</label>
+
+          <div className={styles.downloaders}>
+            <Button className={styles.downloaderOption} theme="outline">
+              Torrent
+            </Button>
+            <Button className={styles.downloaderOption}>Real Debrid</Button>
+          </div>
+        </div>
+
         <div className={styles.downloadsPathField}>
-          <TextField value={selectedPath} readOnly disabled />
+          <TextField
+            value={selectedPath}
+            readOnly
+            disabled
+            label="Download path"
+          />
 
           <Button
             style={{ alignSelf: "flex-end" }}
@@ -92,11 +108,13 @@ export function SelectFolderModal({
             {t("change")}
           </Button>
         </div>
+
         <p className={styles.hintText}>
           <Trans i18nKey="select_folder_hint" ns="game_details">
             <Link to="/settings" />
           </Trans>
         </p>
+
         <Button onClick={handleStartClick} disabled={downloadStarting}>
           <DownloadIcon />
           {t("download_now")}

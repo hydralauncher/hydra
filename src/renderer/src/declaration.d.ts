@@ -1,4 +1,5 @@
 import type {
+  AppUpdaterEvents,
   CatalogueCategory,
   CatalogueEntry,
   Game,
@@ -90,6 +91,14 @@ declare global {
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
     platform: NodeJS.Platform;
+
+    /* Splash */
+    onAutoUpdaterEvent: (
+      cb: (event: AppUpdaterEvents) => void
+    ) => () => Electron.IpcRenderer;
+    checkForUpdates: () => Promise<void>;
+    restartAndInstallUpdate: () => Promise<void>;
+    continueToMainWindow: () => Promise<void>;
   }
 
   interface Window {
