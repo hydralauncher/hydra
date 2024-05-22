@@ -59,7 +59,7 @@ export class Game {
   @Column("int", { default: 0 })
   bytesDownloaded: number;
 
-  @Column("text", { nullable: true })
+  @Column("datetime", { nullable: true })
   lastTimePlayed: Date | null;
 
   @Column("float", { default: 0 })
