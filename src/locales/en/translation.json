@@ -177,5 +177,11 @@
   },
   "modal": {
     "close": "Close button"
+  },
+  "splash": {
+    "downloading_version": "Downloading version {{version}}",
+    "searching_updates": "Searching for updates",
+    "update_found": "Update {{version}} found",
+    "restarting_and_applying": "Restarting and applying update"
   }
 }
