@@ -42,7 +42,7 @@ export function Modal({
   }, [onClose]);
 
   const isTopMostModal = () => {
-    const openModals = document.querySelectorAll("[role=modal]");
+    const openModals = document.querySelectorAll("[role=dialog]");
 
     return (
       openModals.length &&
@@ -89,7 +89,9 @@ export function Modal({
     <Backdrop isClosing={isClosing}>
       <div
         className={styles.modal({ closing: isClosing })}
-        role="modal"
+        role="dialog"
+        aria-labelledby={title}
+        aria-describedby={description}
         ref={modalContentRef}
       >
         <div className={styles.modalHeader}>

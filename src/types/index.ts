@@ -1,3 +1,6 @@
+import type { Downloader, GameStatus } from "@shared";
+import { ProgressInfo, UpdateInfo } from "electron-updater";
+
 export type GameShop = "steam" | "epic";
 export type CatalogueCategory = "recently_added" | "trending";
 
@@ -14,7 +17,7 @@ export interface SteamScreenshot {
 
 export interface SteamVideoSource {
   max: string;
-  '480': string;
+  "480": string;
 }
 
 export interface SteamMovies {
@@ -33,7 +36,7 @@ export interface SteamAppDetails {
   short_description: string;
   publishers: string[];
   genres: SteamGenre[];
-  movies: SteamMovies[];
+  movies?: SteamMovies[];
   screenshots: SteamScreenshot[];
   pc_requirements: {
     minimum: string;
@@ -67,7 +70,6 @@ export interface GameRepack {
 
 export type ShopDetails = SteamAppDetails & {
   objectID: string;
-  repacks: GameRepack[];
 };
 
 export interface TorrentFile {
@@ -90,15 +92,17 @@ export interface Game extends Omit<CatalogueEntry, "cover"> {
   id: number;
   title: string;
   iconUrl: string;
-  status: string;
+  status: GameStatus | null;
   folderName: string;
   downloadPath: string | null;
   repacks: GameRepack[];
-  repack: GameRepack;
+  repack: GameRepack | null;
   progress: number;
   fileVerificationProgress: number;
+  decompressionProgress: number;
   bytesDownloaded: number;
   playTimeInMilliseconds: number;
+  downloader: Downloader;
   executablePath: string | null;
   lastTimePlayed: Date | null;
   fileSize: number;
@@ -119,7 +123,7 @@ export interface UserPreferences {
   language: string;
   downloadNotificationsEnabled: boolean;
   repackUpdatesNotificationsEnabled: boolean;
-  telemetryEnabled: boolean;
+  realDebridApiToken: string | null;
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;
 }
@@ -129,3 +133,23 @@ export interface HowLongToBeatCategory {
   duration: string;
   accuracy: string;
 }
+
+export interface Steam250Game {
+  title: string;
+  objectID: string;
+}
+
+export interface SteamGame {
+  id: number;
+  name: string;
+  clientIcon: string | null;
+}
+
+export type AppUpdaterEvents =
+  | { type: "error" }
+  | { type: "checking-for-updates" }
+  | { type: "update-not-available" }
+  | { type: "update-available"; info: UpdateInfo }
+  | { type: "update-downloaded" }
+  | { type: "download-progress"; info: ProgressInfo }
+  | { type: "update-cancelled" };

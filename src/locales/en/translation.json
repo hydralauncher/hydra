@@ -19,6 +19,7 @@
     "follow_us": "Follow us",
     "home": "Home",
     "discord": "Join our Discord",
+    "telegram": "Join our Telegram",
     "x": "Follow on X",
     "github": "Contribute on GitHub",
     "delete_installation_files": "Remove installation files",
@@ -27,7 +28,7 @@
     "game_executable": "Game executable"
   },
   "header": {
-    "search": "Search",
+    "search": "Search games",
     "home": "Home",
     "catalogue": "Catalogue",
     "downloads": "Downloads",
@@ -67,7 +68,7 @@
     "no_minimum_requirements": "{{title}} doesn't provide minimum requirements information",
     "no_recommended_requirements": "{{title}} doesn't provide recommended requirements information",
     "paused_progress": "{{progress}} (Paused)",
-    "release_date": "Released in {{date}}",
+    "release_date": "Released on {{date}}",
     "publisher": "Published by {{publisher}}",
     "copy_link_to_clipboard": "Copy link",
     "copied_link_to_clipboard": "Link copied",
@@ -89,9 +90,7 @@
     "playing_now": "Playing now",
     "change": "Change",
     "repacks_modal_description": "Choose the repack you want to download",
-    "downloads_path": "Downloads path",
-    "select_folder_hint": "To change the default folder, access the",
-    "settings": "Settings",
+    "select_folder_hint": "To change the default folder, go to the <0>Settings</0>",
     "download_now": "Download now",
     "installation_instructions": "Installation Instructions",
     "installation_instructions_description": "Additional steps are required to install this game",
@@ -101,7 +100,14 @@
     "copy_to_clipboard": "Copy",
     "copied_to_clipboard": "Copied",
     "got_it": "Got it",
-    "game_executable": "Game executable"
+    "game_executable": "Game executable",
+    "no_shop_details": "Could not retrieve shop details.",
+    "download_options": "Download options",
+    "download_path": "Download path",
+    "previous_screenshot": "Previous screenshot",
+    "next_screenshot": "Next screenshot",
+    "screenshot": "Screenshot {{number}}",
+    "open_screenshot": "Open screenshot {{number}}"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -133,6 +139,8 @@
     "delete_modal_title": "Are you sure?",
     "delete_modal_description": "This will remove all the installation files from your computer",
     "install": "Install",
+    "real_debrid": "Real Debrid",
+    "torrent": "Torrent",
     "delete_installation_modal_description": "This will remove the folder where your game was downloaded. If you have installed your game on the same place where you downloaded it, it will be deleted."
   },
   "settings": {
@@ -143,9 +151,15 @@
     "enable_repack_list_notifications": "When a new repack is added",
     "telemetry": "Telemetry",
     "telemetry_description": "Enable anonymous usage statistics",
+    "real_debrid_api_token_label": "Real Debrid API token",
+    "quit_app_instead_hiding": "Quit Hydra instead of minimizing to tray",
+    "launch_with_system": "Launch Hydra on system start-up",
+    "general": "General",
     "behavior": "Behavior",
-    "quit_app_instead_hiding": "Close app instead of minimizing to tray",
-    "launch_with_system": "Launch app on system start-up"
+    "enable_real_debrid": "Enable Real Debrid",
+    "real_debrid": "Real Debrid",
+    "real_debrid_api_token_hint": "You can get your API key <0>here</0>.",
+    "save_changes": "Save changes"
   },
   "notifications": {
     "download_complete": "Download complete",
@@ -168,5 +182,11 @@
   },
   "modal": {
     "close": "Close button"
+  },
+  "splash": {
+    "downloading_version": "Downloading version {{version}}",
+    "searching_updates": "Searching for updates",
+    "update_found": "Update {{version}} found",
+    "restarting_and_applying": "Restarting and applying update"
   }
 }

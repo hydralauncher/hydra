@@ -7,13 +7,17 @@ import { vars } from "../../theme.css";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { VERSION_CODENAME } from "@renderer/constants";
+import { GameStatus, GameStatusHelper } from "@shared";
 
 export function BottomPanel() {
   const { t } = useTranslation("bottom_panel");
 
   const navigate = useNavigate();
 
-  const { game, progress, downloadSpeed, eta, isDownloading } = useDownload();
+  const { game, progress, downloadSpeed, eta } = useDownload();
+
+  const isGameDownloading =
+    game && GameStatusHelper.isDownloading(game.status ?? null);
 
   const [version, setVersion] = useState("");
 
@@ -22,11 +26,11 @@ export function BottomPanel() {
   }, []);
 
   const status = useMemo(() => {
-    if (isDownloading && game) {
-      if (game.status === "downloading_metadata")
+    if (isGameDownloading) {
+      if (game.status === GameStatus.DownloadingMetadata)
         return t("downloading_metadata", { title: game.title });
 
-      if (game.status === "checking_files")
+      if (game.status === GameStatus.CheckingFiles)
         return t("checking_files", {
           title: game.title,
           percentage: progress,
@@ -41,13 +45,13 @@ export function BottomPanel() {
     }
 
     return t("no_downloads_in_progress");
-  }, [t, game, progress, eta, isDownloading, downloadSpeed]);
+  }, [t, isGameDownloading, game, progress, eta, downloadSpeed]);
 
   return (
     <footer
       className={styles.bottomPanel}
       style={{
-        background: isDownloading
+        background: isGameDownloading
           ? `linear-gradient(90deg, ${vars.color.background} ${progress}, ${vars.color.darkBackground} ${progress})`
           : vars.color.darkBackground,
       }}

@@ -10,6 +10,9 @@ import {
 } from "typeorm";
 import { Repack } from "./repack.entity";
 
+import type { GameShop } from "@types";
+import { Downloader, GameStatus } from "@shared";
+
 @Entity("game")
 export class Game {
   @PrimaryGeneratedColumn()
@@ -21,8 +24,8 @@ export class Game {
   @Column("text")
   title: string;
 
-  @Column("text")
-  iconUrl: string;
+  @Column("text", { nullable: true })
+  iconUrl: string | null;
 
   @Column("text", { nullable: true })
   folderName: string | null;
@@ -40,8 +43,14 @@ export class Game {
   shop: GameShop;
 
   @Column("text", { nullable: true })
-  status: string | null;
+  status: GameStatus | null;
 
+  @Column("int", { default: Downloader.Torrent })
+  downloader: Downloader;
+
+  /**
+   * Progress is a float between 0 and 1
+   */
   @Column("float", { default: 0 })
   progress: number;
 

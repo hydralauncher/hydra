@@ -9,8 +9,8 @@ const showOpenDialog = (
   if (WindowManager.mainWindow) {
     return dialog.showOpenDialog(WindowManager.mainWindow, options);
   }
+
+  throw new Error("Main window is not available");
 };
 
-registerEvent(showOpenDialog, {
-  name: "showOpenDialog",
-});
+registerEvent("showOpenDialog", showOpenDialog);

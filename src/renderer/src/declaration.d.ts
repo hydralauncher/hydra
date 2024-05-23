@@ -1,10 +1,13 @@
 import type {
+  AppUpdaterEvents,
   CatalogueCategory,
   CatalogueEntry,
   Game,
+  GameRepack,
   GameShop,
   HowLongToBeatCategory,
   ShopDetails,
+  Steam250Game,
   TorrentProgress,
   UserPreferences,
 } from "@types";
@@ -40,7 +43,7 @@ declare global {
       shop: GameShop,
       language: string
     ) => Promise<ShopDetails | null>;
-    getRandomGame: () => Promise<string>;
+    getRandomGame: () => Promise<Steam250Game>;
     getHowLongToBeat: (
       objectID: string,
       shop: GameShop,
@@ -50,6 +53,7 @@ declare global {
       take?: number,
       prevCursor?: number
     ) => Promise<{ results: CatalogueEntry[]; cursor: number }>;
+    searchGameRepacks: (query: string) => Promise<GameRepack[]>;
 
     /* Library */
     addGameToLibrary: (
@@ -60,7 +64,6 @@ declare global {
     ) => Promise<void>;
     getLibrary: () => Promise<Game[]>;
     openGameFolder: (gameId: number) => Promise<boolean>;
-    getRepackersFriendlyNames: () => Promise<Record<string, string>>;
     openGameInstaller: (gameId: number) => Promise<boolean>;
     openGame: (gameId: number, executablePath: string) => Promise<void>;
     changeExecutablePath: (
@@ -93,6 +96,14 @@ declare global {
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
     platform: NodeJS.Platform;
+
+    /* Splash */
+    onAutoUpdaterEvent: (
+      cb: (event: AppUpdaterEvents) => void
+    ) => () => Electron.IpcRenderer;
+    checkForUpdates: () => Promise<void>;
+    restartAndInstallUpdate: () => Promise<void>;
+    continueToMainWindow: () => Promise<void>;
   }
 
   interface Window {

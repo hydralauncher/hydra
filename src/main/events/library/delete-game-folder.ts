@@ -14,6 +14,7 @@ const deleteGameFolder = async (
   const game = await gameRepository.findOne({
     where: {
       id: gameId,
+      isDeleted: false,
     },
   });
 
@@ -35,7 +36,8 @@ const deleteGameFolder = async (
               logger.error(error);
               reject();
             }
-            resolve(null);
+
+            resolve();
           }
         );
       });
@@ -43,6 +45,4 @@ const deleteGameFolder = async (
   }
 };
 
-registerEvent(deleteGameFolder, {
-  name: "deleteGameFolder",
-});
+registerEvent("deleteGameFolder", deleteGameFolder);

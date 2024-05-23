@@ -9,14 +9,6 @@ import { useDownload, useLibrary } from "@renderer/hooks";
 
 import { routes } from "./routes";
 
-import {
-  FileDirectoryIcon,
-  FileDirectorySymlinkIcon,
-  MarkGithubIcon,
-  TrashIcon,
-} from "@primer/octicons-react";
-import DiscordLogo from "@renderer/assets/discord-icon.svg?react";
-import XLogo from "@renderer/assets/x-icon.svg?react";
 
 import { DeleteModal } from "./delete-modal";
 import * as styles from "./sidebar.css";
@@ -48,32 +40,12 @@ export function Sidebar() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [currentGame, setCurrentGame] = useState<Game>();
 
-  const socials = [
-    {
-      url: "https://discord.gg/hydralauncher",
-      icon: <DiscordLogo />,
-      label: t("discord"),
-    },
-    {
-      url: "https://twitter.com/hydralauncher",
-      icon: <XLogo />,
-      label: t("x"),
-    },
-    {
-      url: "https://github.com/hydralauncher/hydra",
-      icon: <MarkGithubIcon size={16} />,
-      label: t("github"),
-    },
-  ];
-
   const location = useLocation();
 
   const { game: gameDownloading, progress } = useDownload();
 
   const isDownloading = library.some((game) =>
-    ["downloading", "checking_files", "downloading_metadata"].includes(
-      game.status
-    )
+    GameStatusHelper.isDownloading(game.status)
   );
 
   const sidebarRef = useRef<HTMLElement>(null);
@@ -221,6 +193,33 @@ export function Sidebar() {
       window.removeEventListener("click", handleClick);
     };
   }, []);
+  const getGameTitle = (game: Game) => {
+    if (game.status === GameStatus.Paused)
+      return t("paused", { title: game.title });
+
+    if (gameDownloading?.id === game.id) {
+      const isVerifying = GameStatusHelper.isVerifying(gameDownloading.status);
+
+      if (isVerifying)
+        return t(gameDownloading.status!, {
+          title: game.title,
+          percentage: progress,
+        });
+
+      return t("downloading", {
+        title: game.title,
+        percentage: progress,
+      });
+    }
+
+    return game.title;
+  };
+
+  const handleSidebarItemClick = (path: string) => {
+    if (path !== location.pathname) {
+      navigate(path);
+    }
+  };
 
   return (
     <>
@@ -385,6 +384,42 @@ export function Sidebar() {
             />
           </section>
         </div>
+          <ul className={styles.menu}>
+            {filteredLibrary.map((game) => (
+              <li
+                key={game.id}
+                className={styles.menuItem({
+                  active:
+                    location.pathname === `/game/${game.shop}/${game.objectID}`,
+                  muted: game.status === GameStatus.Cancelled,
+                })}
+              >
+                <button
+                  type="button"
+                  className={styles.menuItemButton}
+                  onClick={() =>
+                    handleSidebarItemClick(buildGameDetailsPath(game))
+                  }
+                >
+                  {game.iconUrl ? (
+                    <img
+                      className={styles.gameIcon}
+                      src={game.iconUrl}
+                      alt={game.title}
+                    />
+                  ) : (
+                    <SteamLogo className={styles.gameIcon} />
+                  )}
+
+                  <span className={styles.menuItemButtonLabel}>
+                    {getGameTitle(game)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
 
         <button
           type="button"
@@ -413,5 +448,11 @@ export function Sidebar() {
         </footer>
       </aside>
     </>
+      <button
+        type="button"
+        className={styles.handle}
+        onMouseDown={handleMouseDown}
+      />
+    </aside>
   );
 }

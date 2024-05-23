@@ -4,8 +4,9 @@ module.exports = {
     "plugin:react/recommended",
     "plugin:react/jsx-runtime",
     "plugin:react-hooks/recommended",
+    "plugin:jsx-a11y/recommended",
     "@electron-toolkit/eslint-config-ts/recommended",
-    "prettier",
+    "plugin:prettier/recommended",
   ],
   rules: {
     "@typescript-eslint/explicit-function-return-type": "off",
@@ -18,5 +19,11 @@ module.exports = {
       },
     ],
     "@typescript-eslint/no-explicit-any": "warn",
+    "prettier/prettier": [
+      "error",
+      {
+        endOfLine: "auto",
+      },
+    ],
   },
 };

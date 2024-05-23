@@ -1,11 +1,15 @@
 import { defaultDownloadsPath } from "@main/constants";
 import { app, ipcMain } from "electron";
 
+import "./autoupdater/check-for-updates";
+import "./autoupdater/continue-to-main-window";
+import "./autoupdater/restart-and-install-update";
 import "./catalogue/get-catalogue";
 import "./catalogue/get-game-shop-details";
 import "./catalogue/get-games";
 import "./catalogue/get-how-long-to-beat";
 import "./catalogue/get-random-game";
+import "./catalogue/search-game-repacks";
 import "./catalogue/search-games";
 import "./hardware/get-disk-free-space";
 import "./library/add-game-to-library";
@@ -14,7 +18,6 @@ import "./library/close-game";
 import "./library/delete-game-folder";
 import "./library/get-game-by-object-id";
 import "./library/get-library";
-import "./library/get-repackers-friendly-names";
 import "./library/open-game";
 import "./library/open-game-folder";
 import "./library/open-game-installer";

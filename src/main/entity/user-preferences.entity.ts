@@ -17,14 +17,14 @@ export class UserPreferences {
   @Column("text", { default: "en" })
   language: string;
 
+  @Column("text", { nullable: true })
+  realDebridApiToken: string | null;
+
   @Column("boolean", { default: false })
   downloadNotificationsEnabled: boolean;
 
   @Column("boolean", { default: false })
   repackUpdatesNotificationsEnabled: boolean;
-
-  @Column("boolean", { default: true })
-  telemetryEnabled: boolean;
 
   @Column("boolean", { default: false })
   preferQuitInsteadOfHiding: boolean;

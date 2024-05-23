@@ -20,11 +20,7 @@
     "home": "Ana menü",
     "discord": "Discord'umuza katıl",
     "x": "X'te bizi takip et",
-    "github": "GitHub'da bize katkı yap",
-    "delete_installation_files": "Kurulum dosyalarını kaldır",
-    "change_exe_path": "Yürütülebilir yolu değiştir",
-    "open_archive_path": "Dosya konumunu aç",
-    "game_executable": "Yürütülebilir oyun"
+    "github": "GitHub'da bize katkı yap"
   },
   "header": {
     "search": "Ara",
@@ -100,8 +96,7 @@
     "dont_show_it_again": "Tekrar gösterme",
     "copy_to_clipboard": "Kopyala",
     "copied_to_clipboard": "Kopyalandı",
-    "got_it": "Tamam",
-    "game_executable": "Yürütülebilir oyun"
+    "got_it": "Tamam"
   },
   "activation": {
     "title": "Hydra'yı aktif et",
@@ -132,8 +127,7 @@
     "remove_from_list": "Kaldır",
     "delete_modal_title": "Emin misiniz?",
     "delete_modal_description": "Bu bilgisayarınızdan tüm kurulum dosyalarını silecek",
-    "install": "Kur",
-    "delete_installation_modal_description": "Bu, oyununuzun indirildiği klasörü kaldıracaktır. \nOyununuzu indirdiğiniz yere yüklediyseniz silinecektir."
+    "install": "Kur"
   },
   "settings": {
     "downloads_path": "İndirme yolu",

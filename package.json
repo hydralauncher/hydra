@@ -1,6 +1,6 @@
 {
-  "name": "hydra",
-  "version": "1.1.1",
+  "name": "hydralauncher",
+  "version": "1.2.3",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
@@ -10,8 +10,13 @@
     "url": "https://github.com/hydralauncher/hydra.git"
   },
   "type": "module",
+  "engines": {
+    "npm": "please-use-yarn",
+    "yarn": ">= 1.19.1"
+  },
   "scripts": {
     "format": "prettier --write .",
+    "format-check": "prettier --check .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
@@ -23,7 +28,9 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "electron-vite build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
-    "build:linux": "electron-vite build && electron-builder --linux"
+    "build:linux": "electron-vite build && electron-builder --linux",
+    "prepare": "husky",
+    "typeorm:migration-create": "yarn typeorm migration:create"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.0",
@@ -32,9 +39,6 @@
     "@fontsource/fira-sans": "^5.0.20",
     "@primer/octicons-react": "^19.9.0",
     "@reduxjs/toolkit": "^2.2.3",
-    "@sentry/electron": "^4.23.0",
-    "@sentry/react": "^7.111.0",
-    "@sentry/vite-plugin": "^2.16.1",
     "@vanilla-extract/css": "^1.14.2",
     "@vanilla-extract/recipes": "^0.5.2",
     "auto-launch": "^5.0.6",
@@ -42,8 +46,11 @@
     "better-sqlite3": "^9.5.0",
     "check-disk-space": "^3.4.0",
     "classnames": "^2.5.1",
+    "color": "^4.2.3",
     "color.js": "^1.2.0",
     "date-fns": "^3.6.0",
+    "easydl": "^1.1.1",
+    "electron-updater": "^6.1.8",
     "fetch-cookie": "^3.0.1",
     "flexsearch": "^0.7.43",
     "i18next": "^23.11.2",
@@ -51,6 +58,7 @@
     "jsdom": "^24.0.0",
     "lodash-es": "^4.17.21",
     "lottie-react": "^2.4.0",
+    "node-7z-archive": "^1.1.7",
     "parse-torrent": "^11.0.16",
     "ps-list": "^8.1.1",
     "react-i18next": "^14.1.0",
@@ -63,6 +71,8 @@
     "yaml": "^2.4.1"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.3.0",
+    "@commitlint/config-conventional": "^19.2.2",
     "@electron-toolkit/eslint-config-prettier": "^2.0.0",
     "@electron-toolkit/eslint-config-ts": "^1.0.1",
     "@electron-toolkit/tsconfig": "^1.0.1",
@@ -80,8 +90,10 @@
     "electron-builder": "^24.9.1",
     "electron-vite": "^2.0.0",
     "eslint": "^8.56.0",
+    "eslint-plugin-jsx-a11y": "^6.8.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
+    "husky": "^9.0.11",
     "prettier": "^3.2.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

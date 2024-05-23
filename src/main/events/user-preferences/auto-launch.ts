@@ -16,6 +16,4 @@ const autoLaunch = async (
   }
 };
 
-registerEvent(autoLaunch, {
-  name: "autoLaunch",
-});
+registerEvent("autoLaunch", autoLaunch);

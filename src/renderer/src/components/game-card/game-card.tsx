@@ -5,7 +5,6 @@ import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import EpicGamesLogo from "@renderer/assets/epic-games-logo.svg?react";
 
 import * as styles from "./game-card.css";
-import { useAppSelector } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
 
 export interface GameCardProps
@@ -14,7 +13,6 @@ export interface GameCardProps
     HTMLButtonElement
   > {
   game: CatalogueEntry;
-  disabled?: boolean;
 }
 
 const shopIcon = {
@@ -22,24 +20,15 @@ const shopIcon = {
   steam: <SteamLogo className={styles.shopIcon} />,
 };
 
-export function GameCard({ game, disabled, ...props }: GameCardProps) {
+export function GameCard({ game, ...props }: GameCardProps) {
   const { t } = useTranslation("game_card");
-
-  const repackersFriendlyNames = useAppSelector(
-    (state) => state.repackersFriendlyNames.value
-  );
 
   const uniqueRepackers = Array.from(
     new Set(game.repacks.map(({ repacker }) => repacker))
   );
 
   return (
-    <button
-      {...props}
-      type="button"
-      className={styles.card({ disabled })}
-      disabled={disabled}
-    >
+    <button {...props} type="button" className={styles.card}>
       <div className={styles.backdrop}>
         <img src={game.cover} alt={game.title} className={styles.cover} />
 
@@ -53,7 +42,7 @@ export function GameCard({ game, disabled, ...props }: GameCardProps) {
             <ul className={styles.downloadOptions}>
               {uniqueRepackers.map((repacker) => (
                 <li key={repacker} className={styles.downloadOption}>
-                  <span>{repackersFriendlyNames[repacker]}</span>
+                  <span>{repacker}</span>
                 </li>
               ))}
             </ul>

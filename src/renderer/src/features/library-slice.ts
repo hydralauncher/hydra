@@ -3,7 +3,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 
 import type { Game } from "@types";
 
-interface LibraryState {
+export interface LibraryState {
   value: Game[];
 }
 

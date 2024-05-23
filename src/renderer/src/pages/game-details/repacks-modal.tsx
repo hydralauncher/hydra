@@ -2,25 +2,24 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, Modal, TextField } from "@renderer/components";
-import type { GameRepack, ShopDetails } from "@types";
+import type { GameRepack } from "@types";
 
 import * as styles from "./repacks-modal.css";
 
-import { useAppSelector } from "@renderer/hooks";
 import { SPACING_UNIT } from "../../theme.css";
 import { format } from "date-fns";
 import { SelectFolderModal } from "./select-folder-modal";
 
 export interface RepacksModalProps {
   visible: boolean;
-  gameDetails: ShopDetails;
+  repacks: GameRepack[];
   startDownload: (repack: GameRepack, downloadPath: string) => Promise<void>;
   onClose: () => void;
 }
 
 export function RepacksModal({
   visible,
-  gameDetails,
+  repacks,
   startDownload,
   onClose,
 }: RepacksModalProps) {
@@ -28,15 +27,11 @@ export function RepacksModal({
   const [repack, setRepack] = useState<GameRepack | null>(null);
   const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
 
-  const repackersFriendlyNames = useAppSelector(
-    (state) => state.repackersFriendlyNames.value
-  );
-
   const { t } = useTranslation("game_details");
 
   useEffect(() => {
-    setFilteredRepacks(gameDetails.repacks);
-  }, [gameDetails.repacks]);
+    setFilteredRepacks(repacks);
+  }, [repacks, visible]);
 
   const handleRepackClick = (repack: GameRepack) => {
     setRepack(repack);
@@ -47,7 +42,7 @@ export function RepacksModal({
     const term = event.target.value.toLocaleLowerCase();
 
     setFilteredRepacks(
-      gameDetails.repacks.filter((repack) => {
+      repacks.filter((repack) => {
         const lowerCaseTitle = repack.title.toLowerCase();
         const lowerCaseRepacker = repack.repacker.toLowerCase();
 
@@ -63,14 +58,13 @@ export function RepacksModal({
       <SelectFolderModal
         visible={showSelectFolderModal}
         onClose={() => setShowSelectFolderModal(false)}
-        gameDetails={gameDetails}
         startDownload={startDownload}
         repack={repack}
       />
 
       <Modal
         visible={visible}
-        title={`${gameDetails.name} Repacks`}
+        title={t("download_options")}
         description={t("repacks_modal_description")}
         onClose={onClose}
       >
@@ -86,9 +80,11 @@ export function RepacksModal({
               onClick={() => handleRepackClick(repack)}
               className={styles.repackButton}
             >
-              <p style={{ color: "#DADBE1" }}>{repack.title}</p>
+              <p style={{ color: "#DADBE1", wordBreak: "break-word" }}>
+                {repack.title}
+              </p>
               <p style={{ fontSize: "12px" }}>
-                {repack.fileSize} - {repackersFriendlyNames[repack.repacker]} -{" "}
+                {repack.fileSize} - {repack.repacker} -{" "}
                 {repack.uploadDate
                   ? format(repack.uploadDate, "dd/MM/yyyy")
                   : ""}

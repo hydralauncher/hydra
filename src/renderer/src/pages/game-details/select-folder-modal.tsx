@@ -1,17 +1,15 @@
-import { Button, Modal, TextField } from "@renderer/components";
-import { GameRepack, ShopDetails } from "@types";
+import { Button, Link, Modal, TextField } from "@renderer/components";
+import type { GameRepack } from "@types";
 import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 
-import { formatBytes } from "@renderer/utils";
 import { DiskSpace } from "check-disk-space";
-import { Link } from "react-router-dom";
 import * as styles from "./select-folder-modal.css";
 import { DownloadIcon } from "@primer/octicons-react";
+import { formatBytes } from "@shared";
 
 export interface SelectFolderModalProps {
   visible: boolean;
-  gameDetails: ShopDetails;
   onClose: () => void;
   startDownload: (repack: GameRepack, downloadPath: string) => Promise<void>;
   repack: GameRepack | null;
@@ -19,7 +17,6 @@ export interface SelectFolderModalProps {
 
 export function SelectFolderModal({
   visible,
-  gameDetails,
   onClose,
   startDownload,
   repack,
@@ -75,7 +72,7 @@ export function SelectFolderModal({
   return (
     <Modal
       visible={visible}
-      title={`${gameDetails.name} Installation folder`}
+      title={t("download_path")}
       description={t("space_left_on_disk", {
         space: formatBytes(diskFreeSpace?.free ?? 0),
       })}
@@ -83,12 +80,7 @@ export function SelectFolderModal({
     >
       <div className={styles.container}>
         <div className={styles.downloadsPathField}>
-          <TextField
-            label={t("downloads_path")}
-            value={selectedPath}
-            readOnly
-            disabled
-          />
+          <TextField value={selectedPath} readOnly disabled />
 
           <Button
             style={{ alignSelf: "flex-end" }}
@@ -100,10 +92,9 @@ export function SelectFolderModal({
           </Button>
         </div>
         <p className={styles.hintText}>
-          {t("select_folder_hint")}{" "}
-          <Link to="/settings" className={styles.settingsLink}>
-            {t("settings")}
-          </Link>
+          <Trans i18nKey="select_folder_hint" ns="game_details">
+            <Link to="/settings" />
+          </Trans>
         </p>
         <Button onClick={handleStartClick} disabled={downloadStarting}>
           <DownloadIcon />

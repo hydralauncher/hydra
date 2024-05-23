@@ -18,6 +18,4 @@ const openGame = async (
   shell.openPath(executablePath);
 };
 
-registerEvent(openGame, {
-  name: "openGame",
-});
+registerEvent("openGame", openGame);
