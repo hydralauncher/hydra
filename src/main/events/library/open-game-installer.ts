@@ -30,13 +30,14 @@ const openGameInstaller = async (
   }
 
   const setupPath = path.join(gamePath, "setup.exe");
-  if (!fs.existsSync(setupPath)) {
-    shell.openPath(gamePath);
-    return true;
-  }
 
   if (process.platform === "win32") {
     shell.openPath(setupPath);
+    return true;
+  }
+
+  if (spawnSync("which", ["wine"]).status === 0) {
+    exec(`wine "${setupPath}"`);
     return true;
   }
 
@@ -44,11 +45,6 @@ const openGameInstaller = async (
     const ymlPath = path.join(gamePath, "setup.yml");
     await writeFile(ymlPath, generateYML(game));
     exec(`lutris --install "${ymlPath}"`);
-    return true;
-  }
-
-  if (spawnSync("which", ["wine"]).status === 0) {
-    exec(`wine "${setupPath}"`);
     return true;
   }
 
