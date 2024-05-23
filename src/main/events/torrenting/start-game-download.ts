@@ -1,33 +1,18 @@
-import {
-  gameRepository,
-  repackRepository,
-  userPreferencesRepository,
-} from "@main/repository";
+import { gameRepository, repackRepository } from "@main/repository";
 
 import { registerEvent } from "../register-event";
 
-import type { GameShop } from "@types";
+import type { StartGameDownloadPayload } from "@types";
 import { getFileBase64, getSteamAppAsset } from "@main/helpers";
 import { DownloadManager } from "@main/services";
-import { Downloader } from "@shared";
 import { stateManager } from "@main/state-manager";
 import { Not } from "typeorm";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
-  repackId: number,
-  objectID: string,
-  title: string,
-  gameShop: GameShop,
-  downloadPath: string
+  payload: StartGameDownloadPayload
 ) => {
-  const userPreferences = await userPreferencesRepository.findOne({
-    where: { id: 1 },
-  });
-
-  const downloader = userPreferences?.realDebridApiToken
-    ? Downloader.RealDebrid
-    : Downloader.Torrent;
+  const { repackId, objectID, title, shop, downloadPath, downloader } = payload;
 
   const [game, repack] = await Promise.all([
     gameRepository.findOne({
@@ -83,7 +68,7 @@ const startGameDownload = async (
         iconUrl,
         objectID,
         downloader,
-        shop: gameShop,
+        shop,
         status: "active",
         downloadPath,
         repack: { id: repackId },

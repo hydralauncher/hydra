@@ -10,7 +10,7 @@ const addGameToLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
   objectID: string,
   title: string,
-  gameShop: GameShop,
+  shop: GameShop,
   executablePath: string | null
 ) => {
   return gameRepository
@@ -19,7 +19,7 @@ const addGameToLibrary = async (
         objectID,
       },
       {
-        shop: gameShop,
+        shop,
         status: null,
         executablePath,
         isDeleted: false,
@@ -40,7 +40,7 @@ const addGameToLibrary = async (
             title,
             iconUrl,
             objectID,
-            shop: gameShop,
+            shop,
             executablePath,
           })
           .then(() => {

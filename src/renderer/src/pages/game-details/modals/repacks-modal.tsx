@@ -10,10 +10,15 @@ import { SPACING_UNIT } from "../../../theme.css";
 import { format } from "date-fns";
 import { SelectFolderModal } from "./select-folder-modal";
 import { gameDetailsContext } from "../game-details.context";
+import { Downloader } from "@shared";
 
 export interface RepacksModalProps {
   visible: boolean;
-  startDownload: (repack: GameRepack, downloadPath: string) => Promise<void>;
+  startDownload: (
+    repack: GameRepack,
+    downloader: Downloader,
+    downloadPath: string
+  ) => Promise<void>;
   onClose: () => void;
 }
 

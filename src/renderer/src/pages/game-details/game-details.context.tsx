@@ -15,6 +15,7 @@ import {
   OnlineFixInstallationGuide,
   RepacksModal,
 } from "./modals";
+import { Downloader } from "@shared";
 
 export interface GameDetailsContext {
   game: Game | null;
@@ -138,15 +139,17 @@ export function GameDetailsContextProvider({
 
   const handleStartDownload = async (
     repack: GameRepack,
+    downloader: Downloader,
     downloadPath: string
   ) => {
-    await startDownload(
-      repack.id,
-      objectID!,
-      gameTitle,
-      shop as GameShop,
-      downloadPath
-    );
+    await startDownload({
+      repackId: repack.id,
+      objectID: objectID!,
+      title: gameTitle,
+      downloader,
+      shop: shop as GameShop,
+      downloadPath,
+    });
 
     await updateGame();
     setShowRepacksModal(false);

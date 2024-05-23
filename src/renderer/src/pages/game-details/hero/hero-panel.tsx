@@ -33,29 +33,46 @@ export function HeroPanel() {
     return game.repack?.fileSize ?? "N/A";
   }, [game, lastPacket?.game]);
 
+  const isGameDownloading =
+    game?.status === "active" && lastPacket?.game.id === game?.id;
+
   const getInfo = () => {
     if (isGameDeleting(game?.id ?? -1)) return <p>{t("deleting")}</p>;
 
     if (game?.progress === 1) return <HeroPanelPlaytime />;
 
-    console.log(lastPacket?.game.id, game?.id);
-
-    if (game?.status === "active" && lastPacket?.game.id === game?.id) {
-      if (lastPacket?.downloadingMetadata) {
-        return <p>{t("downloading_metadata")}</p>;
+    if (game?.status === "active") {
+      if (lastPacket?.downloadingMetadata && isGameDownloading) {
+        return (
+          <>
+            <p>{progress}</p>
+            <p>{t("downloading_metadata")}</p>
+          </>
+        );
       }
+
+      const sizeDownloaded = formatBytes(
+        lastPacket?.game?.bytesDownloaded ?? game?.bytesDownloaded
+      );
+
+      const showPeers =
+        game?.downloader === Downloader.Torrent &&
+        lastPacket?.numPeers !== undefined;
 
       return (
         <>
           <p className={styles.downloadDetailsRow}>
-            {progress}
+            {isGameDownloading
+              ? progress
+              : formatDownloadProgress(game?.progress)}
             {eta && <small>{t("eta", { eta })}</small>}
           </p>
 
           <p className={styles.downloadDetailsRow}>
-            {formatBytes(lastPacket?.game?.bytesDownloaded ?? 0)} /{" "}
-            {finalDownloadSize}
-            {game?.downloader === Downloader.Torrent && (
+            <span>
+              {sizeDownloaded} / {finalDownloadSize}
+            </span>
+            {showPeers && (
               <small>
                 {lastPacket?.numPeers} peers / {lastPacket?.numSeeds} seeds
               </small>
@@ -99,6 +116,10 @@ export function HeroPanel() {
     ? (new Color(gameColor).darken(0.6).toString() as string)
     : "";
 
+  const showProgressBar =
+    (game?.status === "active" && game?.progress < 1) ||
+    game?.status === "paused";
+
   return (
     <>
       <BinaryNotFoundModal
@@ -113,6 +134,18 @@ export function HeroPanel() {
             openBinaryNotFoundModal={() => setShowBinaryNotFoundModal(true)}
           />
         </div>
+
+        {showProgressBar && (
+          <progress
+            max={1}
+            value={
+              isGameDownloading ? lastPacket?.game.progress : game?.progress
+            }
+            className={styles.progressBar({
+              disabled: game?.status === "paused",
+            })}
+          />
+        )}
       </div>
     </>
   );

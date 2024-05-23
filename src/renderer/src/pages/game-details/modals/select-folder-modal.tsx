@@ -4,15 +4,19 @@ import { Trans, useTranslation } from "react-i18next";
 import { DiskSpace } from "check-disk-space";
 import * as styles from "./select-folder-modal.css";
 import { Button, Link, Modal, TextField } from "@renderer/components";
-import { DownloadIcon } from "@primer/octicons-react";
-import { formatBytes } from "@shared";
+import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
+import { Downloader, formatBytes } from "@shared";
 
-import type { GameRepack } from "@types";
+import type { GameRepack, UserPreferences } from "@types";
 
 export interface SelectFolderModalProps {
   visible: boolean;
   onClose: () => void;
-  startDownload: (repack: GameRepack, downloadPath: string) => Promise<void>;
+  startDownload: (
+    repack: GameRepack,
+    downloader: Downloader,
+    downloadPath: string
+  ) => Promise<void>;
   repack: GameRepack | null;
 }
 
@@ -27,6 +31,11 @@ export function SelectFolderModal({
   const [diskFreeSpace, setDiskFreeSpace] = useState<DiskSpace | null>(null);
   const [selectedPath, setSelectedPath] = useState("");
   const [downloadStarting, setDownloadStarting] = useState(false);
+  const [userPreferences, setUserPreferences] =
+    useState<UserPreferences | null>(null);
+  const [selectedDownloader, setSelectedDownloader] = useState(
+    Downloader.Torrent
+  );
 
   useEffect(() => {
     visible && getDiskFreeSpace(selectedPath);
@@ -38,6 +47,11 @@ export function SelectFolderModal({
       window.electron.getUserPreferences(),
     ]).then(([path, userPreferences]) => {
       setSelectedPath(userPreferences?.downloadsPath || path);
+      setUserPreferences(userPreferences);
+
+      if (userPreferences?.realDebridApiToken) {
+        setSelectedDownloader(Downloader.RealDebrid);
+      }
     });
   }, []);
 
@@ -63,7 +77,7 @@ export function SelectFolderModal({
     if (repack) {
       setDownloadStarting(true);
 
-      startDownload(repack, selectedPath).finally(() => {
+      startDownload(repack, selectedDownloader, selectedPath).finally(() => {
         setDownloadStarting(false);
         onClose();
       });
@@ -73,7 +87,7 @@ export function SelectFolderModal({
   return (
     <Modal
       visible={visible}
-      title={t("download_path")}
+      title="Download options"
       description={t("space_left_on_disk", {
         space: formatBytes(diskFreeSpace?.free ?? 0),
       })}
@@ -81,23 +95,43 @@ export function SelectFolderModal({
     >
       <div className={styles.container}>
         <div>
-          <label style={{ marginBottom: 0, padding: 0 }}>Download method</label>
+          <label style={{ marginBottom: 0, padding: 0 }}>Method</label>
 
           <div className={styles.downloaders}>
-            <Button className={styles.downloaderOption} theme="outline">
+            <Button
+              className={styles.downloaderOption}
+              theme={
+                selectedDownloader === Downloader.Torrent
+                  ? "primary"
+                  : "outline"
+              }
+              onClick={() => setSelectedDownloader(Downloader.Torrent)}
+            >
+              {selectedDownloader === Downloader.Torrent && (
+                <CheckCircleFillIcon />
+              )}
               Torrent
             </Button>
-            <Button className={styles.downloaderOption}>Real Debrid</Button>
+            <Button
+              className={styles.downloaderOption}
+              theme={
+                selectedDownloader === Downloader.RealDebrid
+                  ? "primary"
+                  : "outline"
+              }
+              onClick={() => setSelectedDownloader(Downloader.RealDebrid)}
+              disabled={!userPreferences?.realDebridApiToken}
+            >
+              {selectedDownloader === Downloader.RealDebrid && (
+                <CheckCircleFillIcon />
+              )}
+              Real Debrid
+            </Button>
           </div>
         </div>
 
         <div className={styles.downloadsPathField}>
-          <TextField
-            value={selectedPath}
-            readOnly
-            disabled
-            label="Download path"
-          />
+          <TextField value={selectedPath} readOnly disabled label="Path" />
 
           <Button
             style={{ alignSelf: "flex-end" }}

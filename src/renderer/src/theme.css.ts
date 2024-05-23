@@ -9,6 +9,8 @@ export const [themeClass, vars] = createTheme({
     muted: "#c0c1c7",
     bodyText: "#8e919b",
     border: "#424244",
+    success: "#1c9749",
+    danger: "#e11d48",
   },
   opacity: {
     disabled: "0.5",

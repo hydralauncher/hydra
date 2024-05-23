@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CheckCircleFillIcon,
-  CheckCircleIcon,
-  XCircleIcon,
+  XCircleFillIcon,
   XIcon,
 } from "@primer/octicons-react";
 
 import * as styles from "./toast.css";
+import { SPACING_UNIT } from "@renderer/theme.css";
 
 export interface ToastProps {
   visible: boolean;
@@ -78,8 +78,13 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
   return (
     <div className={styles.toast({ closing: isClosing })}>
       <div className={styles.toastContent}>
-        <CheckCircleFillIcon className={styles.successIcon} />
-        <span style={{ fontWeight: "bold" }}>{message}</span>
+        <div style={{ display: "flex", gap: `${SPACING_UNIT}px` }}>
+          {type === "success" && (
+            <CheckCircleFillIcon className={styles.successIcon} />
+          )}
+          {type === "error" && <XCircleFillIcon className={styles.errorIcon} />}
+          <span style={{ fontWeight: "bold" }}>{message}</span>
+        </div>
 
         <button
           type="button"
@@ -87,7 +92,7 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
           onClick={startAnimateClosing}
           aria-label="Close toast"
         >
-          <XCircleIcon />
+          <XIcon />
         </button>
       </div>
 

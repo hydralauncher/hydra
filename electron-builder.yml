@@ -3,9 +3,10 @@ productName: Hydra
 directories:
   buildResources: build
 extraResources:
+  - aria2
+  - seeds
   - hydra.db
   - fastlist.exe
-  - seeds
 files:
   - "!**/.vscode/*"
   - "!src/*"

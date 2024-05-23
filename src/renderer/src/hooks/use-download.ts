@@ -9,7 +9,7 @@ import {
   setGameDeleting,
   removeGameFromDeleting,
 } from "@renderer/features";
-import type { DownloadProgress, GameShop } from "@types";
+import type { DownloadProgress, StartGameDownloadPayload } from "@types";
 import { useDate } from "./use-date";
 import { formatBytes } from "@shared";
 
@@ -22,21 +22,13 @@ export function useDownload() {
   );
   const dispatch = useAppDispatch();
 
-  const startDownload = (
-    repackId: number,
-    objectID: string,
-    title: string,
-    shop: GameShop,
-    downloadPath: string
-  ) =>
-    window.electron
-      .startGameDownload(repackId, objectID, title, shop, downloadPath)
-      .then((game) => {
-        dispatch(clearDownload());
-        updateLibrary();
+  const startDownload = (payload: StartGameDownloadPayload) =>
+    window.electron.startGameDownload(payload).then((game) => {
+      dispatch(clearDownload());
+      updateLibrary();
 
-        return game;
-      });
+      return game;
+    });
 
   const pauseDownload = async (gameId: number) => {
     await window.electron.pauseGameDownload(gameId);
@@ -62,11 +54,11 @@ export function useDownload() {
     });
 
   const getETA = () => {
-    if (lastPacket && lastPacket.timeRemaining < 0) return "";
+    if (!lastPacket || lastPacket.timeRemaining < 0) return "";
 
     try {
       return formatDistance(
-        addMilliseconds(new Date(), lastPacket?.timeRemaining ?? 1),
+        addMilliseconds(new Date(), lastPacket.timeRemaining),
         new Date(),
         { addSuffix: true }
       );
@@ -94,7 +86,7 @@ export function useDownload() {
 
   return {
     downloadSpeed: `${formatBytes(lastPacket?.downloadSpeed ?? 0)}/s`,
-    progress: formatDownloadProgress(lastPacket?.game.progress ?? 0),
+    progress: formatDownloadProgress(lastPacket?.game.progress),
     lastPacket,
     eta: getETA(),
     startDownload,
