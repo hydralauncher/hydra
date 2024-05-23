@@ -112,9 +112,31 @@ export const gameIcon = style({
   backgroundSize: "cover",
 });
 
+export const sectionHeader = style({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: `${SPACING_UNIT}px`,
+});
+
 export const sectionTitle = style({
   textTransform: "uppercase",
   fontWeight: "bold",
+});
+
+export const sortingButton = style({
+  padding: "6px",
+  borderRadius: "4px",
+  color: vars.color.bodyText,
+  fill: vars.color.bodyText,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  gap: `${SPACING_UNIT}px`,
+  backgroundColor: "rgba(255, 255, 255, 0.1)",
+  ":hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
 });
 
 export const section = style({

@@ -21,7 +21,12 @@
     "discord": "Join our Discord",
     "telegram": "Join our Telegram",
     "x": "Follow on X",
-    "github": "Contribute on GitHub"
+    "github": "Contribute on GitHub",
+    "sorting_options": {
+      "alphabetically": "A-Z",
+      "most_played": "Most played",
+      "downloaded": "Most downloaded"
+    }
   },
   "header": {
     "search": "Search games",

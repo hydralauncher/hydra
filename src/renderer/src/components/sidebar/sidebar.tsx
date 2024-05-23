@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -14,6 +14,9 @@ import { GameStatus, GameStatusHelper } from "@shared";
 import { buildGameDetailsPath } from "@renderer/helpers";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
+import SortIcon from "@renderer/assets/sort-icon.svg?react";
+import { DropDownMenu } from "../drop-down-menu/drop-down-menu";
+import { vars } from "@renderer/theme.css";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -27,6 +30,24 @@ export function Sidebar() {
   const navigate = useNavigate();
 
   const [filteredLibrary, setFilteredLibrary] = useState<Game[]>([]);
+  const [sortingType, setSortingType] = useState("a-z");
+  const sortLibraryOptions = useMemo(
+    () => [
+      {
+        label: t("sorting_options.alphabetically"),
+        value: "a-z",
+      },
+      {
+        label: t("sorting_options.most_played"),
+        value: "most_played",
+      },
+      {
+        label: t("sorting_options.downloaded"),
+        value: "downloaded",
+      },
+    ],
+    [t]
+  );
 
   const [isResizing, setIsResizing] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(
@@ -128,6 +149,30 @@ export function Sidebar() {
     }
   };
 
+  const sortLibrary = useCallback(
+    (a: Game, b: Game) => {
+      if (sortingType === "a-z") {
+        return a.title.localeCompare(b.title, "en");
+      }
+
+      if (sortingType === "most_played") {
+        return b.playTimeInMilliseconds - a.playTimeInMilliseconds;
+      }
+
+      if (sortingType === "downloaded") {
+        return a.status === GameStatus.Cancelled ? 1 : -1;
+      }
+
+      return 0;
+    },
+    [sortingType]
+  );
+
+  const sortedLibrary = useMemo(
+    () => [...filteredLibrary].sort(sortLibrary),
+    [filteredLibrary, sortLibrary]
+  );
+
   return (
     <aside
       ref={sidebarRef}
@@ -168,16 +213,25 @@ export function Sidebar() {
         </section>
 
         <section className={styles.section}>
-          <small className={styles.sectionTitle}>{t("my_library")}</small>
+          <div className={styles.sectionHeader}>
+            <small className={styles.sectionTitle}>{t("my_library")}</small>
+            <DropDownMenu
+              trigger={<SortIcon fill={vars.color.bodyText} />}
+              align="end"
+              options={sortLibraryOptions}
+              onSelect={(value) => {
+                setSortingType(value);
+              }}
+            />
+          </div>
 
           <TextField
             placeholder={t("filter")}
             onChange={handleFilter}
             theme="dark"
           />
-
           <ul className={styles.menu}>
-            {filteredLibrary.map((game) => (
+            {sortedLibrary.map((game) => (
               <li
                 key={game.id}
                 className={styles.menuItem({

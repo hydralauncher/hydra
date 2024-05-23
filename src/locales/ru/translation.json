@@ -21,7 +21,12 @@
     "discord": "Присоединяйтесь к Discord",
     "telegram": "Присоединяйтесь к Telegram",
     "x": "Подписывайтесь на X",
-    "github": "Внести свой вклад на GitHub"
+    "github": "Внести свой вклад на GitHub",
+    "sorting_options": {
+      "alphabetically": "A-Я",
+      "most_played": "По кол-ву сыгранных часов",
+      "downloaded": "Последняя запущенная"
+    }
   },
   "header": {
     "search": "Поиск",
