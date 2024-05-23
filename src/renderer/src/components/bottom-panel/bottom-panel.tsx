@@ -15,8 +15,7 @@ export function BottomPanel() {
 
   const { lastPacket, progress, downloadSpeed, eta } = useDownload();
 
-  const isGameDownloading =
-    lastPacket?.game && lastPacket?.game.status === "active";
+  const isGameDownloading = !!lastPacket?.game;
 
   const [version, setVersion] = useState("");
 

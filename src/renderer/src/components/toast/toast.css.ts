@@ -48,10 +48,8 @@ export const toast = recipe({
 
 export const toastContent = style({
   display: "flex",
-  position: "relative",
-  gap: `${SPACING_UNIT}px`,
-  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 5}px`,
-  paddingLeft: `${SPACING_UNIT * 2}px`,
+  gap: `${SPACING_UNIT * 2}px`,
+  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
   justifyContent: "center",
   alignItems: "center",
 });
@@ -63,13 +61,11 @@ export const progress = style({
     backgroundColor: vars.color.darkBackground,
   },
   "::-webkit-progress-value": {
-    backgroundColor: "#1c9749",
+    backgroundColor: vars.color.muted,
   },
 });
 
 export const closeButton = style({
-  position: "absolute",
-  right: `${SPACING_UNIT}px`,
   color: vars.color.bodyText,
   cursor: "pointer",
   padding: "0",
@@ -77,5 +73,9 @@ export const closeButton = style({
 });
 
 export const successIcon = style({
-  color: "#1c9749",
+  color: vars.color.success,
+});
+
+export const errorIcon = style({
+  color: vars.color.danger,
 });

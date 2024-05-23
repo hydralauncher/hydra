@@ -254,9 +254,7 @@ export function Downloads() {
                     <button
                       type="button"
                       className={styles.downloadTitle}
-                      onClick={() =>
-                        navigate(`/game/${game.shop}/${game.objectID}`)
-                      }
+                      onClick={() => navigate(buildGameDetailsPath(game))}
                     >
                       {game.title}
                     </button>

@@ -148,7 +148,7 @@ export interface SteamGame {
   clientIcon: string | null;
 }
 
-export type AppUpdaterEvents =
+export type AppUpdaterEvent =
   | { type: "error" }
   | { type: "checking-for-updates" }
   | { type: "update-not-available" }
@@ -156,3 +156,13 @@ export type AppUpdaterEvents =
   | { type: "update-downloaded" }
   | { type: "download-progress"; info: ProgressInfo }
   | { type: "update-cancelled" };
+
+/* Events */
+export interface StartGameDownloadPayload {
+  repackId: number;
+  objectID: string;
+  title: string;
+  shop: GameShop;
+  downloadPath: string;
+  downloader: Downloader;
+}

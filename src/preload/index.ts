@@ -7,26 +7,14 @@ import type {
   GameShop,
   DownloadProgress,
   UserPreferences,
-  AppUpdaterEvents,
+  AppUpdaterEvent,
+  StartGameDownloadPayload,
 } from "@types";
 
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
-  startGameDownload: (
-    repackId: number,
-    objectID: string,
-    title: string,
-    shop: GameShop,
-    downloadPath: string
-  ) =>
-    ipcRenderer.invoke(
-      "startGameDownload",
-      repackId,
-      objectID,
-      title,
-      shop,
-      downloadPath
-    ),
+  startGameDownload: (payload: StartGameDownloadPayload) =>
+    ipcRenderer.invoke("startGameDownload", payload),
   cancelGameDownload: (gameId: number) =>
     ipcRenderer.invoke("cancelGameDownload", gameId),
   pauseGameDownload: (gameId: number) =>
@@ -115,10 +103,10 @@ contextBridge.exposeInMainWorld("electron", {
   platform: process.platform,
 
   /* Splash */
-  onAutoUpdaterEvent: (cb: (value: AppUpdaterEvents) => void) => {
+  onAutoUpdaterEvent: (cb: (value: AppUpdaterEvent) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      value: AppUpdaterEvents
+      value: AppUpdaterEvent
     ) => cb(value);
 
     ipcRenderer.on("autoUpdaterEvent", listener);

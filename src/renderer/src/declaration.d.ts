@@ -10,6 +10,7 @@ import type {
   Steam250Game,
   DownloadProgress,
   UserPreferences,
+  StartGameDownloadPayload,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -21,13 +22,7 @@ declare global {
 
   interface Electron {
     /* Torrenting */
-    startGameDownload: (
-      repackId: number,
-      objectID: string,
-      title: string,
-      shop: GameShop,
-      downloadPath: string
-    ) => Promise<Game>;
+    startGameDownload: (payload: StartGameDownloadPayload) => Promise<Game>;
     cancelGameDownload: (gameId: number) => Promise<void>;
     pauseGameDownload: (gameId: number) => Promise<void>;
     resumeGameDownload: (gameId: number) => Promise<void>;

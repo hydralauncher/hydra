@@ -5,8 +5,8 @@ import {
   getNewRepacksFromUser,
   getNewRepacksFromXatab,
   getNewRepacksFromOnlineFix,
-  startProcessWatcher,
   DownloadManager,
+  startMainLoop,
 } from "./services";
 import {
   gameRepository,
@@ -23,7 +23,7 @@ import { orderBy } from "lodash-es";
 import { SteamGame } from "@types";
 import { Not } from "typeorm";
 
-startProcessWatcher();
+startMainLoop();
 
 const track1337xUsers = async (existingRepacks: Repack[]) => {
   for (const repacker of repackersOn1337x) {
@@ -88,8 +88,6 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   if (userPreferences?.realDebridApiToken)
     await RealDebridClient.authorize(userPreferences?.realDebridApiToken);
 
-  await DownloadManager.connect();
-
   const game = await gameRepository.findOne({
     where: {
       status: "active",
@@ -99,9 +97,7 @@ const loadState = async (userPreferences: UserPreferences | null) => {
     relations: { repack: true },
   });
 
-  if (game) {
-    DownloadManager.startDownload(game.id);
-  }
+  if (game) DownloadManager.startDownload(game.id);
 };
 
 userPreferencesRepository

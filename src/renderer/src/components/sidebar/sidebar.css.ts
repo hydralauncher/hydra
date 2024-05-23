@@ -28,7 +28,6 @@ export const content = recipe({
     flexDirection: "column",
     padding: `${SPACING_UNIT * 2}px`,
     gap: `${SPACING_UNIT * 2}px`,
-    paddingBottom: "0",
     width: "100%",
     overflow: "auto",
   },
