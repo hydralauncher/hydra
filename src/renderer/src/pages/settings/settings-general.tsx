@@ -9,6 +9,11 @@ import type { UserPreferences } from "@types";
 import { changeLanguage } from "i18next";
 import * as languageResources from "@locales";
 
+interface LanguageOption {
+  option: string;
+  nativeName: string;
+}
+
 export interface SettingsGeneralProps {
   userPreferences: UserPreferences | null;
   updateUserPreferences: (values: Partial<UserPreferences>) => void;
@@ -27,6 +32,8 @@ export function SettingsGeneral({
     language: "",
   });
 
+  const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([]);
+
   const [defaultDownloadsPath, setDefaultDownloadsPath] = useState("");
 
   useEffect(() => {
@@ -35,6 +42,21 @@ export function SettingsGeneral({
     }
 
     fetchdefaultDownloadsPath();
+
+    setLanguageOptions(
+      Object.keys(languageResources)
+        .map((language) => {
+          return {
+            nativeName: ISO6391.getNativeName(language),
+            option: language,
+          };
+        })
+        .sort((a, b) => {
+          if (a.nativeName < b.nativeName) return -1;
+          if (a.nativeName > b.nativeName) return 1;
+          return 0;
+        })
+    );
   }, []);
 
   useEffect(updateFormWithUserPreferences, [
@@ -50,9 +72,6 @@ export function SettingsGeneral({
   };
 
   const handleChange = (values: Partial<typeof form>) => {
-    // TODO: why is the setForm needed if updateUserPreferences already changes the
-    // UserPreferences and useEffect(updateFormWithUserPreferences)
-    // does the setForm((prev) in the callback function?
     setForm((prev) => ({ ...prev, ...values }));
     updateUserPreferences(values);
   };
@@ -71,6 +90,8 @@ export function SettingsGeneral({
 
   function updateFormWithUserPreferences() {
     if (userPreferences) {
+      const parsedLanguage = userPreferences.language.split("-")[0];
+
       setForm((prev) => ({
         ...prev,
         downloadsPath: userPreferences.downloadsPath ?? defaultDownloadsPath,
@@ -78,7 +99,7 @@ export function SettingsGeneral({
           userPreferences.downloadNotificationsEnabled,
         repackUpdatesNotificationsEnabled:
           userPreferences.repackUpdatesNotificationsEnabled,
-        language: userPreferences.language,
+        language: parsedLanguage,
       }));
     }
   }
@@ -105,9 +126,9 @@ export function SettingsGeneral({
       <h3>{t("language")}</h3>
       <>
         <Select value={form.language} onChange={handleLanguageChange}>
-          {Object.keys(languageResources).map((language) => (
-            <option key={language} value={language}>
-              {ISO6391.getNativeName(language)}
+          {languageOptions.map((language) => (
+            <option key={language.option} value={language.option}>
+              {language.nativeName}
             </option>
           ))}
         </Select>
