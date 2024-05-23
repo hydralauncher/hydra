@@ -1,4 +1,3 @@
-import type { GameShop } from "@types";
 import {
   Column,
   CreateDateColumn,
@@ -10,8 +9,8 @@ import {
 } from "typeorm";
 import { Repack } from "./repack.entity";
 
-import type { GameShop } from "@types";
 import { Downloader, GameStatus } from "@shared";
+import type { GameShop } from "@types";
 
 @Entity("game")
 export class Game {

@@ -26,6 +26,4 @@ const openGameFolder = async (
   shell.openPath(gamePath);
 };
 
-registerEvent(openGameFolder, {
-  name: "openGameFolder",
-});
+registerEvent("openGameFolder", openGameFolder);

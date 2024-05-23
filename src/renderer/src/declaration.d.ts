@@ -63,7 +63,7 @@ declare global {
       executablePath: string | null
     ) => Promise<void>;
     getLibrary: () => Promise<Game[]>;
-    openGameFolder: (gameId: number) => Promise<boolean>;
+    openGameFolder: (gameId: number) => Promise<void | boolean>;
     openGameInstaller: (gameId: number) => Promise<boolean>;
     openGame: (gameId: number, executablePath: string) => Promise<void>;
     changeExecutablePath: (

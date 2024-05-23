@@ -176,3 +176,36 @@ export const contextMenuItemIcon = style({
   width: "14px",
   height: "14px",
 });
+
+export const sidebarFooter = style({
+  marginTop: "auto",
+  padding: `${SPACING_UNIT * 2}px`,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+});
+
+export const footerSocialsContainer = style({
+  display: "flex",
+  alignItems: "center",
+  gap: `${SPACING_UNIT * 1.5}px`,
+});
+
+export const footerSocialsItem = style({
+  color: vars.color.bodyText,
+  backgroundColor: vars.color.darkBackground,
+  width: "16px",
+  height: "16px",
+  display: "flex",
+  alignItems: "center",
+  transition: "all ease 0.2s",
+  cursor: "pointer",
+  ":hover": {
+    opacity: "0.75",
+  },
+});
+
+export const footerText = style({
+  color: vars.color.bodyText,
+  fontSize: "12px",
+});

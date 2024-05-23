@@ -21,8 +21,7 @@
     "delete_installation_files": "Usuń pliki instalacyjne",
     "change_exe_path": "Zmień ścieżkę wykonywalną",
     "open_archive_path": "Otwórz lokalizację pliku",
-    "game_executable": "Plik wykonywalny gry"
-    "home": "Główna",
+    "game_executable": "Plik wykonywalny gry",
     "discord": "Dołącz nasz Discord",
     "telegram": "Dołącz nasz Telegram",
     "x": "Śledź na X",
@@ -92,7 +91,6 @@
     "change": "Zmień",
     "repacks_modal_description": "Wybierz repack, który chcesz pobrać",
     "select_folder_hint": "Aby zmienić domyślny folder, przejdź do",
-    "download_now": "Pobierz teraz",
     "installation_instructions": "Instrukcja instalacji",
     "installation_instructions_description": "Do zainstalowania tej gry wymagane są dodatkowe kroki",
     "online_fix_instruction": "Gry OnlineFix wymagają hasła do wyodrębnienia. W razie potrzeby użyj następującego hasła:",
@@ -107,7 +105,7 @@
     "previous_screenshot": "Poprzedni zrzut ekranu",
     "next_screenshot": "Następny zrzut ekranu",
     "screenshot": "Zrzut ekranu {{number}}",
-    "open_screenshot": "Otwórz zrzut ekranu {{number}}"
+    "open_screenshot": "Otwórz zrzut ekranu {{number}}",
     "settings": "Ustawienia Hydra",
     "download_now": "Pobierz teraz",
     "game_executable": "Plik wykonywalny gry"

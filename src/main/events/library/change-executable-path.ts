@@ -17,6 +17,4 @@ const changeExecutablePath = async (
   );
 };
 
-registerEvent(changeExecutablePath, {
-  name: "changeExecutablePath",
-});
+registerEvent("changeExecutablePath", changeExecutablePath);

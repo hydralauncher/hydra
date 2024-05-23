@@ -7,10 +7,11 @@ import {
   setLastPacket,
 } from "@renderer/features";
 import { formatDownloadProgress } from "@renderer/helpers";
-import { formatBytes } from "@renderer/utils";
+import { GameStatus, GameStatusHelper, formatBytes } from "@shared";
 import type { GameShop, TorrentProgress } from "@types";
 import { useAppDispatch, useAppSelector } from "./redux";
 import { useDate } from "./use-date";
+import { useLibrary } from "./use-library";
 
 export function useDownload() {
   const { updateLibrary } = useLibrary();
