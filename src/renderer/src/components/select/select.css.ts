@@ -37,6 +37,7 @@ export const select = recipe({
 
 export const option = style({
   backgroundColor: vars.color.darkBackground,
+  borderRight: "4px solid",
   borderColor: "transparent",
   borderRadius: "8px",
   width: "fit-content",
