@@ -1,4 +1,5 @@
 import type { Downloader, GameStatus } from "@shared";
+import { ProgressInfo, UpdateInfo } from "electron-updater";
 
 export type GameShop = "steam" | "epic";
 export type CatalogueCategory = "recently_added" | "trending";
@@ -95,7 +96,7 @@ export interface Game extends Omit<CatalogueEntry, "cover"> {
   folderName: string;
   downloadPath: string | null;
   repacks: GameRepack[];
-  repack: GameRepack;
+  repack: GameRepack | null;
   progress: number;
   fileVerificationProgress: number;
   decompressionProgress: number;
@@ -122,7 +123,6 @@ export interface UserPreferences {
   language: string;
   downloadNotificationsEnabled: boolean;
   repackUpdatesNotificationsEnabled: boolean;
-  telemetryEnabled: boolean;
   realDebridApiToken: string | null;
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;
@@ -138,3 +138,18 @@ export interface Steam250Game {
   title: string;
   objectID: string;
 }
+
+export interface SteamGame {
+  id: number;
+  name: string;
+  clientIcon: string | null;
+}
+
+export type AppUpdaterEvents =
+  | { type: "error" }
+  | { type: "checking-for-updates" }
+  | { type: "update-not-available" }
+  | { type: "update-available"; info: UpdateInfo }
+  | { type: "update-downloaded" }
+  | { type: "download-progress"; info: ProgressInfo }
+  | { type: "update-cancelled" };

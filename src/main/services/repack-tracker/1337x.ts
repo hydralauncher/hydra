@@ -1,12 +1,38 @@
 import { JSDOM } from "jsdom";
 
-import { formatUploadDate } from "@main/helpers";
-
 import { Repack } from "@main/entity";
 import { requestWebPage, savePage } from "./helpers";
 
+const months = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
 export const request1337x = async (path: string) =>
   requestWebPage(`https://1337xx.to${path}`);
+
+const formatUploadDate = (str: string) => {
+  const date = new Date();
+
+  const [month, day, year] = str.split(" ");
+
+  date.setMonth(months.indexOf(month.replace(".", "")));
+  date.setDate(Number(day.substring(0, 2)));
+  date.setFullYear(Number("20" + year.replace("'", "")));
+  date.setHours(0, 0, 0, 0);
+
+  return date;
+};
 
 /* TODO: $a will often be null */
 const getTorrentDetails = async (path: string) => {

@@ -7,6 +7,7 @@ import type {
   GameShop,
   TorrentProgress,
   UserPreferences,
+  AppUpdaterEvents,
 } from "@types";
 
 contextBridge.exposeInMainWorld("electron", {
@@ -76,8 +77,6 @@ contextBridge.exposeInMainWorld("electron", {
       executablePath
     ),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
-  getRepackersFriendlyNames: () =>
-    ipcRenderer.invoke("getRepackersFriendlyNames"),
   openGameInstaller: (gameId: number) =>
     ipcRenderer.invoke("openGameInstaller", gameId),
   openGame: (gameId: number, executablePath: string) =>
@@ -114,4 +113,21 @@ contextBridge.exposeInMainWorld("electron", {
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
   platform: process.platform,
+
+  /* Splash */
+  onAutoUpdaterEvent: (cb: (value: AppUpdaterEvents) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      value: AppUpdaterEvents
+    ) => cb(value);
+
+    ipcRenderer.on("autoUpdaterEvent", listener);
+
+    return () => {
+      ipcRenderer.removeListener("autoUpdaterEvent", listener);
+    };
+  },
+  checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
+  restartAndInstallUpdate: () => ipcRenderer.invoke("restartAndInstallUpdate"),
+  continueToMainWindow: () => ipcRenderer.invoke("continueToMainWindow"),
 });

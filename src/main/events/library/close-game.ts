@@ -36,6 +36,4 @@ const closeGame = async (
   return false;
 };
 
-registerEvent(closeGame, {
-  name: "closeGame",
-});
+registerEvent("closeGame", closeGame);

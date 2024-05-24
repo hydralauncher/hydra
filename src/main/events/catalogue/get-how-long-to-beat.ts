@@ -42,7 +42,4 @@ const getHowLongToBeat = async (
   });
 };
 
-registerEvent(getHowLongToBeat, {
-  name: "getHowLongToBeat",
-  memoize: true,
-});
+registerEvent("getHowLongToBeat", getHowLongToBeat);

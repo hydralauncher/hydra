@@ -1,5 +1,4 @@
 import axios from "axios";
-import { getSteamAppAsset } from "@main/helpers";
 
 export interface SteamGridResponse {
   success: boolean;
@@ -59,16 +58,11 @@ export const getSteamGridGameById = async (
   return response.data;
 };
 
-export const getSteamGameIconUrl = async (objectID: string) => {
+export const getSteamGameClientIcon = async (objectID: string) => {
   const {
     data: { id: steamGridGameId },
   } = await getSteamGridData(objectID, "games", "steam");
 
   const steamGridGame = await getSteamGridGameById(steamGridGameId);
-
-  return getSteamAppAsset(
-    "icon",
-    objectID,
-    steamGridGame.data.platforms.steam.metadata.clienticon
-  );
+  return steamGridGame.data.platforms.steam.metadata.clienticon;
 };

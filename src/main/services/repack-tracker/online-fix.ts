@@ -1,21 +1,20 @@
 import { Repack } from "@main/entity";
 import { decodeNonUtf8Response, savePage } from "./helpers";
 import { logger } from "../logger";
-import parseTorrent, {
-  toMagnetURI,
-  Instance as TorrentInstance,
-} from "parse-torrent";
 import { JSDOM } from "jsdom";
 
-import { format, parse, sub } from "date-fns";
-import { ru } from "date-fns/locale";
+import createWorker from "@main/workers/torrent-parser.worker?nodeWorker";
+import { toMagnetURI } from "parse-torrent";
 
-import { onlinefixFormatter } from "@main/helpers";
+const worker = createWorker({});
+
 import makeFetchCookie from "fetch-cookie";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { formatBytes } from "@shared";
 
 const ONLINE_FIX_URL = "https://online-fix.me/";
+
+let totalPages = 1;
 
 export const getNewRepacksFromOnlineFix = async (
   existingRepacks: Repack[] = [],
@@ -73,18 +72,16 @@ export const getNewRepacksFromOnlineFix = async (
 
   const repacks: QueryDeepPartialEntity<Repack>[] = [];
   const articles = Array.from(document.querySelectorAll(".news"));
-  const totalPages = Number(
-    document.querySelector("nav > a:nth-child(13)")?.textContent
-  );
+
+  if (page == 1) {
+    totalPages = Number(
+      document.querySelector("nav > a:nth-child(13)")?.textContent
+    );
+  }
 
   try {
     await Promise.all(
       articles.map(async (article) => {
-        const gameText = article.querySelector("h2.title")?.textContent?.trim();
-        if (!gameText) return;
-
-        const gameName = onlinefixFormatter(gameText);
-
         const gameLink = article.querySelector("a")?.getAttribute("href");
         if (!gameLink) return;
 
@@ -92,32 +89,6 @@ export const getNewRepacksFromOnlineFix = async (
           decodeNonUtf8Response(res)
         );
         const gameDocument = new JSDOM(gamePage).window.document;
-
-        const uploadDateText = gameDocument.querySelector("time")?.textContent;
-        if (!uploadDateText) return;
-
-        let decodedDateText = uploadDateText;
-
-        // "Вчера" means yesterday.
-        if (decodedDateText.includes("Вчера")) {
-          const yesterday = sub(new Date(), { days: 1 });
-          const formattedYesterday = format(yesterday, "d LLLL yyyy", {
-            locale: ru,
-          });
-          decodedDateText = decodedDateText.replace(
-            "Вчера", // "Change yesterday to the default expected date format"
-            formattedYesterday
-          );
-        }
-
-        const uploadDate = parse(
-          decodedDateText,
-          "d LLLL yyyy, HH:mm",
-          new Date(),
-          {
-            locale: ru,
-          }
-        );
 
         const torrentButtons = Array.from(
           gameDocument.querySelectorAll("a")
@@ -139,27 +110,27 @@ export const getNewRepacksFromOnlineFix = async (
           ?.getAttribute("href");
 
         const torrentFile = Buffer.from(
-          await http(`${torrentPrePage}/${torrentLink}`).then((res) =>
+          await http(`${torrentPrePage}${torrentLink}`).then((res) =>
             res.arrayBuffer()
           )
         );
 
-        const torrent = parseTorrent(torrentFile) as TorrentInstance;
-        const magnetLink = toMagnetURI({
-          infoHash: torrent.infoHash,
+        worker.once("message", (torrent) => {
+          if (!torrent) return;
+
+          const { name, created } = torrent;
+
+          repacks.push({
+            fileSize: formatBytes(torrent.length ?? 0),
+            magnet: toMagnetURI(torrent),
+            page: 1,
+            repacker: "onlinefix",
+            title: name,
+            uploadDate: created,
+          });
         });
 
-        const torrentSizeInBytes = torrent.length;
-        if (!torrentSizeInBytes) return;
-
-        repacks.push({
-          fileSize: formatBytes(torrentSizeInBytes),
-          magnet: magnetLink,
-          page: 1,
-          repacker: "onlinefix",
-          title: gameName,
-          uploadDate: uploadDate,
-        });
+        worker.postMessage(torrentFile);
       })
     );
   } catch (err: unknown) {
@@ -177,9 +148,10 @@ export const getNewRepacksFromOnlineFix = async (
   );
 
   if (!newRepacks.length) return;
-  if (page === totalPages) return;
 
   await savePage(newRepacks);
+
+  if (page === totalPages) return;
 
   return getNewRepacksFromOnlineFix(existingRepacks, page + 1, cookieJar);
 };

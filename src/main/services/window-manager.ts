@@ -1,13 +1,24 @@
-import { BrowserWindow, Menu, Tray, app } from "electron";
+import {
+  BrowserWindow,
+  Menu,
+  MenuItem,
+  MenuItemConstructorOptions,
+  Tray,
+  app,
+  shell,
+} from "electron";
 import { is } from "@electron-toolkit/utils";
 import { t } from "i18next";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
-import { userPreferencesRepository } from "@main/repository";
+import { gameRepository, userPreferencesRepository } from "@main/repository";
+import { IsNull, Not } from "typeorm";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
+  public static splashWindow: Electron.BrowserWindow | null = null;
+  public static isReadyToShowMainWindow = false;
 
   private static loadURL(hash = "") {
     // HMR for renderer base on electron-vite cli.
@@ -26,13 +37,51 @@ export class WindowManager {
     }
   }
 
+  private static loadSplashURL() {
+    // HMR for renderer base on electron-vite cli.
+    // Load the remote URL for development or the local html file for production.
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+      this.splashWindow?.loadURL(
+        `${process.env["ELECTRON_RENDERER_URL"]}#/splash`
+      );
+    } else {
+      this.splashWindow?.loadFile(
+        path.join(__dirname, "../renderer/index.html"),
+        {
+          hash: "splash",
+        }
+      );
+    }
+  }
+
+  public static createSplashScreen() {
+    if (this.splashWindow) return;
+
+    this.splashWindow = new BrowserWindow({
+      width: 380,
+      height: 380,
+      frame: false,
+      resizable: false,
+      backgroundColor: "#1c1c1c",
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+    });
+
+    this.loadSplashURL();
+    this.splashWindow.removeMenu();
+  }
+
   public static createMainWindow() {
-    // Create the browser window.
+    if (this.mainWindow || !this.isReadyToShowMainWindow) return;
+
     this.mainWindow = new BrowserWindow({
       width: 1200,
       height: 720,
       minWidth: 1024,
       minHeight: 540,
+      backgroundColor: "#1c1c1c",
       titleBarStyle: "hidden",
       ...(process.platform === "linux" ? { icon } : {}),
       trafficLightPosition: { x: 16, y: 16 },
@@ -66,6 +115,12 @@ export class WindowManager {
     });
   }
 
+  public static prepareMainWindowAndCloseSplash() {
+    this.isReadyToShowMainWindow = true;
+    this.splashWindow?.close();
+    this.createMainWindow();
+  }
+
   public static redirect(hash: string) {
     if (!this.mainWindow) this.createMainWindow();
     this.loadURL(hash);
@@ -77,33 +132,66 @@ export class WindowManager {
   public static createSystemTray(language: string) {
     const tray = new Tray(trayIcon);
 
-    const contextMenu = Menu.buildFromTemplate([
-      {
-        label: t("open", {
-          ns: "system_tray",
-          lng: language,
-        }),
-        type: "normal",
-        click: () => {
-          if (this.mainWindow) {
-            this.mainWindow.show();
-          } else {
-            this.createMainWindow();
-          }
+    const updateSystemTray = async () => {
+      const games = await gameRepository.find({
+        where: {
+          isDeleted: false,
+          executablePath: Not(IsNull()),
+          lastTimePlayed: Not(IsNull()),
         },
-      },
-      {
-        label: t("quit", {
-          ns: "system_tray",
-          lng: language,
-        }),
-        type: "normal",
-        click: () => app.quit(),
-      },
-    ]);
+        take: 5,
+        order: {
+          updatedAt: "DESC",
+        },
+      });
+
+      const recentlyPlayedGames: Array<MenuItemConstructorOptions | MenuItem> =
+        games.map(({ title, executablePath }) => ({
+          label: title,
+          type: "normal",
+          click: async () => {
+            if (!executablePath) return;
+
+            shell.openPath(executablePath);
+          },
+        }));
+
+      const contextMenu = Menu.buildFromTemplate([
+        {
+          label: t("open", {
+            ns: "system_tray",
+            lng: language,
+          }),
+          type: "normal",
+          click: () => {
+            if (this.mainWindow) {
+              this.mainWindow.show();
+            } else {
+              this.createMainWindow();
+            }
+          },
+        },
+        {
+          type: "separator",
+        },
+        ...recentlyPlayedGames,
+        {
+          type: "separator",
+        },
+        {
+          label: t("quit", {
+            ns: "system_tray",
+            lng: language,
+          }),
+          type: "normal",
+          click: () => app.quit(),
+        },
+      ]);
+
+      return contextMenu;
+    };
 
     tray.setToolTip("Hydra");
-    tray.setContextMenu(contextMenu);
 
     if (process.platform === "win32" || process.platform === "linux") {
       tray.addListener("click", () => {
@@ -116,6 +204,11 @@ export class WindowManager {
         }
 
         this.createMainWindow();
+      });
+
+      tray.addListener("right-click", async () => {
+        const contextMenu = await updateSystemTray();
+        tray.popUpContextMenu(contextMenu);
       });
     }
   }

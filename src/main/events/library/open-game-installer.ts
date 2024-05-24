@@ -54,6 +54,4 @@ const openGameInstaller = async (
   return false;
 };
 
-registerEvent(openGameInstaller, {
-  name: "openGameInstaller",
-});
+registerEvent("openGameInstaller", openGameInstaller);
