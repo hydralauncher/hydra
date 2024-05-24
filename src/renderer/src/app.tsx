@@ -12,12 +12,11 @@ import {
 import * as styles from "./app.css";
 import { themeClass } from "./theme.css";
 
-import { useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   setSearch,
   clearSearch,
   setUserPreferences,
-  setRepackersFriendlyNames,
   toggleDraggingDisabled,
 } from "@renderer/features";
 import { GameStatusHelper } from "@shared";
@@ -28,7 +27,7 @@ export interface AppProps {
   children: React.ReactNode;
 }
 
-export function App({ children }: AppProps) {
+export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary } = useLibrary();
 
@@ -45,14 +44,11 @@ export function App({ children }: AppProps) {
   );
 
   useEffect(() => {
-    Promise.all([
-      window.electron.getUserPreferences(),
-      window.electron.getRepackersFriendlyNames(),
-      updateLibrary(),
-    ]).then(([preferences, repackersFriendlyNames]) => {
-      dispatch(setUserPreferences(preferences));
-      dispatch(setRepackersFriendlyNames(repackersFriendlyNames));
-    });
+    Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
+      ([preferences]) => {
+        dispatch(setUserPreferences(preferences));
+      }
+    );
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   useEffect(() => {
@@ -132,7 +128,7 @@ export function App({ children }: AppProps) {
           />
 
           <section ref={contentRef} className={styles.content}>
-            {children}
+            <Outlet />
           </section>
         </article>
       </main>

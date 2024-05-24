@@ -1,4 +1,5 @@
 import type {
+  AppUpdaterEvents,
   CatalogueCategory,
   CatalogueEntry,
   Game,
@@ -62,7 +63,6 @@ declare global {
       executablePath: string | null
     ) => Promise<void>;
     getLibrary: () => Promise<Game[]>;
-    getRepackersFriendlyNames: () => Promise<Record<string, string>>;
     openGameInstaller: (gameId: number) => Promise<boolean>;
     openGame: (gameId: number, executablePath: string) => Promise<void>;
     closeGame: (gameId: number) => Promise<boolean>;
@@ -91,6 +91,14 @@ declare global {
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
     platform: NodeJS.Platform;
+
+    /* Splash */
+    onAutoUpdaterEvent: (
+      cb: (event: AppUpdaterEvents) => void
+    ) => () => Electron.IpcRenderer;
+    checkForUpdates: () => Promise<void>;
+    restartAndInstallUpdate: () => Promise<void>;
+    continueToMainWindow: () => Promise<void>;
   }
 
   interface Window {

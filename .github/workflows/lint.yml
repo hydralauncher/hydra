@@ -26,3 +26,6 @@ jobs:
 
       - name: Lint
         run: yarn lint
+
+      - name: Format check
+        run: yarn format-check

@@ -19,7 +19,6 @@ export function SettingsGeneral({
     downloadsPath: "",
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
-    telemetryEnabled: false,
   });
 
   useEffect(() => {
@@ -28,7 +27,6 @@ export function SettingsGeneral({
         downloadsPath,
         downloadNotificationsEnabled,
         repackUpdatesNotificationsEnabled,
-        telemetryEnabled,
       } = userPreferences;
 
       window.electron.getDefaultDownloadsPath().then((defaultDownloadsPath) => {
@@ -37,7 +35,6 @@ export function SettingsGeneral({
           downloadsPath: downloadsPath ?? defaultDownloadsPath,
           downloadNotificationsEnabled,
           repackUpdatesNotificationsEnabled,
-          telemetryEnabled,
         }));
       });
     }
@@ -101,18 +98,6 @@ export function SettingsGeneral({
           handleChange({
             repackUpdatesNotificationsEnabled:
               !form.repackUpdatesNotificationsEnabled,
-          })
-        }
-      />
-
-      <h3>{t("telemetry")}</h3>
-
-      <CheckboxField
-        label={t("telemetry_description")}
-        checked={form.telemetryEnabled}
-        onChange={() =>
-          handleChange({
-            telemetryEnabled: !form.telemetryEnabled,
           })
         }
       />

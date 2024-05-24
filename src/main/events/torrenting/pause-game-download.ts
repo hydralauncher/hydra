@@ -27,6 +27,4 @@ const pauseGameDownload = async (
     });
 };
 
-registerEvent(pauseGameDownload, {
-  name: "pauseGameDownload",
-});
+registerEvent("pauseGameDownload", pauseGameDownload);

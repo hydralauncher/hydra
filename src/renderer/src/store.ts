@@ -3,7 +3,6 @@ import {
   downloadSlice,
   windowSlice,
   librarySlice,
-  repackersFriendlyNamesSlice,
   searchSlice,
   userPreferencesSlice,
 } from "@renderer/features";
@@ -11,7 +10,6 @@ import {
 export const store = configureStore({
   reducer: {
     search: searchSlice.reducer,
-    repackersFriendlyNames: repackersFriendlyNamesSlice.reducer,
     window: windowSlice.reducer,
     library: librarySlice.reducer,
     userPreferences: userPreferencesSlice.reducer,

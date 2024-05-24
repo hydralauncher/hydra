@@ -92,6 +92,7 @@ export function GameDetails() {
   }, [getGame, gameDownloading?.id]);
 
   useEffect(() => {
+    setGameDetails(null);
     setGame(null);
     setIsLoading(true);
     setIsGamePlaying(false);

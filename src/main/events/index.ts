@@ -14,7 +14,6 @@ import "./library/close-game";
 import "./library/delete-game-folder";
 import "./library/get-game-by-object-id";
 import "./library/get-library";
-import "./library/get-repackers-friendly-names";
 import "./library/open-game";
 import "./library/open-game-installer";
 import "./library/remove-game";
@@ -28,6 +27,9 @@ import "./torrenting/start-game-download";
 import "./user-preferences/get-user-preferences";
 import "./user-preferences/update-user-preferences";
 import "./user-preferences/auto-launch";
+import "./autoupdater/check-for-updates";
+import "./autoupdater/restart-and-install-update";
+import "./autoupdater/continue-to-main-window";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => app.getVersion());
