@@ -20,6 +20,8 @@ export class WindowManager {
   public static splashWindow: Electron.BrowserWindow | null = null;
   public static isReadyToShowMainWindow = false;
 
+  private static isMainMaximize = false;
+
   private static loadURL(hash = "") {
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
@@ -71,6 +73,10 @@ export class WindowManager {
 
     this.loadSplashURL();
     this.splashWindow.removeMenu();
+    if (this.splashWindow?.isMaximized()) {
+      this.splashWindow?.unmaximize(); 
+      this.isMainMaximize = true;
+    }
   }
 
   public static createMainWindow() {
@@ -119,9 +125,7 @@ export class WindowManager {
     this.isReadyToShowMainWindow = true;
     this.splashWindow?.close();
     this.createMainWindow();
-    if (this.splashWindow?.isMaximized()) {
-      this.mainWindow?.maximize();
-    }
+    if (this.isMainMaximize) this.mainWindow?.maximize();
   }
 
   public static redirect(hash: string) {
