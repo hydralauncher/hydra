@@ -180,5 +180,5 @@
     "searching_updates": "检查更新...",
     "update_found": "有新版本 {{version}} 可用",
     "restarting_and_applying": "重启并应用更新"
-    }
+  }
 }
