@@ -74,7 +74,7 @@ export class WindowManager {
     this.splashWindow.removeMenu();
     if (this.splashWindow?.isMaximized()) {
       this.splashWindow?.unmaximize(); 
-      this.isMainMaximize = true;
+      this.isMainMaximized = true;
     }
   }
 
@@ -127,7 +127,7 @@ export class WindowManager {
     this.isReadyToShowMainWindow = true;
     this.splashWindow?.close();
     this.createMainWindow();
-    if (this.isMainMaximize) this.mainWindow?.maximize();
+    if (this.isMainMaximized) this.mainWindow?.maximize();
   }
 
   public static redirect(hash: string) {
