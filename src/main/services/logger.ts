@@ -10,14 +10,15 @@ log.transports.file.resolvePathFn = (
   _: log.PathVariables,
   message?: log.LogMessage | undefined
 ) => {
-  switch (message?.level) {
-    case "error":
-      return path.join(logsPath, "error.txt");
-    case "info":
-      return path.join(logsPath, "info.txt");
-    default:
-      return path.join(logsPath, "logs.txt");
+  if (message?.level === "error") {
+    return path.join(logsPath, "error.txt");
   }
+
+  if (message?.level === "info") {
+    return path.join(logsPath, "info.txt");
+  }
+
+  return path.join(logsPath, "logs.txt");
 };
 
 log.errorHandler.startCatching({
