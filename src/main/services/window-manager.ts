@@ -127,7 +127,6 @@ export class WindowManager {
     this.isReadyToShowMainWindow = true;
     this.splashWindow?.close();
     this.createMainWindow();
-    if (this.isMainMaximized) this.mainWindow?.maximize();
   }
 
   public static redirect(hash: string) {
