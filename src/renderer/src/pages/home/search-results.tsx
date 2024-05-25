@@ -81,11 +81,11 @@ export function SearchResults() {
           disabled={page === 0 || isLoading}
         >
           <ArrowLeftIcon />
-          {t("previous_page")}
+          {t("previous_page", { ns: "catalogue" })}
         </Button>
 
         <Button onClick={handleNextPage} theme="outline" disabled={isLoading}>
-          {t("next_page")}
+          {t("next_page", { ns: "catalogue" })}
           <ArrowRightIcon />
         </Button>
       </section>
