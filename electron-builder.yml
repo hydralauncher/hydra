@@ -6,6 +6,7 @@ extraResources:
   - hydra-download-manager
   - hydra.db
   - fastlist.exe
+  - seeds
 files:
   - "!**/.vscode/*"
   - "!src/*"
@@ -46,5 +47,7 @@ appImage:
 npmRebuild: false
 publish:
   provider: github
+  owner: hydralauncher
+  repo: hydra
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/

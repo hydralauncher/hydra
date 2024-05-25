@@ -28,6 +28,4 @@ const getLibrary = async () =>
       )
     );
 
-registerEvent(getLibrary, {
-  name: "getLibrary",
-});
+registerEvent("getLibrary", getLibrary);

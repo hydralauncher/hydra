@@ -1,6 +1,6 @@
 {
-  "name": "hydra",
-  "version": "1.1.1",
+  "name": "hydralauncher",
+  "version": "1.2.4",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
@@ -10,8 +10,13 @@
     "url": "https://github.com/hydralauncher/hydra.git"
   },
   "type": "module",
+  "engines": {
+    "npm": "please-use-yarn",
+    "yarn": ">= 1.19.1"
+  },
   "scripts": {
     "format": "prettier --write .",
+    "format-check": "prettier --check .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
@@ -24,7 +29,8 @@
     "build:win": "electron-vite build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
-    "prepare": "husky"
+    "prepare": "husky",
+    "typeorm:migration-create": "yarn typeorm migration:create"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.0",
@@ -33,9 +39,6 @@
     "@fontsource/fira-sans": "^5.0.20",
     "@primer/octicons-react": "^19.9.0",
     "@reduxjs/toolkit": "^2.2.3",
-    "@sentry/electron": "^4.23.0",
-    "@sentry/react": "^7.111.0",
-    "@sentry/vite-plugin": "^2.16.1",
     "@vanilla-extract/css": "^1.14.2",
     "@vanilla-extract/recipes": "^0.5.2",
     "auto-launch": "^5.0.6",
@@ -47,6 +50,8 @@
     "color.js": "^1.2.0",
     "date-fns": "^3.6.0",
     "easydl": "^1.1.1",
+    "electron-log": "^5.1.4",
+    "electron-updater": "^6.1.8",
     "fetch-cookie": "^3.0.1",
     "flexsearch": "^0.7.43",
     "i18next": "^23.11.2",
@@ -63,7 +68,6 @@
     "react-router-dom": "^6.22.3",
     "typeorm": "^0.3.20",
     "user-agents": "^1.1.193",
-    "winston": "^3.13.0",
     "yaml": "^2.4.1"
   },
   "devDependencies": {

@@ -1,9 +1,10 @@
-import { gameShopCacheRepository, steamGameRepository } from "@main/repository";
+import { gameShopCacheRepository } from "@main/repository";
 import { getSteamAppDetails } from "@main/services";
 
 import type { ShopDetails, GameShop, SteamAppDetails } from "@types";
 
 import { registerEvent } from "../register-event";
+import { stateManager } from "@main/state-manager";
 
 const getLocalizedSteamAppDetails = (
   objectID: string,
@@ -13,10 +14,11 @@ const getLocalizedSteamAppDetails = (
     return getSteamAppDetails(objectID, language);
   }
 
-  return Promise.all([
-    steamGameRepository.findOne({ where: { id: Number(objectID) } }),
-    getSteamAppDetails(objectID, language),
-  ]).then(([steamGame, localizedAppDetails]) => {
+  return getSteamAppDetails(objectID, language).then((localizedAppDetails) => {
+    const steamGame = stateManager
+      .getValue("steamGames")
+      .find((game) => game.id === Number(objectID));
+
     if (steamGame && localizedAppDetails) {
       return {
         ...localizedAppDetails,
@@ -72,7 +74,4 @@ const getGameShopDetails = async (
   throw new Error("Not implemented");
 };
 
-registerEvent(getGameShopDetails, {
-  name: "getGameShopDetails",
-  memoize: true,
-});
+registerEvent("getGameShopDetails", getGameShopDetails);

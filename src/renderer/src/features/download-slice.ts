@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import type { TorrentProgress } from "@types";
 
-interface DownloadState {
+export interface DownloadState {
   lastPacket: TorrentProgress | null;
   gameId: number | null;
   gamesWithDeletionInProgress: number[];

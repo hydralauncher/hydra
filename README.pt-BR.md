@@ -13,12 +13,12 @@
 [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
 [![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
 
-[![pt-BR](https://img.shields.io/badge/lang-pt--BR-green.svg)](README.pt-BR.md)
+[![be](https://img.shields.io/badge/lang-be-orange)](README.be.md)
 [![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
+[![pl](https://img.shields.io/badge/lang-pl-white)](README.pl.md)
 [![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
 [![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
-[![be](https://img.shields.io/badge/lang-be-orange)](README.be.md)
-
+[![es](https://img.shields.io/badge/lang-es-red)](README.es.md)
 
 ![Hydra Catalogue](./docs/screenshot.png)
 
@@ -120,7 +120,7 @@ yarn
 
 ### <a name="install-python-39"></a> Instale Python 3.9
 
-Certifique-se de ter o Python 3.9 instalado em sua máquina. Você pode baixá-lo e instalá-lo em [python.org](https://www.python.org/downloads/release/python-3919/).
+Certifique-se de ter o Python 3.9 instalado em sua máquina. Você pode baixá-lo e instalá-lo em [python.org](https://www.python.org/downloads/release/python-3913/).
 
 ### <a name="install-python-dependencies"></a> Instale Python Dependencies
 

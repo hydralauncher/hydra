@@ -21,6 +21,4 @@ const updateUserPreferences = async (
   );
 };
 
-registerEvent(updateUserPreferences, {
-  name: "updateUserPreferences",
-});
+registerEvent("updateUserPreferences", updateUserPreferences);

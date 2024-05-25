@@ -1,3 +1,4 @@
+import axios from "axios";
 import UserAgent from "user-agents";
 
 import type { Repack } from "@main/entity";
@@ -13,12 +14,13 @@ export const savePage = async (repacks: QueryDeepPartialEntity<Repack>[]) =>
 export const requestWebPage = async (url: string) => {
   const userAgent = new UserAgent();
 
-  return fetch(url, {
-    method: "GET",
-    headers: {
-      "User-Agent": userAgent.toString(),
-    },
-  }).then((response) => response.text());
+  return axios
+    .get(url, {
+      headers: {
+        "User-Agent": userAgent.toString(),
+      },
+    })
+    .then((response) => response.data);
 };
 
 export const decodeNonUtf8Response = async (res: Response) => {

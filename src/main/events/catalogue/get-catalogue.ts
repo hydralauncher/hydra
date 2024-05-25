@@ -92,7 +92,4 @@ const getRecentlyAddedCatalogue = async (
   return results.slice(0, resultSize);
 };
 
-registerEvent(getCatalogue, {
-  name: "getCatalogue",
-  memoize: true,
-});
+registerEvent("getCatalogue", getCatalogue);

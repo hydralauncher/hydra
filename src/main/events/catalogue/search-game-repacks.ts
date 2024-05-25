@@ -8,7 +8,4 @@ const searchGameRepacks = (
   return searchRepacks(query);
 };
 
-registerEvent(searchGameRepacks, {
-  name: "searchGameRepacks",
-  memoize: true,
-});
+registerEvent("searchGameRepacks", searchGameRepacks);

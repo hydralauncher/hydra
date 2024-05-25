@@ -12,7 +12,4 @@ const searchGamesEvent = async (
   return searchGames({ query, take: PAGE_SIZE, skip: page * PAGE_SIZE });
 };
 
-registerEvent(searchGamesEvent, {
-  name: "searchGames",
-  memoize: true,
-});
+registerEvent("searchGames", searchGamesEvent);
