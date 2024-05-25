@@ -174,5 +174,11 @@
   },
   "modal": {
     "close": "关闭按钮"
+  },
+  "splash": {
+    "downloading_version": "正在下载新版本 {{version}}",
+    "searching_updates": "检查更新...",
+    "update_found": "有新版本 {{version}} 可用",
+    "restarting_and_applying": "重启并应用更新"
   }
 }
