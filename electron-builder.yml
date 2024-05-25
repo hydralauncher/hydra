@@ -38,9 +38,9 @@ dmg:
 linux:
   target:
     - AppImage
-    - rpm
+    - snap
     - deb
-    - flatpak
+    - rpm
   maintainer: electronjs.org
   category: Utility
   icon: icon.png
