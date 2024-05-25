@@ -18,6 +18,8 @@
 [![pl](https://img.shields.io/badge/lang-pl-white)](README.pl.md)
 [![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
 [![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
+[![es](https://img.shields.io/badge/lang-es-red)](README.es.md)
+
 ![Hydra Catalogue](./docs/screenshot.png)
 
 </div>
