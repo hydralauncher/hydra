@@ -79,6 +79,12 @@ Build the Electron application by using this command:
 yarn make
 ```
 
+### Uninstalling Hydra on Linux/Ubuntu using terminal
+```bash
+sudo apt-get --purge remove hydralauncher
+```
+
+
 ## Contributors
 
 <a href="https://github.com/hydralauncher/hydra/graphs/contributors">
