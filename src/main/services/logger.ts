@@ -1,10 +1,6 @@
-import { app } from "electron";
+import { logsPath } from "@main/constants";
 import log from "electron-log";
 import path from "path";
-
-const logsPath = app.isPackaged
-  ? path.join(app.getAppPath(), "..", "..", "logs")
-  : path.join(app.getAppPath(), "logs");
 
 log.transports.file.resolvePathFn = (
   _: log.PathVariables,
