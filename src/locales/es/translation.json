@@ -54,7 +54,7 @@
     "remove": "Eliminar",
     "remove_from_list": "Quitar",
     "space_left_on_disk": "{{space}} restantes en el disco",
-    "eta": "Finalizando en {{eta}}",
+    "eta": "Tiempo restante: {{eta}}",
     "downloading_metadata": "Descargando metadatos…",
     "checking_files": "Analizando archivos…",
     "filter": "Buscar repacks",
