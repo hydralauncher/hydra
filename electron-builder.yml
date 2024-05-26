@@ -42,8 +42,7 @@ linux:
     - deb
     - rpm
   maintainer: electronjs.org
-  category: Utility
-  icon: icon.png
+  category: Game
   mimeTypes:
     - x-scheme-handler/hydralauncher
 appImage:
