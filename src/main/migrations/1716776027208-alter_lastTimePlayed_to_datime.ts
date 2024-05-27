@@ -41,7 +41,8 @@ export class AlterLastTimePlayedToDatime1716776027208
     for (const game of result) {
       if (!game.lastTimePlayed) continue;
       await queryRunner.query(
-        `UPDATE game set lastTimePlayed = '${game.lastTimePlayed.toUTCString()}' WHERE id = ${game.id};`
+        `UPDATE game set lastTimePlayed = ? WHERE id = ${game.id};`,
+        [game.lastTimePlayed.toUTCString()]
       );
     }
   }
