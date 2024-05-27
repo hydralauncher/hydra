@@ -64,7 +64,7 @@ app.whenReady().then(() => {
       where: { id: 1 },
     });
 
-    WindowManager.createSplashScreen();
+    WindowManager.createMainWindow();
     WindowManager.createSystemTray(userPreferences?.language || "en");
   });
 });

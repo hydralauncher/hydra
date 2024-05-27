@@ -176,11 +176,5 @@
   },
   "modal": {
     "close": "Pulsante Chiudi"
-  },
-  "splash": {
-    "downloading_version": "Scaricando la versione {{version}}",
-    "searching_updates": "Ricerca di aggiornamenti",
-    "update_found": "Trovato aggiornamento {{version}}",
-    "restarting_and_applying": "Riavvio e applico l'aggiornamento"
   }
 }
