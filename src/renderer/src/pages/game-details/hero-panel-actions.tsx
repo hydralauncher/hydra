@@ -44,12 +44,12 @@ export function HeroPanelActions({
     return window.electron
       .showOpenDialog({
         properties: ["openFile"],
-        filters: window.electron.platform === "win32" ? [
+        filters: [
           {
             name: "Game executable",
-            extensions: ["exe"]
-          }
-        ] : []
+            extensions: window.electron.platform === "win32" ? ["exe"] : [],
+          },
+        ],
       })
       .then(({ filePaths }) => {
         if (filePaths && filePaths.length > 0) {
