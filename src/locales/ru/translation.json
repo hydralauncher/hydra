@@ -176,11 +176,5 @@
   },
   "modal": {
     "close": "Закрыть"
-  },
-  "splash": {
-    "downloading_version": "Загрузка версии {{version}}",
-    "searching_updates": "Поиск обновлений",
-    "update_found": "Найдена новая версия {{version}}",
-    "restarting_and_applying": "Перезапуск и внесение изменений"
   }
 }

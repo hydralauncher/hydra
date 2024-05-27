@@ -1,5 +1,5 @@
 import type { Downloader, GameStatus } from "@shared";
-import { ProgressInfo, UpdateInfo } from "electron-updater";
+import { UpdateInfo } from "electron-updater";
 
 export type GameShop = "steam" | "epic";
 export type CatalogueCategory = "recently_added" | "trending";
@@ -146,10 +146,5 @@ export interface SteamGame {
 }
 
 export type AppUpdaterEvents =
-  | { type: "error" }
-  | { type: "checking-for-updates" }
-  | { type: "update-not-available" }
-  | { type: "update-available"; info: UpdateInfo }
-  | { type: "update-downloaded" }
-  | { type: "download-progress"; info: ProgressInfo }
-  | { type: "update-cancelled" };
+  | { type: "update-available"; info: Partial<UpdateInfo> }
+  | { type: "update-downloaded" };
