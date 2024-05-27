@@ -1,5 +1,5 @@
 import type { Downloader, GameStatus } from "@shared";
-import { ProgressInfo, UpdateInfo } from "electron-updater";
+import { UpdateInfo } from "electron-updater";
 
 export type GameShop = "steam" | "epic";
 export type CatalogueCategory = "recently_added" | "trending";
