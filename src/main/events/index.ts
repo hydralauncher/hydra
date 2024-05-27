@@ -29,7 +29,6 @@ import "./user-preferences/update-user-preferences";
 import "./user-preferences/auto-launch";
 import "./autoupdater/check-for-updates";
 import "./autoupdater/restart-and-install-update";
-import "./autoupdater/continue-to-main-window";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => app.getVersion());
