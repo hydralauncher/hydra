@@ -1,21 +1,16 @@
-import { GameStatus, GameStatusHelper } from "@shared";
 import { NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
 
 import { Button } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
-import type { Game, GameRepack } from "@types";
+import type { Game, ShopDetails } from "@types";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import * as styles from "./hero-panel-actions.css";
-
 export interface HeroPanelActionsProps {
   game: Game | null;
-  repacks: GameRepack[];
+  gameDetails: ShopDetails | null;
   isGamePlaying: boolean;
   isGameDownloading: boolean;
-  objectID: string;
-  title: string;
   openRepacksModal: () => void;
   openBinaryNotFoundModal: () => void;
   getGame: () => void;
@@ -23,11 +18,9 @@ export interface HeroPanelActionsProps {
 
 export function HeroPanelActions({
   game,
+  gameDetails,
   isGamePlaying,
   isGameDownloading,
-  repacks,
-  objectID,
-  title,
   openRepacksModal,
   openBinaryNotFoundModal,
   getGame,
@@ -47,32 +40,21 @@ export function HeroPanelActions({
 
   const { t } = useTranslation("game_details");
 
-  const getDownloadsPath = async () => {
-    const userPreferences = await window.electron.getUserPreferences();
-    if (userPreferences?.downloadsPath) return userPreferences.downloadsPath;
-    return window.electron.getDefaultDownloadsPath();
-  };
-
   const selectGameExecutable = async () => {
-    const downloadsPath = await getDownloadsPath();
-
     return window.electron
       .showOpenDialog({
         properties: ["openFile"],
-        defaultPath: downloadsPath,
-        filters: [
+        filters: window.electron.platform === "win32" ? [
           {
             name: "Game executable",
-            extensions: ["exe"],
-          },
-        ],
+            extensions: ["exe"]
+          }
+        ] : []
       })
       .then(({ filePaths }) => {
         if (filePaths && filePaths.length > 0) {
           return filePaths[0];
         }
-
-        return null;
       });
   };
 
@@ -86,8 +68,8 @@ export function HeroPanelActions({
         const gameExecutablePath = await selectGameExecutable();
 
         await window.electron.addGameToLibrary(
-          objectID,
-          title,
+          gameDetails.objectID,
+          gameDetails.name,
           "steam",
           gameExecutablePath
         );
@@ -101,85 +83,64 @@ export function HeroPanelActions({
   };
 
   const openGameInstaller = () => {
-    if (game) {
-      window.electron.openGameInstaller(game.id).then((isBinaryInPath) => {
-        if (!isBinaryInPath) openBinaryNotFoundModal();
-        updateLibrary();
-      });
-    }
+    window.electron.openGameInstaller(game.id).then((isBinaryInPath) => {
+      if (!isBinaryInPath) openBinaryNotFoundModal();
+      updateLibrary();
+    });
   };
 
   const openGame = async () => {
-    if (game) {
-      if (game.executablePath) {
-        window.electron.openGame(game.id, game.executablePath);
-        return;
-      }
-
-      if (game?.executablePath) {
-        window.electron.openGame(game.id, game.executablePath);
-        return;
-      }
-
-      const gameExecutablePath = await selectGameExecutable();
-      if (gameExecutablePath)
-        window.electron.openGame(game.id, gameExecutablePath);
+    if (game.executablePath) {
+      window.electron.openGame(game.id, game.executablePath);
+      return;
     }
+
+    if (game?.executablePath) {
+      window.electron.openGame(game.id, game.executablePath);
+      return;
+    }
+
+    const gameExecutablePath = await selectGameExecutable();
+    window.electron.openGame(game.id, gameExecutablePath);
   };
 
-  const closeGame = () => {
-    if (game) window.electron.closeGame(game.id);
-  };
+  const closeGame = () => window.electron.closeGame(game.id);
 
-  const deleting = game ? isGameDeleting(game?.id) : false;
+  const deleting = isGameDeleting(game?.id);
 
   const toggleGameOnLibraryButton = (
     <Button
       theme="outline"
-      disabled={toggleLibraryGameDisabled}
+      disabled={!gameDetails || toggleLibraryGameDisabled}
       onClick={toggleGameOnLibrary}
-      className={styles.heroPanelAction}
     >
       {game ? <NoEntryIcon /> : <PlusCircleIcon />}
       {game ? t("remove_from_library") : t("add_to_library")}
     </Button>
   );
 
-  if (game && isGameDownloading) {
+  if (isGameDownloading) {
     return (
       <>
-        <Button
-          onClick={() => pauseDownload(game.id)}
-          theme="outline"
-          className={styles.heroPanelAction}
-        >
+        <Button onClick={() => pauseDownload(game.id)} theme="outline">
           {t("pause")}
         </Button>
-        <Button
-          onClick={() => cancelDownload(game.id)}
-          theme="outline"
-          className={styles.heroPanelAction}
-        >
+        <Button onClick={() => cancelDownload(game.id)} theme="outline">
           {t("cancel")}
         </Button>
       </>
     );
   }
 
-  if (game?.status === GameStatus.Paused) {
+  if (game?.status === "paused") {
     return (
       <>
-        <Button
-          onClick={() => resumeDownload(game.id)}
-          theme="outline"
-          className={styles.heroPanelAction}
-        >
+        <Button onClick={() => resumeDownload(game.id)} theme="outline">
           {t("resume")}
         </Button>
         <Button
           onClick={() => cancelDownload(game.id).then(getGame)}
           theme="outline"
-          className={styles.heroPanelAction}
         >
           {t("cancel")}
         </Button>
@@ -187,18 +148,14 @@ export function HeroPanelActions({
     );
   }
 
-  if (
-    GameStatusHelper.isReady(game?.status ?? null) ||
-    (game && !game.status)
-  ) {
+  if (game?.status === "seeding" || (game && !game.status)) {
     return (
       <>
-        {GameStatusHelper.isReady(game?.status ?? null) ? (
+        {game?.status === "seeding" ? (
           <Button
             onClick={openGameInstaller}
             theme="outline"
             disabled={deleting || isGamePlaying}
-            className={styles.heroPanelAction}
           >
             {t("install")}
           </Button>
@@ -207,12 +164,7 @@ export function HeroPanelActions({
         )}
 
         {isGamePlaying ? (
-          <Button
-            onClick={closeGame}
-            theme="outline"
-            disabled={deleting}
-            className={styles.heroPanelAction}
-          >
+          <Button onClick={closeGame} theme="outline" disabled={deleting}>
             {t("close")}
           </Button>
         ) : (
@@ -220,7 +172,6 @@ export function HeroPanelActions({
             onClick={openGame}
             theme="outline"
             disabled={deleting || isGamePlaying}
-            className={styles.heroPanelAction}
           >
             {t("play")}
           </Button>
@@ -229,22 +180,16 @@ export function HeroPanelActions({
     );
   }
 
-  if (game?.status === GameStatus.Cancelled) {
+  if (game?.status === "cancelled") {
     return (
       <>
-        <Button
-          onClick={openRepacksModal}
-          theme="outline"
-          disabled={deleting}
-          className={styles.heroPanelAction}
-        >
+        <Button onClick={openRepacksModal} theme="outline" disabled={deleting}>
           {t("open_download_options")}
         </Button>
         <Button
           onClick={() => removeGameFromLibrary(game.id).then(getGame)}
           theme="outline"
           disabled={deleting}
-          className={styles.heroPanelAction}
         >
           {t("remove_from_list")}
         </Button>
@@ -252,15 +197,11 @@ export function HeroPanelActions({
     );
   }
 
-  if (repacks.length) {
+  if (gameDetails && gameDetails.repacks.length) {
     return (
       <>
         {toggleGameOnLibraryButton}
-        <Button
-          onClick={openRepacksModal}
-          theme="outline"
-          className={styles.heroPanelAction}
-        >
+        <Button onClick={openRepacksModal} theme="outline">
           {t("open_download_options")}
         </Button>
       </>
