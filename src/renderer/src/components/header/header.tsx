@@ -166,10 +166,7 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
             onClick={handleClickRestartAndUpdate}
           >
             <SyncIcon size={12} />
-            <small>
-              New version {newVersion} available. Click here to restart and
-              install
-            </small>
+            <small>{t("version_available", { version: newVersion })}</small>
           </button>
         </header>
       )}
