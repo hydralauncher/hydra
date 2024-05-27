@@ -9,7 +9,7 @@ export class AlterLastTimePlayedToDatime1716776027208
     // Mon, 27 May 2024 02:08:17 GMT
     const updateLastTimePlayedValues = `
         UPDATE game SET lastTimePlayed = (SELECT 
-            SUBSTR(lastTimePlayed, 13, 4) || '-' ||    -- Ano
+            SUBSTR(lastTimePlayed, 13, 4) || '-' ||    -- Year
             CASE SUBSTR(lastTimePlayed, 9, 3)
                 WHEN 'Jan' THEN '01'
                 WHEN 'Feb' THEN '02'
@@ -23,9 +23,9 @@ export class AlterLastTimePlayedToDatime1716776027208
                 WHEN 'Oct' THEN '10'
                 WHEN 'Nov' THEN '11'
                 WHEN 'Dec' THEN '12'
-            END || '-' ||                          -- Mês
-            SUBSTR(lastTimePlayed, 6, 2) || ' ' ||     -- Dia
-            SUBSTR(lastTimePlayed, 18, 8)              -- Hora;
+            END || '-' ||                          -- Month
+            SUBSTR(lastTimePlayed, 6, 2) || ' ' ||     -- Day
+            SUBSTR(lastTimePlayed, 18, 8)              -- hh:mm:ss;
             FROM game)
             WHERE lastTimePlayed IS NOT NULL;
             `;
