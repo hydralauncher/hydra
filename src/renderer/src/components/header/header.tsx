@@ -12,7 +12,6 @@ import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 
 import * as styles from "./header.css";
 import { clearSearch } from "@renderer/features";
-import { Button } from "../button/button";
 import { AppUpdaterEvents } from "@types";
 
 export interface HeaderProps {
@@ -166,7 +165,7 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
             className={styles.newVersionButton}
             onClick={handleClickRestartAndUpdate}
           >
-            <SyncIcon size={14} />
+            <SyncIcon size={12} />
             <small>
               New version {newVersion} available. Click here to restart and
               install
