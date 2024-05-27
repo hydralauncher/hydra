@@ -1,7 +1,7 @@
 {
   "home": {
     "featured": "Destaque",
-    "recently_added": "Novidades",
+    "recently_added": "Recém adicionados",
     "trending": "Populares",
     "surprise_me": "Surpreenda-me",
     "no_results": "Nenhum resultado encontrado"
@@ -17,15 +17,20 @@
     "downloading": "{{title}} ({{percentage}} - Baixando…)",
     "filter": "Filtrar biblioteca",
     "home": "Início",
-    "follow_us": "Acompanhe-nos"
+    "follow_us": "Acompanhe-nos",
+    "discord": "Entre no nosso Discord",
+    "telegram": "Entre no nosso Telegram",
+    "x": "Siga-nos no X",
+    "github": "Contribua no GitHub"
   },
   "header": {
-    "search": "Buscar",
+    "search": "Buscar jogos",
     "catalogue": "Catálogo",
     "downloads": "Downloads",
     "search_results": "Resultados da busca",
     "settings": "Configurações",
-    "home": "Início"
+    "home": "Início",
+    "version_available": "Versão {{version}} disponível. Clique aqui para reiniciar e instalar."
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Sem downloads em andamento",
@@ -61,6 +66,8 @@
     "copied_link_to_clipboard": "Link copiado",
     "hours": "horas",
     "minutes": "minutos",
+    "amount_hours": "{{amount}} horas",
+    "amount_minutes": "{{amount}} minutos",
     "accuracy": "{{accuracy}}% de precisão",
     "add_to_library": "Adicionar à biblioteca",
     "remove_from_library": "Remover da biblioteca",
@@ -76,10 +83,23 @@
     "playing_now": "Jogando agora",
     "change": "Mudar",
     "repacks_modal_description": "Escolha o repack do jogo que deseja baixar",
-    "downloads_path": "Diretório do download",
-    "select_folder_hint": "Para trocar a pasta padrão, acesse as ",
-    "settings": "Configurações do Hydra",
-    "download_now": "Baixe agora"
+    "select_folder_hint": "Para trocar a pasta padrão, acesse a <0>Tela de Configurações</0>",
+    "download_now": "Baixe agora",
+    "installation_instructions": "Instruções de Instalação",
+    "installation_instructions_description": "Passos adicionais são necessários para instalar esse jogo",
+    "online_fix_instruction": "Jogos OnlineFix precisam de uma senha para serem extraídos. Quando solicitado, utilize a seguinte senha:",
+    "dodi_installation_instruction": "Quando o instalador do DODI for aberto, pressione a seta para cima <0 /> do teclado para iniciar o processo de instalação:",
+    "dont_show_it_again": "Não mostrar novamente",
+    "copy_to_clipboard": "Copiar",
+    "copied_to_clipboard": "Copiado",
+    "got_it": "Entendi",
+    "no_shop_details": "Não foi possível obter os detalhes da loja.",
+    "download_options": "Opções de download",
+    "download_path": "Diretório de download",
+    "previous_screenshot": "Captura de tela anterior",
+    "next_screenshot": "Próxima captura de tela",
+    "screenshot": "Captura de tela {{number}}",
+    "open_screenshot": "Ver captura de tela {{number}}"
   },
   "activation": {
     "title": "Ativação",
@@ -110,7 +130,9 @@
     "delete_modal_description": "Isso removerá todos os arquivos de instalação do seu computador",
     "delete_modal_title": "Tem certeza?",
     "deleting": "Excluindo instalador…",
-    "install": "Instalar"
+    "install": "Instalar",
+    "torrent": "Torrent",
+    "real_debrid": "Real Debrid"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",
@@ -119,7 +141,16 @@
     "enable_download_notifications": "Quando um download for concluído",
     "enable_repack_list_notifications": "Quando a lista de repacks for atualizada",
     "telemetry": "Telemetria",
-    "telemetry_description": "Habilitar estatísticas de uso anônimas"
+    "telemetry_description": "Habilitar estatísticas de uso anônimas",
+    "real_debrid_api_token_label": "Token de API do Real Debrid",
+    "quit_app_instead_hiding": "Fechar o aplicativo em vez de minimizá-lo",
+    "launch_with_system": "Iniciar aplicativo na inicialização do sistema",
+    "general": "Geral",
+    "behavior": "Comportamento",
+    "enable_real_debrid": "Habilitar Real Debrid",
+    "real_debrid": "Real Debrid",
+    "real_debrid_api_token_hint": "Você pode obter sua chave de API <0>aqui</0>.",
+    "save_changes": "Salvar mudanças"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -138,10 +169,19 @@
   "binary_not_found_modal": {
     "title": "Programas não instalados",
     "description": "Não foram encontrados no seu sistema os executáveis do Wine ou Lutris",
-    "instructions": "Verifique a forma correta de instalar algum deles na sua distro Linux para que o jogo possa ser executado normalmente"
+    "instructions": "Verifique a forma correta de instalar algum deles no seu distro Linux, garantindo assim a execução normal do jogo"
   },
   "catalogue": {
     "next_page": "Próxima página",
     "previous_page": "Página anterior"
+  },
+  "modal": {
+    "close": "Botão de fechar"
+  },
+  "splash": {
+    "downloading_version": "Baixando versão {{version}}",
+    "searching_updates": "Buscando atualizações",
+    "update_found": "Versão {{version}} encontrada",
+    "restarting_and_applying": "Reiniciando e aplicando atualização"
   }
 }

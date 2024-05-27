@@ -9,7 +9,4 @@ const searchGamesEvent = async (
   return searchGames({ query, take: 12 });
 };
 
-registerEvent(searchGamesEvent, {
-  name: "searchGames",
-  memoize: true,
-});
+registerEvent("searchGames", searchGamesEvent);

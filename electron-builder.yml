@@ -6,6 +6,7 @@ extraResources:
   - hydra-download-manager
   - hydra.db
   - fastlist.exe
+  - seeds
 files:
   - "!**/.vscode/*"
   - "!src/*"
@@ -23,6 +24,7 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+  oneClick: false
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
@@ -38,12 +40,17 @@ linux:
     - AppImage
     - snap
     - deb
+    - rpm
   maintainer: electronjs.org
-  category: Utility
+  category: Game
+  mimeTypes:
+    - x-scheme-handler/hydralauncher
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
 publish:
   provider: github
+  owner: hydralauncher
+  repo: hydra
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/

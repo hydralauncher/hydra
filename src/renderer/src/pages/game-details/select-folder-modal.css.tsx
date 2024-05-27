@@ -10,7 +10,7 @@ export const container = style({
 
 export const downloadsPathField = style({
   display: "flex",
-  gap: `${SPACING_UNIT * 2}px`,
+  gap: `${SPACING_UNIT}px`,
 });
 
 export const hintText = style({

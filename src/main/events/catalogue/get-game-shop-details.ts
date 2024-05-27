@@ -4,7 +4,31 @@ import { getSteamAppDetails } from "@main/services";
 import type { ShopDetails, GameShop, SteamAppDetails } from "@types";
 
 import { registerEvent } from "../register-event";
-import { searchRepacks } from "../helpers/search-games";
+import { stateManager } from "@main/state-manager";
+
+const getLocalizedSteamAppDetails = (
+  objectID: string,
+  language: string
+): Promise<ShopDetails | null> => {
+  if (language === "english") {
+    return getSteamAppDetails(objectID, language);
+  }
+
+  return getSteamAppDetails(objectID, language).then((localizedAppDetails) => {
+    const steamGame = stateManager
+      .getValue("steamGames")
+      .find((game) => game.id === Number(objectID));
+
+    if (steamGame && localizedAppDetails) {
+      return {
+        ...localizedAppDetails,
+        name: steamGame.name,
+      };
+    }
+
+    return null;
+  });
+};
 
 const getGameShopDetails = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -17,27 +41,21 @@ const getGameShopDetails = async (
       where: { objectID, language },
     });
 
-    const result = Promise.all([
-      getSteamAppDetails(objectID, "english"),
-      getSteamAppDetails(objectID, language),
-    ]).then(([appDetails, localizedAppDetails]) => {
-      if (appDetails && localizedAppDetails) {
+    const appDetails = getLocalizedSteamAppDetails(objectID, language).then(
+      (result) => {
         gameShopCacheRepository.upsert(
           {
             objectID,
             shop: "steam",
             language,
-            serializedData: JSON.stringify({
-              ...localizedAppDetails,
-              name: appDetails.name,
-            }),
+            serializedData: JSON.stringify(result),
           },
           ["objectID"]
         );
-      }
 
-      return [appDetails, localizedAppDetails];
-    });
+        return result;
+      }
+    );
 
     const cachedGame = cachedData?.serializedData
       ? (JSON.parse(cachedData?.serializedData) as SteamAppDetails)
@@ -46,27 +64,14 @@ const getGameShopDetails = async (
     if (cachedGame) {
       return {
         ...cachedGame,
-        repacks: searchRepacks(cachedGame.name),
         objectID,
       } as ShopDetails;
     }
 
-    return result.then(([appDetails, localizedAppDetails]) => {
-      if (!appDetails || !localizedAppDetails) return null;
-
-      return {
-        ...localizedAppDetails,
-        name: appDetails.name,
-        repacks: searchRepacks(appDetails.name),
-        objectID,
-      } as ShopDetails;
-    });
+    return Promise.resolve(appDetails);
   }
 
   throw new Error("Not implemented");
 };
 
-registerEvent(getGameShopDetails, {
-  name: "getGameShopDetails",
-  memoize: true,
-});
+registerEvent("getGameShopDetails", getGameShopDetails);

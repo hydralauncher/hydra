@@ -79,63 +79,6 @@ export const descriptionContent = style({
   height: "100%",
 });
 
-export const contentSidebar = style({
-  borderLeft: `solid 1px ${vars.color.borderColor};`,
-  width: "100%",
-  height: "100%",
-  "@media": {
-    "(min-width: 768px)": {
-      width: "100%",
-      maxWidth: "200px",
-    },
-    "(min-width: 1024px)": {
-      maxWidth: "300px",
-      width: "100%",
-    },
-    "(min-width: 1280px)": {
-      width: "100%",
-      maxWidth: "400px",
-    },
-  },
-});
-
-export const contentSidebarTitle = style({
-  height: "72px",
-  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
-  display: "flex",
-  alignItems: "center",
-  backgroundColor: vars.color.background,
-  borderBottom: `solid 1px ${vars.color.borderColor}`,
-});
-
-export const requirementButtonContainer = style({
-  width: "100%",
-  display: "flex",
-});
-
-export const requirementButton = style({
-  border: `solid 1px ${vars.color.borderColor};`,
-  borderLeft: "none",
-  borderRight: "none",
-  borderRadius: "0",
-  width: "100%",
-});
-
-export const requirementsDetails = style({
-  padding: `${SPACING_UNIT * 2}px`,
-  lineHeight: "22px",
-  fontFamily: "'Fira Sans', sans-serif",
-  fontSize: "16px",
-});
-
-export const requirementsDetailsSkeleton = style({
-  display: "flex",
-  flexDirection: "column",
-  gap: "8px",
-  padding: `${SPACING_UNIT * 2}px`,
-  fontSize: "16px",
-});
-
 export const description = style({
   userSelect: "text",
   lineHeight: "22px",
@@ -171,7 +114,6 @@ export const descriptionSkeleton = style({
 export const descriptionHeader = style({
   width: "100%",
   padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
-  borderBottom: `solid 1px ${vars.color.borderColor}`,
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
@@ -183,36 +125,6 @@ export const descriptionHeaderInfo = style({
   display: "flex",
   gap: `${SPACING_UNIT}px`,
   flexDirection: "column",
-  fontSize: vars.size.bodyFontSize,
-});
-
-export const howLongToBeatCategoriesList = style({
-  margin: "0",
-  padding: "16px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "16px",
-});
-
-export const howLongToBeatCategory = style({
-  display: "flex",
-  flexDirection: "column",
-  gap: "4px",
-  backgroundColor: vars.color.background,
-  borderRadius: "8px",
-  padding: `8px 16px`,
-  border: `solid 1px ${vars.color.borderColor}`,
-});
-
-export const howLongToBeatCategoryLabel = style({
-  fontSize: vars.size.bodyFontSize,
-  color: "#DADBE1",
-});
-
-export const howLongToBeatCategorySkeleton = style({
-  border: `solid 1px ${vars.color.borderColor}`,
-  borderRadius: "8px",
-  height: "76px",
 });
 
 export const randomizerButton = style({
@@ -224,7 +136,7 @@ export const randomizerButton = style({
   /* Scroll bar + spacing */
   right: `${9 + SPACING_UNIT * 2}px`,
   boxShadow: "rgba(255, 255, 255, 0.1) 0px 0px 10px 3px",
-  border: `solid 2px ${vars.color.borderColor}`,
+  border: `solid 2px ${vars.color.border}`,
   backgroundColor: vars.color.background,
   ":hover": {
     backgroundColor: vars.color.background,
@@ -234,6 +146,16 @@ export const randomizerButton = style({
   ":active": {
     transform: "scale(0.98)",
   },
+});
+
+export const heroPanelSkeleton = style({
+  width: "100%",
+  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
+  display: "flex",
+  alignItems: "center",
+  backgroundColor: vars.color.background,
+  height: "72px",
+  borderBottom: `solid 1px ${vars.color.border}`,
 });
 
 globalStyle(".bb_tag", {
@@ -252,10 +174,5 @@ globalStyle(`${description} img`, {
 });
 
 globalStyle(`${description} a`, {
-  color: vars.color.bodyText,
-});
-
-globalStyle(`${requirementsDetails} a`, {
-  display: "flex",
   color: vars.color.bodyText,
 });

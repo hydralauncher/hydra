@@ -4,20 +4,12 @@ import {
   loadEnv,
   swcPlugin,
   externalizeDepsPlugin,
-  bytecodePlugin,
 } from "electron-vite";
 import react from "@vitejs/plugin-react";
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
-import { sentryVitePlugin } from "@sentry/vite-plugin";
 import svgr from "vite-plugin-svgr";
 export default defineConfig(({ mode }) => {
   loadEnv(mode);
-
-  const sentryPlugin = sentryVitePlugin({
-    authToken: process.env.SENTRY_AUTH_TOKEN,
-    org: "hydra-launcher",
-    project: "hydra-launcher",
-  });
 
   return {
     main: {
@@ -32,14 +24,10 @@ export default defineConfig(({ mode }) => {
           "@main": resolve("src/main"),
           "@locales": resolve("src/locales"),
           "@resources": resolve("resources"),
+          "@shared": resolve("src/shared"),
         },
       },
-      plugins: [
-        externalizeDepsPlugin(),
-        swcPlugin(),
-        bytecodePlugin(),
-        sentryPlugin,
-      ],
+      plugins: [externalizeDepsPlugin(), swcPlugin()],
     },
     preload: {
       plugins: [externalizeDepsPlugin()],
@@ -52,15 +40,10 @@ export default defineConfig(({ mode }) => {
         alias: {
           "@renderer": resolve("src/renderer/src"),
           "@locales": resolve("src/locales"),
+          "@shared": resolve("src/shared"),
         },
       },
-      plugins: [
-        svgr(),
-        react(),
-        vanillaExtractPlugin(),
-        bytecodePlugin(),
-        sentryPlugin,
-      ],
+      plugins: [svgr(), react(), vanillaExtractPlugin()],
     },
   };
 });

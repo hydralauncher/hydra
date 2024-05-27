@@ -6,12 +6,12 @@ export const hero = style({
   height: "280px",
   minHeight: "280px",
   maxHeight: "280px",
-  borderRadius: "8px",
+  borderRadius: "4px",
   color: "#DADBE1",
   overflow: "hidden",
   boxShadow: "0px 0px 15px 0px #000000",
   cursor: "pointer",
-  border: `solid 1px ${vars.color.borderColor}`,
+  border: `solid 1px ${vars.color.border}`,
   zIndex: "1",
 });
 
@@ -33,7 +33,7 @@ export const heroMedia = style({
 export const backdrop = style({
   width: "100%",
   height: "100%",
-  background: "linear-gradient(0deg, rgba(0, 0, 0, 0.6) 25%, transparent 100%)",
+  background: "linear-gradient(0deg, rgba(0, 0, 0, 0.8) 25%, transparent 100%)",
   position: "relative",
   display: "flex",
   overflow: "hidden",
@@ -41,11 +41,11 @@ export const backdrop = style({
 
 export const description = style({
   maxWidth: "700px",
-  fontSize: vars.size.bodyFontSize,
-  color: "#c0c1c7",
+  color: vars.color.muted,
   textAlign: "left",
   fontFamily: "'Fira Sans', sans-serif",
   lineHeight: "20px",
+  marginTop: `${SPACING_UNIT * 2}px`,
 });
 
 export const content = style({

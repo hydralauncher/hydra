@@ -1,8 +1,6 @@
 name: Lint
 
-on:
-  push:
-    branches: "**"
+on: [pull_request]
 
 jobs:
   lint:
@@ -20,8 +18,14 @@ jobs:
       - name: Install dependencies
         run: yarn
 
+      - name: Validate current commit (last commit) with commitlint
+        run: npx commitlint --last --verbose
+
       - name: Typecheck
         run: yarn typecheck
 
       - name: Lint
         run: yarn lint
+
+      - name: Format check
+        run: yarn format-check

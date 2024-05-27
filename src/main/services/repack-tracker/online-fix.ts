@@ -1,56 +1,44 @@
 import { Repack } from "@main/entity";
-import { savePage } from "./helpers";
+import { decodeNonUtf8Response, savePage } from "./helpers";
 import { logger } from "../logger";
-import parseTorrent, {
-  toMagnetURI,
-  Instance as TorrentInstance,
-} from "parse-torrent";
 import { JSDOM } from "jsdom";
-import { gotScraping } from "got-scraping";
-import { CookieJar } from "tough-cookie";
 
-import { format, parse, sub } from "date-fns";
-import { ru } from "date-fns/locale";
-import { decode } from "windows-1251";
-import { onlinefixFormatter } from "@main/helpers";
+import createWorker from "@main/workers/torrent-parser.worker?nodeWorker";
+import { toMagnetURI } from "parse-torrent";
+
+const worker = createWorker({});
+
+import makeFetchCookie from "fetch-cookie";
+import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+import { formatBytes } from "@shared";
+
+const ONLINE_FIX_URL = "https://online-fix.me/";
+
+let totalPages = 1;
 
 export const getNewRepacksFromOnlineFix = async (
   existingRepacks: Repack[] = [],
   page = 1,
-  cookieJar = new CookieJar()
+  cookieJar = new makeFetchCookie.toughCookie.CookieJar()
 ): Promise<void> => {
   const hasCredentials =
     import.meta.env.MAIN_VITE_ONLINEFIX_USERNAME &&
     import.meta.env.MAIN_VITE_ONLINEFIX_PASSWORD;
   if (!hasCredentials) return;
 
-  const http = gotScraping.extend({
-    headerGeneratorOptions: {
-      browsers: [
-        {
-          name: "chrome",
-          minVersion: 87,
-          maxVersion: 89,
-        },
-      ],
-      devices: ["desktop"],
-      locales: ["en-US"],
-      operatingSystems: ["windows", "linux"],
-    },
-    cookieJar: cookieJar,
-  });
+  const http = makeFetchCookie(fetch, cookieJar);
 
   if (page === 1) {
-    await http.get("https://online-fix.me/");
+    await http(ONLINE_FIX_URL);
+
     const preLogin =
-      ((await http
-        .get("https://online-fix.me/engine/ajax/authtoken.php", {
-          headers: {
-            "X-Requested-With": "XMLHttpRequest",
-            Referer: "https://online-fix.me/",
-          },
-        })
-        .json()) as {
+      ((await http("https://online-fix.me/engine/ajax/authtoken.php", {
+        method: "GET",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          Referer: ONLINE_FIX_URL,
+        },
+      }).then((res) => res.json())) as {
         field: string;
         value: string;
       }) || undefined;
@@ -64,75 +52,43 @@ export const getNewRepacksFromOnlineFix = async (
       [preLogin.field]: preLogin.value,
     });
 
-    await http
-      .post("https://online-fix.me/", {
-        encoding: "binary",
-        headers: {
-          Referer: "https://online-fix.me",
-          Origin: "https://online-fix.me",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: params.toString(),
-      })
-      .text();
+    await http(ONLINE_FIX_URL, {
+      method: "POST",
+      headers: {
+        Referer: ONLINE_FIX_URL,
+        Origin: ONLINE_FIX_URL,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: params.toString(),
+    });
   }
 
   const pageParams = page > 1 ? `${`/page/${page}`}` : "";
 
-  const home = await http.get(`https://online-fix.me${pageParams}`, {
-    encoding: "binary",
-  });
-  const document = new JSDOM(home.body).window.document;
-
-  const repacks = [];
-  const articles = Array.from(document.querySelectorAll(".news"));
-  const totalPages = Number(
-    document.querySelector("nav > a:nth-child(13)")?.textContent
+  const home = await http(`https://online-fix.me${pageParams}`).then((res) =>
+    decodeNonUtf8Response(res)
   );
+  const document = new JSDOM(home).window.document;
+
+  const repacks: QueryDeepPartialEntity<Repack>[] = [];
+  const articles = Array.from(document.querySelectorAll(".news"));
+
+  if (page == 1) {
+    totalPages = Number(
+      document.querySelector("nav > a:nth-child(13)")?.textContent
+    );
+  }
 
   try {
     await Promise.all(
       articles.map(async (article) => {
-        const gameName = onlinefixFormatter(
-          decode(article.querySelector("h2.title")?.textContent?.trim())
-        );
-
         const gameLink = article.querySelector("a")?.getAttribute("href");
-
         if (!gameLink) return;
 
-        const gamePage = await http
-          .get(gameLink, {
-            encoding: "binary",
-          })
-          .text();
-
-        const gameDocument = new JSDOM(gamePage).window.document;
-
-        const uploadDateText = gameDocument.querySelector("time").textContent;
-
-        let decodedDateText = decode(uploadDateText);
-
-        // "Вчера" means yesterday.
-        if (decodedDateText.includes("Вчера")) {
-          const yesterday = sub(new Date(), { days: 1 });
-          const formattedYesterday = format(yesterday, "d LLLL yyyy", {
-            locale: ru,
-          });
-          decodedDateText = decodedDateText.replace(
-            "Вчера", // "Change yesterday to the default expected date format"
-            formattedYesterday
-          );
-        }
-
-        const uploadDate = parse(
-          decodedDateText,
-          "d LLLL yyyy, HH:mm",
-          new Date(),
-          {
-            locale: ru,
-          }
+        const gamePage = await http(gameLink).then((res) =>
+          decodeNonUtf8Response(res)
         );
+        const gameDocument = new JSDOM(gamePage).window.document;
 
         const torrentButtons = Array.from(
           gameDocument.querySelectorAll("a")
@@ -141,14 +97,11 @@ export const getNewRepacksFromOnlineFix = async (
         const torrentPrePage = torrentButtons[0]?.getAttribute("href");
         if (!torrentPrePage) return;
 
-        const torrentPage = await http
-          .get(torrentPrePage, {
-            encoding: "binary",
-            headers: {
-              Referer: gameLink,
-            },
-          })
-          .text();
+        const torrentPage = await http(torrentPrePage, {
+          headers: {
+            Referer: gameLink,
+          },
+        }).then((res) => res.text());
 
         const torrentDocument = new JSDOM(torrentPage).window.document;
 
@@ -157,32 +110,27 @@ export const getNewRepacksFromOnlineFix = async (
           ?.getAttribute("href");
 
         const torrentFile = Buffer.from(
-          await http
-            .get(`${torrentPrePage}/${torrentLink}`, {
-              responseType: "buffer",
-            })
-            .buffer()
+          await http(`${torrentPrePage}${torrentLink}`).then((res) =>
+            res.arrayBuffer()
+          )
         );
 
-        const torrent = parseTorrent(torrentFile) as TorrentInstance;
-        const magnetLink = toMagnetURI({
-          infoHash: torrent.infoHash,
+        worker.once("message", (torrent) => {
+          if (!torrent) return;
+
+          const { name, created } = torrent;
+
+          repacks.push({
+            fileSize: formatBytes(torrent.length ?? 0),
+            magnet: toMagnetURI(torrent),
+            page: 1,
+            repacker: "onlinefix",
+            title: name,
+            uploadDate: created,
+          });
         });
 
-        const torrentSizeInBytes = torrent.length;
-        const fileSizeFormatted =
-          torrentSizeInBytes >= 1024 ** 3
-            ? `${(torrentSizeInBytes / 1024 ** 3).toFixed(1)}GBs`
-            : `${(torrentSizeInBytes / 1024 ** 2).toFixed(1)}MBs`;
-
-        repacks.push({
-          fileSize: fileSizeFormatted,
-          magnet: magnetLink,
-          page: 1,
-          repacker: "onlinefix",
-          title: gameName,
-          uploadDate: uploadDate,
-        });
+        worker.postMessage(torrentFile);
       })
     );
   } catch (err: unknown) {
@@ -200,9 +148,10 @@ export const getNewRepacksFromOnlineFix = async (
   );
 
   if (!newRepacks.length) return;
-  if (page === totalPages) return;
 
   await savePage(newRepacks);
+
+  if (page === totalPages) return;
 
   return getNewRepacksFromOnlineFix(existingRepacks, page + 1, cookieJar);
 };

@@ -2,17 +2,34 @@ import { SPACING_UNIT, vars } from "../../theme.css";
 import { style } from "@vanilla-extract/css";
 import { recipe } from "@vanilla-extract/recipes";
 
+export const downloadTitleWrapper = style({
+  display: "flex",
+  alignItems: "center",
+  marginBottom: `${SPACING_UNIT}px`,
+  gap: `${SPACING_UNIT}px`,
+});
+
 export const downloadTitle = style({
   fontWeight: "bold",
   cursor: "pointer",
   color: vars.color.bodyText,
   textAlign: "left",
-  marginBottom: `${SPACING_UNIT}px`,
   fontSize: "16px",
   display: "block",
   ":hover": {
     textDecoration: "underline",
   },
+});
+
+export const downloaderName = style({
+  color: "#c0c1c7",
+  fontSize: "10px",
+  padding: `${SPACING_UNIT / 2}px ${SPACING_UNIT}px`,
+  border: "solid 1px #c0c1c7",
+  borderRadius: "4px",
+  display: "flex",
+  alignItems: "center",
+  alignSelf: "flex-start",
 });
 
 export const downloads = style({
@@ -31,7 +48,7 @@ export const downloadCover = style({
   height: "auto",
   objectFit: "cover",
   objectPosition: "center",
-  borderRight: `solid 1px ${vars.color.borderColor}`,
+  borderRight: `solid 1px ${vars.color.border}`,
 });
 
 export const download = recipe({
@@ -40,7 +57,7 @@ export const download = recipe({
     backgroundColor: vars.color.background,
     display: "flex",
     borderRadius: "8px",
-    border: `solid 1px ${vars.color.borderColor}`,
+    border: `solid 1px ${vars.color.border}`,
     overflow: "hidden",
     boxShadow: "0px 0px 15px 0px #000000",
     transition: "all ease 0.2s",

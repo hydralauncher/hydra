@@ -3,46 +3,55 @@ import { gameRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
 
 import type { GameShop } from "@types";
-import { getImageBase64 } from "@main/helpers";
-import { getSteamGameIconUrl } from "@main/services";
+import { getFileBase64, getSteamAppAsset } from "@main/helpers";
+import { stateManager } from "@main/state-manager";
 
 const addGameToLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
   objectID: string,
   title: string,
   gameShop: GameShop,
-  executablePath: string
+  executablePath: string | null
 ) => {
-  const game = await gameRepository.findOne({
-    where: {
-      objectID,
-    },
-  });
-
-  if (game) {
-    return gameRepository.update(
+  return gameRepository
+    .update(
       {
-        id: game.id,
+        objectID,
       },
       {
         shop: gameShop,
+        status: null,
         executablePath,
         isDeleted: false,
       }
-    );
-  } else {
-    const iconUrl = await getImageBase64(await getSteamGameIconUrl(objectID));
+    )
+    .then(async ({ affected }) => {
+      if (!affected) {
+        const steamGame = stateManager
+          .getValue("steamGames")
+          .find((game) => game.id === Number(objectID));
 
-    return gameRepository.insert({
-      title,
-      iconUrl,
-      objectID,
-      shop: gameShop,
-      executablePath,
+        const iconUrl = steamGame?.clientIcon
+          ? getSteamAppAsset("icon", objectID, steamGame.clientIcon)
+          : null;
+
+        await gameRepository
+          .insert({
+            title,
+            iconUrl,
+            objectID,
+            shop: gameShop,
+            executablePath,
+          })
+          .then(() => {
+            if (iconUrl) {
+              getFileBase64(iconUrl).then((base64) =>
+                gameRepository.update({ objectID }, { iconUrl: base64 })
+              );
+            }
+          });
+      }
     });
-  }
 };
 
-registerEvent(addGameToLibrary, {
-  name: "addGameToLibrary",
-});
+registerEvent("addGameToLibrary", addGameToLibrary);

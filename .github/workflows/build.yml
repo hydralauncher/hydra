@@ -1,8 +1,6 @@
 name: Build
 
-on:
-  push:
-    branches: main
+on: [pull_request]
 
 jobs:
   build:
@@ -39,10 +37,6 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: yarn build:linux
         env:
-          MAIN_VITE_STEAMGRIDDB_API_KEY: ${{ secrets.STEAMGRIDDB_API_KEY }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          MAIN_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
-          RENDERER_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
           MAIN_VITE_ONLINEFIX_USERNAME: ${{ secrets.ONLINEFIX_USERNAME }}
           MAIN_VITE_ONLINEFIX_PASSWORD: ${{ secrets.ONLINEFIX_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -51,10 +45,6 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: yarn build:win
         env:
-          MAIN_VITE_STEAMGRIDDB_API_KEY: ${{ secrets.STEAMGRIDDB_API_KEY }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          MAIN_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
-          RENDERER_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
           MAIN_VITE_ONLINEFIX_USERNAME: ${{ secrets.ONLINEFIX_USERNAME }}
           MAIN_VITE_ONLINEFIX_PASSWORD: ${{ secrets.ONLINEFIX_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -64,21 +54,11 @@ jobs:
         with:
           name: Build-${{ matrix.os }}
           path: |
-            dist/*.exe
+            dist/win-unpacked/**
             dist/*.zip
             dist/*.dmg
-            dist/*.AppImage
-            dist/*.snap
             dist/*.deb
             dist/*.rpm
             dist/*.tar.gz
             dist/*.yml
             dist/*.blockmap
-
-      - name: VirusTotal Scan
-        uses: crazy-max/ghaction-virustotal@v4
-        if: matrix.os == 'windows-latest'
-        with:
-          vt_api_key: ${{ secrets.VT_API_KEY }}
-          files: |
-            ./dist/*.exe

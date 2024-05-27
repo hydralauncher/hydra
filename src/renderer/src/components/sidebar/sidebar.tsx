@@ -4,32 +4,16 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import type { Game } from "@types";
 
-import { AsyncImage, TextField } from "@renderer/components";
+import { TextField } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
-import { SPACING_UNIT } from "../../theme.css";
 
 import { routes } from "./routes";
 
-import { MarkGithubIcon } from "@primer/octicons-react";
-import DiscordLogo from "@renderer/assets/discord-icon.svg?react";
-import XLogo from "@renderer/assets/x-icon.svg?react";
-
 import * as styles from "./sidebar.css";
+import { GameStatus, GameStatusHelper } from "@shared";
+import { buildGameDetailsPath } from "@renderer/helpers";
 
-const socials = [
-  {
-    url: "https://discord.gg/hydralauncher",
-    icon: <DiscordLogo />,
-  },
-  {
-    url: "https://twitter.com/hydralauncher",
-    icon: <XLogo />,
-  },
-  {
-    url: "https://github.com/hydralauncher/hydra",
-    icon: <MarkGithubIcon size={16} />,
-  },
-];
+import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -58,9 +42,7 @@ export function Sidebar() {
   }, [gameDownloading?.id, updateLibrary]);
 
   const isDownloading = library.some((game) =>
-    ["downloading", "checking_files", "downloading_metadata"].includes(
-      game.status
-    )
+    GameStatusHelper.isDownloading(game.status)
   );
 
   const sidebarRef = useRef<HTMLElement>(null);
@@ -92,7 +74,7 @@ export function Sidebar() {
   }, [library]);
 
   useEffect(() => {
-    window.onmousemove = (event) => {
+    window.onmousemove = (event: MouseEvent) => {
       if (isResizing) {
         const cursorXDelta = event.screenX - cursorPos.current.x;
         const newWidth = Math.max(
@@ -119,15 +101,14 @@ export function Sidebar() {
   }, [isResizing]);
 
   const getGameTitle = (game: Game) => {
-    if (game.status === "paused") return t("paused", { title: game.title });
+    if (game.status === GameStatus.Paused)
+      return t("paused", { title: game.title });
 
     if (gameDownloading?.id === game.id) {
-      const isVerifying = ["downloading_metadata", "checking_files"].includes(
-        gameDownloading?.status
-      );
+      const isVerifying = GameStatusHelper.isVerifying(gameDownloading.status);
 
       if (isVerifying)
-        return t(gameDownloading.status, {
+        return t(gameDownloading.status!, {
           title: game.title,
           percentage: progress,
         });
@@ -162,11 +143,9 @@ export function Sidebar() {
           macos: window.electron.platform === "darwin",
         })}
       >
-        {window.electron.platform === "darwin" && (
-          <h2 style={{ marginBottom: SPACING_UNIT }}>Hydra</h2>
-        )}
+        {window.electron.platform === "darwin" && <h2>Hydra</h2>}
 
-        <section className={styles.section({ hasBorder: false })}>
+        <section className={styles.section}>
           <ul className={styles.menu}>
             {routes.map(({ nameKey, path, render }) => (
               <li
@@ -188,7 +167,7 @@ export function Sidebar() {
           </ul>
         </section>
 
-        <section className={styles.section({ hasBorder: false })}>
+        <section className={styles.section}>
           <small className={styles.sectionTitle}>{t("my_library")}</small>
 
           <TextField
@@ -204,19 +183,26 @@ export function Sidebar() {
                 className={styles.menuItem({
                   active:
                     location.pathname === `/game/${game.shop}/${game.objectID}`,
-                  muted: game.status === "cancelled",
+                  muted: game.status === GameStatus.Cancelled,
                 })}
               >
                 <button
                   type="button"
                   className={styles.menuItemButton}
                   onClick={() =>
-                    handleSidebarItemClick(
-                      `/game/${game.shop}/${game.objectID}`
-                    )
+                    handleSidebarItemClick(buildGameDetailsPath(game))
                   }
                 >
-                  <AsyncImage className={styles.gameIcon} src={game.iconUrl} />
+                  {game.iconUrl ? (
+                    <img
+                      className={styles.gameIcon}
+                      src={game.iconUrl}
+                      alt={game.title}
+                    />
+                  ) : (
+                    <SteamLogo className={styles.gameIcon} />
+                  )}
+
                   <span className={styles.menuItemButtonLabel}>
                     {getGameTitle(game)}
                   </span>
@@ -232,24 +218,6 @@ export function Sidebar() {
         className={styles.handle}
         onMouseDown={handleMouseDown}
       />
-
-      <footer className={styles.sidebarFooter}>
-        <div className={styles.footerText}>{t("follow_us")}</div>
-
-        <span className={styles.footerSocialsContainer}>
-          {socials.map((item) => {
-            return (
-              <button
-                key={item.url}
-                className={styles.footerSocialsItem}
-                onClick={() => window.electron.openExternal(item.url)}
-              >
-                {item.icon}
-              </button>
-            );
-          })}
-        </span>
-      </footer>
     </aside>
   );
 }

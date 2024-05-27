@@ -1,29 +1,26 @@
-import { app, BrowserWindow } from "electron";
-import { init } from "@sentry/electron/main";
+import { app, BrowserWindow, net, protocol } from "electron";
+import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
-import { resolveDatabaseUpdates, WindowManager } from "@main/services";
+import { logger, resolveDatabaseUpdates, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
+const { autoUpdater } = updater;
+
+autoUpdater.setFeedURL({
+  provider: "github",
+  owner: "hydralauncher",
+  repo: "hydra",
+});
+
+autoUpdater.logger = logger;
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
 
-if (import.meta.env.MAIN_VITE_SENTRY_DSN) {
-  init({
-    dsn: import.meta.env.MAIN_VITE_SENTRY_DSN,
-    beforeSend: async (event) => {
-      const userPreferences = await userPreferencesRepository.findOne({
-        where: { id: 1 },
-      });
-
-      if (userPreferences?.telemetryEnabled) return event;
-      return null;
-    },
-  });
-}
+app.commandLine.appendSwitch("--no-sandbox");
 
 i18n.init({
   resources,
@@ -52,7 +49,13 @@ if (process.defaultApp) {
 app.whenReady().then(() => {
   electronApp.setAppUserModelId("site.hydralauncher.hydra");
 
+  protocol.handle("hydra", (request) =>
+    net.fetch("file://" + request.url.slice("hydra://".length))
+  );
+
   dataSource.initialize().then(async () => {
+    await dataSource.runMigrations();
+
     await resolveDatabaseUpdates();
 
     await import("./main");
@@ -81,7 +84,7 @@ app.on("second-instance", (_event, commandLine) => {
     WindowManager.createMainWindow();
   }
 
-  const [, path] = commandLine.pop().split("://");
+  const [, path] = commandLine.pop()?.split("://") ?? [];
   if (path) WindowManager.redirect(path);
 });
 

@@ -1,10 +1,13 @@
 import type {
+  AppUpdaterEvents,
   CatalogueCategory,
   CatalogueEntry,
   Game,
+  GameRepack,
   GameShop,
   HowLongToBeatCategory,
   ShopDetails,
+  Steam250Game,
   TorrentProgress,
   UserPreferences,
 } from "@types";
@@ -40,7 +43,7 @@ declare global {
       shop: GameShop,
       language: string
     ) => Promise<ShopDetails | null>;
-    getRandomGame: () => Promise<string>;
+    getRandomGame: () => Promise<Steam250Game>;
     getHowLongToBeat: (
       objectID: string,
       shop: GameShop,
@@ -50,16 +53,16 @@ declare global {
       take?: number,
       prevCursor?: number
     ) => Promise<{ results: CatalogueEntry[]; cursor: number }>;
+    searchGameRepacks: (query: string) => Promise<GameRepack[]>;
 
     /* Library */
     addGameToLibrary: (
       objectID: string,
       title: string,
       shop: GameShop,
-      executablePath: string
+      executablePath: string | null
     ) => Promise<void>;
     getLibrary: () => Promise<Game[]>;
-    getRepackersFriendlyNames: () => Promise<Record<string, string>>;
     openGameInstaller: (gameId: number) => Promise<boolean>;
     openGame: (gameId: number, executablePath: string) => Promise<void>;
     closeGame: (gameId: number) => Promise<boolean>;
@@ -74,12 +77,12 @@ declare global {
     updateUserPreferences: (
       preferences: Partial<UserPreferences>
     ) => Promise<void>;
+    autoLaunch: (enabled: boolean) => Promise<void>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
 
     /* Misc */
-    getOrCacheImage: (url: string) => Promise<string>;
     openExternal: (src: string) => Promise<void>;
     getVersion: () => Promise<string>;
     ping: () => string;
@@ -88,6 +91,13 @@ declare global {
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
     platform: NodeJS.Platform;
+
+    /* Auto update */
+    onAutoUpdaterEvent: (
+      cb: (event: AppUpdaterEvents) => void
+    ) => () => Electron.IpcRenderer;
+    checkForUpdates: () => Promise<void>;
+    restartAndInstallUpdate: () => Promise<void>;
   }
 
   interface Window {

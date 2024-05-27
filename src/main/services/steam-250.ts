@@ -1,10 +1,7 @@
 import axios from "axios";
 import { JSDOM } from "jsdom";
 
-export interface Steam250Game {
-  title: string;
-  objectID: string;
-}
+import type { Steam250Game } from "@types";
 
 export const requestSteam250 = async (path: string) => {
   return axios
@@ -41,7 +38,8 @@ export const getSteam250List = async () => {
   ).flat();
 
   const gamesMap: Map<string, Steam250Game> = gamesList.reduce((map, item) => {
-    map.set(item.objectID, item);
+    if (item) map.set(item.objectID, item);
+
     return map;
   }, new Map());
 

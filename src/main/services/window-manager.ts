@@ -1,9 +1,19 @@
-import { BrowserWindow, Menu, Tray, app } from "electron";
+import {
+  BrowserWindow,
+  Menu,
+  MenuItem,
+  MenuItemConstructorOptions,
+  Tray,
+  app,
+  shell,
+} from "electron";
 import { is } from "@electron-toolkit/utils";
 import { t } from "i18next";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
+import { gameRepository, userPreferencesRepository } from "@main/repository";
+import { IsNull, Not } from "typeorm";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -26,12 +36,14 @@ export class WindowManager {
   }
 
   public static createMainWindow() {
-    // Create the browser window.
+    if (this.mainWindow) return;
+
     this.mainWindow = new BrowserWindow({
       width: 1200,
       height: 720,
       minWidth: 1024,
       minHeight: 540,
+      backgroundColor: "#1c1c1c",
       titleBarStyle: "hidden",
       ...(process.platform === "linux" ? { icon } : {}),
       trafficLightPosition: { x: 16, y: 16 },
@@ -44,12 +56,25 @@ export class WindowManager {
         preload: path.join(__dirname, "../preload/index.mjs"),
         sandbox: false,
       },
+      show: false,
     });
 
     this.loadURL();
     this.mainWindow.removeMenu();
 
-    this.mainWindow.on("close", () => {
+    this.mainWindow.on("ready-to-show", () => {
+      if (!app.isPackaged) WindowManager.mainWindow?.webContents.openDevTools();
+      WindowManager.mainWindow?.show();
+    });
+
+    this.mainWindow.on("close", async () => {
+      const userPreferences = await userPreferencesRepository.findOne({
+        where: { id: 1 },
+      });
+
+      if (userPreferences?.preferQuitInsteadOfHiding) {
+        app.quit();
+      }
       WindowManager.mainWindow?.setProgressBar(-1);
     });
   }
@@ -65,35 +90,68 @@ export class WindowManager {
   public static createSystemTray(language: string) {
     const tray = new Tray(trayIcon);
 
-    const contextMenu = Menu.buildFromTemplate([
-      {
-        label: t("open", {
-          ns: "system_tray",
-          lng: language,
-        }),
-        type: "normal",
-        click: () => {
-          if (this.mainWindow) {
-            this.mainWindow.show();
-          } else {
-            this.createMainWindow();
-          }
+    const updateSystemTray = async () => {
+      const games = await gameRepository.find({
+        where: {
+          isDeleted: false,
+          executablePath: Not(IsNull()),
+          lastTimePlayed: Not(IsNull()),
         },
-      },
-      {
-        label: t("quit", {
-          ns: "system_tray",
-          lng: language,
-        }),
-        type: "normal",
-        click: () => app.quit(),
-      },
-    ]);
+        take: 5,
+        order: {
+          updatedAt: "DESC",
+        },
+      });
+
+      const recentlyPlayedGames: Array<MenuItemConstructorOptions | MenuItem> =
+        games.map(({ title, executablePath }) => ({
+          label: title,
+          type: "normal",
+          click: async () => {
+            if (!executablePath) return;
+
+            shell.openPath(executablePath);
+          },
+        }));
+
+      const contextMenu = Menu.buildFromTemplate([
+        {
+          label: t("open", {
+            ns: "system_tray",
+            lng: language,
+          }),
+          type: "normal",
+          click: () => {
+            if (this.mainWindow) {
+              this.mainWindow.show();
+            } else {
+              this.createMainWindow();
+            }
+          },
+        },
+        {
+          type: "separator",
+        },
+        ...recentlyPlayedGames,
+        {
+          type: "separator",
+        },
+        {
+          label: t("quit", {
+            ns: "system_tray",
+            lng: language,
+          }),
+          type: "normal",
+          click: () => app.quit(),
+        },
+      ]);
+
+      return contextMenu;
+    };
 
     tray.setToolTip("Hydra");
-    tray.setContextMenu(contextMenu);
 
-    if (process.platform === "win32") {
+    if (process.platform === "win32" || process.platform === "linux") {
       tray.addListener("click", () => {
         if (this.mainWindow) {
           if (WindowManager.mainWindow?.isMinimized())
@@ -104,6 +162,11 @@ export class WindowManager {
         }
 
         this.createMainWindow();
+      });
+
+      tray.addListener("right-click", async () => {
+        const contextMenu = await updateSystemTray();
+        tray.popUpContextMenu(contextMenu);
       });
     }
   }

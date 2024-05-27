@@ -6,11 +6,12 @@ import type { CatalogueEntry } from "@types";
 
 import { clearSearch } from "@renderer/features";
 import { useAppDispatch } from "@renderer/hooks";
-import { vars } from "../../theme.css";
+import { SPACING_UNIT, vars } from "../../theme.css";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import * as styles from "../home/home.css";
 import { ArrowLeftIcon, ArrowRightIcon } from "@primer/octicons-react";
+import { buildGameDetailsPath } from "@renderer/helpers";
 
 export function Catalogue() {
   const dispatch = useAppDispatch();
@@ -31,7 +32,7 @@ export function Catalogue() {
 
   const handleGameClick = (game: CatalogueEntry) => {
     dispatch(clearSearch());
-    navigate(`/game/${game.shop}/${game.objectID}`);
+    navigate(buildGameDetailsPath(game));
   };
 
   useEffect(() => {
@@ -67,12 +68,12 @@ export function Catalogue() {
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
       <section
         style={{
-          padding: `16px 32px`,
+          padding: `${SPACING_UNIT * 3}px ${SPACING_UNIT * 4}px`,
           display: "flex",
           width: "100%",
           justifyContent: "space-between",
           alignItems: "center",
-          borderBottom: `1px solid ${vars.color.borderColor}`,
+          borderBottom: `1px solid ${vars.color.border}`,
         }}
       >
         <Button

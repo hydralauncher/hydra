@@ -42,6 +42,4 @@ const openGame = async (
   }
 };
 
-registerEvent(openGame, {
-  name: "openGame",
-});
+registerEvent("openGame", openGame);

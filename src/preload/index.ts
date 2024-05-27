@@ -7,6 +7,7 @@ import type {
   GameShop,
   TorrentProgress,
   UserPreferences,
+  AppUpdaterEvents,
 } from "@types";
 
 contextBridge.exposeInMainWorld("electron", {
@@ -52,11 +53,14 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getHowLongToBeat", objectID, shop, title),
   getGames: (take?: number, prevCursor?: number) =>
     ipcRenderer.invoke("getGames", take, prevCursor),
+  searchGameRepacks: (query: string) =>
+    ipcRenderer.invoke("searchGameRepacks", query),
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
   updateUserPreferences: (preferences: UserPreferences) =>
     ipcRenderer.invoke("updateUserPreferences", preferences),
+  autoLaunch: (enabled: boolean) => ipcRenderer.invoke("autoLaunch", enabled),
 
   /* Library */
   addGameToLibrary: (
@@ -73,8 +77,6 @@ contextBridge.exposeInMainWorld("electron", {
       executablePath
     ),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
-  getRepackersFriendlyNames: () =>
-    ipcRenderer.invoke("getRepackersFriendlyNames"),
   openGameInstaller: (gameId: number) =>
     ipcRenderer.invoke("openGameInstaller", gameId),
   openGame: (gameId: number, executablePath: string) =>
@@ -104,7 +106,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getDiskFreeSpace", path),
 
   /* Misc */
-  getOrCacheImage: (url: string) => ipcRenderer.invoke("getOrCacheImage", url),
   ping: () => ipcRenderer.invoke("ping"),
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
@@ -112,4 +113,20 @@ contextBridge.exposeInMainWorld("electron", {
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
   platform: process.platform,
+
+  /* Auto update */
+  onAutoUpdaterEvent: (cb: (value: AppUpdaterEvents) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      value: AppUpdaterEvents
+    ) => cb(value);
+
+    ipcRenderer.on("autoUpdaterEvent", listener);
+
+    return () => {
+      ipcRenderer.removeListener("autoUpdaterEvent", listener);
+    };
+  },
+  checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
+  restartAndInstallUpdate: () => ipcRenderer.invoke("restartAndInstallUpdate"),
 });

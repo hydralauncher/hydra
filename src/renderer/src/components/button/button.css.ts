@@ -3,7 +3,7 @@ import { SPACING_UNIT, vars } from "../../theme.css";
 
 const base = style({
   padding: `${SPACING_UNIT}px ${SPACING_UNIT * 2}px`,
-  backgroundColor: "#c0c1c7",
+  backgroundColor: vars.color.muted,
   borderRadius: "8px",
   border: "solid 1px transparent",
   transition: "all ease 0.2s",
@@ -19,6 +19,7 @@ const base = style({
   ":disabled": {
     opacity: vars.opacity.disabled,
     pointerEvents: "none",
+    cursor: "not-allowed",
   },
 });
 
@@ -35,8 +36,8 @@ export const button = styleVariants({
     base,
     {
       backgroundColor: "transparent",
-      border: "solid 1px #c0c1c7",
-      color: "#c0c1c7",
+      border: `solid 1px ${vars.color.border}`,
+      color: vars.color.muted,
       ":hover": {
         backgroundColor: "rgba(255, 255, 255, 0.1)",
       },

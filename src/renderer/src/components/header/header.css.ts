@@ -29,8 +29,8 @@ export const header = recipe({
     WebkitAppRegion: "drag",
     width: "100%",
     padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 3}px`,
-    color: "#c0c1c7",
-    borderBottom: `solid 1px ${vars.color.borderColor}`,
+    color: vars.color.muted,
+    borderBottom: `solid 1px ${vars.color.border}`,
     backgroundColor: vars.color.darkBackground,
   } as ComplexStyleRule,
   variants: {
@@ -55,7 +55,7 @@ export const search = recipe({
     width: "200px",
     alignItems: "center",
     borderRadius: "8px",
-    border: `solid 1px ${vars.color.borderColor}`,
+    border: `solid 1px ${vars.color.border}`,
     height: "40px",
     WebkitAppRegion: "no-drag",
   } as ComplexStyleRule,
@@ -83,7 +83,6 @@ export const searchInput = style({
   color: "#DADBE1",
   cursor: "default",
   fontFamily: "inherit",
-  fontSize: vars.size.bodyFontSize,
   textOverflow: "ellipsis",
   ":focus": {
     cursor: "text",
@@ -144,5 +143,23 @@ export const title = recipe({
         transform: "translateX(28px)",
       },
     },
+  },
+});
+
+export const subheader = style({
+  borderBottom: `solid 1px ${vars.color.border}`,
+  padding: `${SPACING_UNIT / 2}px ${SPACING_UNIT * 3}px`,
+});
+
+export const newVersionButton = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: `${SPACING_UNIT}px`,
+  color: vars.color.bodyText,
+  borderBottom: "1px solid transparent",
+  ":hover": {
+    borderBottom: `1px solid ${vars.color.bodyText}`,
+    cursor: "pointer",
   },
 });

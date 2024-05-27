@@ -12,21 +12,26 @@ import {
 import * as styles from "./app.css";
 import { themeClass } from "./theme.css";
 
-import { useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   setSearch,
   clearSearch,
   setUserPreferences,
-  setRepackersFriendlyNames,
+  toggleDraggingDisabled,
 } from "@renderer/features";
+import { GameStatusHelper } from "@shared";
 
 document.body.classList.add(themeClass);
 
-export function App({ children }: any) {
+export interface AppProps {
+  children: React.ReactNode;
+}
+
+export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary } = useLibrary();
 
-  const { clearDownload, addPacket } = useDownload();
+  const { clearDownload, setLastPacket } = useDownload();
 
   const dispatch = useAppDispatch();
 
@@ -34,35 +39,35 @@ export function App({ children }: any) {
   const location = useLocation();
 
   const search = useAppSelector((state) => state.search.value);
+  const draggingDisabled = useAppSelector(
+    (state) => state.window.draggingDisabled
+  );
 
   useEffect(() => {
-    Promise.all([
-      window.electron.getUserPreferences(),
-      window.electron.getRepackersFriendlyNames(),
-      updateLibrary(),
-    ]).then(([preferences, repackersFriendlyNames]) => {
-      dispatch(setUserPreferences(preferences));
-      dispatch(setRepackersFriendlyNames(repackersFriendlyNames));
-    });
+    Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
+      ([preferences]) => {
+        dispatch(setUserPreferences(preferences));
+      }
+    );
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onDownloadProgress(
       (downloadProgress) => {
-        if (downloadProgress.game.progress === 1) {
+        if (GameStatusHelper.isReady(downloadProgress.game.status)) {
           clearDownload();
           updateLibrary();
           return;
         }
 
-        addPacket(downloadProgress);
+        setLastPacket(downloadProgress);
       }
     );
 
     return () => {
       unsubscribe();
     };
-  }, [clearDownload, addPacket, updateLibrary]);
+  }, [clearDownload, setLastPacket, updateLibrary]);
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -93,6 +98,17 @@ export function App({ children }: any) {
     if (contentRef.current) contentRef.current.scrollTop = 0;
   }, [location.pathname, location.search]);
 
+  useEffect(() => {
+    new MutationObserver(() => {
+      const modal = document.body.querySelector("[role=modal]");
+
+      dispatch(toggleDraggingDisabled(Boolean(modal)));
+    }).observe(document.body, {
+      attributes: false,
+      childList: true,
+    });
+  }, [dispatch, draggingDisabled]);
+
   return (
     <>
       {window.electron.platform === "win32" && (
@@ -112,7 +128,7 @@ export function App({ children }: any) {
           />
 
           <section ref={contentRef} className={styles.content}>
-            {children}
+            <Outlet />
           </section>
         </article>
       </main>
