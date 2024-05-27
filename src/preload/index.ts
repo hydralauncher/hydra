@@ -114,7 +114,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("showOpenDialog", options),
   platform: process.platform,
 
-  /* Splash */
+  /* Auto update */
   onAutoUpdaterEvent: (cb: (value: AppUpdaterEvents) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
@@ -129,5 +129,4 @@ contextBridge.exposeInMainWorld("electron", {
   },
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
   restartAndInstallUpdate: () => ipcRenderer.invoke("restartAndInstallUpdate"),
-  continueToMainWindow: () => ipcRenderer.invoke("continueToMainWindow"),
 });
