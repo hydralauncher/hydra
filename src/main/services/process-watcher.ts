@@ -56,10 +56,7 @@ export const startProcessWatcher = async () => {
 
           await gameRepository.update(game.id, {
             playTimeInMilliseconds: game.playTimeInMilliseconds + delta,
-          });
-
-          gameRepository.update(game.id, {
-            lastTimePlayed: new Date().toUTCString(),
+            lastTimePlayed: new Date(),
           });
         }
 
