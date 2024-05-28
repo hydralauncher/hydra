@@ -58,7 +58,7 @@ jobs:
 
       - name: Build Mac
         if: matrix.os == 'macos-11'
-        run: yarn build:mac
+        run: sudo yarn build:mac
         env:
           MAIN_VITE_ONLINEFIX_USERNAME: ${{ secrets.ONLINEFIX_USERNAME }}
           MAIN_VITE_ONLINEFIX_PASSWORD: ${{ secrets.ONLINEFIX_PASSWORD }}
