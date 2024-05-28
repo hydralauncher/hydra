@@ -73,6 +73,7 @@ declare global {
       preferences: Partial<UserPreferences>
     ) => Promise<void>;
     autoLaunch: (enabled: boolean) => Promise<void>;
+    authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;

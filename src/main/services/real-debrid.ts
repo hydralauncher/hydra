@@ -1,10 +1,11 @@
 import { Game } from "@main/entity";
+import axios, { AxiosInstance } from "axios";
 import type {
   RealDebridAddMagnet,
   RealDebridTorrentInfo,
   RealDebridUnrestrictLink,
-} from "./real-debrid.types";
-import axios, { AxiosInstance } from "axios";
+  RealDebridUser,
+} from "@types";
 
 const base = "https://api.real-debrid.com/rest/1.0";
 
@@ -26,6 +27,11 @@ export class RealDebridClient {
     const response = await this.instance.get<RealDebridTorrentInfo>(
       `/torrents/info/${id}`
     );
+    return response.data;
+  }
+
+  static async getUser() {
+    const response = await this.instance.get<RealDebridUser>(`/user`);
     return response.data;
   }
 
@@ -65,30 +71,29 @@ export class RealDebridClient {
     const hash = RealDebridClient.extractSHA1FromMagnet(game!.repack.magnet);
     let torrent = torrents.find((t) => t.hash === hash);
 
+    // User haven't downloaded this torrent yet
     if (!torrent) {
       const magnet = await RealDebridClient.addMagnet(game!.repack.magnet);
 
-      if (magnet && magnet.id) {
+      if (magnet) {
         await RealDebridClient.selectAllFiles(magnet.id);
         torrent = await RealDebridClient.getInfo(magnet.id);
+
+        const { links } = torrent;
+        const { download } = await RealDebridClient.unrestrictLink(links[0]);
+
+        if (!download) {
+          throw new Error("Torrent not cached on Real Debrid");
+        }
+
+        return download;
       }
-    }
-
-    if (torrent) {
-      const { links } = torrent;
-      const { download } = await RealDebridClient.unrestrictLink(links[0]);
-
-      if (!download) {
-        throw new Error("Torrent not cached on Real Debrid");
-      }
-
-      return download;
     }
 
     throw new Error();
   }
 
-  static async authorize(apiToken: string) {
+  static authorize(apiToken: string) {
     this.instance = axios.create({
       baseURL: base,
       headers: {

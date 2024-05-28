@@ -5,6 +5,8 @@ import { Button, CheckboxField, Link, TextField } from "@renderer/components";
 import * as styles from "./settings-real-debrid.css";
 import type { UserPreferences } from "@types";
 import { SPACING_UNIT } from "@renderer/theme.css";
+import { showToast } from "@renderer/features";
+import { useAppDispatch } from "@renderer/hooks";
 
 const REAL_DEBRID_API_TOKEN_URL = "https://real-debrid.com/apitoken";
 
@@ -22,6 +24,8 @@ export function SettingsRealDebrid({
     realDebridApiToken: null as string | null,
   });
 
+  const dispatch = useAppDispatch();
+
   const { t } = useTranslation("settings");
 
   useEffect(() => {
@@ -33,11 +37,36 @@ export function SettingsRealDebrid({
     }
   }, [userPreferences]);
 
-  const handleFormSubmit: React.FormEventHandler<HTMLFormElement> = (event) => {
+  const handleFormSubmit: React.FormEventHandler<HTMLFormElement> = async (
+    event
+  ) => {
     event.preventDefault();
-    updateUserPreferences({
-      realDebridApiToken: form.useRealDebrid ? form.realDebridApiToken : null,
-    });
+    dispatch(
+      showToast({
+        message: t("real_debrid_authenticated"),
+        type: "success",
+      })
+    );
+    if (form.useRealDebrid) {
+      const user = await window.electron.authenticateRealDebrid(
+        form.realDebridApiToken!
+      );
+
+      console.log(user);
+
+      if (user.type === "premium") {
+        dispatch(
+          showToast({
+            message: t("real_debrid_authenticated"),
+            type: "success",
+          })
+        );
+      }
+    }
+
+    // updateUserPreferences({
+    //   realDebridApiToken: form.useRealDebrid ? form.realDebridApiToken : null,
+    // });
   };
 
   const isButtonDisabled = form.useRealDebrid && !form.realDebridApiToken;

@@ -49,6 +49,8 @@ contextBridge.exposeInMainWorld("electron", {
   updateUserPreferences: (preferences: UserPreferences) =>
     ipcRenderer.invoke("updateUserPreferences", preferences),
   autoLaunch: (enabled: boolean) => ipcRenderer.invoke("autoLaunch", enabled),
+  authenticateRealDebrid: (apiToken: string) =>
+    ipcRenderer.invoke("authenticateRealDebrid", apiToken),
 
   /* Library */
   addGameToLibrary: (

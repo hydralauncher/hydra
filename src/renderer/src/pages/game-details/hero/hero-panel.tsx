@@ -42,7 +42,7 @@ export function HeroPanel() {
     if (game?.progress === 1) return <HeroPanelPlaytime />;
 
     if (game?.status === "active") {
-      if (lastPacket?.downloadingMetadata && isGameDownloading) {
+      if (lastPacket?.isDownloadingMetadata && isGameDownloading) {
         return (
           <>
             <p>{progress}</p>
@@ -65,7 +65,8 @@ export function HeroPanel() {
             {isGameDownloading
               ? progress
               : formatDownloadProgress(game?.progress)}
-            {eta && <small>{t("eta", { eta })}</small>}
+
+            <small>{eta ? t("eta", { eta }) : t("calculating_eta")}</small>
           </p>
 
           <p className={styles.downloadDetailsRow}>
@@ -87,7 +88,9 @@ export function HeroPanel() {
 
       return (
         <>
-          <p>{t("paused_progress", { progress: formattedProgress })}</p>
+          <p className={styles.downloadDetailsRow}>
+            {formattedProgress} <small>{t("paused")}</small>
+          </p>
           <p>
             {formatBytes(game.bytesDownloaded)} / {finalDownloadSize}
           </p>
