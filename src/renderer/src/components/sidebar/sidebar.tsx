@@ -19,8 +19,8 @@ import { GameStatus, GameStatusHelper } from "@shared";
 import { DeleteModal } from "./delete-modal";
 import * as styles from "./sidebar.css";
 
-import DiscordLogo from "@renderer/assets/discord-icon.svg?react";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
+import TelegramIcon from "@renderer/assets/telegram-icon.svg?react";
 import XLogo from "@renderer/assets/x-icon.svg?react";
 
 const SIDEBAR_MIN_WIDTH = 200;
@@ -59,9 +59,9 @@ export function Sidebar() {
 
   const socials = [
     {
-      url: "https://discord.gg/hydralauncher",
-      icon: <DiscordLogo />,
-      label: t("discord"),
+      url: "https://t.me/hydralauncher",
+      icon: <TelegramIcon />,
+      label: t("telegram"),
     },
     {
       url: "https://twitter.com/hydralauncher",

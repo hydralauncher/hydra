@@ -18,9 +18,9 @@
     "filter": "Kütüphaneyi filtrele",
     "follow_us": "Bizi takip et",
     "home": "Ana menü",
-    "discord": "Discord'umuza katıl",
     "x": "X'te bizi takip et",
-    "github": "GitHub'da bize katkı yap"
+    "github": "GitHub'da bize katkı yap",
+    "telegram": "Telegram'umuza katıl"
   },
   "header": {
     "search": "Ara",

@@ -21,7 +21,8 @@
     "delete_installation_files": "Telepítési fájlok eltávolítása",
     "change_exe_path": "Végrehajtható útvonalának módosítása",
     "open_archive_path": "Fájl helyének megnyitása",
-    "game_executable": "A játék futtatható"
+    "game_executable": "A játék futtatható",
+    "telegram": "Csatlakozzon táviratunkhoz"
   },
   "header": {
     "search": "Keresés",

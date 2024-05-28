@@ -1,8 +1,9 @@
 import { WindowManager } from "@main/services";
 import { dialog } from "electron";
+
 import { registerEvent } from "../register-event";
 
-const showOpenDialog = (
+const showOpenDialog = async (
   _event: Electron.IpcMainInvokeEvent,
   options: Electron.OpenDialogOptions
 ) => {

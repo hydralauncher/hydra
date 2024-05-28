@@ -8,12 +8,7 @@ const openGame = async (
   gameId: number,
   executablePath: string
 ) => {
-  await gameRepository.update(
-    {
-      id: gameId,
-    },
-    { executablePath }
-  );
+  await gameRepository.update({ id: gameId }, { executablePath });
 
   shell.openPath(executablePath);
 };

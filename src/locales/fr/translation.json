@@ -21,7 +21,8 @@
     "delete_installation_files": "Supprimer les fichiers d'installation",
     "change_exe_path": "Modifier le chemin de l'exécutable",
     "open_archive_path": "Ouvrir l'emplacement du fichier",
-    "game_executable": "Exécutable du jeu"
+    "game_executable": "Exécutable du jeu",
+    "telegram": "Rejoignez notre Telegram"
   },
   "header": {
     "search": "Recherche",
