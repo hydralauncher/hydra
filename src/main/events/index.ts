@@ -28,9 +28,6 @@ import "./torrenting/cancel-game-download";
 import "./torrenting/pause-game-download";
 import "./torrenting/resume-game-download";
 import "./torrenting/start-game-download";
-
-import "./autoupdater/check-for-updates";
-import "./autoupdater/restart-and-install-update";
 import "./user-preferences/auto-launch";
 import "./user-preferences/get-user-preferences";
 import "./user-preferences/update-user-preferences";

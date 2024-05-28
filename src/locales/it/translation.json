@@ -137,7 +137,9 @@
     "remove_from_list": "Rimuovi",
     "delete_modal_title": "Sei sicuro?",
     "delete_modal_description": "Questo rimuoverà tutti i file di installazione dal tuo computer",
-    "install": "Installa"
+    "install": "Installa",
+    "real_debrid": "Real Debrid",
+    "torrent": "Torrent"
   },
   "settings": {
     "downloads_path": "Percorso dei download",
