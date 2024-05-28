@@ -9,6 +9,7 @@ export const bottomPanel = style({
   alignItems: "center",
   transition: "all ease 0.2s",
   justifyContent: "space-between",
+  position: "relative",
   zIndex: "1",
 });
 

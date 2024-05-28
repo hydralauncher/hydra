@@ -92,7 +92,7 @@ export class DownloadManager {
 
     const status = await this.aria2.call("tellStatus", this.gid);
 
-    const downloadingMetadata = status.bittorrent && !status.bittorrent?.info;
+    const isDownloadingMetadata = status.bittorrent && !status.bittorrent?.info;
 
     if (status.followedBy?.length) {
       this.gid = status.followedBy[0];
@@ -103,7 +103,7 @@ export class DownloadManager {
     const progress =
       Number(status.completedLength) / Number(status.totalLength);
 
-    if (!downloadingMetadata) {
+    if (!isDownloadingMetadata) {
       const update: QueryDeepPartialEntity<Game> = {
         bytesDownloaded: Number(status.completedLength),
         fileSize: Number(status.totalLength),
@@ -127,7 +127,7 @@ export class DownloadManager {
       relations: { repack: true },
     });
 
-    if (progress === 1 && game && !downloadingMetadata) {
+    if (progress === 1 && game && !isDownloadingMetadata) {
       await this.publishNotification();
       /*
         Only cancel bittorrent downloads to stop seeding
@@ -150,7 +150,7 @@ export class DownloadManager {
         numSeeds: Number(status.numSeeders ?? 0),
         downloadSpeed: Number(status.downloadSpeed),
         timeRemaining: this.getETA(status),
-        downloadingMetadata: !!downloadingMetadata,
+        isDownloadingMetadata: !!isDownloadingMetadata,
         game,
       } as DownloadProgress;
 

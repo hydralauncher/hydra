@@ -86,7 +86,7 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   import("./events");
 
   if (userPreferences?.realDebridApiToken)
-    await RealDebridClient.authorize(userPreferences?.realDebridApiToken);
+    RealDebridClient.authorize(userPreferences?.realDebridApiToken);
 
   const game = await gameRepository.findOne({
     where: {

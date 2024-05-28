@@ -34,8 +34,8 @@
   "bottom_panel": {
     "no_downloads_in_progress": "No downloads in progress",
     "downloading_metadata": "Downloading {{title}} metadata…",
-    "checking_files": "Checking {{title}} files… ({{percentage}} complete)",
-    "downloading": "Downloading {{title}}… ({{percentage}} complete) - Conclusion {{eta}} - {{speed}}"
+    "downloading": "Downloading {{title}}… ({{percentage}} complete) - Conclusion {{eta}} - {{speed}}",
+    "calculating_eta": "Downloading {{title}}… ({{percentage}} complete) - Calculating remaining time…"
   },
   "catalogue": {
     "next_page": "Next page",
@@ -55,15 +55,15 @@
     "remove_from_list": "Remove",
     "space_left_on_disk": "{{space}} left on disk",
     "eta": "Conclusion {{eta}}",
+    "calculating_eta": "Calculating remaining time…",
     "downloading_metadata": "Downloading metadata…",
-    "checking_files": "Checking files…",
     "filter": "Filter repacks",
     "requirements": "System requirements",
     "minimum": "Minimum",
     "recommended": "Recommended",
     "no_minimum_requirements": "{{title}} doesn't provide minimum requirements information",
     "no_recommended_requirements": "{{title}} doesn't provide recommended requirements information",
-    "paused_progress": "{{progress}} (Paused)",
+    "paused": "Paused",
     "release_date": "Released on {{date}}",
     "publisher": "Published by {{publisher}}",
     "copy_link_to_clipboard": "Copy link",
@@ -126,7 +126,6 @@
     "filter": "Filter downloaded games",
     "remove": "Remove",
     "downloading_metadata": "Downloading metadata…",
-    "checking_files": "Checking files…",
     "starting_download": "Starting download…",
     "deleting": "Deleting installer…",
     "delete": "Remove installer",

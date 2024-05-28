@@ -1,10 +1,10 @@
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDownload } from "@renderer/hooks";
 
 import * as styles from "./bottom-panel.css";
-import { vars } from "../../theme.css";
-import { useEffect, useMemo, useState } from "react";
+
 import { useNavigate } from "react-router-dom";
 import { VERSION_CODENAME } from "@renderer/constants";
 
@@ -25,6 +25,16 @@ export function BottomPanel() {
 
   const status = useMemo(() => {
     if (isGameDownloading) {
+      if (lastPacket?.isDownloadingMetadata)
+        return t("downloading_metadata", { title: lastPacket?.game.title });
+
+      if (!eta) {
+        return t("calculating_eta", {
+          title: lastPacket?.game.title,
+          percentage: progress,
+        });
+      }
+
       return t("downloading", {
         title: lastPacket?.game.title,
         percentage: progress,
@@ -34,17 +44,18 @@ export function BottomPanel() {
     }
 
     return t("no_downloads_in_progress");
-  }, [t, isGameDownloading, lastPacket?.game, progress, eta, downloadSpeed]);
+  }, [
+    t,
+    isGameDownloading,
+    lastPacket?.game,
+    lastPacket?.isDownloadingMetadata,
+    progress,
+    eta,
+    downloadSpeed,
+  ]);
 
   return (
-    <footer
-      className={styles.bottomPanel}
-      style={{
-        background: isGameDownloading
-          ? `linear-gradient(90deg, ${vars.color.background} ${progress}, ${vars.color.darkBackground} ${progress})`
-          : vars.color.darkBackground,
-      }}
-    >
+    <footer className={styles.bottomPanel}>
       <button
         type="button"
         className={styles.downloadsButton}
