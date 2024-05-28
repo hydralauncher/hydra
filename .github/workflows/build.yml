@@ -6,7 +6,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-latest, ubuntu-latest, macos-11]
 
     runs-on: ${{ matrix.os }}
 
@@ -23,6 +23,13 @@ jobs:
         run: yarn
 
       - name: Install Python
+        if: matrix.os == 'macos-11'
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.9.0
+
+      - name: Install Python
+        if: matrix.os == 'ubuntu-latest' || matrix.os == 'windows-latest'
         uses: actions/setup-python@v5
         with:
           python-version: 3.9
@@ -50,7 +57,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Mac
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-11'
         run: yarn build:mac
         env:
           MAIN_VITE_ONLINEFIX_USERNAME: ${{ secrets.ONLINEFIX_USERNAME }}
