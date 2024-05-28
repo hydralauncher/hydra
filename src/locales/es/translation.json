@@ -29,7 +29,8 @@
     "catalogue": "Catálogo",
     "downloads": "Descargas",
     "search_results": "Resultados de búsqueda",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "version_available": "Version {{version}} disponible. Presiona aquí para reinstalar e instalar."
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Sin descargas en progreso",
