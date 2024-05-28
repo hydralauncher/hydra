@@ -32,7 +32,8 @@
     "catalogue": "Catálogo",
     "downloads": "Descargas",
     "search_results": "Resultados de búsqueda",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "version_available": "Version {{version}} disponible. Haga clic aquí para reiniciar e instalar."
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Sin descargas en progreso",
@@ -57,7 +58,7 @@
     "remove": "Eliminar",
     "remove_from_list": "Quitar",
     "space_left_on_disk": "{{space}} restantes en el disco",
-    "eta": "Finalizando en {{eta}}",
+    "eta": "Tiempo restante: {{eta}}",
     "downloading_metadata": "Descargando metadatos…",
     "checking_files": "Analizando archivos…",
     "filter": "Buscar repacks",
@@ -181,11 +182,5 @@
   },
   "modal": {
     "close": "Botón de cierre"
-  },
-  "splash": {
-    "downloading_version": "Descargando versión {{version}}",
-    "searching_updates": "Buscando actualizaciones",
-    "update_found": "Actualización {{version}} encontrada",
-    "restarting_and_applying": "Reiniciando y aplicando actualización"
   }
 }

@@ -2,7 +2,6 @@ import { defaultDownloadsPath } from "@main/constants";
 import { app, ipcMain } from "electron";
 
 import "./autoupdater/check-for-updates";
-import "./autoupdater/continue-to-main-window";
 import "./autoupdater/restart-and-install-update";
 import "./catalogue/get-catalogue";
 import "./catalogue/get-game-shop-details";
@@ -30,6 +29,8 @@ import "./torrenting/pause-game-download";
 import "./torrenting/resume-game-download";
 import "./torrenting/start-game-download";
 
+import "./autoupdater/check-for-updates";
+import "./autoupdater/restart-and-install-update";
 import "./user-preferences/auto-launch";
 import "./user-preferences/get-user-preferences";
 import "./user-preferences/update-user-preferences";

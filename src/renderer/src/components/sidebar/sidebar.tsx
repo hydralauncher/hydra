@@ -327,7 +327,8 @@ export function Sidebar() {
                             className={styles.contextMenuListItem}
                             disabled={
                               currentGame?.downloadPath === null ||
-                              currentGame?.folderName === null
+                              currentGame?.folderName === null ||
+                              currentGame?.status === "cancelled"
                             }
                           >
                             <FileDirectoryIcon
@@ -345,7 +346,8 @@ export function Sidebar() {
                             }}
                             disabled={
                               currentGame?.downloadPath === null ||
-                              currentGame?.folderName === null
+                              currentGame?.folderName === null ||
+                              currentGame?.status === "cancelled"
                             }
                           >
                             <FileDirectorySymlinkIcon
@@ -362,7 +364,8 @@ export function Sidebar() {
                             }}
                             disabled={
                               currentGame?.downloadPath === null ||
-                              currentGame?.folderName === null
+                              currentGame?.folderName === null ||
+                              currentGame?.status === "cancelled"
                             }
                           >
                             <TrashIcon className={styles.contextMenuItemIcon} />

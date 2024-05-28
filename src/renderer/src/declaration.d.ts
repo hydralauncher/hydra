@@ -97,13 +97,12 @@ declare global {
     ) => Promise<Electron.OpenDialogReturnValue>;
     platform: NodeJS.Platform;
 
-    /* Splash */
+    /* Auto update */
     onAutoUpdaterEvent: (
       cb: (event: AppUpdaterEvents) => void
     ) => () => Electron.IpcRenderer;
     checkForUpdates: () => Promise<void>;
     restartAndInstallUpdate: () => Promise<void>;
-    continueToMainWindow: () => Promise<void>;
   }
 
   interface Window {

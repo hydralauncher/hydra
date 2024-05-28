@@ -1,6 +1,6 @@
 {
   "name": "hydralauncher",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
@@ -50,6 +50,7 @@
     "color.js": "^1.2.0",
     "date-fns": "^3.6.0",
     "easydl": "^1.1.1",
+    "electron-log": "^5.1.4",
     "electron-updater": "^6.1.8",
     "fetch-cookie": "^3.0.1",
     "flexsearch": "^0.7.43",
@@ -67,7 +68,6 @@
     "react-router-dom": "^6.22.3",
     "typeorm": "^0.3.20",
     "user-agents": "^1.1.193",
-    "winston": "^3.13.0",
     "yaml": "^2.4.1"
   },
   "devDependencies": {

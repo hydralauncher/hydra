@@ -32,7 +32,8 @@
     "downloads": "Downloads",
     "search_results": "Resultados da busca",
     "settings": "Configurações",
-    "home": "Início"
+    "home": "Início",
+    "version_available": "Versão {{version}} disponível. Clique aqui para reiniciar e instalar."
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Sem downloads em andamento",

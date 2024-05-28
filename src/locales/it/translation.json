@@ -75,7 +75,7 @@
     "minutes": "minuti",
     "amount_hours": "{{amount}} ore",
     "amount_minutes": "{{amount}} minuti",
-    "accuracy": "{{accuratezza}}% di accuratezza",
+    "accuracy": "{{accuracy}}% di accuratezza",
     "add_to_library": "Aggiungi alla libreria",
     "remove_from_library": "Rimuovi dalla libreria",
     "no_downloads": "Nessun download disponibile",
@@ -89,7 +89,6 @@
     "playing_now": "Stai giocando adesso",
     "change": "Aggiorna",
     "repacks_modal_description": "Scegli il repack che vuoi scaricare",
-    "downloads_path": "Percorso dei download",
     "select_folder_hint": "Per cambiare la cartella predefinita, accedi alle",
     "download_now": "Scarica ora",
     "installation_instructions": "Istruzioni di installazione",
@@ -100,7 +99,14 @@
     "copy_to_clipboard": "Copia",
     "copied_to_clipboard": "Copiato",
     "got_it": "Capito",
-    "game_executable": "Eseguibile del gioco"
+    "game_executable": "Eseguibile del gioco",
+    "no_shop_details": "Impossibile recuperare i dettagli del negozio.",
+    "download_options": "Opzioni di download",
+    "download_path": "Percorso di download",
+    "previous_screenshot": "Screenshot precedente",
+    "next_screenshot": "Screenshot successivo",
+    "screenshot": "Screenshot {{number}}",
+    "open_screenshot": "Apri screenshot {{number}}"
   },
   "activation": {
     "title": "Attiva Hydra",
@@ -131,8 +137,7 @@
     "remove_from_list": "Rimuovi",
     "delete_modal_title": "Sei sicuro?",
     "delete_modal_description": "Questo rimuoverà tutti i file di installazione dal tuo computer",
-    "install": "Installa",
-    "delete_installation_modal_description": "Ciò rimuoverà la cartella in cui è stato scaricato il gioco. Se hai installato il gioco nella stessa posizione in cui lo hai scaricato, verrà eliminato."
+    "install": "Installa"
   },
   "settings": {
     "downloads_path": "Percorso dei download",
@@ -141,7 +146,16 @@
     "enable_download_notifications": "Quando un download è completo",
     "enable_repack_list_notifications": "Quando viene aggiunto un nuovo repack",
     "telemetry": "Telemetria",
-    "telemetry_description": "Abilita statistiche di utilizzo anonime"
+    "telemetry_description": "Abilita statistiche di utilizzo anonime",
+    "real_debrid_api_token_label": "Token API Real Debrid",
+    "quit_app_instead_hiding": "Esci da Hydra invece di nascondere nell'area di notifica",
+    "launch_with_system": "Apri Hydra all'avvio",
+    "general": "Generale",
+    "behavior": "Comportamento",
+    "enable_real_debrid": "Abilita Real Debrid",
+    "real_debrid": "Real Debrid",
+    "real_debrid_api_token_hint": "Puoi trovare la tua chiave API <0>here</0>.",
+    "save_changes": "Salva modifiche"
   },
   "notifications": {
     "download_complete": "Download completato",

@@ -32,7 +32,8 @@
     "catalogue": "Catalogue",
     "downloads": "Downloads",
     "search_results": "Search results",
-    "settings": "Settings"
+    "settings": "Settings",
+    "version_available": "Version {{version}} available. Click here to restart and install."
   },
   "bottom_panel": {
     "no_downloads_in_progress": "No downloads in progress",
@@ -181,11 +182,5 @@
   },
   "modal": {
     "close": "Close button"
-  },
-  "splash": {
-    "downloading_version": "Downloading version {{version}}",
-    "searching_updates": "Searching for updates",
-    "update_found": "Update {{version}} found",
-    "restarting_and_applying": "Restarting and applying update"
   }
 }
