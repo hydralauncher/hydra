@@ -34,7 +34,6 @@
   "bottom_panel": {
     "no_downloads_in_progress": "Geen Downloads bezig",
     "downloading_metadata": "Downloading {{title}} metadata…",
-    "checking_files": "Checking {{title}} files… ({{percentage}} complete)",
     "downloading": "Downloading {{title}}… ({{percentage}} complete) - Conclusion {{eta}} - {{speed}}"
   },
   "catalogue": {
@@ -56,14 +55,12 @@
     "space_left_on_disk": "{{space}} Over op schijf",
     "eta": "Conclusie {{eta}}",
     "downloading_metadata": "Downloading metadata…",
-    "checking_files": "Files nakijken…",
     "filter": "Filter repacks",
     "requirements": "Systeem vereisten",
     "minimum": "Minimaal",
     "recommended": "Aanbevolen",
     "no_minimum_requirements": "{{title}} biedt geen informatie over de minimale vereisten",
     "no_recommended_requirements": "{{title}} biedt geen informatie over aanbevolen vereisten",
-    "paused_progress": "{{progress}} (Paused)",
     "release_date": "Uitgebracht op {{date}}",
     "publisher": "Gepubliceerd door {{publisher}}",
     "copy_link_to_clipboard": "Kopieer link",
@@ -86,7 +83,6 @@
     "playing_now": "Speel nu",
     "change": "Verander",
     "repacks_modal_description": "Kies de herverpakking die u wilt downloaden",
-    "downloads_path": "Downloads path",
     "select_folder_hint": "Om de standaardmap te wijzigen, gaat u naar <0>instellingen</0>",
     "download_now": "Download nu",
     "installation_instructions": "Installatie instructies",
@@ -114,22 +110,18 @@
     "verifying": "Verifiëren…",
     "completed_at": "Voltooid binnen {{date}}",
     "completed": "Voltooid",
-    "cancelled": "Geannuleerd",
     "download_again": "Opnieuw downloaden",
     "cancel": "Annuleren",
     "filter": "Filter gedownloade games",
     "remove": "Verwijderen",
     "downloading_metadata": "Metagegevens downloaden",
-    "checking_files": "Bestanden controleren",
     "starting_download": "download starten",
     "deleting": "Installatieprogramma verwijderen…",
     "delete": "Installatieprogramma verwijderen",
     "remove_from_list": "Verwijderen",
     "delete_modal_title": "Weet je het zeker?",
     "delete_modal_description": "Hiermee worden alle installatiebestanden van uw computer verwijderd",
-    "install": "Installeren",
-    "real_debrid": "Real-Debrid",
-    "torrent": "Torrent"
+    "install": "Installeren"
   },
   "settings": {
     "downloads_path": "Downloadpad",
@@ -145,7 +137,6 @@
     "general": "Algemeen",
     "behavior": "Gedrag",
     "enable_real_debrid": "Enable Real-Debrid",
-    "real_debrid": "Real-Debrid",
     "real_debrid_api_token_hint": "U kunt uw API-sleutel <0>hier</0> verkrijgen.",
     "save_changes": "Wijzigingen opslaan"
   },

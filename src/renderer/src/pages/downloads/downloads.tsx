@@ -15,6 +15,7 @@ import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
 import { DeleteModal } from "./delete-modal";
 import { Downloader, formatBytes } from "@shared";
+import { DOWNLOADER_NAME } from "@renderer/constants";
 
 export function Downloads() {
   const { library, updateLibrary } = useLibrary();
@@ -55,7 +56,7 @@ export function Downloads() {
     });
 
   const getFinalDownloadSize = (game: Game) => {
-    const isGameDownloading = lastPacket?.game.id === game?.id;
+    const isGameDownloading = lastPacket?.game.id === game.id;
 
     if (!game) return "N/A";
     if (game.fileSize) return formatBytes(game.fileSize);
@@ -66,16 +67,11 @@ export function Downloads() {
     return game.repack?.fileSize ?? "N/A";
   };
 
-  const downloaderName = {
-    [Downloader.RealDebrid]: t("real_debrid"),
-    [Downloader.Torrent]: t("torrent"),
-  };
-
   const getGameInfo = (game: Game) => {
-    const isGameDownloading = lastPacket?.game.id === game?.id;
+    const isGameDownloading = lastPacket?.game.id === game.id;
     const finalDownloadSize = getFinalDownloadSize(game);
 
-    if (isGameDeleting(game?.id)) {
+    if (isGameDeleting(game.id)) {
       return <p>{t("deleting")}</p>;
     }
 
@@ -98,16 +94,16 @@ export function Downloads() {
       );
     }
 
-    if (game?.progress === 1) {
+    if (game.progress === 1) {
       return (
         <>
-          <p>{game?.repack?.title}</p>
+          <p>{game.repack?.title}</p>
           <p>{t("completed")}</p>
         </>
       );
     }
 
-    if (game?.status === "paused") {
+    if (game.status === "paused") {
       return (
         <>
           <p>{formatDownloadProgress(game.progress)}</p>
@@ -116,7 +112,19 @@ export function Downloads() {
       );
     }
 
-    return <p>{t(game?.status)}</p>;
+    if (game.status === "active") {
+      return (
+        <>
+          <p>{formatDownloadProgress(game.progress)}</p>
+
+          <p>
+            {formatBytes(game.bytesDownloaded)} / {finalDownloadSize}
+          </p>
+        </>
+      );
+    }
+
+    return <p>{t(game.status)}</p>;
   };
 
   const openDeleteModal = (gameId: number) => {
@@ -125,37 +133,11 @@ export function Downloads() {
   };
 
   const getGameActions = (game: Game) => {
-    const isGameDownloading = lastPacket?.game.id === game?.id;
+    const isGameDownloading = lastPacket?.game.id === game.id;
 
     const deleting = isGameDeleting(game.id);
 
-    if (isGameDownloading) {
-      return (
-        <>
-          <Button onClick={() => pauseDownload(game.id)} theme="outline">
-            {t("pause")}
-          </Button>
-          <Button onClick={() => cancelDownload(game.id)} theme="outline">
-            {t("cancel")}
-          </Button>
-        </>
-      );
-    }
-
-    if (game?.status === "paused") {
-      return (
-        <>
-          <Button onClick={() => resumeDownload(game.id)} theme="outline">
-            {t("resume")}
-          </Button>
-          <Button onClick={() => cancelDownload(game.id)} theme="outline">
-            {t("cancel")}
-          </Button>
-        </>
-      );
-    }
-
-    if (game?.progress === 1) {
+    if (game.progress === 1) {
       return (
         <>
           <Button
@@ -168,6 +150,32 @@ export function Downloads() {
 
           <Button onClick={() => openDeleteModal(game.id)} theme="outline">
             {t("delete")}
+          </Button>
+        </>
+      );
+    }
+
+    if (isGameDownloading || game.status === "active") {
+      return (
+        <>
+          <Button onClick={() => pauseDownload(game.id)} theme="outline">
+            {t("pause")}
+          </Button>
+          <Button onClick={() => cancelDownload(game.id)} theme="outline">
+            {t("cancel")}
+          </Button>
+        </>
+      );
+    }
+
+    if (game.status === "paused") {
+      return (
+        <>
+          <Button onClick={() => resumeDownload(game.id)} theme="outline">
+            {t("resume")}
+          </Button>
+          <Button onClick={() => cancelDownload(game.id)} theme="outline">
+            {t("cancel")}
           </Button>
         </>
       );
@@ -243,7 +251,7 @@ export function Downloads() {
 
                   <div className={styles.downloadCoverContent}>
                     <small className={styles.downloaderName}>
-                      {downloaderName[game?.downloader]}
+                      {DOWNLOADER_NAME[game.downloader]}
                     </small>
                   </div>
                 </div>

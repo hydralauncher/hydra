@@ -10,7 +10,9 @@ import { Downloader } from "@shared";
 import { DownloadProgress } from "@types";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { Game } from "@main/entity";
-import { startAria2 } from "./aria2";
+import { startAria2 } from "./aria2c";
+import { sleep } from "@main/helpers";
+import { logger } from "./logger";
 
 export class DownloadManager {
   private static downloads = new Map<number, string>();
@@ -23,9 +25,22 @@ export class DownloadManager {
   private static aria2 = new Aria2({});
 
   private static async connect() {
-    await startAria2();
-    await this.aria2.open();
-    this.connected = true;
+    startAria2();
+
+    let retries = 0;
+
+    while (retries < 4 && !this.connected) {
+      try {
+        await this.aria2.open();
+        logger.log("Connected to aria2");
+
+        this.connected = true;
+      } catch (err) {
+        await sleep(100);
+        logger.log("Failed to connect to aria2, retrying...");
+        retries++;
+      }
+    }
   }
 
   private static getETA(

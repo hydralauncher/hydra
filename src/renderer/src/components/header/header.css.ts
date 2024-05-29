@@ -156,10 +156,10 @@ export const newVersionButton = style({
   alignItems: "center",
   justifyContent: "center",
   gap: `${SPACING_UNIT}px`,
-  color: vars.color.bodyText,
+  color: vars.color.body,
   borderBottom: "1px solid transparent",
   ":hover": {
-    borderBottom: `1px solid ${vars.color.bodyText}`,
+    borderBottom: `1px solid ${vars.color.body}`,
     cursor: "pointer",
   },
 });

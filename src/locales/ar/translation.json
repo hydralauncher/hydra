@@ -34,7 +34,6 @@
   "bottom_panel": {
     "no_downloads_in_progress": "لا يوجد تنزيلات جارية",
     "downloading_metadata": "جارٍ تنزيل بيانات وصف {{title}}",
-    "checking_files": "جارٍ التحقق من ملفات {{title}}… ({{percentage}} مكتملة)",
     "downloading": "جارٍ تنزيل {{title}}… ({{percentage}} مكتملة) - الانتهاء {{eta}} - {{speed}}"
   },
   "catalogue": {
@@ -56,14 +55,12 @@
     "space_left_on_disk": "{{space}} متبقية على القرص",
     "eta": "الوقت المتبقي {{eta}}",
     "downloading_metadata": "جاري تنزيل البيانات الوصفية...",
-    "checking_files": "جاري التحقق من الملفات...",
     "filter": "تصفية حزم إعادة التجميع",
     "requirements": "متطلبات النظام",
     "minimum": "الحد الأدنى",
     "recommended": "موصى به",
     "no_minimum_requirements": "{{title}} لا تتوفر معلومات عن الحد الأدنى للمتطلبات",
     "no_recommended_requirements": "{{title}} لا تتوفر معلومات عن المتطلبات الموصى بها",
-    "paused_progress": "{{progress}} (متوقف)",
     "release_date": "تم الإصدار في {{date}}",
     "publisher": "نشر بواسطة {{publisher}}",
     "copy_link_to_clipboard": "نسخ الرابط",
@@ -120,22 +117,18 @@
     "verifying": "جار التحقق…",
     "completed_at": "اكتمل في {{date}}",
     "completed": "اكتمل",
-    "cancelled": "ملغي",
     "download_again": "تحميل مرة أخرى",
     "cancel": "إلغاء",
     "filter": "تصفية الألعاب التي تم تنزيلها",
     "remove": "إزالة",
     "downloading_metadata": "جار تنزيل البيانات الوصفية…",
-    "checking_files": "جار التحقق من الملفات…",
     "starting_download": "يبدأ التنزيل…",
     "deleting": "جار حذف المثبت…",
     "delete": "إزالة المثبت",
     "remove_from_list": "إزالة",
     "delete_modal_title": "هل أنت متأكد؟",
     "delete_modal_description": "سيؤدي هذا إلى إزالة جميع ملفات التثبيت من جهاز الكمبيوتر الخاص بك",
-    "install": "تثبيت",
-    "real_debrid": "Real-Debrid",
-    "torrent": "تورنت"
+    "install": "تثبيت"
   },
   "settings": {
     "downloads_path": "مسار التنزيلات",
@@ -151,8 +144,7 @@
     "general": "عام",
     "behavior": "السلوك",
     "enable_real_debrid": "تفعيل Real-Debrid ",
-    "real_debrid": "Real-Debrid",
-    "real_debrid_api_token_hint": "يمكنك الحصول على مفتاح API الخاص بك هنا.",
+    "real_debrid_api_token_hint": "يمكنك الحصول على مفتاح API الخاص بك هنا",
     "save_changes": "حفظ التغييرات"
   },
   "notifications": {
