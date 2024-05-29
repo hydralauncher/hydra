@@ -1,5 +1,7 @@
 import { NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
 
+import { BinaryNotFoundModal } from "../../shared-modals/binary-not-found-modal";
+
 import { Button } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
 import { useContext, useState } from "react";
@@ -11,6 +13,7 @@ import { gameDetailsContext } from "../game-details.context";
 export function HeroPanelActions() {
   const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
     useState(false);
+  const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
 
   const {
     resumeDownload,
@@ -90,7 +93,7 @@ export function HeroPanelActions() {
   const openGameInstaller = () => {
     if (game) {
       window.electron.openGameInstaller(game.id).then((isBinaryInPath) => {
-        if (!isBinaryInPath) openBinaryNotFoundModal();
+        if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
         updateLibrary();
       });
     }
@@ -252,5 +255,14 @@ export function HeroPanelActions() {
     );
   }
 
-  return toggleGameOnLibraryButton;
+  return (
+    <>
+      <BinaryNotFoundModal
+        visible={showBinaryNotFoundModal}
+        onClose={() => setShowBinaryNotFoundModal(false)}
+      />
+
+      {toggleGameOnLibraryButton}
+    </>
+  );
 }

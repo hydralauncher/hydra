@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { useContext, useMemo, useState } from "react";
+import { useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import Color from "color";
 
@@ -9,7 +9,6 @@ import { formatDownloadProgress } from "@renderer/helpers";
 import { HeroPanelActions } from "./hero-panel-actions";
 import { Downloader, formatBytes } from "@shared";
 
-import { BinaryNotFoundModal } from "../../shared-modals/binary-not-found-modal";
 import * as styles from "./hero-panel.css";
 import { HeroPanelPlaytime } from "./hero-panel-playtime";
 import { gameDetailsContext } from "../game-details.context";
@@ -18,8 +17,6 @@ export function HeroPanel() {
   const { t } = useTranslation("game_details");
 
   const { game, repacks, gameColor } = useContext(gameDetailsContext);
-
-  const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
 
   const { progress, eta, lastPacket, isGameDeleting } = useDownload();
 
@@ -125,17 +122,10 @@ export function HeroPanel() {
 
   return (
     <>
-      <BinaryNotFoundModal
-        visible={showBinaryNotFoundModal}
-        onClose={() => setShowBinaryNotFoundModal(false)}
-      />
-
       <div style={{ backgroundColor }} className={styles.panel}>
         <div className={styles.content}>{getInfo()}</div>
         <div className={styles.actions}>
-          <HeroPanelActions
-            openBinaryNotFoundModal={() => setShowBinaryNotFoundModal(true)}
-          />
+          <HeroPanelActions />
         </div>
 
         {showProgressBar && (
