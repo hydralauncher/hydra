@@ -13,6 +13,7 @@ import { Game } from "@main/entity";
 import { startAria2 } from "./aria2c";
 import { sleep } from "@main/helpers";
 import { logger } from "./logger";
+import type { ChildProcess } from "node:child_process";
 
 export class DownloadManager {
   private static downloads = new Map<number, string>();
@@ -21,11 +22,12 @@ export class DownloadManager {
   private static gid: string | null = null;
   private static game: Game | null = null;
   private static realDebridTorrentId: string | null = null;
+  private static aria2c: ChildProcess | null = null;
 
   private static aria2 = new Aria2({});
 
   private static async connect() {
-    startAria2();
+    this.aria2c = startAria2();
 
     let retries = 0;
 
@@ -40,6 +42,12 @@ export class DownloadManager {
         logger.log("Failed to connect to aria2, retrying...");
         retries++;
       }
+    }
+  }
+
+  public static disconnect() {
+    if (this.aria2c) {
+      this.aria2c.kill();
     }
   }
 
