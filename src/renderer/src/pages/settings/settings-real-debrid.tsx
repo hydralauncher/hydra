@@ -5,19 +5,21 @@ import { Button, CheckboxField, Link, TextField } from "@renderer/components";
 import * as styles from "./settings-real-debrid.css";
 import type { UserPreferences } from "@types";
 import { SPACING_UNIT } from "@renderer/theme.css";
-import { useToast } from "@renderer/hooks";
+import { useAppSelector, useToast } from "@renderer/hooks";
 
 const REAL_DEBRID_API_TOKEN_URL = "https://real-debrid.com/apitoken";
 
 export interface SettingsRealDebridProps {
-  userPreferences: UserPreferences | null;
   updateUserPreferences: (values: Partial<UserPreferences>) => void;
 }
 
 export function SettingsRealDebrid({
-  userPreferences,
   updateUserPreferences,
 }: SettingsRealDebridProps) {
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+
   const [isLoading, setIsLoading] = useState(false);
   const [form, setForm] = useState({
     useRealDebrid: false,

@@ -41,12 +41,11 @@ export function useDownload() {
     return updateLibrary();
   };
 
-  const cancelDownload = (gameId: number) =>
-    window.electron.cancelGameDownload(gameId).then(() => {
-      dispatch(clearDownload());
-      updateLibrary();
-      deleteGame(gameId);
-    });
+  const cancelDownload = async (gameId: number) => {
+    await window.electron.cancelGameDownload(gameId);
+    dispatch(clearDownload());
+    updateLibrary();
+  };
 
   const removeGameFromLibrary = (gameId: number) =>
     window.electron.removeGameFromLibrary(gameId).then(() => {
@@ -67,18 +66,15 @@ export function useDownload() {
     }
   };
 
-  const deleteGame = (gameId: number) =>
-    window.electron
-      .cancelGameDownload(gameId)
-      .then(() => {
-        dispatch(setGameDeleting(gameId));
-        return window.electron.deleteGameFolder(gameId);
-      })
-      .catch(() => {})
-      .finally(() => {
-        updateLibrary();
-        dispatch(removeGameFromDeleting(gameId));
-      });
+  const deleteGame = async (gameId: number) => {
+    dispatch(setGameDeleting(gameId));
+
+    try {
+      await window.electron.deleteGameFolder(gameId);
+    } finally {
+      dispatch(removeGameFromDeleting(gameId));
+    }
+  };
 
   const isGameDeleting = (gameId: number) => {
     return gamesWithDeletionInProgress.includes(gameId);

@@ -7,13 +7,13 @@ import {
   formatDownloadProgress,
   steamUrlBuilder,
 } from "@renderer/helpers";
-import { useDownload, useLibrary } from "@renderer/hooks";
+import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
 import type { Game } from "@types";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
-import { DeleteModal } from "./delete-modal";
+import { DeleteGameModal } from "./delete-game-modal";
 import { Downloader, formatBytes } from "@shared";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 
@@ -21,6 +21,10 @@ export function Downloads() {
   const { library, updateLibrary } = useLibrary();
 
   const { t } = useTranslation("downloads");
+
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
 
   const navigate = useNavigate();
 
@@ -171,7 +175,14 @@ export function Downloads() {
     if (game.status === "paused") {
       return (
         <>
-          <Button onClick={() => resumeDownload(game.id)} theme="outline">
+          <Button
+            onClick={() => resumeDownload(game.id)}
+            theme="outline"
+            disabled={
+              game.downloader === Downloader.RealDebrid &&
+              !userPreferences?.realDebridApiToken
+            }
+          >
             {t("resume")}
           </Button>
           <Button onClick={() => cancelDownload(game.id)} theme="outline">
@@ -212,9 +223,10 @@ export function Downloads() {
     );
   };
 
-  const handleDeleteGame = () => {
+  const handleDeleteGame = async () => {
     if (gameToBeDeleted.current) {
-      deleteGame(gameToBeDeleted.current).then(updateLibrary);
+      await deleteGame(gameToBeDeleted.current);
+      await removeGameFromLibrary(gameToBeDeleted.current);
     }
   };
 
@@ -224,7 +236,8 @@ export function Downloads() {
         visible={showBinaryNotFoundModal}
         onClose={() => setShowBinaryNotFoundModal(false)}
       />
-      <DeleteModal
+
+      <DeleteGameModal
         visible={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         deleteGame={handleDeleteGame}

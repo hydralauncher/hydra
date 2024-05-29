@@ -1,6 +1,8 @@
 import path from "node:path";
 import fs from "node:fs";
 
+import { In } from "typeorm";
+
 import { gameRepository } from "@main/repository";
 
 import { getDownloadsPath } from "../helpers/get-downloads-path";
@@ -14,7 +16,7 @@ const deleteGameFolder = async (
   const game = await gameRepository.findOne({
     where: {
       id: gameId,
-      status: "removed",
+      status: In(["removed", "complete"]),
       isDeleted: false,
     },
   });

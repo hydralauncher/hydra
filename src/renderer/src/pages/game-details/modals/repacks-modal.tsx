@@ -8,7 +8,7 @@ import * as styles from "./repacks-modal.css";
 
 import { SPACING_UNIT } from "../../../theme.css";
 import { format } from "date-fns";
-import { SelectFolderModal } from "./select-folder-modal";
+import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "../game-details.context";
 import { Downloader } from "@shared";
 
@@ -61,7 +61,7 @@ export function RepacksModal({
 
   return (
     <>
-      <SelectFolderModal
+      <DownloadSettingsModal
         visible={showSelectFolderModal}
         onClose={() => setShowSelectFolderModal(false)}
         startDownload={startDownload}
