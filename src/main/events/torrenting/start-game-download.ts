@@ -18,6 +18,7 @@ const startGameDownload = async (
     gameRepository.findOne({
       where: {
         objectID,
+        shop,
       },
       relations: { repack: true },
     }),
@@ -28,7 +29,7 @@ const startGameDownload = async (
     }),
   ]);
 
-  if (!repack || game?.status === "active") return;
+  if (!repack) return;
 
   await DownloadManager.pauseDownload();
 
@@ -44,6 +45,8 @@ const startGameDownload = async (
       },
       {
         status: "active",
+        progress: 0,
+        bytesDownloaded: 0,
         downloadPath,
         downloader,
         repack: { id: repackId },

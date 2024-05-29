@@ -63,6 +63,7 @@ declare global {
     openGame: (gameId: number, executablePath: string) => Promise<void>;
     closeGame: (gameId: number) => Promise<boolean>;
     removeGameFromLibrary: (gameId: number) => Promise<void>;
+    removeGame: (gameId: number) => Promise<void>;
     deleteGameFolder: (gameId: number) => Promise<unknown>;
     getGameByObjectID: (objectID: string) => Promise<Game | null>;
     onPlaytime: (cb: (gameId: number) => void) => () => Electron.IpcRenderer;

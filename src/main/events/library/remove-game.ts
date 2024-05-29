@@ -8,10 +8,9 @@ const removeGame = async (
   await gameRepository.update(
     {
       id: gameId,
-      status: "removed",
     },
     {
-      status: null,
+      status: "removed",
       downloadPath: null,
       bytesDownloaded: 0,
       progress: 0,
