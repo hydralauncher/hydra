@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@renderer/components";
 
 import * as styles from "./settings.css";
@@ -7,56 +7,42 @@ import { UserPreferences } from "@types";
 import { SettingsRealDebrid } from "./settings-real-debrid";
 import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
+import { useAppDispatch } from "@renderer/hooks";
+import { setUserPreferences } from "@renderer/features";
 
 export function Settings() {
-  const [userPreferences, setUserPreferences] =
-    useState<UserPreferences | null>(null);
-
   const { t } = useTranslation("settings");
+
+  const dispatch = useAppDispatch();
 
   const categories = [t("general"), t("behavior"), "Real-Debrid"];
 
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
-
-  useEffect(() => {
-    window.electron.getUserPreferences().then((userPreferences) => {
-      setUserPreferences(userPreferences);
-    });
-  }, []);
 
   const handleUpdateUserPreferences = async (
     values: Partial<UserPreferences>
   ) => {
     await window.electron.updateUserPreferences(values);
     window.electron.getUserPreferences().then((userPreferences) => {
-      setUserPreferences(userPreferences);
+      dispatch(setUserPreferences(userPreferences));
     });
   };
 
   const renderCategory = () => {
     if (currentCategoryIndex === 0) {
       return (
-        <SettingsGeneral
-          userPreferences={userPreferences}
-          updateUserPreferences={handleUpdateUserPreferences}
-        />
+        <SettingsGeneral updateUserPreferences={handleUpdateUserPreferences} />
       );
     }
 
     if (currentCategoryIndex === 1) {
       return (
-        <SettingsBehavior
-          userPreferences={userPreferences}
-          updateUserPreferences={handleUpdateUserPreferences}
-        />
+        <SettingsBehavior updateUserPreferences={handleUpdateUserPreferences} />
       );
     }
 
     return (
-      <SettingsRealDebrid
-        userPreferences={userPreferences}
-        updateUserPreferences={handleUpdateUserPreferences}
-      />
+      <SettingsRealDebrid updateUserPreferences={handleUpdateUserPreferences} />
     );
   };
 

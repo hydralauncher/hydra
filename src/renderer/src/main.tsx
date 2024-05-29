@@ -40,7 +40,6 @@ i18n
   })
   .then(() => {
     window.electron.updateUserPreferences({ language: i18n.language });
-    i18n.changeLanguage("pt-BR");
   });
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

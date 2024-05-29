@@ -83,7 +83,7 @@
     "playing_now": "Jogando agora",
     "change": "Mudar",
     "repacks_modal_description": "Escolha o repack do jogo que deseja baixar",
-    "select_folder_hint": "Para trocar a pasta padrão, acesse a <0>Tela de Configurações</0>",
+    "select_folder_hint": "Para trocar o diretório padrão, acesse a <0>Tela de Configurações</0>",
     "download_now": "Iniciar download",
     "installation_instructions": "Instruções de Instalação",
     "installation_instructions_description": "Passos adicionais são necessários para instalar esse jogo",
@@ -99,7 +99,9 @@
     "previous_screenshot": "Captura de tela anterior",
     "next_screenshot": "Próxima captura de tela",
     "screenshot": "Captura de tela {{number}}",
-    "open_screenshot": "Ver captura de tela {{number}}"
+    "open_screenshot": "Ver captura de tela {{number}}",
+    "download_settings": "Ajustes do download",
+    "downloader": "Downloader"
   },
   "activation": {
     "title": "Ativação",
@@ -140,8 +142,8 @@
     "telemetry": "Telemetria",
     "telemetry_description": "Habilitar estatísticas de uso anônimas",
     "real_debrid_api_token_label": "Token de API do Real-Debrid",
-    "quit_app_instead_hiding": "Fechar o aplicativo em vez de minimizá-lo",
-    "launch_with_system": "Iniciar aplicativo na inicialização do sistema",
+    "quit_app_instead_hiding": "Não manter o Hydra em segundo plano ao fechar",
+    "launch_with_system": "Iniciar o Hydra junto com o sistema",
     "general": "Geral",
     "behavior": "Comportamento",
     "real_debrid_api_token": "Token de API",

@@ -3,12 +3,13 @@ import { NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
 import { BinaryNotFoundModal } from "../../shared-modals/binary-not-found-modal";
 
 import { Button } from "@renderer/components";
-import { useDownload, useLibrary } from "@renderer/hooks";
+import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as styles from "./hero-panel-actions.css";
 import { gameDetailsContext } from "../game-details.context";
+import { Downloader } from "@shared";
 
 export function HeroPanelActions() {
   const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
@@ -33,12 +34,15 @@ export function HeroPanelActions() {
     updateGame,
   } = useContext(gameDetailsContext);
 
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+
   const { updateLibrary } = useLibrary();
 
   const { t } = useTranslation("game_details");
 
   const getDownloadsPath = async () => {
-    const userPreferences = await window.electron.getUserPreferences();
     if (userPreferences?.downloadsPath) return userPreferences.downloadsPath;
     return window.electron.getDefaultDownloadsPath();
   };
@@ -202,6 +206,10 @@ export function HeroPanelActions() {
           onClick={() => resumeDownload(game.id).then(updateGame)}
           theme="outline"
           className={styles.heroPanelAction}
+          disabled={
+            game.downloader === Downloader.RealDebrid &&
+            !userPreferences?.realDebridApiToken
+          }
         >
           {t("resume")}
         </Button>

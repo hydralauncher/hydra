@@ -103,7 +103,9 @@
     "previous_screenshot": "Previous screenshot",
     "next_screenshot": "Next screenshot",
     "screenshot": "Screenshot {{number}}",
-    "open_screenshot": "Open screenshot {{number}}"
+    "open_screenshot": "Open screenshot {{number}}",
+    "download_settings": "Download settings",
+    "downloader": "Downloader"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -144,7 +146,7 @@
     "telemetry": "Telemetry",
     "telemetry_description": "Enable anonymous usage statistics",
     "real_debrid_api_token_label": "Real-Debrid API token",
-    "quit_app_instead_hiding": "Quit Hydra instead of minimizing to tray",
+    "quit_app_instead_hiding": "Don't hide Hydra when closing",
     "launch_with_system": "Launch Hydra on system start-up",
     "general": "General",
     "behavior": "Behavior",
