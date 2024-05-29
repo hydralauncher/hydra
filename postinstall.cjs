@@ -37,9 +37,9 @@ const downloadAria2 = async () => {
     } else {
       await exec(`tar --zstd -xvf ${file} usr/bin/aria2c`);
       console.log("Extracted. Copying binary file...");
-      await exec(`mkdir aria2`);
-      await exec(`cp ./usr/bin/aria2c ./aria2/aria2c`);
-      await exec(`rm -r ./usr`);
+      fs.mkdirSync("aria2");
+      fs.copyFileSync("usr/bin/aria2c", "aria2/aria2c");
+      fs.rmSync("usr", { recursive: true });
     }
 
     console.log(`Extracted ${file}, removing compressed downloaded file...`);
