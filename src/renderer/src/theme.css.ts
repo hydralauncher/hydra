@@ -7,7 +7,7 @@ export const [themeClass, vars] = createTheme({
     background: "#1c1c1c",
     darkBackground: "#151515",
     muted: "#c0c1c7",
-    bodyText: "#8e919b",
+    body: "#8e919b",
     border: "#424244",
     success: "#1c9749",
     danger: "#e11d48",
@@ -17,6 +17,6 @@ export const [themeClass, vars] = createTheme({
     active: "0.7",
   },
   size: {
-    bodyFontSize: "14px",
+    body: "14px",
   },
 });

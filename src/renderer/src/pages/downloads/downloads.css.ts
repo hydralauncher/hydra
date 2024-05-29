@@ -12,7 +12,7 @@ export const downloadTitleWrapper = style({
 export const downloadTitle = style({
   fontWeight: "bold",
   cursor: "pointer",
-  color: vars.color.bodyText,
+  color: vars.color.body,
   textAlign: "left",
   fontSize: "16px",
   display: "block",

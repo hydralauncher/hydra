@@ -128,7 +128,7 @@
     "delete_modal_title": "Er du sikker?",
     "delete_modal_description": "Dette vil fjerne alle installations filerne fra din computer",
     "install": "Installér",
-    "real_debrid": "Real Debrid",
+    "real_debrid": "Real-Debrid",
     "torrent": "Torrent"
   },
   "settings": {
@@ -139,13 +139,13 @@
     "enable_repack_list_notifications": "Når en ny repack bliver tilføjet",
     "telemetry": "Telemetri",
     "telemetry_description": "Slå anonymt brugs statistik til",
-    "real_debrid_api_token_description": "Real Debrid API token",
+    "real_debrid_api_token_description": "Real-Debrid API token",
     "quit_app_instead_hiding": "Afslut Hydra instedet for at minimere til processlinjen",
     "launch_with_system": "Åben Hydra ved start af systemet",
     "general": "Generelt",
     "behavior": "Opførsel",
-    "enable_real_debrid": "Slå Real Debrid til",
-    "real_debrid": "Real Debrid",
+    "enable_real_debrid": "Slå Real-Debrid til",
+    "real_debrid": "Real-Debrid",
     "real_debrid_api_token_hint": "Du kan få din API nøgle <0>her</0>.",
     "save_changes": "Gem ændringer"
   },

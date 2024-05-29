@@ -7,3 +7,8 @@ export const form = style({
   flexDirection: "column",
   gap: `${SPACING_UNIT}px`,
 });
+
+export const description = style({
+  fontFamily: "'Fira Sans', sans-serif",
+  marginBottom: `${SPACING_UNIT}px`,
+});

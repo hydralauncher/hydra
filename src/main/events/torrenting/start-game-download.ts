@@ -19,6 +19,7 @@ const startGameDownload = async (
       where: {
         objectID,
       },
+      relations: { repack: true },
     }),
     repackRepository.findOne({
       where: {
@@ -50,9 +51,7 @@ const startGameDownload = async (
       }
     );
 
-    await DownloadManager.startDownload(game.id);
-
-    return { ...game, stauts: "active" };
+    return DownloadManager.startDownload(game);
   } else {
     const steamGame = stateManager
       .getValue("steamGames")
@@ -62,8 +61,8 @@ const startGameDownload = async (
       ? getSteamAppAsset("icon", objectID, steamGame.clientIcon)
       : null;
 
-    const createdGame = await gameRepository
-      .save({
+    await gameRepository
+      .insert({
         title,
         iconUrl,
         objectID,
@@ -83,9 +82,14 @@ const startGameDownload = async (
         return result;
       });
 
-    await DownloadManager.startDownload(createdGame.id);
+    const createdGame = await gameRepository.findOne({
+      where: {
+        objectID,
+      },
+      relations: { repack: true },
+    });
 
-    return createdGame;
+    return DownloadManager.startDownload(createdGame!);
   }
 };
 

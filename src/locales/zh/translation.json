@@ -132,7 +132,7 @@
     "delete_modal_title": "您确定吗？",
     "delete_modal_description": "这将从您的电脑上移除所有的安装文件",
     "install": "安装",
-    "real_debrid": "Real Debrid",
+    "real_debrid": "Real-Debrid",
     "torrent": "种子"
   },
   "settings": {
@@ -143,13 +143,13 @@
     "enable_repack_list_notifications": "添加新重打包时",
     "telemetry": "遥测",
     "telemetry_description": "启用匿名使用统计",
-    "real_debrid_api_token_description": "Real Debrid API密钥",
+    "real_debrid_api_token_description": "Real-Debrid API密钥",
     "behavior": "行为",
     "general": "常规",
     "quit_app_instead_hiding": "关闭应用程序而不是最小化到托盘",
     "launch_with_system": "随系统启动时运行应用程序",
-    "enable_real_debrid": "启用 Real Debrid",
-    "real_debrid": "Real Debrid",
+    "enable_real_debrid": "启用 Real-Debrid",
+    "real_debrid": "Real-Debrid",
     "real_debrid_api_token_hint": "您可以从<0>这里</0>获取API密钥.",
     "save_changes": "保存更改"
   },

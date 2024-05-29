@@ -15,7 +15,7 @@ export const downloadsPathField = style({
 
 export const hintText = style({
   fontSize: "12px",
-  color: vars.color.bodyText,
+  color: vars.color.body,
 });
 
 export const downloaders = style({

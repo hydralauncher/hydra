@@ -108,7 +108,7 @@ export const section = style({
 
 export const backButton = recipe({
   base: {
-    color: vars.color.bodyText,
+    color: vars.color.body,
     cursor: "pointer",
     WebkitAppRegion: "no-drag",
     position: "absolute",

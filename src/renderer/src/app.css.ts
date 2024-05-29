@@ -26,9 +26,9 @@ globalStyle("body", {
   overflow: "hidden",
   userSelect: "none",
   fontFamily: "'Fira Mono', monospace",
-  fontSize: vars.size.bodyFontSize,
+  fontSize: vars.size.body,
   background: vars.color.background,
-  color: vars.color.bodyText,
+  color: vars.color.body,
   margin: "0",
 });
 
@@ -68,7 +68,7 @@ globalStyle(
 );
 
 globalStyle("label", {
-  fontSize: vars.size.bodyFontSize,
+  fontSize: vars.size.body,
 });
 
 globalStyle("input[type=number]", {

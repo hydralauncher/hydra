@@ -128,7 +128,7 @@
     "delete_modal_title": "مطمئنی؟",
     "delete_modal_description": "این کار تمام فایل‌های اینستالر را از کامپیوتر شما حذف می‌کند",
     "install": "نصف",
-    "real_debrid": "Real Debrid",
+    "real_debrid": "Real-Debrid",
     "torrent": "تورنت"
   },
   "settings": {
@@ -139,13 +139,13 @@
     "enable_repack_list_notifications": "زمانی که یک ریپک جدید اضافه شد",
     "telemetry": "تلمتری",
     "telemetry_description": "فعال کردن آمارگیری استفاده ناشناس",
-    "real_debrid_api_token_description": "توکن Real Debrid",
+    "real_debrid_api_token_description": "توکن Real-Debrid",
     "quit_app_instead_hiding": "به جای کوچک کردن، از هایدرا خارج شو",
     "launch_with_system": "زمانی که سیستم روشن می‌شود، هایدرا را باز کن",
     "general": "کلی",
     "behavior": "رفتار",
-    "enable_real_debrid": "فعال‌سازی Real Debrid",
-    "real_debrid": "Real Debrid",
+    "enable_real_debrid": "فعال‌سازی Real-Debrid",
+    "real_debrid": "Real-Debrid",
     "real_debrid_api_token_hint": "کلید API خود را از <ب0>اینجا</0> بگیرید.",
     "save_changes": "ذخیره تغییرات"
   },

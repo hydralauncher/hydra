@@ -23,7 +23,7 @@ export const modal = recipe({
     backgroundColor: vars.color.background,
     borderRadius: "5px",
     maxWidth: "600px",
-    color: vars.color.bodyText,
+    color: vars.color.body,
     maxHeight: "100%",
     border: `solid 1px ${vars.color.border}`,
     overflow: "hidden",
@@ -65,5 +65,5 @@ export const closeModalButton = style({
 });
 
 export const closeModalButtonIcon = style({
-  color: vars.color.bodyText,
+  color: vars.color.body,
 });

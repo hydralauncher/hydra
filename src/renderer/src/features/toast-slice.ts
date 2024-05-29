@@ -19,7 +19,6 @@ export const toastSlice = createSlice({
   initialState,
   reducers: {
     showToast: (state, action: PayloadAction<Omit<ToastState, "visible">>) => {
-      console.log(action.payload);
       state.message = action.payload.message;
       state.visible = true;
     },
