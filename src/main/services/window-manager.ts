@@ -17,8 +17,6 @@ import { IsNull, Not } from "typeorm";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
-  public static splashWindow: Electron.BrowserWindow | null = null;
-  public static isReadyToShowMainWindow = false;
 
   private static loadURL(hash = "") {
     // HMR for renderer base on electron-vite cli.
@@ -37,44 +35,8 @@ export class WindowManager {
     }
   }
 
-  private static loadSplashURL() {
-    // HMR for renderer base on electron-vite cli.
-    // Load the remote URL for development or the local html file for production.
-    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      this.splashWindow?.loadURL(
-        `${process.env["ELECTRON_RENDERER_URL"]}#/splash`
-      );
-    } else {
-      this.splashWindow?.loadFile(
-        path.join(__dirname, "../renderer/index.html"),
-        {
-          hash: "splash",
-        }
-      );
-    }
-  }
-
-  public static createSplashScreen() {
-    if (this.splashWindow) return;
-
-    this.splashWindow = new BrowserWindow({
-      width: 380,
-      height: 380,
-      frame: false,
-      resizable: false,
-      backgroundColor: "#1c1c1c",
-      webPreferences: {
-        preload: path.join(__dirname, "../preload/index.mjs"),
-        sandbox: false,
-      },
-    });
-
-    this.loadSplashURL();
-    this.splashWindow.removeMenu();
-  }
-
   public static createMainWindow() {
-    if (this.mainWindow || !this.isReadyToShowMainWindow) return;
+    if (this.mainWindow) return;
 
     this.mainWindow = new BrowserWindow({
       width: 1200,
@@ -94,6 +56,7 @@ export class WindowManager {
         preload: path.join(__dirname, "../preload/index.mjs"),
         sandbox: false,
       },
+      show: false,
     });
 
     this.loadURL();
@@ -101,6 +64,7 @@ export class WindowManager {
 
     this.mainWindow.on("ready-to-show", () => {
       if (!app.isPackaged) WindowManager.mainWindow?.webContents.openDevTools();
+      WindowManager.mainWindow?.show();
     });
 
     this.mainWindow.on("close", async () => {
@@ -113,12 +77,6 @@ export class WindowManager {
       }
       WindowManager.mainWindow?.setProgressBar(-1);
     });
-  }
-
-  public static prepareMainWindowAndCloseSplash() {
-    this.isReadyToShowMainWindow = true;
-    this.splashWindow?.close();
-    this.createMainWindow();
   }
 
   public static redirect(hash: string) {

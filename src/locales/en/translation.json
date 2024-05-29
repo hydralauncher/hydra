@@ -29,7 +29,8 @@
     "catalogue": "Catalogue",
     "downloads": "Downloads",
     "search_results": "Search results",
-    "settings": "Settings"
+    "settings": "Settings",
+    "version_available": "Version {{version}} available. Click here to restart and install."
   },
   "bottom_panel": {
     "no_downloads_in_progress": "No downloads in progress",
@@ -153,6 +154,7 @@
     "real_debrid": "Real-Debrid",
     "real_debrid_description": "Real-Debrid is an unrestricted downloader that allows you to download files instantly and at the best of your Internet speed.",
     "real_debrid_api_token_hint": "You can get your API token <0>here</0>.",
+    "real_debrid_free_account": "The account \"{{username}}\" is a free account. Please subscribe to Real-Debrid.",
     "save_changes": "Save changes"
   },
   "notifications": {
@@ -176,11 +178,5 @@
   },
   "modal": {
     "close": "Close button"
-  },
-  "splash": {
-    "downloading_version": "Downloading version {{version}}",
-    "searching_updates": "Searching for updates",
-    "update_found": "Update {{version}} found",
-    "restarting_and_applying": "Restarting and applying update"
   }
 }

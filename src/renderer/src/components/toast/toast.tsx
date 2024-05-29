@@ -82,6 +82,7 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
           {type === "success" && (
             <CheckCircleFillIcon className={styles.successIcon} />
           )}
+
           {type === "error" && <XCircleFillIcon className={styles.errorIcon} />}
           <span style={{ fontWeight: "bold" }}>{message}</span>
         </div>

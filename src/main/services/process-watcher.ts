@@ -46,7 +46,7 @@ export const watchProcesses = async () => {
 
         await gameRepository.update(game.id, {
           playTimeInMilliseconds: game.playTimeInMilliseconds + delta,
-          lastTimePlayed: new Date().toUTCString(),
+          lastTimePlayed: new Date(),
         });
       }
 

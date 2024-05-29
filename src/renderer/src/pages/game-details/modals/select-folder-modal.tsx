@@ -8,6 +8,7 @@ import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
 import { Downloader, formatBytes } from "@shared";
 
 import type { GameRepack, UserPreferences } from "@types";
+import { SPACING_UNIT } from "@renderer/theme.css";
 
 export interface SelectFolderModalProps {
   visible: boolean;
@@ -95,7 +96,14 @@ export function SelectFolderModal({
     >
       <div className={styles.container}>
         <div>
-          <label style={{ marginBottom: 0, padding: 0 }}>Method</label>
+          <span
+            style={{
+              marginBottom: `${SPACING_UNIT}px`,
+              display: "block",
+            }}
+          >
+            Method
+          </span>
 
           <div className={styles.downloaders}>
             <Button
@@ -130,24 +138,26 @@ export function SelectFolderModal({
           </div>
         </div>
 
-        <div className={styles.downloadsPathField}>
-          <TextField value={selectedPath} readOnly disabled label="Path" />
+        <div>
+          <div className={styles.downloadsPathField}>
+            <TextField value={selectedPath} readOnly disabled label="Path" />
 
-          <Button
-            style={{ alignSelf: "flex-end" }}
-            theme="outline"
-            onClick={handleChooseDownloadsPath}
-            disabled={downloadStarting}
-          >
-            {t("change")}
-          </Button>
+            <Button
+              style={{ alignSelf: "flex-end" }}
+              theme="outline"
+              onClick={handleChooseDownloadsPath}
+              disabled={downloadStarting}
+            >
+              {t("change")}
+            </Button>
+          </div>
+
+          <p className={styles.hintText}>
+            <Trans i18nKey="select_folder_hint" ns="game_details">
+              <Link to="/settings" />
+            </Trans>
+          </p>
         </div>
-
-        <p className={styles.hintText}>
-          <Trans i18nKey="select_folder_hint" ns="game_details">
-            <Link to="/settings" />
-          </Trans>
-        </p>
 
         <Button onClick={handleStartClick} disabled={downloadStarting}>
           <DownloadIcon />

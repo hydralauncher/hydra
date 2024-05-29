@@ -186,7 +186,8 @@ export class DownloadManager {
     }
 
     if (WindowManager.mainWindow && game) {
-      WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
+      if (!isNaN(progress))
+        WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
 
       const payload = {
         numPeers: Number(status.connections),
@@ -237,11 +238,12 @@ export class DownloadManager {
     if (this.gid) {
       await this.aria2.call("forcePause", this.gid);
       this.gid = null;
-      this.game = null;
-      this.realDebridTorrentId = null;
-
-      WindowManager.mainWindow?.setProgressBar(-1);
     }
+
+    this.game = null;
+    this.realDebridTorrentId = null;
+
+    WindowManager.mainWindow?.setProgressBar(-1);
   }
 
   static async resumeDownload(game: Game) {
@@ -251,6 +253,7 @@ export class DownloadManager {
 
       this.gid = gid;
       this.game = game;
+      this.realDebridTorrentId = null;
     } else {
       return this.startDownload(game);
     }
@@ -269,7 +272,6 @@ export class DownloadManager {
       );
     } else {
       this.gid = await this.aria2.call("addUri", [game.repack.magnet], options);
-
       this.downloads.set(game.id, this.gid);
     }
 

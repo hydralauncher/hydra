@@ -50,8 +50,6 @@ const startGameDownload = async (
         isDeleted: false,
       }
     );
-
-    return DownloadManager.startDownload(game);
   } else {
     const steamGame = stateManager
       .getValue("steamGames")
@@ -81,16 +79,16 @@ const startGameDownload = async (
 
         return result;
       });
-
-    const createdGame = await gameRepository.findOne({
-      where: {
-        objectID,
-      },
-      relations: { repack: true },
-    });
-
-    return DownloadManager.startDownload(createdGame!);
   }
+
+  const updatedGame = await gameRepository.findOne({
+    where: {
+      objectID,
+    },
+    relations: { repack: true },
+  });
+
+  await DownloadManager.startDownload(updatedGame!);
 };
 
 registerEvent("startGameDownload", startGameDownload);
