@@ -41,12 +41,7 @@ export function SettingsRealDebrid({
     event
   ) => {
     event.preventDefault();
-    dispatch(
-      showToast({
-        message: t("real_debrid_authenticated"),
-        type: "success",
-      })
-    );
+
     if (form.useRealDebrid) {
       const user = await window.electron.authenticateRealDebrid(
         form.realDebridApiToken!
@@ -55,18 +50,25 @@ export function SettingsRealDebrid({
       if (user.type === "premium") {
         dispatch(
           showToast({
-            message: t("real_debrid_authenticated"),
-            type: "success",
+            message: t("real_debrid_free_account", { username: user.username }),
+            type: "error",
           })
         );
 
-        updateUserPreferences({
-          realDebridApiToken: form.useRealDebrid
-            ? form.realDebridApiToken
-            : null,
-        });
+        return;
       }
     }
+
+    // dispatch(
+    //   showToast({
+    //     message: t("real_debrid_free_account", { username: "doctorp" }),
+    //     type: "error",
+    //   })
+    // );
+
+    updateUserPreferences({
+      realDebridApiToken: form.useRealDebrid ? form.realDebridApiToken : null,
+    });
   };
 
   const isButtonDisabled = form.useRealDebrid && !form.realDebridApiToken;
@@ -106,7 +108,7 @@ export function SettingsRealDebrid({
 
       <Button
         type="submit"
-        style={{ alignSelf: "flex-end" }}
+        style={{ alignSelf: "flex-end", marginTop: `${SPACING_UNIT * 2}px` }}
         disabled={isButtonDisabled}
       >
         {t("save_changes")}

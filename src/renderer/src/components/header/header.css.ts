@@ -145,3 +145,21 @@ export const title = recipe({
     },
   },
 });
+
+export const subheader = style({
+  borderBottom: `solid 1px ${vars.color.border}`,
+  padding: `${SPACING_UNIT / 2}px ${SPACING_UNIT * 3}px`,
+});
+
+export const newVersionButton = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: `${SPACING_UNIT}px`,
+  color: vars.color.bodyText,
+  borderBottom: "1px solid transparent",
+  ":hover": {
+    borderBottom: `1px solid ${vars.color.bodyText}`,
+    cursor: "pointer",
+  },
+});

@@ -230,3 +230,6 @@ export interface RealDebridUser {
   premium: number;
   expiration: string;
 }
+export type AppUpdaterEvents =
+  | { type: "update-available"; info: Partial<UpdateInfo> }
+  | { type: "update-downloaded" };

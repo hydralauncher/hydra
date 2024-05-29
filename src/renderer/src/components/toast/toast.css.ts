@@ -3,7 +3,7 @@ import { keyframes, style } from "@vanilla-extract/css";
 import { SPACING_UNIT, vars } from "../../theme.css";
 import { recipe } from "@vanilla-extract/recipes";
 
-const TOAST_HEIGHT = 55;
+const TOAST_HEIGHT = 80;
 
 export const slideIn = keyframes({
   "0%": { transform: `translateY(${TOAST_HEIGHT + SPACING_UNIT * 2}px)` },
@@ -19,12 +19,12 @@ export const toast = recipe({
   base: {
     animationDuration: "0.2s",
     animationTimingFunction: "ease-in-out",
-    height: TOAST_HEIGHT,
+    maxHeight: TOAST_HEIGHT,
     position: "fixed",
     backgroundColor: vars.color.background,
     borderRadius: "4px",
     border: `solid 1px ${vars.color.border}`,
-    left: "50%",
+    right: `${SPACING_UNIT * 2}px`,
     /* Bottom panel height + 16px */
     bottom: `${26 + SPACING_UNIT * 2}px`,
     overflow: "hidden",
@@ -32,6 +32,7 @@ export const toast = recipe({
     flexDirection: "column",
     justifyContent: "space-between",
     zIndex: "0",
+    maxWidth: "500px",
   },
   variants: {
     closing: {

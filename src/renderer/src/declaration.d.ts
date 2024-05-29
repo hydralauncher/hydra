@@ -11,6 +11,7 @@ import type {
   DownloadProgress,
   UserPreferences,
   StartGameDownloadPayload,
+  RealDebridUser,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -88,13 +89,12 @@ declare global {
     ) => Promise<Electron.OpenDialogReturnValue>;
     platform: NodeJS.Platform;
 
-    /* Splash */
+    /* Auto update */
     onAutoUpdaterEvent: (
       cb: (event: AppUpdaterEvents) => void
     ) => () => Electron.IpcRenderer;
     checkForUpdates: () => Promise<void>;
     restartAndInstallUpdate: () => Promise<void>;
-    continueToMainWindow: () => Promise<void>;
   }
 
   interface Window {

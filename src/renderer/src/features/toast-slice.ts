@@ -20,6 +20,7 @@ export const toastSlice = createSlice({
   reducers: {
     showToast: (state, action: PayloadAction<Omit<ToastState, "visible">>) => {
       state.message = action.payload.message;
+      state.type = action.payload.type;
       state.visible = true;
     },
     closeToast: (state) => {
