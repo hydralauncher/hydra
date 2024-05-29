@@ -5,8 +5,7 @@ import { Button, CheckboxField, Link, TextField } from "@renderer/components";
 import * as styles from "./settings-real-debrid.css";
 import type { UserPreferences } from "@types";
 import { SPACING_UNIT } from "@renderer/theme.css";
-import { showToast } from "@renderer/features";
-import { useAppDispatch } from "@renderer/hooks";
+import { useToast } from "@renderer/hooks";
 
 const REAL_DEBRID_API_TOKEN_URL = "https://real-debrid.com/apitoken";
 
@@ -19,12 +18,13 @@ export function SettingsRealDebrid({
   userPreferences,
   updateUserPreferences,
 }: SettingsRealDebridProps) {
+  const [isLoading, setIsLoading] = useState(false);
   const [form, setForm] = useState({
     useRealDebrid: false,
     realDebridApiToken: null as string | null,
   });
 
-  const dispatch = useAppDispatch();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const { t } = useTranslation("settings");
 
@@ -40,38 +40,40 @@ export function SettingsRealDebrid({
   const handleFormSubmit: React.FormEventHandler<HTMLFormElement> = async (
     event
   ) => {
+    setIsLoading(true);
     event.preventDefault();
 
-    if (form.useRealDebrid) {
-      const user = await window.electron.authenticateRealDebrid(
-        form.realDebridApiToken!
-      );
-
-      if (user.type === "premium") {
-        dispatch(
-          showToast({
-            message: t("real_debrid_free_account", { username: user.username }),
-            type: "error",
-          })
+    try {
+      if (form.useRealDebrid) {
+        const user = await window.electron.authenticateRealDebrid(
+          form.realDebridApiToken!
         );
 
-        return;
+        if (user.type === "free") {
+          showErrorToast(
+            t("real_debrid_free_account_error", { username: user.username })
+          );
+
+          return;
+        } else {
+          showSuccessToast(
+            t("real_debrid_linked_message", { username: user.username })
+          );
+        }
       }
+
+      updateUserPreferences({
+        realDebridApiToken: form.useRealDebrid ? form.realDebridApiToken : null,
+      });
+    } catch (err) {
+      showErrorToast(t("real_debrid_invalid_token"));
+    } finally {
+      setIsLoading(false);
     }
-
-    // dispatch(
-    //   showToast({
-    //     message: t("real_debrid_free_account", { username: "doctorp" }),
-    //     type: "error",
-    //   })
-    // );
-
-    updateUserPreferences({
-      realDebridApiToken: form.useRealDebrid ? form.realDebridApiToken : null,
-    });
   };
 
-  const isButtonDisabled = form.useRealDebrid && !form.realDebridApiToken;
+  const isButtonDisabled =
+    (form.useRealDebrid && !form.realDebridApiToken) || isLoading;
 
   return (
     <form className={styles.form} onSubmit={handleFormSubmit}>
@@ -90,7 +92,7 @@ export function SettingsRealDebrid({
 
       {form.useRealDebrid && (
         <TextField
-          label="API Private Token"
+          label={t("real_debrid_api_token")}
           value={form.realDebridApiToken ?? ""}
           type="password"
           onChange={(event) =>

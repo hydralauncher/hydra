@@ -8,14 +8,15 @@ import { SettingsRealDebrid } from "./settings-real-debrid";
 import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
 
-const categories = ["general", "behavior", "real_debrid"];
-
 export function Settings() {
-  const [currentCategory, setCurrentCategory] = useState(categories.at(0)!);
   const [userPreferences, setUserPreferences] =
     useState<UserPreferences | null>(null);
 
   const { t } = useTranslation("settings");
+
+  const categories = [t("general"), t("behavior"), "Real-Debrid"];
+
+  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
 
   useEffect(() => {
     window.electron.getUserPreferences().then((userPreferences) => {
@@ -33,7 +34,7 @@ export function Settings() {
   };
 
   const renderCategory = () => {
-    if (currentCategory === "general") {
+    if (currentCategoryIndex === 0) {
       return (
         <SettingsGeneral
           userPreferences={userPreferences}
@@ -42,9 +43,9 @@ export function Settings() {
       );
     }
 
-    if (currentCategory === "real_debrid") {
+    if (currentCategoryIndex === 1) {
       return (
-        <SettingsRealDebrid
+        <SettingsBehavior
           userPreferences={userPreferences}
           updateUserPreferences={handleUpdateUserPreferences}
         />
@@ -52,7 +53,7 @@ export function Settings() {
     }
 
     return (
-      <SettingsBehavior
+      <SettingsRealDebrid
         userPreferences={userPreferences}
         updateUserPreferences={handleUpdateUserPreferences}
       />
@@ -63,18 +64,18 @@ export function Settings() {
     <section className={styles.container}>
       <div className={styles.content}>
         <section className={styles.settingsCategories}>
-          {categories.map((category) => (
+          {categories.map((category, index) => (
             <Button
               key={category}
-              theme={currentCategory === category ? "primary" : "outline"}
-              onClick={() => setCurrentCategory(category)}
+              theme={currentCategoryIndex === index ? "primary" : "outline"}
+              onClick={() => setCurrentCategoryIndex(index)}
             >
-              {t(category)}
+              {category}
             </Button>
           ))}
         </section>
 
-        <h2>{t(currentCategory)}</h2>
+        <h2>{categories[currentCategoryIndex]}</h2>
         {renderCategory()}
       </div>
     </section>

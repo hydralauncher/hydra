@@ -7,8 +7,9 @@ import { Button, Link, Modal, TextField } from "@renderer/components";
 import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
 import { Downloader, formatBytes } from "@shared";
 
-import type { GameRepack, UserPreferences } from "@types";
+import type { GameRepack } from "@types";
 import { SPACING_UNIT } from "@renderer/theme.css";
+import { DOWNLOADER_NAME } from "@renderer/constants";
 
 export interface SelectFolderModalProps {
   visible: boolean;
@@ -21,6 +22,8 @@ export interface SelectFolderModalProps {
   repack: GameRepack | null;
 }
 
+const downloaders = [Downloader.Torrent, Downloader.RealDebrid];
+
 export function SelectFolderModal({
   visible,
   onClose,
@@ -32,14 +35,14 @@ export function SelectFolderModal({
   const [diskFreeSpace, setDiskFreeSpace] = useState<DiskSpace | null>(null);
   const [selectedPath, setSelectedPath] = useState("");
   const [downloadStarting, setDownloadStarting] = useState(false);
-  const [userPreferences, setUserPreferences] =
-    useState<UserPreferences | null>(null);
   const [selectedDownloader, setSelectedDownloader] = useState(
     Downloader.Torrent
   );
 
   useEffect(() => {
-    visible && getDiskFreeSpace(selectedPath);
+    if (visible) {
+      getDiskFreeSpace(selectedPath);
+    }
   }, [visible, selectedPath]);
 
   useEffect(() => {
@@ -48,7 +51,6 @@ export function SelectFolderModal({
       window.electron.getUserPreferences(),
     ]).then(([path, userPreferences]) => {
       setSelectedPath(userPreferences?.downloadsPath || path);
-      setUserPreferences(userPreferences);
 
       if (userPreferences?.realDebridApiToken) {
         setSelectedDownloader(Downloader.RealDebrid);
@@ -106,35 +108,21 @@ export function SelectFolderModal({
           </span>
 
           <div className={styles.downloaders}>
-            <Button
-              className={styles.downloaderOption}
-              theme={
-                selectedDownloader === Downloader.Torrent
-                  ? "primary"
-                  : "outline"
-              }
-              onClick={() => setSelectedDownloader(Downloader.Torrent)}
-            >
-              {selectedDownloader === Downloader.Torrent && (
-                <CheckCircleFillIcon />
-              )}
-              Torrent
-            </Button>
-            <Button
-              className={styles.downloaderOption}
-              theme={
-                selectedDownloader === Downloader.RealDebrid
-                  ? "primary"
-                  : "outline"
-              }
-              onClick={() => setSelectedDownloader(Downloader.RealDebrid)}
-              disabled={!userPreferences?.realDebridApiToken}
-            >
-              {selectedDownloader === Downloader.RealDebrid && (
-                <CheckCircleFillIcon />
-              )}
-              Real-Debrid
-            </Button>
+            {downloaders.map((downloader) => (
+              <Button
+                key={downloader}
+                className={styles.downloaderOption}
+                theme={
+                  selectedDownloader === downloader ? "primary" : "outline"
+                }
+                onClick={() => setSelectedDownloader(downloader)}
+              >
+                {selectedDownloader === downloader && (
+                  <CheckCircleFillIcon className={styles.downloaderIcon} />
+                )}
+                {DOWNLOADER_NAME[downloader]}
+              </Button>
+            ))}
           </div>
         </div>
 

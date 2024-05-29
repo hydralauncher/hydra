@@ -34,7 +34,6 @@
   "bottom_panel": {
     "no_downloads_in_progress": "Нет активных загрузок",
     "downloading_metadata": "Загрузка метаданных {{title}}…",
-    "checking_files": "Проверка файлов {{title}}… ({{percentage}} завершено)",
     "downloading": "Загрузка {{title}}… ({{percentage}} завершено) - Окончание {{eta}} - {{speed}}"
   },
   "catalogue": {
@@ -56,14 +55,12 @@
     "space_left_on_disk": "{{space}} свободно на диске",
     "eta": "Окончание {{eta}}",
     "downloading_metadata": "Загрузка метаданных…",
-    "checking_files": "Проверка файлов…",
     "filter": "Фильтр репаков",
     "requirements": "Системные требования",
     "minimum": "Минимальные",
     "recommended": "Рекомендуемые",
     "no_minimum_requirements": "Для {{title}} не указаны минимальные требования",
     "no_recommended_requirements": "Для {{title}} не указаны рекомендуемые требования",
-    "paused_progress": "{{progress}} (Приостановлено)",
     "release_date": "Выпущено {{date}}",
     "publisher": "Издатель {{publisher}}",
     "copy_link_to_clipboard": "Копировать ссылку",
@@ -120,22 +117,18 @@
     "verifying": "Проверка…",
     "completed_at": "Завершено в {{date}}",
     "completed": "Завершено",
-    "cancelled": "Отменено",
     "download_again": "Загрузить снова",
     "cancel": "Отменить",
     "filter": "Фильтр загруженных игр",
     "remove": "Удалить",
     "downloading_metadata": "Загрузка метаданных…",
-    "checking_files": "Проверка файлов…",
     "starting_download": "Начало загрузки…",
     "deleting": "Удаление установщика…",
     "delete": "Удалить установщик",
     "remove_from_list": "Удалить",
     "delete_modal_title": "Вы уверены?",
     "delete_modal_description": "Это удалит все установщики с вашего компьютера",
-    "install": "Установить",
-    "real_debrid": "Real-Debrid",
-    "torrent": "Torrent"
+    "install": "Установить"
   },
   "settings": {
     "downloads_path": "Путь загрузок",
@@ -151,8 +144,7 @@
     "general": "Основные",
     "behavior": "Поведение",
     "enable_real_debrid": "Включить Real-Debrid",
-    "real_debrid": "Real-Debrid",
-    "real_debrid_api_token_hint": "API ключ можно получить <0>здесь</0>.",
+    "real_debrid_api_token_hint": "API ключ можно получить <0>здесь</0>",
     "save_changes": "Сохранить изменения"
   },
   "notifications": {

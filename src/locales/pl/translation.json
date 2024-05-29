@@ -34,7 +34,6 @@
   "bottom_panel": {
     "no_downloads_in_progress": "Brak pobierań w toku",
     "downloading_metadata": "Pobieranie {{title}} metadata…",
-    "checking_files": "Sprawdzanie {{title}} plików… (ukończone w {{percentage}})",
     "downloading": "Pobieranie {{title}}… (ukończone w {{percentage}}) - Podsumowanie {{eta}} - {{speed}}"
   },
   "catalogue": {
@@ -56,14 +55,12 @@
     "space_left_on_disk": "{{space}} wolnego na dysku",
     "eta": "Podsumowanie {{eta}}",
     "downloading_metadata": "Pobieranie metadata…",
-    "checking_files": "Sprawdzanie plików…",
     "filter": "Filtruj repacki",
     "requirements": "Wymagania systemowe",
     "minimum": "Minimalne",
     "recommended": "Zalecane",
     "no_minimum_requirements": "{{title}} nie zawiera informacji o minimalnych wymaganiach",
     "no_recommended_requirements": "{{title}} nie zawiera informacji o zalecanych wymaganiach",
-    "paused_progress": "{{progress}} (Zatrzymano)",
     "release_date": "Wydano w {{date}}",
     "publisher": "Opublikowany przez {{publisher}}",
     "copy_link_to_clipboard": "Kopiuj łącze",
@@ -120,22 +117,18 @@
     "verifying": "Weryfikowanie…",
     "completed_at": "Zakończono w {{date}}",
     "completed": "Zakończono",
-    "cancelled": "Anulowano",
     "download_again": "Pobierz ponownie",
     "cancel": "Anuluj",
     "filter": "Filtruj pobrane gry",
     "remove": "Usuń",
     "downloading_metadata": "Pobieranie metadata…",
-    "checking_files": "Sprawdzanie plików…",
     "starting_download": "Rozpoczęto pobieranie…",
     "deleting": "Usuwanie instalatora…",
     "delete": "Usuń instalator",
     "remove_from_list": "Usuń",
     "delete_modal_title": "Czy na pewno?",
     "delete_modal_description": "Spowoduje to usunięcie wszystkich plików instalacyjnych z komputera",
-    "install": "Instaluj",
-    "real_debrid": "Real-Debrid",
-    "torrent": "Torrent"
+    "install": "Instaluj"
   },
   "settings": {
     "downloads_path": "Ścieżka pobierania",
@@ -151,8 +144,7 @@
     "general": "Ogólne",
     "behavior": "Zachowania",
     "enable_real_debrid": "Włącz Real-Debrid",
-    "real_debrid": "Real-Debrid",
-    "real_debrid_api_token_hint": "Możesz uzyskać swój klucz API <0>tutaj</0>.",
+    "real_debrid_api_token_hint": "Możesz uzyskać swój klucz API <0>tutaj</0>",
     "save_changes": "Zapisz zmiany"
   },
   "notifications": {

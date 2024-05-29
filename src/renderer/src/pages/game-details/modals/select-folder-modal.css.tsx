@@ -25,4 +25,10 @@ export const downloaders = style({
 
 export const downloaderOption = style({
   flex: "1",
+  position: "relative",
+});
+
+export const downloaderIcon = style({
+  position: "absolute",
+  left: `${SPACING_UNIT * 2}px`,
 });
