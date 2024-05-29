@@ -62,6 +62,8 @@ export function SettingsRealDebrid({
             t("real_debrid_linked_message", { username: user.username })
           );
         }
+      } else {
+        showSuccessToast(t("changes_saved"));
       }
 
       updateUserPreferences({
