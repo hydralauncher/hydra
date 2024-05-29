@@ -47,6 +47,18 @@ export function useDownload() {
     updateLibrary();
   };
 
+  const removeGameInstaller = async (gameId: number) => {
+    dispatch(setGameDeleting(gameId));
+
+    try {
+      await window.electron.deleteGameFolder(gameId);
+      await window.electron.removeGame(gameId);
+      updateLibrary();
+    } finally {
+      dispatch(removeGameFromDeleting(gameId));
+    }
+  };
+
   const removeGameFromLibrary = (gameId: number) =>
     window.electron.removeGameFromLibrary(gameId).then(() => {
       updateLibrary();
@@ -66,16 +78,6 @@ export function useDownload() {
     }
   };
 
-  const deleteGame = async (gameId: number) => {
-    dispatch(setGameDeleting(gameId));
-
-    try {
-      await window.electron.deleteGameFolder(gameId);
-    } finally {
-      dispatch(removeGameFromDeleting(gameId));
-    }
-  };
-
   const isGameDeleting = (gameId: number) => {
     return gamesWithDeletionInProgress.includes(gameId);
   };
@@ -90,7 +92,7 @@ export function useDownload() {
     resumeDownload,
     cancelDownload,
     removeGameFromLibrary,
-    deleteGame,
+    removeGameInstaller,
     isGameDeleting,
     clearDownload: () => dispatch(clearDownload()),
     setLastPacket: (packet: DownloadProgress) =>

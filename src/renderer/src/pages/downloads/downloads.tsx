@@ -41,7 +41,7 @@ export function Downloads() {
     resumeDownload,
     removeGameFromLibrary,
     cancelDownload,
-    deleteGame,
+    removeGameInstaller,
     isGameDeleting,
   } = useDownload();
 
@@ -224,10 +224,8 @@ export function Downloads() {
   };
 
   const handleDeleteGame = async () => {
-    if (gameToBeDeleted.current) {
-      await deleteGame(gameToBeDeleted.current);
-      await removeGameFromLibrary(gameToBeDeleted.current);
-    }
+    if (gameToBeDeleted.current)
+      await removeGameInstaller(gameToBeDeleted.current);
   };
 
   return (

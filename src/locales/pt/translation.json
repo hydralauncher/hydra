@@ -119,7 +119,7 @@
     "verifying": "Verificando…",
     "completed_at": "Concluído em {{date}}",
     "completed": "Concluído",
-    "removed": "Cancelado",
+    "removed": "Não baixado",
     "download_again": "Baixar novamente",
     "cancel": "Cancelar",
     "filter": "Filtrar jogos baixados",
