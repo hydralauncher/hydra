@@ -128,7 +128,7 @@
     "delete_modal_title": "정말로 하시겠습니까?",
     "delete_modal_description": "이 기기의 모든 설치 파일들이 제거될 것입니다",
     "install": "설치",
-    "real_debrid": "Real Debrid",
+    "real_debrid": "Real-Debrid",
     "torrent": "Torrent"
   },
   "settings": {
@@ -139,13 +139,13 @@
     "enable_repack_list_notifications": "새 리팩이 추가되었을 때",
     "telemetry": "자동 데이터 수집",
     "telemetry_description": "익명 사용 통계를 활성화",
-    "real_debrid_api_token_description": "Real Debrid API 토큰",
+    "real_debrid_api_token_description": "Real-Debrid API 토큰",
     "quit_app_instead_hiding": "작업 표시줄 트레이로 최소화하는 대신 Hydra를 종료",
     "launch_with_system": "컴퓨터가 시작되었을 때 Hydra 실행",
     "general": "일반",
     "behavior": "행동",
-    "enable_real_debrid": "Real Debrid 활성화",
-    "real_debrid": "Real Debrid",
+    "enable_real_debrid": "Real-Debrid 활성화",
+    "real_debrid": "Real-Debrid",
     "real_debrid_api_token_hint": "API 키를 <0>이곳</0>에서 얻으세요.",
     "save_changes": "변경 사항 저장"
   },

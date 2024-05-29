@@ -128,7 +128,7 @@
     "delete_modal_title": "Weet je het zeker?",
     "delete_modal_description": "Hiermee worden alle installatiebestanden van uw computer verwijderd",
     "install": "Installeren",
-    "real_debrid": "Real Debrid",
+    "real_debrid": "Real-Debrid",
     "torrent": "Torrent"
   },
   "settings": {
@@ -139,13 +139,13 @@
     "enable_repack_list_notifications": "Wanneer een nieuwe herverpakking wordt toegevoegd",
     "telemetry": "Telemetrie",
     "telemetry_description": "Schakel anonieme gebruiksstatistieken in",
-    "real_debrid_api_token_label": "Real Debrid API token",
+    "real_debrid_api_token_label": "Real-Debrid API token",
     "quit_app_instead_hiding": "Sluit Hydra af in plaats van te minimaliseren naar de lade",
     "launch_with_system": "Start Hydra bij het opstarten van het systeem",
     "general": "Algemeen",
     "behavior": "Gedrag",
-    "enable_real_debrid": "Enable Real Debrid",
-    "real_debrid": "Real Debrid",
+    "enable_real_debrid": "Enable Real-Debrid",
+    "real_debrid": "Real-Debrid",
     "real_debrid_api_token_hint": "U kunt uw API-sleutel <0>hier</0> verkrijgen.",
     "save_changes": "Wijzigingen opslaan"
   },

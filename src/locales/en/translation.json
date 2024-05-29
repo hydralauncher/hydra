@@ -133,7 +133,7 @@
     "delete_modal_title": "Are you sure?",
     "delete_modal_description": "This will remove all the installation files from your computer",
     "install": "Install",
-    "real_debrid": "Real Debrid",
+    "real_debrid": "Real-Debrid",
     "torrent": "Torrent"
   },
   "settings": {
@@ -144,14 +144,15 @@
     "enable_repack_list_notifications": "When a new repack is added",
     "telemetry": "Telemetry",
     "telemetry_description": "Enable anonymous usage statistics",
-    "real_debrid_api_token_label": "Real Debrid API token",
+    "real_debrid_api_token_label": "Real-Debrid API token",
     "quit_app_instead_hiding": "Quit Hydra instead of minimizing to tray",
     "launch_with_system": "Launch Hydra on system start-up",
     "general": "General",
     "behavior": "Behavior",
-    "enable_real_debrid": "Enable Real Debrid",
-    "real_debrid": "Real Debrid",
-    "real_debrid_api_token_hint": "You can get your API key <0>here</0>.",
+    "enable_real_debrid": "Enable Real-Debrid",
+    "real_debrid": "Real-Debrid",
+    "real_debrid_description": "Real-Debrid is an unrestricted downloader that allows you to download files instantly and at the best of your Internet speed.",
+    "real_debrid_api_token_hint": "You can get your API token <0>here</0>.",
     "save_changes": "Save changes"
   },
   "notifications": {

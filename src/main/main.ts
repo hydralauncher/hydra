@@ -97,7 +97,7 @@ const loadState = async (userPreferences: UserPreferences | null) => {
     relations: { repack: true },
   });
 
-  if (game) DownloadManager.startDownload(game.id);
+  if (game) DownloadManager.startDownload(game);
 };
 
 userPreferencesRepository

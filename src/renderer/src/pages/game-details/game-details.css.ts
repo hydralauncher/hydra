@@ -174,5 +174,5 @@ globalStyle(`${description} img`, {
 });
 
 globalStyle(`${description} a`, {
-  color: vars.color.bodyText,
+  color: vars.color.body,
 });

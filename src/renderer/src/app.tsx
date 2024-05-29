@@ -134,17 +134,18 @@ export function App() {
 
           <section ref={contentRef} className={styles.content}>
             <Outlet />
-
-            <Toast
-              visible={toast.visible}
-              message={toast.message}
-              type={toast.type}
-              onClose={handleToastClose}
-            />
           </section>
         </article>
       </main>
+
       <BottomPanel />
+
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={handleToastClose}
+      />
     </>
   );
 }

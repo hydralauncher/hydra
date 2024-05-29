@@ -125,7 +125,7 @@ export function SelectFolderModal({
               {selectedDownloader === Downloader.RealDebrid && (
                 <CheckCircleFillIcon />
               )}
-              Real Debrid
+              Real-Debrid
             </Button>
           </div>
         </div>

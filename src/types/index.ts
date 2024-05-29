@@ -115,9 +115,6 @@ export interface DownloadProgress {
   numPeers: number;
   numSeeds: number;
   isDownloadingMetadata: boolean;
-  progress: number;
-  bytesDownloaded: number;
-  fileSize: number;
   game: Omit<Game, "repacks">;
 }
 
@@ -197,7 +194,18 @@ export interface RealDebridTorrentInfo {
   host: string;
   split: number;
   progress: number;
-  status: string;
+  status:
+    | "magnet_error"
+    | "magnet_conversion"
+    | "waiting_files_selection"
+    | "queued"
+    | "downloading"
+    | "downloaded"
+    | "error"
+    | "virus"
+    | "compressing"
+    | "uploading"
+    | "dead";
   added: string;
   files: {
     id: number;

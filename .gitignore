@@ -1,6 +1,6 @@
 .vscode
 node_modules
-aria2*
+aria2/
 fastlist.exe
 __pycache__
 dist

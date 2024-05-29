@@ -134,7 +134,7 @@
     "delete_modal_title": "هل أنت متأكد؟",
     "delete_modal_description": "سيؤدي هذا إلى إزالة جميع ملفات التثبيت من جهاز الكمبيوتر الخاص بك",
     "install": "تثبيت",
-    "real_debrid": "Real Debrid",
+    "real_debrid": "Real-Debrid",
     "torrent": "تورنت"
   },
   "settings": {
@@ -145,13 +145,13 @@
     "enable_repack_list_notifications": "عند إضافة حزمة جديدة",
     "telemetry": "القياس عن بعد",
     "telemetry_description": "تفعيل إحصائيات الاستخدام مجهولة المصدر",
-    "real_debrid_api_token_label": "رمز واجهة برمجة التطبيقات (API) لـReal Debrid ",
+    "real_debrid_api_token_label": "رمز واجهة برمجة التطبيقات (API) لـReal-Debrid ",
     "quit_app_instead_hiding": "إنهاء هايدرا بدلاً من التصغير الى شريط الحالة",
     "launch_with_system": "تشغيل هايدرا عند بدء تشغيل النظام",
     "general": "عام",
     "behavior": "السلوك",
-    "enable_real_debrid": "تفعيل Real Debrid ",
-    "real_debrid": "Real Debrid",
+    "enable_real_debrid": "تفعيل Real-Debrid ",
+    "real_debrid": "Real-Debrid",
     "real_debrid_api_token_hint": "يمكنك الحصول على مفتاح API الخاص بك هنا.",
     "save_changes": "حفظ التغييرات"
   },

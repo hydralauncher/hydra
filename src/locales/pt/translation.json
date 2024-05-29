@@ -131,7 +131,7 @@
     "deleting": "Excluindo instalador…",
     "install": "Instalar",
     "torrent": "Torrent",
-    "real_debrid": "Real Debrid"
+    "real_debrid": "Real-Debrid"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",
@@ -141,13 +141,13 @@
     "enable_repack_list_notifications": "Quando a lista de repacks for atualizada",
     "telemetry": "Telemetria",
     "telemetry_description": "Habilitar estatísticas de uso anônimas",
-    "real_debrid_api_token_label": "Token de API do Real Debrid",
+    "real_debrid_api_token_label": "Token de API do Real-Debrid",
     "quit_app_instead_hiding": "Fechar o aplicativo em vez de minimizá-lo",
     "launch_with_system": "Iniciar aplicativo na inicialização do sistema",
     "general": "Geral",
     "behavior": "Comportamento",
-    "enable_real_debrid": "Habilitar Real Debrid",
-    "real_debrid": "Real Debrid",
+    "enable_real_debrid": "Habilitar Real-Debrid",
+    "real_debrid": "Real-Debrid",
     "real_debrid_api_token_hint": "Você pode obter sua chave de API <0>aqui</0>.",
     "save_changes": "Salvar mudanças"
   },

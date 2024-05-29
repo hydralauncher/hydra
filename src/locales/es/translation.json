@@ -134,7 +134,7 @@
     "delete_modal_title": "¿Estás seguro?",
     "delete_modal_description": "Esto eliminará todos los archivos de instalación de tu computadora.",
     "install": "Instalar",
-    "real_debrid": "Real Debrid",
+    "real_debrid": "Real-Debrid",
     "torrent": "Torrent"
   },
   "settings": {
@@ -145,13 +145,13 @@
     "enable_repack_list_notifications": "Cuando se añade un repack nuevo",
     "telemetry": "Telemetría",
     "telemetry_description": "Habilitar recopilación de datos de manera anónima",
-    "real_debrid_api_token_label": "Token API de Real Debrid",
+    "real_debrid_api_token_label": "Token API de Real-Debrid",
     "quit_app_instead_hiding": "Salir de Hydra en vez de minimizar en la bandeja del sistema",
     "launch_with_system": "Iniciar Hydra al inicio del sistema",
     "general": "General",
     "behavior": "Otros",
-    "enable_real_debrid": "Activar Real Debrid",
-    "real_debrid": "Real Debrid",
+    "enable_real_debrid": "Activar Real-Debrid",
+    "real_debrid": "Real-Debrid",
     "real_debrid_api_token_hint": "Puedes obtener tu clave de API <0>aquí</0>.",
     "save_changes": "Guardar cambios"
   },

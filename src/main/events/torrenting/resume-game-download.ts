@@ -29,7 +29,7 @@ const resumeGameDownload = async (
         .getRepository(Game)
         .update({ status: "active", progress: Not(1) }, { status: "paused" });
 
-      await DownloadManager.resumeDownload(gameId);
+      await DownloadManager.resumeDownload(game);
 
       await transactionalEntityManager
         .getRepository(Game)

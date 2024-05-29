@@ -134,7 +134,7 @@
     "delete_modal_title": "Вы уверены?",
     "delete_modal_description": "Это удалит все установщики с вашего компьютера",
     "install": "Установить",
-    "real_debrid": "Real Debrid",
+    "real_debrid": "Real-Debrid",
     "torrent": "Torrent"
   },
   "settings": {
@@ -145,13 +145,13 @@
     "enable_repack_list_notifications": "При добавлении нового репака",
     "telemetry": "Телеметрия",
     "telemetry_description": "Отправлять анонимную статистику использования",
-    "real_debrid_api_token_label": "Real Debrid API-токен",
+    "real_debrid_api_token_label": "Real-Debrid API-токен",
     "quit_app_instead_hiding": "Закрывать Hydra вместо того, чтобы сворачивать его в трей",
     "launch_with_system": "Запуск Hydra вместе с системой",
     "general": "Основные",
     "behavior": "Поведение",
-    "enable_real_debrid": "Включить Real Debrid",
-    "real_debrid": "Real Debrid",
+    "enable_real_debrid": "Включить Real-Debrid",
+    "real_debrid": "Real-Debrid",
     "real_debrid_api_token_hint": "API ключ можно получить <0>здесь</0>.",
     "save_changes": "Сохранить изменения"
   },

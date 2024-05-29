@@ -25,12 +25,13 @@ export const toast = recipe({
     borderRadius: "4px",
     border: `solid 1px ${vars.color.border}`,
     left: "50%",
-    /* Bottom panel height + spacing */
+    /* Bottom panel height + 16px */
     bottom: `${26 + SPACING_UNIT * 2}px`,
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
+    zIndex: "0",
   },
   variants: {
     closing: {
@@ -66,7 +67,7 @@ export const progress = style({
 });
 
 export const closeButton = style({
-  color: vars.color.bodyText,
+  color: vars.color.body,
   cursor: "pointer",
   padding: "0",
   margin: "0",

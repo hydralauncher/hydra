@@ -52,8 +52,6 @@ export function SettingsRealDebrid({
         form.realDebridApiToken!
       );
 
-      console.log(user);
-
       if (user.type === "premium") {
         dispatch(
           showToast({
@@ -61,18 +59,22 @@ export function SettingsRealDebrid({
             type: "success",
           })
         );
+
+        updateUserPreferences({
+          realDebridApiToken: form.useRealDebrid
+            ? form.realDebridApiToken
+            : null,
+        });
       }
     }
-
-    // updateUserPreferences({
-    //   realDebridApiToken: form.useRealDebrid ? form.realDebridApiToken : null,
-    // });
   };
 
   const isButtonDisabled = form.useRealDebrid && !form.realDebridApiToken;
 
   return (
     <form className={styles.form} onSubmit={handleFormSubmit}>
+      <p className={styles.description}>{t("real_debrid_description")}</p>
+
       <CheckboxField
         label={t("enable_real_debrid")}
         checked={form.useRealDebrid}
@@ -86,7 +88,7 @@ export function SettingsRealDebrid({
 
       {form.useRealDebrid && (
         <TextField
-          label={t("real_debrid_api_token_label")}
+          label="API Private Token"
           value={form.realDebridApiToken ?? ""}
           type="password"
           onChange={(event) =>
