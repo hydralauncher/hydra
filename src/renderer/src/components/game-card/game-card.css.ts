@@ -109,6 +109,6 @@ export const shopIcon = style({
 });
 
 export const noDownloadsLabel = style({
-  color: vars.color.bodyText,
+  color: vars.color.body,
   fontWeight: "bold",
 });

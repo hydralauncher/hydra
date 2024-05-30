@@ -2,7 +2,6 @@ import { gameRepository } from "@main/repository";
 
 import { searchRepacks } from "../helpers/search-games";
 import { registerEvent } from "../register-event";
-import { GameStatus } from "@shared";
 import { sortBy } from "lodash-es";
 
 const getLibrary = async () =>
@@ -24,7 +23,7 @@ const getLibrary = async () =>
           ...game,
           repacks: searchRepacks(game.title),
         })),
-        (game) => (game.status !== GameStatus.Cancelled ? 0 : 1)
+        (game) => (game.status !== "removed" ? 0 : 1)
       )
     );
 

@@ -1,21 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { Game } from "@types";
 import { useDate } from "@renderer/hooks";
+import { gameDetailsContext } from "../game-details.context";
 
 const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 
-export interface HeroPanelPlaytimeProps {
-  game: Game;
-  isGamePlaying: boolean;
-}
-
-export function HeroPanelPlaytime({
-  game,
-  isGamePlaying,
-}: HeroPanelPlaytimeProps) {
+export function HeroPanelPlaytime() {
   const [lastTimePlayed, setLastTimePlayed] = useState("");
+
+  const { game, isGameRunning } = useContext(gameDetailsContext);
 
   const { i18n, t } = useTranslation("game_details");
 
@@ -52,8 +46,8 @@ export function HeroPanelPlaytime({
     return t("amount_hours", { amount: numberFormatter.format(hours) });
   };
 
-  if (!game.lastTimePlayed) {
-    return <p>{t("not_played_yet", { title: game.title })}</p>;
+  if (!game?.lastTimePlayed) {
+    return <p>{t("not_played_yet", { title: game?.title })}</p>;
   }
 
   return (
@@ -64,7 +58,7 @@ export function HeroPanelPlaytime({
         })}
       </p>
 
-      {isGamePlaying ? (
+      {isGameRunning ? (
         <p>{t("playing_now")}</p>
       ) : (
         <p>

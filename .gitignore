@@ -1,6 +1,6 @@
 .vscode
 node_modules
-hydra-download-manager
+aria2/
 fastlist.exe
 __pycache__
 dist
@@ -9,4 +9,3 @@ out
 *.log*
 .env
 .vite
-logs

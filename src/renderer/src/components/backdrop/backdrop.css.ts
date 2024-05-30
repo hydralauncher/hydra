@@ -43,5 +43,11 @@ export const backdrop = recipe({
         backgroundColor: "rgba(0, 0, 0, 0)",
       },
     },
+    windows: {
+      true: {
+        // SPACING_UNIT * 3 + title bar spacing
+        paddingTop: `${SPACING_UNIT * 3 + 35}px`,
+      },
+    },
   },
 });

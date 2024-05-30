@@ -4,16 +4,19 @@ import { useTranslation } from "react-i18next";
 import type { UserPreferences } from "@types";
 
 import { CheckboxField } from "@renderer/components";
+import { useAppSelector } from "@renderer/hooks";
 
 export interface SettingsBehaviorProps {
-  userPreferences: UserPreferences | null;
   updateUserPreferences: (values: Partial<UserPreferences>) => void;
 }
 
 export function SettingsBehavior({
   updateUserPreferences,
-  userPreferences,
 }: SettingsBehaviorProps) {
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+
   const [form, setForm] = useState({
     preferQuitInsteadOfHiding: false,
     runAtStartup: false,

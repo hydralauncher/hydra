@@ -3,7 +3,12 @@ import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
-import { logger, resolveDatabaseUpdates, WindowManager } from "@main/services";
+import {
+  DownloadManager,
+  logger,
+  resolveDatabaseUpdates,
+  WindowManager,
+} from "@main/services";
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
@@ -64,7 +69,7 @@ app.whenReady().then(() => {
       where: { id: 1 },
     });
 
-    WindowManager.createSplashScreen();
+    WindowManager.createMainWindow();
     WindowManager.createSystemTray(userPreferences?.language || "en");
   });
 });
@@ -98,6 +103,10 @@ app.on("open-url", (_event, url) => {
 // explicitly with Cmd + Q.
 app.on("window-all-closed", () => {
   WindowManager.mainWindow = null;
+});
+
+app.on("before-quit", () => {
+  DownloadManager.disconnect();
 });
 
 app.on("activate", () => {
