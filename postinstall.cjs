@@ -49,6 +49,8 @@ const downloadAria2WindowsAndLinux = async () => {
 };
 
 const copyAria2Macos = async () => {
+  console.log("Checking if aria2 is installed...");
+
   const isAria2Installed = spawnSync("which", ["aria2c"]).status;
 
   if (isAria2Installed != 0) {
@@ -57,6 +59,7 @@ const copyAria2Macos = async () => {
     return;
   }
 
+  console.log("Copying aria2 binary...");
   fs.mkdirSync("aria2");
   await exec(`cp $(which aria2c) aria2/aria2c`);
 };
