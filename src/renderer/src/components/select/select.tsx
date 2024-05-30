@@ -9,13 +9,14 @@ export interface SelectProps
   > {
   theme?: NonNullable<RecipeVariants<typeof styles.select>>["theme"];
   label?: string;
+  options?: { key: any; value: any; label: string }[];
 }
 
 export function Select({
   value,
-  theme = "primary",
   label,
-  children,
+  options = [{ key: value, value: value, label: "-" }],
+  theme = "primary",
   onChange,
 }: SelectProps) {
   const [isFocused, setIsFocused] = useState(false);
@@ -38,7 +39,11 @@ export function Select({
           onBlur={() => setIsFocused(false)}
           onChange={onChange}
         >
-          {children}
+          {options.map((option) => (
+            <option key={option.key} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
       </div>
     </div>
