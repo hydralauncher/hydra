@@ -15,6 +15,6 @@ export const startAria2 = () => {
       "--file-allocation=none",
       "--allow-overwrite=true",
     ],
-    { stdio: "inherit" }
+    { stdio: "inherit", windowsHide: true }
   );
 };
