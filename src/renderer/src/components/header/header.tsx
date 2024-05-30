@@ -1,12 +1,18 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeftIcon, SearchIcon, XIcon } from "@primer/octicons-react";
+import {
+  ArrowLeftIcon,
+  SearchIcon,
+  SyncIcon,
+  XIcon,
+} from "@primer/octicons-react";
 
 import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 
 import * as styles from "./header.css";
 import { clearSearch } from "@renderer/features";
+import { AppUpdaterEvents } from "@types";
 
 export interface HeaderProps {
   onSearch: (query: string) => void;
@@ -34,6 +40,9 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
 
   const [isFocused, setIsFocused] = useState(false);
 
+  const [showUpdateSubheader, setShowUpdateSubheader] = useState(false);
+  const [newVersion, setNewVersion] = useState("");
+
   const { t } = useTranslation("header");
 
   const title = useMemo(() => {
@@ -49,6 +58,30 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
     }
   }, [location.pathname, search, dispatch]);
 
+  const handleClickRestartAndUpdate = () => {
+    window.electron.restartAndInstallUpdate();
+  };
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onAutoUpdaterEvent(
+      (event: AppUpdaterEvents) => {
+        if (event.type == "update-available") {
+          setNewVersion(event.info.version || "");
+        }
+
+        if (event.type == "update-downloaded") {
+          setShowUpdateSubheader(true);
+        }
+      }
+    );
+
+    window.electron.checkForUpdates();
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   const focusInput = () => {
     setIsFocused(true);
     inputRef.current?.focus();
@@ -63,64 +96,80 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
   };
 
   return (
-    <header
-      className={styles.header({
-        draggingDisabled,
-        isWindows: window.electron.platform === "win32",
-      })}
-    >
-      <div className={styles.section}>
-        <button
-          type="button"
-          className={styles.backButton({ enabled: location.key !== "default" })}
-          onClick={handleBackButtonClick}
-          disabled={location.key === "default"}
-        >
-          <ArrowLeftIcon />
-        </button>
-
-        <h3
-          className={styles.title({
-            hasBackButton: location.key !== "default",
-          })}
-        >
-          {title}
-        </h3>
-      </div>
-
-      <section className={styles.section}>
-        <div className={styles.search({ focused: isFocused })}>
+    <>
+      <header
+        className={styles.header({
+          draggingDisabled,
+          isWindows: window.electron.platform === "win32",
+        })}
+      >
+        <div className={styles.section}>
           <button
             type="button"
-            className={styles.actionButton}
-            onClick={focusInput}
+            className={styles.backButton({
+              enabled: location.key !== "default",
+            })}
+            onClick={handleBackButtonClick}
+            disabled={location.key === "default"}
           >
-            <SearchIcon />
+            <ArrowLeftIcon />
           </button>
 
-          <input
-            ref={inputRef}
-            type="text"
-            name="search"
-            placeholder={t("search")}
-            value={search}
-            className={styles.searchInput}
-            onChange={(event) => onSearch(event.target.value)}
-            onFocus={() => setIsFocused(true)}
-            onBlur={handleBlur}
-          />
+          <h3
+            className={styles.title({
+              hasBackButton: location.key !== "default",
+            })}
+          >
+            {title}
+          </h3>
+        </div>
 
-          {search && (
+        <section className={styles.section}>
+          <div className={styles.search({ focused: isFocused })}>
             <button
               type="button"
-              onClick={onClear}
               className={styles.actionButton}
+              onClick={focusInput}
             >
-              <XIcon />
+              <SearchIcon />
             </button>
-          )}
-        </div>
-      </section>
-    </header>
+
+            <input
+              ref={inputRef}
+              type="text"
+              name="search"
+              placeholder={t("search")}
+              value={search}
+              className={styles.searchInput}
+              onChange={(event) => onSearch(event.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={handleBlur}
+            />
+
+            {search && (
+              <button
+                type="button"
+                onClick={onClear}
+                className={styles.actionButton}
+              >
+                <XIcon />
+              </button>
+            )}
+          </div>
+        </section>
+      </header>
+      {showUpdateSubheader && (
+        <header className={styles.subheader}>
+          <button
+            type="button"
+            className={styles.newVersionButton}
+            onClick={handleClickRestartAndUpdate}
+          >
+            <SyncIcon size={12} />
+            <small>{t("version_available", { version: newVersion })}</small>
+          </button>
+        </header>
+      )}
+    </>
   );
 }

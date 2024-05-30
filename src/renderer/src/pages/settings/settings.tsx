@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@renderer/components";
 
 import * as styles from "./settings.css";
@@ -7,70 +7,61 @@ import { UserPreferences } from "@types";
 import { SettingsRealDebrid } from "./settings-real-debrid";
 import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
-
-const categories = ["general", "behavior", "real_debrid"];
+import { useAppDispatch } from "@renderer/hooks";
+import { setUserPreferences } from "@renderer/features";
 
 export function Settings() {
-  const [currentCategory, setCurrentCategory] = useState(categories.at(0)!);
-  const [userPreferences, setUserPreferences] =
-    useState<UserPreferences | null>(null);
-
   const { t } = useTranslation("settings");
 
-  useEffect(() => {
-    window.electron.getUserPreferences().then((userPreferences) => {
-      setUserPreferences(userPreferences);
-    });
-  }, []);
+  const dispatch = useAppDispatch();
 
-  const handleUpdateUserPreferences = (values: Partial<UserPreferences>) => {
-    window.electron.updateUserPreferences(values);
+  const categories = [t("general"), t("behavior"), "Real-Debrid"];
+
+  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
+
+  const handleUpdateUserPreferences = async (
+    values: Partial<UserPreferences>
+  ) => {
+    await window.electron.updateUserPreferences(values);
+    window.electron.getUserPreferences().then((userPreferences) => {
+      dispatch(setUserPreferences(userPreferences));
+    });
   };
 
-  function renderCategory() {
-    switch (currentCategory) {
-      case "general":
-        return (
-          <SettingsGeneral
-            userPreferences={userPreferences}
-            updateUserPreferences={handleUpdateUserPreferences}
-          />
-        );
-      case "real_debrid":
-        return (
-          <SettingsRealDebrid
-            userPreferences={userPreferences}
-            updateUserPreferences={handleUpdateUserPreferences}
-          />
-        );
-      case "behavior":
-        return (
-          <SettingsBehavior
-            userPreferences={userPreferences}
-            updateUserPreferences={handleUpdateUserPreferences}
-          />
-        );
-      default:
-        return <></>;
+  const renderCategory = () => {
+    if (currentCategoryIndex === 0) {
+      return (
+        <SettingsGeneral updateUserPreferences={handleUpdateUserPreferences} />
+      );
     }
-  }
+
+    if (currentCategoryIndex === 1) {
+      return (
+        <SettingsBehavior updateUserPreferences={handleUpdateUserPreferences} />
+      );
+    }
+
+    return (
+      <SettingsRealDebrid updateUserPreferences={handleUpdateUserPreferences} />
+    );
+  };
 
   return (
     <section className={styles.container}>
       <div className={styles.content}>
         <section className={styles.settingsCategories}>
-          {categories.map((category) => (
+          {categories.map((category, index) => (
             <Button
               key={category}
-              theme={currentCategory === category ? "primary" : "outline"}
-              onClick={() => setCurrentCategory(category)}
+              theme={currentCategoryIndex === index ? "primary" : "outline"}
+              onClick={() => setCurrentCategoryIndex(index)}
             >
-              {t(category)}
+              {category}
             </Button>
           ))}
         </section>
 
-        <h2>{t(currentCategory)}</h2>
+        <h2>{categories[currentCategoryIndex]}</h2>
         {renderCategory()}
       </div>
     </section>
