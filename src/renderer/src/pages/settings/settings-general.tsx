@@ -9,6 +9,7 @@ import { useAppSelector } from "@renderer/hooks";
 
 import { changeLanguage } from "i18next";
 import * as languageResources from "@locales";
+import { orderBy } from "lodash-es";
 
 interface LanguageOption {
   option: string;
@@ -47,18 +48,16 @@ export function SettingsGeneral({
     fetchdefaultDownloadsPath();
 
     setLanguageOptions(
-      Object.keys(languageResources)
-        .map((language) => {
+      orderBy(
+        Object.keys(languageResources).map((language) => {
           return {
             nativeName: ISO6391.getNativeName(language),
             option: language,
           };
-        })
-        .sort((a, b) => {
-          if (a.nativeName < b.nativeName) return -1;
-          if (a.nativeName > b.nativeName) return 1;
-          return 0;
-        })
+        }),
+        ["nativeName"],
+        "asc"
+      )
     );
   }, []);
 
