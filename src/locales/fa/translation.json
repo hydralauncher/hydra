@@ -12,7 +12,6 @@
     "settings": "تنظیمات",
     "my_library": "کتابخانه‌ی من",
     "downloading_metadata": "{{title}} (در حال دانلود متادیتا...)",
-    "checking_files": "{{title}} ({{percentage}} - در حال بررسی فایل‌ها...)",
     "paused": "{{title}} (متوقف شده)",
     "downloading": "{{title}} ({{percentage}} - در حال دانلود…)",
     "filter": "فیلتر کردن کتابخانه",

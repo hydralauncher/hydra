@@ -12,7 +12,6 @@
     "settings": "设置",
     "my_library": "我的游戏库",
     "downloading_metadata": "{{title}} (正在下载元数据…)",
-    "checking_files": "{{title}} ({{percentage}} - 正在检查文件…)",
     "paused": "{{title}} (已暂停)",
     "downloading": "{{title}} ({{percentage}} - 正在下载…)",
     "filter": "筛选游戏库",

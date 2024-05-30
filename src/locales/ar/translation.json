@@ -12,7 +12,6 @@
     "settings": "إعدادات",
     "my_library": "مكتبتي",
     "downloading_metadata": "{{title}} (جارٍ تنزيل البيانات الوصفية...)",
-    "checking_files": "{{title}} ({{percentage}} - جارٍ التحقق من الملفات...)",
     "paused": "{{title}} (متوقف)",
     "downloading": "{{title}} ({{percentage}} - جارٍ التنزيل...)",
     "filter": "بحث في المكتبة",

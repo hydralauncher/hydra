@@ -12,7 +12,6 @@
     "settings": "Indstillinger",
     "my_library": "Mit bibliotek",
     "downloading_metadata": "{{title}} (Downloader metadata…)",
-    "checking_files": "{{title}} ({{percentage}} - Tjekker filer…)",
     "paused": "{{title}} (Paused)",
     "downloading": "{{title}} ({{percentage}} - Downloading…)",
     "filter": "Filtrer bibliotek",

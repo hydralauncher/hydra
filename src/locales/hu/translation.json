@@ -12,7 +12,6 @@
     "settings": "Beállítások",
     "my_library": "Könyvtáram",
     "downloading_metadata": "{{title}} (Metadata letöltése…)",
-    "checking_files": "{{title}} ({{percentage}} - Fájlok ellenőrzése…)",
     "paused": "{{title}} (Szünet)",
     "downloading": "{{title}} ({{percentage}} - Letöltés…)",
     "filter": "Könyvtár szűrése",

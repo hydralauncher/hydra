@@ -12,7 +12,6 @@
     "settings": "Ajustes",
     "my_library": "Minha biblioteca",
     "downloading_metadata": "{{title}} (Baixando metadados…)",
-    "checking_files": "{{title}} ({{percentage}} - Verificando arquivos…)",
     "paused": "{{title}} (Pausado)",
     "downloading": "{{title}} ({{percentage}} - Baixando…)",
     "filter": "Filtrar biblioteca",

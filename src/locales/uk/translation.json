@@ -12,7 +12,6 @@
     "settings": "Налаштування",
     "my_library": "Бібліотека",
     "downloading_metadata": "{{title}} (Завантаження метаданих…)",
-    "checking_files": "{{title}} ({{percentage}} - Перевірка файлів…)",
     "paused": "{{title}} (Призупинено)",
     "downloading": "{{title}} ({{percentage}} - Завантаження…)",
     "filter": "Фільтр бібліотеки",

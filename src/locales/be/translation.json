@@ -12,7 +12,6 @@
     "settings": "Налады",
     "my_library": "Мая бібліятэка",
     "downloading_metadata": "{{title}} (Сцягванне мэтаданых…)",
-    "checking_files": "{{title}} ({{percentage}} - Праверка файлаў…)",
     "paused": "{{title}} (Спынена)",
     "downloading": "{{title}} ({{percentage}} - Сцягванне…)",
     "filter": "Фільтар бібліятэкі",
