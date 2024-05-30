@@ -5,6 +5,7 @@ import {
   librarySlice,
   searchSlice,
   userPreferencesSlice,
+  toastSlice,
 } from "@renderer/features";
 
 export const store = configureStore({
@@ -14,6 +15,7 @@ export const store = configureStore({
     library: librarySlice.reducer,
     userPreferences: userPreferencesSlice.reducer,
     download: downloadSlice.reducer,
+    toast: toastSlice.reducer,
   },
 });
 

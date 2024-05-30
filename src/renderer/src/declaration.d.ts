@@ -8,8 +8,10 @@ import type {
   HowLongToBeatCategory,
   ShopDetails,
   Steam250Game,
-  TorrentProgress,
+  DownloadProgress,
   UserPreferences,
+  StartGameDownloadPayload,
+  RealDebridUser,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -21,18 +23,12 @@ declare global {
 
   interface Electron {
     /* Torrenting */
-    startGameDownload: (
-      repackId: number,
-      objectID: string,
-      title: string,
-      shop: GameShop,
-      downloadPath: string
-    ) => Promise<Game>;
+    startGameDownload: (payload: StartGameDownloadPayload) => Promise<void>;
     cancelGameDownload: (gameId: number) => Promise<void>;
     pauseGameDownload: (gameId: number) => Promise<void>;
     resumeGameDownload: (gameId: number) => Promise<void>;
     onDownloadProgress: (
-      cb: (value: TorrentProgress) => void
+      cb: (value: DownloadProgress) => void
     ) => () => Electron.IpcRenderer;
 
     /* Catalogue */
@@ -67,6 +63,7 @@ declare global {
     openGame: (gameId: number, executablePath: string) => Promise<void>;
     closeGame: (gameId: number) => Promise<boolean>;
     removeGameFromLibrary: (gameId: number) => Promise<void>;
+    removeGame: (gameId: number) => Promise<void>;
     deleteGameFolder: (gameId: number) => Promise<unknown>;
     getGameByObjectID: (objectID: string) => Promise<Game | null>;
     onPlaytime: (cb: (gameId: number) => void) => () => Electron.IpcRenderer;
@@ -78,6 +75,7 @@ declare global {
       preferences: Partial<UserPreferences>
     ) => Promise<void>;
     autoLaunch: (enabled: boolean) => Promise<void>;
+    authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
