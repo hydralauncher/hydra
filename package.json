@@ -67,7 +67,6 @@
     "typeorm": "^0.3.20",
     "user-agents": "^1.1.193",
     "webtorrent-health": "^1.2.0",
-    "winston": "^3.13.0",
     "yaml": "^2.4.1"
   },
   "devDependencies": {
