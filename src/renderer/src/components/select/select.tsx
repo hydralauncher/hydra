@@ -9,13 +9,13 @@ export interface SelectProps
   > {
   theme?: NonNullable<RecipeVariants<typeof styles.select>>["theme"];
   label?: string;
-  options?: { key: any; value: any; label: string }[];
+  options?: { key: string; value: string; label: string }[];
 }
 
 export function Select({
   value,
   label,
-  options = [{ key: value, value: value, label: "-" }],
+  options = [{ key: "-", value: value?.toString() || "-", label: "-" }],
   theme = "primary",
   onChange,
 }: SelectProps) {
