@@ -139,46 +139,7 @@ export function HeroPanelActions() {
     </Button>
   );
 
-  if (game?.progress === 1) {
-    return (
-      <>
-        {game?.progress === 1 ? (
-          <Button
-            onClick={openGameInstaller}
-            theme="outline"
-            disabled={deleting || isGameRunning}
-            className={styles.heroPanelAction}
-          >
-            {t("install")}
-          </Button>
-        ) : (
-          toggleGameOnLibraryButton
-        )}
-
-        {isGameRunning ? (
-          <Button
-            onClick={closeGame}
-            theme="outline"
-            disabled={deleting}
-            className={styles.heroPanelAction}
-          >
-            {t("close")}
-          </Button>
-        ) : (
-          <Button
-            onClick={openGame}
-            theme="outline"
-            disabled={deleting || isGameRunning}
-            className={styles.heroPanelAction}
-          >
-            {t("play")}
-          </Button>
-        )}
-      </>
-    );
-  }
-
-  if (game?.status === "active") {
+  if (game?.status === "active" && game?.progress !== 1) {
     return (
       <>
         <Button
@@ -248,7 +209,7 @@ export function HeroPanelActions() {
     );
   }
 
-  if (repacks.length) {
+  if (repacks.length && !game) {
     return (
       <>
         {toggleGameOnLibraryButton}
@@ -265,12 +226,45 @@ export function HeroPanelActions() {
 
   return (
     <>
-      <BinaryNotFoundModal
-        visible={showBinaryNotFoundModal}
-        onClose={() => setShowBinaryNotFoundModal(false)}
-      />
+      {game?.progress === 1 ? (
+        <>
+          <BinaryNotFoundModal
+            visible={showBinaryNotFoundModal}
+            onClose={() => setShowBinaryNotFoundModal(false)}
+          />
 
-      {toggleGameOnLibraryButton}
+          <Button
+            onClick={openGameInstaller}
+            theme="outline"
+            disabled={deleting || isGameRunning}
+            className={styles.heroPanelAction}
+          >
+            {t("install")}
+          </Button>
+        </>
+      ) : (
+        toggleGameOnLibraryButton
+      )}
+
+      {isGameRunning ? (
+        <Button
+          onClick={closeGame}
+          theme="outline"
+          disabled={deleting}
+          className={styles.heroPanelAction}
+        >
+          {t("close")}
+        </Button>
+      ) : (
+        <Button
+          onClick={openGame}
+          theme="outline"
+          disabled={deleting || isGameRunning}
+          className={styles.heroPanelAction}
+        >
+          {t("play")}
+        </Button>
+      )}
     </>
   );
 }
