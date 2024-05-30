@@ -1,5 +1,6 @@
-import type { Downloader, GameStatus } from "@shared";
-import { UpdateInfo } from "electron-updater";
+import type { Aria2Status } from "aria2";
+import type { Downloader } from "@shared";
+import { ProgressInfo, UpdateInfo } from "electron-updater";
 
 export type GameShop = "steam" | "epic";
 export type CatalogueCategory = "recently_added" | "trending";
@@ -92,14 +93,12 @@ export interface Game extends Omit<CatalogueEntry, "cover"> {
   id: number;
   title: string;
   iconUrl: string;
-  status: GameStatus | null;
+  status: Aria2Status | null;
   folderName: string;
   downloadPath: string | null;
   repacks: GameRepack[];
   repack: GameRepack | null;
   progress: number;
-  fileVerificationProgress: number;
-  decompressionProgress: number;
   bytesDownloaded: number;
   playTimeInMilliseconds: number;
   downloader: Downloader;
@@ -110,11 +109,12 @@ export interface Game extends Omit<CatalogueEntry, "cover"> {
   updatedAt: Date;
 }
 
-export interface TorrentProgress {
+export interface DownloadProgress {
   downloadSpeed: number;
   timeRemaining: number;
   numPeers: number;
   numSeeds: number;
+  isDownloadingMetadata: boolean;
   game: Omit<Game, "repacks">;
 }
 
@@ -145,6 +145,91 @@ export interface SteamGame {
   clientIcon: string | null;
 }
 
+export type AppUpdaterEvent =
+  | { type: "error" }
+  | { type: "checking-for-updates" }
+  | { type: "update-not-available" }
+  | { type: "update-available"; info: UpdateInfo }
+  | { type: "update-downloaded" }
+  | { type: "download-progress"; info: ProgressInfo }
+  | { type: "update-cancelled" };
+
+/* Events */
+export interface StartGameDownloadPayload {
+  repackId: number;
+  objectID: string;
+  title: string;
+  shop: GameShop;
+  downloadPath: string;
+  downloader: Downloader;
+}
+
+export interface RealDebridUnrestrictLink {
+  id: string;
+  filename: string;
+  mimeType: string;
+  filesize: number;
+  link: string;
+  host: string;
+  host_icon: string;
+  chunks: number;
+  crc: number;
+  download: string;
+  streamable: number;
+}
+
+export interface RealDebridAddMagnet {
+  id: string;
+  // URL of the created ressource
+  uri: string;
+}
+
+export interface RealDebridTorrentInfo {
+  id: string;
+  filename: string;
+  original_filename: string;
+  hash: string;
+  bytes: number;
+  original_bytes: number;
+  host: string;
+  split: number;
+  progress: number;
+  status:
+    | "magnet_error"
+    | "magnet_conversion"
+    | "waiting_files_selection"
+    | "queued"
+    | "downloading"
+    | "downloaded"
+    | "error"
+    | "virus"
+    | "compressing"
+    | "uploading"
+    | "dead";
+  added: string;
+  files: {
+    id: number;
+    path: string;
+    bytes: number;
+    selected: number;
+  }[];
+  links: string[];
+  ended: string;
+  speed: number;
+  seeders: number;
+}
+
+export interface RealDebridUser {
+  id: number;
+  username: string;
+  email: string;
+  points: number;
+  locale: string;
+  avatar: string;
+  type: string;
+  premium: number;
+  expiration: string;
+}
 export type AppUpdaterEvents =
   | { type: "update-available"; info: Partial<UpdateInfo> }
   | { type: "update-downloaded" };

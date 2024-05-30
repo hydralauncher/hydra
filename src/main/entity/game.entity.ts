@@ -10,7 +10,8 @@ import {
 import { Repack } from "./repack.entity";
 
 import type { GameShop } from "@types";
-import { Downloader, GameStatus } from "@shared";
+import { Downloader } from "@shared";
+import type { Aria2Status } from "aria2";
 
 @Entity("game")
 export class Game {
@@ -42,7 +43,7 @@ export class Game {
   shop: GameShop;
 
   @Column("text", { nullable: true })
-  status: GameStatus | null;
+  status: Aria2Status | null;
 
   @Column("int", { default: Downloader.Torrent })
   downloader: Downloader;
@@ -52,9 +53,6 @@ export class Game {
    */
   @Column("float", { default: 0 })
   progress: number;
-
-  @Column("float", { default: 0 })
-  fileVerificationProgress: number;
 
   @Column("int", { default: 0 })
   bytesDownloaded: number;

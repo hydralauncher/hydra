@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
 import { Button, CheckboxField, Modal } from "@renderer/components";
@@ -7,18 +7,19 @@ import { SPACING_UNIT } from "@renderer/theme.css";
 import * as styles from "./dodi-installation-guide.css";
 import { ArrowUpIcon } from "@primer/octicons-react";
 import { DONT_SHOW_DODI_INSTRUCTIONS_KEY } from "./constants";
+import { gameDetailsContext } from "../../game-details.context";
 
 export interface DODIInstallationGuideProps {
-  windowColor: string;
   visible: boolean;
   onClose: () => void;
 }
 
 export function DODIInstallationGuide({
-  windowColor,
   visible,
   onClose,
 }: DODIInstallationGuideProps) {
+  const { gameColor } = useContext(gameDetailsContext);
+
   const { t } = useTranslation("game_details");
 
   const [dontShowAgain, setDontShowAgain] = useState(false);
@@ -53,7 +54,7 @@ export function DODIInstallationGuide({
 
         <div
           className={styles.windowContainer}
-          style={{ backgroundColor: windowColor }}
+          style={{ backgroundColor: gameColor }}
         >
           <div className={styles.windowContent}>
             <ArrowUpIcon size={24} />

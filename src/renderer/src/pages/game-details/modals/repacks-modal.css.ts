@@ -1,5 +1,5 @@
 import { style } from "@vanilla-extract/css";
-import { SPACING_UNIT, vars } from "../../theme.css";
+import { SPACING_UNIT, vars } from "../../../theme.css";
 
 export const repacks = style({
   display: "flex",
@@ -13,6 +13,6 @@ export const repackButton = style({
   flexDirection: "column",
   alignItems: "flex-start",
   gap: `${SPACING_UNIT}px`,
-  color: vars.color.bodyText,
+  color: vars.color.body,
   padding: `${SPACING_UNIT * 2}px`,
 });

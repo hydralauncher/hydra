@@ -8,3 +8,4 @@ export * from "./sidebar/sidebar";
 export * from "./text-field/text-field";
 export * from "./checkbox-field/checkbox-field";
 export * from "./link/link";
+export * from "./toast/toast";
