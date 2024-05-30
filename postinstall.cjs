@@ -1,10 +1,11 @@
 const { default: axios } = require("axios");
 const util = require("node:util");
 const fs = require("node:fs");
+const { spawnSync } = require("node:child_process");
 
 const exec = util.promisify(require("node:child_process").exec);
 
-const downloadAria2 = async () => {
+const downloadAria2WindowsAndLinux = async () => {
   if (fs.existsSync("aria2")) {
     console.log("Aria2 already exists, skipping download...");
     return;
@@ -47,6 +48,19 @@ const downloadAria2 = async () => {
   });
 };
 
+const copyAria2Macos = async () => {
+  const isAria2Installed = spawnSync("which", ["aria2c"]).status;
+
+  if (isAria2Installed != 0) {
+    console.log("Please install aria2");
+    console.log("brew install aria2");
+    return;
+  }
+
+  fs.mkdirSync("aria2");
+  await exec(`cp $(which aria2c) aria2/aria2c`);
+};
+
 if (process.platform === "win32") {
   fs.copyFileSync(
     "node_modules/ps-list/vendor/fastlist-0.3.0-x64.exe",
@@ -54,4 +68,8 @@ if (process.platform === "win32") {
   );
 }
 
-downloadAria2();
+if (process.platform == "darwin") {
+  copyAria2Macos();
+} else {
+  downloadAria2WindowsAndLinux();
+}
