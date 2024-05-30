@@ -6,7 +6,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-13]
+        os: [macos-latest]
 
     runs-on: ${{ matrix.os }}
 
@@ -39,7 +39,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Mac
-        if: matrix.os == 'macos-13'
+        if: matrix.os == 'macos-latest'
         run: sudo yarn build:mac
         env:
           MAIN_VITE_ONLINEFIX_USERNAME: ${{ secrets.ONLINEFIX_USERNAME }}
