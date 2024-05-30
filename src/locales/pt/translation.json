@@ -142,7 +142,7 @@
     "telemetry": "Telemetria",
     "telemetry_description": "Habilitar estatísticas de uso anônimas",
     "real_debrid_api_token_label": "Token de API do Real-Debrid",
-    "quit_app_instead_hiding": "Encerrar o Hydra ao invés de minimizá-lo",
+    "quit_app_instead_hiding": "Encerrar o Hydra ao invés de minimizá-lo ao fechar",
     "launch_with_system": "Iniciar o Hydra junto com o sistema",
     "general": "Geral",
     "behavior": "Comportamento",
