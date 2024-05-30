@@ -30,7 +30,7 @@ export function SeedersAndPeers({ repack }: Readonly<SeedersAndPeersProps>) {
       }}
     >
       <Tooltip tooltipText="Seeders">
-        <SproutIcon stroke={vars.color.bodyText} />
+        <SproutIcon stroke={vars.color.body} />
         <span
           style={{
             marginLeft: `${SPACING_UNIT - 5}px`,
@@ -41,7 +41,7 @@ export function SeedersAndPeers({ repack }: Readonly<SeedersAndPeersProps>) {
         </span>
       </Tooltip>
       <Tooltip tooltipText="Peers">
-        <UsersIcon stroke={vars.color.bodyText} />
+        <UsersIcon stroke={vars.color.body} />
         <span
           style={{
             marginLeft: `${SPACING_UNIT - 5}px`,
