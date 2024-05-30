@@ -28,7 +28,11 @@ export const webTorrentData = {
 
         if (peers || seeds) break;
       } catch (e) {
-        return null;
+        if (retry === 2) {
+          return Promise.reject(
+            new Error("Failed to get seeders and peers after 3 retries.")
+          );
+        }
       }
 
       timeout *= 2;
