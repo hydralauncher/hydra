@@ -6,7 +6,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest]
+        os: [macos-13]
 
     runs-on: ${{ matrix.os }}
 
@@ -39,7 +39,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Mac
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-13'
         run: sudo yarn build:mac
         env:
           MAIN_VITE_ONLINEFIX_USERNAME: ${{ secrets.ONLINEFIX_USERNAME }}
@@ -59,3 +59,4 @@ jobs:
             dist/*.tar.gz
             dist/*.yml
             dist/*.blockmap
+            dist/mac-arm64/*.app
