@@ -53,9 +53,7 @@ jobs:
           path: |
             dist/win-unpacked/**
             dist/*.dmg
-            dist/*.zip
             dist/*.deb
             dist/*.rpm
-            dist/*.tar.gz
             dist/*.yml
             dist/*.blockmap
