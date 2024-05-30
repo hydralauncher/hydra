@@ -49,6 +49,11 @@ const downloadAria2WindowsAndLinux = async () => {
 };
 
 const copyAria2Macos = async () => {
+  if (fs.existsSync("aria2")) {
+    console.log("Aria2 already exists, skipping...");
+    return;
+  }
+
   console.log("Checking if aria2 is installed...");
 
   const isAria2Installed = spawnSync("which", ["aria2c"]).status;
