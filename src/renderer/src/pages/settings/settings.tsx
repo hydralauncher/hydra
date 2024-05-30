@@ -15,7 +15,11 @@ export function Settings() {
 
   const dispatch = useAppDispatch();
 
-  const categories = [t("general"), t("behavior"), "Real-Debrid"];
+  const categories = [
+    { name: t("general"), component: SettingsGeneral },
+    { name: t("behavior"), component: SettingsBehavior },
+    { name: "Real-Debrid", component: SettingsRealDebrid },
+  ];
 
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
 
@@ -29,20 +33,9 @@ export function Settings() {
   };
 
   const renderCategory = () => {
-    if (currentCategoryIndex === 0) {
-      return (
-        <SettingsGeneral updateUserPreferences={handleUpdateUserPreferences} />
-      );
-    }
-
-    if (currentCategoryIndex === 1) {
-      return (
-        <SettingsBehavior updateUserPreferences={handleUpdateUserPreferences} />
-      );
-    }
-
+    const CategoryComponent = categories[currentCategoryIndex].component;
     return (
-      <SettingsRealDebrid updateUserPreferences={handleUpdateUserPreferences} />
+      <CategoryComponent updateUserPreferences={handleUpdateUserPreferences} />
     );
   };
 
@@ -52,16 +45,16 @@ export function Settings() {
         <section className={styles.settingsCategories}>
           {categories.map((category, index) => (
             <Button
-              key={category}
+              key={category.name}
               theme={currentCategoryIndex === index ? "primary" : "outline"}
               onClick={() => setCurrentCategoryIndex(index)}
             >
-              {category}
+              {category.name}
             </Button>
           ))}
         </section>
 
-        <h2>{categories[currentCategoryIndex]}</h2>
+        <h2>{categories[currentCategoryIndex].name}</h2>
         {renderCategory()}
       </div>
     </section>

@@ -142,6 +142,7 @@
     "launch_with_system": "Uruchom Hydra przy starcie systemu",
     "general": "Ogólne",
     "behavior": "Zachowania",
+    "language": "Język",
     "enable_real_debrid": "Włącz Real-Debrid",
     "real_debrid_api_token_hint": "Możesz uzyskać swój klucz API <0>tutaj</0>",
     "save_changes": "Zapisz zmiany"
