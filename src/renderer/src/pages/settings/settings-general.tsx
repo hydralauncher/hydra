@@ -5,16 +5,19 @@ import { useTranslation } from "react-i18next";
 
 import * as styles from "./settings-general.css";
 import type { UserPreferences } from "@types";
+import { useAppSelector } from "@renderer/hooks";
 
 export interface SettingsGeneralProps {
-  userPreferences: UserPreferences | null;
   updateUserPreferences: (values: Partial<UserPreferences>) => void;
 }
 
 export function SettingsGeneral({
-  userPreferences,
   updateUserPreferences,
 }: SettingsGeneralProps) {
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+
   const [form, setForm] = useState({
     downloadsPath: "",
     downloadNotificationsEnabled: false,
