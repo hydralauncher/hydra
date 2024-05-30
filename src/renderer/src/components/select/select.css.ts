@@ -46,7 +46,7 @@ export const option = style({
   color: "#DADBE1",
   cursor: "default",
   fontFamily: "inherit",
-  fontSize: vars.size.bodyFontSize,
+  fontSize: vars.size.body,
   textOverflow: "ellipsis",
   padding: `${SPACING_UNIT}px`,
   ":focus": {
@@ -57,5 +57,5 @@ export const option = style({
 export const label = style({
   marginBottom: `${SPACING_UNIT}px`,
   display: "block",
-  color: vars.color.bodyText,
+  color: vars.color.body,
 });
