@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 
-import { Sidebar, BottomPanel, Header } from "@renderer/components";
+import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
 import {
   useAppDispatch,
@@ -18,8 +18,8 @@ import {
   clearSearch,
   setUserPreferences,
   toggleDraggingDisabled,
+  closeToast,
 } from "@renderer/features";
-import { GameStatusHelper } from "@shared";
 
 document.body.classList.add(themeClass);
 
@@ -42,6 +42,7 @@ export function App() {
   const draggingDisabled = useAppSelector(
     (state) => state.window.draggingDisabled
   );
+  const toast = useAppSelector((state) => state.toast);
 
   useEffect(() => {
     Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
@@ -54,7 +55,7 @@ export function App() {
   useEffect(() => {
     const unsubscribe = window.electron.onDownloadProgress(
       (downloadProgress) => {
-        if (GameStatusHelper.isReady(downloadProgress.game.status)) {
+        if (downloadProgress.game.progress === 1) {
           clearDownload();
           updateLibrary();
           return;
@@ -109,6 +110,10 @@ export function App() {
     });
   }, [dispatch, draggingDisabled]);
 
+  const handleToastClose = useCallback(() => {
+    dispatch(closeToast());
+  }, [dispatch]);
+
   return (
     <>
       {window.electron.platform === "win32" && (
@@ -132,7 +137,15 @@ export function App() {
           </section>
         </article>
       </main>
+
       <BottomPanel />
+
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={handleToastClose}
+      />
     </>
   );
 }

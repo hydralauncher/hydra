@@ -2,19 +2,19 @@ import { useTranslation } from "react-i18next";
 
 import { Button, Modal } from "@renderer/components";
 
-import * as styles from "./delete-modal.css";
+import * as styles from "./delete-game-modal.css";
 
-interface DeleteModalProps {
+interface DeleteGameModalProps {
   visible: boolean;
   onClose: () => void;
   deleteGame: () => void;
 }
 
-export function DeleteModal({
+export function DeleteGameModal({
   onClose,
   visible,
   deleteGame,
-}: DeleteModalProps) {
+}: DeleteGameModalProps) {
   const { t } = useTranslation("downloads");
 
   const handleDeleteGame = () => {

@@ -27,7 +27,7 @@ export const content = recipe({
     display: "flex",
     flexDirection: "column",
     padding: `${SPACING_UNIT * 2}px`,
-    paddingBottom: "0",
+    gap: `${SPACING_UNIT * 2}px`,
     width: "100%",
     overflow: "auto",
   },
@@ -118,7 +118,6 @@ export const sectionTitle = style({
 });
 
 export const section = style({
-  padding: `${SPACING_UNIT * 2}px 0`,
   gap: `${SPACING_UNIT * 2}px`,
   display: "flex",
   flexDirection: "column",

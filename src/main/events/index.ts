@@ -29,6 +29,7 @@ import "./user-preferences/update-user-preferences";
 import "./user-preferences/auto-launch";
 import "./autoupdater/check-for-updates";
 import "./autoupdater/restart-and-install-update";
+import "./user-preferences/authenticate-real-debrid";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => app.getVersion());

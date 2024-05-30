@@ -1,115 +1,98 @@
 import { format } from "date-fns";
-import { useMemo, useState } from "react";
+import { useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import Color from "color";
 
 import { useDownload } from "@renderer/hooks";
-import type { Game, GameRepack } from "@types";
 
 import { formatDownloadProgress } from "@renderer/helpers";
 import { HeroPanelActions } from "./hero-panel-actions";
-import { Downloader, GameStatus, GameStatusHelper, formatBytes } from "@shared";
+import { Downloader, formatBytes } from "@shared";
 
-import { BinaryNotFoundModal } from "../../shared-modals/binary-not-found-modal";
 import * as styles from "./hero-panel.css";
 import { HeroPanelPlaytime } from "./hero-panel-playtime";
+import { gameDetailsContext } from "../game-details.context";
 
-export interface HeroPanelProps {
-  game: Game | null;
-  color: string;
-  isGamePlaying: boolean;
-  objectID: string;
-  title: string;
-  repacks: GameRepack[];
-  openRepacksModal: () => void;
-  getGame: () => void;
-}
-
-export function HeroPanel({
-  game,
-  color,
-  repacks,
-  objectID,
-  title,
-  isGamePlaying,
-  openRepacksModal,
-  getGame,
-}: HeroPanelProps) {
+export function HeroPanel() {
   const { t } = useTranslation("game_details");
 
-  const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
+  const { game, repacks, gameColor } = useContext(gameDetailsContext);
 
-  const {
-    game: gameDownloading,
-    progress,
-    eta,
-    numPeers,
-    numSeeds,
-    isGameDeleting,
-  } = useDownload();
-
-  const isGameDownloading =
-    gameDownloading?.id === game?.id &&
-    GameStatusHelper.isDownloading(game?.status ?? null);
+  const { progress, eta, lastPacket, isGameDeleting } = useDownload();
 
   const finalDownloadSize = useMemo(() => {
     if (!game) return "N/A";
     if (game.fileSize) return formatBytes(game.fileSize);
 
-    if (gameDownloading?.fileSize && isGameDownloading)
-      return formatBytes(gameDownloading.fileSize);
+    if (lastPacket?.game.fileSize && game?.status === "active")
+      return formatBytes(lastPacket?.game.fileSize);
 
     return game.repack?.fileSize ?? "N/A";
-  }, [game, isGameDownloading, gameDownloading]);
+  }, [game, lastPacket?.game]);
+
+  const isGameDownloading =
+    game?.status === "active" && lastPacket?.game.id === game?.id;
 
   const getInfo = () => {
-    if (isGameDeleting(game?.id ?? -1)) {
-      return <p>{t("deleting")}</p>;
-    }
+    if (isGameDeleting(game?.id ?? -1)) return <p>{t("deleting")}</p>;
 
-    if (isGameDownloading && gameDownloading?.status) {
+    if (game?.progress === 1) return <HeroPanelPlaytime />;
+
+    if (game?.status === "active") {
+      if (lastPacket?.isDownloadingMetadata && isGameDownloading) {
+        return (
+          <>
+            <p>{progress}</p>
+            <p>{t("downloading_metadata")}</p>
+          </>
+        );
+      }
+
+      const sizeDownloaded = formatBytes(
+        lastPacket?.game?.bytesDownloaded ?? game?.bytesDownloaded
+      );
+
+      const showPeers =
+        game?.downloader === Downloader.Torrent &&
+        lastPacket?.numPeers !== undefined;
+
       return (
         <>
           <p className={styles.downloadDetailsRow}>
-            {progress}
-            {eta && <small>{t("eta", { eta })}</small>}
+            {isGameDownloading
+              ? progress
+              : formatDownloadProgress(game?.progress)}
+
+            <small>{eta ? t("eta", { eta }) : t("calculating_eta")}</small>
           </p>
 
-          {gameDownloading.status !== GameStatus.Downloading ? (
-            <>
-              <p>{t(gameDownloading.status)}</p>
-              {eta && <small>{t("eta", { eta })}</small>}
-            </>
-          ) : (
-            <p className={styles.downloadDetailsRow}>
-              {formatBytes(gameDownloading.bytesDownloaded)} /{" "}
-              {finalDownloadSize}
+          <p className={styles.downloadDetailsRow}>
+            <span>
+              {sizeDownloaded} / {finalDownloadSize}
+            </span>
+            {showPeers && (
               <small>
-                {game?.downloader === Downloader.Torrent &&
-                  `${numPeers} peers / ${numSeeds} seeds`}
+                {lastPacket?.numPeers} peers / {lastPacket?.numSeeds} seeds
               </small>
-            </p>
-          )}
+            )}
+          </p>
         </>
       );
     }
 
-    if (game?.status === GameStatus.Paused) {
+    if (game?.status === "paused") {
+      const formattedProgress = formatDownloadProgress(game.progress);
+
       return (
         <>
-          <p>
-            {t("paused_progress", {
-              progress: formatDownloadProgress(game.progress),
-            })}
+          <p className={styles.downloadDetailsRow}>
+            {formattedProgress} <small>{t("paused")}</small>
           </p>
           <p>
             {formatBytes(game.bytesDownloaded)} / {finalDownloadSize}
           </p>
         </>
       );
-    }
-
-    if (game && GameStatusHelper.isReady(game?.status ?? GameStatus.Finished)) {
-      return <HeroPanelPlaytime game={game} isGamePlaying={isGamePlaying} />;
     }
 
     const [latestRepack] = repacks;
@@ -129,28 +112,33 @@ export function HeroPanel({
     return <p>{t("no_downloads")}</p>;
   };
 
+  const backgroundColor = gameColor
+    ? (new Color(gameColor).darken(0.6).toString() as string)
+    : "";
+
+  const showProgressBar =
+    (game?.status === "active" && game?.progress < 1) ||
+    game?.status === "paused";
+
   return (
     <>
-      <BinaryNotFoundModal
-        visible={showBinaryNotFoundModal}
-        onClose={() => setShowBinaryNotFoundModal(false)}
-      />
-
-      <div style={{ backgroundColor: color }} className={styles.panel}>
+      <div style={{ backgroundColor }} className={styles.panel}>
         <div className={styles.content}>{getInfo()}</div>
         <div className={styles.actions}>
-          <HeroPanelActions
-            game={game}
-            repacks={repacks}
-            objectID={objectID}
-            title={title}
-            getGame={getGame}
-            openRepacksModal={openRepacksModal}
-            openBinaryNotFoundModal={() => setShowBinaryNotFoundModal(true)}
-            isGamePlaying={isGamePlaying}
-            isGameDownloading={isGameDownloading}
-          />
+          <HeroPanelActions />
         </div>
+
+        {showProgressBar && (
+          <progress
+            max={1}
+            value={
+              isGameDownloading ? lastPacket?.game.progress : game?.progress
+            }
+            className={styles.progressBar({
+              disabled: game?.status === "paused",
+            })}
+          />
+        )}
       </div>
     </>
   );
