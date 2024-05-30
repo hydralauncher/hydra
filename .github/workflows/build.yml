@@ -6,7 +6,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
 
     runs-on: ${{ matrix.os }}
 
@@ -53,7 +53,6 @@ jobs:
           path: |
             dist/win-unpacked/**
             dist/*.zip
-            dist/*.dmg
             dist/*.deb
             dist/*.rpm
             dist/*.tar.gz
