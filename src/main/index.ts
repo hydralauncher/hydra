@@ -12,6 +12,7 @@ import {
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
+import { logsPath } from "./constants";
 const { autoUpdater } = updater;
 
 autoUpdater.setFeedURL({
@@ -21,6 +22,9 @@ autoUpdater.setFeedURL({
 });
 
 autoUpdater.logger = logger;
+console.log = logger.info;
+
+console.log("logsPath:", logsPath);
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
