@@ -5,12 +5,7 @@ const { spawnSync } = require("node:child_process");
 
 const exec = util.promisify(require("node:child_process").exec);
 
-const downloadAria2WindowsAndLinux = async () => {
-  if (fs.existsSync("aria2")) {
-    console.log("Aria2 already exists, skipping download...");
-    return;
-  }
-
+const setupAria2OnWindowsAndLinux = async () => {
   const file =
     process.platform === "win32"
       ? "aria2-1.37.0-win-64bit-build1.zip"
@@ -48,12 +43,7 @@ const downloadAria2WindowsAndLinux = async () => {
   });
 };
 
-const copyAria2Macos = async () => {
-  if (fs.existsSync("aria2")) {
-    console.log("Aria2 already exists, skipping...");
-    return;
-  }
-
+const setupAria2OnMacos = async () => {
   console.log("Checking if aria2 is installed...");
 
   const isAria2Installed = spawnSync("which", ["aria2c"]).status;
@@ -69,15 +59,26 @@ const copyAria2Macos = async () => {
   await exec(`cp $(which aria2c) aria2/aria2c`);
 };
 
+const setupAria2 = () => {
+  if (fs.existsSync("aria2")) {
+    console.log("Aria2 already exists, skipping...");
+    return;
+  }
+
+  if (process.platform == "darwin") {
+    setupAria2OnMacos();
+  } else {
+    setupAria2OnWindowsAndLinux();
+  }
+
+  console.log("Aria2 setup finished");
+};
+
+setupAria2();
+
 if (process.platform === "win32") {
   fs.copyFileSync(
     "node_modules/ps-list/vendor/fastlist-0.3.0-x64.exe",
     "fastlist.exe"
   );
-}
-
-if (process.platform == "darwin") {
-  copyAria2Macos();
-} else {
-  downloadAria2WindowsAndLinux();
 }
