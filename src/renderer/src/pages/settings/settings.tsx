@@ -16,9 +16,9 @@ export function Settings() {
   const dispatch = useAppDispatch();
 
   const categories = [
-    {name: t("general"), component: SettingsGeneral},
-    {name: t("behavior"), component: SettingsBehavior}, 
-    {name: "Real-Debrid", component: SettingsRealDebrid}
+    { name: t("general"), component: SettingsGeneral },
+    { name: t("behavior"), component: SettingsBehavior },
+    { name: "Real-Debrid", component: SettingsRealDebrid },
   ];
 
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
