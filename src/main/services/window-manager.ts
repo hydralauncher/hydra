@@ -99,7 +99,7 @@ export class WindowManager {
         },
         take: 5,
         order: {
-          updatedAt: "DESC",
+          lastTimePlayed: "DESC",
         },
       });
 

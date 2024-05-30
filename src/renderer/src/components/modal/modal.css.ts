@@ -2,14 +2,14 @@ import { keyframes, style } from "@vanilla-extract/css";
 import { recipe } from "@vanilla-extract/recipes";
 import { SPACING_UNIT, vars } from "../../theme.css";
 
-export const modalSlideIn = keyframes({
+export const fadeIn = keyframes({
   "0%": { opacity: 0 },
   "100%": {
     opacity: 1,
   },
 });
 
-export const modalSlideOut = keyframes({
+export const fadeOut = keyframes({
   "0%": { opacity: 1 },
   "100%": {
     opacity: 0,
@@ -18,12 +18,12 @@ export const modalSlideOut = keyframes({
 
 export const modal = recipe({
   base: {
-    animationName: modalSlideIn,
+    animationName: fadeIn,
     animationDuration: "0.3s",
     backgroundColor: vars.color.background,
     borderRadius: "5px",
     maxWidth: "600px",
-    color: vars.color.bodyText,
+    color: vars.color.body,
     maxHeight: "100%",
     border: `solid 1px ${vars.color.border}`,
     overflow: "hidden",
@@ -33,7 +33,7 @@ export const modal = recipe({
   variants: {
     closing: {
       true: {
-        animationName: modalSlideOut,
+        animationName: fadeOut,
         opacity: 0,
       },
     },
@@ -65,5 +65,5 @@ export const closeModalButton = style({
 });
 
 export const closeModalButtonIcon = style({
-  color: vars.color.bodyText,
+  color: vars.color.body,
 });

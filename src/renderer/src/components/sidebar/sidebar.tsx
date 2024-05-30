@@ -10,7 +10,6 @@ import { useDownload, useLibrary } from "@renderer/hooks";
 import { routes } from "./routes";
 
 import * as styles from "./sidebar.css";
-import { GameStatus, GameStatusHelper } from "@shared";
 import { buildGameDetailsPath } from "@renderer/helpers";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
@@ -35,14 +34,14 @@ export function Sidebar() {
 
   const location = useLocation();
 
-  const { game: gameDownloading, progress } = useDownload();
+  const { lastPacket, progress } = useDownload();
 
   useEffect(() => {
     updateLibrary();
-  }, [gameDownloading?.id, updateLibrary]);
+  }, [lastPacket?.game.id, updateLibrary]);
 
-  const isDownloading = library.some((game) =>
-    GameStatusHelper.isDownloading(game.status)
+  const isDownloading = library.some(
+    (game) => game.status === "active" && game.progress !== 1
   );
 
   const sidebarRef = useRef<HTMLElement>(null);
@@ -101,18 +100,9 @@ export function Sidebar() {
   }, [isResizing]);
 
   const getGameTitle = (game: Game) => {
-    if (game.status === GameStatus.Paused)
-      return t("paused", { title: game.title });
+    if (game.status === "paused") return t("paused", { title: game.title });
 
-    if (gameDownloading?.id === game.id) {
-      const isVerifying = GameStatusHelper.isVerifying(gameDownloading.status);
-
-      if (isVerifying)
-        return t(gameDownloading.status!, {
-          title: game.title,
-          percentage: progress,
-        });
-
+    if (lastPacket?.game.id === game.id) {
       return t("downloading", {
         title: game.title,
         percentage: progress,
@@ -183,7 +173,7 @@ export function Sidebar() {
                 className={styles.menuItem({
                   active:
                     location.pathname === `/game/${game.shop}/${game.objectID}`,
-                  muted: game.status === GameStatus.Cancelled,
+                  muted: game.status === "removed",
                 })}
               >
                 <button

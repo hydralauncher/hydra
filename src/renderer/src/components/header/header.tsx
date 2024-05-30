@@ -80,7 +80,7 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
     return () => {
       unsubscribe();
     };
-  });
+  }, []);
 
   const focusInput = () => {
     setIsFocused(true);

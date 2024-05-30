@@ -10,24 +10,23 @@ const sendEvent = (event: AppUpdaterEvents) => {
   WindowManager.mainWindow?.webContents.send("autoUpdaterEvent", event);
 };
 
-const mockValuesForDebug = async () => {
+const mockValuesForDebug = () => {
   sendEvent({ type: "update-available", info: { version: "1.3.0" } });
-  // sendEvent({ type: "update-downloaded" });
 };
 
 const checkForUpdates = async (_event: Electron.IpcMainInvokeEvent) => {
   autoUpdater
-    .addListener("update-available", (info: UpdateInfo) => {
+    .once("update-available", (info: UpdateInfo) => {
       sendEvent({ type: "update-available", info });
     })
-    .addListener("update-downloaded", () => {
+    .once("update-downloaded", () => {
       sendEvent({ type: "update-downloaded" });
     });
 
   if (app.isPackaged) {
     autoUpdater.checkForUpdates();
   } else {
-    await mockValuesForDebug();
+    mockValuesForDebug();
   }
 };
 
