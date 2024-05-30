@@ -2,7 +2,6 @@ import { DownloadIcon, FileDirectoryIcon } from "@primer/octicons-react";
 import type { CatalogueEntry } from "@types";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import EpicGamesLogo from "@renderer/assets/epic-games-logo.svg?react";
 
 import * as styles from "./game-card.css";
 import { useTranslation } from "react-i18next";
@@ -16,7 +15,6 @@ export interface GameCardProps
 }
 
 const shopIcon = {
-  epic: <EpicGamesLogo className={styles.shopIcon} />,
   steam: <SteamLogo className={styles.shopIcon} />,
 };
 

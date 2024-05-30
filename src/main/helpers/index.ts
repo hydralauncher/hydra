@@ -85,5 +85,8 @@ export const steamUrlBuilder = {
     `https://cdn.cloudflare.steamstatic.com/steam/apps/${objectID}/logo.png`,
 };
 
+export const sleep = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
 export * from "./formatters";
 export * from "./ps";

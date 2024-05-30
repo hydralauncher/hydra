@@ -1,15 +1,24 @@
-import { Game } from "@main/entity";
+import axios, { AxiosInstance } from "axios";
+import parseTorrent from "parse-torrent";
 import type {
   RealDebridAddMagnet,
   RealDebridTorrentInfo,
   RealDebridUnrestrictLink,
-} from "./real-debrid.types";
-import axios, { AxiosInstance } from "axios";
-
-const base = "https://api.real-debrid.com/rest/1.0";
+  RealDebridUser,
+} from "@types";
 
 export class RealDebridClient {
   private static instance: AxiosInstance;
+  private static baseURL = "https://api.real-debrid.com/rest/1.0";
+
+  static authorize(apiToken: string) {
+    this.instance = axios.create({
+      baseURL: this.baseURL,
+      headers: {
+        Authorization: `Bearer ${apiToken}`,
+      },
+    });
+  }
 
   static async addMagnet(magnet: string) {
     const searchParams = new URLSearchParams({ magnet });
@@ -22,10 +31,15 @@ export class RealDebridClient {
     return response.data;
   }
 
-  static async getInfo(id: string) {
+  static async getTorrentInfo(id: string) {
     const response = await this.instance.get<RealDebridTorrentInfo>(
       `/torrents/info/${id}`
     );
+    return response.data;
+  }
+
+  static async getUser() {
+    const response = await this.instance.get<RealDebridUser>(`/user`);
     return response.data;
   }
 
@@ -49,51 +63,24 @@ export class RealDebridClient {
     return response.data;
   }
 
-  static async getAllTorrentsFromUser() {
+  private static async getAllTorrentsFromUser() {
     const response =
       await this.instance.get<RealDebridTorrentInfo[]>("/torrents");
 
     return response.data;
   }
 
-  static extractSHA1FromMagnet(magnet: string) {
-    return magnet.match(/btih:([0-9a-fA-F]*)/)?.[1].toLowerCase();
-  }
+  static async getTorrentId(magnetUri: string) {
+    const userTorrents = await RealDebridClient.getAllTorrentsFromUser();
 
-  static async getDownloadUrl(game: Game) {
-    const torrents = await RealDebridClient.getAllTorrentsFromUser();
-    const hash = RealDebridClient.extractSHA1FromMagnet(game!.repack.magnet);
-    let torrent = torrents.find((t) => t.hash === hash);
+    const { infoHash } = await parseTorrent(magnetUri);
+    const userTorrent = userTorrents.find(
+      (userTorrent) => userTorrent.hash === infoHash
+    );
 
-    if (!torrent) {
-      const magnet = await RealDebridClient.addMagnet(game!.repack.magnet);
+    if (userTorrent) return userTorrent.id;
 
-      if (magnet && magnet.id) {
-        await RealDebridClient.selectAllFiles(magnet.id);
-        torrent = await RealDebridClient.getInfo(magnet.id);
-      }
-    }
-
-    if (torrent) {
-      const { links } = torrent;
-      const { download } = await RealDebridClient.unrestrictLink(links[0]);
-
-      if (!download) {
-        throw new Error("Torrent not cached on Real Debrid");
-      }
-
-      return download;
-    }
-
-    throw new Error();
-  }
-
-  static async authorize(apiToken: string) {
-    this.instance = axios.create({
-      baseURL: base,
-      headers: {
-        Authorization: `Bearer ${apiToken}`,
-      },
-    });
+    const torrent = await RealDebridClient.addMagnet(magnetUri);
+    return torrent.id;
   }
 }
