@@ -12,7 +12,6 @@
     "settings": "Instellingen",
     "my_library": "Mijn Bibliotheek",
     "downloading_metadata": "{{title}} (Downloading metadata…)",
-    "checking_files": "{{title}} ({{percentage}} - Folders checken…)",
     "paused": "{{title}} (Gepauzeerd)",
     "downloading": "{{title}} ({{percentage}} - Downloading…)",
     "filter": "Filter Bibliotheek",

@@ -12,7 +12,6 @@
     "settings": "설정",
     "my_library": "내 라이브러리",
     "downloading_metadata": "{{title}} (메타데이터 다운로드 중…)",
-    "checking_files": "{{title}} ({{percentage}} - 파일 검사 중…)",
     "paused": "{{title}} (일시 정지됨)",
     "downloading": "{{title}} ({{percentage}} - 다운로드 중…)",
     "filter": "라이브러리 정렬",

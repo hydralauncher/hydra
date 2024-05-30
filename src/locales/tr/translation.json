@@ -12,7 +12,6 @@
     "settings": "Ayarlar",
     "my_library": "Kütüphane",
     "downloading_metadata": "{{title}} (Metadata indiriliyor…)",
-    "checking_files": "{{title}} ({{percentage}} - Dosyalar kontrol ediliyor…)",
     "paused": "{{title}} (Duraklatıldı)",
     "downloading": "{{title}} ({{percentage}} - İndiriliyor…)",
     "filter": "Kütüphaneyi filtrele",

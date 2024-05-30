@@ -12,7 +12,6 @@
     "settings": "Paramètres",
     "my_library": "Ma bibliothèque",
     "downloading_metadata": "{{title}} (Téléchargement des métadonnées…)",
-    "checking_files": "{{title}} ({{percentage}} - Vérification des fichiers…)",
     "paused": "{{title}} (En pause)",
     "downloading": "{{title}} ({{percentage}} - Téléchargement en cours…)",
     "filter": "Filtrer la bibliothèque",

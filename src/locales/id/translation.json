@@ -12,7 +12,6 @@
     "settings": "Pengaturan",
     "my_library": "Koleksi saya",
     "downloading_metadata": "{{title}} (Mengunduh metadata…)",
-    "checking_files": "{{title}} ({{percentage}} - Memeriksa file…)",
     "paused": "{{title}} (Terhenti)",
     "downloading": "{{title}} ({{percentage}} - Mengunduh…)",
     "filter": "Filter koleksi",

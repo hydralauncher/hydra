@@ -12,7 +12,6 @@
     "settings": "Impostazioni",
     "my_library": "La mia libreria",
     "downloading_metadata": "{{title}} (Scaricamento metadati…)",
-    "checking_files": "{{title}} ({{percentage}} - Verifica file…)",
     "paused": "{{title}} (In pausa)",
     "downloading": "{{title}} ({{percentage}} - Download…)",
     "filter": "Filtra libreria",
