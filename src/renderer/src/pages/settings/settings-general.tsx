@@ -128,13 +128,15 @@ export function SettingsGeneral({
 
       <h3>{t("language")}</h3>
       <>
-        <Select value={form.language} onChange={handleLanguageChange}>
-          {languageOptions.map((language) => (
-            <option key={language.option} value={language.option}>
-              {language.nativeName}
-            </option>
-          ))}
-        </Select>
+        <Select
+          value={form.language}
+          onChange={handleLanguageChange}
+          options={languageOptions.map((language) => ({
+            key: language.option,
+            value: language.option,
+            label: language.nativeName,
+          }))}
+        />
       </>
 
       <h3>{t("notifications")}</h3>
