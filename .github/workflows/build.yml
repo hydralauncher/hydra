@@ -19,10 +19,6 @@ jobs:
         with:
           node-version: 20.11.1
 
-      - name: Install aria2 on Mac
-        if: matrix.os == 'macos-latest'
-        run: brew install aria2
-
       - name: Install dependencies
         run: yarn
 
