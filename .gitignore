@@ -9,3 +9,4 @@ out
 *.log*
 .env
 .vite
+logs/
