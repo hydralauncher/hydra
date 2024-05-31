@@ -147,6 +147,7 @@
     "launch_with_system": "Iniciar o Hydra junto com o sistema",
     "general": "Geral",
     "behavior": "Comportamento",
+    "language": "Idioma",
     "real_debrid_api_token": "Token de API",
     "enable_real_debrid": "Habilitar Real-Debrid",
     "real_debrid_api_token_hint": "Você pode obter seu token de API <0>aqui</0>",
