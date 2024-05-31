@@ -10,7 +10,7 @@ import { generateYML } from "../helpers/generate-lutris-yaml";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { registerEvent } from "../register-event";
 
-const executeGameInsaller = (filePath: string) => {
+const executeGameInstaller = (filePath: string) => {
   if (process.platform === "win32") {
     shell.openPath(filePath);
     return true;
@@ -45,12 +45,12 @@ const openGameInstaller = async (
   }
 
   if (fs.lstatSync(gamePath).isFile()) {
-    return executeGameInsaller(gamePath);
+    return executeGameInstaller(gamePath);
   }
 
   const setupPath = path.join(gamePath, "setup.exe");
   if (fs.existsSync(setupPath)) {
-    return executeGameInsaller(setupPath);
+    return executeGameInstaller(setupPath);
   }
 
   const gamePathFileNames = fs.readdirSync(gamePath);
@@ -59,7 +59,7 @@ const openGameInstaller = async (
   );
 
   if (gameAlternativeSetupPath) {
-    return executeGameInsaller(path.join(gamePath, gameAlternativeSetupPath));
+    return executeGameInstaller(path.join(gamePath, gameAlternativeSetupPath));
   }
 
   if (spawnSync("which", ["lutris"]).status === 0) {
