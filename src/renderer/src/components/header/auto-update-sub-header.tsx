@@ -4,6 +4,12 @@ import { SyncIcon } from "@primer/octicons-react";
 
 import * as styles from "./header.css";
 import { AppUpdaterEvents } from "@types";
+import { Link } from "../link/link";
+
+export const releasesPageUrl =
+  "https://github.com/hydralauncher/hydra/releases";
+
+const isMac = window.electron.platform === "darwin";
 
 export function AutoUpdateSubHeader() {
   const [showUpdateSubheader, setShowUpdateSubheader] = useState(false);
@@ -17,7 +23,7 @@ export function AutoUpdateSubHeader() {
   };
 
   useEffect(() => {
-    if (window.electron.platform == "darwin") {
+    if (isMac) {
       setNewVersionText(
         t("version_available_download", { version: newVersion })
       );
@@ -33,6 +39,10 @@ export function AutoUpdateSubHeader() {
       (event: AppUpdaterEvents) => {
         if (event.type == "update-available") {
           setNewVersion(event.info.version || "");
+
+          if (isMac) {
+            setShowUpdateSubheader(true);
+          }
         }
 
         if (event.type == "update-downloaded") {
@@ -48,20 +58,25 @@ export function AutoUpdateSubHeader() {
     };
   }, []);
 
+  if (!showUpdateSubheader) return null;
+
   return (
-    <>
-      {showUpdateSubheader && (
-        <header className={styles.subheader}>
-          <button
-            type="button"
-            className={styles.newVersionButton}
-            onClick={handleClickNewUpdate}
-          >
-            <SyncIcon size={12} />
-            <small>{newVersionText}</small>
-          </button>
-        </header>
+    <header className={styles.subheader}>
+      {isMac ? (
+        <Link to={releasesPageUrl} className={styles.newVersionLink}>
+          <SyncIcon size={12} />
+          <small>{newVersionText}</small>
+        </Link>
+      ) : (
+        <button
+          type="button"
+          className={styles.newVersionButton}
+          onClick={handleClickNewUpdate}
+        >
+          <SyncIcon size={12} />
+          <small>{newVersionText}</small>
+        </button>
       )}
-    </>
+    </header>
   );
 }
