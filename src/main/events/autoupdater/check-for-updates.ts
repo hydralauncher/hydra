@@ -18,9 +18,13 @@ const mockValuesForDebug = () => {
 };
 
 const checkForUpdates = async (_event: Electron.IpcMainInvokeEvent) => {
-  autoUpdater.once("update-available", (info: UpdateInfo) => {
-    sendEvent({ type: "update-available", info });
-  });
+  autoUpdater
+    .once("update-available", (info: UpdateInfo) => {
+      sendEvent({ type: "update-available", info });
+    })
+    .once("update-downloaded", () => {
+      sendEvent({ type: "update-downloaded" });
+    });
 
   if (app.isPackaged) {
     autoUpdater.checkForUpdates();
