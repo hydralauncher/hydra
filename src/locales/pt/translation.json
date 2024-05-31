@@ -29,7 +29,8 @@
     "search_results": "Resultados da busca",
     "settings": "Ajustes",
     "home": "Início",
-    "version_available": "Versão {{version}} disponível. Clique aqui para reiniciar e instalar."
+    "version_available_install": "Versão {{version}} disponível. Clique aqui para reiniciar e instalar.",
+    "version_available_download": "Versão {{version}} disponível. Clique aqui para fazer o download."
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Sem downloads em andamento",

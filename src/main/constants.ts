@@ -28,6 +28,8 @@ export const databasePath = path.join(
 
 export const logsPath = path.join(app.getPath("appData"), "hydra", "logs");
 
+export const releasesPageUrl = "https://github.com/hydralauncher/hydra";
+
 export const seedsPath = app.isPackaged
   ? path.join(process.resourcesPath, "seeds")
   : path.join(__dirname, "..", "..", "seeds");

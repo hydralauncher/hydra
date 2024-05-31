@@ -29,7 +29,8 @@
     "downloads": "Descargas",
     "search_results": "Resultados de búsqueda",
     "settings": "Ajustes",
-    "version_available": "Version {{version}} disponible. Haz clic aquí para reiniciar e instalar."
+    "version_available_install": "Version {{version}} disponible. Haz clic aquí para reiniciar e instalar.",
+    "version_available_download": "Version {{version}} disponible. Haz clic aquí para descargar."
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Sin descargas en progreso",
