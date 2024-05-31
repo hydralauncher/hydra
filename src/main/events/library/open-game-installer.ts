@@ -54,12 +54,14 @@ const openGameInstaller = async (
   }
 
   const gamePathFileNames = fs.readdirSync(gamePath);
-  const gameAlternativeSetupPath = gamePathFileNames.find(
+  const gamePathExecutableFiles = gamePathFileNames.filter(
     (fileName: string) => path.extname(fileName).toLowerCase() === ".exe"
   );
 
-  if (gameAlternativeSetupPath) {
-    return executeGameInstaller(path.join(gamePath, gameAlternativeSetupPath));
+  if (gamePathExecutableFiles.length === 1) {
+    return executeGameInstaller(
+      path.join(gamePath, gamePathExecutableFiles[0])
+    );
   }
 
   if (spawnSync("which", ["lutris"]).status === 0) {
