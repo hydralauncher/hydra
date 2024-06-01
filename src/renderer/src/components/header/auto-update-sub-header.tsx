@@ -14,25 +14,12 @@ const isMac = window.electron.platform === "darwin";
 export function AutoUpdateSubHeader() {
   const [showUpdateSubheader, setShowUpdateSubheader] = useState(false);
   const [newVersion, setNewVersion] = useState("");
-  const [newVersionText, setNewVersionText] = useState("");
 
   const { t } = useTranslation("header");
 
   const handleClickNewUpdate = () => {
     window.electron.restartAndInstallUpdate();
   };
-
-  useEffect(() => {
-    if (isMac) {
-      setNewVersionText(
-        t("version_available_download", { version: newVersion })
-      );
-    } else {
-      setNewVersionText(
-        t("version_available_install", { version: newVersion })
-      );
-    }
-  }, [t, newVersion]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onAutoUpdaterEvent(
@@ -65,7 +52,9 @@ export function AutoUpdateSubHeader() {
       {isMac ? (
         <Link to={releasesPageUrl} className={styles.newVersionLink}>
           <SyncIcon size={12} />
-          <small>{newVersionText}</small>
+          <small>
+            {t("version_available_download", { version: newVersion })}
+          </small>
         </Link>
       ) : (
         <button
@@ -74,7 +63,9 @@ export function AutoUpdateSubHeader() {
           onClick={handleClickNewUpdate}
         >
           <SyncIcon size={12} />
-          <small>{newVersionText}</small>
+          <small>
+            {t("version_available_install", { version: newVersion })}
+          </small>
         </button>
       )}
     </header>
