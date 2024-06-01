@@ -12,7 +12,6 @@
     "settings": "Paramètres",
     "my_library": "Ma bibliothèque",
     "downloading_metadata": "{{title}} (Téléchargement des métadonnées…)",
-    "checking_files": "{{title}} ({{percentage}} - Vérification des fichiers…)",
     "paused": "{{title}} (En pause)",
     "downloading": "{{title}} ({{percentage}} - Téléchargement en cours…)",
     "filter": "Filtrer la bibliothèque",
@@ -30,7 +29,6 @@
   "bottom_panel": {
     "no_downloads_in_progress": "Aucun téléchargement en cours",
     "downloading_metadata": "Téléchargement des métadonnées de {{title}}…",
-    "checking_files": "Vérification des fichiers de {{title}}… ({{percentage}} terminé)",
     "downloading": "Téléchargement de {{title}}… ({{percentage}} terminé) - Fin dans {{eta}} - {{speed}}"
   },
   "game_details": {
@@ -47,14 +45,12 @@
     "space_left_on_disk": "{{space}} restant sur le disque",
     "eta": "Fin dans {{eta}}",
     "downloading_metadata": "Téléchargement des métadonnées en cours…",
-    "checking_files": "Vérification des fichiers…",
     "filter": "Filtrer les repacks",
     "requirements": "Configuration requise",
     "minimum": "Minimum",
     "recommended": "Recommandée",
     "no_minimum_requirements": "{{title}} ne fournit pas d'informations sur les configurations minimales",
     "no_recommended_requirements": "{{title}} ne fournit pas d'informations sur les configurations recommandées",
-    "paused_progress": "{{progress}} (En pause)",
     "release_date": "Sorti le {{date}}",
     "publisher": "Édité par {{publisher}}",
     "copy_link_to_clipboard": "Copier le lien",
@@ -93,13 +89,11 @@
     "verifying": "Vérification en cours…",
     "completed_at": "Terminé en {{date}}",
     "completed": "Terminé",
-    "cancelled": "Annulé",
     "download_again": "Télécharger à nouveau",
     "cancel": "Annuler",
     "filter": "Filtrer les jeux téléchargés",
     "remove": "Supprimer",
     "downloading_metadata": "Téléchargement des métadonnées en cours…",
-    "checking_files": "Vérification des fichiers…",
     "starting_download": "Démarrage du téléchargement…",
     "remove_from_list": "Retirer",
     "delete": "Supprimer le programme d'installation",
@@ -115,7 +109,8 @@
     "enable_download_notifications": "Quand un téléchargement est terminé",
     "enable_repack_list_notifications": "Quand un nouveau repack est ajouté",
     "telemetry": "Télémétrie",
-    "telemetry_description": "Activer les statistiques d'utilisation anonymes"
+    "telemetry_description": "Activer les statistiques d'utilisation anonymes",
+    "language": "Langue"
   },
   "notifications": {
     "download_complete": "Téléchargement terminé",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, Modal, TextField } from "@renderer/components";
@@ -6,26 +6,32 @@ import type { GameRepack } from "@types";
 
 import * as styles from "./repacks-modal.css";
 
-import { SPACING_UNIT } from "../../theme.css";
+import { SPACING_UNIT } from "../../../theme.css";
 import { format } from "date-fns";
-import { SelectFolderModal } from "./select-folder-modal";
+import { DownloadSettingsModal } from "./download-settings-modal";
+import { gameDetailsContext } from "../game-details.context";
+import { Downloader } from "@shared";
 
 export interface RepacksModalProps {
   visible: boolean;
-  repacks: GameRepack[];
-  startDownload: (repack: GameRepack, downloadPath: string) => Promise<void>;
+  startDownload: (
+    repack: GameRepack,
+    downloader: Downloader,
+    downloadPath: string
+  ) => Promise<void>;
   onClose: () => void;
 }
 
 export function RepacksModal({
   visible,
-  repacks,
   startDownload,
   onClose,
 }: RepacksModalProps) {
   const [filteredRepacks, setFilteredRepacks] = useState<GameRepack[]>([]);
   const [repack, setRepack] = useState<GameRepack | null>(null);
   const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
+
+  const { repacks } = useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
 
@@ -55,7 +61,7 @@ export function RepacksModal({
 
   return (
     <>
-      <SelectFolderModal
+      <DownloadSettingsModal
         visible={showSelectFolderModal}
         onClose={() => setShowSelectFolderModal(false)}
         startDownload={startDownload}

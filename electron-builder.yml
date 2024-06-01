@@ -3,10 +3,10 @@ productName: Hydra
 directories:
   buildResources: build
 extraResources:
-  - hydra-download-manager
+  - aria2
+  - seeds
   - hydra.db
   - fastlist.exe
-  - seeds
 files:
   - "!**/.vscode/*"
   - "!src/*"
@@ -40,8 +40,11 @@ linux:
     - AppImage
     - snap
     - deb
+    - rpm
   maintainer: electronjs.org
-  category: Utility
+  category: Game
+  mimeTypes:
+    - x-scheme-handler/hydralauncher
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false

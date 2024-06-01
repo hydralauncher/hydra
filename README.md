@@ -18,6 +18,7 @@
 [![pt-BR](https://img.shields.io/badge/lang-pt--BR-green.svg)](README.pt-BR.md)
 [![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
 [![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
+[![es](https://img.shields.io/badge/lang-es-red)](README.es.md)
 
 ![Hydra Catalogue](./docs/screenshot.png)
 
@@ -134,7 +135,7 @@ pip install -r requirements.txt
 You'll need an SteamGridDB API Key in order to fetch the game icons on installation.
 If you want to have onlinefix as a repacker you'll need to add your credentials to the .env
 
-Once you have it, you can copy or rename the `.env.example` file to `.env`and put it on`STEAMGRIDDB_API_KEY`, `ONLINEFIX_USERNAME`, `ONLINEFIX_PASSWORD`.
+Once you have it, you can copy or rename the `.env.example` file to `.env` and put it on`STEAMGRIDDB_API_KEY`, `ONLINEFIX_USERNAME`, `ONLINEFIX_PASSWORD`.
 
 ## Running
 
