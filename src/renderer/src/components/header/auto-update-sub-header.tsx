@@ -1,10 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { SyncIcon } from "@primer/octicons-react";
-
+import { Link } from "../link/link";
 import * as styles from "./header.css";
 import { AppUpdaterEvents } from "@types";
-import { Link } from "../link/link";
 
 export const releasesPageUrl =
   "https://github.com/hydralauncher/hydra/releases";

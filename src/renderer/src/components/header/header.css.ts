@@ -168,6 +168,6 @@ export const newVersionLink = style({
   display: "flex",
   alignItems: "center",
   gap: `${SPACING_UNIT}px`,
-  color: "#8e919b !important",
+  color: "#8e919b",
   fontSize: "13px",
 });
