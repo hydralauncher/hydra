@@ -6,7 +6,7 @@ import * as styles from "./header.css";
 import { AppUpdaterEvent } from "@types";
 
 export const releasesPageUrl =
-  "https://github.com/hydralauncher/hydra/releases";
+  "https://github.com/hydralauncher/hydra/releases/latest";
 
 const isMac = window.electron.platform === "darwin";
 
