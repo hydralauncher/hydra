@@ -21,7 +21,6 @@ autoUpdater.setFeedURL({
 });
 
 autoUpdater.logger = logger;
-console.log = logger.info;
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
