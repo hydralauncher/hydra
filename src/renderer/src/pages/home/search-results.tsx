@@ -30,7 +30,7 @@ export function SearchResults() {
 
   const [searchResults, setSearchResults] = useState<CatalogueEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-
+  const [isEnd, setIsEnd] = useState(false);
   const debouncedFunc = useRef<DebouncedFunc<() => void> | null>(null);
 
   const navigate = useNavigate();
@@ -53,6 +53,7 @@ export function SearchResults() {
         })
         .then((results) => {
           setSearchResults(results);
+          setIsEnd(results.length < PAGE_SIZE);
         })
         .finally(() => {
           setIsLoading(false);
@@ -83,7 +84,7 @@ export function SearchResults() {
         <Button
           onClick={handleNextPage}
           theme="outline"
-          disabled={isLoading}
+          disabled={isLoading || isEnd}
         >
           {t("next_page", { ns: "catalogue" })}
           <ArrowRightIcon />
