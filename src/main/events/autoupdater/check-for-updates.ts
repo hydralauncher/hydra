@@ -1,4 +1,4 @@
-import { AppUpdaterEvents } from "@types";
+import { AppUpdaterEvent } from "@types";
 import { registerEvent } from "../register-event";
 import updater, { UpdateInfo } from "electron-updater";
 import { WindowManager } from "@main/services";
@@ -6,7 +6,7 @@ import { app } from "electron";
 
 const { autoUpdater } = updater;
 
-const sendEvent = (event: AppUpdaterEvents) => {
+const sendEvent = (event: AppUpdaterEvent) => {
   WindowManager.mainWindow?.webContents.send("autoUpdaterEvent", event);
 };
 
