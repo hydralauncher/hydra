@@ -67,6 +67,7 @@ export const mediaPreviewButton = recipe({
     transition: "translate 0.3s ease-in-out, opacity 0.2s ease",
     borderRadius: "4px",
     border: `solid 1px ${vars.color.border}`,
+    overflow: "hidden",
     ":hover": {
       opacity: "0.8",
     },
@@ -84,7 +85,6 @@ export const mediaPreview = style({
   width: "100%",
   height: "100%",
   display: "flex",
-  flex: "1",
 });
 
 export const gallerySliderButton = recipe({

@@ -1,9 +1,9 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
-import type { TorrentProgress } from "@types";
+import type { DownloadProgress } from "@types";
 
 export interface DownloadState {
-  lastPacket: TorrentProgress | null;
+  lastPacket: DownloadProgress | null;
   gameId: number | null;
   gamesWithDeletionInProgress: number[];
 }
@@ -18,7 +18,7 @@ export const downloadSlice = createSlice({
   name: "download",
   initialState,
   reducers: {
-    setLastPacket: (state, action: PayloadAction<TorrentProgress>) => {
+    setLastPacket: (state, action: PayloadAction<DownloadProgress>) => {
       state.lastPacket = action.payload;
       if (!state.gameId) state.gameId = action.payload.game.id;
     },

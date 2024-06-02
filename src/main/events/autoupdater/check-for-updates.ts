@@ -1,47 +1,32 @@
 import { AppUpdaterEvents } from "@types";
 import { registerEvent } from "../register-event";
-import updater, { ProgressInfo, UpdateInfo } from "electron-updater";
+import updater, { UpdateInfo } from "electron-updater";
 import { WindowManager } from "@main/services";
 import { app } from "electron";
 
 const { autoUpdater } = updater;
 
 const sendEvent = (event: AppUpdaterEvents) => {
-  WindowManager.splashWindow?.webContents.send("autoUpdaterEvent", event);
+  WindowManager.mainWindow?.webContents.send("autoUpdaterEvent", event);
 };
 
-const mockValuesForDebug = async () => {
-  sendEvent({ type: "update-downloaded" });
+const mockValuesForDebug = () => {
+  sendEvent({ type: "update-available", info: { version: "1.3.0" } });
 };
 
 const checkForUpdates = async (_event: Electron.IpcMainInvokeEvent) => {
   autoUpdater
-    .addListener("error", () => {
-      sendEvent({ type: "error" });
-    })
-    .addListener("checking-for-update", () => {
-      sendEvent({ type: "checking-for-updates" });
-    })
-    .addListener("update-not-available", () => {
-      sendEvent({ type: "update-not-available" });
-    })
-    .addListener("update-available", (info: UpdateInfo) => {
+    .once("update-available", (info: UpdateInfo) => {
       sendEvent({ type: "update-available", info });
     })
-    .addListener("update-downloaded", () => {
+    .once("update-downloaded", () => {
       sendEvent({ type: "update-downloaded" });
-    })
-    .addListener("download-progress", (info: ProgressInfo) => {
-      sendEvent({ type: "download-progress", info });
-    })
-    .addListener("update-cancelled", () => {
-      sendEvent({ type: "update-cancelled" });
     });
 
   if (app.isPackaged) {
     autoUpdater.checkForUpdates();
   } else {
-    await mockValuesForDebug();
+    mockValuesForDebug();
   }
 };
 

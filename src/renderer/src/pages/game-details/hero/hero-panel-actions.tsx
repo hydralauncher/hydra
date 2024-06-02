@@ -1,39 +1,20 @@
-import { GameStatus, GameStatusHelper } from "@shared";
 import { NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
 
+import { BinaryNotFoundModal } from "../../shared-modals/binary-not-found-modal";
+
 import { Button } from "@renderer/components";
-import { useDownload, useLibrary } from "@renderer/hooks";
-import type { Game, GameRepack } from "@types";
-import { useState } from "react";
+import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
+import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as styles from "./hero-panel-actions.css";
+import { gameDetailsContext } from "../game-details.context";
+import { Downloader } from "@shared";
 
-export interface HeroPanelActionsProps {
-  game: Game | null;
-  repacks: GameRepack[];
-  isGamePlaying: boolean;
-  isGameDownloading: boolean;
-  objectID: string;
-  title: string;
-  openRepacksModal: () => void;
-  openBinaryNotFoundModal: () => void;
-  getGame: () => void;
-}
-
-export function HeroPanelActions({
-  game,
-  isGamePlaying,
-  isGameDownloading,
-  repacks,
-  objectID,
-  title,
-  openRepacksModal,
-  openBinaryNotFoundModal,
-  getGame,
-}: HeroPanelActionsProps) {
+export function HeroPanelActions() {
   const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
     useState(false);
+  const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
 
   const {
     resumeDownload,
@@ -43,12 +24,25 @@ export function HeroPanelActions({
     isGameDeleting,
   } = useDownload();
 
+  const {
+    game,
+    repacks,
+    isGameRunning,
+    objectID,
+    gameTitle,
+    openRepacksModal,
+    updateGame,
+  } = useContext(gameDetailsContext);
+
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+
   const { updateLibrary } = useLibrary();
 
   const { t } = useTranslation("game_details");
 
   const getDownloadsPath = async () => {
-    const userPreferences = await window.electron.getUserPreferences();
     if (userPreferences?.downloadsPath) return userPreferences.downloadsPath;
     return window.electron.getDefaultDownloadsPath();
   };
@@ -86,15 +80,15 @@ export function HeroPanelActions({
         const gameExecutablePath = await selectGameExecutable();
 
         await window.electron.addGameToLibrary(
-          objectID,
-          title,
+          objectID!,
+          gameTitle,
           "steam",
           gameExecutablePath
         );
       }
 
       updateLibrary();
-      getGame();
+      updateGame();
     } finally {
       setToggleLibraryGameDisabled(false);
     }
@@ -103,7 +97,7 @@ export function HeroPanelActions({
   const openGameInstaller = () => {
     if (game) {
       window.electron.openGameInstaller(game.id).then((isBinaryInPath) => {
-        if (!isBinaryInPath) openBinaryNotFoundModal();
+        if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
         updateLibrary();
       });
     }
@@ -145,18 +139,18 @@ export function HeroPanelActions({
     </Button>
   );
 
-  if (game && isGameDownloading) {
+  if (game?.status === "active" && game?.progress !== 1) {
     return (
       <>
         <Button
-          onClick={() => pauseDownload(game.id)}
+          onClick={() => pauseDownload(game.id).then(updateGame)}
           theme="outline"
           className={styles.heroPanelAction}
         >
           {t("pause")}
         </Button>
         <Button
-          onClick={() => cancelDownload(game.id)}
+          onClick={() => cancelDownload(game.id).then(updateGame)}
           theme="outline"
           className={styles.heroPanelAction}
         >
@@ -166,18 +160,22 @@ export function HeroPanelActions({
     );
   }
 
-  if (game?.status === GameStatus.Paused) {
+  if (game?.status === "paused") {
     return (
       <>
         <Button
-          onClick={() => resumeDownload(game.id)}
+          onClick={() => resumeDownload(game.id).then(updateGame)}
           theme="outline"
           className={styles.heroPanelAction}
+          disabled={
+            game.downloader === Downloader.RealDebrid &&
+            !userPreferences?.realDebridApiToken
+          }
         >
           {t("resume")}
         </Button>
         <Button
-          onClick={() => cancelDownload(game.id).then(getGame)}
+          onClick={() => cancelDownload(game.id).then(updateGame)}
           theme="outline"
           className={styles.heroPanelAction}
         >
@@ -187,49 +185,7 @@ export function HeroPanelActions({
     );
   }
 
-  if (
-    GameStatusHelper.isReady(game?.status ?? null) ||
-    (game && !game.status)
-  ) {
-    return (
-      <>
-        {GameStatusHelper.isReady(game?.status ?? null) ? (
-          <Button
-            onClick={openGameInstaller}
-            theme="outline"
-            disabled={deleting || isGamePlaying}
-            className={styles.heroPanelAction}
-          >
-            {t("install")}
-          </Button>
-        ) : (
-          toggleGameOnLibraryButton
-        )}
-
-        {isGamePlaying ? (
-          <Button
-            onClick={closeGame}
-            theme="outline"
-            disabled={deleting}
-            className={styles.heroPanelAction}
-          >
-            {t("close")}
-          </Button>
-        ) : (
-          <Button
-            onClick={openGame}
-            theme="outline"
-            disabled={deleting || isGamePlaying}
-            className={styles.heroPanelAction}
-          >
-            {t("play")}
-          </Button>
-        )}
-      </>
-    );
-  }
-
-  if (game?.status === GameStatus.Cancelled) {
+  if (game?.status === "removed") {
     return (
       <>
         <Button
@@ -240,8 +196,9 @@ export function HeroPanelActions({
         >
           {t("open_download_options")}
         </Button>
+
         <Button
-          onClick={() => removeGameFromLibrary(game.id).then(getGame)}
+          onClick={() => removeGameFromLibrary(game.id).then(updateGame)}
           theme="outline"
           disabled={deleting}
           className={styles.heroPanelAction}
@@ -252,7 +209,7 @@ export function HeroPanelActions({
     );
   }
 
-  if (repacks.length) {
+  if (repacks.length && !game) {
     return (
       <>
         {toggleGameOnLibraryButton}
@@ -267,5 +224,47 @@ export function HeroPanelActions({
     );
   }
 
-  return toggleGameOnLibraryButton;
+  return (
+    <>
+      {game?.progress === 1 ? (
+        <>
+          <BinaryNotFoundModal
+            visible={showBinaryNotFoundModal}
+            onClose={() => setShowBinaryNotFoundModal(false)}
+          />
+
+          <Button
+            onClick={openGameInstaller}
+            theme="outline"
+            disabled={deleting || isGameRunning}
+            className={styles.heroPanelAction}
+          >
+            {t("install")}
+          </Button>
+        </>
+      ) : (
+        toggleGameOnLibraryButton
+      )}
+
+      {isGameRunning ? (
+        <Button
+          onClick={closeGame}
+          theme="outline"
+          disabled={deleting}
+          className={styles.heroPanelAction}
+        >
+          {t("close")}
+        </Button>
+      ) : (
+        <Button
+          onClick={openGame}
+          theme="outline"
+          disabled={deleting || isGameRunning}
+          className={styles.heroPanelAction}
+        >
+          {t("play")}
+        </Button>
+      )}
+    </>
+  );
 }

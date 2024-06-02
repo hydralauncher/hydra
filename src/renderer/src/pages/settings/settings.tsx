@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@renderer/components";
 
 import * as styles from "./settings.css";
@@ -7,50 +7,35 @@ import { UserPreferences } from "@types";
 import { SettingsRealDebrid } from "./settings-real-debrid";
 import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
-
-const categories = ["general", "behavior", "real_debrid"];
+import { useAppDispatch } from "@renderer/hooks";
+import { setUserPreferences } from "@renderer/features";
 
 export function Settings() {
-  const [currentCategory, setCurrentCategory] = useState(categories.at(0)!);
-  const [userPreferences, setUserPreferences] =
-    useState<UserPreferences | null>(null);
-
   const { t } = useTranslation("settings");
 
-  useEffect(() => {
-    window.electron.getUserPreferences().then((userPreferences) => {
-      setUserPreferences(userPreferences);
-    });
-  }, []);
+  const dispatch = useAppDispatch();
 
-  const handleUpdateUserPreferences = (values: Partial<UserPreferences>) => {
-    window.electron.updateUserPreferences(values);
+  const categories = [
+    { name: t("general"), component: SettingsGeneral },
+    { name: t("behavior"), component: SettingsBehavior },
+    { name: "Real-Debrid", component: SettingsRealDebrid },
+  ];
+
+  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
+
+  const handleUpdateUserPreferences = async (
+    values: Partial<UserPreferences>
+  ) => {
+    await window.electron.updateUserPreferences(values);
+    window.electron.getUserPreferences().then((userPreferences) => {
+      dispatch(setUserPreferences(userPreferences));
+    });
   };
 
   const renderCategory = () => {
-    if (currentCategory === "general") {
-      return (
-        <SettingsGeneral
-          userPreferences={userPreferences}
-          updateUserPreferences={handleUpdateUserPreferences}
-        />
-      );
-    }
-
-    if (currentCategory === "real_debrid") {
-      return (
-        <SettingsRealDebrid
-          userPreferences={userPreferences}
-          updateUserPreferences={handleUpdateUserPreferences}
-        />
-      );
-    }
-
+    const CategoryComponent = categories[currentCategoryIndex].component;
     return (
-      <SettingsBehavior
-        userPreferences={userPreferences}
-        updateUserPreferences={handleUpdateUserPreferences}
-      />
+      <CategoryComponent updateUserPreferences={handleUpdateUserPreferences} />
     );
   };
 
@@ -58,18 +43,18 @@ export function Settings() {
     <section className={styles.container}>
       <div className={styles.content}>
         <section className={styles.settingsCategories}>
-          {categories.map((category) => (
+          {categories.map((category, index) => (
             <Button
-              key={category}
-              theme={currentCategory === category ? "primary" : "outline"}
-              onClick={() => setCurrentCategory(category)}
+              key={category.name}
+              theme={currentCategoryIndex === index ? "primary" : "outline"}
+              onClick={() => setCurrentCategoryIndex(index)}
             >
-              {t(category)}
+              {category.name}
             </Button>
           ))}
         </section>
 
-        <h2>{t(currentCategory)}</h2>
+        <h2>{categories[currentCategoryIndex].name}</h2>
         {renderCategory()}
       </div>
     </section>

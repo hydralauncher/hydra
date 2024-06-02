@@ -5,38 +5,26 @@ import { contextBridge, ipcRenderer } from "electron";
 import type {
   CatalogueCategory,
   GameShop,
-  TorrentProgress,
+  DownloadProgress,
   UserPreferences,
-  AppUpdaterEvents,
+  AppUpdaterEvent,
+  StartGameDownloadPayload,
 } from "@types";
 
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
-  startGameDownload: (
-    repackId: number,
-    objectID: string,
-    title: string,
-    shop: GameShop,
-    downloadPath: string
-  ) =>
-    ipcRenderer.invoke(
-      "startGameDownload",
-      repackId,
-      objectID,
-      title,
-      shop,
-      downloadPath
-    ),
+  startGameDownload: (payload: StartGameDownloadPayload) =>
+    ipcRenderer.invoke("startGameDownload", payload),
   cancelGameDownload: (gameId: number) =>
     ipcRenderer.invoke("cancelGameDownload", gameId),
   pauseGameDownload: (gameId: number) =>
     ipcRenderer.invoke("pauseGameDownload", gameId),
   resumeGameDownload: (gameId: number) =>
     ipcRenderer.invoke("resumeGameDownload", gameId),
-  onDownloadProgress: (cb: (value: TorrentProgress) => void) => {
+  onDownloadProgress: (cb: (value: DownloadProgress) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      value: TorrentProgress
+      value: DownloadProgress
     ) => cb(value);
     ipcRenderer.on("on-download-progress", listener);
     return () => ipcRenderer.removeListener("on-download-progress", listener);
@@ -62,6 +50,8 @@ contextBridge.exposeInMainWorld("electron", {
   updateUserPreferences: (preferences: UserPreferences) =>
     ipcRenderer.invoke("updateUserPreferences", preferences),
   autoLaunch: (enabled: boolean) => ipcRenderer.invoke("autoLaunch", enabled),
+  authenticateRealDebrid: (apiToken: string) =>
+    ipcRenderer.invoke("authenticateRealDebrid", apiToken),
 
   /* Library */
   addGameToLibrary: (
@@ -85,6 +75,7 @@ contextBridge.exposeInMainWorld("electron", {
   closeGame: (gameId: number) => ipcRenderer.invoke("closeGame", gameId),
   removeGameFromLibrary: (gameId: number) =>
     ipcRenderer.invoke("removeGameFromLibrary", gameId),
+  removeGame: (gameId: number) => ipcRenderer.invoke("removeGame", gameId),
   deleteGameFolder: (gameId: number) =>
     ipcRenderer.invoke("deleteGameFolder", gameId),
   getGameByObjectID: (objectID: string) =>
@@ -115,11 +106,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("showOpenDialog", options),
   platform: process.platform,
 
-  /* Splash */
-  onAutoUpdaterEvent: (cb: (value: AppUpdaterEvents) => void) => {
+  /* Auto update */
+  onAutoUpdaterEvent: (cb: (value: AppUpdaterEvent) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      value: AppUpdaterEvents
+      value: AppUpdaterEvent
     ) => cb(value);
 
     ipcRenderer.on("autoUpdaterEvent", listener);
@@ -130,5 +121,4 @@ contextBridge.exposeInMainWorld("electron", {
   },
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
   restartAndInstallUpdate: () => ipcRenderer.invoke("restartAndInstallUpdate"),
-  continueToMainWindow: () => ipcRenderer.invoke("continueToMainWindow"),
 });
