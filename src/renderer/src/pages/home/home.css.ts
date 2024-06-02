@@ -63,3 +63,12 @@ export const noResults = style({
   gap: "16px",
   gridColumn: "1 / -1",
 });
+
+export const paginationContainer = style({
+  padding: `${SPACING_UNIT * 3}px ${SPACING_UNIT * 4}px`,
+  display: "flex",
+  width: "100%",
+  justifyContent: "space-between",
+  alignItems: "center",
+  borderBottom: `1px solid ${vars.color.border}`,
+});

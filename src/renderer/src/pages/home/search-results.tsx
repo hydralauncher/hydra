@@ -13,7 +13,7 @@ import {
 } from "@primer/octicons-react";
 import { clearSearch } from "@renderer/features";
 import { useAppDispatch } from "@renderer/hooks";
-import { SPACING_UNIT, vars } from "../../theme.css";
+import { vars } from "../../theme.css";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -65,16 +65,7 @@ export function SearchResults() {
 
   return (
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
-      <section
-        style={{
-          padding: `${SPACING_UNIT * 3}px ${SPACING_UNIT * 4}px`,
-          display: "flex",
-          width: "100%",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderBottom: `1px solid ${vars.color.border}`,
-        }}
-      >
+      <section className={styles.paginationContainer}>
         <Button
           onClick={() => navigate(-1)}
           theme="outline"
