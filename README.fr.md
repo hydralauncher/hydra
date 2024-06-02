@@ -35,7 +35,7 @@
   - [Fork et Cloner votre dépôt](#fork-et-cloner-votre-dépôt)
   - [Manières de contribuer](#manières-de-contribuer)
   - [Structure du projet](#structure-du-projet)
-- [Compiler depuis les sources](#compiler-depuis-les-source)
+- [Compiler depuis les sources](#compiler-depuis-les-sources)
   - [Installer Node.js](#installer-nodejs)
   - [Installer Yarn](#installer-yarn)
   - [Installer les dépendances Node](#installer-les-dépendances-node)
