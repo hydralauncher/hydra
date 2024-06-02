@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { SyncIcon } from "@primer/octicons-react";
 import { Link } from "../link/link";
 import * as styles from "./header.css";
-import { AppUpdaterEvents } from "@types";
+import { AppUpdaterEvent } from "@types";
 
 export const releasesPageUrl =
   "https://github.com/hydralauncher/hydra/releases";
@@ -16,15 +16,15 @@ export function AutoUpdateSubHeader() {
 
   const { t } = useTranslation("header");
 
-  const handleClickNewUpdate = () => {
+  const handleClickInstallUpdate = () => {
     window.electron.restartAndInstallUpdate();
   };
 
   useEffect(() => {
     const unsubscribe = window.electron.onAutoUpdaterEvent(
-      (event: AppUpdaterEvents) => {
+      (event: AppUpdaterEvent) => {
         if (event.type == "update-available") {
-          setNewVersion(event.info.version || "");
+          setNewVersion(event.info.version);
 
           if (isMac) {
             setShowUpdateSubheader(true);
@@ -59,7 +59,7 @@ export function AutoUpdateSubHeader() {
         <button
           type="button"
           className={styles.newVersionButton}
-          onClick={handleClickNewUpdate}
+          onClick={handleClickInstallUpdate}
         >
           <SyncIcon size={12} />
           <small>
