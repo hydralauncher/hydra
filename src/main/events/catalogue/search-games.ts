@@ -1,15 +1,19 @@
 import { registerEvent } from "../register-event";
 import { searchGames } from "../helpers/search-games";
-import { CatalogueEntry } from "@types";
+import { CatalogueEntry, PaginationArgs } from "@types";
+import { defaults } from "lodash-es";
 
-const PAGE_SIZE = 12;
+const DEFAULT_SEARCH_ARGS: PaginationArgs = {
+  take: 12,
+  skip: 0,
+};
 
 const searchGamesEvent = async (
   _event: Electron.IpcMainInvokeEvent,
   query: string,
-  page = 0
+  options?: Partial<PaginationArgs>
 ): Promise<CatalogueEntry[]> => {
-  return searchGames({ query, take: PAGE_SIZE, skip: page * PAGE_SIZE });
+  return searchGames({ query, ...defaults(options, DEFAULT_SEARCH_ARGS) });
 };
 
 registerEvent("searchGames", searchGamesEvent);

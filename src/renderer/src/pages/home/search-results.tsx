@@ -20,6 +20,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import * as styles from "./home.css";
 import { buildGameDetailsPath } from "@renderer/helpers";
 
+const PAGE_SIZE = 12;
+
 export function SearchResults() {
   const dispatch = useAppDispatch();
 
@@ -45,7 +47,10 @@ export function SearchResults() {
 
     debouncedFunc.current = debounce(() => {
       window.electron
-        .searchGames(searchParams.get("query") ?? "", page)
+        .searchGames(searchParams.get("query") ?? "", {
+          take: PAGE_SIZE,
+          skip: PAGE_SIZE * page,
+        })
         .then((results) => {
           setSearchResults(results);
         })
@@ -75,7 +80,11 @@ export function SearchResults() {
           {t("previous_page", { ns: "catalogue" })}
         </Button>
 
-        <Button onClick={handleNextPage} theme="outline" disabled={isLoading}>
+        <Button
+          onClick={handleNextPage}
+          theme="outline"
+          disabled={isLoading}
+        >
           {t("next_page", { ns: "catalogue" })}
           <ArrowRightIcon />
         </Button>

@@ -12,6 +12,7 @@ import type {
   UserPreferences,
   StartGameDownloadPayload,
   RealDebridUser,
+  PaginationArgs,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -32,7 +33,10 @@ declare global {
     ) => () => Electron.IpcRenderer;
 
     /* Catalogue */
-    searchGames: (query: string, page?: number) => Promise<CatalogueEntry[]>;
+    searchGames: (
+      query: string,
+      options?: PaginationArgs
+    ) => Promise<CatalogueEntry[]>;
     getCatalogue: (category: CatalogueCategory) => Promise<CatalogueEntry[]>;
     getGameShopDetails: (
       objectID: string,

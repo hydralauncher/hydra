@@ -233,3 +233,8 @@ export interface RealDebridUser {
 export type AppUpdaterEvents =
   | { type: "update-available"; info: Partial<UpdateInfo> }
   | { type: "update-downloaded" };
+
+export type PaginationArgs = {
+  take: number;
+  skip: number;
+};
