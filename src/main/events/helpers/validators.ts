@@ -5,8 +5,6 @@ export const downloadSourceSchema = z.object({
   downloads: z.array(
     z.object({
       title: z.string().max(255),
-      objectId: z.string().max(255).nullable(),
-      shop: z.enum(["steam"]).nullable(),
       downloaders: z.array(z.enum(["real_debrid", "torrent"])),
       uris: z.array(z.string()),
       uploadDate: z.string().max(255),
