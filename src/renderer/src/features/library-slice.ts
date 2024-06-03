@@ -4,7 +4,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 import type { Game } from "@types";
 
 export interface LibraryState {
-  value: Game[];
+  value: Omit<Game, "repacks">[];
 }
 
 const initialState: LibraryState = {
