@@ -19,6 +19,9 @@ export class Repack {
   @Column("text", { unique: true })
   magnet: string;
 
+  @Column("int", { nullable: true })
+  page: number;
+
   @Column("text")
   repacker: string;
 
