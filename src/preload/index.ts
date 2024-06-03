@@ -3,7 +3,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 import type {
-  CatalogueCategory,
   GameShop,
   DownloadProgress,
   UserPreferences,

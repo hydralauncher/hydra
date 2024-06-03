@@ -1,6 +1,5 @@
 import type {
   AppUpdaterEvents,
-  CatalogueCategory,
   CatalogueEntry,
   Game,
   GameRepack,
