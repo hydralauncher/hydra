@@ -6,6 +6,7 @@ export const contentSidebar = style({
   borderLeft: `solid 1px ${vars.color.border};`,
   width: "100%",
   height: "100%",
+  position: "relative",
   "@media": {
     "(min-width: 768px)": {
       width: "100%",
@@ -84,6 +85,14 @@ export const howLongToBeatCategorySkeleton = style({
   border: `solid 1px ${vars.color.border}`,
   borderRadius: "8px",
   height: "76px",
+});
+
+export const technicalDetailsContainer = style({
+  padding: `0 ${SPACING_UNIT * 2}px`,
+  color: vars.color.body,
+  userSelect: "text",
+  position: "absolute",
+  bottom: `${SPACING_UNIT}px`,
 });
 
 globalStyle(`${requirementsDetails} a`, {

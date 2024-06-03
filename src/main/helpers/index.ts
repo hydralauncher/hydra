@@ -1,48 +1,5 @@
-import {
-  removeReleaseYearFromName,
-  removeSymbolsFromName,
-  removeSpecialEditionFromName,
-  empressFormatter,
-  kaosKrewFormatter,
-  fitGirlFormatter,
-  removeDuplicateSpaces,
-  dodiFormatter,
-  removeTrash,
-  xatabFormatter,
-  tinyRepacksFormatter,
-  gogFormatter,
-  onlinefixFormatter,
-} from "./formatters";
-import { repackers } from "../constants";
-
-export const pipe =
-  <T>(...fns: ((arg: T) => any)[]) =>
-  (arg: T) =>
-    fns.reduce((prev, fn) => fn(prev), arg);
-
-export const formatName = pipe<string>(
-  removeTrash,
-  removeReleaseYearFromName,
-  removeSymbolsFromName,
-  removeSpecialEditionFromName,
-  removeDuplicateSpaces,
-  (str) => str.trim()
-);
-
-export const repackerFormatter: Record<
-  (typeof repackers)[number],
-  (title: string) => string
-> = {
-  DODI: dodiFormatter,
-  "0xEMPRESS": empressFormatter,
-  KaOsKrew: kaosKrewFormatter,
-  FitGirl: fitGirlFormatter,
-  Xatab: xatabFormatter,
-  CPG: (title: string) => title,
-  TinyRepacks: tinyRepacksFormatter,
-  GOG: gogFormatter,
-  onlinefix: onlinefixFormatter,
-};
+import axios from "axios";
+import UserAgent from "user-agents";
 
 export const getSteamAppAsset = (
   category: "library" | "hero" | "logo" | "icon",
@@ -88,5 +45,16 @@ export const steamUrlBuilder = {
 export const sleep = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
-export * from "./formatters";
+export const requestWebPage = async (url: string) => {
+  const userAgent = new UserAgent();
+
+  return axios
+    .get(url, {
+      headers: {
+        "User-Agent": userAgent.toString(),
+      },
+    })
+    .then((response) => response.data);
+};
+
 export * from "./ps";

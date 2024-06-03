@@ -59,6 +59,7 @@
     "lodash-es": "^4.17.21",
     "lottie-react": "^2.4.0",
     "parse-torrent": "^11.0.16",
+    "piscina": "^4.5.1",
     "ps-list": "^8.1.1",
     "react-i18next": "^14.1.0",
     "react-loading-skeleton": "^3.4.0",
@@ -66,7 +67,8 @@
     "react-router-dom": "^6.22.3",
     "typeorm": "^0.3.20",
     "user-agents": "^1.1.193",
-    "yaml": "^2.4.1"
+    "yaml": "^2.4.1",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.3.0",
@@ -82,9 +84,10 @@
     "@types/parse-torrent": "^5.8.7",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
+    "@types/user-agents": "^1.0.4",
     "@vanilla-extract/vite-plugin": "^4.0.7",
     "@vitejs/plugin-react": "^4.2.1",
-    "electron": "^28.2.0",
+    "electron": "^30.0.9",
     "electron-builder": "^24.9.1",
     "electron-vite": "^2.0.0",
     "eslint": "^8.56.0",

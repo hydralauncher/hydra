@@ -16,7 +16,6 @@ const resumeGameDownload = async (
       id: gameId,
       isDeleted: false,
     },
-    relations: { repack: true },
   });
 
   if (!game) return;

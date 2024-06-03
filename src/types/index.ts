@@ -3,7 +3,6 @@ import type { Downloader } from "@shared";
 import { ProgressInfo, UpdateInfo } from "electron-updater";
 
 export type GameShop = "steam" | "epic";
-export type CatalogueCategory = "recently_added" | "trending";
 
 export interface SteamGenre {
   id: string;
@@ -61,7 +60,6 @@ export interface GameRepack {
   id: number;
   title: string;
   magnet: string;
-  page: number;
   repacker: string;
   fileSize: string | null;
   uploadDate: Date | string | null;
@@ -97,7 +95,6 @@ export interface Game extends Omit<CatalogueEntry, "cover"> {
   folderName: string;
   downloadPath: string | null;
   repacks: GameRepack[];
-  repack: GameRepack | null;
   progress: number;
   bytesDownloaded: number;
   playTimeInMilliseconds: number;
@@ -233,3 +230,12 @@ export interface RealDebridUser {
 export type AppUpdaterEvents =
   | { type: "update-available"; info: Partial<UpdateInfo> }
   | { type: "update-downloaded" };
+
+export interface DownloadSource {
+  id: number;
+  name: string;
+  url: string;
+  repackCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}

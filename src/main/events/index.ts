@@ -30,6 +30,10 @@ import "./user-preferences/auto-launch";
 import "./autoupdater/check-for-updates";
 import "./autoupdater/restart-and-install-update";
 import "./user-preferences/authenticate-real-debrid";
+import "./download-sources/get-download-sources";
+import "./download-sources/validate-download-source";
+import "./download-sources/add-download-source";
+import "./download-sources/remove-download-source";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => app.getVersion());

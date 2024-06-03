@@ -12,6 +12,7 @@ import type {
   UserPreferences,
   StartGameDownloadPayload,
   RealDebridUser,
+  DownloadSource,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -33,7 +34,7 @@ declare global {
 
     /* Catalogue */
     searchGames: (query: string) => Promise<CatalogueEntry[]>;
-    getCatalogue: (category: CatalogueCategory) => Promise<CatalogueEntry[]>;
+    getCatalogue: () => Promise<CatalogueEntry[]>;
     getGameShopDetails: (
       objectID: string,
       shop: GameShop,
@@ -58,7 +59,7 @@ declare global {
       shop: GameShop,
       executablePath: string | null
     ) => Promise<void>;
-    getLibrary: () => Promise<Game[]>;
+    getLibrary: () => Promise<Omit<Game, "repacks">[]>;
     openGameInstaller: (gameId: number) => Promise<boolean>;
     openGame: (gameId: number, executablePath: string) => Promise<void>;
     closeGame: (gameId: number) => Promise<boolean>;
@@ -76,6 +77,14 @@ declare global {
     ) => Promise<void>;
     autoLaunch: (enabled: boolean) => Promise<void>;
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
+
+    /* Download sources */
+    getDownloadSources: () => Promise<DownloadSource[]>;
+    validateDownloadSource: (
+      url: string
+    ) => Promise<{ name: string; downloadCount: number }>;
+    addDownloadSource: (url: string) => Promise<DownloadSource>;
+    removeDownloadSource: (id: number) => Promise<void>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;

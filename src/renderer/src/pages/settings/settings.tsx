@@ -9,13 +9,19 @@ import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
 import { useAppDispatch } from "@renderer/hooks";
 import { setUserPreferences } from "@renderer/features";
+import { SettingsDownloadSources } from "./settings-download-sources";
 
 export function Settings() {
   const { t } = useTranslation("settings");
 
   const dispatch = useAppDispatch();
 
-  const categories = [t("general"), t("behavior"), "Real-Debrid"];
+  const categories = [
+    t("general"),
+    t("behavior"),
+    t("download_sources"),
+    "Real-Debrid",
+  ];
 
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
 
@@ -39,6 +45,10 @@ export function Settings() {
       return (
         <SettingsBehavior updateUserPreferences={handleUpdateUserPreferences} />
       );
+    }
+
+    if (currentCategoryIndex === 2) {
+      return <SettingsDownloadSources />;
     }
 
     return (

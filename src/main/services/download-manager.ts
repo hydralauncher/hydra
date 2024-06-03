@@ -192,7 +192,6 @@ export class DownloadManager {
 
     const game = await gameRepository.findOne({
       where: { id: this.game.id, isDeleted: false },
-      relations: { repack: true },
     });
 
     if (progress === 1 && this.game && !isDownloadingMetadata) {
@@ -291,10 +290,10 @@ export class DownloadManager {
 
     if (game.downloader === Downloader.RealDebrid) {
       this.realDebridTorrentId = await RealDebridClient.getTorrentId(
-        game!.repack.magnet
+        game!.uri!
       );
     } else {
-      this.gid = await this.aria2.call("addUri", [game.repack.magnet], options);
+      this.gid = await this.aria2.call("addUri", [game.uri!], options);
       this.downloads.set(game.id, this.gid);
     }
 

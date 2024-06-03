@@ -32,8 +32,7 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Catalogue */
   searchGames: (query: string) => ipcRenderer.invoke("searchGames", query),
-  getCatalogue: (category: CatalogueCategory) =>
-    ipcRenderer.invoke("getCatalogue", category),
+  getCatalogue: () => ipcRenderer.invoke("getCatalogue"),
   getGameShopDetails: (objectID: string, shop: GameShop, language: string) =>
     ipcRenderer.invoke("getGameShopDetails", objectID, shop, language),
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
@@ -51,6 +50,15 @@ contextBridge.exposeInMainWorld("electron", {
   autoLaunch: (enabled: boolean) => ipcRenderer.invoke("autoLaunch", enabled),
   authenticateRealDebrid: (apiToken: string) =>
     ipcRenderer.invoke("authenticateRealDebrid", apiToken),
+
+  /* Download sources */
+  getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
+  validateDownloadSource: (url: string) =>
+    ipcRenderer.invoke("validateDownloadSource", url),
+  addDownloadSource: (url: string) =>
+    ipcRenderer.invoke("addDownloadSource", url),
+  removeDownloadSource: (id: number) =>
+    ipcRenderer.invoke("removeDownloadSource", id),
 
   /* Library */
   addGameToLibrary: (

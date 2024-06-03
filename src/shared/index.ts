@@ -18,3 +18,31 @@ export const formatBytes = (bytes: number): string => {
 
   return `${Math.trunc(formatedByte * 10) / 10} ${FORMAT[base]}`;
 };
+
+export const pipe =
+  <T>(...fns: ((arg: T) => any)[]) =>
+  (arg: T) =>
+    fns.reduce((prev, fn) => fn(prev), arg);
+
+export const removeReleaseYearFromName = (name: string) =>
+  name.replace(/\([0-9]{4}\)/g, "");
+
+export const removeSymbolsFromName = (name: string) =>
+  name.replace(/[^A-Za-z 0-9]/g, "");
+
+export const removeSpecialEditionFromName = (name: string) =>
+  name.replace(
+    /(The |Digital )?(GOTY|Deluxe|Standard|Ultimate|Definitive|Enhanced|Collector's|Premium|Digital|Limited|Game of the Year|Reloaded|[0-9]{4}) Edition/g,
+    ""
+  );
+
+export const removeDuplicateSpaces = (name: string) =>
+  name.replace(/\s{2,}/g, " ");
+
+export const formatName = pipe<string>(
+  removeReleaseYearFromName,
+  removeSymbolsFromName,
+  removeSpecialEditionFromName,
+  removeDuplicateSpaces,
+  (str) => str.trim()
+);

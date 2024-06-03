@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="vite-plugin-comlink/client" />
 
 interface ImportMetaEnv {
   readonly MAIN_VITE_STEAMGRIDDB_API_KEY: string;
