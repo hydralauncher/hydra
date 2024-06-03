@@ -30,7 +30,9 @@ export function Downloads() {
 
   const gameToBeDeleted = useRef<number | null>(null);
 
-  const [filteredLibrary, setFilteredLibrary] = useState<Game[]>([]);
+  const [filteredLibrary, setFilteredLibrary] = useState<
+    Omit<Game, "repacks">[]
+  >([]);
   const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
