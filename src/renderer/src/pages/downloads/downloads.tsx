@@ -99,12 +99,7 @@ export function Downloads() {
     }
 
     if (game.progress === 1) {
-      return (
-        <>
-          <p>{game.repack?.title}</p>
-          <p>{t("completed")}</p>
-        </>
-      );
+      return <p>{t("completed")}</p>;
     }
 
     if (game.status === "paused") {

@@ -63,6 +63,9 @@ export class Game {
   @Column("float", { default: 0 })
   fileSize: number;
 
+  @Column("text", { nullable: true })
+  uri: string | null;
+
   @OneToOne(() => Repack, { nullable: true })
   @JoinColumn()
   repack: Repack;

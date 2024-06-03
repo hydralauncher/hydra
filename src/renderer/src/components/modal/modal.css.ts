@@ -21,7 +21,7 @@ export const modal = recipe({
     animationName: fadeIn,
     animationDuration: "0.3s",
     backgroundColor: vars.color.background,
-    borderRadius: "5px",
+    borderRadius: "4px",
     maxWidth: "600px",
     color: vars.color.body,
     maxHeight: "100%",

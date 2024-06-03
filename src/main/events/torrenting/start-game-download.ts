@@ -20,7 +20,6 @@ const startGameDownload = async (
         objectID,
         shop,
       },
-      relations: { repack: true },
     }),
     repackRepository.findOne({
       where: {
@@ -49,7 +48,7 @@ const startGameDownload = async (
         bytesDownloaded: 0,
         downloadPath,
         downloader,
-        repack: { id: repackId },
+        uri: repack.magnet,
         isDeleted: false,
       }
     );
@@ -71,7 +70,7 @@ const startGameDownload = async (
         shop,
         status: "active",
         downloadPath,
-        repack: { id: repackId },
+        uri: repack.magnet,
       })
       .then((result) => {
         if (iconUrl) {
@@ -88,7 +87,6 @@ const startGameDownload = async (
     where: {
       objectID,
     },
-    relations: { repack: true },
   });
 
   await DownloadManager.startDownload(updatedGame!);

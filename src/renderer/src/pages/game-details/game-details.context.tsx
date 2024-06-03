@@ -21,6 +21,7 @@ export interface GameDetailsContext {
   game: Game | null;
   shopDetails: ShopDetails | null;
   repacks: GameRepack[];
+  shop: GameShop;
   gameTitle: string;
   isGameRunning: boolean;
   isLoading: boolean;
@@ -35,6 +36,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   game: null,
   shopDetails: null,
   repacks: [],
+  shop: "steam",
   gameTitle: "",
   isGameRunning: false,
   isLoading: false,
@@ -92,7 +94,7 @@ export function GameDetailsContextProvider({
   }, [updateGame, isGameDownloading, lastPacket?.game.status]);
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       window.electron.getGameShopDetails(
         objectID!,
         shop as GameShop,
@@ -100,9 +102,12 @@ export function GameDetailsContextProvider({
       ),
       window.electron.searchGameRepacks(gameTitle),
     ])
-      .then(([appDetails, repacks]) => {
-        if (appDetails) setGameDetails(appDetails);
-        setRepacks(repacks);
+      .then(([appDetailsResult, repacksResult]) => {
+        if (appDetailsResult.status === "fulfilled")
+          setGameDetails(appDetailsResult.value);
+
+        if (repacksResult.status === "fulfilled")
+          setRepacks(repacksResult.value);
       })
       .finally(() => {
         setIsLoading(false);
@@ -174,6 +179,7 @@ export function GameDetailsContextProvider({
       value={{
         game,
         shopDetails,
+        shop: shop as GameShop,
         repacks,
         gameTitle,
         isGameRunning,
