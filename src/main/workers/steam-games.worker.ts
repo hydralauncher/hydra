@@ -25,7 +25,7 @@ for (let i = 0; i < steamGames.length; i++) {
 }
 
 export const search = (options: flexSearch.SearchOptions) => {
-  const results = steamGamesIndex.search(options.query ?? "", options);
+  const results = steamGamesIndex.search(options);
   const games = results.map((index) => steamGames[index]);
 
   return orderBy(games, ["name"], ["asc"]);

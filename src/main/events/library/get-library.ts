@@ -7,7 +7,7 @@ const getLibrary = async () =>
       isDeleted: false,
     },
     order: {
-      createdAt: "desc",
+      updatedAt: "desc",
     },
   });
 

@@ -1,8 +1,13 @@
-import { DownloadManager, SearchEngine, startMainLoop } from "./services";
-import { gameRepository, userPreferencesRepository } from "./repository";
+import { DownloadManager, startMainLoop } from "./services";
+import {
+  gameRepository,
+  repackRepository,
+  userPreferencesRepository,
+} from "./repository";
 import { UserPreferences } from "./entity";
 import { RealDebridClient } from "./services/real-debrid";
 import { Not } from "typeorm";
+import { repacksWorker } from "./workers";
 
 startMainLoop();
 
@@ -21,7 +26,16 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   });
 
   if (game) DownloadManager.startDownload(game);
-  await SearchEngine.updateRepacks();
+
+  repackRepository
+    .find({
+      order: {
+        createdAt: "DESC",
+      },
+    })
+    .then((repacks) => {
+      repacksWorker.run(repacks, { name: "setRepacks" });
+    });
 };
 
 userPreferencesRepository

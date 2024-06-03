@@ -40,7 +40,3 @@ export const buildGameDetailsPath = (
   const searchParams = new URLSearchParams({ title: game.title, ...params });
   return `/game/${game.shop}/${game.objectID}?${searchParams.toString()}`;
 };
-
-export const numberFormatter = new Intl.NumberFormat("en-US", {
-  maximumSignificantDigits: 3,
-});
