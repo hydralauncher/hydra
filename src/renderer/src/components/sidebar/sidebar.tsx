@@ -25,7 +25,9 @@ export function Sidebar() {
   const { library, updateLibrary } = useLibrary();
   const navigate = useNavigate();
 
-  const [filteredLibrary, setFilteredLibrary] = useState<Game[]>([]);
+  const [filteredLibrary, setFilteredLibrary] = useState<
+    Omit<Game, "repacks">[]
+  >([]);
 
   const [isResizing, setIsResizing] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(
