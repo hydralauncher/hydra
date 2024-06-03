@@ -23,7 +23,9 @@ export const setRepacks = (repacks: GameRepack[]) => {
 };
 
 export const search = (options: flexSearch.SearchOptions) =>
-  repacksIndex.search(options).map((index) => state.repacks[index]);
+  repacksIndex
+    .search({ ...options, query: formatName(options.query ?? "") })
+    .map((index) => state.repacks[index]);
 
 export const list = () => state.repacks;
 
