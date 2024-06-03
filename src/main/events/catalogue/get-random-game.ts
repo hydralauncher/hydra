@@ -5,8 +5,6 @@ import { getSteam250List } from "@main/services";
 import { registerEvent } from "../register-event";
 import { searchSteamGames } from "../helpers/search-games";
 import type { Steam250Game } from "@types";
-import { repacksWorker } from "@main/workers";
-import { formatName } from "@shared";
 
 const state = { games: Array<Steam250Game>(), index: 0 };
 
@@ -17,12 +15,9 @@ const filterGames = async (games: Steam250Game[]) => {
     const catalogue = await searchSteamGames({ query: game.title });
 
     if (catalogue.length) {
-      const repacks = await repacksWorker.run(
-        { query: formatName(catalogue[0].title) },
-        { name: "search" }
-      );
+      const [steamGame] = catalogue;
 
-      if (repacks.length) {
+      if (steamGame.repacks.length) {
         results.push(game);
       }
     }
