@@ -16,7 +16,7 @@ export class DownloadSource {
   @Column("text", { nullable: true, unique: true })
   url: string;
 
-  @Column("text", { unique: true })
+  @Column("text")
   name: string;
 
   @OneToMany(() => Repack, (repack) => repack.downloadSource, { cascade: true })
