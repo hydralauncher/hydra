@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { TextField, Button } from "@renderer/components";
+import { TextField, Button, Badge } from "@renderer/components";
 import { useTranslation } from "react-i18next";
 
 import * as styles from "./settings-download-sources.css";
@@ -62,38 +62,46 @@ export function SettingsDownloadSources() {
         {t("add_download_source")}
       </Button>
 
-      {downloadSources.map((downloadSource) => (
-        <div key={downloadSource.id} className={styles.downloadSourceItem}>
-          <div className={styles.downloadSourceItemHeader}>
-            <h3>{downloadSource.name}</h3>
-            <small>
-              {t("download_options", {
-                count: downloadSource.repackCount,
-                countFormatted: downloadSource.repackCount.toLocaleString(),
-              })}
-            </small>
-          </div>
+      <ul className={styles.downloadSources}>
+        {downloadSources.map((downloadSource) => (
+          <li key={downloadSource.id} className={styles.downloadSourceItem}>
+            <div className={styles.downloadSourceItemHeader}>
+              <div className={styles.downloadSourceItemTitle}>
+                <h2>{downloadSource.name}</h2>
 
-          <div className={styles.downloadSourceField}>
-            <TextField
-              label={t("download_source_url")}
-              value={downloadSource.url}
-              readOnly
-              disabled
-            />
+                <Badge>{downloadSource.status}</Badge>
+              </div>
 
-            <Button
-              type="button"
-              theme="outline"
-              style={{ alignSelf: "flex-end" }}
-              onClick={() => handleRemoveSource(downloadSource.id)}
-            >
-              <NoEntryIcon />
-              {t("remove_download_source")}
-            </Button>
-          </div>
-        </div>
-      ))}
+              <small>
+                {t("download_options", {
+                  count: downloadSource.repackCount,
+                  countFormatted: downloadSource.repackCount.toLocaleString(),
+                })}
+              </small>
+            </div>
+
+            <div className={styles.downloadSourceField}>
+              <TextField
+                label={t("download_source_url")}
+                value={downloadSource.url}
+                readOnly
+                theme="dark"
+                disabled
+              />
+
+              <Button
+                type="button"
+                theme="outline"
+                style={{ alignSelf: "flex-end" }}
+                onClick={() => handleRemoveSource(downloadSource.id)}
+              >
+                <NoEntryIcon />
+                {t("remove_download_source")}
+              </Button>
+            </div>
+          </li>
+        ))}
+      </ul>
     </>
   );
 }

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
-import { Button, TextField } from "@renderer/components";
+import { Badge, Button, TextField } from "@renderer/components";
 import {
   buildGameDetailsPath,
   formatDownloadProgress,
@@ -255,9 +255,7 @@ export function Downloads() {
                   />
 
                   <div className={styles.downloadCoverContent}>
-                    <small className={styles.downloaderName}>
-                      {DOWNLOADER_NAME[game.downloader]}
-                    </small>
+                    <Badge>{DOWNLOADER_NAME[game.downloader]}</Badge>
                   </div>
                 </div>
               </div>

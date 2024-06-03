@@ -1,5 +1,5 @@
 import type { Aria2Status } from "aria2";
-import type { Downloader } from "@shared";
+import type { DownloadSourceStatus, Downloader } from "@shared";
 import { ProgressInfo, UpdateInfo } from "electron-updater";
 
 export type GameShop = "steam" | "epic";
@@ -240,6 +240,8 @@ export interface DownloadSource {
   name: string;
   url: string;
   repackCount: number;
+  status: DownloadSourceStatus;
+  etag: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

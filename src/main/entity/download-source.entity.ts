@@ -7,6 +7,7 @@ import {
   OneToMany,
 } from "typeorm";
 import { Repack } from "./repack.entity";
+import { DownloadSourceStatus } from "@shared";
 
 @Entity("download_source")
 export class DownloadSource {
@@ -18,6 +19,12 @@ export class DownloadSource {
 
   @Column("text")
   name: string;
+
+  @Column("text", { nullable: true })
+  etag: string | null;
+
+  @Column("text", { default: "online" })
+  status: DownloadSourceStatus;
 
   @OneToMany(() => Repack, (repack) => repack.downloadSource, { cascade: true })
   repacks: Repack[];

@@ -1,6 +1,7 @@
 import path from "node:path";
 import steamGamesWorkerPath from "./steam-games.worker?modulePath";
 import repacksWorkerPath from "./repacks.worker?modulePath";
+import downloadSourceWorkerPath from "./download-source.worker?modulePath";
 
 import Piscina from "piscina";
 
@@ -15,4 +16,8 @@ export const steamGamesWorker = new Piscina({
 
 export const repacksWorker = new Piscina({
   filename: repacksWorkerPath,
+});
+
+export const downloadSourceWorker = new Piscina({
+  filename: downloadSourceWorkerPath,
 });
