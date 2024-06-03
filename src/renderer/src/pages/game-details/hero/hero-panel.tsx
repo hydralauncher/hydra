@@ -21,13 +21,12 @@ export function HeroPanel() {
   const { progress, eta, lastPacket, isGameDeleting } = useDownload();
 
   const finalDownloadSize = useMemo(() => {
-    if (!game) return "N/A";
-    if (game.fileSize) return formatBytes(game.fileSize);
+    if (game?.fileSize) return formatBytes(game.fileSize);
 
     if (lastPacket?.game.fileSize && game?.status === "active")
       return formatBytes(lastPacket?.game.fileSize);
 
-    return game.repack?.fileSize ?? "N/A";
+    return "N/A";
   }, [game, lastPacket?.game]);
 
   const isGameDownloading =

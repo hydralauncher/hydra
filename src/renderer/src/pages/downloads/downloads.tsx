@@ -62,13 +62,12 @@ export function Downloads() {
   const getFinalDownloadSize = (game: Game) => {
     const isGameDownloading = lastPacket?.game.id === game.id;
 
-    if (!game) return "N/A";
     if (game.fileSize) return formatBytes(game.fileSize);
 
     if (lastPacket?.game.fileSize && isGameDownloading)
       return formatBytes(lastPacket?.game.fileSize);
 
-    return game.repack?.fileSize ?? "N/A";
+    return "N/A";
   };
 
   const getGameInfo = (game: Game) => {
