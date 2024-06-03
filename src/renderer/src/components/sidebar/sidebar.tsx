@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import type { Game } from "@types";
+import type { LibraryGame } from "@types";
 
 import { TextField } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
@@ -25,9 +25,7 @@ export function Sidebar() {
   const { library, updateLibrary } = useLibrary();
   const navigate = useNavigate();
 
-  const [filteredLibrary, setFilteredLibrary] = useState<
-    Omit<Game, "repacks">[]
-  >([]);
+  const [filteredLibrary, setFilteredLibrary] = useState<LibraryGame[]>([]);
 
   const [isResizing, setIsResizing] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(
@@ -101,7 +99,7 @@ export function Sidebar() {
     };
   }, [isResizing]);
 
-  const getGameTitle = (game: Omit<Game, "repacks">) => {
+  const getGameTitle = (game: LibraryGame) => {
     if (game.status === "paused") return t("paused", { title: game.title });
 
     if (lastPacket?.game.id === game.id) {

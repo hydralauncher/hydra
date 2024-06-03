@@ -7,6 +7,10 @@ const repacksIndex = new flexSearch.Index();
 const state: { repacks: GameRepack[] } = { repacks: [] };
 
 export const setRepacks = (repacks: GameRepack[]) => {
+  for (let i = 0; i < state.repacks.length; i++) {
+    repacksIndex.remove(i);
+  }
+
   state.repacks = repacks;
 
   for (let i = 0; i < repacks.length; i++) {

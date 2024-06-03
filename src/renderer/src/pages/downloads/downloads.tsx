@@ -8,7 +8,7 @@ import {
   steamUrlBuilder,
 } from "@renderer/helpers";
 import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
-import type { Game } from "@types";
+import type { LibraryGame } from "@types";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
@@ -30,9 +30,7 @@ export function Downloads() {
 
   const gameToBeDeleted = useRef<number | null>(null);
 
-  const [filteredLibrary, setFilteredLibrary] = useState<
-    Omit<Game, "repacks">[]
-  >([]);
+  const [filteredLibrary, setFilteredLibrary] = useState<LibraryGame[]>([]);
   const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -61,7 +59,7 @@ export function Downloads() {
       updateLibrary();
     });
 
-  const getFinalDownloadSize = (game: Omit<Game, "repacks">) => {
+  const getFinalDownloadSize = (game: LibraryGame) => {
     const isGameDownloading = lastPacket?.game.id === game.id;
 
     if (game.fileSize) return formatBytes(game.fileSize);
@@ -72,7 +70,7 @@ export function Downloads() {
     return "N/A";
   };
 
-  const getGameInfo = (game: Omit<Game, "repacks">) => {
+  const getGameInfo = (game: LibraryGame) => {
     const isGameDownloading = lastPacket?.game.id === game.id;
     const finalDownloadSize = getFinalDownloadSize(game);
 
@@ -132,7 +130,7 @@ export function Downloads() {
     setShowDeleteModal(true);
   };
 
-  const getGameActions = (game: Omit<Game, "repacks">) => {
+  const getGameActions = (game: LibraryGame) => {
     const isGameDownloading = lastPacket?.game.id === game.id;
 
     const deleting = isGameDeleting(game.id);
