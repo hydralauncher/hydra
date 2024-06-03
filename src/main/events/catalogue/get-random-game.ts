@@ -1,4 +1,4 @@
-import { shuffle, slice } from "lodash-es";
+import { shuffle } from "lodash-es";
 
 import { SearchEngine, getSteam250List } from "@main/services";
 
