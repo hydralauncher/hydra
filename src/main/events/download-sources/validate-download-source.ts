@@ -1,22 +1,9 @@
-import { z } from "zod";
 import { registerEvent } from "../register-event";
 import axios from "axios";
 import { downloadSourceRepository } from "@main/repository";
-
-const downloadSourceSchema = z.object({
-  name: z.string().max(255),
-  downloads: z.array(
-    z.object({
-      title: z.string().max(255),
-      objectId: z.string().max(255).nullable(),
-      shop: z.enum(["steam"]).nullable(),
-      downloaders: z.array(z.enum(["real_debrid", "torrent"])),
-      uris: z.array(z.string()),
-      uploadDate: z.string().max(255),
-      fileSize: z.string().max(255),
-    })
-  ),
-});
+import { downloadSourceSchema } from "../helpers/validators";
+import { repacksWorker } from "@main/workers";
+import { GameRepack } from "@types";
 
 const validateDownloadSource = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -27,13 +14,26 @@ const validateDownloadSource = async (
   const source = downloadSourceSchema.parse(response.data);
 
   const existingSource = await downloadSourceRepository.findOne({
-    where: [{ url }, { name: source.name }],
+    where: { url },
   });
 
-  if (existingSource?.url === url)
+  if (existingSource)
     throw new Error("Source with the same url already exists");
 
-  return { name: source.name, downloadCount: source.downloads.length };
+  const repacks = (await repacksWorker.run(undefined, {
+    name: "list",
+  })) as GameRepack[];
+
+  console.log(repacks);
+
+  const existingUris = source.downloads
+    .flatMap((download) => download.uris)
+    .filter((uri) => repacks.some((repack) => repack.magnet === uri));
+
+  return {
+    name: source.name,
+    downloadCount: source.downloads.length - existingUris.length,
+  };
 };
 
 registerEvent("validateDownloadSource", validateDownloadSource);

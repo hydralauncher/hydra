@@ -5,7 +5,8 @@ import { DownloadSource, Repack } from "@main/entity";
 import axios from "axios";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { downloadSourceSchema } from "../helpers/validators";
-import { SearchEngine } from "@main/services";
+import { repackRepository } from "@main/repository";
+import { repacksWorker } from "@main/workers";
 
 const addDownloadSource = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -49,7 +50,15 @@ const addDownloadSource = async (
     }
   );
 
-  await SearchEngine.updateRepacks();
+  repackRepository
+    .find({
+      order: {
+        createdAt: "DESC",
+      },
+    })
+    .then((repacks) => {
+      repacksWorker.run(repacks, { name: "setRepacks" });
+    });
 
   return downloadSource;
 };

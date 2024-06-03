@@ -1,13 +1,22 @@
-import { downloadSourceRepository } from "@main/repository";
+import { downloadSourceRepository, repackRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
-import { SearchEngine } from "@main/services";
+import { repacksWorker } from "@main/workers";
 
 const removeDownloadSource = async (
   _event: Electron.IpcMainInvokeEvent,
   id: number
 ) => {
   await downloadSourceRepository.delete(id);
-  await SearchEngine.updateRepacks();
+
+  repackRepository
+    .find({
+      order: {
+        createdAt: "DESC",
+      },
+    })
+    .then((repacks) => {
+      repacksWorker.run(repacks, { name: "setRepacks" });
+    });
 };
 
 registerEvent("removeDownloadSource", removeDownloadSource);

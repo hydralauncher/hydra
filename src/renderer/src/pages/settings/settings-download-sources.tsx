@@ -8,7 +8,6 @@ import type { DownloadSource } from "@types";
 import { NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
 import { useToast } from "@renderer/hooks";
-import { numberFormatter } from "@renderer/helpers";
 
 export function SettingsDownloadSources() {
   const [showAddDownloadSourceModal, setShowAddDownloadSourceModal] =
@@ -53,6 +52,16 @@ export function SettingsDownloadSources() {
         {t("download_sources_description")}
       </p>
 
+      <Button
+        type="button"
+        theme="outline"
+        style={{ alignSelf: "flex-start" }}
+        onClick={() => setShowAddDownloadSourceModal(true)}
+      >
+        <PlusCircleIcon />
+        {t("add_download_source")}
+      </Button>
+
       {downloadSources.map((downloadSource) => (
         <div key={downloadSource.id} className={styles.downloadSourceItem}>
           <div className={styles.downloadSourceItemHeader}>
@@ -60,9 +69,7 @@ export function SettingsDownloadSources() {
             <small>
               {t("download_options", {
                 count: downloadSource.repackCount,
-                countFormatted: numberFormatter.format(
-                  downloadSource.repackCount
-                ),
+                countFormatted: downloadSource.repackCount.toLocaleString(),
               })}
             </small>
           </div>
@@ -87,16 +94,6 @@ export function SettingsDownloadSources() {
           </div>
         </div>
       ))}
-
-      <Button
-        type="button"
-        theme="outline"
-        style={{ alignSelf: "flex-start" }}
-        onClick={() => setShowAddDownloadSourceModal(true)}
-      >
-        <PlusCircleIcon />
-        {t("add_download_source")}
-      </Button>
     </>
   );
 }

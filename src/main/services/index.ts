@@ -7,4 +7,3 @@ export * from "./download-manager";
 export * from "./how-long-to-beat";
 export * from "./process-watcher";
 export * from "./main-loop";
-export * from "./search-engine";

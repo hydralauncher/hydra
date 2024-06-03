@@ -224,47 +224,51 @@ export function HeroPanelActions() {
     );
   }
 
-  return (
-    <>
-      {game?.progress === 1 ? (
-        <>
-          <BinaryNotFoundModal
-            visible={showBinaryNotFoundModal}
-            onClose={() => setShowBinaryNotFoundModal(false)}
-          />
+  if (game) {
+    return (
+      <>
+        {game?.progress === 1 ? (
+          <>
+            <BinaryNotFoundModal
+              visible={showBinaryNotFoundModal}
+              onClose={() => setShowBinaryNotFoundModal(false)}
+            />
 
+            <Button
+              onClick={openGameInstaller}
+              theme="outline"
+              disabled={deleting || isGameRunning}
+              className={styles.heroPanelAction}
+            >
+              {t("install")}
+            </Button>
+          </>
+        ) : (
+          toggleGameOnLibraryButton
+        )}
+
+        {isGameRunning ? (
           <Button
-            onClick={openGameInstaller}
+            onClick={closeGame}
+            theme="outline"
+            disabled={deleting}
+            className={styles.heroPanelAction}
+          >
+            {t("close")}
+          </Button>
+        ) : (
+          <Button
+            onClick={openGame}
             theme="outline"
             disabled={deleting || isGameRunning}
             className={styles.heroPanelAction}
           >
-            {t("install")}
+            {t("play")}
           </Button>
-        </>
-      ) : (
-        toggleGameOnLibraryButton
-      )}
+        )}
+      </>
+    );
+  }
 
-      {isGameRunning ? (
-        <Button
-          onClick={closeGame}
-          theme="outline"
-          disabled={deleting}
-          className={styles.heroPanelAction}
-        >
-          {t("close")}
-        </Button>
-      ) : (
-        <Button
-          onClick={openGame}
-          theme="outline"
-          disabled={deleting || isGameRunning}
-          className={styles.heroPanelAction}
-        >
-          {t("play")}
-        </Button>
-      )}
-    </>
-  );
+  return toggleGameOnLibraryButton;
 }

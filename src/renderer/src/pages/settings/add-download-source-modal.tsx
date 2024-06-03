@@ -1,10 +1,9 @@
 import { Button, Modal, TextField } from "@renderer/components";
 import { SPACING_UNIT } from "@renderer/theme.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as styles from "./settings-download-sources.css";
-import { numberFormatter } from "@renderer/helpers";
 
 interface AddDownloadSourceModalProps {
   visible: boolean;
@@ -25,6 +24,12 @@ export function AddDownloadSourceModal({
     downloadCount: number;
   } | null>(null);
 
+  useEffect(() => {
+    setValue("");
+    setIsLoading(false);
+    setValidationResult(null);
+  }, [visible]);
+
   const { t } = useTranslation("settings");
 
   const handleValidateDownloadSource = async () => {
@@ -32,8 +37,8 @@ export function AddDownloadSourceModal({
 
     try {
       const result = await window.electron.validateDownloadSource(value);
-      setValidationResult(result);
       console.log(result);
+      setValidationResult(result);
     } finally {
       setIsLoading(false);
     }
@@ -96,7 +101,8 @@ export function AddDownloadSourceModal({
             >
               <h4>{validationResult?.name}</h4>
               <small>
-                Found {numberFormatter.format(validationResult?.downloadCount)}{" "}
+                Found{" "}
+                {validationResult?.downloadCount.toLocaleString(undefined)}{" "}
                 download options
               </small>
             </div>
