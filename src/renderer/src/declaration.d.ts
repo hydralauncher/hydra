@@ -2,6 +2,7 @@ import type {
   AppUpdaterEvents,
   CatalogueEntry,
   Game,
+  LibraryGame,
   GameRepack,
   GameShop,
   HowLongToBeatCategory,
@@ -58,7 +59,7 @@ declare global {
       shop: GameShop,
       executablePath: string | null
     ) => Promise<void>;
-    getLibrary: () => Promise<Omit<Game, "repacks">[]>;
+    getLibrary: () => Promise<LibraryGame[]>;
     openGameInstaller: (gameId: number) => Promise<boolean>;
     openGame: (gameId: number, executablePath: string) => Promise<void>;
     closeGame: (gameId: number) => Promise<boolean>;

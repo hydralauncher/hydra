@@ -87,7 +87,7 @@ export interface CatalogueEntry {
 }
 
 /* Used by the library */
-export interface Game extends Omit<CatalogueEntry, "cover"> {
+export interface Game {
   id: number;
   title: string;
   iconUrl: string;
@@ -102,9 +102,13 @@ export interface Game extends Omit<CatalogueEntry, "cover"> {
   executablePath: string | null;
   lastTimePlayed: Date | null;
   fileSize: number;
+  objectID: string;
+  shop: GameShop;
   createdAt: Date;
   updatedAt: Date;
 }
+
+export type LibraryGame = Omit<Game, "repacks">;
 
 export interface DownloadProgress {
   downloadSpeed: number;
@@ -112,7 +116,7 @@ export interface DownloadProgress {
   numPeers: number;
   numSeeds: number;
   isDownloadingMetadata: boolean;
-  game: Omit<Game, "repacks">;
+  game: LibraryGame;
 }
 
 export interface UserPreferences {
