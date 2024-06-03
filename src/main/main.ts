@@ -1,18 +1,15 @@
-import { DownloadManager, startMainLoop } from "./services";
-import {
-  gameRepository,
-  repackRepository,
-  userPreferencesRepository,
-} from "./repository";
+import { DownloadManager, RepacksManager, startMainLoop } from "./services";
+import { gameRepository, userPreferencesRepository } from "./repository";
 import { UserPreferences } from "./entity";
 import { RealDebridClient } from "./services/real-debrid";
 import { Not } from "typeorm";
-import { repacksWorker } from "./workers";
 import { fetchDownloadSourcesAndUpdate } from "./helpers";
 
 startMainLoop();
 
 const loadState = async (userPreferences: UserPreferences | null) => {
+  await RepacksManager.updateRepacks();
+
   import("./events");
 
   if (userPreferences?.realDebridApiToken)
@@ -27,14 +24,6 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   });
 
   if (game) DownloadManager.startDownload(game);
-
-  const repacks = await repackRepository.find({
-    order: {
-      createdAt: "DESC",
-    },
-  });
-
-  repacksWorker.run(repacks, { name: "setRepacks" });
 
   fetchDownloadSourcesAndUpdate();
 };

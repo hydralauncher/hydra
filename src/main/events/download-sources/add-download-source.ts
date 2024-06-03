@@ -3,9 +3,8 @@ import { dataSource } from "@main/data-source";
 import { DownloadSource } from "@main/entity";
 import axios from "axios";
 import { downloadSourceSchema } from "../helpers/validators";
-import { repackRepository } from "@main/repository";
-import { repacksWorker } from "@main/workers";
 import { insertDownloadsFromSource } from "@main/helpers";
+import { RepacksManager } from "@main/services";
 
 const addDownloadSource = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -31,15 +30,7 @@ const addDownloadSource = async (
     }
   );
 
-  repackRepository
-    .find({
-      order: {
-        createdAt: "DESC",
-      },
-    })
-    .then((repacks) => {
-      repacksWorker.run(repacks, { name: "setRepacks" });
-    });
+  await RepacksManager.updateRepacks();
 
   return downloadSource;
 };

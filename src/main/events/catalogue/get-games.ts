@@ -1,8 +1,9 @@
 import type { CatalogueEntry } from "@types";
 
 import { registerEvent } from "../register-event";
-import { repacksWorker, steamGamesWorker } from "@main/workers";
+import { steamGamesWorker } from "@main/workers";
 import { convertSteamGameToCatalogueEntry } from "../helpers/search-games";
+import { RepacksManager } from "@main/services";
 
 const getGames = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -14,11 +15,8 @@ const getGames = async (
     { name: "list" }
   );
 
-  const entries = await repacksWorker.run(
-    steamGames.map((game) => convertSteamGameToCatalogueEntry(game)),
-    {
-      name: "findRepacksForCatalogueEntries",
-    }
+  const entries = RepacksManager.findRepacksForCatalogueEntries(
+    steamGames.map((game) => convertSteamGameToCatalogueEntry(game))
   );
 
   return {

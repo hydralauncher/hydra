@@ -2,6 +2,7 @@ import { dataSource } from "@main/data-source";
 import { DownloadSource, Repack } from "@main/entity";
 import { downloadSourceSchema } from "@main/events/helpers/validators";
 import { downloadSourceRepository } from "@main/repository";
+import { RepacksManager } from "@main/services";
 import { downloadSourceWorker } from "@main/workers";
 import { chunk } from "lodash-es";
 import type { EntityManager } from "typeorm";
@@ -65,5 +66,7 @@ export const fetchDownloadSourcesAndUpdate = async () => {
         result.downloads
       );
     }
+
+    await RepacksManager.updateRepacks();
   });
 };
