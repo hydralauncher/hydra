@@ -2,8 +2,7 @@ import { registerEvent } from "../register-event";
 import axios from "axios";
 import { downloadSourceRepository } from "@main/repository";
 import { downloadSourceSchema } from "../helpers/validators";
-import { repacksWorker } from "@main/workers";
-import { GameRepack } from "@types";
+import { RepacksManager } from "@main/services";
 
 const validateDownloadSource = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -20,9 +19,7 @@ const validateDownloadSource = async (
   if (existingSource)
     throw new Error("Source with the same url already exists");
 
-  const repacks = (await repacksWorker.run(undefined, {
-    name: "list",
-  })) as GameRepack[];
+  const repacks = RepacksManager.repacks;
 
   const existingUris = source.downloads
     .flatMap((download) => download.uris)

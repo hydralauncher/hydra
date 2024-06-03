@@ -4,7 +4,8 @@ import flexSearch from "flexsearch";
 import type { GameShop, CatalogueEntry, SteamGame } from "@types";
 
 import { getSteamAppAsset } from "@main/helpers";
-import { repacksWorker, steamGamesWorker } from "@main/workers";
+import { steamGamesWorker } from "@main/workers";
+import { RepacksManager } from "@main/services";
 
 export interface SearchGamesArgs {
   query?: string;
@@ -29,11 +30,8 @@ export const searchSteamGames = async (
     name: "search",
   })) as SteamGame[];
 
-  const result = await repacksWorker.run(
-    steamGames.map((game) => convertSteamGameToCatalogueEntry(game)),
-    {
-      name: "findRepacksForCatalogueEntries",
-    }
+  const result = RepacksManager.findRepacksForCatalogueEntries(
+    steamGames.map((game) => convertSteamGameToCatalogueEntry(game))
   );
 
   return orderBy(

@@ -1,9 +1,9 @@
+import { RepacksManager } from "@main/services";
 import { registerEvent } from "../register-event";
-import { repacksWorker } from "@main/workers";
 
 const searchGameRepacks = (
   _event: Electron.IpcMainInvokeEvent,
   query: string
-) => repacksWorker.run({ query }, { name: "search" });
+) => RepacksManager.search({ query });
 
 registerEvent("searchGameRepacks", searchGameRepacks);

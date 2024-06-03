@@ -2,8 +2,7 @@ import { getSteamAppAsset } from "@main/helpers";
 import type { CatalogueEntry, GameShop } from "@types";
 
 import { registerEvent } from "../register-event";
-import { requestSteam250 } from "@main/services";
-import { repacksWorker } from "@main/workers";
+import { RepacksManager, requestSteam250 } from "@main/services";
 import { formatName } from "@shared";
 
 const resultSize = 12;
@@ -19,10 +18,7 @@ const getCatalogue = async (_event: Electron.IpcMainInvokeEvent) => {
     }
 
     const { title, objectID } = trendingGames[i]!;
-    const repacks = await repacksWorker.run(
-      { query: formatName(title) },
-      { name: "search" }
-    );
+    const repacks = RepacksManager.search({ query: formatName(title) });
 
     const catalogueEntry = {
       objectID,
