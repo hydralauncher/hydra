@@ -3,6 +3,11 @@ export enum Downloader {
   Torrent,
 }
 
+export enum DownloadSourceStatus {
+  UpToDate,
+  Errored,
+}
+
 const FORMAT = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
 
 export const formatBytes = (bytes: number): string => {

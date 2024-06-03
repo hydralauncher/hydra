@@ -75,6 +75,7 @@ export function AddDownloadSourceModal({
 
           <Button
             type="button"
+            theme="outline"
             style={{ alignSelf: "flex-end" }}
             onClick={handleValidateDownloadSource}
             disabled={isLoading || !value}

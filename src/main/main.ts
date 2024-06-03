@@ -8,6 +8,7 @@ import { UserPreferences } from "./entity";
 import { RealDebridClient } from "./services/real-debrid";
 import { Not } from "typeorm";
 import { repacksWorker } from "./workers";
+import { fetchDownloadSourcesAndUpdate } from "./helpers";
 
 startMainLoop();
 
@@ -27,15 +28,14 @@ const loadState = async (userPreferences: UserPreferences | null) => {
 
   if (game) DownloadManager.startDownload(game);
 
-  repackRepository
-    .find({
-      order: {
-        createdAt: "DESC",
-      },
-    })
-    .then((repacks) => {
-      repacksWorker.run(repacks, { name: "setRepacks" });
-    });
+  const repacks = await repackRepository.find({
+    order: {
+      createdAt: "DESC",
+    },
+  });
+
+  repacksWorker.run(repacks, { name: "setRepacks" });
+  fetchDownloadSourcesAndUpdate();
 };
 
 userPreferencesRepository

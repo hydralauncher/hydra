@@ -1,12 +1,11 @@
 import { registerEvent } from "../register-event";
-import { chunk } from "lodash-es";
 import { dataSource } from "@main/data-source";
-import { DownloadSource, Repack } from "@main/entity";
+import { DownloadSource } from "@main/entity";
 import axios from "axios";
-import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { downloadSourceSchema } from "../helpers/validators";
 import { repackRepository } from "@main/repository";
 import { repacksWorker } from "@main/workers";
+import { insertDownloadsFromSource } from "@main/helpers";
 
 const addDownloadSource = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -22,29 +21,11 @@ const addDownloadSource = async (
         .getRepository(DownloadSource)
         .save({ url, name: source.name });
 
-      const repacks: QueryDeepPartialEntity<Repack>[] = source.downloads.map(
-        (download) => ({
-          title: download.title,
-          magnet: download.uris[0],
-          fileSize: download.fileSize,
-          repacker: source.name,
-          uploadDate: download.uploadDate,
-          downloadSource: { id: downloadSource.id },
-        })
+      await insertDownloadsFromSource(
+        transactionalEntityManager,
+        downloadSource,
+        source.downloads
       );
-
-      const downloadsChunks = chunk(repacks, 800);
-
-      for (const chunk of downloadsChunks) {
-        await transactionalEntityManager
-          .getRepository(Repack)
-          .createQueryBuilder()
-          .insert()
-          .values(chunk)
-          .updateEntity(false)
-          .orIgnore()
-          .execute();
-      }
 
       return downloadSource;
     }
