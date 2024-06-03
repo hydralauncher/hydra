@@ -24,8 +24,6 @@ const validateDownloadSource = async (
     name: "list",
   })) as GameRepack[];
 
-  console.log(repacks);
-
   const existingUris = source.downloads
     .flatMap((download) => download.uris)
     .filter((uri) => repacks.some((repack) => repack.magnet === uri));
