@@ -101,7 +101,7 @@ export function Sidebar() {
     };
   }, [isResizing]);
 
-  const getGameTitle = (game: Game) => {
+  const getGameTitle = (game: Omit<Game, "repacks">) => {
     if (game.status === "paused") return t("paused", { title: game.title });
 
     if (lastPacket?.game.id === game.id) {

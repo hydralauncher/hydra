@@ -61,7 +61,7 @@ export function Downloads() {
       updateLibrary();
     });
 
-  const getFinalDownloadSize = (game: Game) => {
+  const getFinalDownloadSize = (game: Omit<Game, "repacks">) => {
     const isGameDownloading = lastPacket?.game.id === game.id;
 
     if (game.fileSize) return formatBytes(game.fileSize);
@@ -72,7 +72,7 @@ export function Downloads() {
     return "N/A";
   };
 
-  const getGameInfo = (game: Game) => {
+  const getGameInfo = (game: Omit<Game, "repacks">) => {
     const isGameDownloading = lastPacket?.game.id === game.id;
     const finalDownloadSize = getFinalDownloadSize(game);
 
@@ -132,7 +132,7 @@ export function Downloads() {
     setShowDeleteModal(true);
   };
 
-  const getGameActions = (game: Game) => {
+  const getGameActions = (game: Omit<Game, "repacks">) => {
     const isGameDownloading = lastPacket?.game.id === game.id;
 
     const deleting = isGameDeleting(game.id);
