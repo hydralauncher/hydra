@@ -35,6 +35,7 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   });
 
   repacksWorker.run(repacks, { name: "setRepacks" });
+
   fetchDownloadSourcesAndUpdate();
 };
 
