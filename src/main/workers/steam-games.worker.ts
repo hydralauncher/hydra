@@ -7,7 +7,7 @@ import { formatName } from "@shared";
 import { workerData } from "node:worker_threads";
 
 const steamGamesIndex = new flexSearch.Index({
-  tokenize: "forward",
+  tokenize: "reverse",
 });
 
 const { steamGamesPath } = workerData;

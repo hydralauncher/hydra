@@ -1,5 +1,6 @@
 import { DataSource } from "typeorm";
 import {
+  DownloadQueue,
   DownloadSource,
   Game,
   GameShopCache,
@@ -16,7 +17,14 @@ export const createDataSource = (
 ) =>
   new DataSource({
     type: "better-sqlite3",
-    entities: [Game, Repack, UserPreferences, GameShopCache, DownloadSource],
+    entities: [
+      Game,
+      Repack,
+      UserPreferences,
+      GameShopCache,
+      DownloadSource,
+      DownloadQueue,
+    ],
     synchronize: true,
     database: databasePath,
     ...options,

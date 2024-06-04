@@ -14,12 +14,8 @@
     "paused": "{{title}} (Paused)",
     "downloading": "{{title}} ({{percentage}} - Downloading…)",
     "filter": "Filter library",
-    "follow_us": "Follow us",
     "home": "Home",
-    "discord": "Join our Discord",
-    "telegram": "Join our Telegram",
-    "x": "Follow on X",
-    "github": "Contribute on GitHub"
+    "queued": "{{title}} (Queued)"
   },
   "header": {
     "search": "Search games",
@@ -133,7 +129,11 @@
     "remove_from_list": "Remove",
     "delete_modal_title": "Are you sure?",
     "delete_modal_description": "This will remove all the installation files from your computer",
-    "install": "Install"
+    "install": "Install",
+    "download_in_progress": "In progress",
+    "queued_downloads": "Queued downloads",
+    "downloads_completed": "Completed",
+    "queued": "Queued"
   },
   "settings": {
     "downloads_path": "Downloads path",
