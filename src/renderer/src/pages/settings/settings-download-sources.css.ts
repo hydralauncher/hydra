@@ -8,6 +8,7 @@ export const downloadSourceField = style({
 
 export const downloadSources = style({
   padding: "0",
+  margin: "0",
   gap: `${SPACING_UNIT * 2}px`,
   display: "flex",
   flexDirection: "column",
@@ -30,8 +31,8 @@ export const downloadSourceItemHeader = style({
   gap: `${SPACING_UNIT}px`,
 });
 
-export const downloadSourceItemTitle = style({
+export const downloadSourcesHeader = style({
   display: "flex",
-  gap: `${SPACING_UNIT}px`,
+  justifyContent: "space-between",
   alignItems: "center",
 });

@@ -167,7 +167,12 @@
     "download_options_one": "{{countFormatted}} download option",
     "download_options_other": "{{countFormatted}} download options",
     "download_source_url": "Download source URL",
-    "add_download_source_description": "Insert the URL containing the JSON file"
+    "add_download_source_description": "Insert the URL containing the JSON file",
+    "download_source_up_to_date": "Up-to-date",
+    "download_source_errored": "Errored",
+    "resync_download_sources": "Resync",
+    "removed_download_source": "Download source removed",
+    "added_download_source": "Added download source"
   },
   "notifications": {
     "download_complete": "Download complete",

@@ -23,7 +23,7 @@ export class DownloadSource {
   @Column("text", { nullable: true })
   etag: string | null;
 
-  @Column("text", { default: "online" })
+  @Column("text", { default: DownloadSourceStatus.UpToDate })
   status: DownloadSourceStatus;
 
   @OneToMany(() => Repack, (repack) => repack.downloadSource, { cascade: true })

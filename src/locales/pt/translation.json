@@ -164,7 +164,12 @@
     "download_options_one": "{{countFormatted}} opcão de download",
     "download_options_other": "{{countFormatted}} opções de download",
     "download_source_url": "URL da biblioteca",
-    "add_download_source_description": "Insira a URL contendo o arquivo JSON"
+    "add_download_source_description": "Insira a URL contendo o arquivo JSON",
+    "download_source_up_to_date": "Atualizado",
+    "download_source_errored": "Falhou",
+    "resync_download_sources": "Resincronizar",
+    "removed_download_source": "Biblioteca removida",
+    "added_download_source": "Biblioteca adicionada"
   },
   "notifications": {
     "download_complete": "Download concluído",
