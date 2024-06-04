@@ -11,7 +11,7 @@ import {
 
 import { Downloader, formatBytes } from "@shared";
 import { DOWNLOADER_NAME } from "@renderer/constants";
-import { useAppSelector, useDownload } from "@renderer/hooks";
+import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
 
 import * as styles from "./download-list.css";
 import { useTranslation } from "react-i18next";
@@ -24,6 +24,8 @@ export function DownloadList({ library }: DownloadListProps) {
   const navigate = useNavigate();
 
   const { t } = useTranslation("downloads");
+
+  const { updateLibrary } = useLibrary();
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -42,8 +44,8 @@ export function DownloadList({ library }: DownloadListProps) {
 
   const openGameInstaller = (gameId: number) =>
     window.electron.openGameInstaller(gameId).then((isBinaryInPath) => {
-      //   if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
-      //   updateLibrary();
+      if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
+      updateLibrary();
     });
 
   const getFinalDownloadSize = (game: LibraryGame) => {
@@ -92,7 +94,7 @@ export function DownloadList({ library }: DownloadListProps) {
       return (
         <>
           <p>{formatDownloadProgress(game.progress)}</p>
-          <p>{t(game.downloadQueue ? "queued" : "paused")}</p>
+          <p>{t(game.downloadQueue && lastPacket ? "queued" : "paused")}</p>
         </>
       );
     }

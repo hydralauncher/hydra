@@ -11,7 +11,7 @@ import { LibraryGame } from "@types";
 import { orderBy } from "lodash-es";
 
 export function Downloads() {
-  const { library, updateLibrary } = useLibrary();
+  const { library } = useLibrary();
 
   const { t } = useTranslation("downloads");
 
@@ -41,18 +41,27 @@ export function Downloads() {
         return { ...prev, downloading: [...prev.downloading, next] };
       }
 
-      if (next.downloadQueue) {
+      if (next.downloadQueue || next.status === "paused") {
         return { ...prev, queued: [...prev.queued, next] };
       }
 
       return { ...prev, complete: [...prev.complete, next] };
     }, initialValue);
 
+    const queued = orderBy(
+      result.queued,
+      (game) => game.downloadQueue?.id ?? -1,
+      ["desc"]
+    );
+
+    const complete = orderBy(result.complete, (game) =>
+      game.status === "complete" ? 0 : 1
+    );
+
     return {
       ...result,
-      queued: orderBy(result.queued, (game) => game.downloadQueue?.id, [
-        "desc",
-      ]),
+      queued,
+      complete,
     };
   }, [library, lastPacket?.game.id]);
 
