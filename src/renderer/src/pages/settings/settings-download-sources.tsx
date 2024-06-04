@@ -5,9 +5,10 @@ import { useTranslation } from "react-i18next";
 
 import * as styles from "./settings-download-sources.css";
 import type { DownloadSource } from "@types";
-import { NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
+import { NoEntryIcon, PlusCircleIcon, SyncIcon } from "@primer/octicons-react";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
 import { useToast } from "@renderer/hooks";
+import { DownloadSourceStatus } from "@shared";
 
 export function SettingsDownloadSources() {
   const [showAddDownloadSourceModal, setShowAddDownloadSourceModal] =
@@ -30,14 +31,19 @@ export function SettingsDownloadSources() {
 
   const handleRemoveSource = async (id: number) => {
     await window.electron.removeDownloadSource(id);
-    showSuccessToast("Removed download source");
+    showSuccessToast(t("removed_download_source"));
 
     getDownloadSources();
   };
 
   const handleAddDownloadSource = async () => {
     await getDownloadSources();
-    showSuccessToast("Download source successfully added");
+    showSuccessToast(t("added_download_source"));
+  };
+
+  const statusTitle = {
+    [DownloadSourceStatus.UpToDate]: t("download_source_up_to_date"),
+    [DownloadSourceStatus.Errored]: t("download_source_errored"),
   };
 
   return (
@@ -52,24 +58,34 @@ export function SettingsDownloadSources() {
         {t("download_sources_description")}
       </p>
 
-      <Button
-        type="button"
-        theme="outline"
-        style={{ alignSelf: "flex-start" }}
-        onClick={() => setShowAddDownloadSourceModal(true)}
-      >
-        <PlusCircleIcon />
-        {t("add_download_source")}
-      </Button>
+      <div className={styles.downloadSourcesHeader}>
+        <Button
+          type="button"
+          theme="outline"
+          onClick={() => setShowAddDownloadSourceModal(true)}
+        >
+          <PlusCircleIcon />
+          {t("add_download_source")}
+        </Button>
+
+        <Button
+          type="button"
+          theme="outline"
+          disabled={!downloadSources.length}
+        >
+          <SyncIcon />
+          {t("resync_download_sources")}
+        </Button>
+      </div>
 
       <ul className={styles.downloadSources}>
         {downloadSources.map((downloadSource) => (
           <li key={downloadSource.id} className={styles.downloadSourceItem}>
             <div className={styles.downloadSourceItemHeader}>
-              <div className={styles.downloadSourceItemTitle}>
-                <h2>{downloadSource.name}</h2>
+              <h2>{downloadSource.name}</h2>
 
-                <Badge>{downloadSource.status}</Badge>
+              <div style={{ display: "flex" }}>
+                <Badge>{statusTitle[downloadSource.status]}</Badge>
               </div>
 
               <small>
