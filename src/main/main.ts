@@ -1,8 +1,10 @@
 import { DownloadManager, RepacksManager, startMainLoop } from "./services";
-import { gameRepository, userPreferencesRepository } from "./repository";
+import {
+  downloadQueueRepository,
+  userPreferencesRepository,
+} from "./repository";
 import { UserPreferences } from "./entity";
 import { RealDebridClient } from "./services/real-debrid";
-import { Not } from "typeorm";
 import { fetchDownloadSourcesAndUpdate } from "./helpers";
 
 startMainLoop();
@@ -15,15 +17,17 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   if (userPreferences?.realDebridApiToken)
     RealDebridClient.authorize(userPreferences?.realDebridApiToken);
 
-  const game = await gameRepository.findOne({
-    where: {
-      status: "active",
-      progress: Not(1),
-      isDeleted: false,
+  const [nextQueueItem] = await downloadQueueRepository.find({
+    order: {
+      id: "DESC",
+    },
+    relations: {
+      game: true,
     },
   });
 
-  if (game) DownloadManager.startDownload(game);
+  if (nextQueueItem?.game.status === "active")
+    DownloadManager.startDownload(nextQueueItem.game);
 
   fetchDownloadSourcesAndUpdate();
 };

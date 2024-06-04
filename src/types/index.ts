@@ -86,6 +86,12 @@ export interface CatalogueEntry {
   repacks: GameRepack[];
 }
 
+export interface DownloadQueue {
+  id: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 /* Used by the library */
 export interface Game {
   id: number;
@@ -104,6 +110,7 @@ export interface Game {
   fileSize: number;
   objectID: string;
   shop: GameShop;
+  downloadQueue: DownloadQueue | null;
   createdAt: Date;
   updatedAt: Date;
 }

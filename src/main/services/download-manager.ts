@@ -1,6 +1,10 @@
 import Aria2, { StatusResponse } from "aria2";
 
-import { gameRepository, userPreferencesRepository } from "@main/repository";
+import {
+  downloadQueueRepository,
+  gameRepository,
+  userPreferencesRepository,
+} from "@main/repository";
 
 import { WindowManager } from "./window-manager";
 import { RealDebridClient } from "./real-debrid";
@@ -194,19 +198,6 @@ export class DownloadManager {
       where: { id: this.game.id, isDeleted: false },
     });
 
-    if (progress === 1 && this.game && !isDownloadingMetadata) {
-      await this.publishNotification();
-
-      /*
-        Only cancel bittorrent downloads to stop seeding
-      */
-      if (status.bittorrent) {
-        await this.cancelDownload(this.game.id);
-      } else {
-        this.clearCurrentDownload();
-      }
-    }
-
     if (WindowManager.mainWindow && game) {
       if (!isNaN(progress))
         WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
@@ -228,6 +219,32 @@ export class DownloadManager {
         "on-download-progress",
         JSON.parse(JSON.stringify(payload))
       );
+    }
+
+    if (progress === 1 && this.game && !isDownloadingMetadata) {
+      await this.publishNotification();
+
+      await downloadQueueRepository.delete({ game: this.game });
+
+      /*
+        Only cancel bittorrent downloads to stop seeding
+      */
+      if (status.bittorrent) {
+        await this.cancelDownload(this.game.id);
+      } else {
+        this.clearCurrentDownload();
+      }
+
+      const [nextQueueItem] = await downloadQueueRepository.find({
+        order: {
+          id: "DESC",
+        },
+        relations: {
+          game: true,
+        },
+      });
+
+      this.resumeDownload(nextQueueItem!.game);
     }
   }
 

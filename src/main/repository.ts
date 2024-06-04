@@ -1,5 +1,6 @@
 import { dataSource } from "./data-source";
 import {
+  DownloadQueue,
   DownloadSource,
   Game,
   GameShopCache,
@@ -18,3 +19,5 @@ export const gameShopCacheRepository = dataSource.getRepository(GameShopCache);
 
 export const downloadSourceRepository =
   dataSource.getRepository(DownloadSource);
+
+export const downloadQueueRepository = dataSource.getRepository(DownloadQueue);
