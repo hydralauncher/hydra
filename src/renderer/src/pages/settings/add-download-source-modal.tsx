@@ -37,7 +37,6 @@ export function AddDownloadSourceModal({
 
     try {
       const result = await window.electron.validateDownloadSource(value);
-      console.log(result);
       setValidationResult(result);
     } finally {
       setIsLoading(false);

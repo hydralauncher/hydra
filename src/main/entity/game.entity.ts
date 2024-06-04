@@ -12,6 +12,7 @@ import { Repack } from "./repack.entity";
 import type { GameShop } from "@types";
 import { Downloader } from "@shared";
 import type { Aria2Status } from "aria2";
+import type { DownloadQueue } from "./download-queue.entity";
 
 @Entity("game")
 export class Game {
@@ -66,9 +67,15 @@ export class Game {
   @Column("text", { nullable: true })
   uri: string | null;
 
-  @OneToOne(() => Repack, { nullable: true })
+  /**
+   * @deprecated
+   */
+  @OneToOne("Repack", "game", { nullable: true })
   @JoinColumn()
   repack: Repack;
+
+  @OneToOne("DownloadQueue", "game")
+  downloadQueue: DownloadQueue;
 
   @Column("boolean", { default: false })
   isDeleted: boolean;
