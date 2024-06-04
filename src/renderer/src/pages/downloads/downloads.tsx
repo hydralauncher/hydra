@@ -47,17 +47,21 @@ export function Downloads() {
       complete: [],
     };
 
-    const result = library.reduce((prev, next) => {
-      if (lastPacket?.game.id === next.id) {
-        return { ...prev, downloading: [...prev.downloading, next] };
-      }
+    const result = library
+      .filter((game) => {
+        return game.downloadPath;
+      })
+      .reduce((prev, next) => {
+        if (lastPacket?.game.id === next.id) {
+          return { ...prev, downloading: [...prev.downloading, next] };
+        }
 
-      if (next.downloadQueue || next.status === "paused") {
-        return { ...prev, queued: [...prev.queued, next] };
-      }
+        if (next.downloadQueue || next.status === "paused") {
+          return { ...prev, queued: [...prev.queued, next] };
+        }
 
-      return { ...prev, complete: [...prev.complete, next] };
-    }, initialValue);
+        return { ...prev, complete: [...prev.complete, next] };
+      }, initialValue);
 
     const queued = orderBy(
       result.queued,
@@ -66,7 +70,7 @@ export function Downloads() {
     );
 
     const complete = orderBy(result.complete, (game) =>
-      game.status === "complete" ? 0 : 1
+      game.progress === 1 ? 0 : 1
     );
 
     return {

@@ -77,13 +77,11 @@ export function HeroPanelActions() {
       if (game) {
         await removeGameFromLibrary(game.id);
       } else {
-        const gameExecutablePath = await selectGameExecutable();
-
         await window.electron.addGameToLibrary(
           objectID!,
           gameTitle,
           "steam",
-          gameExecutablePath
+          null
         );
       }
 
@@ -110,11 +108,6 @@ export function HeroPanelActions() {
         return;
       }
 
-      if (game?.executablePath) {
-        window.electron.openGame(game.id, game.executablePath);
-        return;
-      }
-
       const gameExecutablePath = await selectGameExecutable();
       if (gameExecutablePath)
         window.electron.openGame(game.id, gameExecutablePath);
@@ -136,6 +129,17 @@ export function HeroPanelActions() {
     >
       {game ? <NoEntryIcon /> : <PlusCircleIcon />}
       {game ? t("remove_from_library") : t("add_to_library")}
+    </Button>
+  );
+
+  const showDownloadOptionsButton = (
+    <Button
+      onClick={openRepacksModal}
+      theme="outline"
+      disabled={deleting}
+      className={styles.heroPanelAction}
+    >
+      {t("open_download_options")}
     </Button>
   );
 
@@ -188,14 +192,7 @@ export function HeroPanelActions() {
   if (game?.status === "removed") {
     return (
       <>
-        <Button
-          onClick={openRepacksModal}
-          theme="outline"
-          disabled={deleting}
-          className={styles.heroPanelAction}
-        >
-          {t("open_download_options")}
-        </Button>
+        {showDownloadOptionsButton}
 
         <Button
           onClick={() => removeGameFromLibrary(game.id).then(updateGame)}
@@ -227,7 +224,7 @@ export function HeroPanelActions() {
   if (game) {
     return (
       <>
-        {game?.progress === 1 ? (
+        {game?.progress === 1 && game?.folderName && (
           <>
             <BinaryNotFoundModal
               visible={showBinaryNotFoundModal}
@@ -243,9 +240,11 @@ export function HeroPanelActions() {
               {t("install")}
             </Button>
           </>
-        ) : (
-          toggleGameOnLibraryButton
         )}
+
+        {game?.progress === 1 && !game?.folderName && showDownloadOptionsButton}
+
+        {game?.progress !== 1 && toggleGameOnLibraryButton}
 
         {isGameRunning ? (
           <Button
