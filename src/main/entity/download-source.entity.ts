@@ -6,7 +6,8 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from "typeorm";
-import { Repack } from "./repack.entity";
+import type { Repack } from "./repack.entity";
+
 import { DownloadSourceStatus } from "@shared";
 
 @Entity("download_source")
@@ -26,7 +27,7 @@ export class DownloadSource {
   @Column("text", { default: DownloadSourceStatus.UpToDate })
   status: DownloadSourceStatus;
 
-  @OneToMany(() => Repack, (repack) => repack.downloadSource, { cascade: true })
+  @OneToMany("Repack", "downloadSource", { cascade: true })
   repacks: Repack[];
 
   @CreateDateColumn()

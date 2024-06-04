@@ -1,7 +1,6 @@
 {
   "home": {
     "featured": "Destaque",
-    "recently_added": "Recém adicionados",
     "trending": "Populares",
     "surprise_me": "Surpreenda-me",
     "no_results": "Nenhum resultado encontrado"
@@ -17,10 +16,7 @@
     "filter": "Filtrar biblioteca",
     "home": "Início",
     "follow_us": "Acompanhe-nos",
-    "discord": "Entre no nosso Discord",
-    "telegram": "Entre no nosso Telegram",
-    "x": "Siga-nos no X",
-    "github": "Contribua no GitHub"
+    "queued": "{{title}} (Na fila)"
   },
   "header": {
     "search": "Buscar jogos",
@@ -130,7 +126,11 @@
     "delete_modal_description": "Isso removerá todos os arquivos de instalação do seu computador",
     "delete_modal_title": "Tem certeza?",
     "deleting": "Excluindo instalador…",
-    "install": "Instalar"
+    "install": "Instalar",
+    "download_in_progress": "Baixando agora",
+    "queued_downloads": "Na fila",
+    "downloads_completed": "Completo",
+    "queued": "Na fila"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",

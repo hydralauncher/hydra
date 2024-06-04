@@ -6,8 +6,11 @@ const getLibrary = async () =>
     where: {
       isDeleted: false,
     },
+    relations: {
+      downloadQueue: true,
+    },
     order: {
-      updatedAt: "desc",
+      createdAt: "desc",
     },
   });
 

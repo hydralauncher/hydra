@@ -5,7 +5,7 @@ import { gameRepository } from "../../repository";
 
 import { DownloadManager } from "@main/services";
 import { dataSource } from "@main/data-source";
-import { Game } from "@main/entity";
+import { DownloadQueue, Game } from "@main/entity";
 
 const resumeGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -29,6 +29,14 @@ const resumeGameDownload = async (
         .update({ status: "active", progress: Not(1) }, { status: "paused" });
 
       await DownloadManager.resumeDownload(game);
+
+      await transactionalEntityManager
+        .getRepository(DownloadQueue)
+        .delete({ game: { id: gameId } });
+
+      await transactionalEntityManager
+        .getRepository(DownloadQueue)
+        .insert({ game: { id: gameId } });
 
       await transactionalEntityManager
         .getRepository(Game)

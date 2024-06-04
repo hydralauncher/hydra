@@ -40,6 +40,8 @@ export function Sidebar() {
     updateLibrary();
   }, [lastPacket?.game.id, updateLibrary]);
 
+  console.log(library);
+
   const isDownloading = library.some(
     (game) => game.status === "active" && game.progress !== 1
   );
@@ -100,14 +102,18 @@ export function Sidebar() {
   }, [isResizing]);
 
   const getGameTitle = (game: LibraryGame) => {
-    if (game.status === "paused") return t("paused", { title: game.title });
-
     if (lastPacket?.game.id === game.id) {
       return t("downloading", {
         title: game.title,
         percentage: progress,
       });
     }
+
+    if (game.downloadQueue !== null) {
+      return t("queued", { title: game.title });
+    }
+
+    if (game.status === "paused") return t("paused", { title: game.title });
 
     return game.title;
   };
