@@ -11,21 +11,27 @@ import {
 
 import { Downloader, formatBytes } from "@shared";
 import { DOWNLOADER_NAME } from "@renderer/constants";
-import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
+import { useAppSelector, useDownload } from "@renderer/hooks";
 
-import * as styles from "./download-list.css";
+import * as styles from "./download-group.css";
 import { useTranslation } from "react-i18next";
 
-export interface DownloadListProps {
+export interface DownloadGroupProps {
   library: LibraryGame[];
+  title: string;
+  openDeleteGameModal: (gameId: number) => void;
+  openGameInstaller: (gameId: number) => void;
 }
 
-export function DownloadList({ library }: DownloadListProps) {
+export function DownloadGroup({
+  library,
+  title,
+  openDeleteGameModal,
+  openGameInstaller,
+}: DownloadGroupProps) {
   const navigate = useNavigate();
 
   const { t } = useTranslation("downloads");
-
-  const { updateLibrary } = useLibrary();
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -38,15 +44,8 @@ export function DownloadList({ library }: DownloadListProps) {
     resumeDownload,
     removeGameFromLibrary,
     cancelDownload,
-    removeGameInstaller,
     isGameDeleting,
   } = useDownload();
-
-  const openGameInstaller = (gameId: number) =>
-    window.electron.openGameInstaller(gameId).then((isBinaryInPath) => {
-      if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
-      updateLibrary();
-    });
 
   const getFinalDownloadSize = (game: LibraryGame) => {
     const isGameDownloading = lastPacket?.game.id === game.id;
@@ -114,11 +113,6 @@ export function DownloadList({ library }: DownloadListProps) {
     return <p>{t(game.status)}</p>;
   };
 
-  const openDeleteModal = (gameId: number) => {
-    // gameToBeDeleted.current = gameId;
-    // setShowDeleteModal(true);
-  };
-
   const getGameActions = (game: LibraryGame) => {
     const isGameDownloading = lastPacket?.game.id === game.id;
 
@@ -135,7 +129,7 @@ export function DownloadList({ library }: DownloadListProps) {
             {t("install")}
           </Button>
 
-          <Button onClick={() => openDeleteModal(game.id)} theme="outline">
+          <Button onClick={() => openDeleteGameModal(game.id)} theme="outline">
             {t("delete")}
           </Button>
         </>
@@ -196,51 +190,57 @@ export function DownloadList({ library }: DownloadListProps) {
     );
   };
 
+  if (!library.length) return null;
+
   return (
-    <ul className={styles.downloads}>
-      {library.map((game) => {
-        return (
-          <li
-            key={game.id}
-            className={styles.download({
-              cancelled: game.status === "removed",
-            })}
-          >
-            <div className={styles.downloadCover}>
-              <div className={styles.downloadCoverBackdrop}>
-                <img
-                  src={steamUrlBuilder.library(game.objectID)}
-                  className={styles.downloadCoverImage}
-                  alt={game.title}
-                />
+    <div className={styles.downloadGroup}>
+      <h2>{title}</h2>
 
-                <div className={styles.downloadCoverContent}>
-                  <Badge>{DOWNLOADER_NAME[game.downloader]}</Badge>
+      <ul className={styles.downloads}>
+        {library.map((game) => {
+          return (
+            <li
+              key={game.id}
+              className={styles.download({
+                cancelled: game.status === "removed",
+              })}
+            >
+              <div className={styles.downloadCover}>
+                <div className={styles.downloadCoverBackdrop}>
+                  <img
+                    src={steamUrlBuilder.library(game.objectID)}
+                    className={styles.downloadCoverImage}
+                    alt={game.title}
+                  />
+
+                  <div className={styles.downloadCoverContent}>
+                    <Badge>{DOWNLOADER_NAME[game.downloader]}</Badge>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className={styles.downloadRightContent}>
-              <div className={styles.downloadDetails}>
-                <div className={styles.downloadTitleWrapper}>
-                  <button
-                    type="button"
-                    className={styles.downloadTitle}
-                    onClick={() => navigate(buildGameDetailsPath(game))}
-                  >
-                    {game.title}
-                  </button>
+              <div className={styles.downloadRightContent}>
+                <div className={styles.downloadDetails}>
+                  <div className={styles.downloadTitleWrapper}>
+                    <button
+                      type="button"
+                      className={styles.downloadTitle}
+                      onClick={() => navigate(buildGameDetailsPath(game))}
+                    >
+                      {game.title}
+                    </button>
+                  </div>
+
+                  {getGameInfo(game)}
                 </div>
 
-                {getGameInfo(game)}
+                <div className={styles.downloadActions}>
+                  {getGameActions(game)}
+                </div>
               </div>
-
-              <div className={styles.downloadActions}>
-                {getGameActions(game)}
-              </div>
-            </div>
-          </li>
-        );
-      })}
-    </ul>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }

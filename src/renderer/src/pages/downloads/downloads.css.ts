@@ -13,9 +13,3 @@ export const downloadGroups = style({
   gap: `${SPACING_UNIT * 3}px`,
   flexDirection: "column",
 });
-
-export const downloadGroup = style({
-  display: "flex",
-  flexDirection: "column",
-  gap: `${SPACING_UNIT * 2}px`,
-});

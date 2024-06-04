@@ -132,7 +132,7 @@
     "install": "Install",
     "download_in_progress": "In progress",
     "queued_downloads": "Queued downloads",
-    "downloads_complete": "Completed",
+    "downloads_completed": "Completed",
     "queued": "Queued"
   },
   "settings": {

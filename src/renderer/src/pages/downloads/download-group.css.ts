@@ -111,3 +111,9 @@ export const downloadActions = style({
   alignItems: "center",
   gap: `${SPACING_UNIT}px`,
 });
+
+export const downloadGroup = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT * 2}px`,
+});

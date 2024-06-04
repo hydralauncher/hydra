@@ -130,7 +130,7 @@
     "install": "Instalar",
     "download_in_progress": "Baixando agora",
     "queued_downloads": "Na fila",
-    "downloads_complete": "Completo",
+    "downloads_completed": "Completo",
     "queued": "Na fila"
   },
   "settings": {
