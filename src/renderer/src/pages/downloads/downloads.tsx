@@ -6,12 +6,12 @@ import { useMemo, useRef, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
 import { DeleteGameModal } from "./delete-game-modal";
-import { DownloadList } from "./download-list";
+import { DownloadGroup } from "./download-group";
 import { LibraryGame } from "@types";
 import { orderBy } from "lodash-es";
 
 export function Downloads() {
-  const { library } = useLibrary();
+  const { library, updateLibrary } = useLibrary();
 
   const { t } = useTranslation("downloads");
 
@@ -28,6 +28,17 @@ export function Downloads() {
   };
 
   const { lastPacket } = useDownload();
+
+  const handleOpenGameInstaller = (gameId: number) =>
+    window.electron.openGameInstaller(gameId).then((isBinaryInPath) => {
+      if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
+      updateLibrary();
+    });
+
+  const handleOpenDeleteGameModal = (gameId: number) => {
+    gameToBeDeleted.current = gameId;
+    setShowDeleteModal(true);
+  };
 
   const libraryGroup: Record<string, LibraryGame[]> = useMemo(() => {
     const initialValue: Record<string, LibraryGame[]> = {
@@ -65,7 +76,20 @@ export function Downloads() {
     };
   }, [library, lastPacket?.game.id]);
 
-  console.log(libraryGroup);
+  const downloadGroups = [
+    {
+      title: t("download_in_progress"),
+      library: libraryGroup.downloading,
+    },
+    {
+      title: t("queued_downloads"),
+      library: libraryGroup.queued,
+    },
+    {
+      title: t("downloads_completed"),
+      library: libraryGroup.complete,
+    },
+  ];
 
   return (
     <section className={styles.downloadsContainer}>
@@ -81,26 +105,15 @@ export function Downloads() {
       />
 
       <div className={styles.downloadGroups}>
-        {libraryGroup.downloading.length > 0 && (
-          <div className={styles.downloadGroup}>
-            <h2>{t("download_in_progress")}</h2>
-            <DownloadList library={libraryGroup.downloading} />
-          </div>
-        )}
-
-        {libraryGroup.queued.length > 0 && (
-          <div className={styles.downloadGroup}>
-            <h2>{t("queued_downloads")}</h2>
-            <DownloadList library={libraryGroup.queued} />
-          </div>
-        )}
-
-        {libraryGroup.complete.length > 0 && (
-          <div className={styles.downloadGroup}>
-            <h2>{t("downloads_complete")}</h2>
-            <DownloadList library={libraryGroup.complete} />
-          </div>
-        )}
+        {downloadGroups.map((group) => (
+          <DownloadGroup
+            key={group.title}
+            title={group.title}
+            library={group.library}
+            openDeleteGameModal={handleOpenDeleteGameModal}
+            openGameInstaller={handleOpenGameInstaller}
+          />
+        ))}
       </div>
     </section>
   );
