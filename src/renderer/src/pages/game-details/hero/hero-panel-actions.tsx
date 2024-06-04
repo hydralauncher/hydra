@@ -1,4 +1,4 @@
-import { NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
+import { GearIcon, NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
 
 import { BinaryNotFoundModal } from "../../shared-modals/binary-not-found-modal";
 
@@ -10,11 +10,13 @@ import { useTranslation } from "react-i18next";
 import * as styles from "./hero-panel-actions.css";
 import { gameDetailsContext } from "../game-details.context";
 import { Downloader } from "@shared";
+import { GameOptionsModal } from "../modals/game-options-modal";
 
 export function HeroPanelActions() {
   const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
     useState(false);
   const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
+  const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
 
   const {
     resumeDownload,
@@ -224,6 +226,25 @@ export function HeroPanelActions() {
   if (game) {
     return (
       <>
+        <GameOptionsModal
+          visible={showGameOptionsModal}
+          game={game}
+          onClose={() => {
+            setShowGameOptionsModal(false);
+          }}
+          selectGameExecutable={selectGameExecutable}
+        />
+        <Button
+          onClick={() => {
+            setShowGameOptionsModal(true);
+          }}
+          theme="outline"
+          disabled={deleting}
+          className={styles.heroPanelAction}
+        >
+          <GearIcon />
+        </Button>
+
         {game?.progress === 1 && game?.folderName && (
           <>
             <BinaryNotFoundModal
