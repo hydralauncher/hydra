@@ -263,9 +263,9 @@ export function HeroPanelActions() {
           </>
         )}
 
-        {game?.progress === 1 && !game?.folderName && showDownloadOptionsButton}
+        {game.progress === 1 && !game.downloadPath && showDownloadOptionsButton}
 
-        {game?.progress !== 1 && toggleGameOnLibraryButton}
+        {game.progress !== 1 && toggleGameOnLibraryButton}
 
         {isGameRunning ? (
           <Button
