@@ -1,6 +1,5 @@
 import { SPACING_UNIT, vars } from "../../theme.css";
 import { style } from "@vanilla-extract/css";
-import { recipe } from "@vanilla-extract/recipes";
 
 export const downloadTitleWrapper = style({
   display: "flex",
@@ -28,6 +27,7 @@ export const downloads = style({
   flexDirection: "column",
   margin: "0",
   padding: "0",
+  marginTop: `${SPACING_UNIT}px`,
 });
 
 export const downloadCover = style({
@@ -64,30 +64,18 @@ export const downloadCoverImage = style({
   zIndex: "-1",
 });
 
-export const download = recipe({
-  base: {
-    width: "100%",
-    backgroundColor: vars.color.background,
-    display: "flex",
-    borderRadius: "8px",
-    border: `solid 1px ${vars.color.border}`,
-    overflow: "hidden",
-    boxShadow: "0px 0px 15px 0px #000000",
-    transition: "all ease 0.2s",
-    height: "140px",
-    minHeight: "140px",
-    maxHeight: "140px",
-  },
-  variants: {
-    cancelled: {
-      true: {
-        opacity: vars.opacity.disabled,
-        ":hover": {
-          opacity: "1",
-        },
-      },
-    },
-  },
+export const download = style({
+  width: "100%",
+  backgroundColor: vars.color.background,
+  display: "flex",
+  borderRadius: "8px",
+  border: `solid 1px ${vars.color.border}`,
+  overflow: "hidden",
+  boxShadow: "0px 0px 15px 0px #000000",
+  transition: "all ease 0.2s",
+  height: "140px",
+  minHeight: "140px",
+  maxHeight: "140px",
 });
 
 export const downloadDetails = style({
