@@ -34,33 +34,32 @@ const deleteGameFolder = async (
       game.folderName
     );
 
-    if (!fs.existsSync(folderPath)) {
-      await gameRepository.update(
-        { id: gameId },
-        { downloadPath: null, folderName: null }
-      );
-    }
+    if (fs.existsSync(folderPath)) {
+      await new Promise<void>((resolve, reject) => {
+        fs.rm(
+          folderPath,
+          { recursive: true, force: true, maxRetries: 5, retryDelay: 200 },
+          (error) => {
+            if (error) {
+              logger.error(error);
+              reject();
+            }
 
-    return new Promise<void>((resolve, reject) => {
-      fs.rm(
-        folderPath,
-        { recursive: true, force: true, maxRetries: 5, retryDelay: 200 },
-        (error) => {
-          if (error) {
-            logger.error(error);
-            reject();
+            const aria2ControlFilePath = `${folderPath}.aria2`;
+            if (fs.existsSync(aria2ControlFilePath))
+              fs.rmSync(aria2ControlFilePath);
+
+            resolve();
           }
-
-          resolve();
-        }
-      );
-    }).then(async () => {
-      await gameRepository.update(
-        { id: gameId },
-        { downloadPath: null, folderName: null }
-      );
-    });
+        );
+      });
+    }
   }
+
+  await gameRepository.update(
+    { id: gameId },
+    { downloadPath: null, folderName: null, status: null, progress: 0 }
+  );
 };
 
 registerEvent("deleteGameFolder", deleteGameFolder);

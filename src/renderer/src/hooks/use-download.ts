@@ -41,12 +41,6 @@ export function useDownload() {
     return updateLibrary();
   };
 
-  const cancelDownload = async (gameId: number) => {
-    await window.electron.cancelGameDownload(gameId);
-    dispatch(clearDownload());
-    updateLibrary();
-  };
-
   const removeGameInstaller = async (gameId: number) => {
     dispatch(setGameDeleting(gameId));
 
@@ -56,6 +50,14 @@ export function useDownload() {
     } finally {
       dispatch(removeGameFromDeleting(gameId));
     }
+  };
+
+  const cancelDownload = async (gameId: number) => {
+    await window.electron.cancelGameDownload(gameId);
+    dispatch(clearDownload());
+    updateLibrary();
+
+    removeGameInstaller(gameId);
   };
 
   const removeGameFromLibrary = (gameId: number) =>

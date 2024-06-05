@@ -16,8 +16,7 @@ export function Sidebar() {
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
-  const { gameTitle, shopDetails, shop, objectID } =
-    useContext(gameDetailsContext);
+  const { gameTitle, shopDetails, objectID } = useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
 
@@ -75,15 +74,6 @@ export function Sidebar() {
             }),
         }}
       />
-
-      <div className={styles.technicalDetailsContainer}>
-        <p>
-          <small>shop: &quot;{shop}&quot;</small>
-        </p>
-        <p>
-          <small>objectID: &quot;{objectID}&quot;</small>
-        </p>
-      </div>
     </aside>
   );
 }

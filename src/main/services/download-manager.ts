@@ -1,5 +1,7 @@
 import Aria2, { StatusResponse } from "aria2";
 
+import path from "node:path";
+
 import { downloadQueueRepository, gameRepository } from "@main/repository";
 
 import { WindowManager } from "./window-manager";
@@ -67,7 +69,11 @@ export class DownloadManager {
 
   private static getFolderName(status: StatusResponse) {
     if (status.bittorrent?.info) return status.bittorrent.info.name;
-    return "";
+
+    const [file] = status.files;
+    if (file) return path.win32.basename(file.path);
+
+    return null;
   }
 
   private static async getRealDebridDownloadUrl() {
@@ -198,7 +204,7 @@ export class DownloadManager {
     }
 
     if (progress === 1 && this.game && !isDownloadingMetadata) {
-      await publishDownloadCompleteNotification(this.game);
+      publishDownloadCompleteNotification(this.game);
 
       await downloadQueueRepository.delete({ game: this.game });
 
@@ -220,7 +226,9 @@ export class DownloadManager {
         },
       });
 
-      this.resumeDownload(nextQueueItem!.game);
+      if (nextQueueItem) {
+        this.resumeDownload(nextQueueItem.game);
+      }
     }
   }
 
@@ -237,7 +245,7 @@ export class DownloadManager {
     const gid = this.downloads.get(gameId);
 
     if (gid) {
-      await this.aria2.call("remove", gid);
+      await this.aria2.call("forceRemove", gid);
 
       if (this.gid === gid) {
         this.clearCurrentDownload();

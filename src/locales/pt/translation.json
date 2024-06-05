@@ -130,7 +130,9 @@
     "download_in_progress": "Baixando agora",
     "queued_downloads": "Na fila",
     "downloads_completed": "Completo",
-    "queued": "Na fila"
+    "queued": "Na fila",
+    "no_downloads_title": "Nada por aqui…",
+    "no_downloads_description": "Você ainda não baixou nada pelo Hydra, mas nunca é tarde para começar."
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",
