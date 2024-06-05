@@ -245,6 +245,8 @@ export function HeroPanelActions() {
           <GearIcon />
         </Button>
 
+        <div className={styles.separator} />
+
         {game?.progress === 1 && game?.folderName && (
           <>
             <BinaryNotFoundModal
