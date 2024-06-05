@@ -12,10 +12,18 @@ const deleteGameFolder = async (
   gameId: number
 ): Promise<void> => {
   const game = await gameRepository.findOne({
-    where: {
-      id: gameId,
-      isDeleted: false,
-    },
+    where: [
+      {
+        id: gameId,
+        isDeleted: false,
+        status: "removed",
+      },
+      {
+        id: gameId,
+        progress: 1,
+        isDeleted: false,
+      },
+    ],
   });
 
   if (!game) return;
@@ -33,7 +41,6 @@ const deleteGameFolder = async (
       );
     }
 
-    console.log("folder exists");
     return new Promise<void>((resolve, reject) => {
       fs.rm(
         folderPath,
@@ -48,7 +55,6 @@ const deleteGameFolder = async (
         }
       );
     }).then(async () => {
-      console.log("resolved");
       await gameRepository.update(
         { id: gameId },
         { downloadPath: null, folderName: null }
