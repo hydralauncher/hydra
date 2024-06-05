@@ -52,7 +52,6 @@ export function useDownload() {
 
     try {
       await window.electron.deleteGameFolder(gameId);
-      await window.electron.removeGame(gameId);
       updateLibrary();
     } finally {
       dispatch(removeGameFromDeleting(gameId));
