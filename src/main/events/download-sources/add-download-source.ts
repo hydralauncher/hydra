@@ -18,7 +18,11 @@ const addDownloadSource = async (
     async (transactionalEntityManager) => {
       const downloadSource = await transactionalEntityManager
         .getRepository(DownloadSource)
-        .save({ url, name: source.name });
+        .save({
+          url,
+          name: source.name,
+          downloadCount: source.downloads.length,
+        });
 
       await insertDownloadsFromSource(
         transactionalEntityManager,

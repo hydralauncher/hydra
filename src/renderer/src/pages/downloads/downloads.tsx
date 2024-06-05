@@ -47,21 +47,20 @@ export function Downloads() {
       complete: [],
     };
 
-    const result = library
-      .filter((game) => {
-        return game.downloadPath;
-      })
-      .reduce((prev, next) => {
-        if (lastPacket?.game.id === next.id) {
-          return { ...prev, downloading: [...prev.downloading, next] };
-        }
+    const result = library.reduce((prev, next) => {
+      /* Game has been manually added to the library */
+      if (!next.status) return prev;
 
-        if (next.downloadQueue || next.status === "paused") {
-          return { ...prev, queued: [...prev.queued, next] };
-        }
+      /* Is downloading */
+      if (lastPacket?.game.id === next.id)
+        return { ...prev, downloading: [...prev.downloading, next] };
 
-        return { ...prev, complete: [...prev.complete, next] };
-      }, initialValue);
+      /* Is either queued or paused */
+      if (next.downloadQueue || next.status === "paused")
+        return { ...prev, queued: [...prev.queued, next] };
+
+      return { ...prev, complete: [...prev.complete, next] };
+    }, initialValue);
 
     const queued = orderBy(
       result.queued,

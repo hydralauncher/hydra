@@ -248,6 +248,7 @@ export interface DownloadSource {
   url: string;
   repackCount: number;
   status: DownloadSourceStatus;
+  downloadCount: number;
   etag: string | null;
   createdAt: Date;
   updatedAt: Date;
