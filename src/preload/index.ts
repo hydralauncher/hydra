@@ -61,19 +61,8 @@ contextBridge.exposeInMainWorld("electron", {
   syncDownloadSources: () => ipcRenderer.invoke("syncDownloadSources"),
 
   /* Library */
-  addGameToLibrary: (
-    objectID: string,
-    title: string,
-    shop: GameShop,
-    executablePath: string
-  ) =>
-    ipcRenderer.invoke(
-      "addGameToLibrary",
-      objectID,
-      title,
-      shop,
-      executablePath
-    ),
+  addGameToLibrary: (objectID: string, title: string, shop: GameShop) =>
+    ipcRenderer.invoke("addGameToLibrary", objectID, title, shop),
   createGameShortcut: (id: number) =>
     ipcRenderer.invoke("createGameShortcut", id),
   updateExecutablePath: (id: number, executablePath: string) =>
