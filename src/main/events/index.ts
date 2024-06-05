@@ -10,6 +10,7 @@ import "./catalogue/search-games";
 import "./catalogue/search-game-repacks";
 import "./hardware/get-disk-free-space";
 import "./library/add-game-to-library";
+import "./library/create-game-shortcut";
 import "./library/close-game";
 import "./library/delete-game-folder";
 import "./library/get-game-by-object-id";

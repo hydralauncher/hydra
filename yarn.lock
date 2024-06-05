@@ -2403,6 +2403,13 @@ crc@^3.8.0:
   dependencies:
     buffer "^5.1.0"
 
+create-desktop-shortcuts@^1.11.0:
+  version "1.11.0"
+  resolved "https://registry.yarnpkg.com/create-desktop-shortcuts/-/create-desktop-shortcuts-1.11.0.tgz#8eed89329e9bce70dece46d02a80573fe1f2536d"
+  integrity sha512-nmVtPVqNyMuAyMpDnd7l++hb2laqCWZXnHQaFhqGT1YEi2Ve3unu6QyuyIpGxAwIscNHcG1Ehnl+lFw6ygB2nQ==
+  dependencies:
+    which "2.0.2"
+
 cross-fetch-ponyfill@^1.0.3:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/cross-fetch-ponyfill/-/cross-fetch-ponyfill-1.0.3.tgz#5c5524e3bd3374e71d5016c2327e416369a57527"
@@ -6278,7 +6285,7 @@ which-typed-array@^1.1.14, which-typed-array@^1.1.15, which-typed-array@^1.1.9:
     gopd "^1.0.1"
     has-tostringtag "^1.0.2"
 
-which@^2.0.1:
+which@2.0.2, which@^2.0.1:
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/which/-/which-2.0.2.tgz#7c6a8dd0a636a0327e10b59c9286eee93f3f51b1"
   integrity sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==
