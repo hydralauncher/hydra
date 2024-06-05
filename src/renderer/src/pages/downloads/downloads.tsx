@@ -101,7 +101,7 @@ export function Downloads() {
     if (game.progress === 1) {
       return (
         <>
-          <p>{game.repack?.title}</p>
+          <p className={styles.repackTitle}>{game.repack?.title}</p>
           <p>{t("completed")}</p>
         </>
       );
