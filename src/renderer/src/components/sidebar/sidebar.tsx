@@ -122,6 +122,20 @@ export function Sidebar() {
     }
   };
 
+  const handleSidebarGameClick = (
+    event: React.MouseEvent,
+    game: LibraryGame
+  ) => {
+    const path = buildGameDetailsPath(game);
+    if (path !== location.pathname) {
+      navigate(path);
+    }
+
+    if (event.detail == 2 && game.executablePath) {
+      window.electron.openGame(game.id, game.executablePath);
+    }
+  };
+
   return (
     <aside
       ref={sidebarRef}
@@ -183,9 +197,7 @@ export function Sidebar() {
                 <button
                   type="button"
                   className={styles.menuItemButton}
-                  onClick={() =>
-                    handleSidebarItemClick(buildGameDetailsPath(game))
-                  }
+                  onClick={(event) => handleSidebarGameClick(event, game)}
                 >
                   {game.iconUrl ? (
                     <img
