@@ -40,8 +40,6 @@ export function Sidebar() {
     updateLibrary();
   }, [lastPacket?.game.id, updateLibrary]);
 
-  console.log(library);
-
   const isDownloading = library.some(
     (game) => game.status === "active" && game.progress !== 1
   );
