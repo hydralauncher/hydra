@@ -1,8 +1,6 @@
 import path from "node:path";
 import fs from "node:fs";
 
-import { In } from "typeorm";
-
 import { gameRepository } from "@main/repository";
 
 import { getDownloadsPath } from "../helpers/get-downloads-path";
@@ -14,11 +12,18 @@ const deleteGameFolder = async (
   gameId: number
 ): Promise<void> => {
   const game = await gameRepository.findOne({
-    where: {
-      id: gameId,
-      status: In(["removed", "complete"]),
-      isDeleted: false,
-    },
+    where: [
+      {
+        id: gameId,
+        isDeleted: false,
+        status: "removed",
+      },
+      {
+        id: gameId,
+        progress: 1,
+        isDeleted: false,
+      },
+    ],
   });
 
   if (!game) return;
@@ -29,22 +34,32 @@ const deleteGameFolder = async (
       game.folderName
     );
 
-    if (fs.existsSync(folderPath)) {
-      return new Promise((resolve, reject) => {
-        fs.rm(
-          folderPath,
-          { recursive: true, force: true, maxRetries: 5, retryDelay: 200 },
-          (error) => {
-            if (error) {
-              logger.error(error);
-              reject();
-            }
-
-            resolve();
-          }
-        );
-      });
+    if (!fs.existsSync(folderPath)) {
+      await gameRepository.update(
+        { id: gameId },
+        { downloadPath: null, folderName: null }
+      );
     }
+
+    return new Promise<void>((resolve, reject) => {
+      fs.rm(
+        folderPath,
+        { recursive: true, force: true, maxRetries: 5, retryDelay: 200 },
+        (error) => {
+          if (error) {
+            logger.error(error);
+            reject();
+          }
+
+          resolve();
+        }
+      );
+    }).then(async () => {
+      await gameRepository.update(
+        { id: gameId },
+        { downloadPath: null, folderName: null }
+      );
+    });
   }
 };
 

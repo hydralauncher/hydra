@@ -69,7 +69,7 @@ export function Downloads() {
     );
 
     const complete = orderBy(result.complete, (game) =>
-      game.status === "complete" ? 0 : 1
+      game.progress === 1 ? 0 : 1
     );
 
     return {
