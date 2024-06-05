@@ -88,5 +88,5 @@ export const howLongToBeatCategorySkeleton = style({
 
 globalStyle(`${requirementsDetails} a`, {
   display: "flex",
-  color: vars.color.bodyText,
+  color: vars.color.body,
 });

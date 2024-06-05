@@ -12,13 +12,18 @@ export const downloadTitleWrapper = style({
 export const downloadTitle = style({
   fontWeight: "bold",
   cursor: "pointer",
-  color: vars.color.bodyText,
+  color: vars.color.body,
   textAlign: "left",
   fontSize: "16px",
   display: "block",
   ":hover": {
     textDecoration: "underline",
   },
+});
+
+export const repackTitle = style({
+  maxHeight: "40px",
+  overflow: "hidden",
 });
 
 export const downloaderName = style({
@@ -29,7 +34,6 @@ export const downloaderName = style({
   borderRadius: "4px",
   display: "flex",
   alignItems: "center",
-  alignSelf: "flex-start",
 });
 
 export const downloads = style({
@@ -46,9 +50,34 @@ export const downloadCover = style({
   width: "280px",
   minWidth: "280px",
   height: "auto",
-  objectFit: "cover",
-  objectPosition: "center",
   borderRight: `solid 1px ${vars.color.border}`,
+  position: "relative",
+  zIndex: "1",
+});
+
+export const downloadCoverContent = style({
+  width: "100%",
+  height: "100%",
+  padding: `${SPACING_UNIT}px`,
+  display: "flex",
+  alignItems: "flex-end",
+  justifyContent: "flex-end",
+});
+
+export const downloadCoverBackdrop = style({
+  width: "100%",
+  height: "100%",
+  background: "linear-gradient(0deg, rgba(0, 0, 0, 0.8) 5%, transparent 100%)",
+  display: "flex",
+  overflow: "hidden",
+  zIndex: "1",
+});
+
+export const downloadCoverImage = style({
+  width: "100%",
+  height: "100%",
+  position: "absolute",
+  zIndex: "-1",
 });
 
 export const download = recipe({
@@ -88,14 +117,16 @@ export const downloadDetails = style({
 
 export const downloadRightContent = style({
   display: "flex",
+  alignItems: "center",
   padding: `${SPACING_UNIT * 2}px`,
   flex: "1",
   gap: `${SPACING_UNIT}px`,
 });
 
 export const downloadActions = style({
+  height: "fit-content",
   display: "flex",
-  alignItems: "center",
+  alignItems: "stretch",
   gap: `${SPACING_UNIT}px`,
 });
 

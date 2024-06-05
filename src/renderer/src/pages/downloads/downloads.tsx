@@ -2,20 +2,29 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { Button, TextField } from "@renderer/components";
-import { formatDownloadProgress, steamUrlBuilder } from "@renderer/helpers";
-import { useDownload, useLibrary } from "@renderer/hooks";
+import {
+  buildGameDetailsPath,
+  formatDownloadProgress,
+  steamUrlBuilder,
+} from "@renderer/helpers";
+import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
 import type { Game } from "@types";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
-import { DeleteModal } from "./delete-modal";
-import { Downloader, GameStatus, GameStatusHelper, formatBytes } from "@shared";
+import { DeleteGameModal } from "./delete-game-modal";
+import { Downloader, formatBytes } from "@shared";
+import { DOWNLOADER_NAME } from "@renderer/constants";
 
 export function Downloads() {
   const { library, updateLibrary } = useLibrary();
 
   const { t } = useTranslation("downloads");
+
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
 
   const navigate = useNavigate();
 
@@ -26,15 +35,13 @@ export function Downloads() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const {
-    game: gameDownloading,
+    lastPacket,
     progress,
-    numPeers,
-    numSeeds,
     pauseDownload,
     resumeDownload,
     removeGameFromLibrary,
     cancelDownload,
-    deleteGame,
+    removeGameInstaller,
     isGameDeleting,
   } = useDownload();
 
@@ -53,27 +60,22 @@ export function Downloads() {
     });
 
   const getFinalDownloadSize = (game: Game) => {
-    const isGameDownloading = gameDownloading?.id === game?.id;
+    const isGameDownloading = lastPacket?.game.id === game.id;
 
     if (!game) return "N/A";
     if (game.fileSize) return formatBytes(game.fileSize);
 
-    if (gameDownloading?.fileSize && isGameDownloading)
-      return formatBytes(gameDownloading.fileSize);
+    if (lastPacket?.game.fileSize && isGameDownloading)
+      return formatBytes(lastPacket?.game.fileSize);
 
     return game.repack?.fileSize ?? "N/A";
   };
 
-  const downloaderName = {
-    [Downloader.RealDebrid]: t("real_debrid"),
-    [Downloader.Torrent]: t("torrent"),
-  };
-
   const getGameInfo = (game: Game) => {
-    const isGameDownloading = gameDownloading?.id === game?.id;
+    const isGameDownloading = lastPacket?.game.id === game.id;
     const finalDownloadSize = getFinalDownloadSize(game);
 
-    if (isGameDeleting(game?.id)) {
+    if (isGameDeleting(game.id)) {
       return <p>{t("deleting")}</p>;
     }
 
@@ -82,39 +84,30 @@ export function Downloads() {
         <>
           <p>{progress}</p>
 
-          {gameDownloading?.status &&
-          gameDownloading?.status !== GameStatus.Downloading ? (
-            <p>{t(gameDownloading?.status)}</p>
-          ) : (
-            <>
-              <p>
-                {formatBytes(gameDownloading?.bytesDownloaded)} /{" "}
-                {finalDownloadSize}
-              </p>
-              {game.downloader === Downloader.Torrent && (
-                <p>
-                  {numPeers} peers / {numSeeds} seeds
-                </p>
-              )}
-            </>
+          <p>
+            {formatBytes(lastPacket?.game.bytesDownloaded)} /{" "}
+            {finalDownloadSize}
+          </p>
+
+          {game.downloader === Downloader.Torrent && (
+            <small>
+              {lastPacket?.numPeers} peers / {lastPacket?.numSeeds} seeds
+            </small>
           )}
         </>
       );
     }
 
-    if (GameStatusHelper.isReady(game?.status)) {
+    if (game.progress === 1) {
       return (
         <>
-          <p>{game?.repack?.title}</p>
+          <p className={styles.repackTitle}>{game.repack?.title}</p>
           <p>{t("completed")}</p>
         </>
       );
     }
-    if (game?.status === GameStatus.Cancelled) return <p>{t("cancelled")}</p>;
-    if (game?.status === GameStatus.DownloadingMetadata)
-      return <p>{t("starting_download")}</p>;
 
-    if (game?.status === GameStatus.Paused) {
+    if (game.status === "paused") {
       return (
         <>
           <p>{formatDownloadProgress(game.progress)}</p>
@@ -123,7 +116,19 @@ export function Downloads() {
       );
     }
 
-    return null;
+    if (game.status === "active") {
+      return (
+        <>
+          <p>{formatDownloadProgress(game.progress)}</p>
+
+          <p>
+            {formatBytes(game.bytesDownloaded)} / {finalDownloadSize}
+          </p>
+        </>
+      );
+    }
+
+    return <p>{t(game.status)}</p>;
   };
 
   const openDeleteModal = (gameId: number) => {
@@ -132,37 +137,11 @@ export function Downloads() {
   };
 
   const getGameActions = (game: Game) => {
-    const isGameDownloading = gameDownloading?.id === game?.id;
+    const isGameDownloading = lastPacket?.game.id === game.id;
 
     const deleting = isGameDeleting(game.id);
 
-    if (isGameDownloading) {
-      return (
-        <>
-          <Button onClick={() => pauseDownload(game.id)} theme="outline">
-            {t("pause")}
-          </Button>
-          <Button onClick={() => cancelDownload(game.id)} theme="outline">
-            {t("cancel")}
-          </Button>
-        </>
-      );
-    }
-
-    if (game?.status === GameStatus.Paused) {
-      return (
-        <>
-          <Button onClick={() => resumeDownload(game.id)} theme="outline">
-            {t("resume")}
-          </Button>
-          <Button onClick={() => cancelDownload(game.id)} theme="outline">
-            {t("cancel")}
-          </Button>
-        </>
-      );
-    }
-
-    if (GameStatusHelper.isReady(game?.status)) {
+    if (game.progress === 1) {
       return (
         <>
           <Button
@@ -180,18 +159,43 @@ export function Downloads() {
       );
     }
 
-    if (game?.status === GameStatus.DownloadingMetadata) {
+    if (isGameDownloading || game.status === "active") {
       return (
-        <Button onClick={() => cancelDownload(game.id)} theme="outline">
-          {t("cancel")}
-        </Button>
+        <>
+          <Button onClick={() => pauseDownload(game.id)} theme="outline">
+            {t("pause")}
+          </Button>
+          <Button onClick={() => cancelDownload(game.id)} theme="outline">
+            {t("cancel")}
+          </Button>
+        </>
+      );
+    }
+
+    if (game.status === "paused") {
+      return (
+        <>
+          <Button
+            onClick={() => resumeDownload(game.id)}
+            theme="outline"
+            disabled={
+              game.downloader === Downloader.RealDebrid &&
+              !userPreferences?.realDebridApiToken
+            }
+          >
+            {t("resume")}
+          </Button>
+          <Button onClick={() => cancelDownload(game.id)} theme="outline">
+            {t("cancel")}
+          </Button>
+        </>
       );
     }
 
     return (
       <>
         <Button
-          onClick={() => navigate(`/game/${game.shop}/${game.objectID}`)}
+          onClick={() => navigate(buildGameDetailsPath(game))}
           theme="outline"
           disabled={deleting}
         >
@@ -219,10 +223,9 @@ export function Downloads() {
     );
   };
 
-  const handleDeleteGame = () => {
-    if (gameToBeDeleted.current) {
-      deleteGame(gameToBeDeleted.current).then(updateLibrary);
-    }
+  const handleDeleteGame = async () => {
+    if (gameToBeDeleted.current)
+      await removeGameInstaller(gameToBeDeleted.current);
   };
 
   return (
@@ -231,7 +234,8 @@ export function Downloads() {
         visible={showBinaryNotFoundModal}
         onClose={() => setShowBinaryNotFoundModal(false)}
       />
-      <DeleteModal
+
+      <DeleteGameModal
         visible={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         deleteGame={handleDeleteGame}
@@ -245,31 +249,36 @@ export function Downloads() {
             <li
               key={game.id}
               className={styles.download({
-                cancelled: game.status === GameStatus.Cancelled,
+                cancelled: game.status === "removed",
               })}
             >
-              <img
-                src={steamUrlBuilder.library(game.objectID)}
-                className={styles.downloadCover}
-                alt={game.title}
-              />
+              <div className={styles.downloadCover}>
+                <div className={styles.downloadCoverBackdrop}>
+                  <img
+                    src={steamUrlBuilder.library(game.objectID)}
+                    className={styles.downloadCoverImage}
+                    alt={game.title}
+                  />
+
+                  <div className={styles.downloadCoverContent}>
+                    <small className={styles.downloaderName}>
+                      {DOWNLOADER_NAME[game.downloader]}
+                    </small>
+                  </div>
+                </div>
+              </div>
               <div className={styles.downloadRightContent}>
                 <div className={styles.downloadDetails}>
                   <div className={styles.downloadTitleWrapper}>
                     <button
                       type="button"
                       className={styles.downloadTitle}
-                      onClick={() =>
-                        navigate(`/game/${game.shop}/${game.objectID}`)
-                      }
+                      onClick={() => navigate(buildGameDetailsPath(game))}
                     >
                       {game.title}
                     </button>
                   </div>
 
-                  <small className={styles.downloaderName}>
-                    {downloaderName[game?.downloader]}
-                  </small>
                   {getGameInfo(game)}
                 </div>
 

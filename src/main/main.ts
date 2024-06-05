@@ -5,27 +5,25 @@ import {
   getNewRepacksFromUser,
   getNewRepacksFromXatab,
   getNewRepacksFromOnlineFix,
-  startProcessWatcher,
   DownloadManager,
+  startMainLoop,
 } from "./services";
 import {
   gameRepository,
   repackRepository,
   userPreferencesRepository,
 } from "./repository";
-import { TorrentDownloader } from "./services";
 import { Repack, UserPreferences } from "./entity";
 import { Notification } from "electron";
 import { t } from "i18next";
-import { GameStatus } from "@shared";
-import { In } from "typeorm";
 import fs from "node:fs";
 import path from "node:path";
 import { RealDebridClient } from "./services/real-debrid";
 import { orderBy } from "lodash-es";
 import { SteamGame } from "@types";
+import { Not } from "typeorm";
 
-startProcessWatcher();
+startMainLoop();
 
 const track1337xUsers = async (existingRepacks: Repack[]) => {
   for (const repacker of repackersOn1337x) {
@@ -72,7 +70,7 @@ const checkForNewRepacks = async (userPreferences: UserPreferences | null) => {
 };
 
 const loadState = async (userPreferences: UserPreferences | null) => {
-  const repacks = await repackRepository.find({
+  const repacks = repackRepository.find({
     order: {
       createdAt: "desc",
     },
@@ -82,31 +80,24 @@ const loadState = async (userPreferences: UserPreferences | null) => {
     fs.readFileSync(path.join(seedsPath, "steam-games.json"), "utf-8")
   ) as SteamGame[];
 
-  stateManager.setValue("repacks", repacks);
+  stateManager.setValue("repacks", await repacks);
   stateManager.setValue("steamGames", orderBy(steamGames, ["name"], "asc"));
 
   import("./events");
 
   if (userPreferences?.realDebridApiToken)
-    await RealDebridClient.authorize(userPreferences?.realDebridApiToken);
+    RealDebridClient.authorize(userPreferences?.realDebridApiToken);
 
   const game = await gameRepository.findOne({
     where: {
-      status: In([
-        GameStatus.Downloading,
-        GameStatus.DownloadingMetadata,
-        GameStatus.CheckingFiles,
-      ]),
+      status: "active",
+      progress: Not(1),
       isDeleted: false,
     },
     relations: { repack: true },
   });
 
-  await TorrentDownloader.startClient();
-
-  if (game) {
-    DownloadManager.resumeDownload(game.id);
-  }
+  if (game) DownloadManager.startDownload(game);
 };
 
 userPreferencesRepository

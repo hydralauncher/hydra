@@ -3,10 +3,10 @@ productName: Hydra
 directories:
   buildResources: build
 extraResources:
-  - hydra-download-manager
+  - aria2
+  - seeds
   - hydra.db
   - fastlist.exe
-  - seeds
 files:
   - "!**/.vscode/*"
   - "!src/*"
@@ -25,6 +25,7 @@ nsis:
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
   oneClick: false
+  allowToChangeInstallationDirectory: true
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
@@ -40,8 +41,11 @@ linux:
     - AppImage
     - snap
     - deb
+    - rpm
   maintainer: electronjs.org
-  category: Utility
+  category: Game
+  mimeTypes:
+    - x-scheme-handler/hydralauncher
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
