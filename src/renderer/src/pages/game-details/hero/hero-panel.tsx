@@ -35,7 +35,8 @@ export function HeroPanel() {
   const getInfo = () => {
     if (isGameDeleting(game?.id ?? -1)) return <p>{t("deleting")}</p>;
 
-    if (game?.progress === 1) return <HeroPanelPlaytime />;
+    if (game?.progress === 1 || game?.playTimeInMilliseconds)
+      return <HeroPanelPlaytime />;
 
     if (game?.status === "active") {
       if (lastPacket?.isDownloadingMetadata && isGameDownloading) {

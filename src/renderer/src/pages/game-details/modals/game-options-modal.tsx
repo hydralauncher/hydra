@@ -68,7 +68,12 @@ export function GameOptionsModal({
 
   return (
     <>
-      <Modal visible={visible} title={game.title} onClose={onClose}>
+      <Modal
+        visible={visible}
+        title={game.title}
+        onClose={onClose}
+        large={true}
+      >
         <DeleteGameModal
           visible={showDeleteModal}
           onClose={() => setShowDeleteModal(false)}
