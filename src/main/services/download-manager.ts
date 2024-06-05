@@ -1,15 +1,10 @@
 import Aria2, { StatusResponse } from "aria2";
 
-import {
-  downloadQueueRepository,
-  gameRepository,
-  userPreferencesRepository,
-} from "@main/repository";
+import { downloadQueueRepository, gameRepository } from "@main/repository";
 
 import { WindowManager } from "./window-manager";
 import { RealDebridClient } from "./real-debrid";
-import { Notification } from "electron";
-import { t } from "i18next";
+
 import { Downloader } from "@shared";
 import { DownloadProgress } from "@types";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
@@ -18,6 +13,7 @@ import { startAria2 } from "./aria2c";
 import { sleep } from "@main/helpers";
 import { logger } from "./logger";
 import type { ChildProcess } from "node:child_process";
+import { publishDownloadCompleteNotification } from "./notifications";
 
 export class DownloadManager {
   private static downloads = new Map<number, string>();
@@ -67,26 +63,6 @@ export class DownloadManager {
     }
 
     return -1;
-  }
-
-  static async publishNotification() {
-    const userPreferences = await userPreferencesRepository.findOne({
-      where: { id: 1 },
-    });
-
-    if (userPreferences?.downloadNotificationsEnabled && this.game) {
-      new Notification({
-        title: t("download_complete", {
-          ns: "notifications",
-          lng: userPreferences.language,
-        }),
-        body: t("game_ready_to_install", {
-          ns: "notifications",
-          lng: userPreferences.language,
-          title: this.game.title,
-        }),
-      }).show();
-    }
   }
 
   private static getFolderName(status: StatusResponse) {
@@ -222,7 +198,7 @@ export class DownloadManager {
     }
 
     if (progress === 1 && this.game && !isDownloadingMetadata) {
-      await this.publishNotification();
+      await publishDownloadCompleteNotification(this.game);
 
       await downloadQueueRepository.delete({ game: this.game });
 

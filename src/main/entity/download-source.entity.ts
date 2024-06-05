@@ -24,6 +24,9 @@ export class DownloadSource {
   @Column("text", { nullable: true })
   etag: string | null;
 
+  @Column("int", { default: 0 })
+  downloadCount: number;
+
   @Column("text", { default: DownloadSourceStatus.UpToDate })
   status: DownloadSourceStatus;
 

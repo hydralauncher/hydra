@@ -58,6 +58,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("addDownloadSource", url),
   removeDownloadSource: (id: number) =>
     ipcRenderer.invoke("removeDownloadSource", id),
+  syncDownloadSources: () => ipcRenderer.invoke("syncDownloadSources"),
 
   /* Library */
   addGameToLibrary: (
