@@ -18,5 +18,6 @@ export const [themeClass, vars] = createTheme({
   },
   size: {
     body: "14px",
+    small: "12px",
   },
 });

@@ -133,7 +133,9 @@
     "download_in_progress": "In progress",
     "queued_downloads": "Queued downloads",
     "downloads_completed": "Completed",
-    "queued": "Queued"
+    "queued": "Queued",
+    "no_downloads_title": "Such empty",
+    "no_downloads_description": "You haven't downloaded anything with Hydra yet, but it's never too late to start."
   },
   "settings": {
     "downloads_path": "Downloads path",

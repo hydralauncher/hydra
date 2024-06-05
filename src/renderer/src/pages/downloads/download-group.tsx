@@ -15,6 +15,7 @@ import { useAppSelector, useDownload } from "@renderer/hooks";
 
 import * as styles from "./download-group.css";
 import { useTranslation } from "react-i18next";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 
 export interface DownloadGroupProps {
   library: LibraryGame[];
@@ -42,7 +43,6 @@ export function DownloadGroup({
     progress,
     pauseDownload,
     resumeDownload,
-    removeGameFromLibrary,
     cancelDownload,
     isGameDeleting,
   } = useDownload();
@@ -149,42 +149,20 @@ export function DownloadGroup({
       );
     }
 
-    if (game.status === "paused") {
-      return (
-        <>
-          <Button
-            onClick={() => resumeDownload(game.id)}
-            theme="outline"
-            disabled={
-              game.downloader === Downloader.RealDebrid &&
-              !userPreferences?.realDebridApiToken
-            }
-          >
-            {t("resume")}
-          </Button>
-          <Button onClick={() => cancelDownload(game.id)} theme="outline">
-            {t("cancel")}
-          </Button>
-        </>
-      );
-    }
-
     return (
       <>
         <Button
-          onClick={() => navigate(buildGameDetailsPath(game))}
+          onClick={() => resumeDownload(game.id)}
           theme="outline"
-          disabled={deleting}
+          disabled={
+            game.downloader === Downloader.RealDebrid &&
+            !userPreferences?.realDebridApiToken
+          }
         >
-          {t("download_again")}
+          {t("resume")}
         </Button>
-
-        <Button
-          onClick={() => removeGameFromLibrary(game.id)}
-          theme="outline"
-          disabled={deleting}
-        >
-          {t("remove_from_list")}
+        <Button onClick={() => cancelDownload(game.id)} theme="outline">
+          {t("cancel")}
         </Button>
       </>
     );
@@ -194,17 +172,30 @@ export function DownloadGroup({
 
   return (
     <div className={styles.downloadGroup}>
-      <h2>{title}</h2>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: `${SPACING_UNIT * 2}px`,
+        }}
+      >
+        <h2>{title}</h2>
+
+        <div
+          style={{
+            flex: 1,
+            backgroundColor: vars.color.border,
+            height: "1px",
+          }}
+        />
+        <h3 style={{ fontWeight: "400" }}>{library.length}</h3>
+      </div>
 
       <ul className={styles.downloads}>
         {library.map((game) => {
           return (
-            <li
-              key={game.id}
-              className={styles.download({
-                cancelled: game.status === "removed",
-              })}
-            >
+            <li key={game.id} className={styles.download}>
               <div className={styles.downloadCover}>
                 <div className={styles.downloadCoverBackdrop}>
                   <img

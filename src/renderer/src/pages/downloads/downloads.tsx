@@ -9,6 +9,7 @@ import { DeleteGameModal } from "./delete-game-modal";
 import { DownloadGroup } from "./download-group";
 import { LibraryGame } from "@types";
 import { orderBy } from "lodash-es";
+import { ArrowDownIcon } from "@primer/octicons-react";
 
 export function Downloads() {
   const { library, updateLibrary } = useLibrary();
@@ -48,8 +49,8 @@ export function Downloads() {
     };
 
     const result = library.reduce((prev, next) => {
-      /* Game has been manually added to the library */
-      if (!next.status) return prev;
+      /* Game has been manually added to the library or has been canceled */
+      if (!next.status || next.status === "removed") return prev;
 
       /* Is downloading */
       if (lastPacket?.game.id === next.id)
@@ -94,8 +95,12 @@ export function Downloads() {
     },
   ];
 
+  const hasItemsInLibrary = useMemo(() => {
+    return Object.values(libraryGroup).some((group) => group.length > 0);
+  }, [libraryGroup]);
+
   return (
-    <section className={styles.downloadsContainer}>
+    <>
       <BinaryNotFoundModal
         visible={showBinaryNotFoundModal}
         onClose={() => setShowBinaryNotFoundModal(false)}
@@ -107,17 +112,31 @@ export function Downloads() {
         deleteGame={handleDeleteGame}
       />
 
-      <div className={styles.downloadGroups}>
-        {downloadGroups.map((group) => (
-          <DownloadGroup
-            key={group.title}
-            title={group.title}
-            library={group.library}
-            openDeleteGameModal={handleOpenDeleteGameModal}
-            openGameInstaller={handleOpenGameInstaller}
-          />
-        ))}
-      </div>
-    </section>
+      {hasItemsInLibrary ? (
+        <section className={styles.downloadsContainer}>
+          <div className={styles.downloadGroups}>
+            {downloadGroups.map((group) => (
+              <DownloadGroup
+                key={group.title}
+                title={group.title}
+                library={group.library}
+                openDeleteGameModal={handleOpenDeleteGameModal}
+                openGameInstaller={handleOpenGameInstaller}
+              />
+            ))}
+          </div>
+        </section>
+      ) : (
+        <div className={styles.noDownloads}>
+          <div className={styles.arrowIcon}>
+            <ArrowDownIcon size={24} />
+          </div>
+          <h2>{t("no_downloads_title")}</h2>
+          <p style={{ fontFamily: "Fira Sans" }}>
+            {t("no_downloads_description")}
+          </p>
+        </div>
+      )}
+    </>
   );
 }
