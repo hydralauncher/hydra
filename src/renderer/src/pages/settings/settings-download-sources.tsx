@@ -9,11 +9,14 @@ import { NoEntryIcon, PlusCircleIcon, SyncIcon } from "@primer/octicons-react";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
 import { useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
+import { SPACING_UNIT } from "@renderer/theme.css";
 
 export function SettingsDownloadSources() {
   const [showAddDownloadSourceModal, setShowAddDownloadSourceModal] =
     useState(false);
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
+  const [isSyncingDownloadSources, setIsSyncingDownloadSources] =
+    useState(false);
 
   const { t } = useTranslation("settings");
 
@@ -41,6 +44,20 @@ export function SettingsDownloadSources() {
     showSuccessToast(t("added_download_source"));
   };
 
+  const syncDownloadSources = async () => {
+    setIsSyncingDownloadSources(true);
+
+    window.electron
+      .syncDownloadSources()
+      .then(() => {
+        showSuccessToast(t("download_sources_synced"));
+        getDownloadSources();
+      })
+      .finally(() => {
+        setIsSyncingDownloadSources(false);
+      });
+  };
+
   const statusTitle = {
     [DownloadSourceStatus.UpToDate]: t("download_source_up_to_date"),
     [DownloadSourceStatus.Errored]: t("download_source_errored"),
@@ -62,25 +79,31 @@ export function SettingsDownloadSources() {
         <Button
           type="button"
           theme="outline"
-          onClick={() => setShowAddDownloadSourceModal(true)}
+          disabled={!downloadSources.length || isSyncingDownloadSources}
+          onClick={syncDownloadSources}
         >
-          <PlusCircleIcon />
-          {t("add_download_source")}
+          <SyncIcon />
+          {t("sync_download_sources")}
         </Button>
 
         <Button
           type="button"
           theme="outline"
-          disabled={!downloadSources.length}
+          onClick={() => setShowAddDownloadSourceModal(true)}
         >
-          <SyncIcon />
-          {t("resync_download_sources")}
+          <PlusCircleIcon />
+          {t("add_download_source")}
         </Button>
       </div>
 
       <ul className={styles.downloadSources}>
         {downloadSources.map((downloadSource) => (
-          <li key={downloadSource.id} className={styles.downloadSourceItem}>
+          <li
+            key={downloadSource.id}
+            className={styles.downloadSourceItem({
+              isSyncing: isSyncingDownloadSources,
+            })}
+          >
             <div className={styles.downloadSourceItemHeader}>
               <h2>{downloadSource.name}</h2>
 
@@ -88,12 +111,30 @@ export function SettingsDownloadSources() {
                 <Badge>{statusTitle[downloadSource.status]}</Badge>
               </div>
 
-              <small>
-                {t("download_options", {
-                  count: downloadSource.repackCount,
-                  countFormatted: downloadSource.repackCount.toLocaleString(),
-                })}
-              </small>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: `${SPACING_UNIT}px`,
+                }}
+              >
+                <small>
+                  {t("download_count", {
+                    count: downloadSource.downloadCount,
+                    countFormatted:
+                      downloadSource.downloadCount.toLocaleString(),
+                  })}
+                </small>
+
+                <div className={styles.separator} />
+
+                <small>
+                  {t("download_options", {
+                    count: downloadSource.repackCount,
+                    countFormatted: downloadSource.repackCount.toLocaleString(),
+                  })}
+                </small>
+              </div>
             </div>
 
             <div className={styles.downloadSourceField}>
