@@ -6,6 +6,7 @@ import {
 import { UserPreferences } from "./entity";
 import { RealDebridClient } from "./services/real-debrid";
 import { fetchDownloadSourcesAndUpdate } from "./helpers";
+import { publishNewRepacksNotifications } from "./services/notifications";
 
 startMainLoop();
 
@@ -29,7 +30,9 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   if (nextQueueItem?.game.status === "active")
     DownloadManager.startDownload(nextQueueItem.game);
 
-  fetchDownloadSourcesAndUpdate();
+  fetchDownloadSourcesAndUpdate().then(() => {
+    publishNewRepacksNotifications(300);
+  });
 };
 
 userPreferencesRepository

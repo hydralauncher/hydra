@@ -88,6 +88,7 @@ declare global {
     ) => Promise<{ name: string; downloadCount: number }>;
     addDownloadSource: (url: string) => Promise<DownloadSource>;
     removeDownloadSource: (id: number) => Promise<void>;
+    syncDownloadSources: () => Promise<void>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;

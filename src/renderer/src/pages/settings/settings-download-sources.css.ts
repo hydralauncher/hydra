@@ -1,5 +1,6 @@
 import { style } from "@vanilla-extract/css";
 import { SPACING_UNIT, vars } from "../../theme.css";
+import { recipe } from "@vanilla-extract/recipes";
 
 export const downloadSourceField = style({
   display: "flex",
@@ -14,14 +15,24 @@ export const downloadSources = style({
   flexDirection: "column",
 });
 
-export const downloadSourceItem = style({
-  display: "flex",
-  flexDirection: "column",
-  backgroundColor: vars.color.darkBackground,
-  borderRadius: "8px",
-  padding: `${SPACING_UNIT * 2}px`,
-  gap: `${SPACING_UNIT}px`,
-  border: `solid 1px ${vars.color.border}`,
+export const downloadSourceItem = recipe({
+  base: {
+    display: "flex",
+    flexDirection: "column",
+    backgroundColor: vars.color.darkBackground,
+    borderRadius: "8px",
+    padding: `${SPACING_UNIT * 2}px`,
+    gap: `${SPACING_UNIT}px`,
+    border: `solid 1px ${vars.color.border}`,
+    transition: "all ease 0.2s",
+  },
+  variants: {
+    isSyncing: {
+      true: {
+        opacity: vars.opacity.disabled,
+      },
+    },
+  },
 });
 
 export const downloadSourceItemHeader = style({
@@ -35,4 +46,11 @@ export const downloadSourcesHeader = style({
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
+});
+
+export const separator = style({
+  height: "100%",
+  width: "1px",
+  backgroundColor: vars.color.border,
+  margin: `${SPACING_UNIT}px 0`,
 });

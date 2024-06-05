@@ -38,6 +38,7 @@ export const getUpdatedRepacks = async (downloadSources: DownloadSource[]) => {
       results.push({
         ...downloadSource,
         downloads: [],
+        etag: null,
         status: isNotModified
           ? DownloadSourceStatus.UpToDate
           : DownloadSourceStatus.Errored,

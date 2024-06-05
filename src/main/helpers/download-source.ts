@@ -52,19 +52,22 @@ export const fetchDownloadSourcesAndUpdate = async () => {
 
   await dataSource.transaction(async (transactionalEntityManager) => {
     for (const result of results) {
-      await transactionalEntityManager.getRepository(DownloadSource).update(
-        { id: result.id },
-        {
-          etag: result.etag,
-          status: result.status,
-        }
-      );
+      if (result.etag !== null) {
+        await transactionalEntityManager.getRepository(DownloadSource).update(
+          { id: result.id },
+          {
+            etag: result.etag,
+            status: result.status,
+            downloadCount: result.downloads.length,
+          }
+        );
 
-      await insertDownloadsFromSource(
-        transactionalEntityManager,
-        result,
-        result.downloads
-      );
+        await insertDownloadsFromSource(
+          transactionalEntityManager,
+          result,
+          result.downloads
+        );
+      }
     }
 
     await RepacksManager.updateRepacks();
