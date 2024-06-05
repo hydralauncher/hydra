@@ -50,6 +50,10 @@ export function GameOptionsModal({
     }
   };
 
+  const handleCreateShortcut = async () => {
+    await window.electron.createGameShortcut(game.id);
+  };
+
   const handleDeleteGame = async () => {
     await removeGameInstaller(game.id);
   };
@@ -158,6 +162,15 @@ export function GameOptionsModal({
               disabled={deleting}
             >
               {t("open_download_options")}
+            </Button>
+          </div>
+          <div className={styles.downloadSourceField}>
+            <Button
+              onClick={handleCreateShortcut}
+              theme="outline"
+              disabled={deleting}
+            >
+              {"criar atalho na area de trabalho"}
             </Button>
           </div>
         </div>
