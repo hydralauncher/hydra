@@ -29,8 +29,6 @@ export function GameOptionsModal({
   onClose,
   selectGameExecutable,
 }: GameOptionsModalProps) {
-  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
-
   const { updateGame, openRepacksModal } = useContext(gameDetailsContext);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -80,19 +78,9 @@ export function GameOptionsModal({
             display: "flex",
             flexDirection: "column",
             gap: `${SPACING_UNIT}px`,
-            minWidth: "500px",
+            width: "700px",
           }}
         >
-          <div style={{ marginBottom: `${SPACING_UNIT * 2}px` }}>
-            <Button
-              key={"general"}
-              theme={currentCategoryIndex === 0 ? "primary" : "outline"}
-              onClick={() => setCurrentCategoryIndex(0)}
-            >
-              General
-            </Button>
-          </div>
-
           <div className={styles.downloadSourceField}>
             <TextField
               label="Caminho do executável"
@@ -102,7 +90,9 @@ export function GameOptionsModal({
               disabled
               placeholder="Selecione um executável"
             />
+          </div>
 
+          <div className={styles.downloadSourceField}>
             <Button
               type="button"
               theme="outline"
@@ -110,7 +100,7 @@ export function GameOptionsModal({
               onClick={handleOpenGameExecutablePath}
             >
               <FileDirectoryOpenFillIcon />
-              {"Abrir local do executável"}
+              {"Abrir pasta"}
             </Button>
 
             <Button
@@ -122,20 +112,25 @@ export function GameOptionsModal({
               <FileSymlinkFileIcon />
               {"Alterar"}
             </Button>
+            <Button
+              onClick={handleCreateShortcut}
+              theme="outline"
+              disabled={deleting}
+            >
+              {"Criar atalho"}
+            </Button>
           </div>
 
           <div className={styles.downloadSourceField}>
             <TextField
               label="Caminho do instalador"
-              value={game.downloadPath + game.folderName}
+              value={`${game.downloadPath}\\${game.folderName}`}
               readOnly
               theme="dark"
               disabled
               placeholder=""
             />
-          </div>
 
-          <div className={styles.downloadSourceField}>
             <Button
               type="button"
               theme="outline"
@@ -143,7 +138,7 @@ export function GameOptionsModal({
               onClick={handleOpenGameInstallerPath}
             >
               <FileDirectoryOpenFillIcon />
-              {"Abrir pasta do instalador"}
+              {"Abrir pasta"}
             </Button>
             <Button
               type="button"
@@ -154,23 +149,17 @@ export function GameOptionsModal({
               }}
             >
               <TrashIcon />
-              {"Remover instalador"}
+              {"Remover"}
             </Button>
+          </div>
+
+          <div className={styles.downloadSourceField}>
             <Button
               onClick={openRepacksModal}
               theme="outline"
               disabled={deleting}
             >
               {t("open_download_options")}
-            </Button>
-          </div>
-          <div className={styles.downloadSourceField}>
-            <Button
-              onClick={handleCreateShortcut}
-              theme="outline"
-              disabled={deleting}
-            >
-              {"criar atalho na area de trabalho"}
             </Button>
           </div>
         </div>
