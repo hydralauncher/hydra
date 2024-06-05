@@ -21,6 +21,11 @@ export const downloadTitle = style({
   },
 });
 
+export const repackTitle = style({
+  maxHeight: "40px",
+  overflow: "hidden",
+});
+
 export const downloaderName = style({
   color: "#c0c1c7",
   fontSize: "10px",
@@ -112,14 +117,16 @@ export const downloadDetails = style({
 
 export const downloadRightContent = style({
   display: "flex",
+  alignItems: "center",
   padding: `${SPACING_UNIT * 2}px`,
   flex: "1",
   gap: `${SPACING_UNIT}px`,
 });
 
 export const downloadActions = style({
+  height: "fit-content",
   display: "flex",
-  alignItems: "center",
+  alignItems: "stretch",
   gap: `${SPACING_UNIT}px`,
 });
 
