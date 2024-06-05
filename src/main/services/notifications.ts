@@ -22,3 +22,23 @@ export const publishDownloadCompleteNotification = async (game: Game) => {
     }).show();
   }
 };
+
+export const publishNewRepacksNotifications = async (count: number) => {
+  const userPreferences = await userPreferencesRepository.findOne({
+    where: { id: 1 },
+  });
+
+  if (count > 0 && userPreferences?.repackUpdatesNotificationsEnabled) {
+    new Notification({
+      title: t("repack_list_updated", {
+        ns: "notifications",
+        lng: userPreferences?.language || "en",
+      }),
+      body: t("repack_count", {
+        ns: "notifications",
+        lng: userPreferences?.language || "en",
+        count: count,
+      }),
+    }).show();
+  }
+};
