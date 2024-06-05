@@ -79,12 +79,7 @@ export function HeroPanelActions() {
       if (game) {
         await removeGameFromLibrary(game.id);
       } else {
-        await window.electron.addGameToLibrary(
-          objectID!,
-          gameTitle,
-          "steam",
-          null
-        );
+        await window.electron.addGameToLibrary(objectID!, gameTitle, "steam");
       }
 
       updateLibrary();

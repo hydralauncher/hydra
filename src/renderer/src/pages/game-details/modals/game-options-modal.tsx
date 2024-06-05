@@ -11,6 +11,7 @@ import { gameDetailsContext } from "../game-details.context";
 import {
   FileDirectoryOpenFillIcon,
   FileSymlinkFileIcon,
+  PencilIcon,
   TrashIcon,
 } from "@primer/octicons-react";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
@@ -54,6 +55,7 @@ export function GameOptionsModal({
 
   const handleDeleteGame = async () => {
     await removeGameInstaller(game.id);
+    updateGame();
   };
 
   const handleOpenGameInstallerPath = async () => {
@@ -78,81 +80,9 @@ export function GameOptionsModal({
             display: "flex",
             flexDirection: "column",
             gap: `${SPACING_UNIT}px`,
-            width: "700px",
+            width: "100%",
           }}
         >
-          <div className={styles.downloadSourceField}>
-            <TextField
-              label="Caminho do executável"
-              value={game.executablePath || ""}
-              readOnly
-              theme="dark"
-              disabled
-              placeholder="Selecione um executável"
-            />
-          </div>
-
-          <div className={styles.downloadSourceField}>
-            <Button
-              type="button"
-              theme="outline"
-              style={{ alignSelf: "flex-end" }}
-              onClick={handleOpenGameExecutablePath}
-            >
-              <FileDirectoryOpenFillIcon />
-              {"Abrir pasta"}
-            </Button>
-
-            <Button
-              type="button"
-              theme="outline"
-              style={{ alignSelf: "flex-end" }}
-              onClick={handleChangeExecutableLocation}
-            >
-              <FileSymlinkFileIcon />
-              {"Alterar"}
-            </Button>
-            <Button
-              onClick={handleCreateShortcut}
-              theme="outline"
-              disabled={deleting}
-            >
-              {"Criar atalho"}
-            </Button>
-          </div>
-
-          <div className={styles.downloadSourceField}>
-            <TextField
-              label="Caminho do instalador"
-              value={`${game.downloadPath}\\${game.folderName}`}
-              readOnly
-              theme="dark"
-              disabled
-              placeholder=""
-            />
-
-            <Button
-              type="button"
-              theme="outline"
-              style={{ alignSelf: "flex-end" }}
-              onClick={handleOpenGameInstallerPath}
-            >
-              <FileDirectoryOpenFillIcon />
-              {"Abrir pasta"}
-            </Button>
-            <Button
-              type="button"
-              theme="outline"
-              style={{ alignSelf: "flex-end" }}
-              onClick={() => {
-                setShowDeleteModal(true);
-              }}
-            >
-              <TrashIcon />
-              {"Remover"}
-            </Button>
-          </div>
-
           <div className={styles.downloadSourceField}>
             <Button
               onClick={openRepacksModal}
@@ -162,6 +92,87 @@ export function GameOptionsModal({
               {t("open_download_options")}
             </Button>
           </div>
+          <div className={styles.downloadSourceField}>
+            <TextField
+              label="Caminho do executável"
+              value={game.executablePath || ""}
+              readOnly
+              theme="dark"
+              disabled
+              placeholder="Selecione um executável"
+            />
+            <Button
+              type="button"
+              theme="outline"
+              style={{ alignSelf: "flex-end" }}
+              onClick={handleChangeExecutableLocation}
+              title={
+                game.executablePath
+                  ? "Trocar executável"
+                  : "Selecionar executável"
+              }
+            >
+              <PencilIcon />
+            </Button>
+            <Button
+              type="button"
+              theme="outline"
+              style={{ alignSelf: "flex-end" }}
+              onClick={handleOpenGameExecutablePath}
+              disabled={!game.executablePath}
+              title={"Abrir pasta"}
+            >
+              <FileDirectoryOpenFillIcon />
+            </Button>
+
+            <Button
+              onClick={handleCreateShortcut}
+              style={{ alignSelf: "flex-end" }}
+              theme="outline"
+              disabled={deleting || !game.executablePath}
+              title={"Criar atalho"}
+            >
+              <FileSymlinkFileIcon />
+            </Button>
+          </div>
+
+          <div className={styles.downloadSourceField}></div>
+
+          {game.folderName && (
+            <div className={styles.downloadSourceField}>
+              <TextField
+                label="Caminho do instalador"
+                value={`${game.downloadPath}\\${game.folderName}`}
+                readOnly
+                theme="dark"
+                disabled
+                placeholder=""
+              />
+
+              <Button
+                type="button"
+                theme="outline"
+                style={{ alignSelf: "flex-end" }}
+                onClick={handleOpenGameInstallerPath}
+                disabled={!game.downloadPath}
+                title={"Abrir pasta"}
+              >
+                <FileDirectoryOpenFillIcon />
+              </Button>
+              <Button
+                type="button"
+                theme="outline"
+                style={{ alignSelf: "flex-end" }}
+                disabled={!game.downloadPath}
+                onClick={() => {
+                  setShowDeleteModal(true);
+                }}
+                title={"Remover instalador"}
+              >
+                <TrashIcon />
+              </Button>
+            </div>
+          )}
         </div>
       </Modal>
     </>
