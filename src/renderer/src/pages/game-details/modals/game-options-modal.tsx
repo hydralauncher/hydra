@@ -104,18 +104,14 @@ export function GameOptionsModal({
               readOnly
               theme="dark"
               disabled
-              placeholder="Selecione um executável"
+              placeholder={t("no_executable_selected")}
             />
             <Button
               type="button"
               theme="outline"
               style={{ alignSelf: "flex-end" }}
               onClick={handleChangeExecutableLocation}
-              title={
-                game.executablePath
-                  ? "Trocar executável"
-                  : "Selecionar executável"
-              }
+              title={t("select_executable")}
             >
               <PencilIcon />
             </Button>
@@ -125,7 +121,7 @@ export function GameOptionsModal({
               style={{ alignSelf: "flex-end" }}
               onClick={handleOpenGameExecutablePath}
               disabled={!game.executablePath}
-              title={"Abrir pasta"}
+              title={t("open_folder")}
             >
               <FileDirectoryOpenFillIcon />
             </Button>
@@ -135,7 +131,7 @@ export function GameOptionsModal({
               style={{ alignSelf: "flex-end" }}
               theme="outline"
               disabled={deleting || !game.executablePath}
-              title={"Criar atalho"}
+              title={t("create_shortcut")}
             >
               <FileSymlinkFileIcon />
             </Button>
@@ -146,12 +142,11 @@ export function GameOptionsModal({
           {game.folderName && (
             <div className={styles.downloadSourceField}>
               <TextField
-                label="Caminho do instalador"
+                label={t("installer_path")}
                 value={`${game.downloadPath}\\${game.folderName}`}
                 readOnly
                 theme="dark"
                 disabled
-                placeholder=""
               />
 
               <Button
@@ -160,7 +155,7 @@ export function GameOptionsModal({
                 style={{ alignSelf: "flex-end" }}
                 onClick={handleOpenGameInstallerPath}
                 disabled={!game.downloadPath}
-                title={"Abrir pasta"}
+                title={t("open_folder")}
               >
                 <FileDirectoryOpenFillIcon />
               </Button>
@@ -172,7 +167,7 @@ export function GameOptionsModal({
                 onClick={() => {
                   setShowDeleteModal(true);
                 }}
-                title={"Remover instalador"}
+                title={t("remove_installer")}
               >
                 <TrashIcon />
               </Button>

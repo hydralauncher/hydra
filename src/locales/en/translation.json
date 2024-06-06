@@ -99,7 +99,13 @@
     "screenshot": "Screenshot {{number}}",
     "open_screenshot": "Open screenshot {{number}}",
     "download_settings": "Download settings",
-    "downloader": "Downloader"
+    "downloader": "Downloader",
+    "select_executable": "Select executable",
+    "no_executable_selected": "No executable selected",
+    "open_folder": "Open folder",
+    "create_shortcut": "Create shortcut",
+    "installer_path": "Installer path",
+    "remove_installer": "Remove installer"
   },
   "activation": {
     "title": "Activate Hydra",
