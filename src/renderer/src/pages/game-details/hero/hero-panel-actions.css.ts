@@ -8,6 +8,6 @@ export const heroPanelAction = style({
 
 export const separator = style({
   width: "1px",
-  backgroundColor: vars.color.border,
+  backgroundColor: vars.color.muted,
   margin: `${SPACING_UNIT / 2}px 0`,
 });
