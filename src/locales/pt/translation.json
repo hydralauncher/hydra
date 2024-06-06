@@ -96,7 +96,13 @@
     "screenshot": "Captura de tela {{number}}",
     "open_screenshot": "Ver captura de tela {{number}}",
     "download_settings": "Ajustes do download",
-    "downloader": "Downloader"
+    "downloader": "Downloader",
+    "select_executable": "Selecionar executável",
+    "no_executable_selected": "Nenhum executável selecionado",
+    "open_folder": "Abrir pasta",
+    "create_shortcut": "Criar atalho",
+    "installer_path": "Caminho do instalador",
+    "remove_installer": "Remover instalador"
   },
   "activation": {
     "title": "Ativação",
