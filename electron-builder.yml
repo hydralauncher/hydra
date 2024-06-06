@@ -18,6 +18,9 @@ asarUnpack:
 win:
   executableName: Hydra
   requestedExecutionLevel: requireAdministrator
+  target:
+    - nsis
+    - portable
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -25,6 +28,9 @@ nsis:
   createDesktopShortcut: always
   oneClick: false
   allowToChangeInstallationDirectory: true
+portable:
+  artifactName: ${name}-${version}-portable.${ext}
+  requestExecutionLevel: admin
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
