@@ -35,7 +35,7 @@ export function HeroPanel() {
   const getInfo = () => {
     if (isGameDeleting(game?.id ?? -1)) return <p>{t("deleting")}</p>;
 
-    if (game?.progress === 1 || game?.playTimeInMilliseconds)
+    if (game && (game.progress === 1 || !game.status))
       return <HeroPanelPlaytime />;
 
     if (game?.status === "active") {
