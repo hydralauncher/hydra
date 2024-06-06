@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import type { LibraryGame } from "@types";
 
 import { TextField } from "@renderer/components";
-import { useDownload, useLibrary } from "@renderer/hooks";
+import { useDownload, useLibrary, useToast } from "@renderer/hooks";
 
 import { routes } from "./routes";
 
@@ -35,6 +35,8 @@ export function Sidebar() {
   const location = useLocation();
 
   const { lastPacket, progress } = useDownload();
+
+  const { showWarningToast } = useToast();
 
   useEffect(() => {
     updateLibrary();
@@ -131,8 +133,12 @@ export function Sidebar() {
       navigate(path);
     }
 
-    if (event.detail == 2 && game.executablePath) {
-      window.electron.openGame(game.id, game.executablePath);
+    if (event.detail == 2) {
+      if (game.executablePath) {
+        window.electron.openGame(game.id, game.executablePath);
+      } else {
+        showWarningToast("Jogo não possui executável selecionado");
+      }
     }
   };
 

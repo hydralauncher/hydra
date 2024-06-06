@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  AlertIcon,
   CheckCircleFillIcon,
   XCircleFillIcon,
   XIcon,
@@ -11,7 +12,7 @@ import { SPACING_UNIT } from "@renderer/theme.css";
 export interface ToastProps {
   visible: boolean;
   message: string;
-  type: "success" | "error";
+  type: "success" | "error" | "warning";
   onClose: () => void;
 }
 
@@ -84,6 +85,8 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
           )}
 
           {type === "error" && <XCircleFillIcon className={styles.errorIcon} />}
+
+          {type === "warning" && <AlertIcon className={styles.warningIcon} />}
           <span style={{ fontWeight: "bold" }}>{message}</span>
         </div>
 

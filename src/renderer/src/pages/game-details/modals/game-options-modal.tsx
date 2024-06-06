@@ -1,12 +1,8 @@
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
-
 import { Button, Modal, TextField } from "@renderer/components";
 import type { Game } from "@types";
-
 import * as styles from "./game-options-modal.css";
-
-import { SPACING_UNIT } from "../../../theme.css";
 import { gameDetailsContext } from "../game-details.context";
 import {
   FileDirectoryOpenFillIcon,
@@ -80,15 +76,8 @@ export function GameOptionsModal({
           deleteGame={handleDeleteGame}
         />
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: `${SPACING_UNIT}px`,
-            width: "100%",
-          }}
-        >
-          <div className={styles.downloadSourceField}>
+        <div className={styles.optionsContainer}>
+          <div className={styles.gameOptionRow}>
             <Button
               onClick={openRepacksModal}
               theme="outline"
@@ -97,7 +86,7 @@ export function GameOptionsModal({
               {t("open_download_options")}
             </Button>
           </div>
-          <div className={styles.downloadSourceField}>
+          <div className={styles.gameOptionRow}>
             <TextField
               label="Caminho do executável"
               value={game.executablePath || ""}
@@ -137,10 +126,8 @@ export function GameOptionsModal({
             </Button>
           </div>
 
-          <div className={styles.downloadSourceField}></div>
-
           {game.folderName && (
-            <div className={styles.downloadSourceField}>
+            <div className={styles.gameOptionRow}>
               <TextField
                 label={t("installer_path")}
                 value={`${game.downloadPath}\\${game.folderName}`}
