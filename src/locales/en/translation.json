@@ -106,7 +106,9 @@
     "open_folder": "Open folder",
     "open_download_location": "Abrir local de download",
     "create_shortcut": "Create shortcut",
-    "remove_files": "Remove files"
+    "remove_files": "Remove files",
+    "remove_from_library_title": "Are you sure?",
+    "remove_from_library_description": "This will remove {{game}} from your library"
   },
   "activation": {
     "title": "Activate Hydra",

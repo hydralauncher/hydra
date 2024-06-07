@@ -103,7 +103,9 @@
     "open_folder": "Abrir pasta",
     "open_download_location": "Abrir local de download",
     "create_shortcut": "Criar atalho",
-    "remove_files": "Remover arquivos"
+    "remove_files": "Remover arquivos",
+    "remove_from_library_description": "Tem certeza que deseja remover {{game}} da sua biblioteca?",
+    "remove_from_library_title": "Tem certeza?"
   },
   "activation": {
     "title": "Ativação",
