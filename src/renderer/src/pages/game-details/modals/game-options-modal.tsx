@@ -87,8 +87,7 @@ export function GameOptionsModal({
               onClick={handleCreateShortcut}
               style={{ alignSelf: "flex-end" }}
               theme="outline"
-              disabled={deleting || !game.executablePath}
-              title={t("create_shortcut")}
+              disabled={deleting || !game.downloadPath}
             >
               {"Abrir local de download"}
             </Button>
@@ -97,7 +96,6 @@ export function GameOptionsModal({
               style={{ alignSelf: "flex-end" }}
               theme="outline"
               disabled={deleting || !game.executablePath}
-              title={t("create_shortcut")}
             >
               {t("create_shortcut")}
             </Button>
@@ -134,8 +132,7 @@ export function GameOptionsModal({
               onClick={handleCreateShortcut}
               style={{ alignSelf: "flex-end" }}
               theme="outline"
-              disabled={deleting || !game.executablePath}
-              title={t("create_shortcut")}
+              disabled={deleting || !game.downloadPath}
             >
               <TrashIcon />
               Remover arquivos
@@ -146,7 +143,6 @@ export function GameOptionsModal({
               style={{ alignSelf: "flex-end" }}
               theme="outline"
               disabled={deleting}
-              title={t("create_shortcut")}
             >
               <NoEntryIcon />
               Remover da biblioteca
