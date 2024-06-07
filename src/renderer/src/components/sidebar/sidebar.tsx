@@ -137,7 +137,7 @@ export function Sidebar() {
       if (game.executablePath) {
         window.electron.openGame(game.id, game.executablePath);
       } else {
-        showWarningToast("Jogo não possui executável selecionado");
+        showWarningToast(t("game_has_no_executable"));
       }
     }
   };

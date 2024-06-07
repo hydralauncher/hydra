@@ -15,7 +15,8 @@
     "downloading": "{{title}} ({{percentage}} - Downloading…)",
     "filter": "Filter library",
     "home": "Home",
-    "queued": "{{title}} (Queued)"
+    "queued": "{{title}} (Queued)",
+    "game_has_no_executable": "Game has no executable selected"
   },
   "header": {
     "search": "Search games",
