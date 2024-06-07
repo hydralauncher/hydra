@@ -7,6 +7,7 @@ import { gameDetailsContext } from "../game-details.context";
 import { NoEntryIcon, TrashIcon } from "@primer/octicons-react";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import { useDownload } from "@renderer/hooks";
+import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 
 export interface GameOptionsModalProps {
   visible: boolean;
@@ -26,6 +27,7 @@ export function GameOptionsModal({
   const { updateGame, openRepacksModal } = useContext(gameDetailsContext);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showRemoveGameModal, setShowRemoveGameModal] = useState(false);
 
   const { removeGameInstaller, removeGameFromLibrary, isGameDeleting } =
     useDownload();
@@ -81,6 +83,13 @@ export function GameOptionsModal({
           visible={showDeleteModal}
           onClose={() => setShowDeleteModal(false)}
           deleteGame={handleDeleteGame}
+        />
+
+        <RemoveGameFromLibraryModal
+          visible={showRemoveGameModal}
+          onClose={() => setShowRemoveGameModal(false)}
+          removeGameFromLibrary={handleRemoveGameFromLibrary}
+          game={game}
         />
 
         <div className={styles.optionsContainer}>
@@ -150,7 +159,7 @@ export function GameOptionsModal({
             </Button>
 
             <Button
-              onClick={handleRemoveGameFromLibrary}
+              onClick={() => setShowRemoveGameModal(true)}
               style={{ alignSelf: "flex-end" }}
               theme="outline"
               disabled={deleting}
