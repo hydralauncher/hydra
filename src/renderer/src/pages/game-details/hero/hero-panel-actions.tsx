@@ -140,7 +140,7 @@ export function HeroPanelActions() {
             setShowGameOptionsModal(true);
           }}
           theme="outline"
-          disabled={deleting}
+          disabled={deleting || isGameRunning}
           className={styles.heroPanelAction}
         >
           <GearIcon />

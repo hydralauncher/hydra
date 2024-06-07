@@ -1,5 +1,4 @@
 import { shell } from "electron";
-import path from "node:path";
 import { gameRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
 
@@ -11,12 +10,9 @@ const openGameExecutablePath = async (
     where: { id: gameId, isDeleted: false },
   });
 
-  if (!game || !game.executablePath) return true;
+  if (!game || !game.executablePath) return;
 
-  const gamePath = path.join(game.executablePath, "../");
-
-  shell.openPath(gamePath);
-  return true;
+  shell.showItemInFolder(game.executablePath);
 };
 
 registerEvent("openGameExecutablePath", openGameExecutablePath);

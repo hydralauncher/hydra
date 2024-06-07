@@ -100,9 +100,9 @@
     "select_executable": "Selecionar executável",
     "no_executable_selected": "Nenhum executável selecionado",
     "open_folder": "Abrir pasta",
+    "open_download_location": "Abrir local de download",
     "create_shortcut": "Criar atalho",
-    "installer_path": "Caminho do instalador",
-    "remove_installer": "Remover instalador"
+    "remove_files": "Remover arquivos"
   },
   "activation": {
     "title": "Ativação",

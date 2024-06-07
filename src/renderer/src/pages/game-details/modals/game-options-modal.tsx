@@ -21,6 +21,8 @@ export function GameOptionsModal({
   onClose,
   selectGameExecutable,
 }: GameOptionsModalProps) {
+  const { t } = useTranslation("game_details");
+
   const { updateGame, openRepacksModal } = useContext(gameDetailsContext);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -30,7 +32,10 @@ export function GameOptionsModal({
 
   const deleting = game ? isGameDeleting(game?.id) : false;
 
-  const { t } = useTranslation("game_details");
+  const { lastPacket } = useDownload();
+
+  const isGameDownloading =
+    game?.status === "active" && lastPacket?.game.id === game?.id;
 
   const handleRemoveGameFromLibrary = async () => {
     await removeGameFromLibrary(game.id);
@@ -49,6 +54,10 @@ export function GameOptionsModal({
 
   const handleCreateShortcut = async () => {
     await window.electron.createGameShortcut(game.id);
+  };
+
+  const handleOpenDownloadFolder = async () => {
+    await window.electron.openGameInstallerPath(game.id);
   };
 
   const handleDeleteGame = async () => {
@@ -84,12 +93,12 @@ export function GameOptionsModal({
               {t("open_download_options")}
             </Button>
             <Button
-              onClick={handleCreateShortcut}
+              onClick={handleOpenDownloadFolder}
               style={{ alignSelf: "flex-end" }}
               theme="outline"
               disabled={deleting || !game.downloadPath}
             >
-              {"Abrir local de download"}
+              {t("open_download_location")}
             </Button>
             <Button
               onClick={handleCreateShortcut}
@@ -129,13 +138,15 @@ export function GameOptionsModal({
           </div>
           <div className={styles.gameOptionRow}>
             <Button
-              onClick={handleCreateShortcut}
+              onClick={() => {
+                setShowDeleteModal(true);
+              }}
               style={{ alignSelf: "flex-end" }}
               theme="outline"
-              disabled={deleting || !game.downloadPath}
+              disabled={isGameDownloading || deleting || !game.downloadPath}
             >
               <TrashIcon />
-              Remover arquivos
+              {t("remove_files")}
             </Button>
 
             <Button
@@ -145,7 +156,7 @@ export function GameOptionsModal({
               disabled={deleting}
             >
               <NoEntryIcon />
-              Remover da biblioteca
+              {t("remove_from_library")}
             </Button>
           </div>
         </div>
