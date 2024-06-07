@@ -6,7 +6,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-latest, ubuntu-latest]
 
     runs-on: ${{ matrix.os }}
 
@@ -38,22 +38,16 @@ jobs:
           MAIN_VITE_ONLINEFIX_PASSWORD: ${{ secrets.ONLINEFIX_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Mac
-        if: matrix.os == 'macos-latest'
-        run: sudo yarn build:mac
-        env:
-          MAIN_VITE_ONLINEFIX_USERNAME: ${{ secrets.ONLINEFIX_USERNAME }}
-          MAIN_VITE_ONLINEFIX_PASSWORD: ${{ secrets.ONLINEFIX_PASSWORD }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Create artifact
         uses: actions/upload-artifact@v4
         with:
           name: Build-${{ matrix.os }}
           path: |
             dist/win-unpacked/**
+            dist/*.zip
             dist/*.dmg
             dist/*.deb
             dist/*.rpm
+            dist/*.tar.gz
             dist/*.yml
             dist/*.blockmap
