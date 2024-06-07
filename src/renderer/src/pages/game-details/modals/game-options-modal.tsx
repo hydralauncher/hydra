@@ -4,7 +4,7 @@ import { Button, Modal, TextField } from "@renderer/components";
 import type { Game } from "@types";
 import * as styles from "./game-options-modal.css";
 import { gameDetailsContext } from "../game-details.context";
-import { TrashIcon } from "@primer/octicons-react";
+import { NoEntryIcon, TrashIcon } from "@primer/octicons-react";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import { useDownload } from "@renderer/hooks";
 
@@ -25,11 +25,18 @@ export function GameOptionsModal({
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const { removeGameInstaller, isGameDeleting } = useDownload();
+  const { removeGameInstaller, removeGameFromLibrary, isGameDeleting } =
+    useDownload();
 
   const deleting = game ? isGameDeleting(game?.id) : false;
 
   const { t } = useTranslation("game_details");
+
+  const handleRemoveGameFromLibrary = async () => {
+    await removeGameFromLibrary(game.id);
+    updateGame();
+    onClose();
+  };
 
   const handleChangeExecutableLocation = async () => {
     const location = await selectGameExecutable();
@@ -132,6 +139,17 @@ export function GameOptionsModal({
             >
               <TrashIcon />
               Remover arquivos
+            </Button>
+
+            <Button
+              onClick={handleRemoveGameFromLibrary}
+              style={{ alignSelf: "flex-end" }}
+              theme="outline"
+              disabled={deleting}
+              title={t("create_shortcut")}
+            >
+              <NoEntryIcon />
+              Remover da biblioteca
             </Button>
           </div>
         </div>

@@ -62,7 +62,12 @@ export function HeroPanelPlaytime() {
     } else if (game.progress !== 1) {
       downloadContent = (
         <p className={styles.downloadDetailsRow}>
-          {isGameDownloading ? progress : formatDownloadProgress(game.progress)}
+          Download em andamento
+          <small>
+            {isGameDownloading
+              ? progress
+              : formatDownloadProgress(game.progress)}
+          </small>
         </p>
       );
     }
