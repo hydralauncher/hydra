@@ -1,14 +1,9 @@
 import { format } from "date-fns";
-import { useContext, useMemo } from "react";
+import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import Color from "color";
-
 import { useDownload } from "@renderer/hooks";
-
-import { formatDownloadProgress } from "@renderer/helpers";
 import { HeroPanelActions } from "./hero-panel-actions";
-import { Downloader, formatBytes } from "@shared";
-
 import * as styles from "./hero-panel.css";
 import { HeroPanelPlaytime } from "./hero-panel-playtime";
 import { gameDetailsContext } from "../game-details.context";
@@ -18,99 +13,31 @@ export function HeroPanel() {
 
   const { game, repacks, gameColor } = useContext(gameDetailsContext);
 
-  const { progress, eta, lastPacket, isGameDeleting } = useDownload();
-
-  const finalDownloadSize = useMemo(() => {
-    if (game?.fileSize) return formatBytes(game.fileSize);
-
-    if (lastPacket?.game.fileSize && game?.status === "active")
-      return formatBytes(lastPacket?.game.fileSize);
-
-    return "N/A";
-  }, [game, lastPacket?.game]);
+  const { lastPacket } = useDownload();
 
   const isGameDownloading =
     game?.status === "active" && lastPacket?.game.id === game?.id;
 
   const getInfo = () => {
-    if (isGameDeleting(game?.id ?? -1)) return <p>{t("deleting")}</p>;
+    if (!game) {
+      const [latestRepack] = repacks;
 
-    if (game && (game.progress === 1 || !game.status)) {
-      return <HeroPanelPlaytime />;
-    }
+      if (latestRepack) {
+        const lastUpdate = format(latestRepack.uploadDate!, "dd/MM/yyyy");
+        const repacksCount = repacks.length;
 
-    if (game?.status === "active") {
-      if (lastPacket?.isDownloadingMetadata && isGameDownloading) {
         return (
           <>
-            <p>{progress}</p>
-            <p>{t("downloading_metadata")}</p>
+            <p>{t("updated_at", { updated_at: lastUpdate })}</p>
+            <p>{t("download_options", { count: repacksCount })}</p>
           </>
         );
       }
 
-      const sizeDownloaded = formatBytes(
-        lastPacket?.game?.bytesDownloaded ?? game?.bytesDownloaded
-      );
-
-      const showPeers =
-        game?.downloader === Downloader.Torrent &&
-        lastPacket?.numPeers !== undefined;
-
-      return (
-        <>
-          <p className={styles.downloadDetailsRow}>
-            {isGameDownloading
-              ? progress
-              : formatDownloadProgress(game?.progress)}
-
-            <small>{eta ? t("eta", { eta }) : t("calculating_eta")}</small>
-          </p>
-
-          <p className={styles.downloadDetailsRow}>
-            <span>
-              {sizeDownloaded} / {finalDownloadSize}
-            </span>
-            {showPeers && (
-              <small>
-                {lastPacket?.numPeers} peers / {lastPacket?.numSeeds} seeds
-              </small>
-            )}
-          </p>
-        </>
-      );
+      return <p>{t("no_downloads")}</p>;
     }
 
-    if (game?.status === "paused") {
-      const formattedProgress = formatDownloadProgress(game.progress);
-
-      return (
-        <>
-          <p className={styles.downloadDetailsRow}>
-            {formattedProgress} <small>{t("paused")}</small>
-          </p>
-          <p>
-            {formatBytes(game.bytesDownloaded)} / {finalDownloadSize}
-          </p>
-        </>
-      );
-    }
-
-    const [latestRepack] = repacks;
-
-    if (latestRepack) {
-      const lastUpdate = format(latestRepack.uploadDate!, "dd/MM/yyyy");
-      const repacksCount = repacks.length;
-
-      return (
-        <>
-          <p>{t("updated_at", { updated_at: lastUpdate })}</p>
-          <p>{t("download_options", { count: repacksCount })}</p>
-        </>
-      );
-    }
-
-    return <p>{t("no_downloads")}</p>;
+    return <HeroPanelPlaytime />;
   };
 
   const backgroundColor = gameColor

@@ -4,12 +4,7 @@ import { Button, Modal, TextField } from "@renderer/components";
 import type { Game } from "@types";
 import * as styles from "./game-options-modal.css";
 import { gameDetailsContext } from "../game-details.context";
-import {
-  FileDirectoryOpenFillIcon,
-  FileSymlinkFileIcon,
-  PencilIcon,
-  TrashIcon,
-} from "@primer/octicons-react";
+import { TrashIcon } from "@primer/octicons-react";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import { useDownload } from "@renderer/hooks";
 
