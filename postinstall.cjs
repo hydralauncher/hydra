@@ -1,34 +1,31 @@
 const { default: axios } = require("axios");
 const util = require("node:util");
 const fs = require("node:fs");
-const { spawnSync } = require("node:child_process");
 
 const exec = util.promisify(require("node:child_process").exec);
 
-const setupAria2OnWindowsAndLinux = async () => {
+const downloadAria2 = async () => {
+  if (fs.existsSync("aria2")) {
+    console.log("Aria2 already exists, skipping download...");
+    return;
+  }
+
   const file =
     process.platform === "win32"
       ? "aria2-1.37.0-win-64bit-build1.zip"
       : "aria2-1.37.0-1-x86_64.pkg.tar.zst";
-
   const downloadUrl =
     process.platform === "win32"
       ? `https://github.com/aria2/aria2/releases/download/release-1.37.0/${file}`
       : "https://archlinux.org/packages/extra/x86_64/aria2/download/";
-
   console.log(`Downloading ${file}...`);
-
   const response = await axios.get(downloadUrl, { responseType: "stream" });
-
   const stream = response.data.pipe(fs.createWriteStream(file));
-
   stream.on("finish", async () => {
     console.log(`Downloaded ${file}, extracting...`);
-
     if (process.platform === "win32") {
       await exec(`npx extract-zip ${file}`);
       console.log("Extracted. Renaming folder...");
-
       fs.renameSync(file.replace(".zip", ""), "aria2");
     } else {
       await exec(`tar --zstd -xvf ${file} usr/bin/aria2c`);
@@ -37,44 +34,10 @@ const setupAria2OnWindowsAndLinux = async () => {
       fs.copyFileSync("usr/bin/aria2c", "aria2/aria2c");
       fs.rmSync("usr", { recursive: true });
     }
-
     console.log(`Extracted ${file}, removing compressed downloaded file...`);
     fs.rmSync(file);
   });
 };
-
-const setupAria2OnMacos = async () => {
-  console.log("Checking if aria2 is installed...");
-
-  const isAria2Installed = spawnSync("which", ["aria2c"]).status;
-
-  if (isAria2Installed != 0) {
-    console.log("Please install aria2");
-    console.log("brew install aria2");
-    return;
-  }
-
-  console.log("Copying aria2 binary...");
-  fs.mkdirSync("aria2");
-  await exec(`cp $(which aria2c) aria2/aria2c`);
-};
-
-const setupAria2 = () => {
-  if (fs.existsSync("aria2")) {
-    console.log("Aria2 already exists, skipping...");
-    return;
-  }
-
-  if (process.platform == "darwin") {
-    setupAria2OnMacos();
-  } else {
-    setupAria2OnWindowsAndLinux();
-  }
-
-  console.log("Aria2 setup finished");
-};
-
-setupAria2();
 
 if (process.platform === "win32") {
   fs.copyFileSync(
@@ -82,3 +45,5 @@ if (process.platform === "win32") {
     "fastlist.exe"
   );
 }
+
+downloadAria2();
