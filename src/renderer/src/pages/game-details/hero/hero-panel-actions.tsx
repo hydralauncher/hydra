@@ -1,4 +1,4 @@
-import { GearIcon, NoEntryIcon, PlusCircleIcon } from "@primer/octicons-react";
+import { GearIcon, PlusCircleIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
 import { useContext, useState } from "react";
@@ -12,7 +12,7 @@ export function HeroPanelActions() {
     useState(false);
   const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
 
-  const { removeGameFromLibrary, isGameDeleting } = useDownload();
+  const { isGameDeleting } = useDownload();
 
   const {
     game,
@@ -60,15 +60,11 @@ export function HeroPanelActions() {
       });
   };
 
-  const toggleGameOnLibrary = async () => {
+  const addGameToLibrary = async () => {
     setToggleLibraryGameDisabled(true);
 
     try {
-      if (game) {
-        await removeGameFromLibrary(game.id);
-      } else {
-        await window.electron.addGameToLibrary(objectID!, gameTitle, "steam");
-      }
+      await window.electron.addGameToLibrary(objectID!, gameTitle, "steam");
 
       updateLibrary();
       updateGame();
@@ -96,15 +92,15 @@ export function HeroPanelActions() {
 
   const deleting = game ? isGameDeleting(game?.id) : false;
 
-  const toggleGameOnLibraryButton = (
+  const addGameToLibraryButton = (
     <Button
       theme="outline"
       disabled={toggleLibraryGameDisabled}
-      onClick={toggleGameOnLibrary}
+      onClick={addGameToLibrary}
       className={styles.heroPanelAction}
     >
-      {game ? <NoEntryIcon /> : <PlusCircleIcon />}
-      {game ? t("remove_from_library") : t("add_to_library")}
+      <PlusCircleIcon />
+      {t("add_to_library")}
     </Button>
   );
 
@@ -119,27 +115,10 @@ export function HeroPanelActions() {
     </Button>
   );
 
-  if (game?.status === "removed") {
-    return (
-      <>
-        {showDownloadOptionsButton}
-
-        <Button
-          onClick={() => removeGameFromLibrary(game.id).then(updateGame)}
-          theme="outline"
-          disabled={deleting}
-          className={styles.heroPanelAction}
-        >
-          {t("remove_from_list")}
-        </Button>
-      </>
-    );
-  }
-
   if (repacks.length && !game) {
     return (
       <>
-        {toggleGameOnLibraryButton}
+        {addGameToLibraryButton}
         {showDownloadOptionsButton}
       </>
     );
@@ -169,8 +148,6 @@ export function HeroPanelActions() {
 
         <div className={styles.separator} />
 
-        {game.progress !== 1 && toggleGameOnLibraryButton}
-
         {isGameRunning ? (
           <Button
             onClick={closeGame}
@@ -194,5 +171,5 @@ export function HeroPanelActions() {
     );
   }
 
-  return toggleGameOnLibraryButton;
+  return addGameToLibraryButton;
 }
