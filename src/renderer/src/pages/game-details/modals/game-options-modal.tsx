@@ -49,10 +49,6 @@ export function GameOptionsModal({
     updateGame();
   };
 
-  const handleOpenGameInstallerPath = async () => {
-    await window.electron.openGameInstallerPath(game.id);
-  };
-
   const handleOpenGameExecutablePath = async () => {
     await window.electron.openGameExecutablePath(game.id);
   };
