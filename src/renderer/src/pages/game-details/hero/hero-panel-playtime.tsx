@@ -1,7 +1,8 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { useDate } from "@renderer/hooks";
+import * as styles from "./hero-panel.css";
+import { formatDownloadProgress } from "@renderer/helpers";
+import { useDate, useDownload } from "@renderer/hooks";
 import { gameDetailsContext } from "../game-details.context";
 
 const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
@@ -46,8 +47,50 @@ export function HeroPanelPlaytime() {
     return t("amount_hours", { amount: numberFormatter.format(hours) });
   };
 
-  if (!game?.lastTimePlayed) {
-    return <p>{t("not_played_yet", { title: game?.title })}</p>;
+  const { progress, lastPacket } = useDownload();
+
+  const isGameDownloading =
+    game?.status === "active" && lastPacket?.game.id === game?.id;
+
+  if (!game) return;
+
+  let downloadContent: JSX.Element | null = null;
+
+  if (game.status === "active") {
+    if (lastPacket?.isDownloadingMetadata && isGameDownloading) {
+      downloadContent = <p>{t("downloading_metadata")}</p>;
+    } else if (game.progress !== 1) {
+      downloadContent = (
+        <p className={styles.downloadDetailsRow}>
+          {isGameDownloading ? progress : formatDownloadProgress(game.progress)}
+        </p>
+      );
+    }
+  }
+
+  if (!game.lastTimePlayed) {
+    return (
+      <>
+        <p>{t("not_played_yet", { title: game?.title })}</p>
+        {downloadContent}
+      </>
+    );
+  }
+
+  if (isGameRunning) {
+    return (
+      <>
+        {downloadContent || (
+          <p>
+            {t("play_time", {
+              amount: formatPlayTime(),
+            })}
+          </p>
+        )}
+
+        <p>{t("playing_now")}</p>
+      </>
+    );
   }
 
   return (
@@ -58,9 +101,7 @@ export function HeroPanelPlaytime() {
         })}
       </p>
 
-      {isGameRunning ? (
-        <p>{t("playing_now")}</p>
-      ) : (
+      {downloadContent || (
         <p>
           {t("last_time_played", {
             period: lastTimePlayed,
