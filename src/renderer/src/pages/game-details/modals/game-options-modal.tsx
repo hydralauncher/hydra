@@ -85,6 +85,24 @@ export function GameOptionsModal({
             >
               {t("open_download_options")}
             </Button>
+            <Button
+              onClick={handleCreateShortcut}
+              style={{ alignSelf: "flex-end" }}
+              theme="outline"
+              disabled={deleting || !game.executablePath}
+              title={t("create_shortcut")}
+            >
+              {"Abrir local de download"}
+            </Button>
+            <Button
+              onClick={handleCreateShortcut}
+              style={{ alignSelf: "flex-end" }}
+              theme="outline"
+              disabled={deleting || !game.executablePath}
+              title={t("create_shortcut")}
+            >
+              {t("create_shortcut")}
+            </Button>
           </div>
           <div className={styles.gameOptionRow}>
             <TextField
@@ -100,9 +118,8 @@ export function GameOptionsModal({
               theme="outline"
               style={{ alignSelf: "flex-end" }}
               onClick={handleChangeExecutableLocation}
-              title={t("select_executable")}
             >
-              <PencilIcon />
+              {t("select_executable")}
             </Button>
             <Button
               type="button"
@@ -110,11 +127,11 @@ export function GameOptionsModal({
               style={{ alignSelf: "flex-end" }}
               onClick={handleOpenGameExecutablePath}
               disabled={!game.executablePath}
-              title={t("open_folder")}
             >
-              <FileDirectoryOpenFillIcon />
+              {t("open_folder")}
             </Button>
-
+          </div>
+          <div className={styles.gameOptionRow}>
             <Button
               onClick={handleCreateShortcut}
               style={{ alignSelf: "flex-end" }}
@@ -122,44 +139,10 @@ export function GameOptionsModal({
               disabled={deleting || !game.executablePath}
               title={t("create_shortcut")}
             >
-              <FileSymlinkFileIcon />
+              <TrashIcon />
+              Remover arquivos
             </Button>
           </div>
-
-          {game.folderName && (
-            <div className={styles.gameOptionRow}>
-              <TextField
-                label={t("installer_path")}
-                value={`${game.downloadPath}\\${game.folderName}`}
-                readOnly
-                theme="dark"
-                disabled
-              />
-
-              <Button
-                type="button"
-                theme="outline"
-                style={{ alignSelf: "flex-end" }}
-                onClick={handleOpenGameInstallerPath}
-                disabled={!game.downloadPath}
-                title={t("open_folder")}
-              >
-                <FileDirectoryOpenFillIcon />
-              </Button>
-              <Button
-                type="button"
-                theme="outline"
-                style={{ alignSelf: "flex-end" }}
-                disabled={!game.downloadPath}
-                onClick={() => {
-                  setShowDeleteModal(true);
-                }}
-                title={t("remove_installer")}
-              >
-                <TrashIcon />
-              </Button>
-            </div>
-          )}
         </div>
       </Modal>
     </>
