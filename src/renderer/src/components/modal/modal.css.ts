@@ -22,7 +22,7 @@ export const modal = recipe({
     animationDuration: "0.3s",
     backgroundColor: vars.color.background,
     borderRadius: "4px",
-    maxWidth: "800px",
+    maxWidth: "600px",
     color: vars.color.body,
     maxHeight: "100%",
     border: `solid 1px ${vars.color.border}`,
