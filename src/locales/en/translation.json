@@ -103,9 +103,9 @@
     "select_executable": "Select executable",
     "no_executable_selected": "No executable selected",
     "open_folder": "Open folder",
+    "open_download_location": "Abrir local de download",
     "create_shortcut": "Create shortcut",
-    "installer_path": "Installer path",
-    "remove_installer": "Remove installer"
+    "remove_files": "Remove files"
   },
   "activation": {
     "title": "Activate Hydra",

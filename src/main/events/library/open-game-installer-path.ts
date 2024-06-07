@@ -12,14 +12,14 @@ const openGameInstallerPath = async (
     where: { id: gameId, isDeleted: false },
   });
 
-  if (!game || !game.folderName) return true;
+  if (!game || !game.folderName || !game.downloadPath) return true;
 
   const gamePath = path.join(
     game.downloadPath ?? (await getDownloadsPath()),
     game.folderName!
   );
 
-  shell.openPath(gamePath);
+  shell.showItemInFolder(gamePath);
 
   return true;
 };

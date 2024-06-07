@@ -63,7 +63,7 @@ declare global {
     getLibrary: () => Promise<LibraryGame[]>;
     openGameInstaller: (gameId: number) => Promise<boolean>;
     openGameInstallerPath: (gameId: number) => Promise<boolean>;
-    openGameExecutablePath: (gameId: number) => Promise<boolean>;
+    openGameExecutablePath: (gameId: number) => Promise<void>;
     openGame: (gameId: number, executablePath: string) => Promise<void>;
     closeGame: (gameId: number) => Promise<boolean>;
     removeGameFromLibrary: (gameId: number) => Promise<void>;
