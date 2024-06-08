@@ -4,7 +4,6 @@ import { Button, Modal, TextField } from "@renderer/components";
 import type { Game } from "@types";
 import * as styles from "./game-options-modal.css";
 import { gameDetailsContext } from "../game-details.context";
-import { NoEntryIcon, TrashIcon } from "@primer/octicons-react";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import { useDownload } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
@@ -94,7 +93,7 @@ export function GameOptionsModal({
 
         <div className={styles.optionsContainer}>
           <div className={styles.gameOptionHeader}>
-            <h2>Arquivos baixados</h2>
+            <h2>{t("downloaded_files")}</h2>
           </div>
           <div className={styles.gameOptionRow}>
             <Button
@@ -108,9 +107,9 @@ export function GameOptionsModal({
           </div>
 
           <div className={styles.gameOptionHeader}>
-            <h2>Executável</h2>
+            <h2>{t("executable_section_title")}</h2>
             <h4 className={styles.gameOptionHeaderDescription}>
-              O caminho do arquivo que sera executado ao clicar em "Jogar"
+              {t("executable_section_description")}
             </h4>
           </div>
           <div className={styles.gameOptionRow}>
@@ -151,9 +150,9 @@ export function GameOptionsModal({
             </Button>
           </div>
           <div className={styles.gameOptionHeader}>
-            <h2>Downloads</h2>
+            <h2>{t("downloads_secion_title")}</h2>
             <h4 className={styles.gameOptionHeaderDescription}>
-              Confira atualizações ou versões diferentes para este mesmo título
+              {t("downloads_section_description")}
             </h4>
           </div>
           <div className={styles.gameOptionRow}>
@@ -166,10 +165,9 @@ export function GameOptionsModal({
             </Button>
           </div>
           <div className={styles.gameOptionHeader}>
-            <h2>Zona de perigo</h2>
+            <h2>{t("danger_zone_section_title")}</h2>
             <h4 className={styles.gameOptionHeaderDescription}>
-              Remova o jogo da sua biblioteca ou os arquivos que foram baixados
-              pelo Hydra
+              {t("danger_zone_section_description")}
             </h4>
           </div>
           <div className={styles.gameOptionRow}>
