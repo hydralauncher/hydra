@@ -13,10 +13,13 @@ const createGameShortcut = async (
 
   if (game) {
     const filePath = game.executablePath;
+
+    const options = { filePath, name: game.title };
+
     return createDesktopShortcut({
-      windows: { filePath },
-      linux: { filePath },
-      osx: { filePath },
+      windows: options,
+      linux: options,
+      osx: options,
     });
   }
 

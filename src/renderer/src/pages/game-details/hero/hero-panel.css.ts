@@ -36,6 +36,7 @@ export const downloadDetailsRow = style({
 
 export const downloadsLink = style({
   color: vars.color.body,
+  textDecoration: "underline",
 });
 
 export const progressBar = recipe({

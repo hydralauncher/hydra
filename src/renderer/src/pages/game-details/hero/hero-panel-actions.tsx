@@ -1,16 +1,14 @@
 import { GearIcon, PlayIcon, PlusCircleIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
-import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
+import { useDownload, useLibrary } from "@renderer/hooks";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as styles from "./hero-panel-actions.css";
 import { gameDetailsContext } from "../game-details.context";
-import { GameOptionsModal } from "../modals/game-options-modal";
 
 export function HeroPanelActions() {
   const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
     useState(false);
-  const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
 
   const { isGameDeleting } = useDownload();
 
@@ -21,44 +19,14 @@ export function HeroPanelActions() {
     objectID,
     gameTitle,
     openRepacksModal,
+    openGameOptionsModal,
     updateGame,
+    selectGameExecutable,
   } = useContext(gameDetailsContext);
-
-  const userPreferences = useAppSelector(
-    (state) => state.userPreferences.value
-  );
 
   const { updateLibrary } = useLibrary();
 
   const { t } = useTranslation("game_details");
-
-  const getDownloadsPath = async () => {
-    if (userPreferences?.downloadsPath) return userPreferences.downloadsPath;
-    return window.electron.getDefaultDownloadsPath();
-  };
-
-  const selectGameExecutable = async () => {
-    const downloadsPath = await getDownloadsPath();
-
-    return window.electron
-      .showOpenDialog({
-        properties: ["openFile"],
-        defaultPath: downloadsPath,
-        filters: [
-          {
-            name: "Game executable",
-            extensions: ["exe"],
-          },
-        ],
-      })
-      .then(({ filePaths }) => {
-        if (filePaths && filePaths.length > 0) {
-          return filePaths[0];
-        }
-
-        return null;
-      });
-  };
 
   const addGameToLibrary = async () => {
     setToggleLibraryGameDisabled(true);
@@ -126,53 +94,40 @@ export function HeroPanelActions() {
 
   if (game) {
     return (
-      <>
-        <GameOptionsModal
-          visible={showGameOptionsModal}
-          game={game}
-          onClose={() => {
-            setShowGameOptionsModal(false);
-          }}
-          selectGameExecutable={selectGameExecutable}
-        />
-
-        <div className={styles.actions}>
-          {isGameRunning ? (
-            <Button
-              onClick={closeGame}
-              theme="outline"
-              disabled={deleting}
-              className={styles.heroPanelAction}
-            >
-              {t("close")}
-            </Button>
-          ) : (
-            <Button
-              onClick={openGame}
-              theme="outline"
-              disabled={deleting || isGameRunning}
-              className={styles.heroPanelAction}
-            >
-              <PlayIcon />
-              {t("play")}
-            </Button>
-          )}
-
-          <div className={styles.separator} />
-
+      <div className={styles.actions}>
+        {isGameRunning ? (
           <Button
-            onClick={() => {
-              setShowGameOptionsModal(true);
-            }}
+            onClick={closeGame}
+            theme="outline"
+            disabled={deleting}
+            className={styles.heroPanelAction}
+          >
+            {t("close")}
+          </Button>
+        ) : (
+          <Button
+            onClick={openGame}
             theme="outline"
             disabled={deleting || isGameRunning}
             className={styles.heroPanelAction}
           >
-            <GearIcon />
-            {t("options")}
+            <PlayIcon />
+            {t("play")}
           </Button>
-        </div>
-      </>
+        )}
+
+        <div className={styles.separator} />
+
+        <Button
+          onClick={openGameOptionsModal}
+          theme="outline"
+          disabled={deleting || isGameRunning}
+          className={styles.heroPanelAction}
+        >
+          <GearIcon />
+          {t("options")}
+        </Button>
+      </div>
     );
   }
 

@@ -4,7 +4,6 @@ import { Button, Modal, TextField } from "@renderer/components";
 import type { Game } from "@types";
 import * as styles from "./game-options-modal.css";
 import { gameDetailsContext } from "../game-details.context";
-import { NoEntryIcon, TrashIcon } from "@primer/octicons-react";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import { useDownload } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
@@ -13,43 +12,50 @@ export interface GameOptionsModalProps {
   visible: boolean;
   game: Game;
   onClose: () => void;
-  selectGameExecutable: () => Promise<string | null>;
 }
 
 export function GameOptionsModal({
   visible,
   game,
   onClose,
-  selectGameExecutable,
 }: GameOptionsModalProps) {
   const { t } = useTranslation("game_details");
 
-  const { updateGame, openRepacksModal } = useContext(gameDetailsContext);
+  const { updateGame, openRepacksModal, selectGameExecutable } =
+    useContext(gameDetailsContext);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRemoveGameModal, setShowRemoveGameModal] = useState(false);
 
-  const { removeGameInstaller, removeGameFromLibrary, isGameDeleting } =
-    useDownload();
+  const {
+    removeGameInstaller,
+    removeGameFromLibrary,
+    isGameDeleting,
+    cancelDownload,
+  } = useDownload();
 
-  const deleting = game ? isGameDeleting(game?.id) : false;
+  const deleting = isGameDeleting(game.id);
 
   const { lastPacket } = useDownload();
 
   const isGameDownloading =
-    game?.status === "active" && lastPacket?.game.id === game?.id;
+    game.status === "active" && lastPacket?.game.id === game.id;
 
   const handleRemoveGameFromLibrary = async () => {
+    if (isGameDownloading) {
+      await cancelDownload(game.id);
+    }
+
     await removeGameFromLibrary(game.id);
     updateGame();
     onClose();
   };
 
   const handleChangeExecutableLocation = async () => {
-    const location = await selectGameExecutable();
+    const path = await selectGameExecutable();
 
-    if (location) {
-      await window.electron.updateExecutablePath(game.id, location);
+    if (path) {
+      await window.electron.updateExecutablePath(game.id, path);
       updateGame();
     }
   };
@@ -73,54 +79,34 @@ export function GameOptionsModal({
 
   return (
     <>
+      <DeleteGameModal
+        visible={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        deleteGame={handleDeleteGame}
+      />
+
+      <RemoveGameFromLibraryModal
+        visible={showRemoveGameModal}
+        onClose={() => setShowRemoveGameModal(false)}
+        removeGameFromLibrary={handleRemoveGameFromLibrary}
+        game={game}
+      />
+
       <Modal
         visible={visible}
         title={game.title}
         onClose={onClose}
         large={true}
       >
-        <DeleteGameModal
-          visible={showDeleteModal}
-          onClose={() => setShowDeleteModal(false)}
-          deleteGame={handleDeleteGame}
-        />
-
-        <RemoveGameFromLibraryModal
-          visible={showRemoveGameModal}
-          onClose={() => setShowRemoveGameModal(false)}
-          removeGameFromLibrary={handleRemoveGameFromLibrary}
-          game={game}
-        />
-
         <div className={styles.optionsContainer}>
-          <div className={styles.gameOptionRow}>
-            <Button
-              onClick={openRepacksModal}
-              theme="outline"
-              disabled={deleting}
-            >
-              {t("open_download_options")}
-            </Button>
-            <Button
-              onClick={handleOpenDownloadFolder}
-              style={{ alignSelf: "flex-end" }}
-              theme="outline"
-              disabled={deleting || !game.downloadPath}
-            >
-              {t("open_download_location")}
-            </Button>
-            <Button
-              onClick={handleCreateShortcut}
-              style={{ alignSelf: "flex-end" }}
-              theme="outline"
-              disabled={deleting || !game.executablePath}
-            >
-              {t("create_shortcut")}
-            </Button>
+          <div className={styles.gameOptionHeader}>
+            <h2>{t("executable_section_title")}</h2>
+            <h4 className={styles.gameOptionHeaderDescription}>
+              {t("executable_section_description")}
+            </h4>
           </div>
           <div className={styles.gameOptionRow}>
             <TextField
-              label="Caminho do executável"
               value={game.executablePath || ""}
               readOnly
               theme="dark"
@@ -130,42 +116,73 @@ export function GameOptionsModal({
             <Button
               type="button"
               theme="outline"
-              style={{ alignSelf: "flex-end" }}
               onClick={handleChangeExecutableLocation}
             >
               {t("select_executable")}
             </Button>
-            <Button
-              type="button"
-              theme="outline"
-              style={{ alignSelf: "flex-end" }}
-              onClick={handleOpenGameExecutablePath}
-              disabled={!game.executablePath}
-            >
-              {t("open_folder")}
-            </Button>
+          </div>
+
+          {game.executablePath && (
+            <div className={styles.gameOptionRow}>
+              <Button
+                type="button"
+                theme="outline"
+                onClick={handleOpenGameExecutablePath}
+              >
+                {t("open_folder")}
+              </Button>
+              <Button onClick={handleCreateShortcut} theme="outline">
+                {t("create_shortcut")}
+              </Button>
+            </div>
+          )}
+
+          <div className={styles.gameOptionHeader}>
+            <h2>{t("downloads_secion_title")}</h2>
+            <h4 className={styles.gameOptionHeaderDescription}>
+              {t("downloads_section_description")}
+            </h4>
           </div>
           <div className={styles.gameOptionRow}>
+            <Button
+              onClick={openRepacksModal}
+              theme="outline"
+              disabled={deleting || isGameDownloading}
+            >
+              {t("open_download_options")}
+            </Button>
+            {game.downloadPath && (
+              <Button
+                onClick={handleOpenDownloadFolder}
+                theme="outline"
+                disabled={deleting}
+              >
+                {t("open_download_location")}
+              </Button>
+            )}
+          </div>
+          <div className={styles.gameOptionHeader}>
+            <h2>{t("danger_zone_section_title")}</h2>
+            <h4 className={styles.gameOptionHeaderDescription}>
+              {t("danger_zone_section_description")}
+            </h4>
+          </div>
+          <div className={styles.gameOptionRow}>
+            <Button
+              onClick={() => setShowRemoveGameModal(true)}
+              theme="danger"
+              disabled={deleting}
+            >
+              {t("remove_from_library")}
+            </Button>
             <Button
               onClick={() => {
                 setShowDeleteModal(true);
               }}
-              style={{ alignSelf: "flex-end" }}
-              theme="outline"
+              theme="danger"
               disabled={isGameDownloading || deleting || !game.downloadPath}
             >
-              <TrashIcon />
               {t("remove_files")}
-            </Button>
-
-            <Button
-              onClick={() => setShowRemoveGameModal(true)}
-              style={{ alignSelf: "flex-end" }}
-              theme="outline"
-              disabled={deleting}
-            >
-              <NoEntryIcon />
-              {t("remove_from_library")}
             </Button>
           </div>
         </div>
