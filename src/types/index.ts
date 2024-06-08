@@ -1,6 +1,5 @@
 import type { Aria2Status } from "aria2";
 import type { Downloader } from "@shared";
-import { ProgressInfo, UpdateInfo } from "electron-updater";
 
 export type GameShop = "steam" | "epic";
 export type CatalogueCategory = "recently_added" | "trending";
@@ -146,13 +145,8 @@ export interface SteamGame {
 }
 
 export type AppUpdaterEvent =
-  | { type: "error" }
-  | { type: "checking-for-updates" }
-  | { type: "update-not-available" }
-  | { type: "update-available"; info: UpdateInfo }
-  | { type: "update-downloaded" }
-  | { type: "download-progress"; info: ProgressInfo }
-  | { type: "update-cancelled" };
+  | { type: "update-available"; info: { version: string } }
+  | { type: "update-downloaded" };
 
 /* Events */
 export interface StartGameDownloadPayload {
@@ -230,6 +224,3 @@ export interface RealDebridUser {
   premium: number;
   expiration: string;
 }
-export type AppUpdaterEvents =
-  | { type: "update-available"; info: Partial<UpdateInfo> }
-  | { type: "update-downloaded" };
