@@ -13,5 +13,6 @@ export const actions = style({
 
 export const separator = style({
   width: "1px",
-  backgroundColor: vars.color.border,
+  backgroundColor: vars.color.muted,
+  opacity: "0.2",
 });

@@ -15,6 +15,8 @@ export function HeroPanelPlaytime() {
 
   const { i18n, t } = useTranslation("game_details");
 
+  const { progress, lastPacket } = useDownload();
+
   const { formatDistance } = useDate();
 
   useEffect(() => {
@@ -48,40 +50,33 @@ export function HeroPanelPlaytime() {
     return t("amount_hours", { amount: numberFormatter.format(hours) });
   };
 
-  const { progress, lastPacket } = useDownload();
+  if (!game) return null;
+
+  const hasDownload =
+    ["active", "paused"].includes(game.status) && game.progress !== 1;
 
   const isGameDownloading =
-    game?.status === "active" && lastPacket?.game.id === game?.id;
+    game.status === "active" && lastPacket?.game.id === game.id;
 
-  if (!game) return;
+  const downloadInProgressInfo = (
+    <div className={styles.downloadDetailsRow}>
+      <Link to="/downloads" className={styles.downloadsLink}>
+        {game.status === "active"
+          ? t("download_in_progress")
+          : t("download_paused")}
+      </Link>
 
-  let downloadContent: JSX.Element | null = null;
-
-  if (game.status === "active") {
-    if (lastPacket?.isDownloadingMetadata && isGameDownloading) {
-      downloadContent = <p>{t("downloading_metadata")}</p>;
-    } else if (game.progress !== 1) {
-      downloadContent = (
-        <div className={styles.downloadDetailsRow}>
-          <Link to="/downloads" className={styles.downloadsLink}>
-            Download em andamento
-          </Link>
-
-          <small>
-            {isGameDownloading
-              ? progress
-              : formatDownloadProgress(game.progress)}
-          </small>
-        </div>
-      );
-    }
-  }
+      <small>
+        {isGameDownloading ? progress : formatDownloadProgress(game.progress)}
+      </small>
+    </div>
+  );
 
   if (!game.lastTimePlayed) {
     return (
       <>
         <p>{t("not_played_yet", { title: game?.title })}</p>
-        {downloadContent}
+        {hasDownload && downloadInProgressInfo}
       </>
     );
   }
@@ -89,15 +84,9 @@ export function HeroPanelPlaytime() {
   if (isGameRunning) {
     return (
       <>
-        {downloadContent || (
-          <p>
-            {t("play_time", {
-              amount: formatPlayTime(),
-            })}
-          </p>
-        )}
-
         <p>{t("playing_now")}</p>
+
+        {hasDownload && downloadInProgressInfo}
       </>
     );
   }
@@ -110,7 +99,9 @@ export function HeroPanelPlaytime() {
         })}
       </p>
 
-      {downloadContent || (
+      {hasDownload ? (
+        downloadInProgressInfo
+      ) : (
         <p>
           {t("last_time_played", {
             period: lastTimePlayed,
