@@ -1,6 +1,5 @@
 import type { Aria2Status } from "aria2";
 import type { DownloadSourceStatus, Downloader } from "@shared";
-import { UpdateInfo } from "electron-updater";
 
 export type GameShop = "steam" | "epic";
 
