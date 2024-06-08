@@ -54,7 +54,7 @@ export function Hero() {
     >
       <div className={styles.backdrop}>
         <img
-          src="https://cdn2.steamgriddb.com/hero/4ef10445b952a8b3c93a9379d581146a.jpg"
+          src={steamUrlBuilder.libraryHero(FEATURED_GAME_ID)}
           alt={FEATURED_GAME_TITLE}
           className={styles.heroMedia}
         />
