@@ -1,4 +1,4 @@
-import { GearIcon, PlusCircleIcon } from "@primer/octicons-react";
+import { GearIcon, PlayIcon, PlusCircleIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
 import { useContext, useState } from "react";
@@ -135,38 +135,43 @@ export function HeroPanelActions() {
           }}
           selectGameExecutable={selectGameExecutable}
         />
-        <Button
-          onClick={() => {
-            setShowGameOptionsModal(true);
-          }}
-          theme="outline"
-          disabled={deleting || isGameRunning}
-          className={styles.heroPanelAction}
-        >
-          <GearIcon />
-        </Button>
 
-        <div className={styles.separator} />
+        <div className={styles.actions}>
+          {isGameRunning ? (
+            <Button
+              onClick={closeGame}
+              theme="outline"
+              disabled={deleting}
+              className={styles.heroPanelAction}
+            >
+              {t("close")}
+            </Button>
+          ) : (
+            <Button
+              onClick={openGame}
+              theme="outline"
+              disabled={deleting || isGameRunning}
+              className={styles.heroPanelAction}
+            >
+              <PlayIcon />
+              {t("play")}
+            </Button>
+          )}
 
-        {isGameRunning ? (
+          <div className={styles.separator} />
+
           <Button
-            onClick={closeGame}
-            theme="outline"
-            disabled={deleting}
-            className={styles.heroPanelAction}
-          >
-            {t("close")}
-          </Button>
-        ) : (
-          <Button
-            onClick={openGame}
+            onClick={() => {
+              setShowGameOptionsModal(true);
+            }}
             theme="outline"
             disabled={deleting || isGameRunning}
             className={styles.heroPanelAction}
           >
-            {t("play")}
+            <GearIcon />
+            {t("options")}
           </Button>
-        )}
+        </div>
       </>
     );
   }
