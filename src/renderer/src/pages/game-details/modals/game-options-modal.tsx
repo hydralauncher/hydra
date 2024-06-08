@@ -28,8 +28,12 @@ export function GameOptionsModal({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRemoveGameModal, setShowRemoveGameModal] = useState(false);
 
-  const { removeGameInstaller, removeGameFromLibrary, isGameDeleting } =
-    useDownload();
+  const {
+    removeGameInstaller,
+    removeGameFromLibrary,
+    isGameDeleting,
+    cancelDownload,
+  } = useDownload();
 
   const deleting = game ? isGameDeleting(game?.id) : false;
 
@@ -39,16 +43,20 @@ export function GameOptionsModal({
     game?.status === "active" && lastPacket?.game.id === game?.id;
 
   const handleRemoveGameFromLibrary = async () => {
+    if (isGameDownloading) {
+      await cancelDownload(game.id);
+    }
+
     await removeGameFromLibrary(game.id);
     updateGame();
     onClose();
   };
 
   const handleChangeExecutableLocation = async () => {
-    const location = await selectGameExecutable();
+    const path = await selectGameExecutable();
 
-    if (location) {
-      await window.electron.updateExecutablePath(game.id, location);
+    if (path) {
+      await window.electron.updateExecutablePath(game.id, path);
       updateGame();
     }
   };
@@ -145,7 +153,7 @@ export function GameOptionsModal({
             <Button
               onClick={openRepacksModal}
               theme="outline"
-              disabled={deleting}
+              disabled={deleting || isGameDownloading}
             >
               {t("open_download_options")}
             </Button>
