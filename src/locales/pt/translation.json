@@ -107,7 +107,7 @@
     "remove_from_library_description": "Isso irá remover {{game}} da sua biblioteca",
     "remove_from_library_title": "Tem certeza?",
     "executable_section_title": "Executável",
-    "executable_section_description": "O caminho do arquivo que sera executado ao clicar em \"Jogar\"",
+    "executable_section_description": "O caminho do arquivo que será executado ao clicar em \"Jogar\"",
     "downloads_secion_title": "Downloads",
     "downloads_section_description": "Confira atualizações ou versões diferentes para este mesmo título",
     "danger_zone_section_title": "Zona de perigo",
