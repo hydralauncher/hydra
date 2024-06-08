@@ -93,14 +93,8 @@ export function GameOptionsModal({
         />
 
         <div className={styles.optionsContainer}>
+          <h2>Arquivos baixados</h2>
           <div className={styles.gameOptionRow}>
-            <Button
-              onClick={openRepacksModal}
-              theme="outline"
-              disabled={deleting}
-            >
-              {t("open_download_options")}
-            </Button>
             <Button
               onClick={handleOpenDownloadFolder}
               style={{ alignSelf: "flex-end" }}
@@ -109,18 +103,23 @@ export function GameOptionsModal({
             >
               {t("open_download_location")}
             </Button>
+
             <Button
-              onClick={handleCreateShortcut}
+              onClick={() => {
+                setShowDeleteModal(true);
+              }}
               style={{ alignSelf: "flex-end" }}
               theme="outline"
-              disabled={deleting || !game.executablePath}
+              disabled={isGameDownloading || deleting || !game.downloadPath}
             >
-              {t("create_shortcut")}
+              <TrashIcon />
+              {t("remove_files")}
             </Button>
           </div>
+
+          <h2>Executável</h2>
           <div className={styles.gameOptionRow}>
             <TextField
-              label="Caminho do executável"
               value={game.executablePath || ""}
               readOnly
               theme="dark"
@@ -145,19 +144,29 @@ export function GameOptionsModal({
               {t("open_folder")}
             </Button>
           </div>
+
           <div className={styles.gameOptionRow}>
             <Button
-              onClick={() => {
-                setShowDeleteModal(true);
-              }}
+              onClick={handleCreateShortcut}
               style={{ alignSelf: "flex-end" }}
               theme="outline"
-              disabled={isGameDownloading || deleting || !game.downloadPath}
+              disabled={deleting || !game.executablePath}
             >
-              <TrashIcon />
-              {t("remove_files")}
+              {t("create_shortcut")}
             </Button>
-
+          </div>
+          <h2>Novo Download</h2>
+          <div className={styles.gameOptionRow}>
+            <Button
+              onClick={openRepacksModal}
+              theme="outline"
+              disabled={deleting}
+            >
+              {t("open_download_options")}
+            </Button>
+          </div>
+          <h2>Remover</h2>
+          <div className={styles.gameOptionRow}>
             <Button
               onClick={() => setShowRemoveGameModal(true)}
               style={{ alignSelf: "flex-end" }}
