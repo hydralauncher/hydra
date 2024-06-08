@@ -63,7 +63,6 @@ export const button = styleVariants({
       color: "white",
       ":hover": {
         backgroundColor: "#a31533",
-        color: "white",
       },
     },
   ],
