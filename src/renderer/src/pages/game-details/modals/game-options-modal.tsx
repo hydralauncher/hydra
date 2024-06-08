@@ -35,12 +35,12 @@ export function GameOptionsModal({
     cancelDownload,
   } = useDownload();
 
-  const deleting = game ? isGameDeleting(game?.id) : false;
+  const deleting = isGameDeleting(game.id);
 
   const { lastPacket } = useDownload();
 
   const isGameDownloading =
-    game?.status === "active" && lastPacket?.game.id === game?.id;
+    game.status === "active" && lastPacket?.game.id === game.id;
 
   const handleRemoveGameFromLibrary = async () => {
     if (isGameDownloading) {
@@ -129,15 +129,10 @@ export function GameOptionsModal({
                 type="button"
                 theme="outline"
                 onClick={handleOpenGameExecutablePath}
-                disabled={!game.executablePath}
               >
                 {t("open_folder")}
               </Button>
-              <Button
-                onClick={handleCreateShortcut}
-                theme="outline"
-                disabled={deleting || !game.executablePath}
-              >
+              <Button onClick={handleCreateShortcut} theme="outline">
                 {t("create_shortcut")}
               </Button>
             </div>
@@ -161,7 +156,7 @@ export function GameOptionsModal({
               <Button
                 onClick={handleOpenDownloadFolder}
                 theme="outline"
-                disabled={deleting || !game.downloadPath}
+                disabled={deleting}
               >
                 {t("open_download_location")}
               </Button>
