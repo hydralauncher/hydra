@@ -101,7 +101,7 @@ export function RepacksModal({
               </p>
 
               {repack.magnet.toLowerCase().includes(infoHash) && (
-                <Badge>{t("last_selected_option")}</Badge>
+                <Badge>{t("last_downloaded_option")}</Badge>
               )}
 
               <p style={{ fontSize: "12px" }}>
