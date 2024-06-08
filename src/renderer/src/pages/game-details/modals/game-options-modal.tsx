@@ -174,7 +174,7 @@ export function GameOptionsModal({
             <Button
               onClick={() => setShowRemoveGameModal(true)}
               style={{ alignSelf: "flex-end" }}
-              theme="outline"
+              theme="danger"
               disabled={deleting}
             >
               {t("remove_from_library")}
@@ -184,7 +184,7 @@ export function GameOptionsModal({
                 setShowDeleteModal(true);
               }}
               style={{ alignSelf: "flex-end" }}
-              theme="outline"
+              theme="danger"
               disabled={isGameDownloading || deleting || !game.downloadPath}
             >
               {t("remove_files")}
