@@ -107,6 +107,7 @@ export interface Game {
   downloader: Downloader;
   executablePath: string | null;
   lastTimePlayed: Date | null;
+  uri: string | null;
   fileSize: number;
   objectID: string;
   shop: GameShop;

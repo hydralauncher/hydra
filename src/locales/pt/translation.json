@@ -114,7 +114,8 @@
     "danger_zone_section_title": "Zona de perigo",
     "danger_zone_section_description": "Remova o jogo da sua biblioteca ou os arquivos que foram baixados pelo Hydra",
     "download_in_progress": "Download em andamento",
-    "download_paused": "Download pausado"
+    "download_paused": "Download pausado",
+    "last_selected_option": "Última opção selecionada"
   },
   "activation": {
     "title": "Ativação",
