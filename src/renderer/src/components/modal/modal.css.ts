@@ -2,24 +2,25 @@ import { keyframes, style } from "@vanilla-extract/css";
 import { recipe } from "@vanilla-extract/recipes";
 import { SPACING_UNIT, vars } from "../../theme.css";
 
-export const fadeIn = keyframes({
-  "0%": { opacity: 0 },
+export const scaleFadeIn = keyframes({
+  "0%": { opacity: "0", scale: "0.5" },
   "100%": {
-    opacity: 1,
+    opacity: "1",
+    scale: "1",
   },
 });
 
-export const fadeOut = keyframes({
-  "0%": { opacity: 1 },
+export const scaleFadeOut = keyframes({
+  "0%": { opacity: "1", scale: "1" },
   "100%": {
-    opacity: 0,
+    opacity: "0",
+    scale: "0.5",
   },
 });
 
 export const modal = recipe({
   base: {
-    animationName: fadeIn,
-    animationDuration: "0.3s",
+    animation: `${scaleFadeIn} 0.2s cubic-bezier(0.33, 1, 0.68, 1) 0s 1 normal none running`,
     backgroundColor: vars.color.background,
     borderRadius: "4px",
     maxWidth: "600px",
@@ -33,8 +34,14 @@ export const modal = recipe({
   variants: {
     closing: {
       true: {
-        animationName: fadeOut,
-        opacity: 0,
+        animationName: scaleFadeOut,
+        opacity: "0",
+      },
+    },
+    large: {
+      true: {
+        width: "800px",
+        maxWidth: "800px",
       },
     },
   },

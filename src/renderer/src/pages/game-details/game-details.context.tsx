@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 
 import { setHeaderTitle } from "@renderer/features";
 import { getSteamLanguage } from "@renderer/helpers";
-import { useAppDispatch, useDownload } from "@renderer/hooks";
+import { useAppDispatch, useAppSelector, useDownload } from "@renderer/hooks";
 
 import type { Game, GameRepack, GameShop, ShopDetails } from "@types";
 
@@ -16,6 +16,7 @@ import {
   RepacksModal,
 } from "./modals";
 import { Downloader } from "@shared";
+import { GameOptionsModal } from "./modals/game-options-modal";
 
 export interface GameDetailsContext {
   game: Game | null;
@@ -29,6 +30,8 @@ export interface GameDetailsContext {
   gameColor: string;
   setGameColor: React.Dispatch<React.SetStateAction<string>>;
   openRepacksModal: () => void;
+  openGameOptionsModal: () => void;
+  selectGameExecutable: () => Promise<string | null>;
   updateGame: () => Promise<void>;
 }
 
@@ -44,6 +47,8 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   gameColor: "",
   setGameColor: () => {},
   openRepacksModal: () => {},
+  openGameOptionsModal: () => {},
+  selectGameExecutable: async () => null,
   updateGame: async () => {},
 });
 
@@ -70,6 +75,7 @@ export function GameDetailsContextProvider({
   >(null);
   const [isGameRunning, setisGameRunning] = useState(false);
   const [showRepacksModal, setShowRepacksModal] = useState(false);
+  const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
 
   const [searchParams] = useSearchParams();
 
@@ -80,6 +86,10 @@ export function GameDetailsContextProvider({
   const dispatch = useAppDispatch();
 
   const { startDownload, lastPacket } = useDownload();
+
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
 
   const updateGame = useCallback(async () => {
     return window.electron
@@ -158,6 +168,7 @@ export function GameDetailsContextProvider({
 
     await updateGame();
     setShowRepacksModal(false);
+    setShowGameOptionsModal(false);
 
     if (
       repack.repacker === "onlinefix" &&
@@ -172,7 +183,36 @@ export function GameDetailsContextProvider({
     }
   };
 
+  const getDownloadsPath = async () => {
+    if (userPreferences?.downloadsPath) return userPreferences.downloadsPath;
+    return window.electron.getDefaultDownloadsPath();
+  };
+
+  const selectGameExecutable = async () => {
+    const downloadsPath = await getDownloadsPath();
+
+    return window.electron
+      .showOpenDialog({
+        properties: ["openFile"],
+        defaultPath: downloadsPath,
+        filters: [
+          {
+            name: "Game executable",
+            extensions: ["exe"],
+          },
+        ],
+      })
+      .then(({ filePaths }) => {
+        if (filePaths && filePaths.length > 0) {
+          return filePaths[0];
+        }
+
+        return null;
+      });
+  };
+
   const openRepacksModal = () => setShowRepacksModal(true);
+  const openGameOptionsModal = () => setShowGameOptionsModal(true);
 
   return (
     <Provider
@@ -188,6 +228,8 @@ export function GameDetailsContextProvider({
         gameColor,
         setGameColor,
         openRepacksModal,
+        openGameOptionsModal,
+        selectGameExecutable,
         updateGame,
       }}
     >
@@ -207,6 +249,16 @@ export function GameDetailsContextProvider({
           visible={showInstructionsModal === "DODI"}
           onClose={() => setShowInstructionsModal(null)}
         />
+
+        {game && (
+          <GameOptionsModal
+            visible={showGameOptionsModal}
+            game={game}
+            onClose={() => {
+              setShowGameOptionsModal(false);
+            }}
+          />
+        )}
 
         {children}
       </>

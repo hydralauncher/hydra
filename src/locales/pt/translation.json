@@ -16,7 +16,8 @@
     "filter": "Filtrar biblioteca",
     "home": "Início",
     "follow_us": "Acompanhe-nos",
-    "queued": "{{title}} (Na fila)"
+    "queued": "{{title}} (Na fila)",
+    "game_has_no_executable": "Jogo não possui executável selecionado"
   },
   "header": {
     "search": "Buscar jogos",
@@ -97,7 +98,25 @@
     "screenshot": "Captura de tela {{number}}",
     "open_screenshot": "Ver captura de tela {{number}}",
     "download_settings": "Ajustes do download",
-    "downloader": "Downloader"
+    "downloader": "Downloader",
+    "select_executable": "Selecionar",
+    "no_executable_selected": "Nenhum executável selecionado",
+    "open_folder": "Abrir pasta",
+    "open_download_location": "Ver arquivos baixados",
+    "create_shortcut": "Criar atalho na área de trabalho",
+    "remove_files": "Remover arquivos",
+    "options": "Opções",
+    "remove_from_library_description": "Isso irá remover {{game}} da sua biblioteca",
+    "remove_from_library_title": "Tem certeza?",
+    "executable_section_title": "Executável",
+    "executable_section_description": "O caminho do arquivo que será executado ao clicar em \"Jogar\"",
+    "downloads_secion_title": "Downloads",
+    "downloads_section_description": "Confira atualizações ou versões diferentes para este mesmo título",
+    "danger_zone_section_title": "Zona de perigo",
+    "danger_zone_section_description": "Remova o jogo da sua biblioteca ou os arquivos que foram baixados pelo Hydra",
+    "download_in_progress": "Download em andamento",
+    "download_paused": "Download pausado",
+    "last_downloaded_option": "Última opção baixada"
   },
   "activation": {
     "title": "Ativação",

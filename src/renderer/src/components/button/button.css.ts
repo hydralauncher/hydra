@@ -55,4 +55,15 @@ export const button = styleVariants({
       color: "#c0c1c7",
     },
   ],
+  danger: [
+    base,
+    {
+      border: `solid 1px #a31533`,
+      backgroundColor: "transparent",
+      color: "white",
+      ":hover": {
+        backgroundColor: "#a31533",
+      },
+    },
+  ],
 });

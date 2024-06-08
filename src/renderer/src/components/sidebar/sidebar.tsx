@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import type { LibraryGame } from "@types";
 
 import { TextField } from "@renderer/components";
-import { useDownload, useLibrary } from "@renderer/hooks";
+import { useDownload, useLibrary, useToast } from "@renderer/hooks";
 
 import { routes } from "./routes";
 
@@ -35,6 +35,8 @@ export function Sidebar() {
   const location = useLocation();
 
   const { lastPacket, progress } = useDownload();
+
+  const { showWarningToast } = useToast();
 
   useEffect(() => {
     updateLibrary();
@@ -122,6 +124,24 @@ export function Sidebar() {
     }
   };
 
+  const handleSidebarGameClick = (
+    event: React.MouseEvent,
+    game: LibraryGame
+  ) => {
+    const path = buildGameDetailsPath(game);
+    if (path !== location.pathname) {
+      navigate(path);
+    }
+
+    if (event.detail == 2) {
+      if (game.executablePath) {
+        window.electron.openGame(game.id, game.executablePath);
+      } else {
+        showWarningToast(t("game_has_no_executable"));
+      }
+    }
+  };
+
   return (
     <aside
       ref={sidebarRef}
@@ -183,9 +203,7 @@ export function Sidebar() {
                 <button
                   type="button"
                   className={styles.menuItemButton}
-                  onClick={() =>
-                    handleSidebarItemClick(buildGameDetailsPath(game))
-                  }
+                  onClick={(event) => handleSidebarGameClick(event, game)}
                 >
                   {game.iconUrl ? (
                     <img

@@ -81,3 +81,7 @@ export const successIcon = style({
 export const errorIcon = style({
   color: vars.color.danger,
 });
+
+export const warningIcon = style({
+  color: vars.color.warning,
+});

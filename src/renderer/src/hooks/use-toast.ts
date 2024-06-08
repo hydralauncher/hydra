@@ -29,5 +29,17 @@ export function useToast() {
     [dispatch]
   );
 
-  return { showSuccessToast, showErrorToast };
+  const showWarningToast = useCallback(
+    (message: string) => {
+      dispatch(
+        showToast({
+          message,
+          type: "warning",
+        })
+      );
+    },
+    [dispatch]
+  );
+
+  return { showSuccessToast, showErrorToast, showWarningToast };
 }
