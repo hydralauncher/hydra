@@ -93,20 +93,6 @@ export function GameOptionsModal({
 
         <div className={styles.optionsContainer}>
           <div className={styles.gameOptionHeader}>
-            <h2>{t("downloaded_files")}</h2>
-          </div>
-          <div className={styles.gameOptionRow}>
-            <Button
-              onClick={handleOpenDownloadFolder}
-              style={{ alignSelf: "flex-end" }}
-              theme="outline"
-              disabled={deleting || !game.downloadPath}
-            >
-              {t("open_download_location")}
-            </Button>
-          </div>
-
-          <div className={styles.gameOptionHeader}>
             <h2>{t("executable_section_title")}</h2>
             <h4 className={styles.gameOptionHeaderDescription}>
               {t("executable_section_description")}
@@ -123,32 +109,32 @@ export function GameOptionsModal({
             <Button
               type="button"
               theme="outline"
-              style={{ alignSelf: "flex-end" }}
               onClick={handleChangeExecutableLocation}
             >
               {t("select_executable")}
             </Button>
-            <Button
-              type="button"
-              theme="outline"
-              style={{ alignSelf: "flex-end" }}
-              onClick={handleOpenGameExecutablePath}
-              disabled={!game.executablePath}
-            >
-              {t("open_folder")}
-            </Button>
           </div>
 
-          <div className={styles.gameOptionRow}>
-            <Button
-              onClick={handleCreateShortcut}
-              style={{ alignSelf: "flex-end" }}
-              theme="outline"
-              disabled={deleting || !game.executablePath}
-            >
-              {t("create_shortcut")}
-            </Button>
-          </div>
+          {game.executablePath && (
+            <div className={styles.gameOptionRow}>
+              <Button
+                type="button"
+                theme="outline"
+                onClick={handleOpenGameExecutablePath}
+                disabled={!game.executablePath}
+              >
+                {t("open_folder")}
+              </Button>
+              <Button
+                onClick={handleCreateShortcut}
+                theme="outline"
+                disabled={deleting || !game.executablePath}
+              >
+                {t("create_shortcut")}
+              </Button>
+            </div>
+          )}
+
           <div className={styles.gameOptionHeader}>
             <h2>{t("downloads_secion_title")}</h2>
             <h4 className={styles.gameOptionHeaderDescription}>
@@ -163,6 +149,15 @@ export function GameOptionsModal({
             >
               {t("open_download_options")}
             </Button>
+            {game.downloadPath && (
+              <Button
+                onClick={handleOpenDownloadFolder}
+                theme="outline"
+                disabled={deleting || !game.downloadPath}
+              >
+                {t("open_download_location")}
+              </Button>
+            )}
           </div>
           <div className={styles.gameOptionHeader}>
             <h2>{t("danger_zone_section_title")}</h2>
@@ -173,7 +168,6 @@ export function GameOptionsModal({
           <div className={styles.gameOptionRow}>
             <Button
               onClick={() => setShowRemoveGameModal(true)}
-              style={{ alignSelf: "flex-end" }}
               theme="danger"
               disabled={deleting}
             >
@@ -183,7 +177,6 @@ export function GameOptionsModal({
               onClick={() => {
                 setShowDeleteModal(true);
               }}
-              style={{ alignSelf: "flex-end" }}
               theme="danger"
               disabled={isGameDownloading || deleting || !game.downloadPath}
             >
