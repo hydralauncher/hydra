@@ -23,6 +23,7 @@ export const heroMedia = style({
   width: "100%",
   height: "100%",
   transition: "all ease 0.2s",
+  imageRendering: "revert",
   selectors: {
     [`${hero}:hover &`]: {
       transform: "scale(1.02)",

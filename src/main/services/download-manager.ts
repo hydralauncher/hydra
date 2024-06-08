@@ -1,11 +1,12 @@
 import Aria2, { StatusResponse } from "aria2";
 
-import { gameRepository, userPreferencesRepository } from "@main/repository";
+import path from "node:path";
+
+import { downloadQueueRepository, gameRepository } from "@main/repository";
 
 import { WindowManager } from "./window-manager";
 import { RealDebridClient } from "./real-debrid";
-import { Notification } from "electron";
-import { t } from "i18next";
+
 import { Downloader } from "@shared";
 import { DownloadProgress } from "@types";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
@@ -14,6 +15,7 @@ import { startAria2 } from "./aria2c";
 import { sleep } from "@main/helpers";
 import { logger } from "./logger";
 import type { ChildProcess } from "node:child_process";
+import { publishDownloadCompleteNotification } from "./notifications";
 
 export class DownloadManager {
   private static downloads = new Map<number, string>();
@@ -65,29 +67,13 @@ export class DownloadManager {
     return -1;
   }
 
-  static async publishNotification() {
-    const userPreferences = await userPreferencesRepository.findOne({
-      where: { id: 1 },
-    });
-
-    if (userPreferences?.downloadNotificationsEnabled && this.game) {
-      new Notification({
-        title: t("download_complete", {
-          ns: "notifications",
-          lng: userPreferences.language,
-        }),
-        body: t("game_ready_to_install", {
-          ns: "notifications",
-          lng: userPreferences.language,
-          title: this.game.title,
-        }),
-      }).show();
-    }
-  }
-
   private static getFolderName(status: StatusResponse) {
     if (status.bittorrent?.info) return status.bittorrent.info.name;
-    return "";
+
+    const [file] = status.files;
+    if (file) return path.win32.basename(file.path);
+
+    return null;
   }
 
   private static async getRealDebridDownloadUrl() {
@@ -192,21 +178,7 @@ export class DownloadManager {
 
     const game = await gameRepository.findOne({
       where: { id: this.game.id, isDeleted: false },
-      relations: { repack: true },
     });
-
-    if (progress === 1 && this.game && !isDownloadingMetadata) {
-      await this.publishNotification();
-
-      /*
-        Only cancel bittorrent downloads to stop seeding
-      */
-      if (status.bittorrent) {
-        await this.cancelDownload(this.game.id);
-      } else {
-        this.clearCurrentDownload();
-      }
-    }
 
     if (WindowManager.mainWindow && game) {
       if (!isNaN(progress))
@@ -230,6 +202,34 @@ export class DownloadManager {
         JSON.parse(JSON.stringify(payload))
       );
     }
+
+    if (progress === 1 && this.game && !isDownloadingMetadata) {
+      publishDownloadCompleteNotification(this.game);
+
+      await downloadQueueRepository.delete({ game: this.game });
+
+      /*
+        Only cancel bittorrent downloads to stop seeding
+      */
+      if (status.bittorrent) {
+        await this.cancelDownload(this.game.id);
+      } else {
+        this.clearCurrentDownload();
+      }
+
+      const [nextQueueItem] = await downloadQueueRepository.find({
+        order: {
+          id: "DESC",
+        },
+        relations: {
+          game: true,
+        },
+      });
+
+      if (nextQueueItem) {
+        this.resumeDownload(nextQueueItem.game);
+      }
+    }
   }
 
   private static clearCurrentDownload() {
@@ -245,7 +245,7 @@ export class DownloadManager {
     const gid = this.downloads.get(gameId);
 
     if (gid) {
-      await this.aria2.call("remove", gid);
+      await this.aria2.call("forceRemove", gid);
 
       if (this.gid === gid) {
         this.clearCurrentDownload();
@@ -291,10 +291,10 @@ export class DownloadManager {
 
     if (game.downloader === Downloader.RealDebrid) {
       this.realDebridTorrentId = await RealDebridClient.getTorrentId(
-        game!.repack.magnet
+        game!.uri!
       );
     } else {
-      this.gid = await this.aria2.call("addUri", [game.repack.magnet], options);
+      this.gid = await this.aria2.call("addUri", [game.uri!], options);
       this.downloads.set(game.id, this.gid);
     }
 

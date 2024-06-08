@@ -44,6 +44,7 @@ jobs:
           name: Build-${{ matrix.os }}
           path: |
             dist/win-unpacked/**
+            dist/*-portable.exe
             dist/*.zip
             dist/*.dmg
             dist/*.deb

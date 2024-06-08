@@ -42,18 +42,33 @@ export const textField = recipe({
   },
 });
 
-export const textFieldInput = style({
-  backgroundColor: "transparent",
-  border: "none",
-  width: "100%",
-  height: "100%",
-  outline: "none",
-  color: "#DADBE1",
-  cursor: "default",
-  fontFamily: "inherit",
-  textOverflow: "ellipsis",
-  padding: `${SPACING_UNIT}px`,
-  ":focus": {
-    cursor: "text",
+export const textFieldInput = recipe({
+  base: {
+    backgroundColor: "transparent",
+    border: "none",
+    width: "100%",
+    height: "100%",
+    outline: "none",
+    color: "#DADBE1",
+    cursor: "default",
+    fontFamily: "inherit",
+    textOverflow: "ellipsis",
+    padding: `${SPACING_UNIT}px`,
+    ":focus": {
+      cursor: "text",
+    },
   },
+  variants: {
+    readOnly: {
+      true: {
+        textOverflow: "inherit",
+      },
+    },
+  },
+});
+
+export const togglePasswordButton = style({
+  cursor: "pointer",
+  color: vars.color.muted,
+  padding: `${SPACING_UNIT}px`,
 });
