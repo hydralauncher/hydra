@@ -7,6 +7,17 @@ export const optionsContainer = style({
   flexDirection: "column",
 });
 
+export const gameOptionHeader = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT}px`,
+});
+
+export const gameOptionHeaderDescription = style({
+  fontFamily: "'Fira Sans', sans-serif",
+  fontWeight: "400",
+});
+
 export const gameOptionRow = style({
   display: "flex",
   gap: `${SPACING_UNIT}px`,

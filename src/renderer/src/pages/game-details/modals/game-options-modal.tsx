@@ -93,7 +93,9 @@ export function GameOptionsModal({
         />
 
         <div className={styles.optionsContainer}>
-          <h2>Arquivos baixados</h2>
+          <div className={styles.gameOptionHeader}>
+            <h2>Arquivos baixados</h2>
+          </div>
           <div className={styles.gameOptionRow}>
             <Button
               onClick={handleOpenDownloadFolder}
@@ -103,21 +105,14 @@ export function GameOptionsModal({
             >
               {t("open_download_location")}
             </Button>
-
-            <Button
-              onClick={() => {
-                setShowDeleteModal(true);
-              }}
-              style={{ alignSelf: "flex-end" }}
-              theme="outline"
-              disabled={isGameDownloading || deleting || !game.downloadPath}
-            >
-              <TrashIcon />
-              {t("remove_files")}
-            </Button>
           </div>
 
-          <h2>Executável</h2>
+          <div className={styles.gameOptionHeader}>
+            <h2>Executável</h2>
+            <h4 className={styles.gameOptionHeaderDescription}>
+              O caminho do arquivo que sera executado ao clicar em "Jogar"
+            </h4>
+          </div>
           <div className={styles.gameOptionRow}>
             <TextField
               value={game.executablePath || ""}
@@ -155,7 +150,12 @@ export function GameOptionsModal({
               {t("create_shortcut")}
             </Button>
           </div>
-          <h2>Novo Download</h2>
+          <div className={styles.gameOptionHeader}>
+            <h2>Downloads</h2>
+            <h4 className={styles.gameOptionHeaderDescription}>
+              Confira atualizações ou versões diferentes para este mesmo título
+            </h4>
+          </div>
           <div className={styles.gameOptionRow}>
             <Button
               onClick={openRepacksModal}
@@ -165,7 +165,13 @@ export function GameOptionsModal({
               {t("open_download_options")}
             </Button>
           </div>
-          <h2>Remover</h2>
+          <div className={styles.gameOptionHeader}>
+            <h2>Zona de perigo</h2>
+            <h4 className={styles.gameOptionHeaderDescription}>
+              Remova o jogo da sua biblioteca ou os arquivos que foram baixados
+              pelo Hydra
+            </h4>
+          </div>
           <div className={styles.gameOptionRow}>
             <Button
               onClick={() => setShowRemoveGameModal(true)}
@@ -173,8 +179,17 @@ export function GameOptionsModal({
               theme="outline"
               disabled={deleting}
             >
-              <NoEntryIcon />
               {t("remove_from_library")}
+            </Button>
+            <Button
+              onClick={() => {
+                setShowDeleteModal(true);
+              }}
+              style={{ alignSelf: "flex-end" }}
+              theme="outline"
+              disabled={isGameDownloading || deleting || !game.downloadPath}
+            >
+              {t("remove_files")}
             </Button>
           </div>
         </div>
