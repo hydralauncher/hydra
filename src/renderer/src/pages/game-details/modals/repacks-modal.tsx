@@ -69,8 +69,6 @@ export function RepacksModal({
     );
   };
 
-  console.log(infoHash);
-
   return (
     <>
       <DownloadSettingsModal
