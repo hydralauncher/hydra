@@ -108,7 +108,8 @@
     "create_shortcut": "Create shortcut",
     "remove_files": "Remove files",
     "remove_from_library_title": "Are you sure?",
-    "remove_from_library_description": "This will remove {{game}} from your library"
+    "remove_from_library_description": "This will remove {{game}} from your library",
+    "options": "Options"
   },
   "activation": {
     "title": "Activate Hydra",
