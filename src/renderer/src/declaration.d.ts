@@ -1,5 +1,5 @@
 import type {
-  AppUpdaterEvents,
+  AppUpdaterEvent,
   CatalogueEntry,
   Game,
   LibraryGame,
@@ -102,7 +102,7 @@ declare global {
 
     /* Auto update */
     onAutoUpdaterEvent: (
-      cb: (event: AppUpdaterEvents) => void
+      cb: (event: AppUpdaterEvent) => void
     ) => () => Electron.IpcRenderer;
     checkForUpdates: () => Promise<void>;
     restartAndInstallUpdate: () => Promise<void>;
