@@ -1,7 +1,8 @@
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import parseTorrent from "parse-torrent";
 
-import { Button, Modal, TextField } from "@renderer/components";
+import { Badge, Button, Modal, TextField } from "@renderer/components";
 import type { GameRepack } from "@types";
 
 import * as styles from "./repacks-modal.css";
@@ -31,13 +32,22 @@ export function RepacksModal({
   const [repack, setRepack] = useState<GameRepack | null>(null);
   const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
 
-  const { repacks } = useContext(gameDetailsContext);
+  const [infoHash, setInfoHash] = useState("");
+
+  const { repacks, game } = useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
 
+  const getInfoHash = useCallback(async () => {
+    const torrent = await parseTorrent(game?.uri ?? "");
+    setInfoHash(torrent.infoHash ?? "");
+  }, [game]);
+
   useEffect(() => {
     setFilteredRepacks(repacks);
-  }, [repacks, visible]);
+
+    if (game?.uri) getInfoHash();
+  }, [repacks, visible, game, getInfoHash]);
 
   const handleRepackClick = (repack: GameRepack) => {
     setRepack(repack);
@@ -58,6 +68,8 @@ export function RepacksModal({
       })
     );
   };
+
+  console.log(infoHash);
 
   return (
     <>
@@ -89,6 +101,11 @@ export function RepacksModal({
               <p style={{ color: "#DADBE1", wordBreak: "break-word" }}>
                 {repack.title}
               </p>
+
+              {repack.magnet.toLowerCase().includes(infoHash) && (
+                <Badge>{t("last_selected_option")}</Badge>
+              )}
+
               <p style={{ fontSize: "12px" }}>
                 {repack.fileSize} - {repack.repacker} -{" "}
                 {repack.uploadDate
