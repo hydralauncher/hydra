@@ -157,9 +157,17 @@ export const newVersionButton = style({
   justifyContent: "center",
   gap: `${SPACING_UNIT}px`,
   color: vars.color.body,
-  borderBottom: "1px solid transparent",
+  fontSize: "13px",
   ":hover": {
-    borderBottom: `1px solid ${vars.color.body}`,
+    textDecoration: "underline",
     cursor: "pointer",
   },
+});
+
+export const newVersionLink = style({
+  display: "flex",
+  alignItems: "center",
+  gap: `${SPACING_UNIT}px`,
+  color: "#8e919b",
+  fontSize: "13px",
 });
