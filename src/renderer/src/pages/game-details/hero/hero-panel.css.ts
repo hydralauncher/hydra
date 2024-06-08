@@ -28,9 +28,15 @@ export const actions = style({
 });
 
 export const downloadDetailsRow = style({
-  gap: `${SPACING_UNIT * 2}px`,
+  gap: `${SPACING_UNIT}px`,
   display: "flex",
-  alignItems: "flex-end",
+  color: vars.color.body,
+  alignItems: "center",
+});
+
+export const downloadsLink = style({
+  color: vars.color.body,
+  textDecoration: "underline",
 });
 
 export const progressBar = recipe({

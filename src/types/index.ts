@@ -1,8 +1,7 @@
 import type { Aria2Status } from "aria2";
-import type { Downloader } from "@shared";
+import type { DownloadSourceStatus, Downloader } from "@shared";
 
 export type GameShop = "steam" | "epic";
-export type CatalogueCategory = "recently_added" | "trending";
 
 export interface SteamGenre {
   id: string;
@@ -37,7 +36,7 @@ export interface SteamAppDetails {
   publishers: string[];
   genres: SteamGenre[];
   movies?: SteamMovies[];
-  screenshots: SteamScreenshot[];
+  screenshots?: SteamScreenshot[];
   pc_requirements: {
     minimum: string;
     recommended: string;
@@ -60,7 +59,6 @@ export interface GameRepack {
   id: number;
   title: string;
   magnet: string;
-  page: number;
   repacker: string;
   fileSize: string | null;
   uploadDate: Date | string | null;
@@ -87,8 +85,14 @@ export interface CatalogueEntry {
   repacks: GameRepack[];
 }
 
+export interface DownloadQueue {
+  id: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 /* Used by the library */
-export interface Game extends Omit<CatalogueEntry, "cover"> {
+export interface Game {
   id: number;
   title: string;
   iconUrl: string;
@@ -96,17 +100,22 @@ export interface Game extends Omit<CatalogueEntry, "cover"> {
   folderName: string;
   downloadPath: string | null;
   repacks: GameRepack[];
-  repack: GameRepack | null;
   progress: number;
   bytesDownloaded: number;
   playTimeInMilliseconds: number;
   downloader: Downloader;
   executablePath: string | null;
   lastTimePlayed: Date | null;
+  uri: string | null;
   fileSize: number;
+  objectID: string;
+  shop: GameShop;
+  downloadQueue: DownloadQueue | null;
   createdAt: Date;
   updatedAt: Date;
 }
+
+export type LibraryGame = Omit<Game, "repacks">;
 
 export interface DownloadProgress {
   downloadSpeed: number;
@@ -114,7 +123,7 @@ export interface DownloadProgress {
   numPeers: number;
   numSeeds: number;
   isDownloadingMetadata: boolean;
-  game: Omit<Game, "repacks">;
+  game: LibraryGame;
 }
 
 export interface UserPreferences {
@@ -223,4 +232,16 @@ export interface RealDebridUser {
   type: string;
   premium: number;
   expiration: string;
+}
+
+export interface DownloadSource {
+  id: number;
+  name: string;
+  url: string;
+  repackCount: number;
+  status: DownloadSourceStatus;
+  downloadCount: number;
+  etag: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
