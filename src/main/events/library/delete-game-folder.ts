@@ -1,8 +1,6 @@
 import path from "node:path";
 import fs from "node:fs";
 
-import { In } from "typeorm";
-
 import { gameRepository } from "@main/repository";
 
 import { getDownloadsPath } from "../helpers/get-downloads-path";
@@ -14,11 +12,18 @@ const deleteGameFolder = async (
   gameId: number
 ): Promise<void> => {
   const game = await gameRepository.findOne({
-    where: {
-      id: gameId,
-      status: In(["removed", "complete"]),
-      isDeleted: false,
-    },
+    where: [
+      {
+        id: gameId,
+        isDeleted: false,
+        status: "removed",
+      },
+      {
+        id: gameId,
+        progress: 1,
+        isDeleted: false,
+      },
+    ],
   });
 
   if (!game) return;
@@ -30,7 +35,7 @@ const deleteGameFolder = async (
     );
 
     if (fs.existsSync(folderPath)) {
-      return new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         fs.rm(
           folderPath,
           { recursive: true, force: true, maxRetries: 5, retryDelay: 200 },
@@ -40,12 +45,21 @@ const deleteGameFolder = async (
               reject();
             }
 
+            const aria2ControlFilePath = `${folderPath}.aria2`;
+            if (fs.existsSync(aria2ControlFilePath))
+              fs.rmSync(aria2ControlFilePath);
+
             resolve();
           }
         );
       });
     }
   }
+
+  await gameRepository.update(
+    { id: gameId },
+    { downloadPath: null, folderName: null, status: null, progress: 0 }
+  );
 };
 
 registerEvent("deleteGameFolder", deleteGameFolder);

@@ -11,9 +11,6 @@ const getGameByObjectID = async (
       objectID,
       isDeleted: false,
     },
-    relations: {
-      repack: true,
-    },
   });
 
 registerEvent("getGameByObjectID", getGameByObjectID);

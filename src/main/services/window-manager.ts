@@ -5,6 +5,7 @@ import {
   MenuItemConstructorOptions,
   Tray,
   app,
+  nativeImage,
   shell,
 } from "electron";
 import { is } from "@electron-toolkit/utils";
@@ -88,7 +89,16 @@ export class WindowManager {
   }
 
   public static createSystemTray(language: string) {
-    const tray = new Tray(trayIcon);
+    let tray;
+
+    if (process.platform === "darwin") {
+      const macIcon = nativeImage
+        .createFromPath(trayIcon)
+        .resize({ width: 24, height: 24 });
+      tray = new Tray(macIcon);
+    } else {
+      tray = new Tray(trayIcon);
+    }
 
     const updateSystemTray = async () => {
       const games = await gameRepository.find({
@@ -149,9 +159,14 @@ export class WindowManager {
       return contextMenu;
     };
 
+    const showContextMenu = async () => {
+      const contextMenu = await updateSystemTray();
+      tray.popUpContextMenu(contextMenu);
+    };
+
     tray.setToolTip("Hydra");
 
-    if (process.platform === "win32" || process.platform === "linux") {
+    if (process.platform !== "darwin") {
       tray.addListener("click", () => {
         if (this.mainWindow) {
           if (WindowManager.mainWindow?.isMinimized())
@@ -164,10 +179,10 @@ export class WindowManager {
         this.createMainWindow();
       });
 
-      tray.addListener("right-click", async () => {
-        const contextMenu = await updateSystemTray();
-        tray.popUpContextMenu(contextMenu);
-      });
+      tray.addListener("right-click", showContextMenu);
+    } else {
+      tray.addListener("click", showContextMenu);
+      tray.addListener("right-click", showContextMenu);
     }
   }
 }

@@ -46,7 +46,9 @@ export function DODIInstallationGuide({
           flexDirection: "column",
         }}
       >
-        <p style={{ fontFamily: "Fira Sans", marginBottom: 8 }}>
+        <p
+          style={{ fontFamily: "Fira Sans", marginBottom: `${SPACING_UNIT}px` }}
+        >
           <Trans i18nKey="dodi_installation_instruction" ns="game_details">
             <ArrowUpIcon size={16} />
           </Trans>

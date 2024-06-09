@@ -5,7 +5,6 @@ directories:
 extraResources:
   - aria2
   - seeds
-  - hydra.db
   - fastlist.exe
 files:
   - "!**/.vscode/*"
@@ -19,12 +18,19 @@ asarUnpack:
 win:
   executableName: Hydra
   requestedExecutionLevel: requireAdministrator
+  target:
+    - nsis
+    - portable
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
   oneClick: false
+  allowToChangeInstallationDirectory: true
+portable:
+  artifactName: ${name}-${version}-portable.${ext}
+  requestExecutionLevel: admin
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:

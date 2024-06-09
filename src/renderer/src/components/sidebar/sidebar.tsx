@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import type { Game } from "@types";
+import type { LibraryGame } from "@types";
 
 import { TextField } from "@renderer/components";
-import { useDownload, useLibrary } from "@renderer/hooks";
+import { useDownload, useLibrary, useToast } from "@renderer/hooks";
 
 import { routes } from "./routes";
 
@@ -34,7 +34,7 @@ export function Sidebar() {
   const { library, updateLibrary } = useLibrary();
   const navigate = useNavigate();
 
-  const [filteredLibrary, setFilteredLibrary] = useState<Game[]>([]);
+  const [filteredLibrary, setFilteredLibrary] = useState<LibraryGame[]>([]);
   const [sortingType, setSortingType] = useState<LibrarySortingType>(
     LibrarySortingType.Alphabetically
   );
@@ -64,6 +64,8 @@ export function Sidebar() {
   const location = useLocation();
 
   const { lastPacket, progress } = useDownload();
+
+  const { showWarningToast } = useToast();
 
   useEffect(() => {
     updateLibrary();
@@ -128,15 +130,19 @@ export function Sidebar() {
     };
   }, [isResizing]);
 
-  const getGameTitle = (game: Game) => {
-    if (game.status === "paused") return t("paused", { title: game.title });
-
+  const getGameTitle = (game: LibraryGame) => {
     if (lastPacket?.game.id === game.id) {
       return t("downloading", {
         title: game.title,
         percentage: progress,
       });
     }
+
+    if (game.downloadQueue !== null) {
+      return t("queued", { title: game.title });
+    }
+
+    if (game.status === "paused") return t("paused", { title: game.title });
 
     return game.title;
   };
@@ -148,17 +154,20 @@ export function Sidebar() {
   };
 
   const sortLibrary = useCallback(
-    (a: Game, b: Game) => {
+    (a: LibraryGame, b: LibraryGame) => {
       if (sortingType === LibrarySortingType.Alphabetically) {
         return b.title.localeCompare(a.title, "en");
       }
 
       if (sortingType === LibrarySortingType.MostPlayed) {
-        return b.playTimeInMilliseconds - a.playTimeInMilliseconds;
+        return (
+          (b.lastTimePlayed ?? new Date()).getTime() -
+          (a.lastTimePlayed ?? new Date()).getTime()
+        );
       }
 
       if (sortingType === LibrarySortingType.Downloaded) {
-        return b.status - a.downloads;
+        return b.updatedAt.getTime() - a.updatedAt.getTime();
       }
 
       return 0;
@@ -170,6 +179,24 @@ export function Sidebar() {
     () => [...filteredLibrary].sort(sortLibrary),
     [filteredLibrary, sortLibrary]
   );
+
+  const handleSidebarGameClick = (
+    event: React.MouseEvent,
+    game: LibraryGame
+  ) => {
+    const path = buildGameDetailsPath(game);
+    if (path !== location.pathname) {
+      navigate(path);
+    }
+
+    if (event.detail == 2) {
+      if (game.executablePath) {
+        window.electron.openGame(game.id, game.executablePath);
+      } else {
+        showWarningToast(t("game_has_no_executable"));
+      }
+    }
+  };
 
   return (
     <aside
@@ -241,9 +268,7 @@ export function Sidebar() {
                 <button
                   type="button"
                   className={styles.menuItemButton}
-                  onClick={() =>
-                    handleSidebarItemClick(buildGameDetailsPath(game))
-                  }
+                  onClick={(event) => handleSidebarGameClick(event, game)}
                 >
                   {game.iconUrl ? (
                     <img

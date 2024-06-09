@@ -1,18 +1,13 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import {
-  ArrowLeftIcon,
-  SearchIcon,
-  SyncIcon,
-  XIcon,
-} from "@primer/octicons-react";
+import { ArrowLeftIcon, SearchIcon, XIcon } from "@primer/octicons-react";
 
 import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 
 import * as styles from "./header.css";
 import { clearSearch } from "@renderer/features";
-import { AppUpdaterEvents } from "@types";
+import { AutoUpdateSubHeader } from "./auto-update-sub-header";
 
 export interface HeaderProps {
   onSearch: (query: string) => void;
@@ -40,9 +35,6 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
 
   const [isFocused, setIsFocused] = useState(false);
 
-  const [showUpdateSubheader, setShowUpdateSubheader] = useState(false);
-  const [newVersion, setNewVersion] = useState("");
-
   const { t } = useTranslation("header");
 
   const title = useMemo(() => {
@@ -57,30 +49,6 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
       dispatch(clearSearch());
     }
   }, [location.pathname, search, dispatch]);
-
-  const handleClickRestartAndUpdate = () => {
-    window.electron.restartAndInstallUpdate();
-  };
-
-  useEffect(() => {
-    const unsubscribe = window.electron.onAutoUpdaterEvent(
-      (event: AppUpdaterEvents) => {
-        if (event.type == "update-available") {
-          setNewVersion(event.info.version || "");
-        }
-
-        if (event.type == "update-downloaded") {
-          setShowUpdateSubheader(true);
-        }
-      }
-    );
-
-    window.electron.checkForUpdates();
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
 
   const focusInput = () => {
     setIsFocused(true);
@@ -103,7 +71,7 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
           isWindows: window.electron.platform === "win32",
         })}
       >
-        <div className={styles.section}>
+        <section className={styles.section}>
           <button
             type="button"
             className={styles.backButton({
@@ -122,7 +90,7 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
           >
             {title}
           </h3>
-        </div>
+        </section>
 
         <section className={styles.section}>
           <div className={styles.search({ focused: isFocused })}>
@@ -158,18 +126,7 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
           </div>
         </section>
       </header>
-      {showUpdateSubheader && (
-        <header className={styles.subheader}>
-          <button
-            type="button"
-            className={styles.newVersionButton}
-            onClick={handleClickRestartAndUpdate}
-          >
-            <SyncIcon size={12} />
-            <small>{t("version_available", { version: newVersion })}</small>
-          </button>
-        </header>
-      )}
+      <AutoUpdateSubHeader />
     </>
   );
 }

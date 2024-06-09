@@ -3,15 +3,11 @@ import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
-import {
-  DownloadManager,
-  logger,
-  resolveDatabaseUpdates,
-  WindowManager,
-} from "@main/services";
+import { DownloadManager, logger, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
+
 const { autoUpdater } = updater;
 
 autoUpdater.setFeedURL({
@@ -51,27 +47,24 @@ if (process.defaultApp) {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   electronApp.setAppUserModelId("site.hydralauncher.hydra");
 
   protocol.handle("hydra", (request) =>
     net.fetch("file://" + request.url.slice("hydra://".length))
   );
 
-  dataSource.initialize().then(async () => {
-    await dataSource.runMigrations();
+  await dataSource.initialize();
+  await dataSource.runMigrations();
 
-    await resolveDatabaseUpdates();
+  await import("./main");
 
-    await import("./main");
-
-    const userPreferences = await userPreferencesRepository.findOne({
-      where: { id: 1 },
-    });
-
-    WindowManager.createMainWindow();
-    WindowManager.createSystemTray(userPreferences?.language || "en");
+  const userPreferences = await userPreferencesRepository.findOne({
+    where: { id: 1 },
   });
+
+  WindowManager.createMainWindow();
+  WindowManager.createSystemTray(userPreferences?.language || "en");
 });
 
 app.on("browser-window-created", (_, window) => {
