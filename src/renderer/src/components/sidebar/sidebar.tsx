@@ -13,7 +13,7 @@ import * as styles from "./sidebar.css";
 import { buildGameDetailsPath } from "@renderer/helpers";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import SortIcon from "@renderer/assets/sort-icon.svg?react";
+import { SortDescIcon } from "@primer/octicons-react";
 import { DropDownMenu } from "../drop-down-menu/drop-down-menu";
 import { vars } from "@renderer/theme.css";
 
@@ -241,7 +241,7 @@ export function Sidebar() {
           <div className={styles.sectionHeader}>
             <small className={styles.sectionTitle}>{t("my_library")}</small>
             <DropDownMenu
-              trigger={<SortIcon fill={vars.color.body} />}
+              trigger={<SortDescIcon fill={vars.color.body} />}
               align="end"
               options={sortLibraryOptions}
               onSelect={(value) => {
