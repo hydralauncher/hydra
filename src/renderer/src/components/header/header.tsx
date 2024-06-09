@@ -71,7 +71,7 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
           isWindows: window.electron.platform === "win32",
         })}
       >
-        <div className={styles.section}>
+        <section className={styles.section}>
           <button
             type="button"
             className={styles.backButton({
@@ -90,7 +90,7 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
           >
             {title}
           </h3>
-        </div>
+        </section>
 
         <section className={styles.section}>
           <div className={styles.search({ focused: isFocused })}>

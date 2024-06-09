@@ -9,6 +9,7 @@ import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
 import { useAppDispatch } from "@renderer/hooks";
 import { setUserPreferences } from "@renderer/features";
+import { SettingsDownloadSources } from "./settings-download-sources";
 
 export function Settings() {
   const { t } = useTranslation("settings");
@@ -16,9 +17,10 @@ export function Settings() {
   const dispatch = useAppDispatch();
 
   const categories = [
-    { name: t("general"), component: SettingsGeneral },
-    { name: t("behavior"), component: SettingsBehavior },
-    { name: "Real-Debrid", component: SettingsRealDebrid },
+    t("general"),
+    t("behavior"),
+    t("download_sources"),
+    "Real-Debrid",
   ];
 
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
@@ -33,9 +35,24 @@ export function Settings() {
   };
 
   const renderCategory = () => {
-    const CategoryComponent = categories[currentCategoryIndex].component;
+    if (currentCategoryIndex === 0) {
+      return (
+        <SettingsGeneral updateUserPreferences={handleUpdateUserPreferences} />
+      );
+    }
+
+    if (currentCategoryIndex === 1) {
+      return (
+        <SettingsBehavior updateUserPreferences={handleUpdateUserPreferences} />
+      );
+    }
+
+    if (currentCategoryIndex === 2) {
+      return <SettingsDownloadSources />;
+    }
+
     return (
-      <CategoryComponent updateUserPreferences={handleUpdateUserPreferences} />
+      <SettingsRealDebrid updateUserPreferences={handleUpdateUserPreferences} />
     );
   };
 
@@ -45,16 +62,16 @@ export function Settings() {
         <section className={styles.settingsCategories}>
           {categories.map((category, index) => (
             <Button
-              key={category.name}
+              key={category}
               theme={currentCategoryIndex === index ? "primary" : "outline"}
               onClick={() => setCurrentCategoryIndex(index)}
             >
-              {category.name}
+              {category}
             </Button>
           ))}
         </section>
 
-        <h2>{categories[currentCategoryIndex].name}</h2>
+        <h2>{categories[currentCategoryIndex]}</h2>
         {renderCategory()}
       </div>
     </section>
