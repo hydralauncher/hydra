@@ -5,7 +5,6 @@ directories:
 extraResources:
   - aria2
   - seeds
-  - hydra.db
   - fastlist.exe
 files:
   - "!**/.vscode/*"

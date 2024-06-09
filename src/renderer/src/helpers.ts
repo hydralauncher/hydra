@@ -1,4 +1,4 @@
-import type { CatalogueEntry } from "@types";
+import type { GameShop } from "@types";
 
 export const steamUrlBuilder = {
   library: (objectID: string) =>
@@ -34,7 +34,7 @@ export const getSteamLanguage = (language: string) => {
 };
 
 export const buildGameDetailsPath = (
-  game: Pick<CatalogueEntry, "title" | "shop" | "objectID">,
+  game: { shop: GameShop; objectID: string; title: string },
   params: Record<string, string> = {}
 ) => {
   const searchParams = new URLSearchParams({ title: game.title, ...params });

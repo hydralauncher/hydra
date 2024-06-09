@@ -13,7 +13,7 @@ export function GallerySlider() {
 
   const { t } = useTranslation("game_details");
 
-  const hasScreenshots = shopDetails && shopDetails.screenshots.length;
+  const hasScreenshots = shopDetails && shopDetails.screenshots?.length;
   const hasMovies = shopDetails && shopDetails.movies?.length;
 
   const mediaCount = useMemo(() => {
@@ -77,7 +77,7 @@ export function GallerySlider() {
 
   const previews = useMemo(() => {
     const screenshotPreviews =
-      shopDetails?.screenshots.map(({ id, path_thumbnail }) => ({
+      shopDetails?.screenshots?.map(({ id, path_thumbnail }) => ({
         id,
         thumbnail: path_thumbnail,
       })) ?? [];
@@ -121,7 +121,7 @@ export function GallerySlider() {
               ))}
 
             {hasScreenshots &&
-              shopDetails.screenshots.map((image, i) => (
+              shopDetails.screenshots?.map((image, i) => (
                 <img
                   key={image.id}
                   className={styles.gallerySliderMedia}

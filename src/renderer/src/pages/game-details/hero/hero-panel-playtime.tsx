@@ -1,8 +1,10 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { useDate } from "@renderer/hooks";
+import * as styles from "./hero-panel.css";
+import { formatDownloadProgress } from "@renderer/helpers";
+import { useDate, useDownload } from "@renderer/hooks";
 import { gameDetailsContext } from "../game-details.context";
+import { Link } from "@renderer/components";
 
 const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 
@@ -12,6 +14,8 @@ export function HeroPanelPlaytime() {
   const { game, isGameRunning } = useContext(gameDetailsContext);
 
   const { i18n, t } = useTranslation("game_details");
+
+  const { progress, lastPacket } = useDownload();
 
   const { formatDistance } = useDate();
 
@@ -46,8 +50,45 @@ export function HeroPanelPlaytime() {
     return t("amount_hours", { amount: numberFormatter.format(hours) });
   };
 
-  if (!game?.lastTimePlayed) {
-    return <p>{t("not_played_yet", { title: game?.title })}</p>;
+  if (!game) return null;
+
+  const hasDownload =
+    ["active", "paused"].includes(game.status) && game.progress !== 1;
+
+  const isGameDownloading =
+    game.status === "active" && lastPacket?.game.id === game.id;
+
+  const downloadInProgressInfo = (
+    <div className={styles.downloadDetailsRow}>
+      <Link to="/downloads" className={styles.downloadsLink}>
+        {game.status === "active"
+          ? t("download_in_progress")
+          : t("download_paused")}
+      </Link>
+
+      <small>
+        {isGameDownloading ? progress : formatDownloadProgress(game.progress)}
+      </small>
+    </div>
+  );
+
+  if (!game.lastTimePlayed) {
+    return (
+      <>
+        <p>{t("not_played_yet", { title: game?.title })}</p>
+        {hasDownload && downloadInProgressInfo}
+      </>
+    );
+  }
+
+  if (isGameRunning) {
+    return (
+      <>
+        <p>{t("playing_now")}</p>
+
+        {hasDownload && downloadInProgressInfo}
+      </>
+    );
   }
 
   return (
@@ -58,8 +99,8 @@ export function HeroPanelPlaytime() {
         })}
       </p>
 
-      {isGameRunning ? (
-        <p>{t("playing_now")}</p>
+      {hasDownload ? (
+        downloadInProgressInfo
       ) : (
         <p>
           {t("last_time_played", {

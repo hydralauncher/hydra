@@ -11,6 +11,7 @@ export const [themeClass, vars] = createTheme({
     border: "#424244",
     success: "#1c9749",
     danger: "#e11d48",
+    warning: "#ffc107",
   },
   opacity: {
     disabled: "0.5",
@@ -18,5 +19,6 @@ export const [themeClass, vars] = createTheme({
   },
   size: {
     body: "14px",
+    small: "12px",
   },
 });

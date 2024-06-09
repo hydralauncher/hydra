@@ -4,14 +4,14 @@ import { registerEvent } from "../register-event";
 
 import type { GameShop } from "@types";
 import { getFileBase64, getSteamAppAsset } from "@main/helpers";
-import { stateManager } from "@main/state-manager";
+
+import { steamGamesWorker } from "@main/workers";
 
 const addGameToLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
   objectID: string,
   title: string,
-  shop: GameShop,
-  executablePath: string | null
+  shop: GameShop
 ) => {
   return gameRepository
     .update(
@@ -21,15 +21,14 @@ const addGameToLibrary = async (
       {
         shop,
         status: null,
-        executablePath,
         isDeleted: false,
       }
     )
     .then(async ({ affected }) => {
       if (!affected) {
-        const steamGame = stateManager
-          .getValue("steamGames")
-          .find((game) => game.id === Number(objectID));
+        const steamGame = await steamGamesWorker.run(Number(objectID), {
+          name: "getById",
+        });
 
         const iconUrl = steamGame?.clientIcon
           ? getSteamAppAsset("icon", objectID, steamGame.clientIcon)
@@ -41,7 +40,6 @@ const addGameToLibrary = async (
             iconUrl,
             objectID,
             shop,
-            executablePath,
           })
           .then(() => {
             if (iconUrl) {

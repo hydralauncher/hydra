@@ -4,7 +4,9 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
 } from "typeorm";
+import { DownloadSource } from "./download-source.entity";
 
 @Entity("repack")
 export class Repack {
@@ -17,7 +19,10 @@ export class Repack {
   @Column("text", { unique: true })
   magnet: string;
 
-  @Column("int")
+  /**
+   * @deprecated
+   */
+  @Column("int", { nullable: true })
   page: number;
 
   @Column("text")
@@ -28,6 +33,9 @@ export class Repack {
 
   @Column("datetime")
   uploadDate: Date | string;
+
+  @ManyToOne(() => DownloadSource, { nullable: true, onDelete: "CASCADE" })
+  downloadSource: DownloadSource;
 
   @CreateDateColumn()
   createdAt: Date;
