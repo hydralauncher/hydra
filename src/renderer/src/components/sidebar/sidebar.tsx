@@ -167,7 +167,9 @@ export function Sidebar() {
       }
 
       if (sortingType === LibrarySortingType.Downloaded) {
-        return b.updatedAt.getTime() - a.updatedAt.getTime();
+        return (
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt)?.getTime()
+        );
       }
 
       return 0;
