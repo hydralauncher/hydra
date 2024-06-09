@@ -36,7 +36,7 @@ export const dropDownMenuOption = style({
   textAlign: "left",
   padding: "5px",
   cursor: "pointer",
-  color: vars.color.bodyText,
+  color: vars.color.body,
   ":hover": {
     backgroundColor: "rgba(255, 255, 255, 0.1)",
   },

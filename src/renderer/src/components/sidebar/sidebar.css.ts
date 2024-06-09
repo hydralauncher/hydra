@@ -127,8 +127,8 @@ export const sectionTitle = style({
 export const sortingButton = style({
   padding: "6px",
   borderRadius: "4px",
-  color: vars.color.bodyText,
-  fill: vars.color.bodyText,
+  color: vars.color.body,
+  fill: vars.color.body,
   cursor: "pointer",
   display: "flex",
   alignItems: "center",

@@ -24,7 +24,7 @@
     "sorting_options": {
       "alphabetically": "A-Я",
       "most_played": "По кол-ву сыгранных часов",
-      "downloaded": "Последняя запущенная"
+      "downloaded": "По загрузкам"
     }
   },
   "header": {

@@ -23,26 +23,34 @@ const SIDEBAR_MAX_WIDTH = 450;
 
 const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 
+enum LibrarySortingType {
+  Alphabetically = "a-z",
+  MostPlayed = "most_played",
+  Downloaded = "downloaded",
+}
+
 export function Sidebar() {
   const { t } = useTranslation("sidebar");
   const { library, updateLibrary } = useLibrary();
   const navigate = useNavigate();
 
   const [filteredLibrary, setFilteredLibrary] = useState<Game[]>([]);
-  const [sortingType, setSortingType] = useState("a-z");
+  const [sortingType, setSortingType] = useState<LibrarySortingType>(
+    LibrarySortingType.Alphabetically
+  );
   const sortLibraryOptions = useMemo(
     () => [
       {
         label: t("sorting_options.alphabetically"),
-        value: "a-z",
+        value: LibrarySortingType.Alphabetically,
       },
       {
         label: t("sorting_options.most_played"),
-        value: "most_played",
+        value: LibrarySortingType.MostPlayed,
       },
       {
         label: t("sorting_options.downloaded"),
-        value: "downloaded",
+        value: LibrarySortingType.Downloaded,
       },
     ],
     [t]
@@ -141,16 +149,16 @@ export function Sidebar() {
 
   const sortLibrary = useCallback(
     (a: Game, b: Game) => {
-      if (sortingType === "a-z") {
-        return a.title.localeCompare(b.title, "en");
+      if (sortingType === LibrarySortingType.Alphabetically) {
+        return b.title.localeCompare(a.title, "en");
       }
 
-      if (sortingType === "most_played") {
+      if (sortingType === LibrarySortingType.MostPlayed) {
         return b.playTimeInMilliseconds - a.playTimeInMilliseconds;
       }
 
-      if (sortingType === "downloaded") {
-        return a.status === GameStatus.Cancelled ? 1 : -1;
+      if (sortingType === LibrarySortingType.Downloaded) {
+        return b.status - a.downloads;
       }
 
       return 0;
@@ -206,11 +214,11 @@ export function Sidebar() {
           <div className={styles.sectionHeader}>
             <small className={styles.sectionTitle}>{t("my_library")}</small>
             <DropDownMenu
-              trigger={<SortIcon fill={vars.color.bodyText} />}
+              trigger={<SortIcon fill={vars.color.body} />}
               align="end"
               options={sortLibraryOptions}
               onSelect={(value) => {
-                setSortingType(value);
+                setSortingType(value as LibrarySortingType);
               }}
             />
           </div>
