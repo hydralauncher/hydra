@@ -1,5 +1,4 @@
-import type { RefObject } from "react";
-import { useEventListener } from "./use-event-listener";
+import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 
 type EventType =
   | "mousedown"
@@ -10,14 +9,16 @@ type EventType =
   | "focusout";
 
 export function useOnClickOutside<T extends HTMLElement = HTMLElement>(
-  ref: RefObject<T> | RefObject<T>[],
+  ref: RefObject<T>,
   handler: (event: MouseEvent | TouchEvent | FocusEvent) => void,
   eventType: EventType = "mousedown",
   eventListenerOptions: AddEventListenerOptions = {}
 ): void {
-  useEventListener(
-    eventType,
-    (event) => {
+  // Create a ref that stores handler
+  const savedHandler = useRef(handler);
+
+  useLayoutEffect(() => {
+    savedHandler.current = (event) => {
       const target = event.target as Node;
 
       // Do nothing if the target is not connected element with document
@@ -34,8 +35,29 @@ export function useOnClickOutside<T extends HTMLElement = HTMLElement>(
       if (isOutside) {
         handler(event);
       }
-    },
-    undefined,
-    eventListenerOptions
-  );
+    };
+  }, [handler, ref]);
+
+  useEffect(() => {
+    // Define the listening target
+    const targetElement: Window = window;
+
+    if (!(targetElement && targetElement.addEventListener)) return;
+
+    // Create event listener that calls handler function stored in ref
+    const listener: typeof handler = (event) => {
+      savedHandler.current(event);
+    };
+
+    targetElement.addEventListener(eventType, listener, eventListenerOptions);
+
+    // Remove event listener on cleanup
+    return () => {
+      targetElement.removeEventListener(
+        eventType,
+        listener,
+        eventListenerOptions
+      );
+    };
+  }, [eventListenerOptions, eventType]);
 }
