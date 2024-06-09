@@ -107,7 +107,7 @@ declare global {
     onAutoUpdaterEvent: (
       cb: (event: AppUpdaterEvent) => void
     ) => () => Electron.IpcRenderer;
-    checkForUpdates: () => Promise<void>;
+    checkForUpdates: () => Promise<boolean>;
     restartAndInstallUpdate: () => Promise<void>;
   }
 
