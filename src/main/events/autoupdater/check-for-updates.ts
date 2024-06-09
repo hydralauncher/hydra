@@ -12,6 +12,9 @@ const sendEvent = (event: AppUpdaterEvent) => {
 
 const sendEventsForDebug = false;
 
+const isAutoInstallAvailable =
+  process.platform !== "darwin" && process.env.PORTABLE_EXECUTABLE_FILE == null;
+
 const mockValuesForDebug = () => {
   sendEvent({ type: "update-available", info: { version: "1.3.0" } });
   sendEvent({ type: "update-downloaded" });
@@ -27,10 +30,13 @@ const checkForUpdates = async (_event: Electron.IpcMainInvokeEvent) => {
     });
 
   if (app.isPackaged) {
+    autoUpdater.autoDownload = isAutoInstallAvailable;
     autoUpdater.checkForUpdates();
   } else if (sendEventsForDebug) {
     mockValuesForDebug();
   }
+
+  return isAutoInstallAvailable;
 };
 
 registerEvent("checkForUpdates", checkForUpdates);
