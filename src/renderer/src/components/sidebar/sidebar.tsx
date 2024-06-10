@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import type { Game } from "@types";
+import type { LibraryGame } from "@types";
 
 import { TextField } from "@renderer/components";
-import { useDownload, useLibrary } from "@renderer/hooks";
+import { useDownload, useLibrary, useToast } from "@renderer/hooks";
 
 import { routes } from "./routes";
 
@@ -25,7 +25,7 @@ export function Sidebar() {
   const { library, updateLibrary } = useLibrary();
   const navigate = useNavigate();
 
-  const [filteredLibrary, setFilteredLibrary] = useState<Game[]>([]);
+  const [filteredLibrary, setFilteredLibrary] = useState<LibraryGame[]>([]);
 
   const [isResizing, setIsResizing] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(
@@ -35,6 +35,8 @@ export function Sidebar() {
   const location = useLocation();
 
   const { lastPacket, progress } = useDownload();
+
+  const { showWarningToast } = useToast();
 
   useEffect(() => {
     updateLibrary();
@@ -99,9 +101,7 @@ export function Sidebar() {
     };
   }, [isResizing]);
 
-  const getGameTitle = (game: Game) => {
-    if (game.status === "paused") return t("paused", { title: game.title });
-
+  const getGameTitle = (game: LibraryGame) => {
     if (lastPacket?.game.id === game.id) {
       return t("downloading", {
         title: game.title,
@@ -109,12 +109,36 @@ export function Sidebar() {
       });
     }
 
+    if (game.downloadQueue !== null) {
+      return t("queued", { title: game.title });
+    }
+
+    if (game.status === "paused") return t("paused", { title: game.title });
+
     return game.title;
   };
 
   const handleSidebarItemClick = (path: string) => {
     if (path !== location.pathname) {
       navigate(path);
+    }
+  };
+
+  const handleSidebarGameClick = (
+    event: React.MouseEvent,
+    game: LibraryGame
+  ) => {
+    const path = buildGameDetailsPath(game);
+    if (path !== location.pathname) {
+      navigate(path);
+    }
+
+    if (event.detail == 2) {
+      if (game.executablePath) {
+        window.electron.openGame(game.id, game.executablePath);
+      } else {
+        showWarningToast(t("game_has_no_executable"));
+      }
     }
   };
 
@@ -179,9 +203,7 @@ export function Sidebar() {
                 <button
                   type="button"
                   className={styles.menuItemButton}
-                  onClick={() =>
-                    handleSidebarItemClick(buildGameDetailsPath(game))
-                  }
+                  onClick={(event) => handleSidebarGameClick(event, game)}
                 >
                   {game.iconUrl ? (
                     <img

@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import ISO6391 from "iso-639-1";
 
-import { TextField, Button, CheckboxField, Select } from "@renderer/components";
+import {
+  TextField,
+  Button,
+  CheckboxField,
+  SelectField,
+} from "@renderer/components";
 import { useTranslation } from "react-i18next";
 import * as styles from "./settings-general.css";
 import type { UserPreferences } from "@types";
@@ -125,18 +130,16 @@ export function SettingsGeneral({
         </Button>
       </div>
 
-      <h3>{t("language")}</h3>
-      <>
-        <Select
-          value={form.language}
-          onChange={handleLanguageChange}
-          options={languageOptions.map((language) => ({
-            key: language.option,
-            value: language.option,
-            label: language.nativeName,
-          }))}
-        />
-      </>
+      <SelectField
+        label={t("language")}
+        value={form.language}
+        onChange={handleLanguageChange}
+        options={languageOptions.map((language) => ({
+          key: language.option,
+          value: language.option,
+          label: language.nativeName,
+        }))}
+      />
 
       <h3>{t("notifications")}</h3>
       <>
