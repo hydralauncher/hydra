@@ -109,49 +109,34 @@ export function RepacksModal({
               <p style={{ color: "#DADBE1", wordBreak: "break-word" }}>
                 {repack.title}
               </p>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  width: "100%",
-                }}
-              >
-                <div>
-                  <p style={{ fontSize: "12px" }}>
-                    {repack.fileSize} - {repack.repacker} -{" "}
-                    {repack.uploadDate
-                      ? format(repack.uploadDate, "dd/MM/yyyy")
-                      : ""}
-                    {userPreferences?.language && (
-                      <>
-                        {" - " +
-                          getRepackLanguageBasedOnRepacker(
-                            repack.repacker,
-                            userPreferences?.language
-                          )}
-                      </>
-                    )}
-                  </p>
+              <div className={styles.torrentDataContainer}>
+                <div className={styles.badgesContainer}>
+                  {supportMultiLanguage(repack.title) && (
+                    <Badge>{t("multi_language")}</Badge>
+                  )}
+                  {isMultiplayerRepack(repack.title, repack.repacker) && (
+                    <Badge>{t("multiplayer")}</Badge>
+                  )}
+                  {repack.magnet.toLowerCase().includes(infoHash) && (
+                    <Badge>{t("last_downloaded_option")}</Badge>
+                  )}
                 </div>
                 <SeedersAndPeers repack={repack} />
               </div>
-              <div className={styles.tagsContainer}>
-                {supportMultiLanguage(repack.title) && (
-                  <Badge>{t("multi_language")}</Badge>
-                )}
-                {isMultiplayerRepack(repack.title, repack.repacker) && (
-                  <Badge>{t("multiplayer")}</Badge>
-                )}
-              </div>
-              {repack.magnet.toLowerCase().includes(infoHash) && (
-                <Badge>{t("last_downloaded_option")}</Badge>
-              )}
               <p style={{ fontSize: "12px" }}>
                 {repack.fileSize} - {repack.repacker} -{" "}
                 {repack.uploadDate
                   ? format(repack.uploadDate, "dd/MM/yyyy")
                   : ""}
+                {userPreferences?.language && (
+                  <>
+                    {" - " +
+                      getRepackLanguageBasedOnRepacker(
+                        repack.repacker,
+                        userPreferences?.language
+                      )}
+                  </>
+                )}
               </p>
             </Button>
           ))}

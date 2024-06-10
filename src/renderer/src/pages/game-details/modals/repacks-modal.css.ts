@@ -17,7 +17,13 @@ export const repackButton = style({
   padding: `${SPACING_UNIT * 2}px`,
 });
 
-export const tagsContainer = style({
+export const torrentDataContainer = style({
+  display: "flex",
+  justifyContent: "space-between",
+  width: "100%",
+});
+
+export const badgesContainer = style({
   display: "flex",
   gap: `${SPACING_UNIT}px`,
   flexWrap: "wrap",
