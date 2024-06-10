@@ -1,7 +1,8 @@
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import parseTorrent from "parse-torrent";
 
-import { Button, Modal, TextField } from "@renderer/components";
+import { Badge, Button, Modal, TextField } from "@renderer/components";
 import type { GameRepack } from "@types";
 
 import * as styles from "./repacks-modal.css";
@@ -16,7 +17,6 @@ import {
   isMultiplayerRepack,
   supportMultiLanguage,
 } from "@renderer/helpers/searcher";
-import { Tag } from "@renderer/components/tag/tag";
 import { useAppSelector } from "@renderer/hooks";
 import { SeedersAndPeers } from "../seeders-and-peers/seeders-and-peers";
 
@@ -42,13 +42,22 @@ export function RepacksModal({
     (state) => state.userPreferences
   );
 
-  const { repacks } = useContext(gameDetailsContext);
+  const [infoHash, setInfoHash] = useState("");
+
+  const { repacks, game } = useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
 
+  const getInfoHash = useCallback(async () => {
+    const torrent = await parseTorrent(game?.uri ?? "");
+    setInfoHash(torrent.infoHash ?? "");
+  }, [game]);
+
   useEffect(() => {
     setFilteredRepacks(repacks);
-  }, [repacks, visible]);
+
+    if (game?.uri) getInfoHash();
+  }, [repacks, visible, game, getInfoHash]);
 
   const handleRepackClick = (repack: GameRepack) => {
     setRepack(repack);
@@ -129,12 +138,21 @@ export function RepacksModal({
               </div>
               <div className={styles.tagsContainer}>
                 {supportMultiLanguage(repack.title) && (
-                  <Tag>{t("multi_language")}</Tag>
+                  <Badge>{t("multi_language")}</Badge>
                 )}
                 {isMultiplayerRepack(repack.title, repack.repacker) && (
-                  <Tag>{t("multiplayer")}</Tag>
+                  <Badge>{t("multiplayer")}</Badge>
                 )}
               </div>
+              {repack.magnet.toLowerCase().includes(infoHash) && (
+                <Badge>{t("last_downloaded_option")}</Badge>
+              )}
+              <p style={{ fontSize: "12px" }}>
+                {repack.fileSize} - {repack.repacker} -{" "}
+                {repack.uploadDate
+                  ? format(repack.uploadDate, "dd/MM/yyyy")
+                  : ""}
+              </p>
             </Button>
           ))}
         </div>

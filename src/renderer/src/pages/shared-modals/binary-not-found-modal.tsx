@@ -6,10 +6,10 @@ interface BinaryNotFoundModalProps {
   onClose: () => void;
 }
 
-export const BinaryNotFoundModal = ({
+export function BinaryNotFoundModal({
   visible,
   onClose,
-}: BinaryNotFoundModalProps) => {
+}: BinaryNotFoundModalProps) {
   const { t } = useTranslation("binary_not_found_modal");
 
   return (
@@ -22,4 +22,4 @@ export const BinaryNotFoundModal = ({
       {t("instructions")}
     </Modal>
   );
-};
+}

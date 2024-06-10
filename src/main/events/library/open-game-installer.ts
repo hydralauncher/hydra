@@ -1,13 +1,28 @@
-import { gameRepository } from "@main/repository";
-import { generateYML } from "../helpers/generate-lutris-yaml";
+import { shell } from "electron";
 import path from "node:path";
 import fs from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { spawnSync, exec } from "node:child_process";
 
-import { registerEvent } from "../register-event";
-import { shell } from "electron";
+import { gameRepository } from "@main/repository";
+
+import { generateYML } from "../helpers/generate-lutris-yaml";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
+import { registerEvent } from "../register-event";
+
+const executeGameInstaller = (filePath: string) => {
+  if (process.platform === "win32") {
+    shell.openPath(filePath);
+    return true;
+  }
+
+  if (spawnSync("which", ["wine"]).status === 0) {
+    exec(`wine "${filePath}"`);
+    return true;
+  }
+
+  return false;
+};
 
 const openGameInstaller = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -17,7 +32,7 @@ const openGameInstaller = async (
     where: { id: gameId, isDeleted: false },
   });
 
-  if (!game) return true;
+  if (!game || !game.folderName) return true;
 
   const gamePath = path.join(
     game.downloadPath ?? (await getDownloadsPath()),
@@ -29,15 +44,29 @@ const openGameInstaller = async (
     return true;
   }
 
-  const setupPath = path.join(gamePath, "setup.exe");
-  if (!fs.existsSync(setupPath)) {
+  if (process.platform === "darwin") {
     shell.openPath(gamePath);
     return true;
   }
 
-  if (process.platform === "win32") {
-    shell.openPath(setupPath);
-    return true;
+  if (fs.lstatSync(gamePath).isFile()) {
+    return executeGameInstaller(gamePath);
+  }
+
+  const setupPath = path.join(gamePath, "setup.exe");
+  if (fs.existsSync(setupPath)) {
+    return executeGameInstaller(setupPath);
+  }
+
+  const gamePathFileNames = fs.readdirSync(gamePath);
+  const gamePathExecutableFiles = gamePathFileNames.filter(
+    (fileName: string) => path.extname(fileName).toLowerCase() === ".exe"
+  );
+
+  if (gamePathExecutableFiles.length === 1) {
+    return executeGameInstaller(
+      path.join(gamePath, gamePathExecutableFiles[0])
+    );
   }
 
   if (spawnSync("which", ["lutris"]).status === 0) {
@@ -47,12 +76,8 @@ const openGameInstaller = async (
     return true;
   }
 
-  if (spawnSync("which", ["wine"]).status === 0) {
-    exec(`wine "${setupPath}"`);
-    return true;
-  }
-
-  return false;
+  shell.openPath(gamePath);
+  return true;
 };
 
 registerEvent("openGameInstaller", openGameInstaller);

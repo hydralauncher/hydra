@@ -3,7 +3,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 import type {
-  CatalogueCategory,
   GameShop,
   DownloadProgress,
   UserPreferences,
@@ -32,8 +31,7 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Catalogue */
   searchGames: (query: string) => ipcRenderer.invoke("searchGames", query),
-  getCatalogue: (category: CatalogueCategory) =>
-    ipcRenderer.invoke("getCatalogue", category),
+  getCatalogue: () => ipcRenderer.invoke("getCatalogue"),
   getGameShopDetails: (objectID: string, shop: GameShop, language: string) =>
     ipcRenderer.invoke("getGameShopDetails", objectID, shop, language),
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
@@ -52,23 +50,30 @@ contextBridge.exposeInMainWorld("electron", {
   authenticateRealDebrid: (apiToken: string) =>
     ipcRenderer.invoke("authenticateRealDebrid", apiToken),
 
+  /* Download sources */
+  getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
+  validateDownloadSource: (url: string) =>
+    ipcRenderer.invoke("validateDownloadSource", url),
+  addDownloadSource: (url: string) =>
+    ipcRenderer.invoke("addDownloadSource", url),
+  removeDownloadSource: (id: number) =>
+    ipcRenderer.invoke("removeDownloadSource", id),
+  syncDownloadSources: () => ipcRenderer.invoke("syncDownloadSources"),
+
   /* Library */
-  addGameToLibrary: (
-    objectID: string,
-    title: string,
-    shop: GameShop,
-    executablePath: string
-  ) =>
-    ipcRenderer.invoke(
-      "addGameToLibrary",
-      objectID,
-      title,
-      shop,
-      executablePath
-    ),
+  addGameToLibrary: (objectID: string, title: string, shop: GameShop) =>
+    ipcRenderer.invoke("addGameToLibrary", objectID, title, shop),
+  createGameShortcut: (id: number) =>
+    ipcRenderer.invoke("createGameShortcut", id),
+  updateExecutablePath: (id: number, executablePath: string) =>
+    ipcRenderer.invoke("updateExecutablePath", id, executablePath),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
   openGameInstaller: (gameId: number) =>
     ipcRenderer.invoke("openGameInstaller", gameId),
+  openGameInstallerPath: (gameId: number) =>
+    ipcRenderer.invoke("openGameInstallerPath", gameId),
+  openGameExecutablePath: (gameId: number) =>
+    ipcRenderer.invoke("openGameExecutablePath", gameId),
   openGame: (gameId: number, executablePath: string) =>
     ipcRenderer.invoke("openGame", gameId, executablePath),
   closeGame: (gameId: number) => ipcRenderer.invoke("closeGame", gameId),

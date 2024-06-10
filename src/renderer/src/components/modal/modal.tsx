@@ -12,6 +12,7 @@ export interface ModalProps {
   title: string;
   description?: string;
   onClose: () => void;
+  large?: boolean;
   children: React.ReactNode;
 }
 
@@ -20,6 +21,7 @@ export function Modal({
   title,
   description,
   onClose,
+  large,
   children,
 }: ModalProps) {
   const [isClosing, setIsClosing] = useState(false);
@@ -88,7 +90,7 @@ export function Modal({
   return createPortal(
     <Backdrop isClosing={isClosing}>
       <div
-        className={styles.modal({ closing: isClosing })}
+        className={styles.modal({ closing: isClosing, large })}
         role="dialog"
         aria-labelledby={title}
         aria-describedby={description}
