@@ -1,8 +1,8 @@
-import { formatName } from "@main/helpers";
 import axios from "axios";
 import { JSDOM } from "jsdom";
-import { requestWebPage } from "./repack-tracker/helpers";
+import { requestWebPage } from "@main/helpers";
 import { HowLongToBeatCategory } from "@types";
+import { formatName } from "@shared";
 
 export interface HowLongToBeatResult {
   game_id: number;

@@ -4,9 +4,9 @@ import { getSteamAppDetails } from "@main/services";
 import type { ShopDetails, GameShop, SteamAppDetails } from "@types";
 
 import { registerEvent } from "../register-event";
-import { stateManager } from "@main/state-manager";
+import { steamGamesWorker } from "@main/workers";
 
-const getLocalizedSteamAppDetails = (
+const getLocalizedSteamAppDetails = async (
   objectID: string,
   language: string
 ): Promise<ShopDetails | null> => {
@@ -14,20 +14,22 @@ const getLocalizedSteamAppDetails = (
     return getSteamAppDetails(objectID, language);
   }
 
-  return getSteamAppDetails(objectID, language).then((localizedAppDetails) => {
-    const steamGame = stateManager
-      .getValue("steamGames")
-      .find((game) => game.id === Number(objectID));
+  return getSteamAppDetails(objectID, language).then(
+    async (localizedAppDetails) => {
+      const steamGame = await steamGamesWorker.run(Number(objectID), {
+        name: "getById",
+      });
 
-    if (steamGame && localizedAppDetails) {
-      return {
-        ...localizedAppDetails,
-        name: steamGame.name,
-      };
+      if (steamGame && localizedAppDetails) {
+        return {
+          ...localizedAppDetails,
+          name: steamGame.name,
+        };
+      }
+
+      return null;
     }
-
-    return null;
-  });
+  );
 };
 
 const getGameShopDetails = async (

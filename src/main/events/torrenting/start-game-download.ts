@@ -1,12 +1,17 @@
-import { gameRepository, repackRepository } from "@main/repository";
+import {
+  downloadQueueRepository,
+  gameRepository,
+  repackRepository,
+} from "@main/repository";
 
 import { registerEvent } from "../register-event";
 
 import type { StartGameDownloadPayload } from "@types";
 import { getFileBase64, getSteamAppAsset } from "@main/helpers";
 import { DownloadManager } from "@main/services";
-import { stateManager } from "@main/state-manager";
+
 import { Not } from "typeorm";
+import { steamGamesWorker } from "@main/workers";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -20,7 +25,6 @@ const startGameDownload = async (
         objectID,
         shop,
       },
-      relations: { repack: true },
     }),
     repackRepository.findOne({
       where: {
@@ -49,14 +53,14 @@ const startGameDownload = async (
         bytesDownloaded: 0,
         downloadPath,
         downloader,
-        repack: { id: repackId },
+        uri: repack.magnet,
         isDeleted: false,
       }
     );
   } else {
-    const steamGame = stateManager
-      .getValue("steamGames")
-      .find((game) => game.id === Number(objectID));
+    const steamGame = await steamGamesWorker.run(Number(objectID), {
+      name: "getById",
+    });
 
     const iconUrl = steamGame?.clientIcon
       ? getSteamAppAsset("icon", objectID, steamGame.clientIcon)
@@ -71,7 +75,7 @@ const startGameDownload = async (
         shop,
         status: "active",
         downloadPath,
-        repack: { id: repackId },
+        uri: repack.magnet,
       })
       .then((result) => {
         if (iconUrl) {
@@ -88,8 +92,10 @@ const startGameDownload = async (
     where: {
       objectID,
     },
-    relations: { repack: true },
   });
+
+  await downloadQueueRepository.delete({ game: { id: updatedGame!.id } });
+  await downloadQueueRepository.insert({ game: { id: updatedGame!.id } });
 
   await DownloadManager.startDownload(updatedGame!);
 };

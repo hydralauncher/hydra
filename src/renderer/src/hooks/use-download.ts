@@ -41,22 +41,23 @@ export function useDownload() {
     return updateLibrary();
   };
 
-  const cancelDownload = async (gameId: number) => {
-    await window.electron.cancelGameDownload(gameId);
-    dispatch(clearDownload());
-    updateLibrary();
-  };
-
   const removeGameInstaller = async (gameId: number) => {
     dispatch(setGameDeleting(gameId));
 
     try {
       await window.electron.deleteGameFolder(gameId);
-      await window.electron.removeGame(gameId);
       updateLibrary();
     } finally {
       dispatch(removeGameFromDeleting(gameId));
     }
+  };
+
+  const cancelDownload = async (gameId: number) => {
+    await window.electron.cancelGameDownload(gameId);
+    dispatch(clearDownload());
+    updateLibrary();
+
+    removeGameInstaller(gameId);
   };
 
   const removeGameFromLibrary = (gameId: number) =>
