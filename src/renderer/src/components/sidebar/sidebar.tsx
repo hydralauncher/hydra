@@ -156,12 +156,7 @@ export function Sidebar() {
       >
         <button type="button" className={styles.profileButton}>
           <div className={styles.profileAvatar}>
-            {/* <PersonIcon /> */}
-            <img
-              src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fi.pinimg.com%2F736x%2Fbd%2F19%2F2f%2Fbd192f2723f7d81013f04903d9e0428b.jpg&f=1&nofb=1&ipt=dce89b7ad791596a8b78b07c3c27f3f54fbf608493fb7217b4eb4ba4ca7904d1&ipo=images"
-              alt="Avatar"
-              style={{ width: "100%", height: "100%", borderRadius: "50%" }}
-            />
+            <PersonIcon />
 
             <div className={styles.statusBadge} />
           </div>
