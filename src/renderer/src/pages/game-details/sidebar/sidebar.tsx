@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@renderer/components";
 
 import * as styles from "./sidebar.css";
-import { gameDetailsContext } from "../game-details.context";
+import { gameDetailsContext } from "@renderer/context";
 
 export function Sidebar() {
   const [howLongToBeat, setHowLongToBeat] = useState<{

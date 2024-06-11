@@ -1,19 +1,31 @@
 import { style } from "@vanilla-extract/css";
-import { SPACING_UNIT, vars } from "../../../theme.css";
 import { recipe } from "@vanilla-extract/recipes";
 
-export const panel = style({
-  width: "100%",
-  height: "72px",
-  minHeight: "72px",
-  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 3}px`,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  transition: "all ease 0.2s",
-  borderBottom: `solid 1px ${vars.color.border}`,
-  position: "relative",
-  overflow: "hidden",
+import { SPACING_UNIT, vars } from "../../../theme.css";
+
+export const panel = recipe({
+  base: {
+    width: "100%",
+    height: "72px",
+    minHeight: "72px",
+    padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 3}px`,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    transition: "all ease 0.2s",
+    borderBottom: `solid 1px ${vars.color.border}`,
+    position: "sticky",
+    overflow: "hidden",
+    top: "0",
+    zIndex: "1",
+  },
+  variants: {
+    stuck: {
+      true: {
+        boxShadow: "0px 0px 15px 0px #000000",
+      },
+    },
+  },
 });
 
 export const content = style({

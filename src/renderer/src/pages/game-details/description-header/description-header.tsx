@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next";
 
-import * as styles from "./game-details.css";
+import * as styles from "./description-header.css";
 import { useContext } from "react";
-import { gameDetailsContext } from "./game-details.context";
+import { gameDetailsContext } from "@renderer/context";
 
 export function DescriptionHeader() {
   const { shopDetails } = useContext(gameDetailsContext);

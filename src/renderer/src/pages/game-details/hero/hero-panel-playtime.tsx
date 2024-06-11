@@ -3,8 +3,9 @@ import { useTranslation } from "react-i18next";
 import * as styles from "./hero-panel.css";
 import { formatDownloadProgress } from "@renderer/helpers";
 import { useDate, useDownload } from "@renderer/hooks";
-import { gameDetailsContext } from "../game-details.context";
 import { Link } from "@renderer/components";
+
+import { gameDetailsContext } from "@renderer/context";
 
 const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 
