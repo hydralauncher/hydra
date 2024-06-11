@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ChevronRightIcon, ChevronLeftIcon } from "@primer/octicons-react";
 
 import * as styles from "./gallery-slider.css";
-import { gameDetailsContext } from "./game-details.context";
+import { gameDetailsContext } from "@renderer/context";
 
 export function GallerySlider() {
   const { shopDetails } = useContext(gameDetailsContext);

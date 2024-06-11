@@ -1,5 +1,6 @@
-import { SPACING_UNIT, vars } from "../../theme.css";
 import { style } from "@vanilla-extract/css";
+
+import { SPACING_UNIT, vars } from "../../theme.css";
 
 export const downloadTitleWrapper = style({
   display: "flex",
@@ -71,7 +72,7 @@ export const download = style({
   borderRadius: "8px",
   border: `solid 1px ${vars.color.border}`,
   overflow: "hidden",
-  boxShadow: "0px 0px 15px 0px #000000",
+  boxShadow: "0px 0px 5px 0px #000000",
   transition: "all ease 0.2s",
   height: "140px",
   minHeight: "140px",

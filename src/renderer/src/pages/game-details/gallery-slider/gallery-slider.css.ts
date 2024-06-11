@@ -1,6 +1,7 @@
 import { recipe } from "@vanilla-extract/recipes";
-import { SPACING_UNIT, vars } from "../../theme.css";
 import { style } from "@vanilla-extract/css";
+
+import { SPACING_UNIT, vars } from "../../../theme.css";
 
 export const gallerySliderContainer = style({
   padding: `${SPACING_UNIT * 3}px ${SPACING_UNIT * 2}px`,

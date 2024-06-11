@@ -13,6 +13,7 @@ import * as styles from "./sidebar.css";
 import { buildGameDetailsPath } from "@renderer/helpers";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
+import { PersonIcon } from "@primer/octicons-react";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -143,93 +144,114 @@ export function Sidebar() {
   };
 
   return (
-    <aside
-      ref={sidebarRef}
-      className={styles.sidebar({ resizing: isResizing })}
-      style={{
-        width: sidebarWidth,
-        minWidth: sidebarWidth,
-        maxWidth: sidebarWidth,
-      }}
-    >
-      <div
-        className={styles.content({
-          macos: window.electron.platform === "darwin",
-        })}
+    <>
+      <aside
+        ref={sidebarRef}
+        className={styles.sidebar({ resizing: isResizing })}
+        style={{
+          width: sidebarWidth,
+          minWidth: sidebarWidth,
+          maxWidth: sidebarWidth,
+        }}
       >
-        {window.electron.platform === "darwin" && <h2>Hydra</h2>}
+        <button type="button" className={styles.profileButton}>
+          <div className={styles.profileAvatar}>
+            {/* <PersonIcon /> */}
+            <img
+              src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fi.pinimg.com%2F736x%2Fbd%2F19%2F2f%2Fbd192f2723f7d81013f04903d9e0428b.jpg&f=1&nofb=1&ipt=dce89b7ad791596a8b78b07c3c27f3f54fbf608493fb7217b4eb4ba4ca7904d1&ipo=images"
+              alt="Avatar"
+              style={{ width: "100%", height: "100%", borderRadius: "50%" }}
+            />
 
-        <section className={styles.section}>
-          <ul className={styles.menu}>
-            {routes.map(({ nameKey, path, render }) => (
-              <li
-                key={nameKey}
-                className={styles.menuItem({
-                  active: location.pathname === path,
-                })}
-              >
-                <button
-                  type="button"
-                  className={styles.menuItemButton}
-                  onClick={() => handleSidebarItemClick(path)}
+            <div className={styles.statusBadge} />
+          </div>
+
+          <div className={styles.profileButtonInformation}>
+            <p style={{ fontWeight: "bold" }}>hydra</p>
+            <p style={{ fontSize: 12 }}>Jogando ABC</p>
+          </div>
+        </button>
+
+        <div
+          className={styles.content({
+            macos: window.electron.platform === "darwin",
+          })}
+        >
+          {window.electron.platform === "darwin" && <h2>Hydra</h2>}
+
+          <section className={styles.section}>
+            <ul className={styles.menu}>
+              {routes.map(({ nameKey, path, render }) => (
+                <li
+                  key={nameKey}
+                  className={styles.menuItem({
+                    active: location.pathname === path,
+                  })}
                 >
-                  {render(isDownloading)}
-                  <span>{t(nameKey)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+                  <button
+                    type="button"
+                    className={styles.menuItemButton}
+                    onClick={() => handleSidebarItemClick(path)}
+                  >
+                    {render(isDownloading)}
+                    <span>{t(nameKey)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
 
-        <section className={styles.section}>
-          <small className={styles.sectionTitle}>{t("my_library")}</small>
+          <section className={styles.section}>
+            <small className={styles.sectionTitle}>{t("my_library")}</small>
 
-          <TextField
-            placeholder={t("filter")}
-            onChange={handleFilter}
-            theme="dark"
-          />
+            <TextField
+              placeholder={t("filter")}
+              onChange={handleFilter}
+              theme="dark"
+            />
 
-          <ul className={styles.menu}>
-            {filteredLibrary.map((game) => (
-              <li
-                key={game.id}
-                className={styles.menuItem({
-                  active:
-                    location.pathname === `/game/${game.shop}/${game.objectID}`,
-                  muted: game.status === "removed",
-                })}
-              >
-                <button
-                  type="button"
-                  className={styles.menuItemButton}
-                  onClick={(event) => handleSidebarGameClick(event, game)}
+            <ul className={styles.menu}>
+              {filteredLibrary.map((game) => (
+                <li
+                  key={game.id}
+                  className={styles.menuItem({
+                    active:
+                      location.pathname ===
+                      `/game/${game.shop}/${game.objectID}`,
+                    muted: game.status === "removed",
+                  })}
                 >
-                  {game.iconUrl ? (
-                    <img
-                      className={styles.gameIcon}
-                      src={game.iconUrl}
-                      alt={game.title}
-                    />
-                  ) : (
-                    <SteamLogo className={styles.gameIcon} />
-                  )}
+                  <button
+                    type="button"
+                    className={styles.menuItemButton}
+                    onClick={(event) => handleSidebarGameClick(event, game)}
+                  >
+                    {game.iconUrl ? (
+                      <img
+                        className={styles.gameIcon}
+                        src={game.iconUrl}
+                        alt={game.title}
+                      />
+                    ) : (
+                      <SteamLogo className={styles.gameIcon} />
+                    )}
 
-                  <span className={styles.menuItemButtonLabel}>
-                    {getGameTitle(game)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      </div>
+                    <span className={styles.menuItemButtonLabel}>
+                      {getGameTitle(game)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
 
-      <button
-        type="button"
-        className={styles.handle}
-        onMouseDown={handleMouseDown}
-      />
-    </aside>
+        <button
+          type="button"
+          className={styles.handle}
+          onMouseDown={handleMouseDown}
+        />
+      </aside>
+    </>
   );
 }

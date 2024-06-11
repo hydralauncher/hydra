@@ -1,6 +1,7 @@
-import { SPACING_UNIT, vars } from "../../theme.css";
 import { style } from "@vanilla-extract/css";
 import { recipe } from "@vanilla-extract/recipes";
+
+import { SPACING_UNIT, vars } from "../../theme.css";
 
 export const textFieldContainer = style({
   flex: "1",
