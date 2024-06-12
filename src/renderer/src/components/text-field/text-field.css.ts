@@ -40,6 +40,11 @@ export const textField = recipe({
         backgroundColor: vars.color.background,
       },
     },
+    state: {
+      error: {
+        borderColor: vars.color.danger,
+      },
+    },
   },
 });
 
@@ -72,4 +77,9 @@ export const togglePasswordButton = style({
   cursor: "pointer",
   color: vars.color.muted,
   padding: `${SPACING_UNIT}px`,
+});
+
+export const textFieldWrapper = style({
+  display: "flex",
+  gap: `${SPACING_UNIT}px`,
 });
