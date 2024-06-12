@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Button, Modal, TextField } from "@renderer/components";
 import type { Game } from "@types";
 import * as styles from "./game-options-modal.css";
-import { gameDetailsContext } from "../game-details.context";
+import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import { useDownload } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
@@ -21,7 +21,7 @@ export function GameOptionsModal({
 }: GameOptionsModalProps) {
   const { t } = useTranslation("game_details");
 
-  const { updateGame, openRepacksModal, selectGameExecutable } =
+  const { updateGame, setShowRepacksModal, selectGameExecutable } =
     useContext(gameDetailsContext);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -145,7 +145,7 @@ export function GameOptionsModal({
           </div>
           <div className={styles.gameOptionRow}>
             <Button
-              onClick={openRepacksModal}
+              onClick={() => setShowRepacksModal(true)}
               theme="outline"
               disabled={deleting || isGameDownloading}
             >
