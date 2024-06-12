@@ -125,4 +125,8 @@ contextBridge.exposeInMainWorld("electron", {
   },
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
   restartAndInstallUpdate: () => ipcRenderer.invoke("restartAndInstallUpdate"),
+
+  /* Profile */
+  getUserProfile: (username: string) =>
+    ipcRenderer.invoke("getUserProfile", username),
 });
