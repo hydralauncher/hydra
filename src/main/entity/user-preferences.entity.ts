@@ -37,4 +37,10 @@ export class UserPreferences {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @Column("text", { default: "" })
+  accessToken: string;
+
+  @Column("text", { default: "" })
+  refreshToken: string;
 }
