@@ -105,22 +105,23 @@ export function GameOptionsModal({
               {t("executable_section_description")}
             </h4>
           </div>
-          <div className={styles.gameOptionRow}>
-            <TextField
-              value={game.executablePath || ""}
-              readOnly
-              theme="dark"
-              disabled
-              placeholder={t("no_executable_selected")}
-            />
-            <Button
-              type="button"
-              theme="outline"
-              onClick={handleChangeExecutableLocation}
-            >
-              {t("select_executable")}
-            </Button>
-          </div>
+
+          <TextField
+            value={game.executablePath || ""}
+            readOnly
+            theme="dark"
+            disabled
+            placeholder={t("no_executable_selected")}
+            rightContent={
+              <Button
+                type="button"
+                theme="outline"
+                onClick={handleChangeExecutableLocation}
+              >
+                {t("select_executable")}
+              </Button>
+            }
+          />
 
           {game.executablePath && (
             <div className={styles.gameOptionRow}>
