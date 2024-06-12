@@ -1,14 +1,20 @@
 import { format } from "date-fns";
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
-import Color from "color";
+
 import { useDownload } from "@renderer/hooks";
+
 import { HeroPanelActions } from "./hero-panel-actions";
 import * as styles from "./hero-panel.css";
 import { HeroPanelPlaytime } from "./hero-panel-playtime";
-import { gameDetailsContext } from "../game-details.context";
 
-export function HeroPanel() {
+import { gameDetailsContext } from "@renderer/context";
+
+export interface HeroPanelProps {
+  isHeaderStuck: boolean;
+}
+
+export function HeroPanel({ isHeaderStuck }: HeroPanelProps) {
   const { t } = useTranslation("game_details");
 
   const { game, repacks, gameColor } = useContext(gameDetailsContext);
@@ -40,17 +46,16 @@ export function HeroPanel() {
     return <HeroPanelPlaytime />;
   };
 
-  const backgroundColor = gameColor
-    ? (new Color(gameColor).darken(0.6).toString() as string)
-    : "";
-
   const showProgressBar =
     (game?.status === "active" && game?.progress < 1) ||
     game?.status === "paused";
 
   return (
     <>
-      <div style={{ backgroundColor }} className={styles.panel}>
+      <div
+        style={{ backgroundColor: gameColor }}
+        className={styles.panel({ stuck: isHeaderStuck })}
+      >
         <div className={styles.content}>{getInfo()}</div>
         <div className={styles.actions}>
           <HeroPanelActions />
