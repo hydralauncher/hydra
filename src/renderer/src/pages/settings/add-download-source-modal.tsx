@@ -1,9 +1,8 @@
-import { Button, Modal, TextField } from "@renderer/components";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import * as styles from "./settings-download-sources.css";
+import { Button, Modal, TextField } from "@renderer/components";
+import { SPACING_UNIT } from "@renderer/theme.css";
 
 interface AddDownloadSourceModalProps {
   visible: boolean;
@@ -64,24 +63,23 @@ export function AddDownloadSourceModal({
           minWidth: "500px",
         }}
       >
-        <div className={styles.downloadSourceField}>
-          <TextField
-            label={t("download_source_url")}
-            placeholder="Insert a valid JSON url"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-          />
-
-          <Button
-            type="button"
-            theme="outline"
-            style={{ alignSelf: "flex-end" }}
-            onClick={handleValidateDownloadSource}
-            disabled={isLoading || !value}
-          >
-            {t("validate_download_source")}
-          </Button>
-        </div>
+        <TextField
+          label={t("download_source_url")}
+          placeholder="Insert a valid JSON url"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          rightContent={
+            <Button
+              type="button"
+              theme="outline"
+              style={{ alignSelf: "flex-end" }}
+              onClick={handleValidateDownloadSource}
+              disabled={isLoading || !value}
+            >
+              {t("validate_download_source")}
+            </Button>
+          }
+        />
 
         {validationResult && (
           <div

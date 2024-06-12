@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import React, { useId, useMemo, useState } from "react";
 import type { RecipeVariants } from "@vanilla-extract/recipes";
 import * as styles from "./text-field.css";
 import { EyeClosedIcon, EyeIcon } from "@primer/octicons-react";
@@ -20,6 +20,8 @@ export interface TextFieldProps
     React.HTMLAttributes<HTMLDivElement>,
     HTMLDivElement
   >;
+  rightContent?: React.ReactNode | null;
+  state?: NonNullable<RecipeVariants<typeof styles.textField>>["state"];
 }
 
 export function TextField({
@@ -28,6 +30,8 @@ export function TextField({
   hint,
   textFieldProps,
   containerProps,
+  rightContent = null,
+  state,
   ...props
 }: TextFieldProps) {
   const id = useId();
@@ -48,33 +52,37 @@ export function TextField({
     <div className={styles.textFieldContainer} {...containerProps}>
       {label && <label htmlFor={id}>{label}</label>}
 
-      <div
-        className={styles.textField({ focused: isFocused, theme })}
-        {...textFieldProps}
-      >
-        <input
-          id={id}
-          className={styles.textFieldInput({ readOnly: props.readOnly })}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          {...props}
-          type={inputType}
-        />
+      <div className={styles.textFieldWrapper}>
+        <div
+          className={styles.textField({ focused: isFocused, theme, state })}
+          {...textFieldProps}
+        >
+          <input
+            id={id}
+            className={styles.textFieldInput({ readOnly: props.readOnly })}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            {...props}
+            type={inputType}
+          />
 
-        {showPasswordToggleButton && (
-          <button
-            type="button"
-            className={styles.togglePasswordButton}
-            onClick={() => setIsPasswordVisible(!isPasswordVisible)}
-            aria-label={t("toggle_password_visibility")}
-          >
-            {isPasswordVisible ? (
-              <EyeClosedIcon size={16} />
-            ) : (
-              <EyeIcon size={16} />
-            )}
-          </button>
-        )}
+          {showPasswordToggleButton && (
+            <button
+              type="button"
+              className={styles.togglePasswordButton}
+              onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+              aria-label={t("toggle_password_visibility")}
+            >
+              {isPasswordVisible ? (
+                <EyeClosedIcon size={16} />
+              ) : (
+                <EyeIcon size={16} />
+              )}
+            </button>
+          )}
+        </div>
+
+        {rightContent}
       </div>
 
       {hint && <small>{hint}</small>}

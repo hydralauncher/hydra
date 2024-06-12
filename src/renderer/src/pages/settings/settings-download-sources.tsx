@@ -137,25 +137,23 @@ export function SettingsDownloadSources() {
               </div>
             </div>
 
-            <div className={styles.downloadSourceField}>
-              <TextField
-                label={t("download_source_url")}
-                value={downloadSource.url}
-                readOnly
-                theme="dark"
-                disabled
-              />
-
-              <Button
-                type="button"
-                theme="outline"
-                style={{ alignSelf: "flex-end" }}
-                onClick={() => handleRemoveSource(downloadSource.id)}
-              >
-                <NoEntryIcon />
-                {t("remove_download_source")}
-              </Button>
-            </div>
+            <TextField
+              label={t("download_source_url")}
+              value={downloadSource.url}
+              readOnly
+              theme="dark"
+              disabled
+              rightContent={
+                <Button
+                  type="button"
+                  theme="outline"
+                  onClick={() => handleRemoveSource(downloadSource.id)}
+                >
+                  <NoEntryIcon />
+                  {t("remove_download_source")}
+                </Button>
+              }
+            />
           </li>
         ))}
       </ul>
