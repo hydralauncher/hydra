@@ -14,6 +14,7 @@ export interface ModalProps {
   onClose: () => void;
   large?: boolean;
   children: React.ReactNode;
+  clickOutsideToClose?: boolean;
 }
 
 export function Modal({
@@ -23,6 +24,7 @@ export function Modal({
   onClose,
   large,
   children,
+  clickOutsideToClose = true,
 }: ModalProps) {
   const [isClosing, setIsClosing] = useState(false);
   const modalContentRef = useRef<HTMLDivElement | null>(null);
@@ -60,6 +62,18 @@ export function Modal({
         }
       };
 
+      window.addEventListener("keydown", onKeyDown);
+
+      return () => {
+        window.removeEventListener("keydown", onKeyDown);
+      };
+    }
+
+    return () => {};
+  }, [handleCloseClick, visible]);
+
+  useEffect(() => {
+    if (clickOutsideToClose) {
       const onMouseDown = (e: MouseEvent) => {
         if (!isTopMostModal()) return;
         if (modalContentRef.current) {
@@ -73,17 +87,15 @@ export function Modal({
         }
       };
 
-      window.addEventListener("keydown", onKeyDown);
       window.addEventListener("mousedown", onMouseDown);
 
       return () => {
-        window.removeEventListener("keydown", onKeyDown);
         window.removeEventListener("mousedown", onMouseDown);
       };
     }
 
     return () => {};
-  }, [handleCloseClick, visible]);
+  }, [clickOutsideToClose, handleCloseClick]);
 
   if (!visible) return null;
 

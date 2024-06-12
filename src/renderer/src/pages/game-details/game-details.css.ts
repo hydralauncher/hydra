@@ -1,15 +1,26 @@
 import { globalStyle, keyframes, style } from "@vanilla-extract/css";
+
 import { SPACING_UNIT, vars } from "../../theme.css";
+
+export const HERO_HEIGHT = 300;
 
 export const slideIn = keyframes({
   "0%": { transform: `translateY(${40 + SPACING_UNIT * 2}px)` },
   "100%": { transform: "translateY(0)" },
 });
 
+export const wrapper = style({
+  display: "flex",
+  flexDirection: "column",
+  overflow: "hidden",
+  width: "100%",
+  height: "100%",
+});
+
 export const hero = style({
   width: "100%",
-  height: "300px",
-  minHeight: "300px",
+  height: `${HERO_HEIGHT}px`,
+  minHeight: `${HERO_HEIGHT}px`,
   display: "flex",
   flexDirection: "column",
   position: "relative",
@@ -29,7 +40,7 @@ export const heroContent = style({
   display: "flex",
 });
 
-export const heroBackdrop = style({
+export const heroLogoBackdrop = style({
   width: "100%",
   height: "100%",
   background: "linear-gradient(0deg, rgba(0, 0, 0, 0.3) 60%, transparent 100%)",
@@ -41,13 +52,18 @@ export const heroBackdrop = style({
 
 export const heroImage = style({
   width: "100%",
-  height: "100%",
+  height: `${HERO_HEIGHT}px`,
+  minHeight: `${HERO_HEIGHT}px`,
   objectFit: "cover",
   objectPosition: "top",
   transition: "all ease 0.2s",
+  position: "absolute",
+  zIndex: "0",
   "@media": {
     "(min-width: 1250px)": {
       objectPosition: "center",
+      height: "350px",
+      minHeight: "350px",
     },
   },
 });
@@ -66,12 +82,15 @@ export const container = style({
   height: "100%",
   display: "flex",
   flexDirection: "column",
+  overflow: "auto",
+  zIndex: "1",
 });
 
 export const descriptionContainer = style({
   display: "flex",
   width: "100%",
   flex: "1",
+  background: `linear-gradient(0deg, ${vars.color.background} 50%, ${vars.color.darkBackground} 100%)`,
 });
 
 export const descriptionContent = style({
@@ -109,22 +128,6 @@ export const descriptionSkeleton = style({
   },
   marginLeft: "auto",
   marginRight: "auto",
-});
-
-export const descriptionHeader = style({
-  width: "100%",
-  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  backgroundColor: vars.color.background,
-  height: "72px",
-});
-
-export const descriptionHeaderInfo = style({
-  display: "flex",
-  gap: `${SPACING_UNIT}px`,
-  flexDirection: "column",
 });
 
 export const randomizerButton = style({
