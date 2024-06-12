@@ -234,6 +234,12 @@ export interface RealDebridUser {
   expiration: string;
 }
 
+export interface UserProfile {
+  username: string;
+  game: any[];
+  recentGames: any[];
+}
+
 export interface DownloadSource {
   id: number;
   name: string;

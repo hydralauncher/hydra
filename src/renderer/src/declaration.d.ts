@@ -109,6 +109,9 @@ declare global {
     ) => () => Electron.IpcRenderer;
     checkForUpdates: () => Promise<boolean>;
     restartAndInstallUpdate: () => Promise<void>;
+
+    /* Profile */
+    getUserProfile: (username: string) => Promise<UserProfile | null>;
   }
 
   interface Window {
