@@ -13,6 +13,7 @@ import type {
   StartGameDownloadPayload,
   RealDebridUser,
   DownloadSource,
+  UserProfile,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 

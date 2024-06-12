@@ -143,6 +143,10 @@ export function Sidebar() {
     }
   };
 
+  const handleClickProfile = () => {
+    navigate("/profile/brownie");
+  };
+
   return (
     <>
       <aside
@@ -154,7 +158,11 @@ export function Sidebar() {
           maxWidth: sidebarWidth,
         }}
       >
-        <button type="button" className={styles.profileButton}>
+        <button
+          type="button"
+          className={styles.profileButton}
+          onClick={handleClickProfile}
+        >
           <div className={styles.profileAvatar}>
             <PersonIcon />
 

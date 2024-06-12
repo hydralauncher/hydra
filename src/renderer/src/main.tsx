@@ -27,6 +27,7 @@ import {
 import { store } from "./store";
 
 import * as resources from "@locales";
+import { Profile } from "./pages/profile/profile";
 
 i18n
   .use(LanguageDetector)
@@ -54,6 +55,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="/game/:shop/:objectID" Component={GameDetails} />
             <Route path="/search" Component={SearchResults} />
             <Route path="/settings" Component={Settings} />
+            <Route path="profile/:username" Component={Profile} />
           </Route>
         </Routes>
       </HashRouter>
