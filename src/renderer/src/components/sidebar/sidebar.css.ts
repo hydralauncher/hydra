@@ -1,5 +1,6 @@
 import { style } from "@vanilla-extract/css";
 import { recipe } from "@vanilla-extract/recipes";
+
 import { SPACING_UNIT, vars } from "../../theme.css";
 
 export const sidebar = recipe({
@@ -11,6 +12,7 @@ export const sidebar = recipe({
     transition: "opacity ease 0.2s",
     borderRight: `solid 1px ${vars.color.border}`,
     position: "relative",
+    overflow: "hidden",
   },
   variants: {
     resizing: {
@@ -122,4 +124,47 @@ export const section = style({
   display: "flex",
   flexDirection: "column",
   paddingBottom: `${SPACING_UNIT}px`,
+});
+
+export const profileButton = style({
+  display: "flex",
+  cursor: "pointer",
+  transition: "all ease 0.1s",
+  gap: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
+  alignItems: "center",
+  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
+  color: vars.color.muted,
+  borderBottom: `solid 1px ${vars.color.border}`,
+  boxShadow: "0px 0px 15px 0px #000000",
+  ":hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
+});
+
+export const profileAvatar = style({
+  width: "30px",
+  height: "30px",
+  borderRadius: "50%",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: vars.color.background,
+  position: "relative",
+});
+
+export const profileButtonInformation = style({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+});
+
+export const statusBadge = style({
+  width: "9px",
+  height: "9px",
+  borderRadius: "50%",
+  backgroundColor: vars.color.danger,
+  position: "absolute",
+  bottom: "-2px",
+  right: "-3px",
+  zIndex: "1",
 });

@@ -10,7 +10,7 @@ import type { Steam250Game, CatalogueEntry } from "@types";
 import starsAnimation from "@renderer/assets/lottie/stars.json";
 
 import * as styles from "./home.css";
-import { vars } from "../../theme.css";
+import { vars } from "@renderer/theme.css";
 import Lottie from "lottie-react";
 import { buildGameDetailsPath } from "@renderer/helpers";
 

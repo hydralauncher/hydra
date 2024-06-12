@@ -7,6 +7,7 @@ globalStyle("*", {
 
 globalStyle("::-webkit-scrollbar", {
   width: "9px",
+  backgroundColor: vars.color.darkBackground,
 });
 
 globalStyle("::-webkit-scrollbar-track", {
