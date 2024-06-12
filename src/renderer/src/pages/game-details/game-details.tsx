@@ -1,30 +1,29 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { average } from "color.js";
 
-import { Steam250Game } from "@types";
+import { GameRepack, GameShop, Steam250Game } from "@types";
 
 import { Button } from "@renderer/components";
-import { buildGameDetailsPath, steamUrlBuilder } from "@renderer/helpers";
+import { buildGameDetailsPath } from "@renderer/helpers";
 
 import starsAnimation from "@renderer/assets/lottie/stars.json";
 
 import Lottie from "lottie-react";
 import { useTranslation } from "react-i18next";
 import { SkeletonTheme } from "react-loading-skeleton";
-import { DescriptionHeader } from "./description-header";
 import { GameDetailsSkeleton } from "./game-details-skeleton";
 import * as styles from "./game-details.css";
-import { HeroPanel } from "./hero";
 
-import { vars } from "../../theme.css";
+import { vars } from "@renderer/theme.css";
 
-import { GallerySlider } from "./gallery-slider";
-import { Sidebar } from "./sidebar/sidebar";
+import { GameDetailsContent } from "./game-details-content";
 import {
   GameDetailsContextConsumer,
   GameDetailsContextProvider,
-} from "./game-details.context";
+} from "@renderer/context";
+import { useDownload } from "@renderer/hooks";
+import { GameOptionsModal, RepacksModal } from "./modals";
+import { Downloader } from "@shared";
 
 export function GameDetails() {
   const [randomGame, setRandomGame] = useState<Steam250Game | null>(null);
@@ -33,6 +32,8 @@ export function GameDetails() {
   const [searchParams] = useSearchParams();
 
   const fromRandomizer = searchParams.get("fromRandomizer");
+
+  const { startDownload } = useDownload();
 
   const { t } = useTranslation("game_details");
 
@@ -59,17 +60,34 @@ export function GameDetails() {
   return (
     <GameDetailsContextProvider>
       <GameDetailsContextConsumer>
-        {({ game, shopDetails, isLoading, setGameColor }) => {
-          const handleHeroLoad = async () => {
-            const output = await average(
-              steamUrlBuilder.libraryHero(objectID!),
-              {
-                amount: 1,
-                format: "hex",
-              }
-            );
+        {({
+          isLoading,
+          game,
+          gameTitle,
+          shop,
+          showRepacksModal,
+          showGameOptionsModal,
+          updateGame,
+          setShowRepacksModal,
+          setShowGameOptionsModal,
+        }) => {
+          const handleStartDownload = async (
+            repack: GameRepack,
+            downloader: Downloader,
+            downloadPath: string
+          ) => {
+            await startDownload({
+              repackId: repack.id,
+              objectID: objectID!,
+              title: gameTitle,
+              downloader,
+              shop: shop as GameShop,
+              downloadPath,
+            });
 
-            setGameColor(output as string);
+            await updateGame();
+            setShowRepacksModal(false);
+            setShowGameOptionsModal(false);
           };
 
           return (
@@ -77,47 +95,22 @@ export function GameDetails() {
               baseColor={vars.color.background}
               highlightColor="#444"
             >
-              {isLoading ? (
-                <GameDetailsSkeleton />
-              ) : (
-                <section className={styles.container}>
-                  <div className={styles.hero}>
-                    <img
-                      src={steamUrlBuilder.libraryHero(objectID!)}
-                      className={styles.heroImage}
-                      alt={game?.title}
-                      onLoad={handleHeroLoad}
-                    />
-                    <div className={styles.heroBackdrop}>
-                      <div className={styles.heroContent}>
-                        <img
-                          src={steamUrlBuilder.logo(objectID!)}
-                          style={{ width: 300, alignSelf: "flex-end" }}
-                          alt={game?.title}
-                        />
-                      </div>
-                    </div>
-                  </div>
+              {isLoading ? <GameDetailsSkeleton /> : <GameDetailsContent />}
 
-                  <HeroPanel />
+              <RepacksModal
+                visible={showRepacksModal}
+                startDownload={handleStartDownload}
+                onClose={() => setShowRepacksModal(false)}
+              />
 
-                  <div className={styles.descriptionContainer}>
-                    <div className={styles.descriptionContent}>
-                      <DescriptionHeader />
-                      <GallerySlider />
-
-                      <div
-                        dangerouslySetInnerHTML={{
-                          __html:
-                            shopDetails?.about_the_game ?? t("no_shop_details"),
-                        }}
-                        className={styles.description}
-                      />
-                    </div>
-
-                    <Sidebar />
-                  </div>
-                </section>
+              {game && (
+                <GameOptionsModal
+                  visible={showGameOptionsModal}
+                  game={game}
+                  onClose={() => {
+                    setShowGameOptionsModal(false);
+                  }}
+                />
               )}
 
               {fromRandomizer && (

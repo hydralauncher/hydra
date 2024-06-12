@@ -4,7 +4,8 @@ import { useDownload, useLibrary } from "@renderer/hooks";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as styles from "./hero-panel-actions.css";
-import { gameDetailsContext } from "../game-details.context";
+
+import { gameDetailsContext } from "@renderer/context";
 
 export function HeroPanelActions() {
   const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
@@ -18,8 +19,8 @@ export function HeroPanelActions() {
     isGameRunning,
     objectID,
     gameTitle,
-    openRepacksModal,
-    openGameOptionsModal,
+    setShowGameOptionsModal,
+    setShowRepacksModal,
     updateGame,
     selectGameExecutable,
   } = useContext(gameDetailsContext);
@@ -74,7 +75,7 @@ export function HeroPanelActions() {
 
   const showDownloadOptionsButton = (
     <Button
-      onClick={openRepacksModal}
+      onClick={() => setShowRepacksModal(true)}
       theme="outline"
       disabled={deleting}
       className={styles.heroPanelAction}
@@ -119,7 +120,7 @@ export function HeroPanelActions() {
         <div className={styles.separator} />
 
         <Button
-          onClick={openGameOptionsModal}
+          onClick={() => setShowGameOptionsModal(true)}
           theme="outline"
           disabled={deleting || isGameRunning}
           className={styles.heroPanelAction}
