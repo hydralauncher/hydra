@@ -8,32 +8,7 @@ import { useAppDispatch, useAppSelector, useDownload } from "@renderer/hooks";
 import type { Game, GameRepack, GameShop, ShopDetails } from "@types";
 
 import { useTranslation } from "react-i18next";
-import {
-  DODIInstallationGuide,
-  DONT_SHOW_DODI_INSTRUCTIONS_KEY,
-  DONT_SHOW_ONLINE_FIX_INSTRUCTIONS_KEY,
-  OnlineFixInstallationGuide,
-  RepacksModal,
-} from "./modals";
-import { Downloader } from "@shared";
-import { GameOptionsModal } from "./modals/game-options-modal";
-
-export interface GameDetailsContext {
-  game: Game | null;
-  shopDetails: ShopDetails | null;
-  repacks: GameRepack[];
-  shop: GameShop;
-  gameTitle: string;
-  isGameRunning: boolean;
-  isLoading: boolean;
-  objectID: string | undefined;
-  gameColor: string;
-  setGameColor: React.Dispatch<React.SetStateAction<string>>;
-  openRepacksModal: () => void;
-  openGameOptionsModal: () => void;
-  selectGameExecutable: () => Promise<string | null>;
-  updateGame: () => Promise<void>;
-}
+import { GameDetailsContext } from "./game-details.context.types";
 
 export const gameDetailsContext = createContext<GameDetailsContext>({
   game: null,
@@ -45,11 +20,13 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   isLoading: false,
   objectID: undefined,
   gameColor: "",
+  showRepacksModal: false,
+  showGameOptionsModal: false,
   setGameColor: () => {},
-  openRepacksModal: () => {},
-  openGameOptionsModal: () => {},
   selectGameExecutable: async () => null,
   updateGame: async () => {},
+  setShowGameOptionsModal: () => {},
+  setShowRepacksModal: () => {},
 });
 
 const { Provider } = gameDetailsContext;
@@ -70,9 +47,6 @@ export function GameDetailsContextProvider({
 
   const [isLoading, setIsLoading] = useState(false);
   const [gameColor, setGameColor] = useState("");
-  const [showInstructionsModal, setShowInstructionsModal] = useState<
-    null | "onlinefix" | "DODI"
-  >(null);
   const [isGameRunning, setisGameRunning] = useState(false);
   const [showRepacksModal, setShowRepacksModal] = useState(false);
   const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
@@ -85,7 +59,7 @@ export function GameDetailsContextProvider({
 
   const dispatch = useAppDispatch();
 
-  const { startDownload, lastPacket } = useDownload();
+  const { lastPacket } = useDownload();
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -152,37 +126,6 @@ export function GameDetailsContextProvider({
     };
   }, [game?.id, isGameRunning, updateGame]);
 
-  const handleStartDownload = async (
-    repack: GameRepack,
-    downloader: Downloader,
-    downloadPath: string
-  ) => {
-    await startDownload({
-      repackId: repack.id,
-      objectID: objectID!,
-      title: gameTitle,
-      downloader,
-      shop: shop as GameShop,
-      downloadPath,
-    });
-
-    await updateGame();
-    setShowRepacksModal(false);
-    setShowGameOptionsModal(false);
-
-    if (
-      repack.repacker === "onlinefix" &&
-      !window.localStorage.getItem(DONT_SHOW_ONLINE_FIX_INSTRUCTIONS_KEY)
-    ) {
-      setShowInstructionsModal("onlinefix");
-    } else if (
-      repack.repacker === "DODI" &&
-      !window.localStorage.getItem(DONT_SHOW_DODI_INSTRUCTIONS_KEY)
-    ) {
-      setShowInstructionsModal("DODI");
-    }
-  };
-
   const getDownloadsPath = async () => {
     if (userPreferences?.downloadsPath) return userPreferences.downloadsPath;
     return window.electron.getDefaultDownloadsPath();
@@ -211,9 +154,6 @@ export function GameDetailsContextProvider({
       });
   };
 
-  const openRepacksModal = () => setShowRepacksModal(true);
-  const openGameOptionsModal = () => setShowGameOptionsModal(true);
-
   return (
     <Provider
       value={{
@@ -226,42 +166,16 @@ export function GameDetailsContextProvider({
         isLoading,
         objectID,
         gameColor,
+        showGameOptionsModal,
+        showRepacksModal,
         setGameColor,
-        openRepacksModal,
-        openGameOptionsModal,
         selectGameExecutable,
         updateGame,
+        setShowRepacksModal,
+        setShowGameOptionsModal,
       }}
     >
-      <>
-        <RepacksModal
-          visible={showRepacksModal}
-          startDownload={handleStartDownload}
-          onClose={() => setShowRepacksModal(false)}
-        />
-
-        <OnlineFixInstallationGuide
-          visible={showInstructionsModal === "onlinefix"}
-          onClose={() => setShowInstructionsModal(null)}
-        />
-
-        <DODIInstallationGuide
-          visible={showInstructionsModal === "DODI"}
-          onClose={() => setShowInstructionsModal(null)}
-        />
-
-        {game && (
-          <GameOptionsModal
-            visible={showGameOptionsModal}
-            game={game}
-            onClose={() => {
-              setShowGameOptionsModal(false);
-            }}
-          />
-        )}
-
-        {children}
-      </>
+      {children}
     </Provider>
   );
 }

@@ -1,5 +1,6 @@
 import { keyframes, style } from "@vanilla-extract/css";
 import { recipe } from "@vanilla-extract/recipes";
+
 import { SPACING_UNIT, vars } from "../../theme.css";
 
 export const scaleFadeIn = keyframes({

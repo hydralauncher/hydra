@@ -4,8 +4,9 @@ import { Trans, useTranslation } from "react-i18next";
 import { Button, CheckboxField, Link, TextField } from "@renderer/components";
 import * as styles from "./settings-real-debrid.css";
 import type { UserPreferences } from "@types";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { useAppSelector, useToast } from "@renderer/hooks";
+
+import { SPACING_UNIT } from "@renderer/theme.css";
 
 const REAL_DEBRID_API_TOKEN_URL = "https://real-debrid.com/apitoken";
 
