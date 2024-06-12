@@ -15,6 +15,15 @@
     "downloading": "{{title}} ({{percentage}} - Downloading…)",
     "filter": "Filter library",
     "home": "Home",
+    "discord": "Join our Discord",
+    "telegram": "Join our Telegram",
+    "x": "Follow on X",
+    "github": "Contribute on GitHub",
+    "sorting_options": {
+      "alphabetically": "A-Z",
+      "most_played": "Most played",
+      "downloaded": "Most downloaded"
+    },
     "queued": "{{title}} (Queued)",
     "game_has_no_executable": "Game has no executable selected"
   },

@@ -2,6 +2,10 @@ import { createTheme } from "@vanilla-extract/css";
 
 export const SPACING_UNIT = 8;
 
+export const Z_INDEX = {
+  dropDownMenu: 4,
+};
+
 export const [themeClass, vars] = createTheme({
   color: {
     background: "#1c1c1c",

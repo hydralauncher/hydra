@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -13,6 +13,9 @@ import * as styles from "./sidebar.css";
 import { buildGameDetailsPath } from "@renderer/helpers";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
+import { SortDescIcon } from "@primer/octicons-react";
+import { DropDownMenu } from "../drop-down-menu/drop-down-menu";
+import { vars } from "@renderer/theme.css";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -20,12 +23,38 @@ const SIDEBAR_MAX_WIDTH = 450;
 
 const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 
+enum LibrarySortingType {
+  Alphabetically = "a-z",
+  MostPlayed = "most_played",
+  Downloaded = "downloaded",
+}
+
 export function Sidebar() {
   const { t } = useTranslation("sidebar");
   const { library, updateLibrary } = useLibrary();
   const navigate = useNavigate();
 
   const [filteredLibrary, setFilteredLibrary] = useState<LibraryGame[]>([]);
+  const [sortingType, setSortingType] = useState<LibrarySortingType>(
+    LibrarySortingType.Alphabetically
+  );
+  const sortLibraryOptions = useMemo(
+    () => [
+      {
+        label: t("sorting_options.alphabetically"),
+        value: LibrarySortingType.Alphabetically,
+      },
+      {
+        label: t("sorting_options.most_played"),
+        value: LibrarySortingType.MostPlayed,
+      },
+      {
+        label: t("sorting_options.downloaded"),
+        value: LibrarySortingType.Downloaded,
+      },
+    ],
+    [t]
+  );
 
   const [isResizing, setIsResizing] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(
@@ -124,6 +153,35 @@ export function Sidebar() {
     }
   };
 
+  const sortLibrary = useCallback(
+    (a: LibraryGame, b: LibraryGame) => {
+      if (sortingType === LibrarySortingType.Alphabetically) {
+        return b.title.localeCompare(a.title, "en");
+      }
+
+      if (sortingType === LibrarySortingType.MostPlayed) {
+        return (
+          (b.lastTimePlayed ?? new Date()).getTime() -
+          (a.lastTimePlayed ?? new Date()).getTime()
+        );
+      }
+
+      if (sortingType === LibrarySortingType.Downloaded) {
+        return (
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt)?.getTime()
+        );
+      }
+
+      return 0;
+    },
+    [sortingType]
+  );
+
+  const sortedLibrary = useMemo(
+    () => [...filteredLibrary].sort(sortLibrary),
+    [filteredLibrary, sortLibrary]
+  );
+
   const handleSidebarGameClick = (
     event: React.MouseEvent,
     game: LibraryGame
@@ -182,16 +240,25 @@ export function Sidebar() {
         </section>
 
         <section className={styles.section}>
-          <small className={styles.sectionTitle}>{t("my_library")}</small>
+          <div className={styles.sectionHeader}>
+            <small className={styles.sectionTitle}>{t("my_library")}</small>
+            <DropDownMenu
+              trigger={<SortDescIcon fill={vars.color.body} />}
+              align="end"
+              options={sortLibraryOptions}
+              onSelect={(value) => {
+                setSortingType(value as LibrarySortingType);
+              }}
+            />
+          </div>
 
           <TextField
             placeholder={t("filter")}
             onChange={handleFilter}
             theme="dark"
           />
-
           <ul className={styles.menu}>
-            {filteredLibrary.map((game) => (
+            {sortedLibrary.map((game) => (
               <li
                 key={game.id}
                 className={styles.menuItem({
