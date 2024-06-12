@@ -13,7 +13,10 @@ import * as styles from "./game-details.css";
 import { useTranslation } from "react-i18next";
 import { gameDetailsContext } from "@renderer/context";
 
+const HERO_ANIMATION_THRESHOLD = 25;
+
 export function GameDetailsContent() {
+  const heroRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isHeaderStuck, setIsHeaderStuck] = useState(false);
 
@@ -42,14 +45,19 @@ export function GameDetailsContent() {
   }, [objectID]);
 
   const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
-    const scrollY = (event.target as HTMLDivElement).scrollTop;
-    const opacity = Math.max(0, 1 - scrollY / styles.HERO_HEIGHT);
+    const heroHeight = heroRef.current?.clientHeight ?? styles.HERO_HEIGHT;
 
-    if (scrollY >= styles.HERO_HEIGHT && !isHeaderStuck) {
+    const scrollY = (event.target as HTMLDivElement).scrollTop;
+    const opacity = Math.max(
+      0,
+      1 - scrollY / (heroHeight - HERO_ANIMATION_THRESHOLD)
+    );
+
+    if (scrollY >= heroHeight && !isHeaderStuck) {
       setIsHeaderStuck(true);
     }
 
-    if (scrollY <= styles.HERO_HEIGHT && isHeaderStuck) {
+    if (scrollY <= heroHeight && isHeaderStuck) {
       setIsHeaderStuck(false);
     }
 
@@ -70,7 +78,7 @@ export function GameDetailsContent() {
         onScroll={onScroll}
         className={styles.container}
       >
-        <div className={styles.hero}>
+        <div ref={heroRef} className={styles.hero}>
           <div
             style={{
               backgroundColor: gameColor,

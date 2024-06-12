@@ -8,7 +8,6 @@ import {
   SelectField,
 } from "@renderer/components";
 import { useTranslation } from "react-i18next";
-import * as styles from "./settings-general.css";
 import type { UserPreferences } from "@types";
 import { useAppSelector } from "@renderer/hooks";
 
@@ -113,22 +112,17 @@ export function SettingsGeneral({
 
   return (
     <>
-      <div className={styles.downloadsPathField}>
-        <TextField
-          label={t("downloads_path")}
-          value={form.downloadsPath}
-          readOnly
-          disabled
-        />
-
-        <Button
-          style={{ alignSelf: "flex-end" }}
-          theme="outline"
-          onClick={handleChooseDownloadsPath}
-        >
-          {t("change")}
-        </Button>
-      </div>
+      <TextField
+        label={t("downloads_path")}
+        value={form.downloadsPath}
+        readOnly
+        disabled
+        rightContent={
+          <Button theme="outline" onClick={handleChooseDownloadsPath}>
+            {t("change")}
+          </Button>
+        }
+      />
 
       <SelectField
         label={t("language")}
