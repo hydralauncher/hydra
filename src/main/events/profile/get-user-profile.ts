@@ -5,6 +5,7 @@ import { HydraApi } from "@main/services/hydra-api";
 import { steamGamesWorker } from "@main/workers";
 import { UserProfile } from "@types";
 import { convertSteamGameToCatalogueEntry } from "../helpers/search-games";
+import { getSteamAppAsset } from "@main/helpers";
 
 const getUserProfile = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -19,8 +20,11 @@ const getUserProfile = async (
         const steamGame = await steamGamesWorker.run(Number(game.objectId), {
           name: "getById",
         });
+        const iconUrl = steamGame?.clientIcon
+          ? getSteamAppAsset("icon", game.objectId, steamGame.clientIcon)
+          : null;
 
-        return convertSteamGameToCatalogueEntry(steamGame);
+        return { ...convertSteamGameToCatalogueEntry(steamGame), iconUrl };
       })
     );
 
@@ -29,7 +33,11 @@ const getUserProfile = async (
         const steamGame = await steamGamesWorker.run(Number(game.objectId), {
           name: "getById",
         });
-        return convertSteamGameToCatalogueEntry(steamGame);
+        const iconUrl = steamGame?.clientIcon
+          ? getSteamAppAsset("icon", game.objectId, steamGame.clientIcon)
+          : null;
+
+        return { ...convertSteamGameToCatalogueEntry(steamGame), iconUrl };
       })
     );
 
