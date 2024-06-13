@@ -36,33 +36,32 @@ export class HydraApi {
         if (error.response.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
           const refreshToken = this.refreshToken;
-          if (refreshToken) {
-            try {
-              const response = await axios.post(
-                `${import.meta.env.MAIN_VITE_API_URL}/auth/refresh`,
-                { refreshToken }
-              );
-              const newAccessToken = response.data.accessToken;
-              this.authToken = newAccessToken;
 
-              userPreferencesRepository.upsert(
-                {
-                  id: 1,
-                  accessToken: newAccessToken,
-                },
-                ["id"]
-              );
+          if (!refreshToken) return error;
 
-              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-              return axios(originalRequest); //recall Api with new token
-            } catch (error) {
-              this.authToken = "";
-              this.refreshToken = "";
-              return error;
-            }
+          try {
+            const response = await axios.post(
+              `${import.meta.env.MAIN_VITE_API_URL}/auth/refresh`,
+              { refreshToken }
+            );
+            const newAccessToken = response.data.accessToken;
+            this.authToken = newAccessToken;
+
+            userPreferencesRepository.upsert(
+              {
+                id: 1,
+                accessToken: newAccessToken,
+              },
+              ["id"]
+            );
+
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+            return axios(originalRequest); //recall Api with new token
+          } catch (err) {
+            this.authToken = "";
+            this.refreshToken = "";
+            return error;
           }
-
-          return error;
         }
 
         return error;
