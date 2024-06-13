@@ -16,7 +16,7 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
       <section className={styles.profileContentBox}>
         <img
           className={styles.profileAvatar}
-          src="https://avatars.githubusercontent.com/u/167933696?v=4"
+          src="https://cdn.losbroxas.org/3918aa27-9b96-4fdf-b066-4c545d6667ab.png"
         />
 
         <div className={styles.profileInformation}>
@@ -53,7 +53,12 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
             style={{ flexDirection: "column" }}
           >
             {userProfile.recentGames.map((game) => {
-              return <p key={game.objectID}>{game.title}</p>;
+              return (
+                <>
+                  <img src={game.cover} width={50} height={50} />
+                  <p key={game.objectID}>{game.title}</p>
+                </>
+              );
             })}
           </div>
         </div>
@@ -84,7 +89,12 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
             style={{ flexDirection: "column" }}
           >
             {userProfile.libraryGames.map((game) => {
-              return <p key={game.objectID}>{game.title}</p>;
+              return (
+                <>
+                  <img src={game.cover} width={50} height={50} />{" "}
+                  <p key={game.objectID}>{game.title}</p>
+                </>
+              );
             })}
           </div>
         </div>
