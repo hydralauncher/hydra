@@ -10,7 +10,6 @@ import {
 } from "@renderer/hooks";
 
 import * as styles from "./app.css";
-import { themeClass } from "./theme.css";
 
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -20,8 +19,6 @@ import {
   toggleDraggingDisabled,
   closeToast,
 } from "@renderer/features";
-
-document.body.classList.add(themeClass);
 
 export interface AppProps {
   children: React.ReactNode;

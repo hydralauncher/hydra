@@ -1,15 +1,12 @@
 import { style } from "@vanilla-extract/css";
-import { SPACING_UNIT, vars } from "../../theme.css";
 
-export const homeCategories = style({
-  display: "flex",
-  gap: `${SPACING_UNIT}px`,
-});
+import { SPACING_UNIT, vars } from "../../theme.css";
 
 export const homeHeader = style({
   display: "flex",
   gap: `${SPACING_UNIT}px`,
   justifyContent: "space-between",
+  alignItems: "center",
 });
 
 export const content = style({

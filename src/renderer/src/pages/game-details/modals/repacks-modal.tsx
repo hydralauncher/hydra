@@ -1,15 +1,16 @@
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import parseTorrent from "parse-torrent";
 
-import { Button, Modal, TextField } from "@renderer/components";
+import { Badge, Button, Modal, TextField } from "@renderer/components";
 import type { GameRepack } from "@types";
 
 import * as styles from "./repacks-modal.css";
 
-import { SPACING_UNIT } from "../../../theme.css";
+import { SPACING_UNIT } from "@renderer/theme.css";
 import { format } from "date-fns";
 import { DownloadSettingsModal } from "./download-settings-modal";
-import { gameDetailsContext } from "../game-details.context";
+import { gameDetailsContext } from "@renderer/context";
 import { Downloader } from "@shared";
 
 export interface RepacksModalProps {
@@ -31,13 +32,22 @@ export function RepacksModal({
   const [repack, setRepack] = useState<GameRepack | null>(null);
   const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
 
-  const { repacks } = useContext(gameDetailsContext);
+  const [infoHash, setInfoHash] = useState<string | null>(null);
+
+  const { repacks, game } = useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
 
+  const getInfoHash = useCallback(async () => {
+    const torrent = await parseTorrent(game?.uri ?? "");
+    if (torrent.infoHash) setInfoHash(torrent.infoHash);
+  }, [game]);
+
   useEffect(() => {
     setFilteredRepacks(repacks);
-  }, [repacks, visible]);
+
+    if (game?.uri) getInfoHash();
+  }, [repacks, visible, game, getInfoHash]);
 
   const handleRepackClick = (repack: GameRepack) => {
     setRepack(repack);
@@ -79,24 +89,35 @@ export function RepacksModal({
         </div>
 
         <div className={styles.repacks}>
-          {filteredRepacks.map((repack) => (
-            <Button
-              key={repack.id}
-              theme="dark"
-              onClick={() => handleRepackClick(repack)}
-              className={styles.repackButton}
-            >
-              <p style={{ color: "#DADBE1", wordBreak: "break-word" }}>
-                {repack.title}
-              </p>
-              <p style={{ fontSize: "12px" }}>
-                {repack.fileSize} - {repack.repacker} -{" "}
-                {repack.uploadDate
-                  ? format(repack.uploadDate, "dd/MM/yyyy")
-                  : ""}
-              </p>
-            </Button>
-          ))}
+          {filteredRepacks.map((repack) => {
+            const isLastDownloadedOption =
+              infoHash !== null &&
+              repack.magnet.toLowerCase().includes(infoHash);
+
+            return (
+              <Button
+                key={repack.id}
+                theme="dark"
+                onClick={() => handleRepackClick(repack)}
+                className={styles.repackButton}
+              >
+                <p style={{ color: "#DADBE1", wordBreak: "break-word" }}>
+                  {repack.title}
+                </p>
+
+                {isLastDownloadedOption && (
+                  <Badge>{t("last_downloaded_option")}</Badge>
+                )}
+
+                <p style={{ fontSize: "12px" }}>
+                  {repack.fileSize} - {repack.repacker} -{" "}
+                  {repack.uploadDate
+                    ? format(repack.uploadDate, "dd/MM/yyyy")
+                    : ""}
+                </p>
+              </Button>
+            );
+          })}
         </div>
       </Modal>
     </>
