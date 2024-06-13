@@ -1,4 +1,5 @@
 import { style } from "@vanilla-extract/css";
+
 import { SPACING_UNIT, vars } from "../../theme.css";
 
 export const hero = style({
@@ -23,6 +24,7 @@ export const heroMedia = style({
   width: "100%",
   height: "100%",
   transition: "all ease 0.2s",
+  imageRendering: "revert",
   selectors: {
     [`${hero}:hover &`]: {
       transform: "scale(1.02)",

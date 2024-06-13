@@ -1,8 +1,8 @@
-import { createTheme } from "@vanilla-extract/css";
+import { createGlobalTheme } from "@vanilla-extract/css";
 
 export const SPACING_UNIT = 8;
 
-export const [themeClass, vars] = createTheme({
+export const vars = createGlobalTheme(":root", {
   color: {
     background: "#1c1c1c",
     darkBackground: "#151515",
@@ -11,6 +11,7 @@ export const [themeClass, vars] = createTheme({
     border: "#424244",
     success: "#1c9749",
     danger: "#e11d48",
+    warning: "#ffc107",
   },
   opacity: {
     disabled: "0.5",
@@ -18,5 +19,6 @@ export const [themeClass, vars] = createTheme({
   },
   size: {
     body: "14px",
+    small: "12px",
   },
 });

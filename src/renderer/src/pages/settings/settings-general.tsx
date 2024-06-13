@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 import ISO6391 from "iso-639-1";
 
-import { TextField, Button, CheckboxField, Select } from "@renderer/components";
+import {
+  TextField,
+  Button,
+  CheckboxField,
+  SelectField,
+} from "@renderer/components";
 import { useTranslation } from "react-i18next";
-import * as styles from "./settings-general.css";
 import type { UserPreferences } from "@types";
 import { useAppSelector } from "@renderer/hooks";
 
@@ -108,35 +112,28 @@ export function SettingsGeneral({
 
   return (
     <>
-      <div className={styles.downloadsPathField}>
-        <TextField
-          label={t("downloads_path")}
-          value={form.downloadsPath}
-          readOnly
-          disabled
-        />
+      <TextField
+        label={t("downloads_path")}
+        value={form.downloadsPath}
+        readOnly
+        disabled
+        rightContent={
+          <Button theme="outline" onClick={handleChooseDownloadsPath}>
+            {t("change")}
+          </Button>
+        }
+      />
 
-        <Button
-          style={{ alignSelf: "flex-end" }}
-          theme="outline"
-          onClick={handleChooseDownloadsPath}
-        >
-          {t("change")}
-        </Button>
-      </div>
-
-      <h3>{t("language")}</h3>
-      <>
-        <Select
-          value={form.language}
-          onChange={handleLanguageChange}
-          options={languageOptions.map((language) => ({
-            key: language.option,
-            value: language.option,
-            label: language.nativeName,
-          }))}
-        />
-      </>
+      <SelectField
+        label={t("language")}
+        value={form.language}
+        onChange={handleLanguageChange}
+        options={languageOptions.map((language) => ({
+          key: language.option,
+          value: language.option,
+          label: language.nativeName,
+        }))}
+      />
 
       <h3>{t("notifications")}</h3>
       <>

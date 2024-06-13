@@ -1,6 +1,7 @@
-import { SPACING_UNIT, vars } from "../../theme.css";
 import { style } from "@vanilla-extract/css";
 import { recipe } from "@vanilla-extract/recipes";
+
+import { SPACING_UNIT, vars } from "../../theme.css";
 
 export const textFieldContainer = style({
   flex: "1",
@@ -39,21 +40,46 @@ export const textField = recipe({
         backgroundColor: vars.color.background,
       },
     },
+    state: {
+      error: {
+        borderColor: vars.color.danger,
+      },
+    },
   },
 });
 
-export const textFieldInput = style({
-  backgroundColor: "transparent",
-  border: "none",
-  width: "100%",
-  height: "100%",
-  outline: "none",
-  color: "#DADBE1",
-  cursor: "default",
-  fontFamily: "inherit",
-  textOverflow: "ellipsis",
-  padding: `${SPACING_UNIT}px`,
-  ":focus": {
-    cursor: "text",
+export const textFieldInput = recipe({
+  base: {
+    backgroundColor: "transparent",
+    border: "none",
+    width: "100%",
+    height: "100%",
+    outline: "none",
+    color: "#DADBE1",
+    cursor: "default",
+    fontFamily: "inherit",
+    textOverflow: "ellipsis",
+    padding: `${SPACING_UNIT}px`,
+    ":focus": {
+      cursor: "text",
+    },
   },
+  variants: {
+    readOnly: {
+      true: {
+        textOverflow: "inherit",
+      },
+    },
+  },
+});
+
+export const togglePasswordButton = style({
+  cursor: "pointer",
+  color: vars.color.muted,
+  padding: `${SPACING_UNIT}px`,
+});
+
+export const textFieldWrapper = style({
+  display: "flex",
+  gap: `${SPACING_UNIT}px`,
 });

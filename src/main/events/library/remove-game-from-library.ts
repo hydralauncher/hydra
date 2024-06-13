@@ -5,7 +5,10 @@ const removeGameFromLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
   gameId: number
 ) => {
-  gameRepository.update({ id: gameId }, { isDeleted: true });
+  gameRepository.update(
+    { id: gameId },
+    { isDeleted: true, executablePath: null }
+  );
 };
 
 registerEvent("removeGameFromLibrary", removeGameFromLibrary);
