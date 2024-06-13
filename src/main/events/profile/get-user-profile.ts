@@ -24,7 +24,7 @@ const getUserProfile = async (
     );
 
     const libraryGames = await Promise.all(
-      profile.game.map(async (game) => {
+      profile.libraryGames.map(async (game) => {
         const steamGame = await steamGamesWorker.run(Number(game.objectId), {
           name: "getById",
         });
