@@ -12,13 +12,13 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
     <>
       <section className={styles.profileContentBox}>
         <img
-          alt={userProfile.username + " profile image"}
+          alt={userProfile.displayName + " profile image"}
           className={styles.profileAvatar}
           src="https://cdn.losbroxas.org/3918aa27-9b96-4fdf-b066-4c545d6667ab.png"
         />
 
         <div className={styles.profileInformation}>
-          <h3 style={{ fontWeight: "bold" }}>{userProfile.username}</h3>
+          <h2 style={{ fontWeight: "bold" }}>{userProfile.displayName}</h2>
         </div>
       </section>
 
@@ -51,14 +51,18 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
           >
             {userProfile.recentGames.map((game) => {
               return (
-                <div key={game.objectID}>
+                <div key={game.objectID} className={styles.feedItem}>
                   <img
+                    className={styles.gameIcon}
                     src={game.iconUrl}
                     width={50}
                     height={50}
                     alt={"Icon for " + game.title}
                   />
-                  <p>{game.title}</p>
+                  <div className={styles.gameInformation}>
+                    <p>{game.title}</p>
+                    <p>há 3 horas</p>
+                  </div>
                 </div>
               );
             })}
@@ -92,14 +96,18 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
           >
             {userProfile.libraryGames.map((game) => {
               return (
-                <div key={game.objectID}>
+                <div key={game.objectID} className={styles.gameListItem}>
                   <img
+                    className={styles.gameIcon}
                     src={game.iconUrl}
                     width={50}
                     height={50}
                     alt={"Icon for " + game.title}
                   />
-                  <p>{game.title}</p>
+                  <div className={styles.gameInformation}>
+                    <p>{game.title}</p>
+                    <p>Jogou por 10 horas</p>
+                  </div>
                 </div>
               );
             })}

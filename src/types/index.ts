@@ -243,7 +243,7 @@ export interface RealDebridUser {
 }
 
 export interface UserProfile {
-  username: string;
+  displayName: string;
   libraryGames: ProfileGame[];
   recentGames: ProfileGame[];
 }

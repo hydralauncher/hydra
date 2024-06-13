@@ -12,7 +12,7 @@ const getUserProfile = async (
   username: string
 ): Promise<UserProfile | null> => {
   try {
-    const response = await HydraApi.get(`/profile/${username}`);
+    const response = await HydraApi.get(`/user/${username}`);
     const profile = userProfileSchema.parse(response.data);
 
     const recentGames = await Promise.all(

@@ -18,7 +18,7 @@ export const Profile = () => {
   useEffect(() => {
     window.electron.getUserProfile(username!).then((userProfile) => {
       if (userProfile) {
-        dispatch(setHeaderTitle(userProfile.username));
+        dispatch(setHeaderTitle(userProfile.displayName));
         setUserProfile(userProfile);
       }
     });
