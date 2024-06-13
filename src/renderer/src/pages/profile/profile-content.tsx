@@ -1,4 +1,5 @@
 import { UserProfile } from "@types";
+import cn from "classnames";
 import * as styles from "./profile.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 
@@ -22,7 +23,7 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
       </section>
 
       <div className={styles.profileContent}>
-        <div style={{ width: "100%" }}>
+        <div className={styles.profileGameSection}>
           <div
             style={{
               display: "flex",
@@ -52,7 +53,7 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
               return (
                 <div key={game.objectID}>
                   <img
-                    src={game.cover}
+                    src={game.iconUrl}
                     width={50}
                     height={50}
                     alt={"Icon for " + game.title}
@@ -64,7 +65,7 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
           </div>
         </div>
 
-        <div className={styles.contentSidebar}>
+        <div className={cn(styles.contentSidebar, styles.profileGameSection)}>
           <div
             style={{
               display: "flex",
@@ -89,11 +90,11 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
             className={styles.profileContentBox}
             style={{ flexDirection: "column" }}
           >
-            {userProfile.libraryGames.map((game, index) => {
+            {userProfile.libraryGames.map((game) => {
               return (
                 <div key={game.objectID}>
                   <img
-                    src={game.cover}
+                    src={game.iconUrl}
                     width={50}
                     height={50}
                     alt={"Icon for " + game.title}

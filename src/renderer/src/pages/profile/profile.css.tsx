@@ -6,7 +6,7 @@ export const wrapper = style({
   width: "100%",
   display: "flex",
   flexDirection: "column",
-  gap: `${SPACING_UNIT * 2}px`,
+  gap: `${SPACING_UNIT * 3}px`,
 });
 
 export const profileContentBox = style({
@@ -46,9 +46,15 @@ export const profileContent = style({
   gap: `${SPACING_UNIT * 4}px`,
 });
 
+export const profileGameSection = style({
+  width: "100%",
+  display: "flex",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT}px`,
+});
+
 export const contentSidebar = style({
   width: "100%",
-  height: "100%",
   "@media": {
     "(min-width: 768px)": {
       width: "100%",
