@@ -5,6 +5,9 @@ import { setHeaderTitle } from "@renderer/features";
 import { useAppDispatch } from "@renderer/hooks";
 import { ProfileSkeleton } from "./profile-skeleton";
 import { ProfileContent } from "./profile-content";
+import { SkeletonTheme } from "react-loading-skeleton";
+import { vars } from "@renderer/theme.css";
+import * as styles from "./profile.css";
 
 export const Profile = () => {
   const { username } = useParams();
@@ -21,7 +24,15 @@ export const Profile = () => {
     });
   }, [dispatch]);
 
-  if (!userProfile) return <ProfileSkeleton />;
-
-  return <ProfileContent userProfile={userProfile} />;
+  return (
+    <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
+      <div className={styles.wrapper}>
+        {userProfile ? (
+          <ProfileContent userProfile={userProfile} />
+        ) : (
+          <ProfileSkeleton />
+        )}
+      </div>
+    </SkeletonTheme>
+  );
 };
