@@ -236,7 +236,7 @@ export interface RealDebridUser {
 
 export interface UserProfile {
   username: string;
-  game: Partial<CatalogueEntry>[];
+  libraryGames: Partial<CatalogueEntry>[];
   recentGames: Partial<CatalogueEntry>[];
 }
 
