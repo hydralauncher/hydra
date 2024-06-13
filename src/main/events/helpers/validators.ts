@@ -25,6 +25,6 @@ const gamesArray = z.array(
 
 export const userProfileSchema = z.object({
   username: z.string(),
-  game: gamesArray,
+  libraryGames: gamesArray,
   recentGames: gamesArray,
 });
