@@ -1,5 +1,4 @@
 import { UserProfile } from "@types";
-import { useTranslation } from "react-i18next";
 import * as styles from "./profile.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 
@@ -8,9 +7,6 @@ export interface ProfileContentProps {
 }
 
 export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
-  const { t } = useTranslation("profile");
-
-  console.log(userProfile.recentGames);
   return (
     <>
       <section className={styles.profileContentBox}>
@@ -22,7 +18,6 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
 
         <div className={styles.profileInformation}>
           <h3 style={{ fontWeight: "bold" }}>{userProfile.username}</h3>
-          <p style={{ fontSize: 12 }}>Jogando ABC</p>
         </div>
       </section>
 
@@ -55,15 +50,15 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
           >
             {userProfile.recentGames.map((game) => {
               return (
-                <>
+                <div key={game.objectID}>
                   <img
                     src={game.cover}
                     width={50}
                     height={50}
                     alt={"Icon for " + game.title}
                   />
-                  <p key={game.objectID}>{game.title}</p>
-                </>
+                  <p>{game.title}</p>
+                </div>
               );
             })}
           </div>
@@ -94,17 +89,17 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
             className={styles.profileContentBox}
             style={{ flexDirection: "column" }}
           >
-            {userProfile.libraryGames.map((game) => {
+            {userProfile.libraryGames.map((game, index) => {
               return (
-                <>
+                <div key={game.objectID}>
                   <img
                     src={game.cover}
                     width={50}
                     height={50}
                     alt={"Icon for " + game.title}
                   />
-                  <p key={game.objectID}>{game.title}</p>
-                </>
+                  <p>{game.title}</p>
+                </div>
               );
             })}
           </div>

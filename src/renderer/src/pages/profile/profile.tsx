@@ -22,7 +22,7 @@ export const Profile = () => {
         setUserProfile(userProfile);
       }
     });
-  }, [dispatch]);
+  }, [dispatch, username]);
 
   return (
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
