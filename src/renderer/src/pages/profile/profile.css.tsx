@@ -36,10 +36,6 @@ export const profileInformation = style({
   alignItems: "flex-start",
 });
 
-export const profileHeaderSkeleton = style({
-  height: "200px",
-});
-
 export const profileContent = style({
   display: "flex",
   flexDirection: "row",
@@ -69,4 +65,38 @@ export const contentSidebar = style({
       maxWidth: "400px",
     },
   },
+});
+
+export const gameIcon = style({
+  width: "48px",
+  height: "48px",
+  borderRadius: "50%",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  position: "relative",
+});
+
+export const feedItem = style({
+  display: "flex",
+  flexDirection: "row",
+  gap: `${SPACING_UNIT}px`,
+  width: "100%",
+});
+
+export const gameListItem = style({
+  display: "flex",
+  flexDirection: "row",
+  gap: `${SPACING_UNIT}px`,
+  width: "100%",
+});
+
+export const gameInformation = style({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+});
+
+export const profileHeaderSkeleton = style({
+  height: "200px",
 });
