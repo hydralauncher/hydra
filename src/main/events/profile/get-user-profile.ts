@@ -4,6 +4,7 @@ import { logger } from "@main/services";
 import { HydraApi } from "@main/services/hydra-api";
 import { steamGamesWorker } from "@main/workers";
 import { UserProfile } from "@types";
+import { convertSteamGameToCatalogueEntry } from "../helpers/search-games";
 
 const getUserProfile = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -19,7 +20,7 @@ const getUserProfile = async (
           name: "getById",
         });
 
-        return { ...game, title: steamGame.name, objectId: game.objectId };
+        return convertSteamGameToCatalogueEntry(steamGame);
       })
     );
 
@@ -28,7 +29,7 @@ const getUserProfile = async (
         const steamGame = await steamGamesWorker.run(Number(game.objectId), {
           name: "getById",
         });
-        return { ...game, title: steamGame.name, objectID: game.objectId };
+        return convertSteamGameToCatalogueEntry(steamGame);
       })
     );
 
