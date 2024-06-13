@@ -144,7 +144,7 @@ export function Sidebar() {
   };
 
   const handleClickProfile = () => {
-    navigate("/profile/brownie");
+    navigate("/profile/zamitto");
   };
 
   return (

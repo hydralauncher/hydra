@@ -1,7 +1,11 @@
+import Skeleton from "react-loading-skeleton";
+import * as styles from "./profile.css";
+
 export const ProfileSkeleton = () => {
   return (
     <>
-      <p>Loading....</p>
+      <Skeleton className={styles.profileHeaderSkeleton} />
+      <Skeleton width={135} />
     </>
   );
 };
