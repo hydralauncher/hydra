@@ -6,14 +6,14 @@ export const wrapper = style({
   width: "100%",
   display: "flex",
   flexDirection: "column",
+  gap: `${SPACING_UNIT * 2}px`,
 });
 
-export const profileHeader = style({
+export const profileContentBox = style({
   display: "flex",
   gap: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
   alignItems: "center",
   padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
-  color: vars.color.muted,
   borderRadius: "4px",
   border: `solid 1px ${vars.color.border}`,
   width: "100%",
@@ -38,4 +38,29 @@ export const profileInformation = style({
 
 export const profileHeaderSkeleton = style({
   height: "200px",
+});
+
+export const profileContent = style({
+  display: "flex",
+  flexDirection: "row",
+  gap: `${SPACING_UNIT * 4}px`,
+});
+
+export const contentSidebar = style({
+  width: "100%",
+  height: "100%",
+  "@media": {
+    "(min-width: 768px)": {
+      width: "100%",
+      maxWidth: "200px",
+    },
+    "(min-width: 1024px)": {
+      maxWidth: "300px",
+      width: "100%",
+    },
+    "(min-width: 1280px)": {
+      width: "100%",
+      maxWidth: "400px",
+    },
+  },
 });

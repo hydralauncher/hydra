@@ -3,7 +3,7 @@ import { userProfileSchema } from "../helpers/validators";
 import { logger } from "@main/services";
 import { HydraApi } from "@main/services/hydra-api";
 import { steamGamesWorker } from "@main/workers";
-import { LibraryGame, SteamGame, UserProfile } from "@types";
+import { UserProfile } from "@types";
 
 const getUserProfile = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -32,7 +32,7 @@ const getUserProfile = async (
       })
     );
 
-    return { ...profile, game: libraryGames, recentGames };
+    return { ...profile, libraryGames, recentGames };
   } catch (err) {
     logger.error(`getUserProfile: ${username}`, err);
     return null;
