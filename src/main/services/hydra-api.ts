@@ -36,9 +36,7 @@ export class HydraApi {
         refreshToken: this.userAuth.refreshToken,
       });
 
-      const { accessToken, expiresIn } = refreshTokenSchema.parse(
-        response.data
-      );
+      const { accessToken, expiresIn } = response.data;
 
       const tokenExpirationTimestamp =
         now.getTime() + expiresIn - this.EXPIRATION_OFFSET_IN_MS;

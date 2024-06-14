@@ -12,8 +12,3 @@ export const downloadSourceSchema = z.object({
     })
   ),
 });
-
-export const refreshTokenSchema = z.object({
-  accessToken: z.string(),
-  expiresIn: z.number(),
-});
