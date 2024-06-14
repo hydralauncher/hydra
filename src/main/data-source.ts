@@ -11,6 +11,7 @@ import type { BetterSqlite3ConnectionOptions } from "typeorm/driver/better-sqlit
 
 import { databasePath } from "./constants";
 import migrations from "./migrations";
+import { UserAuth } from "./entity/user-auth";
 
 export const createDataSource = (
   options: Partial<BetterSqlite3ConnectionOptions>
@@ -24,6 +25,7 @@ export const createDataSource = (
       GameShopCache,
       DownloadSource,
       DownloadQueue,
+      UserAuth,
     ],
     synchronize: true,
     database: databasePath,
