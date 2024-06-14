@@ -31,7 +31,7 @@ export class HydraApi {
 
   private static async revalidateAccessTokenIfExpired() {
     const now = new Date();
-    if (this.userAuth.expirationTimestamp > now.getTime()) {
+    if (this.userAuth.expirationTimestamp < now.getTime()) {
       const response = await this.instance.post(`/auth/refresh`, {
         refreshToken: this.userAuth.refreshToken,
       });
@@ -66,22 +66,22 @@ export class HydraApi {
   }
 
   static async get(url: string) {
-    this.revalidateAccessTokenIfExpired();
+    await this.revalidateAccessTokenIfExpired();
     return this.instance.get(url, this.getAxiosConfig());
   }
 
   static async post(url: string, data?: any) {
-    this.revalidateAccessTokenIfExpired();
+    await this.revalidateAccessTokenIfExpired();
     return this.instance.post(url, data, this.getAxiosConfig());
   }
 
   static async put(url, data?: any) {
-    this.revalidateAccessTokenIfExpired();
+    await this.revalidateAccessTokenIfExpired();
     return this.instance.put(url, data, this.getAxiosConfig());
   }
 
   static async patch(url, data?: any) {
-    this.revalidateAccessTokenIfExpired();
+    await this.revalidateAccessTokenIfExpired();
     return this.instance.patch(url, data, this.getAxiosConfig());
   }
 }
