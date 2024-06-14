@@ -24,7 +24,11 @@ const getUserProfile = async (
           ? getSteamAppAsset("icon", game.objectId, steamGame.clientIcon)
           : null;
 
-        return { ...convertSteamGameToCatalogueEntry(steamGame), iconUrl };
+        return {
+          ...game,
+          ...convertSteamGameToCatalogueEntry(steamGame),
+          iconUrl,
+        };
       })
     );
 
@@ -37,7 +41,11 @@ const getUserProfile = async (
           ? getSteamAppAsset("icon", game.objectId, steamGame.clientIcon)
           : null;
 
-        return { ...convertSteamGameToCatalogueEntry(steamGame), iconUrl };
+        return {
+          ...game,
+          ...convertSteamGameToCatalogueEntry(steamGame),
+          iconUrl,
+        };
       })
     );
 

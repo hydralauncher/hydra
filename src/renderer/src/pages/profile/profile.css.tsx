@@ -46,7 +46,7 @@ export const profileGameSection = style({
   width: "100%",
   display: "flex",
   flexDirection: "column",
-  gap: `${SPACING_UNIT}px`,
+  gap: `${SPACING_UNIT * 2}px`,
 });
 
 export const contentSidebar = style({

@@ -225,5 +225,8 @@
   },
   "forms": {
     "toggle_password_visibility": "Alternar visibilidade da senha"
+  },
+  "user_profile": {
+    "amount_hours": "Jogou por {{amount}}"
   }
 }

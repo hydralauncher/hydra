@@ -1,13 +1,41 @@
-import { UserProfile } from "@types";
+import { ProfileGame, UserProfile } from "@types";
 import cn from "classnames";
 import * as styles from "./profile.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import { formatDistance } from "date-fns";
 
 export interface ProfileContentProps {
   userProfile: UserProfile;
 }
 
+const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
+
 export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
+  const { t, i18n } = useTranslation("user_profile");
+
+  const numberFormatter = useMemo(() => {
+    return new Intl.NumberFormat(i18n.language, {
+      maximumFractionDigits: 0,
+    });
+  }, [i18n.language]);
+
+  const formatPlayTime = (game: ProfileGame) => {
+    console.log(game);
+    const seconds = game.playTimeInSeconds;
+    const minutes = seconds / 60;
+
+    if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
+      return t("amount_minutes", {
+        amount: minutes.toFixed(0),
+      });
+    }
+
+    const hours = minutes / 60;
+    return t("amount_hours", { amount: numberFormatter.format(hours) });
+  };
+
   return (
     <>
       <section className={styles.profileContentBox}>
@@ -46,12 +74,18 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
             </h3>
           </div>
           <div
-            className={styles.profileContentBox}
-            style={{ flexDirection: "column" }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: `${SPACING_UNIT}px`,
+            }}
           >
             {userProfile.recentGames.map((game) => {
               return (
-                <div key={game.objectID} className={styles.feedItem}>
+                <div
+                  key={game.objectID}
+                  className={cn(styles.feedItem, styles.profileContentBox)}
+                >
                   <img
                     className={styles.gameIcon}
                     src={game.iconUrl}
@@ -61,7 +95,11 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
                   />
                   <div className={styles.gameInformation}>
                     <p>{game.title}</p>
-                    <p>há 3 horas</p>
+                    <p>
+                      {formatDistance(game.lastTimePlayed!, new Date(), {
+                        addSuffix: true,
+                      })}
+                    </p>
                   </div>
                 </div>
               );
@@ -91,12 +129,18 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
             </h3>
           </div>
           <div
-            className={styles.profileContentBox}
-            style={{ flexDirection: "column" }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: `${SPACING_UNIT}px`,
+            }}
           >
             {userProfile.libraryGames.map((game) => {
               return (
-                <div key={game.objectID} className={styles.gameListItem}>
+                <div
+                  key={game.objectID}
+                  className={cn(styles.gameListItem, styles.profileContentBox)}
+                >
                   <img
                     className={styles.gameIcon}
                     src={game.iconUrl}
@@ -106,7 +150,7 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
                   />
                   <div className={styles.gameInformation}>
                     <p>{game.title}</p>
-                    <p>Jogou por 10 horas</p>
+                    <p>{formatPlayTime(game)}</p>
                   </div>
                 </div>
               );
