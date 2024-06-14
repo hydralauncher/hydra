@@ -1,5 +1,4 @@
-import { refreshTokenSchema } from "@main/events/helpers/validators";
-import { userPreferencesRepository } from "@main/repository";
+import { userAuthRepository } from "@main/repository";
 import axios, { AxiosInstance } from "axios";
 
 export class HydraApi {
@@ -18,14 +17,14 @@ export class HydraApi {
       baseURL: import.meta.env.MAIN_VITE_API_URL,
     });
 
-    const userPreferences = await userPreferencesRepository.findOne({
+    const userAuth = await userAuthRepository.findOne({
       where: { id: 1 },
     });
 
     this.userAuth = {
-      authToken: userPreferences?.accessToken ?? "",
-      refreshToken: userPreferences?.refreshToken ?? "",
-      expirationTimestamp: userPreferences?.tokenExpirationTimestamp ?? 0,
+      authToken: userAuth?.accessToken ?? "",
+      refreshToken: userAuth?.refreshToken ?? "",
+      expirationTimestamp: userAuth?.tokenExpirationTimestamp ?? 0,
     };
   }
 
@@ -44,7 +43,7 @@ export class HydraApi {
       this.userAuth.authToken = accessToken;
       this.userAuth.expirationTimestamp = tokenExpirationTimestamp;
 
-      userPreferencesRepository.upsert(
+      userAuthRepository.upsert(
         {
           id: 1,
           accessToken,

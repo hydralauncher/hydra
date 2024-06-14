@@ -7,6 +7,7 @@ import {
   Repack,
   UserPreferences,
 } from "@main/entity";
+import { UserAuth } from "./entity/user-auth";
 
 export const gameRepository = dataSource.getRepository(Game);
 
@@ -21,3 +22,5 @@ export const downloadSourceRepository =
   dataSource.getRepository(DownloadSource);
 
 export const downloadQueueRepository = dataSource.getRepository(DownloadQueue);
+
+export const userAuthRepository = dataSource.getRepository(UserAuth);
