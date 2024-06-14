@@ -46,7 +46,6 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
     navigate(buildGameDetailsPath(game));
   };
 
-  console.log(userProfile);
   return (
     <>
       <section
@@ -73,7 +72,7 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
       <div className={styles.profileContent}>
         <div className={styles.profileGameSection}>
           <div>
-            <h2>Feed</h2>
+            <h2>Atividade</h2>
           </div>
           <div
             style={{
@@ -97,8 +96,14 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
                   <div className={styles.gameInformation}>
                     <h4>{game.title}</h4>
                     <small>
-                      {formatDistance(game.lastTimePlayed!, new Date(), {
-                        addSuffix: true,
+                      {t("last_time_played", {
+                        period: formatDistance(
+                          game.lastTimePlayed!,
+                          new Date(),
+                          {
+                            addSuffix: true,
+                          }
+                        ),
                       })}
                     </small>
                   </div>

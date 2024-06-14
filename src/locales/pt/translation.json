@@ -230,6 +230,6 @@
     "amount_hours": "{{amount}} horas",
     "amount_minutes": "{{amount}} minutos",
     "play_time": "Jogado por {{amount}}",
-    "last_time_played": "Jogou por último {{period}}"
+    "last_time_played": "Jogou {{period}}"
   }
 }
