@@ -4,8 +4,11 @@ import * as styles from "./profile.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { formatDistance } from "date-fns";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
+import { useDate } from "@renderer/hooks";
+import { useNavigate } from "react-router-dom";
+import { buildGameDetailsPath } from "@renderer/helpers";
+import { PersonIcon } from "@primer/octicons-react";
 export interface ProfileContentProps {
   userProfile: UserProfile;
 }
@@ -15,14 +18,17 @@ const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
   const { t, i18n } = useTranslation("user_profile");
 
+  const navigate = useNavigate();
+
   const numberFormatter = useMemo(() => {
     return new Intl.NumberFormat(i18n.language, {
       maximumFractionDigits: 0,
     });
   }, [i18n.language]);
 
+  const { formatDistance } = useDate();
+
   const formatPlayTime = (game: ProfileGame) => {
-    console.log(game);
     const seconds = game.playTimeInSeconds;
     const minutes = seconds / 60;
 
@@ -36,17 +42,28 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
     return t("amount_hours", { amount: numberFormatter.format(hours) });
   };
 
+  const handleGameClick = (game: ProfileGame) => {
+    navigate(buildGameDetailsPath(game));
+  };
+
+  console.log(userProfile);
   return (
     <>
       <section
         className={styles.profileContentBox}
         style={{ padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px` }}
       >
-        <img
-          alt={userProfile.displayName + " profile image"}
-          className={styles.profileAvatar}
-          src="https://cdn.losbroxas.org/3918aa27-9b96-4fdf-b066-4c545d6667ab.png"
-        />
+        <div className={styles.profileAvatarContainer}>
+          {userProfile.profileImageUrl ? (
+            <img
+              className={styles.profileAvatar}
+              alt={userProfile.displayName}
+              src={userProfile.profileImageUrl}
+            />
+          ) : (
+            <PersonIcon size={72} />
+          )}
+        </div>
 
         <div className={styles.profileInformation}>
           <h2 style={{ fontWeight: "bold" }}>{userProfile.displayName}</h2>
@@ -67,24 +84,25 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
           >
             {userProfile.recentGames.map((game) => {
               return (
-                <div
+                <button
                   key={game.objectID}
                   className={cn(styles.feedItem, styles.profileContentBox)}
+                  onClick={() => handleGameClick(game)}
                 >
                   <img
                     className={styles.feedGameIcon}
                     src={game.cover}
-                    alt={"Icon for " + game.title}
+                    alt={game.title}
                   />
                   <div className={styles.gameInformation}>
-                    <p>{game.title}</p>
-                    <p>
+                    <h4>{game.title}</h4>
+                    <small>
                       {formatDistance(game.lastTimePlayed!, new Date(), {
                         addSuffix: true,
                       })}
-                    </p>
+                    </small>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -120,12 +138,13 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
           >
             {userProfile.libraryGames.map((game) => {
               return (
-                <div
+                <button
                   key={game.objectID}
                   className={cn(styles.gameListItem, styles.profileContentBox)}
                   style={{
-                    padding: `${SPACING_UNIT}px ${SPACING_UNIT}px`,
+                    padding: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
                   }}
+                  onClick={() => handleGameClick(game)}
                 >
                   {game.iconUrl ? (
                     <img
@@ -138,10 +157,15 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
                   )}
 
                   <div className={styles.gameInformation}>
-                    <p>{game.title}</p>
-                    <p>{formatPlayTime(game)}</p>
+                    <h4>{game.title}</h4>
+
+                    <small>
+                      {t("play_time", {
+                        amount: formatPlayTime(game),
+                      })}
+                    </small>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

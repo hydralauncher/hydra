@@ -224,5 +224,11 @@
   },
   "forms": {
     "toggle_password_visibility": "Toggle password visibility"
+  },
+  "user_profile": {
+    "amount_hours": "{{amount}} hours",
+    "amount_minutes": "{{amount}} minutes",
+    "play_time": "Played for {{amount}}",
+    "last_time_played": "Last played {{period}}"
   }
 }

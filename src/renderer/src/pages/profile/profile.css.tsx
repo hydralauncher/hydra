@@ -16,9 +16,10 @@ export const profileContentBox = style({
   borderRadius: "4px",
   border: `solid 1px ${vars.color.border}`,
   width: "100%",
+  overflow: "hidden",
 });
 
-export const profileAvatar = style({
+export const profileAvatarContainer = style({
   width: "96px",
   height: "96px",
   borderRadius: "50%",
@@ -27,6 +28,12 @@ export const profileAvatar = style({
   alignItems: "center",
   backgroundColor: vars.color.background,
   position: "relative",
+  overflow: "hidden",
+});
+
+export const profileAvatar = style({
+  width: "96px",
+  height: "96px",
 });
 
 export const profileInformation = style({
@@ -84,25 +91,40 @@ export const libraryGameIcon = style({
 });
 
 export const feedItem = style({
+  color: vars.color.body,
   display: "flex",
   flexDirection: "row",
-  gap: `${SPACING_UNIT}px`,
+  gap: `${SPACING_UNIT * 2}px`,
   width: "100%",
   height: "72px",
+  transition: "all ease 0.2s",
+  cursor: "pointer",
+  zIndex: "1",
+  ":hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
 });
 
 export const gameListItem = style({
+  color: vars.color.body,
   display: "flex",
   flexDirection: "row",
   gap: `${SPACING_UNIT}px`,
   width: "100%",
   height: "60px",
+  transition: "all ease 0.2s",
+  cursor: "pointer",
+  zIndex: "1",
+  ":hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
 });
 
 export const gameInformation = style({
   display: "flex",
   flexDirection: "column",
   alignItems: "flex-start",
+  gap: `${SPACING_UNIT / 2}px`,
 });
 
 export const profileHeaderSkeleton = style({
