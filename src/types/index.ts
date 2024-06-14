@@ -91,6 +91,8 @@ export interface ProfileGame {
   title: string;
   iconUrl;
   string?;
+  playTimeInSeconds: number;
+  lastTimePlayed: Date | null;
 }
 
 export interface DownloadQueue {
