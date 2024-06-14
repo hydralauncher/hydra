@@ -246,6 +246,7 @@ export interface RealDebridUser {
 
 export interface UserProfile {
   displayName: string;
+  profileImageUrl: string | null;
   libraryGames: ProfileGame[];
   recentGames: ProfileGame[];
 }
