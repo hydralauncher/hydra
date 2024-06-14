@@ -21,7 +21,7 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   if (userPreferences?.realDebridApiToken)
     RealDebridClient.authorize(userPreferences?.realDebridApiToken);
 
-  HydraApi.createInstance();
+  HydraApi.setupApi();
 
   const [nextQueueItem] = await downloadQueueRepository.find({
     order: {

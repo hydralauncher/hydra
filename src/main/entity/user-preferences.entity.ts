@@ -43,4 +43,7 @@ export class UserPreferences {
 
   @Column("text", { default: "" })
   refreshToken: string;
+
+  @Column("int", { default: 0 })
+  tokenExpirationTimestamp: number;
 }
