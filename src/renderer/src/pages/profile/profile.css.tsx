@@ -13,7 +13,6 @@ export const profileContentBox = style({
   display: "flex",
   gap: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
   alignItems: "center",
-  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
   borderRadius: "4px",
   border: `solid 1px ${vars.color.border}`,
   width: "100%",
@@ -67,9 +66,16 @@ export const contentSidebar = style({
   },
 });
 
-export const gameIcon = style({
-  width: "48px",
-  height: "48px",
+export const feedGameIcon = style({
+  height: "100%",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  position: "relative",
+});
+
+export const libraryGameIcon = style({
+  height: "100%",
   borderRadius: "50%",
   display: "flex",
   justifyContent: "center",
@@ -82,6 +88,7 @@ export const feedItem = style({
   flexDirection: "row",
   gap: `${SPACING_UNIT}px`,
   width: "100%",
+  height: "72px",
 });
 
 export const gameListItem = style({
@@ -89,6 +96,7 @@ export const gameListItem = style({
   flexDirection: "row",
   gap: `${SPACING_UNIT}px`,
   width: "100%",
+  height: "60px",
 });
 
 export const gameInformation = style({

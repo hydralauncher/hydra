@@ -5,7 +5,7 @@ import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { formatDistance } from "date-fns";
-
+import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 export interface ProfileContentProps {
   userProfile: UserProfile;
 }
@@ -38,7 +38,10 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
 
   return (
     <>
-      <section className={styles.profileContentBox}>
+      <section
+        className={styles.profileContentBox}
+        style={{ padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px` }}
+      >
         <img
           alt={userProfile.displayName + " profile image"}
           className={styles.profileAvatar}
@@ -52,32 +55,14 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
 
       <div className={styles.profileContent}>
         <div className={styles.profileGameSection}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: `${SPACING_UNIT * 2}px`,
-            }}
-          >
+          <div>
             <h2>Feed</h2>
-
-            <div
-              style={{
-                flex: 1,
-                backgroundColor: vars.color.border,
-                height: "1px",
-              }}
-            />
-            <h3 style={{ fontWeight: "400" }}>
-              {userProfile.recentGames.length}
-            </h3>
           </div>
           <div
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: `${SPACING_UNIT}px`,
+              gap: `${SPACING_UNIT * 2}px`,
             }}
           >
             {userProfile.recentGames.map((game) => {
@@ -87,10 +72,8 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
                   className={cn(styles.feedItem, styles.profileContentBox)}
                 >
                   <img
-                    className={styles.gameIcon}
-                    src={game.iconUrl}
-                    width={50}
-                    height={50}
+                    className={styles.feedGameIcon}
+                    src={game.cover}
                     alt={"Icon for " + game.title}
                   />
                   <div className={styles.gameInformation}>
@@ -140,14 +123,20 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
                 <div
                   key={game.objectID}
                   className={cn(styles.gameListItem, styles.profileContentBox)}
+                  style={{
+                    padding: `${SPACING_UNIT}px ${SPACING_UNIT}px`,
+                  }}
                 >
-                  <img
-                    className={styles.gameIcon}
-                    src={game.iconUrl}
-                    width={50}
-                    height={50}
-                    alt={"Icon for " + game.title}
-                  />
+                  {game.iconUrl ? (
+                    <img
+                      className={styles.libraryGameIcon}
+                      src={game.iconUrl}
+                      alt={game.title}
+                    />
+                  ) : (
+                    <SteamLogo className={styles.libraryGameIcon} />
+                  )}
+
                   <div className={styles.gameInformation}>
                     <p>{game.title}</p>
                     <p>{formatPlayTime(game)}</p>

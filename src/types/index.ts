@@ -89,8 +89,8 @@ export interface ProfileGame {
   objectID: string;
   shop: GameShop;
   title: string;
-  iconUrl;
-  string?;
+  iconUrl: string | null;
+  cover: string;
   playTimeInSeconds: number;
   lastTimePlayed: Date | null;
 }
