@@ -11,7 +11,7 @@ export function SidebarProfile() {
   const [isUserProfileLoading, setIsUserProfileLoading] = useState(true);
 
   const handleClickProfile = () => {
-    navigate(`/profile/${userProfile!.id}`);
+    navigate(`/user/${userProfile!.id}`);
   };
 
   const handleClickLogin = () => {

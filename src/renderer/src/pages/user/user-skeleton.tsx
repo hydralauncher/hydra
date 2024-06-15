@@ -1,7 +1,7 @@
 import Skeleton from "react-loading-skeleton";
-import * as styles from "./profile.css";
+import * as styles from "./user.css";
 
-export const ProfileSkeleton = () => {
+export const UserSkeleton = () => {
   return (
     <>
       <Skeleton className={styles.profileHeaderSkeleton} />
