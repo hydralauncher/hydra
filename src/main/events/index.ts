@@ -1,5 +1,6 @@
 import { defaultDownloadsPath } from "@main/constants";
 import { app, ipcMain } from "electron";
+import { HydraApi } from "@main/services/hydra-api";
 
 import "./catalogue/get-catalogue";
 import "./catalogue/get-game-shop-details";
@@ -40,7 +41,9 @@ import "./download-sources/add-download-source";
 import "./download-sources/remove-download-source";
 import "./download-sources/sync-download-sources";
 import "./profile/get-user-profile";
+import "./profile/get-me";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => app.getVersion());
+ipcMain.handle("isUserLoggedIn", () => HydraApi.isLoggedIn());
 ipcMain.handle("getDefaultDownloadsPath", () => defaultDownloadsPath);

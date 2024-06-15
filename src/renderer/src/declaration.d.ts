@@ -97,6 +97,7 @@ declare global {
     /* Misc */
     openExternal: (src: string) => Promise<void>;
     getVersion: () => Promise<string>;
+    isUserLoggedIn: () => Promise<boolean>;
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
     showOpenDialog: (
@@ -113,6 +114,7 @@ declare global {
 
     /* Profile */
     getUserProfile: (username: string) => Promise<UserProfile | null>;
+    getMe: () => Promise<UserProfile | null>;
   }
 
   interface Window {

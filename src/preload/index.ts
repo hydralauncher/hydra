@@ -104,6 +104,7 @@ contextBridge.exposeInMainWorld("electron", {
   /* Misc */
   ping: () => ipcRenderer.invoke("ping"),
   getVersion: () => ipcRenderer.invoke("getVersion"),
+  isUserLoggedIn: () => ipcRenderer.invoke("isUserLoggedIn"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
@@ -129,4 +130,5 @@ contextBridge.exposeInMainWorld("electron", {
   /* Profile */
   getUserProfile: (username: string) =>
     ipcRenderer.invoke("getUserProfile", username),
+  getMe: () => ipcRenderer.invoke("getMe"),
 });

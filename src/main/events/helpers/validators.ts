@@ -12,20 +12,3 @@ export const downloadSourceSchema = z.object({
     })
   ),
 });
-
-const gamesArray = z.array(
-  z.object({
-    id: z.string().length(8),
-    objectId: z.string().max(255),
-    playTimeInSeconds: z.number().int(),
-    shop: z.enum(["steam", "epic"]),
-    lastTimePlayed: z.coerce.date().nullable(),
-  })
-);
-
-export const userProfileSchema = z.object({
-  displayName: z.string(),
-  profileImageUrl: z.string().url().nullable(),
-  libraryGames: gamesArray,
-  recentGames: gamesArray,
-});
