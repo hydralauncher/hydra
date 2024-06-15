@@ -9,11 +9,11 @@ import { useDate } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { PersonIcon } from "@primer/octicons-react";
+
+const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 export interface ProfileContentProps {
   userProfile: UserProfile;
 }
-
-const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 
 export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
   const { t, i18n } = useTranslation("user_profile");
@@ -28,8 +28,11 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
 
   const { formatDistance } = useDate();
 
-  const formatPlayTime = (game: ProfileGame) => {
-    const seconds = game.playTimeInSeconds;
+  const formatPlayTime = () => {
+    const seconds = userProfile.libraryGames.reduce(
+      (acc, game) => acc + game.playTimeInSeconds,
+      0
+    );
     const minutes = seconds / 60;
 
     if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
@@ -123,6 +126,7 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
             }}
           >
             <h2>Games</h2>
+
             <div
               style={{
                 flex: 1,
@@ -134,10 +138,11 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
               {userProfile.libraryGames.length}
             </h3>
           </div>
+          <small>Tempo total de jogo: {formatPlayTime()}</small>
           <div
             style={{
-              display: "flex",
-              flexDirection: "column",
+              display: "grid",
+              gridTemplateColumns: "auto auto auto",
               gap: `${SPACING_UNIT}px`,
             }}
           >
@@ -150,6 +155,7 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
                     padding: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
                   }}
                   onClick={() => handleGameClick(game)}
+                  title={game.title}
                 >
                   {game.iconUrl ? (
                     <img
@@ -160,16 +166,6 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
                   ) : (
                     <SteamLogo className={styles.libraryGameIcon} />
                   )}
-
-                  <div className={styles.gameInformation}>
-                    <h4>{game.title}</h4>
-
-                    <small>
-                      {t("play_time", {
-                        amount: formatPlayTime(game),
-                      })}
-                    </small>
-                  </div>
                 </button>
               );
             })}

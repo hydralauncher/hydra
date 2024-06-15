@@ -60,15 +60,15 @@ export const contentSidebar = style({
   "@media": {
     "(min-width: 768px)": {
       width: "100%",
-      maxWidth: "200px",
+      maxWidth: "150px",
     },
     "(min-width: 1024px)": {
-      maxWidth: "300px",
+      maxWidth: "250px",
       width: "100%",
     },
     "(min-width: 1280px)": {
       width: "100%",
-      maxWidth: "400px",
+      maxWidth: "350px",
     },
   },
 });
@@ -83,7 +83,7 @@ export const feedGameIcon = style({
 
 export const libraryGameIcon = style({
   height: "100%",
-  borderRadius: "50%",
+  borderRadius: "4px",
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
@@ -110,8 +110,7 @@ export const gameListItem = style({
   display: "flex",
   flexDirection: "row",
   gap: `${SPACING_UNIT}px`,
-  width: "100%",
-  height: "60px",
+  aspectRatio: "1",
   transition: "all ease 0.2s",
   cursor: "pointer",
   zIndex: "1",
