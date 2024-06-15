@@ -14,6 +14,10 @@ export class HydraApi {
     expirationTimestamp: 0,
   };
 
+  static isLoggedIn() {
+    return this.userAuth.authToken !== "";
+  }
+
   static async handleExternalAuth(auth: string) {
     const { payload } = url.parse(auth, true).query;
 
@@ -139,5 +143,10 @@ export class HydraApi {
   static async patch(url: string, data?: any) {
     await this.revalidateAccessTokenIfExpired();
     return this.instance.patch(url, data, this.getAxiosConfig());
+  }
+
+  static async delete(url: string) {
+    await this.revalidateAccessTokenIfExpired();
+    return this.instance.delete(url, this.getAxiosConfig());
   }
 }

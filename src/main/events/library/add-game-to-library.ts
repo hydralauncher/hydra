@@ -6,6 +6,7 @@ import type { GameShop } from "@types";
 import { getFileBase64, getSteamAppAsset } from "@main/helpers";
 
 import { steamGamesWorker } from "@main/workers";
+import { HydraApi } from "@main/services/hydra-api";
 
 const addGameToLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -49,6 +50,26 @@ const addGameToLibrary = async (
             }
           });
       }
+
+      const game = await gameRepository.findOne({ where: { objectID } });
+
+      HydraApi.post("/games", {
+        objectId: objectID,
+        playTimeInMilliseconds: game?.playTimeInMilliseconds,
+        shop,
+        lastTimePlayed: game?.lastTimePlayed,
+      }).then((response) => {
+        const {
+          id: remoteId,
+          playTimeInMilliseconds,
+          lastTimePlayed,
+        } = response.data;
+
+        gameRepository.update(
+          { objectID },
+          { remoteId, playTimeInMilliseconds, lastTimePlayed }
+        );
+      });
     });
 };
 
