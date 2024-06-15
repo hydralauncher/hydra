@@ -2,6 +2,7 @@ import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services/hydra-api";
 import { UserProfile } from "@types";
 import { userAuthRepository } from "@main/repository";
+import { logger } from "@main/services";
 
 const getMe = async (
   _event: Electron.IpcMainInvokeEvent
@@ -14,7 +15,7 @@ const getMe = async (
         {
           id: 1,
           displayName: me.displayName,
-          profileImageUrl: me.displayName,
+          profileImageUrl: me.profileImageUrl,
           userId: me.id,
         },
         ["id"]
@@ -22,7 +23,8 @@ const getMe = async (
 
       return me;
     })
-    .catch(() => {
+    .catch((err) => {
+      logger.error("getMe", err);
       return userAuthRepository.findOne({ where: { id: 1 } });
     });
 };
