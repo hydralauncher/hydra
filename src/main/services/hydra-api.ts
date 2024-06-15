@@ -1,5 +1,5 @@
 import { userAuthRepository } from "@main/repository";
-import axios, { AxiosInstance } from "axios";
+import axios, { AxiosError, AxiosInstance } from "axios";
 
 export class HydraApi {
   private static instance: AxiosInstance;
@@ -11,6 +11,10 @@ export class HydraApi {
     refreshToken: "",
     expirationTimestamp: 0,
   };
+
+  static isLoggedIn() {
+    return this.userAuth.authToken !== "";
+  }
 
   static async setupApi() {
     this.instance = axios.create({
@@ -31,26 +35,48 @@ export class HydraApi {
   private static async revalidateAccessTokenIfExpired() {
     const now = new Date();
     if (this.userAuth.expirationTimestamp < now.getTime()) {
-      const response = await this.instance.post(`/auth/refresh`, {
-        refreshToken: this.userAuth.refreshToken,
-      });
+      try {
+        const response = await this.instance.post(`/auth/refresh`, {
+          refreshToken: this.userAuth.refreshToken,
+        });
 
-      const { accessToken, expiresIn } = response.data;
+        const { accessToken, expiresIn } = response.data;
 
-      const tokenExpirationTimestamp =
-        now.getTime() + expiresIn - this.EXPIRATION_OFFSET_IN_MS;
+        const tokenExpirationTimestamp =
+          now.getTime() + expiresIn - this.EXPIRATION_OFFSET_IN_MS;
 
-      this.userAuth.authToken = accessToken;
-      this.userAuth.expirationTimestamp = tokenExpirationTimestamp;
+        this.userAuth.authToken = accessToken;
+        this.userAuth.expirationTimestamp = tokenExpirationTimestamp;
 
-      userAuthRepository.upsert(
-        {
-          id: 1,
-          accessToken,
-          tokenExpirationTimestamp,
-        },
-        ["id"]
-      );
+        userAuthRepository.upsert(
+          {
+            id: 1,
+            accessToken,
+            tokenExpirationTimestamp,
+          },
+          ["id"]
+        );
+      } catch (err) {
+        if (
+          err instanceof AxiosError &&
+          (err?.response?.status === 401 || err?.response?.status === 403)
+        ) {
+          this.userAuth.authToken = "";
+          this.userAuth.expirationTimestamp = 0;
+
+          userAuthRepository.upsert(
+            {
+              id: 1,
+              accessToken: "",
+              refreshToken: "",
+              tokenExpirationTimestamp: 0,
+            },
+            ["id"]
+          );
+        }
+
+        throw err;
+      }
     }
   }
 

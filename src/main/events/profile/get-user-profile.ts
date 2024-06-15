@@ -1,6 +1,4 @@
 import { registerEvent } from "../register-event";
-import { userProfileSchema } from "../helpers/validators";
-import { logger } from "@main/services";
 import { HydraApi } from "@main/services/hydra-api";
 import { steamGamesWorker } from "@main/workers";
 import { UserProfile } from "@types";
@@ -13,7 +11,7 @@ const getUserProfile = async (
 ): Promise<UserProfile | null> => {
   try {
     const response = await HydraApi.get(`/user/${username}`);
-    const profile = userProfileSchema.parse(response.data);
+    const profile = response.data;
 
     const recentGames = await Promise.all(
       profile.recentGames.map(async (game) => {
@@ -51,7 +49,6 @@ const getUserProfile = async (
 
     return { ...profile, libraryGames, recentGames };
   } catch (err) {
-    logger.error(`getUserProfile: ${username}`, err);
     return null;
   }
 };

@@ -13,7 +13,7 @@ import * as styles from "./sidebar.css";
 import { buildGameDetailsPath } from "@renderer/helpers";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import { PersonIcon } from "@primer/octicons-react";
+import { SidebarProfile } from "./sidebar-profile";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -143,10 +143,6 @@ export function Sidebar() {
     }
   };
 
-  const handleClickProfile = () => {
-    navigate("/profile/olejRejN");
-  };
-
   return (
     <>
       <aside
@@ -158,22 +154,7 @@ export function Sidebar() {
           maxWidth: sidebarWidth,
         }}
       >
-        <button
-          type="button"
-          className={styles.profileButton}
-          onClick={handleClickProfile}
-        >
-          <div className={styles.profileAvatar}>
-            <PersonIcon />
-
-            <div className={styles.statusBadge} />
-          </div>
-
-          <div className={styles.profileButtonInformation}>
-            <p style={{ fontWeight: "bold" }}>hydra</p>
-            <p style={{ fontSize: 12 }}>Jogando ABC</p>
-          </div>
-        </button>
+        <SidebarProfile />
 
         <div
           className={styles.content({

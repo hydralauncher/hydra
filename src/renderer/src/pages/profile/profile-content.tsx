@@ -9,6 +9,7 @@ import { useDate } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { PersonIcon } from "@primer/octicons-react";
+import { Button } from "@renderer/components";
 
 const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 export interface ProfileContentProps {
@@ -69,6 +70,10 @@ export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
 
         <div className={styles.profileInformation}>
           <h2 style={{ fontWeight: "bold" }}>{userProfile.displayName}</h2>
+        </div>
+
+        <div style={{ flex: 1, display: "flex", justifyContent: "end" }}>
+          <Button theme="danger">Sair da conta</Button>
         </div>
       </section>
 
