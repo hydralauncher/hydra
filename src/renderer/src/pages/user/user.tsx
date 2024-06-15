@@ -3,13 +3,13 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { setHeaderTitle } from "@renderer/features";
 import { useAppDispatch } from "@renderer/hooks";
-import { ProfileSkeleton } from "./profile-skeleton";
-import { ProfileContent } from "./profile-content";
+import { UserSkeleton } from "./user-skeleton";
+import { UserContent } from "./user-content";
 import { SkeletonTheme } from "react-loading-skeleton";
 import { vars } from "@renderer/theme.css";
-import * as styles from "./profile.css";
+import * as styles from "./user.css";
 
-export const Profile = () => {
+export const User = () => {
   const { username } = useParams();
   const [userProfile, setUserProfile] = useState<UserProfile>();
 
@@ -28,9 +28,9 @@ export const Profile = () => {
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
       <div className={styles.wrapper}>
         {userProfile ? (
-          <ProfileContent userProfile={userProfile} />
+          <UserContent userProfile={userProfile} />
         ) : (
-          <ProfileSkeleton />
+          <UserSkeleton />
         )}
       </div>
     </SkeletonTheme>

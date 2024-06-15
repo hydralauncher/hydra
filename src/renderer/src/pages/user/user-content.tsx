@@ -1,6 +1,6 @@
 import { ProfileGame, UserProfile } from "@types";
 import cn from "classnames";
-import * as styles from "./profile.css";
+import * as styles from "./user.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,7 +16,7 @@ export interface ProfileContentProps {
   userProfile: UserProfile;
 }
 
-export const ProfileContent = ({ userProfile }: ProfileContentProps) => {
+export const UserContent = ({ userProfile }: ProfileContentProps) => {
   const { t, i18n } = useTranslation("user_profile");
 
   const navigate = useNavigate();
