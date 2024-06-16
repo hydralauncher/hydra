@@ -14,10 +14,6 @@ export class HydraApi {
     expirationTimestamp: 0,
   };
 
-  static isLoggedIn() {
-    return this.userAuth.authToken !== "";
-  }
-
   static async handleExternalAuth(auth: string) {
     const { payload } = url.parse(auth, true).query;
 
