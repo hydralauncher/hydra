@@ -1,4 +1,4 @@
-import { ProfileGame, UserProfile } from "@types";
+import { UserGame, UserProfile } from "@types";
 import cn from "classnames";
 import * as styles from "./user.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
@@ -49,7 +49,7 @@ export const UserContent = ({ userProfile }: ProfileContentProps) => {
     return t("amount_hours", { amount: numberFormatter.format(hours) });
   };
 
-  const handleGameClick = (game: ProfileGame) => {
+  const handleGameClick = (game: UserGame) => {
     navigate(buildGameDetailsPath(game));
   };
 

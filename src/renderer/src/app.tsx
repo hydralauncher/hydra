@@ -83,7 +83,7 @@ export function App() {
     return () => {
       listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, []);
+  }, [clearUserAuth, updateUserAuth]);
 
   const handleSearch = useCallback(
     (query: string) => {
