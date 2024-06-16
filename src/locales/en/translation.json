@@ -229,6 +229,10 @@
     "amount_hours": "{{amount}} hours",
     "amount_minutes": "{{amount}} minutes",
     "play_time": "Played for {{amount}}",
-    "last_time_played": "Last played {{period}}"
+    "last_time_played": "Last played {{period}}",
+    "sign_out": "Sign out",
+    "activity": "Recent Activity",
+    "games": "Games",
+    "total_play_time": "Total playtime: {{amount}}"
   }
 }

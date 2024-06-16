@@ -244,6 +244,12 @@ export interface RealDebridUser {
   expiration: string;
 }
 
+export interface UserAuth {
+  id: string;
+  displayName: string;
+  profileImageUrl: string | null;
+}
+
 export interface UserProfile {
   id: string;
   displayName: string;

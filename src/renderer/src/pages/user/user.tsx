@@ -8,6 +8,7 @@ import { UserContent } from "./user-content";
 import { SkeletonTheme } from "react-loading-skeleton";
 import { vars } from "@renderer/theme.css";
 import * as styles from "./user.css";
+import { UserAuthContextProvider } from "@renderer/context/user-auth/user-auth.context";
 
 export const User = () => {
   const { username } = useParams();
@@ -16,7 +17,7 @@ export const User = () => {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    window.electron.getUserProfile(username!).then((userProfile) => {
+    window.electron.getUser(username!).then((userProfile) => {
       if (userProfile) {
         dispatch(setHeaderTitle(userProfile.displayName));
         setUserProfile(userProfile);
@@ -25,14 +26,16 @@ export const User = () => {
   }, [dispatch, username]);
 
   return (
-    <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
-      <div className={styles.wrapper}>
-        {userProfile ? (
-          <UserContent userProfile={userProfile} />
-        ) : (
-          <UserSkeleton />
-        )}
-      </div>
-    </SkeletonTheme>
+    <UserAuthContextProvider>
+      <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
+        <div className={styles.wrapper}>
+          {userProfile ? (
+            <UserContent userProfile={userProfile} />
+          ) : (
+            <UserSkeleton />
+          )}
+        </div>
+      </SkeletonTheme>
+    </UserAuthContextProvider>
   );
 };

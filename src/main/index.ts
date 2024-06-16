@@ -7,6 +7,7 @@ import { DownloadManager, logger, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
+import { HydraApi } from "./services/hydra-api";
 
 const { autoUpdater } = updater;
 
@@ -71,7 +72,7 @@ app.on("browser-window-created", (_, window) => {
   optimizer.watchWindowShortcuts(window);
 });
 
-app.on("second-instance", (_event, commandLine) => {
+app.on("second-instance", async (_event, commandLine) => {
   // Someone tried to run a second instance, we should focus our window.
   if (WindowManager.mainWindow) {
     if (WindowManager.mainWindow.isMinimized())
@@ -83,7 +84,14 @@ app.on("second-instance", (_event, commandLine) => {
   }
 
   const [, path] = commandLine.pop()?.split("://") ?? [];
-  if (path) WindowManager.redirect(path);
+  if (path) {
+    if (path.startsWith("auth")) {
+      //hydralauncher://auth?payload=responsedaapiembase64
+      await HydraApi.handleExternalAuth(path.split("=")[1]);
+    } else {
+      WindowManager.redirect(path);
+    }
+  }
 });
 
 app.on("open-url", (_event, url) => {

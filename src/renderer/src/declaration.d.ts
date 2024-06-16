@@ -112,8 +112,15 @@ declare global {
     checkForUpdates: () => Promise<boolean>;
     restartAndInstallUpdate: () => Promise<void>;
 
+    /* Authg */
+    signout: () => Promise<void>;
+    onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
+    onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
+
+    /* User */
+    getUser: (username: string) => Promise<UserProfile | null>;
+
     /* Profile */
-    getUserProfile: (username: string) => Promise<UserProfile | null>;
     getMe: () => Promise<UserProfile | null>;
   }
 

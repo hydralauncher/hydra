@@ -5,7 +5,7 @@ import { UserProfile } from "@types";
 import { convertSteamGameToCatalogueEntry } from "../helpers/search-games";
 import { getSteamAppAsset } from "@main/helpers";
 
-const getUserProfile = async (
+const getUser = async (
   _event: Electron.IpcMainInvokeEvent,
   username: string
 ): Promise<UserProfile | null> => {
@@ -53,4 +53,4 @@ const getUserProfile = async (
   }
 };
 
-registerEvent("getUserProfile", getUserProfile);
+registerEvent("getUser", getUser);
