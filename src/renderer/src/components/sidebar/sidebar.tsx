@@ -14,7 +14,6 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { SidebarProfile } from "./sidebar-profile";
-import { UserAuthContextProvider } from "@renderer/context/user-auth/user-auth.context";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -155,9 +154,7 @@ export function Sidebar() {
           maxWidth: sidebarWidth,
         }}
       >
-        <UserAuthContextProvider>
-          <SidebarProfile />
-        </UserAuthContextProvider>
+        <SidebarProfile />
 
         <div
           className={styles.content({

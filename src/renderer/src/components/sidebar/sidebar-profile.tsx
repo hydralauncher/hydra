@@ -1,13 +1,12 @@
-import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { PersonIcon } from "@primer/octicons-react";
-import { userAuthContext } from "@renderer/context/user-auth/user-auth.context";
 import * as styles from "./sidebar.css";
+import { useUserAuth } from "@renderer/hooks/use-user-auth";
 
 export function SidebarProfile() {
   const navigate = useNavigate();
 
-  const { userAuth, isLoading } = useContext(userAuthContext);
+  const { userAuth, isLoading } = useUserAuth();
 
   const handleClickProfile = () => {
     navigate(`/user/${userAuth!.id}`);

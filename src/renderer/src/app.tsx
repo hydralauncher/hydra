@@ -19,6 +19,7 @@ import {
   toggleDraggingDisabled,
   closeToast,
 } from "@renderer/features";
+import { useUserAuth } from "./hooks/use-user-auth";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -66,6 +67,23 @@ export function App() {
       unsubscribe();
     };
   }, [clearDownload, setLastPacket, updateLibrary]);
+
+  const { updateUserAuth, clearUserAuth } = useUserAuth();
+
+  useEffect(() => {
+    const listeners = [
+      window.electron.onSignIn(() => {
+        updateUserAuth();
+      }),
+      window.electron.onSignOut(() => {
+        clearUserAuth();
+      }),
+    ];
+
+    return () => {
+      listeners.forEach((unsubscribe) => unsubscribe());
+    };
+  }, []);
 
   const handleSearch = useCallback(
     (query: string) => {

@@ -2,7 +2,7 @@ import { ProfileGame, UserProfile } from "@types";
 import cn from "classnames";
 import * as styles from "./user.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
-import { useContext, useMemo } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { useDate } from "@renderer/hooks";
@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { PersonIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
-import { userAuthContext } from "@renderer/context/user-auth/user-auth.context";
+import { useUserAuth } from "@renderer/hooks/use-user-auth";
 
 const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 export interface ProfileContentProps {
@@ -20,7 +20,7 @@ export interface ProfileContentProps {
 export const UserContent = ({ userProfile }: ProfileContentProps) => {
   const { t, i18n } = useTranslation("user_profile");
 
-  const { userAuth, signout } = useContext(userAuthContext);
+  const { userAuth, signOut } = useUserAuth();
 
   const navigate = useNavigate();
 
@@ -54,7 +54,7 @@ export const UserContent = ({ userProfile }: ProfileContentProps) => {
   };
 
   const handleSignout = async () => {
-    await signout();
+    await signOut();
     navigate("/");
   };
 
