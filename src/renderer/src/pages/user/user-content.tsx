@@ -2,7 +2,7 @@ import { ProfileGame, UserProfile } from "@types";
 import cn from "classnames";
 import * as styles from "./user.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
-import { useMemo } from "react";
+import { useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { useDate } from "@renderer/hooks";
@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { PersonIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
+import { userAuthContext } from "@renderer/context/user-auth/user-auth.context";
 
 const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 export interface ProfileContentProps {
@@ -18,6 +19,8 @@ export interface ProfileContentProps {
 
 export const UserContent = ({ userProfile }: ProfileContentProps) => {
   const { t, i18n } = useTranslation("user_profile");
+
+  const { userAuth, signout } = useContext(userAuthContext);
 
   const navigate = useNavigate();
 
@@ -50,6 +53,11 @@ export const UserContent = ({ userProfile }: ProfileContentProps) => {
     navigate(buildGameDetailsPath(game));
   };
 
+  const handleSignout = async () => {
+    await signout();
+    navigate("/");
+  };
+
   return (
     <>
       <section
@@ -72,15 +80,19 @@ export const UserContent = ({ userProfile }: ProfileContentProps) => {
           <h2 style={{ fontWeight: "bold" }}>{userProfile.displayName}</h2>
         </div>
 
-        <div style={{ flex: 1, display: "flex", justifyContent: "end" }}>
-          <Button theme="danger">Sair da conta</Button>
-        </div>
+        {userAuth && userAuth.id == userProfile.id && (
+          <div style={{ flex: 1, display: "flex", justifyContent: "end" }}>
+            <Button theme="danger" onClick={handleSignout}>
+              {t("sign_out")}
+            </Button>
+          </div>
+        )}
       </section>
 
       <div className={styles.profileContent}>
         <div className={styles.profileGameSection}>
           <div>
-            <h2>Atividade</h2>
+            <h2>{t("activity")}</h2>
           </div>
           <div
             style={{
@@ -130,7 +142,7 @@ export const UserContent = ({ userProfile }: ProfileContentProps) => {
               gap: `${SPACING_UNIT * 2}px`,
             }}
           >
-            <h2>Games</h2>
+            <h2>{t("games")}</h2>
 
             <div
               style={{
@@ -143,7 +155,7 @@ export const UserContent = ({ userProfile }: ProfileContentProps) => {
               {userProfile.libraryGames.length}
             </h3>
           </div>
-          <small>Tempo total de jogo: {formatPlayTime()}</small>
+          <small>{t("total_play_time", { amount: formatPlayTime() })}</small>
           <div
             style={{
               display: "grid",

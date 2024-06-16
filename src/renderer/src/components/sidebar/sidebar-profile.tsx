@@ -1,38 +1,25 @@
-import { useEffect, useState } from "react";
+import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { type UserProfile } from "@types";
-import * as styles from "./sidebar.css";
 import { PersonIcon } from "@primer/octicons-react";
+import { userAuthContext } from "@renderer/context/user-auth/user-auth.context";
+import * as styles from "./sidebar.css";
 
 export function SidebarProfile() {
   const navigate = useNavigate();
 
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isUserProfileLoading, setIsUserProfileLoading] = useState(true);
+  const { userAuth, isLoading } = useContext(userAuthContext);
 
   const handleClickProfile = () => {
-    navigate(`/user/${userProfile!.id}`);
+    navigate(`/user/${userAuth!.id}`);
   };
 
   const handleClickLogin = () => {
     window.electron.openExternal("https://losbroxas.org");
   };
 
-  useEffect(() => {
-    setIsUserProfileLoading(true);
-    window.electron.isUserLoggedIn().then(async (isLoggedIn) => {
-      if (isLoggedIn) {
-        const userProfile = await window.electron.getMe();
-        setUserProfile(userProfile);
-      }
+  if (isLoading) return null;
 
-      setIsUserProfileLoading(false);
-    });
-  }, []);
-
-  if (isUserProfileLoading) return null;
-
-  if (userProfile == null) {
+  if (userAuth == null) {
     return (
       <>
         <button
@@ -60,11 +47,11 @@ export function SidebarProfile() {
         onClick={handleClickProfile}
       >
         <div className={styles.profileAvatar}>
-          {userProfile.profileImageUrl ? (
+          {userAuth.profileImageUrl ? (
             <img
               className={styles.profileAvatar}
-              src={userProfile.profileImageUrl}
-              alt={userProfile.displayName}
+              src={userAuth.profileImageUrl}
+              alt={userAuth.displayName}
             />
           ) : (
             <PersonIcon />
@@ -72,7 +59,7 @@ export function SidebarProfile() {
         </div>
 
         <div className={styles.profileButtonInformation}>
-          <p style={{ fontWeight: "bold" }}>{userProfile.displayName}</p>
+          <p style={{ fontWeight: "bold" }}>{userAuth.displayName}</p>
         </div>
       </button>
     </>

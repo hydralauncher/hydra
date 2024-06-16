@@ -5,7 +5,10 @@ export const UserSkeleton = () => {
   return (
     <>
       <Skeleton className={styles.profileHeaderSkeleton} />
-      <Skeleton width={135} />
+      <div className={styles.profileContent}>
+        <Skeleton height={140} style={{ flex: 1 }} />
+        <Skeleton width={300} className={styles.contentSidebar} />
+      </div>
     </>
   );
 };

@@ -128,7 +128,21 @@ contextBridge.exposeInMainWorld("electron", {
   restartAndInstallUpdate: () => ipcRenderer.invoke("restartAndInstallUpdate"),
 
   /* Profile */
-  getUserProfile: (username: string) =>
-    ipcRenderer.invoke("getUserProfile", username),
   getMe: () => ipcRenderer.invoke("getMe"),
+
+  /* User */
+  getUser: (username: string) => ipcRenderer.invoke("getUser", username),
+
+  /* Auth */
+  signout: () => ipcRenderer.invoke("signout"),
+  onSignIn: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-signin", listener);
+    return () => ipcRenderer.removeListener("on-signin", listener);
+  },
+  onSignOut: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-signout", listener);
+    return () => ipcRenderer.removeListener("on-signout", listener);
+  },
 });
