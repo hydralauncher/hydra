@@ -117,7 +117,7 @@ declare global {
     onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* User */
-    getUser: (username: string) => Promise<UserProfile | null>;
+    getUser: (userId: string) => Promise<UserProfile | null>;
 
     /* Profile */
     getMe: () => Promise<UserProfile | null>;
