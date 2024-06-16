@@ -142,7 +142,7 @@ export const UserContent = ({ userProfile }: ProfileContentProps) => {
               gap: `${SPACING_UNIT * 2}px`,
             }}
           >
-            <h2>{t("games")}</h2>
+            <h2>{t("library")}</h2>
 
             <div
               style={{
