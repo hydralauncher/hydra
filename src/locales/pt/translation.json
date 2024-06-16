@@ -233,7 +233,7 @@
     "last_time_played": "Jogou {{period}}",
     "sign_out": "Sair da conta",
     "activity": "Atividade Recente",
-    "games": "Jogos",
+    "library": "Biblioteca",
     "total_play_time": "Tempo total de jogo: {{amount}}"
   }
 }

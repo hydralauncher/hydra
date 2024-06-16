@@ -232,7 +232,7 @@
     "last_time_played": "Last played {{period}}",
     "sign_out": "Sign out",
     "activity": "Recent Activity",
-    "games": "Games",
+    "library": "Library",
     "total_play_time": "Total playtime: {{amount}}"
   }
 }
