@@ -85,7 +85,7 @@ export interface CatalogueEntry {
   repacks: GameRepack[];
 }
 
-export interface ProfileGame {
+export interface UserGame {
   objectID: string;
   shop: GameShop;
   title: string;
@@ -254,8 +254,8 @@ export interface UserProfile {
   id: string;
   displayName: string;
   profileImageUrl: string | null;
-  libraryGames: ProfileGame[];
-  recentGames: ProfileGame[];
+  libraryGames: UserGame[];
+  recentGames: UserGame[];
 }
 
 export interface DownloadSource {
