@@ -31,6 +31,8 @@ export function App() {
 
   const { clearDownload, setLastPacket } = useDownload();
 
+  const { updateUserAuth, clearUserAuth } = useUserAuth();
+
   const dispatch = useAppDispatch();
 
   const navigate = useNavigate();
@@ -67,8 +69,6 @@ export function App() {
       unsubscribe();
     };
   }, [clearDownload, setLastPacket, updateLibrary]);
-
-  const { updateUserAuth, clearUserAuth } = useUserAuth();
 
   useEffect(() => {
     const listeners = [
