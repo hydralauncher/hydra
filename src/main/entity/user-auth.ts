@@ -17,8 +17,8 @@ export class UserAuth {
   @Column("text", { default: "" })
   displayName: string;
 
-  @Column("text", { default: "" })
-  profileImageUrl: string;
+  @Column("text", { nullable: true })
+  profileImageUrl: string | null;
 
   @Column("text", { default: "" })
   accessToken: string;
