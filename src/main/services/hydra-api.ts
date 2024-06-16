@@ -99,14 +99,17 @@ export class HydraApi {
           err instanceof AxiosError &&
           (err?.response?.status === 401 || err?.response?.status === 403)
         ) {
-          this.userAuth.authToken = "";
-          this.userAuth.expirationTimestamp = 0;
+          this.userAuth = {
+            authToken: "",
+            expirationTimestamp: 0,
+            refreshToken: "",
+          };
+
+          userAuthRepository.delete({ id: 1 });
 
           if (WindowManager.mainWindow) {
             WindowManager.mainWindow.webContents.send("on-signout");
           }
-
-          userAuthRepository.delete({ id: 1 });
         }
 
         throw err;
@@ -132,12 +135,12 @@ export class HydraApi {
     return this.instance.post(url, data, this.getAxiosConfig());
   }
 
-  static async put(url, data?: any) {
+  static async put(url: string, data?: any) {
     await this.revalidateAccessTokenIfExpired();
     return this.instance.put(url, data, this.getAxiosConfig());
   }
 
-  static async patch(url, data?: any) {
+  static async patch(url: string, data?: any) {
     await this.revalidateAccessTokenIfExpired();
     return this.instance.patch(url, data, this.getAxiosConfig());
   }
