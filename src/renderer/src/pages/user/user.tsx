@@ -10,19 +10,19 @@ import { vars } from "@renderer/theme.css";
 import * as styles from "./user.css";
 
 export const User = () => {
-  const { username } = useParams();
+  const { userId } = useParams();
   const [userProfile, setUserProfile] = useState<UserProfile>();
 
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    window.electron.getUser(username!).then((userProfile) => {
+    window.electron.getUser(userId!).then((userProfile) => {
       if (userProfile) {
         dispatch(setHeaderTitle(userProfile.displayName));
         setUserProfile(userProfile);
       }
     });
-  }, [dispatch, username]);
+  }, [dispatch, userId]);
 
   return (
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">

@@ -7,10 +7,10 @@ import { getSteamAppAsset } from "@main/helpers";
 
 const getUser = async (
   _event: Electron.IpcMainInvokeEvent,
-  username: string
+  userId: string
 ): Promise<UserProfile | null> => {
   try {
-    const response = await HydraApi.get(`/user/${username}`);
+    const response = await HydraApi.get(`/user/${userId}`);
     const profile = response.data;
 
     const recentGames = await Promise.all(

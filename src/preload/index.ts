@@ -130,7 +130,7 @@ contextBridge.exposeInMainWorld("electron", {
   getMe: () => ipcRenderer.invoke("getMe"),
 
   /* User */
-  getUser: (username: string) => ipcRenderer.invoke("getUser", username),
+  getUser: (userId: string) => ipcRenderer.invoke("getUser", userId),
 
   /* Auth */
   signout: () => ipcRenderer.invoke("signout"),

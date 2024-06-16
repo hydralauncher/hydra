@@ -13,7 +13,7 @@ export function SidebarProfile() {
   };
 
   const handleClickLogin = () => {
-    window.electron.openExternal("https://losbroxas.org");
+    window.electron.openExternal("https://auth.losbroxas.org");
   };
 
   if (isLoading) return null;
