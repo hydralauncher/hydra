@@ -1,6 +1,7 @@
 import { userAuthRepository } from "@main/repository";
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { WindowManager } from "./window-manager";
+import url from "url";
 
 export class HydraApi {
   private static instance: AxiosInstance;
@@ -18,7 +19,9 @@ export class HydraApi {
   }
 
   static async handleExternalAuth(auth: string) {
-    const decodedBase64 = atob(auth);
+    const { payload } = url.parse(auth, true).query;
+
+    const decodedBase64 = atob(payload as string);
     const jsonData = JSON.parse(decodedBase64);
 
     const { accessToken, expiresIn, refreshToken } = jsonData;

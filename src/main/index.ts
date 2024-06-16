@@ -72,7 +72,7 @@ app.on("browser-window-created", (_, window) => {
   optimizer.watchWindowShortcuts(window);
 });
 
-app.on("second-instance", async (_event, commandLine) => {
+app.on("second-instance", (_event, commandLine) => {
   // Someone tried to run a second instance, we should focus our window.
   if (WindowManager.mainWindow) {
     if (WindowManager.mainWindow.isMinimized())
@@ -86,8 +86,7 @@ app.on("second-instance", async (_event, commandLine) => {
   const [, path] = commandLine.pop()?.split("://") ?? [];
   if (path) {
     if (path.startsWith("auth")) {
-      //hydralauncher://auth?payload=responsedaapiembase64
-      await HydraApi.handleExternalAuth(path.split("=")[1]);
+      HydraApi.handleExternalAuth(path);
     } else {
       WindowManager.redirect(path);
     }
