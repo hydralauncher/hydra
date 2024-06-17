@@ -4,7 +4,7 @@ import { IsNull, Not } from "typeorm";
 import { gameRepository } from "@main/repository";
 import { getProcesses } from "@main/helpers";
 import { WindowManager } from "./window-manager";
-import { HydraApi } from "./hydra-api";
+import { createGame, updateGamePlaytime } from "./library-sync";
 
 const gamesPlaytime = new Map<
   number,
@@ -61,20 +61,14 @@ export const watchProcesses = async () => {
         });
       } else {
         if (game.remoteId) {
-          HydraApi.put(`/games/${game.remoteId}`, {
-            playTimeDeltaInMilliseconds: 0,
-            lastTimePlayed: new Date(),
-          });
+          updateGamePlaytime(game, 0, new Date());
         } else {
-          HydraApi.post("/games", {
-            objectId: game.objectID,
-            playTimeInMilliseconds: Math.round(game.playTimeInMilliseconds),
-            shop: game.shop,
-            lastTimePlayed: new Date(),
-          }).then((response) => {
-            const { id: remoteId } = response.data;
-            gameRepository.update({ objectID: game.objectID }, { remoteId });
-          });
+          createGame({ ...game, lastTimePlayed: new Date() }).then(
+            (response) => {
+              const { id: remoteId } = response.data;
+              gameRepository.update({ objectID: game.objectID }, { remoteId });
+            }
+          );
         }
 
         gamesPlaytime.set(game.id, {
@@ -87,19 +81,13 @@ export const watchProcesses = async () => {
       gamesPlaytime.delete(game.id);
 
       if (game.remoteId) {
-        HydraApi.put(`/games/${game.remoteId}`, {
-          playTimeInMilliseconds: Math.round(
-            performance.now() - gamePlaytime.firstTick
-          ),
-          lastTimePlayed: game.lastTimePlayed,
-        });
+        updateGamePlaytime(
+          game,
+          performance.now() - gamePlaytime.firstTick,
+          game.lastTimePlayed!
+        );
       } else {
-        HydraApi.post("/games", {
-          objectId: game.objectID,
-          playTimeInMilliseconds: Math.round(game.playTimeInMilliseconds),
-          shop: game.shop,
-          lastTimePlayed: game.lastTimePlayed,
-        }).then((response) => {
+        createGame(game).then((response) => {
           const { id: remoteId } = response.data;
           gameRepository.update({ objectID: game.objectID }, { remoteId });
         });
