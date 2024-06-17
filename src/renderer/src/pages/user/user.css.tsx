@@ -12,6 +12,7 @@ export const wrapper = style({
 export const profileContentBox = style({
   display: "flex",
   gap: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
+  padding: `${SPACING_UNIT * 4}px ${SPACING_UNIT * 2}px`,
   alignItems: "center",
   borderRadius: "4px",
   border: `solid 1px ${vars.color.border}`,
