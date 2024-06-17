@@ -1,5 +1,7 @@
 import type { GameShop } from "@types";
 
+import Color from "color";
+
 export const steamUrlBuilder = {
   library: (objectID: string) =>
     `https://steamcdn-a.akamaihd.net/steam/apps/${objectID}/header.jpg`,
@@ -40,3 +42,6 @@ export const buildGameDetailsPath = (
   const searchParams = new URLSearchParams({ title: game.title, ...params });
   return `/game/${game.shop}/${game.objectID}?${searchParams.toString()}`;
 };
+
+export const darkenColor = (color: string, amount: number) =>
+  new Color(color).darken(amount).toString();

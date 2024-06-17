@@ -1,16 +1,15 @@
 import { UserGame, UserProfile } from "@types";
 import cn from "classnames";
 import { average } from "color.js";
-import Color from "color";
 
 import * as styles from "./user.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { useDate } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
-import { buildGameDetailsPath } from "@renderer/helpers";
+import { buildGameDetailsPath, darkenColor } from "@renderer/helpers";
 import { PersonIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import { useUserAuth } from "@renderer/hooks/use-user-auth";
@@ -24,6 +23,10 @@ export const UserContent = ({ userProfile }: ProfileContentProps) => {
   const { t, i18n } = useTranslation("user_profile");
 
   const { userAuth, signOut } = useUserAuth();
+
+  const profileImageRef = useRef<HTMLImageElement | null>(null);
+
+  const [backgroundColors, setBackgroundColors] = useState<string[]>([]);
 
   const navigate = useNavigate();
 
@@ -62,25 +65,29 @@ export const UserContent = ({ userProfile }: ProfileContentProps) => {
   };
 
   const handleAvatarLoad = async () => {
-    console.log(userProfile.profileImageUrl);
-    const output = await average(userProfile.profileImageUrl!, {
+    const output = await average(profileImageRef.current!, {
       amount: 1,
       format: "hex",
     });
 
-    const backgroundColor = output
-      ? (new Color(output).darken(0.7).toString() as string)
-      : "";
-
-    console.log(backgroundColor);
+    setBackgroundColors([
+      darkenColor(output as string, 0.6),
+      darkenColor(output as string, 0.7),
+    ]);
   };
 
   return (
     <>
-      <section className={styles.profileContentBox}>
+      <section
+        className={styles.profileContentBox}
+        style={{
+          backgroundImage: `linear-gradient(135deg, ${backgroundColors[0]}, ${backgroundColors[1]})`,
+        }}
+      >
         <div className={styles.profileAvatarContainer}>
           {userProfile.profileImageUrl ? (
             <img
+              ref={profileImageRef}
               className={styles.profileAvatar}
               alt={userProfile.displayName}
               src={userProfile.profileImageUrl}
