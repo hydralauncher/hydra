@@ -23,7 +23,7 @@ export class Game {
   objectID: string;
 
   @Column("text", { unique: true, nullable: true })
-  remoteId: string;
+  remoteId: string | null;
 
   @Column("text")
   title: string;
