@@ -5,13 +5,13 @@ import { setUserAuth } from "@renderer/features";
 export function useUserAuth() {
   const dispatch = useAppDispatch();
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const { userAuth } = useAppSelector((state) => state.userAuth);
 
   const signOut = useCallback(async () => {
     dispatch(setUserAuth(null));
-    return window.electron.signout();
+    return window.electron.signOut();
   }, [dispatch]);
 
   const updateUserAuth = useCallback(async () => {

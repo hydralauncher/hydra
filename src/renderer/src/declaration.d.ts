@@ -112,7 +112,7 @@ declare global {
     restartAndInstallUpdate: () => Promise<void>;
 
     /* Authg */
-    signout: () => Promise<void>;
+    signOut: () => Promise<void>;
     onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
     onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
 
