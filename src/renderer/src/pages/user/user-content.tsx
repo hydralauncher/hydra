@@ -1,5 +1,8 @@
 import { UserGame, UserProfile } from "@types";
 import cn from "classnames";
+import { average } from "color.js";
+import Color from "color";
+
 import * as styles from "./user.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { useMemo } from "react";
@@ -58,18 +61,30 @@ export const UserContent = ({ userProfile }: ProfileContentProps) => {
     navigate("/");
   };
 
+  const handleAvatarLoad = async () => {
+    console.log(userProfile.profileImageUrl);
+    const output = await average(userProfile.profileImageUrl!, {
+      amount: 1,
+      format: "hex",
+    });
+
+    const backgroundColor = output
+      ? (new Color(output).darken(0.7).toString() as string)
+      : "";
+
+    console.log(backgroundColor);
+  };
+
   return (
     <>
-      <section
-        className={styles.profileContentBox}
-        style={{ padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px` }}
-      >
+      <section className={styles.profileContentBox}>
         <div className={styles.profileAvatarContainer}>
           {userProfile.profileImageUrl ? (
             <img
               className={styles.profileAvatar}
               alt={userProfile.displayName}
               src={userProfile.profileImageUrl}
+              onLoad={handleAvatarLoad}
             />
           ) : (
             <PersonIcon size={72} />
