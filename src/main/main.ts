@@ -1,22 +1,16 @@
-import {
-  DownloadManager,
-  RepacksManager,
-  logger,
-  startMainLoop,
-} from "./services";
+import { DownloadManager, RepacksManager, startMainLoop } from "./services";
 import {
   downloadQueueRepository,
-  gameRepository,
   repackRepository,
   userPreferencesRepository,
 } from "./repository";
 import { UserPreferences } from "./entity";
 import { RealDebridClient } from "./services/real-debrid";
-import { fetchDownloadSourcesAndUpdate, getSteamAppAsset } from "./helpers";
+import { fetchDownloadSourcesAndUpdate } from "./helpers";
 import { publishNewRepacksNotifications } from "./services/notifications";
 import { MoreThan } from "typeorm";
 import { HydraApi } from "./services/hydra-api";
-import { steamGamesWorker } from "./workers";
+import { getRemoteGames } from "./services/library-sync";
 
 startMainLoop();
 
@@ -28,69 +22,11 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   if (userPreferences?.realDebridApiToken)
     RealDebridClient.authorize(userPreferences?.realDebridApiToken);
 
-  HydraApi.setupApi()
-    .then(async () => {
-      if (HydraApi.isLoggedIn()) {
-        const games = await HydraApi.get("/games");
-
-        for (const game of games.data) {
-          const localGame = await gameRepository.findOne({
-            where: {
-              objectID: game.objectId,
-            },
-          });
-
-          if (localGame) {
-            const updatedLastTimePlayed =
-              localGame.lastTimePlayed == null ||
-              new Date(game.lastTimePlayed) > localGame.lastTimePlayed
-                ? new Date(game.lastTimePlayed)
-                : localGame.lastTimePlayed;
-
-            const updatedPlayTime =
-              localGame.playTimeInMilliseconds < game.playTimeInMilliseconds
-                ? game.playTimeInMilliseconds
-                : localGame.playTimeInMilliseconds;
-
-            gameRepository.update(
-              {
-                objectID: game.objectId,
-                shop: "steam",
-                lastTimePlayed: updatedLastTimePlayed,
-                playTimeInMilliseconds: updatedPlayTime,
-              },
-              { remoteId: game.id }
-            );
-          } else {
-            const steamGame = await steamGamesWorker.run(
-              Number(game.objectId),
-              {
-                name: "getById",
-              }
-            );
-
-            if (steamGame) {
-              const iconUrl = steamGame?.clientIcon
-                ? getSteamAppAsset("icon", game.objectId, steamGame.clientIcon)
-                : null;
-
-              gameRepository.insert({
-                objectID: game.objectId,
-                title: steamGame?.name,
-                remoteId: game.id,
-                shop: game.shop,
-                iconUrl,
-                lastTimePlayed: game.lastTimePlayed,
-                playTimeInMilliseconds: game.playTimeInMilliseconds,
-              });
-            }
-          }
-        }
-      }
-    })
-    .catch((err) => {
-      logger.error("erro api GET: /games", err);
-    });
+  HydraApi.setupApi().then(async () => {
+    if (HydraApi.isLoggedIn()) {
+      getRemoteGames();
+    }
+  });
 
   const [nextQueueItem] = await downloadQueueRepository.find({
     order: {
