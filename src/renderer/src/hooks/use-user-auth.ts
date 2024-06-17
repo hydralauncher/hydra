@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "./redux";
 import { setUserAuth } from "@renderer/features";
 
@@ -24,6 +24,10 @@ export function useUserAuth() {
         setIsLoading(false);
       });
   }, [dispatch]);
+
+  useEffect(() => {
+    updateUserAuth();
+  }, []);
 
   const clearUserAuth = useCallback(async () => {
     dispatch(setUserAuth(null));
