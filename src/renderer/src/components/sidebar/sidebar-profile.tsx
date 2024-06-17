@@ -13,7 +13,7 @@ export function SidebarProfile() {
   };
 
   const handleClickLogin = () => {
-    window.electron.openExternal("https://auth.losbroxas.org");
+    window.electron.openExternal("https://auth.hydra.losbroxas.org");
   };
 
   if (isLoading) return null;
