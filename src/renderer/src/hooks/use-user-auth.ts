@@ -27,7 +27,7 @@ export function useUserAuth() {
 
   useEffect(() => {
     updateUserAuth();
-  }, []);
+  }, [updateUserAuth]);
 
   const clearUserAuth = useCallback(async () => {
     dispatch(setUserAuth(null));
