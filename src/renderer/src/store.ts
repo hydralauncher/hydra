@@ -6,7 +6,7 @@ import {
   searchSlice,
   userPreferencesSlice,
   toastSlice,
-  userAuthSlice,
+  userDetailsSlice,
 } from "@renderer/features";
 
 export const store = configureStore({
@@ -17,7 +17,7 @@ export const store = configureStore({
     userPreferences: userPreferencesSlice.reducer,
     download: downloadSlice.reducer,
     toast: toastSlice.reducer,
-    userAuth: userAuthSlice.reducer,
+    userDetails: userDetailsSlice.reducer,
   },
 });
 
