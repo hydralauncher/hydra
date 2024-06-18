@@ -26,8 +26,7 @@ export function UserContent({
 }: ProfileContentProps) {
   const { t, i18n } = useTranslation("user_profile");
 
-  const { userDetails, profileBackground, signOut, updateUser } =
-    useUserDetails();
+  const { userDetails, profileBackground, signOut } = useUserDetails();
 
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
 
@@ -72,7 +71,6 @@ export function UserContent({
   };
 
   const handleUpdateUserProfile = async () => {
-    updateUser();
     updateUserProfile();
   };
 

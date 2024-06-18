@@ -1,10 +1,10 @@
 import { Button, Modal, TextField } from "@renderer/components";
 import { UserProfile } from "@types";
 import * as styles from "./user.css";
-import { PersonIcon } from "@primer/octicons-react";
+import { PencilIcon, PersonIcon } from "@primer/octicons-react";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { useState } from "react";
-import { useToast } from "@renderer/hooks";
+import { useToast, useUserDetails } from "@renderer/hooks";
 
 export interface UserEditProfileModalProps {
   userProfile: UserProfile;
@@ -22,6 +22,9 @@ export const UserEditProfileModal = ({
   const [displayName, setDisplayName] = useState(userProfile.displayName);
   const [newImagePath, setNewImagePath] = useState<string | null>(null);
   const [newImageBase64, setNewImageBase64] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const { patchUser } = useUserDetails();
 
   const { showSuccessToast, showErrorToast } = useToast();
 
@@ -48,16 +51,19 @@ export const UserEditProfileModal = ({
   };
 
   const handleSaveProfile = async () => {
-    window.electron
-      .updateProfile(displayName, newImagePath)
+    setIsSaving(true);
+    patchUser(displayName, newImagePath)
       .then(() => {
         updateUser();
         setNewImagePath(null);
-        showSuccessToast("Sucesso");
+        showSuccessToast("Salvo com sucesso");
         onClose();
       })
       .catch(() => {
-        showErrorToast("Erro");
+        showErrorToast("Tente novamente");
+      })
+      .finally(() => {
+        setIsSaving(false);
       });
   };
   return (
@@ -71,7 +77,7 @@ export const UserEditProfileModal = ({
             justifyContent: "center",
             alignItems: "center",
             gap: `${SPACING_UNIT * 3}px`,
-            width: "300px",
+            width: "350px",
           }}
         >
           <button
@@ -87,6 +93,9 @@ export const UserEditProfileModal = ({
             ) : (
               <PersonIcon size={72} />
             )}
+            <div className={styles.editProfileImageBadge}>
+              <PencilIcon size={16} />
+            </div>
           </button>
 
           <TextField
@@ -95,8 +104,12 @@ export const UserEditProfileModal = ({
             containerProps={{ style: { width: "100%" } }}
             onChange={(e) => setDisplayName(e.target.value)}
           />
-          <Button style={{ alignSelf: "end" }} onClick={handleSaveProfile}>
-            Salvar{" "}
+          <Button
+            disabled={isSaving}
+            style={{ alignSelf: "end" }}
+            onClick={handleSaveProfile}
+          >
+            {isSaving ? "Salvando..." : "Salvar"}
           </Button>
         </section>
       </Modal>
