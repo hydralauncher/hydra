@@ -3,7 +3,7 @@ import cn from "classnames";
 
 import * as styles from "./user.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { useDate, useUserDetails } from "@renderer/hooks";
@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { PersonIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
+import { UserEditProfileModal } from "./user-edit-modal";
 
 const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 
@@ -22,6 +23,8 @@ export function UserContent({ userProfile }: ProfileContentProps) {
   const { t, i18n } = useTranslation("user_profile");
 
   const { userDetails, profileBackground, signOut } = useUserDetails();
+
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
 
   const navigate = useNavigate();
 
@@ -54,6 +57,10 @@ export function UserContent({ userProfile }: ProfileContentProps) {
     navigate(buildGameDetailsPath(game));
   };
 
+  const handleEditProfile = () => {
+    setShowEditProfileModal(true);
+  };
+
   const handleSignout = async () => {
     await signOut();
     navigate("/");
@@ -69,10 +76,17 @@ export function UserContent({ userProfile }: ProfileContentProps) {
 
   return (
     <>
+      <UserEditProfileModal
+        visible={showEditProfileModal}
+        onClose={() => setShowEditProfileModal(false)}
+        userProfile={userProfile}
+      />
+
       <section
         className={styles.profileContentBox}
         style={{
           background: profileContentBoxBackground,
+          padding: `${SPACING_UNIT * 4}px ${SPACING_UNIT * 2}px`,
         }}
       >
         <div className={styles.profileAvatarContainer}>
@@ -93,9 +107,23 @@ export function UserContent({ userProfile }: ProfileContentProps) {
 
         {isMe && (
           <div style={{ flex: 1, display: "flex", justifyContent: "end" }}>
-            <Button theme="danger" onClick={handleSignout}>
-              {t("sign_out")}
-            </Button>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: `${SPACING_UNIT}px`,
+              }}
+            >
+              <>
+                <Button theme="outline" onClick={handleEditProfile}>
+                  Editar perfil
+                </Button>
+
+                <Button theme="danger" onClick={handleSignout}>
+                  {t("sign_out")}
+                </Button>
+              </>
+            </div>
           </div>
         )}
       </section>
