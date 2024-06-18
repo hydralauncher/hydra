@@ -47,11 +47,38 @@ export function useUserDetails() {
     });
   }, [dispatch]);
 
+  const patchUser = useCallback(
+    async (displayName: string, imageProfileUrl: string | null) => {
+      return window.electron
+        .updateProfile(displayName, imageProfileUrl)
+        .then(async (userDetails) => {
+          if (userDetails) {
+            dispatch(setUserDetails(userDetails));
+
+            if (userDetails.profileImageUrl) {
+              const output = await average(userDetails.profileImageUrl, {
+                amount: 1,
+                format: "hex",
+              });
+
+              dispatch(
+                setProfileBackground(
+                  `linear-gradient(135deg, ${darkenColor(output as string, 0.6)}, ${darkenColor(output as string, 0.7)})`
+                )
+              );
+            }
+          }
+        });
+    },
+    [dispatch]
+  );
+
   return {
     userDetails,
     updateUser,
     signOut,
     clearUser,
+    patchUser,
     profileBackground,
   };
 }

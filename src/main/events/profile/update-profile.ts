@@ -3,8 +3,12 @@ import { HydraApi } from "@main/services/hydra-api";
 import axios from "axios";
 import fs from "node:fs";
 import mime from "mime";
+import { UserProfile } from "@types";
 
-const patchUserProfile = (displayName: string, profileImageUrl?: string) => {
+const patchUserProfile = async (
+  displayName: string,
+  profileImageUrl?: string
+) => {
   if (profileImageUrl) {
     return HydraApi.patch("/profile", {
       displayName,
@@ -21,10 +25,9 @@ const updateProfile = async (
   _event: Electron.IpcMainInvokeEvent,
   displayName: string,
   newProfileImagePath: string | null
-): Promise<any> => {
+): Promise<UserProfile | null> => {
   if (!newProfileImagePath) {
-    patchUserProfile(displayName);
-    return;
+    return (await patchUserProfile(displayName)).data;
   }
 
   const stats = fs.statSync(newProfileImagePath);
@@ -51,8 +54,7 @@ const updateProfile = async (
       return undefined;
     });
 
-  console.log(profileImageUrl);
-  patchUserProfile(displayName, profileImageUrl);
+  return (await patchUserProfile(displayName, profileImageUrl)).data;
 };
 
 registerEvent("updateProfile", updateProfile);

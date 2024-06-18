@@ -38,19 +38,22 @@ export const profileAvatarContainer = style({
 export const profileAvatarEditContainer = style({
   width: "128px",
   height: "128px",
-  borderRadius: "50%",
   display: "flex",
+  borderRadius: "50%",
   justifyContent: "center",
   alignItems: "center",
   backgroundColor: vars.color.background,
   position: "relative",
-  overflow: "hidden",
   border: `solid 1px ${vars.color.border}`,
   boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.7)",
+  cursor: "pointer",
 });
 
 export const profileAvatar = style({
   height: "100%",
+  aspectRatio: 1,
+  borderRadius: "50%",
+  overflow: "hidden",
   objectFit: "cover",
 });
 
@@ -157,4 +160,18 @@ export const gameInformation = style({
 
 export const profileHeaderSkeleton = style({
   height: "200px",
+});
+
+export const editProfileImageBadge = style({
+  width: "28px",
+  height: "28px",
+  borderRadius: "50%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: vars.color.muted,
+  position: "absolute",
+  bottom: "0px",
+  right: "0px",
+  zIndex: "1",
 });
