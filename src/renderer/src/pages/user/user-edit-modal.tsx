@@ -18,22 +18,28 @@ export const UserEditProfileModal = ({
 }: UserEditProfileModalProps) => {
   const [displayName, setDisplayName] = useState(userProfile.displayName);
   const [newImagePath, setNewImagePath] = useState<string | null>(null);
+  const [newImageBase64, setNewImageBase64] = useState<string | null>(null);
 
   const handleChangeProfileAvatar = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
       properties: ["openFile"],
       filters: [
         {
-          name: "Profile avatar",
-          extensions: ["jpg", "png", "gif"],
+          name: "Profile image",
+          extensions: ["jpg", "png", "gif", "webp", "jpeg"],
         },
       ],
     });
 
-    const path = filePaths[0];
-    console.log(path);
+    if (filePaths && filePaths.length > 0) {
+      const path = filePaths[0];
 
-    setNewImagePath(path);
+      window.electron.imagePathToBase64(path).then((base64) => {
+        setNewImageBase64(base64);
+      });
+
+      setNewImagePath(path);
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -67,7 +73,7 @@ export const UserEditProfileModal = ({
               <img
                 className={styles.profileAvatar}
                 alt={userProfile.displayName}
-                src={newImagePath ?? userProfile.profileImageUrl}
+                src={newImageBase64 ?? userProfile.profileImageUrl}
               />
             ) : (
               <PersonIcon size={72} />

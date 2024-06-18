@@ -24,6 +24,7 @@ import "./library/remove-game";
 import "./library/remove-game-from-library";
 import "./misc/open-external";
 import "./misc/show-open-dialog";
+import "./misc/image-path-to-base-64";
 import "./torrenting/cancel-game-download";
 import "./torrenting/pause-game-download";
 import "./torrenting/resume-game-download";
