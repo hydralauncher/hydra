@@ -53,6 +53,35 @@ export class HydraApi {
       baseURL: import.meta.env.MAIN_VITE_API_URL,
     });
 
+    this.instance.interceptors.request.use(
+      (request) => {
+        console.log(" ---- REQUEST -----");
+        console.log(request.method, request.baseURL, request.data);
+        return request;
+      },
+      (error) => {
+        console.log("request error", error);
+        return Promise.reject(error);
+      }
+    );
+
+    this.instance.interceptors.response.use(
+      (response) => {
+        console.log(" ---- RESPONSE -----");
+        console.log(
+          response.status,
+          response.config.method,
+          response.config.url,
+          response.data
+        );
+        return response;
+      },
+      (error) => {
+        console.log("response error", error);
+        return Promise.reject(error);
+      }
+    );
+
     const userAuth = await userAuthRepository.findOne({
       where: { id: 1 },
     });
