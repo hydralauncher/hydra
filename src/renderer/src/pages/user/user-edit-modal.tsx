@@ -71,7 +71,6 @@ export const UserEditProfileModal = ({
       <Modal visible={visible} title="Editar Perfil" onClose={onClose}>
         <section
           style={{
-            padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",

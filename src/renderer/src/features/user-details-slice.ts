@@ -15,18 +15,14 @@ export const userDetailsSlice = createSlice({
   name: "user-details",
   initialState,
   reducers: {
-    setUserDetails: (state, action: PayloadAction<UserDetails>) => {
+    setUserDetails: (state, action: PayloadAction<UserDetails | null>) => {
       state.userDetails = action.payload;
     },
-    setProfileBackground: (state, action: PayloadAction<string>) => {
+    setProfileBackground: (state, action: PayloadAction<string | null>) => {
       state.profileBackground = action.payload;
-    },
-    clearUserDetails: (state) => {
-      state.userDetails = null;
-      state.profileBackground = null;
     },
   },
 });
 
-export const { setUserDetails, setProfileBackground, clearUserDetails } =
+export const { setUserDetails, setProfileBackground } =
   userDetailsSlice.actions;

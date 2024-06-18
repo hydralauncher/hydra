@@ -19,6 +19,8 @@ import {
   setUserPreferences,
   toggleDraggingDisabled,
   closeToast,
+  setUserDetails,
+  setProfileBackground,
 } from "@renderer/features";
 
 export interface AppProps {
@@ -31,7 +33,8 @@ export function App() {
 
   const { clearDownload, setLastPacket } = useDownload();
 
-  const { updateUser, clearUser } = useUserDetails();
+  const { fetchUserDetails, updateUserDetails, clearUserDetails } =
+    useUserDetails();
 
   const dispatch = useAppDispatch();
 
@@ -73,23 +76,38 @@ export function App() {
   }, [clearDownload, setLastPacket, updateLibrary]);
 
   useEffect(() => {
-    updateUser();
-  }, [updateUser]);
+    const cachedUserDetails = window.localStorage.getItem("userDetails");
+
+    if (cachedUserDetails) {
+      const { profileBackground, ...userDetails } =
+        JSON.parse(cachedUserDetails);
+
+      dispatch(setUserDetails(userDetails));
+      dispatch(setProfileBackground(profileBackground));
+    }
+
+    /* TODO: Check if user is logged in before calling this */
+    fetchUserDetails().then((response) => {
+      if (response) setUserDetails(response);
+    });
+  }, [dispatch, fetchUserDetails]);
 
   useEffect(() => {
     const listeners = [
       window.electron.onSignIn(() => {
-        updateUser();
+        fetchUserDetails().then((response) => {
+          if (response) updateUserDetails(response);
+        });
       }),
       window.electron.onSignOut(() => {
-        clearUser();
+        clearUserDetails();
       }),
     ];
 
     return () => {
       listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [updateUser, clearUser]);
+  }, [fetchUserDetails, updateUserDetails, clearUserDetails]);
 
   const handleSearch = useCallback(
     (query: string) => {
