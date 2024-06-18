@@ -4,21 +4,26 @@ import * as styles from "./user.css";
 import { PersonIcon } from "@primer/octicons-react";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { useState } from "react";
+import { useToast } from "@renderer/hooks";
 
 export interface UserEditProfileModalProps {
   userProfile: UserProfile;
   visible: boolean;
   onClose: () => void;
+  updateUser: () => Promise<void>;
 }
 
 export const UserEditProfileModal = ({
   userProfile,
   visible,
   onClose,
+  updateUser,
 }: UserEditProfileModalProps) => {
   const [displayName, setDisplayName] = useState(userProfile.displayName);
   const [newImagePath, setNewImagePath] = useState<string | null>(null);
   const [newImageBase64, setNewImageBase64] = useState<string | null>(null);
+
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const handleChangeProfileAvatar = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
@@ -43,13 +48,17 @@ export const UserEditProfileModal = ({
   };
 
   const handleSaveProfile = async () => {
-    await window.electron
+    window.electron
       .updateProfile(displayName, newImagePath)
-      .catch((err) => {
-        console.log("errro", err);
+      .then(() => {
+        updateUser();
+        setNewImagePath(null);
+        showSuccessToast("Sucesso");
+        onClose();
+      })
+      .catch(() => {
+        showErrorToast("Erro");
       });
-    setNewImagePath(null);
-    onClose();
   };
   return (
     <>
