@@ -1,26 +1,27 @@
 import { UserGame, UserProfile } from "@types";
 import cn from "classnames";
+
 import * as styles from "./user.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import { useDate } from "@renderer/hooks";
+import { useDate, useUserDetails } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { PersonIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
-import { useUserAuth } from "@renderer/hooks/use-user-auth";
 
 const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
+
 export interface ProfileContentProps {
   userProfile: UserProfile;
 }
 
-export const UserContent = ({ userProfile }: ProfileContentProps) => {
+export function UserContent({ userProfile }: ProfileContentProps) {
   const { t, i18n } = useTranslation("user_profile");
 
-  const { userAuth, signOut } = useUserAuth();
+  const { userDetails, profileBackground, signOut } = useUserDetails();
 
   const navigate = useNavigate();
 
@@ -58,11 +59,21 @@ export const UserContent = ({ userProfile }: ProfileContentProps) => {
     navigate("/");
   };
 
+  const isMe = userDetails?.id == userProfile.id;
+
+  const profileContentBoxBackground = useMemo(() => {
+    if (profileBackground) return profileBackground;
+    /* TODO: Render background colors for other users */
+    return undefined;
+  }, [profileBackground]);
+
   return (
     <>
       <section
         className={styles.profileContentBox}
-        style={{ padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px` }}
+        style={{
+          background: profileContentBoxBackground,
+        }}
       >
         <div className={styles.profileAvatarContainer}>
           {userProfile.profileImageUrl ? (
@@ -80,7 +91,7 @@ export const UserContent = ({ userProfile }: ProfileContentProps) => {
           <h2 style={{ fontWeight: "bold" }}>{userProfile.displayName}</h2>
         </div>
 
-        {userAuth && userAuth.id == userProfile.id && (
+        {isMe && (
           <div style={{ flex: 1, display: "flex", justifyContent: "end" }}>
             <Button theme="danger" onClick={handleSignout}>
               {t("sign_out")}
@@ -191,4 +202,4 @@ export const UserContent = ({ userProfile }: ProfileContentProps) => {
       </div>
     </>
   );
-};
+}

@@ -7,6 +7,7 @@ import {
   useAppSelector,
   useDownload,
   useLibrary,
+  useUserDetails,
 } from "@renderer/hooks";
 
 import * as styles from "./app.css";
@@ -19,7 +20,6 @@ import {
   toggleDraggingDisabled,
   closeToast,
 } from "@renderer/features";
-import { useUserAuth } from "./hooks/use-user-auth";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -31,7 +31,7 @@ export function App() {
 
   const { clearDownload, setLastPacket } = useDownload();
 
-  const { updateUserAuth, clearUserAuth } = useUserAuth();
+  const { updateUser, clearUser } = useUserDetails();
 
   const dispatch = useAppDispatch();
 
@@ -39,9 +39,11 @@ export function App() {
   const location = useLocation();
 
   const search = useAppSelector((state) => state.search.value);
+
   const draggingDisabled = useAppSelector(
     (state) => state.window.draggingDisabled
   );
+
   const toast = useAppSelector((state) => state.toast);
 
   useEffect(() => {
@@ -71,19 +73,23 @@ export function App() {
   }, [clearDownload, setLastPacket, updateLibrary]);
 
   useEffect(() => {
+    updateUser();
+  }, [updateUser]);
+
+  useEffect(() => {
     const listeners = [
       window.electron.onSignIn(() => {
-        updateUserAuth();
+        updateUser();
       }),
       window.electron.onSignOut(() => {
-        clearUserAuth();
+        clearUser();
       }),
     ];
 
     return () => {
       listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [clearUserAuth, updateUserAuth]);
+  }, [updateUser, clearUser]);
 
   const handleSearch = useCallback(
     (query: string) => {

@@ -11,12 +11,15 @@ export const wrapper = style({
 
 export const profileContentBox = style({
   display: "flex",
-  gap: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
+  gap: `${SPACING_UNIT * 3}px`,
+  padding: `${SPACING_UNIT * 4}px ${SPACING_UNIT * 2}px`,
   alignItems: "center",
   borderRadius: "4px",
   border: `solid 1px ${vars.color.border}`,
   width: "100%",
   overflow: "hidden",
+  boxShadow: "0px 0px 15px 0px rgba(0, 0, 0, 0.7)",
+  transition: "all ease 0.3s",
 });
 
 export const profileAvatarContainer = style({
@@ -29,17 +32,21 @@ export const profileAvatarContainer = style({
   backgroundColor: vars.color.background,
   position: "relative",
   overflow: "hidden",
+  border: `solid 1px ${vars.color.border}`,
+  boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.7)",
 });
 
 export const profileAvatar = style({
   width: "96px",
   height: "96px",
+  objectFit: "cover",
 });
 
 export const profileInformation = style({
   display: "flex",
   flexDirection: "column",
   alignItems: "flex-start",
+  color: "#c0c1c7",
 });
 
 export const profileContent = style({

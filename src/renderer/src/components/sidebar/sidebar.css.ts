@@ -149,7 +149,9 @@ export const profileAvatar = style({
   justifyContent: "center",
   alignItems: "center",
   backgroundColor: vars.color.background,
+  border: `solid 1px ${vars.color.border}`,
   position: "relative",
+  objectFit: "cover",
 });
 
 export const profileButtonInformation = style({

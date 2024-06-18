@@ -1,24 +1,28 @@
 import { useNavigate } from "react-router-dom";
 import { PersonIcon } from "@primer/octicons-react";
 import * as styles from "./sidebar.css";
-import { useUserAuth } from "@renderer/hooks/use-user-auth";
+import { useUserDetails } from "@renderer/hooks";
+import { useMemo } from "react";
 
 export function SidebarProfile() {
   const navigate = useNavigate();
 
-  const { userAuth, isLoading } = useUserAuth();
+  const { userDetails, profileBackground } = useUserDetails();
 
   const handleClickProfile = () => {
-    navigate(`/user/${userAuth!.id}`);
+    navigate(`/user/${userDetails!.id}`);
   };
 
   const handleClickLogin = () => {
     window.electron.openExternal("https://auth.hydra.losbroxas.org");
   };
 
-  if (isLoading) return null;
+  const profileButtonBackground = useMemo(() => {
+    if (profileBackground) return profileBackground;
+    return undefined;
+  }, [profileBackground]);
 
-  if (userAuth == null) {
+  if (userDetails == null) {
     return (
       <>
         <button
@@ -43,14 +47,15 @@ export function SidebarProfile() {
       <button
         type="button"
         className={styles.profileButton}
+        style={{ background: profileButtonBackground }}
         onClick={handleClickProfile}
       >
         <div className={styles.profileAvatar}>
-          {userAuth.profileImageUrl ? (
+          {userDetails.profileImageUrl ? (
             <img
               className={styles.profileAvatar}
-              src={userAuth.profileImageUrl}
-              alt={userAuth.displayName}
+              src={userDetails.profileImageUrl}
+              alt={userDetails.displayName}
             />
           ) : (
             <PersonIcon />
@@ -58,7 +63,7 @@ export function SidebarProfile() {
         </div>
 
         <div className={styles.profileButtonInformation}>
-          <p style={{ fontWeight: "bold" }}>{userAuth.displayName}</p>
+          <p style={{ fontWeight: "bold" }}>{userDetails.displayName}</p>
         </div>
       </button>
     </>
