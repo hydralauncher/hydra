@@ -22,7 +22,8 @@ export interface ProfileContentProps {
 export function UserContent({ userProfile }: ProfileContentProps) {
   const { t, i18n } = useTranslation("user_profile");
 
-  const { userDetails, profileBackground, signOut } = useUserDetails();
+  const { userDetails, profileBackground, signOut, updateUser } =
+    useUserDetails();
 
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
 
@@ -79,6 +80,7 @@ export function UserContent({ userProfile }: ProfileContentProps) {
       <UserEditProfileModal
         visible={showEditProfileModal}
         onClose={() => setShowEditProfileModal(false)}
+        updateUser={updateUser}
         userProfile={userProfile}
       />
 
