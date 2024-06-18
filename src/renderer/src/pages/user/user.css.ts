@@ -12,7 +12,6 @@ export const wrapper = style({
 export const profileContentBox = style({
   display: "flex",
   gap: `${SPACING_UNIT * 3}px`,
-  padding: `${SPACING_UNIT * 4}px ${SPACING_UNIT * 2}px`,
   alignItems: "center",
   borderRadius: "4px",
   border: `solid 1px ${vars.color.border}`,
@@ -36,10 +35,33 @@ export const profileAvatarContainer = style({
   boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.7)",
 });
 
+export const profileAvatarEditContainer = style({
+  width: "128px",
+  height: "128px",
+  borderRadius: "50%",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: vars.color.background,
+  position: "relative",
+  overflow: "hidden",
+  border: `solid 1px ${vars.color.border}`,
+  boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.7)",
+});
+
 export const profileAvatar = style({
-  width: "96px",
-  height: "96px",
+  height: "100%",
   objectFit: "cover",
+});
+
+export const profileAvatarEditOverlay = style({
+  position: "absolute",
+  width: "100%",
+  height: "100%",
+  backgroundColor: "#00000055",
+  color: vars.color.muted,
+  zIndex: 1,
+  cursor: "pointer",
 });
 
 export const profileInformation = style({

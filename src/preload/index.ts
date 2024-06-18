@@ -128,6 +128,8 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Profile */
   getMe: () => ipcRenderer.invoke("getMe"),
+  updateProfile: (displayName: string, newProfileImagePath: string | null) =>
+    ipcRenderer.invoke("updateProfile", displayName, newProfileImagePath),
 
   /* User */
   getUser: (userId: string) => ipcRenderer.invoke("getUser", userId),

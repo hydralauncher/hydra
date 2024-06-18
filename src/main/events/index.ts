@@ -42,6 +42,7 @@ import "./download-sources/sync-download-sources";
 import "./auth/signout";
 import "./user/get-user";
 import "./profile/get-me";
+import "./profile/update-profile";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => app.getVersion());
