@@ -17,9 +17,13 @@ const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 
 export interface ProfileContentProps {
   userProfile: UserProfile;
+  updateUserProfile: () => void;
 }
 
-export function UserContent({ userProfile }: ProfileContentProps) {
+export function UserContent({
+  userProfile,
+  updateUserProfile,
+}: ProfileContentProps) {
   const { t, i18n } = useTranslation("user_profile");
 
   const { userDetails, profileBackground, signOut, updateUser } =
@@ -67,6 +71,11 @@ export function UserContent({ userProfile }: ProfileContentProps) {
     navigate("/");
   };
 
+  const handleUpdateUserProfile = async () => {
+    updateUser();
+    updateUserProfile();
+  };
+
   const isMe = userDetails?.id == userProfile.id;
 
   const profileContentBoxBackground = useMemo(() => {
@@ -80,7 +89,7 @@ export function UserContent({ userProfile }: ProfileContentProps) {
       <UserEditProfileModal
         visible={showEditProfileModal}
         onClose={() => setShowEditProfileModal(false)}
-        updateUser={updateUser}
+        updateUser={handleUpdateUserProfile}
         userProfile={userProfile}
       />
 
