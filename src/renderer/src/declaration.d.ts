@@ -125,7 +125,7 @@ declare global {
     updateProfile: (
       displayName: string,
       newProfileImagePath: string | null
-    ) => Promise<UserProfile | null>;
+    ) => Promise<UserProfile>;
   }
 
   interface Window {
