@@ -96,6 +96,7 @@ declare global {
 
     /* Misc */
     openExternal: (src: string) => Promise<void>;
+    imagePathToBase64: (filePath: string) => Promise<string>;
     getVersion: () => Promise<string>;
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;

@@ -4,12 +4,11 @@ import axios from "axios";
 import fs from "node:fs";
 import mime from "mime";
 
-const patchUserProfile = (displayName: string, imageUrl?: string) => {
-  return;
-  if (imageUrl) {
+const patchUserProfile = (displayName: string, profileImageUrl?: string) => {
+  if (profileImageUrl) {
     return HydraApi.patch("/profile", {
       displayName,
-      imageUrl,
+      profileImageUrl,
     });
   } else {
     return HydraApi.patch("/profile", {
