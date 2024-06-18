@@ -64,7 +64,7 @@ export class HydraApi {
     this.instance.interceptors.request.use(
       (request) => {
         console.log(" ---- REQUEST -----");
-        console.log(request.method, request.baseURL, request.data);
+        console.log(request.method, request.url, request.data);
         return request;
       },
       (error) => {
