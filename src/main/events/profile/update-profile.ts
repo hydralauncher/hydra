@@ -3,7 +3,7 @@ import { HydraApi } from "@main/services/hydra-api";
 import axios from "axios";
 import fs from "node:fs";
 import path from "node:path";
-import mime from "mime";
+import { fileTypeFromFile } from "file-type";
 import { UserProfile } from "@types";
 
 const patchUserProfile = async (
@@ -44,11 +44,11 @@ const updateProfile = async (
     .then(async (preSignedResponse) => {
       const { presignedUrl, profileImageUrl } = preSignedResponse.data;
 
-      const mimeType = mime.getType(newProfileImagePath);
+      const mimeType = await fileTypeFromFile(newProfileImagePath);
 
       await axios.put(presignedUrl, fileBuffer, {
         headers: {
-          "Content-Type": mimeType,
+          "Content-Type": mimeType?.mime,
         },
       });
       return profileImageUrl;

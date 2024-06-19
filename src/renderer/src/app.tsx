@@ -86,9 +86,12 @@ export function App() {
       dispatch(setProfileBackground(profileBackground));
     }
 
-    /* TODO: Check if user is logged in before calling this */
-    fetchUserDetails().then((response) => {
-      if (response) setUserDetails(response);
+    window.electron.isUserLoggedIn().then((isLoggedIn) => {
+      if (isLoggedIn) {
+        fetchUserDetails().then((response) => {
+          if (response) setUserDetails(response);
+        });
+      }
     });
   }, [dispatch, fetchUserDetails]);
 

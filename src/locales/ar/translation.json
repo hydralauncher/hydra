@@ -1,7 +1,6 @@
 {
   "home": {
     "featured": "مميّز",
-    "recently_added": "مضاف مؤخراً",
     "trending": "شائع",
     "surprise_me": "فاجئني",
     "no_results": "لم يتم العثور على نتائج"
@@ -15,12 +14,7 @@
     "paused": "{{title}} (متوقف)",
     "downloading": "{{title}} ({{percentage}} - جارٍ التنزيل...)",
     "filter": "بحث في المكتبة",
-    "follow_us": "تابعنا",
-    "home": "الرئيسية",
-    "discord": "انضم إلى الـDiscord الخاص بنا",
-    "telegram": "انضم إلى قناة Telegram الخاصة بنا",
-    "x": "تابعنا على X",
-    "github": "ساهم في مشروعنا على GitHub"
+    "home": "الرئيسية"
   },
   "header": {
     "search": "ابحث عن الألعاب",
