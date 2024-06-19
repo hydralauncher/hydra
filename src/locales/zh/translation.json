@@ -1,7 +1,6 @@
 {
   "home": {
     "featured": "特色推荐",
-    "recently_added": "最近添加",
     "trending": "最近热门",
     "surprise_me": "向我推荐",
     "no_results": "没有找到结果"
@@ -15,12 +14,7 @@
     "paused": "{{title}} (已暂停)",
     "downloading": "{{title}} ({{percentage}} - 正在下载…)",
     "filter": "筛选游戏库",
-    "follow_us": "关注我们",
-    "home": "主页",
-    "discord": "加入我们的Discord",
-    "telegram": "加入我们的Telegram",
-    "x": "在X上关注我们",
-    "github": "在GitHub上贡献"
+    "home": "主页"
   },
   "header": {
     "search": "搜索",

@@ -1,7 +1,6 @@
 {
   "home": {
     "featured": "Рекомендоване",
-    "recently_added": "Нове",
     "trending": "У тренді",
     "surprise_me": "Здивуй мене",
     "no_results": "Результатів не знайдено"
@@ -15,12 +14,7 @@
     "paused": "{{title}} (Призупинено)",
     "downloading": "{{title}} ({{percentage}} - Завантаження…)",
     "filter": "Фільтр бібліотеки",
-    "follow_us": "Підписуйтесь на нас",
-    "home": "Головна",
-    "discord": "Приєднуйтесь до Discord",
-    "telegram": "Приєднуйтесь до Telegram",
-    "x": "Підписуйтесь на X",
-    "github": "Зробіть свій внесок на GitHub"
+    "home": "Головна"
   },
   "header": {
     "search": "Пошук",
