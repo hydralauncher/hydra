@@ -3,6 +3,7 @@ import axios, { AxiosError, AxiosInstance } from "axios";
 import { WindowManager } from "./window-manager";
 import url from "url";
 import { uploadGamesBatch } from "./library-sync";
+import { clearGamesRemoteIds } from "./library-sync/clear-games-remote-id";
 
 export class HydraApi {
   private static instance: AxiosInstance;
@@ -50,6 +51,7 @@ export class HydraApi {
 
     if (WindowManager.mainWindow) {
       WindowManager.mainWindow.webContents.send("on-signin");
+      await clearGamesRemoteIds();
       uploadGamesBatch();
     }
   }
