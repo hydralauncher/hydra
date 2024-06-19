@@ -12,6 +12,7 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import { PersonIcon, TelescopeIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import { UserEditProfileModal } from "./user-edit-modal";
+import { UserSignOutModal } from "./user-signout-modal";
 
 const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 
@@ -29,6 +30,7 @@ export function UserContent({
   const { userDetails, profileBackground, signOut } = useUserDetails();
 
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
   const navigate = useNavigate();
 
@@ -65,7 +67,7 @@ export function UserContent({
     setShowEditProfileModal(true);
   };
 
-  const handleSignout = async () => {
+  const handleConfirmSignout = async () => {
     signOut();
     navigate("/");
   };
@@ -85,6 +87,12 @@ export function UserContent({
         onClose={() => setShowEditProfileModal(false)}
         updateUserProfile={updateUserProfile}
         userProfile={userProfile}
+      />
+
+      <UserSignOutModal
+        visible={showSignOutModal}
+        onClose={() => setShowSignOutModal(false)}
+        onConfirm={handleConfirmSignout}
       />
 
       <section
@@ -124,7 +132,10 @@ export function UserContent({
                   Editar perfil
                 </Button>
 
-                <Button theme="danger" onClick={handleSignout}>
+                <Button
+                  theme="danger"
+                  onClick={() => setShowSignOutModal(true)}
+                >
                   {t("sign_out")}
                 </Button>
               </>

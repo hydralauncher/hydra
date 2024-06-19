@@ -240,6 +240,9 @@
     "save": "Save",
     "edit_profile": "Edit Profile",
     "saved_successfully": "Saved successfully",
-    "try_again": "Please, try again"
+    "try_again": "Please, try again",
+    "signout_modal_title": "Are you sure?",
+    "cancel": "Cancel",
+    "signout": "Sign Out"
   }
 }
