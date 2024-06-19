@@ -1,7 +1,6 @@
 {
   "home": {
     "featured": "En vedette",
-    "recently_added": "Récemment ajouté",
     "trending": "Tendance",
     "surprise_me": "Surprenez-moi",
     "no_results": "Aucun résultat trouvé"
@@ -15,8 +14,7 @@
     "paused": "{{title}} (En pause)",
     "downloading": "{{title}} ({{percentage}} - Téléchargement en cours…)",
     "filter": "Filtrer la bibliothèque",
-    "home": "Page d’accueil",
-    "follow_us": "Suivez-nous"
+    "home": "Page d’accueil"
   },
   "header": {
     "search": "Recherche",
