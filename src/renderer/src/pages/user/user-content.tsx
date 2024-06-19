@@ -104,6 +104,17 @@ export function UserContent({
           position: "relative",
         }}
       >
+        {runningGame && (
+          <div
+            style={{
+              background: `url(${steamUrlBuilder.libraryHero(runningGame.objectID)})`,
+              position: "absolute",
+              inset: 0,
+              backgroundSize: "cover",
+            }}
+          ></div>
+        )}
+
         <div
           style={{
             background: profileContentBoxBackground,
@@ -111,17 +122,6 @@ export function UserContent({
             inset: 0,
           }}
         ></div>
-        {runningGame && (
-          <div
-            style={{
-              background: `url(${steamUrlBuilder.libraryHero(runningGame.objectID)})`,
-              position: "absolute",
-              inset: 0,
-              opacity: 0.1,
-              backgroundSize: "cover",
-            }}
-          ></div>
-        )}
 
         <div className={styles.profileAvatarContainer}>
           {userProfile.profileImageUrl ? (
