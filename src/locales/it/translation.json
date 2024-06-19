@@ -1,7 +1,6 @@
 {
   "home": {
     "featured": "In primo piano",
-    "recently_added": "Aggiunti di recente",
     "trending": "Di tendenza",
     "surprise_me": "Sorprendimi",
     "no_results": "Nessun risultato trovato"
@@ -15,12 +14,7 @@
     "paused": "{{title}} (In pausa)",
     "downloading": "{{title}} ({{percentage}} - Download…)",
     "filter": "Filtra libreria",
-    "follow_us": "Seguici",
-    "home": "Home",
-    "discord": "Unisciti al nostro Discord",
-    "telegram": "Unisciti al nostro Telegram",
-    "x": "Segui su X",
-    "github": "Contribuisci su GitHub"
+    "home": "Home"
   },
   "header": {
     "search": "Cerca",

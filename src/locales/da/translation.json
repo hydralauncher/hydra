@@ -1,7 +1,6 @@
 {
   "home": {
     "featured": "Anbefalet",
-    "recently_added": "Nyligt tilføjet",
     "trending": "Trender",
     "surprise_me": "Overrask mig",
     "no_results": "Ingen resultater fundet"
@@ -15,12 +14,7 @@
     "paused": "{{title}} (Paused)",
     "downloading": "{{title}} ({{percentage}} - Downloading…)",
     "filter": "Filtrer bibliotek",
-    "follow_us": "Følg os",
-    "home": "Hjem",
-    "discord": "Tilslut dig vores Discord",
-    "telegram": "Tilslut dig vores Telegram",
-    "x": "Følg på X",
-    "github": "Bidrag på GitHub"
+    "home": "Hjem"
   },
   "header": {
     "search": "Søg spil",

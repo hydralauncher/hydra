@@ -1,7 +1,6 @@
 {
   "home": {
     "featured": "추천",
-    "recently_added": "최근 추가됨",
     "trending": "인기",
     "surprise_me": "무작위 추천",
     "no_results": "결과 없음"
@@ -15,12 +14,7 @@
     "paused": "{{title}} (일시 정지됨)",
     "downloading": "{{title}} ({{percentage}} - 다운로드 중…)",
     "filter": "라이브러리 정렬",
-    "follow_us": "공식 SNS",
-    "home": "홈",
-    "discord": "공식 디스코드",
-    "telegram": "공식 텔레그램",
-    "x": "공식 X (구 트위터)",
-    "github": "GitHub에서 기여하기"
+    "home": "홈"
   },
   "header": {
     "search": "게임 검색하기",

@@ -15,7 +15,6 @@
     "downloading": "{{title}} ({{percentage}} - Baixando…)",
     "filter": "Filtrar biblioteca",
     "home": "Início",
-    "follow_us": "Acompanhe-nos",
     "queued": "{{title}} (Na fila)",
     "game_has_no_executable": "Jogo não possui executável selecionado"
   },

@@ -1,7 +1,6 @@
 {
   "home": {
     "featured": "Featured",
-    "recently_added": "Nemrég hozzáadott",
     "trending": "Népszerű",
     "surprise_me": "Lepj meg",
     "no_results": "Nem található"
@@ -15,7 +14,6 @@
     "paused": "{{title}} (Szünet)",
     "downloading": "{{title}} ({{percentage}} - Letöltés…)",
     "filter": "Könyvtár szűrése",
-    "follow_us": "Kövess minket",
     "home": "Főoldal"
   },
   "header": {
