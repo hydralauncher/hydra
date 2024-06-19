@@ -5,7 +5,7 @@ import { getSteamAppAsset } from "@main/helpers";
 import { logger } from "../logger";
 import { AxiosError } from "axios";
 
-export const getRemoteGames = async () => {
+export const mergeWithRemoteGames = async () => {
   try {
     const games = await HydraApi.get("/games");
 

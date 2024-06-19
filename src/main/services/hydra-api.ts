@@ -2,7 +2,7 @@ import { userAuthRepository } from "@main/repository";
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { WindowManager } from "./window-manager";
 import url from "url";
-import { getRemoteGames, uploadBatchGames } from "./library-sync";
+import { uploadGamesBatch } from "./library-sync";
 
 export class HydraApi {
   private static instance: AxiosInstance;
@@ -50,9 +50,7 @@ export class HydraApi {
 
     if (WindowManager.mainWindow) {
       WindowManager.mainWindow.webContents.send("on-signin");
-
-      await uploadBatchGames();
-      await getRemoteGames();
+      uploadGamesBatch();
     }
   }
 

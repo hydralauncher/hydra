@@ -81,6 +81,9 @@ export function App() {
       window.electron.onSignIn(() => {
         updateUser();
       }),
+      window.electron.onLibraryBatchComplete(() => {
+        updateLibrary();
+      }),
       window.electron.onSignOut(() => {
         clearUser();
       }),
@@ -89,7 +92,7 @@ export function App() {
     return () => {
       listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [updateUser, clearUser]);
+  }, [updateUser, updateLibrary, clearUser]);
 
   const handleSearch = useCallback(
     (query: string) => {
