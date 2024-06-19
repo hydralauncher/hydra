@@ -25,7 +25,7 @@ const updateProfile = async (
   _event: Electron.IpcMainInvokeEvent,
   displayName: string,
   newProfileImagePath: string | null
-): Promise<UserProfile | null> => {
+): Promise<UserProfile> => {
   if (!newProfileImagePath) {
     return (await patchUserProfile(displayName)).data;
   }
