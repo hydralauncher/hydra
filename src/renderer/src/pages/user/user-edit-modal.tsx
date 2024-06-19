@@ -55,9 +55,8 @@ export const UserEditProfileModal = ({
     patchUser(displayName, newImagePath)
       .then(() => {
         updateUser();
-        setNewImagePath(null);
         showSuccessToast("Salvo com sucesso");
-        onClose();
+        cleanFormAndClose();
       })
       .catch(() => {
         showErrorToast("Tente novamente");
@@ -66,9 +65,25 @@ export const UserEditProfileModal = ({
         setIsSaving(false);
       });
   };
+
+  const resetModal = () => {
+    setDisplayName(userProfile.displayName);
+    setNewImagePath(null);
+    setNewImageBase64(null);
+  };
+
+  const cleanFormAndClose = () => {
+    resetModal();
+    onClose();
+  };
+
   return (
     <>
-      <Modal visible={visible} title="Editar Perfil" onClose={onClose}>
+      <Modal
+        visible={visible}
+        title="Editar Perfil"
+        onClose={cleanFormAndClose}
+      >
         <section
           style={{
             display: "flex",
