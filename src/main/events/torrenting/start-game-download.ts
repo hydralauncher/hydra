@@ -12,6 +12,7 @@ import { DownloadManager } from "@main/services";
 
 import { Not } from "typeorm";
 import { steamGamesWorker } from "@main/workers";
+import { createGame } from "@main/services/library-sync";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -92,6 +93,19 @@ const startGameDownload = async (
     where: {
       objectID,
     },
+  });
+
+  createGame(updatedGame!).then((response) => {
+    const {
+      id: remoteId,
+      playTimeInMilliseconds,
+      lastTimePlayed,
+    } = response.data;
+
+    gameRepository.update(
+      { objectID },
+      { remoteId, playTimeInMilliseconds, lastTimePlayed }
+    );
   });
 
   await downloadQueueRepository.delete({ game: { id: updatedGame!.id } });
