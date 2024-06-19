@@ -18,7 +18,7 @@ export const uploadBatchGames = async () => {
         chunk.map((game) => {
           return {
             objectId: game.objectID,
-            playTimeInMilliseconds: Math.round(game.playTimeInMilliseconds),
+            playTimeInMilliseconds: Math.trunc(game.playTimeInMilliseconds),
             shop: game.shop,
             lastTimePlayed: game.lastTimePlayed,
           };

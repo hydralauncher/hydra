@@ -10,7 +10,7 @@ import { fetchDownloadSourcesAndUpdate } from "./helpers";
 import { publishNewRepacksNotifications } from "./services/notifications";
 import { MoreThan } from "typeorm";
 import { HydraApi } from "./services/hydra-api";
-import { getRemoteGames } from "./services/library-sync";
+import { getRemoteGames, uploadBatchGames } from "./services/library-sync";
 
 startMainLoop();
 
@@ -24,6 +24,7 @@ const loadState = async (userPreferences: UserPreferences | null) => {
 
   HydraApi.setupApi().then(async () => {
     if (HydraApi.isLoggedIn()) {
+      await uploadBatchGames();
       getRemoteGames();
     }
   });
