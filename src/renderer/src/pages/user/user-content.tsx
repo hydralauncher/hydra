@@ -9,7 +9,7 @@ import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { useDate, useUserDetails } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
 import { buildGameDetailsPath } from "@renderer/helpers";
-import { PersonIcon } from "@primer/octicons-react";
+import { PersonIcon, TelescopeIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import { UserEditProfileModal } from "./user-edit-modal";
 
@@ -66,7 +66,7 @@ export function UserContent({
   };
 
   const handleSignout = async () => {
-    await signOut();
+    signOut();
     navigate("/");
   };
 
@@ -95,7 +95,7 @@ export function UserContent({
         className={styles.profileContentBox}
         style={{
           background: profileContentBoxBackground,
-          padding: `${SPACING_UNIT * 4}px ${SPACING_UNIT * 2}px`,
+          padding: `${SPACING_UNIT * 3}px ${SPACING_UNIT * 2}px`,
         }}
       >
         <div className={styles.profileAvatarContainer}>
@@ -139,18 +139,27 @@ export function UserContent({
 
       <div className={styles.profileContent}>
         <div className={styles.profileGameSection}>
-          <div>
-            <h2>{t("activity")}</h2>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: `${SPACING_UNIT * 2}px`,
-            }}
-          >
-            {userProfile.recentGames.map((game) => {
-              return (
+          <h2>{t("activity")}</h2>
+
+          {!userProfile.recentGames.length ? (
+            <div className={styles.noDownloads}>
+              <div className={styles.telescopeIcon}>
+                <TelescopeIcon size={24} />
+              </div>
+              <h2>{t("no_recent_activity_title")}</h2>
+              <p style={{ fontFamily: "Fira Sans" }}>
+                {t("no_recent_activity_description")}
+              </p>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: `${SPACING_UNIT * 2}px`,
+              }}
+            >
+              {userProfile.recentGames.map((game) => (
                 <button
                   key={game.objectID}
                   className={cn(styles.feedItem, styles.profileContentBox)}
@@ -176,9 +185,9 @@ export function UserContent({
                     </small>
                   </div>
                 </button>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className={cn(styles.contentSidebar, styles.profileGameSection)}>
@@ -207,33 +216,28 @@ export function UserContent({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
+              gridTemplateColumns: "repeat(4, 1fr)",
               gap: `${SPACING_UNIT}px`,
             }}
           >
-            {userProfile.libraryGames.map((game) => {
-              return (
-                <button
-                  key={game.objectID}
-                  className={cn(styles.gameListItem, styles.profileContentBox)}
-                  style={{
-                    padding: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
-                  }}
-                  onClick={() => handleGameClick(game)}
-                  title={game.title}
-                >
-                  {game.iconUrl ? (
-                    <img
-                      className={styles.libraryGameIcon}
-                      src={game.iconUrl}
-                      alt={game.title}
-                    />
-                  ) : (
-                    <SteamLogo className={styles.libraryGameIcon} />
-                  )}
-                </button>
-              );
-            })}
+            {userProfile.libraryGames.map((game) => (
+              <button
+                key={game.objectID}
+                className={cn(styles.gameListItem, styles.profileContentBox)}
+                onClick={() => handleGameClick(game)}
+                title={game.title}
+              >
+                {game.iconUrl ? (
+                  <img
+                    className={styles.libraryGameIcon}
+                    src={game.iconUrl}
+                    alt={game.title}
+                  />
+                ) : (
+                  <SteamLogo className={styles.libraryGameIcon} />
+                )}
+              </button>
+            ))}
           </div>
         </div>
       </div>
