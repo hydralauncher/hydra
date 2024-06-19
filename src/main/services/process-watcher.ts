@@ -40,10 +40,6 @@ export const watchProcesses = async () => {
         const zero = gamesPlaytime.get(game.id) ?? 0;
         const delta = performance.now() - zero;
 
-        if (WindowManager.mainWindow) {
-          WindowManager.mainWindow.webContents.send("on-playtime", game.id);
-        }
-
         await gameRepository.update(game.id, {
           playTimeInMilliseconds: game.playTimeInMilliseconds + delta,
           lastTimePlayed: new Date(),
@@ -53,10 +49,14 @@ export const watchProcesses = async () => {
       gamesPlaytime.set(game.id, performance.now());
     } else if (gamesPlaytime.has(game.id)) {
       gamesPlaytime.delete(game.id);
-
-      if (WindowManager.mainWindow) {
-        WindowManager.mainWindow.webContents.send("on-game-close", game.id);
-      }
     }
+  }
+
+  if (WindowManager.mainWindow) {
+    const gamesRunningIds = Array.from(gamesPlaytime.keys());
+    WindowManager.mainWindow.webContents.send(
+      "on-games-running",
+      gamesRunningIds
+    );
   }
 };

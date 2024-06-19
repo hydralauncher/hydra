@@ -110,14 +110,14 @@ export function GameDetailsContextProvider({
 
   useEffect(() => {
     const listeners = [
-      window.electron.onGameClose(() => {
-        if (isGameRunning) setisGameRunning(false);
-      }),
-      window.electron.onPlaytime((gameId) => {
-        if (gameId === game?.id) {
-          if (!isGameRunning) setisGameRunning(true);
+      window.electron.onGamesRunning((gamesIds) => {
+        const newIsGameRunning = !!game?.id && gamesIds.includes(game.id);
+
+        if (isGameRunning != newIsGameRunning) {
           updateGame();
         }
+
+        setisGameRunning(newIsGameRunning);
       }),
     ];
 
