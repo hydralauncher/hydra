@@ -13,6 +13,7 @@ import type {
   StartGameDownloadPayload,
   RealDebridUser,
   DownloadSource,
+  UserProfile,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -72,6 +73,7 @@ declare global {
     getGameByObjectID: (objectID: string) => Promise<Game | null>;
     onPlaytime: (cb: (gameId: number) => void) => () => Electron.IpcRenderer;
     onGameClose: (cb: (gameId: number) => void) => () => Electron.IpcRenderer;
+    onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* User preferences */
     getUserPreferences: () => Promise<UserPreferences | null>;
@@ -109,6 +111,17 @@ declare global {
     ) => () => Electron.IpcRenderer;
     checkForUpdates: () => Promise<boolean>;
     restartAndInstallUpdate: () => Promise<void>;
+
+    /* Auth */
+    signOut: () => Promise<void>;
+    onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
+    onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
+
+    /* User */
+    getUser: (userId: string) => Promise<UserProfile | null>;
+
+    /* Profile */
+    getMe: () => Promise<UserProfile | null>;
   }
 
   interface Window {

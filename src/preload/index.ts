@@ -96,6 +96,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-game-close", listener);
     return () => ipcRenderer.removeListener("on-game-close", listener);
   },
+  onLibraryBatchComplete: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-library-batch-complete", listener);
+    return () =>
+      ipcRenderer.removeListener("on-library-batch-complete", listener);
+  },
 
   /* Hardware */
   getDiskFreeSpace: (path: string) =>
@@ -125,4 +131,23 @@ contextBridge.exposeInMainWorld("electron", {
   },
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
   restartAndInstallUpdate: () => ipcRenderer.invoke("restartAndInstallUpdate"),
+
+  /* Profile */
+  getMe: () => ipcRenderer.invoke("getMe"),
+
+  /* User */
+  getUser: (userId: string) => ipcRenderer.invoke("getUser", userId),
+
+  /* Auth */
+  signOut: () => ipcRenderer.invoke("signOut"),
+  onSignIn: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-signin", listener);
+    return () => ipcRenderer.removeListener("on-signin", listener);
+  },
+  onSignOut: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-signout", listener);
+    return () => ipcRenderer.removeListener("on-signout", listener);
+  },
 });

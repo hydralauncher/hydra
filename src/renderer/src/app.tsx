@@ -7,6 +7,7 @@ import {
   useAppSelector,
   useDownload,
   useLibrary,
+  useUserDetails,
 } from "@renderer/hooks";
 
 import * as styles from "./app.css";
@@ -30,15 +31,19 @@ export function App() {
 
   const { clearDownload, setLastPacket } = useDownload();
 
+  const { updateUser, clearUser } = useUserDetails();
+
   const dispatch = useAppDispatch();
 
   const navigate = useNavigate();
   const location = useLocation();
 
   const search = useAppSelector((state) => state.search.value);
+
   const draggingDisabled = useAppSelector(
     (state) => state.window.draggingDisabled
   );
+
   const toast = useAppSelector((state) => state.toast);
 
   useEffect(() => {
@@ -66,6 +71,28 @@ export function App() {
       unsubscribe();
     };
   }, [clearDownload, setLastPacket, updateLibrary]);
+
+  useEffect(() => {
+    updateUser();
+  }, [updateUser]);
+
+  useEffect(() => {
+    const listeners = [
+      window.electron.onSignIn(() => {
+        updateUser();
+      }),
+      window.electron.onLibraryBatchComplete(() => {
+        updateLibrary();
+      }),
+      window.electron.onSignOut(() => {
+        clearUser();
+      }),
+    ];
+
+    return () => {
+      listeners.forEach((unsubscribe) => unsubscribe());
+    };
+  }, [updateUser, updateLibrary, clearUser]);
 
   const handleSearch = useCallback(
     (query: string) => {
