@@ -229,13 +229,18 @@
   "user_profile": {
     "amount_hours": "{{amount}} horas",
     "amount_minutes": "{{amount}} minutos",
-    "play_time": "Jogado por {{amount}}",
     "last_time_played": "Jogou {{period}}",
     "sign_out": "Sair da conta",
     "activity": "Atividade recente",
     "library": "Biblioteca",
     "total_play_time": "Tempo total de jogo: {{amount}}",
     "no_recent_activity_title": "Hmmm… nada por aqui",
-    "no_recent_activity_description": "Parece que você não jogou nada recentemente. Que tal começar agora?"
+    "no_recent_activity_description": "Parece que você não jogou nada recentemente. Que tal começar agora?",
+    "display_name": "Nome de exibição",
+    "saving": "Salvando…",
+    "save": "Salvar",
+    "edit_profile": "Editar Perfil",
+    "saved_successfully": "Salvo com sucesso",
+    "try_again": "Por favor, tente novamente"
   }
 }
