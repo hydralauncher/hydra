@@ -49,7 +49,10 @@ export const UserEditProfileModal = ({
     }
   };
 
-  const handleSaveProfile = async () => {
+  const handleSaveProfile: React.FormEventHandler<HTMLFormElement> = async (
+    event
+  ) => {
+    event.preventDefault();
     setIsSaving(true);
 
     patchUser(displayName, newImagePath)
