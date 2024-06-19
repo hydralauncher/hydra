@@ -51,7 +51,7 @@ export const profileAvatarEditContainer = style({
 
 export const profileAvatar = style({
   height: "100%",
-  aspectRatio: 1,
+  width: "100%",
   borderRadius: "50%",
   overflow: "hidden",
   objectFit: "cover",
