@@ -16,7 +16,8 @@
     "filter": "Filter library",
     "home": "Home",
     "queued": "{{title}} (Queued)",
-    "game_has_no_executable": "Game has no executable selected"
+    "game_has_no_executable": "Game has no executable selected",
+    "signin": "Sign in"
   },
   "header": {
     "search": "Search games",
