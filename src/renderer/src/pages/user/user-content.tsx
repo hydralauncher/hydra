@@ -207,7 +207,7 @@ export function UserContent({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "auto auto auto",
+              gridTemplateColumns: "1fr 1fr 1fr",
               gap: `${SPACING_UNIT}px`,
             }}
           >
