@@ -1,4 +1,4 @@
-export * from "./get-remote-games";
-export * from "./upload-batch-games";
+export * from "./merge-with-remote-games";
+export * from "./upload-games-batch";
 export * from "./update-game-playtime";
 export * from "./create-game";
