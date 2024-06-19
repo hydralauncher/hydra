@@ -4,6 +4,7 @@ import { style } from "@vanilla-extract/css";
 export const wrapper = style({
   padding: "24px",
   width: "100%",
+  height: "100%",
   display: "flex",
   flexDirection: "column",
   gap: `${SPACING_UNIT * 3}px`,
@@ -16,7 +17,6 @@ export const profileContentBox = style({
   borderRadius: "4px",
   border: `solid 1px ${vars.color.border}`,
   width: "100%",
-  overflow: "hidden",
   boxShadow: "0px 0px 15px 0px rgba(0, 0, 0, 0.7)",
   transition: "all ease 0.3s",
 });
@@ -55,6 +55,7 @@ export const profileAvatar = style({
   borderRadius: "50%",
   overflow: "hidden",
   objectFit: "cover",
+  animationPlayState: "paused",
 });
 
 export const profileAvatarEditOverlay = style({
@@ -76,12 +77,14 @@ export const profileInformation = style({
 
 export const profileContent = style({
   display: "flex",
+  height: "100%",
   flexDirection: "row",
   gap: `${SPACING_UNIT * 4}px`,
 });
 
 export const profileGameSection = style({
   width: "100%",
+  height: "100%",
   display: "flex",
   flexDirection: "column",
   gap: `${SPACING_UNIT * 2}px`,
@@ -114,6 +117,7 @@ export const feedGameIcon = style({
 });
 
 export const libraryGameIcon = style({
+  width: "100%",
   height: "100%",
   borderRadius: "4px",
   display: "flex",
@@ -142,10 +146,11 @@ export const gameListItem = style({
   display: "flex",
   flexDirection: "row",
   gap: `${SPACING_UNIT}px`,
-  aspectRatio: "1",
   transition: "all ease 0.2s",
   cursor: "pointer",
   zIndex: "1",
+  overflow: "hidden",
+  padding: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
   ":hover": {
     backgroundColor: "rgba(255, 255, 255, 0.15)",
   },
@@ -174,4 +179,25 @@ export const editProfileImageBadge = style({
   bottom: "0px",
   right: "0px",
   zIndex: "1",
+});
+
+export const telescopeIcon = style({
+  width: "60px",
+  height: "60px",
+  borderRadius: "50%",
+  backgroundColor: "rgba(255, 255, 255, 0.06)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: `${SPACING_UNIT * 2}px`,
+});
+
+export const noDownloads = style({
+  display: "flex",
+  width: "100%",
+  height: "100%",
+  justifyContent: "center",
+  alignItems: "center",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT}px`,
 });
