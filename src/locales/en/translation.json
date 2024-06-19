@@ -243,6 +243,7 @@
     "try_again": "Please, try again",
     "signout_modal_title": "Are you sure?",
     "cancel": "Cancel",
-    "signout": "Sign Out"
+    "signout": "Sign Out",
+    "playing_for": "Playing for {{amount}}"
   }
 }

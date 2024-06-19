@@ -72,6 +72,7 @@ export const profileAvatarEditOverlay = style({
 export const profileInformation = style({
   display: "flex",
   flexDirection: "column",
+  gap: `${SPACING_UNIT}px`,
   alignItems: "flex-start",
   color: "#c0c1c7",
 });

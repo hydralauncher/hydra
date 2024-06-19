@@ -21,6 +21,7 @@ import {
   closeToast,
   setUserDetails,
   setProfileBackground,
+  setRunningGame,
 } from "@renderer/features";
 
 export interface AppProps {
@@ -29,7 +30,7 @@ export interface AppProps {
 
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
-  const { updateLibrary } = useLibrary();
+  const { updateLibrary, library } = useLibrary();
 
   const { clearDownload, setLastPacket } = useDownload();
 
@@ -94,6 +95,30 @@ export function App() {
       }
     });
   }, [dispatch, fetchUserDetails]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onGamesRunning((gamesIds) => {
+      if (gamesIds.length) {
+        const lastGame = gamesIds.at(-1);
+        const libraryGame = library.find((library) => library.id == lastGame);
+
+        if (libraryGame) {
+          dispatch(
+            setRunningGame({
+              ...libraryGame,
+              sessionStartTimestamp: new Date().getTime(),
+            })
+          );
+          return;
+        }
+      }
+      dispatch(setRunningGame(null));
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     const listeners = [

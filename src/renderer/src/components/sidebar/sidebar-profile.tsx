@@ -2,13 +2,15 @@ import { useNavigate } from "react-router-dom";
 import { PersonIcon } from "@primer/octicons-react";
 import * as styles from "./sidebar-profile.css";
 
-import { useUserDetails } from "@renderer/hooks";
+import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useMemo } from "react";
 
 export function SidebarProfile() {
   const navigate = useNavigate();
 
   const { userDetails, profileBackground } = useUserDetails();
+
+  const { runningGame } = useAppSelector((state) => state.runningGame);
 
   const handleButtonClick = () => {
     if (userDetails === null) {
@@ -48,7 +50,21 @@ export function SidebarProfile() {
           <p className={styles.profileButtonTitle}>
             {userDetails ? userDetails.displayName : "Sign in"}
           </p>
+
+          {userDetails && runningGame && (
+            <div>
+              <small>{runningGame.title}</small>
+            </div>
+          )}
         </div>
+
+        {userDetails && runningGame && (
+          <img
+            width={24}
+            style={{ borderRadius: 4 }}
+            src={runningGame.iconUrl}
+          />
+        )}
       </div>
     </button>
   );
