@@ -16,7 +16,7 @@ export const User = () => {
   const dispatch = useAppDispatch();
 
   const getUserProfile = useCallback(() => {
-    window.electron.getUser(userId!).then((userProfile) => {
+    return window.electron.getUser(userId!).then((userProfile) => {
       if (userProfile) {
         dispatch(setHeaderTitle(userProfile.displayName));
         setUserProfile(userProfile);
@@ -28,9 +28,7 @@ export const User = () => {
     getUserProfile();
   }, [getUserProfile]);
 
-  const handleUpdateProfile = () => {
-    getUserProfile();
-  };
+  console.log(userProfile);
 
   return (
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
@@ -38,7 +36,7 @@ export const User = () => {
         {userProfile ? (
           <UserContent
             userProfile={userProfile}
-            updateUserProfile={handleUpdateProfile}
+            updateUserProfile={getUserProfile}
           />
         ) : (
           <UserSkeleton />
