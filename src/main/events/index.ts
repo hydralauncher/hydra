@@ -39,6 +39,9 @@ import "./download-sources/validate-download-source";
 import "./download-sources/add-download-source";
 import "./download-sources/remove-download-source";
 import "./download-sources/sync-download-sources";
+import "./auth/signout";
+import "./user/get-user";
+import "./profile/get-me";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => app.getVersion());

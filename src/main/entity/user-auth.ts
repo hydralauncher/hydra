@@ -12,6 +12,15 @@ export class UserAuth {
   id: number;
 
   @Column("text", { default: "" })
+  userId: string;
+
+  @Column("text", { default: "" })
+  displayName: string;
+
+  @Column("text", { nullable: true })
+  profileImageUrl: string | null;
+
+  @Column("text", { default: "" })
   accessToken: string;
 
   @Column("text", { default: "" })

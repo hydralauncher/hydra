@@ -7,6 +7,7 @@ import { DownloadManager, logger, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
+import { HydraApi } from "./services/hydra-api";
 
 const { autoUpdater } = updater;
 
@@ -83,7 +84,13 @@ app.on("second-instance", (_event, commandLine) => {
   }
 
   const [, path] = commandLine.pop()?.split("://") ?? [];
-  if (path) WindowManager.redirect(path);
+  if (path) {
+    if (path.startsWith("auth")) {
+      HydraApi.handleExternalAuth(path);
+    } else {
+      WindowManager.redirect(path);
+    }
+  }
 });
 
 app.on("open-url", (_event, url) => {

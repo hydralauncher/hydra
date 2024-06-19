@@ -1,5 +1,7 @@
 import { registerEvent } from "../register-event";
 import { gameRepository } from "../../repository";
+import { HydraApi } from "@main/services/hydra-api";
+import { logger } from "@main/services";
 
 const removeGameFromLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -9,6 +11,18 @@ const removeGameFromLibrary = async (
     { id: gameId },
     { isDeleted: true, executablePath: null }
   );
+
+  removeRemoveGameFromLibrary(gameId).catch((err) => {
+    logger.error("removeRemoveGameFromLibrary", err);
+  });
+};
+
+const removeRemoveGameFromLibrary = async (gameId: number) => {
+  const game = await gameRepository.findOne({ where: { id: gameId } });
+
+  if (game?.remoteId) {
+    HydraApi.delete(`/games/${game.remoteId}`);
+  }
 };
 
 registerEvent("removeGameFromLibrary", removeGameFromLibrary);
