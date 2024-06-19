@@ -43,5 +43,12 @@ export const buildGameDetailsPath = (
   return `/game/${game.shop}/${game.objectID}?${searchParams.toString()}`;
 };
 
-export const darkenColor = (color: string, amount: number) =>
-  new Color(color).darken(amount).toString();
+export const darkenColor = (
+  color: string,
+  amount: number,
+  alpha: number = 1
+) => {
+  const newColor = new Color(color).darken(amount).alpha(alpha).toString();
+  console.log(color, newColor);
+  return newColor;
+};

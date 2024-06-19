@@ -63,6 +63,7 @@ export function SidebarProfile() {
 
         {userDetails && runningGame && (
           <img
+            alt={runningGame.title}
             width={24}
             style={{ borderRadius: 4 }}
             src={runningGame.iconUrl}
