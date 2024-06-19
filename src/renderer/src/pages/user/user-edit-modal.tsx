@@ -105,7 +105,7 @@ export const UserEditProfileModal = ({
                 src={newImageBase64 ?? userProfile.profileImageUrl ?? ""}
               />
             ) : (
-              <PersonIcon size={72} />
+              <PersonIcon size={96} />
             )}
             <div className={styles.editProfileImageBadge}>
               <PencilIcon size={16} />
