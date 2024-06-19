@@ -5,6 +5,7 @@ import { DeviceCameraIcon, PersonIcon } from "@primer/octicons-react";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { useEffect, useMemo, useState } from "react";
 import { useToast, useUserDetails } from "@renderer/hooks";
+import { useTranslation } from "react-i18next";
 
 export interface UserEditProfileModalProps {
   userProfile: UserProfile;
@@ -19,6 +20,8 @@ export const UserEditProfileModal = ({
   onClose,
   updateUserProfile,
 }: UserEditProfileModalProps) => {
+  const { t } = useTranslation("user_profile");
+
   const [displayName, setDisplayName] = useState("");
   const [newImagePath, setNewImagePath] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -36,8 +39,8 @@ export const UserEditProfileModal = ({
       properties: ["openFile"],
       filters: [
         {
-          name: "Profile image",
-          extensions: ["jpg", "png", "gif", "webp", "jpeg"],
+          name: "Image",
+          extensions: ["jpg", "jpeg", "png", "gif", "webp", "bmp"],
         },
       ],
     });
@@ -58,11 +61,11 @@ export const UserEditProfileModal = ({
     patchUser(displayName, newImagePath)
       .then(async () => {
         await updateUserProfile();
-        showSuccessToast("Salvo com sucesso");
+        showSuccessToast(t("saved_successfully"));
         cleanFormAndClose();
       })
       .catch(() => {
-        showErrorToast("Tente novamente");
+        showErrorToast(t("try_again"));
       })
       .finally(() => {
         setIsSaving(false);
@@ -89,7 +92,7 @@ export const UserEditProfileModal = ({
     <>
       <Modal
         visible={visible}
-        title="Editar Perfil"
+        title={t("edit_profile")}
         onClose={cleanFormAndClose}
       >
         <form
@@ -123,8 +126,10 @@ export const UserEditProfileModal = ({
           </button>
 
           <TextField
-            label="Nome de exibição"
+            label={t("display_name")}
             value={displayName}
+            required
+            minLength={3}
             containerProps={{ style: { width: "100%" } }}
             onChange={(e) => setDisplayName(e.target.value)}
           />
@@ -133,7 +138,7 @@ export const UserEditProfileModal = ({
             style={{ alignSelf: "end" }}
             type="submit"
           >
-            {isSaving ? "Salvando…" : "Salvar"}
+            {isSaving ? t("saving") : t("save")}
           </Button>
         </form>
       </Modal>
