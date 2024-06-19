@@ -132,9 +132,6 @@ export const feedItem = style({
 
 export const gameListItem = style({
   color: vars.color.body,
-  display: "flex",
-  flexDirection: "row",
-  gap: `${SPACING_UNIT}px`,
   transition: "all ease 0.2s",
   cursor: "pointer",
   zIndex: "1",
@@ -153,7 +150,7 @@ export const gameInformation = style({
 });
 
 export const profileHeaderSkeleton = style({
-  height: "200px",
+  height: "144px",
 });
 
 export const editProfileImageBadge = style({
