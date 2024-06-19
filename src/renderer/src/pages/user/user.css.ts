@@ -40,6 +40,7 @@ export const profileAvatarEditContainer = style({
   height: "128px",
   display: "flex",
   borderRadius: "50%",
+  color: vars.color.body,
   justifyContent: "center",
   alignItems: "center",
   backgroundColor: vars.color.background,
@@ -101,29 +102,17 @@ export const contentSidebar = style({
       maxWidth: "250px",
       width: "100%",
     },
-    "(min-width: 1280px)": {
-      width: "100%",
-      maxWidth: "350px",
-    },
   },
 });
 
 export const feedGameIcon = style({
   height: "100%",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  position: "relative",
 });
 
 export const libraryGameIcon = style({
   width: "100%",
   height: "100%",
   borderRadius: "4px",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  position: "relative",
 });
 
 export const feedItem = style({
@@ -174,6 +163,7 @@ export const editProfileImageBadge = style({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
+  color: vars.color.background,
   backgroundColor: vars.color.muted,
   position: "absolute",
   bottom: "0px",
