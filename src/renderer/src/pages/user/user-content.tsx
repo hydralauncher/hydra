@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { useAppSelector, useDate, useUserDetails } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
-import { buildGameDetailsPath } from "@renderer/helpers";
+import { buildGameDetailsPath, steamUrlBuilder } from "@renderer/helpers";
 import { PersonIcon, TelescopeIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import { UserEditProfileModal } from "./user-edit-modal";
@@ -111,15 +111,17 @@ export function UserContent({
             inset: 0,
           }}
         ></div>
-        <div
-          style={{
-            background: `url(${runningGame?.iconUrl})`,
-            position: "absolute",
-            inset: 0,
-            opacity: 0.1,
-            backgroundSize: "cover",
-          }}
-        ></div>
+        {runningGame && (
+          <div
+            style={{
+              background: `url(${steamUrlBuilder.libraryHero(runningGame.objectID)})`,
+              position: "absolute",
+              inset: 0,
+              opacity: 0.1,
+              backgroundSize: "cover",
+            }}
+          ></div>
+        )}
 
         <div className={styles.profileAvatarContainer}>
           {userProfile.profileImageUrl ? (
