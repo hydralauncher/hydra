@@ -133,6 +133,7 @@ export interface RunningGame {
   objectID: string;
   shop: GameShop;
   sessionStartTimestamp: number;
+  cover: string;
 }
 
 export interface DownloadProgress {

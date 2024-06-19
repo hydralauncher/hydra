@@ -33,6 +33,7 @@ export const profileAvatarContainer = style({
   overflow: "hidden",
   border: `solid 1px ${vars.color.border}`,
   boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.7)",
+  zIndex: 1,
 });
 
 export const profileAvatarEditContainer = style({
@@ -56,7 +57,6 @@ export const profileAvatar = style({
   borderRadius: "50%",
   overflow: "hidden",
   objectFit: "cover",
-  animationPlayState: "paused",
 });
 
 export const profileAvatarEditOverlay = style({
@@ -75,6 +75,7 @@ export const profileInformation = style({
   gap: `${SPACING_UNIT}px`,
   alignItems: "flex-start",
   color: "#c0c1c7",
+  zIndex: 1,
 });
 
 export const profileContent = style({

@@ -6,7 +6,7 @@ import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import { useDate, useUserDetails } from "@renderer/hooks";
+import { useAppSelector, useDate, useUserDetails } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { PersonIcon, TelescopeIcon } from "@primer/octicons-react";
@@ -31,6 +31,8 @@ export function UserContent({
 
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
+
+  const { runningGame } = useAppSelector((state) => state.runningGame);
 
   const navigate = useNavigate();
 
@@ -98,10 +100,27 @@ export function UserContent({
       <section
         className={styles.profileContentBox}
         style={{
-          background: profileContentBoxBackground,
           padding: `${SPACING_UNIT * 3}px ${SPACING_UNIT * 2}px`,
+          position: "relative",
         }}
       >
+        <div
+          style={{
+            background: profileContentBoxBackground,
+            position: "absolute",
+            inset: 0,
+          }}
+        ></div>
+        <div
+          style={{
+            background: `url(${runningGame?.iconUrl})`,
+            position: "absolute",
+            inset: 0,
+            opacity: 0.1,
+            backgroundSize: "cover",
+          }}
+        ></div>
+
         <div className={styles.profileAvatarContainer}>
           {userProfile.profileImageUrl ? (
             <img
@@ -116,10 +135,45 @@ export function UserContent({
 
         <div className={styles.profileInformation}>
           <h2 style={{ fontWeight: "bold" }}>{userProfile.displayName}</h2>
+          {isMe && runningGame && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: `${SPACING_UNIT / 2}px`,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  gap: `${SPACING_UNIT}px`,
+                  alignItems: "center",
+                }}
+              >
+                <p>{runningGame.title}</p>
+              </div>
+              <small>
+                {t("playing_for", {
+                  amount: formatDistance(
+                    runningGame.sessionStartTimestamp,
+                    new Date()
+                  ),
+                })}
+              </small>
+            </div>
+          )}
         </div>
 
         {isMe && (
-          <div style={{ flex: 1, display: "flex", justifyContent: "end" }}>
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              justifyContent: "end",
+              zIndex: 1,
+            }}
+          >
             <div
               style={{
                 display: "flex",

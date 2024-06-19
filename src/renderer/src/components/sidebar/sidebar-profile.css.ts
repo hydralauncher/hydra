@@ -20,6 +20,7 @@ export const profileButtonContent = style({
   alignItems: "center",
   gap: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
   height: "40px",
+  width: "100%",
 });
 
 export const profileAvatar = style({
@@ -39,6 +40,7 @@ export const profileButtonInformation = style({
   display: "flex",
   flexDirection: "column",
   alignItems: "flex-start",
+  flex: "1",
 });
 
 export const statusBadge = style({

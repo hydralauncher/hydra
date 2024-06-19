@@ -4,9 +4,12 @@ import * as styles from "./sidebar-profile.css";
 
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 export function SidebarProfile() {
   const navigate = useNavigate();
+
+  const { t } = useTranslation("sidebar");
 
   const { userDetails, profileBackground } = useUserDetails();
 
@@ -48,7 +51,7 @@ export function SidebarProfile() {
 
         <div className={styles.profileButtonInformation}>
           <p className={styles.profileButtonTitle}>
-            {userDetails ? userDetails.displayName : "Sign in"}
+            {userDetails ? userDetails.displayName : t("signin")}
           </p>
 
           {userDetails && runningGame && (

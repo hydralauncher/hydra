@@ -118,7 +118,7 @@ export function App() {
     return () => {
       unsubscribe();
     };
-  }, [dispatch]);
+  }, [dispatch, library]);
 
   useEffect(() => {
     const listeners = [
