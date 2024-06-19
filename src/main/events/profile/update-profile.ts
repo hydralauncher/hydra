@@ -2,6 +2,7 @@ import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services/hydra-api";
 import axios from "axios";
 import fs from "node:fs";
+import path from "node:path";
 import mime from "mime";
 import { UserProfile } from "@types";
 
@@ -26,6 +27,8 @@ const updateProfile = async (
   displayName: string,
   newProfileImagePath: string | null
 ): Promise<UserProfile> => {
+  console.log(newProfileImagePath);
+
   if (!newProfileImagePath) {
     return (await patchUserProfile(displayName)).data;
   }
@@ -35,7 +38,7 @@ const updateProfile = async (
   const fileSizeInBytes = stats.size;
 
   const profileImageUrl = await HydraApi.post(`/presigned-urls/profile-image`, {
-    imageExt: newProfileImagePath.split(".").at(-1),
+    imageExt: path.extname(newProfileImagePath).slice(1),
     imageLength: fileSizeInBytes,
   })
     .then(async (preSignedResponse) => {
