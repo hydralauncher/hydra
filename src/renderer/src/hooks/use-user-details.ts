@@ -44,6 +44,12 @@ export function useUserDetails() {
           "userDetails",
           JSON.stringify({ ...userDetails, profileBackground })
         );
+      } else {
+        dispatch(setProfileBackground(null));
+        window.localStorage.setItem(
+          "userDetails",
+          JSON.stringify({ ...userDetails })
+        );
       }
     },
     [dispatch]
