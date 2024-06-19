@@ -98,11 +98,11 @@ export const UserEditProfileModal = ({
             className={styles.profileAvatarEditContainer}
             onClick={handleChangeProfileAvatar}
           >
-            {userProfile.profileImageUrl ? (
+            {newImageBase64 || userProfile.profileImageUrl ? (
               <img
                 className={styles.profileAvatar}
                 alt={userProfile.displayName}
-                src={newImageBase64 ?? userProfile.profileImageUrl}
+                src={newImageBase64 ?? userProfile.profileImageUrl ?? ""}
               />
             ) : (
               <PersonIcon size={72} />
