@@ -8,6 +8,8 @@ export class HydraApi {
 
   private static readonly EXPIRATION_OFFSET_IN_MS = 1000 * 60 * 5;
 
+  private static secondsToMilliseconds = (seconds: number) => seconds * 1000;
+
   private static userAuth = {
     authToken: "",
     refreshToken: "",
@@ -29,7 +31,9 @@ export class HydraApi {
     const now = new Date();
 
     const tokenExpirationTimestamp =
-      now.getTime() + expiresIn - this.EXPIRATION_OFFSET_IN_MS;
+      now.getTime() +
+      this.secondsToMilliseconds(expiresIn) -
+      this.EXPIRATION_OFFSET_IN_MS;
 
     this.userAuth = {
       authToken: accessToken,
@@ -110,7 +114,9 @@ export class HydraApi {
         const { accessToken, expiresIn } = response.data;
 
         const tokenExpirationTimestamp =
-          now.getTime() + expiresIn - this.EXPIRATION_OFFSET_IN_MS;
+          now.getTime() +
+          this.secondsToMilliseconds(expiresIn) -
+          this.EXPIRATION_OFFSET_IN_MS;
 
         this.userAuth.authToken = accessToken;
         this.userAuth.expirationTimestamp = tokenExpirationTimestamp;
