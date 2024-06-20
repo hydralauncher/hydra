@@ -22,14 +22,17 @@ export const UserSignOutModal = ({
         title={t("sign_out_modal_title")}
         onClose={onClose}
       >
-        <div className={styles.signOutModalButtonsContainer}>
-          <Button onClick={onConfirm} theme="outline">
-            {t("signout")}
-          </Button>
+        <div className={styles.signOutModalContent}>
+          <p style={{ fontFamily: "Fira Sans" }}>{t("sign_out_modal_text")}</p>
+          <div className={styles.signOutModalButtonsContainer}>
+            <Button onClick={onConfirm} theme="danger">
+              {t("sign_out")}
+            </Button>
 
-          <Button onClick={onClose} theme="primary">
-            {t("cancel")}
-          </Button>
+            <Button onClick={onClose} theme="primary">
+              {t("cancel")}
+            </Button>
+          </div>
         </div>
       </Modal>
     </>
