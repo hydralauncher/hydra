@@ -9,7 +9,7 @@ export const profileButton = style({
   padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
   color: vars.color.muted,
   borderBottom: `solid 1px ${vars.color.border}`,
-  boxShadow: "0px 0px 15px 0px #000000",
+  boxShadow: "0px 0px 15px 0px rgb(0 0 0 / 70%)",
   ":hover": {
     backgroundColor: "rgba(255, 255, 255, 0.15)",
   },
