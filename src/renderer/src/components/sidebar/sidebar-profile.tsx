@@ -12,7 +12,7 @@ export function SidebarProfile() {
 
   const handleButtonClick = () => {
     if (userDetails === null) {
-      window.electron.openExternal("https://auth.hydra.losbroxas.org");
+      window.electron.openAuthWindow();
       return;
     }
 
