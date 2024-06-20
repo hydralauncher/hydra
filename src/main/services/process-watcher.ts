@@ -4,8 +4,12 @@ import { IsNull, Not } from "typeorm";
 import { gameRepository } from "@main/repository";
 import { getProcesses } from "@main/helpers";
 import { WindowManager } from "./window-manager";
+import { createGame, updateGamePlaytime } from "./library-sync";
 
-const gamesPlaytime = new Map<number, number>();
+const gamesPlaytime = new Map<
+  number,
+  { lastTick: number; firstTick: number }
+>();
 
 export const watchProcesses = async () => {
   const games = await gameRepository.find({
@@ -37,7 +41,9 @@ export const watchProcesses = async () => {
 
     if (gameProcess) {
       if (gamesPlaytime.has(game.id)) {
-        const zero = gamesPlaytime.get(game.id) ?? 0;
+        const gamePlaytime = gamesPlaytime.get(game.id)!;
+
+        const zero = gamePlaytime.lastTick;
         const delta = performance.now() - zero;
 
         if (WindowManager.mainWindow) {
@@ -48,11 +54,44 @@ export const watchProcesses = async () => {
           playTimeInMilliseconds: game.playTimeInMilliseconds + delta,
           lastTimePlayed: new Date(),
         });
-      }
 
-      gamesPlaytime.set(game.id, performance.now());
+        gamesPlaytime.set(game.id, {
+          ...gamePlaytime,
+          lastTick: performance.now(),
+        });
+      } else {
+        if (game.remoteId) {
+          updateGamePlaytime(game, 0, new Date());
+        } else {
+          createGame({ ...game, lastTimePlayed: new Date() }).then(
+            (response) => {
+              const { id: remoteId } = response.data;
+              gameRepository.update({ objectID: game.objectID }, { remoteId });
+            }
+          );
+        }
+
+        gamesPlaytime.set(game.id, {
+          lastTick: performance.now(),
+          firstTick: performance.now(),
+        });
+      }
     } else if (gamesPlaytime.has(game.id)) {
+      const gamePlaytime = gamesPlaytime.get(game.id)!;
       gamesPlaytime.delete(game.id);
+
+      if (game.remoteId) {
+        updateGamePlaytime(
+          game,
+          performance.now() - gamePlaytime.firstTick,
+          game.lastTimePlayed!
+        );
+      } else {
+        createGame(game).then((response) => {
+          const { id: remoteId } = response.data;
+          gameRepository.update({ objectID: game.objectID }, { remoteId });
+        });
+      }
 
       if (WindowManager.mainWindow) {
         WindowManager.mainWindow.webContents.send("on-game-close", game.id);
