@@ -100,7 +100,7 @@ export class WindowManager {
 
       authWindow.removeMenu();
 
-      authWindow.loadURL("http://localhost:3000");
+      authWindow.loadURL("https://auth.hydra.losbroxas.org/");
 
       authWindow.once("ready-to-show", () => {
         authWindow.show();
