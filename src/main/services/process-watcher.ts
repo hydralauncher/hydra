@@ -89,10 +89,6 @@ export const watchProcesses = async () => {
           gameRepository.update({ objectID: game.objectID }, { remoteId });
         });
       }
-
-      if (WindowManager.mainWindow) {
-        WindowManager.mainWindow.webContents.send("on-game-close", game.id);
-      }
     }
   }
 
