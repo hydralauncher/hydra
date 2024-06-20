@@ -6,7 +6,12 @@ import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import { useAppSelector, useDate, useUserDetails } from "@renderer/hooks";
+import {
+  useAppSelector,
+  useDate,
+  useToast,
+  useUserDetails,
+} from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
 import { buildGameDetailsPath, steamUrlBuilder } from "@renderer/helpers";
 import { PersonIcon, TelescopeIcon } from "@primer/octicons-react";
@@ -28,6 +33,7 @@ export function UserContent({
   const { t, i18n } = useTranslation("user_profile");
 
   const { userDetails, profileBackground, signOut } = useUserDetails();
+  const { showSuccessToast } = useToast();
 
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
@@ -70,7 +76,10 @@ export function UserContent({
   };
 
   const handleConfirmSignout = async () => {
-    signOut();
+    await signOut();
+
+    showSuccessToast(t("successfully_signed_out"));
+
     navigate("/");
   };
 

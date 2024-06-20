@@ -118,6 +118,7 @@ declare global {
 
     /* Auth */
     signOut: () => Promise<void>;
+    openAuthWindow: () => Promise<void>;
     onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
     onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
 

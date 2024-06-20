@@ -7,6 +7,7 @@ import {
   useAppSelector,
   useDownload,
   useLibrary,
+  useToast,
   useUserDetails,
 } from "@renderer/hooks";
 
@@ -23,6 +24,7 @@ import {
   setProfileBackground,
   setGameRunning,
 } from "@renderer/features";
+import { useTranslation } from "react-i18next";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -31,6 +33,8 @@ export interface AppProps {
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library } = useLibrary();
+
+  const { t } = useTranslation("app");
 
   const { clearDownload, setLastPacket } = useDownload();
 
@@ -49,6 +53,8 @@ export function App() {
   );
 
   const toast = useAppSelector((state) => state.toast);
+
+  const { showSuccessToast } = useToast();
 
   useEffect(() => {
     Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
@@ -96,6 +102,15 @@ export function App() {
     });
   }, [dispatch, fetchUserDetails]);
 
+  const onSignIn = useCallback(() => {
+    fetchUserDetails().then((response) => {
+      if (response) {
+        updateUserDetails(response);
+        showSuccessToast(t("successfully_signed_in"));
+      }
+    });
+  }, [fetchUserDetails, t, showSuccessToast, updateUserDetails]);
+
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
       if (gamesRunning.length) {
@@ -124,23 +139,17 @@ export function App() {
 
   useEffect(() => {
     const listeners = [
-      window.electron.onSignIn(() => {
-        fetchUserDetails().then((response) => {
-          if (response) updateUserDetails(response);
-        });
-      }),
+      window.electron.onSignIn(onSignIn),
       window.electron.onLibraryBatchComplete(() => {
         updateLibrary();
       }),
-      window.electron.onSignOut(() => {
-        clearUserDetails();
-      }),
+      window.electron.onSignOut(() => clearUserDetails()),
     ];
 
     return () => {
       listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [fetchUserDetails, updateUserDetails, clearUserDetails, updateLibrary]);
+  }, [onSignIn, updateLibrary, clearUserDetails]);
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -194,6 +203,13 @@ export function App() {
         </div>
       )}
 
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={handleToastClose}
+      />
+
       <main>
         <Sidebar />
 
@@ -211,13 +227,6 @@ export function App() {
       </main>
 
       <BottomPanel />
-
-      <Toast
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type}
-        onClose={handleToastClose}
-      />
     </>
   );
 }
