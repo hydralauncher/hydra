@@ -53,7 +53,7 @@ export function useDate() {
       }
     },
 
-    formatDistanceInMillis: (
+    formatDiffInMillis: (
       millis: number,
       baseDate: string | number | Date,
       options?: FormatDistanceOptions

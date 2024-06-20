@@ -96,7 +96,7 @@ export const watchProcesses = async () => {
     const runningGames = Array.from(gamesPlaytime.entries()).map((entry) => {
       return {
         id: entry[0],
-        sessionDurationInMillis: entry[1].firstTick - performance.now(),
+        sessionDurationInMillis: performance.now() - entry[1].firstTick,
       };
     });
 
