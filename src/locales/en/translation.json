@@ -230,7 +230,6 @@
     "amount_hours": "{{amount}} hours",
     "amount_minutes": "{{amount}} minutes",
     "last_time_played": "Last played {{period}}",
-    "sign_out": "Sign out",
     "activity": "Recent activity",
     "library": "Library",
     "total_play_time": "Total playtime: {{amount}}",
@@ -244,7 +243,7 @@
     "try_again": "Please, try again",
     "signout_modal_title": "Are you sure?",
     "cancel": "Cancel",
-    "signout": "Sign Out",
+    "signout": "Sign out",
     "playing_for": "Playing for {{amount}}"
   }
 }

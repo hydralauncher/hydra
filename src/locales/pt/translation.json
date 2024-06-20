@@ -230,7 +230,6 @@
     "amount_hours": "{{amount}} horas",
     "amount_minutes": "{{amount}} minutos",
     "last_time_played": "Jogou {{period}}",
-    "sign_out": "Sair da conta",
     "activity": "Atividade recente",
     "library": "Biblioteca",
     "total_play_time": "Tempo total de jogo: {{amount}}",
