@@ -32,10 +32,12 @@ export const mergeWithRemoteGames = async () => {
           {
             objectID: game.objectId,
             shop: "steam",
+          },
+          {
+            remoteId: game.id,
             lastTimePlayed: updatedLastTimePlayed,
             playTimeInMilliseconds: updatedPlayTime,
-          },
-          { remoteId: game.id }
+          }
         );
       } else {
         const steamGame = await steamGamesWorker.run(Number(game.objectId), {
