@@ -42,7 +42,7 @@ export function UserContent({
     });
   }, [i18n.language]);
 
-  const { formatDistance, formatDistanceInMillis } = useDate();
+  const { formatDistance, formatDiffInMillis } = useDate();
 
   const formatPlayTime = () => {
     const seconds = userProfile.libraryGames.reduce(
@@ -160,9 +160,9 @@ export function UserContent({
               </div>
               <small>
                 {t("playing_for", {
-                  amount: formatDistanceInMillis(
+                  amount: formatDiffInMillis(
                     runningGame.sessionDurationInMillis,
-                    new Date().getTime()
+                    new Date()
                   ),
                 })}
               </small>
