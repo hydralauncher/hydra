@@ -190,10 +190,18 @@ export const noDownloads = style({
   gap: `${SPACING_UNIT}px`,
 });
 
+export const signOutModalContent = style({
+  display: "flex",
+  width: "100%",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT}px`,
+});
+
 export const signOutModalButtonsContainer = style({
   display: "flex",
   width: "100%",
   justifyContent: "end",
   alignItems: "center",
   gap: `${SPACING_UNIT}px`,
+  paddingTop: `${SPACING_UNIT}px`,
 });

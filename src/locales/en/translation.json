@@ -248,6 +248,7 @@
     "cancel": "Cancel",
     "successfully_signed_out": "Successfully signed out",
     "sign_out": "Sign out",
-    "playing_for": "Playing for {{amount}}"
+    "playing_for": "Playing for {{amount}}",
+    "sign_out_modal_text": "Your library is linked with your current account. When signing out, your library will not be visible anymore, and any progress will not be saved. Continue with sign out?"
   }
 }
