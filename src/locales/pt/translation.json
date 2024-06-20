@@ -248,6 +248,7 @@
     "successfully_signed_out": "Deslogado com sucesso",
     "sign_out": "Sair da conta",
     "sign_out_modal_title": "Tem certeza?",
-    "playing_for": "Jogando por {{amount}}"
+    "playing_for": "Jogando por {{amount}}",
+    "sign_out_modal_text": "Sua biblioteca de jogos está associada com a sua conta atual. Ao sair, sua biblioteca não aparecerá mais no Hydra e qualquer progresso não será salvo. Deseja continuar?"
   }
 }
