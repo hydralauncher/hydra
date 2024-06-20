@@ -140,7 +140,7 @@ export function App() {
     return () => {
       listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [fetchUserDetails, updateUserDetails, clearUserDetails]);
+  }, [fetchUserDetails, updateUserDetails, clearUserDetails, updateLibrary]);
 
   const handleSearch = useCallback(
     (query: string) => {
