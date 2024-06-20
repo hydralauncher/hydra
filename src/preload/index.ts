@@ -142,6 +142,7 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Auth */
   signOut: () => ipcRenderer.invoke("signOut"),
+  openAuthWindow: () => ipcRenderer.invoke("openAuthWindow"),
   onSignIn: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-signin", listener);

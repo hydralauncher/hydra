@@ -1,4 +1,7 @@
 {
+  "app": {
+    "successfully_signed_in": "Logado com sucesso"
+  },
   "home": {
     "featured": "Destaque",
     "trending": "Populares",
@@ -242,6 +245,7 @@
     "saved_successfully": "Salvo com sucesso",
     "try_again": "Por favor, tente novamente",
     "cancel": "Cancelar",
+    "successfully_signed_out": "Deslogado com sucesso",
     "sign_out": "Sair da conta",
     "sign_out_modal_title": "Tem certeza?",
     "playing_for": "Jogando por {{amount}}"
