@@ -22,6 +22,7 @@ import {
   closeToast,
   setUserDetails,
   setProfileBackground,
+  setGameRunning,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 
@@ -31,7 +32,7 @@ export interface AppProps {
 
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
-  const { updateLibrary } = useLibrary();
+  const { updateLibrary, library } = useLibrary();
 
   const { t } = useTranslation("app");
 
@@ -109,6 +110,32 @@ export function App() {
       }
     });
   }, [fetchUserDetails, t, showSuccessToast, updateUserDetails]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
+      if (gamesRunning.length) {
+        const lastGame = gamesRunning[gamesRunning.length - 1];
+        const libraryGame = library.find(
+          (library) => library.id === lastGame.id
+        );
+
+        if (libraryGame) {
+          dispatch(
+            setGameRunning({
+              ...libraryGame,
+              sessionDurationInMillis: lastGame.sessionDurationInMillis,
+            })
+          );
+          return;
+        }
+      }
+      dispatch(setGameRunning(null));
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [dispatch, library]);
 
   useEffect(() => {
     const listeners = [

@@ -27,8 +27,6 @@ const updateProfile = async (
   displayName: string,
   newProfileImagePath: string | null
 ): Promise<UserProfile> => {
-  console.log(newProfileImagePath);
-
   if (!newProfileImagePath) {
     return (await patchUserProfile(displayName)).data;
   }
