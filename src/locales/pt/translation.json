@@ -1,4 +1,7 @@
 {
+  "app": {
+    "successfully_signed_in": "Logado com sucesso"
+  },
   "home": {
     "featured": "Destaque",
     "trending": "Populares",
@@ -243,6 +246,7 @@
     "try_again": "Por favor, tente novamente",
     "cancel": "Cancelar",
     "signout": "Sair da conta",
-    "signout_modal_title": "Tem certeza?"
+    "signout_modal_title": "Tem certeza?",
+    "successfully_signed_out": "Deslogado com sucesso"
   }
 }
