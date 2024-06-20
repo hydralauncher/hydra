@@ -2,12 +2,9 @@ import { useCallback } from "react";
 import { average } from "color.js";
 
 import { useAppDispatch, useAppSelector } from "./redux";
-import {
-  clearUserDetails,
-  setProfileBackground,
-  setUserDetails,
-} from "@renderer/features";
+import { setProfileBackground, setUserDetails } from "@renderer/features";
 import { darkenColor } from "@renderer/helpers";
+import { UserDetails } from "@types";
 
 export function useUserDetails() {
   const dispatch = useAppDispatch();
@@ -16,42 +13,69 @@ export function useUserDetails() {
     (state) => state.userDetails
   );
 
-  const clearUser = useCallback(async () => {
-    dispatch(clearUserDetails());
+  const clearUserDetails = useCallback(async () => {
+    dispatch(setUserDetails(null));
+    dispatch(setProfileBackground(null));
+
+    window.localStorage.removeItem("userDetails");
   }, [dispatch]);
 
   const signOut = useCallback(async () => {
-    clearUser();
+    clearUserDetails();
 
     return window.electron.signOut();
-  }, [clearUser]);
+  }, [clearUserDetails]);
 
-  const updateUser = useCallback(async () => {
-    return window.electron.getMe().then(async (userDetails) => {
-      if (userDetails) {
-        dispatch(setUserDetails(userDetails));
+  const updateUserDetails = useCallback(
+    async (userDetails: UserDetails) => {
+      dispatch(setUserDetails(userDetails));
 
-        if (userDetails.profileImageUrl) {
-          const output = await average(userDetails.profileImageUrl, {
-            amount: 1,
-            format: "hex",
-          });
+      if (userDetails.profileImageUrl) {
+        const output = await average(userDetails.profileImageUrl, {
+          amount: 1,
+          format: "hex",
+        });
 
-          dispatch(
-            setProfileBackground(
-              `linear-gradient(135deg, ${darkenColor(output as string, 0.6)}, ${darkenColor(output as string, 0.7)})`
-            )
-          );
-        }
+        const profileBackground = `linear-gradient(135deg, ${darkenColor(output as string, 0.6)}, ${darkenColor(output as string, 0.8)})`;
+
+        dispatch(setProfileBackground(profileBackground));
+
+        window.localStorage.setItem(
+          "userDetails",
+          JSON.stringify({ ...userDetails, profileBackground })
+        );
+      } else {
+        dispatch(setProfileBackground(null));
+
+        window.localStorage.setItem("userDetails", JSON.stringify(userDetails));
       }
-    });
-  }, [dispatch]);
+    },
+    [dispatch]
+  );
+
+  const fetchUserDetails = useCallback(async () => {
+    return window.electron.getMe();
+  }, []);
+
+  const patchUser = useCallback(
+    async (displayName: string, imageProfileUrl: string | null) => {
+      const response = await window.electron.updateProfile(
+        displayName,
+        imageProfileUrl
+      );
+
+      return updateUserDetails(response);
+    },
+    [updateUserDetails]
+  );
 
   return {
     userDetails,
-    updateUser,
+    fetchUserDetails,
     signOut,
-    clearUser,
+    clearUserDetails,
+    updateUserDetails,
+    patchUser,
     profileBackground,
   };
 }

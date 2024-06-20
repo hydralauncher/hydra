@@ -1,7 +1,6 @@
 {
   "home": {
     "featured": "Unggulan",
-    "recently_added": "Terbaru",
     "trending": "Trending",
     "surprise_me": "Kejutkan Saya",
     "no_results": "Tidak ada hasil"
@@ -15,12 +14,7 @@
     "paused": "{{title}} (Terhenti)",
     "downloading": "{{title}} ({{percentage}} - Mengunduh…)",
     "filter": "Filter koleksi",
-    "follow_us": "Ikuti kami",
-    "home": "Beranda",
-    "discord": "Gabung Discord kami",
-    "telegram": "Gabung Telegram kami",
-    "x": "Ikuti akun X kami",
-    "github": "Kontribusi di GitHub"
+    "home": "Beranda"
   },
   "header": {
     "search": "Pencarian",

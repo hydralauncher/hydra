@@ -4,6 +4,7 @@ import { style } from "@vanilla-extract/css";
 export const wrapper = style({
   padding: "24px",
   width: "100%",
+  height: "100%",
   display: "flex",
   flexDirection: "column",
   gap: `${SPACING_UNIT * 3}px`,
@@ -12,12 +13,10 @@ export const wrapper = style({
 export const profileContentBox = style({
   display: "flex",
   gap: `${SPACING_UNIT * 3}px`,
-  padding: `${SPACING_UNIT * 4}px ${SPACING_UNIT * 2}px`,
   alignItems: "center",
   borderRadius: "4px",
   border: `solid 1px ${vars.color.border}`,
   width: "100%",
-  overflow: "hidden",
   boxShadow: "0px 0px 15px 0px rgba(0, 0, 0, 0.7)",
   transition: "all ease 0.3s",
 });
@@ -36,10 +35,38 @@ export const profileAvatarContainer = style({
   boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.7)",
 });
 
+export const profileAvatarEditContainer = style({
+  width: "128px",
+  height: "128px",
+  display: "flex",
+  borderRadius: "50%",
+  color: vars.color.body,
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: vars.color.background,
+  position: "relative",
+  border: `solid 1px ${vars.color.border}`,
+  boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.7)",
+  cursor: "pointer",
+});
+
 export const profileAvatar = style({
-  width: "96px",
-  height: "96px",
+  height: "100%",
+  width: "100%",
+  borderRadius: "50%",
+  overflow: "hidden",
   objectFit: "cover",
+  animationPlayState: "paused",
+});
+
+export const profileAvatarEditOverlay = style({
+  position: "absolute",
+  width: "100%",
+  height: "100%",
+  backgroundColor: "#00000055",
+  color: vars.color.muted,
+  zIndex: 1,
+  cursor: "pointer",
 });
 
 export const profileInformation = style({
@@ -51,12 +78,14 @@ export const profileInformation = style({
 
 export const profileContent = style({
   display: "flex",
+  height: "100%",
   flexDirection: "row",
   gap: `${SPACING_UNIT * 4}px`,
 });
 
 export const profileGameSection = style({
   width: "100%",
+  height: "100%",
   display: "flex",
   flexDirection: "column",
   gap: `${SPACING_UNIT * 2}px`,
@@ -73,28 +102,17 @@ export const contentSidebar = style({
       maxWidth: "250px",
       width: "100%",
     },
-    "(min-width: 1280px)": {
-      width: "100%",
-      maxWidth: "350px",
-    },
   },
 });
 
 export const feedGameIcon = style({
   height: "100%",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  position: "relative",
 });
 
 export const libraryGameIcon = style({
+  width: "100%",
   height: "100%",
   borderRadius: "4px",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  position: "relative",
 });
 
 export const feedItem = style({
@@ -114,13 +132,11 @@ export const feedItem = style({
 
 export const gameListItem = style({
   color: vars.color.body,
-  display: "flex",
-  flexDirection: "row",
-  gap: `${SPACING_UNIT}px`,
-  aspectRatio: "1",
   transition: "all ease 0.2s",
   cursor: "pointer",
   zIndex: "1",
+  overflow: "hidden",
+  padding: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
   ":hover": {
     backgroundColor: "rgba(255, 255, 255, 0.15)",
   },
@@ -134,5 +150,49 @@ export const gameInformation = style({
 });
 
 export const profileHeaderSkeleton = style({
-  height: "200px",
+  height: "144px",
+});
+
+export const editProfileImageBadge = style({
+  width: "28px",
+  height: "28px",
+  borderRadius: "50%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: vars.color.background,
+  backgroundColor: vars.color.muted,
+  position: "absolute",
+  bottom: "0px",
+  right: "0px",
+  zIndex: "1",
+});
+
+export const telescopeIcon = style({
+  width: "60px",
+  height: "60px",
+  borderRadius: "50%",
+  backgroundColor: "rgba(255, 255, 255, 0.06)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: `${SPACING_UNIT * 2}px`,
+});
+
+export const noDownloads = style({
+  display: "flex",
+  width: "100%",
+  height: "100%",
+  justifyContent: "center",
+  alignItems: "center",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT}px`,
+});
+
+export const signOutModalButtonsContainer = style({
+  display: "flex",
+  width: "100%",
+  justifyContent: "end",
+  alignItems: "center",
+  gap: `${SPACING_UNIT}px`,
 });
