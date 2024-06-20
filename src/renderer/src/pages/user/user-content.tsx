@@ -159,7 +159,7 @@ export function UserContent({
                 {t("playing_for", {
                   amount: formatDistance(
                     runningGame.sessionStartTimestamp,
-                    new Date()
+                    performance.now()
                   ),
                 })}
               </small>

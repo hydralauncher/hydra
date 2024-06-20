@@ -47,7 +47,10 @@ export function useUserDetails() {
         const profileBackground = `#151515e6`;
         dispatch(setProfileBackground(profileBackground));
 
-        window.localStorage.setItem("userDetails", JSON.stringify(userDetails));
+        window.localStorage.setItem(
+          "userDetails",
+          JSON.stringify({ ...userDetails, profileBackground })
+        );
       }
     },
     [dispatch]

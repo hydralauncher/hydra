@@ -97,16 +97,18 @@ export function App() {
   }, [dispatch, fetchUserDetails]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onGamesRunning((gamesIds) => {
-      if (gamesIds.length) {
-        const lastGame = gamesIds.at(-1);
-        const libraryGame = library.find((library) => library.id == lastGame);
+    const unsubscribe = window.electron.onRunningGames((runningGames) => {
+      if (runningGames.length) {
+        const lastGame = runningGames[runningGames.length - 1];
+        const libraryGame = library.find(
+          (library) => library.id === lastGame.id
+        );
 
         if (libraryGame) {
           dispatch(
             setRunningGame({
               ...libraryGame,
-              sessionStartTimestamp: new Date().getTime(),
+              sessionStartTimestamp: lastGame.sessionStartTimestamp,
             })
           );
           return;

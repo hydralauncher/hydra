@@ -8,6 +8,7 @@ import type {
   UserPreferences,
   AppUpdaterEvent,
   StartGameDownloadPayload,
+  RunningGameEvent,
 } from "@types";
 
 contextBridge.exposeInMainWorld("electron", {
@@ -84,9 +85,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("deleteGameFolder", gameId),
   getGameByObjectID: (objectID: string) =>
     ipcRenderer.invoke("getGameByObjectID", objectID),
-  onGamesRunning: (cb: (gamesId: number[]) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, gamesId: number[]) =>
-      cb(gamesId);
+  onRunningGames: (cb: (runningGames: RunningGameEvent) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      runningGames: RunningGameEvent
+    ) => cb(runningGames);
     ipcRenderer.on("on-games-running", listener);
     return () => ipcRenderer.removeListener("on-games-running", listener);
   },
