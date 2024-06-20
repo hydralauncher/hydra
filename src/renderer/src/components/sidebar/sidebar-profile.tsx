@@ -13,7 +13,7 @@ export function SidebarProfile() {
 
   const { userDetails, profileBackground } = useUserDetails();
 
-  const { runningGame } = useAppSelector((state) => state.runningGame);
+  const { gameRunning } = useAppSelector((state) => state.gameRunning);
 
   const handleButtonClick = () => {
     if (userDetails === null) {
@@ -54,19 +54,19 @@ export function SidebarProfile() {
             {userDetails ? userDetails.displayName : t("sign_in")}
           </p>
 
-          {userDetails && runningGame && (
+          {userDetails && gameRunning && (
             <div>
-              <small>{runningGame.title}</small>
+              <small>{gameRunning.title}</small>
             </div>
           )}
         </div>
 
-        {userDetails && runningGame && (
+        {userDetails && gameRunning && (
           <img
-            alt={runningGame.title}
+            alt={gameRunning.title}
             width={24}
             style={{ borderRadius: 4 }}
-            src={runningGame.iconUrl}
+            src={gameRunning.iconUrl}
           />
         )}
       </div>

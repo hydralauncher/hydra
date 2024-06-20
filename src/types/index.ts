@@ -127,12 +127,7 @@ export interface Game {
 
 export type LibraryGame = Omit<Game, "repacks">;
 
-export type RunningGameEvent = {
-  id: number;
-  sessionDurationInMillis: number;
-}[];
-
-export interface RunningGame {
+export interface GameRunning {
   id: number;
   title: string;
   iconUrl: string;
