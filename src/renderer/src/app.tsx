@@ -21,7 +21,7 @@ import {
   closeToast,
   setUserDetails,
   setProfileBackground,
-  setRunningGame,
+  setGameRunning,
 } from "@renderer/features";
 
 export interface AppProps {
@@ -97,16 +97,16 @@ export function App() {
   }, [dispatch, fetchUserDetails]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onRunningGames((runningGames) => {
-      if (runningGames.length) {
-        const lastGame = runningGames[runningGames.length - 1];
+    const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
+      if (gamesRunning.length) {
+        const lastGame = gamesRunning[gamesRunning.length - 1];
         const libraryGame = library.find(
           (library) => library.id === lastGame.id
         );
 
         if (libraryGame) {
           dispatch(
-            setRunningGame({
+            setGameRunning({
               ...libraryGame,
               sessionDurationInMillis: lastGame.sessionDurationInMillis,
             })
@@ -114,7 +114,7 @@ export function App() {
           return;
         }
       }
-      dispatch(setRunningGame(null));
+      dispatch(setGameRunning(null));
     });
 
     return () => {

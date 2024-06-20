@@ -32,7 +32,7 @@ export function UserContent({
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
 
-  const { runningGame } = useAppSelector((state) => state.runningGame);
+  const { gameRunning } = useAppSelector((state) => state.gameRunning);
 
   const navigate = useNavigate();
 
@@ -104,10 +104,10 @@ export function UserContent({
           position: "relative",
         }}
       >
-        {runningGame && isMe && (
+        {gameRunning && isMe && (
           <div
             style={{
-              backgroundImage: `url(${steamUrlBuilder.libraryHero(runningGame.objectID)})`,
+              backgroundImage: `url(${steamUrlBuilder.libraryHero(gameRunning.objectID)})`,
               backgroundPosition: "top",
               position: "absolute",
               inset: 0,
@@ -140,7 +140,7 @@ export function UserContent({
 
         <div className={styles.profileInformation}>
           <h2 style={{ fontWeight: "bold" }}>{userProfile.displayName}</h2>
-          {isMe && runningGame && (
+          {isMe && gameRunning && (
             <div
               style={{
                 display: "flex",
@@ -156,12 +156,12 @@ export function UserContent({
                   alignItems: "center",
                 }}
               >
-                <p>{runningGame.title}</p>
+                <p>{gameRunning.title}</p>
               </div>
               <small>
                 {t("playing_for", {
                   amount: formatDiffInMillis(
-                    runningGame.sessionDurationInMillis,
+                    gameRunning.sessionDurationInMillis,
                     new Date()
                   ),
                 })}

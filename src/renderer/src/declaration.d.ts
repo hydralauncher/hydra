@@ -14,7 +14,6 @@ import type {
   RealDebridUser,
   DownloadSource,
   UserProfile,
-  RunningGameEvent,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -72,8 +71,10 @@ declare global {
     removeGame: (gameId: number) => Promise<void>;
     deleteGameFolder: (gameId: number) => Promise<unknown>;
     getGameByObjectID: (objectID: string) => Promise<Game | null>;
-    onRunningGames: (
-      cb: (runningGames: RunningGameEvent) => void
+    onGamesRunning: (
+      cb: (
+        gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
+      ) => void
     ) => () => Electron.IpcRenderer;
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
 

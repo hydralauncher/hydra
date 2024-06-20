@@ -109,10 +109,10 @@ export function GameDetailsContextProvider({
   }, [objectID, gameTitle, dispatch]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onRunningGames((gamesIds) => {
+    const unsubscribe = window.electron.onGamesRunning((gamesIds) => {
       const updatedIsGameRunning =
         !!game?.id &&
-        !!gamesIds.find((runningGame) => runningGame.id == game.id);
+        !!gamesIds.find((gameRunning) => gameRunning.id == game.id);
 
       if (isGameRunning != updatedIsGameRunning) {
         updateGame();

@@ -1,22 +1,22 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
-import { RunningGame } from "@types";
+import { GameRunning } from "@types";
 
-export interface RunningGameState {
-  runningGame: RunningGame | null;
+export interface GameRunningState {
+  gameRunning: GameRunning | null;
 }
 
-const initialState: RunningGameState = {
-  runningGame: null,
+const initialState: GameRunningState = {
+  gameRunning: null,
 };
 
-export const runningGameSlice = createSlice({
+export const gameRunningSlice = createSlice({
   name: "running-game",
   initialState,
   reducers: {
-    setRunningGame: (state, action: PayloadAction<RunningGame | null>) => {
-      state.runningGame = action.payload;
+    setGameRunning: (state, action: PayloadAction<GameRunning | null>) => {
+      state.gameRunning = action.payload;
     },
   },
 });
 
-export const { setRunningGame } = runningGameSlice.actions;
+export const { setGameRunning } = gameRunningSlice.actions;
