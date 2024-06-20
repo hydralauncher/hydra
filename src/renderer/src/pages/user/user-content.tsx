@@ -195,7 +195,7 @@ export function UserContent({
                   theme="danger"
                   onClick={() => setShowSignOutModal(true)}
                 >
-                  {t("signout")}
+                  {t("sign_out")}
                 </Button>
               </>
             </div>

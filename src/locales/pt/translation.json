@@ -17,7 +17,7 @@
     "home": "Início",
     "queued": "{{title}} (Na fila)",
     "game_has_no_executable": "Jogo não possui executável selecionado",
-    "signin": "Login"
+    "sign_in": "Login"
   },
   "header": {
     "search": "Buscar jogos",
@@ -242,8 +242,8 @@
     "saved_successfully": "Salvo com sucesso",
     "try_again": "Por favor, tente novamente",
     "cancel": "Cancelar",
-    "signout": "Sair da conta",
-    "signout_modal_title": "Tem certeza?",
+    "sign_out": "Sair da conta",
+    "sign_out_modal_title": "Tem certeza?",
     "playing_for": "Jogando por {{amount}}"
   }
 }

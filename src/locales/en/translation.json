@@ -17,7 +17,7 @@
     "home": "Home",
     "queued": "{{title}} (Queued)",
     "game_has_no_executable": "Game has no executable selected",
-    "signin": "Sign in"
+    "sign_in": "Sign in"
   },
   "header": {
     "search": "Search games",
@@ -241,9 +241,9 @@
     "edit_profile": "Edit Profile",
     "saved_successfully": "Saved successfully",
     "try_again": "Please, try again",
-    "signout_modal_title": "Are you sure?",
+    "sign_out_modal_title": "Are you sure?",
     "cancel": "Cancel",
-    "signout": "Sign out",
+    "sign_out": "Sign out",
     "playing_for": "Playing for {{amount}}"
   }
 }

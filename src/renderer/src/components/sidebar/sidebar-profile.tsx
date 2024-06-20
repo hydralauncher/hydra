@@ -51,7 +51,7 @@ export function SidebarProfile() {
 
         <div className={styles.profileButtonInformation}>
           <p className={styles.profileButtonTitle}>
-            {userDetails ? userDetails.displayName : t("signin")}
+            {userDetails ? userDetails.displayName : t("sign_in")}
           </p>
 
           {userDetails && runningGame && (
