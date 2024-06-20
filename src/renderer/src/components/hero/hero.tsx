@@ -9,8 +9,8 @@ import {
 } from "@renderer/helpers";
 import { useTranslation } from "react-i18next";
 
-const FEATURED_GAME_TITLE = "Horizon Forbidden West™ Complete Edition";
-const FEATURED_GAME_ID = "2420110";
+const FEATURED_GAME_TITLE = "Ghost of Tsushima DIRECTOR'S CUT";
+const FEATURED_GAME_ID = "2215430";
 
 export function Hero() {
   const [featuredGameDetails, setFeaturedGameDetails] =
