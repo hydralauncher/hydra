@@ -1,7 +1,7 @@
 import { keyframes } from "@vanilla-extract/css";
 import { recipe } from "@vanilla-extract/recipes";
 
-import { SPACING_UNIT } from "../../theme.css";
+import { SPACING_UNIT, vars } from "../../theme.css";
 
 export const backdropFadeIn = keyframes({
   "0%": { backdropFilter: "blur(0px)", backgroundColor: "rgba(0, 0, 0, 0.5)" },
@@ -30,8 +30,8 @@ export const backdrop = recipe({
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1,
-    top: 0,
+    zIndex: vars.zIndex.backdrop,
+    top: "0",
     padding: `${SPACING_UNIT * 3}px`,
     backdropFilter: "blur(2px)",
     transition: "all ease 0.2s",
