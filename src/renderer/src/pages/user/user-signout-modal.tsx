@@ -19,7 +19,7 @@ export const UserSignOutModal = ({
     <>
       <Modal
         visible={visible}
-        title={t("signout_modal_title")}
+        title={t("sign_out_modal_title")}
         onClose={onClose}
       >
         <div className={styles.signOutModalButtonsContainer}>
