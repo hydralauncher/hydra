@@ -188,7 +188,7 @@ export function UserContent({
             >
               <>
                 <Button theme="outline" onClick={handleEditProfile}>
-                  Editar perfil
+                  {t("edit_profile")}
                 </Button>
 
                 <Button
