@@ -11,6 +11,7 @@ export const steamGamesWorker = new Piscina({
   workerData: {
     steamGamesPath: path.join(seedsPath, "steam-games.json"),
   },
+  maxThreads: 1,
 });
 
 export const downloadSourceWorker = new Piscina({
