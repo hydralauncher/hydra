@@ -31,7 +31,7 @@ export const toast = recipe({
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
-    zIndex: "0",
+    zIndex: vars.zIndex.toast,
     maxWidth: "500px",
   },
   variants: {

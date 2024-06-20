@@ -23,8 +23,8 @@ export class HydraApi {
     return this.userAuth.authToken !== "";
   }
 
-  static async handleExternalAuth(auth: string) {
-    const { payload } = url.parse(auth, true).query;
+  static async handleExternalAuth(uri: string) {
+    const { payload } = url.parse(uri, true).query;
 
     const decodedBase64 = atob(payload as string);
     const jsonData = JSON.parse(decodedBase64);
