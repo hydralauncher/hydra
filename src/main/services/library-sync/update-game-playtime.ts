@@ -3,11 +3,11 @@ import { HydraApi } from "../hydra-api";
 
 export const updateGamePlaytime = async (
   game: Game,
-  delta: number,
+  deltaInMillis: number,
   lastTimePlayed: Date
 ) => {
   return HydraApi.put(`/games/${game.remoteId}`, {
-    playTimeDeltaInSeconds: Math.trunc(delta),
+    playTimeDeltaInSeconds: Math.trunc(deltaInMillis / 1000),
     lastTimePlayed,
   });
 };
