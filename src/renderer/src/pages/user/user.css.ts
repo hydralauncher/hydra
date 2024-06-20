@@ -4,7 +4,6 @@ import { style } from "@vanilla-extract/css";
 export const wrapper = style({
   padding: "24px",
   width: "100%",
-  height: "100%",
   display: "flex",
   flexDirection: "column",
   gap: `${SPACING_UNIT * 3}px`,
