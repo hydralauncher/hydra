@@ -108,7 +108,7 @@ export function App() {
           dispatch(
             setRunningGame({
               ...libraryGame,
-              sessionStartTimestamp: lastGame.sessionStartTimestamp,
+              sessionDurationInMillis: lastGame.sessionDurationInMillis,
             })
           );
           return;

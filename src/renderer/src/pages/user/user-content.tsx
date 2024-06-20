@@ -42,7 +42,7 @@ export function UserContent({
     });
   }, [i18n.language]);
 
-  const { formatDistance } = useDate();
+  const { formatDistance, formatDistanceInMillis } = useDate();
 
   const formatPlayTime = () => {
     const seconds = userProfile.libraryGames.reduce(
@@ -107,7 +107,8 @@ export function UserContent({
         {runningGame && isMe && (
           <div
             style={{
-              background: `url(${steamUrlBuilder.libraryHero(runningGame.objectID)})`,
+              backgroundImage: `url(${steamUrlBuilder.libraryHero(runningGame.objectID)})`,
+              backgroundPosition: "top",
               position: "absolute",
               inset: 0,
               backgroundSize: "cover",
@@ -159,9 +160,9 @@ export function UserContent({
               </div>
               <small>
                 {t("playing_for", {
-                  amount: formatDistance(
-                    runningGame.sessionStartTimestamp,
-                    performance.now()
+                  amount: formatDistanceInMillis(
+                    runningGame.sessionDurationInMillis,
+                    new Date().getTime()
                   ),
                 })}
               </small>
