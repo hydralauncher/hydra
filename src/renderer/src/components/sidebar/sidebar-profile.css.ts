@@ -59,6 +59,7 @@ export const profileButtonTitle = style({
   fontWeight: "bold",
   fontSize: vars.size.body,
   width: "100%",
+  textAlign: "left",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
