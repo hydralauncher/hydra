@@ -127,6 +127,9 @@ export function App() {
           if (response) updateUserDetails(response);
         });
       }),
+      window.electron.onLibraryBatchComplete(() => {
+        updateLibrary();
+      }),
       window.electron.onSignOut(() => {
         clearUserDetails();
       }),

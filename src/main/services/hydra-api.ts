@@ -2,6 +2,9 @@ import { userAuthRepository } from "@main/repository";
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { WindowManager } from "./window-manager";
 import url from "url";
+import { uploadGamesBatch } from "./library-sync";
+import { clearGamesRemoteIds } from "./library-sync/clear-games-remote-id";
+import { logger } from "./logger";
 
 export class HydraApi {
   private static instance: AxiosInstance;
@@ -53,6 +56,8 @@ export class HydraApi {
 
     if (WindowManager.mainWindow) {
       WindowManager.mainWindow.webContents.send("on-signin");
+      await clearGamesRemoteIds();
+      uploadGamesBatch();
     }
   }
 
@@ -63,20 +68,20 @@ export class HydraApi {
 
     this.instance.interceptors.request.use(
       (request) => {
-        console.log(" ---- REQUEST -----");
-        console.log(request.method, request.url, request.headers, request.data);
+        logger.log(" ---- REQUEST -----");
+        logger.log(request.method, request.url, request.data);
         return request;
       },
       (error) => {
-        console.log("request error", error);
+        logger.log("request error", error);
         return Promise.reject(error);
       }
     );
 
     this.instance.interceptors.response.use(
       (response) => {
-        console.log(" ---- RESPONSE -----");
-        console.log(
+        logger.log(" ---- RESPONSE -----");
+        logger.log(
           response.status,
           response.config.method,
           response.config.url,
@@ -85,7 +90,7 @@ export class HydraApi {
         return response;
       },
       (error) => {
-        console.log("response error", error);
+        logger.error("response error", error);
         return Promise.reject(error);
       }
     );
@@ -102,7 +107,11 @@ export class HydraApi {
   }
 
   private static async revalidateAccessTokenIfExpired() {
-    if (!this.userAuth.authToken) throw new Error("user is not logged in");
+    if (!this.userAuth.authToken) {
+      userAuthRepository.delete({ id: 1 });
+      logger.error("user is not logged in");
+      throw new Error("user is not logged in");
+    }
 
     const now = new Date();
     if (this.userAuth.expirationTimestamp < now.getTime()) {
@@ -145,6 +154,8 @@ export class HydraApi {
           if (WindowManager.mainWindow) {
             WindowManager.mainWindow.webContents.send("on-signout");
           }
+
+          logger.log("user refresh token expired");
         }
 
         throw err;
@@ -178,5 +189,10 @@ export class HydraApi {
   static async patch(url: string, data?: any) {
     await this.revalidateAccessTokenIfExpired();
     return this.instance.patch(url, data, this.getAxiosConfig());
+  }
+
+  static async delete(url: string) {
+    await this.revalidateAccessTokenIfExpired();
+    return this.instance.delete(url, this.getAxiosConfig());
   }
 }

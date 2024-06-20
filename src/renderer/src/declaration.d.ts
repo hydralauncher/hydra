@@ -74,6 +74,7 @@ declare global {
     onGamesRunning: (
       cb: (gamesId: number[]) => void
     ) => () => Electron.IpcRenderer;
+    onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* User preferences */
     getUserPreferences: () => Promise<UserPreferences | null>;
@@ -113,7 +114,7 @@ declare global {
     checkForUpdates: () => Promise<boolean>;
     restartAndInstallUpdate: () => Promise<void>;
 
-    /* Authg */
+    /* Auth */
     signOut: () => Promise<void>;
     onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
     onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
