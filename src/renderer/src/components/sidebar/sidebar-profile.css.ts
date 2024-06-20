@@ -41,6 +41,7 @@ export const profileButtonInformation = style({
   flexDirection: "column",
   alignItems: "flex-start",
   flex: "1",
+  minWidth: 0,
 });
 
 export const statusBadge = style({
