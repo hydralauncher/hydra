@@ -36,7 +36,7 @@ export function useUserDetails() {
           format: "hex",
         });
 
-        const profileBackground = `linear-gradient(135deg, ${darkenColor(output as string, 0.6)}, ${darkenColor(output as string, 0.8, 0.9)})`;
+        const profileBackground = `linear-gradient(135deg, ${darkenColor(output as string, 0.6)}, ${darkenColor(output as string, 0.8, 0.7)})`;
         dispatch(setProfileBackground(profileBackground));
 
         window.localStorage.setItem(
@@ -44,7 +44,7 @@ export function useUserDetails() {
           JSON.stringify({ ...userDetails, profileBackground })
         );
       } else {
-        const profileBackground = `#151515e6`;
+        const profileBackground = `#151515B3`;
         dispatch(setProfileBackground(profileBackground));
 
         window.localStorage.setItem(
