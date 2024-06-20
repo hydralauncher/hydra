@@ -129,7 +129,7 @@ export type LibraryGame = Omit<Game, "repacks">;
 
 export type RunningGameEvent = {
   id: number;
-  sessionStartTimestamp: number;
+  sessionDurationInMillis: number;
 }[];
 
 export interface RunningGame {
@@ -138,7 +138,7 @@ export interface RunningGame {
   iconUrl: string;
   objectID: string;
   shop: GameShop;
-  sessionStartTimestamp: number;
+  sessionDurationInMillis: number;
 }
 
 export interface DownloadProgress {

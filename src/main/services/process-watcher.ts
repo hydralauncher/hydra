@@ -94,7 +94,10 @@ export const watchProcesses = async () => {
 
   if (WindowManager.mainWindow) {
     const runningGames = Array.from(gamesPlaytime.entries()).map((entry) => {
-      return { id: entry[0], sessionStartTimestamp: entry[1].firstTick };
+      return {
+        id: entry[0],
+        sessionDurationInMillis: entry[1].firstTick - performance.now(),
+      };
     });
 
     WindowManager.mainWindow.webContents.send(
