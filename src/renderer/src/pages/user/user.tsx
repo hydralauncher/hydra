@@ -28,8 +28,6 @@ export const User = () => {
     getUserProfile();
   }, [getUserProfile]);
 
-  console.log(userProfile);
-
   return (
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
       <div className={styles.wrapper}>

@@ -5,6 +5,7 @@ import { gameRepository } from "@main/repository";
 import { getProcesses } from "@main/helpers";
 import { WindowManager } from "./window-manager";
 import { createGame, updateGamePlaytime } from "./library-sync";
+import { GameRunning } from "@types";
 
 const gamesPlaytime = new Map<
   number,
@@ -45,10 +46,6 @@ export const watchProcesses = async () => {
 
         const zero = gamePlaytime.lastTick;
         const delta = performance.now() - zero;
-
-        if (WindowManager.mainWindow) {
-          WindowManager.mainWindow.webContents.send("on-playtime", game.id);
-        }
 
         await gameRepository.update(game.id, {
           playTimeInMilliseconds: game.playTimeInMilliseconds + delta,
@@ -92,10 +89,20 @@ export const watchProcesses = async () => {
           gameRepository.update({ objectID: game.objectID }, { remoteId });
         });
       }
-
-      if (WindowManager.mainWindow) {
-        WindowManager.mainWindow.webContents.send("on-game-close", game.id);
-      }
     }
+  }
+
+  if (WindowManager.mainWindow) {
+    const gamesRunning = Array.from(gamesPlaytime.entries()).map((entry) => {
+      return {
+        id: entry[0],
+        sessionDurationInMillis: performance.now() - entry[1].firstTick,
+      };
+    });
+
+    WindowManager.mainWindow.webContents.send(
+      "on-games-running",
+      gamesRunning as Pick<GameRunning, "id" | "sessionDurationInMillis">[]
+    );
   }
 };

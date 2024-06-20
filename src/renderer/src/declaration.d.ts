@@ -71,8 +71,11 @@ declare global {
     removeGame: (gameId: number) => Promise<void>;
     deleteGameFolder: (gameId: number) => Promise<unknown>;
     getGameByObjectID: (objectID: string) => Promise<Game | null>;
-    onPlaytime: (cb: (gameId: number) => void) => () => Electron.IpcRenderer;
-    onGameClose: (cb: (gameId: number) => void) => () => Electron.IpcRenderer;
+    onGamesRunning: (
+      cb: (
+        gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
+      ) => void
+    ) => () => Electron.IpcRenderer;
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* User preferences */
