@@ -1,4 +1,7 @@
 {
+  "app": {
+    "successfully_signed_in": "Successfully signed in"
+  },
   "home": {
     "featured": "Featured",
     "trending": "Trending",
@@ -243,6 +246,7 @@
     "try_again": "Please, try again",
     "signout_modal_title": "Are you sure?",
     "cancel": "Cancel",
-    "signout": "Sign Out"
+    "signout": "Sign Out",
+    "successfully_signed_out": "Successfully signed out"
   }
 }

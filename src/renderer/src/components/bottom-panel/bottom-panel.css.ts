@@ -12,7 +12,7 @@ export const bottomPanel = style({
   transition: "all ease 0.2s",
   justifyContent: "space-between",
   position: "relative",
-  zIndex: "1",
+  zIndex: vars.zIndex.bottomPanel,
 });
 
 export const downloadsButton = style({
