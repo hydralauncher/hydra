@@ -1,7 +1,6 @@
 {
   "home": {
     "featured": "Öne çıkan",
-    "recently_added": "Son eklenen",
     "trending": "Popüler",
     "surprise_me": "Şaşırt beni",
     "no_results": "Sonuç bulunamadı"
@@ -15,12 +14,7 @@
     "paused": "{{title}} (Duraklatıldı)",
     "downloading": "{{title}} ({{percentage}} - İndiriliyor…)",
     "filter": "Kütüphaneyi filtrele",
-    "follow_us": "Bizi takip et",
-    "home": "Ana menü",
-    "discord": "Discord'umuza katıl",
-    "telegram": "Telegram'umuza katıl",
-    "x": "X'te bizi takip et",
-    "github": "GitHub'da bize katkı yap"
+    "home": "Ana menü"
   },
   "header": {
     "search": "Ara",

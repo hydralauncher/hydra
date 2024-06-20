@@ -1,5 +1,5 @@
 import { UserProfile } from "@types";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { setHeaderTitle } from "@renderer/features";
 import { useAppDispatch } from "@renderer/hooks";
@@ -15,8 +15,8 @@ export const User = () => {
 
   const dispatch = useAppDispatch();
 
-  useEffect(() => {
-    window.electron.getUser(userId!).then((userProfile) => {
+  const getUserProfile = useCallback(() => {
+    return window.electron.getUser(userId!).then((userProfile) => {
       if (userProfile) {
         dispatch(setHeaderTitle(userProfile.displayName));
         setUserProfile(userProfile);
@@ -24,11 +24,20 @@ export const User = () => {
     });
   }, [dispatch, userId]);
 
+  useEffect(() => {
+    getUserProfile();
+  }, [getUserProfile]);
+
+  console.log(userProfile);
+
   return (
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
       <div className={styles.wrapper}>
         {userProfile ? (
-          <UserContent userProfile={userProfile} />
+          <UserContent
+            userProfile={userProfile}
+            updateUserProfile={getUserProfile}
+          />
         ) : (
           <UserSkeleton />
         )}

@@ -22,6 +22,7 @@ import "./library/open-game-installer-path";
 import "./library/update-executable-path";
 import "./library/remove-game";
 import "./library/remove-game-from-library";
+import "./misc/is-user-logged-in";
 import "./misc/open-external";
 import "./misc/show-open-dialog";
 import "./torrenting/cancel-game-download";
@@ -42,6 +43,7 @@ import "./download-sources/sync-download-sources";
 import "./auth/signout";
 import "./user/get-user";
 import "./profile/get-me";
+import "./profile/update-profile";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => app.getVersion());

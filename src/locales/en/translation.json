@@ -228,11 +228,21 @@
   "user_profile": {
     "amount_hours": "{{amount}} hours",
     "amount_minutes": "{{amount}} minutes",
-    "play_time": "Played for {{amount}}",
     "last_time_played": "Last played {{period}}",
     "sign_out": "Sign out",
-    "activity": "Recent Activity",
+    "activity": "Recent activity",
     "library": "Library",
-    "total_play_time": "Total playtime: {{amount}}"
+    "total_play_time": "Total playtime: {{amount}}",
+    "no_recent_activity_title": "Hmmm… nothing here",
+    "no_recent_activity_description": "You haven't played any games recently. It's time to change that!",
+    "display_name": "Display name",
+    "saving": "Saving",
+    "save": "Save",
+    "edit_profile": "Edit Profile",
+    "saved_successfully": "Saved successfully",
+    "try_again": "Please, try again",
+    "signout_modal_title": "Are you sure?",
+    "cancel": "Cancel",
+    "signout": "Sign Out"
   }
 }

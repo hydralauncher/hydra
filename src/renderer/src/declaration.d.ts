@@ -97,6 +97,7 @@ declare global {
 
     /* Misc */
     openExternal: (src: string) => Promise<void>;
+    isUserLoggedIn: () => Promise<boolean>;
     getVersion: () => Promise<string>;
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
@@ -122,6 +123,10 @@ declare global {
 
     /* Profile */
     getMe: () => Promise<UserProfile | null>;
+    updateProfile: (
+      displayName: string,
+      newProfileImagePath: string | null
+    ) => Promise<UserProfile>;
   }
 
   interface Window {

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { PersonIcon } from "@primer/octicons-react";
-import * as styles from "./sidebar.css";
+import * as styles from "./sidebar-profile.css";
+
 import { useUserDetails } from "@renderer/hooks";
 import { useMemo } from "react";
 
@@ -9,12 +10,13 @@ export function SidebarProfile() {
 
   const { userDetails, profileBackground } = useUserDetails();
 
-  const handleClickProfile = () => {
-    navigate(`/user/${userDetails!.id}`);
-  };
+  const handleButtonClick = () => {
+    if (userDetails === null) {
+      window.electron.openExternal("https://auth.hydra.losbroxas.org");
+      return;
+    }
 
-  const handleClickLogin = () => {
-    window.electron.openExternal("https://auth.hydra.losbroxas.org");
+    navigate(`/user/${userDetails!.id}`);
   };
 
   const profileButtonBackground = useMemo(() => {
@@ -22,36 +24,16 @@ export function SidebarProfile() {
     return undefined;
   }, [profileBackground]);
 
-  if (userDetails == null) {
-    return (
-      <>
-        <button
-          type="button"
-          className={styles.profileButton}
-          onClick={handleClickLogin}
-        >
-          <div className={styles.profileAvatar}>
-            <PersonIcon />
-          </div>
-
-          <div className={styles.profileButtonInformation}>
-            <p style={{ fontWeight: "bold" }}>Fazer login</p>
-          </div>
-        </button>
-      </>
-    );
-  }
-
   return (
-    <>
-      <button
-        type="button"
-        className={styles.profileButton}
-        style={{ background: profileButtonBackground }}
-        onClick={handleClickProfile}
-      >
+    <button
+      type="button"
+      className={styles.profileButton}
+      style={{ background: profileButtonBackground }}
+      onClick={handleButtonClick}
+    >
+      <div className={styles.profileButtonContent}>
         <div className={styles.profileAvatar}>
-          {userDetails.profileImageUrl ? (
+          {userDetails?.profileImageUrl ? (
             <img
               className={styles.profileAvatar}
               src={userDetails.profileImageUrl}
@@ -63,9 +45,11 @@ export function SidebarProfile() {
         </div>
 
         <div className={styles.profileButtonInformation}>
-          <p style={{ fontWeight: "bold" }}>{userDetails.displayName}</p>
+          <p className={styles.profileButtonTitle}>
+            {userDetails ? userDetails.displayName : "Sign in"}
+          </p>
         </div>
-      </button>
-    </>
+      </div>
+    </button>
   );
 }

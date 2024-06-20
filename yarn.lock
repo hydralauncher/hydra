@@ -3305,6 +3305,15 @@ file-type@^18.7.0:
     strtok3 "^7.0.0"
     token-types "^5.0.1"
 
+file-type@^19.0.0:
+  version "19.0.0"
+  resolved "https://registry.yarnpkg.com/file-type/-/file-type-19.0.0.tgz#62a6cadc43f73ba38c53e1a174943a75fdafafa9"
+  integrity sha512-s7cxa7/leUWLiXO78DVVfBVse+milos9FitauDLG1pI7lNaJ2+5lzPnr2N24ym+84HVwJL6hVuGfgVE+ALvU8Q==
+  dependencies:
+    readable-web-to-node-stream "^3.0.2"
+    strtok3 "^7.0.0"
+    token-types "^5.0.1"
+
 file-uri-to-path@1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/file-uri-to-path/-/file-uri-to-path-1.0.0.tgz#553a7b8446ff6f684359c445f1e37a05dacc33dd"

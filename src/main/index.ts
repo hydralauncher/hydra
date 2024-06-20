@@ -2,6 +2,7 @@ import { app, BrowserWindow, net, protocol } from "electron";
 import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
+import url from "node:url";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { DownloadManager, logger, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
@@ -51,9 +52,10 @@ if (process.defaultApp) {
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId("site.hydralauncher.hydra");
 
-  protocol.handle("hydra", (request) =>
-    net.fetch("file://" + request.url.slice("hydra://".length))
-  );
+  protocol.handle("local", (request) => {
+    const filePath = request.url.slice("local://".length);
+    return net.fetch(url.pathToFileURL(filePath).toString());
+  });
 
   await dataSource.initialize();
   await dataSource.runMigrations();
