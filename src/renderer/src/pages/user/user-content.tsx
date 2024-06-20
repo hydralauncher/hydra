@@ -104,13 +104,14 @@ export function UserContent({
           position: "relative",
         }}
       >
-        {runningGame && (
+        {runningGame && isMe && (
           <div
             style={{
               background: `url(${steamUrlBuilder.libraryHero(runningGame.objectID)})`,
               position: "absolute",
               inset: 0,
               backgroundSize: "cover",
+              borderRadius: "4px",
             }}
           ></div>
         )}
@@ -120,6 +121,7 @@ export function UserContent({
             background: profileContentBoxBackground,
             position: "absolute",
             inset: 0,
+            borderRadius: "4px",
           }}
         ></div>
 
