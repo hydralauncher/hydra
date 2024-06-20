@@ -5,6 +5,7 @@ import { gameRepository } from "@main/repository";
 import { getProcesses } from "@main/helpers";
 import { WindowManager } from "./window-manager";
 import { createGame, updateGamePlaytime } from "./library-sync";
+import { RunningGameEvent } from "@types";
 
 const gamesPlaytime = new Map<
   number,
@@ -96,10 +97,13 @@ export const watchProcesses = async () => {
   }
 
   if (WindowManager.mainWindow) {
-    const gamesRunningIds = Array.from(gamesPlaytime.keys());
+    const runningGames = Array.from(gamesPlaytime.entries()).map((entry) => {
+      return { id: entry[0], sessionStartTimestamp: entry[1].firstTick };
+    });
+
     WindowManager.mainWindow.webContents.send(
       "on-games-running",
-      gamesRunningIds
+      runningGames as RunningGameEvent
     );
   }
 };

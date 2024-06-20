@@ -109,20 +109,19 @@ export function GameDetailsContextProvider({
   }, [objectID, gameTitle, dispatch]);
 
   useEffect(() => {
-    const listeners = [
-      window.electron.onGamesRunning((gamesIds) => {
-        const updatedIsGameRunning = !!game?.id && gamesIds.includes(game.id);
+    const unsubscribe = window.electron.onRunningGames((gamesIds) => {
+      const updatedIsGameRunning =
+        !!game?.id &&
+        !!gamesIds.find((runningGame) => runningGame.id == game.id);
 
-        if (isGameRunning != updatedIsGameRunning) {
-          updateGame();
-        }
+      if (isGameRunning != updatedIsGameRunning) {
+        updateGame();
+      }
 
-        setisGameRunning(updatedIsGameRunning);
-      }),
-    ];
-
+      setisGameRunning(updatedIsGameRunning);
+    });
     return () => {
-      listeners.forEach((unsubscribe) => unsubscribe());
+      unsubscribe();
     };
   }, [game?.id, isGameRunning, updateGame]);
 
