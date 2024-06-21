@@ -119,6 +119,7 @@ declare global {
     /* Auth */
     signOut: () => Promise<void>;
     openAuthWindow: () => Promise<void>;
+    getSessionHash: () => Promise<string | null>;
     onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
     onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
 
