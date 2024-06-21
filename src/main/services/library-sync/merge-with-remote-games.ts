@@ -19,7 +19,8 @@ export const mergeWithRemoteGames = async () => {
       if (localGame) {
         const updatedLastTimePlayed =
           localGame.lastTimePlayed == null ||
-          new Date(game.lastTimePlayed) > localGame.lastTimePlayed
+          (game.lastTimePlayed &&
+            new Date(game.lastTimePlayed) > localGame.lastTimePlayed)
             ? new Date(game.lastTimePlayed)
             : localGame.lastTimePlayed;
 
