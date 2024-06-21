@@ -1,11 +1,29 @@
-import { gameRepository, userAuthRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
-import { HydraApi } from "@main/services/hydra-api";
+import { DownloadManager, HydraApi, gamesPlaytime } from "@main/services";
+import { dataSource } from "@main/data-source";
+import { DownloadQueue, Game, UserAuth } from "@main/entity";
 
-const signOut = async (_event: Electron.IpcMainInvokeEvent): Promise<void> => {
+const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
+  const databaseOperations = dataSource.transaction(
+    async (transactionalEntityManager) => {
+      await transactionalEntityManager.getRepository(DownloadQueue).delete({});
+
+      await transactionalEntityManager.getRepository(Game).delete({});
+
+      await transactionalEntityManager
+        .getRepository(UserAuth)
+        .delete({ id: 1 });
+    }
+  );
+
+  /* Removes all games being played */
+  gamesPlaytime.clear();
+
+  /* Disconnects aria2 */
+  DownloadManager.disconnect();
+
   await Promise.all([
-    userAuthRepository.delete({ id: 1 }),
-    gameRepository.delete({}),
+    databaseOperations,
     HydraApi.post("/auth/logout").catch(),
   ]);
 };
