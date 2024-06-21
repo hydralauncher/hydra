@@ -7,6 +7,7 @@ import {
   userPreferencesSlice,
   toastSlice,
   userDetailsSlice,
+  gameRunningSlice,
 } from "@renderer/features";
 
 export const store = configureStore({
@@ -18,6 +19,7 @@ export const store = configureStore({
     download: downloadSlice.reducer,
     toast: toastSlice.reducer,
     userDetails: userDetailsSlice.reducer,
+    gameRunning: gameRunningSlice.reducer,
   },
 });
 

@@ -138,8 +138,9 @@ export const randomizerButton = style({
   bottom: `${26 + SPACING_UNIT * 2}px`,
   /* Scroll bar + spacing */
   right: `${9 + SPACING_UNIT * 2}px`,
-  boxShadow: "rgba(255, 255, 255, 0.1) 0px 0px 10px 3px",
+  boxShadow: "rgba(255, 255, 255, 0.1) 0px 0px 10px 1px",
   border: `solid 2px ${vars.color.border}`,
+  zIndex: "1",
   backgroundColor: vars.color.background,
   ":hover": {
     backgroundColor: vars.color.background,
