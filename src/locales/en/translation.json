@@ -19,7 +19,8 @@
     "filter": "Filter library",
     "home": "Home",
     "queued": "{{title}} (Queued)",
-    "game_has_no_executable": "Game has no executable selected"
+    "game_has_no_executable": "Game has no executable selected",
+    "sign_in": "Sign in"
   },
   "header": {
     "search": "Search games",
@@ -232,7 +233,6 @@
     "amount_hours": "{{amount}} hours",
     "amount_minutes": "{{amount}} minutes",
     "last_time_played": "Last played {{period}}",
-    "sign_out": "Sign out",
     "activity": "Recent activity",
     "library": "Library",
     "total_play_time": "Total playtime: {{amount}}",
@@ -244,9 +244,11 @@
     "edit_profile": "Edit Profile",
     "saved_successfully": "Saved successfully",
     "try_again": "Please, try again",
-    "signout_modal_title": "Are you sure?",
+    "sign_out_modal_title": "Are you sure?",
     "cancel": "Cancel",
-    "signout": "Sign Out",
-    "successfully_signed_out": "Successfully signed out"
+    "successfully_signed_out": "Successfully signed out",
+    "sign_out": "Sign out",
+    "playing_for": "Playing for {{amount}}",
+    "sign_out_modal_text": "Your library is linked with your current account. When signing out, your library will not be visible anymore, and any progress will not be saved. Continue with sign out?"
   }
 }

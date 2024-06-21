@@ -19,7 +19,8 @@
     "filter": "Filtrar biblioteca",
     "home": "Início",
     "queued": "{{title}} (Na fila)",
-    "game_has_no_executable": "Jogo não possui executável selecionado"
+    "game_has_no_executable": "Jogo não possui executável selecionado",
+    "sign_in": "Login"
   },
   "header": {
     "search": "Buscar jogos",
@@ -232,7 +233,6 @@
     "amount_hours": "{{amount}} horas",
     "amount_minutes": "{{amount}} minutos",
     "last_time_played": "Jogou {{period}}",
-    "sign_out": "Sair da conta",
     "activity": "Atividade recente",
     "library": "Biblioteca",
     "total_play_time": "Tempo total de jogo: {{amount}}",
@@ -245,8 +245,10 @@
     "saved_successfully": "Salvo com sucesso",
     "try_again": "Por favor, tente novamente",
     "cancel": "Cancelar",
-    "signout": "Sair da conta",
-    "signout_modal_title": "Tem certeza?",
-    "successfully_signed_out": "Deslogado com sucesso"
+    "successfully_signed_out": "Deslogado com sucesso",
+    "sign_out": "Sair da conta",
+    "sign_out_modal_title": "Tem certeza?",
+    "playing_for": "Jogando por {{amount}}",
+    "sign_out_modal_text": "Sua biblioteca de jogos está associada com a sua conta atual. Ao sair, sua biblioteca não aparecerá mais no Hydra e qualquer progresso não será salvo. Deseja continuar?"
   }
 }

@@ -6,9 +6,14 @@ import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import { useDate, useToast, useUserDetails } from "@renderer/hooks";
+import {
+  useAppSelector,
+  useDate,
+  useToast,
+  useUserDetails,
+} from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
-import { buildGameDetailsPath } from "@renderer/helpers";
+import { buildGameDetailsPath, steamUrlBuilder } from "@renderer/helpers";
 import { PersonIcon, TelescopeIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import { UserEditProfileModal } from "./user-edit-modal";
@@ -33,6 +38,8 @@ export function UserContent({
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
 
+  const { gameRunning } = useAppSelector((state) => state.gameRunning);
+
   const navigate = useNavigate();
 
   const numberFormatter = useMemo(() => {
@@ -41,7 +48,7 @@ export function UserContent({
     });
   }, [i18n.language]);
 
-  const { formatDistance } = useDate();
+  const { formatDistance, formatDiffInMillis } = useDate();
 
   const formatPlayTime = () => {
     const seconds = userProfile.libraryGames.reduce(
@@ -102,10 +109,32 @@ export function UserContent({
       <section
         className={styles.profileContentBox}
         style={{
-          background: profileContentBoxBackground,
           padding: `${SPACING_UNIT * 3}px ${SPACING_UNIT * 2}px`,
+          position: "relative",
         }}
       >
+        {gameRunning && isMe && (
+          <div
+            style={{
+              backgroundImage: `url(${steamUrlBuilder.libraryHero(gameRunning.objectID)})`,
+              backgroundPosition: "top",
+              position: "absolute",
+              inset: 0,
+              backgroundSize: "cover",
+              borderRadius: "4px",
+            }}
+          ></div>
+        )}
+
+        <div
+          style={{
+            background: profileContentBoxBackground,
+            position: "absolute",
+            inset: 0,
+            borderRadius: "4px",
+          }}
+        ></div>
+
         <div className={styles.profileAvatarContainer}>
           {userProfile.profileImageUrl ? (
             <img
@@ -120,10 +149,45 @@ export function UserContent({
 
         <div className={styles.profileInformation}>
           <h2 style={{ fontWeight: "bold" }}>{userProfile.displayName}</h2>
+          {isMe && gameRunning && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: `${SPACING_UNIT / 2}px`,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  gap: `${SPACING_UNIT}px`,
+                  alignItems: "center",
+                }}
+              >
+                <p>{gameRunning.title}</p>
+              </div>
+              <small>
+                {t("playing_for", {
+                  amount: formatDiffInMillis(
+                    gameRunning.sessionDurationInMillis,
+                    new Date()
+                  ),
+                })}
+              </small>
+            </div>
+          )}
         </div>
 
         {isMe && (
-          <div style={{ flex: 1, display: "flex", justifyContent: "end" }}>
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              justifyContent: "end",
+              zIndex: 1,
+            }}
+          >
             <div
               style={{
                 display: "flex",
@@ -133,7 +197,7 @@ export function UserContent({
             >
               <>
                 <Button theme="outline" onClick={handleEditProfile}>
-                  Editar perfil
+                  {t("edit_profile")}
                 </Button>
 
                 <Button

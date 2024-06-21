@@ -4,7 +4,6 @@ import { style } from "@vanilla-extract/css";
 export const wrapper = style({
   padding: "24px",
   width: "100%",
-  height: "100%",
   display: "flex",
   flexDirection: "column",
   gap: `${SPACING_UNIT * 3}px`,
@@ -33,6 +32,7 @@ export const profileAvatarContainer = style({
   overflow: "hidden",
   border: `solid 1px ${vars.color.border}`,
   boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.7)",
+  zIndex: 1,
 });
 
 export const profileAvatarEditContainer = style({
@@ -56,7 +56,6 @@ export const profileAvatar = style({
   borderRadius: "50%",
   overflow: "hidden",
   objectFit: "cover",
-  animationPlayState: "paused",
 });
 
 export const profileAvatarEditOverlay = style({
@@ -72,8 +71,10 @@ export const profileAvatarEditOverlay = style({
 export const profileInformation = style({
   display: "flex",
   flexDirection: "column",
+  gap: `${SPACING_UNIT}px`,
   alignItems: "flex-start",
   color: "#c0c1c7",
+  zIndex: 1,
 });
 
 export const profileContent = style({
@@ -189,10 +190,18 @@ export const noDownloads = style({
   gap: `${SPACING_UNIT}px`,
 });
 
+export const signOutModalContent = style({
+  display: "flex",
+  width: "100%",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT}px`,
+});
+
 export const signOutModalButtonsContainer = style({
   display: "flex",
   width: "100%",
   justifyContent: "end",
   alignItems: "center",
   gap: `${SPACING_UNIT}px`,
+  paddingTop: `${SPACING_UNIT}px`,
 });

@@ -127,6 +127,15 @@ export interface Game {
 
 export type LibraryGame = Omit<Game, "repacks">;
 
+export interface GameRunning {
+  id: number;
+  title: string;
+  iconUrl: string;
+  objectID: string;
+  shop: GameShop;
+  sessionDurationInMillis: number;
+}
+
 export interface DownloadProgress {
   downloadSpeed: number;
   timeRemaining: number;

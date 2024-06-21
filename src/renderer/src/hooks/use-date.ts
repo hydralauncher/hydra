@@ -1,4 +1,4 @@
-import { formatDistance } from "date-fns";
+import { formatDistance, subMilliseconds } from "date-fns";
 import type { FormatDistanceOptions } from "date-fns";
 import {
   ptBR,
@@ -45,6 +45,21 @@ export function useDate() {
     ) => {
       try {
         return formatDistance(date, baseDate, {
+          ...options,
+          locale: getDateLocale(),
+        });
+      } catch (err) {
+        return "";
+      }
+    },
+
+    formatDiffInMillis: (
+      millis: number,
+      baseDate: string | number | Date,
+      options?: FormatDistanceOptions
+    ) => {
+      try {
+        return formatDistance(subMilliseconds(new Date(), millis), baseDate, {
           ...options,
           locale: getDateLocale(),
         });
