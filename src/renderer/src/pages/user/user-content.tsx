@@ -15,7 +15,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { buildGameDetailsPath, steamUrlBuilder } from "@renderer/helpers";
 import { PersonIcon, TelescopeIcon } from "@primer/octicons-react";
-import { Button } from "@renderer/components";
+import { Button, Link } from "@renderer/components";
 import { UserEditProfileModal } from "./user-edit-modal";
 import { UserSignOutModal } from "./user-signout-modal";
 
@@ -114,16 +114,11 @@ export function UserContent({
         }}
       >
         {gameRunning && isMe && (
-          <div
-            style={{
-              backgroundImage: `url(${steamUrlBuilder.libraryHero(gameRunning.objectID)})`,
-              backgroundPosition: "top",
-              position: "absolute",
-              inset: 0,
-              backgroundSize: "cover",
-              borderRadius: "4px",
-            }}
-          ></div>
+          <img
+            src={steamUrlBuilder.libraryHero(gameRunning.objectID)}
+            alt={gameRunning.title}
+            className={styles.profileBackground}
+          />
         )}
 
         <div
@@ -165,7 +160,9 @@ export function UserContent({
                   alignItems: "center",
                 }}
               >
-                <p>{gameRunning.title}</p>
+                <Link to={buildGameDetailsPath(gameRunning)}>
+                  {gameRunning.title}
+                </Link>
               </div>
               <small>
                 {t("playing_for", {
