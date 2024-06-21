@@ -65,7 +65,7 @@ export function AddDownloadSourceModal({
       >
         <TextField
           label={t("download_source_url")}
-          placeholder="Insert a valid JSON url"
+          placeholder={t("insert_valid_json_url")}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           rightContent={
@@ -99,14 +99,16 @@ export function AddDownloadSourceModal({
             >
               <h4>{validationResult?.name}</h4>
               <small>
-                Found{" "}
-                {validationResult?.downloadCount.toLocaleString(undefined)}{" "}
-                download options
+                {t("found_download_option", {
+                  count: validationResult?.downloadCount,
+                  countFormatted:
+                    validationResult?.downloadCount.toLocaleString(),
+                })}
               </small>
             </div>
 
             <Button type="button" onClick={handleAddDownloadSource}>
-              Import
+              {t("import")}
             </Button>
           </div>
         )}
