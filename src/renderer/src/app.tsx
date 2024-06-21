@@ -96,11 +96,11 @@ export function App() {
     window.electron.isUserLoggedIn().then((isLoggedIn) => {
       if (isLoggedIn) {
         fetchUserDetails().then((response) => {
-          if (response) setUserDetails(response);
+          if (response) updateUserDetails(response);
         });
       }
     });
-  }, [dispatch, fetchUserDetails]);
+  }, [fetchUserDetails, updateUserDetails, dispatch]);
 
   const onSignIn = useCallback(() => {
     fetchUserDetails().then((response) => {

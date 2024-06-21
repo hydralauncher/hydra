@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import { HydraApi } from "@main/services/hydra-api";
+import { HydraApi } from "@main/services";
 import axios from "axios";
 import fs from "node:fs";
 import path from "node:path";

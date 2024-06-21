@@ -205,3 +205,13 @@ export const signOutModalButtonsContainer = style({
   gap: `${SPACING_UNIT}px`,
   paddingTop: `${SPACING_UNIT}px`,
 });
+
+export const profileBackground = style({
+  width: "100%",
+  height: "100%",
+  position: "absolute",
+  objectFit: "cover",
+  left: "0",
+  top: "0",
+  borderRadius: "4px",
+});
