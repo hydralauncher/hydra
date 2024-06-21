@@ -7,7 +7,7 @@ import { WindowManager } from "./window-manager";
 import { createGame, updateGamePlaytime } from "./library-sync";
 import { GameRunning } from "@types";
 
-const gamesPlaytime = new Map<
+export const gamesPlaytime = new Map<
   number,
   { lastTick: number; firstTick: number }
 >();

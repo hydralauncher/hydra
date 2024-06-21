@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import { HydraApi } from "@main/services/hydra-api";
+import { HydraApi } from "@main/services";
 import { UserProfile } from "@types";
 import { userAuthRepository } from "@main/repository";
 import { logger } from "@main/services";
