@@ -150,6 +150,12 @@ export const randomizerButton = style({
   ":active": {
     transform: "scale(0.98)",
   },
+  ":disabled": {
+    boxShadow: "none",
+    transform: "none",
+    opacity: "0.8",
+    backgroundColor: vars.color.background,
+  },
 });
 
 export const heroPanelSkeleton = style({
