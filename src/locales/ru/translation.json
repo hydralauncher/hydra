@@ -1,4 +1,7 @@
 {
+  "app": {
+    "successfully_signed_in": "Successfully signed in (TRANSLATE ME)"
+  },
   "home": {
     "featured": "Рекомендованное",
     "trending": "В тренде",
@@ -16,7 +19,8 @@
     "filter": "Фильтр библиотеки",
     "home": "Главная",
     "queued": "{{title}} (В очереди)",
-    "game_has_no_executable": "Файл запуска игры не выбран"
+    "game_has_no_executable": "Файл запуска игры не выбран",
+    "sign_in": "Sign in (TRANSLATE ME)"
   },
   "header": {
     "search": "Поиск",
@@ -179,7 +183,12 @@
     "sync_download_sources": "Синхронизировать источники",
     "removed_download_source": "Источник загрузок удален",
     "added_download_source": "Источник загрузок добавлен",
-    "download_sources_synced": "Все источники загрузок синхронизированы"
+    "download_sources_synced": "All download sources are synced (TRANSLATE ME)",
+    "insert_valid_json_url": "Insert a valid JSON url (TRANSLATE ME)",
+    "found_download_option_zero": "No download option found (TRANSLATE ME)",
+    "found_download_option_one": "Found {{countFormatted}} download option (TRANSLATE ME)",
+    "found_download_option_other": "Found {{countFormatted}} download options (TRANSLATE ME)",
+    "import": "Import (TRANSLATE ME)"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -205,5 +214,27 @@
   },
   "forms": {
     "toggle_password_visibility": "Показывать пароль"
+  },
+  "user_profile": {
+    "amount_hours": "{{amount}} hours  (TRANSLATE ME)",
+    "amount_minutes": "{{amount}} minutes  (TRANSLATE ME)",
+    "last_time_played": "Last played {{period}}  (TRANSLATE ME)",
+    "activity": "Recent activity  (TRANSLATE ME)",
+    "library": "Library  (TRANSLATE ME)",
+    "total_play_time": "Total playtime: {{amount}}  (TRANSLATE ME)",
+    "no_recent_activity_title": "Hmmm… nothing here  (TRANSLATE ME)",
+    "no_recent_activity_description": "You haven't played any games recently. It's time to change that!  (TRANSLATE ME)",
+    "display_name": "Display name  (TRANSLATE ME)",
+    "saving": "Saving  (TRANSLATE ME)",
+    "save": "Save  (TRANSLATE ME)",
+    "edit_profile": "Edit Profile  (TRANSLATE ME)",
+    "saved_successfully": "Saved successfully  (TRANSLATE ME)",
+    "try_again": "Please, try again  (TRANSLATE ME)",
+    "sign_out_modal_title": "Are you sure?  (TRANSLATE ME)",
+    "cancel": "Cancel  (TRANSLATE ME)",
+    "successfully_signed_out": "Successfully signed out  (TRANSLATE ME)",
+    "sign_out": "Sign out  (TRANSLATE ME)",
+    "playing_for": "Playing for {{amount}}  (TRANSLATE ME)",
+    "sign_out_modal_text": "Your library is linked with your current account. When signing out, your library will not be visible anymore, and any progress will not be saved. Continue with sign out?  (TRANSLATE ME)"
   }
 }

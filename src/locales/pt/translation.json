@@ -179,7 +179,12 @@
     "sync_download_sources": "Sincronizar",
     "removed_download_source": "Fonte removida",
     "added_download_source": "Fonte adicionada",
-    "download_sources_synced": "As fontes foram sincronizadas"
+    "download_sources_synced": "As fontes foram sincronizadas",
+    "insert_valid_json_url": "Insira a url de um JSON válido",
+    "found_download_option_zero": "Nenhuma opção de download encontrada",
+    "found_download_option_one": "{{countFormatted}} opção de download encontrada",
+    "found_download_option_other": "{{countFormatted}} opções de download encontradas",
+    "import": "Importar"
   },
   "notifications": {
     "download_complete": "Download concluído",

@@ -183,7 +183,12 @@
     "sync_download_sources": "Sync sources",
     "removed_download_source": "Download source removed",
     "added_download_source": "Added download source",
-    "download_sources_synced": "All download sources are synced"
+    "download_sources_synced": "All download sources are synced",
+    "insert_valid_json_url": "Insert a valid JSON url",
+    "found_download_option_zero": "No download option found",
+    "found_download_option_one": "Found {{countFormatted}} download option",
+    "found_download_option_other": "Found {{countFormatted}} download options",
+    "import": "Import"
   },
   "notifications": {
     "download_complete": "Download complete",
