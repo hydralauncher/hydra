@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import { HydraApi } from "@main/services/hydra-api";
+import { HydraApi } from "@main/services";
 import { steamGamesWorker } from "@main/workers";
 import { UserProfile } from "@types";
 import { convertSteamGameToCatalogueEntry } from "../helpers/search-games";

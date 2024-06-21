@@ -1,7 +1,6 @@
 import { registerEvent } from "../register-event";
 import { gameRepository } from "../../repository";
-import { HydraApi } from "@main/services/hydra-api";
-import { logger } from "@main/services";
+import { HydraApi, logger } from "@main/services";
 
 const removeGameFromLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
