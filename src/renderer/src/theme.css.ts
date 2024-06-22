@@ -22,7 +22,7 @@ export const vars = createGlobalTheme(":root", {
     small: "12px",
   },
   zIndex: {
-    toast: "2",
+    toast: "5",
     bottomPanel: "3",
     titleBar: "4",
     backdrop: "4",
