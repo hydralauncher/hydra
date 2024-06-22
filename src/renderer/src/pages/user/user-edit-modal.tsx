@@ -40,7 +40,7 @@ export const UserEditProfileModal = ({
       filters: [
         {
           name: "Image",
-          extensions: ["jpg", "jpeg", "png", "gif", "webp", "bmp"],
+          extensions: ["jpg", "jpeg", "png", "webp"],
         },
       ],
     });
