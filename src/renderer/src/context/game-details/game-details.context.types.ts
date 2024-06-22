@@ -13,7 +13,7 @@ export interface GameDetailsContext {
   showRepacksModal: boolean;
   showGameOptionsModal: boolean;
   setGameColor: React.Dispatch<React.SetStateAction<string>>;
-  selectGameExecutable: () => Promise<string | null>;
+  selectGameExecutable: (gameInstallerFolderIfExists: string | null) => Promise<string | null>;
   updateGame: () => Promise<void>;
   setShowRepacksModal: React.Dispatch<React.SetStateAction<boolean>>;
   setShowGameOptionsModal: React.Dispatch<React.SetStateAction<boolean>>;
