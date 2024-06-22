@@ -73,7 +73,16 @@ app.on("browser-window-created", (_, window) => {
   optimizer.watchWindowShortcuts(window);
 });
 
-app.on("second-instance", (_event) => {
+const handleDeepLinkPath = (uri?: string) => {
+  if (!uri) return;
+  const url = new URL(uri);
+
+  if (url.host === "install-source") {
+    WindowManager.redirect(`settings${url.search}`);
+  }
+};
+
+app.on("second-instance", (_event, commandLine) => {
   // Someone tried to run a second instance, we should focus our window.
   if (WindowManager.mainWindow) {
     if (WindowManager.mainWindow.isMinimized())
@@ -84,16 +93,12 @@ app.on("second-instance", (_event) => {
     WindowManager.createMainWindow();
   }
 
-  // const [, path] = commandLine.pop()?.split("://") ?? [];
-  // if (path) {
-  //   WindowManager.redirect(path);
-  // }
+  handleDeepLinkPath(commandLine.pop());
 });
 
-// app.on("open-url", (_event, url) => {
-//   const [, path] = url.split("://");
-//   WindowManager.redirect(path);
-// });
+app.on("open-url", (_event, url) => {
+  handleDeepLinkPath(url);
+});
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits

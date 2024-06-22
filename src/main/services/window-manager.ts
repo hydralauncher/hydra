@@ -9,7 +9,7 @@ import {
   shell,
 } from "electron";
 import { is } from "@electron-toolkit/utils";
-import { t } from "i18next";
+import i18next, { t } from "i18next";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
@@ -100,7 +100,13 @@ export class WindowManager {
 
       authWindow.removeMenu();
 
-      authWindow.loadURL("https://auth.hydra.losbroxas.org/");
+      const searchParams = new URLSearchParams({
+        lng: i18next.language,
+      });
+
+      authWindow.loadURL(
+        `https://auth.hydra.losbroxas.org/?${searchParams.toString()}`
+      );
 
       authWindow.once("ready-to-show", () => {
         authWindow.show();
