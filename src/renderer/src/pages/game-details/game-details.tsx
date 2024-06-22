@@ -27,6 +27,7 @@ import { Downloader } from "@shared";
 
 export function GameDetails() {
   const [randomGame, setRandomGame] = useState<Steam250Game | null>(null);
+  const [randomizerLocked, setRandomizerLocked] = useState(false);
 
   const { objectID } = useParams();
   const [searchParams] = useSearchParams();
@@ -54,6 +55,18 @@ export function GameDetails() {
           { fromRandomizer: "1" }
         )
       );
+
+      setRandomizerLocked(true);
+
+      const zero = performance.now();
+
+      requestAnimationFrame(function animateLock(time) {
+        if (time - zero <= 1000) {
+          requestAnimationFrame(animateLock);
+        } else {
+          setRandomizerLocked(false);
+        }
+      });
     }
   };
 
@@ -118,7 +131,7 @@ export function GameDetails() {
                   className={styles.randomizerButton}
                   onClick={handleRandomizerClick}
                   theme="outline"
-                  disabled={!randomGame}
+                  disabled={!randomGame || randomizerLocked}
                 >
                   <div style={{ width: 16, height: 16, position: "relative" }}>
                     <Lottie

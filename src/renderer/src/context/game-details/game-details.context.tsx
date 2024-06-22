@@ -109,20 +109,19 @@ export function GameDetailsContextProvider({
   }, [objectID, gameTitle, dispatch]);
 
   useEffect(() => {
-    const listeners = [
-      window.electron.onGameClose(() => {
-        if (isGameRunning) setisGameRunning(false);
-      }),
-      window.electron.onPlaytime((gameId) => {
-        if (gameId === game?.id) {
-          if (!isGameRunning) setisGameRunning(true);
-          updateGame();
-        }
-      }),
-    ];
+    const unsubscribe = window.electron.onGamesRunning((gamesIds) => {
+      const updatedIsGameRunning =
+        !!game?.id &&
+        !!gamesIds.find((gameRunning) => gameRunning.id == game.id);
 
+      if (isGameRunning != updatedIsGameRunning) {
+        updateGame();
+      }
+
+      setisGameRunning(updatedIsGameRunning);
+    });
     return () => {
-      listeners.forEach((unsubscribe) => unsubscribe());
+      unsubscribe();
     };
   }, [game?.id, isGameRunning, updateGame]);
 

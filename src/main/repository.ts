@@ -6,8 +6,8 @@ import {
   GameShopCache,
   Repack,
   UserPreferences,
+  UserAuth,
 } from "@main/entity";
-import { UserAuth } from "./entity/user-auth";
 
 export const gameRepository = dataSource.getRepository(Game);
 
