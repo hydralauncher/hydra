@@ -5,7 +5,7 @@ import type { Game } from "@types";
 import * as styles from "./game-options-modal.css";
 import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
-import { useDownload } from "@renderer/hooks";
+import { useDownload, useToast } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 
 export interface GameOptionsModalProps {
@@ -20,6 +20,8 @@ export function GameOptionsModal({
   onClose,
 }: GameOptionsModalProps) {
   const { t } = useTranslation("game_details");
+
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const { updateGame, setShowRepacksModal, selectGameExecutable } =
     useContext(gameDetailsContext);
@@ -61,7 +63,13 @@ export function GameOptionsModal({
   };
 
   const handleCreateShortcut = async () => {
-    await window.electron.createGameShortcut(game.id);
+    window.electron.createGameShortcut(game.id).then((success) => {
+      if (success) {
+        showSuccessToast(t("create_shortcut_success"));
+      } else {
+        showErrorToast(t("create_shortcut_error"));
+      }
+    });
   };
 
   const handleOpenDownloadFolder = async () => {
