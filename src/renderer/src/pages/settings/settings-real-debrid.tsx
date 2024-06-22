@@ -1,25 +1,22 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
 import { Button, CheckboxField, Link, TextField } from "@renderer/components";
 import * as styles from "./settings-real-debrid.css";
-import type { UserPreferences } from "@types";
+
 import { useAppSelector, useToast } from "@renderer/hooks";
 
 import { SPACING_UNIT } from "@renderer/theme.css";
+import { settingsContext } from "@renderer/context";
 
 const REAL_DEBRID_API_TOKEN_URL = "https://real-debrid.com/apitoken";
 
-export interface SettingsRealDebridProps {
-  updateUserPreferences: (values: Partial<UserPreferences>) => void;
-}
-
-export function SettingsRealDebrid({
-  updateUserPreferences,
-}: SettingsRealDebridProps) {
+export function SettingsRealDebrid() {
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
+
+  const { updateUserPreferences } = useContext(settingsContext);
 
   const [isLoading, setIsLoading] = useState(false);
   const [form, setForm] = useState({

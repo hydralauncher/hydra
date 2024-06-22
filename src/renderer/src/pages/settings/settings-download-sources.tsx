@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
 import { TextField, Button, Badge } from "@renderer/components";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,7 @@ import { AddDownloadSourceModal } from "./add-download-source-modal";
 import { useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
 import { SPACING_UNIT } from "@renderer/theme.css";
+import { settingsContext } from "@renderer/context";
 
 export function SettingsDownloadSources() {
   const [showAddDownloadSourceModal, setShowAddDownloadSourceModal] =
@@ -18,8 +19,9 @@ export function SettingsDownloadSources() {
   const [isSyncingDownloadSources, setIsSyncingDownloadSources] =
     useState(false);
 
-  const { t } = useTranslation("settings");
+  const { sourceUrl, clearSourceUrl } = useContext(settingsContext);
 
+  const { t } = useTranslation("settings");
   const { showSuccessToast } = useToast();
 
   const getDownloadSources = async () => {
@@ -31,6 +33,10 @@ export function SettingsDownloadSources() {
   useEffect(() => {
     getDownloadSources();
   }, []);
+
+  useEffect(() => {
+    if (sourceUrl) setShowAddDownloadSourceModal(true);
+  }, [sourceUrl]);
 
   const handleRemoveSource = async (id: number) => {
     await window.electron.removeDownloadSource(id);
@@ -63,11 +69,16 @@ export function SettingsDownloadSources() {
     [DownloadSourceStatus.Errored]: t("download_source_errored"),
   };
 
+  const handleModalClose = () => {
+    clearSourceUrl();
+    setShowAddDownloadSourceModal(false);
+  };
+
   return (
     <>
       <AddDownloadSourceModal
         visible={showAddDownloadSourceModal}
-        onClose={() => setShowAddDownloadSourceModal(false)}
+        onClose={handleModalClose}
         onAddDownloadSource={handleAddDownloadSource}
       />
 
