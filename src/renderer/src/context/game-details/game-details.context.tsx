@@ -141,7 +141,7 @@ export function GameDetailsContextProvider({
         filters: [
           {
             name: "Game executable",
-            extensions: ["exe"],
+            extensions: ["exe", "bash", "sh", "bat"], //TODO: check if empty extension can be added, so it's possible to select linux binaries without extinsion. Add if can be added.
           },
         ],
       })
