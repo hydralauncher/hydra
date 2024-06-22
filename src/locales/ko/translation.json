@@ -1,7 +1,6 @@
 {
   "home": {
     "featured": "추천",
-    "recently_added": "최근 추가됨",
     "trending": "인기",
     "surprise_me": "무작위 추천",
     "no_results": "결과 없음"
@@ -15,12 +14,7 @@
     "paused": "{{title}} (일시 정지됨)",
     "downloading": "{{title}} ({{percentage}} - 다운로드 중…)",
     "filter": "라이브러리 정렬",
-    "follow_us": "공식 SNS",
-    "home": "홈",
-    "discord": "공식 디스코드",
-    "telegram": "공식 텔레그램",
-    "x": "공식 X (구 트위터)",
-    "github": "GitHub에서 기여하기"
+    "home": "홈"
   },
   "header": {
     "search": "게임 검색하기",
@@ -50,7 +44,6 @@
     "pause": "일시 정지",
     "cancel": "취소",
     "remove": "제거",
-    "remove_from_list": "목록에서 제거",
     "space_left_on_disk": "여유 저장 용량 {{space}} 남음",
     "eta": "완료까지 {{eta}}",
     "downloading_metadata": "메타데이터 다운로드 중…",
@@ -58,12 +51,8 @@
     "requirements": "시스템 사양",
     "minimum": "최저 사양",
     "recommended": "권장 사양",
-    "no_minimum_requirements": "{{title}}의 최저 사양을 제공받지 못 함",
-    "no_recommended_requirements": "{{title}}의 권장 사양을 제공받지 못 함",
     "release_date": "{{date}}에 발매됨",
     "publisher": "{{publisher}} 배급",
-    "copy_link_to_clipboard": "링크 복사하기",
-    "copied_link_to_clipboard": "링크 복사됨",
     "hours": "시",
     "minutes": "분",
     "amount_hours": "{{amount}} 시간",
@@ -83,15 +72,7 @@
     "change": "바꾸기",
     "repacks_modal_description": "다운로드 할 리팩을 선택해 주세요",
     "select_folder_hint": "기본 폴더를 바꾸려면 <0>설정</0>으로 가세요",
-    "download_now": "지금 다운로드",
-    "installation_instructions": "설치 방법",
-    "installation_instructions_description": "이 게임을 설치하기 위해서는 추가적인 단계가 필요합니다",
-    "online_fix_instruction": "OnlineFix 게임들은 압축 해제 시 암호가 필요합니다. 비밀번호를 물을 때 다음을 암호로 사용하기:",
-    "dodi_installation_instruction": "DODI 인스톨러를 실행했다면 키보드의 위 방향키를 눌러 설치를 시작하세요:",
-    "dont_show_it_again": "다시 보지 않기",
-    "copy_to_clipboard": "복사하기",
-    "copied_to_clipboard": "복사됨",
-    "got_it": "알았습니다"
+    "download_now": "지금 다운로드"
   },
   "activation": {
     "title": "Hydra 실행",
@@ -107,17 +88,13 @@
     "eta": "완료까지 {{eta}}",
     "paused": "일시 정지됨",
     "verifying": "검증중…",
-    "completed_at": "{{date}}에 완료됨",
     "completed": "완료됨",
-    "download_again": "다시 다운로드 하기",
     "cancel": "취소",
     "filter": "다운로드 된 게임들을 정렬하기",
     "remove": "제거하기",
     "downloading_metadata": "메타데이터 다운로드 중…",
-    "starting_download": "다운로드 개시 중…",
     "deleting": "인스톨러 삭제 중…",
     "delete": "인스톨러 삭제하기",
-    "remove_from_list": "제거하기",
     "delete_modal_title": "정말로 하시겠습니까?",
     "delete_modal_description": "이 기기의 모든 설치 파일들이 제거될 것입니다",
     "install": "설치"
@@ -128,8 +105,6 @@
     "notifications": "알림",
     "enable_download_notifications": "다운로드가 완료되었을 때",
     "enable_repack_list_notifications": "새 리팩이 추가되었을 때",
-    "telemetry": "자동 데이터 수집",
-    "telemetry_description": "익명 사용 통계를 활성화",
     "quit_app_instead_hiding": "작업 표시줄 트레이로 최소화하는 대신 Hydra를 종료",
     "launch_with_system": "컴퓨터가 시작되었을 때 Hydra 실행",
     "general": "일반",
