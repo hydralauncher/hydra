@@ -1,4 +1,7 @@
 {
+  "app": {
+    "successfully_signed_in": "Successfully signed in (TRANSLATE ME)"
+  },
   "home": {
     "featured": "Рекомендованное",
     "trending": "В тренде",
@@ -16,7 +19,8 @@
     "filter": "Фильтр библиотеки",
     "home": "Главная",
     "queued": "{{title}} (В очереди)",
-    "game_has_no_executable": "Файл запуска игры не выбран"
+    "game_has_no_executable": "Файл запуска игры не выбран",
+    "sign_in": "Sign in (TRANSLATE ME)"
   },
   "header": {
     "search": "Поиск",
@@ -49,7 +53,6 @@
     "pause": "Приостановить",
     "cancel": "Отменить",
     "remove": "Удалить",
-    "remove_from_list": "Удалить",
     "space_left_on_disk": "{{space}} свободно на диске",
     "eta": "Окончание {{eta}}",
     "calculating_eta": "Подсчёт оставшегося времени…",
@@ -58,13 +61,9 @@
     "requirements": "Системные требования",
     "minimum": "Минимальные",
     "recommended": "Рекомендуемые",
-    "no_minimum_requirements": "Для {{title}} не указаны минимальные требования",
-    "no_recommended_requirements": "Для {{title}} не указаны рекомендуемые требования",
     "paused": "Приостановлено",
     "release_date": "Выпущено {{date}}",
     "publisher": "Издатель {{publisher}}",
-    "copy_link_to_clipboard": "Копировать ссылку",
-    "copied_link_to_clipboard": "Ссылка скопирована",
     "hours": "часов",
     "minutes": "минут",
     "amount_hours": "{{amount}} часов",
@@ -85,14 +84,6 @@
     "repacks_modal_description": "Выберите репак для загрузки",
     "select_folder_hint": "Чтобы изменить папку загрузок по умолчанию, откройте <0>Настройки</0>",
     "download_now": "Загрузить сейчас",
-    "installation_instructions": "Инструкция по установке",
-    "installation_instructions_description": "Для установки этой игры требуются дополнительные шаги",
-    "online_fix_instruction": "В играх с OnlineFix требуется ввести пароль для извлечения. При необходимости используйте следующий пароль:",
-    "dodi_installation_instruction": "Когда вы откроете установщик DODI, нажмите на клавиатуре клавишу 'вверх' <0 />, чтобы начать процесс установки:",
-    "dont_show_it_again": "Не показывать снова",
-    "copy_to_clipboard": "Копировать",
-    "copied_to_clipboard": "Скопировано",
-    "got_it": "Понятно",
     "no_shop_details": "Не удалось получить описание",
     "download_options": "Вариантов загрузки",
     "download_path": "Путь для загрузок",
@@ -135,18 +126,14 @@
     "eta": "Окончание {{eta}}",
     "paused": "Приостановлено",
     "verifying": "Проверка…",
-    "completed_at": "Завершено в {{date}}",
     "completed": "Завершено",
     "removed": "Не скачано",
-    "download_again": "Загрузить снова",
     "cancel": "Отмена",
     "filter": "Фильтр загруженных игр",
     "remove": "Удалить",
     "downloading_metadata": "Загрузка метаданных…",
-    "starting_download": "Начало загрузки…",
     "deleting": "Удаление установщика…",
     "delete": "Удалить установщик",
-    "remove_from_list": "Удалить",
     "delete_modal_title": "Вы уверены?",
     "delete_modal_description": "Это удалит все установщики с вашего компьютера",
     "install": "Установить",
@@ -163,8 +150,6 @@
     "notifications": "Уведомления",
     "enable_download_notifications": "По завершении загрузки",
     "enable_repack_list_notifications": "При добавлении нового репака",
-    "telemetry": "Телеметрия",
-    "telemetry_description": "Отправлять анонимную статистику использования",
     "real_debrid_api_token_label": "Real-Debrid API-токен",
     "quit_app_instead_hiding": "Закрывать Hydra вместо того, чтобы сворачивать его в трей",
     "launch_with_system": "Запуск Hydra вместе с системой",
@@ -198,7 +183,12 @@
     "sync_download_sources": "Синхронизировать источники",
     "removed_download_source": "Источник загрузок удален",
     "added_download_source": "Источник загрузок добавлен",
-    "download_sources_synced": "Все источники загрузок синхронизированы"
+    "download_sources_synced": "All download sources are synced (TRANSLATE ME)",
+    "insert_valid_json_url": "Insert a valid JSON url (TRANSLATE ME)",
+    "found_download_option_zero": "No download option found (TRANSLATE ME)",
+    "found_download_option_one": "Found {{countFormatted}} download option (TRANSLATE ME)",
+    "found_download_option_other": "Found {{countFormatted}} download options (TRANSLATE ME)",
+    "import": "Import (TRANSLATE ME)"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -224,5 +214,27 @@
   },
   "forms": {
     "toggle_password_visibility": "Показывать пароль"
+  },
+  "user_profile": {
+    "amount_hours": "{{amount}} hours  (TRANSLATE ME)",
+    "amount_minutes": "{{amount}} minutes  (TRANSLATE ME)",
+    "last_time_played": "Last played {{period}}  (TRANSLATE ME)",
+    "activity": "Recent activity  (TRANSLATE ME)",
+    "library": "Library  (TRANSLATE ME)",
+    "total_play_time": "Total playtime: {{amount}}  (TRANSLATE ME)",
+    "no_recent_activity_title": "Hmmm… nothing here  (TRANSLATE ME)",
+    "no_recent_activity_description": "You haven't played any games recently. It's time to change that!  (TRANSLATE ME)",
+    "display_name": "Display name  (TRANSLATE ME)",
+    "saving": "Saving  (TRANSLATE ME)",
+    "save": "Save  (TRANSLATE ME)",
+    "edit_profile": "Edit Profile  (TRANSLATE ME)",
+    "saved_successfully": "Saved successfully  (TRANSLATE ME)",
+    "try_again": "Please, try again  (TRANSLATE ME)",
+    "sign_out_modal_title": "Are you sure?  (TRANSLATE ME)",
+    "cancel": "Cancel  (TRANSLATE ME)",
+    "successfully_signed_out": "Successfully signed out  (TRANSLATE ME)",
+    "sign_out": "Sign out  (TRANSLATE ME)",
+    "playing_for": "Playing for {{amount}}  (TRANSLATE ME)",
+    "sign_out_modal_text": "Your library is linked with your current account. When signing out, your library will not be visible anymore, and any progress will not be saved. Continue with sign out?  (TRANSLATE ME)"
   }
 }

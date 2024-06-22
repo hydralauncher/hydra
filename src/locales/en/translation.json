@@ -1,4 +1,7 @@
 {
+  "app": {
+    "successfully_signed_in": "Successfully signed in"
+  },
   "home": {
     "featured": "Featured",
     "trending": "Trending",
@@ -16,7 +19,8 @@
     "filter": "Filter library",
     "home": "Home",
     "queued": "{{title}} (Queued)",
-    "game_has_no_executable": "Game has no executable selected"
+    "game_has_no_executable": "Game has no executable selected",
+    "sign_in": "Sign in"
   },
   "header": {
     "search": "Search games",
@@ -49,7 +53,6 @@
     "pause": "Pause",
     "cancel": "Cancel",
     "remove": "Remove",
-    "remove_from_list": "Remove",
     "space_left_on_disk": "{{space}} left on disk",
     "eta": "Conclusion {{eta}}",
     "calculating_eta": "Calculating remaining time…",
@@ -58,13 +61,9 @@
     "requirements": "System requirements",
     "minimum": "Minimum",
     "recommended": "Recommended",
-    "no_minimum_requirements": "{{title}} doesn't provide minimum requirements information",
-    "no_recommended_requirements": "{{title}} doesn't provide recommended requirements information",
     "paused": "Paused",
     "release_date": "Released on {{date}}",
     "publisher": "Published by {{publisher}}",
-    "copy_link_to_clipboard": "Copy link",
-    "copied_link_to_clipboard": "Link copied",
     "hours": "hours",
     "minutes": "minutes",
     "amount_hours": "{{amount}} hours",
@@ -85,14 +84,6 @@
     "repacks_modal_description": "Choose the repack you want to download",
     "select_folder_hint": "To change the default folder, go to the <0>Settings</0>",
     "download_now": "Download now",
-    "installation_instructions": "Installation Instructions",
-    "installation_instructions_description": "Additional steps are required to install this game",
-    "online_fix_instruction": "OnlineFix games requires a password to be extracted. When required, use the following password:",
-    "dodi_installation_instruction": "When you open DODI installer, press your keyboard up key <0 /> to start the installation process:",
-    "dont_show_it_again": "Don't show it again",
-    "copy_to_clipboard": "Copy",
-    "copied_to_clipboard": "Copied",
-    "got_it": "Got it",
     "no_shop_details": "Could not retrieve shop details.",
     "download_options": "Download options",
     "download_path": "Download path",
@@ -137,18 +128,14 @@
     "eta": "Conclusion {{eta}}",
     "paused": "Paused",
     "verifying": "Verifying…",
-    "completed_at": "Completed in {{date}}",
     "completed": "Completed",
     "removed": "Not downloaded",
-    "download_again": "Download again",
     "cancel": "Cancel",
     "filter": "Filter downloaded games",
     "remove": "Remove",
     "downloading_metadata": "Downloading metadata…",
-    "starting_download": "Starting download…",
     "deleting": "Deleting installer…",
     "delete": "Remove installer",
-    "remove_from_list": "Remove",
     "delete_modal_title": "Are you sure?",
     "delete_modal_description": "This will remove all the installation files from your computer",
     "install": "Install",
@@ -165,8 +152,6 @@
     "notifications": "Notifications",
     "enable_download_notifications": "When a download is complete",
     "enable_repack_list_notifications": "When a new repack is added",
-    "telemetry": "Telemetry",
-    "telemetry_description": "Enable anonymous usage statistics",
     "real_debrid_api_token_label": "Real-Debrid API token",
     "quit_app_instead_hiding": "Don't hide Hydra when closing",
     "launch_with_system": "Launch Hydra on system start-up",
@@ -200,7 +185,12 @@
     "sync_download_sources": "Sync sources",
     "removed_download_source": "Download source removed",
     "added_download_source": "Added download source",
-    "download_sources_synced": "All download sources are synced"
+    "download_sources_synced": "All download sources are synced",
+    "insert_valid_json_url": "Insert a valid JSON url",
+    "found_download_option_zero": "No download option found",
+    "found_download_option_one": "Found {{countFormatted}} download option",
+    "found_download_option_other": "Found {{countFormatted}} download options",
+    "import": "Import"
   },
   "notifications": {
     "download_complete": "Download complete",
@@ -226,5 +216,27 @@
   },
   "forms": {
     "toggle_password_visibility": "Toggle password visibility"
+  },
+  "user_profile": {
+    "amount_hours": "{{amount}} hours",
+    "amount_minutes": "{{amount}} minutes",
+    "last_time_played": "Last played {{period}}",
+    "activity": "Recent activity",
+    "library": "Library",
+    "total_play_time": "Total playtime: {{amount}}",
+    "no_recent_activity_title": "Hmmm… nothing here",
+    "no_recent_activity_description": "You haven't played any games recently. It's time to change that!",
+    "display_name": "Display name",
+    "saving": "Saving",
+    "save": "Save",
+    "edit_profile": "Edit Profile",
+    "saved_successfully": "Saved successfully",
+    "try_again": "Please, try again",
+    "sign_out_modal_title": "Are you sure?",
+    "cancel": "Cancel",
+    "successfully_signed_out": "Successfully signed out",
+    "sign_out": "Sign out",
+    "playing_for": "Playing for {{amount}}",
+    "sign_out_modal_text": "Your library is linked with your current account. When signing out, your library will not be visible anymore, and any progress will not be saved. Continue with sign out?"
   }
 }

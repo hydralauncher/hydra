@@ -8,6 +8,7 @@ import type {
   UserPreferences,
   AppUpdaterEvent,
   StartGameDownloadPayload,
+  GameRunning,
 } from "@types";
 
 contextBridge.exposeInMainWorld("electron", {
@@ -84,17 +85,21 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("deleteGameFolder", gameId),
   getGameByObjectID: (objectID: string) =>
     ipcRenderer.invoke("getGameByObjectID", objectID),
-  onPlaytime: (cb: (gameId: number) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, gameId: number) =>
-      cb(gameId);
-    ipcRenderer.on("on-playtime", listener);
-    return () => ipcRenderer.removeListener("on-playtime", listener);
+  onGamesRunning: (
+    cb: (
+      gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
+    ) => void
+  ) => {
+    const listener = (_event: Electron.IpcRendererEvent, gamesRunning) =>
+      cb(gamesRunning);
+    ipcRenderer.on("on-games-running", listener);
+    return () => ipcRenderer.removeListener("on-games-running", listener);
   },
-  onGameClose: (cb: (gameId: number) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, gameId: number) =>
-      cb(gameId);
-    ipcRenderer.on("on-game-close", listener);
-    return () => ipcRenderer.removeListener("on-game-close", listener);
+  onLibraryBatchComplete: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-library-batch-complete", listener);
+    return () =>
+      ipcRenderer.removeListener("on-library-batch-complete", listener);
   },
 
   /* Hardware */
@@ -106,6 +111,7 @@ contextBridge.exposeInMainWorld("electron", {
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
+  isUserLoggedIn: () => ipcRenderer.invoke("isUserLoggedIn"),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
   platform: process.platform,
@@ -125,4 +131,27 @@ contextBridge.exposeInMainWorld("electron", {
   },
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
   restartAndInstallUpdate: () => ipcRenderer.invoke("restartAndInstallUpdate"),
+
+  /* Profile */
+  getMe: () => ipcRenderer.invoke("getMe"),
+  updateProfile: (displayName: string, newProfileImagePath: string | null) =>
+    ipcRenderer.invoke("updateProfile", displayName, newProfileImagePath),
+
+  /* User */
+  getUser: (userId: string) => ipcRenderer.invoke("getUser", userId),
+
+  /* Auth */
+  signOut: () => ipcRenderer.invoke("signOut"),
+  openAuthWindow: () => ipcRenderer.invoke("openAuthWindow"),
+  getSessionHash: () => ipcRenderer.invoke("getSessionHash"),
+  onSignIn: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-signin", listener);
+    return () => ipcRenderer.removeListener("on-signin", listener);
+  },
+  onSignOut: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-signout", listener);
+    return () => ipcRenderer.removeListener("on-signout", listener);
+  },
 });

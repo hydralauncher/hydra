@@ -111,6 +111,6 @@ export const titleBar = style({
   alignItems: "center",
   padding: `0 ${SPACING_UNIT * 2}px`,
   WebkitAppRegion: "drag",
-  zIndex: "2",
+  zIndex: "4",
   borderBottom: `1px solid ${vars.color.border}`,
 } as ComplexStyleRule);
