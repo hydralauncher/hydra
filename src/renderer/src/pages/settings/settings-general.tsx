@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import ISO6391 from "iso-639-1";
 
 import {
@@ -8,26 +8,23 @@ import {
   SelectField,
 } from "@renderer/components";
 import { useTranslation } from "react-i18next";
-import type { UserPreferences } from "@types";
+
 import { useAppSelector } from "@renderer/hooks";
 
 import { changeLanguage } from "i18next";
 import * as languageResources from "@locales";
 import { orderBy } from "lodash-es";
+import { settingsContext } from "@renderer/context";
 
 interface LanguageOption {
   option: string;
   nativeName: string;
 }
 
-export interface SettingsGeneralProps {
-  updateUserPreferences: (values: Partial<UserPreferences>) => void;
-}
-
-export function SettingsGeneral({
-  updateUserPreferences,
-}: SettingsGeneralProps) {
+export function SettingsGeneral() {
   const { t } = useTranslation("settings");
+
+  const { updateUserPreferences } = useContext(settingsContext);
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
