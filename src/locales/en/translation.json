@@ -119,7 +119,9 @@
     "danger_zone_section_description": "Remove this game from your library or the files downloaded by Hydra",
     "download_in_progress": "Download in progress",
     "download_paused": "Download paused",
-    "last_downloaded_option": "Last downloaded option"
+    "last_downloaded_option": "Last downloaded option",
+    "create_shortcut_success": "Shortcut created successfully",
+    "create_shortcut_error": "Error creating shortcut"
   },
   "activation": {
     "title": "Activate Hydra",

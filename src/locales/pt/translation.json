@@ -116,7 +116,9 @@
     "danger_zone_section_description": "Remova o jogo da sua biblioteca ou os arquivos que foram baixados pelo Hydra",
     "download_in_progress": "Download em andamento",
     "download_paused": "Download pausado",
-    "last_downloaded_option": "Última opção baixada"
+    "last_downloaded_option": "Última opção baixada",
+    "create_shortcut_success": "Atalho criado com sucesso",
+    "create_shortcut_error": "Erro ao criar atalho"
   },
   "activation": {
     "title": "Ativação",
