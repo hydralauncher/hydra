@@ -1,4 +1,7 @@
 {
+  "app": {
+    "successfully_signed_in": "Successfully signed in (TRANSLATE ME)"
+  },
   "home": {
     "featured": "Destacado",
     "trending": "Tendencias",
@@ -16,7 +19,8 @@
     "filter": "Buscar en la biblioteca",
     "home": "Inicio",
     "queued": "{{title}} (En Cola)",
-    "game_has_no_executable": "El juego no tiene un ejecutable"
+    "game_has_no_executable": "El juego no tiene un ejecutable",
+    "sign_in": "Sign in (TRANSLATE ME)"
   },
   "header": {
     "search": "Buscar juegos",
@@ -49,7 +53,6 @@
     "pause": "Pausa",
     "cancel": "Cancelar",
     "remove": "Eliminar",
-    "remove_from_list": "Quitar",
     "space_left_on_disk": "{{space}} restantes en el disco",
     "eta": "Tiempo restante: {{eta}}",
     "calculating_eta": "Calculando tiempo restante…",
@@ -58,13 +61,9 @@
     "requirements": "Requisitos del Sistema",
     "minimum": "Mínimos",
     "recommended": "Recomendados",
-    "no_minimum_requirements": "Sin requisitos mínimos para {{title}}",
-    "no_recommended_requirements": "{{title}} no tiene requisitos recomendados",
     "paused": "Pausado",
     "release_date": "Fecha de lanzamiento: {{date}}",
     "publisher": "Publicado por: {{publisher}}",
-    "copy_link_to_clipboard": "Copiar enlace",
-    "copied_link_to_clipboard": "Enlace copiado",
     "hours": "horas",
     "minutes": "minutos",
     "amount_hours": "{{amount}} horas",
@@ -85,14 +84,6 @@
     "repacks_modal_description": "Selecciona el repack que quieres descargar",
     "select_folder_hint": "Para cambiar la carpeta predeterminada, ve a <0>Ajustes</0>",
     "download_now": "Descargar ahora",
-    "installation_instructions": "Instrucciones de instalación",
-    "installation_instructions_description": "Se requieren de pasos adicionales para instalar este juego",
-    "online_fix_instruction": "Los juegos de OnlineFix requieren una contraseña para ser extraídos. Cuando se requiera, usa la siguiente contraseña:",
-    "dodi_installation_instruction": "Cuando abras el instalador de DODI, presiona la tecla hacia arriba del teclado <0 /> para iniciar el proceso de instalación:",
-    "dont_show_it_again": "No mostrar de nuevo",
-    "copy_to_clipboard": "Copiar",
-    "copied_to_clipboard": "Copiado",
-    "got_it": "Entendido",
     "no_shop_details": "No se pudieron obtener detalles de la tienda.",
     "download_options": "Opciones de descarga",
     "download_path": "Ruta de descarga",
@@ -135,18 +126,14 @@
     "eta": "Finalizando en {{eta}}",
     "paused": "En Pausa",
     "verifying": "Verificando…",
-    "completed_at": "Completado el {{date}}",
     "completed": "Completado",
     "removed": "No descargado",
-    "download_again": "Descargar de nuevo",
     "cancel": "Cancelar",
     "filter": "Buscar juegos descargados",
     "remove": "Eliminar",
     "downloading_metadata": "Descargando metadatos…",
-    "starting_download": "Iniciando descarga…",
     "deleting": "Eliminando instalador…",
     "delete": "Eliminar instalador",
-    "remove_from_list": "Eliminar",
     "delete_modal_title": "¿Estás seguro?",
     "delete_modal_description": "Esto eliminará todos los archivos de instalación de tu computadora.",
     "install": "Instalar",
@@ -163,8 +150,6 @@
     "notifications": "Notificaciones",
     "enable_download_notifications": "Cuando se completa una descarga",
     "enable_repack_list_notifications": "Cuando se añade un repack nuevo",
-    "telemetry": "Telemetría",
-    "telemetry_description": "Habilitar recopilación de datos de manera anónima",
     "real_debrid_api_token_label": "Token API de Real-Debrid",
     "quit_app_instead_hiding": "Salir de Hydra en vez de minimizar en la bandeja del sistema",
     "launch_with_system": "Iniciar Hydra al inicio del sistema",
@@ -198,7 +183,12 @@
     "sync_download_sources": "Sincronizar fuentes",
     "removed_download_source": "Fuente de descarga eliminada",
     "added_download_source": "Fuente de descarga añadida",
-    "download_sources_synced": "Todas las fuentes de descarga estánn actualizadas"
+    "download_sources_synced": "Todas las fuentes de descarga estánn actualizadas (TRANSLATE ME)",
+    "insert_valid_json_url": "Insert a valid JSON url (TRANSLATE ME)",
+    "found_download_option_zero": "No download option found (TRANSLATE ME)",
+    "found_download_option_one": "Found {{countFormatted}} download option (TRANSLATE ME)",
+    "found_download_option_other": "Found {{countFormatted}} download options (TRANSLATE ME)",
+    "import": "Import (TRANSLATE ME)"
   },
   "notifications": {
     "download_complete": "Descarga completada",
@@ -224,5 +214,27 @@
   },
   "forms": {
     "toggle_password_visibility": "Cambiar visibilidad de contraseña"
+  },
+  "user_profile": {
+    "amount_hours": "{{amount}} hours (TRANSLATE ME)",
+    "amount_minutes": "{{amount}} minutes (TRANSLATE ME)",
+    "last_time_played": "Last played {{period}} (TRANSLATE ME)",
+    "activity": "Recent activity (TRANSLATE ME)",
+    "library": "Library (TRANSLATE ME)",
+    "total_play_time": "Total playtime: {{amount}} (TRANSLATE ME)",
+    "no_recent_activity_title": "Hmmm… nothing here (TRANSLATE ME)",
+    "no_recent_activity_description": "You haven't played any games recently. It's time to change that! (TRANSLATE ME)",
+    "display_name": "Display name (TRANSLATE ME)",
+    "saving": "Saving (TRANSLATE ME)",
+    "save": "Save (TRANSLATE ME)",
+    "edit_profile": "Edit Profile (TRANSLATE ME)",
+    "saved_successfully": "Saved successfully (TRANSLATE ME)",
+    "try_again": "Please, try again (TRANSLATE ME)",
+    "sign_out_modal_title": "Are you sure? (TRANSLATE ME)",
+    "cancel": "Cancel (TRANSLATE ME)",
+    "successfully_signed_out": "Successfully signed out (TRANSLATE ME)",
+    "sign_out": "Sign out (TRANSLATE ME)",
+    "playing_for": "Playing for {{amount}} (TRANSLATE ME)",
+    "sign_out_modal_text": "Your library is linked with your current account. When signing out, your library will not be visible anymore, and any progress will not be saved. Continue with sign out? (TRANSLATE ME)"
   }
 }

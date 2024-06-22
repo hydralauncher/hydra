@@ -2,6 +2,7 @@ import { app, BrowserWindow, net, protocol } from "electron";
 import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
+import url from "node:url";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { DownloadManager, logger, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
@@ -50,9 +51,10 @@ if (process.defaultApp) {
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId("site.hydralauncher.hydra");
 
-  protocol.handle("hydra", (request) =>
-    net.fetch("file://" + request.url.slice("hydra://".length))
-  );
+  protocol.handle("local", (request) => {
+    const filePath = request.url.slice("local:".length);
+    return net.fetch(url.pathToFileURL(decodeURI(filePath)).toString());
+  });
 
   await dataSource.initialize();
   await dataSource.runMigrations();
@@ -71,7 +73,7 @@ app.on("browser-window-created", (_, window) => {
   optimizer.watchWindowShortcuts(window);
 });
 
-app.on("second-instance", (_event, commandLine) => {
+app.on("second-instance", (_event) => {
   // Someone tried to run a second instance, we should focus our window.
   if (WindowManager.mainWindow) {
     if (WindowManager.mainWindow.isMinimized())
@@ -82,14 +84,16 @@ app.on("second-instance", (_event, commandLine) => {
     WindowManager.createMainWindow();
   }
 
-  const [, path] = commandLine.pop()?.split("://") ?? [];
-  if (path) WindowManager.redirect(path);
+  // const [, path] = commandLine.pop()?.split("://") ?? [];
+  // if (path) {
+  //   WindowManager.redirect(path);
+  // }
 });
 
-app.on("open-url", (_event, url) => {
-  const [, path] = url.split("://");
-  WindowManager.redirect(path);
-});
+// app.on("open-url", (_event, url) => {
+//   const [, path] = url.split("://");
+//   WindowManager.redirect(path);
+// });
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits

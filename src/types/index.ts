@@ -85,6 +85,16 @@ export interface CatalogueEntry {
   repacks: GameRepack[];
 }
 
+export interface UserGame {
+  objectID: string;
+  shop: GameShop;
+  title: string;
+  iconUrl: string | null;
+  cover: string;
+  playTimeInSeconds: number;
+  lastTimePlayed: Date | null;
+}
+
 export interface DownloadQueue {
   id: number;
   createdAt: Date;
@@ -116,6 +126,15 @@ export interface Game {
 }
 
 export type LibraryGame = Omit<Game, "repacks">;
+
+export interface GameRunning {
+  id: number;
+  title: string;
+  iconUrl: string;
+  objectID: string;
+  shop: GameShop;
+  sessionDurationInMillis: number;
+}
 
 export interface DownloadProgress {
   downloadSpeed: number;
@@ -232,6 +251,20 @@ export interface RealDebridUser {
   type: string;
   premium: number;
   expiration: string;
+}
+
+export interface UserDetails {
+  id: string;
+  displayName: string;
+  profileImageUrl: string | null;
+}
+
+export interface UserProfile {
+  id: string;
+  displayName: string;
+  profileImageUrl: string | null;
+  libraryGames: UserGame[];
+  recentGames: UserGame[];
 }
 
 export interface DownloadSource {

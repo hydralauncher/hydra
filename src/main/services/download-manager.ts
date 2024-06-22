@@ -50,6 +50,7 @@ export class DownloadManager {
   public static disconnect() {
     if (this.aria2c) {
       this.aria2c.kill();
+      this.connected = false;
     }
   }
 
