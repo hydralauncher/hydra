@@ -9,8 +9,8 @@ import {
 } from "@renderer/helpers";
 import { useTranslation } from "react-i18next";
 
-const FEATURED_GAME_TITLE = "Ghost of Tsushima DIRECTOR'S CUT";
-const FEATURED_GAME_ID = "2215430";
+const FEATURED_GAME_TITLE = "ELDEN RING";
+const FEATURED_GAME_ID = "1245620";
 
 export function Hero() {
   const [featuredGameDetails, setFeaturedGameDetails] =
@@ -54,7 +54,7 @@ export function Hero() {
     >
       <div className={styles.backdrop}>
         <img
-          src={steamUrlBuilder.libraryHero(FEATURED_GAME_ID)}
+          src="https://cdn2.steamgriddb.com/hero/95eb39b541856d43649b208b65b6ca9f.jpg"
           alt={FEATURED_GAME_TITLE}
           className={styles.heroMedia}
         />
