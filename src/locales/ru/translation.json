@@ -1,6 +1,6 @@
 {
   "app": {
-    "successfully_signed_in": "Successfully signed in (TRANSLATE ME)"
+    "successfully_signed_in": "Успешный вход в систему"
   },
   "home": {
     "featured": "Рекомендованное",
@@ -20,7 +20,7 @@
     "home": "Главная",
     "queued": "{{title}} (В очереди)",
     "game_has_no_executable": "Файл запуска игры не выбран",
-    "sign_in": "Sign in (TRANSLATE ME)"
+    "sign_in": "Войти"
   },
   "header": {
     "search": "Поиск",
@@ -183,12 +183,12 @@
     "sync_download_sources": "Синхронизировать источники",
     "removed_download_source": "Источник загрузок удален",
     "added_download_source": "Источник загрузок добавлен",
-    "download_sources_synced": "All download sources are synced (TRANSLATE ME)",
-    "insert_valid_json_url": "Insert a valid JSON url (TRANSLATE ME)",
-    "found_download_option_zero": "No download option found (TRANSLATE ME)",
-    "found_download_option_one": "Found {{countFormatted}} download option (TRANSLATE ME)",
-    "found_download_option_other": "Found {{countFormatted}} download options (TRANSLATE ME)",
-    "import": "Import (TRANSLATE ME)"
+    "download_sources_synced": "Все источники для загрузки синхронизировано",
+    "insert_valid_json_url": "Вставьте действительный URL JSON-файла",
+    "found_download_option_zero": "Не найдено вариантов загрузки",
+    "found_download_option_one": "Найдено {{countFormatted}} вариант загрузки",
+    "found_download_option_other": "Найдено {{countFormatted}} вариантов загрузки",
+    "import": "Импортировать"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -216,25 +216,25 @@
     "toggle_password_visibility": "Показывать пароль"
   },
   "user_profile": {
-    "amount_hours": "{{amount}} hours  (TRANSLATE ME)",
-    "amount_minutes": "{{amount}} minutes  (TRANSLATE ME)",
-    "last_time_played": "Last played {{period}}  (TRANSLATE ME)",
-    "activity": "Recent activity  (TRANSLATE ME)",
-    "library": "Library  (TRANSLATE ME)",
-    "total_play_time": "Total playtime: {{amount}}  (TRANSLATE ME)",
-    "no_recent_activity_title": "Hmmm… nothing here  (TRANSLATE ME)",
-    "no_recent_activity_description": "You haven't played any games recently. It's time to change that!  (TRANSLATE ME)",
-    "display_name": "Display name  (TRANSLATE ME)",
-    "saving": "Saving  (TRANSLATE ME)",
-    "save": "Save  (TRANSLATE ME)",
-    "edit_profile": "Edit Profile  (TRANSLATE ME)",
-    "saved_successfully": "Saved successfully  (TRANSLATE ME)",
-    "try_again": "Please, try again  (TRANSLATE ME)",
-    "sign_out_modal_title": "Are you sure?  (TRANSLATE ME)",
-    "cancel": "Cancel  (TRANSLATE ME)",
-    "successfully_signed_out": "Successfully signed out  (TRANSLATE ME)",
-    "sign_out": "Sign out  (TRANSLATE ME)",
-    "playing_for": "Playing for {{amount}}  (TRANSLATE ME)",
-    "sign_out_modal_text": "Your library is linked with your current account. When signing out, your library will not be visible anymore, and any progress will not be saved. Continue with sign out?  (TRANSLATE ME)"
+    "amount_hours": "{{amount}} часов",
+    "amount_minutes": "{{amount}} минут",
+    "last_time_played": "Последняя игра {{period}}",
+    "activity": "Недавняя активность",
+    "library": "Библиотека",
+    "total_play_time": "Всего наиграно: {{amount}}",
+    "no_recent_activity_title": "Хммм... Тут ничего нет",
+    "no_recent_activity_description": "Вы давно не играли в игры. Пора это изменить!",
+    "display_name": "Отображаемое Имя",
+    "saving": "Сохранение",
+    "save": "Сохранено",
+    "edit_profile": "Редактировать Профиль",
+    "saved_successfully": "Успешно сохранено",
+    "try_again": "Пожалуйста, попробуйте ещё раз",
+    "sign_out_modal_title": "Вы уверены?",
+    "cancel": "Отменить",
+    "successfully_signed_out": "Успешный выход из аккаунта",
+    "sign_out": "Выйти",
+    "playing_for": "Сыграно {{amount}}",
+    "sign_out_modal_text": "Ваша библиотека связана с текущей учетной записью. При выходе из системы ваша библиотека станет недоступна, и прогресс не будет сохранен. Продолжить выход?"
   }
 }
