@@ -53,21 +53,25 @@ export function HeroPanelActions() {
         return;
       }
 
-      let gameInstallerFolderIfExists: string | null = null
+      let gameInstallerFolderIfExists
 
-      if (game && game.folderName){
+      if (game && game.folderName) {
         let downloadsPath = await window.electron.getDefaultDownloadsPath();
         if (userPreferences?.downloadsPath)
           downloadsPath = userPreferences.downloadsPath;
 
-        const folderSeparator = window.electron.platform == 'win32'
-        ? '\\'
-        : '/'
+        const folderSeparator =
+          window.electron.platform == "win32" ? "\\" : "/";
 
-        gameInstallerFolderIfExists = (game.downloadPath ?? downloadsPath)+folderSeparator+game.folderName!
+        gameInstallerFolderIfExists =
+          (game.downloadPath ?? downloadsPath) +
+          folderSeparator +
+          game.folderName!;
       }
 
-      const gameExecutablePath = await selectGameExecutable(gameInstallerFolderIfExists);
+      const gameExecutablePath = await selectGameExecutable(
+        gameInstallerFolderIfExists
+      );
       if (gameExecutablePath)
         window.electron.openGame(game.id, gameExecutablePath);
     }
