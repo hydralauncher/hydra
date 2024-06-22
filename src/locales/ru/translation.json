@@ -1,6 +1,6 @@
 {
   "app": {
-    "successfully_signed_in": "Успешный вход в систему"
+    "successfully_signed_in": "Успешный вход"
   },
   "home": {
     "featured": "Рекомендованное",
@@ -110,7 +110,9 @@
     "danger_zone_section_description": "Удалить эту игру из вашей библиотеки или файлы скачанные Hydra",
     "download_in_progress": "Идёт загрузка",
     "download_paused": "Загрузка приостановлена",
-    "last_downloaded_option": "Последний вариант загрузки"
+    "last_downloaded_option": "Последний вариант загрузки",
+    "create_shortcut_success": "Ярлык создан",
+    "create_shortcut_error": "Не удалось создать ярлык"
   },
   "activation": {
     "title": "Активировать Hydra",
@@ -183,10 +185,10 @@
     "sync_download_sources": "Синхронизировать источники",
     "removed_download_source": "Источник загрузок удален",
     "added_download_source": "Источник загрузок добавлен",
-    "download_sources_synced": "Все источники для загрузки синхронизировано",
+    "download_sources_synced": "Все источники загрузок синхронизированы",
     "insert_valid_json_url": "Вставьте действительный URL JSON-файла",
     "found_download_option_zero": "Не найдено вариантов загрузки",
-    "found_download_option_one": "Найдено {{countFormatted}} вариант загрузки",
+    "found_download_option_one": "Найден {{countFormatted}} вариант загрузки",
     "found_download_option_other": "Найдено {{countFormatted}} вариантов загрузки",
     "import": "Импортировать"
   },
@@ -221,10 +223,10 @@
     "last_time_played": "Последняя игра {{period}}",
     "activity": "Недавняя активность",
     "library": "Библиотека",
-    "total_play_time": "Всего наиграно: {{amount}}",
+    "total_play_time": "Всего сыграно: {{amount}}",
     "no_recent_activity_title": "Хммм... Тут ничего нет",
-    "no_recent_activity_description": "Вы давно не играли в игры. Пора это изменить!",
-    "display_name": "Отображаемое Имя",
+    "no_recent_activity_description": "Вы давно ни во что не играли. Пора это изменить!",
+    "display_name": "Отображаемое имя",
     "saving": "Сохранение",
     "save": "Сохранено",
     "edit_profile": "Редактировать Профиль",
@@ -235,6 +237,6 @@
     "successfully_signed_out": "Успешный выход из аккаунта",
     "sign_out": "Выйти",
     "playing_for": "Сыграно {{amount}}",
-    "sign_out_modal_text": "Ваша библиотека связана с текущей учетной записью. При выходе из системы ваша библиотека станет недоступна, и прогресс не будет сохранен. Продолжить выход?"
+    "sign_out_modal_text": "Ваша библиотека связана с текущей учетной записью. При выходе из системы ваша библиотека станет недоступна, и прогресс не будет сохранен. Выйти?"
   }
 }
