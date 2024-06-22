@@ -51,10 +51,7 @@ export function UserContent({
   const { formatDistance, formatDiffInMillis } = useDate();
 
   const formatPlayTime = () => {
-    const seconds = userProfile.libraryGames.reduce(
-      (acc, game) => acc + game.playTimeInSeconds,
-      0
-    );
+    const seconds = userProfile.totalPlayTimeInSeconds;
     const minutes = seconds / 60;
 
     if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
