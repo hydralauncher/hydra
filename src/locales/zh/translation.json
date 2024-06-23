@@ -1,4 +1,7 @@
 {
+  "app": {
+    "successfully_signed_in": "已成功登录"
+  },
   "home": {
     "featured": "特色推荐",
     "trending": "最近热门",
@@ -14,20 +17,26 @@
     "paused": "{{title}} (已暂停)",
     "downloading": "{{title}} ({{percentage}} - 正在下载…)",
     "filter": "筛选游戏库",
-    "home": "主页"
+    "home": "主页",
+    "queued": "{{title}} (已加入下载队列)",
+    "game_has_no_executable": "未选择游戏的可执行文件",
+    "sign_in": "登入"
   },
   "header": {
-    "search": "搜索",
+    "search": "搜索游戏",
     "home": "主页",
     "catalogue": "游戏目录",
     "downloads": "下载中心",
     "search_results": "搜索结果",
-    "settings": "设置"
+    "settings": "设置",
+    "version_available_install": "版本 {{version}} 已可用. 点击此处重新启动并安装.",
+    "version_available_download": "版本 {{version}} 可用. 点击此处下载."
   },
   "bottom_panel": {
     "no_downloads_in_progress": "没有正在进行的下载",
     "downloading_metadata": "正在下载{{title}}的元数据…",
-    "downloading": "正在下载{{title}}… ({{percentage}}完成) - 剩余时间{{eta}} - 速度{{speed}}"
+    "downloading": "正在下载{{title}}… ({{percentage}}完成) - 剩余时间{{eta}} - 速度{{speed}}",
+    "calculating_eta": "正在下载 {{title}}… (已完成{{percentage}}.) - 正在计算剩余时间..."
   },
   "catalogue": {
     "next_page": "下一页",
@@ -76,7 +85,29 @@
     "previous_screenshot": "上一张截图",
     "next_screenshot": "下一张截图",
     "screenshot": "截图 {{number}}",
-    "open_screenshot": "打开截图 {{number}}"
+    "open_screenshot": "打开截图 {{number}}",
+    "download_settings": "下载设置",
+    "downloader": "下载器",
+    "select_executable": "选择",
+    "no_executable_selected": "没有可执行文件被指定",
+    "open_folder": "打开目录",
+    "open_download_location": "查看已下载的文件",
+    "create_shortcut": "创建桌面快捷方式",
+    "remove_files": "删除文件",
+    "remove_from_library_title": "你确定吗？",
+    "remove_from_library_description": "这将会把 {{game}} 从你的库中移除",
+    "options": "选项",
+    "executable_section_title": "可执行文件",
+    "executable_section_description": "点击 \"Play\" 时将执行的文件的路径",
+    "downloads_secion_title": "下载",
+    "downloads_section_description": "查看此游戏的更新或其他版本",
+    "danger_zone_section_title": "危险操作",
+    "danger_zone_section_description": "从您的库或Hydra下载的文件中删除此游戏",
+    "download_in_progress": "下载进行中",
+    "download_paused": "下载暂停",
+    "last_downloaded_option": "上次下载的选项",
+    "create_shortcut_success": "成功创建快捷方式",
+    "create_shortcut_error": "创建快捷方式出错"
   },
   "activation": {
     "title": "激活 Hydra",
