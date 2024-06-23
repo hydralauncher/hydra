@@ -157,7 +157,7 @@
     "launch_with_system": "Запуск Hydra вместе с системой",
     "general": "Основные",
     "behavior": "Поведение",
-    "download_sources": "Скачать исходный код",
+    "download_sources": "Источники загрузки",
     "language": "Язык",
     "real_debrid_api_token": "API Ключ",
     "enable_real_debrid": "Включить Real-Debrid",
