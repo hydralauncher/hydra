@@ -1,4 +1,7 @@
 {
+  "app": {
+    "successfully_signed_in": "已成功登录"
+  },
   "home": {
     "featured": "特色推荐",
     "trending": "最近热门",
@@ -14,20 +17,26 @@
     "paused": "{{title}} (已暂停)",
     "downloading": "{{title}} ({{percentage}} - 正在下载…)",
     "filter": "筛选游戏库",
-    "home": "主页"
+    "home": "主页",
+    "queued": "{{title}} (已加入下载队列)",
+    "game_has_no_executable": "未选择游戏的可执行文件",
+    "sign_in": "登入"
   },
   "header": {
-    "search": "搜索",
+    "search": "搜索游戏",
     "home": "主页",
     "catalogue": "游戏目录",
     "downloads": "下载中心",
     "search_results": "搜索结果",
-    "settings": "设置"
+    "settings": "设置",
+    "version_available_install": "版本 {{version}} 已可用. 点击此处重新启动并安装.",
+    "version_available_download": "版本 {{version}} 可用. 点击此处下载."
   },
   "bottom_panel": {
     "no_downloads_in_progress": "没有正在进行的下载",
     "downloading_metadata": "正在下载{{title}}的元数据…",
-    "downloading": "正在下载{{title}}… ({{percentage}}完成) - 剩余时间{{eta}} - 速度{{speed}}"
+    "downloading": "正在下载{{title}}… ({{percentage}}完成) - 剩余时间{{eta}} - 速度{{speed}}",
+    "calculating_eta": "正在下载 {{title}}… (已完成{{percentage}}.) - 正在计算剩余时间..."
   },
   "catalogue": {
     "next_page": "下一页",
@@ -76,7 +85,29 @@
     "previous_screenshot": "上一张截图",
     "next_screenshot": "下一张截图",
     "screenshot": "截图 {{number}}",
-    "open_screenshot": "打开截图 {{number}}"
+    "open_screenshot": "打开截图 {{number}}",
+    "download_settings": "下载设置",
+    "downloader": "下载器",
+    "select_executable": "选择",
+    "no_executable_selected": "没有可执行文件被指定",
+    "open_folder": "打开目录",
+    "open_download_location": "查看已下载的文件",
+    "create_shortcut": "创建桌面快捷方式",
+    "remove_files": "删除文件",
+    "remove_from_library_title": "你确定吗？",
+    "remove_from_library_description": "这将会把 {{game}} 从你的库中移除",
+    "options": "选项",
+    "executable_section_title": "可执行文件",
+    "executable_section_description": "点击 \"Play\" 时将执行的文件的路径",
+    "downloads_secion_title": "下载",
+    "downloads_section_description": "查看此游戏的更新或其他版本",
+    "danger_zone_section_title": "危险操作",
+    "danger_zone_section_description": "从您的库或Hydra下载的文件中删除此游戏",
+    "download_in_progress": "下载进行中",
+    "download_paused": "下载暂停",
+    "last_downloaded_option": "上次下载的选项",
+    "create_shortcut_success": "成功创建快捷方式",
+    "create_shortcut_error": "创建快捷方式出错"
   },
   "activation": {
     "title": "激活 Hydra",
@@ -101,7 +132,13 @@
     "delete": "移除安装程序",
     "delete_modal_title": "您确定吗？",
     "delete_modal_description": "这将从您的电脑上移除所有的安装文件",
-    "install": "安装"
+    "install": "安装",
+    "download_in_progress": "进行中",
+    "queued_downloads": "在队列中的下载",
+    "downloads_completed": "已完成",
+    "queued": "下载列表",
+    "no_downloads_title": "空空如也",
+    "no_downloads_description": "你还未使用Hydra下载任何游戏,但什么时候开始,都为时不晚。"
   },
   "settings": {
     "downloads_path": "下载路径",
@@ -109,34 +146,72 @@
     "notifications": "通知",
     "enable_download_notifications": "下载完成时",
     "enable_repack_list_notifications": "添加新重打包时",
+    "real_debrid_api_token_label": "Real-Debrid API 令牌",
+    "quit_app_instead_hiding": "关闭Hydra而不是最小化到托盘",
+    "launch_with_system": "系统启动时运行 Hydra",
+    "general": "通用",
     "behavior": "行为",
-    "general": "常规",
-    "quit_app_instead_hiding": "关闭应用程序而不是最小化到托盘",
-    "launch_with_system": "随系统启动时运行应用程序",
+    "download_sources": "下载源",
+    "language": "语言",
+    "real_debrid_api_token": "API 令牌",
     "enable_real_debrid": "启用 Real-Debrid",
+    "real_debrid_description": "Real-Debrid 是一个无限制的下载器，允许您以最快的互联网速度即时下载文件。",
+    "real_debrid_invalid_token": "无效的 API 令牌",
     "real_debrid_api_token_hint": "您可以从<0>这里</0>获取API密钥.",
-    "save_changes": "保存更改"
-  },
-  "notifications": {
-    "download_complete": "下载完成",
-    "game_ready_to_install": "{{title}}已准备好安装",
-    "repack_list_updated": "重打包列表已更新",
-    "repack_count_one": "已添加{{count}}个重打包",
-    "repack_count_other": "已添加{{count}}个重打包"
-  },
-  "system_tray": {
-    "open": "打开Hydra",
-    "quit": "退出"
-  },
-  "game_card": {
-    "no_downloads": "没有可用的下载"
-  },
-  "binary_not_found_modal": {
-    "title": "程序未安装",
-    "description": "在您的系统上未找到Wine或Lutris的可执行文件",
-    "instructions": "检查在您的Linux发行版上正确安装它们的方法,以便游戏可以正常运行"
+    "real_debrid_free_account_error": "账户 \"{{username}}\" 是免费账户。请订阅 Real-Debrid",
+    "real_debrid_linked_message": "账户 \"{{username}}\" 已链接",
+    "save_changes": "保存更改",
+    "changes_saved": "更改已成功保存",
+    "download_sources_description": "Hydra 将从这些源获取下载链接。源 URL 必须是直接链接到包含下载链接的 .json 文件。",
+    "validate_download_source": "验证",
+    "remove_download_source": "移除",
+    "add_download_source": "添加源",
+    "download_count_zero": "列表中无下载",
+    "download_count_one": "列表中有 {{countFormatted}} 个下载",
+    "download_count_other": "列表中有 {{countFormatted}} 个下载",
+    "download_options_zero": "无可用下载",
+    "download_options_one": "有 {{countFormatted}} 个下载可用",
+    "download_options_other": "有 {{countFormatted}} 个下载可用",
+    "download_source_url": "下载源 URL",
+    "add_download_source_description": "插入包含 .json 文件的 URL",
+    "download_source_up_to_date": "已更新",
+    "download_source_errored": "出错",
+    "sync_download_sources": "同步源",
+    "removed_download_source": "已移除下载源",
+    "added_download_source": "已添加下载源",
+    "download_sources_synced": "所有下载源已同步",
+    "insert_valid_json_url": "插入有效的 JSON 网址",
+    "found_download_option_zero": "未找到下载选项",
+    "found_download_option_one": "找到 {{countFormatted}} 个下载选项",
+    "found_download_option_other": "找到 {{countFormatted}} 个下载选项",
+    "import": "导入"
   },
   "modal": {
     "close": "关闭按钮"
+  },
+  "forms": {
+    "toggle_password_visibility": "切换密码可见性"
+  },
+  "user_profile": {
+    "amount_hours": "{{amount}} 小时",
+    "amount_minutes": "{{amount}} 分钟",
+    "last_time_played": "上次游玩时间 {{period}}",
+    "activity": "近期活动",
+    "library": "库",
+    "total_play_time": "总游戏时长: {{amount}}",
+    "no_recent_activity_title": "Emmm… 这里暂时啥都没有",
+    "no_recent_activity_description": "你最近没玩过任何游戏。是时候做出改变了!",
+    "display_name": "昵称",
+    "saving": "保存中",
+    "save": "保存",
+    "edit_profile": "编辑资料",
+    "saved_successfully": "成功保存",
+    "try_again": "请重试",
+    "sign_out_modal_title": "你确定吗?",
+    "cancel": "取消",
+    "successfully_signed_out": "登出成功",
+    "sign_out": "登出",
+    "playing_for": "Playing for {{amount}}",
+    "sign_out_modal_text": "您的资料库与您当前的账户相关联。注销后，您的资料库将不再可见，任何进度也不会保存。继续退出吗？"
   }
 }
