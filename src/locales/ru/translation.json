@@ -154,7 +154,7 @@
     "enable_repack_list_notifications": "При добавлении нового репака",
     "real_debrid_api_token_label": "Real-Debrid API-токен",
     "quit_app_instead_hiding": "Закрывать Hydra вместо того, чтобы сворачивать его в трей",
-    "launch_with_system": "Запуск Hydra вместе с системой",
+    "launch_with_system": "Запускать Hydra вместе с системой",
     "general": "Основные",
     "behavior": "Настройки Windows",
     "download_sources": "Источники загрузки",
