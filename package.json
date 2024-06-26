@@ -72,6 +72,7 @@
     "react-router-dom": "^6.22.3",
     "typeorm": "^0.3.20",
     "user-agents": "^1.1.193",
+    "webtorrent": "^2.4.2",
     "yaml": "^2.4.1",
     "zod": "^3.23.8"
   },
