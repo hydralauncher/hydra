@@ -55,9 +55,9 @@ export class DownloadManager {
   }
 
   private static getETA(
-      totalLength: number,
-      completedLength: number,
-      speed: number
+    totalLength: number,
+    completedLength: number,
+    speed: number
   ) {
     const remainingBytes = totalLength - completedLength;
 
@@ -80,7 +80,7 @@ export class DownloadManager {
   private static async getRealDebridDownloadUrl() {
     if (this.realDebridTorrentId) {
       const torrentInfo = await RealDebridClient.getTorrentInfo(
-          this.realDebridTorrentId
+        this.realDebridTorrentId
       );
 
       const { status, links } = torrentInfo;
@@ -107,9 +107,9 @@ export class DownloadManager {
           numSeeds: torrentInfo.seeders,
           downloadSpeed: torrentInfo.speed,
           timeRemaining: this.getETA(
-              torrentInfo.bytes,
-              totalDownloaded,
-              torrentInfo.speed
+            torrentInfo.bytes,
+            totalDownloaded,
+            torrentInfo.speed
           ),
           isDownloadingMetadata: status === "magnet_conversion",
           game: {
@@ -120,8 +120,8 @@ export class DownloadManager {
         } as DownloadProgress;
 
         WindowManager.mainWindow.webContents.send(
-            "on-download-progress",
-            JSON.parse(JSON.stringify(payload))
+          "on-download-progress",
+          JSON.parse(JSON.stringify(payload))
         );
       }
     }
@@ -156,7 +156,7 @@ export class DownloadManager {
     }
 
     const progress =
-        Number(status.completedLength) / Number(status.totalLength);
+      Number(status.completedLength) / Number(status.totalLength);
 
     if (!isDownloadingMetadata) {
       const update: QueryDeepPartialEntity<Game> = {
@@ -168,12 +168,12 @@ export class DownloadManager {
       if (!isNaN(progress)) update.progress = progress;
 
       await gameRepository.update(
-          { id: this.game.id },
-          {
-            ...update,
-            status: status.status,
-            folderName: this.getFolderName(status),
-          }
+        { id: this.game.id },
+        {
+          ...update,
+          status: status.status,
+          folderName: this.getFolderName(status),
+        }
       );
     }
 
@@ -190,17 +190,17 @@ export class DownloadManager {
         numSeeds: Number(status.numSeeders ?? 0),
         downloadSpeed: Number(status.downloadSpeed),
         timeRemaining: this.getETA(
-            Number(status.totalLength),
-            Number(status.completedLength),
-            Number(status.downloadSpeed)
+          Number(status.totalLength),
+          Number(status.completedLength),
+          Number(status.downloadSpeed)
         ),
         isDownloadingMetadata: !!isDownloadingMetadata,
         game,
       } as DownloadProgress;
 
       WindowManager.mainWindow.webContents.send(
-          "on-download-progress",
-          JSON.parse(JSON.stringify(payload))
+        "on-download-progress",
+        JSON.parse(JSON.stringify(payload))
       );
     }
 
@@ -292,7 +292,7 @@ export class DownloadManager {
 
     if (game.downloader === Downloader.RealDebrid) {
       this.realDebridTorrentId = await RealDebridClient.getTorrentId(
-          game!.uri!
+        game!.uri!
       );
     } else {
       this.gid = await this.aria2.call("addUri", [game.uri!], options);
