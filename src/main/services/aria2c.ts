@@ -17,6 +17,8 @@ export const startAria2 = () => {
       "--log-level=debug",
       "--no-conf",
       "--disk-cache=128M",
+      "-x16",
+      "-s16",
     ],
     { stdio: "inherit", windowsHide: true }
   );
