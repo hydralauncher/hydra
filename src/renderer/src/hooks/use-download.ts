@@ -85,7 +85,7 @@ export function useDownload() {
 
   return {
     downloadSpeed: `${formatBytes(lastPacket?.downloadSpeed ?? 0)}/s`,
-    progress: formatDownloadProgress(lastPacket?.game.progress),
+    progress: formatDownloadProgress(lastPacket?.progress ?? 0),
     lastPacket,
     eta: getETA(),
     startDownload,
