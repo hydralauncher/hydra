@@ -4,9 +4,11 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 import threading
 import time
+import urllib.parse
 
 torrent_port = sys.argv[1]
 http_port = sys.argv[2]
+initial_download = json.loads(urllib.parse.unquote(sys.argv[3]))
 
 class Downloader:
     def __init__(self):
@@ -61,6 +63,8 @@ class Downloader:
 
 
 downloader = Downloader()
+
+downloader.start_download(initial_download['game_id'], initial_download['magnet'], initial_download['save_path'])
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):

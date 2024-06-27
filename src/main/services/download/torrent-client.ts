@@ -2,6 +2,7 @@ import path from "node:path";
 import cp from "node:child_process";
 import fs from "node:fs";
 import { app, dialog } from "electron";
+import type { StartDownloadPayload } from "./types";
 
 const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
   darwin: "hydra-download-manager",
@@ -12,9 +13,13 @@ const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
 export const BITTORRENT_PORT = "5881";
 export const RPC_PORT = "8084";
 
-const commonArgs = [BITTORRENT_PORT, RPC_PORT];
+export const startTorrentClient = (args: StartDownloadPayload) => {
+  const commonArgs = [
+    BITTORRENT_PORT,
+    RPC_PORT,
+    encodeURIComponent(JSON.stringify(args)),
+  ];
 
-export const startTorrentClient = () => {
   if (app.isPackaged) {
     const binaryName = binaryNameByPlatform[process.platform]!;
     const binaryPath = path.join(
