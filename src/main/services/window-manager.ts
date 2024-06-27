@@ -95,6 +95,7 @@ export class WindowManager {
         minimizable: false,
         webPreferences: {
           sandbox: false,
+          nodeIntegrationInSubFrames: true,
         },
       });
 

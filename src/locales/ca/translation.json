@@ -1,0 +1,148 @@
+{
+  "home": {
+    "featured": "Destacats",
+    "trending": "Populars",
+    "surprise_me": "Sorprèn-me",
+    "no_results": "No s'ha trobat res"
+  },
+  "sidebar": {
+    "catalogue": "Catàleg",
+    "downloads": "Baixades",
+    "settings": "Configuració",
+    "my_library": "Biblioteca",
+    "downloading_metadata": "{{title}} (S'estan baixant les metadades…)",
+    "paused": "{{title}} (Pausat)",
+    "downloading": "{{title}} ({{percentage}} - S'està baixant…)",
+    "filter": "Filtra la biblioteca",
+    "home": "Inici"
+  },
+  "header": {
+    "search": "Cerca jocs",
+    "home": "Inici",
+    "catalogue": "Catàleg",
+    "downloads": "Baixades",
+    "search_results": "Resultats de la cerca",
+    "settings": "Configuració",
+    "version_available_install": "Hi ha disponible la versió {{version}}. Feu clic aquí per a reiniciar i instal·lar-la.",
+    "version_available_download": "Hi ha disponible la versió {{version}}. Feu clic aquí per a baixar-la."
+  },
+  "bottom_panel": {
+    "no_downloads_in_progress": "Cap baixada en curs",
+    "downloading_metadata": "S'estan baixant les metadades de: {{title}}…",
+    "downloading": "S'està baixant: {{title}}… ({{percentage}} complet) - Finalització: {{eta}} - {{speed}}"
+  },
+  "catalogue": {
+    "next_page": "Pàgina següent",
+    "previous_page": "Pàgina anterior"
+  },
+  "game_details": {
+    "open_download_options": "Obre les opcions de baixada",
+    "download_options_zero": "No hi ha opcions de baixada",
+    "download_options_one": "{{count}} opció de baixada",
+    "download_options_other": "{{count}} opcions de baixada",
+    "updated_at": "Actualitzat: {{updated_at}}",
+    "install": "Instal·la",
+    "resume": "Reprèn",
+    "pause": "Pausa",
+    "cancel": "Cancel·la",
+    "remove": "Elimina",
+    "space_left_on_disk": "{{space}} lliures al disc",
+    "eta": "Finalització: {{eta}}",
+    "downloading_metadata": "S'estan baixant les metadades…",
+    "filter": "Filtra els reempaquetats",
+    "requirements": "Requisits del sistema",
+    "minimum": "Mínims",
+    "recommended": "Recomanats",
+    "release_date": "Publicat el {{date}}",
+    "publisher": "Publicat per {{publisher}}",
+    "hours": "hores",
+    "minutes": "minuts",
+    "amount_hours": "{{amount}} hores",
+    "amount_minutes": "{{amount}} minuts",
+    "accuracy": "{{accuracy}}% de precisió",
+    "add_to_library": "Afegeix a la biblioteca",
+    "remove_from_library": "Elimina de la biblioteca",
+    "no_downloads": "No hi ha baixades disponibles",
+    "play_time": "Jugat durant {{amount}}",
+    "last_time_played": "Última partida: {{period}}",
+    "not_played_yet": "Encara no has jugat al {{title}}",
+    "next_suggestion": "Suggeriment següent",
+    "play": "Inicia",
+    "deleting": "S'està eliminant l'instal·lador…",
+    "close": "Tanca",
+    "playing_now": "S'està jugant",
+    "change": "Canvia",
+    "repacks_modal_description": "Tria quin reempaquetat vols baixar",
+    "select_folder_hint": "Per a canviar la carpeta predefinida, vés a la <0>Configuració</0>",
+    "download_now": "Baixa ara",
+    "no_shop_details": "No s'han pogut recuperar els detalls de la tenda.",
+    "download_options": "Opcions de baixada",
+    "download_path": "Ruta de baixada",
+    "previous_screenshot": "Captura anterior",
+    "next_screenshot": "Captura següent",
+    "screenshot": "Captura {{number}}",
+    "open_screenshot": "Obre la captura {{number}}"
+  },
+  "activation": {
+    "title": "Activa l'Hydra",
+    "installation_id": "ID d'instal·lació:",
+    "enter_activation_code": "Introdueix el codi d'activació",
+    "message": "Si no saps on demanar-ho, no ho hauries de tenir.",
+    "activate": "Activa",
+    "loading": "S'està carregant…"
+  },
+  "downloads": {
+    "resume": "Reprèn",
+    "pause": "Pausa",
+    "eta": "Finalització {{eta}}",
+    "paused": "Pausada",
+    "verifying": "S'està verificant…",
+    "completed": "Completada",
+    "cancel": "Cancel·la",
+    "filter": "Filtra els jocs baixats",
+    "remove": "Elimina",
+    "downloading_metadata": "S'estan baixant les metadades…",
+    "deleting": "S'està eliminant l'instal·lador…",
+    "delete": "Elimina l'instal·lador",
+    "delete_modal_title": "N'estàs segur?",
+    "delete_modal_description": "S'eliminaran de l'ordinador tots els fitxers d'instal·lació",
+    "install": "Instal·la"
+  },
+  "settings": {
+    "downloads_path": "Ruta de baixades",
+    "change": "Actualitza",
+    "notifications": "Notificacions",
+    "enable_download_notifications": "Quan finalitzi una baixada",
+    "enable_repack_list_notifications": "Quan s'afegeixi un nou reempaquetat",
+    "real_debrid_api_token_label": "Testimoni de l'API de Real Debrid",
+    "quit_app_instead_hiding": "Tanca l'Hydra en compte de minimitzar-la a la safata",
+    "launch_with_system": "Inicia l'Hydra quan s'iniciï el sistema",
+    "general": "General",
+    "behavior": "Comportament",
+    "enable_real_debrid": "Activa el Real Debrid",
+    "real_debrid_api_token_hint": "Pots obtenir la teva clau de l'API <0>aquí</0>.",
+    "save_changes": "Desa els canvis"
+  },
+  "notifications": {
+    "download_complete": "La baixada ha finalitzat",
+    "game_ready_to_install": "{{title}} ja es pot instal·lar",
+    "repack_list_updated": "S'ha actualitzat la llista de reempaquetats",
+    "repack_count_one": "S'ha afegit {{count}} reempaquetat",
+    "repack_count_other": "S'han afegit {{count}} reempaquetats"
+  },
+  "system_tray": {
+    "open": "Obre l'Hydra",
+    "quit": "Tanca"
+  },
+  "game_card": {
+    "no_downloads": "No hi ha baixades disponibles"
+  },
+  "binary_not_found_modal": {
+    "title": "Programes no instal·lats",
+    "description": "No s'ha trobat els executables del Wine o el Lutris al sistema.",
+    "instructions": "Comprova quina és la manera correcta d'instal·lar qualsevol d'ells en la teva distribució de Linux perquè el joc pugui executar-se amb normalitat."
+  },
+  "modal": {
+    "close": "Botó de tancar"
+  }
+}
