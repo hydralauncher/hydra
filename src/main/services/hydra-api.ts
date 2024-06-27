@@ -106,10 +106,17 @@ export class HydraApi {
     };
   }
 
+  private static sendSignOutEvent() {
+    if (WindowManager.mainWindow) {
+      WindowManager.mainWindow.webContents.send("on-signout");
+    }
+  }
+
   private static async revalidateAccessTokenIfExpired() {
     if (!this.userAuth.authToken) {
       userAuthRepository.delete({ id: 1 });
       logger.error("user is not logged in");
+      this.sendSignOutEvent();
       throw new Error("user is not logged in");
     }
 
@@ -151,9 +158,7 @@ export class HydraApi {
 
           userAuthRepository.delete({ id: 1 });
 
-          if (WindowManager.mainWindow) {
-            WindowManager.mainWindow.webContents.send("on-signout");
-          }
+          this.sendSignOutEvent();
 
           logger.log("user refresh token expired");
         }
