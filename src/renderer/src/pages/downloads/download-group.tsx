@@ -110,7 +110,7 @@ export function DownloadGroup({
       );
     }
 
-    return <p>{t(game.status)}</p>;
+    return <p>{t(game.status as string)}</p>;
   };
 
   const getGameActions = (game: LibraryGame) => {
