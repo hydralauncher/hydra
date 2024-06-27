@@ -108,7 +108,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
-  DownloadManager.disconnect();
+  DownloadManager.kill();
 });
 
 app.on("activate", () => {
