@@ -68,29 +68,29 @@ export class HydraApi {
 
     this.instance.interceptors.request.use(
       (request) => {
-        // logger.log(" ---- REQUEST -----");
-        // logger.log(request.method, request.url, request.data);
+        logger.log(" ---- REQUEST -----");
+        logger.log(request.method, request.url, request.data);
         return request;
       },
       (error) => {
-        // logger.log("request error", error);
+        logger.log("request error", error);
         return Promise.reject(error);
       }
     );
 
     this.instance.interceptors.response.use(
       (response) => {
-        // logger.log(" ---- RESPONSE -----");
-        // logger.log(
-        //   response.status,
-        //   response.config.method,
-        //   response.config.url,
-        //   response.data
-        // );
+        logger.log(" ---- RESPONSE -----");
+        logger.log(
+          response.status,
+          response.config.method,
+          response.config.url,
+          response.data
+        );
         return response;
       },
       (error) => {
-        // logger.error("response error", error);
+        logger.error("response error", error);
         return Promise.reject(error);
       }
     );
@@ -109,7 +109,7 @@ export class HydraApi {
   private static async revalidateAccessTokenIfExpired() {
     if (!this.userAuth.authToken) {
       userAuthRepository.delete({ id: 1 });
-      // logger.error("user is not logged in");
+      logger.error("user is not logged in");
       throw new Error("user is not logged in");
     }
 
@@ -139,14 +139,10 @@ export class HydraApi {
           ["id"]
         );
       } catch (err) {
-        console.log(err, "ddddd");
-
         if (
           err instanceof AxiosError &&
           (err?.response?.status === 401 || err?.response?.status === 403)
         ) {
-          // logger.error("user refresh token expired", err.response?.data);
-
           this.userAuth = {
             authToken: "",
             expirationTimestamp: 0,
@@ -159,7 +155,7 @@ export class HydraApi {
             WindowManager.mainWindow.webContents.send("on-signout");
           }
 
-          // logger.log("user refresh token expired");
+          logger.log("user refresh token expired");
         }
 
         throw err;
