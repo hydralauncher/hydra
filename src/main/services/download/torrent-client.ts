@@ -15,7 +15,6 @@ export const RPC_PORT = "8084";
 const commonArgs = [BITTORRENT_PORT, RPC_PORT];
 
 export const startTorrentClient = () => {
-  console.log("CALLED");
   if (app.isPackaged) {
     const binaryName = binaryNameByPlatform[process.platform]!;
     const binaryPath = path.join(
