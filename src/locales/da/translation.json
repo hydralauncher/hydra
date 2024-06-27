@@ -1,7 +1,6 @@
 {
   "home": {
     "featured": "Anbefalet",
-    "recently_added": "Nyligt tilføjet",
     "trending": "Trender",
     "surprise_me": "Overrask mig",
     "no_results": "Ingen resultater fundet"
@@ -15,12 +14,7 @@
     "paused": "{{title}} (Paused)",
     "downloading": "{{title}} ({{percentage}} - Downloading…)",
     "filter": "Filtrer bibliotek",
-    "follow_us": "Følg os",
-    "home": "Hjem",
-    "discord": "Tilslut dig vores Discord",
-    "telegram": "Tilslut dig vores Telegram",
-    "x": "Følg på X",
-    "github": "Bidrag på GitHub"
+    "home": "Hjem"
   },
   "header": {
     "search": "Søg spil",
@@ -50,7 +44,6 @@
     "pause": "Pause",
     "cancel": "Annullér",
     "remove": "Fjern",
-    "remove_from_list": "Fjern",
     "space_left_on_disk": "{{space}} tilbage på harddisken",
     "eta": "Konklusion {{eta}}",
     "downloading_metadata": "Downloader metadata…",
@@ -58,12 +51,8 @@
     "requirements": "System behov",
     "minimum": "Mindste",
     "recommended": "Anbefalet",
-    "no_minimum_requirements": "{{title}} angiver ikke mindste behov informationer",
-    "no_recommended_requirements": "{{title}} angiver ikke anbefalet behov informationer",
     "release_date": "Offentliggjort den {{date}}",
     "publisher": "Udgivet af {{publisher}}",
-    "copy_link_to_clipboard": "Kopier link",
-    "copied_link_to_clipboard": "Link kopieret",
     "hours": "timer",
     "minutes": "minutter",
     "amount_hours": "{{amount}} timer",
@@ -83,15 +72,7 @@
     "change": "Ændré",
     "repacks_modal_description": "Vælg den repack du vil downloade",
     "select_folder_hint": "For at ændre standard mappen, gå til <0>Instillingerne</0>",
-    "download_now": "Download nu",
-    "installation_instructions": "Installations Instrukser",
-    "installation_instructions_description": "Yderligere skridt er krævet for at installere dette spil",
-    "online_fix_instruction": "OnlineFix spil kræver et kodeord for at kunne blive udpakket. Når krævet, brug det følgende kodeord:",
-    "dodi_installation_instruction": "Når du åbner DODI installatør, tryk på op-knappen på dit tastatur <0 /> for at starte installations processen:",
-    "dont_show_it_again": "Vis ikke igen",
-    "copy_to_clipboard": "Kopier",
-    "copied_to_clipboard": "Kopieret",
-    "got_it": "Forstået"
+    "download_now": "Download nu"
   },
   "activation": {
     "title": "Aktivér Hydra",
@@ -107,17 +88,13 @@
     "eta": "Konklusion {{eta}}",
     "paused": "Pauset",
     "verifying": "Verificerer…",
-    "completed_at": "Færdiggjort på {{date}}",
     "completed": "Færdigt",
-    "download_again": "Download igen",
     "cancel": "Annullér",
     "filter": "Filtrer downloadet spil",
     "remove": "Fjern",
     "downloading_metadata": "Downloader metadata…",
-    "starting_download": "Starter download…",
     "deleting": "Sletter installatør…",
     "delete": "Fjern installatør",
-    "remove_from_list": "Fjern",
     "delete_modal_title": "Er du sikker?",
     "delete_modal_description": "Dette vil fjerne alle installations filerne fra din computer",
     "install": "Installér"
@@ -128,8 +105,6 @@
     "notifications": "Notifikationer",
     "enable_download_notifications": "Når et download bliver færdigt",
     "enable_repack_list_notifications": "Når en ny repack bliver tilføjet",
-    "telemetry": "Telemetri",
-    "telemetry_description": "Slå anonymt brugs statistik til",
     "quit_app_instead_hiding": "Afslut Hydra instedet for at minimere til processlinjen",
     "launch_with_system": "Åben Hydra ved start af systemet",
     "general": "Generelt",

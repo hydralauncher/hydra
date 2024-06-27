@@ -9,12 +9,13 @@ import {
   shell,
 } from "electron";
 import { is } from "@electron-toolkit/utils";
-import { t } from "i18next";
+import i18next, { t } from "i18next";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
 import { gameRepository, userPreferencesRepository } from "@main/repository";
 import { IsNull, Not } from "typeorm";
+import { HydraApi } from "./hydra-api";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -78,6 +79,48 @@ export class WindowManager {
       }
       WindowManager.mainWindow?.setProgressBar(-1);
     });
+  }
+
+  public static openAuthWindow() {
+    if (this.mainWindow) {
+      const authWindow = new BrowserWindow({
+        width: 600,
+        height: 640,
+        backgroundColor: "#1c1c1c",
+        parent: this.mainWindow,
+        modal: true,
+        show: false,
+        maximizable: false,
+        resizable: false,
+        minimizable: false,
+        webPreferences: {
+          sandbox: false,
+          nodeIntegrationInSubFrames: true,
+        },
+      });
+
+      authWindow.removeMenu();
+
+      const searchParams = new URLSearchParams({
+        lng: i18next.language,
+      });
+
+      authWindow.loadURL(
+        `https://auth.hydra.losbroxas.org/?${searchParams.toString()}`
+      );
+
+      authWindow.once("ready-to-show", () => {
+        authWindow.show();
+      });
+
+      authWindow.webContents.on("will-navigate", (_event, url) => {
+        if (url.startsWith("hydralauncher://auth")) {
+          authWindow.close();
+
+          HydraApi.handleExternalAuth(url);
+        }
+      });
+    }
   }
 
   public static redirect(hash: string) {

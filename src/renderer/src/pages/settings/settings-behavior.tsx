@@ -1,21 +1,16 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import type { UserPreferences } from "@types";
 
 import { CheckboxField } from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
+import { settingsContext } from "@renderer/context";
 
-export interface SettingsBehaviorProps {
-  updateUserPreferences: (values: Partial<UserPreferences>) => void;
-}
-
-export function SettingsBehavior({
-  updateUserPreferences,
-}: SettingsBehaviorProps) {
+export function SettingsBehavior() {
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
+
+  const { updateUserPreferences } = useContext(settingsContext);
 
   const [form, setForm] = useState({
     preferQuitInsteadOfHiding: false,
