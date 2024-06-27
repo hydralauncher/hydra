@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useDownload } from "@renderer/hooks";
+import { useDownload, useUserDetails } from "@renderer/hooks";
 
 import * as styles from "./bottom-panel.css";
 
@@ -13,15 +13,22 @@ export function BottomPanel() {
 
   const navigate = useNavigate();
 
+  const { userDetails } = useUserDetails();
+
   const { lastPacket, progress, downloadSpeed, eta } = useDownload();
 
   const isGameDownloading = !!lastPacket?.game;
 
   const [version, setVersion] = useState("");
+  const [sessionHash, setSessionHash] = useState<null | string>("");
 
   useEffect(() => {
     window.electron.getVersion().then((result) => setVersion(result));
   }, []);
+
+  useEffect(() => {
+    window.electron.getSessionHash().then((result) => setSessionHash(result));
+  }, [userDetails?.id]);
 
   const status = useMemo(() => {
     if (isGameDownloading) {
@@ -65,7 +72,8 @@ export function BottomPanel() {
       </button>
 
       <small>
-        v{version} &quot;{VERSION_CODENAME}&quot;
+        {sessionHash ? `${sessionHash} -` : ""} v{version} &quot;
+        {VERSION_CODENAME}&quot;
       </small>
     </footer>
   );

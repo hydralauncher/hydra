@@ -16,3 +16,5 @@ export { default as ko } from "./ko/translation.json";
 export { default as da } from "./da/translation.json";
 export { default as ar } from "./ar/translation.json";
 export { default as fa } from "./fa/translation.json";
+export { default as ca } from "./ca/translation.json";
+export { default as kk } from "./kk/translation.json";
