@@ -1,5 +1,5 @@
 import { sleep } from "@main/helpers";
-import { DownloadManager } from "./download-manager";
+import { DownloadManager } from "./download";
 import { watchProcesses } from "./process-watcher";
 
 export const startMainLoop = async () => {

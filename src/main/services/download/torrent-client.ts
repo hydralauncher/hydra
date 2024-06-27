@@ -2,7 +2,6 @@ import path from "node:path";
 import cp from "node:child_process";
 import fs from "node:fs";
 import { app, dialog } from "electron";
-import { readPipe, writePipe } from "./fifo";
 
 const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
   darwin: "hydra-download-manager",
@@ -11,10 +10,12 @@ const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
 };
 
 export const BITTORRENT_PORT = "5881";
+export const RPC_PORT = "8084";
 
-const commonArgs = [BITTORRENT_PORT, writePipe.socketPath, readPipe.socketPath];
+const commonArgs = [BITTORRENT_PORT, RPC_PORT];
 
-export const startTorrentClient = async (): Promise<cp.ChildProcess> => {
+export const startTorrentClient = () => {
+  console.log("CALLED");
   if (app.isPackaged) {
     const binaryName = binaryNameByPlatform[process.platform]!;
     const binaryPath = path.join(
@@ -32,14 +33,10 @@ export const startTorrentClient = async (): Promise<cp.ChildProcess> => {
       app.quit();
     }
 
-    const torrentClient = cp.spawn(binaryPath, commonArgs, {
+    return cp.spawn(binaryPath, commonArgs, {
       stdio: "inherit",
       windowsHide: true,
     });
-
-    await Promise.all([writePipe.createPipe(), readPipe.createPipe()]);
-
-    return torrentClient;
   } else {
     const scriptPath = path.join(
       __dirname,
@@ -49,12 +46,8 @@ export const startTorrentClient = async (): Promise<cp.ChildProcess> => {
       "main.py"
     );
 
-    const torrentClient = cp.spawn("python3", [scriptPath, ...commonArgs], {
+    return cp.spawn("python3", [scriptPath, ...commonArgs], {
       stdio: "inherit",
     });
-
-    await Promise.all([writePipe.createPipe(), readPipe.createPipe()]);
-
-    return torrentClient;
   }
 };
