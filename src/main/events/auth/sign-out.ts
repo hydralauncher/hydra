@@ -20,7 +20,7 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
     });
 
   /* Disconnects aria2 */
-  DownloadManager.disconnect();
+  DownloadManager.kill();
 
   await Promise.all([
     databaseOperations,
