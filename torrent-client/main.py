@@ -36,7 +36,6 @@ def pause_download(game_id: int):
         torrent_handle.pause()
         torrent_handle.unset_flags(lt.torrent_flags.auto_managed)
         downloading_game_id = -1
-        Handler.current_status = None
 
 def cancel_download(game_id: int):
     global torrent_handles
@@ -48,7 +47,6 @@ def cancel_download(game_id: int):
         session.remove_torrent(torrent_handle)
         torrent_handles[game_id] = None
         downloading_game_id =-1
-        Handler.current_status = None
 
 def get_download_updates():
     global torrent_handles
@@ -78,8 +76,6 @@ def get_download_updates():
 
         if status.progress == 1:
             cancel_download(downloading_game_id)
-            downloading_game_id = -1
-            Handler.current_status = None
 
         time.sleep(0.5)
 
@@ -105,8 +101,10 @@ class Handler(BaseHTTPRequestHandler):
                 start_download(data['game_id'], data['magnet'], data['save_path'])
             elif data['action'] == 'pause':
                 pause_download(data['game_id'])
+                self.current_status = None
             elif data['action'] == 'cancel':
                 cancel_download(data['game_id'])
+                self.current_status = None
         
             self.send_response(200)
             self.end_headers()
