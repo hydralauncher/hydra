@@ -74,7 +74,7 @@ export class DownloadManager {
     if (game.downloader === Downloader.RealDebrid) {
       throw new Error();
     } else {
-      TorrentDownloader.resumeDownload(game);
+      TorrentDownloader.startDownload(game);
       this.currentDownloader = Downloader.Torrent;
     }
   }

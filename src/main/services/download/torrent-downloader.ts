@@ -123,10 +123,6 @@ export class TorrentDownloader {
     this.downloadingGameId = -1;
   }
 
-  static resumeDownload(game: Game) {
-    this.startDownload(game);
-  }
-
   static async startDownload(game: Game) {
     if (!this.torrentClient) this.spawn();
 
