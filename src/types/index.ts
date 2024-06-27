@@ -1,5 +1,12 @@
-import type { Aria2Status } from "aria2";
 import type { DownloadSourceStatus, Downloader } from "@shared";
+
+export type GameStatus =
+  | "active"
+  | "waiting"
+  | "paused"
+  | "error"
+  | "complete"
+  | "removed";
 
 export type GameShop = "steam" | "epic";
 
@@ -106,7 +113,7 @@ export interface Game {
   id: number;
   title: string;
   iconUrl: string;
-  status: Aria2Status | null;
+  status: GameStatus | null;
   folderName: string;
   downloadPath: string | null;
   repacks: GameRepack[];
