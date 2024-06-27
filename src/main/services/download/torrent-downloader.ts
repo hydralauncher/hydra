@@ -7,59 +7,24 @@ import { DownloadProgress } from "@types";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { calculateETA } from "./helpers";
 import axios from "axios";
-import { sleep } from "@main/helpers";
-import { logger } from "../logger";
-
-enum LibtorrentStatus {
-  CheckingFiles = 1,
-  DownloadingMetadata = 2,
-  Downloading = 3,
-  Finished = 4,
-  Seeding = 5,
-}
-
-interface LibtorrentPayload {
-  progress: number;
-  numPeers: number;
-  numSeeds: number;
-  downloadSpeed: number;
-  bytesDownloaded: number;
-  fileSize: number;
-  folderName: string;
-  status: LibtorrentStatus;
-  gameId: number;
-}
+import {
+  type CancelDownloadPayload,
+  type StartDownloadPayload,
+  type PauseDownloadPayload,
+  LibtorrentStatus,
+  LibtorrentPayload,
+} from "./types";
 
 export class TorrentDownloader {
   private static torrentClient: cp.ChildProcess | null = null;
   private static downloadingGameId = -1;
+
   private static rpc = axios.create({
     baseURL: `http://localhost:${RPC_PORT}`,
   });
 
-  private static async healthCheck(retries = 15) {
-    try {
-      await this.rpc.get("/healthcheck");
-    } catch (err) {
-      if (retries === 0) {
-        throw new Error("Failed to connect to libtorrent client");
-      }
-
-      await sleep(1000);
-
-      return this.healthCheck(retries - 1);
-    }
-  }
-
-  private static async spawn() {
-    try {
-      this.torrentClient = startTorrentClient();
-      await this.healthCheck();
-
-      logger.log("libtorrent client started");
-    } catch (err) {
-      logger.error(err);
-    }
+  private static spawn(args: StartDownloadPayload) {
+    this.torrentClient = startTorrentClient(args);
   }
 
   public static kill() {
@@ -71,7 +36,6 @@ export class TorrentDownloader {
   }
 
   public static async getStatus() {
-    if (!this.torrentClient) this.spawn();
     if (this.downloadingGameId === -1) return null;
 
     const response = await this.rpc.get<LibtorrentPayload | null>("/status");
@@ -134,36 +98,42 @@ export class TorrentDownloader {
   }
 
   static async pauseDownload() {
-    if (!this.torrentClient) await this.spawn();
-
-    await this.rpc.post("/action", {
-      action: "pause",
-      game_id: this.downloadingGameId,
-    });
+    await this.rpc
+      .post("/action", {
+        action: "pause",
+        game_id: this.downloadingGameId,
+      } as PauseDownloadPayload)
+      .catch(() => {});
 
     this.downloadingGameId = -1;
   }
 
   static async startDownload(game: Game) {
-    if (!this.torrentClient) await this.spawn();
-
-    await this.rpc.post("/action", {
-      action: "start",
-      game_id: game.id,
-      magnet: game.uri,
-      save_path: game.downloadPath,
-    });
+    if (!this.torrentClient) {
+      this.spawn({
+        game_id: game.id,
+        magnet: game.uri!,
+        save_path: game.downloadPath!,
+      });
+    } else {
+      await this.rpc.post("/action", {
+        action: "start",
+        game_id: game.id,
+        magnet: game.uri,
+        save_path: game.downloadPath,
+      } as StartDownloadPayload);
+    }
 
     this.downloadingGameId = game.id;
   }
 
   static async cancelDownload(gameId: number) {
-    if (!this.torrentClient) await this.spawn();
-
-    await this.rpc.post("/action", {
-      action: "cancel",
-      game_id: gameId,
-    });
+    await this.rpc
+      .post("/action", {
+        action: "cancel",
+        game_id: gameId,
+      } as CancelDownloadPayload)
+      .catch(() => {});
 
     this.downloadingGameId = -1;
   }
