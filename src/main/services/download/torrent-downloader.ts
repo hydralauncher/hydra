@@ -7,6 +7,8 @@ import { DownloadProgress } from "@types";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { calculateETA } from "./helpers";
 import axios from "axios";
+import { sleep } from "@main/helpers";
+import { logger } from "../logger";
 
 enum LibtorrentStatus {
   CheckingFiles = 1,
@@ -35,8 +37,29 @@ export class TorrentDownloader {
     baseURL: `http://localhost:${RPC_PORT}`,
   });
 
-  private static spawn() {
-    this.torrentClient = startTorrentClient();
+  private static async healthCheck(retries = 15) {
+    try {
+      await this.rpc.get("/healthcheck");
+    } catch (err) {
+      if (retries === 0) {
+        throw new Error("Failed to connect to libtorrent client");
+      }
+
+      await sleep(200);
+
+      return this.healthCheck(retries - 1);
+    }
+  }
+
+  private static async spawn() {
+    try {
+      this.torrentClient = startTorrentClient();
+      await this.healthCheck();
+
+      logger.log("libtorrent client started");
+    } catch (err) {
+      logger.error(err);
+    }
   }
 
   public static kill() {
@@ -75,7 +98,7 @@ export class TorrentDownloader {
 
       const isCheckingFiles = status === LibtorrentStatus.CheckingFiles;
 
-      if (!isDownloadingMetadata) {
+      if (!isDownloadingMetadata && !isCheckingFiles) {
         const update: QueryDeepPartialEntity<Game> = {
           bytesDownloaded,
           fileSize,
@@ -111,20 +134,18 @@ export class TorrentDownloader {
   }
 
   static async pauseDownload() {
-    if (!this.torrentClient) this.spawn();
+    if (!this.torrentClient) await this.spawn();
 
-    await this.rpc
-      .post("/action", {
-        action: "pause",
-        game_id: this.downloadingGameId,
-      })
-      .catch(() => {});
+    await this.rpc.post("/action", {
+      action: "pause",
+      game_id: this.downloadingGameId,
+    });
 
     this.downloadingGameId = -1;
   }
 
   static async startDownload(game: Game) {
-    if (!this.torrentClient) this.spawn();
+    if (!this.torrentClient) await this.spawn();
 
     await this.rpc.post("/action", {
       action: "start",
@@ -137,7 +158,7 @@ export class TorrentDownloader {
   }
 
   static async cancelDownload(gameId: number) {
-    if (!this.torrentClient) this.spawn();
+    if (!this.torrentClient) await this.spawn();
 
     await this.rpc.post("/action", {
       action: "cancel",
