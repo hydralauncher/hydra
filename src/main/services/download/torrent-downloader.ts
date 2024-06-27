@@ -8,9 +8,9 @@ import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity
 import { calculateETA } from "./helpers";
 import axios from "axios";
 import {
-  type CancelDownloadPayload,
-  type StartDownloadPayload,
-  type PauseDownloadPayload,
+  CancelDownloadPayload,
+  StartDownloadPayload,
+  PauseDownloadPayload,
   LibtorrentStatus,
   LibtorrentPayload,
 } from "./types";
@@ -67,6 +67,7 @@ export class TorrentDownloader {
           bytesDownloaded,
           fileSize,
           progress,
+          status: "active",
         };
 
         await gameRepository.update(

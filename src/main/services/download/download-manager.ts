@@ -4,56 +4,58 @@ import { TorrentDownloader } from "./torrent-downloader";
 import { WindowManager } from "../window-manager";
 import { downloadQueueRepository, gameRepository } from "@main/repository";
 import { publishDownloadCompleteNotification } from "../notifications";
+import { RealDebridDownloader } from "./real-debrid-downloader";
+import type { DownloadProgress } from "@types";
 
 export class DownloadManager {
   private static currentDownloader: Downloader | null = null;
 
   public static async watchDownloads() {
+    let status: DownloadProgress | null = null;
+
     if (this.currentDownloader === Downloader.RealDebrid) {
-      throw new Error();
+      status = await RealDebridDownloader.getStatus();
     } else {
-      const status = await TorrentDownloader.getStatus();
+      status = await TorrentDownloader.getStatus();
+    }
 
-      if (status) {
-        const { gameId, progress } = status;
+    if (status) {
+      const { gameId, progress } = status;
 
-        const game = await gameRepository.findOne({
-          where: { id: gameId, isDeleted: false },
+      const game = await gameRepository.findOne({
+        where: { id: gameId, isDeleted: false },
+      });
+
+      if (WindowManager.mainWindow && game) {
+        WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
+
+        WindowManager.mainWindow.webContents.send(
+          "on-download-progress",
+          JSON.parse(
+            JSON.stringify({
+              ...status,
+              game,
+            })
+          )
+        );
+      }
+
+      if (progress === 1 && game) {
+        publishDownloadCompleteNotification(game);
+
+        await downloadQueueRepository.delete({ game });
+
+        const [nextQueueItem] = await downloadQueueRepository.find({
+          order: {
+            id: "DESC",
+          },
+          relations: {
+            game: true,
+          },
         });
 
-        if (WindowManager.mainWindow && game) {
-          WindowManager.mainWindow.setProgressBar(
-            progress === 1 ? -1 : progress
-          );
-
-          WindowManager.mainWindow.webContents.send(
-            "on-download-progress",
-            JSON.parse(
-              JSON.stringify({
-                ...status,
-                game,
-              })
-            )
-          );
-        }
-
-        if (status.progress === 1 && game) {
-          publishDownloadCompleteNotification(game);
-
-          await downloadQueueRepository.delete({ game });
-
-          const [nextQueueItem] = await downloadQueueRepository.find({
-            order: {
-              id: "DESC",
-            },
-            relations: {
-              game: true,
-            },
-          });
-
-          if (nextQueueItem) {
-            this.resumeDownload(nextQueueItem.game);
-          }
+        if (nextQueueItem) {
+          this.resumeDownload(nextQueueItem.game);
         }
       }
     }
@@ -61,7 +63,7 @@ export class DownloadManager {
 
   static async pauseDownload() {
     if (this.currentDownloader === Downloader.RealDebrid) {
-      throw new Error();
+      RealDebridDownloader.pauseDownload();
     } else {
       await TorrentDownloader.pauseDownload();
     }
@@ -72,7 +74,8 @@ export class DownloadManager {
 
   static async resumeDownload(game: Game) {
     if (game.downloader === Downloader.RealDebrid) {
-      throw new Error();
+      RealDebridDownloader.startDownload(game);
+      this.currentDownloader = Downloader.RealDebrid;
     } else {
       TorrentDownloader.startDownload(game);
       this.currentDownloader = Downloader.Torrent;
@@ -81,7 +84,7 @@ export class DownloadManager {
 
   static async cancelDownload(gameId: number) {
     if (this.currentDownloader === Downloader.RealDebrid) {
-      throw new Error();
+      RealDebridDownloader.cancelDownload();
     } else {
       TorrentDownloader.cancelDownload(gameId);
     }
@@ -92,7 +95,8 @@ export class DownloadManager {
 
   static async startDownload(game: Game) {
     if (game.downloader === Downloader.RealDebrid) {
-      throw new Error();
+      RealDebridDownloader.startDownload(game);
+      this.currentDownloader = Downloader.RealDebrid;
     } else {
       TorrentDownloader.startDownload(game);
       this.currentDownloader = Downloader.Torrent;
