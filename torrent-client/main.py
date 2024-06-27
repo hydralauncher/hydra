@@ -72,6 +72,9 @@ class Handler(BaseHTTPRequestHandler):
             status = downloader.get_download_status()
 
             self.wfile.write(json.dumps(status).encode('utf-8'))
+        if self.path == "/healthcheck":
+            self.send_response(200)
+            self.end_headers()
     
     def do_POST(self):
         if self.path == "/action":
