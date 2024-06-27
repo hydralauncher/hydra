@@ -173,10 +173,4 @@
   "modal": {
     "close": "Botó de tancar"
   },
-  "splash": {
-    "downloading_version": "S'està baixant la versió {{version}}",
-    "searching_updates": "S'estan cercant actualitzacions",
-    "update_found": "S'ha trobat l'actualització {{version}}",
-    "restarting_and_applying": "S'està reiniciant per a aplicar l'actualització"
-  }
 }
