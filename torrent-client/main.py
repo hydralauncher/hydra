@@ -1,17 +1,16 @@
 import libtorrent as lt
 import sys
-from fifo import Fifo
+from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 import threading
 import time
 
 torrent_port = sys.argv[1]
-read_sock_path = sys.argv[2]
-write_sock_path = sys.argv[3]
+http_port = sys.argv[2]
+
+print(http_port)
 
 session = lt.session({'listen_interfaces': '0.0.0.0:{port}'.format(port=torrent_port)})
-read_fifo = Fifo(read_sock_path)
-write_fifo = Fifo(write_sock_path)
 
 torrent_handles = {}
 downloading_game_id = -1
@@ -37,6 +36,7 @@ def pause_download(game_id: int):
         torrent_handle.pause()
         torrent_handle.unset_flags(lt.torrent_flags.auto_managed)
         downloading_game_id = -1
+        Handler.current_status = None
 
 def cancel_download(game_id: int):
     global torrent_handles
@@ -48,6 +48,7 @@ def cancel_download(game_id: int):
         session.remove_torrent(torrent_handle)
         torrent_handles[game_id] = None
         downloading_game_id =-1
+        Handler.current_status = None
 
 def get_download_updates():
     global torrent_handles
@@ -63,7 +64,7 @@ def get_download_updates():
         status = torrent_handle.status()
         info = torrent_handle.get_torrent_info()
 
-        write_fifo.send_message(json.dumps({
+        Handler.current_status = {
             'folderName': info.name() if info else "",
             'fileSize': info.total_size() if info else 0,
             'gameId': downloading_game_id,
@@ -73,29 +74,49 @@ def get_download_updates():
             'numSeeds': status.num_seeds,
             'status': status.state,
             'bytesDownloaded': status.progress * info.total_size() if info else status.all_time_download,
-        }))
+        }
 
         if status.progress == 1:
             cancel_download(downloading_game_id)
             downloading_game_id = -1
+            Handler.current_status = None
 
         time.sleep(0.5)
 
-def listen_to_socket():
-    while True:
-        msg = read_fifo.recv(1024 * 2)
-        payload = json.loads(msg.decode("utf-8"))
 
-        if payload['action'] == "start":
-            start_download(payload['game_id'], payload['magnet'], payload['save_path'])
-        elif payload['action'] == "pause":
-            pause_download(payload['game_id'])
-        elif payload['action'] == "cancel":
-            cancel_download(payload['game_id'])
+class Handler(BaseHTTPRequestHandler):
+    current_status = None
+
+    def do_GET(self):
+        if self.path == "/status":
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+
+            self.wfile.write(json.dumps(self.current_status).encode('utf-8'))
+    
+    def do_POST(self):
+        if self.path == "/action":
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+
+            if data['action'] == 'start':
+                start_download(data['game_id'], data['magnet'], data['save_path'])
+            elif data['action'] == 'pause':
+                pause_download(data['game_id'])
+            elif data['action'] == 'cancel':
+                cancel_download(data['game_id'])
+        
+            self.send_response(200)
+            self.end_headers()
+
 
 if __name__ == "__main__":
     p1 = threading.Thread(target=get_download_updates)
-    p2 = threading.Thread(target=listen_to_socket)
+
+    httpd = HTTPServer(("", int(http_port)), Handler)
+    p2 = threading.Thread(target=httpd.serve_forever)
 
     p1.start()
     p2.start()

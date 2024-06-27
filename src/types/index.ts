@@ -149,6 +149,9 @@ export interface DownloadProgress {
   numPeers: number;
   numSeeds: number;
   isDownloadingMetadata: boolean;
+  isCheckingFiles: boolean;
+  progress: number;
+  gameId: number;
   game: LibraryGame;
 }
 

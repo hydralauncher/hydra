@@ -4,7 +4,7 @@ import i18n from "i18next";
 import path from "node:path";
 import url from "node:url";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
-import { DownloadManager, logger, WindowManager } from "@main/services";
+import { logger, TorrentDownloader, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
@@ -108,7 +108,8 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
-  DownloadManager.kill();
+  /* Disconnects libtorrent */
+  TorrentDownloader.kill();
 });
 
 app.on("activate", () => {
