@@ -45,7 +45,7 @@ export class TorrentDownloader {
         throw new Error("Failed to connect to libtorrent client");
       }
 
-      await sleep(200);
+      await sleep(1000);
 
       return this.healthCheck(retries - 1);
     }
