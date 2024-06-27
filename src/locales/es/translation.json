@@ -1,6 +1,6 @@
 {
   "app": {
-    "successfully_signed_in": "Successfully signed in (TRANSLATE ME)"
+    "successfully_signed_in": "Sesión iniciada correctamente"
   },
   "home": {
     "featured": "Destacado",
@@ -20,7 +20,7 @@
     "home": "Inicio",
     "queued": "{{title}} (En Cola)",
     "game_has_no_executable": "El juego no tiene un ejecutable",
-    "sign_in": "Sign in (TRANSLATE ME)"
+    "sign_in": "Iniciar sesión"
   },
   "header": {
     "search": "Buscar juegos",
@@ -110,7 +110,9 @@
     "danger_zone_section_description": "Eliminar este juego de tu librería o los archivos descargados por Hydra",
     "download_in_progress": "Descarga en progreso",
     "download_paused": "Descarga pausada",
-    "last_downloaded_option": "Última opción descargada"
+    "last_downloaded_option": "Última opción descargada",
+    "create_shortcut_success": "Atajo creado con éxito",
+    "create_shortcut_error": "Error al crear un atajo"
   },
   "activation": {
     "title": "Activar Hydra",
@@ -183,12 +185,12 @@
     "sync_download_sources": "Sincronizar fuentes",
     "removed_download_source": "Fuente de descarga eliminada",
     "added_download_source": "Fuente de descarga añadida",
-    "download_sources_synced": "Todas las fuentes de descarga estánn actualizadas (TRANSLATE ME)",
-    "insert_valid_json_url": "Insert a valid JSON url (TRANSLATE ME)",
-    "found_download_option_zero": "No download option found (TRANSLATE ME)",
-    "found_download_option_one": "Found {{countFormatted}} download option (TRANSLATE ME)",
-    "found_download_option_other": "Found {{countFormatted}} download options (TRANSLATE ME)",
-    "import": "Import (TRANSLATE ME)"
+    "download_sources_synced": "Todas las fuentes de descargas están actualizadas.",
+    "insert_valid_json_url": "Introduce una URL JSON válida",
+    "found_download_option_zero": "No se encontró una opción de descarga",
+    "found_download_option_one": "Se encontró {{countFormatted}} opción de descarga",
+    "found_download_option_other": "Se encontraron {{countFormatted}} opciones de descarga",
+    "import": "Importar"
   },
   "notifications": {
     "download_complete": "Descarga completada",
@@ -216,25 +218,25 @@
     "toggle_password_visibility": "Cambiar visibilidad de contraseña"
   },
   "user_profile": {
-    "amount_hours": "{{amount}} hours (TRANSLATE ME)",
-    "amount_minutes": "{{amount}} minutes (TRANSLATE ME)",
-    "last_time_played": "Last played {{period}} (TRANSLATE ME)",
-    "activity": "Recent activity (TRANSLATE ME)",
-    "library": "Library (TRANSLATE ME)",
-    "total_play_time": "Total playtime: {{amount}} (TRANSLATE ME)",
-    "no_recent_activity_title": "Hmmm… nothing here (TRANSLATE ME)",
-    "no_recent_activity_description": "You haven't played any games recently. It's time to change that! (TRANSLATE ME)",
-    "display_name": "Display name (TRANSLATE ME)",
-    "saving": "Saving (TRANSLATE ME)",
-    "save": "Save (TRANSLATE ME)",
-    "edit_profile": "Edit Profile (TRANSLATE ME)",
-    "saved_successfully": "Saved successfully (TRANSLATE ME)",
-    "try_again": "Please, try again (TRANSLATE ME)",
-    "sign_out_modal_title": "Are you sure? (TRANSLATE ME)",
-    "cancel": "Cancel (TRANSLATE ME)",
-    "successfully_signed_out": "Successfully signed out (TRANSLATE ME)",
-    "sign_out": "Sign out (TRANSLATE ME)",
-    "playing_for": "Playing for {{amount}} (TRANSLATE ME)",
-    "sign_out_modal_text": "Your library is linked with your current account. When signing out, your library will not be visible anymore, and any progress will not be saved. Continue with sign out? (TRANSLATE ME)"
+    "amount_hours": "{{amount}} horas",
+    "amount_minutes": "{{amount}} minutos",
+    "last_time_played": "Última vez jugado {{period}}",
+    "activity": "Actividad reciente",
+    "library": "Biblioteca",
+    "total_play_time": "Total de tiempo jugado: {{amount}}",
+    "no_recent_activity_title": "Que raro, no hay nada por acá, ¿que tal si jugamos algo para empezar?",
+    "no_recent_activity_description": "No has jugado ningún juego recientemente, ¡vamos a cambiar eso ahora!",
+    "display_name": "Nombre a mostrar",
+    "saving": "Guardando",
+    "save": "Guardar",
+    "edit_profile": "Editar perfil",
+    "saved_successfully": "Guardado exitosamente",
+    "try_again": "Por favor, intenta de nuevo",
+    "sign_out_modal_title": "¿Estás seguro?",
+    "cancel": "Cancelar",
+    "successfully_signed_out": "Sesión cerrada exitosamente",
+    "sign_out": "Cerrar sesión",
+    "playing_for": "Jugando por {{amount}}",
+    "sign_out_modal_text": "Tu biblioteca se ha vinculado con tu cuenta. Cuando cierres sesión, tú biblioteca ya no será visible y cualquier progreso no se guardará. ¿Continuar con el cierre de sesión?"
   }
 }
