@@ -26,6 +26,8 @@
     "downloads": "Baixades",
     "search_results": "Resultats de la cerca",
     "settings": "Configuració"
+    "version_available_install": "Hi ha disponible la versió {{version}}. Feu clic aquí per a reiniciar i instal·lar-la.",
+    "version_available_download": "Hi ha disponible la versió {{version}}. Feu clic aquí per a baixar-la."
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Cap baixada en curs",
