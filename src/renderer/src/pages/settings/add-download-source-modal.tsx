@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, Modal, TextField } from "@renderer/components";
 import { SPACING_UNIT } from "@renderer/theme.css";
+import { settingsContext } from "@renderer/context";
 
 interface AddDownloadSourceModalProps {
   visible: boolean;
@@ -23,24 +24,31 @@ export function AddDownloadSourceModal({
     downloadCount: number;
   } | null>(null);
 
-  useEffect(() => {
-    setValue("");
-    setIsLoading(false);
-    setValidationResult(null);
-  }, [visible]);
-
   const { t } = useTranslation("settings");
 
-  const handleValidateDownloadSource = async () => {
+  const { sourceUrl } = useContext(settingsContext);
+
+  const handleValidateDownloadSource = useCallback(async (url: string) => {
     setIsLoading(true);
 
     try {
-      const result = await window.electron.validateDownloadSource(value);
+      const result = await window.electron.validateDownloadSource(url);
       setValidationResult(result);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    setValue("");
+    setIsLoading(false);
+    setValidationResult(null);
+
+    if (sourceUrl) {
+      setValue(sourceUrl);
+      handleValidateDownloadSource(sourceUrl);
+    }
+  }, [visible, handleValidateDownloadSource, sourceUrl]);
 
   const handleAddDownloadSource = async () => {
     await window.electron.addDownloadSource(value);
@@ -65,7 +73,7 @@ export function AddDownloadSourceModal({
       >
         <TextField
           label={t("download_source_url")}
-          placeholder="Insert a valid JSON url"
+          placeholder={t("insert_valid_json_url")}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           rightContent={
@@ -73,7 +81,7 @@ export function AddDownloadSourceModal({
               type="button"
               theme="outline"
               style={{ alignSelf: "flex-end" }}
-              onClick={handleValidateDownloadSource}
+              onClick={() => handleValidateDownloadSource(value)}
               disabled={isLoading || !value}
             >
               {t("validate_download_source")}
@@ -99,14 +107,16 @@ export function AddDownloadSourceModal({
             >
               <h4>{validationResult?.name}</h4>
               <small>
-                Found{" "}
-                {validationResult?.downloadCount.toLocaleString(undefined)}{" "}
-                download options
+                {t("found_download_option", {
+                  count: validationResult?.downloadCount,
+                  countFormatted:
+                    validationResult?.downloadCount.toLocaleString(),
+                })}
               </small>
             </div>
 
             <Button type="button" onClick={handleAddDownloadSource}>
-              Import
+              {t("import")}
             </Button>
           </div>
         )}

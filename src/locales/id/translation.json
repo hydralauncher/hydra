@@ -1,7 +1,6 @@
 {
   "home": {
     "featured": "Unggulan",
-    "recently_added": "Terbaru",
     "trending": "Trending",
     "surprise_me": "Kejutkan Saya",
     "no_results": "Tidak ada hasil"
@@ -15,12 +14,7 @@
     "paused": "{{title}} (Terhenti)",
     "downloading": "{{title}} ({{percentage}} - Mengunduh…)",
     "filter": "Filter koleksi",
-    "follow_us": "Ikuti kami",
-    "home": "Beranda",
-    "discord": "Gabung Discord kami",
-    "telegram": "Gabung Telegram kami",
-    "x": "Ikuti akun X kami",
-    "github": "Kontribusi di GitHub"
+    "home": "Beranda"
   },
   "header": {
     "search": "Pencarian",
@@ -50,7 +44,6 @@
     "pause": "Hentikan sementara",
     "cancel": "Batalkan",
     "remove": "Hapus",
-    "remove_from_list": "Hapus",
     "space_left_on_disk": "{{space}} tersisa pada disk",
     "eta": "Perkiraan {{eta}}",
     "downloading_metadata": "Mengunduh metadata…",
@@ -58,12 +51,8 @@
     "requirements": "Keperluan sistem",
     "minimum": "Minimum",
     "recommended": "Rekomendasi",
-    "no_minimum_requirements": "{{title}} Tidak ada informasi kebutuhan sistem",
-    "no_recommended_requirements": "{{title}} Tidak ada informasi rekomendasi kebutuhan sistem",
     "release_date": "Dirilis pada {{date}}",
     "publisher": "Dipublikasikan oleh {{publisher}}",
-    "copy_link_to_clipboard": "Salin tautan",
-    "copied_link_to_clipboard": "Tautan tersalin",
     "hours": "jam",
     "minutes": "menit",
     "amount_hours": "{{amount}} jam",
@@ -83,15 +72,7 @@
     "change": "Ubah",
     "repacks_modal_description": "Pilih repack yang kamu ingin unduh",
     "select_folder_hint": "Untuk merubah folder bawaan, akses melalui",
-    "download_now": "Unduh sekarang",
-    "installation_instructions": "Instruksi Instalasi",
-    "installation_instructions_description": "Langkah tambahan dibutuhkan untuk meng-instal game ini",
-    "online_fix_instruction": "OnlineFix games mebutuhkan kata sandi untuk ekstraksi. Saat diperlukan, gunakan kata sandi ini:",
-    "dodi_installation_instruction": "Saat menjalankan DODI installer, tekan tombol atas pada keyboard <0 /> untuk melanjutkan proses instalasi:",
-    "dont_show_it_again": "Jangan tunjukkan lagi",
-    "copy_to_clipboard": "Salin",
-    "copied_to_clipboard": "Tersalin",
-    "got_it": "Paham"
+    "download_now": "Unduh sekarang"
   },
   "activation": {
     "title": "Aktivasi Hydra",
@@ -107,17 +88,13 @@
     "eta": "Perkiraan {{eta}}",
     "paused": "Terhenti sementara",
     "verifying": "Memeriksa…",
-    "completed_at": "Selesai pada {{date}}",
     "completed": "Selesai",
-    "download_again": "Unduh lagi",
     "cancel": "Batalkan",
     "filter": "Saring game yang diunduh",
     "remove": "Hapus",
     "downloading_metadata": "Mengunduh metadata…",
-    "starting_download": "Memulai unduhan…",
     "deleting": "Menghapus file instalasi…",
     "delete": "Hapus file instalasi",
-    "remove_from_list": "Hapus",
     "delete_modal_title": "Kamu yakin?",
     "delete_modal_description": "Proses ini akan menghapus semua file instalasi dari komputer kamu",
     "install": "Install"
@@ -128,8 +105,6 @@
     "notifications": "Pengingat",
     "enable_download_notifications": "Saat unduhan selesai",
     "enable_repack_list_notifications": "Saat repack terbaru ditambahkan",
-    "telemetry": "Telemetri",
-    "telemetry_description": "Izinkan statistik penggunaan data anonim",
     "behavior": "Perilaku",
     "quit_app_instead_hiding": "Tutup aplikasi alih-alih menyembunyikan aplikasi",
     "launch_with_system": "Jalankan saat memulai sistem"
