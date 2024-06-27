@@ -39,7 +39,10 @@ export function BottomPanel() {
         });
 
       if (lastPacket?.isDownloadingMetadata)
-        return t("downloading_metadata", { title: lastPacket?.game.title });
+        return t("downloading_metadata", {
+          title: lastPacket?.game.title,
+          percentage: progress,
+        });
 
       if (!eta) {
         return t("calculating_eta", {
