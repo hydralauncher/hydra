@@ -17,7 +17,7 @@
     "downloading": "{{title}} ({{percentage}} - S'està baixant…)",
     "filter": "Filtra la biblioteca",
     "follow_us": "Segueix-nos",
-    "home": "Inici",
+    "home": "Inici"
   },
   "header": {
     "search": "Cerca jocs",
@@ -25,7 +25,7 @@
     "catalogue": "Catàleg",
     "downloads": "Baixades",
     "search_results": "Resultats de la cerca",
-    "settings": "Configuració"
+    "settings": "Configuració",
     "version_available_install": "Hi ha disponible la versió {{version}}. Feu clic aquí per a reiniciar i instal·lar-la.",
     "version_available_download": "Hi ha disponible la versió {{version}}. Feu clic aquí per a baixar-la."
   },
@@ -174,5 +174,5 @@
   },
   "modal": {
     "close": "Botó de tancar"
-  },
+  }
 }
