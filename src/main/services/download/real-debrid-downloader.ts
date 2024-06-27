@@ -125,9 +125,6 @@ export class RealDebridDownloader {
       const response = await axios.get(downloadUrl, {
         responseType: "stream",
         signal: this.abortController.signal,
-        headers: {
-          Range: `bytes=0-`,
-        },
         onDownloadProgress: (progressEvent) => {
           this.lastProgressEvent = progressEvent;
         },
@@ -142,7 +139,7 @@ export class RealDebridDownloader {
         { folderName: filename }
       );
 
-      response.data.pipe(fs.createWriteStream(downloadPath, { flags: "a" }));
+      response.data.pipe(fs.createWriteStream(downloadPath));
     }
   }
 
