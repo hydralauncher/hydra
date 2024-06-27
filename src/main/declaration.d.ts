@@ -17,7 +17,7 @@ declare module "aria2" {
     downloadSpeed: string;
     uploadSpeed: string;
     infoHash?: string;
-    numSeeders?: string;
+    numSeeds?: string;
     seeder?: boolean;
     pieceLength: string;
     numPieces: string;
