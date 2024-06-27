@@ -54,7 +54,7 @@ export function HeroPanelPlaytime() {
   if (!game) return null;
 
   const hasDownload =
-    ["active", "paused"].includes(game.status) && game.progress !== 1;
+    ["active", "paused"].includes(game.status as string) && game.progress !== 1;
 
   const isGameDownloading =
     game.status === "active" && lastPacket?.game.id === game.id;
