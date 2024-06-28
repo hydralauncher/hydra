@@ -2,11 +2,6 @@ import { style } from "@vanilla-extract/css";
 import { SPACING_UNIT, vars } from "../../theme.css";
 import { recipe } from "@vanilla-extract/recipes";
 
-export const downloadSourceField = style({
-  display: "flex",
-  gap: `${SPACING_UNIT}px`,
-});
-
 export const downloadSources = style({
   padding: "0",
   margin: "0",

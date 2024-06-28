@@ -1,4 +1,7 @@
 {
+  "app": {
+    "successfully_signed_in": "Logado com sucesso"
+  },
   "home": {
     "featured": "Destaque",
     "trending": "Populares",
@@ -15,9 +18,9 @@
     "downloading": "{{title}} ({{percentage}} - Baixando…)",
     "filter": "Filtrar biblioteca",
     "home": "Início",
-    "follow_us": "Acompanhe-nos",
     "queued": "{{title}} (Na fila)",
-    "game_has_no_executable": "Jogo não possui executável selecionado"
+    "game_has_no_executable": "Jogo não possui executável selecionado",
+    "sign_in": "Login"
   },
   "header": {
     "search": "Buscar jogos",
@@ -45,7 +48,6 @@
     "pause": "Pausar",
     "cancel": "Cancelar",
     "remove": "Remover",
-    "remove_from_list": "Remover",
     "space_left_on_disk": "{{space}} livres em disco",
     "eta": "Conclusão {{eta}}",
     "calculating_eta": "Calculando tempo restante…",
@@ -54,13 +56,9 @@
     "requirements": "Requisitos do sistema",
     "minimum": "Mínimos",
     "recommended": "Recomendados",
-    "no_minimum_requirements": "{{title}} não possui informações de requisitos mínimos",
-    "no_recommended_requirements": "{{title}} não possui informações de requisitos recomendados",
     "paused": "Pausado",
     "release_date": "Lançado em {{date}}",
     "publisher": "Publicado por {{publisher}}",
-    "copy_link_to_clipboard": "Copiar link",
-    "copied_link_to_clipboard": "Link copiado",
     "hours": "horas",
     "minutes": "minutos",
     "amount_hours": "{{amount}} horas",
@@ -82,14 +80,6 @@
     "repacks_modal_description": "Escolha o repack do jogo que deseja baixar",
     "select_folder_hint": "Para trocar o diretório padrão, acesse a <0>Tela de Ajustes</0>",
     "download_now": "Iniciar download",
-    "installation_instructions": "Instruções de Instalação",
-    "installation_instructions_description": "Passos adicionais são necessários para instalar esse jogo",
-    "online_fix_instruction": "Jogos OnlineFix precisam de uma senha para serem extraídos. Quando solicitado, utilize a seguinte senha:",
-    "dodi_installation_instruction": "Quando o instalador do DODI for aberto, pressione a seta para cima <0 /> do teclado para iniciar o processo de instalação:",
-    "dont_show_it_again": "Não mostrar novamente",
-    "copy_to_clipboard": "Copiar",
-    "copied_to_clipboard": "Copiado",
-    "got_it": "Entendi",
     "no_shop_details": "Não foi possível obter os detalhes da loja.",
     "download_options": "Opções de download",
     "download_path": "Diretório de download",
@@ -116,7 +106,9 @@
     "danger_zone_section_description": "Remova o jogo da sua biblioteca ou os arquivos que foram baixados pelo Hydra",
     "download_in_progress": "Download em andamento",
     "download_paused": "Download pausado",
-    "last_downloaded_option": "Última opção baixada"
+    "last_downloaded_option": "Última opção baixada",
+    "create_shortcut_success": "Atalho criado com sucesso",
+    "create_shortcut_error": "Erro ao criar atalho"
   },
   "activation": {
     "title": "Ativação",
@@ -132,16 +124,12 @@
     "eta": "Conclusão {{eta}}",
     "paused": "Pausado",
     "verifying": "Verificando…",
-    "completed_at": "Concluído em {{date}}",
     "completed": "Concluído",
     "removed": "Cancelado",
-    "download_again": "Baixar novamente",
     "cancel": "Cancelar",
     "filter": "Filtrar jogos baixados",
     "remove": "Remover",
     "downloading_metadata": "Baixando metadados…",
-    "starting_download": "Iniciando download…",
-    "remove_from_list": "Remover",
     "delete": "Remover instalador",
     "delete_modal_description": "Isso removerá todos os arquivos de instalação do seu computador",
     "delete_modal_title": "Tem certeza?",
@@ -160,8 +148,6 @@
     "notifications": "Notificações",
     "enable_download_notifications": "Quando um download for concluído",
     "enable_repack_list_notifications": "Quando a lista de repacks for atualizada",
-    "telemetry": "Telemetria",
-    "telemetry_description": "Habilitar estatísticas de uso anônimas",
     "real_debrid_api_token_label": "Token de API do Real-Debrid",
     "quit_app_instead_hiding": "Encerrar o Hydra ao invés de minimizá-lo ao fechar",
     "launch_with_system": "Iniciar o Hydra junto com o sistema",
@@ -195,7 +181,12 @@
     "sync_download_sources": "Sincronizar",
     "removed_download_source": "Fonte removida",
     "added_download_source": "Fonte adicionada",
-    "download_sources_synced": "As fontes foram sincronizadas"
+    "download_sources_synced": "As fontes foram sincronizadas",
+    "insert_valid_json_url": "Insira a url de um JSON válido",
+    "found_download_option_zero": "Nenhuma opção de download encontrada",
+    "found_download_option_one": "{{countFormatted}} opção de download encontrada",
+    "found_download_option_other": "{{countFormatted}} opções de download encontradas",
+    "import": "Importar"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -225,5 +216,27 @@
   },
   "forms": {
     "toggle_password_visibility": "Alternar visibilidade da senha"
+  },
+  "user_profile": {
+    "amount_hours": "{{amount}} horas",
+    "amount_minutes": "{{amount}} minutos",
+    "last_time_played": "Jogou {{period}}",
+    "activity": "Atividade recente",
+    "library": "Biblioteca",
+    "total_play_time": "Tempo total de jogo: {{amount}}",
+    "no_recent_activity_title": "Hmmm… nada por aqui",
+    "no_recent_activity_description": "Parece que você não jogou nada recentemente. Que tal começar agora?",
+    "display_name": "Nome de exibição",
+    "saving": "Salvando…",
+    "save": "Salvar",
+    "edit_profile": "Editar Perfil",
+    "saved_successfully": "Salvo com sucesso",
+    "try_again": "Por favor, tente novamente",
+    "cancel": "Cancelar",
+    "successfully_signed_out": "Deslogado com sucesso",
+    "sign_out": "Sair da conta",
+    "sign_out_modal_title": "Tem certeza?",
+    "playing_for": "Jogando por {{amount}}",
+    "sign_out_modal_text": "Sua biblioteca de jogos está associada com a sua conta atual. Ao sair, sua biblioteca não aparecerá mais no Hydra e qualquer progresso não será salvo. Deseja continuar?"
   }
 }

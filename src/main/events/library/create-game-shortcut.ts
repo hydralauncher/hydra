@@ -2,6 +2,8 @@ import { gameRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
 import { IsNull, Not } from "typeorm";
 import createDesktopShortcut from "create-desktop-shortcuts";
+import path from "node:path";
+import { app } from "electron";
 
 const createGameShortcut = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -14,10 +16,17 @@ const createGameShortcut = async (
   if (game) {
     const filePath = game.executablePath;
 
-    const options = { filePath, name: game.title };
+    const windowVbsPath = app.isPackaged
+      ? path.join(process.resourcesPath, "windows.vbs")
+      : undefined;
+
+    const options = {
+      filePath,
+      name: game.title,
+    };
 
     return createDesktopShortcut({
-      windows: options,
+      windows: { ...options, VBScriptPath: windowVbsPath },
       linux: options,
       osx: options,
     });
