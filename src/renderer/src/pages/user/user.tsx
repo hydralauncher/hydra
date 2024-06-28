@@ -1,6 +1,6 @@
 import { UserProfile } from "@types";
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { setHeaderTitle } from "@renderer/features";
 import { useAppDispatch } from "@renderer/hooks";
 import { UserSkeleton } from "./user-skeleton";
@@ -12,6 +12,7 @@ import * as styles from "./user.css";
 export const User = () => {
   const { userId } = useParams();
   const [userProfile, setUserProfile] = useState<UserProfile>();
+  const navigate = useNavigate();
 
   const dispatch = useAppDispatch();
 
@@ -20,6 +21,8 @@ export const User = () => {
       if (userProfile) {
         dispatch(setHeaderTitle(userProfile.displayName));
         setUserProfile(userProfile);
+      } else {
+        navigate(-1);
       }
     });
   }, [dispatch, userId]);
