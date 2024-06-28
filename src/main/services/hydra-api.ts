@@ -90,7 +90,21 @@ export class HydraApi {
         return response;
       },
       (error) => {
-        logger.error("response error", error);
+        logger.error(" ---- RESPONSE ERROR -----");
+
+        const { config } = error;
+
+        logger.error(config.method, config.baseURL, config.url, config.headers);
+
+        if (error.response) {
+          logger.error(error.response.status, error.response.data);
+        } else if (error.request) {
+          logger.error(error.request);
+        } else {
+          logger.error("Error", error.message);
+        }
+
+        logger.error(" ----- END RESPONSE ERROR -------");
         return Promise.reject(error);
       }
     );
