@@ -16,7 +16,7 @@ const autoLaunch = async (
   });
 
   if (process.platform == "win32") {
-    const destination = path.join(windowsStartupPath, "hydralauncher.vbs");
+    const destination = path.join(windowsStartupPath, "Hydra.vbs");
 
     if (enabled) {
       const scriptPath = path.join(process.resourcesPath, "hydralauncher.vbs");
