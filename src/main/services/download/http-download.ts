@@ -54,7 +54,9 @@ export class HttpDownload {
 
   private removeTrackerFile() {
     if (fs.existsSync(this.trackerFilePath)) {
-      fs.rm(this.trackerFilePath, () => {});
+      fs.rm(this.trackerFilePath, (err) => {
+        logger.error(err);
+      });
     }
   }
 
