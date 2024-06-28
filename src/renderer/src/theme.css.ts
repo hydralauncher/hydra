@@ -21,4 +21,10 @@ export const vars = createGlobalTheme(":root", {
     body: "14px",
     small: "12px",
   },
+  zIndex: {
+    toast: "5",
+    bottomPanel: "3",
+    titleBar: "4",
+    backdrop: "4",
+  },
 });

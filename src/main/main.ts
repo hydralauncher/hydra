@@ -9,6 +9,8 @@ import { RealDebridClient } from "./services/real-debrid";
 import { fetchDownloadSourcesAndUpdate } from "./helpers";
 import { publishNewRepacksNotifications } from "./services/notifications";
 import { MoreThan } from "typeorm";
+import { HydraApi } from "./services/hydra-api";
+import { uploadGamesBatch } from "./services/library-sync";
 
 startMainLoop();
 
@@ -19,6 +21,10 @@ const loadState = async (userPreferences: UserPreferences | null) => {
 
   if (userPreferences?.realDebridApiToken)
     RealDebridClient.authorize(userPreferences?.realDebridApiToken);
+
+  HydraApi.setupApi().then(async () => {
+    if (HydraApi.isLoggedIn()) uploadGamesBatch();
+  });
 
   const [nextQueueItem] = await downloadQueueRepository.find({
     order: {
