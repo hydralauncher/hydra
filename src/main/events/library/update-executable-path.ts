@@ -1,6 +1,7 @@
 import { gameRepository } from "@main/repository";
 
 import { registerEvent } from "../register-event";
+import { parseExecutablePath } from "../helpers/parse-executable-path";
 
 const updateExecutablePath = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -12,7 +13,7 @@ const updateExecutablePath = async (
       id,
     },
     {
-      executablePath,
+      executablePath: parseExecutablePath(executablePath),
     }
   );
 };

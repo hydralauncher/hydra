@@ -1,5 +1,6 @@
 import { registerEvent } from "../register-event";
-import { DownloadManager, HydraApi, gamesPlaytime } from "@main/services";
+import * as Sentry from "@sentry/electron/main";
+import { HydraApi, TorrentDownloader, gamesPlaytime } from "@main/services";
 import { dataSource } from "@main/data-source";
 import { DownloadQueue, Game, UserAuth } from "@main/entity";
 
@@ -19,8 +20,11 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
       gamesPlaytime.clear();
     });
 
-  /* Disconnects aria2 */
-  DownloadManager.disconnect();
+  /* Removes user from Sentry */
+  Sentry.setUser(null);
+
+  /* Disconnects libtorrent */
+  TorrentDownloader.kill();
 
   await Promise.all([
     databaseOperations,
