@@ -12,10 +12,10 @@ const autoLaunch = async (
   if (!app.isPackaged) return;
 
   if (process.platform == "win32") {
-    const destination = path.join(windowsStartupPath, "hydra.vbs");
+    const destination = path.join(windowsStartupPath, "hydralauncher.vbs");
 
     if (enabled) {
-      const scriptPath = path.join(process.resourcesPath, "hydra.vbs");
+      const scriptPath = path.join(process.resourcesPath, "hydralauncher.vbs");
 
       fs.copyFileSync(scriptPath, destination);
     } else {
