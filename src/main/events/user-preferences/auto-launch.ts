@@ -11,20 +11,22 @@ const autoLaunch = async (
 ) => {
   if (!app.isPackaged) return;
 
+  const appLauncher = new AutoLaunch({
+    name: app.getName(),
+  });
+
   if (process.platform == "win32") {
-    const destination = path.join(windowsStartupPath, "hydralauncher.vbs");
+    const destination = path.join(windowsStartupPath, "Hydra.vbs");
 
     if (enabled) {
       const scriptPath = path.join(process.resourcesPath, "hydralauncher.vbs");
 
       fs.copyFileSync(scriptPath, destination);
     } else {
+      appLauncher.disable().catch();
       fs.rmSync(destination);
     }
   } else {
-    const appLauncher = new AutoLaunch({
-      name: app.getName(),
-    });
     if (enabled) {
       appLauncher.enable().catch();
     } else {
