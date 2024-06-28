@@ -11,7 +11,15 @@ export const getProcesses = async () => {
   if (process.platform == "win32") {
     const binaryPath = app.isPackaged
       ? path.join(process.resourcesPath, "fastlist.exe")
-      : path.join(__dirname, "..", "..", "fastlist.exe");
+      : path.join(
+          __dirname,
+          "..",
+          "..",
+          "node_modules",
+          "ps-list",
+          "vendor",
+          "fastlist-0.3.0-x64.exe"
+        );
 
     const { stdout } = await execFile(binaryPath, {
       maxBuffer: TEN_MEGABYTES,
