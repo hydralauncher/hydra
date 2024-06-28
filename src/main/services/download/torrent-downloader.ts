@@ -1,7 +1,7 @@
 import cp from "node:child_process";
 
 import { Game } from "@main/entity";
-import { RPC_PORT, startTorrentClient } from "./torrent-client";
+import { RPC_PASSWORD, RPC_PORT, startTorrentClient } from "./torrent-client";
 import { gameRepository } from "@main/repository";
 import { DownloadProgress } from "@types";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
@@ -21,6 +21,9 @@ export class TorrentDownloader {
 
   private static rpc = axios.create({
     baseURL: `http://localhost:${RPC_PORT}`,
+    headers: {
+      "x-hydra-rpc-password": RPC_PASSWORD,
+    },
   });
 
   private static spawn(args: StartDownloadPayload) {

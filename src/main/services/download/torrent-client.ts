@@ -1,5 +1,6 @@
 import path from "node:path";
 import cp from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import { app, dialog } from "electron";
 import type { StartDownloadPayload } from "./types";
@@ -12,11 +13,13 @@ const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
 
 export const BITTORRENT_PORT = "5881";
 export const RPC_PORT = "8084";
+export const RPC_PASSWORD = crypto.randomBytes(32).toString("hex");
 
 export const startTorrentClient = (args: StartDownloadPayload) => {
   const commonArgs = [
     BITTORRENT_PORT,
     RPC_PORT,
+    RPC_PASSWORD,
     encodeURIComponent(JSON.stringify(args)),
   ];
 
