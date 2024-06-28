@@ -36,7 +36,8 @@
     "no_downloads_in_progress": "Sem downloads em andamento",
     "downloading_metadata": "Baixando metadados de {{title}}…",
     "downloading": "Baixando {{title}}… ({{percentage}} concluído) - Conclusão {{eta}} - {{speed}}",
-    "calculating_eta": "Baixando {{title}}… ({{percentage}} concluído) - Calculando tempo restante…"
+    "calculating_eta": "Baixando {{title}}… ({{percentage}} concluído) - Calculando tempo restante…",
+    "checking_files": "Verificando arquivos de {{title}}…"
   },
   "game_details": {
     "open_download_options": "Ver opções de download",
@@ -140,7 +141,8 @@
     "downloads_completed": "Completo",
     "queued": "Na fila",
     "no_downloads_title": "Nada por aqui…",
-    "no_downloads_description": "Você ainda não baixou nada pelo Hydra, mas nunca é tarde para começar."
+    "no_downloads_description": "Você ainda não baixou nada pelo Hydra, mas nunca é tarde para começar.",
+    "checking_files": "Verificando arquivos…"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",

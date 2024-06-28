@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import { DownloadManager, HydraApi, gamesPlaytime } from "@main/services";
+import { HydraApi, TorrentDownloader, gamesPlaytime } from "@main/services";
 import { dataSource } from "@main/data-source";
 import { DownloadQueue, Game, UserAuth } from "@main/entity";
 
@@ -19,8 +19,8 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
       gamesPlaytime.clear();
     });
 
-  /* Disconnects aria2 */
-  DownloadManager.disconnect();
+  /* Disconnects libtorrent */
+  TorrentDownloader.kill();
 
   await Promise.all([
     databaseOperations,

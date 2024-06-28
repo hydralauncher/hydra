@@ -23,7 +23,7 @@ export function GameOptionsModal({
 
   const { showSuccessToast, showErrorToast } = useToast();
 
-  const { updateGame, setShowRepacksModal, selectGameExecutable } =
+  const { updateGame, setShowRepacksModal, repacks, selectGameExecutable } =
     useContext(gameDetailsContext);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -156,7 +156,7 @@ export function GameOptionsModal({
             <Button
               onClick={() => setShowRepacksModal(true)}
               theme="outline"
-              disabled={deleting || isGameDownloading}
+              disabled={deleting || isGameDownloading || !repacks.length}
             >
               {t("open_download_options")}
             </Button>
