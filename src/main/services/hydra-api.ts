@@ -160,24 +160,7 @@ export class HydraApi {
           ["id"]
         );
       } catch (err) {
-        if (
-          err instanceof AxiosError &&
-          (err?.response?.status === 401 || err?.response?.status === 403)
-        ) {
-          this.userAuth = {
-            authToken: "",
-            expirationTimestamp: 0,
-            refreshToken: "",
-          };
-
-          userAuthRepository.delete({ id: 1 });
-
-          this.sendSignOutEvent();
-
-          logger.log("user refresh token expired");
-        }
-
-        throw err;
+        this.handleUnauthorizedError(err);
       }
     }
   }
@@ -190,28 +173,54 @@ export class HydraApi {
     };
   }
 
+  private static handleUnauthorizedError = (err) => {
+    if (err instanceof AxiosError && err.response?.status === 401) {
+      this.userAuth = {
+        authToken: "",
+        expirationTimestamp: 0,
+        refreshToken: "",
+      };
+
+      userAuthRepository.delete({ id: 1 });
+
+      this.sendSignOutEvent();
+    }
+
+    throw err;
+  };
+
   static async get(url: string) {
     await this.revalidateAccessTokenIfExpired();
-    return this.instance.get(url, this.getAxiosConfig());
+    return this.instance
+      .get(url, this.getAxiosConfig())
+      .catch(this.handleUnauthorizedError);
   }
 
   static async post(url: string, data?: any) {
     await this.revalidateAccessTokenIfExpired();
-    return this.instance.post(url, data, this.getAxiosConfig());
+    return this.instance
+      .post(url, data, this.getAxiosConfig())
+      .catch(this.handleUnauthorizedError);
   }
 
   static async put(url: string, data?: any) {
     await this.revalidateAccessTokenIfExpired();
-    return this.instance.put(url, data, this.getAxiosConfig());
+    return this.instance
+      .put(url, data, this.getAxiosConfig())
+      .catch(this.handleUnauthorizedError);
   }
 
   static async patch(url: string, data?: any) {
     await this.revalidateAccessTokenIfExpired();
-    return this.instance.patch(url, data, this.getAxiosConfig());
+    return this.instance
+      .patch(url, data, this.getAxiosConfig())
+      .catch(this.handleUnauthorizedError);
   }
 
   static async delete(url: string) {
     await this.revalidateAccessTokenIfExpired();
-    return this.instance.delete(url, this.getAxiosConfig());
+    return this.instance
+      .delete(url, this.getAxiosConfig())
+      .catch(this.handleUnauthorizedError);
   }
 }
