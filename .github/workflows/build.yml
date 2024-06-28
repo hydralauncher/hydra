@@ -22,6 +22,17 @@ jobs:
       - name: Install dependencies
         run: yarn
 
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build with cx_Freeze
+        run: python torrent-client/setup.py build
+
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
         run: yarn build:linux
@@ -29,6 +40,8 @@ jobs:
           MAIN_VITE_ONLINEFIX_USERNAME: ${{ secrets.ONLINEFIX_USERNAME }}
           MAIN_VITE_ONLINEFIX_PASSWORD: ${{ secrets.ONLINEFIX_PASSWORD }}
           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_API_URL }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          MAIN_VITE_SENTRY_DSN: ${{ vars.MAIN_VITE_SENTRY_DSN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Windows
@@ -38,6 +51,8 @@ jobs:
           MAIN_VITE_ONLINEFIX_USERNAME: ${{ secrets.ONLINEFIX_USERNAME }}
           MAIN_VITE_ONLINEFIX_PASSWORD: ${{ secrets.ONLINEFIX_PASSWORD }}
           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_API_URL }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          MAIN_VITE_SENTRY_DSN: ${{ vars.MAIN_VITE_SENTRY_DSN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create artifact

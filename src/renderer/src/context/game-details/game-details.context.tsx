@@ -140,7 +140,7 @@ export function GameDetailsContextProvider({
         filters: [
           {
             name: "Game executable",
-            extensions: ["exe"],
+            extensions: ["exe", "lnk"],
           },
         ],
       })

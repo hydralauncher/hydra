@@ -67,6 +67,19 @@ export function DownloadGroup({
     }
 
     if (isGameDownloading) {
+      if (lastPacket?.isDownloadingMetadata) {
+        return <p>{t("downloading_metadata")}</p>;
+      }
+
+      if (lastPacket?.isCheckingFiles) {
+        return (
+          <>
+            <p>{progress}</p>
+            <p>{t("checking_files")}</p>
+          </>
+        );
+      }
+
       return (
         <>
           <p>{progress}</p>
@@ -110,7 +123,7 @@ export function DownloadGroup({
       );
     }
 
-    return <p>{t(game.status)}</p>;
+    return <p>{t(game.status as string)}</p>;
   };
 
   const getGameActions = (game: LibraryGame) => {

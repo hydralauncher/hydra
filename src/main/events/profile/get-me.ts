@@ -1,4 +1,5 @@
 import { registerEvent } from "../register-event";
+import * as Sentry from "@sentry/electron/main";
 import { HydraApi } from "@main/services";
 import { UserProfile } from "@types";
 import { userAuthRepository } from "@main/repository";
@@ -21,10 +22,12 @@ const getMe = async (
         ["id"]
       );
 
+      Sentry.setUser({ id: me.id, username: me.username });
+
       return me;
     })
     .catch((err) => {
-      logger.error("getMe", err);
+      logger.error("getMe", err.message);
       return userAuthRepository.findOne({ where: { id: 1 } });
     });
 };

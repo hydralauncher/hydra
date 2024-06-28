@@ -49,4 +49,8 @@ import "./profile/update-profile";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => app.getVersion());
+ipcMain.handle(
+  "isPortableVersion",
+  () => process.env.PORTABLE_EXECUTABLE_FILE != null
+);
 ipcMain.handle("getDefaultDownloadsPath", () => defaultDownloadsPath);

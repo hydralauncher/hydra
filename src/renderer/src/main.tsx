@@ -6,6 +6,8 @@ import { Provider } from "react-redux";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { HashRouter, Route, Routes } from "react-router-dom";
 
+import * as Sentry from "@sentry/electron/renderer";
+
 import "@fontsource/fira-mono/400.css";
 import "@fontsource/fira-mono/500.css";
 import "@fontsource/fira-mono/700.css";
@@ -28,6 +30,8 @@ import { store } from "./store";
 
 import * as resources from "@locales";
 import { User } from "./pages/user/user";
+
+Sentry.init({});
 
 i18n
   .use(LanguageDetector)
