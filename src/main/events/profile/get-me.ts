@@ -24,7 +24,7 @@ const getMe = async (
       return me;
     })
     .catch((err) => {
-      logger.error("getMe", err);
+      logger.error("getMe", err.message);
       return userAuthRepository.findOne({ where: { id: 1 } });
     });
 };
