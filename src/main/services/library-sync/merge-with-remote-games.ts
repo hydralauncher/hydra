@@ -64,7 +64,7 @@ export const mergeWithRemoteGames = async () => {
     }
   } catch (err) {
     if (err instanceof AxiosError) {
-      logger.error("getRemoteGames", err.response, err.message);
+      logger.error("getRemoteGames", err.message);
     } else {
       logger.error("getRemoteGames", err);
     }
