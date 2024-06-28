@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -14,6 +14,7 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { SidebarProfile } from "./sidebar-profile";
+import { sortBy } from "lodash-es";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -35,6 +36,10 @@ export function Sidebar() {
 
   const location = useLocation();
 
+  const sortedLibrary = useMemo(() => {
+    return sortBy(library, (game) => game.title);
+  }, [library]);
+
   const { lastPacket, progress } = useDownload();
 
   const { showWarningToast } = useToast();
@@ -43,7 +48,7 @@ export function Sidebar() {
     updateLibrary();
   }, [lastPacket?.game.id, updateLibrary]);
 
-  const isDownloading = library.some(
+  const isDownloading = sortedLibrary.some(
     (game) => game.status === "active" && game.progress !== 1
   );
 
@@ -63,7 +68,7 @@ export function Sidebar() {
 
   const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
     setFilteredLibrary(
-      library.filter((game) =>
+      sortedLibrary.filter((game) =>
         game.title
           .toLowerCase()
           .includes(event.target.value.toLocaleLowerCase())
@@ -72,8 +77,8 @@ export function Sidebar() {
   };
 
   useEffect(() => {
-    setFilteredLibrary(library);
-  }, [library]);
+    setFilteredLibrary(sortedLibrary);
+  }, [sortedLibrary]);
 
   useEffect(() => {
     window.onmousemove = (event: MouseEvent) => {

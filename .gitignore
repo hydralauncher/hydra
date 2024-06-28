@@ -1,6 +1,6 @@
 .vscode
 node_modules
-aria2/
+hydra-download-manager/
 fastlist.exe
 __pycache__
 dist
