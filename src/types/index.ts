@@ -272,6 +272,7 @@ export interface UserDetails {
 export interface UserProfile {
   id: string;
   displayName: string;
+  username: string;
   profileImageUrl: string | null;
   totalPlayTimeInSeconds: number;
   libraryGames: UserGame[];

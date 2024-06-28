@@ -1,4 +1,5 @@
 import { app, BrowserWindow, net, protocol } from "electron";
+import { init } from "@sentry/electron/main";
 import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
@@ -21,6 +22,12 @@ autoUpdater.logger = logger;
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
+
+if (import.meta.env.MAIN_VITE_SENTRY_DSN) {
+  init({
+    dsn: import.meta.env.MAIN_VITE_SENTRY_DSN,
+  });
+}
 
 app.commandLine.appendSwitch("--no-sandbox");
 
