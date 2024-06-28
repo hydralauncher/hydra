@@ -8,7 +8,8 @@ import urllib.parse
 
 torrent_port = sys.argv[1]
 http_port = sys.argv[2]
-initial_download = json.loads(urllib.parse.unquote(sys.argv[3]))
+rpc_password = sys.argv[3]
+initial_download = json.loads(urllib.parse.unquote(sys.argv[4]))
 
 class Downloader:
     def __init__(self):
@@ -67,8 +68,15 @@ downloader = Downloader()
 downloader.start_download(initial_download['game_id'], initial_download['magnet'], initial_download['save_path'])
 
 class Handler(BaseHTTPRequestHandler):
+    rpc_password_header = 'x-hydra-rpc-password'
+
     def do_GET(self):
         if self.path == "/status":
+            if self.headers.get(self.rpc_password_header) != rpc_password:
+                self.send_response(401)
+                self.end_headers()
+                return
+
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
@@ -82,6 +90,11 @@ class Handler(BaseHTTPRequestHandler):
     
     def do_POST(self):
         if self.path == "/action":
+            if self.headers.get(self.rpc_password_header) != rpc_password:
+                self.send_response(401)
+                self.end_headers()
+                return
+
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             data = json.loads(post_data.decode('utf-8'))
