@@ -83,7 +83,7 @@ Puedes unirte a nuestra conversación y discusiones en nuestro canal de [Telegra
 
 ### Haz un fork y clona tu repositorio
 
-1. Rea;iza un fork del repositorio [(Haz click acá para hacer un fork ahora)](https://github.com/hydralauncher/hydra/fork)
+1. Realiza un fork del repositorio [(Haz click acá para hacer un fork ahora)](https://github.com/hydralauncher/hydra/fork)
 2. Clona el código forkeado `git clone https://github.com/tu_nombredeusuario/hydra`
 3. Crea una nueva rama
 4. Sube tus commits
