@@ -20,7 +20,13 @@
     "home": "Início",
     "queued": "{{title}} (Na fila)",
     "game_has_no_executable": "Jogo não possui executável selecionado",
-    "sign_in": "Login"
+    "sign_in": "Login",
+    "sort_by": "Ordenar por",
+    "latest_added": "Adicionado mais recente",
+    "alphabetically": "Alfabeticamente",
+    "last_launched": "Último jogado",
+    "number_of_hours": "Qtd. de horas jogadas",
+    "installed_or_not": "Instalado ou não"
   },
   "header": {
     "search": "Buscar jogos",
