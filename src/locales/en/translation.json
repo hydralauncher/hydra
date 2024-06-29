@@ -20,7 +20,14 @@
     "home": "Home",
     "queued": "{{title}} (Queued)",
     "game_has_no_executable": "Game has no executable selected",
-    "sign_in": "Sign in"
+    "sign_in": "Sign in",
+    "sort_by": "Sort by",
+    "latest_added": "Latest added",
+    "alphabetically": "Alphabetically",
+    "last_launched": "Last launched",
+    "number_of_hours": "Number of hours",
+    "installed_or_not": "Installed or not"
+
   },
   "header": {
     "search": "Search games",

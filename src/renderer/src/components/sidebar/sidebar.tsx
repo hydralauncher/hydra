@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import type { LibraryGame } from "@types";
 
-import { TextField } from "@renderer/components";
+import { SelectField, TextField } from "@renderer/components";
 import { useDownload, useLibrary, useToast } from "@renderer/hooks";
 
 import { routes } from "./routes";
@@ -15,6 +15,7 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { SidebarProfile } from "./sidebar-profile";
 import { sortBy } from "lodash-es";
+import { setLibrary } from "@renderer/features";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -34,11 +35,44 @@ export function Sidebar() {
     initialSidebarWidth ? Number(initialSidebarWidth) : SIDEBAR_INITIAL_WIDTH
   );
 
+  const [ sortParam, setSortParam ] = useState<string>('latest_added');
+  const sortParamOptions = [
+       "latest_added",
+       "alphabetically",
+       "last_launched",
+       "number_of_hours",
+       "installed_or_not",
+  ]
+
+  const handleSortParamChange = (e) => {
+    const selectedOption: string = e.target.value 
+    setSortParam(selectedOption)
+  }
+  
   const location = useLocation();
 
   const sortedLibrary = useMemo(() => {
-    return sortBy(library, (game) => game.title);
-  }, [library]);
+    console.log(library)
+    switch(sortParam){
+      case 'latest_added':
+        return sortBy(library, (game) => game.createdAt);
+        break;
+      case 'alphabetically':
+        return sortBy(library, (game) => game.title);
+        break;
+      case 'last_launched':
+        return sortBy(library, (game) => game.lastTimePlayed);
+        break;
+      case 'number_of_hours':
+        return sortBy(library, (game) => game.playTimeInMilliseconds);
+        break;
+      case 'installed_or_not':
+        return sortBy(library, (game) => game.executablePath !== null);
+        break;
+        default:
+        return sortBy(library, (game) => game.title);
+    }
+  }, [library, sortParam]);
 
   const { lastPacket, progress } = useDownload();
 
@@ -192,6 +226,17 @@ export function Sidebar() {
 
           <section className={styles.section}>
             <small className={styles.sectionTitle}>{t("my_library")}</small>
+
+            <SelectField
+              label={t("sort_by")}
+              value={sortParam}
+              onChange={handleSortParamChange}
+              options={sortParamOptions.map((option) => ({
+                key: option,
+                value: option,
+                label: t(option),
+              }))}
+            />
 
             <TextField
               placeholder={t("filter")}
