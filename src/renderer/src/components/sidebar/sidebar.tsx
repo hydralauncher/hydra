@@ -15,7 +15,6 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { SidebarProfile } from "./sidebar-profile";
 import { sortBy } from "lodash-es";
-import { setLibrary } from "@renderer/features";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -35,41 +34,41 @@ export function Sidebar() {
     initialSidebarWidth ? Number(initialSidebarWidth) : SIDEBAR_INITIAL_WIDTH
   );
 
-  const [ sortParam, setSortParam ] = useState<string>('latest_added');
+  const [sortParam, setSortParam] = useState<string>("latest_added");
   const sortParamOptions = [
-       "latest_added",
-       "alphabetically",
-       "last_launched",
-       "number_of_hours",
-       "installed_or_not",
-  ]
+    "latest_added",
+    "alphabetically",
+    "last_launched",
+    "number_of_hours",
+    "installed_or_not",
+  ];
 
   const handleSortParamChange = (e) => {
-    const selectedOption: string = e.target.value 
-    setSortParam(selectedOption)
-  }
-  
+    const selectedOption: string = e.target.value;
+    setSortParam(selectedOption);
+  };
+
   const location = useLocation();
 
   const sortedLibrary = useMemo(() => {
-    console.log(library)
-    switch(sortParam){
-      case 'latest_added':
+    console.log(library);
+    switch (sortParam) {
+      case "latest_added":
         return sortBy(library, (game) => game.createdAt);
         break;
-      case 'alphabetically':
+      case "alphabetically":
         return sortBy(library, (game) => game.title);
         break;
-      case 'last_launched':
+      case "last_launched":
         return sortBy(library, (game) => game.lastTimePlayed);
         break;
-      case 'number_of_hours':
+      case "number_of_hours":
         return sortBy(library, (game) => game.playTimeInMilliseconds);
         break;
-      case 'installed_or_not':
+      case "installed_or_not":
         return sortBy(library, (game) => game.executablePath !== null);
         break;
-        default:
+      default:
         return sortBy(library, (game) => game.title);
     }
   }, [library, sortParam]);
