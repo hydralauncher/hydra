@@ -130,8 +130,11 @@ export function GameDetailsContextProvider({
     return window.electron.getDefaultDownloadsPath();
   };
 
-  const selectGameExecutable = async () => {
-    const downloadsPath = await getDownloadsPath();
+  const selectGameExecutable = async (
+    gameInstallerFolderIfExists?: string 
+  ) => {
+    const downloadsPath =
+      gameInstallerFolderIfExists ?? (await getDownloadsPath());
 
     return window.electron
       .showOpenDialog({
