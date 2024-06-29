@@ -36,7 +36,8 @@
     "no_downloads_in_progress": "Sin descargas en progreso",
     "downloading_metadata": "Descargando metadatos de {{title}}…",
     "downloading": "Descargando {{title}}… ({{percentage}} completado) - Finalizando {{eta}} - {{speed}}",
-    "calculating_eta": "Descargando {{title}}… ({{percentage}} completado) - Calculando tiempo restante…"
+    "calculating_eta": "Descargando {{title}}… ({{percentage}} completado) - Calculando tiempo restante…",
+    "checking_files": "Verificando archivos de {{title}}… ({{percentage}} completado)"
   },
   "catalogue": {
     "next_page": "Siguiente página",
@@ -144,7 +145,8 @@
     "downloads_completed": "Completado",
     "queued": "En cola",
     "no_downloads_title": "Esto está tan... vacío",
-    "no_downloads_description": "No has descargado nada con Hydra... aún, ¡pero nunca es tarde para comenzar!."
+    "no_downloads_description": "No has descargado nada con Hydra... aún, ¡pero nunca es tarde para comenzar!.",
+    "checking_files": "Verificando archivos…"
   },
   "settings": {
     "downloads_path": "Ruta de descarga",
