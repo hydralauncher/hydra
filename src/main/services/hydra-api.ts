@@ -127,14 +127,12 @@ export class HydraApi {
   }
 
   private static async revalidateAccessTokenIfExpired() {
-    if (!this.userAuth.authToken) {
-      userAuthRepository.delete({ id: 1 });
-      logger.error("user is not logged in");
-      this.sendSignOutEvent();
+    if (!this.isLoggedIn()) {
       throw new Error("user is not logged in");
     }
 
     const now = new Date();
+
     if (this.userAuth.expirationTimestamp < now.getTime()) {
       try {
         const response = await this.instance.post(`/auth/refresh`, {
