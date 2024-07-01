@@ -53,18 +53,7 @@ const addGameToLibrary = async (
 
       const game = await gameRepository.findOne({ where: { objectID } });
 
-      createGame(game!).then((response) => {
-        const {
-          id: remoteId,
-          playTimeInMilliseconds,
-          lastTimePlayed,
-        } = response.data;
-
-        gameRepository.update(
-          { objectID },
-          { remoteId, playTimeInMilliseconds, lastTimePlayed }
-        );
-      });
+      createGame(game!);
     });
 };
 

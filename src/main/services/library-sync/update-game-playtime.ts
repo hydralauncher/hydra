@@ -6,7 +6,9 @@ export const updateGamePlaytime = async (
   deltaInMillis: number,
   lastTimePlayed: Date
 ) => {
-  return HydraApi.put(`/games/${game.remoteId}`, {
+  if (!HydraApi.isLoggedIn()) return;
+
+  HydraApi.put(`/games/${game.remoteId}`, {
     playTimeDeltaInSeconds: Math.trunc(deltaInMillis / 1000),
     lastTimePlayed,
   });

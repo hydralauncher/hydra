@@ -98,6 +98,8 @@ export function App() {
         fetchUserDetails().then((response) => {
           if (response) updateUserDetails(response);
         });
+      } else {
+        clearUserDetails();
       }
     });
   }, [fetchUserDetails, updateUserDetails, dispatch]);

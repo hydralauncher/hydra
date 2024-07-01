@@ -60,12 +60,7 @@ export const watchProcesses = async () => {
         if (game.remoteId) {
           updateGamePlaytime(game, 0, new Date());
         } else {
-          createGame({ ...game, lastTimePlayed: new Date() }).then(
-            (response) => {
-              const { id: remoteId } = response.data;
-              gameRepository.update({ objectID: game.objectID }, { remoteId });
-            }
-          );
+          createGame({ ...game, lastTimePlayed: new Date() });
         }
 
         gamesPlaytime.set(game.id, {
@@ -84,10 +79,7 @@ export const watchProcesses = async () => {
           game.lastTimePlayed!
         );
       } else {
-        createGame(game).then((response) => {
-          const { id: remoteId } = response.data;
-          gameRepository.update({ objectID: game.objectID }, { remoteId });
-        });
+        createGame(game);
       }
     }
   }

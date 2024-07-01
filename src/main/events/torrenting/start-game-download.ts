@@ -95,18 +95,7 @@ const startGameDownload = async (
     },
   });
 
-  createGame(updatedGame!).then((response) => {
-    const {
-      id: remoteId,
-      playTimeInMilliseconds,
-      lastTimePlayed,
-    } = response.data;
-
-    gameRepository.update(
-      { objectID },
-      { remoteId, playTimeInMilliseconds, lastTimePlayed }
-    );
-  });
+  createGame(updatedGame!);
 
   await downloadQueueRepository.delete({ game: { id: updatedGame!.id } });
   await downloadQueueRepository.insert({ game: { id: updatedGame!.id } });
