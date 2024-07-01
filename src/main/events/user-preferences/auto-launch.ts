@@ -6,7 +6,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 const getVbsFileContent = (exePath: string) => {
-  return `Set WshShell = CreateObject("WScript.Shell")
+  return `On Error Resume Next
+Set WshShell = CreateObject("WScript.Shell")
 WshShell.Run """${exePath}""", 0 'Must quote command if it has spaces; must escape quotes
 Set WshShell = Nothing
 `;

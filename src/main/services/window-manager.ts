@@ -212,6 +212,8 @@ export class WindowManager {
     if (process.platform !== "darwin") {
       tray.addListener("click", () => {
         if (this.mainWindow) {
+          WindowManager.mainWindow?.show();
+
           if (WindowManager.mainWindow?.isMinimized())
             WindowManager.mainWindow.restore();
 
