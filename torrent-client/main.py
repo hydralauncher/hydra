@@ -2,7 +2,9 @@ import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 import urllib.parse
+import psutil
 from downloader import Downloader
+from time import time
 
 torrent_port = sys.argv[1]
 http_port = sys.argv[2]
@@ -33,6 +35,15 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/healthcheck":
             self.send_response(200)
             self.end_headers()
+        
+        if self.path == "/process":
+            start_time = time()
+            process_path = set([proc.info["exe"] for proc in psutil.process_iter(['exe'])])
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(list(process_path)).encode('utf-8'))
+            print(time() - start_time)
     
     def do_POST(self):
         if self.path == "/action":
