@@ -57,8 +57,14 @@ export function useUserDetails() {
   );
 
   const fetchUserDetails = useCallback(async () => {
-    return window.electron.getMe();
-  }, []);
+    return window.electron.getMe().then((userDetails) => {
+      if (userDetails == null) {
+        clearUserDetails();
+      }
+
+      return userDetails;
+    });
+  }, [clearUserDetails]);
 
   const patchUser = useCallback(
     async (displayName: string, imageProfileUrl: string | null) => {

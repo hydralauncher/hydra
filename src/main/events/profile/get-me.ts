@@ -8,6 +8,8 @@ import { logger } from "@main/services";
 const getMe = async (
   _event: Electron.IpcMainInvokeEvent
 ): Promise<UserProfile | null> => {
+  if (!HydraApi.isLoggedIn()) return null;
+
   return HydraApi.get(`/profile/me`)
     .then((response) => {
       const me = response.data;
