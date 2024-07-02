@@ -4,7 +4,7 @@ import {
   defineConfig,
   loadEnv,
   swcPlugin,
-  externalizeDepsPlugin
+  externalizeDepsPlugin,
 } from "electron-vite";
 import react from "@vitejs/plugin-react";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
@@ -13,7 +13,7 @@ import svgr from "vite-plugin-svgr";
 var sentryPlugin = sentryVitePlugin({
   authToken: process.env.SENTRY_AUTH_TOKEN,
   org: "hydra-launcher",
-  project: "hydra-launcher"
+  project: "hydra-launcher",
 });
 var electron_vite_config_default = defineConfig(({ mode }) => {
   loadEnv(mode);
@@ -22,37 +22,35 @@ var electron_vite_config_default = defineConfig(({ mode }) => {
       build: {
         sourcemap: true,
         rollupOptions: {
-          external: ["better-sqlite3"]
-        }
+          external: ["better-sqlite3"],
+        },
       },
       resolve: {
         alias: {
           "@main": resolve("src/main"),
           "@locales": resolve("src/locales"),
           "@resources": resolve("resources"),
-          "@shared": resolve("src/shared")
-        }
+          "@shared": resolve("src/shared"),
+        },
       },
-      plugins: [externalizeDepsPlugin(), swcPlugin(), sentryPlugin]
+      plugins: [externalizeDepsPlugin(), swcPlugin(), sentryPlugin],
     },
     preload: {
-      plugins: [externalizeDepsPlugin()]
+      plugins: [externalizeDepsPlugin()],
     },
     renderer: {
       build: {
-        sourcemap: true
+        sourcemap: true,
       },
       resolve: {
         alias: {
           "@renderer": resolve("src/renderer/src"),
           "@locales": resolve("src/locales"),
-          "@shared": resolve("src/shared")
-        }
+          "@shared": resolve("src/shared"),
+        },
       },
-      plugins: [svgr(), react(), vanillaExtractPlugin(), sentryPlugin]
-    }
+      plugins: [svgr(), react(), vanillaExtractPlugin(), sentryPlugin],
+    },
   };
 });
-export {
-  electron_vite_config_default as default
-};
+export { electron_vite_config_default as default };
