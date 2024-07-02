@@ -72,6 +72,10 @@ app.whenReady().then(async () => {
     where: { id: 1 },
   });
 
+  if (userPreferences?.language) {
+    i18n.changeLanguage(userPreferences.language);
+  }
+
   WindowManager.createMainWindow();
   WindowManager.createSystemTray(userPreferences?.language || "en");
 });
