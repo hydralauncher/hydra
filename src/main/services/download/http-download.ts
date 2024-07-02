@@ -5,7 +5,6 @@ import { startAria2 } from "../aria2c";
 import Aria2 from "aria2";
 
 export class HttpDownload {
-  private static gid: string | null = null;
   private static connected = false;
   private static aria2c: ChildProcess | null = null;
 
@@ -30,9 +29,9 @@ export class HttpDownload {
     }
   }
 
-  public static getStatus() {
-    if (this.connected && this.gid) {
-      return this.aria2.call("tellStatus", this.gid);
+  public static getStatus(gid: string) {
+    if (this.connected) {
+      return this.aria2.call("tellStatus", gid);
     }
 
     return null;
@@ -47,21 +46,14 @@ export class HttpDownload {
 
   static async cancelDownload(gid: string) {
     await this.aria2.call("forceRemove", gid);
-    if (this.gid === gid) {
-      this.gid = null;
-    }
   }
 
-  static async pauseDownload() {
-    if (this.gid) {
-      await this.aria2.call("forcePause", this.gid);
-      this.gid = null;
-    }
+  static async pauseDownload(gid: string) {
+    await this.aria2.call("forcePause", gid);
   }
 
   static async resumeDownload(gid: string) {
     await this.aria2.call("unpause", gid);
-    this.gid = gid;
   }
 
   static async startDownload(downloadPath: string, downloadUrl: string) {
@@ -71,7 +63,6 @@ export class HttpDownload {
       dir: downloadPath,
     };
 
-    this.gid = await this.aria2.call("addUri", [downloadUrl], options);
-    return this.gid;
+    return this.aria2.call("addUri", [downloadUrl], options);
   }
 }

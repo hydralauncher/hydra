@@ -63,7 +63,7 @@ export class DownloadManager {
 
   static async pauseDownload() {
     if (this.currentDownloader === Downloader.RealDebrid) {
-      RealDebridDownloader.pauseDownload();
+      await RealDebridDownloader.pauseDownload();
     } else {
       await TorrentDownloader.pauseDownload();
     }
