@@ -51,6 +51,10 @@ export class RealDebridDownloader {
         }
       );
 
+      if (progress === 1) {
+        await this.pauseDownload();
+      }
+
       return {
         numPeers: 0,
         numSeeds: 0,
@@ -67,13 +71,42 @@ export class RealDebridDownloader {
       } as DownloadProgress;
     }
 
+    if (this.realDebridTorrentId && this.downloadingGame) {
+      const torrentInfo = await RealDebridClient.getTorrentInfo(
+        this.realDebridTorrentId
+      );
+
+      const { status } = torrentInfo;
+
+      if (status === "downloaded") {
+        this.startDownload(this.downloadingGame);
+      }
+
+      const progress = torrentInfo.progress / 100;
+      const totalDownloaded = progress * torrentInfo.bytes;
+
+      return {
+        numPeers: 0,
+        numSeeds: torrentInfo.seeders,
+        downloadSpeed: torrentInfo.speed,
+        timeRemaining: calculateETA(
+          torrentInfo.bytes,
+          totalDownloaded,
+          torrentInfo.speed
+        ),
+        isDownloadingMetadata: status === "magnet_conversion",
+      } as DownloadProgress;
+    }
+
     return null;
   }
 
   static async pauseDownload() {
-    HttpDownload.pauseDownload();
+    await HttpDownload.pauseDownload();
+
     this.realDebridTorrentId = null;
     this.downloadingGame = null;
+    this.downloads.delete(this.downloadingGame!.id!);
   }
 
   static async startDownload(game: Game) {
