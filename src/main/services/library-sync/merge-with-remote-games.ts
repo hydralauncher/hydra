@@ -4,61 +4,61 @@ import { steamGamesWorker } from "@main/workers";
 import { getSteamAppAsset } from "@main/helpers";
 
 export const mergeWithRemoteGames = async () => {
-  try {
-    const games = await HydraApi.get("/games");
-
-    for (const game of games.data) {
-      const localGame = await gameRepository.findOne({
-        where: {
-          objectID: game.objectId,
-        },
-      });
-
-      if (localGame) {
-        const updatedLastTimePlayed =
-          localGame.lastTimePlayed == null ||
-          (game.lastTimePlayed &&
-            new Date(game.lastTimePlayed) > localGame.lastTimePlayed)
-            ? game.lastTimePlayed
-            : localGame.lastTimePlayed;
-
-        const updatedPlayTime =
-          localGame.playTimeInMilliseconds < game.playTimeInMilliseconds
-            ? game.playTimeInMilliseconds
-            : localGame.playTimeInMilliseconds;
-
-        gameRepository.update(
-          {
+  return HydraApi.get("/games")
+    .then(async (response) => {
+      for (const game of response.data) {
+        const localGame = await gameRepository.findOne({
+          where: {
             objectID: game.objectId,
-            shop: "steam",
           },
-          {
-            remoteId: game.id,
-            lastTimePlayed: updatedLastTimePlayed,
-            playTimeInMilliseconds: updatedPlayTime,
-          }
-        );
-      } else {
-        const steamGame = await steamGamesWorker.run(Number(game.objectId), {
-          name: "getById",
         });
 
-        if (steamGame) {
-          const iconUrl = steamGame?.clientIcon
-            ? getSteamAppAsset("icon", game.objectId, steamGame.clientIcon)
-            : null;
+        if (localGame) {
+          const updatedLastTimePlayed =
+            localGame.lastTimePlayed == null ||
+            (game.lastTimePlayed &&
+              new Date(game.lastTimePlayed) > localGame.lastTimePlayed)
+              ? game.lastTimePlayed
+              : localGame.lastTimePlayed;
 
-          gameRepository.insert({
-            objectID: game.objectId,
-            title: steamGame?.name,
-            remoteId: game.id,
-            shop: game.shop,
-            iconUrl,
-            lastTimePlayed: game.lastTimePlayed,
-            playTimeInMilliseconds: game.playTimeInMilliseconds,
+          const updatedPlayTime =
+            localGame.playTimeInMilliseconds < game.playTimeInMilliseconds
+              ? game.playTimeInMilliseconds
+              : localGame.playTimeInMilliseconds;
+
+          gameRepository.update(
+            {
+              objectID: game.objectId,
+              shop: "steam",
+            },
+            {
+              remoteId: game.id,
+              lastTimePlayed: updatedLastTimePlayed,
+              playTimeInMilliseconds: updatedPlayTime,
+            }
+          );
+        } else {
+          const steamGame = await steamGamesWorker.run(Number(game.objectId), {
+            name: "getById",
           });
+
+          if (steamGame) {
+            const iconUrl = steamGame?.clientIcon
+              ? getSteamAppAsset("icon", game.objectId, steamGame.clientIcon)
+              : null;
+
+            gameRepository.insert({
+              objectID: game.objectId,
+              title: steamGame?.name,
+              remoteId: game.id,
+              shop: game.shop,
+              iconUrl,
+              lastTimePlayed: game.lastTimePlayed,
+              playTimeInMilliseconds: game.playTimeInMilliseconds,
+            });
+          }
         }
       }
-    }
-  } catch (err) {}
+    })
+    .catch();
 };
