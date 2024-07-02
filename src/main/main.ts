@@ -22,8 +22,8 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   if (userPreferences?.realDebridApiToken)
     RealDebridClient.authorize(userPreferences?.realDebridApiToken);
 
-  HydraApi.setupApi().then(async () => {
-    if (HydraApi.isLoggedIn()) uploadGamesBatch();
+  HydraApi.setupApi().then(() => {
+    uploadGamesBatch();
   });
 
   const [nextQueueItem] = await downloadQueueRepository.find({

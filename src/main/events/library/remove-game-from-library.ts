@@ -19,8 +19,8 @@ const removeGameFromLibrary = async (
 const removeRemoveGameFromLibrary = async (gameId: number) => {
   const game = await gameRepository.findOne({ where: { id: gameId } });
 
-  if (game?.remoteId && HydraApi.isLoggedIn()) {
-    HydraApi.delete(`/games/${game.remoteId}`);
+  if (game?.remoteId) {
+    HydraApi.delete(`/games/${game.remoteId}`).catch();
   }
 };
 

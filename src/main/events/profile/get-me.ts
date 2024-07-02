@@ -1,15 +1,12 @@
 import { registerEvent } from "../register-event";
 import * as Sentry from "@sentry/electron/main";
 import { HydraApi } from "@main/services";
-import { UserProfile } from "@types";
+import { UserNotLoggedInError, UserProfile } from "@types";
 import { userAuthRepository } from "@main/repository";
-import { logger } from "@main/services";
 
 const getMe = async (
   _event: Electron.IpcMainInvokeEvent
 ): Promise<UserProfile | null> => {
-  if (!HydraApi.isLoggedIn()) return null;
-
   return HydraApi.get(`/profile/me`)
     .then((response) => {
       const me = response.data;
@@ -29,7 +26,10 @@ const getMe = async (
       return me;
     })
     .catch((err) => {
-      logger.error("getMe", err.message);
+      if (err instanceof UserNotLoggedInError) {
+        return null;
+      }
+
       return userAuthRepository.findOne({ where: { id: 1 } });
     });
 };
