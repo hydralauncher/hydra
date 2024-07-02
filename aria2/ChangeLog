@@ -1,0 +1,1181 @@
+commit 02f2d0d8472b3c38c29b4dba8c75ebd5fdd2899a (HEAD, tag: release-1.37.0, origin/master, origin/HEAD, master)
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-11-15
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-15
+
+    Update bash_completion
+
+commit 58d06624d2ca8b5a2bf4a6a9fa7ee64612670869
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-11-15
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-15
+
+    Fix python scripts
+
+commit 35f1e326ec68c67401e3b4eaff9514454b841d89
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-11-15
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-15
+
+    Update sphinx_rtd_theme
+
+commit 936d64d555109423a7610c39b49159a7cdb1fbbd
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-11-15
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-15
+
+    Bump package version
+
+commit 2973186e752b2dec086988b611ef4dda3a911c49
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-11-15
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-15
+
+    Update AUTHORS
+
+commit 40f45246f447cf1ff1679f13cc7becdac026b8ce
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-11-15
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-15
+
+    Update NEWS
+
+commit 0d0d606a85c43dd36623e5b0e097932b3df299e9
+Merge: 706d9492 ec899c30
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-11-15
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-11-15
+
+    Merge pull request #2135 from aria2/docker-mingw-revert-cares
+    
+    Dockerfile.mingw: Downgrade c-ares to 1.19.1
+
+commit ec899c30cf495cd0c2a354be022162161a9e732d
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-11-14
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-14
+
+    Dockerfile.mingw: Downgrade c-ares to 1.19.1
+    
+    Downgrade c-ares to 1.19.1 in Dockerfile.mingw because it does not
+    build on x86_64 host.
+
+commit 706d9492f2ad3d53bec9fdca529204ed77bc99c8
+Merge: 08b48dcc 89551e71
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-11-12
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-11-12
+
+    Merge pull request #2132 from aria2/docker-bump-cares
+    
+    Dockerfile: Bump c-ares to 1.21.0
+
+commit 89551e715329bfd93ecac68e90802d03b75479df
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-11-12
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-12
+
+    Dockerfile: Bump c-ares to 1.21.0
+
+commit 08b48dccb6561f588d83923a248d6abdcd023a91
+Merge: aa036123 8cfaceaf
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-11-05
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-05
+
+    Merge branch 'pr1802'
+    
+    This resolves conflicts on https://github.com/aria2/aria2/pull/1802
+    and does fixups.
+
+commit 8cfaceaf43f83b14e3038cf0a9e017ef65e9a9db
+Author:     a1346054 <36859588+a1346054@users.noreply.github.com>
+AuthorDate: 2021-08-21
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-05
+
+    Trim excess whitespace
+
+commit a6cd75a596a5047bd2c0512e54becd3b86061ffd
+Author:     a1346054 <36859588+a1346054@users.noreply.github.com>
+AuthorDate: 2021-09-12
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-05
+
+    Fix spelling
+
+commit aea080969c88c592c47e6986d8e5a15ae3205358
+Author:     a1346054 <36859588+a1346054@users.noreply.github.com>
+AuthorDate: 2021-08-21
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-05
+
+    Fix shellcheck warnings
+
+commit bbef0f04926a4ddc640a409a04e37afcba8cabee
+Author:     a1346054 <36859588+a1346054@users.noreply.github.com>
+AuthorDate: 2021-08-21
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-05
+
+    Use license file from gnu.org
+    
+    Downloaded from:
+    https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+
+commit aa03612397548e80af965b66832c8c60d83586d3
+Merge: 71f5d1be c7a3b6ac
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-11-05
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-11-05
+
+    Merge pull request #1982 from h3xx/update-docs
+    
+    Various documenation fixes and rewords
+
+commit 71f5d1be5f1644cd4b4a6a9f266e6c5ae935dfa2
+Merge: d066c72a 7a490fe4
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-11-03
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-11-03
+
+    Merge pull request #2129 from aria2/fix-non-bt-build-error
+    
+    Fix non bt build error
+
+commit 7a490fe497645b6cc5cc872b197ffb41e278e0f8
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-11-03
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-03
+
+    ci: Check build without bittorrent
+
+commit 94725a037129901fa81fb14e56be529ccbeed9e7
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-11-03
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-03
+
+    Fix build error without bittorrent
+    
+    Amends #2127
+
+commit d066c72a0d5973eff914138b199237ddcec17047
+Merge: d607327e 3330110c
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-11-02
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-11-02
+
+    Merge pull request #2127 from aria2/cap-infohashlen
+    
+    Cap infoHashLength in .aria2 file
+
+commit 3330110cafebd86b231d860cddea2f36ca8e755c
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-11-02
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-02
+
+    Cap infoHashLength in .aria2 file
+    
+    Cap infoHashLength in .aria2 file, and save an extra allocation.
+
+commit d607327ea6dd969c5ccdfa3e4d2693efcddac0b5
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-11-02
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-02
+
+    clang-format
+
+commit df27e60385a3c044d9439b8b0a617d5f39628a10
+Merge: 35a1b0ff 1acfd13c
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-11-02
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-11-02
+
+    Merge pull request #2126 from aria2/cpp-ext
+    
+    Do not require strict C++ mode and update ax_cxx_compile_stdcxx.m4
+
+commit 1acfd13c3569e6052d05b6fc66726471429269a2
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-11-02
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-02
+
+    Do not require strict C++ mode and update ax_cxx_compile_stdcxx.m4
+
+commit 35a1b0ff1d26b25c6b6204c6ce8aea969c658ab8
+Merge: 076dea38 be6d8194
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-11-02
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-11-02
+
+    Merge pull request #2125 from aria2/bump-compiler
+    
+    ci: Bump gcc and clang
+
+commit be6d81948816087374e34672db54c2f5eb50517c
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-11-02
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-11-02
+
+    ci: Bump gcc and clang
+
+commit 076dea3896dba6a8e2acc683818ff60602efa9d4
+Merge: 80d53a9e 8718757e
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-10-09
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-10-09
+
+    Merge pull request #2117 from egorenar/fix-formatr-string-overflow-in-logger-writeheader
+    
+    Logger: Fix format string overflow in writeHeader()
+
+commit 8718757e6c62aeffd81a2ed9fa88e0c05b6412cf
+Author:     Alexander Egorenkov <egorenar-dev@posteo.net>
+AuthorDate: 2023-10-07
+Commit:     Alexander Egorenkov <egorenar-dev@posteo.net>
+CommitDate: 2023-10-07
+
+    Logger: Fix format string overflow in writeHeader()
+    
+    This problem occurred on a 32-bit ARM OpenWRT router running Linux 6.1.
+    The method writeHeader() assumes that the size of struct timeval is 8 bytes
+    which is not true on this machine, it is 16 bytes large. Therefore, first
+    cast tv.tv_usec to the unsigned long type.
+    
+    =========
+    GDB trace
+    =========
+    
+     (gdb) c
+     Continuing.
+    
+     Program received signal SIGSEGV, Segmentation fault.
+     0xb6f4f9b4 in memchr (src=src@entry=0x3b6a, c=c@entry=0x0, n=n@entry=0x7fffffff) at src/string/memchr.c:16
+     16              for (; ((uintptr_t)s & ALIGN) && n && *s != c; s++, n--);
+        0xb6f4f98c <memchr+12>:      00 00 52 e3     cmp     r2, #0
+        0xb6f4f990 <memchr+16>:      00 30 a0 e1     mov     r3, r0
+        0xb6f4f994 <memchr+20>:      05 00 00 1a     bne     0xb6f4f9b0 <memchr+48>
+        0xb6f4f998 <memchr+24>:      32 00 00 ea     b       0xb6f4fa68 <memchr+232>
+        0xb6f4f99c <memchr+28>:      03 00 13 e3     tst     r3, #3
+        0xb6f4f9a0 <memchr+32>:      01 20 42 e2     sub     r2, r2, #1
+        0xb6f4f9a4 <memchr+36>:      36 00 00 0a     beq     0xb6f4fa84 <memchr+260>
+        0xb6f4f9a8 <memchr+40>:      00 00 52 e3     cmp     r2, #0
+        0xb6f4f9ac <memchr+44>:      2d 00 00 0a     beq     0xb6f4fa68 <memchr+232>
+        0xb6f4f9b0 <memchr+48>:      03 00 a0 e1     mov     r0, r3
+     => 0xb6f4f9b4 <memchr+52>:      01 c0 d3 e4     ldrb    r12, [r3], #1
+        0xb6f4f9b8 <memchr+56>:      01 00 5c e1     cmp     r12, r1
+        0xb6f4f9bc <memchr+60>:      f6 ff ff 1a     bne     0xb6f4f99c <memchr+28>
+     (gdb) bt
+     #0  0xb6f4f9b4 in memchr (src=src@entry=0x3b6a, c=c@entry=0x0, n=n@entry=0x7fffffff) at src/string/memchr.c:16
+     #1  0xb6f512b4 in strnlen (s=s@entry=0x3b6a <error: Cannot access memory at address 0x3b6a>, n=n@entry=0x7fffffff) at src/string/strnlen.c:5
+     #2  0xb6f19eb4 in printf_core (f=f@entry=0xb67d35b0, fmt=fmt@entry=0x101856 "%s.%06ld [%s] [%s:%d] ", ap=ap@entry=0xbe8f5a1c, nl_arg=nl_arg@entry=0xbe8f5a48, nl_type=<optimized out>, nl_type@entry=0xbe8f5a20) at
+     src/stdio/vfprintf.c:599
+     #3  0xb6f4b86c in vfprintf (f=0xb67d35b0, fmt=0x101856 "%s.%06ld [%s] [%s:%d] ", ap=...) at src/stdio/vfprintf.c:688
+     #4  0x0001d92c in aria2::OutputFile::printf (this=<optimized out>, format=0x101856 "%s.%06ld [%s] [%s:%d] ") at OutputFile.h:58
+     #5  0x00027910 in aria2::(anonymous namespace)::writeHeader<aria2::OutputFile> (lineNum=0xba, sourceFile=0x10d842 "HttpServer.cc", level=aria2::Logger::A2_INFO, fp=...) at Logger.cc:136
+     #6  aria2::Logger::writeLog (this=0xb67cf78c, level=aria2::Logger::A2_INFO, sourceFile=0x10d842 "HttpServer.cc", lineNum=0xba, msg=0xb6766280 "HTTP Server received request\nPOST /jsonrpc HTTP/1.1\r\nHost: 192.168
+     .1.1:6800\r\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0\r\nAccept: application/json, text/plain, *"..., msg@entry=0x10d842 "HttpServer.cc", trace=trace@entry=0x124806 "") a
+     t Logger.cc:196
+     #7  0x00028bf0 in aria2::Logger::log (this=<optimized out>, level=<optimized out>, sourceFile=<optimized out>, lineNum=<optimized out>, msg=0xb6766280 "HTTP Server received request\nPOST /jsonrpc HTTP/1.1\r\nHost
+     : 192.168.1.1:6800\r\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0\r\nAccept: application/json, text/plain, *"...) at Logger.cc:213
+     #8  0x00081708 in aria2::HttpServer::receiveRequest (this=0xb6774430) at /home/egorenar/Repositories/openwrt-rel/staging_dir/toolchain-arm_cortex-a15+neon-vfpv4_gcc-12.3.0_musl_eabi/arm-openwrt-linux-muslgnueabi/
+     include/c++/12.3.0/bits/basic_string.h:233
+     #9  aria2::HttpServerCommand::execute (this=0xb6772620) at HttpServerCommand.cc:194
+     #10 0x00076de4 in aria2::(anonymous namespace)::executeCommand (commands=..., statusFilter=aria2::Command::STATUS_ALL) at DownloadEngine.cc:139
+     #11 0x0001913c in aria2::DownloadEngine::run (oneshot=0x0, this=0xb67967e0) at DownloadEngine.cc:180
+     #12 aria2::MultiUrlRequestInfo::execute (this=0xb67dee6c) at MultiUrlRequestInfo.cc:361
+     #13 aria2::main (argv=<optimized out>, argc=<optimized out>) at main.cc:78
+     #14 main (argc=<optimized out>, argv=<optimized out>) at main.cc:91
+    
+     (gdb) p tv
+     $13 = {
+       tv_sec = 0x652134fd,
+       tv_usec = 0x3b6a
+     }
+     (gdb) call sizeof(tv)
+     $14 = 0x10
+     (gdb) call sizeof(tv.tv_usec)
+     $15 = 0x8
+     (gdb) call sizeof(long)
+     $16 = 0x4
+     (gdb) call sizeof(unsigned long)
+     $17 = 0x4
+     (gdb) call sizeof(time_t)
+     $18 = 0x8
+    
+    Signed-off-by: Alexander Egorenkov <egorenar-dev@posteo.net>
+
+commit 80d53a9e80606988bf9e26e0a4a8b92048419b83
+Merge: d53735bf 4fdcd22d
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-18
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-18
+
+    Merge pull request #2108 from aria2/memcpy
+    
+    Avoid non-nil argument errors
+
+commit d53735bf49da4904916055b6591d148c743efef6
+Merge: f05deb0c 5047e4a4
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-18
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-18
+
+    Merge pull request #2107 from aria2/dont-close-stderr-stdout
+    
+    Do not close stdout and stderr
+
+commit 4fdcd22d69262a5fc5edf72926cdbe23530cd954
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-18
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-18
+
+    Avoid non-nil argument errors
+    
+    Use std::copy_n and std::fill_n to avoid a non-nil argument error with
+    memcpy/memset.
+
+commit 5047e4a4abd7b43a1c5965db6ef2afbb42063812
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-18
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-18
+
+    Do not close stdout and stderr
+
+commit f05deb0cb25437b538b4efbcb4c631ad79c9d26a
+Merge: f0015d21 4c250f8a
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-18
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-18
+
+    Merge pull request #2106 from aria2/static-check-fix
+    
+    Static check fix
+
+commit 4c250f8a5ddd73e2bb02d8573bc66432c1dca7b2
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-18
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-18
+
+    Bail out if pieceLength is 0
+
+commit 1fd0e52c41eed159d196c256770cac128ff976f2
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-18
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-18
+
+    Call the member function of IOFile
+
+commit c2109a5aca3a68916f6ba0969248e2bc73f49979
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-18
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-18
+
+    Move instead of copy
+
+commit f0015d21754ede375360c4fddb005def7ffac50a
+Merge: dfc607ae 274e5048
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-18
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-18
+
+    Merge pull request #2105 from aria2/update-sphinx_rtd_theme
+    
+    Update sphinx_rtd_theme
+
+commit dfc607ae742b1de6ff6bd5a8b8d30239f94333e9
+Merge: b18d47c6 376a07df
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-18
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-18
+
+    Merge pull request #2104 from aria2/docker-mingw-update-cp
+    
+    Dockerfile.mingw: Update how to get aria2c.exe from a container
+
+commit b18d47c60ba5aa60b3136dcf278b01bf65de3cae
+Merge: e2209a8a 4352a31e
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-18
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-18
+
+    Merge pull request #2103 from aria2/docker-mingw-update-libssh2-flags
+    
+    Dockerfile.mingw: Remove deprecated libssh2 configure flags
+
+commit 274e5048cb3f2a9e00a4a30e50ef1fc6713f9019
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-17
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-17
+
+    Update sphinx_rtd_theme
+
+commit 376a07df00dbb62cad2a8d1caebceb705ca2287d
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-17
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-17
+
+    Dockerfile.mingw: Update how to get aria2c.exe from a container
+
+commit e2209a8ae1fb9ff388e197c3de5ffe41ae1a96fe
+Merge: 506aac6b 6b50ff40
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-17
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-17
+
+    Merge pull request #2102 from aria2/docker-android-add-dpkg-dev
+    
+    Dockerfile.android: Add dpkg-dev for dpkg-architecture
+
+commit 4352a31e6bd293840846149ef471d54d3dcf7dd6
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-17
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-17
+
+    Dockerfile.mingw: Remove deprecated libssh2 configure flags
+
+commit 506aac6b4ebfc93de9bafc40e9b782fd84a07ed7
+Merge: 06e3fdbd 8907b835
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-17
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-17
+
+    Merge pull request #2101 from aria2/docker-mingw-parallel-build
+    
+    Dockerfile.mingw: Parallel build
+
+commit 6b50ff403c6e8c313be4c5502059e541a4f4ab0d
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-17
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-17
+
+    Dockerfile.android: Add dpkg-dev for dpkg-architecture
+
+commit 8907b8355c3fcd99b7754eae466f411f2ba3df24
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-17
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-17
+
+    Dockerfile.mingw: Parallel build
+
+commit 06e3fdbd48ce7e29082a577b5758eb993c526812
+Merge: 80534d86 85142435
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-17
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-17
+
+    Merge pull request #2100 from aria2/release-with-docker
+    
+    Make releases with docker
+
+commit 85142435c60e5ae91fcea4d6a8834bf45bc000b8
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-16
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-17
+
+    Make releases with docker
+    
+    This is slightly different from the current procedure because now
+    android and mingw binaries are built from source code fetched from the
+    remote repository.
+
+commit 80534d869f7395dc8eeaefdb8a1dee25f2136e26
+Merge: 2a809a99 52469aba
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-16
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-16
+
+    Merge pull request #2099 from aria2/fix-overflow
+    
+    Fix overflow
+
+commit 52469aba85173fab77d0e7a992491f60c8ca703a
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-16
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-16
+
+    Fix overflow
+
+commit 2a809a99cd5d9cbd47e43b764a637f5a6d228f2a
+Merge: 3a005725 997efc88
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-16
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-16
+
+    Merge pull request #2098 from aria2/revert-ci-docker-mingw
+    
+    Revert "ci: Build mingw image"
+
+commit 997efc88bb40df7873933de52313c5632e400e38
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-16
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-16
+
+    Revert "ci: Build mingw image"
+    
+    This reverts commit a02ceeb6460eb537d1e48555422b72a8bacde0e4.
+
+commit 3a0057257c415be236bbbcc94f60fbda0e17865a
+Merge: 42b98934 a02ceeb6
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-16
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-16
+
+    Merge pull request #2097 from aria2/ci-docker-mingw
+    
+    ci: Build mingw image
+
+commit 42b98934632a956163058242a98a7cf19bd65ab0
+Merge: dbbd1bfb 81244a16
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-16
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-16
+
+    Merge pull request #2096 from aria2/ci-gnutls
+    
+    ci: Build with gnutls
+
+commit a02ceeb6460eb537d1e48555422b72a8bacde0e4
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-16
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-16
+
+    ci: Build mingw image
+
+commit 81244a16dd4108d722c984c6fddfca80a64df80c
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-16
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-16
+
+    ci: Build with gnutls
+
+commit dbbd1bfbf97548d773e3e7954e6819880ef6bd57
+Merge: dfdbc22b e5d9ad2f
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-16
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-16
+
+    Merge pull request #2095 from aria2/fix-undefined
+    
+    Fix test errors with ubsan
+
+commit e5d9ad2f0bc007089394ceb2bdf9847887d671bc
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-16
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-16
+
+    Fix test errors with ubsan
+
+commit dfdbc22b239311e13facdca926db0aeab9ce28e6
+Merge: ef28a269 66048398
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-16
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-16
+
+    Merge pull request #2094 from aria2/update-wslay
+    
+    Update wslay
+
+commit 66048398e5da0d931659ae7e8c5e9305a26fac78
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-16
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-16
+
+    Update wslay
+
+commit ef28a269aede860f61e737cb7d1bcddcee30a97b
+Merge: ea6d4240 8956c58d
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-16
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-16
+
+    Merge pull request #2093 from aria2/remove-deprecated-unary-binary-fun
+    
+    Remove deprecated std::unary_function and std::binary_function
+
+commit 8956c58d126a4e57e114f69ba6a5961724b7a817
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-16
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-16
+
+    Remove deprecated std::unary_function and std::binary_function
+
+commit ea6d4240d04da8b0046fda3333a92d64dd39d536
+Merge: e5bc00d4 13ba7a29
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-16
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-16
+
+    Merge pull request #2092 from aria2/dockerfile-android
+    
+    Add Dockerfile.android
+
+commit 13ba7a297f0f9fa61b1dd1a99721169b8e41a754
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-16
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-16
+
+    Add Dockerfile.android
+
+commit e5bc00d4494ac6da71e76f8c3511d570d0dfe32f
+Merge: 8ae5ce5d 11fa3e9f
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-16
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-16
+
+    Merge pull request #1822 from FH0/master
+    
+    android(ndk r23) has timegm
+
+commit 8ae5ce5df3acfb049874b5ccede455356479be8e
+Merge: f7b9d0fd fa2eb95a
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-16
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-16
+
+    Merge pull request #2091 from aria2/crypto-lib-rand
+    
+    Prefer random number generator from crypto libraries
+
+commit fa2eb95a001392348017a227bdbaa60b50cb5470
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-16
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-16
+
+    Prefer random number generator from crypto libraries
+
+commit f7b9d0fdd4071061a8f7795c0ca9d18cef5904a9
+Merge: 385ad3a0 5546d733
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-16
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-16
+
+    Merge pull request #2089 from aria2/update-dockerfile-mingw
+    
+    Update Dockerfile.mingw
+
+commit 5546d733229b07a0ecf4ce8ce50cce6b84ec8639
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-15
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-15
+
+    Update Dockerfile.mingw
+
+commit 385ad3a04cb0ede7eb634d06120c3bbdda24f571
+Merge: 13c893b3 ae5e5fdf
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-15
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-15
+
+    Merge pull request #2088 from aria2/fix-libssh2-static-link
+    
+    Fix static link failure against libssh2
+
+commit ae5e5fdf7385164b850bed3ce5237909b6d1f5fd
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2023-09-15
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2023-09-15
+
+    Fix static link failure against libssh2
+
+commit 13c893b34a0ee329887f8621729b86c679d4da81
+Merge: 7e7f549e b850338c
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-15
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-15
+
+    Merge pull request #1804 from nkh0472/patch-1
+    
+    Minor grammar improvements
+
+commit 7e7f549ef1fb3f63495020857802ebf53e43213f
+Merge: b642ee83 56d1e114
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-15
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-15
+
+    Merge pull request #1893 from kelson42/increase-bytearraydiskwriter-max
+    
+    Increase ByteArrayDiskWriter maximum size
+
+commit b642ee838092b82ac938f031746704912a8d3dbc
+Merge: f4cbc7bb a787a804
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2023-09-15
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-09-15
+
+    Merge pull request #2068 from yixinBC/patch-1
+    
+    fix wrong `dht.dat` binary file structure in docs
+
+commit a787a804955ceabf603c4f821542970641a064c5
+Author:     yixinBC <yixinbc@foxmail.com>
+AuthorDate: 2023-06-20
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-06-20
+
+    fix typo
+
+commit 40cabe7519d48f8cbac32eabf420d914094c7e1b
+Author:     yixinBC <yixinbc@foxmail.com>
+AuthorDate: 2023-06-20
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2023-06-20
+
+    fix wrong `dht.dat` binary file structure in docs
+
+commit c7a3b6acb1b7472ce35ccfe76d6b0a47e4a28f6c
+Author:     Dan Church <amphetamachine@gmail.com>
+AuthorDate: 2022-09-27
+Commit:     Dan Church <amphetamachine@gmail.com>
+CommitDate: 2022-09-27
+
+    Fix grammar, rework layout of `--stream-piece-selector` section
+
+commit 54af7ad1c5db44f91872aef6942aee0dcc24c320
+Author:     Dan Church <amphetamachine@gmail.com>
+AuthorDate: 2022-09-27
+Commit:     Dan Church <amphetamachine@gmail.com>
+CommitDate: 2022-09-27
+
+    Fix misspelled word
+
+commit 5436b758b7e278e4b657a9dd6cfc12656ce9f085
+Author:     Dan Church <amphetamachine@gmail.com>
+AuthorDate: 2022-09-27
+Commit:     Dan Church <amphetamachine@gmail.com>
+CommitDate: 2022-09-27
+
+    Re-word warning about undefined behavior
+
+commit 356778932509db83f1fb252034bf2f59b45ce727
+Author:     Dan Church <amphetamachine@gmail.com>
+AuthorDate: 2022-09-27
+Commit:     Dan Church <amphetamachine@gmail.com>
+CommitDate: 2022-09-27
+
+    Concise-ify note
+
+commit e5cd19504543b6968decaa806f281ab5f3d0e33f
+Author:     Dan Church <amphetamachine@gmail.com>
+AuthorDate: 2022-09-27
+Commit:     Dan Church <amphetamachine@gmail.com>
+CommitDate: 2022-09-27
+
+    Change 'meta data' to 'metadata'
+
+commit f4cbc7bb315b1687679e6ab94648c2685a9e9668
+Merge: 8d5989db 15a96209
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2022-08-25
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2022-08-25
+
+    Merge pull request #1969 from himikof/patch-1
+    
+    Fix Metalink4 parsing with foreign namespaces
+
+commit 8d5989db22c8c37ed36ee7b2a9583bdea2f11f59
+Merge: 05f3c479 42038422
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2022-08-25
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2022-08-25
+
+    Merge pull request #1970 from himikof/patch-2
+    
+    Fix undefined behavior/crash in GZipEncoder
+
+commit 42038422f6f43926d4103c27587b5db60ebde747
+Author:     Nikita Ofitserov <himikof@gmail.com>
+AuthorDate: 2022-08-24
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2022-08-24
+
+    Fix undefined behavior/crash in GZipEncoder
+    
+    When the output buffer is full, outbuf[produced] references past the buffer end, leading to UB and a possible assertion failure.
+    Fixes #1968, #1964
+
+commit 15a96209cd0a25fea4398b8c6f6ccd3a488829c9
+Author:     Nikita Ofitserov <himikof@gmail.com>
+AuthorDate: 2022-08-23
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2022-08-23
+
+    Fix Metalink4 parsing with foreign namespaces
+    
+    Rename local checkNsUri helper function to make boolean conditions easily readable,
+    as the issue was not apparent with the old helper function name.
+
+commit 05f3c479883b3eed34880fbdbd9ec79c535d369c
+Merge: a433352b 182f4f9c
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2022-08-19
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2022-08-19
+
+    Merge pull request #1943 from hmartinez82/FixBuild
+    
+    Add missing <array> include to WinTLSSession.h
+
+commit 182f4f9ca2c2512b930937ce5ebfd7af80a2d991
+Author:     Hernan Martinez <hernan.c.martinez@gmail.com>
+AuthorDate: 2022-06-23
+Commit:     Hernan Martinez <hernan.c.martinez@gmail.com>
+CommitDate: 2022-06-23
+
+    Add missing <array>
+
+commit a433352b675bd6a258ad97c4f339055f08c443ed
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2022-05-22
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2022-05-22
+
+    Move runs-on under strategy
+
+commit 190ce569e44b0cf95418379afc94890bcdf607fe
+Merge: 73cf6d11 e0ef02d2
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2022-05-22
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2022-05-22
+
+    Merge pull request #1929 from aria2/bump-ubuntu
+    
+    Bump workflow ubuntu
+
+commit e0ef02d243f7ef721757433b3e9c044f3cf6aa2c
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2022-05-22
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2022-05-22
+
+    Bump workflow ubuntu
+
+commit 73cf6d110d9868838776265da51329ff28f5f0b2
+Merge: d4b96e24 2c21331a
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2022-05-15
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2022-05-15
+
+    Merge pull request #1923 from aria2/bump-actions
+    
+    Bump actions
+
+commit d4b96e24ed969943b1b693678c00a22c80916e13
+Merge: 0065c179 31b773de
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2022-05-15
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2022-05-15
+
+    Merge pull request #1924 from aria2/fix-nproc
+    
+    Deal with missing nproc on macos
+
+commit 31b773de54be7f2c33b1c3f6cfcda2274980e504
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2022-05-15
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2022-05-15
+
+    Deal with missing nproc on macos
+
+commit 2c21331ab6c946564f70476ac3df2448311be750
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2022-05-15
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2022-05-15
+
+    Bump macos
+
+commit 9e412c9dc6543b52bf95a7f6a6109be1b1d8c662
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2022-05-15
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2022-05-15
+
+    Bump actions/checkout to v3
+
+commit 0065c179ca9a17de05eb250a18496167e4996547
+Merge: 851a74f5 ba3396f7
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2022-04-09
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2022-04-09
+
+    Merge pull request #1907 from aria2/getentropy
+    
+    Better entropy for getRandomBytes
+
+commit ba3396f7bb210b53fb940f274a0622ad9799545c
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2022-04-09
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2022-04-09
+
+    Better entropy for getRandomBytes
+
+commit 851a74f53e6128019dbfff7d410e91c9d4d03799
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2022-04-09
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2022-04-09
+
+    Fix configure
+
+commit 893c096aa681e24e84b1ea848d112cbb7ab70d91
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2022-04-09
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2022-04-09
+
+    Update configure.ac
+
+commit 55f4bc139a08624b73e543cb9b4fc4d8ba311c11
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2022-04-09
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2022-04-09
+
+    nproc
+
+commit 998f203288e399d371a91c6ecfb22f9ce2b26105
+Merge: 37a7419f ba36a38a
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2022-04-08
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2022-04-08
+
+    Merge pull request #1905 from aria2/bt-bencode-allow-empty-dict-name
+    
+    Allow empty dist name in bencode which is needed for hybrid torrent
+
+commit ba36a38a6c4be38fe4e09cc95a40b58a48daed79
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2022-04-08
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2022-04-08
+
+    Allow empty dist name in bencode which is needed for hybrid torrent
+
+commit 37a7419fed8e6035a77c30bef456e36cbfd60245
+Merge: 85733e59 0dcd4e9f
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2022-04-07
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2022-04-07
+
+    Merge pull request #1902 from ITriskTI/patch-1
+    
+    Update aria2c.rst
+
+commit 0dcd4e9f29c79c4b84f9ac1cb39ebb8ace0fb141
+Author:     ITriskTI <ITriskTI@gmail.com>
+AuthorDate: 2022-04-07
+Commit:     ITriskTI <ITriskTI@gmail.com>
+CommitDate: 2022-04-07
+
+    Update aria2c.rst
+
+commit 85733e59809a04218ebbfbf4ed9e99a8208e2597
+Merge: c651d563 839dd2ca
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2022-04-03
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2022-04-03
+
+    Merge branch 'Frefreak-master'
+
+commit 839dd2caf77863503d18252a1aff16cd1dde274c
+Author:     carsonzhu <carsonzhu@tencent.com>
+AuthorDate: 2022-04-02
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2022-04-03
+
+    add no-want-digest-header option
+
+commit c651d563d079f54c47ab8dd87061f662881a2e19
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2022-04-03
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2022-04-03
+
+    Fix a failed test
+
+commit d8c5f74c1cae336601ece560e4476cc4f4680568
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2022-04-03
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2022-04-03
+
+    Run workflow on a pull request
+
+commit aaf090d1a6cd437d1c84f08974ca650540ae76d8
+Merge: fee8e41d de99fc17
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2022-04-03
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2022-04-03
+
+    Merge pull request #1877 from h3xx/fix-doc-typo
+    
+    Fix typo in documentation, --help text
+
+commit fee8e41d85ef66ff8c8a73735da9b71d53ec226d
+Merge: c546fa49 6c965892
+Author:     Tatsuhiro Tsujikawa <404610+tatsuhiro-t@users.noreply.github.com>
+AuthorDate: 2022-04-03
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2022-04-03
+
+    Merge pull request #1824 from richardnias/fix-accept-encoding-docs
+    
+    Fix header in --http-accept-gzip documentation
+
+commit 56d1e1146b77e21423c1a3bb02e4080ed84d1fc0
+Author:     Emmanuel Engelhart <kelson@kiwix.org>
+AuthorDate: 2022-03-05
+Commit:     Emmanuel Engelhart <kelson@kiwix.org>
+CommitDate: 2022-03-05
+
+    Increase ByteArrayDiskWriter maximum size
+
+commit de99fc170e1a40bbf1158c931bb334e6620b994d
+Author:     Dan Church <amphetamachine@gmail.com>
+AuthorDate: 2022-01-19
+Commit:     Dan Church <amphetamachine@gmail.com>
+CommitDate: 2022-01-19
+
+    Fix typo
+
+commit c546fa492c752d0594312ee1a2ac8bb4763c40f2
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2021-10-30
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2021-10-30
+
+    clang-format-12
+
+commit 177939d6aca9b2c77d8ce526aa22f220de3fefcc
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2021-10-30
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2021-10-30
+
+    Cosmetic change
+
+commit c197373db788320c169ae2e83b2e767be84a369e
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2021-10-30
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2021-10-30
+
+    Simplify
+
+commit 869aae82648cfe9f4a7dac2bd912240a71dfdc70
+Author:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+AuthorDate: 2021-10-28
+Commit:     Tatsuhiro Tsujikawa <tatsuhiro.t@gmail.com>
+CommitDate: 2021-10-29
+
+    Build with OpenSSL 3.0.0
+
+commit 6c9658924421803c868da3faea47b1c1d9dc082c
+Author:     Richard Nias <richardnias@gmail.com>
+AuthorDate: 2021-09-17
+Commit:     Richard Nias <richardnias@gmail.com>
+CommitDate: 2021-09-17
+
+    Fix header in --http-accept-gzip documentation
+
+commit 11fa3e9fe4234b4f753b53cff3420252748c9a7f
+Author:     FH0 <32861476+FH0@users.noreply.github.com>
+AuthorDate: 2021-09-16
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2021-09-16
+
+    android(ndk r23) has timegm
+
+commit b850338c448fa59c761af1b443fe9611e1d117dc
+Author:     nkh0472 <nkh0472@hotmail.com>
+AuthorDate: 2021-08-22
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2021-08-22
+
+    Minor grammar improvements
+    
+    Fix a typo 'Anroid' --> 'Android';
+    Minor grammar improvements.
