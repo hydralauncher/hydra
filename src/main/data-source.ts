@@ -27,7 +27,6 @@ export const createDataSource = (
       DownloadQueue,
       UserAuth,
     ],
-    synchronize: true,
     database: databasePath,
     ...options,
   });
