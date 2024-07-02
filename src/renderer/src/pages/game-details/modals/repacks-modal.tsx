@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import parseTorrent from "parse-torrent";
 
@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "@renderer/context";
 import { Downloader } from "@shared";
+import { orderBy } from "lodash-es";
 
 export interface RepacksModalProps {
   visible: boolean;
@@ -38,16 +39,20 @@ export function RepacksModal({
 
   const { t } = useTranslation("game_details");
 
+  const sortedRepacks = useMemo(() => {
+    return orderBy(repacks, (repack) => repack.uploadDate, "desc");
+  }, [repacks]);
+
   const getInfoHash = useCallback(async () => {
     const torrent = await parseTorrent(game?.uri ?? "");
     if (torrent.infoHash) setInfoHash(torrent.infoHash);
   }, [game]);
 
   useEffect(() => {
-    setFilteredRepacks(repacks);
+    setFilteredRepacks(sortedRepacks);
 
     if (game?.uri) getInfoHash();
-  }, [repacks, visible, game, getInfoHash]);
+  }, [sortedRepacks, visible, game, getInfoHash]);
 
   const handleRepackClick = (repack: GameRepack) => {
     setRepack(repack);
@@ -58,7 +63,7 @@ export function RepacksModal({
     const term = event.target.value.toLocaleLowerCase();
 
     setFilteredRepacks(
-      repacks.filter((repack) => {
+      sortedRepacks.filter((repack) => {
         const lowerCaseTitle = repack.title.toLowerCase();
         const lowerCaseRepacker = repack.repacker.toLowerCase();
 
