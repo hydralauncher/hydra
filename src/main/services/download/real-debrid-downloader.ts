@@ -35,40 +35,47 @@ export class RealDebridDownloader {
   }
 
   public static async getStatus() {
-    const status = await HttpDownload.getStatus();
+    if (this.downloadingGame) {
+      const gid = this.downloads.get(this.downloadingGame.id)!;
+      const status = await HttpDownload.getStatus(gid);
 
-    if (status) {
-      const progress =
-        Number(status.completedLength) / Number(status.totalLength);
+      if (status) {
+        const progress =
+          Number(status.completedLength) / Number(status.totalLength);
 
-      await gameRepository.update(
-        { id: this.downloadingGame!.id },
-        {
-          bytesDownloaded: Number(status.completedLength),
-          fileSize: Number(status.totalLength),
+        await gameRepository.update(
+          { id: this.downloadingGame!.id },
+          {
+            bytesDownloaded: Number(status.completedLength),
+            fileSize: Number(status.totalLength),
+            progress,
+            status: "active",
+          }
+        );
+
+        const result = {
+          numPeers: 0,
+          numSeeds: 0,
+          downloadSpeed: Number(status.downloadSpeed),
+          timeRemaining: calculateETA(
+            Number(status.totalLength),
+            Number(status.completedLength),
+            Number(status.downloadSpeed)
+          ),
+          isDownloadingMetadata: false,
+          isCheckingFiles: false,
           progress,
-          status: "active",
+          gameId: this.downloadingGame!.id,
+        } as DownloadProgress;
+
+        if (progress === 1) {
+          this.downloads.delete(this.downloadingGame.id);
+          this.realDebridTorrentId = null;
+          this.downloadingGame = null;
         }
-      );
 
-      if (progress === 1) {
-        await this.pauseDownload();
+        return result;
       }
-
-      return {
-        numPeers: 0,
-        numSeeds: 0,
-        downloadSpeed: Number(status.downloadSpeed),
-        timeRemaining: calculateETA(
-          Number(status.totalLength),
-          Number(status.completedLength),
-          Number(status.downloadSpeed)
-        ),
-        isDownloadingMetadata: false,
-        isCheckingFiles: false,
-        progress,
-        gameId: this.downloadingGame!.id,
-      } as DownloadProgress;
     }
 
     if (this.realDebridTorrentId && this.downloadingGame) {
@@ -102,21 +109,31 @@ export class RealDebridDownloader {
   }
 
   static async pauseDownload() {
-    await HttpDownload.pauseDownload();
+    const gid = this.downloads.get(this.downloadingGame!.id!);
+    if (gid) {
+      await HttpDownload.pauseDownload(gid);
+    }
 
     this.realDebridTorrentId = null;
     this.downloadingGame = null;
-    this.downloads.delete(this.downloadingGame!.id!);
   }
 
   static async startDownload(game: Game) {
-    this.realDebridTorrentId = await RealDebridClient.getTorrentId(game!.uri!);
     this.downloadingGame = game;
+
+    if (this.downloads.has(game.id)) {
+      await this.resumeDownload(game.id!);
+
+      return;
+    }
+
+    this.realDebridTorrentId = await RealDebridClient.getTorrentId(game!.uri!);
 
     const downloadUrl = await this.getRealDebridDownloadUrl();
 
     if (downloadUrl) {
       this.realDebridTorrentId = null;
+
       const gid = await HttpDownload.startDownload(
         game.downloadPath!,
         downloadUrl
@@ -128,9 +145,18 @@ export class RealDebridDownloader {
 
   static async cancelDownload(gameId: number) {
     const gid = this.downloads.get(gameId);
+
     if (gid) {
       await HttpDownload.cancelDownload(gid);
       this.downloads.delete(gameId);
+    }
+  }
+
+  static async resumeDownload(gameId: number) {
+    const gid = this.downloads.get(gameId);
+
+    if (gid) {
+      await HttpDownload.resumeDownload(gid);
     }
   }
 }

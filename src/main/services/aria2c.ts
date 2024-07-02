@@ -14,8 +14,6 @@ export const startAria2 = () => {
       "--rpc-listen-all",
       "--file-allocation=none",
       "--allow-overwrite=true",
-      "--disable-bittorrent",
-      "--disable-metalink",
     ],
     { stdio: "inherit", windowsHide: true }
   );
