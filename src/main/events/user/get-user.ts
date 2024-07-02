@@ -9,8 +9,6 @@ const getUser = async (
   _event: Electron.IpcMainInvokeEvent,
   userId: string
 ): Promise<UserProfile | null> => {
-  if (!HydraApi.isLoggedIn()) return null;
-
   try {
     const response = await HydraApi.get(`/user/${userId}`);
     const profile = response.data;

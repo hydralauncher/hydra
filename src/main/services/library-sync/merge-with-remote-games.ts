@@ -2,8 +2,6 @@ import { gameRepository } from "@main/repository";
 import { HydraApi } from "../hydra-api";
 import { steamGamesWorker } from "@main/workers";
 import { getSteamAppAsset } from "@main/helpers";
-import { logger } from "../logger";
-import { AxiosError } from "axios";
 
 export const mergeWithRemoteGames = async () => {
   try {
@@ -62,11 +60,5 @@ export const mergeWithRemoteGames = async () => {
         }
       }
     }
-  } catch (err) {
-    if (err instanceof AxiosError) {
-      logger.error("getRemoteGames", err.message);
-    } else {
-      logger.error("getRemoteGames", err);
-    }
-  }
+  } catch (err) {}
 };

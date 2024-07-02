@@ -26,9 +26,11 @@ const updateProfile = async (
   _event: Electron.IpcMainInvokeEvent,
   displayName: string,
   newProfileImagePath: string | null
-): Promise<UserProfile> => {
+) => {
   if (!newProfileImagePath) {
-    return (await patchUserProfile(displayName)).data;
+    return patchUserProfile(displayName).then(
+      (response) => response.data as UserProfile
+    );
   }
 
   const stats = fs.statSync(newProfileImagePath);
@@ -51,11 +53,11 @@ const updateProfile = async (
       });
       return profileImageUrl;
     })
-    .catch(() => {
-      return undefined;
-    });
+    .catch(() => undefined);
 
-  return (await patchUserProfile(displayName, profileImageUrl)).data;
+  return patchUserProfile(displayName, profileImageUrl).then(
+    (response) => response.data as UserProfile
+  );
 };
 
 registerEvent("updateProfile", updateProfile);

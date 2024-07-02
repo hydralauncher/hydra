@@ -290,3 +290,10 @@ export interface DownloadSource {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export class UserNotLoggedInError extends Error {
+  constructor() {
+    super("user not logged in");
+    this.name = "UserNotLoggedInError";
+  }
+}

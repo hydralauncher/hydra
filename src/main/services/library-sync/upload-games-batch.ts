@@ -2,9 +2,6 @@ import { gameRepository } from "@main/repository";
 import { chunk } from "lodash-es";
 import { IsNull } from "typeorm";
 import { HydraApi } from "../hydra-api";
-import { logger } from "../logger";
-import { AxiosError } from "axios";
-
 import { mergeWithRemoteGames } from "./merge-with-remote-games";
 import { WindowManager } from "../window-manager";
 
@@ -27,18 +24,12 @@ export const uploadGamesBatch = async () => {
             lastTimePlayed: game.lastTimePlayed,
           };
         })
-      );
+      ).catch();
     }
 
     await mergeWithRemoteGames();
 
     if (WindowManager.mainWindow)
       WindowManager.mainWindow.webContents.send("on-library-batch-complete");
-  } catch (err) {
-    if (err instanceof AxiosError) {
-      logger.error("uploadGamesBatch", err.response, err.message);
-    } else {
-      logger.error("uploadGamesBatch", err);
-    }
-  }
+  } catch (err) {}
 };

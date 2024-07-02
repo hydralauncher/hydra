@@ -93,14 +93,8 @@ export function App() {
       dispatch(setProfileBackground(profileBackground));
     }
 
-    window.electron.isUserLoggedIn().then((isLoggedIn) => {
-      if (isLoggedIn) {
-        fetchUserDetails().then((response) => {
-          if (response) updateUserDetails(response);
-        });
-      } else {
-        clearUserDetails();
-      }
+    fetchUserDetails().then((response) => {
+      if (response) updateUserDetails(response);
     });
   }, [fetchUserDetails, updateUserDetails, dispatch]);
 
