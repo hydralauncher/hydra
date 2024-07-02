@@ -3,6 +3,7 @@ productName: Hydra
 directories:
   buildResources: build
 extraResources:
+  - aria2
   - hydra-download-manager
   - seeds
   - from: node_modules/ps-list/vendor/fastlist-0.3.0-x64.exe

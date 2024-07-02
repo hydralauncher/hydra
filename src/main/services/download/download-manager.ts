@@ -84,7 +84,7 @@ export class DownloadManager {
 
   static async cancelDownload(gameId: number) {
     if (this.currentDownloader === Downloader.RealDebrid) {
-      RealDebridDownloader.cancelDownload();
+      RealDebridDownloader.cancelDownload(gameId);
     } else {
       TorrentDownloader.cancelDownload(gameId);
     }
