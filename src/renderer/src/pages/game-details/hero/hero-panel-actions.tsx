@@ -122,7 +122,7 @@ export function HeroPanelActions() {
         <Button
           onClick={() => setShowGameOptionsModal(true)}
           theme="outline"
-          disabled={deleting || isGameRunning}
+          disabled={deleting}
           className={styles.heroPanelAction}
         >
           <GearIcon />

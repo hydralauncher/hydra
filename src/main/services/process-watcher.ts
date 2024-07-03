@@ -1,11 +1,9 @@
-import path from "node:path";
-
 import { IsNull, Not } from "typeorm";
 import { gameRepository } from "@main/repository";
-import { getProcesses } from "@main/helpers";
 import { WindowManager } from "./window-manager";
 import { createGame, updateGamePlaytime } from "./library-sync";
 import { GameRunning } from "@types";
+import { PythonInstance } from "./download";
 
 export const gamesPlaytime = new Map<
   number,
@@ -21,23 +19,13 @@ export const watchProcesses = async () => {
   });
 
   if (games.length === 0) return;
-
-  const processes = await getProcesses();
+  const processes = await PythonInstance.getProcessList();
 
   for (const game of games) {
     const executablePath = game.executablePath!;
-    const basename = path.win32.basename(executablePath);
-    const basenameWithoutExtension = path.win32.basename(
-      executablePath,
-      path.extname(executablePath)
-    );
 
     const gameProcess = processes.find((runningProcess) => {
-      if (process.platform === "win32") {
-        return runningProcess.name === basename;
-      }
-
-      return [basename, basenameWithoutExtension].includes(runningProcess.name);
+      return executablePath == runningProcess.exe;
     });
 
     if (gameProcess) {
