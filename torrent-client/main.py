@@ -44,17 +44,17 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 return
             
-            process_path = list(set([proc.info["exe"] for proc in psutil.process_iter(['exe'])]))
+            process_list = [proc.info for proc in psutil.process_iter(['exe', 'pid', 'username'])]
 
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
 
-            self.wfile.write(json.dumps(process_path).encode('utf-8'))
+            self.wfile.write(json.dumps(process_list).encode('utf-8'))
     
     def do_POST(self):
         global downloader
-        
+
         if self.path == "/action":
             if self.headers.get(self.rpc_password_header) != rpc_password:
                 self.send_response(401)

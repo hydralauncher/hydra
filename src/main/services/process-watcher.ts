@@ -19,14 +19,13 @@ export const watchProcesses = async () => {
   });
 
   if (games.length === 0) return;
-
-  const processes = await RPCManager.getProccessList();
+  const processes = await RPCManager.getProcessList();
 
   for (const game of games) {
     const executablePath = game.executablePath!;
 
     const gameProcess = processes.find((runningProcess) => {
-      return executablePath == runningProcess;
+      return executablePath == runningProcess.exe;
     });
 
     if (gameProcess) {

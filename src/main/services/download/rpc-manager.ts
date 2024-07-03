@@ -17,6 +17,7 @@ import {
   PauseDownloadPayload,
   LibtorrentStatus,
   LibtorrentPayload,
+  ProcessPayload,
 } from "./types";
 
 export class RPCManager {
@@ -49,8 +50,10 @@ export class RPCManager {
     }
   }
 
-  public static async getProccessList() {
-    return (await this.rpc.get<string[] | null>("/process-list")).data || [];
+  public static async getProcessList() {
+    return (
+      (await this.rpc.get<ProcessPayload[] | null>("/process-list")).data || []
+    );
   }
 
   public static async getStatus() {
