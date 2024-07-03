@@ -1,39 +1,45 @@
-import path from "node:path";
-
 import { gameRepository } from "@main/repository";
-import { getProcesses } from "@main/helpers";
-
 import { registerEvent } from "../register-event";
+import { PythonInstance, logger } from "@main/services";
+import sudo from "sudo-prompt";
+import { app } from "electron";
+
+const getKillCommand = (pid: number) => {
+  if (process.platform == "win32") {
+    return `taskkill /PID ${pid}`;
+  }
+
+  return `kill -9 ${pid}`;
+};
 
 const closeGame = async (
   _event: Electron.IpcMainInvokeEvent,
   gameId: number
 ) => {
-  const processes = await getProcesses();
+  const processes = await PythonInstance.getProcessList();
   const game = await gameRepository.findOne({
     where: { id: gameId, isDeleted: false },
   });
 
-  if (!game) return false;
-
-  const executablePath = game.executablePath!;
-
-  const basename = path.win32.basename(executablePath);
-  const basenameWithoutExtension = path.win32.basename(
-    executablePath,
-    path.extname(executablePath)
-  );
+  if (!game) return;
 
   const gameProcess = processes.find((runningProcess) => {
-    if (process.platform === "win32") {
-      return runningProcess.name === basename;
-    }
-
-    return [basename, basenameWithoutExtension].includes(runningProcess.name);
+    return runningProcess.exe === game.executablePath;
   });
 
-  if (gameProcess) return process.kill(gameProcess.pid);
-  return false;
+  if (gameProcess) {
+    try {
+      process.kill(gameProcess.pid);
+    } catch (err) {
+      sudo.exec(
+        getKillCommand(gameProcess.pid),
+        { name: app.getName() },
+        (error, _stdout, _stderr) => {
+          logger.error(error);
+        }
+      );
+    }
+  }
 };
 
 registerEvent("closeGame", closeGame);
