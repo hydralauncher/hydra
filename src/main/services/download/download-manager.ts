@@ -1,6 +1,6 @@
 import { Game } from "@main/entity";
 import { Downloader } from "@shared";
-import { RPCManager } from "./rpc-manager";
+import { PythonInstance } from "./python-instance";
 import { WindowManager } from "../window-manager";
 import { downloadQueueRepository, gameRepository } from "@main/repository";
 import { publishDownloadCompleteNotification } from "../notifications";
@@ -16,7 +16,7 @@ export class DownloadManager {
     if (this.currentDownloader === Downloader.RealDebrid) {
       status = await RealDebridDownloader.getStatus();
     } else {
-      status = await RPCManager.getStatus();
+      status = await PythonInstance.getStatus();
     }
 
     if (status) {
@@ -65,7 +65,7 @@ export class DownloadManager {
     if (this.currentDownloader === Downloader.RealDebrid) {
       RealDebridDownloader.pauseDownload();
     } else {
-      await RPCManager.pauseDownload();
+      await PythonInstance.pauseDownload();
     }
 
     WindowManager.mainWindow?.setProgressBar(-1);
@@ -77,7 +77,7 @@ export class DownloadManager {
       RealDebridDownloader.startDownload(game);
       this.currentDownloader = Downloader.RealDebrid;
     } else {
-      RPCManager.startDownload(game);
+      PythonInstance.startDownload(game);
       this.currentDownloader = Downloader.Torrent;
     }
   }
@@ -86,7 +86,7 @@ export class DownloadManager {
     if (this.currentDownloader === Downloader.RealDebrid) {
       RealDebridDownloader.cancelDownload();
     } else {
-      RPCManager.cancelDownload(gameId);
+      PythonInstance.cancelDownload(gameId);
     }
 
     WindowManager.mainWindow?.setProgressBar(-1);
@@ -98,7 +98,7 @@ export class DownloadManager {
       RealDebridDownloader.startDownload(game);
       this.currentDownloader = Downloader.RealDebrid;
     } else {
-      RPCManager.startDownload(game);
+      PythonInstance.startDownload(game);
       this.currentDownloader = Downloader.Torrent;
     }
   }

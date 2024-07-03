@@ -1,7 +1,7 @@
 import {
   DownloadManager,
   RepacksManager,
-  RPCManager,
+  PythonInstance,
   startMainLoop,
 } from "./services";
 import {
@@ -41,7 +41,7 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   if (nextQueueItem?.game.status === "active") {
     DownloadManager.startDownload(nextQueueItem.game);
   } else {
-    RPCManager.spawn();
+    PythonInstance.spawn();
   }
 
   startMainLoop();

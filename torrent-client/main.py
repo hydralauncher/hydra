@@ -8,11 +8,12 @@ from downloader import Downloader
 torrent_port = sys.argv[1]
 http_port = sys.argv[2]
 rpc_password = sys.argv[3]
+start_download_payload = sys.argv[4]
 
 downloader = None
 
-if sys.argv[4]:
-    initial_download = json.loads(urllib.parse.unquote(sys.argv[4]))
+if start_download_payload:
+    initial_download = json.loads(urllib.parse.unquote(start_download_payload))
     downloader = Downloader(torrent_port)
     downloader.start_download(initial_download['game_id'], initial_download['magnet'], initial_download['save_path'])
 
@@ -75,7 +76,7 @@ class Handler(BaseHTTPRequestHandler):
             elif data['action'] == 'cancel':
                 downloader.cancel_download(data['game_id'])
             elif data['action'] == 'kill-torrent':
-                downloader.cancel_all_downloads()
+                downloader.abort_session()
                 downloader = None
 
             self.send_response(200)
