@@ -24,7 +24,7 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
   Sentry.setUser(null);
 
   /* Disconnects libtorrent */
-  RPCManager.kill();
+  RPCManager.killTorrent();
 
   await Promise.all([
     databaseOperations,
