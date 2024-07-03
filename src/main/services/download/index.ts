@@ -1,2 +1,2 @@
 export * from "./download-manager";
-export * from "./torrent-downloader";
+export * from "./rpc-manager";

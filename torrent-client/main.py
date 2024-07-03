@@ -4,16 +4,17 @@ import json
 import urllib.parse
 import psutil
 from downloader import Downloader
-from time import time
 
 torrent_port = sys.argv[1]
 http_port = sys.argv[2]
 rpc_password = sys.argv[3]
-initial_download = json.loads(urllib.parse.unquote(sys.argv[4]))
 
-downloader = Downloader(torrent_port)
+downloader = None
 
-downloader.start_download(initial_download['game_id'], initial_download['magnet'], initial_download['save_path'])
+if sys.argv[4]:
+    initial_download = json.loads(urllib.parse.unquote(sys.argv[4]))
+    downloader = Downloader(torrent_port)
+    downloader.start_download(initial_download['game_id'], initial_download['magnet'], initial_download['save_path'])
 
 class Handler(BaseHTTPRequestHandler):
     rpc_password_header = 'x-hydra-rpc-password'
@@ -36,14 +37,17 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.end_headers()
         
-        if self.path == "/process":
-            start_time = time()
-            process_path = set([proc.info["exe"] for proc in psutil.process_iter(['exe'])])
+        if self.path == "/process-list":
+            if self.headers.get(self.rpc_password_header) != rpc_password:
+                self.send_response(401)
+                self.end_headers()
+                return
+            
+            process_path = list(set([proc.info["exe"] for proc in psutil.process_iter(['exe'])]))
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps(list(process_path)).encode('utf-8'))
-            print(time() - start_time)
+            self.wfile.write(json.dumps(process_path).encode('utf-8'))
     
     def do_POST(self):
         if self.path == "/action":
@@ -55,6 +59,9 @@ class Handler(BaseHTTPRequestHandler):
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             data = json.loads(post_data.decode('utf-8'))
+
+            if downloader is None:
+                downloader = Downloader(torrent_port)
 
             if data['action'] == 'start':
                 downloader.start_download(data['game_id'], data['magnet'], data['save_path'])

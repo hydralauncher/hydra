@@ -15,8 +15,8 @@ import {
   LibtorrentPayload,
 } from "./types";
 
-export class TorrentDownloader {
-  private static torrentClient: cp.ChildProcess | null = null;
+export class RPCManager {
+  private static rpcProcess: cp.ChildProcess | null = null;
   private static downloadingGameId = -1;
 
   private static rpc = axios.create({
@@ -26,16 +26,20 @@ export class TorrentDownloader {
     },
   });
 
-  private static spawn(args: StartDownloadPayload) {
-    this.torrentClient = startTorrentClient(args);
+  public static spawn(args?: StartDownloadPayload) {
+    this.rpcProcess = startTorrentClient(args);
   }
 
   public static kill() {
-    if (this.torrentClient) {
-      this.torrentClient.kill();
-      this.torrentClient = null;
+    if (this.rpcProcess) {
+      this.rpcProcess.kill();
+      this.rpcProcess = null;
       this.downloadingGameId = -1;
     }
+  }
+
+  public static async getProccessList() {
+    return (await this.rpc.get<string[] | null>("/process-list")).data;
   }
 
   public static async getStatus() {
@@ -113,7 +117,7 @@ export class TorrentDownloader {
   }
 
   static async startDownload(game: Game) {
-    if (!this.torrentClient) {
+    if (!this.rpcProcess) {
       this.spawn({
         game_id: game.id,
         magnet: game.uri!,
