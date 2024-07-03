@@ -3,6 +3,7 @@ import AutoLaunch from "auto-launch";
 import { app } from "electron";
 import path from "path";
 import fs from "node:fs";
+import { logger } from "@main/services";
 
 const windowsStartupPath = path.join(
   app.getPath("appData"),
@@ -24,13 +25,17 @@ const autoLaunch = async (
   });
 
   if (enabled) {
-    appLauncher.enable().catch(() => {});
+    appLauncher.enable().catch((err) => {
+      logger.error(err);
+    });
   } else {
     if (process.platform == "win32") {
       fs.rm(path.join(windowsStartupPath, "Hydra.vbs"), () => {});
     }
 
-    appLauncher.disable().catch(() => {});
+    appLauncher.disable().catch((err) => {
+      logger.error(err);
+    });
   }
 };
 
