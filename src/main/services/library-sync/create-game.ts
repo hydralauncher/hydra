@@ -21,5 +21,5 @@ export const createGame = async (game: Game) => {
         { remoteId, playTimeInMilliseconds, lastTimePlayed }
       );
     })
-    .catch();
+    .catch(() => {});
 };

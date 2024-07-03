@@ -23,14 +23,14 @@ const autoLaunch = async (
 
       fs.copyFileSync(scriptPath, destination);
     } else {
-      appLauncher.disable().catch();
+      appLauncher.disable().catch(() => {});
       fs.rmSync(destination);
     }
   } else {
     if (enabled) {
-      appLauncher.enable().catch();
+      appLauncher.enable().catch(() => {});
     } else {
-      appLauncher.disable().catch();
+      appLauncher.disable().catch(() => {});
     }
   }
 };

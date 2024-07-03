@@ -8,6 +8,13 @@ export enum DownloadSourceStatus {
   Errored,
 }
 
+export class UserNotLoggedInError extends Error {
+  constructor() {
+    super("user not logged in");
+    this.name = "UserNotLoggedInError";
+  }
+}
+
 const FORMAT = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
 
 export const formatBytes = (bytes: number): string => {
