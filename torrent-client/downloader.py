@@ -30,6 +30,16 @@ class Downloader:
             self.torrent_handles[game_id] = None
             self.downloading_game_id = -1
 
+    def abort_session(self):
+        for game_id in self.torrent_handles:
+            torrent_handle = self.torrent_handles[game_id]
+            torrent_handle.pause()
+            self.session.remove_torrent(torrent_handle)
+            
+        self.session.abort()
+        self.torrent_handles = {}
+        self.downloading_game_id = -1
+
     def get_download_status(self):
         if self.downloading_game_id == -1:
             return None

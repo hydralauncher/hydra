@@ -1,4 +1,9 @@
-import { DownloadManager, RepacksManager, startMainLoop } from "./services";
+import {
+  DownloadManager,
+  RepacksManager,
+  PythonInstance,
+  startMainLoop,
+} from "./services";
 import {
   downloadQueueRepository,
   repackRepository,
@@ -11,8 +16,6 @@ import { publishNewRepacksNotifications } from "./services/notifications";
 import { MoreThan } from "typeorm";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
-
-startMainLoop();
 
 const loadState = async (userPreferences: UserPreferences | null) => {
   await RepacksManager.updateRepacks();
@@ -35,8 +38,13 @@ const loadState = async (userPreferences: UserPreferences | null) => {
     },
   });
 
-  if (nextQueueItem?.game.status === "active")
+  if (nextQueueItem?.game.status === "active") {
     DownloadManager.startDownload(nextQueueItem.game);
+  } else {
+    PythonInstance.spawn();
+  }
+
+  startMainLoop();
 
   const now = new Date();
 
