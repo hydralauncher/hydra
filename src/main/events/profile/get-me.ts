@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/electron/main";
 import { HydraApi } from "@main/services";
 import { UserProfile } from "@types";
 import { userAuthRepository } from "@main/repository";
-import { logger } from "@main/services";
+import { UserNotLoggedInError } from "@shared";
 
 const getMe = async (
   _event: Electron.IpcMainInvokeEvent
@@ -27,7 +27,10 @@ const getMe = async (
       return me;
     })
     .catch((err) => {
-      logger.error("getMe", err.message);
+      if (err instanceof UserNotLoggedInError) {
+        return null;
+      }
+
       return userAuthRepository.findOne({ where: { id: 1 } });
     });
 };

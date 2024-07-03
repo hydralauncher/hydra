@@ -28,7 +28,7 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
 
   await Promise.all([
     databaseOperations,
-    HydraApi.post("/auth/logout").catch(),
+    HydraApi.post("/auth/logout").catch(() => {}),
   ]);
 };
 

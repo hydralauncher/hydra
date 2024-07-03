@@ -100,7 +100,6 @@ declare global {
 
     /* Misc */
     openExternal: (src: string) => Promise<void>;
-    isUserLoggedIn: () => Promise<boolean>;
     getVersion: () => Promise<string>;
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;

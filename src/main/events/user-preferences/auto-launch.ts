@@ -13,9 +13,9 @@ const autoLaunch = async (
   });
 
   if (enabled) {
-    appLauncher.enable().catch();
+    appLauncher.enable().catch(() => {});
   } else {
-    appLauncher.disable().catch();
+    appLauncher.disable().catch(() => {});
   }
 };
 
