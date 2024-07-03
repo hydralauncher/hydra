@@ -171,3 +171,7 @@ export const newVersionLink = style({
   color: "#8e919b",
   fontSize: "13px",
 });
+
+export const newVersionIcon = style({
+  color: vars.color.success,
+});
