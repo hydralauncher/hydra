@@ -31,7 +31,7 @@ const checkForUpdates = async (_event: Electron.IpcMainInvokeEvent) => {
 
   if (app.isPackaged) {
     autoUpdater.autoDownload = isAutoInstallAvailable;
-    autoUpdater.checkForUpdates();
+    autoUpdater.checkForUpdatesAndNotify();
   } else if (sendEventsForDebug) {
     mockValuesForDebug();
   }
