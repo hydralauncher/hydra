@@ -1,8 +1,9 @@
 import { registerEvent } from "../register-event";
 import * as Sentry from "@sentry/electron/main";
 import { HydraApi } from "@main/services";
-import { UserNotLoggedInError, UserProfile } from "@types";
+import { UserProfile } from "@types";
 import { userAuthRepository } from "@main/repository";
+import { UserNotLoggedInError } from "@shared";
 
 const getMe = async (
   _event: Electron.IpcMainInvokeEvent

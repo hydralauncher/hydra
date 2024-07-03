@@ -60,5 +60,5 @@ export const mergeWithRemoteGames = async () => {
         }
       }
     })
-    .catch();
+    .catch(() => {});
 };

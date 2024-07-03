@@ -23,7 +23,7 @@ export const uploadGamesBatch = async () => {
           lastTimePlayed: game.lastTimePlayed,
         };
       })
-    ).catch();
+    ).catch(() => {});
   }
 
   await mergeWithRemoteGames();

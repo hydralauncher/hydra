@@ -5,7 +5,7 @@ import url from "url";
 import { uploadGamesBatch } from "./library-sync";
 import { clearGamesRemoteIds } from "./library-sync/clear-games-remote-id";
 import { logger } from "./logger";
-import { UserNotLoggedInError } from "@types";
+import { UserNotLoggedInError } from "@shared";
 
 export class HydraApi {
   private static instance: AxiosInstance;
