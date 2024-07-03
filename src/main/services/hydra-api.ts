@@ -5,6 +5,7 @@ import url from "url";
 import { uploadGamesBatch } from "./library-sync";
 import { clearGamesRemoteIds } from "./library-sync/clear-games-remote-id";
 import { logger } from "./logger";
+import { UserNotLoggedInError } from "@shared";
 
 export class HydraApi {
   private static instance: AxiosInstance;
@@ -19,7 +20,7 @@ export class HydraApi {
     expirationTimestamp: 0,
   };
 
-  static isLoggedIn() {
+  private static isLoggedIn() {
     return this.userAuth.authToken !== "";
   }
 
@@ -127,14 +128,8 @@ export class HydraApi {
   }
 
   private static async revalidateAccessTokenIfExpired() {
-    if (!this.userAuth.authToken) {
-      userAuthRepository.delete({ id: 1 });
-      logger.error("user is not logged in");
-      this.sendSignOutEvent();
-      throw new Error("user is not logged in");
-    }
-
     const now = new Date();
+
     if (this.userAuth.expirationTimestamp < now.getTime()) {
       try {
         const response = await this.instance.post(`/auth/refresh`, {
@@ -190,6 +185,8 @@ export class HydraApi {
   };
 
   static async get(url: string) {
+    if (!this.isLoggedIn()) throw new UserNotLoggedInError();
+
     await this.revalidateAccessTokenIfExpired();
     return this.instance
       .get(url, this.getAxiosConfig())
@@ -197,6 +194,8 @@ export class HydraApi {
   }
 
   static async post(url: string, data?: any) {
+    if (!this.isLoggedIn()) throw new UserNotLoggedInError();
+
     await this.revalidateAccessTokenIfExpired();
     return this.instance
       .post(url, data, this.getAxiosConfig())
@@ -204,6 +203,8 @@ export class HydraApi {
   }
 
   static async put(url: string, data?: any) {
+    if (!this.isLoggedIn()) throw new UserNotLoggedInError();
+
     await this.revalidateAccessTokenIfExpired();
     return this.instance
       .put(url, data, this.getAxiosConfig())
@@ -211,6 +212,8 @@ export class HydraApi {
   }
 
   static async patch(url: string, data?: any) {
+    if (!this.isLoggedIn()) throw new UserNotLoggedInError();
+
     await this.revalidateAccessTokenIfExpired();
     return this.instance
       .patch(url, data, this.getAxiosConfig())
@@ -218,6 +221,8 @@ export class HydraApi {
   }
 
   static async delete(url: string) {
+    if (!this.isLoggedIn()) throw new UserNotLoggedInError();
+
     await this.revalidateAccessTokenIfExpired();
     return this.instance
       .delete(url, this.getAxiosConfig())
