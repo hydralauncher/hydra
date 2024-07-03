@@ -5,7 +5,7 @@ import i18n from "i18next";
 import path from "node:path";
 import url from "node:url";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
-import { logger, TorrentDownloader, WindowManager } from "@main/services";
+import { logger, RPCManager, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
@@ -116,7 +116,7 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   /* Disconnects libtorrent */
-  TorrentDownloader.kill();
+  RPCManager.kill();
 });
 
 app.on("activate", () => {
