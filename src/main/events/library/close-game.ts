@@ -1,6 +1,6 @@
 import { gameRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
-import { RPCManager, logger } from "@main/services";
+import { PythonInstance, logger } from "@main/services";
 import sudo from "sudo-prompt";
 import { app } from "electron";
 
@@ -16,7 +16,7 @@ const closeGame = async (
   _event: Electron.IpcMainInvokeEvent,
   gameId: number
 ) => {
-  const processes = await RPCManager.getProcessList();
+  const processes = await PythonInstance.getProcessList();
   const game = await gameRepository.findOne({
     where: { id: gameId, isDeleted: false },
   });

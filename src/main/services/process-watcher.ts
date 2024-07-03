@@ -3,7 +3,7 @@ import { gameRepository } from "@main/repository";
 import { WindowManager } from "./window-manager";
 import { createGame, updateGamePlaytime } from "./library-sync";
 import { GameRunning } from "@types";
-import { RPCManager } from "./download";
+import { PythonInstance } from "./download";
 
 export const gamesPlaytime = new Map<
   number,
@@ -19,7 +19,7 @@ export const watchProcesses = async () => {
   });
 
   if (games.length === 0) return;
-  const processes = await RPCManager.getProcessList();
+  const processes = await PythonInstance.getProcessList();
 
   for (const game of games) {
     const executablePath = game.executablePath!;
