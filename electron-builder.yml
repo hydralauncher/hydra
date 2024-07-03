@@ -5,10 +5,7 @@ directories:
 extraResources:
   - hydra-download-manager
   - seeds
-  - from: node_modules/ps-list/vendor/fastlist-0.3.0-x64.exe
-    to: fastlist.exe
   - from: node_modules/create-desktop-shortcuts/src/windows.vbs
-  - from: resources/hydralauncher.vbs
 files:
   - "!**/.vscode/*"
   - "!src/*"
@@ -20,7 +17,6 @@ asarUnpack:
   - resources/**
 win:
   executableName: Hydra
-  requestedExecutionLevel: requireAdministrator
   target:
     - nsis
     - portable
@@ -33,7 +29,6 @@ nsis:
   allowToChangeInstallationDirectory: true
 portable:
   artifactName: ${name}-${version}-portable.${ext}
-  requestExecutionLevel: admin
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:

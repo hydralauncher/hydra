@@ -15,12 +15,12 @@ export const BITTORRENT_PORT = "5881";
 export const RPC_PORT = "8084";
 export const RPC_PASSWORD = crypto.randomBytes(32).toString("hex");
 
-export const startTorrentClient = (args: StartDownloadPayload) => {
+export const startTorrentClient = (args?: StartDownloadPayload) => {
   const commonArgs = [
     BITTORRENT_PORT,
     RPC_PORT,
     RPC_PASSWORD,
-    encodeURIComponent(JSON.stringify(args)),
+    args ? encodeURIComponent(JSON.stringify(args)) : "",
   ];
 
   if (app.isPackaged) {
