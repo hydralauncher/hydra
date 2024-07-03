@@ -63,7 +63,7 @@ export class DownloadManager {
 
   static async pauseDownload() {
     if (this.currentDownloader === Downloader.RealDebrid) {
-      RealDebridDownloader.pauseDownload();
+      await RealDebridDownloader.pauseDownload();
     } else {
       await PythonInstance.pauseDownload();
     }
@@ -84,7 +84,7 @@ export class DownloadManager {
 
   static async cancelDownload(gameId: number) {
     if (this.currentDownloader === Downloader.RealDebrid) {
-      RealDebridDownloader.cancelDownload();
+      RealDebridDownloader.cancelDownload(gameId);
     } else {
       PythonInstance.cancelDownload(gameId);
     }
