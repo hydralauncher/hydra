@@ -20,7 +20,7 @@ export const watchProcesses = async () => {
 
   if (games.length === 0) return;
 
-  const processes = (await RPCManager.getProccessList()) || [];
+  const processes = await RPCManager.getProccessList();
 
   for (const game of games) {
     const executablePath = game.executablePath!;

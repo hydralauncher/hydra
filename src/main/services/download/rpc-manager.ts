@@ -1,7 +1,11 @@
 import cp from "node:child_process";
 
 import { Game } from "@main/entity";
-import { RPC_PASSWORD, RPC_PORT, startTorrentClient } from "./torrent-client";
+import {
+  RPC_PASSWORD,
+  RPC_PORT,
+  startTorrentClient as startRPCClient,
+} from "./torrent-client";
 import { gameRepository } from "@main/repository";
 import { DownloadProgress } from "@types";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
@@ -27,7 +31,7 @@ export class RPCManager {
   });
 
   public static spawn(args?: StartDownloadPayload) {
-    this.rpcProcess = startTorrentClient(args);
+    this.rpcProcess = startRPCClient(args);
   }
 
   public static kill() {
@@ -38,8 +42,15 @@ export class RPCManager {
     }
   }
 
+  public static killTorrent() {
+    if (this.rpcProcess) {
+      this.rpc.post("/action", { action: "kill-torrent" });
+      this.downloadingGameId = -1;
+    }
+  }
+
   public static async getProccessList() {
-    return (await this.rpc.get<string[] | null>("/process-list")).data;
+    return (await this.rpc.get<string[] | null>("/process-list")).data || [];
   }
 
   public static async getStatus() {
