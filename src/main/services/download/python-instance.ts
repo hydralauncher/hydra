@@ -1,7 +1,11 @@
 import cp from "node:child_process";
 
 import { Game } from "@main/entity";
-import { RPC_PASSWORD, RPC_PORT, startTorrentClient } from "./torrent-client";
+import {
+  RPC_PASSWORD,
+  RPC_PORT,
+  startTorrentClient as startRPCClient,
+} from "./torrent-client";
 import { gameRepository } from "@main/repository";
 import { DownloadProgress } from "@types";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
@@ -13,10 +17,11 @@ import {
   PauseDownloadPayload,
   LibtorrentStatus,
   LibtorrentPayload,
+  ProcessPayload,
 } from "./types";
 
-export class TorrentDownloader {
-  private static torrentClient: cp.ChildProcess | null = null;
+export class PythonInstance {
+  private static pythonProcess: cp.ChildProcess | null = null;
   private static downloadingGameId = -1;
 
   private static rpc = axios.create({
@@ -26,16 +31,29 @@ export class TorrentDownloader {
     },
   });
 
-  private static spawn(args: StartDownloadPayload) {
-    this.torrentClient = startTorrentClient(args);
+  public static spawn(args?: StartDownloadPayload) {
+    this.pythonProcess = startRPCClient(args);
   }
 
   public static kill() {
-    if (this.torrentClient) {
-      this.torrentClient.kill();
-      this.torrentClient = null;
+    if (this.pythonProcess) {
+      this.pythonProcess.kill();
+      this.pythonProcess = null;
       this.downloadingGameId = -1;
     }
+  }
+
+  public static killTorrent() {
+    if (this.pythonProcess) {
+      this.rpc.post("/action", { action: "kill-torrent" });
+      this.downloadingGameId = -1;
+    }
+  }
+
+  public static async getProcessList() {
+    return (
+      (await this.rpc.get<ProcessPayload[] | null>("/process-list")).data || []
+    );
   }
 
   public static async getStatus() {
@@ -113,7 +131,7 @@ export class TorrentDownloader {
   }
 
   static async startDownload(game: Game) {
-    if (!this.torrentClient) {
+    if (!this.pythonProcess) {
       this.spawn({
         game_id: game.id,
         magnet: game.uri!,

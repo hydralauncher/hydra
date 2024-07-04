@@ -1,123 +1,68 @@
-import path from "node:path";
-import fs from "node:fs";
-import crypto from "node:crypto";
-
-import axios, { type AxiosProgressEvent } from "axios";
-import { app } from "electron";
+import type { ChildProcess } from "node:child_process";
 import { logger } from "../logger";
+import { sleep } from "@main/helpers";
+import { startAria2 } from "../aria2c";
+import Aria2 from "aria2";
 
 export class HttpDownload {
-  private abortController: AbortController;
-  public lastProgressEvent: AxiosProgressEvent;
-  private trackerFilePath: string;
+  private static connected = false;
+  private static aria2c: ChildProcess | null = null;
 
-  private trackerProgressEvent: AxiosProgressEvent | null = null;
-  private downloadPath: string;
+  private static aria2 = new Aria2({});
 
-  private downloadTrackersPath = path.join(
-    app.getPath("documents"),
-    "Hydra",
-    "Downloads"
-  );
+  private static async connect() {
+    this.aria2c = startAria2();
 
-  constructor(
-    private url: string,
-    private savePath: string
-  ) {
-    this.abortController = new AbortController();
+    let retries = 0;
 
-    const sha256Hasher = crypto.createHash("sha256");
-    const hash = sha256Hasher.update(url).digest("hex");
+    while (retries < 4 && !this.connected) {
+      try {
+        await this.aria2.open();
+        logger.log("Connected to aria2");
 
-    this.trackerFilePath = path.join(
-      this.downloadTrackersPath,
-      `${hash}.hydradownload`
-    );
-
-    const filename = path.win32.basename(this.url);
-    this.downloadPath = path.join(this.savePath, filename);
-  }
-
-  private updateTrackerFile() {
-    if (!fs.existsSync(this.downloadTrackersPath)) {
-      fs.mkdirSync(this.downloadTrackersPath, {
-        recursive: true,
-      });
-    }
-
-    fs.writeFileSync(
-      this.trackerFilePath,
-      JSON.stringify(this.lastProgressEvent),
-      { encoding: "utf-8" }
-    );
-  }
-
-  private removeTrackerFile() {
-    if (fs.existsSync(this.trackerFilePath)) {
-      fs.rm(this.trackerFilePath, (err) => {
-        logger.error(err);
-      });
+        this.connected = true;
+      } catch (err) {
+        await sleep(100);
+        logger.log("Failed to connect to aria2, retrying...");
+        retries++;
+      }
     }
   }
 
-  public async startDownload() {
-    // Check if there's already a tracker file and download file
-    if (
-      fs.existsSync(this.trackerFilePath) &&
-      fs.existsSync(this.downloadPath)
-    ) {
-      this.trackerProgressEvent = JSON.parse(
-        fs.readFileSync(this.trackerFilePath, { encoding: "utf-8" })
-      );
+  public static getStatus(gid: string) {
+    if (this.connected) {
+      return this.aria2.call("tellStatus", gid);
     }
 
-    const response = await axios.get(this.url, {
-      responseType: "stream",
-      signal: this.abortController.signal,
-      headers: {
-        Range: `bytes=${this.trackerProgressEvent?.loaded ?? 0}-`,
-      },
-      onDownloadProgress: (progressEvent) => {
-        const total =
-          this.trackerProgressEvent?.total ?? progressEvent.total ?? 0;
-        const loaded =
-          (this.trackerProgressEvent?.loaded ?? 0) + progressEvent.loaded;
-
-        const progress = loaded / total;
-
-        this.lastProgressEvent = {
-          ...progressEvent,
-          total,
-          progress,
-          loaded,
-        };
-        this.updateTrackerFile();
-
-        if (progressEvent.progress === 1) {
-          this.removeTrackerFile();
-        }
-      },
-    });
-
-    response.data.pipe(
-      fs.createWriteStream(this.downloadPath, {
-        flags: "a",
-      })
-    );
+    return null;
   }
 
-  public async pauseDownload() {
-    this.abortController.abort();
+  public static disconnect() {
+    if (this.aria2c) {
+      this.aria2c.kill();
+      this.connected = false;
+    }
   }
 
-  public cancelDownload() {
-    this.pauseDownload();
+  static async cancelDownload(gid: string) {
+    await this.aria2.call("forceRemove", gid);
+  }
 
-    fs.rm(this.downloadPath, (err) => {
-      if (err) logger.error(err);
-    });
-    fs.rm(this.trackerFilePath, (err) => {
-      if (err) logger.error(err);
-    });
+  static async pauseDownload(gid: string) {
+    await this.aria2.call("forcePause", gid);
+  }
+
+  static async resumeDownload(gid: string) {
+    await this.aria2.call("unpause", gid);
+  }
+
+  static async startDownload(downloadPath: string, downloadUrl: string) {
+    if (!this.connected) await this.connect();
+
+    const options = {
+      dir: downloadPath,
+    };
+
+    return this.aria2.call("addUri", [downloadUrl], options);
   }
 }
