@@ -1,6 +1,6 @@
 import { Game } from "@main/entity";
 import { Downloader } from "@shared";
-import { TorrentDownloader } from "./torrent-downloader";
+import { PythonInstance } from "./python-instance";
 import { WindowManager } from "../window-manager";
 import { downloadQueueRepository, gameRepository } from "@main/repository";
 import { publishDownloadCompleteNotification } from "../notifications";
@@ -16,7 +16,7 @@ export class DownloadManager {
     if (this.currentDownloader === Downloader.RealDebrid) {
       status = await RealDebridDownloader.getStatus();
     } else {
-      status = await TorrentDownloader.getStatus();
+      status = await PythonInstance.getStatus();
     }
 
     if (status) {
@@ -63,9 +63,9 @@ export class DownloadManager {
 
   static async pauseDownload() {
     if (this.currentDownloader === Downloader.RealDebrid) {
-      RealDebridDownloader.pauseDownload();
+      await RealDebridDownloader.pauseDownload();
     } else {
-      await TorrentDownloader.pauseDownload();
+      await PythonInstance.pauseDownload();
     }
 
     WindowManager.mainWindow?.setProgressBar(-1);
@@ -77,16 +77,16 @@ export class DownloadManager {
       RealDebridDownloader.startDownload(game);
       this.currentDownloader = Downloader.RealDebrid;
     } else {
-      TorrentDownloader.startDownload(game);
+      PythonInstance.startDownload(game);
       this.currentDownloader = Downloader.Torrent;
     }
   }
 
   static async cancelDownload(gameId: number) {
     if (this.currentDownloader === Downloader.RealDebrid) {
-      RealDebridDownloader.cancelDownload();
+      RealDebridDownloader.cancelDownload(gameId);
     } else {
-      TorrentDownloader.cancelDownload(gameId);
+      PythonInstance.cancelDownload(gameId);
     }
 
     WindowManager.mainWindow?.setProgressBar(-1);
@@ -98,7 +98,7 @@ export class DownloadManager {
       RealDebridDownloader.startDownload(game);
       this.currentDownloader = Downloader.RealDebrid;
     } else {
-      TorrentDownloader.startDownload(game);
+      PythonInstance.startDownload(game);
       this.currentDownloader = Downloader.Torrent;
     }
   }

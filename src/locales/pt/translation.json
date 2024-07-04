@@ -1,9 +1,9 @@
 {
   "app": {
-    "successfully_signed_in": "Logado com sucesso"
+    "successfully_signed_in": "Autenticado com sucesso"
   },
   "home": {
-    "featured": "Destaque",
+    "featured": "Destaques",
     "trending": "Populares",
     "surprise_me": "Surpreenda-me",
     "no_results": "Nenhum resultado encontrado"

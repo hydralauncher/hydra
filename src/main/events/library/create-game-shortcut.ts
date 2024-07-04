@@ -4,6 +4,7 @@ import { IsNull, Not } from "typeorm";
 import createDesktopShortcut from "create-desktop-shortcuts";
 import path from "node:path";
 import { app } from "electron";
+import { removeSymbolsFromName } from "@shared";
 
 const createGameShortcut = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -22,7 +23,7 @@ const createGameShortcut = async (
 
     const options = {
       filePath,
-      name: game.title,
+      name: removeSymbolsFromName(game.title),
     };
 
     return createDesktopShortcut({

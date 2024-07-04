@@ -2665,6 +2665,14 @@ aria-query@^5.3.0:
   dependencies:
     dequal "^2.0.3"
 
+aria2@^4.1.2:
+  version "4.1.2"
+  resolved "https://registry.yarnpkg.com/aria2/-/aria2-4.1.2.tgz#0ecbc50beea82856c88b4de71dac336154f67362"
+  integrity sha512-qTBr2RY8RZQmiUmbj2KXFvkErNxU4aTHZszszzwhE8svy2PEVX+IYR/c4Rp9Tuw4QkeU8cylGy6McV6Yl8i7Qw==
+  dependencies:
+    node-fetch "^2.6.1"
+    ws "^7.4.0"
+
 array-buffer-byte-length@^1.0.1:
   version "1.0.1"
   resolved "https://registry.npmjs.org/array-buffer-byte-length/-/array-buffer-byte-length-1.0.1.tgz"
@@ -5813,7 +5821,7 @@ node-domexception@^1.0.0:
   resolved "https://registry.npmjs.org/node-domexception/-/node-domexception-1.0.0.tgz"
   integrity sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==
 
-node-fetch@^2.6.7:
+node-fetch@^2.6.1, node-fetch@^2.6.7:
   version "2.7.0"
   resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.7.0.tgz#d0f0fa6e3e2dc1d27efcd8ad99d550bda94d187d"
   integrity sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==
@@ -6310,11 +6318,6 @@ proxy-from-env@^1.1.0:
   version "1.1.0"
   resolved "https://registry.npmjs.org/proxy-from-env/-/proxy-from-env-1.1.0.tgz"
   integrity sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==
-
-ps-list@^8.1.1:
-  version "8.1.1"
-  resolved "https://registry.npmjs.org/ps-list/-/ps-list-8.1.1.tgz"
-  integrity sha512-OPS9kEJYVmiO48u/B9qneqhkMvgCxT+Tm28VCEJpheTpl8cJ0ffZRRNgS5mrQRTrX5yRTpaJ+hRDeefXYmmorQ==
 
 psl@^1.1.33:
   version "1.9.0"
@@ -6999,6 +7002,11 @@ strtok3@^7.0.0:
     "@tokenizer/token" "^0.3.0"
     peek-readable "^5.0.0"
 
+sudo-prompt@^9.2.1:
+  version "9.2.1"
+  resolved "https://registry.yarnpkg.com/sudo-prompt/-/sudo-prompt-9.2.1.tgz#77efb84309c9ca489527a4e749f287e6bdd52afd"
+  integrity sha512-Mu7R0g4ig9TUuGSxJavny5Rv0egCEtpZRNMrZaYS1vxkiIxGiGUwoezU3LazIQ+KE04hTrTfNPgxU5gzi7F5Pw==
+
 sumchecker@^3.0.1:
   version "3.0.1"
   resolved "https://registry.npmjs.org/sumchecker/-/sumchecker-3.0.1.tgz"
@@ -7608,6 +7616,11 @@ wrappy@1:
   version "1.0.2"
   resolved "https://registry.npmjs.org/wrappy/-/wrappy-1.0.2.tgz"
   integrity sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==
+
+ws@^7.4.0:
+  version "7.5.10"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-7.5.10.tgz#58b5c20dc281633f6c19113f39b349bd8bd558d9"
+  integrity sha512-+dbF1tHwZpXcbOJdVOkzLDxZP1ailvSxM6ZweXTegylPny803bFhA+vqBYw4s31NSAk4S2Qz+AKXK9a4wkdjcQ==
 
 ws@^8.16.0:
   version "8.17.0"

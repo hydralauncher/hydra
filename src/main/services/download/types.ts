@@ -31,3 +31,8 @@ export interface LibtorrentPayload {
   status: LibtorrentStatus;
   gameId: number;
 }
+
+export interface ProcessPayload {
+  exe: string;
+  pid: number;
+}
