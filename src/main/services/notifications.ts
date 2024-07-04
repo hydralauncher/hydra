@@ -39,11 +39,9 @@ export const publishDownloadCompleteNotification = async (game: Game) => {
     new Notification({
       title: t("download_complete", {
         ns: "notifications",
-        lng: userPreferences.language,
       }),
       body: t("game_ready_to_install", {
         ns: "notifications",
-        lng: userPreferences.language,
         title: game.title,
       }),
       icon,
@@ -60,13 +58,33 @@ export const publishNewRepacksNotifications = async (count: number) => {
     new Notification({
       title: t("repack_list_updated", {
         ns: "notifications",
-        lng: userPreferences?.language || "en",
       }),
       body: t("repack_count", {
         ns: "notifications",
-        lng: userPreferences?.language || "en",
         count: count,
       }),
     }).show();
   }
+};
+
+export const publishNotificationUpdateReadyToInstall = async () => {
+  new Notification({
+    title: t("new_version_title", {
+      ns: "notifications",
+    }),
+    body: t("new_version_body", {
+      ns: "notifications",
+    }),
+  }).show();
+};
+
+export const publishNotificationUpdateAvailable = async () => {
+  new Notification({
+    title: t("new_version_title", {
+      ns: "notifications",
+    }),
+    body: t("new_version_body", {
+      ns: "notifications",
+    }),
+  }).show();
 };
