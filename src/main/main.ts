@@ -15,7 +15,7 @@ import { uploadGamesBatch } from "./services/library-sync";
 startMainLoop();
 
 const loadState = async (userPreferences: UserPreferences | null) => {
-  await RepacksManager.updateRepacks();
+  RepacksManager.updateRepacks();
 
   import("./events");
 
