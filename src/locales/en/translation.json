@@ -199,7 +199,9 @@
     "game_ready_to_install": "{{title}} is ready to install",
     "repack_list_updated": "Repack list updated",
     "repack_count_one": "{{count}} repack added",
-    "repack_count_other": "{{count}} repacks added"
+    "repack_count_other": "{{count}} repacks added",
+    "new_version_title": "New Hydra version available",
+    "new_version_body": "Restart Hydra to install the new version"
   },
   "system_tray": {
     "open": "Open Hydra",
