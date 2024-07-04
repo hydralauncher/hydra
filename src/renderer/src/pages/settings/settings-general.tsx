@@ -121,16 +121,19 @@ export function SettingsGeneral() {
         }
       />
 
-      <SelectField
-        label={t("language")}
-        value={form.language}
-        onChange={handleLanguageChange}
-        options={languageOptions.map((language) => ({
-          key: language.option,
-          value: language.option,
-          label: language.nativeName,
-        }))}
-      />
+      <div style={{width: "22%"}}>
+        <SelectField
+          label={t("language")}
+          value={form.language}
+          onChange={handleLanguageChange}
+          options={languageOptions.map((language) => ({
+            key: language.option,
+            value: language.option,
+            label: language.nativeName,
+          }))}
+        />
+      </div>
+      
 
       <h3>{t("notifications")}</h3>
       <>

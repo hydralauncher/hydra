@@ -34,6 +34,7 @@ export function SelectField({
         <select
           id={id}
           value={value}
+          style={{width: "100%"}}
           className={styles.option}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
