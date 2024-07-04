@@ -18,7 +18,7 @@ import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
-  await RepacksManager.updateRepacks();
+  RepacksManager.updateRepacks();
 
   import("./events");
 

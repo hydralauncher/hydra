@@ -53,8 +53,9 @@ export const removeDuplicateSpaces = (name: string) =>
 
 export const formatName = pipe<string>(
   removeReleaseYearFromName,
-  removeSymbolsFromName,
   removeSpecialEditionFromName,
+  (str) => str.replace(/DIRECTOR'S CUT/g, ""),
+  removeSymbolsFromName,
   removeDuplicateSpaces,
   (str) => str.trim()
 );
