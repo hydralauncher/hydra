@@ -2,16 +2,20 @@ import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 import urllib.parse
+import psutil
 from downloader import Downloader
 
 torrent_port = sys.argv[1]
 http_port = sys.argv[2]
 rpc_password = sys.argv[3]
-initial_download = json.loads(urllib.parse.unquote(sys.argv[4]))
+start_download_payload = sys.argv[4]
 
-downloader = Downloader(torrent_port)
+downloader = None
 
-downloader.start_download(initial_download['game_id'], initial_download['magnet'], initial_download['save_path'])
+if start_download_payload:
+    initial_download = json.loads(urllib.parse.unquote(start_download_payload))
+    downloader = Downloader(torrent_port)
+    downloader.start_download(initial_download['game_id'], initial_download['magnet'], initial_download['save_path'])
 
 class Handler(BaseHTTPRequestHandler):
     rpc_password_header = 'x-hydra-rpc-password'
@@ -30,11 +34,28 @@ class Handler(BaseHTTPRequestHandler):
             status = downloader.get_download_status()
 
             self.wfile.write(json.dumps(status).encode('utf-8'))
-        if self.path == "/healthcheck":
+
+        elif self.path == "/healthcheck":
             self.send_response(200)
             self.end_headers()
+        
+        elif self.path == "/process-list":
+            if self.headers.get(self.rpc_password_header) != rpc_password:
+                self.send_response(401)
+                self.end_headers()
+                return
+            
+            process_list = [proc.info for proc in psutil.process_iter(['exe', 'pid', 'username'])]
+
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+
+            self.wfile.write(json.dumps(process_list).encode('utf-8'))
     
     def do_POST(self):
+        global downloader
+
         if self.path == "/action":
             if self.headers.get(self.rpc_password_header) != rpc_password:
                 self.send_response(401)
@@ -45,13 +66,19 @@ class Handler(BaseHTTPRequestHandler):
             post_data = self.rfile.read(content_length)
             data = json.loads(post_data.decode('utf-8'))
 
+            if downloader is None:
+                downloader = Downloader(torrent_port)
+
             if data['action'] == 'start':
                 downloader.start_download(data['game_id'], data['magnet'], data['save_path'])
             elif data['action'] == 'pause':
                 downloader.pause_download(data['game_id'])
             elif data['action'] == 'cancel':
                 downloader.cancel_download(data['game_id'])
-        
+            elif data['action'] == 'kill-torrent':
+                downloader.abort_session()
+                downloader = None
+
             self.send_response(200)
             self.end_headers()
 
