@@ -51,7 +51,6 @@ export function Sidebar() {
   const location = useLocation();
 
   const sortedLibrary = useMemo(() => {
-    console.log(library);
     switch (sortParam) {
       case "latest_added":
         return sortBy(library, (game) => game.createdAt);
@@ -226,6 +225,8 @@ export function Sidebar() {
           <section className={styles.section}>
             <small className={styles.sectionTitle}>{t("my_library")}</small>
 
+
+      <div style={{width: "102%"}}>
             <SelectField
               label={t("sort_by")}
               value={sortParam}
@@ -236,7 +237,7 @@ export function Sidebar() {
                 label: t(option),
               }))}
             />
-
+      </div>
             <TextField
               placeholder={t("filter")}
               onChange={handleFilter}

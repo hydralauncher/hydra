@@ -7,7 +7,7 @@ export const select = recipe({
   base: {
     display: "inline-flex",
     transition: "all ease 0.2s",
-    width: "fit-content",
+    width: "100%",
     alignItems: "center",
     borderRadius: "8px",
     border: `1px solid ${vars.color.border}`,
