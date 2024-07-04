@@ -57,5 +57,4 @@ export const requestWebPage = async (url: string) => {
     .then((response) => response.data);
 };
 
-export * from "./ps";
 export * from "./download-source";

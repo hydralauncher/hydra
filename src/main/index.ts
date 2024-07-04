@@ -5,7 +5,7 @@ import i18n from "i18next";
 import path from "node:path";
 import url from "node:url";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
-import { logger, TorrentDownloader, WindowManager } from "@main/services";
+import { logger, PythonInstance, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
@@ -72,6 +72,10 @@ app.whenReady().then(async () => {
     where: { id: 1 },
   });
 
+  if (userPreferences?.language) {
+    i18n.changeLanguage(userPreferences.language);
+  }
+
   WindowManager.createMainWindow();
   WindowManager.createSystemTray(userPreferences?.language || "en");
 });
@@ -116,7 +120,7 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   /* Disconnects libtorrent */
-  TorrentDownloader.kill();
+  PythonInstance.kill();
 });
 
 app.on("activate", () => {
