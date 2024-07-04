@@ -1,4 +1,3 @@
-import { Repack } from "@main/entity";
 import { downloadSourceSchema } from "@main/events/helpers/validators";
 import { DownloadSourceStatus } from "@shared";
 import type { DownloadSource, GameRepack } from "@types";
