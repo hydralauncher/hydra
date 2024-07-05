@@ -48,9 +48,7 @@ export function AutoUpdateSubHeader() {
       <header className={styles.subheader}>
         <Link to={releasesPageUrl} className={styles.newVersionLink}>
           <SyncIcon className={styles.newVersionIcon} size={12} />
-          <small>
             {t("version_available_download", { version: newVersion })}
-          </small>
         </Link>
       </header>
     );
@@ -65,9 +63,7 @@ export function AutoUpdateSubHeader() {
           onClick={handleClickInstallUpdate}
         >
           <SyncIcon className={styles.newVersionIcon} size={12} />
-          <small>
             {t("version_available_install", { version: newVersion })}
-          </small>
         </button>
       </header>
     );
