@@ -196,8 +196,8 @@
     "repack_list_updated": "Lista de repacks atualizada",
     "repack_count_one": "{{count}} novo repack",
     "repack_count_other": "{{count}} novos repacks",
-    "new_version_available": "Nova versão do Hydra disponível",
-    "restart_to_install_new_version": "Reinicie o Hydra para instalar a nova versão"
+    "new_update_available": "Nova versão disponível",
+    "restart_to_install_update": "Reinicie o Hydra para instalar a nova versão"
   },
   "system_tray": {
     "open": "Abrir Hydra",

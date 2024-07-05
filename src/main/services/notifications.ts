@@ -1,7 +1,7 @@
 import { Notification, nativeImage } from "electron";
 import { t } from "i18next";
 import { parseICO } from "icojs";
-
+import trayIcon from "@resources/tray-icon.png?asset";
 import { Game } from "@main/entity";
 import { gameRepository, userPreferencesRepository } from "@main/repository";
 
@@ -69,11 +69,12 @@ export const publishNewRepacksNotifications = async (count: number) => {
 
 export const publishNotificationUpdateReadyToInstall = async () => {
   new Notification({
-    title: t("new_version_available", {
+    title: t("new_update_available", {
       ns: "notifications",
     }),
-    body: t("restart_to_install_new_version", {
+    body: t("restart_to_install_update", {
       ns: "notifications",
     }),
+    icon: trayIcon,
   }).show();
 };
