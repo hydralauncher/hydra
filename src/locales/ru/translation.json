@@ -197,7 +197,8 @@
     "game_ready_to_install": "{{title}} готова к установке",
     "repack_list_updated": "Список репаков обновлен",
     "repack_count_one": "{{count}} репак добавлен",
-    "repack_count_other": "{{count}} репаков добавлено"
+    "repack_count_other": "{{count}} репаков добавлено",
+    "new_update_available": "Доступна версия {{version}}"
   },
   "system_tray": {
     "open": "Открыть Hydra",

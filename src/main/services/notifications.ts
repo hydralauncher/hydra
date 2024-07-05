@@ -1,7 +1,7 @@
 import { Notification, nativeImage } from "electron";
 import { t } from "i18next";
 import { parseICO } from "icojs";
-
+import trayIcon from "@resources/tray-icon.png?asset";
 import { Game } from "@main/entity";
 import { gameRepository, userPreferencesRepository } from "@main/repository";
 
@@ -39,11 +39,9 @@ export const publishDownloadCompleteNotification = async (game: Game) => {
     new Notification({
       title: t("download_complete", {
         ns: "notifications",
-        lng: userPreferences.language,
       }),
       body: t("game_ready_to_install", {
         ns: "notifications",
-        lng: userPreferences.language,
         title: game.title,
       }),
       icon,
@@ -60,13 +58,26 @@ export const publishNewRepacksNotifications = async (count: number) => {
     new Notification({
       title: t("repack_list_updated", {
         ns: "notifications",
-        lng: userPreferences?.language || "en",
       }),
       body: t("repack_count", {
         ns: "notifications",
-        lng: userPreferences?.language || "en",
         count: count,
       }),
     }).show();
   }
+};
+
+export const publishNotificationUpdateReadyToInstall = async (
+  version: string
+) => {
+  new Notification({
+    title: t("new_update_available", {
+      ns: "notifications",
+      version,
+    }),
+    body: t("restart_to_install_update", {
+      ns: "notifications",
+    }),
+    icon: trayIcon,
+  }).show();
 };
