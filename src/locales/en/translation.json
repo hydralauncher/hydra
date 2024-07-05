@@ -200,8 +200,8 @@
     "repack_list_updated": "Repack list updated",
     "repack_count_one": "{{count}} repack added",
     "repack_count_other": "{{count}} repacks added",
-    "new_version_title": "New Hydra version available",
-    "new_version_body": "Restart Hydra to install the new version"
+    "new_version_available": "New Hydra version available",
+    "restart_to_install_new_version": "Restart Hydra to install the new version"
   },
   "system_tray": {
     "open": "Open Hydra",
