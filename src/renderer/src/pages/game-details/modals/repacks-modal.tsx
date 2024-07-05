@@ -46,9 +46,7 @@ export function RepacksModal({
   const getInfoHash = useCallback(async () => {
     const torrent = await parseTorrent(game?.uri ?? "");
 
-    if (torrent.infoHash) {
-      setInfoHash(torrent.infoHash);
-    }
+    if (torrent.infoHash) setInfoHash(torrent.infoHash);
   }, [game]);
 
   useEffect(() => {
