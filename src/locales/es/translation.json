@@ -69,7 +69,7 @@
     "minutes": "minutos",
     "amount_hours": "{{amount}} horas",
     "amount_minutes": "{{amount}} minutos",
-    "accuracy": "{{accuracy}}% precisión",
+    "accuracy": "{{accuracy}}% completado",
     "add_to_library": "Agregar a la biblioteca",
     "remove_from_library": "Eliminar de la biblioteca",
     "no_downloads": "No hay descargas disponibles",
@@ -200,7 +200,8 @@
     "repack_list_updated": "Lista de repacks actualizadas",
     "repack_count_one": "{{count}} repack ha sido añadido",
     "repack_count_other": "{{count}} repacks añadidos",
-    "new_update_available": "Version {{version}} disponible"
+    "new_update_available": "Version {{version}} disponible",
+    "restart_to_install_update": "Reinicia Hydra para instalar la actualización"
   },
   "system_tray": {
     "open": "Abrir Hydra",
