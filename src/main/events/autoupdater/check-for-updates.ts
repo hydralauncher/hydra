@@ -21,14 +21,17 @@ const mockValuesForDebug = () => {
   sendEvent({ type: "update-downloaded" });
 };
 
+const newVersionInfo = { version: "" };
+
 const checkForUpdates = async (_event: Electron.IpcMainInvokeEvent) => {
   autoUpdater
     .once("update-available", (info: UpdateInfo) => {
       sendEvent({ type: "update-available", info });
+      newVersionInfo.version = info.version;
     })
     .once("update-downloaded", () => {
       sendEvent({ type: "update-downloaded" });
-      publishNotificationUpdateReadyToInstall();
+      publishNotificationUpdateReadyToInstall(newVersionInfo.version);
     });
 
   if (app.isPackaged) {

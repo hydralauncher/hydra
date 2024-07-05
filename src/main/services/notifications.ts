@@ -67,10 +67,13 @@ export const publishNewRepacksNotifications = async (count: number) => {
   }
 };
 
-export const publishNotificationUpdateReadyToInstall = async () => {
+export const publishNotificationUpdateReadyToInstall = async (
+  version: string
+) => {
   new Notification({
     title: t("new_update_available", {
       ns: "notifications",
+      version,
     }),
     body: t("restart_to_install_update", {
       ns: "notifications",
