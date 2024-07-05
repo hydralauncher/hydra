@@ -1,17 +1,12 @@
 import { registerEvent } from "../register-event";
-import axios from "axios";
 import { downloadSourceRepository } from "@main/repository";
-import { downloadSourceSchema } from "../helpers/validators";
 import { RepacksManager } from "@main/services";
+import { downloadSourceWorker } from "@main/workers";
 
 const validateDownloadSource = async (
   _event: Electron.IpcMainInvokeEvent,
   url: string
 ) => {
-  const response = await axios.get(url);
-
-  const source = downloadSourceSchema.parse(response.data);
-
   const existingSource = await downloadSourceRepository.findOne({
     where: { url },
   });
@@ -21,14 +16,12 @@ const validateDownloadSource = async (
 
   const repacks = RepacksManager.repacks;
 
-  const existingUris = source.downloads
-    .flatMap((download) => download.uris)
-    .filter((uri) => repacks.some((repack) => repack.magnet === uri));
-
-  return {
-    name: source.name,
-    downloadCount: source.downloads.length - existingUris.length,
-  };
+  return downloadSourceWorker.run(
+    { url, repacks },
+    {
+      name: "validateDownloadSource",
+    }
+  );
 };
 
 registerEvent("validateDownloadSource", validateDownloadSource);
