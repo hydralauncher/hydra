@@ -1,9 +1,18 @@
-import { windowsStartupPath } from "@main/constants";
 import { registerEvent } from "../register-event";
 import AutoLaunch from "auto-launch";
 import { app } from "electron";
+import path from "path";
 import fs from "node:fs";
-import path from "node:path";
+import { logger } from "@main/services";
+
+const windowsStartupPath = path.join(
+  app.getPath("appData"),
+  "Microsoft",
+  "Windows",
+  "Start Menu",
+  "Programs",
+  "Startup"
+);
 
 const autoLaunch = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -15,23 +24,18 @@ const autoLaunch = async (
     name: app.getName(),
   });
 
-  if (process.platform == "win32") {
-    const destination = path.join(windowsStartupPath, "Hydra.vbs");
-
-    if (enabled) {
-      const scriptPath = path.join(process.resourcesPath, "hydralauncher.vbs");
-
-      fs.copyFileSync(scriptPath, destination);
-    } else {
-      appLauncher.disable().catch();
-      fs.rmSync(destination);
-    }
+  if (enabled) {
+    appLauncher.enable().catch((err) => {
+      logger.error(err);
+    });
   } else {
-    if (enabled) {
-      appLauncher.enable().catch();
-    } else {
-      appLauncher.disable().catch();
+    if (process.platform == "win32") {
+      fs.rm(path.join(windowsStartupPath, "Hydra.vbs"), () => {});
     }
+
+    appLauncher.disable().catch((err) => {
+      logger.error(err);
+    });
   }
 };
 

@@ -8,6 +8,13 @@ export enum DownloadSourceStatus {
   Errored,
 }
 
+export class UserNotLoggedInError extends Error {
+  constructor() {
+    super("user not logged in");
+    this.name = "UserNotLoggedInError";
+  }
+}
+
 const FORMAT = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
 
 export const formatBytes = (bytes: number): string => {
@@ -44,10 +51,15 @@ export const removeSpecialEditionFromName = (name: string) =>
 export const removeDuplicateSpaces = (name: string) =>
   name.replace(/\s{2,}/g, " ");
 
+export const replaceUnderscoreWithSpace = (name: string) =>
+  name.replace(/_/g, " ");
+
 export const formatName = pipe<string>(
   removeReleaseYearFromName,
-  removeSymbolsFromName,
   removeSpecialEditionFromName,
+  replaceUnderscoreWithSpace,
+  (str) => str.replace(/DIRECTOR'S CUT/g, ""),
+  removeSymbolsFromName,
   removeDuplicateSpaces,
   (str) => str.trim()
 );
