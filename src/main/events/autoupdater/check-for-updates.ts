@@ -3,10 +3,7 @@ import { registerEvent } from "../register-event";
 import updater, { UpdateInfo } from "electron-updater";
 import { WindowManager } from "@main/services";
 import { app } from "electron";
-import {
-  publishNotificationUpdateAvailable,
-  publishNotificationUpdateReadyToInstall,
-} from "@main/services/notifications";
+import { publishNotificationUpdateReadyToInstall } from "@main/services/notifications";
 
 const { autoUpdater } = updater;
 
@@ -28,9 +25,6 @@ const checkForUpdates = async (_event: Electron.IpcMainInvokeEvent) => {
   autoUpdater
     .once("update-available", (info: UpdateInfo) => {
       sendEvent({ type: "update-available", info });
-      if (!isAutoInstallAvailable) {
-        publishNotificationUpdateAvailable();
-      }
     })
     .once("update-downloaded", () => {
       sendEvent({ type: "update-downloaded" });
