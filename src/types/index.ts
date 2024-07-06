@@ -128,11 +128,18 @@ export interface Game {
   objectID: string;
   shop: GameShop;
   downloadQueue: DownloadQueue | null;
+  collections: Collection[];
   createdAt: Date;
   updatedAt: Date;
 }
 
 export type LibraryGame = Omit<Game, "repacks">;
+
+export interface Collection {
+  id: number;
+  title: string;
+  games: Game[];
+}
 
 export interface GameRunning {
   id: number;

@@ -7,6 +7,7 @@ import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import { useDownload, useToast } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
+import { CollectionsModal } from "./collections-modal";
 
 export interface GameOptionsModalProps {
   visible: boolean;
@@ -19,7 +20,7 @@ export function GameOptionsModal({
   game,
   onClose,
 }: GameOptionsModalProps) {
-  const { t } = useTranslation("game_details");
+  const { t } = useTranslation(["game_details", "collections"]);
 
   const { showSuccessToast, showErrorToast } = useToast();
 
@@ -28,6 +29,7 @@ export function GameOptionsModal({
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRemoveGameModal, setShowRemoveGameModal] = useState(false);
+  const [showCollectionsModal, setShowCollectionsModal] = useState(false);
 
   const {
     removeGameInstaller,
@@ -107,6 +109,29 @@ export function GameOptionsModal({
         large={true}
       >
         <div className={styles.optionsContainer}>
+          <div className={styles.gameOptionHeader}>
+            <h2>{t("collections:collections")}</h2>
+            <h4 className={styles.gameOptionHeaderDescription}>
+              {t("collections:add_the_game_to_the_collection")}
+            </h4>
+          </div>
+
+          <Button
+            type="button"
+            theme="outline"
+            onClick={() => setShowCollectionsModal(true)}
+          >
+            {t("collections:select_a_collection")}
+          </Button>
+
+          <CollectionsModal
+            visible={showCollectionsModal}
+            game={game}
+            onClose={() => {
+              setShowCollectionsModal(false);
+            }}
+          />
+
           <div className={styles.gameOptionHeader}>
             <h2>{t("executable_section_title")}</h2>
             <h4 className={styles.gameOptionHeaderDescription}>

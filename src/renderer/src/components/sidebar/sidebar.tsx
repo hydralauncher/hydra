@@ -15,6 +15,7 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { SidebarProfile } from "./sidebar-profile";
 import { sortBy } from "lodash-es";
+import { useCollections } from "@renderer/hooks/use-collections";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -25,6 +26,7 @@ const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 export function Sidebar() {
   const { t } = useTranslation("sidebar");
   const { library, updateLibrary } = useLibrary();
+  const { collections, updateCollections } = useCollections();
   const navigate = useNavigate();
 
   const [filteredLibrary, setFilteredLibrary] = useState<LibraryGame[]>([]);
@@ -33,6 +35,7 @@ export function Sidebar() {
   const [sidebarWidth, setSidebarWidth] = useState(
     initialSidebarWidth ? Number(initialSidebarWidth) : SIDEBAR_INITIAL_WIDTH
   );
+  const [showCollections, setShowCollections] = useState(true);
 
   const location = useLocation();
 
@@ -47,6 +50,10 @@ export function Sidebar() {
   useEffect(() => {
     updateLibrary();
   }, [lastPacket?.game.id, updateLibrary]);
+
+  useEffect(() => {
+    updateCollections();
+  });
 
   const isDownloading = sortedLibrary.some(
     (game) => game.status === "active" && game.progress !== 1
@@ -67,17 +74,19 @@ export function Sidebar() {
   };
 
   const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
+    const val = event.target.value.toLocaleLowerCase();
+
     setFilteredLibrary(
-      sortedLibrary.filter((game) =>
-        game.title
-          .toLowerCase()
-          .includes(event.target.value.toLocaleLowerCase())
-      )
+      sortedLibrary.filter((game) => game.title.toLowerCase().includes(val))
     );
+
+    setShowCollections(val == "");
   };
 
   useEffect(() => {
-    setFilteredLibrary(sortedLibrary);
+    setFilteredLibrary(
+      sortedLibrary.filter((game) => !game.collections.length)
+    );
   }, [sortedLibrary]);
 
   useEffect(() => {
@@ -198,6 +207,52 @@ export function Sidebar() {
               onChange={handleFilter}
               theme="dark"
             />
+
+            {collections.map((collection) =>
+              collection.games?.length && showCollections ? (
+                <section className={styles.section} key={collection.id}>
+                  <small className={styles.sectionTitle}>
+                    {collection.title}
+                  </small>
+
+                  <ul className={styles.menu}>
+                    {collection.games.map((game) => (
+                      <li
+                        key={game.id}
+                        className={styles.menuItem({
+                          active:
+                            location.pathname ===
+                            `/game/${game.shop}/${game.objectID}`,
+                          muted: game.status === "removed",
+                        })}
+                      >
+                        <button
+                          type="button"
+                          className={styles.menuItemButton}
+                          onClick={(event) =>
+                            handleSidebarGameClick(event, game)
+                          }
+                        >
+                          {game.iconUrl ? (
+                            <img
+                              className={styles.gameIcon}
+                              src={game.iconUrl}
+                              alt={game.title}
+                            />
+                          ) : (
+                            <SteamLogo className={styles.gameIcon} />
+                          )}
+
+                          <span className={styles.menuItemButtonLabel}>
+                            {getGameTitle(game)}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null
+            )}
 
             <ul className={styles.menu}>
               {filteredLibrary.map((game) => (
