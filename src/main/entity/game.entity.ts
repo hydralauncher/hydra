@@ -6,12 +6,14 @@ import {
   UpdateDateColumn,
   OneToOne,
   JoinColumn,
+  ManyToMany,
 } from "typeorm";
 import { Repack } from "./repack.entity";
 
 import type { GameShop, GameStatus } from "@types";
 import { Downloader } from "@shared";
 import type { DownloadQueue } from "./download-queue.entity";
+import { Collection } from "./collection.entity";
 
 @Entity("game")
 export class Game {
@@ -78,6 +80,9 @@ export class Game {
 
   @OneToOne("DownloadQueue", "game")
   downloadQueue: DownloadQueue;
+
+  @ManyToMany("Collection", "games")
+  collections: Collection[];
 
   @Column("boolean", { default: false })
   isDeleted: boolean;

@@ -9,6 +9,8 @@ import type {
   AppUpdaterEvent,
   StartGameDownloadPayload,
   GameRunning,
+  Collection,
+  Game,
 } from "@types";
 
 contextBridge.exposeInMainWorld("electron", {
@@ -101,6 +103,16 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-library-batch-complete", listener);
   },
+
+  /* Collections */
+  addCollection: (title: string) => ipcRenderer.invoke("addCollection", title),
+  addCollectionGame: (id: number, game: Game) =>
+    ipcRenderer.invoke("addCollectionGame", id, game),
+  getCollections: () => ipcRenderer.invoke("getCollections"),
+  removeCollection: (collection: Collection) =>
+    ipcRenderer.invoke("removeCollection", collection),
+  removeCollectionGame: (id: number, game: Game) =>
+    ipcRenderer.invoke("removeCollectionGame", id, game),
 
   /* Hardware */
   getDiskFreeSpace: (path: string) =>

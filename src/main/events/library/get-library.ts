@@ -8,6 +8,7 @@ const getLibrary = async () =>
     },
     relations: {
       downloadQueue: true,
+      collections: true,
     },
     order: {
       createdAt: "desc",

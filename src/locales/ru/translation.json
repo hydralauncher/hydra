@@ -192,6 +192,19 @@
     "found_download_option_other": "Найдено {{countFormatted}} вариантов загрузки",
     "import": "Импортировать"
   },
+  "collections": {
+    "collections": "Коллекции",
+    "add_the_game_to_the_collection": "Добавьте игру в коллекцию",
+    "select_a_collection": "Выберите коллекцию",
+    "enter_the_name_of_the_collection": "Введите название коллекции",
+    "add": "Добавить",
+    "remove": "Удалить",
+    "you_cant_give_collections_existing_or_empty_names": "Нельзя давать коллекциям существующие или пустые названия",
+    "the_collection_has_been_added_successfully": "Коллекция успешно добавлена",
+    "the_collection_has_been_removed_successfully": "Коллекция успешно удалена",
+    "the_game_has_been_added_to_the_collection": "Игра добавлена в коллекцию",
+    "the_game_has_been_removed_from_the_collection": "Игра удалена из коллекции"
+  },
   "notifications": {
     "download_complete": "Загрузка завершена",
     "game_ready_to_install": "{{title}} готова к установке",
