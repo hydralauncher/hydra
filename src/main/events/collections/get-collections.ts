@@ -4,9 +4,11 @@ import { registerEvent } from "../register-event";
 const getCollections = async () =>
   collectionRepository.find({
     relations: {
+      games: true,
+    },
+    select: {
       games: {
-        downloadQueue: true,
-        repack: true,
+        id: true,
       },
     },
     order: {

@@ -49,11 +49,8 @@ export function Sidebar() {
 
   useEffect(() => {
     updateLibrary();
-  }, [lastPacket?.game.id, updateLibrary]);
-
-  useEffect(() => {
     updateCollections();
-  });
+  }, [lastPacket?.game.id, updateLibrary, updateCollections]);
 
   const isDownloading = sortedLibrary.some(
     (game) => game.status === "active" && game.progress !== 1
@@ -85,9 +82,16 @@ export function Sidebar() {
 
   useEffect(() => {
     setFilteredLibrary(
-      sortedLibrary.filter((game) => !game.collections.length)
+      sortedLibrary.filter(
+        (game) =>
+          !collections.some((collection) =>
+            collection.games.some(
+              (collectionGame) => collectionGame.id == game.id
+            )
+          )
+      )
     );
-  }, [sortedLibrary]);
+  }, [sortedLibrary, collections]);
 
   useEffect(() => {
     window.onmousemove = (event: MouseEvent) => {
@@ -216,39 +220,45 @@ export function Sidebar() {
                   </small>
 
                   <ul className={styles.menu}>
-                    {collection.games.map((game) => (
-                      <li
-                        key={game.id}
-                        className={styles.menuItem({
-                          active:
-                            location.pathname ===
-                            `/game/${game.shop}/${game.objectID}`,
-                          muted: game.status === "removed",
-                        })}
-                      >
-                        <button
-                          type="button"
-                          className={styles.menuItemButton}
-                          onClick={(event) =>
-                            handleSidebarGameClick(event, game)
-                          }
+                    {sortedLibrary
+                      .filter((game) =>
+                        collection.games.some(
+                          (collectionGame) => game.id == collectionGame.id
+                        )
+                      )
+                      .map((game) => (
+                        <li
+                          key={game.id}
+                          className={styles.menuItem({
+                            active:
+                              location.pathname ===
+                              `/game/${game.shop}/${game.objectID}`,
+                            muted: game.status === "removed",
+                          })}
                         >
-                          {game.iconUrl ? (
-                            <img
-                              className={styles.gameIcon}
-                              src={game.iconUrl}
-                              alt={game.title}
-                            />
-                          ) : (
-                            <SteamLogo className={styles.gameIcon} />
-                          )}
+                          <button
+                            type="button"
+                            className={styles.menuItemButton}
+                            onClick={(event) =>
+                              handleSidebarGameClick(event, game)
+                            }
+                          >
+                            {game.iconUrl ? (
+                              <img
+                                className={styles.gameIcon}
+                                src={game.iconUrl}
+                                alt={game.title}
+                              />
+                            ) : (
+                              <SteamLogo className={styles.gameIcon} />
+                            )}
 
-                          <span className={styles.menuItemButtonLabel}>
-                            {getGameTitle(game)}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
+                            <span className={styles.menuItemButtonLabel}>
+                              {getGameTitle(game)}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
                   </ul>
                 </section>
               ) : null
