@@ -128,7 +128,6 @@ export interface Game {
   objectID: string;
   shop: GameShop;
   downloadQueue: DownloadQueue | null;
-  collections: Collection[];
   createdAt: Date;
   updatedAt: Date;
 }
