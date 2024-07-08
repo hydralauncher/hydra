@@ -45,7 +45,7 @@
     "download_options_one": "{{count}} opção de download",
     "download_options_other": "{{count}} opções de download",
     "updated_at": "Atualizado {{updated_at}}",
-    "resume": "Resumir",
+    "resume": "Retomar",
     "pause": "Pausar",
     "cancel": "Cancelar",
     "remove": "Remover",
