@@ -17,7 +17,6 @@ import { buildGameDetailsPath, steamUrlBuilder } from "@renderer/helpers";
 import {
   PersonAddIcon,
   PersonIcon,
-  PlusCircleIcon,
   TelescopeIcon,
 } from "@primer/octicons-react";
 import { Button, Link } from "@renderer/components";
@@ -77,6 +76,10 @@ export function UserContent({
 
   const handleEditProfile = () => {
     setShowEditProfileModal(true);
+  };
+
+  const handleOnClickFriend = (userId: string) => {
+    console.log(userId);
   };
 
   const handleConfirmSignout = async () => {
@@ -359,6 +362,7 @@ export function UserContent({
             >
               <button
                 className={cn(styles.friendListItem, styles.profileContentBox)}
+                onClick={() => handleOnClickFriend("123abcde")}
               >
                 <img
                   className={styles.friendProfileIcon}
@@ -373,11 +377,15 @@ export function UserContent({
               <button
                 className={cn(styles.friendListItem, styles.profileContentBox)}
               >
-                <img
-                  className={styles.friendProfileIcon}
-                  src={userProfile.profileImageUrl || ""}
-                  alt={"Hydra Launcher"}
-                />
+                {userProfile.profileImageUrl ? (
+                  <img
+                    className={styles.friendProfileIcon}
+                    alt={userProfile.displayName}
+                    src={userProfile.profileImageUrl}
+                  />
+                ) : (
+                  <PersonIcon size={48} />
+                )}
                 <h4>Hydra Launcher</h4>
               </button>
             </div>

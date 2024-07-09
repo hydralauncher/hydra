@@ -245,3 +245,30 @@ export const profileBackground = style({
   top: "0",
   borderRadius: "4px",
 });
+
+export const friendRequestItem = style({
+  color: vars.color.body,
+  ":hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
+});
+
+export const acceptRequestButton = style({
+  cursor: "pointer",
+  color: vars.color.body,
+  width: "28px",
+  height: "28px",
+  ":hover": {
+    color: vars.color.success,
+  },
+});
+
+export const cancelRequestButton = style({
+  cursor: "pointer",
+  color: vars.color.body,
+  width: "28px",
+  height: "28px",
+  ":hover": {
+    color: vars.color.danger,
+  },
+});
