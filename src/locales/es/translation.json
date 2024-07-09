@@ -69,7 +69,7 @@
     "minutes": "minutos",
     "amount_hours": "{{amount}} horas",
     "amount_minutes": "{{amount}} minutos",
-    "accuracy": "{{accuracy}}% completado",
+    "accuracy": "Completar al {{accuracy}}%",
     "add_to_library": "Agregar a la biblioteca",
     "remove_from_library": "Eliminar de la biblioteca",
     "no_downloads": "No hay descargas disponibles",
