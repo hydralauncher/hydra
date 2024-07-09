@@ -277,7 +277,11 @@ export interface UserFriend {
 
 export interface PendingFriendRequest {
   AId: string;
+  ADisplayName: string;
+  AProfileImageUrl: string | null;
   BId: string;
+  BDisplayName: string;
+  BProfileImageUrl: string | null;
 }
 
 export interface UserProfile {
