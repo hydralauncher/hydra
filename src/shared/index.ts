@@ -1,6 +1,8 @@
 export enum Downloader {
   RealDebrid,
   Torrent,
+  Gofile,
+  PixelDrain,
 }
 
 export enum DownloadSourceStatus {
@@ -63,3 +65,18 @@ export const formatName = pipe<string>(
   removeDuplicateSpaces,
   (str) => str.trim()
 );
+
+const realDebridHosts = ["https://1fichier.com", "https://mediafire.com"];
+
+export const getDownloadersForUri = (uri: string) => {
+  if (uri.startsWith("https://gofile.io")) return [Downloader.Gofile];
+  if (uri.startsWith("https://pixeldrain.com")) return [Downloader.PixelDrain];
+
+  if (realDebridHosts.some((host) => uri.startsWith(host)))
+    return [Downloader.RealDebrid];
+
+  if (uri.startsWith("magnet:"))
+    return [Downloader.Torrent, Downloader.RealDebrid];
+
+  return [];
+};

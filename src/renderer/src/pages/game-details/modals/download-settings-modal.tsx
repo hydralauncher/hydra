@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
 import { DiskSpace } from "check-disk-space";
 import * as styles from "./download-settings-modal.css";
 import { Button, Link, Modal, TextField } from "@renderer/components";
 import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
-import { Downloader, formatBytes } from "@shared";
+import { Downloader, formatBytes, getDownloadersForUri } from "@shared";
 
 import type { GameRepack } from "@types";
 import { SPACING_UNIT } from "@renderer/theme.css";
@@ -23,8 +23,6 @@ export interface DownloadSettingsModalProps {
   repack: GameRepack | null;
 }
 
-const downloaders = [Downloader.Torrent, Downloader.RealDebrid];
-
 export function DownloadSettingsModal({
   visible,
   onClose,
@@ -36,9 +34,8 @@ export function DownloadSettingsModal({
   const [diskFreeSpace, setDiskFreeSpace] = useState<DiskSpace | null>(null);
   const [selectedPath, setSelectedPath] = useState("");
   const [downloadStarting, setDownloadStarting] = useState(false);
-  const [selectedDownloader, setSelectedDownloader] = useState(
-    Downloader.Torrent
-  );
+  const [selectedDownloader, setSelectedDownloader] =
+    useState<Downloader | null>(null);
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -50,6 +47,10 @@ export function DownloadSettingsModal({
     }
   }, [visible, selectedPath]);
 
+  const downloaders = useMemo(() => {
+    return getDownloadersForUri(repack?.magnet ?? "");
+  }, [repack?.magnet]);
+
   useEffect(() => {
     if (userPreferences?.downloadsPath) {
       setSelectedPath(userPreferences.downloadsPath);
@@ -59,9 +60,19 @@ export function DownloadSettingsModal({
         .then((defaultDownloadsPath) => setSelectedPath(defaultDownloadsPath));
     }
 
-    if (userPreferences?.realDebridApiToken)
+    if (
+      userPreferences?.realDebridApiToken &&
+      downloaders.includes(Downloader.RealDebrid)
+    ) {
       setSelectedDownloader(Downloader.RealDebrid);
-  }, [userPreferences?.downloadsPath, userPreferences?.realDebridApiToken]);
+    } else {
+      setSelectedDownloader(downloaders[0]);
+    }
+  }, [
+    userPreferences?.downloadsPath,
+    downloaders,
+    userPreferences?.realDebridApiToken,
+  ]);
 
   const getDiskFreeSpace = (path: string) => {
     window.electron.getDiskFreeSpace(path).then((result) => {
@@ -85,7 +96,7 @@ export function DownloadSettingsModal({
     if (repack) {
       setDownloadStarting(true);
 
-      startDownload(repack, selectedDownloader, selectedPath).finally(() => {
+      startDownload(repack, selectedDownloader!, selectedPath).finally(() => {
         setDownloadStarting(false);
         onClose();
       });
@@ -167,7 +178,10 @@ export function DownloadSettingsModal({
           </p>
         </div>
 
-        <Button onClick={handleStartClick} disabled={downloadStarting}>
+        <Button
+          onClick={handleStartClick}
+          disabled={downloadStarting || selectedDownloader === null}
+        >
           <DownloadIcon />
           {t("download_now")}
         </Button>

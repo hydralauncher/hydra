@@ -44,6 +44,8 @@ const startGameDownload = async (
   );
 
   if (game) {
+    console.log("game", game);
+
     await gameRepository.update(
       {
         id: game.id,
@@ -94,6 +96,8 @@ const startGameDownload = async (
       objectID,
     },
   });
+
+  console.log(updatedGame);
 
   createGame(updatedGame!);
 
