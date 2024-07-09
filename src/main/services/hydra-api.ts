@@ -98,9 +98,9 @@ export class HydraApi {
         logger.error(config.method, config.baseURL, config.url, config.headers);
 
         if (error.response) {
-          logger.error(error.response.status, error.response.data);
+          logger.error("Response", error.response.status, error.response.data);
         } else if (error.request) {
-          logger.error(error.request);
+          logger.error("Request", error.request);
         } else {
           logger.error("Error", error.message);
         }

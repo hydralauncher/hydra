@@ -269,14 +269,25 @@ export interface UserDetails {
   profileImageUrl: string | null;
 }
 
+export interface UserFriend {
+  id: string;
+  displayName: string;
+  profileImageUrl: string | null;
+}
+
+export interface PendingFriendRequest {
+  AId: string;
+  BId: string;
+}
+
 export interface UserProfile {
   id: string;
   displayName: string;
-  username: string;
   profileImageUrl: string | null;
   totalPlayTimeInSeconds: number;
-  libraryGames: UserGame[];
-  recentGames: UserGame[];
+  libraryGames: UserGame[] | null;
+  recentGames: UserGame[] | null;
+  friends: UserFriend[] | null;
 }
 
 export interface DownloadSource {
