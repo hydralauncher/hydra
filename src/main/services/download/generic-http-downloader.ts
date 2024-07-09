@@ -1,0 +1,109 @@
+import { Game } from "@main/entity";
+import { gameRepository } from "@main/repository";
+import { calculateETA } from "./helpers";
+import { DownloadProgress } from "@types";
+import { HTTPDownload } from "./http-download";
+
+export class GenericHTTPDownloader {
+  private static downloads = new Map<number, string>();
+  private static downloadingGame: Game | null = null;
+
+  public static async getStatus() {
+    if (this.downloadingGame) {
+      const gid = this.downloads.get(this.downloadingGame.id)!;
+      const status = await HTTPDownload.getStatus(gid);
+
+      if (status) {
+        const progress =
+          Number(status.completedLength) / Number(status.totalLength);
+
+        await gameRepository.update(
+          { id: this.downloadingGame!.id },
+          {
+            bytesDownloaded: Number(status.completedLength),
+            fileSize: Number(status.totalLength),
+            progress,
+            status: "active",
+          }
+        );
+
+        const result = {
+          numPeers: 0,
+          numSeeds: 0,
+          downloadSpeed: Number(status.downloadSpeed),
+          timeRemaining: calculateETA(
+            Number(status.totalLength),
+            Number(status.completedLength),
+            Number(status.downloadSpeed)
+          ),
+          isDownloadingMetadata: false,
+          isCheckingFiles: false,
+          progress,
+          gameId: this.downloadingGame!.id,
+        } as DownloadProgress;
+
+        if (progress === 1) {
+          this.downloads.delete(this.downloadingGame.id);
+          this.downloadingGame = null;
+        }
+
+        return result;
+      }
+    }
+
+    return null;
+  }
+
+  static async pauseDownload() {
+    if (this.downloadingGame) {
+      const gid = this.downloads.get(this.downloadingGame!.id!);
+
+      if (gid) {
+        await HTTPDownload.pauseDownload(gid);
+      }
+
+      this.downloadingGame = null;
+    }
+  }
+
+  static async startDownload(
+    game: Game,
+    downloadUrl: string,
+    headers: string[] = []
+  ) {
+    this.downloadingGame = game;
+
+    if (this.downloads.has(game.id)) {
+      await this.resumeDownload(game.id!);
+
+      return;
+    }
+
+    if (downloadUrl) {
+      const gid = await HTTPDownload.startDownload(
+        game.downloadPath!,
+        downloadUrl,
+        headers
+      );
+
+      this.downloads.set(game.id!, gid);
+    }
+  }
+
+  static async cancelDownload(gameId: number) {
+    const gid = this.downloads.get(gameId);
+
+    if (gid) {
+      await HTTPDownload.cancelDownload(gid);
+      this.downloads.delete(gameId);
+    }
+  }
+
+  static async resumeDownload(gameId: number) {
+    const gid = this.downloads.get(gameId);
+
+    if (gid) {
+      await HTTPDownload.resumeDownload(gid);
+    }
+  }
+}

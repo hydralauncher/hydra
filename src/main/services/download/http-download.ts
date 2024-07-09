@@ -4,7 +4,7 @@ import { sleep } from "@main/helpers";
 import { startAria2 } from "../aria2c";
 import Aria2 from "aria2";
 
-export class HttpDownload {
+export class HTTPDownload {
   private static connected = false;
   private static aria2c: ChildProcess | null = null;
 
@@ -56,11 +56,17 @@ export class HttpDownload {
     await this.aria2.call("unpause", gid);
   }
 
-  static async startDownload(downloadPath: string, downloadUrl: string) {
+  static async startDownload(
+    downloadPath: string,
+    downloadUrl: string,
+    header: string[] = []
+  ) {
+    console.log(header);
     if (!this.connected) await this.connect();
 
     const options = {
       dir: downloadPath,
+      header,
     };
 
     return this.aria2.call("addUri", [downloadUrl], options);
