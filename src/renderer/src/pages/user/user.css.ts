@@ -86,7 +86,13 @@ export const profileContent = style({
 
 export const profileGameSection = style({
   width: "100%",
-  height: "100%",
+  display: "flex",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT * 2}px`,
+});
+
+export const friendsSection = style({
+  width: "100%",
   display: "flex",
   flexDirection: "column",
   gap: `${SPACING_UNIT * 2}px`,
@@ -94,6 +100,9 @@ export const profileGameSection = style({
 
 export const contentSidebar = style({
   width: "100%",
+  display: "flex",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT * 3}px`,
   "@media": {
     "(min-width: 768px)": {
       width: "100%",
@@ -116,12 +125,17 @@ export const libraryGameIcon = style({
   borderRadius: "4px",
 });
 
+export const friendProfileIcon = style({
+  height: "100%",
+});
+
 export const feedItem = style({
   color: vars.color.body,
   display: "flex",
   flexDirection: "row",
   gap: `${SPACING_UNIT * 2}px`,
   width: "100%",
+  overflow: "hidden",
   height: "72px",
   transition: "all ease 0.2s",
   cursor: "pointer",
@@ -138,6 +152,22 @@ export const gameListItem = style({
   zIndex: "1",
   overflow: "hidden",
   padding: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
+  ":hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
+});
+
+export const friendListItem = style({
+  color: vars.color.body,
+  display: "flex",
+  flexDirection: "row",
+  gap: `${SPACING_UNIT}px`,
+  width: "100%",
+  height: "48px",
+  transition: "all ease 0.2s",
+  cursor: "pointer",
+  zIndex: "1",
+  overflow: "hidden",
   ":hover": {
     backgroundColor: "rgba(255, 255, 255, 0.15)",
   },

@@ -14,10 +14,16 @@ import {
 } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
 import { buildGameDetailsPath, steamUrlBuilder } from "@renderer/helpers";
-import { PersonIcon, TelescopeIcon } from "@primer/octicons-react";
+import {
+  PersonAddIcon,
+  PersonIcon,
+  PlusCircleIcon,
+  TelescopeIcon,
+} from "@primer/octicons-react";
 import { Button, Link } from "@renderer/components";
 import { UserEditProfileModal } from "./user-edit-modal";
 import { UserSignOutModal } from "./user-signout-modal";
+import { UserAddFriendsModal } from "./user-add-friends-modal";
 
 const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 
@@ -37,6 +43,7 @@ export function UserContent({
 
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [showAddFriendsModal, setShowAddFriendsModal] = useState(false);
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
 
@@ -101,6 +108,11 @@ export function UserContent({
         visible={showSignOutModal}
         onClose={() => setShowSignOutModal(false)}
         onConfirm={handleConfirmSignout}
+      />
+
+      <UserAddFriendsModal
+        visible={showAddFriendsModal}
+        onClose={() => setShowAddFriendsModal(false)}
       />
 
       <section
@@ -210,7 +222,7 @@ export function UserContent({
         <div className={styles.profileGameSection}>
           <h2>{t("activity")}</h2>
 
-          {!userProfile.recentGames.length ? (
+          {!userProfile.recentGames?.length ? (
             <div className={styles.noDownloads}>
               <div className={styles.telescopeIcon}>
                 <TelescopeIcon size={24} />
@@ -259,54 +271,116 @@ export function UserContent({
           )}
         </div>
 
-        <div className={cn(styles.contentSidebar, styles.profileGameSection)}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: `${SPACING_UNIT * 2}px`,
-            }}
-          >
-            <h2>{t("library")}</h2>
+        <div className={styles.contentSidebar}>
+          <div className={styles.profileGameSection}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: `${SPACING_UNIT * 2}px`,
+              }}
+            >
+              <h2>{t("library")}</h2>
+
+              <div
+                style={{
+                  flex: 1,
+                  backgroundColor: vars.color.border,
+                  height: "1px",
+                }}
+              />
+              <h3 style={{ fontWeight: "400" }}>
+                {userProfile.libraryGames?.length}
+              </h3>
+            </div>
+            <small>{t("total_play_time", { amount: formatPlayTime() })}</small>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: `${SPACING_UNIT}px`,
+              }}
+            >
+              {userProfile.libraryGames?.map((game) => (
+                <button
+                  key={game.objectID}
+                  className={cn(styles.gameListItem, styles.profileContentBox)}
+                  onClick={() => handleGameClick(game)}
+                  title={game.title}
+                >
+                  {game.iconUrl ? (
+                    <img
+                      className={styles.libraryGameIcon}
+                      src={game.iconUrl}
+                      alt={game.title}
+                    />
+                  ) : (
+                    <SteamLogo className={styles.libraryGameIcon} />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.friendsSection}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: `${SPACING_UNIT * 2}px`,
+              }}
+            >
+              <h2>{t("friends")}</h2>
+
+              <div
+                style={{
+                  flex: 1,
+                  backgroundColor: vars.color.border,
+                  height: "1px",
+                }}
+              />
+              <button
+                type="button"
+                style={{ color: vars.color.body, cursor: "pointer" }}
+                onClick={() => setShowAddFriendsModal(true)}
+              >
+                <PersonAddIcon />
+              </button>
+            </div>
 
             <div
               style={{
-                flex: 1,
-                backgroundColor: vars.color.border,
-                height: "1px",
+                display: "flex",
+                flexDirection: "column",
+                gap: `${SPACING_UNIT}px`,
               }}
-            />
-            <h3 style={{ fontWeight: "400" }}>
-              {userProfile.libraryGames.length}
-            </h3>
-          </div>
-          <small>{t("total_play_time", { amount: formatPlayTime() })}</small>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: `${SPACING_UNIT}px`,
-            }}
-          >
-            {userProfile.libraryGames.map((game) => (
+            >
               <button
-                key={game.objectID}
-                className={cn(styles.gameListItem, styles.profileContentBox)}
-                onClick={() => handleGameClick(game)}
-                title={game.title}
+                className={cn(styles.friendListItem, styles.profileContentBox)}
               >
-                {game.iconUrl ? (
-                  <img
-                    className={styles.libraryGameIcon}
-                    src={game.iconUrl}
-                    alt={game.title}
-                  />
-                ) : (
-                  <SteamLogo className={styles.libraryGameIcon} />
-                )}
+                <img
+                  className={styles.friendProfileIcon}
+                  src={
+                    "https://cdn.discordapp.com/avatars/1239959140785455295/4aff4b901c7a9f5f814b4379b6cfd58a.webp"
+                  }
+                  alt={"Punheta Master 123"}
+                />
+                <h4>Punheta Master 123</h4>
               </button>
-            ))}
+
+              <button
+                className={cn(styles.friendListItem, styles.profileContentBox)}
+              >
+                <img
+                  className={styles.friendProfileIcon}
+                  src={userProfile.profileImageUrl || ""}
+                  alt={"Hydra Launcher"}
+                />
+                <h4>Hydra Launcher</h4>
+              </button>
+            </div>
           </div>
         </div>
       </div>

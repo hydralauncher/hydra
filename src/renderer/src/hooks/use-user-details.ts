@@ -78,6 +78,10 @@ export function useUserDetails() {
     [updateUserDetails]
   );
 
+  const sendFriendRequest = useCallback(async (userId: string) => {
+    console.log("sending friend request to", userId);
+  }, []);
+
   return {
     userDetails,
     fetchUserDetails,
@@ -85,6 +89,7 @@ export function useUserDetails() {
     clearUserDetails,
     updateUserDetails,
     patchUser,
+    sendFriendRequest,
     profileBackground,
   };
 }
