@@ -1,4 +1,4 @@
-import { UserFriend, UserGame, UserProfile } from "@types";
+import { UserGame, UserProfile } from "@types";
 import cn from "classnames";
 
 import * as styles from "./user.css";
@@ -79,7 +79,7 @@ export function UserContent({
   };
 
   const handleOnClickFriend = (userId: string) => {
-    console.log(userId);
+    navigate(`/user/${userId}`);
   };
 
   const handleConfirmSignout = async () => {
@@ -326,86 +326,75 @@ export function UserContent({
             </div>
           </div>
 
-          <div className={styles.friendsSection}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: `${SPACING_UNIT * 2}px`,
-              }}
-            >
-              <h2>{t("friends")}</h2>
+          {(isMe ||
+            (userProfile.friends && userProfile.friends.length > 0)) && (
+            <div className={styles.friendsSection}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: `${SPACING_UNIT * 2}px`,
+                }}
+              >
+                <h2>{t("friends")}</h2>
+
+                <div
+                  style={{
+                    flex: 1,
+                    backgroundColor: vars.color.border,
+                    height: "1px",
+                  }}
+                />
+                {isMe && (
+                  <button
+                    type="button"
+                    style={{ color: vars.color.body, cursor: "pointer" }}
+                    onClick={() => setShowAddFriendsModal(true)}
+                  >
+                    <PersonAddIcon size={24} />
+                  </button>
+                )}
+              </div>
 
               <div
                 style={{
-                  flex: 1,
-                  backgroundColor: vars.color.border,
-                  height: "1px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: `${SPACING_UNIT}px`,
                 }}
-              />
-              {isMe && (
-                <button
-                  type="button"
-                  style={{ color: vars.color.body, cursor: "pointer" }}
-                  onClick={() => setShowAddFriendsModal(true)}
-                >
-                  <PersonAddIcon size={24} />
-                </button>
-              )}
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: `${SPACING_UNIT}px`,
-              }}
-            >
-              {(
-                [
-                  {
-                    id: "",
-                    displayName: "Punheta Master 123123123123123123",
-                    profileImageUrl:
-                      "https://cdn.discordapp.com/avatars/1239959140785455295/4aff4b901c7a9f5f814b4379b6cfd58a.webp",
-                  },
-                  {
-                    id: "",
-                    displayName: "Hydra Launcher",
-                    profileImageUrl: null,
-                  },
-                ] as UserFriend[]
-              ).map((friend) => {
-                return (
-                  <button
-                    key={friend.id}
-                    className={cn(
-                      styles.friendListItem,
-                      styles.profileContentBox
-                    )}
-                    onClick={() => handleOnClickFriend(friend.id)}
-                  >
-                    <div className={styles.friendAvatarContainer}>
-                      {friend.profileImageUrl ? (
-                        <img
-                          className={styles.friendProfileIcon}
-                          src={friend.profileImageUrl}
-                          alt={friend.displayName}
-                        />
-                      ) : (
-                        <PersonIcon size={24} />
+              >
+                {userProfile.friends?.map((friend) => {
+                  return (
+                    <button
+                      key={friend.id}
+                      className={cn(
+                        styles.friendListItem,
+                        styles.profileContentBox
                       )}
-                    </div>
+                      onClick={() => handleOnClickFriend(friend.id)}
+                    >
+                      <div className={styles.friendAvatarContainer}>
+                        {friend.profileImageUrl ? (
+                          <img
+                            className={styles.friendProfileIcon}
+                            src={friend.profileImageUrl}
+                            alt={friend.displayName}
+                          />
+                        ) : (
+                          <PersonIcon size={24} />
+                        )}
+                      </div>
 
-                    <p className={styles.friendListDisplayName}>
-                      {friend.displayName}
-                    </p>
-                  </button>
-                );
-              })}
+                      <p className={styles.friendListDisplayName}>
+                        {friend.displayName}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </>
