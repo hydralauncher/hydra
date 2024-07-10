@@ -3,7 +3,6 @@ import {
   PersonIcon,
   XCircleIcon,
 } from "@primer/octicons-react";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import * as styles from "./user.css";
 import cn from "classnames";
 
@@ -33,11 +32,8 @@ export const UserFriendPendingRequest = ({
       type="button"
       className={cn(styles.friendListItem, styles.profileContentBox)}
       onClick={() => onClickRequest(userId)}
-      style={{
-        padding: "8px",
-      }}
     >
-      <div className={styles.pendingFriendRequestAvatarContainer}>
+      <div className={styles.friendAvatarContainer}>
         {profileImageUrl ? (
           <img
             className={styles.profileAvatar}
@@ -55,10 +51,9 @@ export const UserFriendPendingRequest = ({
           alignItems: "flex-start",
           flex: "1",
           minWidth: 0,
-          gap: `${SPACING_UNIT / 2}px`,
         }}
       >
-        <h4>{displayName}</h4>
+        <p className={styles.friendListDisplayName}>{displayName}</p>
         <small>{isRequestSent ? "Pedido enviado" : "Pedido recebido"}</small>
       </div>
       {isRequestSent ? (
