@@ -26,7 +26,7 @@ export const UserAddFriendsModal = ({
 
   const navigate = useNavigate();
 
-  const { userDetails, sendFriendRequest } = useUserDetails();
+  const { sendFriendRequest } = useUserDetails();
 
   const { showSuccessToast, showErrorToast } = useToast();
 
@@ -51,21 +51,17 @@ export const UserAddFriendsModal = ({
   useEffect(() => {
     setPendingRequests([
       {
-        AId: "abcd1234",
-        ADisplayName: "Punheta Master 123",
-        AProfileImageUrl:
+        userId: "abcd1234",
+        displayName: "Punheta Master 123",
+        profileImageUrl:
           "https://cdn.discordapp.com/avatars/1239959140785455295/4aff4b901c7a9f5f814b4379b6cfd58a.webp",
-        BId: "BMmNRmP3",
-        BDisplayName: "Hydra",
-        BProfileImageUrl: null,
+        type: "RECEIVED",
       },
       {
-        AId: "BMmNRmP3",
-        ADisplayName: "Hydra",
-        AProfileImageUrl: null,
-        BId: "12345678",
-        BDisplayName: "Deyvis0n",
-        BProfileImageUrl: null,
+        userId: "12345678",
+        displayName: "Deyvis0n",
+        profileImageUrl: null,
+        type: "SENT",
       },
     ]);
   }, []);
@@ -154,29 +150,13 @@ export const UserAddFriendsModal = ({
           >
             <h3>Pendentes</h3>
             {pendingRequests.map((request) => {
-              if (request.AId === userDetails?.id) {
-                return (
-                  <UserFriendPendingRequest
-                    key={request.AId}
-                    displayName={request.BDisplayName}
-                    isRequestSent={true}
-                    profileImageUrl={request.BProfileImageUrl}
-                    userId={request.BId}
-                    onClickAcceptRequest={handleClickAcceptFriendRequest}
-                    onClickCancelRequest={handleClickCancelFriendRequest}
-                    onClickRefuseRequest={handleClickRefuseFriendRequest}
-                    onClickRequest={handleClickFriend}
-                  />
-                );
-              }
-
               return (
                 <UserFriendPendingRequest
-                  key={request.BId}
-                  displayName={request.ADisplayName}
-                  isRequestSent={false}
-                  profileImageUrl={request.AProfileImageUrl}
-                  userId={request.AId}
+                  key={request.userId}
+                  displayName={request.displayName}
+                  isRequestSent={request.type === "SENT"}
+                  profileImageUrl={request.profileImageUrl}
+                  userId={request.userId}
                   onClickAcceptRequest={handleClickAcceptFriendRequest}
                   onClickCancelRequest={handleClickCancelFriendRequest}
                   onClickRefuseRequest={handleClickRefuseFriendRequest}

@@ -35,6 +35,20 @@ export const profileAvatarContainer = style({
   zIndex: 1,
 });
 
+export const pendingFriendRequestAvatarContainer = style({
+  width: "32px",
+  height: "32px",
+  borderRadius: "50%",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: vars.color.background,
+  overflow: "hidden",
+  border: `solid 1px ${vars.color.border}`,
+  boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.7)",
+  zIndex: 1,
+});
+
 export const profileAvatarEditContainer = style({
   width: "128px",
   height: "128px",
@@ -53,8 +67,6 @@ export const profileAvatarEditContainer = style({
 export const profileAvatar = style({
   height: "100%",
   width: "100%",
-  borderRadius: "50%",
-  overflow: "hidden",
   objectFit: "cover",
 });
 
