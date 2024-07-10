@@ -10,6 +10,8 @@ export type GameStatus =
 
 export type GameShop = "steam" | "epic";
 
+export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
+
 export interface SteamGenre {
   id: string;
   name: string;
@@ -275,7 +277,7 @@ export interface UserFriend {
   profileImageUrl: string | null;
 }
 
-export interface PendingFriendRequest {
+export interface FriendRequest {
   userId: string;
   displayName: string;
   profileImageUrl: string | null;

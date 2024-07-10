@@ -1,4 +1,4 @@
-import { PendingFriendRequest, UserGame, UserProfile } from "@types";
+import { UserGame, UserProfile } from "@types";
 import cn from "classnames";
 import * as styles from "./user.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
@@ -36,7 +36,8 @@ export function UserContent({
 }: ProfileContentProps) {
   const { t, i18n } = useTranslation("user_profile");
 
-  const { userDetails, profileBackground, signOut } = useUserDetails();
+  const { userDetails, profileBackground, signOut, updateFriendRequests } =
+    useUserDetails();
   const { showSuccessToast } = useToast();
 
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -89,16 +90,10 @@ export function UserContent({
     navigate("/");
   };
 
-  const [pendingRequests, setPendingRequests] = useState<
-    PendingFriendRequest[]
-  >([]);
-
   const isMe = userDetails?.id == userProfile.id;
 
   useEffect(() => {
-    window.electron.getFriendRequests().then((friendsRequests) => {
-      setPendingRequests(friendsRequests ?? []);
-    });
+    if (isMe) updateFriendRequests();
   }, [isMe]);
 
   const profileContentBoxBackground = useMemo(() => {
@@ -123,7 +118,6 @@ export function UserContent({
       />
 
       <UserAddFriendsModal
-        pendingRequests={pendingRequests}
         visible={showAddFriendsModal}
         onClose={() => setShowAddFriendsModal(false)}
       />

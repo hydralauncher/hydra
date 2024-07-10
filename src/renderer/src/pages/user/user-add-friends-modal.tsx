@@ -1,22 +1,19 @@
 import { Button, Modal, TextField } from "@renderer/components";
-import { PendingFriendRequest } from "@types";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { useState } from "react";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { UserFriendPendingRequest } from "./user-friend-pending-request";
+import { UserFriendRequest } from "./user-friend-request";
 
 export interface UserAddFriendsModalProps {
   visible: boolean;
   onClose: () => void;
-  pendingRequests: PendingFriendRequest[];
 }
 
 export const UserAddFriendsModal = ({
   visible,
   onClose,
-  pendingRequests,
 }: UserAddFriendsModalProps) => {
   const { t } = useTranslation("user_profile");
 
@@ -25,7 +22,8 @@ export const UserAddFriendsModal = ({
 
   const navigate = useNavigate();
 
-  const { sendFriendRequest } = useUserDetails();
+  const { sendFriendRequest, updateFriendRequests, friendRequests } =
+    useUserDetails();
 
   const { showSuccessToast, showErrorToast } = useToast();
 
@@ -33,6 +31,7 @@ export const UserAddFriendsModal = ({
     setIsAddingFriend(true);
     sendFriendRequest(friendCode)
       .then(() => {
+        updateFriendRequests();
         showSuccessToast(t("friend_request_sent"));
       })
       .catch(() => {
@@ -54,14 +53,17 @@ export const UserAddFriendsModal = ({
 
   const handleClickCancelFriendRequest = (userId: string) => {
     console.log(userId);
+    updateFriendRequests();
   };
 
   const handleClickAcceptFriendRequest = (userId: string) => {
     console.log(userId);
+    updateFriendRequests();
   };
 
   const handleClickRefuseFriendRequest = (userId: string) => {
     console.log(userId);
+    updateFriendRequests();
   };
 
   const resetModal = () => {
@@ -131,9 +133,9 @@ export const UserAddFriendsModal = ({
             }}
           >
             <h3>Pendentes</h3>
-            {pendingRequests.map((request) => {
+            {friendRequests?.map((request) => {
               return (
-                <UserFriendPendingRequest
+                <UserFriendRequest
                   key={request.userId}
                   displayName={request.displayName}
                   isRequestSent={request.type === "SENT"}
