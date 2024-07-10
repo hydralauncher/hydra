@@ -6,7 +6,7 @@ import {
 import * as styles from "./user.css";
 import cn from "classnames";
 
-export interface UserFriendPendingRequestProps {
+export interface UserFriendRequestProps {
   userId: string;
   profileImageUrl: string | null;
   displayName: string;
@@ -17,7 +17,7 @@ export interface UserFriendPendingRequestProps {
   onClickRequest: (userId: string) => void;
 }
 
-export const UserFriendPendingRequest = ({
+export const UserFriendRequest = ({
   userId,
   profileImageUrl,
   displayName,
@@ -26,7 +26,7 @@ export const UserFriendPendingRequest = ({
   onClickAcceptRequest,
   onClickRefuseRequest,
   onClickRequest,
-}: UserFriendPendingRequestProps) => {
+}: UserFriendRequestProps) => {
   return (
     <button
       type="button"

@@ -2,14 +2,18 @@ import { useCallback } from "react";
 import { average } from "color.js";
 
 import { useAppDispatch, useAppSelector } from "./redux";
-import { setProfileBackground, setUserDetails } from "@renderer/features";
+import {
+  setProfileBackground,
+  setUserDetails,
+  setFriendRequests,
+} from "@renderer/features";
 import { darkenColor } from "@renderer/helpers";
 import { UserDetails } from "@types";
 
 export function useUserDetails() {
   const dispatch = useAppDispatch();
 
-  const { userDetails, profileBackground } = useAppSelector(
+  const { userDetails, profileBackground, friendRequests } = useAppSelector(
     (state) => state.userDetails
   );
 
@@ -82,19 +86,21 @@ export function useUserDetails() {
     console.log("sending friend request to", userId);
   }, []);
 
-  const fetchPendingRequests = useCallback(async () => {
-    return window.electron.getFriendRequests();
-  }, []);
+  const updateFriendRequests = useCallback(async () => {
+    const friendRequests = await window.electron.getFriendRequests();
+    dispatch(setFriendRequests(friendRequests));
+  }, [dispatch]);
 
   return {
     userDetails,
+    profileBackground,
+    friendRequests,
     fetchUserDetails,
     signOut,
     clearUserDetails,
     updateUserDetails,
     patchUser,
     sendFriendRequest,
-    fetchPendingRequests,
-    profileBackground,
+    updateFriendRequests,
   };
 }

@@ -1,10 +1,10 @@
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
-import { PendingFriendRequest } from "@types";
+import { FriendRequest } from "@types";
 
 const getFriendRequests = async (
   _event: Electron.IpcMainInvokeEvent
-): Promise<PendingFriendRequest[] | null> => {
+): Promise<FriendRequest[] | null> => {
   try {
     const response = await HydraApi.get(`/profile/friend-requests`);
     return response.data;
