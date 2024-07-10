@@ -43,6 +43,7 @@ import "./auth/sign-out";
 import "./auth/open-auth-window";
 import "./auth/get-session-hash";
 import "./user/get-user";
+import "./profile/get-friend-requests";
 import "./profile/get-me";
 import "./profile/update-profile";
 

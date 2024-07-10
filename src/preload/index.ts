@@ -136,6 +136,7 @@ contextBridge.exposeInMainWorld("electron", {
   getMe: () => ipcRenderer.invoke("getMe"),
   updateProfile: (displayName: string, newProfileImagePath: string | null) =>
     ipcRenderer.invoke("updateProfile", displayName, newProfileImagePath),
+  getFriendRequests: () => ipcRenderer.invoke("getFriendRequests"),
 
   /* User */
   getUser: (userId: string) => ipcRenderer.invoke("getUser", userId),

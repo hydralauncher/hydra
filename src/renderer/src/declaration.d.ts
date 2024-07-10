@@ -14,6 +14,7 @@ import type {
   RealDebridUser,
   DownloadSource,
   UserProfile,
+  PendingFriendRequest,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -132,6 +133,7 @@ declare global {
       displayName: string,
       newProfileImagePath: string | null
     ) => Promise<UserProfile>;
+    getFriendRequests: () => Promise<PendingFriendRequest[] | null>;
   }
 
   interface Window {
