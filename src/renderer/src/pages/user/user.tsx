@@ -2,7 +2,7 @@ import { UserProfile } from "@types";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { setHeaderTitle } from "@renderer/features";
-import { useAppDispatch } from "@renderer/hooks";
+import { useAppDispatch, useToast } from "@renderer/hooks";
 import { UserSkeleton } from "./user-skeleton";
 import { UserContent } from "./user-content";
 import { SkeletonTheme } from "react-loading-skeleton";
@@ -14,6 +14,8 @@ export const User = () => {
   const [userProfile, setUserProfile] = useState<UserProfile>();
   const navigate = useNavigate();
 
+  const { showErrorToast } = useToast();
+
   const dispatch = useAppDispatch();
 
   const getUserProfile = useCallback(() => {
@@ -22,6 +24,7 @@ export const User = () => {
         dispatch(setHeaderTitle(userProfile.displayName));
         setUserProfile(userProfile);
       } else {
+        showErrorToast("Usuário não encontrado");
         navigate(-1);
       }
     });

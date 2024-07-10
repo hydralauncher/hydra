@@ -1,7 +1,7 @@
 import { Button, Modal, TextField } from "@renderer/components";
 import { PendingFriendRequest } from "@types";
 import { SPACING_UNIT } from "@renderer/theme.css";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -10,19 +10,18 @@ import { UserFriendPendingRequest } from "./user-friend-pending-request";
 export interface UserAddFriendsModalProps {
   visible: boolean;
   onClose: () => void;
+  pendingRequests: PendingFriendRequest[];
 }
 
 export const UserAddFriendsModal = ({
   visible,
   onClose,
+  pendingRequests,
 }: UserAddFriendsModalProps) => {
   const { t } = useTranslation("user_profile");
 
   const [friendCode, setFriendCode] = useState("");
   const [isAddingFriend, setIsAddingFriend] = useState(false);
-  const [pendingRequests, setPendingRequests] = useState<
-    PendingFriendRequest[]
-  >([]);
 
   const navigate = useNavigate();
 
@@ -37,7 +36,7 @@ export const UserAddFriendsModal = ({
         showSuccessToast(t("friend_request_sent"));
       })
       .catch(() => {
-        showErrorToast("falhaaaa");
+        showErrorToast("Não foi possível enviar o pedido de amizade");
       })
       .finally(() => {
         setIsAddingFriend(false);
@@ -45,29 +44,12 @@ export const UserAddFriendsModal = ({
   };
 
   const handleClickFriend = (userId: string) => {
-    navigate(userId);
+    navigate(`/user/${userId}`);
   };
 
-  useEffect(() => {
-    setPendingRequests([
-      {
-        userId: "abcd1234",
-        displayName: "Punheta Master 123",
-        profileImageUrl:
-          "https://cdn.discordapp.com/avatars/1239959140785455295/4aff4b901c7a9f5f814b4379b6cfd58a.webp",
-        type: "RECEIVED",
-      },
-      {
-        userId: "12345678",
-        displayName: "Deyvis0n",
-        profileImageUrl: null,
-        type: "SENT",
-      },
-    ]);
-  }, []);
-
   const handleClickSeeProfile = () => {
-    // navigate(`profile/${friendCode}`);
+    onClose();
+    navigate(`/user/${friendCode}`);
   };
 
   const handleClickCancelFriendRequest = (userId: string) => {

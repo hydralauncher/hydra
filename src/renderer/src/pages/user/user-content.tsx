@@ -1,9 +1,8 @@
-import { UserGame, UserProfile } from "@types";
+import { PendingFriendRequest, UserGame, UserProfile } from "@types";
 import cn from "classnames";
-
 import * as styles from "./user.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import {
@@ -90,7 +89,17 @@ export function UserContent({
     navigate("/");
   };
 
+  const [pendingRequests, setPendingRequests] = useState<
+    PendingFriendRequest[]
+  >([]);
+
   const isMe = userDetails?.id == userProfile.id;
+
+  useEffect(() => {
+    window.electron.getFriendRequests().then((friendsRequests) => {
+      setPendingRequests(friendsRequests ?? []);
+    });
+  }, [isMe]);
 
   const profileContentBoxBackground = useMemo(() => {
     if (profileBackground) return profileBackground;
@@ -114,6 +123,7 @@ export function UserContent({
       />
 
       <UserAddFriendsModal
+        pendingRequests={pendingRequests}
         visible={showAddFriendsModal}
         onClose={() => setShowAddFriendsModal(false)}
       />
@@ -231,9 +241,11 @@ export function UserContent({
                 <TelescopeIcon size={24} />
               </div>
               <h2>{t("no_recent_activity_title")}</h2>
-              <p style={{ fontFamily: "Fira Sans" }}>
-                {t("no_recent_activity_description")}
-              </p>
+              {isMe && (
+                <p style={{ fontFamily: "Fira Sans" }}>
+                  {t("no_recent_activity_description")}
+                </p>
+              )}
             </div>
           ) : (
             <div

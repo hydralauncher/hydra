@@ -82,6 +82,10 @@ export function useUserDetails() {
     console.log("sending friend request to", userId);
   }, []);
 
+  const fetchPendingRequests = useCallback(async () => {
+    return window.electron.getFriendRequests();
+  }, []);
+
   return {
     userDetails,
     fetchUserDetails,
@@ -90,6 +94,7 @@ export function useUserDetails() {
     updateUserDetails,
     patchUser,
     sendFriendRequest,
+    fetchPendingRequests,
     profileBackground,
   };
 }
