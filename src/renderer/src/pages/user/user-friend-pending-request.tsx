@@ -1,5 +1,9 @@
-import { CheckCircleIcon, XCircleIcon } from "@primer/octicons-react";
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
+import {
+  CheckCircleIcon,
+  PersonIcon,
+  XCircleIcon,
+} from "@primer/octicons-react";
+import { SPACING_UNIT } from "@renderer/theme.css";
 import * as styles from "./user.css";
 import cn from "classnames";
 
@@ -30,16 +34,20 @@ export const UserFriendPendingRequest = ({
       className={cn(styles.friendListItem, styles.profileContentBox)}
       onClick={() => onClickRequest(userId)}
       style={{
-        display: "flex",
-        flexDirection: "row",
-        gap: `${SPACING_UNIT}px`,
-        alignItems: "center",
+        padding: "8px",
       }}
     >
-      <img
-        style={{ width: "32px", borderRadius: "50%" }}
-        src={profileImageUrl || ""}
-      />
+      <div className={styles.pendingFriendRequestAvatarContainer}>
+        {profileImageUrl ? (
+          <img
+            className={styles.profileAvatar}
+            alt={displayName}
+            src={profileImageUrl}
+          />
+        ) : (
+          <PersonIcon size={24} />
+        )}
+      </div>
       <div
         style={{
           display: "flex",
@@ -55,10 +63,10 @@ export const UserFriendPendingRequest = ({
       </div>
       {isRequestSent ? (
         <button
-          style={{ color: vars.color.body }}
+          className={styles.cancelRequestButton}
           onClick={() => onClickCancelRequest(userId)}
         >
-          <XCircleIcon size={28} className={styles.cancelRequestButton} />
+          <XCircleIcon size={28} />
         </button>
       ) : (
         <>
