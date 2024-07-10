@@ -1,4 +1,4 @@
-import { UserGame, UserProfile } from "@types";
+import { UserFriend, UserGame, UserProfile } from "@types";
 import cn from "classnames";
 
 import * as styles from "./user.css";
@@ -344,13 +344,15 @@ export function UserContent({
                   height: "1px",
                 }}
               />
-              <button
-                type="button"
-                style={{ color: vars.color.body, cursor: "pointer" }}
-                onClick={() => setShowAddFriendsModal(true)}
-              >
-                <PersonAddIcon />
-              </button>
+              {isMe && (
+                <button
+                  type="button"
+                  style={{ color: vars.color.body, cursor: "pointer" }}
+                  onClick={() => setShowAddFriendsModal(true)}
+                >
+                  <PersonAddIcon size={24} />
+                </button>
+              )}
             </div>
 
             <div
@@ -360,34 +362,48 @@ export function UserContent({
                 gap: `${SPACING_UNIT}px`,
               }}
             >
-              <button
-                className={cn(styles.friendListItem, styles.profileContentBox)}
-                onClick={() => handleOnClickFriend("123abcde")}
-              >
-                <img
-                  className={styles.friendProfileIcon}
-                  src={
-                    "https://cdn.discordapp.com/avatars/1239959140785455295/4aff4b901c7a9f5f814b4379b6cfd58a.webp"
-                  }
-                  alt={"Punheta Master 123"}
-                />
-                <h4>Punheta Master 123</h4>
-              </button>
+              {(
+                [
+                  {
+                    id: "",
+                    displayName: "Punheta Master 123123123123123123",
+                    profileImageUrl:
+                      "https://cdn.discordapp.com/avatars/1239959140785455295/4aff4b901c7a9f5f814b4379b6cfd58a.webp",
+                  },
+                  {
+                    id: "",
+                    displayName: "Hydra Launcher",
+                    profileImageUrl: null,
+                  },
+                ] as UserFriend[]
+              ).map((friend) => {
+                return (
+                  <button
+                    key={friend.id}
+                    className={cn(
+                      styles.friendListItem,
+                      styles.profileContentBox
+                    )}
+                    onClick={() => handleOnClickFriend(friend.id)}
+                  >
+                    <div className={styles.friendAvatarContainer}>
+                      {friend.profileImageUrl ? (
+                        <img
+                          className={styles.friendProfileIcon}
+                          src={friend.profileImageUrl}
+                          alt={friend.displayName}
+                        />
+                      ) : (
+                        <PersonIcon size={24} />
+                      )}
+                    </div>
 
-              <button
-                className={cn(styles.friendListItem, styles.profileContentBox)}
-              >
-                {userProfile.profileImageUrl ? (
-                  <img
-                    className={styles.friendProfileIcon}
-                    alt={userProfile.displayName}
-                    src={userProfile.profileImageUrl}
-                  />
-                ) : (
-                  <PersonIcon size={48} />
-                )}
-                <h4>Hydra Launcher</h4>
-              </button>
+                    <p className={styles.friendListDisplayName}>
+                      {friend.displayName}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

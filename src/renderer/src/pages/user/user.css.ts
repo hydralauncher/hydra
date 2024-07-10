@@ -35,9 +35,10 @@ export const profileAvatarContainer = style({
   zIndex: 1,
 });
 
-export const pendingFriendRequestAvatarContainer = style({
-  width: "32px",
-  height: "32px",
+export const friendAvatarContainer = style({
+  width: "35px",
+  minWidth: "35px",
+  height: "35px",
   borderRadius: "50%",
   display: "flex",
   justifyContent: "center",
@@ -46,7 +47,15 @@ export const pendingFriendRequestAvatarContainer = style({
   overflow: "hidden",
   border: `solid 1px ${vars.color.border}`,
   boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.7)",
-  zIndex: 1,
+});
+
+export const friendListDisplayName = style({
+  fontWeight: "bold",
+  fontSize: vars.size.body,
+  textAlign: "left",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 });
 
 export const profileAvatarEditContainer = style({
@@ -173,13 +182,12 @@ export const friendListItem = style({
   color: vars.color.body,
   display: "flex",
   flexDirection: "row",
-  gap: `${SPACING_UNIT}px`,
+  gap: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
   width: "100%",
-  height: "48px",
+  height: "54px",
+  padding: "0 8px",
   transition: "all ease 0.2s",
   cursor: "pointer",
-  zIndex: "1",
-  overflow: "hidden",
   ":hover": {
     backgroundColor: "rgba(255, 255, 255, 0.15)",
   },

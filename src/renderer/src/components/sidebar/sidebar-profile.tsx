@@ -40,12 +40,11 @@ export function SidebarProfile() {
         <div className={styles.profileAvatar}>
           {userDetails?.profileImageUrl ? (
             <img
-              className={styles.profileAvatar}
               src={userDetails.profileImageUrl}
               alt={userDetails.displayName}
             />
           ) : (
-            <PersonIcon />
+            <PersonIcon size={24} />
           )}
         </div>
 
