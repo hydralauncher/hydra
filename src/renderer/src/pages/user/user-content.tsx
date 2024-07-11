@@ -375,7 +375,7 @@ export function UserContent({
                     <button
                       key={friend.id}
                       className={cn(
-                        styles.friendListItem,
+                        styles.friendListContainer,
                         styles.profileContentBox
                       )}
                       onClick={() => handleOnClickFriend(friend.id)}

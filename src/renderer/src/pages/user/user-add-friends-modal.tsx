@@ -25,13 +25,13 @@ export const UserAddFriendsModal = ({
   const { sendFriendRequest, updateFriendRequestState, friendRequests } =
     useUserDetails();
 
-  const { showSuccessToast, showErrorToast } = useToast();
+  const { showErrorToast } = useToast();
 
   const handleClickAddFriend = () => {
     setIsAddingFriend(true);
     sendFriendRequest(friendCode)
       .then(() => {
-        showSuccessToast(t("friend_request_sent"));
+        setFriendCode("");
       })
       .catch(() => {
         showErrorToast("Não foi possível enviar o pedido de amizade");
@@ -41,133 +41,109 @@ export const UserAddFriendsModal = ({
       });
   };
 
-  const handleClickFriend = (userId: string) => {
-    //onClose();
-    //navigate(`/user/${userId}`);
+  const handleClickRequest = (userId: string) => {
+    resetAndClose();
+    navigate(`/user/${userId}`);
   };
 
   const handleClickSeeProfile = () => {
-    onClose();
+    resetAndClose();
     navigate(`/user/${friendCode}`);
   };
 
-  const handleClickCancelFriendRequest = (
-    event: React.MouseEvent,
-    userId: string
-  ) => {
-    updateFriendRequestState(userId, "CANCEL")
-      .then(() => {
-        console.log("sucesso");
-      })
-      .catch(() => {
-        showErrorToast("Falha ao cancelar convite");
-      });
+  const handleClickCancelFriendRequest = (userId: string) => {
+    updateFriendRequestState(userId, "CANCEL").catch(() => {
+      showErrorToast("Falha ao cancelar convite");
+    });
   };
 
-  const handleClickAcceptFriendRequest = (
-    event: React.MouseEvent,
-    userId: string
-  ) => {
+  const handleClickAcceptFriendRequest = (userId: string) => {
     updateFriendRequestState(userId, "ACCEPTED").catch(() => {
       showErrorToast("Falha ao aceitar convite");
     });
   };
 
-  const handleClickRefuseFriendRequest = (
-    event: React.MouseEvent,
-    userId: string
-  ) => {
-    event.preventDefault();
+  const handleClickRefuseFriendRequest = (userId: string) => {
     updateFriendRequestState(userId, "REFUSED").catch(() => {
       showErrorToast("Falha ao recusar convite");
     });
   };
 
-  const resetModal = () => {
+  const resetAndClose = () => {
     setFriendCode("");
-  };
-
-  const cleanFormAndClose = () => {
-    resetModal();
     onClose();
   };
 
   return (
-    <>
-      <Modal
-        visible={visible}
-        title={t("add_friends")}
-        onClose={cleanFormAndClose}
+    <Modal visible={visible} title={t("add_friends")} onClose={resetAndClose}>
+      <div
+        style={{
+          display: "flex",
+          width: "500px",
+          flexDirection: "column",
+          gap: `${SPACING_UNIT * 2}px`,
+        }}
       >
         <div
           style={{
             display: "flex",
-            width: "500px",
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: `${SPACING_UNIT}px`,
+          }}
+        >
+          <TextField
+            label={t("friend_code")}
+            value={friendCode}
+            minLength={8}
+            maxLength={8}
+            containerProps={{ style: { width: "100%" } }}
+            onChange={(e) => setFriendCode(e.target.value)}
+          />
+          <Button
+            disabled={isAddingFriend}
+            style={{ alignSelf: "end" }}
+            type="button"
+            onClick={handleClickAddFriend}
+          >
+            {isAddingFriend ? t("sending") : t("send")}
+          </Button>
+          <Button
+            onClick={handleClickSeeProfile}
+            disabled={isAddingFriend}
+            style={{ alignSelf: "end" }}
+            type="button"
+          >
+            {t("see_profile")}
+          </Button>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
             flexDirection: "column",
             gap: `${SPACING_UNIT * 2}px`,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: `${SPACING_UNIT}px`,
-            }}
-          >
-            <TextField
-              label={t("friend_code")}
-              value={friendCode}
-              minLength={8}
-              maxLength={8}
-              containerProps={{ style: { width: "100%" } }}
-              onChange={(e) => setFriendCode(e.target.value)}
-            />
-            <Button
-              disabled={isAddingFriend}
-              style={{ alignSelf: "end" }}
-              type="button"
-              onClick={handleClickAddFriend}
-            >
-              {isAddingFriend ? t("sending") : t("send")}
-            </Button>
-            <Button
-              onClick={handleClickSeeProfile}
-              disabled={isAddingFriend}
-              style={{ alignSelf: "end" }}
-              type="button"
-            >
-              {t("see_profile")}
-            </Button>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: `${SPACING_UNIT * 2}px`,
-            }}
-          >
-            <h3>Pendentes</h3>
-            {friendRequests?.map((request) => {
-              return (
-                <UserFriendRequest
-                  key={request.id}
-                  displayName={request.displayName}
-                  isRequestSent={request.type === "SENT"}
-                  profileImageUrl={request.profileImageUrl}
-                  userId={request.id}
-                  onClickAcceptRequest={handleClickAcceptFriendRequest}
-                  onClickCancelRequest={handleClickCancelFriendRequest}
-                  onClickRefuseRequest={handleClickRefuseFriendRequest}
-                  onClickRequest={handleClickFriend}
-                />
-              );
-            })}
-          </div>
+          <h3>Pendentes</h3>
+          {friendRequests?.map((request) => {
+            return (
+              <UserFriendRequest
+                key={request.id}
+                displayName={request.displayName}
+                isRequestSent={request.type === "SENT"}
+                profileImageUrl={request.profileImageUrl}
+                userId={request.id}
+                onClickAcceptRequest={handleClickAcceptFriendRequest}
+                onClickCancelRequest={handleClickCancelFriendRequest}
+                onClickRefuseRequest={handleClickRefuseFriendRequest}
+                onClickRequest={handleClickRequest}
+              />
+            );
+          })}
         </div>
-      </Modal>
-    </>
+      </div>
+    </Modal>
   );
 };
