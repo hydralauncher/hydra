@@ -190,6 +190,7 @@ export class HydraApi {
     await this.revalidateAccessTokenIfExpired();
     return this.instance
       .get(url, this.getAxiosConfig())
+      .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
 
@@ -199,6 +200,7 @@ export class HydraApi {
     await this.revalidateAccessTokenIfExpired();
     return this.instance
       .post(url, data, this.getAxiosConfig())
+      .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
 
@@ -208,6 +210,7 @@ export class HydraApi {
     await this.revalidateAccessTokenIfExpired();
     return this.instance
       .put(url, data, this.getAxiosConfig())
+      .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
 
@@ -217,6 +220,7 @@ export class HydraApi {
     await this.revalidateAccessTokenIfExpired();
     return this.instance
       .patch(url, data, this.getAxiosConfig())
+      .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
 
@@ -226,6 +230,7 @@ export class HydraApi {
     await this.revalidateAccessTokenIfExpired();
     return this.instance
       .delete(url, this.getAxiosConfig())
+      .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
 }

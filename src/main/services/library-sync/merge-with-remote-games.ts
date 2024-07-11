@@ -6,7 +6,7 @@ import { getSteamAppAsset } from "@main/helpers";
 export const mergeWithRemoteGames = async () => {
   return HydraApi.get("/games")
     .then(async (response) => {
-      for (const game of response.data) {
+      for (const game of response) {
         const localGame = await gameRepository.findOne({
           where: {
             objectID: game.objectId,

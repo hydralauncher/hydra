@@ -82,23 +82,25 @@ export function useUserDetails() {
     [updateUserDetails]
   );
 
-  const sendFriendRequest = useCallback(async (userId: string) => {
-    return window.electron.sendFriendRequest(userId);
-  }, []);
-
   const updateFriendRequests = useCallback(async () => {
     const friendRequests = await window.electron.getFriendRequests();
     dispatch(setFriendRequests(friendRequests));
   }, [dispatch]);
 
+  const sendFriendRequest = useCallback(
+    async (userId: string) => {
+      return window.electron
+        .sendFriendRequest(userId)
+        .then(() => updateFriendRequests());
+    },
+    [updateFriendRequests]
+  );
+
   const updateFriendRequestState = useCallback(
     async (userId: string, action: FriendRequestAction) => {
       return window.electron
         .updateFriendRequest(userId, action)
-        .then(() => {})
-        .catch(() => {
-          console.log("falha no updateFriendsRequestState");
-        });
+        .then(() => updateFriendRequests());
     },
     [updateFriendRequests]
   );

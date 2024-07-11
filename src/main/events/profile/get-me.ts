@@ -9,9 +9,7 @@ const getMe = async (
   _event: Electron.IpcMainInvokeEvent
 ): Promise<UserProfile | null> => {
   return HydraApi.get(`/profile/me`)
-    .then((response) => {
-      const me = response.data;
-
+    .then((me) => {
       userAuthRepository.upsert(
         {
           id: 1,
