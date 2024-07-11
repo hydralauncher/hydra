@@ -5,6 +5,7 @@ import {
 } from "@primer/octicons-react";
 import * as styles from "./user.css";
 import cn from "classnames";
+import { SPACING_UNIT } from "@renderer/theme.css";
 
 export interface UserFriendRequestProps {
   userId: string;
@@ -59,7 +60,14 @@ export const UserFriendRequest = ({
         </div>
       </button>
 
-      <div style={{ position: "absolute", right: "8px" }}>
+      <div
+        style={{
+          position: "absolute",
+          right: "8px",
+          display: "flex",
+          gap: `${SPACING_UNIT}px`,
+        }}
+      >
         {isRequestSent ? (
           <button
             className={styles.cancelRequestButton}
