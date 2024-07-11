@@ -178,19 +178,27 @@ export const gameListItem = style({
   },
 });
 
-export const friendListItem = style({
-  color: vars.color.body,
-  display: "flex",
-  flexDirection: "row",
-  gap: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
+export const friendListContainer = style({
   width: "100%",
   height: "54px",
-  padding: "0 8px",
   transition: "all ease 0.2s",
-  cursor: "pointer",
+  position: "relative",
   ":hover": {
     backgroundColor: "rgba(255, 255, 255, 0.15)",
   },
+});
+
+export const friendListButton = style({
+  display: "flex",
+  alignItems: "center",
+  position: "absolute",
+  cursor: "pointer",
+  height: "100%",
+  width: "100%",
+  flexDirection: "row",
+  color: vars.color.body,
+  gap: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
+  padding: "0 8px",
 });
 
 export const gameInformation = style({
