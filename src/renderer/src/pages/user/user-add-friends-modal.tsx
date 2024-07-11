@@ -22,12 +22,8 @@ export const UserAddFriendsModal = ({
 
   const navigate = useNavigate();
 
-  const {
-    sendFriendRequest,
-    updateFriendRequests,
-    updateFriendRequestState,
-    friendRequests,
-  } = useUserDetails();
+  const { sendFriendRequest, updateFriendRequestState, friendRequests } =
+    useUserDetails();
 
   const { showSuccessToast, showErrorToast } = useToast();
 
@@ -35,7 +31,6 @@ export const UserAddFriendsModal = ({
     setIsAddingFriend(true);
     sendFriendRequest(friendCode)
       .then(() => {
-        updateFriendRequests();
         showSuccessToast(t("friend_request_sent"));
       })
       .catch(() => {
@@ -47,13 +42,11 @@ export const UserAddFriendsModal = ({
   };
 
   const handleClickFriend = (userId: string) => {
-    console.log("click friend");
-    onClose();
-    navigate(`/user/${userId}`);
+    //onClose();
+    //navigate(`/user/${userId}`);
   };
 
   const handleClickSeeProfile = () => {
-    console.log("click see profile");
     onClose();
     navigate(`/user/${friendCode}`);
   };
@@ -62,8 +55,6 @@ export const UserAddFriendsModal = ({
     event: React.MouseEvent,
     userId: string
   ) => {
-    console.log("cancel");
-    event.preventDefault();
     updateFriendRequestState(userId, "CANCEL")
       .then(() => {
         console.log("sucesso");
@@ -77,8 +68,6 @@ export const UserAddFriendsModal = ({
     event: React.MouseEvent,
     userId: string
   ) => {
-    console.log("accept friend request");
-    event.preventDefault();
     updateFriendRequestState(userId, "ACCEPTED").catch(() => {
       showErrorToast("Falha ao aceitar convite");
     });

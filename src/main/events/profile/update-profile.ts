@@ -29,7 +29,7 @@ const updateProfile = async (
 ) => {
   if (!newProfileImagePath) {
     return patchUserProfile(displayName).then(
-      (response) => response.data as UserProfile
+      (response) => response as UserProfile
     );
   }
 
@@ -42,7 +42,7 @@ const updateProfile = async (
     imageLength: fileSizeInBytes,
   })
     .then(async (preSignedResponse) => {
-      const { presignedUrl, profileImageUrl } = preSignedResponse.data;
+      const { presignedUrl, profileImageUrl } = preSignedResponse;
 
       const mimeType = await fileTypeFromFile(newProfileImagePath);
 
@@ -56,7 +56,7 @@ const updateProfile = async (
     .catch(() => undefined);
 
   return patchUserProfile(displayName, profileImageUrl).then(
-    (response) => response.data as UserProfile
+    (response) => response as UserProfile
   );
 };
 
