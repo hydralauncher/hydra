@@ -139,6 +139,7 @@ declare global {
       userId: string,
       action: FriendRequestAction
     ) => Promise<void>;
+    sendFriendRequest: (userId: string) => Promise<void>;
   }
 
   interface Window {

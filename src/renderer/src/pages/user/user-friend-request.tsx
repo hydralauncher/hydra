@@ -11,9 +11,9 @@ export interface UserFriendRequestProps {
   profileImageUrl: string | null;
   displayName: string;
   isRequestSent: boolean;
-  onClickCancelRequest: (userId: string) => void;
-  onClickAcceptRequest: (userId: string) => void;
-  onClickRefuseRequest: (userId: string) => void;
+  onClickCancelRequest: (event: React.MouseEvent, userId: string) => void;
+  onClickAcceptRequest: (event: React.MouseEvent, userId: string) => void;
+  onClickRefuseRequest: (event: React.MouseEvent, userId: string) => void;
   onClickRequest: (userId: string) => void;
 }
 
@@ -59,7 +59,7 @@ export const UserFriendRequest = ({
       {isRequestSent ? (
         <button
           className={styles.cancelRequestButton}
-          onClick={() => onClickCancelRequest(userId)}
+          onClick={(e) => onClickCancelRequest(e, userId)}
         >
           <XCircleIcon size={28} />
         </button>
@@ -67,13 +67,13 @@ export const UserFriendRequest = ({
         <>
           <button
             className={styles.acceptRequestButton}
-            onClick={() => onClickAcceptRequest(userId)}
+            onClick={(e) => onClickAcceptRequest(e, userId)}
           >
             <CheckCircleIcon size={28} />
           </button>
           <button
             className={styles.cancelRequestButton}
-            onClick={() => onClickRefuseRequest(userId)}
+            onClick={(e) => onClickRefuseRequest(e, userId)}
           >
             <XCircleIcon size={28} />
           </button>

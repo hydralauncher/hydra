@@ -22,8 +22,12 @@ export const UserAddFriendsModal = ({
 
   const navigate = useNavigate();
 
-  const { sendFriendRequest, updateFriendRequests, friendRequests } =
-    useUserDetails();
+  const {
+    sendFriendRequest,
+    updateFriendRequests,
+    updateFriendRequestState,
+    friendRequests,
+  } = useUserDetails();
 
   const { showSuccessToast, showErrorToast } = useToast();
 
@@ -43,27 +47,51 @@ export const UserAddFriendsModal = ({
   };
 
   const handleClickFriend = (userId: string) => {
+    console.log("click friend");
+    onClose();
     navigate(`/user/${userId}`);
   };
 
   const handleClickSeeProfile = () => {
+    console.log("click see profile");
     onClose();
     navigate(`/user/${friendCode}`);
   };
 
-  const handleClickCancelFriendRequest = (userId: string) => {
-    console.log(userId);
-    updateFriendRequests();
+  const handleClickCancelFriendRequest = (
+    event: React.MouseEvent,
+    userId: string
+  ) => {
+    console.log("cancel");
+    event.preventDefault();
+    updateFriendRequestState(userId, "CANCEL")
+      .then(() => {
+        console.log("sucesso");
+      })
+      .catch(() => {
+        showErrorToast("Falha ao cancelar convite");
+      });
   };
 
-  const handleClickAcceptFriendRequest = (userId: string) => {
-    console.log(userId);
-    updateFriendRequests();
+  const handleClickAcceptFriendRequest = (
+    event: React.MouseEvent,
+    userId: string
+  ) => {
+    console.log("accept friend request");
+    event.preventDefault();
+    updateFriendRequestState(userId, "ACCEPTED").catch(() => {
+      showErrorToast("Falha ao aceitar convite");
+    });
   };
 
-  const handleClickRefuseFriendRequest = (userId: string) => {
-    console.log(userId);
-    updateFriendRequests();
+  const handleClickRefuseFriendRequest = (
+    event: React.MouseEvent,
+    userId: string
+  ) => {
+    event.preventDefault();
+    updateFriendRequestState(userId, "REFUSED").catch(() => {
+      showErrorToast("Falha ao recusar convite");
+    });
   };
 
   const resetModal = () => {
@@ -136,11 +164,11 @@ export const UserAddFriendsModal = ({
             {friendRequests?.map((request) => {
               return (
                 <UserFriendRequest
-                  key={request.userId}
+                  key={request.id}
                   displayName={request.displayName}
                   isRequestSent={request.type === "SENT"}
                   profileImageUrl={request.profileImageUrl}
-                  userId={request.userId}
+                  userId={request.id}
                   onClickAcceptRequest={handleClickAcceptFriendRequest}
                   onClickCancelRequest={handleClickCancelFriendRequest}
                   onClickRefuseRequest={handleClickRefuseFriendRequest}
