@@ -8,7 +8,7 @@ import {
   setFriendRequests,
 } from "@renderer/features";
 import { darkenColor } from "@renderer/helpers";
-import { UserDetails } from "@types";
+import { FriendRequestAction, UserDetails } from "@types";
 
 export function useUserDetails() {
   const dispatch = useAppDispatch();
@@ -83,13 +83,25 @@ export function useUserDetails() {
   );
 
   const sendFriendRequest = useCallback(async (userId: string) => {
-    console.log("sending friend request to", userId);
+    return window.electron.sendFriendRequest(userId);
   }, []);
 
   const updateFriendRequests = useCallback(async () => {
     const friendRequests = await window.electron.getFriendRequests();
     dispatch(setFriendRequests(friendRequests));
   }, [dispatch]);
+
+  const updateFriendRequestState = useCallback(
+    async (userId: string, action: FriendRequestAction) => {
+      return window.electron
+        .updateFriendRequest(userId, action)
+        .then(() => {})
+        .catch(() => {
+          console.log("falha no updateFriendsRequestState");
+        });
+    },
+    [updateFriendRequests]
+  );
 
   return {
     userDetails,
@@ -102,5 +114,6 @@ export function useUserDetails() {
     patchUser,
     sendFriendRequest,
     updateFriendRequests,
+    updateFriendRequestState,
   };
 }

@@ -278,7 +278,7 @@ export interface UserFriend {
 }
 
 export interface FriendRequest {
-  userId: string;
+  id: string;
   displayName: string;
   profileImageUrl: string | null;
   type: "SENT" | "RECEIVED";

@@ -140,6 +140,8 @@ contextBridge.exposeInMainWorld("electron", {
   getFriendRequests: () => ipcRenderer.invoke("getFriendRequests"),
   updateFriendRequest: (userId: string, action: FriendRequestAction) =>
     ipcRenderer.invoke("updateFriendRequest", userId, action),
+  sendFriendRequest: (userId: string) =>
+    ipcRenderer.invoke("sendFriendRequest", userId),
 
   /* User */
   getUser: (userId: string) => ipcRenderer.invoke("getUser", userId),
