@@ -46,6 +46,7 @@ linux:
     - snap
     - deb
     - rpm
+    - pacman
   maintainer: electronjs.org
   category: Game
   mimeTypes:
