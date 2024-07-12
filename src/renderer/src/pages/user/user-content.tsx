@@ -355,10 +355,11 @@ export function UserContent({
                 {isMe && (
                   <button
                     type="button"
-                    style={{ color: vars.color.body, cursor: "pointer" }}
+                    style={{ color: vars.color.success, cursor: "pointer" }}
                     onClick={() => setShowAddFriendsModal(true)}
                   >
                     <PersonAddIcon size={24} />
+                    30
                   </button>
                 )}
               </div>
