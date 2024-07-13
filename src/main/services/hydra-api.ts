@@ -10,7 +10,7 @@ import { UserNotLoggedInError } from "@shared";
 export class HydraApi {
   private static instance: AxiosInstance;
 
-  private static readonly EXPIRATION_OFFSET_IN_MS = 1000 * 60 * 5;
+  private static readonly EXPIRATION_OFFSET_IN_MS = 1000 * 60 * 5; // 5 minutes
 
   private static secondsToMilliseconds = (seconds: number) => seconds * 1000;
 
@@ -45,6 +45,8 @@ export class HydraApi {
       expirationTimestamp: tokenExpirationTimestamp,
     };
 
+    logger.log("Sign in received", this.userAuth);
+
     await userAuthRepository.upsert(
       {
         id: 1,
@@ -74,7 +76,7 @@ export class HydraApi {
         return request;
       },
       (error) => {
-        logger.log("request error", error);
+        logger.error("request error", error);
         return Promise.reject(error);
       }
     );
@@ -95,7 +97,13 @@ export class HydraApi {
 
         const { config } = error;
 
-        logger.error(config.method, config.baseURL, config.url, config.headers);
+        logger.error(
+          config.method,
+          config.baseURL,
+          config.url,
+          config.headers,
+          config.data
+        );
 
         if (error.response) {
           logger.error("Response", error.response.status, error.response.data);
@@ -146,6 +154,8 @@ export class HydraApi {
         this.userAuth.authToken = accessToken;
         this.userAuth.expirationTimestamp = tokenExpirationTimestamp;
 
+        logger.log("Token refreshed", this.userAuth);
+
         userAuthRepository.upsert(
           {
             id: 1,
@@ -170,6 +180,8 @@ export class HydraApi {
 
   private static handleUnauthorizedError = (err) => {
     if (err instanceof AxiosError && err.response?.status === 401) {
+      logger.error("401 - Current credentials:", this.userAuth);
+
       this.userAuth = {
         authToken: "",
         expirationTimestamp: 0,
