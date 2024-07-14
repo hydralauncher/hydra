@@ -1,4 +1,4 @@
-appId: site.hydralauncher.hydra
+appId: site. hydralauncher.hydra
 productName: Hydra
 directories:
   buildResources: build
@@ -45,8 +45,8 @@ linux:
     - AppImage
     - snap
     - deb
-    - rpm
     - pacman
+    - rpm
   maintainer: electronjs.org
   category: Game
   mimeTypes:
