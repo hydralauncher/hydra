@@ -72,5 +72,6 @@ jobs:
             dist/*.tar.gz
             dist/*.yml
             dist/*.blockmap
+            dist/*.pacman
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

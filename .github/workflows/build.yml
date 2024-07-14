@@ -33,6 +33,11 @@ jobs:
       - name: Build with cx_Freeze
         run: python torrent-client/setup.py build
 
+      - name: Install bsdtar
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libarchive-tools
+
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
         run: yarn build:linux
@@ -69,3 +74,4 @@ jobs:
             dist/*.tar.gz
             dist/*.yml
             dist/*.blockmap
+            dist/*.pacman
