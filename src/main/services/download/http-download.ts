@@ -1,59 +1,42 @@
-import type { ChildProcess } from "node:child_process";
-import { logger } from "../logger";
-import { sleep } from "@main/helpers";
-import { startAria2 } from "../aria2c";
-import Aria2 from "aria2";
+import { DownloadItem } from "electron";
+import { WindowManager } from "../window-manager";
 
 export class HTTPDownload {
-  private static connected = false;
-  private static aria2c: ChildProcess | null = null;
+  private static id = 0;
 
-  private static aria2 = new Aria2({});
+  private static downloads: Record<string, DownloadItem> = {};
 
-  private static async connect() {
-    this.aria2c = startAria2();
-
-    let retries = 0;
-
-    while (retries < 4 && !this.connected) {
-      try {
-        await this.aria2.open();
-        logger.log("Connected to aria2");
-
-        this.connected = true;
-      } catch (err) {
-        await sleep(100);
-        logger.log("Failed to connect to aria2, retrying...");
-        retries++;
-      }
-    }
-  }
-
-  public static getStatus(gid: string) {
-    if (this.connected) {
-      return this.aria2.call("tellStatus", gid);
+  public static getStatus(gid: string): {
+    completedLength: number;
+    totalLength: number;
+    downloadSpeed: number;
+  } | null {
+    const downloadItem = this.downloads[gid];
+    if (downloadItem) {
+      return {
+        completedLength: downloadItem.getReceivedBytes(),
+        totalLength: downloadItem.getTotalBytes(),
+        downloadSpeed: 0,
+      };
     }
 
     return null;
   }
 
-  public static disconnect() {
-    if (this.aria2c) {
-      this.aria2c.kill();
-      this.connected = false;
-    }
-  }
-
   static async cancelDownload(gid: string) {
-    await this.aria2.call("forceRemove", gid);
+    const downloadItem: DownloadItem = this.downloads[gid];
+    downloadItem?.cancel();
+    this.downloads;
   }
 
   static async pauseDownload(gid: string) {
-    await this.aria2.call("forcePause", gid);
+    const downloadItem = this.downloads[gid];
+    downloadItem?.pause();
   }
 
   static async resumeDownload(gid: string) {
-    await this.aria2.call("unpause", gid);
+    const downloadItem = this.downloads[gid];
+    downloadItem?.resume();
   }
 
   static async startDownload(
@@ -61,14 +44,44 @@ export class HTTPDownload {
     downloadUrl: string,
     header: string[] = []
   ) {
-    console.log(header);
-    if (!this.connected) await this.connect();
+    return new Promise<string>((resolve) => {
+      WindowManager.mainWindow?.webContents.downloadURL(downloadUrl, {
+        headers: { Cookie: header[0].split(": ")[1] },
+      });
 
-    const options = {
-      dir: downloadPath,
-      header,
-    };
+      WindowManager.mainWindow?.webContents.session.on(
+        "will-download",
+        (_event, item, _webContents) => {
+          const gid = ++this.id;
 
-    return this.aria2.call("addUri", [downloadUrl], options);
+          this.downloads[gid.toString()] = item;
+
+          // Set the save path, making Electron not to prompt a save dialog.
+          item.setSavePath(downloadPath);
+
+          item.on("updated", (_event, state) => {
+            if (state === "interrupted") {
+              console.log("Download is interrupted but can be resumed");
+            } else if (state === "progressing") {
+              if (item.isPaused()) {
+                console.log("Download is paused");
+              } else {
+                console.log(`Received bytes: ${item.getReceivedBytes()}`);
+              }
+            }
+          });
+
+          item.once("done", (_event, state) => {
+            if (state === "completed") {
+              console.log("Download successfully");
+            } else {
+              console.log(`Download failed: ${state}`);
+            }
+          });
+
+          resolve(gid.toString());
+        }
+      );
+    });
   }
 }
