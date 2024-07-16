@@ -26,7 +26,7 @@ export class HTTPDownload {
   static async cancelDownload(gid: string) {
     const downloadItem: DownloadItem = this.downloads[gid];
     downloadItem?.cancel();
-    this.downloads;
+    delete this.downloads[gid];
   }
 
   static async pauseDownload(gid: string) {
@@ -42,11 +42,11 @@ export class HTTPDownload {
   static async startDownload(
     downloadPath: string,
     downloadUrl: string,
-    header: string[] = []
+    headers?: Record<string, string>
   ) {
     return new Promise<string>((resolve) => {
       WindowManager.mainWindow?.webContents.downloadURL(downloadUrl, {
-        headers: { Cookie: header[0].split(": ")[1] },
+        headers,
       });
 
       WindowManager.mainWindow?.webContents.session.on(
@@ -58,26 +58,6 @@ export class HTTPDownload {
 
           // Set the save path, making Electron not to prompt a save dialog.
           item.setSavePath(downloadPath);
-
-          item.on("updated", (_event, state) => {
-            if (state === "interrupted") {
-              console.log("Download is interrupted but can be resumed");
-            } else if (state === "progressing") {
-              if (item.isPaused()) {
-                console.log("Download is paused");
-              } else {
-                console.log(`Received bytes: ${item.getReceivedBytes()}`);
-              }
-            }
-          });
-
-          item.once("done", (_event, state) => {
-            if (state === "completed") {
-              console.log("Download successfully");
-            } else {
-              console.log(`Download failed: ${state}`);
-            }
-          });
 
           resolve(gid.toString());
         }

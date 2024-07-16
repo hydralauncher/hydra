@@ -104,9 +104,9 @@ export class DownloadManager {
 
       console.log(downloadLink, token, "<<<");
 
-      GenericHTTPDownloader.startDownload(game, downloadLink, [
-        `Cookie: accountToken=${token}`,
-      ]);
+      GenericHTTPDownloader.startDownload(game, downloadLink, {
+        Cookie: `accountToken=${token}`,
+      });
     } else if (game.downloader === Downloader.PixelDrain) {
       const id = game!.uri!.split("/").pop();
 

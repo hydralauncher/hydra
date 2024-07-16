@@ -69,7 +69,7 @@ export class GenericHTTPDownloader {
   static async startDownload(
     game: Game,
     downloadUrl: string,
-    headers: string[] = []
+    headers?: Record<string, string>
   ) {
     this.downloadingGame = game;
 
