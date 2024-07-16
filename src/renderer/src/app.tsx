@@ -25,6 +25,7 @@ import {
   setGameRunning,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
+import { UserFriendRequestModal } from "./pages/shared-modals/user-friend-request-modal";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -37,6 +38,13 @@ export function App() {
   const { t } = useTranslation("app");
 
   const { clearDownload, setLastPacket } = useDownload();
+
+  const {
+    userDetails,
+    showFriendRequestsModal,
+    setShowFriendRequestModal,
+    updateFriendRequests,
+  } = useUserDetails();
 
   const { fetchUserDetails, updateUserDetails, clearUserDetails } =
     useUserDetails();
@@ -94,7 +102,10 @@ export function App() {
     }
 
     fetchUserDetails().then((response) => {
-      if (response) updateUserDetails(response);
+      if (response) {
+        updateUserDetails(response);
+        updateFriendRequests();
+      }
     });
   }, [fetchUserDetails, updateUserDetails, dispatch]);
 
@@ -102,6 +113,7 @@ export function App() {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
+        updateFriendRequests();
         showSuccessToast(t("successfully_signed_in"));
       }
     });
@@ -204,6 +216,11 @@ export function App() {
         message={toast.message}
         type={toast.type}
         onClose={handleToastClose}
+      />
+
+      <UserFriendRequestModal
+        visible={showFriendRequestsModal}
+        onClose={() => setShowFriendRequestModal(false)}
       />
 
       <main>

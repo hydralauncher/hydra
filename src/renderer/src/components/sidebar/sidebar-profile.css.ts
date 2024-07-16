@@ -93,6 +93,6 @@ export const friendRequestButton = style({
   width: "40px",
   height: "40px",
   ":hover": {
-    color: vars.color.body,
+    color: vars.color.muted,
   },
 });

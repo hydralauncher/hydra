@@ -16,12 +16,13 @@ import { buildGameDetailsPath, steamUrlBuilder } from "@renderer/helpers";
 import {
   PersonAddIcon,
   PersonIcon,
+  PlusCircleIcon,
+  PlusIcon,
   TelescopeIcon,
 } from "@primer/octicons-react";
 import { Button, Link } from "@renderer/components";
 import { UserEditProfileModal } from "./user-edit-modal";
 import { UserSignOutModal } from "./user-signout-modal";
-import { UserAddFriendsModal } from "./user-add-friends-modal";
 
 const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 
@@ -36,13 +37,17 @@ export function UserContent({
 }: ProfileContentProps) {
   const { t, i18n } = useTranslation("user_profile");
 
-  const { userDetails, profileBackground, signOut, updateFriendRequests } =
-    useUserDetails();
+  const {
+    userDetails,
+    profileBackground,
+    signOut,
+    updateFriendRequests,
+    setShowFriendRequestModal,
+  } = useUserDetails();
   const { showSuccessToast } = useToast();
 
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
-  const [showAddFriendsModal, setShowAddFriendsModal] = useState(false);
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
 
@@ -115,11 +120,6 @@ export function UserContent({
         visible={showSignOutModal}
         onClose={() => setShowSignOutModal(false)}
         onConfirm={handleConfirmSignout}
-      />
-
-      <UserAddFriendsModal
-        visible={showAddFriendsModal}
-        onClose={() => setShowAddFriendsModal(false)}
       />
 
       <section
@@ -335,14 +335,7 @@ export function UserContent({
           {(isMe ||
             (userProfile.friends && userProfile.friends.length > 0)) && (
             <div className={styles.friendsSection}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: `${SPACING_UNIT * 2}px`,
-                }}
-              >
+              <div className={styles.friendsSectionHeader}>
                 <h2>{t("friends")}</h2>
 
                 <div
@@ -352,16 +345,9 @@ export function UserContent({
                     height: "1px",
                   }}
                 />
-                {isMe && (
-                  <button
-                    type="button"
-                    style={{ color: vars.color.success, cursor: "pointer" }}
-                    onClick={() => setShowAddFriendsModal(true)}
-                  >
-                    <PersonAddIcon size={24} />
-                    30
-                  </button>
-                )}
+                <h3 style={{ fontWeight: "400" }}>
+                  {userProfile.friends?.length || 0}
+                </h3>
               </div>
 
               <div
@@ -399,6 +385,13 @@ export function UserContent({
                     </button>
                   );
                 })}
+
+                <Button
+                  theme="outline"
+                  onClick={() => setShowFriendRequestModal(true)}
+                >
+                  <PlusIcon /> Add friend
+                </Button>
               </div>
             </div>
           )}

@@ -6,6 +6,7 @@ import {
   setProfileBackground,
   setUserDetails,
   setFriendRequests,
+  setShowFriendRequestsModal,
 } from "@renderer/features";
 import { darkenColor } from "@renderer/helpers";
 import { FriendRequestAction, UserDetails } from "@types";
@@ -13,9 +14,12 @@ import { FriendRequestAction, UserDetails } from "@types";
 export function useUserDetails() {
   const dispatch = useAppDispatch();
 
-  const { userDetails, profileBackground, friendRequests } = useAppSelector(
-    (state) => state.userDetails
-  );
+  const {
+    userDetails,
+    profileBackground,
+    friendRequests,
+    showFriendRequestsModal,
+  } = useAppSelector((state) => state.userDetails);
 
   const clearUserDetails = useCallback(async () => {
     dispatch(setUserDetails(null));
@@ -87,6 +91,16 @@ export function useUserDetails() {
     dispatch(setFriendRequests(friendRequests));
   }, [dispatch]);
 
+  const setShowFriendRequestModal = useCallback(
+    (showModal: boolean) => {
+      dispatch(setShowFriendRequestsModal(showModal));
+      if (showModal) {
+        updateFriendRequests();
+      }
+    },
+    [dispatch]
+  );
+
   const sendFriendRequest = useCallback(
     async (userId: string) => {
       return window.electron
@@ -109,6 +123,7 @@ export function useUserDetails() {
     userDetails,
     profileBackground,
     friendRequests,
+    showFriendRequestsModal,
     fetchUserDetails,
     signOut,
     clearUserDetails,
@@ -117,5 +132,6 @@ export function useUserDetails() {
     sendFriendRequest,
     updateFriendRequests,
     updateFriendRequestState,
+    setShowFriendRequestModal,
   };
 }
