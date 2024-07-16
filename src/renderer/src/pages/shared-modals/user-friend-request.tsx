@@ -3,7 +3,7 @@ import {
   PersonIcon,
   XCircleIcon,
 } from "@primer/octicons-react";
-import * as styles from "../user/user.css";
+import * as styles from "./user-friend-modal.css";
 import cn from "classnames";
 import { SPACING_UNIT } from "@renderer/theme.css";
 
