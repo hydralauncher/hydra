@@ -75,7 +75,7 @@ export const UserFriendRequestModal = ({
   };
 
   return (
-    <Modal visible={visible} title={t("add_friends")} onClose={resetAndClose}>
+    <Modal visible={visible} title={t("friends")} onClose={resetAndClose}>
       <div
         style={{
           display: "flex",
@@ -107,7 +107,7 @@ export const UserFriendRequestModal = ({
             type="button"
             onClick={handleClickAddFriend}
           >
-            {isAddingFriend ? t("sending") : t("send")}
+            {isAddingFriend ? t("sending") : t("add")}
           </Button>
           <Button
             onClick={handleClickSeeProfile}
