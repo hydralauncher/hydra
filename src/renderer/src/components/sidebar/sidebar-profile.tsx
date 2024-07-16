@@ -12,7 +12,12 @@ export function SidebarProfile() {
 
   const { t } = useTranslation("sidebar");
 
-  const { userDetails, profileBackground } = useUserDetails();
+  const {
+    userDetails,
+    profileBackground,
+    friendRequests,
+    setShowFriendRequestModal,
+  } = useUserDetails();
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
 
@@ -77,17 +82,15 @@ export function SidebarProfile() {
           )}
         </div>
       </button>
-      {userDetails && !gameRunning && (
+      {userDetails && friendRequests?.length && !gameRunning && (
         <div className={styles.friendRequestContainer}>
           <button
             type="button"
             className={styles.friendRequestButton}
-            onClick={() => {
-              console.log("alshdaksjhdskajhd");
-            }}
+            onClick={() => setShowFriendRequestModal(true)}
           >
             <PersonAddIcon size={24} />
-            30
+            {friendRequests.length}
           </button>
         </div>
       )}

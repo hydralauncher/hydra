@@ -11,7 +11,7 @@ export interface UserAddFriendsModalProps {
   onClose: () => void;
 }
 
-export const UserAddFriendsModal = ({
+export const UserFriendRequestModal = ({
   visible,
   onClose,
 }: UserAddFriendsModalProps) => {

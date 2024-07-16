@@ -119,6 +119,17 @@ export const friendsSection = style({
   gap: `${SPACING_UNIT * 2}px`,
 });
 
+export const friendsSectionHeader = style({
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: `${SPACING_UNIT * 2}px`,
+  ":hover": {
+    color: vars.color.muted,
+  },
+});
+
 export const contentSidebar = style({
   width: "100%",
   display: "flex",
