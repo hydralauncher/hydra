@@ -33,15 +33,12 @@ jobs:
       - name: Build with cx_Freeze
         run: python torrent-client/setup.py build
 
-      - name: Install bsdtar
+      - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y libarchive-tools
-
-      - name: Build Linux
-        if: matrix.os == 'ubuntu-latest'
-        run: yarn build:linux
+          yarn build:linux
         env:
           MAIN_VITE_ONLINEFIX_USERNAME: ${{ secrets.ONLINEFIX_USERNAME }}
           MAIN_VITE_ONLINEFIX_PASSWORD: ${{ secrets.ONLINEFIX_PASSWORD }}
