@@ -37,7 +37,10 @@ jobs:
 
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
-        run: yarn build:linux
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libarchive-tools
+          yarn build:linux
         env:
           MAIN_VITE_ONLINEFIX_USERNAME: ${{ secrets.ONLINEFIX_USERNAME }}
           MAIN_VITE_ONLINEFIX_PASSWORD: ${{ secrets.ONLINEFIX_PASSWORD }}
