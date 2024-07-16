@@ -36,7 +36,8 @@
     "no_downloads_in_progress": "Нет активных загрузок",
     "downloading_metadata": "Загрузка метаданных {{title}}…",
     "downloading": "Загрузка {{title}}… ({{percentage}} завершено) - Окончание {{eta}} - {{speed}}",
-    "calculating_eta": "Загрузка {{title}}… ({{percentage}} завершено) - Подсчёт оставшегося времени…"
+    "calculating_eta": "Загрузка {{title}}… ({{percentage}} завершено) - Подсчёт оставшегося времени…",
+    "checking_files": "Проверка файлов {{title}}… ({{percentage}} завершено)"
   },
   "catalogue": {
     "next_page": "Следующая страница",
@@ -144,7 +145,8 @@
     "downloads_completed": "Завершено",
     "queued": "В очереди",
     "no_downloads_title": "Здесь так пусто...",
-    "no_downloads_description": "Вы ещё ничего не скачали через Hydra, но никогда не поздно начать."
+    "no_downloads_description": "Вы ещё ничего не скачали через Hydra, но никогда не поздно начать.",
+    "checking_files": "Проверка файлов…"
   },
   "settings": {
     "downloads_path": "Путь загрузок",
@@ -211,7 +213,8 @@
     "repack_list_updated": "Список репаков обновлен",
     "repack_count_one": "{{count}} репак добавлен",
     "repack_count_other": "{{count}} репаков добавлено",
-    "new_update_available": "Доступна версия {{version}}"
+    "new_update_available": "Доступна версия {{version}}",
+    "restart_to_install_update": "Перезапустите Hydra для установки обновления"
   },
   "system_tray": {
     "open": "Открыть Hydra",
