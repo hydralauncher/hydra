@@ -390,7 +390,7 @@ export function UserContent({
                   theme="outline"
                   onClick={() => setShowFriendRequestModal(true)}
                 >
-                  <PlusIcon /> Add friend
+                  <PlusIcon /> {t("add")}
                 </Button>
               </div>
             </div>

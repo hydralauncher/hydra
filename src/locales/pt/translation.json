@@ -246,6 +246,8 @@
     "friend_code": "Código de amigo",
     "see_profile": "Ver perfil",
     "friend_request_sent": "Pedido de amizade enviado",
-    "friends": "Amigos"
+    "friends": "Amigos",
+    "add": "Adicionar",
+    "sending": "Enviando"
   }
 }
