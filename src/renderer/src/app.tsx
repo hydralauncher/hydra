@@ -25,7 +25,7 @@ import {
   setGameRunning,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
-import { UserFriendRequestModal } from "./pages/shared-modals/user-friend-request-modal";
+import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -40,7 +40,6 @@ export function App() {
   const { clearDownload, setLastPacket } = useDownload();
 
   const {
-    userDetails,
     showFriendRequestsModal,
     setShowFriendRequestModal,
     updateFriendRequests,
@@ -218,7 +217,7 @@ export function App() {
         onClose={handleToastClose}
       />
 
-      <UserFriendRequestModal
+      <UserFriendModal
         visible={showFriendRequestsModal}
         onClose={() => setShowFriendRequestModal(false)}
       />

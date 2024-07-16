@@ -13,13 +13,7 @@ import {
 } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
 import { buildGameDetailsPath, steamUrlBuilder } from "@renderer/helpers";
-import {
-  PersonAddIcon,
-  PersonIcon,
-  PlusCircleIcon,
-  PlusIcon,
-  TelescopeIcon,
-} from "@primer/octicons-react";
+import { PersonIcon, PlusIcon, TelescopeIcon } from "@primer/octicons-react";
 import { Button, Link } from "@renderer/components";
 import { UserEditProfileModal } from "./user-edit-modal";
 import { UserSignOutModal } from "./user-signout-modal";
@@ -386,12 +380,14 @@ export function UserContent({
                   );
                 })}
 
-                <Button
-                  theme="outline"
-                  onClick={() => setShowFriendRequestModal(true)}
-                >
-                  <PlusIcon /> {t("add")}
-                </Button>
+                {isMe && (
+                  <Button
+                    theme="outline"
+                    onClick={() => setShowFriendRequestModal(true)}
+                  >
+                    <PlusIcon /> {t("add")}
+                  </Button>
+                )}
               </div>
             </div>
           )}

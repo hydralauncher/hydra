@@ -199,19 +199,6 @@ export const friendListContainer = style({
   },
 });
 
-export const friendListButton = style({
-  display: "flex",
-  alignItems: "center",
-  position: "absolute",
-  cursor: "pointer",
-  height: "100%",
-  width: "100%",
-  flexDirection: "row",
-  color: vars.color.body,
-  gap: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
-  padding: "0 8px",
-});
-
 export const gameInformation = style({
   display: "flex",
   flexDirection: "column",
@@ -283,31 +270,4 @@ export const profileBackground = style({
   left: "0",
   top: "0",
   borderRadius: "4px",
-});
-
-export const friendRequestItem = style({
-  color: vars.color.body,
-  ":hover": {
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-  },
-});
-
-export const acceptRequestButton = style({
-  cursor: "pointer",
-  color: vars.color.body,
-  width: "28px",
-  height: "28px",
-  ":hover": {
-    color: vars.color.success,
-  },
-});
-
-export const cancelRequestButton = style({
-  cursor: "pointer",
-  color: vars.color.body,
-  width: "28px",
-  height: "28px",
-  ":hover": {
-    color: vars.color.danger,
-  },
 });
