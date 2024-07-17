@@ -6,7 +6,7 @@ export interface UserDetailsState {
   userDetails: UserDetails | null;
   profileBackground: null | string;
   friendRequests: FriendRequest[];
-  showFriendsModal: boolean;
+  isFriendsModalVisible: boolean;
   friendRequetsModalTab: UserFriendModalTab | null;
 }
 
@@ -14,7 +14,7 @@ const initialState: UserDetailsState = {
   userDetails: null,
   profileBackground: null,
   friendRequests: [],
-  showFriendsModal: false,
+  isFriendsModalVisible: false,
   friendRequetsModalTab: null,
 };
 
@@ -31,14 +31,16 @@ export const userDetailsSlice = createSlice({
     setFriendRequests: (state, action: PayloadAction<FriendRequest[]>) => {
       state.friendRequests = action.payload;
     },
-    setshowFriendsModal: (state, action: PayloadAction<boolean>) => {
-      state.showFriendsModal = action.payload;
-    },
-    setFriendRequestsModal: (
+    setFriendsModalVisible: (
       state,
-      action: PayloadAction<UserFriendModalTab | null>
+      action: PayloadAction<UserFriendModalTab>
     ) => {
+      state.isFriendsModalVisible = true;
       state.friendRequetsModalTab = action.payload;
+    },
+    setFriendsModalHidden: (state) => {
+      state.isFriendsModalVisible = false;
+      state.friendRequetsModalTab = null;
     },
   },
 });
@@ -47,6 +49,6 @@ export const {
   setUserDetails,
   setProfileBackground,
   setFriendRequests,
-  setshowFriendsModal,
-  setFriendRequestsModal,
+  setFriendsModalVisible,
+  setFriendsModalHidden,
 } = userDetailsSlice.actions;

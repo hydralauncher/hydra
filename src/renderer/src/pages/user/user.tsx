@@ -8,11 +8,14 @@ import { UserContent } from "./user-content";
 import { SkeletonTheme } from "react-loading-skeleton";
 import { vars } from "@renderer/theme.css";
 import * as styles from "./user.css";
+import { useTranslation } from "react-i18next";
 
 export const User = () => {
   const { userId } = useParams();
   const [userProfile, setUserProfile] = useState<UserProfile>();
   const navigate = useNavigate();
+
+  const { t } = useTranslation("user_profile");
 
   const { showErrorToast } = useToast();
 
@@ -24,11 +27,11 @@ export const User = () => {
         dispatch(setHeaderTitle(userProfile.displayName));
         setUserProfile(userProfile);
       } else {
-        showErrorToast("Usuário não encontrado");
+        showErrorToast(t("user_not_found"));
         navigate(-1);
       }
     });
-  }, [dispatch, userId]);
+  }, [dispatch, userId, t]);
 
   useEffect(() => {
     getUserProfile();
