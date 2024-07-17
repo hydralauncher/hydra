@@ -29,6 +29,7 @@ export const UserFriendModalAddFriend = ({
     setIsAddingFriend(true);
     sendFriendRequest(friendCode)
       .then(() => {
+        // TODO: add validation for this input?
         setFriendCode("");
       })
       .catch(() => {
@@ -51,6 +52,7 @@ export const UserFriendModalAddFriend = ({
 
   const handleClickSeeProfile = () => {
     resetAndClose();
+    // TODO: add validation for this input?
     navigate(`/user/${friendCode}`);
   };
 
