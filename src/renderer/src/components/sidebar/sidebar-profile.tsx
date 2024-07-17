@@ -83,7 +83,7 @@ export function SidebarProfile() {
           )}
         </div>
       </button>
-      {userDetails && friendRequests?.length && !gameRunning && (
+      {userDetails && friendRequests.length > 0 && !gameRunning && (
         <div className={styles.friendRequestContainer}>
           <button
             type="button"
