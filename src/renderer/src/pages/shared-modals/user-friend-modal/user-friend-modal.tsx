@@ -1,26 +1,45 @@
 import { Button, Modal } from "@renderer/components";
 import { SPACING_UNIT } from "@renderer/theme.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { UserFriendModalAddFriend } from "./user-friend-modal-add-friend";
+
+export enum UserFriendModalTab {
+  FriendsList,
+  AddFriend,
+}
 
 export interface UserAddFriendsModalProps {
   visible: boolean;
   onClose: () => void;
+  initialTab: UserFriendModalTab | null;
 }
 
 export const UserFriendModal = ({
   visible,
   onClose,
+  initialTab,
 }: UserAddFriendsModalProps) => {
   const { t } = useTranslation("user_profile");
 
-  const tabs = [t("add_friends"), t("friends_list")];
+  const tabs = [t("friends_list"), t("add_friends")];
 
-  const [currentTabIndex, setCurrentTabIndex] = useState(0);
+  const [currentTab, setCurrentTab] = useState(
+    initialTab || UserFriendModalTab.FriendsList
+  );
+
+  useEffect(() => {
+    if (initialTab != null) {
+      setCurrentTab(initialTab);
+    }
+  }, [initialTab]);
 
   const renderTab = () => {
-    if (currentTabIndex == 0) {
+    if (currentTab == UserFriendModalTab.FriendsList) {
+      return <></>;
+    }
+
+    if (currentTab == UserFriendModalTab.AddFriend) {
       return <UserFriendModalAddFriend closeModal={onClose} />;
     }
 
@@ -42,15 +61,15 @@ export const UserFriendModal = ({
             return (
               <Button
                 key={tab}
-                theme={index === currentTabIndex ? "primary" : "outline"}
-                onClick={() => setCurrentTabIndex(index)}
+                theme={index === currentTab ? "primary" : "outline"}
+                onClick={() => setCurrentTab(index)}
               >
                 {tab}
               </Button>
             );
           })}
         </section>
-        <h2>{tabs[currentTabIndex]}</h2>
+        <h2>{tabs[currentTab]}</h2>
         {renderTab()}
       </div>
     </Modal>

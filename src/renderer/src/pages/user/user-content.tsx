@@ -17,6 +17,7 @@ import { PersonIcon, PlusIcon, TelescopeIcon } from "@primer/octicons-react";
 import { Button, Link } from "@renderer/components";
 import { UserEditProfileModal } from "./user-edit-modal";
 import { UserSignOutModal } from "./user-signout-modal";
+import { UserFriendModalTab } from "../shared-modals/user-friend-modal";
 
 const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 
@@ -36,7 +37,7 @@ export function UserContent({
     profileBackground,
     signOut,
     updateFriendRequests,
-    setShowFriendRequestModal,
+    setShowFriendsModal,
   } = useUserDetails();
   const { showSuccessToast } = useToast();
 
@@ -329,7 +330,12 @@ export function UserContent({
           {(isMe ||
             (userProfile.friends && userProfile.friends.length > 0)) && (
             <div className={styles.friendsSection}>
-              <div className={styles.friendsSectionHeader}>
+              <button
+                className={styles.friendsSectionHeader}
+                onClick={() =>
+                  setShowFriendsModal(true, UserFriendModalTab.FriendsList)
+                }
+              >
                 <h2>{t("friends")}</h2>
 
                 <div
@@ -342,7 +348,7 @@ export function UserContent({
                 <h3 style={{ fontWeight: "400" }}>
                   {userProfile.friends?.length || 0}
                 </h3>
-              </div>
+              </button>
 
               <div
                 style={{
@@ -383,7 +389,9 @@ export function UserContent({
                 {isMe && (
                   <Button
                     theme="outline"
-                    onClick={() => setShowFriendRequestModal(true)}
+                    onClick={() =>
+                      setShowFriendsModal(true, UserFriendModalTab.AddFriend)
+                    }
                   >
                     <PlusIcon /> {t("add")}
                   </Button>

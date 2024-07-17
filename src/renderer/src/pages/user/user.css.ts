@@ -120,6 +120,8 @@ export const friendsSection = style({
 });
 
 export const friendsSectionHeader = style({
+  fontSize: vars.size.body,
+  color: vars.color.body,
   cursor: "pointer",
   display: "flex",
   alignItems: "center",

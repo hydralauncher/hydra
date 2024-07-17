@@ -6,10 +6,12 @@ import {
   setProfileBackground,
   setUserDetails,
   setFriendRequests,
-  setShowFriendRequestsModal,
+  setshowFriendsModal,
+  setFriendRequestsModal,
 } from "@renderer/features";
 import { darkenColor } from "@renderer/helpers";
 import { FriendRequestAction, UserDetails } from "@types";
+import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 
 export function useUserDetails() {
   const dispatch = useAppDispatch();
@@ -18,7 +20,8 @@ export function useUserDetails() {
     userDetails,
     profileBackground,
     friendRequests,
-    showFriendRequestsModal,
+    showFriendsModal,
+    friendRequetsModalTab,
   } = useAppSelector((state) => state.userDetails);
 
   const clearUserDetails = useCallback(async () => {
@@ -91,9 +94,11 @@ export function useUserDetails() {
     dispatch(setFriendRequests(friendRequests));
   }, [dispatch]);
 
-  const setShowFriendRequestModal = useCallback(
-    (showModal: boolean) => {
-      dispatch(setShowFriendRequestsModal(showModal));
+  const setShowFriendsModal = useCallback(
+    (showModal: boolean, tab: UserFriendModalTab | null) => {
+      dispatch(setFriendRequestsModal(tab));
+      dispatch(setshowFriendsModal(showModal));
+
       if (showModal) {
         updateFriendRequests();
       }
@@ -123,7 +128,8 @@ export function useUserDetails() {
     userDetails,
     profileBackground,
     friendRequests,
-    showFriendRequestsModal,
+    showFriendsModal,
+    friendRequetsModalTab,
     fetchUserDetails,
     signOut,
     clearUserDetails,
@@ -132,6 +138,6 @@ export function useUserDetails() {
     sendFriendRequest,
     updateFriendRequests,
     updateFriendRequestState,
-    setShowFriendRequestModal,
+    setShowFriendsModal,
   };
 }
