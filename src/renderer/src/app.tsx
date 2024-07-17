@@ -40,10 +40,10 @@ export function App() {
   const { clearDownload, setLastPacket } = useDownload();
 
   const {
-    showFriendsModal,
+    isFriendsModalVisible,
     friendRequetsModalTab,
-    setShowFriendsModal,
     updateFriendRequests,
+    hideFriendsModal,
   } = useUserDetails();
 
   const { fetchUserDetails, updateUserDetails, clearUserDetails } =
@@ -219,9 +219,9 @@ export function App() {
       />
 
       <UserFriendModal
-        visible={showFriendsModal}
+        visible={isFriendsModalVisible}
         initialTab={friendRequetsModalTab}
-        onClose={() => setShowFriendsModal(false, null)}
+        onClose={hideFriendsModal}
       />
 
       <main>

@@ -249,6 +249,7 @@
     "sending": "Sending",
     "friend_request_sent": "Friend request sent",
     "friends": "Friends",
-    "friends_list": "Friends list"
+    "friends_list": "Friends list",
+    "user_not_found": "User not found"
   }
 }

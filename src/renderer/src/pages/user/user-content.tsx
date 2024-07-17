@@ -37,7 +37,7 @@ export function UserContent({
     profileBackground,
     signOut,
     updateFriendRequests,
-    setShowFriendsModal,
+    showFriendsModal,
   } = useUserDetails();
   const { showSuccessToast } = useToast();
 
@@ -332,9 +332,7 @@ export function UserContent({
             <div className={styles.friendsSection}>
               <button
                 className={styles.friendsSectionHeader}
-                onClick={() =>
-                  setShowFriendsModal(true, UserFriendModalTab.FriendsList)
-                }
+                onClick={() => showFriendsModal(UserFriendModalTab.FriendsList)}
               >
                 <h2>{t("friends")}</h2>
 
@@ -390,7 +388,7 @@ export function UserContent({
                   <Button
                     theme="outline"
                     onClick={() =>
-                      setShowFriendsModal(true, UserFriendModalTab.AddFriend)
+                      showFriendsModal(UserFriendModalTab.AddFriend)
                     }
                   >
                     <PlusIcon /> {t("add")}
