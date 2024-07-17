@@ -91,7 +91,7 @@ export function useUserDetails() {
 
   const updateFriendRequests = useCallback(async () => {
     const friendRequests = await window.electron.getFriendRequests();
-    dispatch(setFriendRequests(friendRequests || []));
+    dispatch(setFriendRequests(friendRequests));
   }, [dispatch]);
 
   const showFriendsModal = useCallback(

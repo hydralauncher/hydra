@@ -134,7 +134,7 @@ declare global {
       displayName: string,
       newProfileImagePath: string | null
     ) => Promise<UserProfile>;
-    getFriendRequests: () => Promise<FriendRequest[] | null>;
+    getFriendRequests: () => Promise<FriendRequest[]>;
     updateFriendRequest: (
       userId: string,
       action: FriendRequestAction

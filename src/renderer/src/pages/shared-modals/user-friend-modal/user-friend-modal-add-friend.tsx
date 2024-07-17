@@ -119,7 +119,7 @@ export const UserFriendModalAddFriend = ({
         }}
       >
         <h3>Pendentes</h3>
-        {friendRequests?.map((request) => {
+        {friendRequests.map((request) => {
           return (
             <UserFriendRequest
               key={request.id}
