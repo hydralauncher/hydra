@@ -5,7 +5,7 @@ import type { FriendRequest, UserDetails } from "@types";
 export interface UserDetailsState {
   userDetails: UserDetails | null;
   profileBackground: null | string;
-  friendRequests: FriendRequest[] | null;
+  friendRequests: FriendRequest[];
   showFriendsModal: boolean;
   friendRequetsModalTab: UserFriendModalTab | null;
 }
@@ -13,7 +13,7 @@ export interface UserDetailsState {
 const initialState: UserDetailsState = {
   userDetails: null,
   profileBackground: null,
-  friendRequests: null,
+  friendRequests: [],
   showFriendsModal: false,
   friendRequetsModalTab: null,
 };
@@ -28,10 +28,7 @@ export const userDetailsSlice = createSlice({
     setProfileBackground: (state, action: PayloadAction<string | null>) => {
       state.profileBackground = action.payload;
     },
-    setFriendRequests: (
-      state,
-      action: PayloadAction<FriendRequest[] | null>
-    ) => {
+    setFriendRequests: (state, action: PayloadAction<FriendRequest[]>) => {
       state.friendRequests = action.payload;
     },
     setshowFriendsModal: (state, action: PayloadAction<boolean>) => {
