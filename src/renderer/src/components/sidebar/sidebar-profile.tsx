@@ -6,6 +6,7 @@ import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { profileContainerBackground } from "./sidebar-profile.css";
+import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 
 export function SidebarProfile() {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ export function SidebarProfile() {
     userDetails,
     profileBackground,
     friendRequests,
-    setShowFriendRequestModal,
+    setShowFriendsModal,
   } = useUserDetails();
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
@@ -87,7 +88,9 @@ export function SidebarProfile() {
           <button
             type="button"
             className={styles.friendRequestButton}
-            onClick={() => setShowFriendRequestModal(true)}
+            onClick={() =>
+              setShowFriendsModal(true, UserFriendModalTab.AddFriend)
+            }
           >
             <PersonAddIcon size={24} />
             {friendRequests.length}
