@@ -4,8 +4,8 @@ import { FriendRequest } from "@types";
 
 const getFriendRequests = async (
   _event: Electron.IpcMainInvokeEvent
-): Promise<FriendRequest[] | null> => {
-  return HydraApi.get(`/profile/friend-requests`).catch(() => null);
+): Promise<FriendRequest[]> => {
+  return HydraApi.get(`/profile/friend-requests`).catch(() => []);
 };
 
 registerEvent("getFriendRequests", getFriendRequests);

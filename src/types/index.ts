@@ -289,9 +289,9 @@ export interface UserProfile {
   displayName: string;
   profileImageUrl: string | null;
   totalPlayTimeInSeconds: number;
-  libraryGames: UserGame[] | null;
-  recentGames: UserGame[] | null;
-  friends: UserFriend[] | null;
+  libraryGames: UserGame[];
+  recentGames: UserGame[];
+  friends: UserFriend[];
 }
 
 export interface DownloadSource {

@@ -224,7 +224,7 @@ export function UserContent({
         <div className={styles.profileGameSection}>
           <h2>{t("activity")}</h2>
 
-          {!userProfile.recentGames?.length ? (
+          {!userProfile.recentGames.length ? (
             <div className={styles.noDownloads}>
               <div className={styles.telescopeIcon}>
                 <TelescopeIcon size={24} />
@@ -295,7 +295,7 @@ export function UserContent({
                 }}
               />
               <h3 style={{ fontWeight: "400" }}>
-                {userProfile.libraryGames?.length}
+                {userProfile.libraryGames.length}
               </h3>
             </div>
             <small>{t("total_play_time", { amount: formatPlayTime() })}</small>
@@ -306,7 +306,7 @@ export function UserContent({
                 gap: `${SPACING_UNIT}px`,
               }}
             >
-              {userProfile.libraryGames?.map((game) => (
+              {userProfile.libraryGames.map((game) => (
                 <button
                   key={game.objectID}
                   className={cn(styles.gameListItem, styles.profileContentBox)}
@@ -344,7 +344,7 @@ export function UserContent({
                   }}
                 />
                 <h3 style={{ fontWeight: "400" }}>
-                  {userProfile.friends?.length || 0}
+                  {userProfile.friends.length}
                 </h3>
               </button>
 
@@ -355,7 +355,7 @@ export function UserContent({
                   gap: `${SPACING_UNIT}px`,
                 }}
               >
-                {userProfile.friends?.map((friend) => {
+                {userProfile.friends.map((friend) => {
                   return (
                     <button
                       key={friend.id}
