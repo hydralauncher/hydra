@@ -61,7 +61,7 @@ export const friendListButton = style({
   flexDirection: "row",
   color: vars.color.body,
   gap: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
-  padding: "0 8px",
+  padding: `0 ${SPACING_UNIT}px`,
 });
 
 export const friendRequestItem = style({

@@ -11,6 +11,7 @@ export const wrapper = style({
 
 export const profileContentBox = style({
   display: "flex",
+  cursor: "pointer",
   gap: `${SPACING_UNIT * 3}px`,
   alignItems: "center",
   borderRadius: "4px",
@@ -192,8 +193,11 @@ export const gameListItem = style({
 });
 
 export const friendListContainer = style({
+  color: vars.color.body,
   width: "100%",
   height: "54px",
+  padding: `0 ${SPACING_UNIT}px`,
+  gap: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
   transition: "all ease 0.2s",
   position: "relative",
   ":hover": {
