@@ -20,6 +20,23 @@ if start_download_payload:
 class Handler(BaseHTTPRequestHandler):
     rpc_password_header = 'x-hydra-rpc-password'
 
+    skip_log_routes = [
+        "process-list",
+        "status"
+    ]
+
+    def log_error(self, format, *args):
+        sys.stderr.write("%s - - [%s] %s\n" %
+                         (self.address_string(),
+                          self.log_date_time_string(),
+                          format%args))
+
+    def log_message(self, format, *args):
+        for route in self.skip_log_routes:
+            if route in args[0]: return
+
+        super().log_message(format, *args)
+        
     def do_GET(self):
         if self.path == "/status":
             if self.headers.get(self.rpc_password_header) != rpc_password:
