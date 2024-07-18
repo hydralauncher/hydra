@@ -120,7 +120,7 @@
     "loading": "Carregando…"
   },
   "downloads": {
-    "resume": "Resumir",
+    "resume": "Retomar",
     "pause": "Pausar",
     "eta": "Conclusão {{eta}}",
     "paused": "Pausado",
