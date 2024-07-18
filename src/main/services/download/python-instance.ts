@@ -49,9 +49,7 @@ export class PythonInstance {
   public static killTorrent() {
     if (this.pythonProcess) {
       logger.log("killing torrent in python process");
-      this.rpc
-        .post("/action", { action: "kill-torrent" })
-        .catch((err) => logger.error(err));
+      this.rpc.post("/action", { action: "kill-torrent" });
       this.downloadingGameId = -1;
     }
   }
