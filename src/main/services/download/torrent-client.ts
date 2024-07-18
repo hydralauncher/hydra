@@ -4,6 +4,8 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import { app, dialog } from "electron";
 import type { StartDownloadPayload } from "./types";
+import { Readable } from "node:stream";
+import { pythonInstanceLogger as logger } from "../logger";
 
 const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
   darwin: "hydra-download-manager",
@@ -14,6 +16,13 @@ const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
 export const BITTORRENT_PORT = "5881";
 export const RPC_PORT = "8084";
 export const RPC_PASSWORD = crypto.randomBytes(32).toString("hex");
+
+const logStderr = (readable: Readable | null) => {
+  if (!readable) return;
+
+  readable.setEncoding("utf-8");
+  readable.on("data", logger.log);
+};
 
 export const startTorrentClient = (args?: StartDownloadPayload) => {
   const commonArgs = [
@@ -40,10 +49,14 @@ export const startTorrentClient = (args?: StartDownloadPayload) => {
       app.quit();
     }
 
-    return cp.spawn(binaryPath, commonArgs, {
-      stdio: "inherit",
+    const childProcess = cp.spawn(binaryPath, commonArgs, {
       windowsHide: true,
+      stdio: ["inherit", "inherit"],
     });
+
+    logStderr(childProcess.stderr);
+
+    return childProcess;
   } else {
     const scriptPath = path.join(
       __dirname,
@@ -53,8 +66,12 @@ export const startTorrentClient = (args?: StartDownloadPayload) => {
       "main.py"
     );
 
-    return cp.spawn("python3", [scriptPath, ...commonArgs], {
-      stdio: "inherit",
+    const childProcess = cp.spawn("python3", [scriptPath, ...commonArgs], {
+      stdio: ["inherit", "inherit"],
     });
+
+    logStderr(childProcess.stderr);
+
+    return childProcess;
   }
 };
