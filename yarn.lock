@@ -3739,10 +3739,10 @@ electron-vite@^2.0.0:
     magic-string "^0.30.5"
     picocolors "^1.0.0"
 
-electron@^30.0.9:
-  version "30.0.9"
-  resolved "https://registry.npmjs.org/electron/-/electron-30.0.9.tgz"
-  integrity sha512-ArxgdGHVu3o5uaP+Tqj8cJDvU03R6vrGrOqiMs7JXLnvQHMqXJIIxmFKQAIdJW8VoT3ac3hD21tA7cPO10RLow==
+electron@^30.1.0:
+  version "30.3.0"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-30.3.0.tgz#9d7af06c11242d5c6ca5b9920c9dc49feab90299"
+  integrity sha512-/rWPcpCL4sYCUm1bY8if1dO8nyFTwXlPUP0dpL3ir5iLK/9NshN6lIJ8xceEY8CEYVLMIYRkxXb44Q9cdrjtOQ==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^20.9.0"
