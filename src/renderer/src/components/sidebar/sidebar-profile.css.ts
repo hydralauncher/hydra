@@ -1,6 +1,17 @@
-import { style } from "@vanilla-extract/css";
+import { createVar, style } from "@vanilla-extract/css";
 
 import { SPACING_UNIT, vars } from "../../theme.css";
+
+export const profileContainerBackground = createVar();
+
+export const profileContainer = style({
+  background: profileContainerBackground,
+  position: "relative",
+  cursor: "pointer",
+  ":hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
+});
 
 export const profileButton = style({
   display: "flex",
@@ -10,9 +21,8 @@ export const profileButton = style({
   color: vars.color.muted,
   borderBottom: `solid 1px ${vars.color.border}`,
   boxShadow: "0px 0px 15px 0px rgb(0 0 0 / 70%)",
-  ":hover": {
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-  },
+  width: "100%",
+  zIndex: "10",
 });
 
 export const profileButtonContent = style({
@@ -63,4 +73,26 @@ export const profileButtonTitle = style({
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
+});
+
+export const friendRequestContainer = style({
+  position: "absolute",
+  padding: "8px",
+  right: `${SPACING_UNIT}px`,
+  display: "flex",
+  top: 0,
+  bottom: 0,
+  alignItems: "center",
+});
+
+export const friendRequestButton = style({
+  color: vars.color.success,
+  cursor: "pointer",
+  borderRadius: "50%",
+  overflow: "hidden",
+  width: "40px",
+  height: "40px",
+  ":hover": {
+    color: vars.color.muted,
+  },
 });
