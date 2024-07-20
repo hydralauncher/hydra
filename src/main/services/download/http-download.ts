@@ -16,7 +16,7 @@ export class HTTPDownload {
       return {
         completedLength: downloadItem.getReceivedBytes(),
         totalLength: downloadItem.getTotalBytes(),
-        downloadSpeed: 0,
+        downloadSpeed: downloadItem.getCurrentBytesPerSecond(),
       };
     }
 

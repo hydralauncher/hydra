@@ -30,11 +30,11 @@ export class GenericHTTPDownloader {
         const result = {
           numPeers: 0,
           numSeeds: 0,
-          downloadSpeed: Number(status.downloadSpeed),
+          downloadSpeed: status.downloadSpeed,
           timeRemaining: calculateETA(
-            Number(status.totalLength),
-            Number(status.completedLength),
-            Number(status.downloadSpeed)
+            status.totalLength,
+            status.completedLength,
+            status.downloadSpeed
           ),
           isDownloadingMetadata: false,
           isCheckingFiles: false,
