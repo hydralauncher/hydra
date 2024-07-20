@@ -2433,6 +2433,13 @@
     modern-ahocorasick "^1.0.0"
     picocolors "^1.0.0"
 
+"@vanilla-extract/dynamic@^2.1.1":
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/@vanilla-extract/dynamic/-/dynamic-2.1.1.tgz#bc93a577b127a7dcb6f254973d13a863029a7faf"
+  integrity sha512-iqf736036ujEIKsIq28UsBEMaLC2vR2DhwKyrG3NDb/fRy9qL9FKl1TqTtBV4daU30Uh3saeik4vRzN8bzQMbw==
+  dependencies:
+    "@vanilla-extract/private" "^1.0.5"
+
 "@vanilla-extract/integration@^7.1.3":
   version "7.1.4"
   resolved "https://registry.npmjs.org/@vanilla-extract/integration/-/integration-7.1.4.tgz"
@@ -2455,6 +2462,11 @@
   version "1.0.4"
   resolved "https://registry.npmjs.org/@vanilla-extract/private/-/private-1.0.4.tgz"
   integrity sha512-8FGD6AejeC/nXcblgNCM5rnZb9KXa4WNkR03HCWtdJBpANjTgjHEglNLFnhuvdQ78tC6afaxBPI+g7F2NX3tgg==
+
+"@vanilla-extract/private@^1.0.5":
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/@vanilla-extract/private/-/private-1.0.5.tgz#8c08ac4851f4cc89a3dcdb858d8938e69b1481c4"
+  integrity sha512-6YXeOEKYTA3UV+RC8DeAjFk+/okoNz/h88R+McnzA2zpaVqTR/Ep+vszkWYlGBcMNO7vEkqbq5nT/JMMvhi+tw==
 
 "@vanilla-extract/recipes@^0.5.2":
   version "0.5.2"
