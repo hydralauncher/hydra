@@ -241,6 +241,15 @@
     "sign_out": "Sair da conta",
     "sign_out_modal_title": "Tem certeza?",
     "playing_for": "Jogando por {{amount}}",
-    "sign_out_modal_text": "Sua biblioteca de jogos está associada com a sua conta atual. Ao sair, sua biblioteca não aparecerá mais no Hydra e qualquer progresso não será salvo. Deseja continuar?"
+    "sign_out_modal_text": "Sua biblioteca de jogos está associada com a sua conta atual. Ao sair, sua biblioteca não aparecerá mais no Hydra e qualquer progresso não será salvo. Deseja continuar?",
+    "add_friends": "Adicionar Amigos",
+    "friend_code": "Código de amigo",
+    "see_profile": "Ver perfil",
+    "friend_request_sent": "Pedido de amizade enviado",
+    "friends": "Amigos",
+    "add": "Adicionar",
+    "sending": "Enviando",
+    "friends_list": "Lista de amigos",
+    "user_not_found": "Usuário não encontrado"
   }
 }
