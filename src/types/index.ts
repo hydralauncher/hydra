@@ -277,6 +277,11 @@ export interface UserFriend {
   profileImageUrl: string | null;
 }
 
+export interface UserFriends {
+  totalFriends: number;
+  friends: UserFriend[];
+}
+
 export interface FriendRequest {
   id: string;
   displayName: string;
@@ -291,7 +296,7 @@ export interface UserProfile {
   totalPlayTimeInSeconds: number;
   libraryGames: UserGame[];
   recentGames: UserGame[];
-  friends: UserFriend[];
+  friends: UserFriends;
 }
 
 export interface DownloadSource {
