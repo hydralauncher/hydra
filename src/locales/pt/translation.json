@@ -250,6 +250,13 @@
     "add": "Adicionar",
     "sending": "Enviando",
     "friends_list": "Lista de amigos",
-    "user_not_found": "Usuário não encontrado"
+    "user_not_found": "Usuário não encontrado",
+    "block_user": "Bloquear",
+    "add_friend": "Adicionar amigo",
+    "request_sent": "Pedido enviado",
+    "request_received": "Pedido recebido",
+    "accept_request": "Aceitar pedido",
+    "ignore_request": "Ignorar pedido",
+    "cancel_request": "Cancelar pedido"
   }
 }

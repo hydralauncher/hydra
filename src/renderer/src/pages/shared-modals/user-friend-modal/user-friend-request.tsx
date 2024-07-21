@@ -6,6 +6,7 @@ import {
 import * as styles from "./user-friend-modal.css";
 import cn from "classnames";
 import { SPACING_UNIT } from "@renderer/theme.css";
+import { useTranslation } from "react-i18next";
 
 export interface UserFriendRequestProps {
   userId: string;
@@ -28,6 +29,8 @@ export const UserFriendRequest = ({
   onClickRefuseRequest,
   onClickRequest,
 }: UserFriendRequestProps) => {
+  const { t } = useTranslation("user_profile");
+
   return (
     <div className={cn(styles.friendListContainer, styles.profileContentBox)}>
       <button
@@ -56,7 +59,9 @@ export const UserFriendRequest = ({
           }}
         >
           <p className={styles.friendListDisplayName}>{displayName}</p>
-          <small>{isRequestSent ? "Pedido enviado" : "Pedido recebido"}</small>
+          <small>
+            {isRequestSent ? t("request_sent") : t("request_received")}
+          </small>
         </div>
       </button>
 
@@ -72,6 +77,7 @@ export const UserFriendRequest = ({
           <button
             className={styles.cancelRequestButton}
             onClick={() => onClickCancelRequest(userId)}
+            title={t("cancel_request")}
           >
             <XCircleIcon size={28} />
           </button>
@@ -80,12 +86,14 @@ export const UserFriendRequest = ({
             <button
               className={styles.acceptRequestButton}
               onClick={() => onClickAcceptRequest(userId)}
+              title={t("accept_request")}
             >
               <CheckCircleIcon size={28} />
             </button>
             <button
               className={styles.cancelRequestButton}
               onClick={() => onClickRefuseRequest(userId)}
+              title={t("ignore_request")}
             >
               <XCircleIcon size={28} />
             </button>
