@@ -12,7 +12,11 @@ import {
   useUserDetails,
 } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
-import { buildGameDetailsPath, steamUrlBuilder } from "@renderer/helpers";
+import {
+  buildGameDetailsPath,
+  profileBackgroundFromProfileImage,
+  steamUrlBuilder,
+} from "@renderer/helpers";
 import { PersonIcon, PlusIcon, TelescopeIcon } from "@primer/octicons-react";
 import { Button, Link } from "@renderer/components";
 import { UserEditProfileModal } from "./user-edit-modal";
@@ -41,6 +45,8 @@ export function UserContent({
   } = useUserDetails();
   const { showSuccessToast } = useToast();
 
+  const [profileContentBoxBackground, setProfileContentBoxBackground] =
+    useState<string | undefined>();
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
 
@@ -96,11 +102,19 @@ export function UserContent({
     if (isMe) updateFriendRequests();
   }, [isMe]);
 
-  const profileContentBoxBackground = useMemo(() => {
-    if (profileBackground) return profileBackground;
-    /* TODO: Render background colors for other users */
-    return undefined;
-  }, [profileBackground]);
+  useEffect(() => {
+    if (isMe && profileBackground) {
+      setProfileContentBoxBackground(profileBackground);
+    }
+
+    if (userProfile.profileImageUrl) {
+      profileBackgroundFromProfileImage(userProfile.profileImageUrl).then(
+        (profileBackground) => {
+          setProfileContentBoxBackground(profileBackground);
+        }
+      );
+    }
+  }, [profileBackground, isMe]);
 
   return (
     <>

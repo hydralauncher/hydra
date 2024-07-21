@@ -1,6 +1,4 @@
 import { useCallback } from "react";
-import { average } from "color.js";
-
 import { useAppDispatch, useAppSelector } from "./redux";
 import {
   setProfileBackground,
@@ -9,7 +7,7 @@ import {
   setFriendsModalVisible,
   setFriendsModalHidden,
 } from "@renderer/features";
-import { darkenColor } from "@renderer/helpers";
+import { profileBackgroundFromProfileImage } from "@renderer/helpers";
 import { FriendRequestAction, UserDetails } from "@types";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 
@@ -42,12 +40,9 @@ export function useUserDetails() {
       dispatch(setUserDetails(userDetails));
 
       if (userDetails.profileImageUrl) {
-        const output = await average(userDetails.profileImageUrl, {
-          amount: 1,
-          format: "hex",
-        });
-
-        const profileBackground = `linear-gradient(135deg, ${darkenColor(output as string, 0.6)}, ${darkenColor(output as string, 0.8, 0.7)})`;
+        const profileBackground = await profileBackgroundFromProfileImage(
+          userDetails.profileImageUrl
+        );
         dispatch(setProfileBackground(profileBackground));
 
         window.localStorage.setItem(
