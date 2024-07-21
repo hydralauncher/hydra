@@ -42,7 +42,7 @@ export function App() {
   const {
     isFriendsModalVisible,
     friendRequetsModalTab,
-    updateFriendRequests,
+    fetchFriendRequests,
     hideFriendsModal,
   } = useUserDetails();
 
@@ -104,7 +104,7 @@ export function App() {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
-        updateFriendRequests();
+        fetchFriendRequests();
       }
     });
   }, [fetchUserDetails, updateUserDetails, dispatch]);
@@ -113,7 +113,7 @@ export function App() {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
-        updateFriendRequests();
+        fetchFriendRequests();
         showSuccessToast(t("successfully_signed_in"));
       }
     });
