@@ -56,19 +56,19 @@ export const UserFriendModalAddFriend = ({
     navigate(`/user/${friendCode}`);
   };
 
-  const handleClickCancelFriendRequest = (userId: string) => {
+  const handleCancelFriendRequest = (userId: string) => {
     updateFriendRequestState(userId, "CANCEL").catch(() => {
       showErrorToast("Falha ao cancelar convite");
     });
   };
 
-  const handleClickAcceptFriendRequest = (userId: string) => {
+  const handleAcceptFriendRequest = (userId: string) => {
     updateFriendRequestState(userId, "ACCEPTED").catch(() => {
       showErrorToast("Falha ao aceitar convite");
     });
   };
 
-  const handleClickRefuseFriendRequest = (userId: string) => {
+  const handleRefuseFriendRequest = (userId: string) => {
     updateFriendRequestState(userId, "REFUSED").catch(() => {
       showErrorToast("Falha ao recusar convite");
     });
@@ -127,9 +127,9 @@ export const UserFriendModalAddFriend = ({
               isRequestSent={request.type === "SENT"}
               profileImageUrl={request.profileImageUrl}
               userId={request.id}
-              onClickAcceptRequest={handleClickAcceptFriendRequest}
-              onClickCancelRequest={handleClickCancelFriendRequest}
-              onClickRefuseRequest={handleClickRefuseFriendRequest}
+              onClickAcceptRequest={handleAcceptFriendRequest}
+              onClickCancelRequest={handleCancelFriendRequest}
+              onClickRefuseRequest={handleRefuseFriendRequest}
               onClickRequest={handleClickRequest}
             />
           );

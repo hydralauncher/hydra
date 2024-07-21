@@ -47,10 +47,11 @@ export function UserContent({
     profileBackground,
     friendRequests,
     signOut,
-    updateFriendRequests,
+    fetchFriendRequests,
     showFriendsModal,
+    updateFriendRequestState,
   } = useUserDetails();
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const [profileContentBoxBackground, setProfileContentBoxBackground] =
     useState<string | undefined>();
@@ -106,7 +107,7 @@ export function UserContent({
   const isMe = userDetails?.id == userProfile.id;
 
   useEffect(() => {
-    if (isMe) updateFriendRequests();
+    if (isMe) fetchFriendRequests();
   }, [isMe]);
 
   useEffect(() => {
@@ -122,6 +123,24 @@ export function UserContent({
       );
     }
   }, [profileBackground, isMe]);
+
+  const handleCancelFriendRequest = (userId: string) => {
+    updateFriendRequestState(userId, "CANCEL").catch(() => {
+      showErrorToast("Falha ao cancelar convite");
+    });
+  };
+
+  const handleAcceptFriendRequest = (userId: string) => {
+    updateFriendRequestState(userId, "ACCEPTED").catch(() => {
+      showErrorToast("Falha ao aceitar convite");
+    });
+  };
+
+  const handleRefuseFriendRequest = (userId: string) => {
+    updateFriendRequestState(userId, "REFUSED").catch(() => {
+      showErrorToast("Falha ao recusar convite");
+    });
+  };
 
   const getProfileActions = () => {
     if (isMe) {
@@ -162,14 +181,14 @@ export function UserContent({
           <Button
             theme="outline"
             className={styles.acceptRequestButton}
-            onClick={() => {}}
+            onClick={() => handleAcceptFriendRequest(friendRequest.id)}
           >
             <CheckCircleIcon size={28} /> {t("accept_request")}
           </Button>
           <Button
             theme="outline"
             className={styles.cancelRequestButton}
-            onClick={() => {}}
+            onClick={() => handleRefuseFriendRequest(friendRequest.id)}
           >
             <XCircleIcon size={28} /> {t("ignore_request")}
           </Button>
@@ -181,7 +200,7 @@ export function UserContent({
       <Button
         theme="outline"
         className={styles.cancelRequestButton}
-        onClick={() => {}}
+        onClick={() => handleCancelFriendRequest(friendRequest.id)}
       >
         <XCircleIcon size={28} /> {t("cancel_request")}
       </Button>

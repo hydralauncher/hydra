@@ -84,7 +84,7 @@ export function useUserDetails() {
     [updateUserDetails]
   );
 
-  const updateFriendRequests = useCallback(async () => {
+  const fetchFriendRequests = useCallback(async () => {
     const friendRequests = await window.electron.getFriendRequests();
     dispatch(setFriendRequests(friendRequests));
   }, [dispatch]);
@@ -92,7 +92,7 @@ export function useUserDetails() {
   const showFriendsModal = useCallback(
     (tab: UserFriendModalTab) => {
       dispatch(setFriendsModalVisible(tab));
-      updateFriendRequests();
+      fetchFriendRequests();
     },
     [dispatch]
   );
@@ -105,18 +105,18 @@ export function useUserDetails() {
     async (userId: string) => {
       return window.electron
         .sendFriendRequest(userId)
-        .then(() => updateFriendRequests());
+        .then(() => fetchFriendRequests());
     },
-    [updateFriendRequests]
+    [fetchFriendRequests]
   );
 
   const updateFriendRequestState = useCallback(
     async (userId: string, action: FriendRequestAction) => {
       return window.electron
         .updateFriendRequest(userId, action)
-        .then(() => updateFriendRequests());
+        .then(() => fetchFriendRequests());
     },
-    [updateFriendRequests]
+    [fetchFriendRequests]
   );
 
   return {
@@ -133,7 +133,7 @@ export function useUserDetails() {
     updateUserDetails,
     patchUser,
     sendFriendRequest,
-    updateFriendRequests,
+    fetchFriendRequests,
     updateFriendRequestState,
   };
 }
