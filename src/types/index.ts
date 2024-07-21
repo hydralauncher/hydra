@@ -293,6 +293,7 @@ export interface UserProfile {
   id: string;
   displayName: string;
   profileImageUrl: string | null;
+  profileVisibility: "PUBLIC" | "PRIVATE" | "FRIEND";
   totalPlayTimeInSeconds: number;
   libraryGames: UserGame[];
   recentGames: UserGame[];

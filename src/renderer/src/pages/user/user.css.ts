@@ -279,3 +279,16 @@ export const profileBackground = style({
   top: "0",
   borderRadius: "4px",
 });
+
+export const cancelRequestButton = style({
+  cursor: "pointer",
+  color: vars.color.body,
+  ":hover": {
+    color: vars.color.danger,
+  },
+});
+
+export const acceptRequestButton = style({
+  cursor: "pointer",
+  color: vars.color.success,
+});

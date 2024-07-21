@@ -17,7 +17,13 @@ import {
   profileBackgroundFromProfileImage,
   steamUrlBuilder,
 } from "@renderer/helpers";
-import { PersonIcon, PlusIcon, TelescopeIcon } from "@primer/octicons-react";
+import {
+  CheckCircleIcon,
+  PersonIcon,
+  PlusIcon,
+  TelescopeIcon,
+  XCircleIcon,
+} from "@primer/octicons-react";
 import { Button, Link } from "@renderer/components";
 import { UserEditProfileModal } from "./user-edit-modal";
 import { UserSignOutModal } from "./user-signout-modal";
@@ -39,6 +45,7 @@ export function UserContent({
   const {
     userDetails,
     profileBackground,
+    friendRequests,
     signOut,
     updateFriendRequests,
     showFriendsModal,
@@ -115,6 +122,71 @@ export function UserContent({
       );
     }
   }, [profileBackground, isMe]);
+
+  const getProfileActions = () => {
+    if (isMe) {
+      return (
+        <>
+          <Button theme="outline" onClick={handleEditProfile}>
+            {t("edit_profile")}
+          </Button>
+
+          <Button theme="danger" onClick={() => setShowSignOutModal(true)}>
+            {t("sign_out")}
+          </Button>
+        </>
+      );
+    }
+
+    const friendRequest = friendRequests.find(
+      (request) => request.id == userProfile.id
+    );
+
+    if (!friendRequest) {
+      return (
+        <>
+          <Button theme="outline" onClick={() => {}}>
+            {t("add_friend")}
+          </Button>
+
+          <Button theme="danger" onClick={() => {}}>
+            {t("block_user")}
+          </Button>
+        </>
+      );
+    }
+
+    if (friendRequest.type === "RECEIVED") {
+      return (
+        <>
+          <Button
+            theme="outline"
+            className={styles.acceptRequestButton}
+            onClick={() => {}}
+          >
+            <CheckCircleIcon size={28} /> {t("accept_request")}
+          </Button>
+          <Button
+            theme="outline"
+            className={styles.cancelRequestButton}
+            onClick={() => {}}
+          >
+            <XCircleIcon size={28} /> {t("ignore_request")}
+          </Button>
+        </>
+      );
+    }
+
+    return (
+      <Button
+        theme="outline"
+        className={styles.cancelRequestButton}
+        onClick={() => {}}
+      >
+        <XCircleIcon size={28} /> {t("cancel_request")}
+      </Button>
+    );
+  };
 
   return (
     <>
@@ -201,37 +273,24 @@ export function UserContent({
           )}
         </div>
 
-        {isMe && (
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            justifyContent: "end",
+            zIndex: 1,
+          }}
+        >
           <div
             style={{
-              flex: 1,
               display: "flex",
-              justifyContent: "end",
-              zIndex: 1,
+              flexDirection: "column",
+              gap: `${SPACING_UNIT}px`,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: `${SPACING_UNIT}px`,
-              }}
-            >
-              <>
-                <Button theme="outline" onClick={handleEditProfile}>
-                  {t("edit_profile")}
-                </Button>
-
-                <Button
-                  theme="danger"
-                  onClick={() => setShowSignOutModal(true)}
-                >
-                  {t("sign_out")}
-                </Button>
-              </>
-            </div>
+            {getProfileActions()}
           </div>
-        )}
+        </div>
       </section>
 
       <div className={styles.profileContent}>

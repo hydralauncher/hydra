@@ -250,6 +250,13 @@
     "friend_request_sent": "Friend request sent",
     "friends": "Friends",
     "friends_list": "Friends list",
-    "user_not_found": "User not found"
+    "user_not_found": "User not found",
+    "block_user": "Block user",
+    "add_friend": "Add friend",
+    "request_sent": "Request sent",
+    "request_received": "Request received",
+    "accept_request": "Accept request",
+    "ignore_request": "Ignore request",
+    "cancel_request": "Cancel request"
   }
 }
