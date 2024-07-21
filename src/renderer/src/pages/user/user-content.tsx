@@ -342,7 +342,7 @@ export function UserContent({
           </div>
 
           {(isMe ||
-            (userProfile.friends && userProfile.friends.length > 0)) && (
+            (userProfile.friends && userProfile.friends.totalFriends > 0)) && (
             <div className={styles.friendsSection}>
               <button
                 className={styles.friendsSectionHeader}
@@ -358,7 +358,7 @@ export function UserContent({
                   }}
                 />
                 <h3 style={{ fontWeight: "400" }}>
-                  {userProfile.friends.length}
+                  {userProfile.friends.totalFriends}
                 </h3>
               </button>
 
@@ -369,7 +369,7 @@ export function UserContent({
                   gap: `${SPACING_UNIT}px`,
                 }}
               >
-                {userProfile.friends.map((friend) => {
+                {userProfile.friends.friends.map((friend) => {
                   return (
                     <button
                       key={friend.id}

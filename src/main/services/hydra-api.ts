@@ -72,7 +72,7 @@ export class HydraApi {
     this.instance.interceptors.request.use(
       (request) => {
         logger.log(" ---- REQUEST -----");
-        logger.log(request.method, request.url, request.data);
+        logger.log(request.method, request.url, request.params, request.data);
         return request;
       },
       (error) => {
@@ -196,12 +196,12 @@ export class HydraApi {
     throw err;
   };
 
-  static async get(url: string) {
+  static async get(url: string, params?: any) {
     if (!this.isLoggedIn()) throw new UserNotLoggedInError();
 
     await this.revalidateAccessTokenIfExpired();
     return this.instance
-      .get(url, this.getAxiosConfig())
+      .get(url, { params, ...this.getAxiosConfig() })
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
