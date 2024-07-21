@@ -78,6 +78,8 @@ export const profileAvatar = style({
   height: "100%",
   width: "100%",
   objectFit: "cover",
+  borderRadius: "50%",
+  overflow: "hidden",
 });
 
 export const profileAvatarEditOverlay = style({
