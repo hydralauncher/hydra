@@ -128,7 +128,11 @@ declare global {
 
     /* User */
     getUser: (userId: string) => Promise<UserProfile | null>;
-    getUserFriends: (userId: string) => Promise<UserFriends>;
+    getUserFriends: (
+      userId: string,
+      take: number,
+      skip: number
+    ) => Promise<UserFriends>;
 
     /* Profile */
     getMe: () => Promise<UserProfile | null>;

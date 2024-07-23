@@ -84,7 +84,9 @@ export function SidebarProfile() {
           <button
             type="button"
             className={styles.friendRequestButton}
-            onClick={() => showFriendsModal(UserFriendModalTab.AddFriend)}
+            onClick={() =>
+              showFriendsModal(UserFriendModalTab.AddFriend, userDetails.id)
+            }
           >
             <PersonAddIcon size={24} />
             {friendRequests.length}

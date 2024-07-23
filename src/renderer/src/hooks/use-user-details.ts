@@ -19,6 +19,7 @@ export function useUserDetails() {
     profileBackground,
     friendRequests,
     isFriendsModalVisible,
+    friendModalUserId,
     friendRequetsModalTab,
   } = useAppSelector((state) => state.userDetails);
 
@@ -90,8 +91,8 @@ export function useUserDetails() {
   }, [dispatch]);
 
   const showFriendsModal = useCallback(
-    (tab: UserFriendModalTab) => {
-      dispatch(setFriendsModalVisible(tab));
+    (initialTab: UserFriendModalTab, userId: string) => {
+      dispatch(setFriendsModalVisible({ initialTab, userId }));
       fetchFriendRequests();
     },
     [dispatch]
@@ -125,6 +126,7 @@ export function useUserDetails() {
     friendRequests,
     friendRequetsModalTab,
     isFriendsModalVisible,
+    friendModalUserId,
     showFriendsModal,
     hideFriendsModal,
     fetchUserDetails,
