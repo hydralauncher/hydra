@@ -424,7 +424,12 @@ export function UserContent({
             <div className={styles.friendsSection}>
               <button
                 className={styles.friendsSectionHeader}
-                onClick={() => showFriendsModal(UserFriendModalTab.FriendsList)}
+                onClick={() =>
+                  showFriendsModal(
+                    UserFriendModalTab.FriendsList,
+                    userProfile.id
+                  )
+                }
               >
                 <h2>{t("friends")}</h2>
 
@@ -480,7 +485,10 @@ export function UserContent({
                   <Button
                     theme="outline"
                     onClick={() =>
-                      showFriendsModal(UserFriendModalTab.AddFriend)
+                      showFriendsModal(
+                        UserFriendModalTab.AddFriend,
+                        userProfile.id
+                      )
                     }
                   >
                     <PlusIcon /> {t("add")}

@@ -42,11 +42,12 @@ export function App() {
   const {
     isFriendsModalVisible,
     friendRequetsModalTab,
+    friendModalUserId,
     fetchFriendRequests,
     hideFriendsModal,
   } = useUserDetails();
 
-  const { fetchUserDetails, updateUserDetails, clearUserDetails } =
+  const { userDetails, fetchUserDetails, updateUserDetails, clearUserDetails } =
     useUserDetails();
 
   const dispatch = useAppDispatch();
@@ -218,11 +219,14 @@ export function App() {
         onClose={handleToastClose}
       />
 
-      <UserFriendModal
-        visible={isFriendsModalVisible}
-        initialTab={friendRequetsModalTab}
-        onClose={hideFriendsModal}
-      />
+      {userDetails && (
+        <UserFriendModal
+          visible={isFriendsModalVisible}
+          initialTab={friendRequetsModalTab}
+          onClose={hideFriendsModal}
+          userId={friendModalUserId}
+        />
+      )}
 
       <main>
         <Sidebar />
