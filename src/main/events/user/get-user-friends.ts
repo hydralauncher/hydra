@@ -8,21 +8,23 @@ export const getUserFriends = async (
   take: number,
   skip: number
 ): Promise<UserFriends> => {
-  const loggedUser = await userAuthRepository.findOne({ where: { id: 1 } });
+  try {
+    const loggedUser = await userAuthRepository.findOne({ where: { id: 1 } });
 
-  if (loggedUser?.userId == userId) {
-    return HydraApi.get(`/profile/friends`, { take, skip }).catch(
+    if (loggedUser?.userId == userId) {
+      return HydraApi.get(`/profile/friends`, { take, skip }).catch((_err) => {
+        return { totalFriends: 0, friends: [] };
+      });
+    }
+
+    return HydraApi.get(`/user/${userId}/friends`, { take, skip }).catch(
       (_err) => {
         return { totalFriends: 0, friends: [] };
       }
     );
+  } catch (err) {
+    return { totalFriends: 0, friends: [] };
   }
-
-  return HydraApi.get(`/user/${userId}/friends`, { take, skip }).catch(
-    (_err) => {
-      return { totalFriends: 0, friends: [] };
-    }
-  );
 };
 
 const getUserFriendsEvent = async (

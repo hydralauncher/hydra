@@ -16,6 +16,7 @@ import type {
   UserProfile,
   FriendRequest,
   FriendRequestAction,
+  UserFriends,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -127,6 +128,7 @@ declare global {
 
     /* User */
     getUser: (userId: string) => Promise<UserProfile | null>;
+    getUserFriends: (userId: string) => Promise<UserFriends>;
 
     /* Profile */
     getMe: () => Promise<UserProfile | null>;
