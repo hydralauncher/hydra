@@ -20,6 +20,8 @@ autoUpdater.setFeedURL({
 
 autoUpdater.logger = logger;
 
+logger.log("Init Hydra");
+
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
 
@@ -121,6 +123,7 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   /* Disconnects libtorrent */
   PythonInstance.kill();
+  logger.log("Quit Hydra");
 });
 
 app.on("activate", () => {
