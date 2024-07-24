@@ -257,6 +257,7 @@
     "request_received": "Pedido recebido",
     "accept_request": "Aceitar pedido",
     "ignore_request": "Ignorar pedido",
-    "cancel_request": "Cancelar pedido"
+    "cancel_request": "Cancelar pedido",
+    "undo_friendship": "Desfazer amizade"
   }
 }

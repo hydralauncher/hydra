@@ -4,7 +4,7 @@ import { SPACING_UNIT } from "@renderer/theme.css";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { UserFriendRequest } from "./user-friend-request";
+import { UserFriendItem } from "./user-friend-item";
 
 export interface UserFriendModalAddFriendProps {
   closeModal: () => void;
@@ -121,16 +121,16 @@ export const UserFriendModalAddFriend = ({
         <h3>Pendentes</h3>
         {friendRequests.map((request) => {
           return (
-            <UserFriendRequest
+            <UserFriendItem
               key={request.id}
               displayName={request.displayName}
-              isRequestSent={request.type === "SENT"}
+              type={request.type}
               profileImageUrl={request.profileImageUrl}
               userId={request.id}
               onClickAcceptRequest={handleAcceptFriendRequest}
               onClickCancelRequest={handleCancelFriendRequest}
               onClickRefuseRequest={handleRefuseFriendRequest}
-              onClickRequest={handleClickRequest}
+              onClickItem={handleClickRequest}
             />
           );
         })}

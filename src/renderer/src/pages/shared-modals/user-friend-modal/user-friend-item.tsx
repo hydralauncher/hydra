@@ -8,35 +8,90 @@ import cn from "classnames";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { useTranslation } from "react-i18next";
 
-export interface UserFriendRequestProps {
+export interface UserFriendItemProps {
   userId: string;
   profileImageUrl: string | null;
   displayName: string;
-  isRequestSent: boolean;
+  type: "SENT" | "RECEIVED" | "ACCEPTED";
   onClickCancelRequest: (userId: string) => void;
   onClickAcceptRequest: (userId: string) => void;
   onClickRefuseRequest: (userId: string) => void;
-  onClickRequest: (userId: string) => void;
+  onClickItem: (userId: string) => void;
 }
 
-export const UserFriendRequest = ({
+export const UserFriendItem = ({
   userId,
   profileImageUrl,
   displayName,
-  isRequestSent,
+  type,
   onClickCancelRequest,
   onClickAcceptRequest,
   onClickRefuseRequest,
-  onClickRequest,
-}: UserFriendRequestProps) => {
+  onClickItem,
+}: UserFriendItemProps) => {
   const { t } = useTranslation("user_profile");
+
+  const getRequestDescription = () => {
+    if (type === null) return null;
+
+    return (
+      <small>
+        {type == "SENT" ? t("request_sent") : t("request_received")}
+      </small>
+    );
+  };
+
+  const getRequestActions = () => {
+    if (type === "SENT") {
+      return (
+        <button
+          className={styles.cancelRequestButton}
+          onClick={() => onClickCancelRequest(userId)}
+          title={t("cancel_request")}
+        >
+          <XCircleIcon size={28} />
+        </button>
+      );
+    }
+
+    if (type === "RECEIVED") {
+      return (
+        <>
+          <button
+            className={styles.acceptRequestButton}
+            onClick={() => onClickAcceptRequest(userId)}
+            title={t("accept_request")}
+          >
+            <CheckCircleIcon size={28} />
+          </button>
+          <button
+            className={styles.cancelRequestButton}
+            onClick={() => onClickRefuseRequest(userId)}
+            title={t("ignore_request")}
+          >
+            <XCircleIcon size={28} />
+          </button>
+        </>
+      );
+    }
+
+    return (
+      <button
+        className={styles.cancelRequestButton}
+        onClick={() => onClickCancelRequest(userId)}
+        title={t("undo_friendship")}
+      >
+        <XCircleIcon size={28} />
+      </button>
+    );
+  };
 
   return (
     <div className={cn(styles.friendListContainer, styles.profileContentBox)}>
       <button
         type="button"
         className={styles.friendListButton}
-        onClick={() => onClickRequest(userId)}
+        onClick={() => onClickItem(userId)}
       >
         <div className={styles.friendAvatarContainer}>
           {profileImageUrl ? (
@@ -59,9 +114,7 @@ export const UserFriendRequest = ({
           }}
         >
           <p className={styles.friendListDisplayName}>{displayName}</p>
-          <small>
-            {isRequestSent ? t("request_sent") : t("request_received")}
-          </small>
+          {getRequestDescription()}
         </div>
       </button>
 
@@ -73,32 +126,7 @@ export const UserFriendRequest = ({
           gap: `${SPACING_UNIT}px`,
         }}
       >
-        {isRequestSent ? (
-          <button
-            className={styles.cancelRequestButton}
-            onClick={() => onClickCancelRequest(userId)}
-            title={t("cancel_request")}
-          >
-            <XCircleIcon size={28} />
-          </button>
-        ) : (
-          <>
-            <button
-              className={styles.acceptRequestButton}
-              onClick={() => onClickAcceptRequest(userId)}
-              title={t("accept_request")}
-            >
-              <CheckCircleIcon size={28} />
-            </button>
-            <button
-              className={styles.cancelRequestButton}
-              onClick={() => onClickRefuseRequest(userId)}
-              title={t("ignore_request")}
-            >
-              <XCircleIcon size={28} />
-            </button>
-          </>
-        )}
+        {getRequestActions()}
       </div>
     </div>
   );

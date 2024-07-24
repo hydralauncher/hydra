@@ -43,7 +43,7 @@ export const UserFriendModal = ({
 
   const renderTab = () => {
     if (currentTab == UserFriendModalTab.FriendsList) {
-      return <UserFriendModalList userId={userId} />;
+      return <UserFriendModalList userId={userId} closeModal={onClose} />;
     }
 
     if (currentTab == UserFriendModalTab.AddFriend) {
