@@ -1,4 +1,4 @@
-import { UserGame, UserProfile } from "@types";
+import { UserGame, UserProfile, UserRelation } from "@types";
 import cn from "classnames";
 import * as styles from "./user.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
@@ -45,8 +45,8 @@ export function UserContent({
   const {
     userDetails,
     profileBackground,
-    friendRequests,
     signOut,
+    sendFriendRequest,
     fetchFriendRequests,
     showFriendsModal,
     updateFriendRequestState,
@@ -124,22 +124,47 @@ export function UserContent({
     }
   }, [profileBackground, isMe]);
 
+  const handleUndoFriendship = (userRelation: UserRelation) => {
+    const userId =
+      userRelation.AId === userProfile.id ? userRelation.BId : userRelation.AId;
+
+    updateFriendRequestState(userId, "CANCEL")
+      .then(updateUserProfile)
+      .catch(() => {
+        showErrorToast(t("try_again"));
+      });
+  };
+
+  const handleSendFriendRequest = () => {
+    sendFriendRequest(userProfile.id)
+      .then(updateUserProfile)
+      .catch(() => {
+        showErrorToast(t("try_again"));
+      });
+  };
+
   const handleCancelFriendRequest = (userId: string) => {
-    updateFriendRequestState(userId, "CANCEL").catch(() => {
-      showErrorToast("Falha ao cancelar convite");
-    });
+    updateFriendRequestState(userId, "CANCEL")
+      .then(updateUserProfile)
+      .catch(() => {
+        showErrorToast(t("try_again"));
+      });
   };
 
   const handleAcceptFriendRequest = (userId: string) => {
-    updateFriendRequestState(userId, "ACCEPTED").catch(() => {
-      showErrorToast("Falha ao aceitar convite");
-    });
+    updateFriendRequestState(userId, "ACCEPTED")
+      .then(updateUserProfile)
+      .catch(() => {
+        showErrorToast(t("try_again"));
+      });
   };
 
   const handleRefuseFriendRequest = (userId: string) => {
-    updateFriendRequestState(userId, "REFUSED").catch(() => {
-      showErrorToast("Falha ao recusar convite");
-    });
+    updateFriendRequestState(userId, "REFUSED")
+      .then(updateUserProfile)
+      .catch(() => {
+        showErrorToast(t("try_again"));
+      });
   };
 
   const getProfileActions = () => {
@@ -157,14 +182,10 @@ export function UserContent({
       );
     }
 
-    const friendRequest = friendRequests.find(
-      (request) => request.id == userProfile.id
-    );
-
-    if (!friendRequest) {
+    if (userProfile.relation == null) {
       return (
         <>
-          <Button theme="outline" onClick={() => {}}>
+          <Button theme="outline" onClick={handleSendFriendRequest}>
             {t("add_friend")}
           </Button>
 
@@ -175,35 +196,49 @@ export function UserContent({
       );
     }
 
-    if (friendRequest.type === "RECEIVED") {
+    if (userProfile.relation.status === "ACCEPTED") {
       return (
         <>
           <Button
             theme="outline"
-            className={styles.acceptRequestButton}
-            onClick={() => handleAcceptFriendRequest(friendRequest.id)}
-          >
-            <CheckCircleIcon size={28} /> {t("accept_request")}
-          </Button>
-          <Button
-            theme="outline"
             className={styles.cancelRequestButton}
-            onClick={() => handleRefuseFriendRequest(friendRequest.id)}
+            onClick={() => handleUndoFriendship(userProfile.relation!)}
           >
-            <XCircleIcon size={28} /> {t("ignore_request")}
+            <XCircleIcon size={28} /> {t("undo_friendship")}
           </Button>
         </>
       );
     }
 
+    if (userProfile.relation.BId === userProfile.id) {
+      return (
+        <Button
+          theme="outline"
+          className={styles.cancelRequestButton}
+          onClick={() => handleCancelFriendRequest(userProfile.relation!.BId)}
+        >
+          <XCircleIcon size={28} /> {t("cancel_request")}
+        </Button>
+      );
+    }
+
     return (
-      <Button
-        theme="outline"
-        className={styles.cancelRequestButton}
-        onClick={() => handleCancelFriendRequest(friendRequest.id)}
-      >
-        <XCircleIcon size={28} /> {t("cancel_request")}
-      </Button>
+      <>
+        <Button
+          theme="outline"
+          className={styles.acceptRequestButton}
+          onClick={() => handleAcceptFriendRequest(userProfile.relation!.AId)}
+        >
+          <CheckCircleIcon size={28} /> {t("accept_request")}
+        </Button>
+        <Button
+          theme="outline"
+          className={styles.cancelRequestButton}
+          onClick={() => handleRefuseFriendRequest(userProfile.relation!.AId)}
+        >
+          <XCircleIcon size={28} /> {t("ignore_request")}
+        </Button>
+      </>
     );
   };
 

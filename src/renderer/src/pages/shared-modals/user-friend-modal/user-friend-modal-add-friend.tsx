@@ -23,7 +23,7 @@ export const UserFriendModalAddFriend = ({
   const { sendFriendRequest, updateFriendRequestState, friendRequests } =
     useUserDetails();
 
-  const { showErrorToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const handleClickAddFriend = () => {
     setIsAddingFriend(true);
@@ -58,19 +58,23 @@ export const UserFriendModalAddFriend = ({
 
   const handleCancelFriendRequest = (userId: string) => {
     updateFriendRequestState(userId, "CANCEL").catch(() => {
-      showErrorToast("Falha ao cancelar convite");
+      showErrorToast(t("try_again"));
     });
   };
 
   const handleAcceptFriendRequest = (userId: string) => {
-    updateFriendRequestState(userId, "ACCEPTED").catch(() => {
-      showErrorToast("Falha ao aceitar convite");
-    });
+    updateFriendRequestState(userId, "ACCEPTED")
+      .then(() => {
+        showSuccessToast(t("request_accepted"));
+      })
+      .catch(() => {
+        showErrorToast(t("try_again"));
+      });
   };
 
   const handleRefuseFriendRequest = (userId: string) => {
     updateFriendRequestState(userId, "REFUSED").catch(() => {
-      showErrorToast("Falha ao recusar convite");
+      showErrorToast(t("try_again"));
     });
   };
 

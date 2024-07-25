@@ -21,7 +21,7 @@ export function SidebarProfile() {
 
   useEffect(() => {
     setReceivedRequests(
-      receivedRequests.filter((request) => request.type === "RECEIVED")
+      friendRequests.filter((request) => request.type === "RECEIVED")
     );
   }, [friendRequests]);
 

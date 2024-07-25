@@ -289,6 +289,14 @@ export interface FriendRequest {
   type: "SENT" | "RECEIVED";
 }
 
+export interface UserRelation {
+  AId: string;
+  BId: string;
+  status: "ACCEPTED" | "PENDING";
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface UserProfile {
   id: string;
   displayName: string;
@@ -298,6 +306,7 @@ export interface UserProfile {
   libraryGames: UserGame[];
   recentGames: UserGame[];
   friends: UserFriends;
+  relation: UserRelation | null;
 }
 
 export interface DownloadSource {
