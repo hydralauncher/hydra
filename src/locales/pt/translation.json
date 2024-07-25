@@ -258,6 +258,7 @@
     "accept_request": "Aceitar pedido",
     "ignore_request": "Ignorar pedido",
     "cancel_request": "Cancelar pedido",
-    "undo_friendship": "Desfazer amizade"
+    "undo_friendship": "Desfazer amizade",
+    "request_accepted": "Pedido de amizade aceito"
   }
 }
