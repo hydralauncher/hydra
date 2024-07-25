@@ -78,7 +78,6 @@ export const UserFriendModal = ({
             })}
           </section>
         )}
-        <h2>{tabs[currentTab]}</h2>
         {renderTab()}
       </div>
     </Modal>
