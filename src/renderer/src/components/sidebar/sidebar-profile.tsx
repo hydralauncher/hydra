@@ -3,10 +3,11 @@ import { PersonAddIcon, PersonIcon } from "@primer/octicons-react";
 import * as styles from "./sidebar-profile.css";
 import { assignInlineVars } from "@vanilla-extract/dynamic";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { profileContainerBackground } from "./sidebar-profile.css";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
+import { FriendRequest } from "@types";
 
 export function SidebarProfile() {
   const navigate = useNavigate();
@@ -15,6 +16,14 @@ export function SidebarProfile() {
 
   const { userDetails, profileBackground, friendRequests, showFriendsModal } =
     useUserDetails();
+
+  const [receivedRequests, setReceivedRequests] = useState<FriendRequest[]>([]);
+
+  useEffect(() => {
+    setReceivedRequests(
+      receivedRequests.filter((request) => request.type === "RECEIVED")
+    );
+  }, [friendRequests]);
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
 
@@ -79,7 +88,7 @@ export function SidebarProfile() {
           )}
         </div>
       </button>
-      {userDetails && friendRequests.length > 0 && !gameRunning && (
+      {userDetails && receivedRequests.length > 0 && !gameRunning && (
         <div className={styles.friendRequestContainer}>
           <button
             type="button"
@@ -89,7 +98,7 @@ export function SidebarProfile() {
             }
           >
             <PersonAddIcon size={24} />
-            {friendRequests.length}
+            {receivedRequests.length}
           </button>
         </div>
       )}
