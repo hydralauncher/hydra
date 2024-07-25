@@ -128,6 +128,8 @@ declare global {
 
     /* User */
     getUser: (userId: string) => Promise<UserProfile | null>;
+    blockUser: (userId: string) => Promise<void>;
+    unblockUser: (userId: string) => Promise<void>;
     getUserFriends: (
       userId: string,
       take: number,

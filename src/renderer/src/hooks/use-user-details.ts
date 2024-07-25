@@ -124,6 +124,14 @@ export function useUserDetails() {
     [fetchFriendRequests]
   );
 
+  const blockUser = (userId: string) => {
+    return window.electron.blockUser(userId);
+  };
+
+  const unblockUser = (userId: string) => {
+    return window.electron.unblockUser(userId);
+  };
+
   return {
     userDetails,
     profileBackground,
@@ -141,5 +149,7 @@ export function useUserDetails() {
     sendFriendRequest,
     fetchFriendRequests,
     updateFriendRequestState,
+    blockUser,
+    unblockUser,
   };
 }
