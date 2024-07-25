@@ -50,6 +50,7 @@ export function UserContent({
     fetchFriendRequests,
     showFriendsModal,
     updateFriendRequestState,
+    blockUser,
   } = useUserDetails();
   const { showSuccessToast, showErrorToast } = useToast();
 
@@ -143,6 +144,17 @@ export function UserContent({
       });
   };
 
+  const handleBlockUser = () => {
+    blockUser(userProfile.id)
+      .then(() => {
+        showSuccessToast(t("user_blocked_successfully"));
+        navigate(-1);
+      })
+      .catch(() => {
+        showErrorToast(t("try_again"));
+      });
+  };
+
   const handleCancelFriendRequest = (userId: string) => {
     updateFriendRequestState(userId, "CANCEL")
       .then(updateUserProfile)
@@ -189,7 +201,7 @@ export function UserContent({
             {t("add_friend")}
           </Button>
 
-          <Button theme="danger" onClick={() => {}}>
+          <Button theme="danger" onClick={handleBlockUser}>
             {t("block_user")}
           </Button>
         </>
