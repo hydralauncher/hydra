@@ -10,8 +10,7 @@ const getUser = async (
   userId: string
 ): Promise<UserProfile | null> => {
   try {
-    const response = await HydraApi.get(`/user/${userId}`);
-    const profile = response.data;
+    const profile = await HydraApi.get(`/user/${userId}`);
 
     const recentGames = await Promise.all(
       profile.recentGames.map(async (game) => {

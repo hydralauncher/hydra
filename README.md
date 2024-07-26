@@ -7,7 +7,7 @@
   <h1 align="center">Hydra Launcher</h1>
   
   <p align="center">
-    <strong>Hydra is a game launcher with its own embedded bittorrent client and a self-managed repack scraper.</strong>
+    <strong>Hydra is a game launcher with its own embedded bittorrent client.</strong>
   </p>
 
 [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
@@ -50,17 +50,15 @@
 
 ## About
 
-**Hydra** is a **Game Launcher** with its own embedded **BitTorrent Client** and a **self-managed repack scraper**.
+**Hydra** is a **Game Launcher** with its own embedded **BitTorrent Client**.
 <br>
 The launcher is written in TypeScript (Electron) and Python, which handles the torrenting system by using libtorrent.
 
 ## Features
 
-- Self-Managed repack scraper among all the most reliable websites on the [Megathread]("https://www.reddit.com/r/Piracy/wiki/megathread/")
 - Own embedded bittorrent client
 - How Long To Beat (HLTB) integration on game page
 - Downloads path customization
-- Repack list update notifications
 - Windows and Linux support
 - Constantly updated
 - And more ...
@@ -134,9 +132,8 @@ pip install -r requirements.txt
 ## Environment variables
 
 You'll need an SteamGridDB API Key in order to fetch the game icons on installation.
-If you want to have onlinefix as a repacker you'll need to add your credentials to the .env
 
-Once you have it, you can copy or rename the `.env.example` file to `.env` and put it on`STEAMGRIDDB_API_KEY`, `ONLINEFIX_USERNAME`, `ONLINEFIX_PASSWORD`.
+Once you have it, you can copy or rename the `.env.example` file to `.env` and put it on`STEAMGRIDDB_API_KEY`.
 
 ## Running
 
