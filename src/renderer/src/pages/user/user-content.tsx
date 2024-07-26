@@ -28,6 +28,7 @@ import { Button, Link } from "@renderer/components";
 import { UserEditProfileModal } from "./user-edit-modal";
 import { UserSignOutModal } from "./user-signout-modal";
 import { UserFriendModalTab } from "../shared-modals/user-friend-modal";
+import { UserBlockModal } from "./user-block-modal";
 
 const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 
@@ -59,6 +60,7 @@ export function UserContent({
     useState<string | undefined>();
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [showUserBlockModal, setShowUserBlockModal] = useState(false);
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
 
@@ -150,6 +152,7 @@ export function UserContent({
   const handleBlockUser = () => {
     blockUser(userProfile.id)
       .then(() => {
+        setShowUserBlockModal(false);
         showSuccessToast(t("user_blocked_successfully"));
         navigate(-1);
       })
@@ -204,7 +207,7 @@ export function UserContent({
             {t("add_friend")}
           </Button>
 
-          <Button theme="danger" onClick={handleBlockUser}>
+          <Button theme="danger" onClick={() => setShowUserBlockModal(true)}>
             {t("block_user")}
           </Button>
         </>
@@ -270,6 +273,13 @@ export function UserContent({
         visible={showSignOutModal}
         onClose={() => setShowSignOutModal(false)}
         onConfirm={handleConfirmSignout}
+      />
+
+      <UserBlockModal
+        visible={showUserBlockModal}
+        onClose={() => setShowUserBlockModal(false)}
+        onConfirm={handleBlockUser}
+        displayName={userProfile.displayName}
       />
 
       <section
