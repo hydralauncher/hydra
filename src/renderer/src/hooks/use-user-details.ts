@@ -124,6 +124,10 @@ export function useUserDetails() {
     [fetchFriendRequests]
   );
 
+  const undoFriendship = (userId: string) => {
+    return window.electron.undoFriendship(userId);
+  };
+
   const blockUser = (userId: string) => {
     return window.electron.blockUser(userId);
   };
@@ -151,5 +155,6 @@ export function useUserDetails() {
     updateFriendRequestState,
     blockUser,
     unblockUser,
+    undoFriendship,
   };
 }

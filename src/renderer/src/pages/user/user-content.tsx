@@ -50,6 +50,7 @@ export function UserContent({
     fetchFriendRequests,
     showFriendsModal,
     updateFriendRequestState,
+    undoFriendship,
     blockUser,
   } = useUserDetails();
   const { showSuccessToast, showErrorToast } = useToast();
@@ -127,9 +128,11 @@ export function UserContent({
 
   const handleUndoFriendship = (userRelation: UserRelation) => {
     const userId =
-      userRelation.AId === userProfile.id ? userRelation.BId : userRelation.AId;
+      userRelation.AId === userDetails?.id
+        ? userRelation.BId
+        : userRelation.AId;
 
-    updateFriendRequestState(userId, "CANCEL")
+    undoFriendship(userId)
       .then(updateUserProfile)
       .catch(() => {
         showErrorToast(t("try_again"));
