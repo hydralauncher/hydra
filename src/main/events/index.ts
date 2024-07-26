@@ -48,6 +48,7 @@ import "./user/unblock-user";
 import "./user/get-user-friends";
 import "./profile/get-friend-requests";
 import "./profile/get-me";
+import "./profile/undo-friendship";
 import "./profile/update-friend-request";
 import "./profile/update-profile";
 import "./profile/send-friend-request";
