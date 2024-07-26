@@ -5,7 +5,7 @@ const blockUser = async (
   _event: Electron.IpcMainInvokeEvent,
   userId: string
 ): Promise<void> => {
-  return HydraApi.get(`/user/${userId}/block`);
+  return HydraApi.post(`/user/${userId}/block`);
 };
 
-registerEvent("block", blockUser);
+registerEvent("blockUser", blockUser);
