@@ -15,6 +15,8 @@ import type {
   DownloadSource,
   UserProfile,
   Collection,
+  FriendRequest,
+  FriendRequestAction,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -140,6 +142,12 @@ declare global {
       displayName: string,
       newProfileImagePath: string | null
     ) => Promise<UserProfile>;
+    getFriendRequests: () => Promise<FriendRequest[]>;
+    updateFriendRequest: (
+      userId: string,
+      action: FriendRequestAction
+    ) => Promise<void>;
+    sendFriendRequest: (userId: string) => Promise<void>;
   }
 
   interface Window {

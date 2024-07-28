@@ -2,16 +2,27 @@ import { useCallback } from "react";
 import { average } from "color.js";
 
 import { useAppDispatch, useAppSelector } from "./redux";
-import { setProfileBackground, setUserDetails } from "@renderer/features";
+import {
+  setProfileBackground,
+  setUserDetails,
+  setFriendRequests,
+  setFriendsModalVisible,
+  setFriendsModalHidden,
+} from "@renderer/features";
 import { darkenColor } from "@renderer/helpers";
-import { UserDetails } from "@types";
+import { FriendRequestAction, UserDetails } from "@types";
+import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 
 export function useUserDetails() {
   const dispatch = useAppDispatch();
 
-  const { userDetails, profileBackground } = useAppSelector(
-    (state) => state.userDetails
-  );
+  const {
+    userDetails,
+    profileBackground,
+    friendRequests,
+    isFriendsModalVisible,
+    friendRequetsModalTab,
+  } = useAppSelector((state) => state.userDetails);
 
   const clearUserDetails = useCallback(async () => {
     dispatch(setUserDetails(null));
@@ -78,13 +89,56 @@ export function useUserDetails() {
     [updateUserDetails]
   );
 
+  const updateFriendRequests = useCallback(async () => {
+    const friendRequests = await window.electron.getFriendRequests();
+    dispatch(setFriendRequests(friendRequests));
+  }, [dispatch]);
+
+  const showFriendsModal = useCallback(
+    (tab: UserFriendModalTab) => {
+      dispatch(setFriendsModalVisible(tab));
+      updateFriendRequests();
+    },
+    [dispatch]
+  );
+
+  const hideFriendsModal = useCallback(() => {
+    dispatch(setFriendsModalHidden());
+  }, [dispatch]);
+
+  const sendFriendRequest = useCallback(
+    async (userId: string) => {
+      return window.electron
+        .sendFriendRequest(userId)
+        .then(() => updateFriendRequests());
+    },
+    [updateFriendRequests]
+  );
+
+  const updateFriendRequestState = useCallback(
+    async (userId: string, action: FriendRequestAction) => {
+      return window.electron
+        .updateFriendRequest(userId, action)
+        .then(() => updateFriendRequests());
+    },
+    [updateFriendRequests]
+  );
+
   return {
     userDetails,
+    profileBackground,
+    friendRequests,
+    friendRequetsModalTab,
+    isFriendsModalVisible,
+    showFriendsModal,
+    hideFriendsModal,
     fetchUserDetails,
     signOut,
     clearUserDetails,
     updateUserDetails,
     patchUser,
-    profileBackground,
+    sendFriendRequest,
+    updateFriendRequests,
+    updateFriendRequestState,
   };
 }

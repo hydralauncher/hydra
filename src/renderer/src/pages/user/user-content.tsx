@@ -1,9 +1,8 @@
 import { UserGame, UserProfile } from "@types";
 import cn from "classnames";
-
 import * as styles from "./user.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import {
@@ -14,10 +13,11 @@ import {
 } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
 import { buildGameDetailsPath, steamUrlBuilder } from "@renderer/helpers";
-import { PersonIcon, TelescopeIcon } from "@primer/octicons-react";
+import { PersonIcon, PlusIcon, TelescopeIcon } from "@primer/octicons-react";
 import { Button, Link } from "@renderer/components";
 import { UserEditProfileModal } from "./user-edit-modal";
 import { UserSignOutModal } from "./user-signout-modal";
+import { UserFriendModalTab } from "../shared-modals/user-friend-modal";
 
 const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 
@@ -32,7 +32,13 @@ export function UserContent({
 }: ProfileContentProps) {
   const { t, i18n } = useTranslation("user_profile");
 
-  const { userDetails, profileBackground, signOut } = useUserDetails();
+  const {
+    userDetails,
+    profileBackground,
+    signOut,
+    updateFriendRequests,
+    showFriendsModal,
+  } = useUserDetails();
   const { showSuccessToast } = useToast();
 
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -72,6 +78,10 @@ export function UserContent({
     setShowEditProfileModal(true);
   };
 
+  const handleOnClickFriend = (userId: string) => {
+    navigate(`/user/${userId}`);
+  };
+
   const handleConfirmSignout = async () => {
     await signOut();
 
@@ -81,6 +91,10 @@ export function UserContent({
   };
 
   const isMe = userDetails?.id == userProfile.id;
+
+  useEffect(() => {
+    if (isMe) updateFriendRequests();
+  }, [isMe]);
 
   const profileContentBoxBackground = useMemo(() => {
     if (profileBackground) return profileBackground;
@@ -216,9 +230,11 @@ export function UserContent({
                 <TelescopeIcon size={24} />
               </div>
               <h2>{t("no_recent_activity_title")}</h2>
-              <p style={{ fontFamily: "Fira Sans" }}>
-                {t("no_recent_activity_description")}
-              </p>
+              {isMe && (
+                <p style={{ fontFamily: "Fira Sans" }}>
+                  {t("no_recent_activity_description")}
+                </p>
+              )}
             </div>
           ) : (
             <div
@@ -259,55 +275,128 @@ export function UserContent({
           )}
         </div>
 
-        <div className={cn(styles.contentSidebar, styles.profileGameSection)}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: `${SPACING_UNIT * 2}px`,
-            }}
-          >
-            <h2>{t("library")}</h2>
-
+        <div className={styles.contentSidebar}>
+          <div className={styles.profileGameSection}>
             <div
               style={{
-                flex: 1,
-                backgroundColor: vars.color.border,
-                height: "1px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: `${SPACING_UNIT * 2}px`,
               }}
-            />
-            <h3 style={{ fontWeight: "400" }}>
-              {userProfile.libraryGames.length}
-            </h3>
+            >
+              <h2>{t("library")}</h2>
+
+              <div
+                style={{
+                  flex: 1,
+                  backgroundColor: vars.color.border,
+                  height: "1px",
+                }}
+              />
+              <h3 style={{ fontWeight: "400" }}>
+                {userProfile.libraryGames.length}
+              </h3>
+            </div>
+            <small>{t("total_play_time", { amount: formatPlayTime() })}</small>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: `${SPACING_UNIT}px`,
+              }}
+            >
+              {userProfile.libraryGames.map((game) => (
+                <button
+                  key={game.objectID}
+                  className={cn(styles.gameListItem, styles.profileContentBox)}
+                  onClick={() => handleGameClick(game)}
+                  title={game.title}
+                >
+                  {game.iconUrl ? (
+                    <img
+                      className={styles.libraryGameIcon}
+                      src={game.iconUrl}
+                      alt={game.title}
+                    />
+                  ) : (
+                    <SteamLogo className={styles.libraryGameIcon} />
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
-          <small>{t("total_play_time", { amount: formatPlayTime() })}</small>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: `${SPACING_UNIT}px`,
-            }}
-          >
-            {userProfile.libraryGames.map((game) => (
+
+          {(isMe ||
+            (userProfile.friends && userProfile.friends.length > 0)) && (
+            <div className={styles.friendsSection}>
               <button
-                key={game.objectID}
-                className={cn(styles.gameListItem, styles.profileContentBox)}
-                onClick={() => handleGameClick(game)}
-                title={game.title}
+                className={styles.friendsSectionHeader}
+                onClick={() => showFriendsModal(UserFriendModalTab.FriendsList)}
               >
-                {game.iconUrl ? (
-                  <img
-                    className={styles.libraryGameIcon}
-                    src={game.iconUrl}
-                    alt={game.title}
-                  />
-                ) : (
-                  <SteamLogo className={styles.libraryGameIcon} />
-                )}
+                <h2>{t("friends")}</h2>
+
+                <div
+                  style={{
+                    flex: 1,
+                    backgroundColor: vars.color.border,
+                    height: "1px",
+                  }}
+                />
+                <h3 style={{ fontWeight: "400" }}>
+                  {userProfile.friends.length}
+                </h3>
               </button>
-            ))}
-          </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: `${SPACING_UNIT}px`,
+                }}
+              >
+                {userProfile.friends.map((friend) => {
+                  return (
+                    <button
+                      key={friend.id}
+                      className={cn(
+                        styles.profileContentBox,
+                        styles.friendListContainer
+                      )}
+                      onClick={() => handleOnClickFriend(friend.id)}
+                    >
+                      <div className={styles.friendAvatarContainer}>
+                        {friend.profileImageUrl ? (
+                          <img
+                            className={styles.friendProfileIcon}
+                            src={friend.profileImageUrl}
+                            alt={friend.displayName}
+                          />
+                        ) : (
+                          <PersonIcon size={24} />
+                        )}
+                      </div>
+
+                      <p className={styles.friendListDisplayName}>
+                        {friend.displayName}
+                      </p>
+                    </button>
+                  );
+                })}
+
+                {isMe && (
+                  <Button
+                    theme="outline"
+                    onClick={() =>
+                      showFriendsModal(UserFriendModalTab.AddFriend)
+                    }
+                  >
+                    <PlusIcon /> {t("add")}
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>

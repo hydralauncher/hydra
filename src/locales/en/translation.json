@@ -254,6 +254,15 @@
     "successfully_signed_out": "Successfully signed out",
     "sign_out": "Sign out",
     "playing_for": "Playing for {{amount}}",
-    "sign_out_modal_text": "Your library is linked with your current account. When signing out, your library will not be visible anymore, and any progress will not be saved. Continue with sign out?"
+    "sign_out_modal_text": "Your library is linked with your current account. When signing out, your library will not be visible anymore, and any progress will not be saved. Continue with sign out?",
+    "add_friends": "Add Friends",
+    "add": "Add",
+    "friend_code": "Friend code",
+    "see_profile": "See profile",
+    "sending": "Sending",
+    "friend_request_sent": "Friend request sent",
+    "friends": "Friends",
+    "friends_list": "Friends list",
+    "user_not_found": "User not found"
   }
 }
