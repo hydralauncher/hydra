@@ -48,8 +48,11 @@ import "./auth/sign-out";
 import "./auth/open-auth-window";
 import "./auth/get-session-hash";
 import "./user/get-user";
+import "./profile/get-friend-requests";
 import "./profile/get-me";
+import "./profile/update-friend-request";
 import "./profile/update-profile";
+import "./profile/send-friend-request";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => app.getVersion());

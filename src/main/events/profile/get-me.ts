@@ -9,9 +9,7 @@ const getMe = async (
   _event: Electron.IpcMainInvokeEvent
 ): Promise<UserProfile | null> => {
   return HydraApi.get(`/profile/me`)
-    .then((response) => {
-      const me = response.data;
-
+    .then((me) => {
       userAuthRepository.upsert(
         {
           id: 1,
@@ -26,12 +24,18 @@ const getMe = async (
 
       return me;
     })
-    .catch((err) => {
+    .catch(async (err) => {
       if (err instanceof UserNotLoggedInError) {
         return null;
       }
 
-      return userAuthRepository.findOne({ where: { id: 1 } });
+      const loggedUser = await userAuthRepository.findOne({ where: { id: 1 } });
+
+      if (loggedUser) {
+        return { ...loggedUser, id: loggedUser.userId };
+      }
+
+      return null;
     });
 };
 

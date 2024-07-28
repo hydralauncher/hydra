@@ -11,6 +11,7 @@ import type {
   GameRunning,
   Collection,
   Game,
+  FriendRequestAction,
 } from "@types";
 
 contextBridge.exposeInMainWorld("electron", {
@@ -148,6 +149,11 @@ contextBridge.exposeInMainWorld("electron", {
   getMe: () => ipcRenderer.invoke("getMe"),
   updateProfile: (displayName: string, newProfileImagePath: string | null) =>
     ipcRenderer.invoke("updateProfile", displayName, newProfileImagePath),
+  getFriendRequests: () => ipcRenderer.invoke("getFriendRequests"),
+  updateFriendRequest: (userId: string, action: FriendRequestAction) =>
+    ipcRenderer.invoke("updateFriendRequest", userId, action),
+  sendFriendRequest: (userId: string) =>
+    ipcRenderer.invoke("sendFriendRequest", userId),
 
   /* User */
   getUser: (userId: string) => ipcRenderer.invoke("getUser", userId),
