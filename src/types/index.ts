@@ -305,7 +305,8 @@ export interface UserProfile {
   totalPlayTimeInSeconds: number;
   libraryGames: UserGame[];
   recentGames: UserGame[];
-  friends: UserFriends;
+  friends: UserFriend[];
+  totalFriends: number;
   relation: UserRelation | null;
 }
 

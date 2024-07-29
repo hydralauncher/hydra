@@ -50,7 +50,13 @@ const getUser = async (
       })
     );
 
-    return { ...profile, libraryGames, recentGames, friends };
+    return {
+      ...profile,
+      libraryGames,
+      recentGames,
+      friends: friends.friends,
+      totalFriends: friends.totalFriends,
+    };
   } catch (err) {
     return null;
   }
