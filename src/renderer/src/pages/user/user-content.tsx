@@ -1,4 +1,4 @@
-import { UserGame, UserProfile, UserRelation } from "@types";
+import { FriendRequestAction, UserGame, UserProfile } from "@types";
 import cn from "classnames";
 import * as styles from "./user.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
@@ -26,7 +26,7 @@ import {
 } from "@primer/octicons-react";
 import { Button, Link } from "@renderer/components";
 import { UserEditProfileModal } from "./user-edit-modal";
-import { UserSignOutModal } from "./user-signout-modal";
+import { UserSignOutModal } from "./user-sign-out-modal";
 import { UserFriendModalTab } from "../shared-modals/user-friend-modal";
 import { UserBlockModal } from "./user-block-modal";
 
@@ -36,6 +36,8 @@ export interface ProfileContentProps {
   userProfile: UserProfile;
   updateUserProfile: () => Promise<void>;
 }
+
+type FriendAction = FriendRequestAction | ("BLOCK" | "UNDO" | "SEND");
 
 export function UserContent({
   userProfile,
@@ -128,62 +130,35 @@ export function UserContent({
     }
   }, [profileBackground, isMe]);
 
-  const handleUndoFriendship = (userRelation: UserRelation) => {
-    const userId =
-      userRelation.AId === userDetails?.id
-        ? userRelation.BId
-        : userRelation.AId;
+  const handleFriendAction = (userId: string, action: FriendAction) => {
+    try {
+      if (action === "UNDO") {
+        undoFriendship(userId).then(updateUserProfile);
+        return;
+      }
 
-    undoFriendship(userId)
-      .then(updateUserProfile)
-      .catch(() => {
-        showErrorToast(t("try_again"));
-      });
+      if (action === "BLOCK") {
+        blockUser(userId).then(() => {
+          setShowUserBlockModal(false);
+          showSuccessToast(t("user_blocked_successfully"));
+          navigate(-1);
+        });
+
+        return;
+      }
+
+      if (action === "SEND") {
+        sendFriendRequest(userProfile.id).then(updateUserProfile);
+        return;
+      }
+
+      updateFriendRequestState(userId, action).then(updateUserProfile);
+    } catch (err) {
+      showErrorToast(t("try_again"));
+    }
   };
 
-  const handleSendFriendRequest = () => {
-    sendFriendRequest(userProfile.id)
-      .then(updateUserProfile)
-      .catch(() => {
-        showErrorToast(t("try_again"));
-      });
-  };
-
-  const handleBlockUser = () => {
-    blockUser(userProfile.id)
-      .then(() => {
-        setShowUserBlockModal(false);
-        showSuccessToast(t("user_blocked_successfully"));
-        navigate(-1);
-      })
-      .catch(() => {
-        showErrorToast(t("try_again"));
-      });
-  };
-
-  const handleCancelFriendRequest = (userId: string) => {
-    updateFriendRequestState(userId, "CANCEL")
-      .then(updateUserProfile)
-      .catch(() => {
-        showErrorToast(t("try_again"));
-      });
-  };
-
-  const handleAcceptFriendRequest = (userId: string) => {
-    updateFriendRequestState(userId, "ACCEPTED")
-      .then(updateUserProfile)
-      .catch(() => {
-        showErrorToast(t("try_again"));
-      });
-  };
-
-  const handleRefuseFriendRequest = (userId: string) => {
-    updateFriendRequestState(userId, "REFUSED")
-      .then(updateUserProfile)
-      .catch(() => {
-        showErrorToast(t("try_again"));
-      });
-  };
+  const showFriends = isMe || userProfile.totalFriends > 0;
 
   const getProfileActions = () => {
     if (isMe) {
@@ -203,7 +178,10 @@ export function UserContent({
     if (userProfile.relation == null) {
       return (
         <>
-          <Button theme="outline" onClick={handleSendFriendRequest}>
+          <Button
+            theme="outline"
+            onClick={() => handleFriendAction(userProfile.id, "SEND")}
+          >
             {t("add_friend")}
           </Button>
 
@@ -215,12 +193,17 @@ export function UserContent({
     }
 
     if (userProfile.relation.status === "ACCEPTED") {
+      const userId =
+        userProfile.relation.AId === userDetails?.id
+          ? userProfile.relation.BId
+          : userProfile.relation.AId;
+
       return (
         <>
           <Button
             theme="outline"
             className={styles.cancelRequestButton}
-            onClick={() => handleUndoFriendship(userProfile.relation!)}
+            onClick={() => handleFriendAction(userId, "UNDO")}
           >
             <XCircleIcon size={28} /> {t("undo_friendship")}
           </Button>
@@ -233,7 +216,9 @@ export function UserContent({
         <Button
           theme="outline"
           className={styles.cancelRequestButton}
-          onClick={() => handleCancelFriendRequest(userProfile.relation!.BId)}
+          onClick={() =>
+            handleFriendAction(userProfile.relation!.BId, "CANCEL")
+          }
         >
           <XCircleIcon size={28} /> {t("cancel_request")}
         </Button>
@@ -245,14 +230,18 @@ export function UserContent({
         <Button
           theme="outline"
           className={styles.acceptRequestButton}
-          onClick={() => handleAcceptFriendRequest(userProfile.relation!.AId)}
+          onClick={() =>
+            handleFriendAction(userProfile.relation!.AId, "ACCEPTED")
+          }
         >
           <CheckCircleIcon size={28} /> {t("accept_request")}
         </Button>
         <Button
           theme="outline"
           className={styles.cancelRequestButton}
-          onClick={() => handleRefuseFriendRequest(userProfile.relation!.AId)}
+          onClick={() =>
+            handleFriendAction(userProfile.relation!.AId, "REFUSED")
+          }
         >
           <XCircleIcon size={28} /> {t("ignore_request")}
         </Button>
@@ -278,7 +267,7 @@ export function UserContent({
       <UserBlockModal
         visible={showUserBlockModal}
         onClose={() => setShowUserBlockModal(false)}
-        onConfirm={handleBlockUser}
+        onConfirm={() => handleFriendAction(userProfile.id, "BLOCK")}
         displayName={userProfile.displayName}
       />
 
@@ -479,8 +468,7 @@ export function UserContent({
             </div>
           </div>
 
-          {(isMe ||
-            (userProfile.friends && userProfile.friends.totalFriends > 0)) && (
+          {showFriends && (
             <div className={styles.friendsSection}>
               <button
                 className={styles.friendsSectionHeader}
@@ -501,7 +489,7 @@ export function UserContent({
                   }}
                 />
                 <h3 style={{ fontWeight: "400" }}>
-                  {userProfile.friends.totalFriends}
+                  {userProfile.totalFriends}
                 </h3>
               </button>
 
@@ -512,7 +500,7 @@ export function UserContent({
                   gap: `${SPACING_UNIT}px`,
                 }}
               >
-                {userProfile.friends.friends.map((friend) => {
+                {userProfile.friends.map((friend) => {
                   return (
                     <button
                       key={friend.id}
