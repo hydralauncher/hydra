@@ -3,6 +3,8 @@ import { UserFriend } from "@types";
 import { useEffect, useState } from "react";
 import { UserFriendItem } from "./user-friend-item";
 import { useNavigate } from "react-router-dom";
+import { useToast, useUserDetails } from "@renderer/hooks";
+import { useTranslation } from "react-i18next";
 
 export interface UserFriendModalListProps {
   userId: string;
@@ -15,11 +17,16 @@ export const UserFriendModalList = ({
   userId,
   closeModal,
 }: UserFriendModalListProps) => {
+  const { t } = useTranslation("user_profile");
+  const { showErrorToast } = useToast();
   const navigate = useNavigate();
 
   const [page, setPage] = useState(0);
   const [maxPage, setMaxPage] = useState(0);
   const [friends, setFriends] = useState<UserFriend[]>([]);
+
+  const { userDetails, undoFriendship } = useUserDetails();
+  const isMe = userDetails?.id == userId;
 
   const loadNextPage = () => {
     if (page > maxPage) return;
@@ -36,16 +43,30 @@ export const UserFriendModalList = ({
       .catch(() => {});
   };
 
-  useEffect(() => {
+  const reloadList = () => {
     setPage(0);
     setMaxPage(0);
     setFriends([]);
     loadNextPage();
+  };
+
+  useEffect(() => {
+    reloadList();
   }, [userId]);
 
   const handleClickFriend = (userId: string) => {
     closeModal();
     navigate(`/user/${userId}`);
+  };
+
+  const handleUndoFriendship = (userId: string) => {
+    undoFriendship(userId)
+      .then(() => {
+        reloadList();
+      })
+      .catch(() => {
+        showErrorToast(t("try_again"));
+      });
   };
 
   return (
@@ -62,11 +83,9 @@ export const UserFriendModalList = ({
             userId={friend.id}
             displayName={friend.displayName}
             profileImageUrl={friend.profileImageUrl}
-            onClickAcceptRequest={() => {}}
-            onClickCancelRequest={() => {}}
-            onClickRefuseRequest={() => {}}
             onClickItem={handleClickFriend}
-            type={"ACCEPTED"}
+            onClickUndoFriendship={handleUndoFriendship}
+            type={isMe ? "ACCEPTED" : null}
             key={friend.id}
           />
         );

@@ -8,31 +8,28 @@ import cn from "classnames";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { useTranslation } from "react-i18next";
 
-export interface UserFriendItemProps {
+export type UserFriendItemProps = {
   userId: string;
   profileImageUrl: string | null;
   displayName: string;
-  type: "SENT" | "RECEIVED" | "ACCEPTED";
-  onClickCancelRequest: (userId: string) => void;
-  onClickAcceptRequest: (userId: string) => void;
-  onClickRefuseRequest: (userId: string) => void;
   onClickItem: (userId: string) => void;
-}
+} & (
+  | { type: "ACCEPTED"; onClickUndoFriendship: (userId: string) => void }
+  | {
+      type: "SENT" | "RECEIVED";
+      onClickCancelRequest: (userId: string) => void;
+      onClickAcceptRequest: (userId: string) => void;
+      onClickRefuseRequest: (userId: string) => void;
+    }
+  | { type: null }
+);
 
-export const UserFriendItem = ({
-  userId,
-  profileImageUrl,
-  displayName,
-  type,
-  onClickCancelRequest,
-  onClickAcceptRequest,
-  onClickRefuseRequest,
-  onClickItem,
-}: UserFriendItemProps) => {
+export const UserFriendItem = (props: UserFriendItemProps) => {
   const { t } = useTranslation("user_profile");
+  const { userId, profileImageUrl, displayName, type, onClickItem } = props;
 
   const getRequestDescription = () => {
-    if (type === null) return null;
+    if (type === "ACCEPTED" || type === null) return null;
 
     return (
       <small>
@@ -42,11 +39,13 @@ export const UserFriendItem = ({
   };
 
   const getRequestActions = () => {
+    if (type === null) return null;
+
     if (type === "SENT") {
       return (
         <button
           className={styles.cancelRequestButton}
-          onClick={() => onClickCancelRequest(userId)}
+          onClick={() => props.onClickCancelRequest(userId)}
           title={t("cancel_request")}
         >
           <XCircleIcon size={28} />
@@ -59,14 +58,14 @@ export const UserFriendItem = ({
         <>
           <button
             className={styles.acceptRequestButton}
-            onClick={() => onClickAcceptRequest(userId)}
+            onClick={() => props.onClickAcceptRequest(userId)}
             title={t("accept_request")}
           >
             <CheckCircleIcon size={28} />
           </button>
           <button
             className={styles.cancelRequestButton}
-            onClick={() => onClickRefuseRequest(userId)}
+            onClick={() => props.onClickRefuseRequest(userId)}
             title={t("ignore_request")}
           >
             <XCircleIcon size={28} />
@@ -75,15 +74,19 @@ export const UserFriendItem = ({
       );
     }
 
-    return (
-      <button
-        className={styles.cancelRequestButton}
-        onClick={() => onClickCancelRequest(userId)}
-        title={t("undo_friendship")}
-      >
-        <XCircleIcon size={28} />
-      </button>
-    );
+    if (type === "ACCEPTED") {
+      return (
+        <button
+          className={styles.cancelRequestButton}
+          onClick={() => props.onClickUndoFriendship(userId)}
+          title={t("undo_friendship")}
+        >
+          <XCircleIcon size={28} />
+        </button>
+      );
+    }
+
+    return null;
   };
 
   return (
