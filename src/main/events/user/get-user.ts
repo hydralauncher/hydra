@@ -4,13 +4,19 @@ import { steamGamesWorker } from "@main/workers";
 import { UserProfile } from "@types";
 import { convertSteamGameToCatalogueEntry } from "../helpers/search-games";
 import { getSteamAppAsset } from "@main/helpers";
+import { getUserFriends } from "./get-user-friends";
 
 const getUser = async (
   _event: Electron.IpcMainInvokeEvent,
   userId: string
 ): Promise<UserProfile | null> => {
   try {
-    const profile = await HydraApi.get(`/user/${userId}`);
+    const [profile, friends] = await Promise.all([
+      HydraApi.get(`/user/${userId}`),
+      getUserFriends(userId, 12, 0).catch(() => {
+        return { totalFriends: 0, friends: [] };
+      }),
+    ]);
 
     const recentGames = await Promise.all(
       profile.recentGames.map(async (game) => {
@@ -46,7 +52,13 @@ const getUser = async (
       })
     );
 
-    return { ...profile, libraryGames, recentGames };
+    return {
+      ...profile,
+      libraryGames,
+      recentGames,
+      friends: friends.friends,
+      totalFriends: friends.totalFriends,
+    };
   } catch (err) {
     return null;
   }

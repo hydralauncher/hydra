@@ -4,7 +4,7 @@ import { SPACING_UNIT } from "@renderer/theme.css";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { UserFriendRequest } from "./user-friend-request";
+import { UserFriendItem } from "./user-friend-item";
 
 export interface UserFriendModalAddFriendProps {
   closeModal: () => void;
@@ -23,7 +23,7 @@ export const UserFriendModalAddFriend = ({
   const { sendFriendRequest, updateFriendRequestState, friendRequests } =
     useUserDetails();
 
-  const { showErrorToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const handleClickAddFriend = () => {
     setIsAddingFriend(true);
@@ -56,21 +56,25 @@ export const UserFriendModalAddFriend = ({
     navigate(`/user/${friendCode}`);
   };
 
-  const handleClickCancelFriendRequest = (userId: string) => {
+  const handleCancelFriendRequest = (userId: string) => {
     updateFriendRequestState(userId, "CANCEL").catch(() => {
-      showErrorToast("Falha ao cancelar convite");
+      showErrorToast(t("try_again"));
     });
   };
 
-  const handleClickAcceptFriendRequest = (userId: string) => {
-    updateFriendRequestState(userId, "ACCEPTED").catch(() => {
-      showErrorToast("Falha ao aceitar convite");
-    });
+  const handleAcceptFriendRequest = (userId: string) => {
+    updateFriendRequestState(userId, "ACCEPTED")
+      .then(() => {
+        showSuccessToast(t("request_accepted"));
+      })
+      .catch(() => {
+        showErrorToast(t("try_again"));
+      });
   };
 
-  const handleClickRefuseFriendRequest = (userId: string) => {
+  const handleRefuseFriendRequest = (userId: string) => {
     updateFriendRequestState(userId, "REFUSED").catch(() => {
-      showErrorToast("Falha ao recusar convite");
+      showErrorToast(t("try_again"));
     });
   };
 
@@ -121,16 +125,16 @@ export const UserFriendModalAddFriend = ({
         <h3>Pendentes</h3>
         {friendRequests.map((request) => {
           return (
-            <UserFriendRequest
+            <UserFriendItem
               key={request.id}
               displayName={request.displayName}
-              isRequestSent={request.type === "SENT"}
+              type={request.type}
               profileImageUrl={request.profileImageUrl}
               userId={request.id}
-              onClickAcceptRequest={handleClickAcceptFriendRequest}
-              onClickCancelRequest={handleClickCancelFriendRequest}
-              onClickRefuseRequest={handleClickRefuseFriendRequest}
-              onClickRequest={handleClickRequest}
+              onClickAcceptRequest={handleAcceptFriendRequest}
+              onClickCancelRequest={handleCancelFriendRequest}
+              onClickRefuseRequest={handleRefuseFriendRequest}
+              onClickItem={handleClickRequest}
             />
           );
         })}
