@@ -1,6 +1,7 @@
 import type { GameShop } from "@types";
 
 import Color from "color";
+import { average } from "color.js";
 
 export const steamUrlBuilder = {
   library: (objectID: string) =>
@@ -45,3 +46,14 @@ export const buildGameDetailsPath = (
 
 export const darkenColor = (color: string, amount: number, alpha: number = 1) =>
   new Color(color).darken(amount).alpha(alpha).toString();
+
+export const profileBackgroundFromProfileImage = async (
+  profileImageUrl: string
+) => {
+  const output = await average(profileImageUrl, {
+    amount: 1,
+    format: "hex",
+  });
+
+  return `linear-gradient(135deg, ${darkenColor(output as string, 0.6)}, ${darkenColor(output as string, 0.8, 0.7)})`;
+};
