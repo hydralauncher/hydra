@@ -24,7 +24,7 @@ export class HTTPDownload {
   }
 
   static async cancelDownload(gid: string) {
-    const downloadItem: DownloadItem = this.downloads[gid];
+    const downloadItem = this.downloads[gid];
     downloadItem?.cancel();
     delete this.downloads[gid];
   }

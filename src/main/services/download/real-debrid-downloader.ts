@@ -165,6 +165,9 @@ export class RealDebridDownloader {
       await HTTPDownload.cancelDownload(gid);
       this.downloads.delete(gameId);
     }
+
+    this.realDebridTorrentId = null;
+    this.downloadingGame = null;
   }
 
   static async resumeDownload(gameId: number) {
