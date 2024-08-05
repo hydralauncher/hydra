@@ -122,9 +122,11 @@ export class RealDebridDownloader {
   }
 
   static async pauseDownload() {
-    const gid = this.downloads.get(this.downloadingGame!.id!);
-    if (gid) {
-      await HTTPDownload.pauseDownload(gid);
+    if (this.downloadingGame) {
+      const gid = this.downloads.get(this.downloadingGame.id);
+      if (gid) {
+        await HTTPDownload.pauseDownload(gid);
+      }
     }
 
     this.realDebridTorrentId = null;
