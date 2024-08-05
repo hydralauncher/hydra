@@ -277,6 +277,11 @@ export interface UserFriend {
   profileImageUrl: string | null;
 }
 
+export interface UserFriends {
+  totalFriends: number;
+  friends: UserFriend[];
+}
+
 export interface FriendRequest {
   id: string;
   displayName: string;
@@ -284,14 +289,25 @@ export interface FriendRequest {
   type: "SENT" | "RECEIVED";
 }
 
+export interface UserRelation {
+  AId: string;
+  BId: string;
+  status: "ACCEPTED" | "PENDING";
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface UserProfile {
   id: string;
   displayName: string;
   profileImageUrl: string | null;
+  profileVisibility: "PUBLIC" | "PRIVATE" | "FRIENDS";
   totalPlayTimeInSeconds: number;
   libraryGames: UserGame[];
   recentGames: UserGame[];
   friends: UserFriend[];
+  totalFriends: number;
+  relation: UserRelation | null;
 }
 
 export interface DownloadSource {
