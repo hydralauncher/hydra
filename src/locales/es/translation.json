@@ -241,6 +241,15 @@
     "successfully_signed_out": "Sesión cerrada exitosamente",
     "sign_out": "Cerrar sesión",
     "playing_for": "Jugando por {{amount}}",
-    "sign_out_modal_text": "Tu biblioteca se ha vinculado con tu cuenta. Cuando cierres sesión, tú biblioteca ya no será visible y cualquier progreso no se guardará. ¿Continuar con el cierre de sesión?"
+    "sign_out_modal_text": "Tu biblioteca se ha vinculado con tu cuenta. Cuando cierres sesión, tú biblioteca ya no será visible y cualquier progreso no se guardará. ¿Continuar con el cierre de sesión?",
+    "add_friends": "Añadir amigos",
+    "add": "Añadir",
+    "friend_code": "Código de amigo",
+    "see_profile": "Ver perfil",
+    "sending": "Enviando",
+    "friend_request_sent": "Solicitud de amistad enviada",
+    "friends": "Amigos",
+    "friends_list": "Lista de amigos",
+    "user_not_found": "Usuario no encontrado"
   }
 }
