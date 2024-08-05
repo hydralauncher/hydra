@@ -78,6 +78,8 @@ export const profileAvatar = style({
   height: "100%",
   width: "100%",
   objectFit: "cover",
+  borderRadius: "50%",
+  overflow: "hidden",
 });
 
 export const profileAvatarEditOverlay = style({
@@ -276,4 +278,17 @@ export const profileBackground = style({
   left: "0",
   top: "0",
   borderRadius: "4px",
+});
+
+export const cancelRequestButton = style({
+  cursor: "pointer",
+  color: vars.color.body,
+  ":hover": {
+    color: vars.color.danger,
+  },
+});
+
+export const acceptRequestButton = style({
+  cursor: "pointer",
+  color: vars.color.success,
 });
