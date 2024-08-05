@@ -45,15 +45,14 @@ export class HTTPDownload {
     headers?: Record<string, string>
   ) {
     return new Promise<string>((resolve) => {
-      WindowManager.mainWindow?.webContents.downloadURL(downloadUrl, {
-        headers,
-      });
+      const options = headers ? { headers } : {};
+      WindowManager.mainWindow?.webContents.downloadURL(downloadUrl, options);
+
+      const gid = ++this.id;
 
       WindowManager.mainWindow?.webContents.session.on(
         "will-download",
         (_event, item, _webContents) => {
-          const gid = ++this.id;
-
           this.downloads[gid.toString()] = item;
 
           // Set the save path, making Electron not to prompt a save dialog.
