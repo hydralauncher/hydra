@@ -11,6 +11,7 @@ export class HTTPDownload {
     completedLength: number;
     totalLength: number;
     downloadSpeed: number;
+    folderName: string;
   } | null {
     const downloadItem = this.downloads[gid];
     if (downloadItem) {
@@ -18,6 +19,7 @@ export class HTTPDownload {
         completedLength: downloadItem.getReceivedBytes(),
         totalLength: downloadItem.getTotalBytes(),
         downloadSpeed: downloadItem.getCurrentBytesPerSecond(),
+        folderName: downloadItem.getFilename(),
       };
     }
 
