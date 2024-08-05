@@ -131,11 +131,9 @@ export class RealDebridDownloader {
   }
 
   static async startDownload(game: Game) {
-    this.downloadingGame = game;
-
     if (this.downloads.has(game.id)) {
       await this.resumeDownload(game.id!);
-
+      this.downloadingGame = game;
       return;
     }
 
@@ -156,6 +154,7 @@ export class RealDebridDownloader {
       );
 
       this.downloads.set(game.id!, gid);
+      this.downloadingGame = game;
     }
   }
 
