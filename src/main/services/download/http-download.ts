@@ -1,5 +1,6 @@
 import { DownloadItem } from "electron";
 import { WindowManager } from "../window-manager";
+import path from "node:path";
 
 export class HTTPDownload {
   private static id = 0;
@@ -56,7 +57,7 @@ export class HTTPDownload {
           this.downloads[gid.toString()] = item;
 
           // Set the save path, making Electron not to prompt a save dialog.
-          item.setSavePath(downloadPath);
+          item.setSavePath(path.join(downloadPath, item.getFilename()));
 
           resolve(gid.toString());
         }
