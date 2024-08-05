@@ -62,6 +62,7 @@ export class RealDebridDownloader {
             fileSize: Number(status.totalLength),
             progress,
             status: "active",
+            folderName: status.folderName,
           }
         );
 
