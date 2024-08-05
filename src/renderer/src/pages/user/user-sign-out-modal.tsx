@@ -2,7 +2,7 @@ import { Button, Modal } from "@renderer/components";
 import * as styles from "./user.css";
 import { useTranslation } from "react-i18next";
 
-export interface UserEditProfileModalProps {
+export interface UserSignOutModalProps {
   visible: boolean;
   onConfirm: () => void;
   onClose: () => void;
@@ -12,7 +12,7 @@ export const UserSignOutModal = ({
   visible,
   onConfirm,
   onClose,
-}: UserEditProfileModalProps) => {
+}: UserSignOutModalProps) => {
   const { t } = useTranslation("user_profile");
 
   return (
