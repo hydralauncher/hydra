@@ -11,6 +11,7 @@ export const wrapper = style({
 
 export const profileContentBox = style({
   display: "flex",
+  cursor: "pointer",
   gap: `${SPACING_UNIT * 3}px`,
   alignItems: "center",
   borderRadius: "4px",
@@ -35,6 +36,29 @@ export const profileAvatarContainer = style({
   zIndex: 1,
 });
 
+export const friendAvatarContainer = style({
+  width: "35px",
+  minWidth: "35px",
+  height: "35px",
+  borderRadius: "50%",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: vars.color.background,
+  overflow: "hidden",
+  border: `solid 1px ${vars.color.border}`,
+  boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.7)",
+});
+
+export const friendListDisplayName = style({
+  fontWeight: "bold",
+  fontSize: vars.size.body,
+  textAlign: "left",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
 export const profileAvatarEditContainer = style({
   width: "128px",
   height: "128px",
@@ -53,9 +77,9 @@ export const profileAvatarEditContainer = style({
 export const profileAvatar = style({
   height: "100%",
   width: "100%",
+  objectFit: "cover",
   borderRadius: "50%",
   overflow: "hidden",
-  objectFit: "cover",
 });
 
 export const profileAvatarEditOverlay = style({
@@ -86,14 +110,36 @@ export const profileContent = style({
 
 export const profileGameSection = style({
   width: "100%",
-  height: "100%",
   display: "flex",
   flexDirection: "column",
   gap: `${SPACING_UNIT * 2}px`,
 });
 
+export const friendsSection = style({
+  width: "100%",
+  display: "flex",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT * 2}px`,
+});
+
+export const friendsSectionHeader = style({
+  fontSize: vars.size.body,
+  color: vars.color.body,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: `${SPACING_UNIT * 2}px`,
+  ":hover": {
+    color: vars.color.muted,
+  },
+});
+
 export const contentSidebar = style({
   width: "100%",
+  display: "flex",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT * 3}px`,
   "@media": {
     "(min-width: 768px)": {
       width: "100%",
@@ -116,12 +162,17 @@ export const libraryGameIcon = style({
   borderRadius: "4px",
 });
 
+export const friendProfileIcon = style({
+  height: "100%",
+});
+
 export const feedItem = style({
   color: vars.color.body,
   display: "flex",
   flexDirection: "row",
   gap: `${SPACING_UNIT * 2}px`,
   width: "100%",
+  overflow: "hidden",
   height: "72px",
   transition: "all ease 0.2s",
   cursor: "pointer",
@@ -138,6 +189,19 @@ export const gameListItem = style({
   zIndex: "1",
   overflow: "hidden",
   padding: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
+  ":hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
+});
+
+export const friendListContainer = style({
+  color: vars.color.body,
+  width: "100%",
+  height: "54px",
+  padding: `0 ${SPACING_UNIT}px`,
+  gap: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
+  transition: "all ease 0.2s",
+  position: "relative",
   ":hover": {
     backgroundColor: "rgba(255, 255, 255, 0.15)",
   },
@@ -214,4 +278,17 @@ export const profileBackground = style({
   left: "0",
   top: "0",
   borderRadius: "4px",
+});
+
+export const cancelRequestButton = style({
+  cursor: "pointer",
+  color: vars.color.body,
+  ":hover": {
+    color: vars.color.danger,
+  },
+});
+
+export const acceptRequestButton = style({
+  cursor: "pointer",
+  color: vars.color.success,
 });

@@ -10,6 +10,8 @@ export type GameStatus =
 
 export type GameShop = "steam" | "epic";
 
+export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
+
 export interface SteamGenre {
   id: string;
   name: string;
@@ -269,14 +271,43 @@ export interface UserDetails {
   profileImageUrl: string | null;
 }
 
+export interface UserFriend {
+  id: string;
+  displayName: string;
+  profileImageUrl: string | null;
+}
+
+export interface UserFriends {
+  totalFriends: number;
+  friends: UserFriend[];
+}
+
+export interface FriendRequest {
+  id: string;
+  displayName: string;
+  profileImageUrl: string | null;
+  type: "SENT" | "RECEIVED";
+}
+
+export interface UserRelation {
+  AId: string;
+  BId: string;
+  status: "ACCEPTED" | "PENDING";
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface UserProfile {
   id: string;
   displayName: string;
-  username: string;
   profileImageUrl: string | null;
+  profileVisibility: "PUBLIC" | "PRIVATE" | "FRIENDS";
   totalPlayTimeInSeconds: number;
   libraryGames: UserGame[];
   recentGames: UserGame[];
+  friends: UserFriend[];
+  totalFriends: number;
+  relation: UserRelation | null;
 }
 
 export interface DownloadSource {

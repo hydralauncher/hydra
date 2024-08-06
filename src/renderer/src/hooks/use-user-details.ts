@@ -1,17 +1,27 @@
 import { useCallback } from "react";
-import { average } from "color.js";
-
 import { useAppDispatch, useAppSelector } from "./redux";
-import { setProfileBackground, setUserDetails } from "@renderer/features";
-import { darkenColor } from "@renderer/helpers";
-import { UserDetails } from "@types";
+import {
+  setProfileBackground,
+  setUserDetails,
+  setFriendRequests,
+  setFriendsModalVisible,
+  setFriendsModalHidden,
+} from "@renderer/features";
+import { profileBackgroundFromProfileImage } from "@renderer/helpers";
+import { FriendRequestAction, UserDetails } from "@types";
+import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 
 export function useUserDetails() {
   const dispatch = useAppDispatch();
 
-  const { userDetails, profileBackground } = useAppSelector(
-    (state) => state.userDetails
-  );
+  const {
+    userDetails,
+    profileBackground,
+    friendRequests,
+    isFriendsModalVisible,
+    friendModalUserId,
+    friendRequetsModalTab,
+  } = useAppSelector((state) => state.userDetails);
 
   const clearUserDetails = useCallback(async () => {
     dispatch(setUserDetails(null));
@@ -31,12 +41,9 @@ export function useUserDetails() {
       dispatch(setUserDetails(userDetails));
 
       if (userDetails.profileImageUrl) {
-        const output = await average(userDetails.profileImageUrl, {
-          amount: 1,
-          format: "hex",
-        });
-
-        const profileBackground = `linear-gradient(135deg, ${darkenColor(output as string, 0.6)}, ${darkenColor(output as string, 0.8, 0.7)})`;
+        const profileBackground = await profileBackgroundFromProfileImage(
+          userDetails.profileImageUrl
+        );
         dispatch(setProfileBackground(profileBackground));
 
         window.localStorage.setItem(
@@ -78,13 +85,76 @@ export function useUserDetails() {
     [updateUserDetails]
   );
 
+  const fetchFriendRequests = useCallback(() => {
+    return window.electron
+      .getFriendRequests()
+      .then((friendRequests) => {
+        dispatch(setFriendRequests(friendRequests));
+      })
+      .catch(() => {});
+  }, [dispatch]);
+
+  const showFriendsModal = useCallback(
+    (initialTab: UserFriendModalTab, userId: string) => {
+      dispatch(setFriendsModalVisible({ initialTab, userId }));
+      fetchFriendRequests();
+    },
+    [dispatch]
+  );
+
+  const hideFriendsModal = useCallback(() => {
+    dispatch(setFriendsModalHidden());
+  }, [dispatch]);
+
+  const sendFriendRequest = useCallback(
+    async (userId: string) => {
+      return window.electron
+        .sendFriendRequest(userId)
+        .then(() => fetchFriendRequests());
+    },
+    [fetchFriendRequests]
+  );
+
+  const updateFriendRequestState = useCallback(
+    async (userId: string, action: FriendRequestAction) => {
+      return window.electron
+        .updateFriendRequest(userId, action)
+        .then(() => fetchFriendRequests());
+    },
+    [fetchFriendRequests]
+  );
+
+  const undoFriendship = (userId: string) => {
+    return window.electron.undoFriendship(userId);
+  };
+
+  const blockUser = (userId: string) => {
+    return window.electron.blockUser(userId);
+  };
+
+  const unblockUser = (userId: string) => {
+    return window.electron.unblockUser(userId);
+  };
+
   return {
     userDetails,
+    profileBackground,
+    friendRequests,
+    friendRequetsModalTab,
+    isFriendsModalVisible,
+    friendModalUserId,
+    showFriendsModal,
+    hideFriendsModal,
     fetchUserDetails,
     signOut,
     clearUserDetails,
     updateUserDetails,
     patchUser,
-    profileBackground,
+    sendFriendRequest,
+    fetchFriendRequests,
+    updateFriendRequestState,
+    blockUser,
+    unblockUser,
+    undoFriendship,
   };
 }

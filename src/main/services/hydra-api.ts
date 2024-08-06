@@ -10,7 +10,7 @@ import { UserNotLoggedInError } from "@shared";
 export class HydraApi {
   private static instance: AxiosInstance;
 
-  private static readonly EXPIRATION_OFFSET_IN_MS = 1000 * 60 * 5;
+  private static readonly EXPIRATION_OFFSET_IN_MS = 1000 * 60 * 5; // 5 minutes
 
   private static secondsToMilliseconds = (seconds: number) => seconds * 1000;
 
@@ -45,6 +45,8 @@ export class HydraApi {
       expirationTimestamp: tokenExpirationTimestamp,
     };
 
+    logger.log("Sign in received", this.userAuth);
+
     await userAuthRepository.upsert(
       {
         id: 1,
@@ -70,11 +72,11 @@ export class HydraApi {
     this.instance.interceptors.request.use(
       (request) => {
         logger.log(" ---- REQUEST -----");
-        logger.log(request.method, request.url, request.data);
+        logger.log(request.method, request.url, request.params, request.data);
         return request;
       },
       (error) => {
-        logger.log("request error", error);
+        logger.error("request error", error);
         return Promise.reject(error);
       }
     );
@@ -95,12 +97,18 @@ export class HydraApi {
 
         const { config } = error;
 
-        logger.error(config.method, config.baseURL, config.url, config.headers);
+        logger.error(
+          config.method,
+          config.baseURL,
+          config.url,
+          config.headers,
+          config.data
+        );
 
         if (error.response) {
-          logger.error(error.response.status, error.response.data);
+          logger.error("Response", error.response.status, error.response.data);
         } else if (error.request) {
-          logger.error(error.request);
+          logger.error("Request", error.request);
         } else {
           logger.error("Error", error.message);
         }
@@ -146,6 +154,8 @@ export class HydraApi {
         this.userAuth.authToken = accessToken;
         this.userAuth.expirationTimestamp = tokenExpirationTimestamp;
 
+        logger.log("Token refreshed", this.userAuth);
+
         userAuthRepository.upsert(
           {
             id: 1,
@@ -170,6 +180,8 @@ export class HydraApi {
 
   private static handleUnauthorizedError = (err) => {
     if (err instanceof AxiosError && err.response?.status === 401) {
+      logger.error("401 - Current credentials:", this.userAuth);
+
       this.userAuth = {
         authToken: "",
         expirationTimestamp: 0,
@@ -184,48 +196,53 @@ export class HydraApi {
     throw err;
   };
 
-  static async get(url: string) {
+  static async get<T = any>(url: string, params?: any) {
     if (!this.isLoggedIn()) throw new UserNotLoggedInError();
 
     await this.revalidateAccessTokenIfExpired();
     return this.instance
-      .get(url, this.getAxiosConfig())
+      .get<T>(url, { params, ...this.getAxiosConfig() })
+      .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
 
-  static async post(url: string, data?: any) {
+  static async post<T = any>(url: string, data?: any) {
     if (!this.isLoggedIn()) throw new UserNotLoggedInError();
 
     await this.revalidateAccessTokenIfExpired();
     return this.instance
-      .post(url, data, this.getAxiosConfig())
+      .post<T>(url, data, this.getAxiosConfig())
+      .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
 
-  static async put(url: string, data?: any) {
+  static async put<T = any>(url: string, data?: any) {
     if (!this.isLoggedIn()) throw new UserNotLoggedInError();
 
     await this.revalidateAccessTokenIfExpired();
     return this.instance
-      .put(url, data, this.getAxiosConfig())
+      .put<T>(url, data, this.getAxiosConfig())
+      .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
 
-  static async patch(url: string, data?: any) {
+  static async patch<T = any>(url: string, data?: any) {
     if (!this.isLoggedIn()) throw new UserNotLoggedInError();
 
     await this.revalidateAccessTokenIfExpired();
     return this.instance
-      .patch(url, data, this.getAxiosConfig())
+      .patch<T>(url, data, this.getAxiosConfig())
+      .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
 
-  static async delete(url: string) {
+  static async delete<T = any>(url: string) {
     if (!this.isLoggedIn()) throw new UserNotLoggedInError();
 
     await this.revalidateAccessTokenIfExpired();
     return this.instance
-      .delete(url, this.getAxiosConfig())
+      .delete<T>(url, this.getAxiosConfig())
+      .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
 }
