@@ -10,11 +10,7 @@ export const createGame = async (game: Game) => {
     lastTimePlayed: game.lastTimePlayed,
   })
     .then((response) => {
-      const {
-        id: remoteId,
-        playTimeInMilliseconds,
-        lastTimePlayed,
-      } = response.data;
+      const { id: remoteId, playTimeInMilliseconds, lastTimePlayed } = response;
 
       gameRepository.update(
         { objectID: game.objectID },

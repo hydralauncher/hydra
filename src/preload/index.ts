@@ -9,6 +9,7 @@ import type {
   AppUpdaterEvent,
   StartGameDownloadPayload,
   GameRunning,
+  FriendRequestAction,
 } from "@types";
 
 contextBridge.exposeInMainWorld("electron", {
@@ -134,11 +135,22 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Profile */
   getMe: () => ipcRenderer.invoke("getMe"),
+  undoFriendship: (userId: string) =>
+    ipcRenderer.invoke("undoFriendship", userId),
   updateProfile: (displayName: string, newProfileImagePath: string | null) =>
     ipcRenderer.invoke("updateProfile", displayName, newProfileImagePath),
+  getFriendRequests: () => ipcRenderer.invoke("getFriendRequests"),
+  updateFriendRequest: (userId: string, action: FriendRequestAction) =>
+    ipcRenderer.invoke("updateFriendRequest", userId, action),
+  sendFriendRequest: (userId: string) =>
+    ipcRenderer.invoke("sendFriendRequest", userId),
 
   /* User */
   getUser: (userId: string) => ipcRenderer.invoke("getUser", userId),
+  blockUser: (userId: string) => ipcRenderer.invoke("blockUser", userId),
+  unblockUser: (userId: string) => ipcRenderer.invoke("unblockUser", userId),
+  getUserFriends: (userId: string, take: number, skip: number) =>
+    ipcRenderer.invoke("getUserFriends", userId, take, skip),
 
   /* Auth */
   signOut: () => ipcRenderer.invoke("signOut"),

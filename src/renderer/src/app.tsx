@@ -25,6 +25,7 @@ import {
   setGameRunning,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
+import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -38,7 +39,15 @@ export function App() {
 
   const { clearDownload, setLastPacket } = useDownload();
 
-  const { fetchUserDetails, updateUserDetails, clearUserDetails } =
+  const {
+    isFriendsModalVisible,
+    friendRequetsModalTab,
+    friendModalUserId,
+    fetchFriendRequests,
+    hideFriendsModal,
+  } = useUserDetails();
+
+  const { userDetails, fetchUserDetails, updateUserDetails, clearUserDetails } =
     useUserDetails();
 
   const dispatch = useAppDispatch();
@@ -94,7 +103,10 @@ export function App() {
     }
 
     fetchUserDetails().then((response) => {
-      if (response) updateUserDetails(response);
+      if (response) {
+        updateUserDetails(response);
+        fetchFriendRequests();
+      }
     });
   }, [fetchUserDetails, updateUserDetails, dispatch]);
 
@@ -102,6 +114,7 @@ export function App() {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
+        fetchFriendRequests();
         showSuccessToast(t("successfully_signed_in"));
       }
     });
@@ -205,6 +218,15 @@ export function App() {
         type={toast.type}
         onClose={handleToastClose}
       />
+
+      {userDetails && (
+        <UserFriendModal
+          visible={isFriendsModalVisible}
+          initialTab={friendRequetsModalTab}
+          onClose={hideFriendsModal}
+          userId={friendModalUserId}
+        />
+      )}
 
       <main>
         <Sidebar />
