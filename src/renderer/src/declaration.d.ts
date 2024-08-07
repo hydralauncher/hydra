@@ -139,10 +139,7 @@ declare global {
     /* Profile */
     getMe: () => Promise<UserProfile | null>;
     undoFriendship: (userId: string) => Promise<void>;
-    updateProfile: (
-      displayName: string,
-      newProfileImagePath: string | null
-    ) => Promise<UserProfile>;
+    updateProfile: (updateProfile: UpdateProfileProps) => Promise<UserProfile>;
     getFriendRequests: () => Promise<FriendRequest[]>;
     updateFriendRequest: (
       userId: string,

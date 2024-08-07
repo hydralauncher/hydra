@@ -310,6 +310,13 @@ export interface UserProfile {
   relation: UserRelation | null;
 }
 
+export interface UpdateProfileProps {
+  displayName?: string;
+  profileVisibility?: "PUBLIC" | "PRIVATE" | "FRIENDS";
+  profileImageUrl?: string | null;
+  bio?: string;
+}
+
 export interface DownloadSource {
   id: number;
   name: string;

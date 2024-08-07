@@ -8,8 +8,9 @@ import {
   setFriendsModalHidden,
 } from "@renderer/features";
 import { profileBackgroundFromProfileImage } from "@renderer/helpers";
-import { FriendRequestAction, UserDetails } from "@types";
+import { FriendRequestAction, UpdateProfileProps, UserDetails } from "@types";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
+import { logger } from "@renderer/logger";
 
 export function useUserDetails() {
   const dispatch = useAppDispatch();
@@ -43,7 +44,10 @@ export function useUserDetails() {
       if (userDetails.profileImageUrl) {
         const profileBackground = await profileBackgroundFromProfileImage(
           userDetails.profileImageUrl
-        );
+        ).catch((err) => {
+          logger.error("profileBackgroundFromProfileImage", err);
+          return `#151515B3`;
+        });
         dispatch(setProfileBackground(profileBackground));
 
         window.localStorage.setItem(
@@ -74,12 +78,8 @@ export function useUserDetails() {
   }, [clearUserDetails]);
 
   const patchUser = useCallback(
-    async (displayName: string, imageProfileUrl: string | null) => {
-      const response = await window.electron.updateProfile(
-        displayName,
-        imageProfileUrl
-      );
-
+    async (props: UpdateProfileProps) => {
+      const response = await window.electron.updateProfile(props);
       return updateUserDetails(response);
     },
     [updateUserDetails]

@@ -261,6 +261,11 @@
     "undo_friendship": "Undo friendship",
     "request_accepted": "Request accepted",
     "user_blocked_successfully": "User blocked successfully",
-    "user_block_modal_text": "This will block {{displayName}}"
+    "user_block_modal_text": "This will block {{displayName}}",
+    "settings": "Settings",
+    "public": "Public",
+    "private": "Private",
+    "friends_only": "Friends only",
+    "privacy": "Privacy"
   }
 }
