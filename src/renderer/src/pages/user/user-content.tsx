@@ -25,7 +25,7 @@ import {
   XCircleIcon,
 } from "@primer/octicons-react";
 import { Button, Link } from "@renderer/components";
-import { UserEditProfileModal } from "./user-edit-modal";
+import { UserProfileSettingsModal } from "./user-profile-settings-modal";
 import { UserSignOutModal } from "./user-sign-out-modal";
 import { UserFriendModalTab } from "../shared-modals/user-friend-modal";
 import { UserBlockModal } from "./user-block-modal";
@@ -60,7 +60,8 @@ export function UserContent({
 
   const [profileContentBoxBackground, setProfileContentBoxBackground] =
     useState<string | undefined>();
-  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showProfileSettingsModal, setShowProfileSettingsModal] =
+    useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showUserBlockModal, setShowUserBlockModal] = useState(false);
 
@@ -95,7 +96,7 @@ export function UserContent({
   };
 
   const handleEditProfile = () => {
-    setShowEditProfileModal(true);
+    setShowProfileSettingsModal(true);
   };
 
   const handleOnClickFriend = (userId: string) => {
@@ -165,7 +166,7 @@ export function UserContent({
       return (
         <>
           <Button theme="outline" onClick={handleEditProfile}>
-            {t("edit_profile")}
+            {t("settings")}
           </Button>
 
           <Button theme="danger" onClick={() => setShowSignOutModal(true)}>
@@ -251,9 +252,9 @@ export function UserContent({
 
   return (
     <>
-      <UserEditProfileModal
-        visible={showEditProfileModal}
-        onClose={() => setShowEditProfileModal(false)}
+      <UserProfileSettingsModal
+        visible={showProfileSettingsModal}
+        onClose={() => setShowProfileSettingsModal(false)}
         updateUserProfile={updateUserProfile}
         userProfile={userProfile}
       />

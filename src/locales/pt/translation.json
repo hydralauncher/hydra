@@ -261,6 +261,11 @@
     "undo_friendship": "Desfazer amizade",
     "request_accepted": "Pedido de amizade aceito",
     "user_blocked_successfully": "Usuário bloqueado com sucesso",
-    "user_block_modal_text": "Bloquear {{displayName}}"
+    "user_block_modal_text": "Bloquear {{displayName}}",
+    "settings": "Configurações",
+    "privacy": "Privacidade",
+    "private": "Privado",
+    "friends_only": "Apenas amigos",
+    "public": "Público"
   }
 }
