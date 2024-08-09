@@ -136,6 +136,12 @@ export interface Game {
 
 export type LibraryGame = Omit<Game, "repacks">;
 
+export interface Collection {
+  id: number;
+  title: string;
+  games: Game[];
+}
+
 export interface GameRunning {
   id: number;
   title: string;

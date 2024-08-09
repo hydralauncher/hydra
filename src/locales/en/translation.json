@@ -194,6 +194,19 @@
     "found_download_option_other": "Found {{countFormatted}} download options",
     "import": "Import"
   },
+  "collections": {
+    "collections": "Collections",
+    "add_the_game_to_the_collection": "Add the game to the collection",
+    "select_a_collection": "Select a collection",
+    "enter_the_name_of_the_collection": "Enter the name of the collection",
+    "add": "Add",
+    "remove": "Remove",
+    "you_cant_give_collections_existing_or_empty_names": "You can`t give collections existing or empty names",
+    "the_collection_has_been_added_successfully": "The collection has been added successfully",
+    "the_collection_has_been_removed_successfully": "The collection has been removed successfully",
+    "the_game_has_been_added_to_the_collection": "The game has been added to the collection",
+    "the_game_has_been_removed_from_the_collection": "The game has been removed from the collection"
+  },
   "notifications": {
     "download_complete": "Download complete",
     "game_ready_to_install": "{{title}} is ready to install",
