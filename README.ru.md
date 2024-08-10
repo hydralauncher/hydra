@@ -7,7 +7,7 @@
   <h1 align="center">Hydra Launcher</h1>
   
   <p align="center">
-    <strong>Hydra - это игровой лаунчер с собственным встроенным клиентом BitTorrent и самостоятельным scraper`ом для репаков.</strong>
+    <strong>Hydra - это игровой лаунчер с собственным встроенным клиентом BitTorrent и самостоятельным Scraper для репаков.</strong>
   </p>
 
 [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
@@ -50,13 +50,13 @@
 
 ## Описание
 
-**Hydra** - это **Игровой Лаунчер** с собственным встроенным **Клиентом BitTorrent** и **самостоятельным scraper`ом для репаков**.
+**Hydra** - это **игровая программа запуска** с собственным встроенным **клиентом BitTorrent** и **самостоятельным Scraper для репаков**.
 <br>
-Лаунчер написан на TypeScript (Electron) и Python, который управляет системой торрентов с помощью libtorrent.
+Программа запуска написана на TypeScript (Electron) и Python, который управляет системой торрентов с помощью libtorrent.
 
 ## Особенности
 
-- Самостоятельный scraper репаков среди всех наиболее надежных веб-сайтов в [Megathread](https://www.reddit.com/r/Piracy/wiki/megathread/)
+- Самостоятельный Scraper репаков среди всех наиболее надёжных веб-сайтов в [Megathread](https://www.reddit.com/r/Piracy/wiki/megathread/)
 - Встроенный клиент BitTorrent
 - Интеграция How Long To Beat (HLTB) на странице игры
 - Настройка пути загрузки
@@ -108,7 +108,7 @@
 
 ### Установка Yarn
 
-Yarn - менеджер пакетов для Node.js. Если вы еще не установили Yarn, сделайте это, следуя инструкциям на [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/).
+Yarn - менеджер пакетов для Node.js. Если вы ещё не установили Yarn, сделайте это, следуя инструкциям на [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/).
 
 ### Установка зависимостей Node
 
@@ -134,9 +134,9 @@ pip install -r requirements.txt
 ## Переменные среды
 
 Вам понадобится ключ API SteamGridDB, чтобы получить значки игр при установке.
-Если вы хотите использовать onlinefix в качестве репака, вам нужно добавить ваши учетные данные в файл .env.
+Если вы хотите использовать onlinefix в качестве репака, вам нужно добавить ваши учётные данные в файл .env.
 
-Как только у вас будет ключ, вы можете скопировать или переименовать файл `.env.example` в `.env` и поместить в него `STEAMGRIDDB_API_KEY`, `ONLINEFIX_USERNAME`, `ONLINEFIX_PASSWORD`.
+Как только у вас будет ключ, вы можете скопировать или переименовать файл `.env.пример` в `.env` и поместить в него `STEAMGRIDDB_API_KEY`, `ONLINEFIX_USERNAME`, `ONLINEFIX_PASSWORD`.
 
 ## Запуск
 
@@ -178,6 +178,6 @@ yarn build:linux
   <img src="https://contrib.rocks/image?repo=hydralauncher/hydra" />
 </a>
 
-## License
+## Лицензия
 
-Hydra лицензирована в соответствии с [MIT License](LICENSE).
+Hydra лицензирована в соответствии с [лицензией MIT](LICENSE).
