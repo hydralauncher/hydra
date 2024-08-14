@@ -266,6 +266,7 @@
     "public": "Public",
     "private": "Private",
     "friends_only": "Friends only",
-    "privacy": "Privacy"
+    "privacy": "Privacy",
+    "blocked_users": "Blocked users"
   }
 }

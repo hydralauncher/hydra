@@ -20,7 +20,7 @@ export const UserProfileSettingsModal = ({
 }: UserEditProfileModalProps) => {
   const { t } = useTranslation("user_profile");
 
-  const tabs = [t("edit_profile"), "Ban list"];
+  const tabs = [t("edit_profile"), t("blocked_users")];
 
   const [currentTabIndex, setCurrentTabIndex] = useState(0);
 
