@@ -282,6 +282,11 @@ export interface UserFriends {
   friends: UserFriend[];
 }
 
+export interface UserBlocks {
+  totalBlocks: number;
+  blocks: UserFriend[];
+}
+
 export interface FriendRequest {
   id: string;
   displayName: string;

@@ -4,8 +4,9 @@ import { SPACING_UNIT } from "@renderer/theme.css";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { UserEditProfile } from "./user-edit-profile";
+import { UserEditProfileBlockList } from "./user-block-list";
 
-export interface UserEditProfileModalProps {
+export interface UserProfileSettingsModalProps {
   userProfile: UserProfile;
   visible: boolean;
   onClose: () => void;
@@ -17,7 +18,7 @@ export const UserProfileSettingsModal = ({
   visible,
   onClose,
   updateUserProfile,
-}: UserEditProfileModalProps) => {
+}: UserProfileSettingsModalProps) => {
   const { t } = useTranslation("user_profile");
 
   const tabs = [t("edit_profile"), t("blocked_users")];
@@ -35,7 +36,7 @@ export const UserProfileSettingsModal = ({
     }
 
     if (currentTabIndex == 1) {
-      return <></>;
+      return <UserEditProfileBlockList closeModal={onClose} />;
     }
 
     return <></>;
