@@ -132,9 +132,7 @@ export function Downloads() {
             <ArrowDownIcon size={24} />
           </div>
           <h2>{t("no_downloads_title")}</h2>
-          <p style={{ fontFamily: "Fira Sans" }}>
-            {t("no_downloads_description")}
-          </p>
+          <p>{t("no_downloads_description")}</p>
         </div>
       )}
     </>
