@@ -82,9 +82,7 @@ export function SettingsDownloadSources() {
         onAddDownloadSource={handleAddDownloadSource}
       />
 
-      <p style={{ fontFamily: '"Fira Sans"' }}>
-        {t("download_sources_description")}
-      </p>
+      <p>{t("download_sources_description")}</p>
 
       <div className={styles.downloadSourcesHeader}>
         <Button

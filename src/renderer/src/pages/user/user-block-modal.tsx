@@ -25,9 +25,7 @@ export const UserBlockModal = ({
         onClose={onClose}
       >
         <div className={styles.signOutModalContent}>
-          <p style={{ fontFamily: "Fira Sans" }}>
-            {t("user_block_modal_text", { displayName })}
-          </p>
+          <p>{t("user_block_modal_text", { displayName })}</p>
           <div className={styles.signOutModalButtonsContainer}>
             <Button onClick={onConfirm} theme="danger">
               {t("block_user")}

@@ -26,6 +26,8 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
   /* Disconnects libtorrent */
   PythonInstance.killTorrent();
 
+  HydraApi.handleSignOut();
+
   await Promise.all([
     databaseOperations,
     HydraApi.post("/auth/logout").catch(() => {}),
