@@ -2,7 +2,7 @@ import { Game } from "@main/entity";
 import { gameRepository } from "@main/repository";
 import { calculateETA } from "./helpers";
 import { DownloadProgress } from "@types";
-import { HTTPDownload } from "./http-download";
+import { HttpDownload } from "./http-download";
 
 export class GenericHTTPDownloader {
   private static downloads = new Map<number, string>();
@@ -11,7 +11,7 @@ export class GenericHTTPDownloader {
   public static async getStatus() {
     if (this.downloadingGame) {
       const gid = this.downloads.get(this.downloadingGame.id)!;
-      const status = await HTTPDownload.getStatus(gid);
+      const status = HttpDownload.getStatus(gid);
 
       if (status) {
         const progress =
@@ -60,7 +60,7 @@ export class GenericHTTPDownloader {
       const gid = this.downloads.get(this.downloadingGame!.id!);
 
       if (gid) {
-        await HTTPDownload.pauseDownload(gid);
+        await HttpDownload.pauseDownload(gid);
       }
 
       this.downloadingGame = null;
@@ -76,26 +76,23 @@ export class GenericHTTPDownloader {
 
     if (this.downloads.has(game.id)) {
       await this.resumeDownload(game.id!);
-
       return;
     }
 
-    if (downloadUrl) {
-      const gid = await HTTPDownload.startDownload(
-        game.downloadPath!,
-        downloadUrl,
-        headers
-      );
+    const gid = await HttpDownload.startDownload(
+      game.downloadPath!,
+      downloadUrl,
+      headers
+    );
 
-      this.downloads.set(game.id!, gid);
-    }
+    this.downloads.set(game.id!, gid);
   }
 
   static async cancelDownload(gameId: number) {
     const gid = this.downloads.get(gameId);
 
     if (gid) {
-      await HTTPDownload.cancelDownload(gid);
+      await HttpDownload.cancelDownload(gid);
       this.downloads.delete(gameId);
     }
   }
@@ -104,7 +101,7 @@ export class GenericHTTPDownloader {
     const gid = this.downloads.get(gameId);
 
     if (gid) {
-      await HTTPDownload.resumeDownload(gid);
+      await HttpDownload.resumeDownload(gid);
     }
   }
 }

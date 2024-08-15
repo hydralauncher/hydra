@@ -60,14 +60,22 @@ export function DownloadSettingsModal({
         .then((defaultDownloadsPath) => setSelectedPath(defaultDownloadsPath));
     }
 
-    if (
-      userPreferences?.realDebridApiToken &&
-      downloaders.includes(Downloader.RealDebrid)
-    ) {
-      setSelectedDownloader(Downloader.RealDebrid);
-    } else {
-      setSelectedDownloader(downloaders[0]);
-    }
+    const filteredDownloaders = downloaders.filter((downloader) => {
+      if (downloader === Downloader.RealDebrid)
+        return userPreferences?.realDebridApiToken;
+      return true;
+    });
+
+    /* Gives preference to Real Debrid */
+    const selectedDownloader = filteredDownloaders.includes(
+      Downloader.RealDebrid
+    )
+      ? Downloader.RealDebrid
+      : filteredDownloaders[0];
+
+    setSelectedDownloader(
+      selectedDownloader === undefined ? null : selectedDownloader
+    );
   }, [
     userPreferences?.downloadsPath,
     downloaders,
