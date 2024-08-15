@@ -64,6 +64,14 @@ export class HydraApi {
     }
   }
 
+  static handleSignOut() {
+    this.userAuth = {
+      authToken: "",
+      refreshToken: "",
+      expirationTimestamp: 0,
+    };
+  }
+
   static async setupApi() {
     this.instance = axios.create({
       baseURL: import.meta.env.MAIN_VITE_API_URL,
