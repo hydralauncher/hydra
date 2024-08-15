@@ -12,21 +12,26 @@ export type UserFriendItemProps = {
   userId: string;
   profileImageUrl: string | null;
   displayName: string;
-  onClickItem: (userId: string) => void;
 } & (
-  | { type: "ACCEPTED"; onClickUndoFriendship: (userId: string) => void }
+  | {
+      type: "ACCEPTED";
+      onClickUndoFriendship: (userId: string) => void;
+      onClickItem: (userId: string) => void;
+    }
+  | { type: "BLOCKED"; onClickUnblock: (userId: string) => void }
   | {
       type: "SENT" | "RECEIVED";
       onClickCancelRequest: (userId: string) => void;
       onClickAcceptRequest: (userId: string) => void;
       onClickRefuseRequest: (userId: string) => void;
+      onClickItem: (userId: string) => void;
     }
-  | { type: null }
+  | { type: null; onClickItem: (userId: string) => void }
 );
 
 export const UserFriendItem = (props: UserFriendItemProps) => {
   const { t } = useTranslation("user_profile");
-  const { userId, profileImageUrl, displayName, type, onClickItem } = props;
+  const { userId, profileImageUrl, displayName, type } = props;
 
   const getRequestDescription = () => {
     if (type === "ACCEPTED" || type === null) return null;
@@ -86,15 +91,69 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
       );
     }
 
+    if (type === "BLOCKED") {
+      return (
+        <button
+          className={styles.cancelRequestButton}
+          onClick={() => props.onClickUnblock(userId)}
+          title={t("unblock")}
+        >
+          <XCircleIcon size={28} />
+        </button>
+      );
+    }
+
     return null;
   };
+
+  if (type === "BLOCKED") {
+    return (
+      <div className={cn(styles.friendListContainer, styles.profileContentBox)}>
+        <div className={styles.friendListButton} style={{ cursor: "inherit" }}>
+          <div className={styles.friendAvatarContainer}>
+            {profileImageUrl ? (
+              <img
+                className={styles.profileAvatar}
+                alt={displayName}
+                src={profileImageUrl}
+              />
+            ) : (
+              <PersonIcon size={24} />
+            )}
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              flex: "1",
+              minWidth: 0,
+            }}
+          >
+            <p className={styles.friendListDisplayName}>{displayName}</p>
+          </div>
+        </div>
+
+        <div
+          style={{
+            position: "absolute",
+            right: "8px",
+            display: "flex",
+            gap: `${SPACING_UNIT}px`,
+          }}
+        >
+          {getRequestActions()}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn(styles.friendListContainer, styles.profileContentBox)}>
       <button
         type="button"
         className={styles.friendListButton}
-        onClick={() => onClickItem(userId)}
+        onClick={() => props.onClickItem(userId)}
       >
         <div className={styles.friendAvatarContainer}>
           {profileImageUrl ? (

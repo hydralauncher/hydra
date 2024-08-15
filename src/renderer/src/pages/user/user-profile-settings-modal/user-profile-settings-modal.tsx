@@ -36,7 +36,7 @@ export const UserProfileSettingsModal = ({
     }
 
     if (currentTabIndex == 1) {
-      return <UserEditProfileBlockList closeModal={onClose} />;
+      return <UserEditProfileBlockList />;
     }
 
     return <></>;

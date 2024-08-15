@@ -99,7 +99,7 @@ export function useUserDetails() {
       dispatch(setFriendsModalVisible({ initialTab, userId }));
       fetchFriendRequests();
     },
-    [dispatch]
+    [dispatch, fetchFriendRequests]
   );
 
   const hideFriendsModal = useCallback(() => {

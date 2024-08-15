@@ -267,6 +267,7 @@
     "private": "Privado",
     "friends_only": "Apenas amigos",
     "public": "Público",
-    "blocked_users": "Usuários bloqueados"
+    "blocked_users": "Usuários bloqueados",
+    "unblock": "Desbloquear"
   }
 }
