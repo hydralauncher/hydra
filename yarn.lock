@@ -943,15 +943,10 @@
   resolved "https://registry.npmjs.org/@eslint/js/-/js-8.57.0.tgz"
   integrity sha512-Ys+3g2TaW7gADOJzPt83SJtCDhMjndcDMFVQ/Tj9iA1BfJzFKD9mAUXT3OenpuPHbI6P/myECxRJrofUsDx/5g==
 
-"@fontsource/fira-mono@^5.0.13":
-  version "5.0.13"
-  resolved "https://registry.npmjs.org/@fontsource/fira-mono/-/fira-mono-5.0.13.tgz"
-  integrity sha512-fZDjR2BdAqmauEbTjcIT62zYzbOgDa5+IQH34D2k8Pxmy1T815mAqQkZciWZVQ9dc/BgdTtTUV9HJ2ulBNwchg==
-
-"@fontsource/fira-sans@^5.0.20":
-  version "5.0.20"
-  resolved "https://registry.npmjs.org/@fontsource/fira-sans/-/fira-sans-5.0.20.tgz"
-  integrity sha512-inmUjoKPrgnO4uUaZTAgP0b6YdhDfA52axHXvdTwgLvwd2kn3ZgK52UZoxD0VnrvTOjLA/iE4oC0tNtz4nyb5g==
+"@fontsource/noto-sans@^5.0.22":
+  version "5.0.22"
+  resolved "https://registry.yarnpkg.com/@fontsource/noto-sans/-/noto-sans-5.0.22.tgz#2c5249347ba84fef16e71a58e0ec01b460174093"
+  integrity sha512-PwjvKPGFbgpwfKjWZj1zeUvd7ExUW2AqHE9PF9ysAJ2gOuzIHWE6mEVIlchYif7WC2pQhn+g0w6xooCObVi+4A==
 
 "@humanwhocodes/config-array@^0.11.14":
   version "0.11.14"
@@ -2677,14 +2672,6 @@ aria-query@^5.3.0:
   dependencies:
     dequal "^2.0.3"
 
-aria2@^4.1.2:
-  version "4.1.2"
-  resolved "https://registry.yarnpkg.com/aria2/-/aria2-4.1.2.tgz#0ecbc50beea82856c88b4de71dac336154f67362"
-  integrity sha512-qTBr2RY8RZQmiUmbj2KXFvkErNxU4aTHZszszzwhE8svy2PEVX+IYR/c4Rp9Tuw4QkeU8cylGy6McV6Yl8i7Qw==
-  dependencies:
-    node-fetch "^2.6.1"
-    ws "^7.4.0"
-
 array-buffer-byte-length@^1.0.1:
   version "1.0.1"
   resolved "https://registry.npmjs.org/array-buffer-byte-length/-/array-buffer-byte-length-1.0.1.tgz"
@@ -3751,10 +3738,10 @@ electron-vite@^2.0.0:
     magic-string "^0.30.5"
     picocolors "^1.0.0"
 
-electron@^30.0.9:
-  version "30.0.9"
-  resolved "https://registry.npmjs.org/electron/-/electron-30.0.9.tgz"
-  integrity sha512-ArxgdGHVu3o5uaP+Tqj8cJDvU03R6vrGrOqiMs7JXLnvQHMqXJIIxmFKQAIdJW8VoT3ac3hD21tA7cPO10RLow==
+electron@^30.3.0:
+  version "30.3.1"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-30.3.1.tgz#fe27ca2a4739bec832b2edd6f46140ab46bf53a0"
+  integrity sha512-Ai/OZ7VlbFAVYMn9J5lyvtr+ZWyEbXDVd5wBLb5EVrp4352SRmMAmN5chcIe3n9mjzcgehV9n4Hwy15CJW+YbA==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^20.9.0"
@@ -5833,7 +5820,7 @@ node-domexception@^1.0.0:
   resolved "https://registry.npmjs.org/node-domexception/-/node-domexception-1.0.0.tgz"
   integrity sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==
 
-node-fetch@^2.6.1, node-fetch@^2.6.7:
+node-fetch@^2.6.7:
   version "2.7.0"
   resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.7.0.tgz#d0f0fa6e3e2dc1d27efcd8ad99d550bda94d187d"
   integrity sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==
@@ -7628,11 +7615,6 @@ wrappy@1:
   version "1.0.2"
   resolved "https://registry.npmjs.org/wrappy/-/wrappy-1.0.2.tgz"
   integrity sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==
-
-ws@^7.4.0:
-  version "7.5.10"
-  resolved "https://registry.yarnpkg.com/ws/-/ws-7.5.10.tgz#58b5c20dc281633f6c19113f39b349bd8bd558d9"
-  integrity sha512-+dbF1tHwZpXcbOJdVOkzLDxZP1ailvSxM6ZweXTegylPny803bFhA+vqBYw4s31NSAk4S2Qz+AKXK9a4wkdjcQ==
 
 ws@^8.16.0:
   version "8.17.0"
