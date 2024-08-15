@@ -101,7 +101,6 @@ export const descriptionContent = style({
 export const description = style({
   userSelect: "text",
   lineHeight: "22px",
-  fontFamily: "'Fira Sans', sans-serif",
   fontSize: "16px",
   padding: `${SPACING_UNIT * 3}px ${SPACING_UNIT * 2}px`,
   "@media": {

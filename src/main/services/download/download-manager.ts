@@ -6,6 +6,8 @@ import { downloadQueueRepository, gameRepository } from "@main/repository";
 import { publishDownloadCompleteNotification } from "../notifications";
 import { RealDebridDownloader } from "./real-debrid-downloader";
 import type { DownloadProgress } from "@types";
+import { GofileApi } from "../hosters";
+import { GenericHTTPDownloader } from "./generic-http-downloader";
 
 export class DownloadManager {
   private static currentDownloader: Downloader | null = null;
@@ -13,10 +15,12 @@ export class DownloadManager {
   public static async watchDownloads() {
     let status: DownloadProgress | null = null;
 
-    if (this.currentDownloader === Downloader.RealDebrid) {
+    if (this.currentDownloader === Downloader.Torrent) {
+      status = await PythonInstance.getStatus();
+    } else if (this.currentDownloader === Downloader.RealDebrid) {
       status = await RealDebridDownloader.getStatus();
     } else {
-      status = await PythonInstance.getStatus();
+      status = await GenericHTTPDownloader.getStatus();
     }
 
     if (status) {
@@ -62,10 +66,12 @@ export class DownloadManager {
   }
 
   static async pauseDownload() {
-    if (this.currentDownloader === Downloader.RealDebrid) {
+    if (this.currentDownloader === Downloader.Torrent) {
+      await PythonInstance.pauseDownload();
+    } else if (this.currentDownloader === Downloader.RealDebrid) {
       await RealDebridDownloader.pauseDownload();
     } else {
-      await PythonInstance.pauseDownload();
+      await GenericHTTPDownloader.pauseDownload();
     }
 
     WindowManager.mainWindow?.setProgressBar(-1);
@@ -73,20 +79,16 @@ export class DownloadManager {
   }
 
   static async resumeDownload(game: Game) {
-    if (game.downloader === Downloader.RealDebrid) {
-      RealDebridDownloader.startDownload(game);
-      this.currentDownloader = Downloader.RealDebrid;
-    } else {
-      PythonInstance.startDownload(game);
-      this.currentDownloader = Downloader.Torrent;
-    }
+    return this.startDownload(game);
   }
 
   static async cancelDownload(gameId: number) {
-    if (this.currentDownloader === Downloader.RealDebrid) {
+    if (this.currentDownloader === Downloader.Torrent) {
+      PythonInstance.cancelDownload(gameId);
+    } else if (this.currentDownloader === Downloader.RealDebrid) {
       RealDebridDownloader.cancelDownload(gameId);
     } else {
-      PythonInstance.cancelDownload(gameId);
+      GenericHTTPDownloader.cancelDownload(gameId);
     }
 
     WindowManager.mainWindow?.setProgressBar(-1);
@@ -94,12 +96,28 @@ export class DownloadManager {
   }
 
   static async startDownload(game: Game) {
-    if (game.downloader === Downloader.RealDebrid) {
-      RealDebridDownloader.startDownload(game);
-      this.currentDownloader = Downloader.RealDebrid;
-    } else {
+    if (game.downloader === Downloader.Gofile) {
+      const id = game!.uri!.split("/").pop();
+
+      const token = await GofileApi.authorize();
+      const downloadLink = await GofileApi.getDownloadLink(id!);
+
+      GenericHTTPDownloader.startDownload(game, downloadLink, {
+        Cookie: `accountToken=${token}`,
+      });
+    } else if (game.downloader === Downloader.PixelDrain) {
+      const id = game!.uri!.split("/").pop();
+
+      await GenericHTTPDownloader.startDownload(
+        game,
+        `https://pixeldrain.com/api/file/${id}?download`
+      );
+    } else if (game.downloader === Downloader.Torrent) {
       PythonInstance.startDownload(game);
-      this.currentDownloader = Downloader.Torrent;
+    } else if (game.downloader === Downloader.RealDebrid) {
+      RealDebridDownloader.startDownload(game);
     }
+
+    this.currentDownloader = game.downloader;
   }
 }

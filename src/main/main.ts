@@ -22,8 +22,9 @@ const loadState = async (userPreferences: UserPreferences | null) => {
 
   import("./events");
 
-  if (userPreferences?.realDebridApiToken)
+  if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences?.realDebridApiToken);
+  }
 
   HydraApi.setupApi().then(() => {
     uploadGamesBatch();

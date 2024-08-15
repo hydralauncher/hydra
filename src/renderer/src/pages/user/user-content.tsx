@@ -378,11 +378,7 @@ export function UserContent({
                   <TelescopeIcon size={24} />
                 </div>
                 <h2>{t("no_recent_activity_title")}</h2>
-                {isMe && (
-                  <p style={{ fontFamily: "Fira Sans" }}>
-                    {t("no_recent_activity_description")}
-                  </p>
-                )}
+                {isMe && <p>{t("no_recent_activity_description")}</p>}
               </div>
             ) : (
               <div
