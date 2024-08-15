@@ -115,7 +115,7 @@ export function UserContent({
 
   useEffect(() => {
     if (isMe) fetchFriendRequests();
-  }, [isMe]);
+  }, [isMe, fetchFriendRequests]);
 
   useEffect(() => {
     if (isMe && profileBackground) {
@@ -129,7 +129,7 @@ export function UserContent({
         }
       );
     }
-  }, [profileBackground, isMe]);
+  }, [profileBackground, isMe, userProfile.profileImageUrl]);
 
   const handleFriendAction = (userId: string, action: FriendAction) => {
     try {
