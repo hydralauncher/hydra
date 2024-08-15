@@ -19,7 +19,10 @@ export function DescriptionHeader() {
             date: shopDetails?.release_date.date,
           })}
         </p>
-        <p>{t("publisher", { publisher: shopDetails.publishers[0] })}</p>
+
+        {Array.isArray(shopDetails.publishers) && (
+          <p>{t("publisher", { publisher: shopDetails.publishers[0] })}</p>
+        )}
       </section>
     </div>
   );

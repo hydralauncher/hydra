@@ -8,12 +8,10 @@ import { HashRouter, Route, Routes } from "react-router-dom";
 
 import * as Sentry from "@sentry/electron/renderer";
 
-import "@fontsource/fira-mono/400.css";
-import "@fontsource/fira-mono/500.css";
-import "@fontsource/fira-mono/700.css";
-import "@fontsource/fira-sans/400.css";
-import "@fontsource/fira-sans/500.css";
-import "@fontsource/fira-sans/700.css";
+import "@fontsource/noto-sans/400.css";
+import "@fontsource/noto-sans/500.css";
+import "@fontsource/noto-sans/700.css";
+
 import "react-loading-skeleton/dist/skeleton.css";
 
 import { App } from "./app";
