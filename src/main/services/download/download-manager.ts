@@ -102,8 +102,6 @@ export class DownloadManager {
       const token = await GofileApi.authorize();
       const downloadLink = await GofileApi.getDownloadLink(id!);
 
-      console.log(downloadLink, token, "<<<");
-
       GenericHTTPDownloader.startDownload(game, downloadLink, {
         Cookie: `accountToken=${token}`,
       });

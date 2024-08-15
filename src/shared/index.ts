@@ -53,6 +53,8 @@ export const removeSpecialEditionFromName = (name: string) =>
 export const removeDuplicateSpaces = (name: string) =>
   name.replace(/\s{2,}/g, " ");
 
+export const replaceDotsWithSpace = (name: string) => name.replace(/\./g, " ");
+
 export const replaceUnderscoreWithSpace = (name: string) =>
   name.replace(/_/g, " ");
 
@@ -60,6 +62,7 @@ export const formatName = pipe<string>(
   removeReleaseYearFromName,
   removeSpecialEditionFromName,
   replaceUnderscoreWithSpace,
+  replaceDotsWithSpace,
   (str) => str.replace(/DIRECTOR'S CUT/g, ""),
   removeSymbolsFromName,
   removeDuplicateSpaces,

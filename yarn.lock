@@ -943,15 +943,10 @@
   resolved "https://registry.npmjs.org/@eslint/js/-/js-8.57.0.tgz"
   integrity sha512-Ys+3g2TaW7gADOJzPt83SJtCDhMjndcDMFVQ/Tj9iA1BfJzFKD9mAUXT3OenpuPHbI6P/myECxRJrofUsDx/5g==
 
-"@fontsource/fira-mono@^5.0.13":
-  version "5.0.13"
-  resolved "https://registry.npmjs.org/@fontsource/fira-mono/-/fira-mono-5.0.13.tgz"
-  integrity sha512-fZDjR2BdAqmauEbTjcIT62zYzbOgDa5+IQH34D2k8Pxmy1T815mAqQkZciWZVQ9dc/BgdTtTUV9HJ2ulBNwchg==
-
-"@fontsource/fira-sans@^5.0.20":
-  version "5.0.20"
-  resolved "https://registry.npmjs.org/@fontsource/fira-sans/-/fira-sans-5.0.20.tgz"
-  integrity sha512-inmUjoKPrgnO4uUaZTAgP0b6YdhDfA52axHXvdTwgLvwd2kn3ZgK52UZoxD0VnrvTOjLA/iE4oC0tNtz4nyb5g==
+"@fontsource/noto-sans@^5.0.22":
+  version "5.0.22"
+  resolved "https://registry.yarnpkg.com/@fontsource/noto-sans/-/noto-sans-5.0.22.tgz#2c5249347ba84fef16e71a58e0ec01b460174093"
+  integrity sha512-PwjvKPGFbgpwfKjWZj1zeUvd7ExUW2AqHE9PF9ysAJ2gOuzIHWE6mEVIlchYif7WC2pQhn+g0w6xooCObVi+4A==
 
 "@humanwhocodes/config-array@^0.11.14":
   version "0.11.14"

@@ -15,7 +15,6 @@ export const gameOptionHeader = style({
 });
 
 export const gameOptionHeaderDescription = style({
-  fontFamily: "'Fira Sans', sans-serif",
   fontWeight: "400",
 });
 

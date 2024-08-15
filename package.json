@@ -34,8 +34,7 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/utils": "^3.0.0",
-    "@fontsource/fira-mono": "^5.0.13",
-    "@fontsource/fira-sans": "^5.0.20",
+    "@fontsource/noto-sans": "^5.0.22",
     "@primer/octicons-react": "^19.9.0",
     "@reduxjs/toolkit": "^2.2.3",
     "@sentry/electron": "^5.1.0",

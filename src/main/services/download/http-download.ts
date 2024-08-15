@@ -2,7 +2,7 @@ import { DownloadItem } from "electron";
 import { WindowManager } from "../window-manager";
 import path from "node:path";
 
-export class HTTPDownload {
+export class HttpDownload {
   private static id = 0;
 
   private static downloads: Record<string, DownloadItem> = {};
