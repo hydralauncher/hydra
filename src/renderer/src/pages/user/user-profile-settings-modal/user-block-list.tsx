@@ -1,23 +1,15 @@
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { UserFriend } from "@types";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
 import { UserFriendItem } from "@renderer/pages/shared-modals/user-friend-modal/user-friend-item";
 
-export interface UserEditProfileBlockListProps {
-  closeModal: () => void;
-}
-
 const pageSize = 12;
 
-export const UserEditProfileBlockList = ({
-  closeModal,
-}: UserEditProfileBlockListProps) => {
+export const UserEditProfileBlockList = () => {
   const { t } = useTranslation("user_profile");
   const { showErrorToast } = useToast();
-  const navigate = useNavigate();
 
   const [page, setPage] = useState(0);
   const [maxPage, setMaxPage] = useState(0);
@@ -51,11 +43,6 @@ export const UserEditProfileBlockList = ({
     reloadList();
   }, []);
 
-  const handleClickBlocked = (userId: string) => {
-    closeModal();
-    navigate(`/user/${userId}`);
-  };
-
   const handleUnblock = (userId: string) => {
     unblockUser(userId)
       .then(() => {
@@ -80,9 +67,8 @@ export const UserEditProfileBlockList = ({
             userId={friend.id}
             displayName={friend.displayName}
             profileImageUrl={friend.profileImageUrl}
-            onClickItem={handleClickBlocked}
-            onClickUndoFriendship={handleUnblock}
-            type={"ACCEPTED"}
+            onClickUnblock={handleUnblock}
+            type={"BLOCKED"}
             key={friend.id}
           />
         );

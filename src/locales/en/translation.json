@@ -267,6 +267,7 @@
     "private": "Private",
     "friends_only": "Friends only",
     "privacy": "Privacy",
-    "blocked_users": "Blocked users"
+    "blocked_users": "Blocked users",
+    "unblock": "Unblock"
   }
 }
