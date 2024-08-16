@@ -1,10 +1,11 @@
 import { Button, Modal } from "@renderer/components";
-import { SPACING_UNIT } from "@renderer/theme.css";
-import { useEffect, useState } from "react";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { UserFriendModalAddFriend } from "./user-friend-modal-add-friend";
-import { useUserDetails } from "@renderer/hooks";
+import { useToast, useUserDetails } from "@renderer/hooks";
 import { UserFriendModalList } from "./user-friend-modal-list";
+import { CopyIcon } from "@primer/octicons-react";
 
 export enum UserFriendModalTab {
   FriendsList,
@@ -32,6 +33,8 @@ export const UserFriendModal = ({
     initialTab || UserFriendModalTab.FriendsList
   );
 
+  const { showSuccessToast } = useToast();
+
   const { userDetails } = useUserDetails();
   const isMe = userDetails?.id == userId;
 
@@ -53,6 +56,11 @@ export const UserFriendModal = ({
     return <></>;
   };
 
+  const copyToClipboard = useCallback(() => {
+    navigator.clipboard.writeText(userDetails!.id);
+    showSuccessToast("Código de amigo copiado");
+  }, [userDetails, showSuccessToast]);
+
   return (
     <Modal visible={visible} title={t("friends")} onClose={onClose}>
       <div
@@ -64,19 +72,43 @@ export const UserFriendModal = ({
         }}
       >
         {isMe && (
-          <section style={{ display: "flex", gap: `${SPACING_UNIT}px` }}>
-            {tabs.map((tab, index) => {
-              return (
-                <Button
-                  key={tab}
-                  theme={index === currentTab ? "primary" : "outline"}
-                  onClick={() => setCurrentTab(index)}
-                >
-                  {tab}
-                </Button>
-              );
-            })}
-          </section>
+          <>
+            <div
+              style={{
+                display: "flex",
+                gap: `${SPACING_UNIT}px`,
+                alignItems: "center",
+              }}
+            >
+              <p>Meu código de amigo: </p>
+              <button
+                style={{
+                  color: vars.color.body,
+                  cursor: "pointer",
+                  display: "flex",
+                  gap: `${SPACING_UNIT / 2}px`,
+                  alignItems: "center",
+                }}
+                onClick={copyToClipboard}
+              >
+                <h3>{userDetails.id}</h3>
+                <CopyIcon />
+              </button>
+            </div>
+            <section style={{ display: "flex", gap: `${SPACING_UNIT}px` }}>
+              {tabs.map((tab, index) => {
+                return (
+                  <Button
+                    key={tab}
+                    theme={index === currentTab ? "primary" : "outline"}
+                    onClick={() => setCurrentTab(index)}
+                  >
+                    {tab}
+                  </Button>
+                );
+              })}
+            </section>
+          </>
         )}
         {renderTab()}
       </div>
