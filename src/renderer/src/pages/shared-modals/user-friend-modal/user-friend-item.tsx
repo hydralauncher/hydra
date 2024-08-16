@@ -4,7 +4,6 @@ import {
   XCircleIcon,
 } from "@primer/octicons-react";
 import * as styles from "./user-friend-modal.css";
-import cn from "classnames";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { useTranslation } from "react-i18next";
 
@@ -108,7 +107,7 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
 
   if (type === "BLOCKED") {
     return (
-      <div className={cn(styles.friendListContainer, styles.profileContentBox)}>
+      <div className={styles.friendListContainer}>
         <div className={styles.friendListButton} style={{ cursor: "inherit" }}>
           <div className={styles.friendAvatarContainer}>
             {profileImageUrl ? (
@@ -149,7 +148,7 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
   }
 
   return (
-    <div className={cn(styles.friendListContainer, styles.profileContentBox)}>
+    <div className={styles.friendListContainer}>
       <button
         type="button"
         className={styles.friendListButton}

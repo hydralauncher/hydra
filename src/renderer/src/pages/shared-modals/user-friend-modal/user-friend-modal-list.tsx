@@ -1,10 +1,11 @@
-import { SPACING_UNIT } from "@renderer/theme.css";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { UserFriend } from "@types";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UserFriendItem } from "./user-friend-item";
 import { useNavigate } from "react-router-dom";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
 export interface UserFriendModalListProps {
   userId: string;
@@ -22,14 +23,18 @@ export const UserFriendModalList = ({
   const navigate = useNavigate();
 
   const [page, setPage] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const [maxPage, setMaxPage] = useState(0);
   const [friends, setFriends] = useState<UserFriend[]>([]);
+  const listContainer = useRef<HTMLDivElement>(null);
 
   const { userDetails, undoFriendship } = useUserDetails();
   const isMe = userDetails?.id == userId;
 
   const loadNextPage = () => {
     if (page > maxPage) return;
+    setIsLoading(true);
+    console.log("loading next page");
     window.electron
       .getUserFriends(userId, pageSize, page * pageSize)
       .then((newPage) => {
@@ -40,8 +45,28 @@ export const UserFriendModalList = ({
         setFriends([...friends, ...newPage.friends]);
         setPage(page + 1);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
   };
+
+  const handleScroll = () => {
+    const scrollTop = listContainer.current?.scrollTop || 0;
+    const scrollHeight = listContainer.current?.scrollHeight || 0;
+    const clientHeight = listContainer.current?.clientHeight || 0;
+    const maxScrollTop = scrollHeight - clientHeight;
+
+    if (scrollTop < maxScrollTop * 0.9 || isLoading) {
+      return;
+    }
+
+    loadNextPage();
+  };
+
+  useEffect(() => {
+    listContainer.current?.addEventListener("scroll", handleScroll);
+    return () =>
+      listContainer.current?.removeEventListener("scroll", handleScroll);
+  }, [isLoading]);
 
   const reloadList = () => {
     setPage(0);
@@ -70,27 +95,42 @@ export const UserFriendModalList = ({
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: `${SPACING_UNIT * 2}px`,
-      }}
-    >
-      {friends.length === 0 && <p>{t("no_friends_added")}</p>}
-      {friends.map((friend) => {
-        return (
-          <UserFriendItem
-            userId={friend.id}
-            displayName={friend.displayName}
-            profileImageUrl={friend.profileImageUrl}
-            onClickItem={handleClickFriend}
-            onClickUndoFriendship={handleUndoFriendship}
-            type={isMe ? "ACCEPTED" : null}
-            key={friend.id}
+    <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
+      <div
+        ref={listContainer}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: `${SPACING_UNIT * 2}px`,
+          maxHeight: "400px",
+          overflowY: "scroll",
+        }}
+      >
+        {friends.length === 0 && <p>{t("no_friends_added")}</p>}
+        {friends.map((friend) => {
+          return (
+            <UserFriendItem
+              userId={friend.id}
+              displayName={friend.displayName}
+              profileImageUrl={friend.profileImageUrl}
+              onClickItem={handleClickFriend}
+              onClickUndoFriendship={handleUndoFriendship}
+              type={isMe ? "ACCEPTED" : null}
+              key={"modal" + friend.id}
+            />
+          );
+        })}
+        {isLoading && (
+          <Skeleton
+            style={{
+              width: "100%",
+              height: "54px",
+              overflow: "hidden",
+              borderRadius: "4px",
+            }}
           />
-        );
-      })}
-    </div>
+        )}
+      </div>
+    </SkeletonTheme>
   );
 };
