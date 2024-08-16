@@ -272,6 +272,7 @@
     "no_friends_added": "You still don't have added friends",
     "pending": "Pending",
     "no_pending_invites": "You have no pending invites",
-    "no_blocked_users": "You have no blocked users"
+    "no_blocked_users": "You have no blocked users",
+    "friend_code_copied": "Friend code copied"
   }
 }

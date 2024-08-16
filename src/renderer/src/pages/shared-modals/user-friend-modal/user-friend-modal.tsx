@@ -59,8 +59,8 @@ export const UserFriendModal = ({
 
   const copyToClipboard = useCallback(() => {
     navigator.clipboard.writeText(userDetails!.id);
-    showSuccessToast("Código de amigo copiado");
-  }, [userDetails, showSuccessToast]);
+    showSuccessToast(t("friend_code_copied"));
+  }, [userDetails, showSuccessToast, t]);
 
   return (
     <Modal visible={visible} title={t("friends")} onClose={onClose}>
