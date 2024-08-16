@@ -90,3 +90,15 @@ export const cancelRequestButton = style({
     color: vars.color.danger,
   },
 });
+
+export const friendCodeButton = style({
+  color: vars.color.body,
+  cursor: "pointer",
+  display: "flex",
+  gap: `${SPACING_UNIT / 2}px`,
+  alignItems: "center",
+  transition: "all ease 0.2s",
+  ":hover": {
+    color: vars.color.muted,
+  },
+});

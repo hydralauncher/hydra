@@ -268,6 +268,10 @@
     "friends_only": "Friends only",
     "privacy": "Privacy",
     "blocked_users": "Blocked users",
-    "unblock": "Unblock"
+    "unblock": "Unblock",
+    "no_friends_added": "You still don't have added friends",
+    "pending": "Pending",
+    "no_pending_invites": "You have no pending invites",
+    "no_blocked_users": "You have no blocked users"
   }
 }
