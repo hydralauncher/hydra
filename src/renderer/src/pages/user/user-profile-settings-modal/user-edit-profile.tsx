@@ -98,7 +98,6 @@ export const UserEditProfile = ({
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
-        alignItems: "center",
         gap: `${SPACING_UNIT * 3}px`,
         width: "350px",
       }}
