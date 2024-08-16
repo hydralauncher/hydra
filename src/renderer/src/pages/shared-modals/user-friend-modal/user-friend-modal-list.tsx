@@ -34,7 +34,6 @@ export const UserFriendModalList = ({
   const loadNextPage = () => {
     if (page > maxPage) return;
     setIsLoading(true);
-    console.log("loading next page");
     window.electron
       .getUserFriends(userId, pageSize, page * pageSize)
       .then((newPage) => {
@@ -106,7 +105,7 @@ export const UserFriendModalList = ({
           overflowY: "scroll",
         }}
       >
-        {friends.length === 0 && <p>{t("no_friends_added")}</p>}
+        {!isLoading && friends.length === 0 && <p>{t("no_friends_added")}</p>}
         {friends.map((friend) => {
           return (
             <UserFriendItem
