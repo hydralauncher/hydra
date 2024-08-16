@@ -61,6 +61,7 @@ export const UserEditProfileBlockList = () => {
         gap: `${SPACING_UNIT * 2}px`,
       }}
     >
+      {blocks.length === 0 && <p>{t("no_blocked_users")}</p>}
       {blocks.map((friend) => {
         return (
           <UserFriendItem

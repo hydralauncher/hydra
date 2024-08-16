@@ -268,6 +268,10 @@
     "friends_only": "Apenas amigos",
     "public": "Público",
     "blocked_users": "Usuários bloqueados",
-    "unblock": "Desbloquear"
+    "unblock": "Desbloquear",
+    "no_friends_added": "Você ainda não possui amigos adicionados",
+    "pending": "Pendentes",
+    "no_pending_invites": "Você não possui convites de amizade pendentes",
+    "no_blocked_users": "Você não tem nenhum usuário bloqueado"
   }
 }

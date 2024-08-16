@@ -1,11 +1,12 @@
 import { Button, Modal } from "@renderer/components";
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
+import { SPACING_UNIT } from "@renderer/theme.css";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { UserFriendModalAddFriend } from "./user-friend-modal-add-friend";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { UserFriendModalList } from "./user-friend-modal-list";
 import { CopyIcon } from "@primer/octicons-react";
+import * as styles from "./user-friend-modal.css";
 
 export enum UserFriendModalTab {
   FriendsList,
@@ -80,15 +81,9 @@ export const UserFriendModal = ({
                 alignItems: "center",
               }}
             >
-              <p>Meu código de amigo: </p>
+              <p>Seu código de amigo: </p>
               <button
-                style={{
-                  color: vars.color.body,
-                  cursor: "pointer",
-                  display: "flex",
-                  gap: `${SPACING_UNIT / 2}px`,
-                  alignItems: "center",
-                }}
+                className={styles.friendCodeButton}
                 onClick={copyToClipboard}
               >
                 <h3>{userDetails.id}</h3>

@@ -77,6 +77,7 @@ export const UserFriendModalList = ({
         gap: `${SPACING_UNIT * 2}px`,
       }}
     >
+      {friends.length === 0 && <p>{t("no_friends_added")}</p>}
       {friends.map((friend) => {
         return (
           <UserFriendItem
