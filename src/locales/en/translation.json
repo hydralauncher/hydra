@@ -261,6 +261,18 @@
     "undo_friendship": "Undo friendship",
     "request_accepted": "Request accepted",
     "user_blocked_successfully": "User blocked successfully",
-    "user_block_modal_text": "This will block {{displayName}}"
+    "user_block_modal_text": "This will block {{displayName}}",
+    "settings": "Settings",
+    "public": "Public",
+    "private": "Private",
+    "friends_only": "Friends only",
+    "privacy": "Privacy",
+    "blocked_users": "Blocked users",
+    "unblock": "Unblock",
+    "no_friends_added": "You still don't have added friends",
+    "pending": "Pending",
+    "no_pending_invites": "You have no pending invites",
+    "no_blocked_users": "You have no blocked users",
+    "friend_code_copied": "Friend code copied"
   }
 }

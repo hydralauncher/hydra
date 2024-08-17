@@ -282,6 +282,11 @@ export interface UserFriends {
   friends: UserFriend[];
 }
 
+export interface UserBlocks {
+  totalBlocks: number;
+  blocks: UserFriend[];
+}
+
 export interface FriendRequest {
   id: string;
   displayName: string;
@@ -308,6 +313,13 @@ export interface UserProfile {
   friends: UserFriend[];
   totalFriends: number;
   relation: UserRelation | null;
+}
+
+export interface UpdateProfileProps {
+  displayName?: string;
+  profileVisibility?: "PUBLIC" | "PRIVATE" | "FRIENDS";
+  profileImageUrl?: string | null;
+  bio?: string;
 }
 
 export interface DownloadSource {
