@@ -60,6 +60,7 @@ export const friendListDisplayName = style({
 });
 
 export const profileAvatarEditContainer = style({
+  alignSelf: "center",
   width: "128px",
   height: "128px",
   display: "flex",
