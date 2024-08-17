@@ -42,8 +42,6 @@ export class HttpDownload {
       WindowManager.mainWindow?.webContents.session.once(
         "will-download",
         (_event, item, _webContents) => {
-          console.log(_event);
-
           this.downloadItem = item;
 
           item.setSavePath(path.join(this.downloadPath, item.getFilename()));
