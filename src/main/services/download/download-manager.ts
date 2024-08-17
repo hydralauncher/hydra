@@ -7,7 +7,7 @@ import { publishDownloadCompleteNotification } from "../notifications";
 import { RealDebridDownloader } from "./real-debrid-downloader";
 import type { DownloadProgress } from "@types";
 import { GofileApi } from "../hosters";
-import { GenericHTTPDownloader } from "./generic-http-downloader";
+import { GenericHttpDownloader } from "./generic-http-downloader";
 
 export class DownloadManager {
   private static currentDownloader: Downloader | null = null;
@@ -20,7 +20,7 @@ export class DownloadManager {
     } else if (this.currentDownloader === Downloader.RealDebrid) {
       status = await RealDebridDownloader.getStatus();
     } else {
-      status = await GenericHTTPDownloader.getStatus();
+      status = await GenericHttpDownloader.getStatus();
     }
 
     if (status) {
@@ -71,7 +71,7 @@ export class DownloadManager {
     } else if (this.currentDownloader === Downloader.RealDebrid) {
       await RealDebridDownloader.pauseDownload();
     } else {
-      await GenericHTTPDownloader.pauseDownload();
+      await GenericHttpDownloader.pauseDownload();
     }
 
     WindowManager.mainWindow?.setProgressBar(-1);
@@ -88,7 +88,7 @@ export class DownloadManager {
     } else if (this.currentDownloader === Downloader.RealDebrid) {
       RealDebridDownloader.cancelDownload(gameId);
     } else {
-      GenericHTTPDownloader.cancelDownload(gameId);
+      GenericHttpDownloader.cancelDownload(gameId);
     }
 
     WindowManager.mainWindow?.setProgressBar(-1);
@@ -102,13 +102,13 @@ export class DownloadManager {
       const token = await GofileApi.authorize();
       const downloadLink = await GofileApi.getDownloadLink(id!);
 
-      GenericHTTPDownloader.startDownload(game, downloadLink, {
+      GenericHttpDownloader.startDownload(game, downloadLink, {
         Cookie: `accountToken=${token}`,
       });
     } else if (game.downloader === Downloader.PixelDrain) {
       const id = game!.uri!.split("/").pop();
 
-      await GenericHTTPDownloader.startDownload(
+      await GenericHttpDownloader.startDownload(
         game,
         `https://pixeldrain.com/api/file/${id}?download`
       );
