@@ -1,67 +1,54 @@
-import { DownloadItem } from "electron";
 import { WindowManager } from "../window-manager";
 import path from "node:path";
 
 export class HttpDownload {
-  private static id = 0;
+  private downloadItem: Electron.DownloadItem;
 
-  private static downloads: Record<string, DownloadItem> = {};
+  constructor(
+    private downloadPath: string,
+    private downloadUrl: string,
+    private headers?: Record<string, string>
+  ) {}
 
-  public static getStatus(gid: string): {
-    completedLength: number;
-    totalLength: number;
-    downloadSpeed: number;
-    folderName: string;
-  } | null {
-    const downloadItem = this.downloads[gid];
-    if (downloadItem) {
-      return {
-        completedLength: downloadItem.getReceivedBytes(),
-        totalLength: downloadItem.getTotalBytes(),
-        downloadSpeed: downloadItem.getCurrentBytesPerSecond(),
-        folderName: downloadItem.getFilename(),
-      };
-    }
-
-    return null;
+  public getStatus() {
+    return {
+      completedLength: this.downloadItem.getReceivedBytes(),
+      totalLength: this.downloadItem.getTotalBytes(),
+      downloadSpeed: this.downloadItem.getCurrentBytesPerSecond(),
+      folderName: this.downloadItem.getFilename(),
+    };
   }
 
-  static async cancelDownload(gid: string) {
-    const downloadItem = this.downloads[gid];
-    downloadItem?.cancel();
-    delete this.downloads[gid];
+  async cancelDownload() {
+    this.downloadItem.cancel();
   }
 
-  static async pauseDownload(gid: string) {
-    const downloadItem = this.downloads[gid];
-    downloadItem?.pause();
+  async pauseDownload() {
+    this.downloadItem.pause();
   }
 
-  static async resumeDownload(gid: string) {
-    const downloadItem = this.downloads[gid];
-    downloadItem?.resume();
+  async resumeDownload() {
+    this.downloadItem.resume();
   }
 
-  static async startDownload(
-    downloadPath: string,
-    downloadUrl: string,
-    headers?: Record<string, string>
-  ) {
-    return new Promise<string>((resolve) => {
-      const options = headers ? { headers } : {};
-      WindowManager.mainWindow?.webContents.downloadURL(downloadUrl, options);
+  async startDownload() {
+    return new Promise((resolve) => {
+      const options = this.headers ? { headers: this.headers } : {};
+      WindowManager.mainWindow?.webContents.downloadURL(
+        this.downloadUrl,
+        options
+      );
 
-      const gid = ++this.id;
-
-      WindowManager.mainWindow?.webContents.session.on(
+      WindowManager.mainWindow?.webContents.session.once(
         "will-download",
         (_event, item, _webContents) => {
-          this.downloads[gid.toString()] = item;
+          console.log(_event);
 
-          // Set the save path, making Electron not to prompt a save dialog.
-          item.setSavePath(path.join(downloadPath, item.getFilename()));
+          this.downloadItem = item;
 
-          resolve(gid.toString());
+          item.setSavePath(path.join(this.downloadPath, item.getFilename()));
+
+          resolve(null);
         }
       );
     });

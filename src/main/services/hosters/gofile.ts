@@ -16,6 +16,8 @@ export interface GofileContentsResponse {
   children: Record<string, GofileContentChild>;
 }
 
+export const WT = "4fd6sg89d7s6";
+
 export class GofileApi {
   private static token: string;
 
@@ -35,7 +37,7 @@ export class GofileApi {
 
   public static async getDownloadLink(id: string) {
     const searchParams = new URLSearchParams({
-      wt: "4fd6sg89d7s6",
+      wt: WT,
     });
 
     const response = await axios.get<{
