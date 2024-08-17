@@ -4,32 +4,21 @@ import axios from "axios";
 import fs from "node:fs";
 import path from "node:path";
 import { fileTypeFromFile } from "file-type";
-import { UserProfile } from "@types";
+import { UpdateProfileProps, UserProfile } from "@types";
 
-const patchUserProfile = async (
-  displayName: string,
-  profileImageUrl?: string
-) => {
-  if (profileImageUrl) {
-    return HydraApi.patch("/profile", {
-      displayName,
-      profileImageUrl,
-    });
-  } else {
-    return HydraApi.patch("/profile", {
-      displayName,
-    });
-  }
+const patchUserProfile = async (updateProfile: UpdateProfileProps) => {
+  return HydraApi.patch("/profile", updateProfile);
 };
 
 const updateProfile = async (
   _event: Electron.IpcMainInvokeEvent,
-  displayName: string,
-  newProfileImagePath: string | null
+  updateProfile: UpdateProfileProps
 ): Promise<UserProfile> => {
-  if (!newProfileImagePath) {
-    return patchUserProfile(displayName);
+  if (!updateProfile.profileImageUrl) {
+    return patchUserProfile(updateProfile);
   }
+
+  const newProfileImagePath = updateProfile.profileImageUrl;
 
   const stats = fs.statSync(newProfileImagePath);
   const fileBuffer = fs.readFileSync(newProfileImagePath);
@@ -53,7 +42,7 @@ const updateProfile = async (
     })
     .catch(() => undefined);
 
-  return patchUserProfile(displayName, profileImageUrl);
+  return patchUserProfile({ ...updateProfile, profileImageUrl });
 };
 
 registerEvent("updateProfile", updateProfile);

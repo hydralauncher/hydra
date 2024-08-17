@@ -31,7 +31,7 @@ export const User = () => {
         navigate(-1);
       }
     });
-  }, [dispatch, userId, t]);
+  }, [dispatch, navigate, showErrorToast, userId, t]);
 
   useEffect(() => {
     getUserProfile();

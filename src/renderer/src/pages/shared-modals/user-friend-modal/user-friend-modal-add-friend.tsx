@@ -40,20 +40,16 @@ export const UserFriendModalAddFriend = ({
       });
   };
 
-  const resetAndClose = () => {
-    setFriendCode("");
-    closeModal();
-  };
-
   const handleClickRequest = (userId: string) => {
-    resetAndClose();
+    closeModal();
     navigate(`/user/${userId}`);
   };
 
   const handleClickSeeProfile = () => {
-    resetAndClose();
-    // TODO: add validation for this input?
-    navigate(`/user/${friendCode}`);
+    closeModal();
+    if (friendCode.length === 8) {
+      navigate(`/user/${friendCode}`);
+    }
   };
 
   const handleCancelFriendRequest = (userId: string) => {
@@ -122,7 +118,8 @@ export const UserFriendModalAddFriend = ({
           gap: `${SPACING_UNIT * 2}px`,
         }}
       >
-        <h3>Pendentes</h3>
+        <h3>{t("pending")}</h3>
+        {friendRequests.length === 0 && <p>{t("no_pending_invites")}</p>}
         {friendRequests.map((request) => {
           return (
             <UserFriendItem

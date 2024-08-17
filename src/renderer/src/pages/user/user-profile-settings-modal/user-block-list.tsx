@@ -1,47 +1,36 @@
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { UserFriend } from "@types";
 import { useEffect, useRef, useState } from "react";
-import { UserFriendItem } from "./user-friend-item";
-import { useNavigate } from "react-router-dom";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
+import { UserFriendItem } from "@renderer/pages/shared-modals/user-friend-modal/user-friend-item";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-
-export interface UserFriendModalListProps {
-  userId: string;
-  closeModal: () => void;
-}
 
 const pageSize = 12;
 
-export const UserFriendModalList = ({
-  userId,
-  closeModal,
-}: UserFriendModalListProps) => {
+export const UserEditProfileBlockList = () => {
   const { t } = useTranslation("user_profile");
   const { showErrorToast } = useToast();
-  const navigate = useNavigate();
 
   const [page, setPage] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [maxPage, setMaxPage] = useState(0);
-  const [friends, setFriends] = useState<UserFriend[]>([]);
+  const [blocks, setBlocks] = useState<UserFriend[]>([]);
   const listContainer = useRef<HTMLDivElement>(null);
 
-  const { userDetails, undoFriendship } = useUserDetails();
-  const isMe = userDetails?.id == userId;
+  const { unblockUser } = useUserDetails();
 
   const loadNextPage = () => {
     if (page > maxPage) return;
     setIsLoading(true);
     window.electron
-      .getUserFriends(userId, pageSize, page * pageSize)
+      .getUserBlocks(pageSize, page * pageSize)
       .then((newPage) => {
         if (page === 0) {
-          setMaxPage(newPage.totalFriends / pageSize);
+          setMaxPage(newPage.totalBlocks / pageSize);
         }
 
-        setFriends([...friends, ...newPage.friends]);
+        setBlocks([...blocks, ...newPage.blocks]);
         setPage(page + 1);
       })
       .catch(() => {})
@@ -70,21 +59,16 @@ export const UserFriendModalList = ({
   const reloadList = () => {
     setPage(0);
     setMaxPage(0);
-    setFriends([]);
+    setBlocks([]);
     loadNextPage();
   };
 
   useEffect(() => {
     reloadList();
-  }, [userId]);
+  }, []);
 
-  const handleClickFriend = (userId: string) => {
-    closeModal();
-    navigate(`/user/${userId}`);
-  };
-
-  const handleUndoFriendship = (userId: string) => {
-    undoFriendship(userId)
+  const handleUnblock = (userId: string) => {
+    unblockUser(userId)
       .then(() => {
         reloadList();
       })
@@ -105,17 +89,16 @@ export const UserFriendModalList = ({
           overflowY: "scroll",
         }}
       >
-        {!isLoading && friends.length === 0 && <p>{t("no_friends_added")}</p>}
-        {friends.map((friend) => {
+        {!isLoading && blocks.length === 0 && <p>{t("no_blocked_users")}</p>}
+        {blocks.map((friend) => {
           return (
             <UserFriendItem
               userId={friend.id}
               displayName={friend.displayName}
               profileImageUrl={friend.profileImageUrl}
-              onClickItem={handleClickFriend}
-              onClickUndoFriendship={handleUndoFriendship}
-              type={isMe ? "ACCEPTED" : null}
-              key={"modal" + friend.id}
+              onClickUnblock={handleUnblock}
+              type={"BLOCKED"}
+              key={friend.id}
             />
           );
         })}
