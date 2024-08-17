@@ -1,17 +1,6 @@
 import { SPACING_UNIT, vars } from "../../../theme.css";
 import { style } from "@vanilla-extract/css";
 
-export const profileContentBox = style({
-  display: "flex",
-  gap: `${SPACING_UNIT * 3}px`,
-  alignItems: "center",
-  borderRadius: "4px",
-  border: `solid 1px ${vars.color.border}`,
-  width: "100%",
-  boxShadow: "0px 0px 15px 0px rgba(0, 0, 0, 0.7)",
-  transition: "all ease 0.3s",
-});
-
 export const friendAvatarContainer = style({
   width: "35px",
   minWidth: "35px",
@@ -42,8 +31,14 @@ export const profileAvatar = style({
 });
 
 export const friendListContainer = style({
+  display: "flex",
+  gap: `${SPACING_UNIT * 3}px`,
+  alignItems: "center",
+  borderRadius: "4px",
+  border: `solid 1px ${vars.color.border}`,
   width: "100%",
   height: "54px",
+  minHeight: "54px",
   transition: "all ease 0.2s",
   position: "relative",
   ":hover": {
@@ -88,5 +83,17 @@ export const cancelRequestButton = style({
   height: "28px",
   ":hover": {
     color: vars.color.danger,
+  },
+});
+
+export const friendCodeButton = style({
+  color: vars.color.body,
+  cursor: "pointer",
+  display: "flex",
+  gap: `${SPACING_UNIT / 2}px`,
+  alignItems: "center",
+  transition: "all ease 0.2s",
+  ":hover": {
+    color: vars.color.muted,
   },
 });
