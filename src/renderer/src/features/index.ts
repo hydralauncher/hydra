@@ -6,3 +6,4 @@ export * from "./window-slice";
 export * from "./toast-slice";
 export * from "./user-details-slice";
 export * from "./running-game-slice";
+export * from "./collections-slice";

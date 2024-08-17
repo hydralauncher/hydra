@@ -14,6 +14,7 @@ import type {
   RealDebridUser,
   DownloadSource,
   UserProfile,
+  Collection,
   FriendRequest,
   FriendRequestAction,
   UserFriends,
@@ -81,6 +82,13 @@ declare global {
       ) => void
     ) => () => Electron.IpcRenderer;
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
+
+    /* Collections */
+    addCollection: (title: string) => Promise<void>;
+    addCollectionGame: (id: number, game: Game) => Promise<void>;
+    getCollections: () => Promise<Collection[]>;
+    removeCollection: (collection: Collection) => Promise<void>;
+    removeCollectionGame: (id: number, game: Game) => Promise<void>;
 
     /* User preferences */
     getUserPreferences: () => Promise<UserPreferences | null>;

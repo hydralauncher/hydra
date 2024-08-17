@@ -1,5 +1,6 @@
 import { dataSource } from "./data-source";
 import {
+  Collection,
   DownloadQueue,
   DownloadSource,
   Game,
@@ -24,3 +25,5 @@ export const downloadSourceRepository =
 export const downloadQueueRepository = dataSource.getRepository(DownloadQueue);
 
 export const userAuthRepository = dataSource.getRepository(UserAuth);
+
+export const collectionRepository = dataSource.getRepository(Collection);
