@@ -101,6 +101,7 @@ const startGameDownload = async (
   await downloadQueueRepository.delete({ game: { id: updatedGame!.id } });
   await downloadQueueRepository.insert({ game: { id: updatedGame!.id } });
 
+  await DownloadManager.cancelDownload(updatedGame!.id);
   await DownloadManager.startDownload(updatedGame!);
 };
 
