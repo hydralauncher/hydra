@@ -18,7 +18,8 @@ const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
   payload: StartGameDownloadPayload
 ) => {
-  const { repackId, objectID, title, shop, downloadPath, downloader } = payload;
+  const { repackId, objectID, title, shop, downloadPath, downloader, uri } =
+    payload;
 
   const [game, repack] = await Promise.all([
     gameRepository.findOne({
@@ -54,7 +55,7 @@ const startGameDownload = async (
         bytesDownloaded: 0,
         downloadPath,
         downloader,
-        uri: repack.magnet,
+        uri,
         isDeleted: false,
       }
     );
@@ -76,7 +77,7 @@ const startGameDownload = async (
         shop,
         status: "active",
         downloadPath,
-        uri: repack.magnet,
+        uri,
       })
       .then((result) => {
         if (iconUrl) {

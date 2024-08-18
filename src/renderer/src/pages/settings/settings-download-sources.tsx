@@ -134,15 +134,6 @@ export function SettingsDownloadSources() {
                       downloadSource.downloadCount.toLocaleString(),
                   })}
                 </small>
-
-                <div className={styles.separator} />
-
-                <small>
-                  {t("download_options", {
-                    count: downloadSource.repackCount,
-                    countFormatted: downloadSource.repackCount.toLocaleString(),
-                  })}
-                </small>
               </div>
             </div>
 

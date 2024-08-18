@@ -6,12 +6,12 @@ import {
   GameShopCache,
   Repack,
   UserPreferences,
+  UserAuth,
 } from "@main/entity";
 import type { BetterSqlite3ConnectionOptions } from "typeorm/driver/better-sqlite3/BetterSqlite3ConnectionOptions";
 
 import { databasePath } from "./constants";
 import migrations from "./migrations";
-import { UserAuth } from "./entity/user-auth";
 
 export const createDataSource = (
   options: Partial<BetterSqlite3ConnectionOptions>

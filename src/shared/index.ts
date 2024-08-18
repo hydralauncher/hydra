@@ -73,13 +73,26 @@ const realDebridHosts = ["https://1fichier.com", "https://mediafire.com"];
 
 export const getDownloadersForUri = (uri: string) => {
   if (uri.startsWith("https://gofile.io")) return [Downloader.Gofile];
+
   if (uri.startsWith("https://pixeldrain.com")) return [Downloader.PixelDrain];
 
   if (realDebridHosts.some((host) => uri.startsWith(host)))
     return [Downloader.RealDebrid];
 
-  if (uri.startsWith("magnet:"))
+  if (uri.startsWith("magnet:")) {
     return [Downloader.Torrent, Downloader.RealDebrid];
+  }
 
   return [];
+};
+
+export const getDownloadersForUris = (uris: string[]) => {
+  const downloadersSet = uris.reduce<Set<Downloader>>((prev, next) => {
+    const downloaders = getDownloadersForUri(next);
+    downloaders.forEach((downloader) => prev.add(downloader));
+
+    return prev;
+  }, new Set());
+
+  return Array.from(downloadersSet);
 };

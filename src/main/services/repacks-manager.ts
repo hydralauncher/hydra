@@ -8,11 +8,18 @@ export class RepacksManager {
   private static repacksIndex = new flexSearch.Index();
 
   public static async updateRepacks() {
-    this.repacks = await repackRepository.find({
-      order: {
-        createdAt: "DESC",
-      },
-    });
+    this.repacks = await repackRepository
+      .find({
+        order: {
+          createdAt: "DESC",
+        },
+      })
+      .then((repacks) =>
+        repacks.map((repack) => ({
+          ...repack,
+          uris: JSON.parse(repack.uris),
+        }))
+      );
 
     for (let i = 0; i < this.repacks.length; i++) {
       this.repacksIndex.remove(i);
