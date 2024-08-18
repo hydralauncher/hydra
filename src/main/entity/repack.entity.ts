@@ -19,7 +19,7 @@ export class Repack {
   /**
    * @deprecated Use uris instead
    */
-  @Column("text", { unique: true, nullable: true })
+  @Column("text", { unique: true })
   magnet: string;
 
   /**
