@@ -3,6 +3,7 @@ export enum Downloader {
   Torrent,
   Gofile,
   PixelDrain,
+  Qiwi,
 }
 
 export enum DownloadSourceStatus {
@@ -75,6 +76,7 @@ export const getDownloadersForUri = (uri: string) => {
   if (uri.startsWith("https://gofile.io")) return [Downloader.Gofile];
 
   if (uri.startsWith("https://pixeldrain.com")) return [Downloader.PixelDrain];
+  if (uri.startsWith("https://qiwi.gg")) return [Downloader.Qiwi];
 
   if (realDebridHosts.some((host) => uri.startsWith(host)))
     return [Downloader.RealDebrid];
