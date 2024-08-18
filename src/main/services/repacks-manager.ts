@@ -15,10 +15,17 @@ export class RepacksManager {
         },
       })
       .then((repacks) =>
-        repacks.map((repack) => ({
-          ...repack,
-          uris: JSON.parse(repack.uris),
-        }))
+        repacks.map((repack) => {
+          const uris: string[] = [];
+          const magnet = repack?.magnet;
+
+          if (magnet) uris.push(magnet);
+
+          return {
+            ...repack,
+            uris: [...uris, ...JSON.parse(repack.uris)],
+          };
+        })
       );
 
     for (let i = 0; i < this.repacks.length; i++) {
