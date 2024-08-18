@@ -16,11 +16,14 @@ export class Repack {
   @Column("text", { unique: true })
   title: string;
 
-  @Column("text", { unique: true })
+  /**
+   * @deprecated Use uris instead
+   */
+  @Column("text", { unique: true, nullable: true })
   magnet: string;
 
   /**
-   * @deprecated
+   * @deprecated Direct scraping capability has been removed
    */
   @Column("int", { nullable: true })
   page: number;
@@ -36,6 +39,9 @@ export class Repack {
 
   @ManyToOne(() => DownloadSource, { nullable: true, onDelete: "CASCADE" })
   downloadSource: DownloadSource;
+
+  @Column("text")
+  uris: string;
 
   @CreateDateColumn()
   createdAt: Date;
