@@ -40,7 +40,7 @@ export class Repack {
   @ManyToOne(() => DownloadSource, { nullable: true, onDelete: "CASCADE" })
   downloadSource: DownloadSource;
 
-  @Column("text")
+  @Column("text", { default: "[]" })
   uris: string;
 
   @CreateDateColumn()
