@@ -318,6 +318,7 @@ export interface UserProfile {
   friends: UserFriend[];
   totalFriends: number;
   relation: UserRelation | null;
+  currentGame: UserGame | null;
 }
 
 export interface UpdateProfileProps {

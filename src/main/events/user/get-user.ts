@@ -1,7 +1,7 @@
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
 import { steamGamesWorker } from "@main/workers";
-import { UserProfile } from "@types";
+import { UserGame, UserProfile } from "@types";
 import { convertSteamGameToCatalogueEntry } from "../helpers/search-games";
 import { getSteamAppAsset } from "@main/helpers";
 import { getUserFriends } from "./get-user-friends";
@@ -20,35 +20,13 @@ const getUser = async (
 
     const recentGames = await Promise.all(
       profile.recentGames.map(async (game) => {
-        const steamGame = await steamGamesWorker.run(Number(game.objectId), {
-          name: "getById",
-        });
-        const iconUrl = steamGame?.clientIcon
-          ? getSteamAppAsset("icon", game.objectId, steamGame.clientIcon)
-          : null;
-
-        return {
-          ...game,
-          ...convertSteamGameToCatalogueEntry(steamGame),
-          iconUrl,
-        };
+        return getSteamUserGame(game);
       })
     );
 
     const libraryGames = await Promise.all(
       profile.libraryGames.map(async (game) => {
-        const steamGame = await steamGamesWorker.run(Number(game.objectId), {
-          name: "getById",
-        });
-        const iconUrl = steamGame?.clientIcon
-          ? getSteamAppAsset("icon", game.objectId, steamGame.clientIcon)
-          : null;
-
-        return {
-          ...game,
-          ...convertSteamGameToCatalogueEntry(steamGame),
-          iconUrl,
-        };
+        return getSteamUserGame(game);
       })
     );
 
@@ -58,10 +36,28 @@ const getUser = async (
       recentGames,
       friends: friends.friends,
       totalFriends: friends.totalFriends,
+      currentGame: profile.currentGame
+        ? getSteamUserGame(profile.currentGame)
+        : null,
     };
   } catch (err) {
     return null;
   }
+};
+
+const getSteamUserGame = async (game): Promise<UserGame> => {
+  const steamGame = await steamGamesWorker.run(Number(game.objectId), {
+    name: "getById",
+  });
+  const iconUrl = steamGame?.clientIcon
+    ? getSteamAppAsset("icon", game.objectId, steamGame.clientIcon)
+    : null;
+
+  return {
+    ...game,
+    ...convertSteamGameToCatalogueEntry(steamGame),
+    iconUrl,
+  };
 };
 
 registerEvent("getUser", getUser);
