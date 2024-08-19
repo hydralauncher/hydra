@@ -1,7 +1,7 @@
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
 import { steamGamesWorker } from "@main/workers";
-import { UserGame, UserProfile } from "@types";
+import { GameRunning, UserGame, UserProfile } from "@types";
 import { convertSteamGameToCatalogueEntry } from "../helpers/search-games";
 import { getSteamAppAsset } from "@main/helpers";
 import { getUserFriends } from "./get-user-friends";
@@ -30,19 +30,32 @@ const getUser = async (
       })
     );
 
+    const currentGame = await getGameRunning(profile.currentGame);
+
     return {
       ...profile,
       libraryGames,
       recentGames,
       friends: friends.friends,
       totalFriends: friends.totalFriends,
-      currentGame: profile.currentGame
-        ? getSteamUserGame(profile.currentGame)
-        : null,
+      currentGame,
     };
   } catch (err) {
     return null;
   }
+};
+
+const getGameRunning = async (currentGame): Promise<GameRunning | null> => {
+  if (!currentGame) {
+    return null;
+  }
+
+  const gameRunning = await getSteamUserGame(currentGame);
+
+  return {
+    ...gameRunning,
+    sessionDurationInMillis: currentGame.sessionDurationInSeconds * 1000,
+  };
 };
 
 const getSteamUserGame = async (game): Promise<UserGame> => {

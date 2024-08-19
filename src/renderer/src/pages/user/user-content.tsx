@@ -1,4 +1,9 @@
-import { FriendRequestAction, UserGame, UserProfile } from "@types";
+import {
+  FriendRequestAction,
+  GameRunning,
+  UserGame,
+  UserProfile,
+} from "@types";
 import cn from "classnames";
 import * as styles from "./user.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
@@ -44,7 +49,6 @@ export function UserContent({
   updateUserProfile,
 }: ProfileContentProps) {
   const { t, i18n } = useTranslation("user_profile");
-
   const {
     userDetails,
     profileBackground,
@@ -64,6 +68,7 @@ export function UserContent({
     useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showUserBlockModal, setShowUserBlockModal] = useState(false);
+  const [currentGame, setCurrentGame] = useState<GameRunning | null>(null);
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
 
@@ -112,6 +117,15 @@ export function UserContent({
   };
 
   const isMe = userDetails?.id == userProfile.id;
+
+  useEffect(() => {
+    if (isMe && gameRunning) {
+      setCurrentGame(gameRunning);
+      return;
+    }
+
+    setCurrentGame(userProfile.currentGame);
+  }, [gameRunning, isMe]);
 
   useEffect(() => {
     if (isMe) fetchFriendRequests();
@@ -284,10 +298,10 @@ export function UserContent({
           position: "relative",
         }}
       >
-        {gameRunning && isMe && (
+        {currentGame && (
           <img
-            src={steamUrlBuilder.libraryHero(gameRunning.objectID)}
-            alt={gameRunning.title}
+            src={steamUrlBuilder.libraryHero(currentGame.objectID)}
+            alt={currentGame.title}
             className={styles.profileBackground}
           />
         )}
@@ -315,7 +329,7 @@ export function UserContent({
 
         <div className={styles.profileInformation}>
           <h2 style={{ fontWeight: "bold" }}>{userProfile.displayName}</h2>
-          {isMe && gameRunning && (
+          {currentGame && (
             <div
               style={{
                 display: "flex",
@@ -331,14 +345,14 @@ export function UserContent({
                   alignItems: "center",
                 }}
               >
-                <Link to={buildGameDetailsPath(gameRunning)}>
-                  {gameRunning.title}
+                <Link to={buildGameDetailsPath(currentGame)}>
+                  {currentGame.title}
                 </Link>
               </div>
               <small>
                 {t("playing_for", {
                   amount: formatDiffInMillis(
-                    gameRunning.sessionDurationInMillis,
+                    currentGame.sessionDurationInMillis,
                     new Date()
                   ),
                 })}
