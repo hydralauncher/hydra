@@ -12,7 +12,7 @@ const getUser = async (
 ): Promise<UserProfile | null> => {
   try {
     const [profile, friends] = await Promise.all([
-      HydraApi.get(`/user/${userId}`),
+      HydraApi.get(`/users/${userId}`),
       getUserFriends(userId, 12, 0).catch(() => {
         return { totalFriends: 0, friends: [] };
       }),

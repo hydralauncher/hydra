@@ -14,7 +14,7 @@ export const uploadGamesBatch = async () => {
 
   for (const chunk of gamesChunks) {
     await HydraApi.post(
-      "/games/batch",
+      "/profile/games/batch",
       chunk.map((game) => {
         return {
           objectId: game.objectID,
