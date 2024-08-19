@@ -78,7 +78,7 @@ export function SidebarProfile() {
             )}
           </div>
 
-          {userDetails && gameRunning && (
+          {userDetails && gameRunning?.iconUrl && (
             <img
               alt={gameRunning.title}
               width={24}
