@@ -158,7 +158,7 @@ export class WindowManager {
 
       const recentlyPlayedGames: Array<MenuItemConstructorOptions | MenuItem> =
         games.map(({ title, executablePath }) => ({
-          label: title,
+          label: title.length > 15 ? `${title.slice(0, 15)}…` : title,
           type: "normal",
           click: async () => {
             if (!executablePath) return;
