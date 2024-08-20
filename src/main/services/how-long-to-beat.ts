@@ -1,5 +1,4 @@
 import axios from "axios";
-import { JSDOM } from "jsdom";
 import { requestWebPage } from "@main/helpers";
 import { HowLongToBeatCategory } from "@types";
 import { formatName } from "@shared";
@@ -52,10 +51,7 @@ const parseListItems = ($lis: Element[]) => {
 export const getHowLongToBeatGame = async (
   id: string
 ): Promise<HowLongToBeatCategory[]> => {
-  const response = await requestWebPage(`https://howlongtobeat.com/game/${id}`);
-
-  const { window } = new JSDOM(response);
-  const { document } = window;
+  const document = await requestWebPage(`https://howlongtobeat.com/game/${id}`);
 
   const $ul = document.querySelector(".shadow_shadow ul");
   if (!$ul) return [];

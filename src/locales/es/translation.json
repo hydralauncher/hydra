@@ -250,6 +250,17 @@
     "friend_request_sent": "Solicitud de amistad enviada",
     "friends": "Amigos",
     "friends_list": "Lista de amigos",
-    "user_not_found": "Usuario no encontrado"
+    "user_not_found": "Usuario no encontrado",
+    "block_user": "Bloquear usuario",
+    "add_friend": "Añadir amigo",
+    "request_sent": "Solicitud enviada",
+    "request_received": "Solicitud recibida",
+    "accept_request": "Aceptar solicitud",
+    "ignore_request": "Ignorar solicitud",
+    "cancel_request": "Cancelar solicitud",
+    "undo_friendship": "Eliminar amistad",
+    "request_accepted": "Solicitud aceptada",
+    "user_blocked_successfully": "Usuario bloqueado exitosamente",
+    "user_block_modal_text": "Esto va a bloquear a {{displayName}}"
   }
 }

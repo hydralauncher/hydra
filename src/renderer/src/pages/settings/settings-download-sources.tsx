@@ -82,9 +82,7 @@ export function SettingsDownloadSources() {
         onAddDownloadSource={handleAddDownloadSource}
       />
 
-      <p style={{ fontFamily: '"Fira Sans"' }}>
-        {t("download_sources_description")}
-      </p>
+      <p>{t("download_sources_description")}</p>
 
       <div className={styles.downloadSourcesHeader}>
         <Button
@@ -134,15 +132,6 @@ export function SettingsDownloadSources() {
                     count: downloadSource.downloadCount,
                     countFormatted:
                       downloadSource.downloadCount.toLocaleString(),
-                  })}
-                </small>
-
-                <div className={styles.separator} />
-
-                <small>
-                  {t("download_options", {
-                    count: downloadSource.repackCount,
-                    countFormatted: downloadSource.repackCount.toLocaleString(),
                   })}
                 </small>
               </div>

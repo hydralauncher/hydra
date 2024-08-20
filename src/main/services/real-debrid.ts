@@ -46,7 +46,7 @@ export class RealDebridClient {
   static async selectAllFiles(id: string) {
     const searchParams = new URLSearchParams({ files: "all" });
 
-    await this.instance.post(
+    return this.instance.post(
       `/torrents/selectFiles/${id}`,
       searchParams.toString()
     );

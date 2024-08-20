@@ -26,7 +26,7 @@ globalStyle("html, body, #root, main", {
 globalStyle("body", {
   overflow: "hidden",
   userSelect: "none",
-  fontFamily: "'Fira Mono', monospace",
+  fontFamily: "Noto Sans, sans-serif",
   fontSize: vars.size.body,
   background: vars.color.background,
   color: vars.color.body,
