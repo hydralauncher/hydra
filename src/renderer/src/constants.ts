@@ -7,4 +7,5 @@ export const DOWNLOADER_NAME = {
   [Downloader.Torrent]: "Torrent",
   [Downloader.Gofile]: "Gofile",
   [Downloader.PixelDrain]: "PixelDrain",
+  [Downloader.Qiwi]: "Qiwi",
 };
