@@ -77,54 +77,54 @@ export class HydraApi {
       baseURL: import.meta.env.MAIN_VITE_API_URL,
     });
 
-    // this.instance.interceptors.request.use(
-    //   (request) => {
-    //     logger.log(" ---- REQUEST -----");
-    //     logger.log(request.method, request.url, request.params, request.data);
-    //     return request;
-    //   },
-    //   (error) => {
-    //     logger.error("request error", error);
-    //     return Promise.reject(error);
-    //   }
-    // );
+    this.instance.interceptors.request.use(
+      (request) => {
+        logger.log(" ---- REQUEST -----");
+        logger.log(request.method, request.url, request.params, request.data);
+        return request;
+      },
+      (error) => {
+        logger.error("request error", error);
+        return Promise.reject(error);
+      }
+    );
 
-    // this.instance.interceptors.response.use(
-    //   (response) => {
-    //     logger.log(" ---- RESPONSE -----");
-    //     logger.log(
-    //       response.status,
-    //       response.config.method,
-    //       response.config.url,
-    //       response.data
-    //     );
-    //     return response;
-    //   },
-    //   (error) => {
-    //     logger.error(" ---- RESPONSE ERROR -----");
+    this.instance.interceptors.response.use(
+      (response) => {
+        logger.log(" ---- RESPONSE -----");
+        logger.log(
+          response.status,
+          response.config.method,
+          response.config.url,
+          response.data
+        );
+        return response;
+      },
+      (error) => {
+        logger.error(" ---- RESPONSE ERROR -----");
 
-    //     const { config } = error;
+        const { config } = error;
 
-    //     logger.error(
-    //       config.method,
-    //       config.baseURL,
-    //       config.url,
-    //       config.headers,
-    //       config.data
-    //     );
+        logger.error(
+          config.method,
+          config.baseURL,
+          config.url,
+          config.headers,
+          config.data
+        );
 
-    //     if (error.response) {
-    //       logger.error("Response", error.response.status, error.response.data);
-    //     } else if (error.request) {
-    //       logger.error("Request", error.request);
-    //     } else {
-    //       logger.error("Error", error.message);
-    //     }
+        if (error.response) {
+          logger.error("Response", error.response.status, error.response.data);
+        } else if (error.request) {
+          logger.error("Request", error.request);
+        } else {
+          logger.error("Error", error.message);
+        }
 
-    //     logger.error(" ----- END RESPONSE ERROR -------");
-    //     return Promise.reject(error);
-    //   }
-    // );
+        logger.error(" ----- END RESPONSE ERROR -------");
+        return Promise.reject(error);
+      }
+    );
 
     const userAuth = await userAuthRepository.findOne({
       where: { id: 1 },

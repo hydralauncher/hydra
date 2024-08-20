@@ -141,9 +141,9 @@ export interface Game {
 export type LibraryGame = Omit<Game, "repacks">;
 
 export interface GameRunning {
-  id: number;
+  id?: number;
   title: string;
-  iconUrl: string;
+  iconUrl: string | null;
   objectID: string;
   shop: GameShop;
   sessionDurationInMillis: number;
@@ -318,6 +318,7 @@ export interface UserProfile {
   friends: UserFriend[];
   totalFriends: number;
   relation: UserRelation | null;
+  currentGame: GameRunning | null;
 }
 
 export interface UpdateProfileProps {
