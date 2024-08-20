@@ -51,9 +51,9 @@ export const UserEditProfileBlockList = () => {
   };
 
   useEffect(() => {
-    listContainer.current?.addEventListener("scroll", handleScroll);
-    return () =>
-      listContainer.current?.removeEventListener("scroll", handleScroll);
+    const container = listContainer.current;
+    container?.addEventListener("scroll", handleScroll);
+    return () => container?.removeEventListener("scroll", handleScroll);
   }, [isLoading]);
 
   const reloadList = () => {

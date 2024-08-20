@@ -125,7 +125,7 @@ export function UserContent({
     }
 
     setCurrentGame(userProfile.currentGame);
-  }, [gameRunning, isMe]);
+  }, [gameRunning, isMe, userProfile.currentGame]);
 
   useEffect(() => {
     if (isMe) fetchFriendRequests();
