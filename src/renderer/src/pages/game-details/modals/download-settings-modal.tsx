@@ -5,7 +5,7 @@ import { DiskSpace } from "check-disk-space";
 import * as styles from "./download-settings-modal.css";
 import { Button, Link, Modal, TextField } from "@renderer/components";
 import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
-import { Downloader, formatBytes, getDownloadersForUri } from "@shared";
+import { Downloader, formatBytes, getDownloadersForUris } from "@shared";
 
 import type { GameRepack } from "@types";
 import { SPACING_UNIT } from "@renderer/theme.css";
@@ -48,8 +48,8 @@ export function DownloadSettingsModal({
   }, [visible, selectedPath]);
 
   const downloaders = useMemo(() => {
-    return getDownloadersForUri(repack?.magnet ?? "");
-  }, [repack?.magnet]);
+    return getDownloadersForUris(repack?.uris ?? []);
+  }, [repack?.uris]);
 
   useEffect(() => {
     if (userPreferences?.downloadsPath) {

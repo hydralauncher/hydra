@@ -1,4 +1,5 @@
 import axios from "axios";
+import { JSDOM } from "jsdom";
 import UserAgent from "user-agents";
 
 export const getSteamAppAsset = (
@@ -48,13 +49,16 @@ export const sleep = (ms: number) =>
 export const requestWebPage = async (url: string) => {
   const userAgent = new UserAgent();
 
-  return axios
+  const data = await axios
     .get(url, {
       headers: {
         "User-Agent": userAgent.toString(),
       },
     })
     .then((response) => response.data);
+
+  const { window } = new JSDOM(data);
+  return window.document;
 };
 
 export const isPortableVersion = () =>

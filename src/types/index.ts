@@ -67,7 +67,11 @@ export interface SteamAppDetails {
 export interface GameRepack {
   id: number;
   title: string;
+  /**
+   * @deprecated Use uris instead
+   */
   magnet: string;
+  uris: string[];
   repacker: string;
   fileSize: string | null;
   uploadDate: Date | string | null;
@@ -194,6 +198,7 @@ export interface StartGameDownloadPayload {
   objectID: string;
   title: string;
   shop: GameShop;
+  uri: string;
   downloadPath: string;
   downloader: Downloader;
 }

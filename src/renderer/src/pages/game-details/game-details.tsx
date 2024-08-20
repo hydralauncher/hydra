@@ -23,7 +23,7 @@ import {
 } from "@renderer/context";
 import { useDownload } from "@renderer/hooks";
 import { GameOptionsModal, RepacksModal } from "./modals";
-import { Downloader } from "@shared";
+import { Downloader, getDownloadersForUri } from "@shared";
 
 export function GameDetails() {
   const [randomGame, setRandomGame] = useState<Steam250Game | null>(null);
@@ -70,6 +70,9 @@ export function GameDetails() {
     }
   };
 
+  const selectRepackUri = (repack: GameRepack, downloader: Downloader) =>
+    repack.uris.find((uri) => getDownloadersForUri(uri).includes(downloader))!;
+
   return (
     <GameDetailsContextProvider>
       <GameDetailsContextConsumer>
@@ -96,6 +99,7 @@ export function GameDetails() {
               downloader,
               shop: shop as GameShop,
               downloadPath,
+              uri: selectRepackUri(repack, downloader),
             });
 
             await updateGame();
