@@ -1,6 +1,9 @@
 export enum Downloader {
   RealDebrid,
   Torrent,
+  Gofile,
+  PixelDrain,
+  Qiwi,
 }
 
 export enum DownloadSourceStatus {
@@ -51,6 +54,8 @@ export const removeSpecialEditionFromName = (name: string) =>
 export const removeDuplicateSpaces = (name: string) =>
   name.replace(/\s{2,}/g, " ");
 
+export const replaceDotsWithSpace = (name: string) => name.replace(/\./g, " ");
+
 export const replaceUnderscoreWithSpace = (name: string) =>
   name.replace(/_/g, " ");
 
@@ -58,8 +63,38 @@ export const formatName = pipe<string>(
   removeReleaseYearFromName,
   removeSpecialEditionFromName,
   replaceUnderscoreWithSpace,
+  replaceDotsWithSpace,
   (str) => str.replace(/DIRECTOR'S CUT/g, ""),
   removeSymbolsFromName,
   removeDuplicateSpaces,
   (str) => str.trim()
 );
+
+const realDebridHosts = ["https://1fichier.com", "https://mediafire.com"];
+
+export const getDownloadersForUri = (uri: string) => {
+  if (uri.startsWith("https://gofile.io")) return [Downloader.Gofile];
+
+  if (uri.startsWith("https://pixeldrain.com")) return [Downloader.PixelDrain];
+  if (uri.startsWith("https://qiwi.gg")) return [Downloader.Qiwi];
+
+  if (realDebridHosts.some((host) => uri.startsWith(host)))
+    return [Downloader.RealDebrid];
+
+  if (uri.startsWith("magnet:")) {
+    return [Downloader.Torrent, Downloader.RealDebrid];
+  }
+
+  return [];
+};
+
+export const getDownloadersForUris = (uris: string[]) => {
+  const downloadersSet = uris.reduce<Set<Downloader>>((prev, next) => {
+    const downloaders = getDownloadersForUri(next);
+    downloaders.forEach((downloader) => prev.add(downloader));
+
+    return prev;
+  }, new Set());
+
+  return Array.from(downloadersSet);
+};

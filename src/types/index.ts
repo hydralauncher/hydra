@@ -67,7 +67,11 @@ export interface SteamAppDetails {
 export interface GameRepack {
   id: number;
   title: string;
+  /**
+   * @deprecated Use uris instead
+   */
   magnet: string;
+  uris: string[];
   repacker: string;
   fileSize: string | null;
   uploadDate: Date | string | null;
@@ -194,6 +198,7 @@ export interface StartGameDownloadPayload {
   objectID: string;
   title: string;
   shop: GameShop;
+  uri: string;
   downloadPath: string;
   downloader: Downloader;
 }
@@ -282,6 +287,11 @@ export interface UserFriends {
   friends: UserFriend[];
 }
 
+export interface UserBlocks {
+  totalBlocks: number;
+  blocks: UserFriend[];
+}
+
 export interface FriendRequest {
   id: string;
   displayName: string;
@@ -308,6 +318,13 @@ export interface UserProfile {
   friends: UserFriend[];
   totalFriends: number;
   relation: UserRelation | null;
+}
+
+export interface UpdateProfileProps {
+  displayName?: string;
+  profileVisibility?: "PUBLIC" | "PRIVATE" | "FRIENDS";
+  profileImageUrl?: string | null;
+  bio?: string;
 }
 
 export interface DownloadSource {
