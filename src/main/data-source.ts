@@ -23,7 +23,7 @@ export const dataSource = new DataSource({
     DownloadQueue,
     UserAuth,
   ],
-  synchronize: true,
+  synchronize: false,
   database: databasePath,
   migrations,
 });
