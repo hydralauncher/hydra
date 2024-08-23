@@ -9,7 +9,6 @@ import { logger, PythonInstance, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
-import { knexClient, migrationConfig } from "./knex";
 
 const { autoUpdater } = updater;
 
@@ -64,22 +63,8 @@ app.whenReady().then(async () => {
     return net.fetch(url.pathToFileURL(decodeURI(filePath)).toString());
   });
 
-  await knexClient.migrate.list(migrationConfig).then((result) => {
-    console.log("Migrations to run:", result[1]);
-  });
-
-  await knexClient.migrate
-    .latest(migrationConfig)
-    .then(() => {
-      console.log("Migrations executed successfully");
-    })
-    .catch((err) => {
-      console.log("Migrations failed to run:", err);
-    });
-
-  await knexClient.destroy();
-
   await dataSource.initialize();
+  await dataSource.runMigrations();
 
   await import("./main");
 

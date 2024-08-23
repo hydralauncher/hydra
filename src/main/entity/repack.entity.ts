@@ -22,6 +22,12 @@ export class Repack {
   @Column("text", { unique: true })
   magnet: string;
 
+  /**
+   * @deprecated Direct scraping capability has been removed
+   */
+  @Column("int", { nullable: true })
+  page: number;
+
   @Column("text")
   repacker: string;
 
