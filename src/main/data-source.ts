@@ -10,6 +10,7 @@ import {
 } from "@main/entity";
 
 import { databasePath } from "./constants";
+import * as migrations from "./migrations";
 
 export const dataSource = new DataSource({
   type: "better-sqlite3",
@@ -22,6 +23,7 @@ export const dataSource = new DataSource({
     DownloadQueue,
     UserAuth,
   ],
-  synchronize: false,
+  synchronize: true,
   database: databasePath,
+  migrations,
 });
