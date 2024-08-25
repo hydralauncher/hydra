@@ -5,7 +5,7 @@ const unblockUser = async (
   _event: Electron.IpcMainInvokeEvent,
   userId: string
 ) => {
-  await HydraApi.post(`/user/${userId}/unblock`);
+  await HydraApi.post(`/users/${userId}/unblock`);
 };
 
 registerEvent("unblockUser", unblockUser);

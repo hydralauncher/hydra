@@ -42,10 +42,3 @@ export const downloadSourcesHeader = style({
   justifyContent: "space-between",
   alignItems: "center",
 });
-
-export const separator = style({
-  height: "100%",
-  width: "1px",
-  backgroundColor: vars.color.border,
-  margin: `${SPACING_UNIT}px 0`,
-});

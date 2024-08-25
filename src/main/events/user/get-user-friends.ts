@@ -14,7 +14,7 @@ export const getUserFriends = async (
     return HydraApi.get(`/profile/friends`, { take, skip });
   }
 
-  return HydraApi.get(`/user/${userId}/friends`, { take, skip });
+  return HydraApi.get(`/users/${userId}/friends`, { take, skip });
 };
 
 const getUserFriendsEvent = async (

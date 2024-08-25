@@ -1,4 +1,9 @@
-import { FriendRequestAction, UserGame, UserProfile } from "@types";
+import {
+  FriendRequestAction,
+  GameRunning,
+  UserGame,
+  UserProfile,
+} from "@types";
 import cn from "classnames";
 import * as styles from "./user.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
@@ -25,7 +30,7 @@ import {
   XCircleIcon,
 } from "@primer/octicons-react";
 import { Button, Link } from "@renderer/components";
-import { UserEditProfileModal } from "./user-edit-modal";
+import { UserProfileSettingsModal } from "./user-profile-settings-modal";
 import { UserSignOutModal } from "./user-sign-out-modal";
 import { UserFriendModalTab } from "../shared-modals/user-friend-modal";
 import { UserBlockModal } from "./user-block-modal";
@@ -44,7 +49,6 @@ export function UserContent({
   updateUserProfile,
 }: ProfileContentProps) {
   const { t, i18n } = useTranslation("user_profile");
-
   const {
     userDetails,
     profileBackground,
@@ -60,9 +64,11 @@ export function UserContent({
 
   const [profileContentBoxBackground, setProfileContentBoxBackground] =
     useState<string | undefined>();
-  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showProfileSettingsModal, setShowProfileSettingsModal] =
+    useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showUserBlockModal, setShowUserBlockModal] = useState(false);
+  const [currentGame, setCurrentGame] = useState<GameRunning | null>(null);
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
 
@@ -95,7 +101,7 @@ export function UserContent({
   };
 
   const handleEditProfile = () => {
-    setShowEditProfileModal(true);
+    setShowProfileSettingsModal(true);
   };
 
   const handleOnClickFriend = (userId: string) => {
@@ -113,8 +119,17 @@ export function UserContent({
   const isMe = userDetails?.id == userProfile.id;
 
   useEffect(() => {
+    if (isMe && gameRunning) {
+      setCurrentGame(gameRunning);
+      return;
+    }
+
+    setCurrentGame(userProfile.currentGame);
+  }, [gameRunning, isMe, userProfile.currentGame]);
+
+  useEffect(() => {
     if (isMe) fetchFriendRequests();
-  }, [isMe]);
+  }, [isMe, fetchFriendRequests]);
 
   useEffect(() => {
     if (isMe && profileBackground) {
@@ -128,7 +143,7 @@ export function UserContent({
         }
       );
     }
-  }, [profileBackground, isMe]);
+  }, [profileBackground, isMe, userProfile.profileImageUrl]);
 
   const handleFriendAction = (userId: string, action: FriendAction) => {
     try {
@@ -159,13 +174,18 @@ export function UserContent({
   };
 
   const showFriends = isMe || userProfile.totalFriends > 0;
+  const showProfileContent =
+    isMe ||
+    userProfile.profileVisibility === "PUBLIC" ||
+    (userProfile.relation?.status === "ACCEPTED" &&
+      userProfile.profileVisibility === "FRIENDS");
 
   const getProfileActions = () => {
     if (isMe) {
       return (
         <>
           <Button theme="outline" onClick={handleEditProfile}>
-            {t("edit_profile")}
+            {t("settings")}
           </Button>
 
           <Button theme="danger" onClick={() => setShowSignOutModal(true)}>
@@ -251,9 +271,9 @@ export function UserContent({
 
   return (
     <>
-      <UserEditProfileModal
-        visible={showEditProfileModal}
-        onClose={() => setShowEditProfileModal(false)}
+      <UserProfileSettingsModal
+        visible={showProfileSettingsModal}
+        onClose={() => setShowProfileSettingsModal(false)}
         updateUserProfile={updateUserProfile}
         userProfile={userProfile}
       />
@@ -278,10 +298,10 @@ export function UserContent({
           position: "relative",
         }}
       >
-        {gameRunning && isMe && (
+        {currentGame && (
           <img
-            src={steamUrlBuilder.libraryHero(gameRunning.objectID)}
-            alt={gameRunning.title}
+            src={steamUrlBuilder.libraryHero(currentGame.objectID)}
+            alt={currentGame.title}
             className={styles.profileBackground}
           />
         )}
@@ -309,7 +329,7 @@ export function UserContent({
 
         <div className={styles.profileInformation}>
           <h2 style={{ fontWeight: "bold" }}>{userProfile.displayName}</h2>
-          {isMe && gameRunning && (
+          {currentGame && (
             <div
               style={{
                 display: "flex",
@@ -325,14 +345,14 @@ export function UserContent({
                   alignItems: "center",
                 }}
               >
-                <Link to={buildGameDetailsPath(gameRunning)}>
-                  {gameRunning.title}
+                <Link to={buildGameDetailsPath(currentGame)}>
+                  {currentGame.title}
                 </Link>
               </div>
               <small>
                 {t("playing_for", {
                   amount: formatDiffInMillis(
-                    gameRunning.sessionDurationInMillis,
+                    currentGame.sessionDurationInMillis,
                     new Date()
                   ),
                 })}
@@ -361,121 +381,69 @@ export function UserContent({
         </div>
       </section>
 
-      <div className={styles.profileContent}>
-        <div className={styles.profileGameSection}>
-          <h2>{t("activity")}</h2>
-
-          {!userProfile.recentGames.length ? (
-            <div className={styles.noDownloads}>
-              <div className={styles.telescopeIcon}>
-                <TelescopeIcon size={24} />
-              </div>
-              <h2>{t("no_recent_activity_title")}</h2>
-              {isMe && <p>{t("no_recent_activity_description")}</p>}
-            </div>
-          ) : (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: `${SPACING_UNIT * 2}px`,
-              }}
-            >
-              {userProfile.recentGames.map((game) => (
-                <button
-                  key={game.objectID}
-                  className={cn(styles.feedItem, styles.profileContentBox)}
-                  onClick={() => handleGameClick(game)}
-                >
-                  <img
-                    className={styles.feedGameIcon}
-                    src={game.cover}
-                    alt={game.title}
-                  />
-                  <div className={styles.gameInformation}>
-                    <h4>{game.title}</h4>
-                    <small>
-                      {t("last_time_played", {
-                        period: formatDistance(
-                          game.lastTimePlayed!,
-                          new Date(),
-                          {
-                            addSuffix: true,
-                          }
-                        ),
-                      })}
-                    </small>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className={styles.contentSidebar}>
+      {showProfileContent && (
+        <div className={styles.profileContent}>
           <div className={styles.profileGameSection}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: `${SPACING_UNIT * 2}px`,
-              }}
-            >
-              <h2>{t("library")}</h2>
+            <h2>{t("activity")}</h2>
 
+            {!userProfile.recentGames.length ? (
+              <div className={styles.noDownloads}>
+                <div className={styles.telescopeIcon}>
+                  <TelescopeIcon size={24} />
+                </div>
+                <h2>{t("no_recent_activity_title")}</h2>
+                {isMe && <p>{t("no_recent_activity_description")}</p>}
+              </div>
+            ) : (
               <div
                 style={{
-                  flex: 1,
-                  backgroundColor: vars.color.border,
-                  height: "1px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: `${SPACING_UNIT * 2}px`,
                 }}
-              />
-              <h3 style={{ fontWeight: "400" }}>
-                {userProfile.libraryGames.length}
-              </h3>
-            </div>
-            <small>{t("total_play_time", { amount: formatPlayTime() })}</small>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: `${SPACING_UNIT}px`,
-              }}
-            >
-              {userProfile.libraryGames.map((game) => (
-                <button
-                  key={game.objectID}
-                  className={cn(styles.gameListItem, styles.profileContentBox)}
-                  onClick={() => handleGameClick(game)}
-                  title={game.title}
-                >
-                  {game.iconUrl ? (
+              >
+                {userProfile.recentGames.map((game) => (
+                  <button
+                    key={game.objectID}
+                    className={cn(styles.feedItem, styles.profileContentBox)}
+                    onClick={() => handleGameClick(game)}
+                  >
                     <img
-                      className={styles.libraryGameIcon}
-                      src={game.iconUrl}
+                      className={styles.feedGameIcon}
+                      src={game.cover}
                       alt={game.title}
                     />
-                  ) : (
-                    <SteamLogo className={styles.libraryGameIcon} />
-                  )}
-                </button>
-              ))}
-            </div>
+                    <div className={styles.gameInformation}>
+                      <h4>{game.title}</h4>
+                      <small>
+                        {t("last_time_played", {
+                          period: formatDistance(
+                            game.lastTimePlayed!,
+                            new Date(),
+                            {
+                              addSuffix: true,
+                            }
+                          ),
+                        })}
+                      </small>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {showFriends && (
-            <div className={styles.friendsSection}>
-              <button
-                className={styles.friendsSectionHeader}
-                onClick={() =>
-                  showFriendsModal(
-                    UserFriendModalTab.FriendsList,
-                    userProfile.id
-                  )
-                }
+          <div className={styles.contentSidebar}>
+            <div className={styles.profileGameSection}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: `${SPACING_UNIT * 2}px`,
+                }}
               >
-                <h2>{t("friends")}</h2>
+                <h2>{t("library")}</h2>
 
                 <div
                   style={{
@@ -485,64 +453,123 @@ export function UserContent({
                   }}
                 />
                 <h3 style={{ fontWeight: "400" }}>
-                  {userProfile.totalFriends}
+                  {userProfile.libraryGames.length}
                 </h3>
-              </button>
-
+              </div>
+              <small>
+                {t("total_play_time", { amount: formatPlayTime() })}
+              </small>
               <div
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
+                  display: "grid",
+                  gridTemplateColumns: "repeat(4, 1fr)",
                   gap: `${SPACING_UNIT}px`,
                 }}
               >
-                {userProfile.friends.map((friend) => {
-                  return (
-                    <button
-                      key={friend.id}
-                      className={cn(
-                        styles.profileContentBox,
-                        styles.friendListContainer
-                      )}
-                      onClick={() => handleOnClickFriend(friend.id)}
-                    >
-                      <div className={styles.friendAvatarContainer}>
-                        {friend.profileImageUrl ? (
-                          <img
-                            className={styles.friendProfileIcon}
-                            src={friend.profileImageUrl}
-                            alt={friend.displayName}
-                          />
-                        ) : (
-                          <PersonIcon size={24} />
-                        )}
-                      </div>
-
-                      <p className={styles.friendListDisplayName}>
-                        {friend.displayName}
-                      </p>
-                    </button>
-                  );
-                })}
-
-                {isMe && (
-                  <Button
-                    theme="outline"
-                    onClick={() =>
-                      showFriendsModal(
-                        UserFriendModalTab.AddFriend,
-                        userProfile.id
-                      )
-                    }
+                {userProfile.libraryGames.map((game) => (
+                  <button
+                    key={game.objectID}
+                    className={cn(
+                      styles.gameListItem,
+                      styles.profileContentBox
+                    )}
+                    onClick={() => handleGameClick(game)}
+                    title={game.title}
                   >
-                    <PlusIcon /> {t("add")}
-                  </Button>
-                )}
+                    {game.iconUrl ? (
+                      <img
+                        className={styles.libraryGameIcon}
+                        src={game.iconUrl}
+                        alt={game.title}
+                      />
+                    ) : (
+                      <SteamLogo className={styles.libraryGameIcon} />
+                    )}
+                  </button>
+                ))}
               </div>
             </div>
-          )}
+
+            {showFriends && (
+              <div className={styles.friendsSection}>
+                <button
+                  className={styles.friendsSectionHeader}
+                  onClick={() =>
+                    showFriendsModal(
+                      UserFriendModalTab.FriendsList,
+                      userProfile.id
+                    )
+                  }
+                >
+                  <h2>{t("friends")}</h2>
+
+                  <div
+                    style={{
+                      flex: 1,
+                      backgroundColor: vars.color.border,
+                      height: "1px",
+                    }}
+                  />
+                  <h3 style={{ fontWeight: "400" }}>
+                    {userProfile.totalFriends}
+                  </h3>
+                </button>
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: `${SPACING_UNIT}px`,
+                  }}
+                >
+                  {userProfile.friends.map((friend) => {
+                    return (
+                      <button
+                        key={friend.id}
+                        className={cn(
+                          styles.profileContentBox,
+                          styles.friendListContainer
+                        )}
+                        onClick={() => handleOnClickFriend(friend.id)}
+                      >
+                        <div className={styles.friendAvatarContainer}>
+                          {friend.profileImageUrl ? (
+                            <img
+                              className={styles.friendProfileIcon}
+                              src={friend.profileImageUrl}
+                              alt={friend.displayName}
+                            />
+                          ) : (
+                            <PersonIcon size={24} />
+                          )}
+                        </div>
+
+                        <p className={styles.friendListDisplayName}>
+                          {friend.displayName}
+                        </p>
+                      </button>
+                    );
+                  })}
+
+                  {isMe && (
+                    <Button
+                      theme="outline"
+                      onClick={() =>
+                        showFriendsModal(
+                          UserFriendModalTab.AddFriend,
+                          userProfile.id
+                        )
+                      }
+                    >
+                      <PlusIcon /> {t("add")}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }

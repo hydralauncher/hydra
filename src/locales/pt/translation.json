@@ -261,6 +261,18 @@
     "undo_friendship": "Desfazer amizade",
     "request_accepted": "Pedido de amizade aceito",
     "user_blocked_successfully": "Usuário bloqueado com sucesso",
-    "user_block_modal_text": "Bloquear {{displayName}}"
+    "user_block_modal_text": "Bloquear {{displayName}}",
+    "settings": "Configurações",
+    "privacy": "Privacidade",
+    "private": "Privado",
+    "friends_only": "Apenas amigos",
+    "public": "Público",
+    "blocked_users": "Usuários bloqueados",
+    "unblock": "Desbloquear",
+    "no_friends_added": "Você ainda não possui amigos adicionados",
+    "pending": "Pendentes",
+    "no_pending_invites": "Você não possui convites de amizade pendentes",
+    "no_blocked_users": "Você não tem nenhum usuário bloqueado",
+    "friend_code_copied": "Código de amigo copiado"
   }
 }

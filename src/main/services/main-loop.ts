@@ -10,6 +10,6 @@ export const startMainLoop = async () => {
       DownloadManager.watchDownloads(),
     ]);
 
-    await sleep(500);
+    await sleep(1000);
   }
 };
