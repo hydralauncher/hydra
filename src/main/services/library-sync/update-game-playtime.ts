@@ -6,7 +6,7 @@ export const updateGamePlaytime = async (
   deltaInMillis: number,
   lastTimePlayed: Date
 ) => {
-  HydraApi.put(`/games/${game.remoteId}`, {
+  HydraApi.put(`/profile/games/${game.remoteId}`, {
     playTimeDeltaInSeconds: Math.trunc(deltaInMillis / 1000),
     lastTimePlayed,
   }).catch(() => {});

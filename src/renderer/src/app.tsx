@@ -108,7 +108,7 @@ export function App() {
         fetchFriendRequests();
       }
     });
-  }, [fetchUserDetails, updateUserDetails, dispatch]);
+  }, [fetchUserDetails, fetchFriendRequests, updateUserDetails, dispatch]);
 
   const onSignIn = useCallback(() => {
     fetchUserDetails().then((response) => {
@@ -118,7 +118,13 @@ export function App() {
         showSuccessToast(t("successfully_signed_in"));
       }
     });
-  }, [fetchUserDetails, t, showSuccessToast, updateUserDetails]);
+  }, [
+    fetchUserDetails,
+    fetchFriendRequests,
+    t,
+    showSuccessToast,
+    updateUserDetails,
+  ]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {

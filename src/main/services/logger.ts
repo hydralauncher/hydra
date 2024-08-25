@@ -6,6 +6,10 @@ log.transports.file.resolvePathFn = (
   _: log.PathVariables,
   message?: log.LogMessage | undefined
 ) => {
+  if (message?.scope === "python-instance") {
+    return path.join(logsPath, "pythoninstance.txt");
+  }
+
   if (message?.level === "error") {
     return path.join(logsPath, "error.txt");
   }
@@ -23,4 +27,5 @@ log.errorHandler.startCatching({
 
 log.initialize();
 
+export const pythonInstanceLogger = log.scope("python-instance");
 export const logger = log.scope("main");

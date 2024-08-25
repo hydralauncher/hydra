@@ -4,14 +4,14 @@ import { calculateETA } from "./helpers";
 import { DownloadProgress } from "@types";
 import { HttpDownload } from "./http-download";
 
-export class GenericHTTPDownloader {
-  private static downloads = new Map<number, string>();
-  private static downloadingGame: Game | null = null;
+export class GenericHttpDownloader {
+  public static downloads = new Map<number, HttpDownload>();
+  public static downloadingGame: Game | null = null;
 
   public static async getStatus() {
     if (this.downloadingGame) {
-      const gid = this.downloads.get(this.downloadingGame.id)!;
-      const status = HttpDownload.getStatus(gid);
+      const download = this.downloads.get(this.downloadingGame.id)!;
+      const status = download.getStatus();
 
       if (status) {
         const progress =
@@ -57,10 +57,10 @@ export class GenericHTTPDownloader {
 
   static async pauseDownload() {
     if (this.downloadingGame) {
-      const gid = this.downloads.get(this.downloadingGame!.id!);
+      const httpDownload = this.downloads.get(this.downloadingGame!.id!);
 
-      if (gid) {
-        await HttpDownload.pauseDownload(gid);
+      if (httpDownload) {
+        await httpDownload.pauseDownload();
       }
 
       this.downloadingGame = null;
@@ -79,29 +79,31 @@ export class GenericHTTPDownloader {
       return;
     }
 
-    const gid = await HttpDownload.startDownload(
+    const httpDownload = new HttpDownload(
       game.downloadPath!,
       downloadUrl,
       headers
     );
 
-    this.downloads.set(game.id!, gid);
+    httpDownload.startDownload();
+
+    this.downloads.set(game.id!, httpDownload);
   }
 
   static async cancelDownload(gameId: number) {
-    const gid = this.downloads.get(gameId);
+    const httpDownload = this.downloads.get(gameId);
 
-    if (gid) {
-      await HttpDownload.cancelDownload(gid);
+    if (httpDownload) {
+      await httpDownload.cancelDownload();
       this.downloads.delete(gameId);
     }
   }
 
   static async resumeDownload(gameId: number) {
-    const gid = this.downloads.get(gameId);
+    const httpDownload = this.downloads.get(gameId);
 
-    if (gid) {
-      await HttpDownload.resumeDownload(gid);
+    if (httpDownload) {
+      await httpDownload.resumeDownload();
     }
   }
 }
