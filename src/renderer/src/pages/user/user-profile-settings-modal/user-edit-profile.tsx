@@ -126,6 +126,7 @@ export const UserEditProfile = ({
         value={form.displayName}
         required
         minLength={3}
+        maxLength={50}
         containerProps={{ style: { width: "100%" } }}
         onChange={(e) => setForm({ ...form, displayName: e.target.value })}
       />
