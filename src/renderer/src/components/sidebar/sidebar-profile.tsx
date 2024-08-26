@@ -42,7 +42,7 @@ export function SidebarProfile() {
   }, [profileBackground]);
 
   const showPendingRequests =
-    userDetails && receivedRequests.length > -1 && !gameRunning;
+    userDetails && receivedRequests.length > 0 && !gameRunning;
 
   return (
     <div
