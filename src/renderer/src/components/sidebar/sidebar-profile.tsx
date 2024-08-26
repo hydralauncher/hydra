@@ -41,6 +41,9 @@ export function SidebarProfile() {
     return undefined;
   }, [profileBackground]);
 
+  const showPendingRequests =
+    userDetails && receivedRequests.length > -1 && !gameRunning;
+
   return (
     <div
       className={styles.profileContainer}
@@ -88,19 +91,17 @@ export function SidebarProfile() {
           )}
         </div>
       </button>
-      {userDetails && receivedRequests.length > 0 && !gameRunning && (
-        <div className={styles.friendRequestContainer}>
-          <button
-            type="button"
-            className={styles.friendRequestButton}
-            onClick={() =>
-              showFriendsModal(UserFriendModalTab.AddFriend, userDetails.id)
-            }
-          >
-            <PersonAddIcon size={24} />
-            {receivedRequests.length}
-          </button>
-        </div>
+      {showPendingRequests && (
+        <button
+          type="button"
+          className={styles.friendRequestButton}
+          onClick={() =>
+            showFriendsModal(UserFriendModalTab.AddFriend, userDetails.id)
+          }
+        >
+          <PersonAddIcon size={24} />
+          {receivedRequests.length}
+        </button>
       )}
     </div>
   );
