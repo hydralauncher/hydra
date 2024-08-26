@@ -332,7 +332,9 @@ export function UserContent({
         </div>
 
         <div className={styles.profileInformation}>
-          <h2 style={{ fontWeight: "bold" }}>{userProfile.displayName}</h2>
+          <h2 className={styles.profileDisplayName}>
+            {userProfile.displayName}
+          </h2>
           {currentGame && (
             <div
               style={{
