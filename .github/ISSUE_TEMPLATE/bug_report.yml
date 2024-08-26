@@ -27,7 +27,7 @@ body:
       label: Expected behavior
       description: A clear and concise description of what you expected to happen.
     validations:
-      required: true
+      required: false
   - type: textarea
     id: screenshots
     attributes:
@@ -56,3 +56,12 @@ body:
       description: Please provide any additional information and context about your problem.
     validations:
       required: false
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Before opening this Issue
+      options:
+        - label: I have searched the issues of this repository and believe that this is not a duplicate.
+          required: true
+        - label: I am aware that Hydra team does not offer any support or help regarding the downloaded games.
+          required: true
