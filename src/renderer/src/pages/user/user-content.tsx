@@ -34,6 +34,7 @@ import { UserProfileSettingsModal } from "./user-profile-settings-modal";
 import { UserSignOutModal } from "./user-sign-out-modal";
 import { UserFriendModalTab } from "../shared-modals/user-friend-modal";
 import { UserBlockModal } from "./user-block-modal";
+import { UserConfirmUndoFriendshipModal } from "./user-confirm-undo-friendship-modal";
 
 const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
 
@@ -68,6 +69,7 @@ export function UserContent({
     useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showUserBlockModal, setShowUserBlockModal] = useState(false);
+  const [showUndoFriendshipModal, setShowUndoFriendshipModal] = useState(false);
   const [currentGame, setCurrentGame] = useState<GameRunning | null>(null);
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
@@ -213,17 +215,12 @@ export function UserContent({
     }
 
     if (userProfile.relation.status === "ACCEPTED") {
-      const userId =
-        userProfile.relation.AId === userDetails?.id
-          ? userProfile.relation.BId
-          : userProfile.relation.AId;
-
       return (
         <>
           <Button
             theme="outline"
             className={styles.cancelRequestButton}
-            onClick={() => handleFriendAction(userId, "UNDO")}
+            onClick={() => setShowUndoFriendshipModal(true)}
           >
             <XCircleIcon size={28} /> {t("undo_friendship")}
           </Button>
@@ -288,6 +285,13 @@ export function UserContent({
         visible={showUserBlockModal}
         onClose={() => setShowUserBlockModal(false)}
         onConfirm={() => handleFriendAction(userProfile.id, "BLOCK")}
+        displayName={userProfile.displayName}
+      />
+
+      <UserConfirmUndoFriendshipModal
+        visible={showUndoFriendshipModal}
+        onClose={() => setShowUndoFriendshipModal(false)}
+        onConfirm={() => handleFriendAction(userProfile.id, "UNDO")}
         displayName={userProfile.displayName}
       />
 
