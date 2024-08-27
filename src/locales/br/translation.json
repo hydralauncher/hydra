@@ -16,7 +16,7 @@
     "downloading_metadata": "{{title}} (Baixando metadados…)",
     "paused": "{{title}} (Pausado)",
     "downloading": "{{title}} ({{percentage}} - Baixando…)",
-    "filter": "Buscar",
+    "filter": "Filtrar bibilioteca",
     "home": "Início",
     "queued": "{{title}} (Na fila)",
     "game_has_no_executable": "Jogo não possui executável selecionado",
