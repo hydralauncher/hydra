@@ -1,5 +1,6 @@
 import { useContext, useEffect, useState } from "react";
-import ISO6391 from "iso-639-1";
+import languages from "@cospired/i18n-iso-languages";
+import languagesEn from "@cospired/i18n-iso-languages/langs/en.json";
 
 import {
   TextField,
@@ -20,6 +21,14 @@ interface LanguageOption {
   option: string;
   nativeName: string;
 }
+
+languages.registerLocale(languagesEn);
+
+const customLanguageNames = {
+  ptBR: "Português (Brasil)",
+  ptPT: "Português (Portugal)",
+  // Adicione outros idiomas personalizados aqui, se necessário
+};
 
 export function SettingsGeneral() {
   const { t } = useTranslation("settings");
@@ -52,7 +61,9 @@ export function SettingsGeneral() {
       orderBy(
         Object.keys(languageResources).map((language) => {
           return {
-            nativeName: ISO6391.getNativeName(language),
+            nativeName:
+              customLanguageNames[language] ||
+              languages.getName(language, "en"),
             option: language,
           };
         }),
@@ -93,7 +104,7 @@ export function SettingsGeneral() {
 
   function updateFormWithUserPreferences() {
     if (userPreferences) {
-      const parsedLanguage = userPreferences.language.split("-")[0];
+      const parsedLanguage = userPreferences.language;
 
       setForm((prev) => ({
         ...prev,
