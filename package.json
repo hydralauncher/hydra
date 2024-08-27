@@ -32,6 +32,7 @@
     "typeorm:migration-create": "yarn typeorm migration:create"
   },
   "dependencies": {
+    "@cospired/i18n-iso-languages": "^4.2.0",
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/utils": "^3.0.0",
     "@fontsource/noto-sans": "^5.0.22",
