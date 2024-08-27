@@ -112,7 +112,7 @@
     "create_shortcut_error": "Erro ao criar atalho"
   },
   "activation": {
-    "title": "Ativação",
+    "title": "Ativar Hydra",
     "installation_id": "ID da instalação:",
     "enter_activation_code": "Insira seu código de ativação",
     "message": "Se você não sabe onde conseguir o código, talvez você não devesse estar aqui.",
