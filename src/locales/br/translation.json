@@ -146,7 +146,7 @@
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",
-    "change": "Explorar...",
+    "change": "Alterar",
     "notifications": "Notificações",
     "enable_download_notifications": "Quando um download for concluído",
     "enable_repack_list_notifications": "Quando a lista de repacks for atualizada",
