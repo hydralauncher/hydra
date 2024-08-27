@@ -168,9 +168,7 @@
     "changes_saved": "Definições guardadas com sucesso",
     "download_sources_description": "O Hydra vai procurar links de transferência em todas as fontes ativadas. A URL da página de detalhes da loja não é guardada no seu dispositivo. Utilizamos um sistema de metadados criado pela comunidade para fornecer suporte a mais fontes de transferência de jogos.",
     "enable_source": "Ativar",
-    "disable_source": "Desativar"
-    
-    
+    "disable_source": "Desativar",
     "validate_download_source": "Validar",
     "remove_download_source": "Remover",
     "add_download_source": "Adicionar fonte",
