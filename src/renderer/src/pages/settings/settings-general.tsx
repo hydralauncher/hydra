@@ -27,7 +27,6 @@ languages.registerLocale(languagesEn);
 const customLanguageNames = {
   ptBR: "Português (Brasil)",
   ptPT: "Português (Portugal)",
-  // Adicione outros idiomas personalizados aqui, se necessário
 };
 
 export function SettingsGeneral() {
