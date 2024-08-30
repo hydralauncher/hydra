@@ -28,7 +28,8 @@
     "build:win": "electron-vite build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
-    "prepare": "husky"
+    "prepare": "husky",
+    "knex:migrate:make": "knex --knexfile src/main/knexfile.ts migrate:make --esm"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.0",
@@ -106,6 +107,7 @@
     "prettier": "^3.2.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
     "vite": "^5.0.12",
     "vite-plugin-svgr": "^4.2.0"

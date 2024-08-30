@@ -1,19 +1,18 @@
 import knex, { Knex } from "knex";
 import { databasePath } from "./constants";
-import * as migrations from "./migrations";
+import { Hydra2_0_3 } from "./migrations/20240830143811_Hydra_2_0_3";
+import { RepackUris } from "./migrations/20240830143906_RepackUris";
 
-type Migration = Knex.Migration & { name: string };
+export type HydraMigration = Knex.Migration & { name: string };
 
-class MigrationSource implements Knex.MigrationSource<Migration> {
-  getMigrations(): Promise<Migration[]> {
-    return Promise.resolve(
-      Object.values(migrations).sort((a, b) => a.name.localeCompare(b.name))
-    );
+class MigrationSource implements Knex.MigrationSource<HydraMigration> {
+  getMigrations(): Promise<HydraMigration[]> {
+    return Promise.resolve([Hydra2_0_3, RepackUris]);
   }
-  getMigrationName(migration: Migration): string {
+  getMigrationName(migration: HydraMigration): string {
     return migration.name;
   }
-  getMigration(migration: Migration): Promise<Migration> {
+  getMigration(migration: HydraMigration): Promise<Knex.Migration> {
     return Promise.resolve(migration);
   }
 }
