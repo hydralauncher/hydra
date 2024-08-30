@@ -1,0 +1,11 @@
+import type { HydraMigration } from "@main/knex-client";
+import type { Knex } from "knex";
+
+export const MigrationName: HydraMigration = {
+  name: "MigrationName",
+  up: async (knex: Knex) => {
+    await knex.schema.createTable("table_name", (table) => {});
+  },
+
+  down: async (knex: Knex) => {},
+};
