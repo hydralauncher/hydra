@@ -9,12 +9,12 @@ export interface UserConfirmUndoFriendshipModalProps {
   onClose: () => void;
 }
 
-export const UserConfirmUndoFriendshipModal = ({
+export function UserConfirmUndoFriendshipModal({
   visible,
   displayName,
   onConfirm,
   onClose,
-}: UserConfirmUndoFriendshipModalProps) => {
+}: UserConfirmUndoFriendshipModalProps) {
   const { t } = useTranslation("user_profile");
 
   return (
@@ -37,4 +37,4 @@ export const UserConfirmUndoFriendshipModal = ({
       </div>
     </Modal>
   );
-};
+}
