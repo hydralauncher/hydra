@@ -2,6 +2,7 @@ import axios from "axios";
 import { requestWebPage } from "@main/helpers";
 import { HowLongToBeatCategory } from "@types";
 import { formatName } from "@shared";
+import { logger } from "./logger";
 
 export interface HowLongToBeatResult {
   game_id: number;
@@ -13,22 +14,27 @@ export interface HowLongToBeatSearchResponse {
 }
 
 export const searchHowLongToBeat = async (gameName: string) => {
-  const response = await axios.post(
-    "https://howlongtobeat.com/api/search",
-    {
-      searchType: "games",
-      searchTerms: formatName(gameName).split(" "),
-      searchPage: 1,
-      size: 100,
-    },
-    {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-        Referer: "https://howlongtobeat.com/",
+  const response = await axios
+    .post(
+      "https://howlongtobeat.com/api/search",
+      {
+        searchType: "games",
+        searchTerms: formatName(gameName).split(" "),
+        searchPage: 1,
+        size: 100,
       },
-    }
-  );
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+          Referer: "https://howlongtobeat.com/",
+        },
+      }
+    )
+    .catch((error) => {
+      logger.error("Error searching HowLongToBeat:", error?.response?.status);
+      return { data: { data: [] } };
+    });
 
   return response.data as HowLongToBeatSearchResponse;
 };
