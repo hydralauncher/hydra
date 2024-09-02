@@ -72,7 +72,7 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
           isWindows: window.electron.platform === "win32",
         })}
       >
-        <section className={styles.section}>
+        <section className={styles.section} style={{ flex: 1 }}>
           <button
             type="button"
             className={styles.backButton({
