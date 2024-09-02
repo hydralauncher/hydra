@@ -23,6 +23,7 @@ export const profileContentBox = style({
 
 export const profileAvatarContainer = style({
   width: "96px",
+  minWidth: "96px",
   height: "96px",
   borderRadius: "50%",
   display: "flex",
@@ -100,6 +101,14 @@ export const profileInformation = style({
   alignItems: "flex-start",
   color: "#c0c1c7",
   zIndex: 1,
+  overflow: "hidden",
+});
+
+export const profileDisplayName = style({
+  fontWeight: "bold",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  width: "100%",
 });
 
 export const profileContent = style({
