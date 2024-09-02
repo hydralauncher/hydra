@@ -9,6 +9,7 @@ import { logger, PythonInstance, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import * as resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
+import { knexClient, migrationConfig } from "./knex-client";
 
 const { autoUpdater } = updater;
 
@@ -52,6 +53,18 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient(PROTOCOL);
 }
 
+const runMigrations = async () => {
+  await knexClient.migrate.list(migrationConfig).then((result) => {
+    logger.log(
+      "Migrations to run:",
+      result[1].map((migration) => migration.name)
+    );
+  });
+
+  await knexClient.migrate.latest(migrationConfig);
+  await knexClient.destroy();
+};
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -63,8 +76,15 @@ app.whenReady().then(async () => {
     return net.fetch(url.pathToFileURL(decodeURI(filePath)).toString());
   });
 
+  await runMigrations()
+    .then(() => {
+      logger.log("Migrations executed successfully");
+    })
+    .catch((err) => {
+      logger.log("Migrations failed to run:", err);
+    });
+
   await dataSource.initialize();
-  await dataSource.runMigrations();
 
   await import("./main");
 
