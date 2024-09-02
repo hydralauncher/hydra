@@ -7,22 +7,24 @@ export const profileContainerBackground = createVar();
 export const profileContainer = style({
   background: profileContainerBackground,
   position: "relative",
+  display: "flex",
+  gap: `${SPACING_UNIT}px`,
   cursor: "pointer",
   ":hover": {
     backgroundColor: "rgba(255, 255, 255, 0.15)",
   },
+  borderBottom: `solid 1px ${vars.color.border}`,
+  boxShadow: "0px 0px 15px 0px rgb(0 0 0 / 70%)",
+  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
 });
 
 export const profileButton = style({
   display: "flex",
   cursor: "pointer",
   transition: "all ease 0.1s",
-  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
   color: vars.color.muted,
-  borderBottom: `solid 1px ${vars.color.border}`,
-  boxShadow: "0px 0px 15px 0px rgb(0 0 0 / 70%)",
   width: "100%",
-  zIndex: "10",
+  overflow: "hidden",
 });
 
 export const profileButtonContent = style({
@@ -73,16 +75,6 @@ export const profileButtonTitle = style({
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-});
-
-export const friendRequestContainer = style({
-  position: "absolute",
-  padding: "8px",
-  right: `${SPACING_UNIT}px`,
-  display: "flex",
-  top: 0,
-  bottom: 0,
-  alignItems: "center",
 });
 
 export const friendRequestButton = style({

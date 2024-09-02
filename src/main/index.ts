@@ -106,10 +106,15 @@ app.on("browser-window-created", (_, window) => {
 
 const handleDeepLinkPath = (uri?: string) => {
   if (!uri) return;
-  const url = new URL(uri);
 
-  if (url.host === "install-source") {
-    WindowManager.redirect(`settings${url.search}`);
+  try {
+    const url = new URL(uri);
+
+    if (url.host === "install-source") {
+      WindowManager.redirect(`settings${url.search}`);
+    }
+  } catch (error) {
+    logger.error("Error handling deep link", uri, error);
   }
 };
 
