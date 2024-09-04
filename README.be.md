@@ -20,6 +20,7 @@
 [![be](https://img.shields.io/badge/lang-be-orange)](README.be.md)
 [![es](https://img.shields.io/badge/lang-es-red)](README.es.md)
 [![fr](https://img.shields.io/badge/lang-fr-blue)](README.fr.md)
+[![ita](https://img.shields.io/badge/lang-it-red)](README.it.md)
 
 ![Hydra Catalogue](./docs/screenshot.png)
 
@@ -27,11 +28,12 @@
 
 ## Змест
 
+- [Змест](#змест)
 - [Апісанне](#апісанне)
 - [Асаблівасці](#асаблівасці)
 - [Усталёўка](#усталёўка)
-- [Уклад](#contributing)
-  - [Далучайцеся да нашага Telegram](#join-our-telegram)
+- [ Уклад](#-уклад)
+  - [ Далучайцеся да нашага Telegram](#-далучайцеся-да-нашага-telegram)
   - [Форк і кланаванне рэпазітара](#форк-і-кланаванне-рэпазітара)
   - [Спосабы ўнесці свой уклад](#спосабы-ўнесці-свой-уклад)
   - [Структура праекту](#структура-праекту)
@@ -47,6 +49,7 @@
   - [Зборка кліента BitTorrent](#зборка-кліента-bittorrent)
   - [Зборка прыкладання Electron](#зборка-прыкладання-electron)
 - [Удзельнікі](#удзельнікі)
+- [Ліцэнзія](#ліцэнзія)
 
 ## Апісанне
 
