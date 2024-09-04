@@ -13,13 +13,14 @@
 [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
 [![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
 
-[![be](https://img.shields.io/badge/lang-be-orange)](README.be.md)
-[![pl](https://img.shields.io/badge/lang-pl-white)](README.pl.md)
 [![pt-BR](https://img.shields.io/badge/lang-pt--BR-green.svg)](README.pt-BR.md)
+[![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
 [![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
 [![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
+[![be](https://img.shields.io/badge/lang-be-orange)](README.be.md)
 [![es](https://img.shields.io/badge/lang-es-red)](README.es.md)
 [![fr](https://img.shields.io/badge/lang-fr-blue)](README.fr.md)
+[![ita](https://img.shields.io/badge/lang-it-red)](README.it.md)
 
 ![Hydra Catalogue](./docs/screenshot.png)
 
@@ -27,11 +28,12 @@
 
 ## Table of Contents
 
+- [Table of Contents](#table-of-contents)
 - [About](#about)
 - [Features](#features)
 - [Installation](#installation)
-- [Contributing](#contributing)
-  - [Join our Telegram](#join-our-telegram)
+- [ Contributing](#-contributing)
+  - [ Join our Telegram](#-join-our-telegram)
   - [Fork and clone your repository](#fork-and-clone-your-repository)
   - [Ways you can contribute](#ways-you-can-contribute)
   - [Project Structure](#project-structure)
@@ -47,6 +49,7 @@
   - [Build the bittorrent client](#build-the-bittorrent-client)
   - [Build the Electron application](#build-the-electron-application)
 - [Contributors](#contributors)
+- [License](#license)
 
 ## About
 
