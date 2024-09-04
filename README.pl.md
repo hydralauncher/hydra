@@ -13,13 +13,14 @@
 [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
 [![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
 
-[![be](https://img.shields.io/badge/lang-be-orange)](README.be.md)
-[![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
 [![pt-BR](https://img.shields.io/badge/lang-pt--BR-green.svg)](README.pt-BR.md)
+[![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
 [![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
 [![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
+[![be](https://img.shields.io/badge/lang-be-orange)](README.be.md)
 [![es](https://img.shields.io/badge/lang-es-red)](README.es.md)
 [![fr](https://img.shields.io/badge/lang-fr-blue)](README.fr.md)
+[![ita](https://img.shields.io/badge/lang-it-red)](README.it.md)
 
 ![Hydra Catalogue](./docs/screenshot.png)
 
@@ -27,26 +28,28 @@
 
 ## Zawartość.
 
+- [Zawartość.](#zawartość)
 - [O nas](#o-nas)
-- [Cechy.](#cechy)
+- [Cechy](#cechy)
 - [Instalacja](#instalacja)
-- [Dokonaj wpłaty](#dokonaj-wpłaty)
-  - [Dołącz do naszego kanału Telegram](#dołącz-do-naszego-kanału-telegram)
+- [ Dokonaj wpłaty](#-dokonaj-wpłaty)
+  - [ Dołącz do naszego kanału Telegram](#-dołącz-do-naszego-kanału-telegram)
   - [Rozwidlenie i sklonowanie repozytorium](#rozwidlenie-i-sklonowanie-repozytorium)
-  - [Jak możesz wnieść swój wkład](#jak-możesz-pomóc)
+  - [Jak możesz pomóc](#jak-możesz-pomóc)
   - [Struktura projektu](#struktura-projektu)
 - [Utwórz kompilację z kodu źródłowego](#utwórz-kompilację-z-kodu-źródłowego)
-  - [Instalacja Node.js](#zainstaluj-nodejs)
-  - [Instalacja Yarn](#zainstaluj-yarn)
-  - [Instalacja Node zależności](#zainstaluj-zależności-node)
-  - [Instalacja Python 3.9](#zainstaluj-python-39)
-  - [Instalacja Python zależności](#zainstaluj-zależności-pythona)
+  - [Zainstaluj Node.js](#zainstaluj-nodejs)
+  - [Zainstaluj Yarn](#zainstaluj-yarn)
+  - [Zainstaluj zależności Node](#zainstaluj-zależności-node)
+  - [Zainstaluj Python 3.9](#zainstaluj-python-39)
+  - [Zainstaluj zależności Pythona](#zainstaluj-zależności-pythona)
 - [Zmienne środowiskowe](#zmienne-środowiskowe)
-- [Uruchomienie](#utwórz-kompilację-z-kodu-źródłowego)
+- [Run](#run)
 - [Tworzenie kompilacji](#tworzenie-kompilacji)
-  - [Tworzenie klienta bittorrent](#zbuduj-klienta-bittorrent)
-  - [Tworzenie kompilacji aplikacji Electron](#tworzenie-aplikacji-electron)
+  - [Zbuduj klienta bittorrent](#zbuduj-klienta-bittorrent)
+  - [Tworzenie aplikacji Electron](#tworzenie-aplikacji-electron)
 - [Współtwórcy](#współtwórcy)
+- [License](#license)
 
 ## O nas
 
