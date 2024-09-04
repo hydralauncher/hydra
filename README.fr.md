@@ -13,13 +13,14 @@
 [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
 [![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
 
-[![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
-[![be](https://img.shields.io/badge/lang-be-orange)](README.be.md)
-[![pl](https://img.shields.io/badge/lang-pl-white)](README.pl.md)
 [![pt-BR](https://img.shields.io/badge/lang-pt--BR-green.svg)](README.pt-BR.md)
+[![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
 [![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
 [![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
+[![be](https://img.shields.io/badge/lang-be-orange)](README.be.md)
 [![es](https://img.shields.io/badge/lang-es-red)](README.es.md)
+[![fr](https://img.shields.io/badge/lang-fr-blue)](README.fr.md)
+[![ita](https://img.shields.io/badge/lang-it-red)](README.it.md)
 
 ![Catalogue Hydra](./docs/screenshot.png)
 
@@ -27,6 +28,7 @@
 
 ## Table des Matières
 
+- [Table des Matières](#table-des-matières)
 - [À propos](#à-propos)
 - [Fonctionnalités](#fonctionnalités)
 - [Installation](#installation)
@@ -47,6 +49,7 @@
   - [Compiler le client bittorrent](#compiler-le-client-bittorrent)
   - [Compiler l'application Electron](#compiler-lapplication-electron)
 - [Contributeurs](#contributeurs)
+- [License](#license)
 
 ## À propos
 
