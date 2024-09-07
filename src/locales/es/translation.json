@@ -270,6 +270,7 @@
     "pending": "Pendiente",
     "no_pending_invites": "No tienes invitaciones pendientes",
     "no_blocked_users": "No has bloqueado a ningún usuario",
-    "friend_code_copied": "Código de amigo copiado"
+    "friend_code_copied": "Código de amigo copiado",
+    "undo_friendship_modal_text": "This will undo your friendship with {{displayName}}"
   }
 }
