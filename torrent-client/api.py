@@ -1,7 +1,16 @@
 import libtorrent as lt
+import qbittorrent_api
 
-class TorrentDownloader:
-    def __init__(self, port: str):
+class torrentAPI:
+    
+    def __new__(cls, port: str = "notDefined", torrent_client = "base"):
+        if torrent_client == "qbittorrent":
+            return qbittorrent_api.api()
+        else:
+            return super(torrentAPI, cls).__new__(cls)
+
+    def __init__(self, port: str, torrent_client = "base"):
+        self.port = port
         self.torrent_handles = {}
         self.downloading_game_id = -1
         self.session = lt.session({'listen_interfaces': '0.0.0.0:{port}'.format(port=port)})
@@ -102,8 +111,16 @@ class TorrentDownloader:
             "http://bvarf.tracker.sh:2086/announce",
         ]
 
-    def start_download(self, game_id: int, magnet: str, save_path: str):
-        params = {'url': magnet, 'save_path': save_path, 'trackers': self.trackers}
+    def __str__(self):
+        return f"port: {self.port}\nhandles: {self.torrent_handles}\ngame_id: {self.downloading_game_id}\ntrackers: {self.trackers}"
+
+    def start_download(self, game_id: int = -1, magnet: str = "None", save_path: str = "."):
+        params = None
+        if save_path is None:
+            params = {'url': magnet, 'trackers': self.trackers}
+        else:
+            params = {'url': magnet, 'save_path': save_path, 'trackers': self.trackers}
+
         torrent_handle = self.session.add_torrent(params)
         self.torrent_handles[game_id] = torrent_handle
         torrent_handle.set_flags(lt.torrent_flags.auto_managed)

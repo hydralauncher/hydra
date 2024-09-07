@@ -3,19 +3,71 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 import urllib.parse
 import psutil
-from torrent_downloader import TorrentDownloader
+from api import torrentAPI
+
+def print_help():
+    print("Usage: hydra-download-manager <Torrent Port> <HTTP Port> <RPC Password> <Download Payload>")
+    print("Testing: hydra-download-manager check <Torrent Client> Optional:<start|pause|cancel|Function Name to Test> <Magnet Link to Download|Hash to Use>")
+    print("Testing Base: hydra-download-manager check base <Port to Bind to> Optional:<start|pause|cancel|Function Name to Test> <Magnet Link to Download|Hash to Use>")
+    print("Torrent Clients to choose from: base, qbittorrent")
+
+# Unit Testing/Parameter
+for i in sys.argv:
+    if (i == "-h" or i == "-H" or i == "--help" or i == "--HELP"):
+        print_help()
+        exit()
+if len(sys.argv) == 1:
+    print("must have at least one argument")
+    print_help()
+    exit(1)
+elif (sys.argv[2] == "base" and sys.argv[1] == "check"):
+    if len(sys.argv) < 5:
+        print("Need Required Arguments")
+        print_help()
+        exit(1)
+    torrent_downloader = torrentAPI(sys.argv[3], torrent_client = sys.argv[2])
+    if len(sys.argv) == 6:
+        trail = None
+        if sys.argv[3] == "start" or sys.argv[3] == "pause" or sys.argv[3] == "cancel":
+            trail = "_download"
+        function = getattr(torrent_downloader, sys.argv[3] + (trail if trail else ""), "None")
+        if sys.argv[3] == "start":
+            print(function(-1, sys.argv[5]))
+        else:
+            print(function(sys.argv[5]))
+    print(torrent_downloader)
+    exit()
+elif (sys.argv[1] == "check" and (len(sys.argv) <= 5 and len(sys.argv) >= 3)):
+    torrent_downloader = torrentAPI(torrent_client = sys.argv[2])
+    if len(sys.argv) > 3 and len(sys.argv) <= 5:
+        trail = None
+        if sys.argv[3] == "start" or sys.argv[3] == "pause" or sys.argv[3] == "cancel":
+            trail = "_download"
+        function = getattr(torrent_downloader, sys.argv[3] + (trail if trail else ""), "None")
+        if sys.argv[3] == "start":
+            function(-1, sys.argv[4])
+        elif len(sys.argv) == 5:
+            print(function(sys.argv[4]))
+        elif len(sys.argv) == 4:
+            print(print(function))
+            function()
+    print(torrent_downloader)
+    exit()
+# elif len(sys.argv) != 4:
+#     print_help()
+#     exit(1)
 
 torrent_port = sys.argv[1]
 http_port = sys.argv[2]
 rpc_password = sys.argv[3]
-start_download_payload = sys.argv[4]
+download_payload = sys.argv[4]
 
 torrent_downloader = None
-
-if start_download_payload:
-    initial_download = json.loads(urllib.parse.unquote(start_download_payload))
-    torrent_downloader = TorrentDownloader(torrent_port)
+if download_payload:
+    initial_download = json.loads(urllib.parse.unquote(download_payload))
+    torrent_downloader = TorrentDownloader(port = torrent_port)
     torrent_downloader.start_download(initial_download['game_id'], initial_download['magnet'], initial_download['save_path'])
+
 
 class Handler(BaseHTTPRequestHandler):
     rpc_password_header = 'x-hydra-rpc-password'
@@ -84,7 +136,7 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(post_data.decode('utf-8'))
 
             if torrent_downloader is None:
-                torrent_downloader = TorrentDownloader(torrent_port)
+                torrent_downloader = torrentAPI(port = torrent_port)
 
             if data['action'] == 'start':
                 torrent_downloader.start_download(data['game_id'], data['magnet'], data['save_path'])
