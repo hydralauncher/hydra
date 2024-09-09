@@ -1,7 +1,4 @@
 import { useContext, useEffect, useState } from "react";
-import languages from "@cospired/i18n-iso-languages";
-import languagesEn from "@cospired/i18n-iso-languages/langs/en.json";
-
 import {
   TextField,
   Button,
@@ -9,11 +6,9 @@ import {
   SelectField,
 } from "@renderer/components";
 import { useTranslation } from "react-i18next";
-
 import { useAppSelector } from "@renderer/hooks";
-
 import { changeLanguage } from "i18next";
-import * as languageResources from "@locales";
+import languageResources from "@locales";
 import { orderBy } from "lodash-es";
 import { settingsContext } from "@renderer/context";
 
@@ -21,13 +16,6 @@ interface LanguageOption {
   option: string;
   nativeName: string;
 }
-
-languages.registerLocale(languagesEn);
-
-const customLanguageNames = {
-  ptBR: "Português (Brasil)",
-  ptPT: "Português (Portugal)",
-};
 
 export function SettingsGeneral() {
   const { t } = useTranslation("settings");
@@ -58,11 +46,9 @@ export function SettingsGeneral() {
 
     setLanguageOptions(
       orderBy(
-        Object.keys(languageResources).map((language) => {
+        Object.entries(languageResources).map(([language, value]) => {
           return {
-            nativeName:
-              customLanguageNames[language] ||
-              languages.getName(language, "en"),
+            nativeName: value.language_name,
             option: language,
           };
         }),
@@ -103,8 +89,6 @@ export function SettingsGeneral() {
 
   function updateFormWithUserPreferences() {
     if (userPreferences) {
-      const parsedLanguage = userPreferences.language;
-
       setForm((prev) => ({
         ...prev,
         downloadsPath: userPreferences.downloadsPath ?? defaultDownloadsPath,
@@ -112,7 +96,7 @@ export function SettingsGeneral() {
           userPreferences.downloadNotificationsEnabled,
         repackUpdatesNotificationsEnabled:
           userPreferences.repackUpdatesNotificationsEnabled,
-        language: parsedLanguage,
+        language: userPreferences.language,
       }));
     }
   }
