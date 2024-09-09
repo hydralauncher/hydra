@@ -5,7 +5,7 @@
 [<img src="./resources/icon.png" width="144"/>](https://hydralauncher.site)
 
   <h1 align="center">Hydra Launcher</h1>
-  
+
   <p align="center">
     <strong>Hydra - це ігровий лаунчер з власним вбудованим bittorrent-клієнтом і самокерованим збирачем репаків.</strong>
   </p>
