@@ -6,6 +6,7 @@ import nl from "./nl/translation.json";
 import fr from "./fr/translation.json";
 import hu from "./hu/translation.json";
 import it from "./it/translation.json";
+import de from "./de/translation.json";
 import pl from "./pl/translation.json";
 import ru from "./ru/translation.json";
 import tr from "./tr/translation.json";
@@ -25,6 +26,7 @@ export default {
   "pt-BR": ptBR,
   "pt-PT": ptPT,
   en,
+  de,
   es,
   nl,
   fr,
