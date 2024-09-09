@@ -23,6 +23,7 @@ export const profileContentBox = style({
 
 export const profileAvatarContainer = style({
   width: "96px",
+  minWidth: "96px",
   height: "96px",
   borderRadius: "50%",
   display: "flex",
@@ -60,6 +61,7 @@ export const friendListDisplayName = style({
 });
 
 export const profileAvatarEditContainer = style({
+  alignSelf: "center",
   width: "128px",
   height: "128px",
   display: "flex",
@@ -78,6 +80,8 @@ export const profileAvatar = style({
   height: "100%",
   width: "100%",
   objectFit: "cover",
+  borderRadius: "50%",
+  overflow: "hidden",
 });
 
 export const profileAvatarEditOverlay = style({
@@ -97,6 +101,14 @@ export const profileInformation = style({
   alignItems: "flex-start",
   color: "#c0c1c7",
   zIndex: 1,
+  overflow: "hidden",
+});
+
+export const profileDisplayName = style({
+  fontWeight: "bold",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  width: "100%",
 });
 
 export const profileContent = style({
@@ -276,4 +288,17 @@ export const profileBackground = style({
   left: "0",
   top: "0",
   borderRadius: "4px",
+});
+
+export const cancelRequestButton = style({
+  cursor: "pointer",
+  color: vars.color.body,
+  ":hover": {
+    color: vars.color.danger,
+  },
+});
+
+export const acceptRequestButton = style({
+  cursor: "pointer",
+  color: vars.color.success,
 });

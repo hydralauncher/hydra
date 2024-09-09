@@ -4,11 +4,15 @@ import { WindowManager } from "./window-manager";
 import { createGame, updateGamePlaytime } from "./library-sync";
 import { GameRunning } from "@types";
 import { PythonInstance } from "./download";
+import { Game } from "@main/entity";
 
 export const gamesPlaytime = new Map<
   number,
-  { lastTick: number; firstTick: number }
+  { lastTick: number; firstTick: number; lastSyncTick: number }
 >();
+
+const TICKS_TO_UPDATE_API = 120;
+let currentTick = 1;
 
 export const watchProcesses = async () => {
   const games = await gameRepository.find({
@@ -30,47 +34,16 @@ export const watchProcesses = async () => {
 
     if (gameProcess) {
       if (gamesPlaytime.has(game.id)) {
-        const gamePlaytime = gamesPlaytime.get(game.id)!;
-
-        const zero = gamePlaytime.lastTick;
-        const delta = performance.now() - zero;
-
-        await gameRepository.update(game.id, {
-          playTimeInMilliseconds: game.playTimeInMilliseconds + delta,
-          lastTimePlayed: new Date(),
-        });
-
-        gamesPlaytime.set(game.id, {
-          ...gamePlaytime,
-          lastTick: performance.now(),
-        });
+        onTickGame(game);
       } else {
-        if (game.remoteId) {
-          updateGamePlaytime(game, 0, new Date());
-        } else {
-          createGame({ ...game, lastTimePlayed: new Date() });
-        }
-
-        gamesPlaytime.set(game.id, {
-          lastTick: performance.now(),
-          firstTick: performance.now(),
-        });
+        onOpenGame(game);
       }
     } else if (gamesPlaytime.has(game.id)) {
-      const gamePlaytime = gamesPlaytime.get(game.id)!;
-      gamesPlaytime.delete(game.id);
-
-      if (game.remoteId) {
-        updateGamePlaytime(
-          game,
-          performance.now() - gamePlaytime.firstTick,
-          game.lastTimePlayed!
-        );
-      } else {
-        createGame(game);
-      }
+      onCloseGame(game);
     }
   }
+
+  currentTick++;
 
   if (WindowManager.mainWindow) {
     const gamesRunning = Array.from(gamesPlaytime.entries()).map((entry) => {
@@ -84,5 +57,70 @@ export const watchProcesses = async () => {
       "on-games-running",
       gamesRunning as Pick<GameRunning, "id" | "sessionDurationInMillis">[]
     );
+  }
+};
+
+function onOpenGame(game: Game) {
+  const now = performance.now();
+
+  gamesPlaytime.set(game.id, {
+    lastTick: now,
+    firstTick: now,
+    lastSyncTick: now,
+  });
+
+  if (game.remoteId) {
+    updateGamePlaytime(game, 0, new Date());
+  } else {
+    createGame({ ...game, lastTimePlayed: new Date() });
+  }
+}
+
+function onTickGame(game: Game) {
+  const now = performance.now();
+  const gamePlaytime = gamesPlaytime.get(game.id)!;
+
+  const delta = now - gamePlaytime.lastTick;
+
+  gameRepository.update(game.id, {
+    playTimeInMilliseconds: game.playTimeInMilliseconds + delta,
+    lastTimePlayed: new Date(),
+  });
+
+  gamesPlaytime.set(game.id, {
+    ...gamePlaytime,
+    lastTick: now,
+  });
+
+  if (currentTick % TICKS_TO_UPDATE_API === 0) {
+    if (game.remoteId) {
+      updateGamePlaytime(
+        game,
+        now - gamePlaytime.lastSyncTick,
+        game.lastTimePlayed!
+      );
+    } else {
+      createGame(game);
+    }
+
+    gamesPlaytime.set(game.id, {
+      ...gamePlaytime,
+      lastSyncTick: now,
+    });
+  }
+}
+
+const onCloseGame = (game: Game) => {
+  const gamePlaytime = gamesPlaytime.get(game.id)!;
+  gamesPlaytime.delete(game.id);
+
+  if (game.remoteId) {
+    updateGamePlaytime(
+      game,
+      performance.now() - gamePlaytime.firstTick,
+      game.lastTimePlayed!
+    );
+  } else {
+    createGame(game);
   }
 };

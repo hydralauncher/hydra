@@ -1,6 +1,4 @@
 import { useCallback } from "react";
-import { average } from "color.js";
-
 import { useAppDispatch, useAppSelector } from "./redux";
 import {
   setProfileBackground,
@@ -9,9 +7,10 @@ import {
   setFriendsModalVisible,
   setFriendsModalHidden,
 } from "@renderer/features";
-import { darkenColor } from "@renderer/helpers";
-import { FriendRequestAction, UserDetails } from "@types";
+import { profileBackgroundFromProfileImage } from "@renderer/helpers";
+import { FriendRequestAction, UpdateProfileProps, UserDetails } from "@types";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
+import { logger } from "@renderer/logger";
 
 export function useUserDetails() {
   const dispatch = useAppDispatch();
@@ -21,6 +20,7 @@ export function useUserDetails() {
     profileBackground,
     friendRequests,
     isFriendsModalVisible,
+    friendModalUserId,
     friendRequetsModalTab,
   } = useAppSelector((state) => state.userDetails);
 
@@ -42,12 +42,12 @@ export function useUserDetails() {
       dispatch(setUserDetails(userDetails));
 
       if (userDetails.profileImageUrl) {
-        const output = await average(userDetails.profileImageUrl, {
-          amount: 1,
-          format: "hex",
+        const profileBackground = await profileBackgroundFromProfileImage(
+          userDetails.profileImageUrl
+        ).catch((err) => {
+          logger.error("profileBackgroundFromProfileImage", err);
+          return `#151515B3`;
         });
-
-        const profileBackground = `linear-gradient(135deg, ${darkenColor(output as string, 0.6)}, ${darkenColor(output as string, 0.8, 0.7)})`;
         dispatch(setProfileBackground(profileBackground));
 
         window.localStorage.setItem(
@@ -78,28 +78,28 @@ export function useUserDetails() {
   }, [clearUserDetails]);
 
   const patchUser = useCallback(
-    async (displayName: string, imageProfileUrl: string | null) => {
-      const response = await window.electron.updateProfile(
-        displayName,
-        imageProfileUrl
-      );
-
+    async (props: UpdateProfileProps) => {
+      const response = await window.electron.updateProfile(props);
       return updateUserDetails(response);
     },
     [updateUserDetails]
   );
 
-  const updateFriendRequests = useCallback(async () => {
-    const friendRequests = await window.electron.getFriendRequests();
-    dispatch(setFriendRequests(friendRequests));
+  const fetchFriendRequests = useCallback(() => {
+    return window.electron
+      .getFriendRequests()
+      .then((friendRequests) => {
+        dispatch(setFriendRequests(friendRequests));
+      })
+      .catch(() => {});
   }, [dispatch]);
 
   const showFriendsModal = useCallback(
-    (tab: UserFriendModalTab) => {
-      dispatch(setFriendsModalVisible(tab));
-      updateFriendRequests();
+    (initialTab: UserFriendModalTab, userId: string) => {
+      dispatch(setFriendsModalVisible({ initialTab, userId }));
+      fetchFriendRequests();
     },
-    [dispatch]
+    [dispatch, fetchFriendRequests]
   );
 
   const hideFriendsModal = useCallback(() => {
@@ -110,19 +110,31 @@ export function useUserDetails() {
     async (userId: string) => {
       return window.electron
         .sendFriendRequest(userId)
-        .then(() => updateFriendRequests());
+        .then(() => fetchFriendRequests());
     },
-    [updateFriendRequests]
+    [fetchFriendRequests]
   );
 
   const updateFriendRequestState = useCallback(
     async (userId: string, action: FriendRequestAction) => {
       return window.electron
         .updateFriendRequest(userId, action)
-        .then(() => updateFriendRequests());
+        .then(() => fetchFriendRequests());
     },
-    [updateFriendRequests]
+    [fetchFriendRequests]
   );
+
+  const undoFriendship = (userId: string) => {
+    return window.electron.undoFriendship(userId);
+  };
+
+  const blockUser = (userId: string) => {
+    return window.electron.blockUser(userId);
+  };
+
+  const unblockUser = (userId: string) => {
+    return window.electron.unblockUser(userId);
+  };
 
   return {
     userDetails,
@@ -130,6 +142,7 @@ export function useUserDetails() {
     friendRequests,
     friendRequetsModalTab,
     isFriendsModalVisible,
+    friendModalUserId,
     showFriendsModal,
     hideFriendsModal,
     fetchUserDetails,
@@ -138,7 +151,10 @@ export function useUserDetails() {
     updateUserDetails,
     patchUser,
     sendFriendRequest,
-    updateFriendRequests,
+    fetchFriendRequests,
     updateFriendRequestState,
+    blockUser,
+    unblockUser,
+    undoFriendship,
   };
 }

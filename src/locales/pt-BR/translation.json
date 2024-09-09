@@ -1,4 +1,5 @@
 {
+  "language_name": "Português (Brasil)",
   "app": {
     "successfully_signed_in": "Autenticado com sucesso"
   },
@@ -166,7 +167,7 @@
     "real_debrid_linked_message": "Conta \"{{username}}\" vinculada",
     "save_changes": "Salvar mudanças",
     "changes_saved": "Ajustes salvos com sucesso",
-    "download_sources_description": "Hydra vai buscar links de download em todas as fonte habilitadas. A URL da fonte deve ser um link direto para um arquivo .json contendo uma lista de links.",
+    "download_sources_description": "Hydra vai buscar links de download em todas as fontes habilitadas. A URL da fonte deve ser um link direto para um arquivo .json contendo uma lista de links.",
     "validate_download_source": "Validar",
     "remove_download_source": "Remover",
     "add_download_source": "Adicionar fonte",
@@ -250,6 +251,30 @@
     "add": "Adicionar",
     "sending": "Enviando",
     "friends_list": "Lista de amigos",
-    "user_not_found": "Usuário não encontrado"
+    "user_not_found": "Usuário não encontrado",
+    "block_user": "Bloquear",
+    "add_friend": "Adicionar amigo",
+    "request_sent": "Pedido enviado",
+    "request_received": "Pedido recebido",
+    "accept_request": "Aceitar pedido",
+    "ignore_request": "Ignorar pedido",
+    "cancel_request": "Cancelar pedido",
+    "undo_friendship": "Desfazer amizade",
+    "request_accepted": "Pedido de amizade aceito",
+    "user_blocked_successfully": "Usuário bloqueado com sucesso",
+    "user_block_modal_text": "Bloquear {{displayName}}",
+    "settings": "Configurações",
+    "privacy": "Privacidade",
+    "private": "Privado",
+    "friends_only": "Apenas amigos",
+    "public": "Público",
+    "blocked_users": "Usuários bloqueados",
+    "unblock": "Desbloquear",
+    "no_friends_added": "Você ainda não possui amigos adicionados",
+    "pending": "Pendentes",
+    "no_pending_invites": "Você não possui convites de amizade pendentes",
+    "no_blocked_users": "Você não tem nenhum usuário bloqueado",
+    "friend_code_copied": "Código de amigo copiado",
+    "undo_friendship_modal_text": "Isso irá remover sua amizade com {{displayName}}"
   }
 }

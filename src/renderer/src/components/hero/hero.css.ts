@@ -45,7 +45,6 @@ export const description = style({
   maxWidth: "700px",
   color: vars.color.muted,
   textAlign: "left",
-  fontFamily: "'Fira Sans', sans-serif",
   lineHeight: "20px",
   marginTop: `${SPACING_UNIT * 2}px`,
 });

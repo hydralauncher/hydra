@@ -64,6 +64,14 @@ export class HydraApi {
     }
   }
 
+  static handleSignOut() {
+    this.userAuth = {
+      authToken: "",
+      refreshToken: "",
+      expirationTimestamp: 0,
+    };
+  }
+
   static async setupApi() {
     this.instance = axios.create({
       baseURL: import.meta.env.MAIN_VITE_API_URL,
@@ -72,7 +80,7 @@ export class HydraApi {
     this.instance.interceptors.request.use(
       (request) => {
         logger.log(" ---- REQUEST -----");
-        logger.log(request.method, request.url, request.data);
+        logger.log(request.method, request.url, request.params, request.data);
         return request;
       },
       (error) => {
@@ -196,52 +204,52 @@ export class HydraApi {
     throw err;
   };
 
-  static async get(url: string) {
+  static async get<T = any>(url: string, params?: any) {
     if (!this.isLoggedIn()) throw new UserNotLoggedInError();
 
     await this.revalidateAccessTokenIfExpired();
     return this.instance
-      .get(url, this.getAxiosConfig())
+      .get<T>(url, { params, ...this.getAxiosConfig() })
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
 
-  static async post(url: string, data?: any) {
+  static async post<T = any>(url: string, data?: any) {
     if (!this.isLoggedIn()) throw new UserNotLoggedInError();
 
     await this.revalidateAccessTokenIfExpired();
     return this.instance
-      .post(url, data, this.getAxiosConfig())
+      .post<T>(url, data, this.getAxiosConfig())
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
 
-  static async put(url: string, data?: any) {
+  static async put<T = any>(url: string, data?: any) {
     if (!this.isLoggedIn()) throw new UserNotLoggedInError();
 
     await this.revalidateAccessTokenIfExpired();
     return this.instance
-      .put(url, data, this.getAxiosConfig())
+      .put<T>(url, data, this.getAxiosConfig())
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
 
-  static async patch(url: string, data?: any) {
+  static async patch<T = any>(url: string, data?: any) {
     if (!this.isLoggedIn()) throw new UserNotLoggedInError();
 
     await this.revalidateAccessTokenIfExpired();
     return this.instance
-      .patch(url, data, this.getAxiosConfig())
+      .patch<T>(url, data, this.getAxiosConfig())
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
 
-  static async delete(url: string) {
+  static async delete<T = any>(url: string) {
     if (!this.isLoggedIn()) throw new UserNotLoggedInError();
 
     await this.revalidateAccessTokenIfExpired();
     return this.instance
-      .delete(url, this.getAxiosConfig())
+      .delete<T>(url, this.getAxiosConfig())
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }

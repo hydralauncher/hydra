@@ -16,14 +16,11 @@ export class Repack {
   @Column("text", { unique: true })
   title: string;
 
+  /**
+   * @deprecated Use uris instead
+   */
   @Column("text", { unique: true })
   magnet: string;
-
-  /**
-   * @deprecated
-   */
-  @Column("int", { nullable: true })
-  page: number;
 
   @Column("text")
   repacker: string;
@@ -36,6 +33,9 @@ export class Repack {
 
   @ManyToOne(() => DownloadSource, { nullable: true, onDelete: "CASCADE" })
   downloadSource: DownloadSource;
+
+  @Column("text", { default: "[]" })
+  uris: string;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -10,6 +10,7 @@ import type {
   StartGameDownloadPayload,
   GameRunning,
   FriendRequestAction,
+  UpdateProfileProps,
 } from "@types";
 
 contextBridge.exposeInMainWorld("electron", {
@@ -135,8 +136,10 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Profile */
   getMe: () => ipcRenderer.invoke("getMe"),
-  updateProfile: (displayName: string, newProfileImagePath: string | null) =>
-    ipcRenderer.invoke("updateProfile", displayName, newProfileImagePath),
+  undoFriendship: (userId: string) =>
+    ipcRenderer.invoke("undoFriendship", userId),
+  updateProfile: (updateProfile: UpdateProfileProps) =>
+    ipcRenderer.invoke("updateProfile", updateProfile),
   getFriendRequests: () => ipcRenderer.invoke("getFriendRequests"),
   updateFriendRequest: (userId: string, action: FriendRequestAction) =>
     ipcRenderer.invoke("updateFriendRequest", userId, action),
@@ -145,6 +148,12 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* User */
   getUser: (userId: string) => ipcRenderer.invoke("getUser", userId),
+  blockUser: (userId: string) => ipcRenderer.invoke("blockUser", userId),
+  unblockUser: (userId: string) => ipcRenderer.invoke("unblockUser", userId),
+  getUserFriends: (userId: string, take: number, skip: number) =>
+    ipcRenderer.invoke("getUserFriends", userId, take, skip),
+  getUserBlocks: (take: number, skip: number) =>
+    ipcRenderer.invoke("getUserBlocks", take, skip),
 
   /* Auth */
   signOut: () => ipcRenderer.invoke("signOut"),

@@ -42,11 +42,12 @@ export function App() {
   const {
     isFriendsModalVisible,
     friendRequetsModalTab,
-    updateFriendRequests,
+    friendModalUserId,
+    fetchFriendRequests,
     hideFriendsModal,
   } = useUserDetails();
 
-  const { fetchUserDetails, updateUserDetails, clearUserDetails } =
+  const { userDetails, fetchUserDetails, updateUserDetails, clearUserDetails } =
     useUserDetails();
 
   const dispatch = useAppDispatch();
@@ -104,20 +105,26 @@ export function App() {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
-        updateFriendRequests();
+        fetchFriendRequests();
       }
     });
-  }, [fetchUserDetails, updateUserDetails, dispatch]);
+  }, [fetchUserDetails, fetchFriendRequests, updateUserDetails, dispatch]);
 
   const onSignIn = useCallback(() => {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
-        updateFriendRequests();
+        fetchFriendRequests();
         showSuccessToast(t("successfully_signed_in"));
       }
     });
-  }, [fetchUserDetails, t, showSuccessToast, updateUserDetails]);
+  }, [
+    fetchUserDetails,
+    fetchFriendRequests,
+    t,
+    showSuccessToast,
+    updateUserDetails,
+  ]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
@@ -218,11 +225,14 @@ export function App() {
         onClose={handleToastClose}
       />
 
-      <UserFriendModal
-        visible={isFriendsModalVisible}
-        initialTab={friendRequetsModalTab}
-        onClose={hideFriendsModal}
-      />
+      {userDetails && (
+        <UserFriendModal
+          visible={isFriendsModalVisible}
+          initialTab={friendRequetsModalTab}
+          onClose={hideFriendsModal}
+          userId={friendModalUserId}
+        />
+      )}
 
       <main>
         <Sidebar />
