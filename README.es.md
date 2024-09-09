@@ -5,7 +5,7 @@
 [<img src="./resources/icon.png" width="144"/>](https://hydralauncher.site)
 
   <h1 align="center">Hydra Launcher</h1>
-  
+
   <p align="center">
     <strong>Hydra es un launcher de juegos con su propio cliente de bittorrent y gestor propio de repacks.</strong>
   </p>
@@ -20,6 +20,7 @@
 [![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
 [![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
 [![fr](https://img.shields.io/badge/lang-fr-blue)](README.fr.md)
+[![de](https://img.shields.io/badge/lang-de-black)](README.de.md)
 
 ![Hydra Catalogue](./docs/screenshot.png)
 
