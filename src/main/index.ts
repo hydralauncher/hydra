@@ -7,7 +7,7 @@ import url from "node:url";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { logger, PythonInstance, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
-import * as resources from "@locales";
+import resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
 import { knexClient, migrationConfig } from "./knex-client";
 
