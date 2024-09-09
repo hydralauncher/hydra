@@ -5,7 +5,7 @@
 [<img src="./resources/icon.png" width="144"/>](https://hydralauncher.site)
 
   <h1 align="center">Hydra Launcher</h1>
-  
+
   <p align="center">
     <strong>Hydra is a game launcher with its own embedded bittorrent client.</strong>
   </p>

@@ -5,7 +5,7 @@
 [<img src="./resources/icon.png" width="144"/>](https://hydralauncher.site)
 
   <h1 align="center">Hydra Launcher</h1>
-  
+
   <p align="center">
     <strong>Hydra es un launcher de juegos con su propio cliente de bittorrent y gestor propio de repacks.</strong>
   </p>
