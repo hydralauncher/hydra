@@ -32,7 +32,6 @@
     "knex:migrate:make": "knex --knexfile src/main/knexfile.ts migrate:make --esm"
   },
   "dependencies": {
-    "@cospired/i18n-iso-languages": "^4.2.0",
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/utils": "^3.0.0",
     "@fontsource/noto-sans": "^5.0.22",
@@ -43,7 +42,7 @@
     "@vanilla-extract/dynamic": "^2.1.1",
     "@vanilla-extract/recipes": "^0.5.2",
     "auto-launch": "^5.0.6",
-    "axios": "^1.6.8",
+    "axios": "^1.7.7",
     "better-sqlite3": "^11.2.1",
     "check-disk-space": "^3.4.0",
     "classnames": "^2.5.1",
@@ -59,7 +58,6 @@
     "i18next": "^23.11.2",
     "i18next-browser-languagedetector": "^7.2.1",
     "icojs": "^0.19.3",
-    "iso-639-1": "3.1.2",
     "jsdom": "^24.0.0",
     "jsonwebtoken": "^9.0.2",
     "knex": "^3.1.0",
