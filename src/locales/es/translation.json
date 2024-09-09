@@ -272,6 +272,6 @@
     "no_pending_invites": "No tienes invitaciones pendientes",
     "no_blocked_users": "No has bloqueado a ningún usuario",
     "friend_code_copied": "Código de amigo copiado",
-    "undo_friendship_modal_text": "Esto deshara tu amistad con {{displayName}}"
+    "undo_friendship_modal_text": "Esto deshará tu amistad con {{displayName}}"
   }
 }
