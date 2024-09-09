@@ -17,7 +17,8 @@ export const insertDownloadsFromSource = async (
   const repacks: QueryDeepPartialEntity<Repack>[] = downloads.map(
     (download) => ({
       title: download.title,
-      magnet: download.uris[0],
+      uris: JSON.stringify(download.uris),
+      magnet: download.uris[0]!,
       fileSize: download.fileSize,
       repacker: downloadSource.name,
       uploadDate: download.uploadDate,

@@ -43,16 +43,19 @@ import "./auth/sign-out";
 import "./auth/open-auth-window";
 import "./auth/get-session-hash";
 import "./user/get-user";
+import "./user/get-user-blocks";
+import "./user/block-user";
+import "./user/unblock-user";
+import "./user/get-user-friends";
 import "./profile/get-friend-requests";
 import "./profile/get-me";
+import "./profile/undo-friendship";
 import "./profile/update-friend-request";
 import "./profile/update-profile";
 import "./profile/send-friend-request";
+import { isPortableVersion } from "@main/helpers";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => app.getVersion());
-ipcMain.handle(
-  "isPortableVersion",
-  () => process.env.PORTABLE_EXECUTABLE_FILE != null
-);
+ipcMain.handle("isPortableVersion", () => isPortableVersion());
 ipcMain.handle("getDefaultDownloadsPath", () => defaultDownloadsPath);

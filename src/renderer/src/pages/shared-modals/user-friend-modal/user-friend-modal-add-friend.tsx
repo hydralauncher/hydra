@@ -4,7 +4,7 @@ import { SPACING_UNIT } from "@renderer/theme.css";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { UserFriendRequest } from "./user-friend-request";
+import { UserFriendItem } from "./user-friend-item";
 
 export interface UserFriendModalAddFriendProps {
   closeModal: () => void;
@@ -23,7 +23,7 @@ export const UserFriendModalAddFriend = ({
   const { sendFriendRequest, updateFriendRequestState, friendRequests } =
     useUserDetails();
 
-  const { showErrorToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const handleClickAddFriend = () => {
     setIsAddingFriend(true);
@@ -40,37 +40,37 @@ export const UserFriendModalAddFriend = ({
       });
   };
 
-  const resetAndClose = () => {
-    setFriendCode("");
-    closeModal();
-  };
-
   const handleClickRequest = (userId: string) => {
-    resetAndClose();
+    closeModal();
     navigate(`/user/${userId}`);
   };
 
   const handleClickSeeProfile = () => {
-    resetAndClose();
-    // TODO: add validation for this input?
-    navigate(`/user/${friendCode}`);
+    closeModal();
+    if (friendCode.length === 8) {
+      navigate(`/user/${friendCode}`);
+    }
   };
 
-  const handleClickCancelFriendRequest = (userId: string) => {
+  const handleCancelFriendRequest = (userId: string) => {
     updateFriendRequestState(userId, "CANCEL").catch(() => {
-      showErrorToast("Falha ao cancelar convite");
+      showErrorToast(t("try_again"));
     });
   };
 
-  const handleClickAcceptFriendRequest = (userId: string) => {
-    updateFriendRequestState(userId, "ACCEPTED").catch(() => {
-      showErrorToast("Falha ao aceitar convite");
-    });
+  const handleAcceptFriendRequest = (userId: string) => {
+    updateFriendRequestState(userId, "ACCEPTED")
+      .then(() => {
+        showSuccessToast(t("request_accepted"));
+      })
+      .catch(() => {
+        showErrorToast(t("try_again"));
+      });
   };
 
-  const handleClickRefuseFriendRequest = (userId: string) => {
+  const handleRefuseFriendRequest = (userId: string) => {
     updateFriendRequestState(userId, "REFUSED").catch(() => {
-      showErrorToast("Falha ao recusar convite");
+      showErrorToast(t("try_again"));
     });
   };
 
@@ -118,19 +118,20 @@ export const UserFriendModalAddFriend = ({
           gap: `${SPACING_UNIT * 2}px`,
         }}
       >
-        <h3>Pendentes</h3>
+        <h3>{t("pending")}</h3>
+        {friendRequests.length === 0 && <p>{t("no_pending_invites")}</p>}
         {friendRequests.map((request) => {
           return (
-            <UserFriendRequest
+            <UserFriendItem
               key={request.id}
               displayName={request.displayName}
-              isRequestSent={request.type === "SENT"}
+              type={request.type}
               profileImageUrl={request.profileImageUrl}
               userId={request.id}
-              onClickAcceptRequest={handleClickAcceptFriendRequest}
-              onClickCancelRequest={handleClickCancelFriendRequest}
-              onClickRefuseRequest={handleClickRefuseFriendRequest}
-              onClickRequest={handleClickRequest}
+              onClickAcceptRequest={handleAcceptFriendRequest}
+              onClickCancelRequest={handleCancelFriendRequest}
+              onClickRefuseRequest={handleRefuseFriendRequest}
+              onClickItem={handleClickRequest}
             />
           );
         })}

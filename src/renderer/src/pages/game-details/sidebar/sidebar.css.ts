@@ -46,7 +46,6 @@ export const requirementButton = style({
 export const requirementsDetails = style({
   padding: `${SPACING_UNIT * 2}px`,
   lineHeight: "22px",
-  fontFamily: "'Fira Sans', sans-serif",
   fontSize: "16px",
 });
 

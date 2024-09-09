@@ -44,8 +44,10 @@ export function RepacksModal({
   }, [repacks]);
 
   const getInfoHash = useCallback(async () => {
-    const torrent = await parseTorrent(game?.uri ?? "");
-    if (torrent.infoHash) setInfoHash(torrent.infoHash);
+    if (game?.uri?.startsWith("magnet:")) {
+      const torrent = await parseTorrent(game?.uri ?? "");
+      if (torrent.infoHash) setInfoHash(torrent.infoHash);
+    }
   }, [game]);
 
   useEffect(() => {
@@ -74,6 +76,13 @@ export function RepacksModal({
     );
   };
 
+  const checkIfLastDownloadedOption = (repack: GameRepack) => {
+    if (infoHash) return repack.uris.some((uri) => uri.includes(infoHash));
+    if (!game?.uri) return false;
+
+    return repack.uris.some((uri) => uri.includes(game?.uri ?? ""));
+  };
+
   return (
     <>
       <DownloadSettingsModal
@@ -95,9 +104,7 @@ export function RepacksModal({
 
         <div className={styles.repacks}>
           {filteredRepacks.map((repack) => {
-            const isLastDownloadedOption =
-              infoHash !== null &&
-              repack.magnet.toLowerCase().includes(infoHash);
+            const isLastDownloadedOption = checkIfLastDownloadedOption(repack);
 
             return (
               <Button

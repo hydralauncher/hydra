@@ -67,7 +67,11 @@ export interface SteamAppDetails {
 export interface GameRepack {
   id: number;
   title: string;
+  /**
+   * @deprecated Use uris instead
+   */
   magnet: string;
+  uris: string[];
   repacker: string;
   fileSize: string | null;
   uploadDate: Date | string | null;
@@ -137,9 +141,9 @@ export interface Game {
 export type LibraryGame = Omit<Game, "repacks">;
 
 export interface GameRunning {
-  id: number;
+  id?: number;
   title: string;
-  iconUrl: string;
+  iconUrl: string | null;
   objectID: string;
   shop: GameShop;
   sessionDurationInMillis: number;
@@ -194,6 +198,7 @@ export interface StartGameDownloadPayload {
   objectID: string;
   title: string;
   shop: GameShop;
+  uri: string;
   downloadPath: string;
   downloader: Downloader;
 }
@@ -277,6 +282,16 @@ export interface UserFriend {
   profileImageUrl: string | null;
 }
 
+export interface UserFriends {
+  totalFriends: number;
+  friends: UserFriend[];
+}
+
+export interface UserBlocks {
+  totalBlocks: number;
+  blocks: UserFriend[];
+}
+
 export interface FriendRequest {
   id: string;
   displayName: string;
@@ -284,14 +299,33 @@ export interface FriendRequest {
   type: "SENT" | "RECEIVED";
 }
 
+export interface UserRelation {
+  AId: string;
+  BId: string;
+  status: "ACCEPTED" | "PENDING";
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface UserProfile {
   id: string;
   displayName: string;
   profileImageUrl: string | null;
+  profileVisibility: "PUBLIC" | "PRIVATE" | "FRIENDS";
   totalPlayTimeInSeconds: number;
   libraryGames: UserGame[];
   recentGames: UserGame[];
   friends: UserFriend[];
+  totalFriends: number;
+  relation: UserRelation | null;
+  currentGame: GameRunning | null;
+}
+
+export interface UpdateProfileProps {
+  displayName?: string;
+  profileVisibility?: "PUBLIC" | "PRIVATE" | "FRIENDS";
+  profileImageUrl?: string | null;
+  bio?: string;
 }
 
 export interface DownloadSource {

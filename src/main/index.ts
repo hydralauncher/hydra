@@ -7,8 +7,9 @@ import url from "node:url";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { logger, PythonInstance, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
-import * as resources from "@locales";
+import resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
+import { knexClient, migrationConfig } from "./knex-client";
 
 const { autoUpdater } = updater;
 
@@ -19,8 +20,6 @@ autoUpdater.setFeedURL({
 });
 
 autoUpdater.logger = logger;
-
-logger.log("Init Hydra");
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
@@ -54,6 +53,18 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient(PROTOCOL);
 }
 
+const runMigrations = async () => {
+  await knexClient.migrate.list(migrationConfig).then((result) => {
+    logger.log(
+      "Migrations to run:",
+      result[1].map((migration) => migration.name)
+    );
+  });
+
+  await knexClient.migrate.latest(migrationConfig);
+  await knexClient.destroy();
+};
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -65,8 +76,15 @@ app.whenReady().then(async () => {
     return net.fetch(url.pathToFileURL(decodeURI(filePath)).toString());
   });
 
+  await runMigrations()
+    .then(() => {
+      logger.log("Migrations executed successfully");
+    })
+    .catch((err) => {
+      logger.log("Migrations failed to run:", err);
+    });
+
   await dataSource.initialize();
-  await dataSource.runMigrations();
 
   await import("./main");
 
@@ -88,10 +106,15 @@ app.on("browser-window-created", (_, window) => {
 
 const handleDeepLinkPath = (uri?: string) => {
   if (!uri) return;
-  const url = new URL(uri);
 
-  if (url.host === "install-source") {
-    WindowManager.redirect(`settings${url.search}`);
+  try {
+    const url = new URL(uri);
+
+    if (url.host === "install-source") {
+      WindowManager.redirect(`settings${url.search}`);
+    }
+  } catch (error) {
+    logger.error("Error handling deep link", uri, error);
   }
 };
 
@@ -123,7 +146,6 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   /* Disconnects libtorrent */
   PythonInstance.kill();
-  logger.log("Quit Hydra");
 });
 
 app.on("activate", () => {

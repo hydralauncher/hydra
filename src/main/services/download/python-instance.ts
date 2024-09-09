@@ -19,6 +19,7 @@ import {
   LibtorrentPayload,
   ProcessPayload,
 } from "./types";
+import { pythonInstanceLogger as logger } from "../logger";
 
 export class PythonInstance {
   private static pythonProcess: cp.ChildProcess | null = null;
@@ -32,11 +33,13 @@ export class PythonInstance {
   });
 
   public static spawn(args?: StartDownloadPayload) {
+    logger.log("spawning python process with args:", args);
     this.pythonProcess = startRPCClient(args);
   }
 
   public static kill() {
     if (this.pythonProcess) {
+      logger.log("killing python process");
       this.pythonProcess.kill();
       this.pythonProcess = null;
       this.downloadingGameId = -1;
@@ -45,6 +48,7 @@ export class PythonInstance {
 
   public static killTorrent() {
     if (this.pythonProcess) {
+      logger.log("killing torrent in python process");
       this.rpc.post("/action", { action: "kill-torrent" });
       this.downloadingGameId = -1;
     }
@@ -138,12 +142,14 @@ export class PythonInstance {
         save_path: game.downloadPath!,
       });
     } else {
-      await this.rpc.post("/action", {
-        action: "start",
-        game_id: game.id,
-        magnet: game.uri,
-        save_path: game.downloadPath,
-      } as StartDownloadPayload);
+      await this.rpc
+        .post("/action", {
+          action: "start",
+          game_id: game.id,
+          magnet: game.uri,
+          save_path: game.downloadPath,
+        } as StartDownloadPayload)
+        .catch(this.handleRpcError);
     }
 
     this.downloadingGameId = game.id;
@@ -158,5 +164,15 @@ export class PythonInstance {
       .catch(() => {});
 
     this.downloadingGameId = -1;
+  }
+
+  private static async handleRpcError(_error: unknown) {
+    await this.rpc.get("/healthcheck").catch(() => {
+      logger.error(
+        "RPC healthcheck failed. Killing process and starting again"
+      );
+      this.kill();
+      this.spawn();
+    });
   }
 }

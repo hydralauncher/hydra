@@ -1,4 +1,5 @@
 {
+  "language_name": "English",
   "app": {
     "successfully_signed_in": "Successfully signed in"
   },
@@ -174,12 +175,9 @@
     "validate_download_source": "Validate",
     "remove_download_source": "Remove",
     "add_download_source": "Add source",
-    "download_count_zero": "No downloads in list",
-    "download_count_one": "{{countFormatted}} download in list",
-    "download_count_other": "{{countFormatted}} downloads in list",
-    "download_options_zero": "No download available",
-    "download_options_one": "{{countFormatted}} download available",
-    "download_options_other": "{{countFormatted}} downloads available",
+    "download_count_zero": "No download options",
+    "download_count_one": "{{countFormatted}} download option",
+    "download_count_other": "{{countFormatted}} download options",
     "download_source_url": "Download source URL",
     "add_download_source_description": "Insert the URL containing the .json file",
     "download_source_up_to_date": "Up-to-date",
@@ -250,6 +248,30 @@
     "friend_request_sent": "Friend request sent",
     "friends": "Friends",
     "friends_list": "Friends list",
-    "user_not_found": "User not found"
+    "user_not_found": "User not found",
+    "block_user": "Block user",
+    "add_friend": "Add friend",
+    "request_sent": "Request sent",
+    "request_received": "Request received",
+    "accept_request": "Accept request",
+    "ignore_request": "Ignore request",
+    "cancel_request": "Cancel request",
+    "undo_friendship": "Undo friendship",
+    "request_accepted": "Request accepted",
+    "user_blocked_successfully": "User blocked successfully",
+    "user_block_modal_text": "This will block {{displayName}}",
+    "settings": "Settings",
+    "public": "Public",
+    "private": "Private",
+    "friends_only": "Friends only",
+    "privacy": "Privacy",
+    "blocked_users": "Blocked users",
+    "unblock": "Unblock",
+    "no_friends_added": "You still don't have added friends",
+    "pending": "Pending",
+    "no_pending_invites": "You have no pending invites",
+    "no_blocked_users": "You have no blocked users",
+    "friend_code_copied": "Friend code copied",
+    "undo_friendship_modal_text": "This will undo your friendship with {{displayName}}"
   }
 }
