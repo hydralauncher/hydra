@@ -21,6 +21,7 @@ import fa from "./fa/translation.json";
 import ro from "./ro/translation.json";
 import ca from "./ca/translation.json";
 import kk from "./kk/translation.json";
+import cs from "./cs/translation.json";
 
 export default {
   "pt-BR": ptBR,
@@ -46,4 +47,5 @@ export default {
   ro,
   ca,
   kk,
+  cs,
 };
