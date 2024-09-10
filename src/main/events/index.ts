@@ -53,6 +53,7 @@ import "./profile/undo-friendship";
 import "./profile/update-friend-request";
 import "./profile/update-profile";
 import "./profile/send-friend-request";
+import "./download-sources/community-download-sources";
 import { isPortableVersion } from "@main/helpers";
 
 ipcMain.handle("ping", () => "pong");

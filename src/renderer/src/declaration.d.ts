@@ -18,6 +18,7 @@ import type {
   FriendRequestAction,
   UserFriends,
   UserBlocks,
+  CommunitySource,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -98,6 +99,7 @@ declare global {
     addDownloadSource: (url: string) => Promise<DownloadSource>;
     removeDownloadSource: (id: number) => Promise<void>;
     syncDownloadSources: () => Promise<void>;
+    getCommunitySources: () => Promise<CommunitySource[]>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;

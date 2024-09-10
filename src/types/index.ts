@@ -339,3 +339,9 @@ export interface DownloadSource {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface CommunitySource {
+  key: string;
+  label: string;
+  value: string;
+}
