@@ -18,6 +18,8 @@ export function SelectField({
   options = [{ key: "-", value: value?.toString() || "-", label: "-" }],
   theme = "primary",
   onChange,
+  disabled,
+  style,
 }: SelectProps) {
   const [isFocused, setIsFocused] = useState(false);
   const id = useId();
@@ -32,12 +34,14 @@ export function SelectField({
 
       <div className={styles.select({ focused: isFocused, theme })}>
         <select
+          style={style}
           id={id}
           value={value}
           className={styles.option}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           onChange={onChange}
+          disabled={disabled}
         >
           {options.map((option) => (
             <option key={option.key} value={option.value}>
