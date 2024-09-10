@@ -55,7 +55,7 @@
 
 ## O projektu
 
-**Hydra** je  **Herní Launcher** s jeho vlastním vestavěným **BitTorrent Klientem**.
+**Hydra** je **Herní Launcher** s jeho vlastním vestavěným **BitTorrent Klientem**.
 <br>
 Launcher je napsán v TypeScriptu (Electron) a Pythonu, který má na starosti torrentovací systém za pomocí knihovny libtorrent.
 
