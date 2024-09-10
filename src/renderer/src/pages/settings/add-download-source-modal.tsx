@@ -33,7 +33,7 @@ export function AddDownloadSourceModal({
     {
       key: "",
       value: "",
-      label: "Loading...",
+      label: `${t("loading")}...`,
     },
   ]);
   const [selected, setSelected] = useState("");
@@ -44,7 +44,7 @@ export function AddDownloadSourceModal({
         {
           key: "",
           value: "",
-          label: "[select one]",
+          label: `[${t("select_one_source")}]`,
         },
         ...sources,
       ]);
@@ -104,7 +104,7 @@ export function AddDownloadSourceModal({
             minWidth: "500px",
           }}
           value={selected}
-          label="Select a community source"
+          label={t("select_community_source")}
           onChange={(e) => {
             setSelected(e.target.value);
             setValue(e.target.value);
@@ -130,7 +130,7 @@ export function AddDownloadSourceModal({
             }}
             className="bg-background"
           >
-            OR
+            {t("or")}
           </span>
           <hr
             style={{
