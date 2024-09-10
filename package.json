@@ -65,6 +65,7 @@
     "lottie-react": "^2.4.0",
     "parse-torrent": "^11.0.16",
     "piscina": "^4.5.1",
+    "puppeteer": "^23.3.0",
     "react-i18next": "^14.1.0",
     "react-loading-skeleton": "^3.4.0",
     "react-redux": "^9.1.1",
