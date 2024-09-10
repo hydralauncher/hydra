@@ -10,3 +10,4 @@ out
 .env
 .vite
 sentry.properties
+.venv
