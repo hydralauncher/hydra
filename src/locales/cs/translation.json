@@ -6,7 +6,7 @@
   "home": {
     "featured": "Doporučené",
     "trending": "Trendy",
-    "surprise_me": "Překvapilo mě",
+    "surprise_me": "Překvap mě",
     "no_results": "Výsledek nenalezen"
   },
   "sidebar": {
@@ -156,7 +156,7 @@
     "enable_download_notifications": "Až bude stahování dokončeno",
     "enable_repack_list_notifications": "Když bude přidán nový repack",
     "real_debrid_api_token_label": "Real-Debrid API token",
-    "quit_app_instead_hiding": "Neschovávat Hydru při zavření",
+    "quit_app_instead_hiding": "Nezavírat Hydru při zavření okna",
     "launch_with_system": "Spustit Hydru při startu systému",
     "general": "Hlavní",
     "behavior": "Chování",
@@ -186,7 +186,7 @@
     "removed_download_source": "Zdroj odebrán",
     "added_download_source": "Zdroj přidán",
     "download_sources_synced": "Všechny zdroje jsou synchronizovány",
-    "insert_valid_json_url": "Zadej platnout JSON adresu",
+    "insert_valid_json_url": "Zadej platnou JSON adresu",
     "found_download_option_zero": "Nenalezena žádná možnost stahování",
     "found_download_option_one": "Nalezena {{countFormatted}} možnost stahování",
     "found_download_option_other": "Nalezeny {{countFormatted}} možnosti stahování",
@@ -272,6 +272,6 @@
     "no_pending_invites": "Nemáte žádné příchozí žádosti",
     "no_blocked_users": "Nemáte nikoho zablokovaného",
     "friend_code_copied": "Kód přítele zkopírován",
-    "undo_friendship_modal_text": "Tohle odvolá vaše přátelství s {{displayName}}"
+    "undo_friendship_modal_text": "Tímto zrušíte své přátelství s {{displayName}}"
   }
 }

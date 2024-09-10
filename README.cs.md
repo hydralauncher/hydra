@@ -50,7 +50,7 @@
 - [Sestavení](#sestavení)
   - [Sestavení bittorrent klientu](#sestavení-bittorrent-klientu)
   - [Sestavení electron aplikace](#sestavení-electron-aplikace)
-- [Přizpěvatelé](#přizpěvatelé)
+- [Přispěvatelé](#přispěvatelé)
 - [Licence](#licence)
 
 ## O projektu
@@ -75,7 +75,7 @@ Následuj kroky:
 1. Stáhni nejnovější verzi Hydry ze stránky [Vydání](https://github.com/hydralauncher/hydra/releases/latest).
    - Stáhni .exe, pokud chceš instalovat Hydru na Windows.
    - Stáhni .deb nebo .rpm nebo .zip, pokud chceš instalovat Hydru na Linux. (záleží na tvé Linux distribuci)
-2. Spusť stažený soubor.
+2. Spusť stažený instalační soubor.
 3. Užívej Hydru!
 
 ## <a name="contributing"> Přispívání
@@ -86,7 +86,7 @@ Vedeme diskuzi v našem [Telegramovém](https://t.me/hydralauncher) kanálu.
 
 ### Vytvořte fork a naklonujte svůj repozitář
 
-1. Naforkuj repozitář [(klikni sem pro vytvoření forku)](https://github.com/hydralauncher/hydra/fork)
+1. Vytvoř fork repozitáře [(klikni sem pro vytvoření forku)](https://github.com/hydralauncher/hydra/fork)
 2. Naklonuj kód forku `git clone https://github.com/tvoje_jméno/hydra`
 3. Vytvoř nové odvětví (branch)
 4. Odešli svoje změny
@@ -136,13 +136,13 @@ pip install -r requirements.txt
 
 ## Proměnné prostředí
 
-Budete potřebova SteamGridDB API Klíč, abyste mohli načítat ikony u her.
+Budete potřebovat SteamGridDB API klíč, abyste mohli načítat ikony u her.
 
 Jakmile ho máte, můžete zkopírovat, nebo přejmenovat `.env.example` soubor na `.env` a dát ho do `STEAMGRIDDB_API_KEY`.
 
 ## Spuštění
 
-Jakmile máte vše nastaveno, můžete spustits jak Electron proces tak bittorrent client:
+Jakmile máte vše nastaveno, můžete spustit jak Electron proces tak bittorrent client:
 
 ```bash
 yarn dev
@@ -160,7 +160,7 @@ python torrent-client/setup.py build
 
 ### Sestavení electron aplikace
 
-Sestavit Electron aplikaci můžete pomocí:
+Sestavit Electron aplikaci můžete pomocí následujících kroků:
 
 Na Windows:
 
@@ -174,7 +174,7 @@ Na Linux:
 yarn build:linux
 ```
 
-## Přizpěvatelé
+## Přispěvatelé
 
 <a href="https://github.com/hydralauncher/hydra/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=hydralauncher/hydra" />
