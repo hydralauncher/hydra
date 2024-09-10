@@ -1,9 +1,10 @@
 import { useCallback, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button, Modal, TextField } from "@renderer/components";
-import { SPACING_UNIT } from "@renderer/theme.css";
+import { Button, Modal, SelectField, TextField } from "@renderer/components";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { settingsContext } from "@renderer/context";
+import { CommunitySource } from "@types";
 
 interface AddDownloadSourceModalProps {
   visible: boolean;
@@ -28,6 +29,32 @@ export function AddDownloadSourceModal({
 
   const { sourceUrl } = useContext(settingsContext);
 
+  const [communitySources, setCommunitySources] = useState<CommunitySource[]>([
+    {
+      key: "",
+      value: "",
+      label: "Loading...",
+    },
+  ]);
+  const [selected, setSelected] = useState("");
+
+  const getCommunitySources = async () => {
+    return window.electron.getCommunitySources().then((sources) => {
+      setCommunitySources([
+        {
+          key: "",
+          value: "",
+          label: "[select one]",
+        },
+        ...sources,
+      ]);
+    });
+  };
+
+  useEffect(() => {
+    getCommunitySources();
+  }, []);
+
   const handleValidateDownloadSource = useCallback(async (url: string) => {
     setIsLoading(true);
 
@@ -40,6 +67,7 @@ export function AddDownloadSourceModal({
   }, []);
 
   useEffect(() => {
+    setSelected("");
     setValue("");
     setIsLoading(false);
     setValidationResult(null);
@@ -71,6 +99,47 @@ export function AddDownloadSourceModal({
           minWidth: "500px",
         }}
       >
+        <SelectField
+          style={{
+            minWidth: "500px",
+          }}
+          value={selected}
+          label="Select a community source"
+          onChange={(e) => {
+            setSelected(e.target.value);
+            setValue(e.target.value);
+          }}
+          options={communitySources}
+          disabled={isLoading || communitySources.length === 0}
+        />
+        <div
+          style={{
+            width: "500px",
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            position: "relative",
+            padding: "7px 0px",
+          }}
+        >
+          <span
+            style={{
+              zIndex: 10,
+              padding: "0px 6px",
+            }}
+            className="bg-background"
+          >
+            OR
+          </span>
+          <hr
+            style={{
+              width: "500px",
+              position: "absolute",
+              top: "10px",
+            }}
+          />
+        </div>
         <TextField
           label={t("download_source_url")}
           placeholder={t("insert_valid_json_url")}
