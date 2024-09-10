@@ -84,6 +84,17 @@ globalStyle("progress[value]", {
   WebkitAppearance: "none",
 });
 
+globalStyle(".bg-background", {
+  backgroundColor: vars.color.background,
+});
+
+globalStyle("hr", {
+  color: vars.color.body,
+  backgroundColor: vars.color.body,
+  borderWidth: 0,
+  height: "1px",
+});
+
 export const container = style({
   width: "100%",
   height: "100%",
@@ -114,3 +125,7 @@ export const titleBar = style({
   zIndex: "4",
   borderBottom: `1px solid ${vars.color.border}`,
 } as ComplexStyleRule);
+
+export const hr = style({
+  color: vars.color.body,
+});
