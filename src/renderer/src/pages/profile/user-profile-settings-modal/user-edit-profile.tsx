@@ -4,7 +4,7 @@ import { useToast, useUserDetails } from "@renderer/hooks";
 import { UserProfile } from "@types";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import * as styles from "../user.css";
+import * as styles from "../profile.css";
 import { SPACING_UNIT } from "@renderer/theme.css";
 
 export interface UserEditProfileProps {
@@ -21,7 +21,7 @@ export const UserEditProfile = ({
   const [form, setForm] = useState({
     displayName: userProfile.displayName,
     profileVisibility: userProfile.profileVisibility,
-    imageProfileUrl: null as string | null,
+    profileImageUrl: null as string | null,
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -55,7 +55,7 @@ export const UserEditProfile = ({
     if (filePaths && filePaths.length > 0) {
       const path = filePaths[0];
 
-      setForm({ ...form, imageProfileUrl: path });
+      setForm({ ...form, profileImageUrl: path });
     }
   };
 
@@ -86,7 +86,7 @@ export const UserEditProfile = ({
   };
 
   const avatarUrl = useMemo(() => {
-    if (form.imageProfileUrl) return `local:${form.imageProfileUrl}`;
+    if (form.profileImageUrl) return `local:${form.profileImageUrl}`;
     if (userProfile.profileImageUrl) return userProfile.profileImageUrl;
     return null;
   }, [form, userProfile]);

@@ -1,11 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { PersonAddIcon, PersonIcon } from "@primer/octicons-react";
+import { PeopleIcon, PersonIcon } from "@primer/octicons-react";
 import * as styles from "./sidebar-profile.css";
-import { assignInlineVars } from "@vanilla-extract/dynamic";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { profileContainerBackground } from "./sidebar-profile.css";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 import { FriendRequest } from "@types";
 
@@ -14,8 +12,7 @@ export function SidebarProfile() {
 
   const { t } = useTranslation("sidebar");
 
-  const { userDetails, profileBackground, friendRequests, showFriendsModal } =
-    useUserDetails();
+  const { userDetails, friendRequests, showFriendsModal } = useUserDetails();
 
   const [receivedRequests, setReceivedRequests] = useState<FriendRequest[]>([]);
 
@@ -33,24 +30,11 @@ export function SidebarProfile() {
       return;
     }
 
-    navigate(`/user/${userDetails!.id}`);
+    navigate(`/profile/${userDetails!.id}`);
   };
 
-  const profileButtonBackground = useMemo(() => {
-    if (profileBackground) return profileBackground;
-    return undefined;
-  }, [profileBackground]);
-
-  const showPendingRequests =
-    userDetails && receivedRequests.length > 0 && !gameRunning;
-
   return (
-    <div
-      className={styles.profileContainer}
-      style={assignInlineVars({
-        [profileContainerBackground]: profileButtonBackground,
-      })}
-    >
+    <div className={styles.profileContainer}>
       <button
         type="button"
         className={styles.profileButton}
@@ -91,18 +75,18 @@ export function SidebarProfile() {
           )}
         </div>
       </button>
-      {showPendingRequests && (
-        <button
-          type="button"
-          className={styles.friendRequestButton}
-          onClick={() =>
-            showFriendsModal(UserFriendModalTab.AddFriend, userDetails.id)
-          }
-        >
-          <PersonAddIcon size={24} />
-          {receivedRequests.length}
-        </button>
-      )}
+
+      <button
+        type="button"
+        className={styles.friendsButton}
+        onClick={() =>
+          showFriendsModal(UserFriendModalTab.AddFriend, userDetails.id)
+        }
+      >
+        <small className={styles.friendsButtonLabel}>10</small>
+
+        <PeopleIcon size={16} />
+      </button>
     </div>
   );
 }

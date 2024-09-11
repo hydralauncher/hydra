@@ -1,11 +1,12 @@
 import Skeleton from "react-loading-skeleton";
 import cn from "classnames";
-import * as styles from "./user.css";
+import * as styles from "./profile.css";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { useTranslation } from "react-i18next";
 
-export const UserSkeleton = () => {
+export function ProfileSkeleton() {
   const { t } = useTranslation("user_profile");
+
   return (
     <>
       <Skeleton className={styles.profileHeaderSkeleton} />
@@ -38,4 +39,4 @@ export const UserSkeleton = () => {
       </div>
     </>
   );
-};
+}

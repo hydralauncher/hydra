@@ -7,12 +7,13 @@ import {
 import { registerEvent } from "../register-event";
 
 import type { StartGameDownloadPayload } from "@types";
-import { getFileBase64, getSteamAppAsset } from "@main/helpers";
+import { getFileBase64 } from "@main/helpers";
 import { DownloadManager } from "@main/services";
 
 import { Not } from "typeorm";
 import { steamGamesWorker } from "@main/workers";
 import { createGame } from "@main/services/library-sync";
+import { steamUrlBuilder } from "@shared";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -65,7 +66,7 @@ const startGameDownload = async (
     });
 
     const iconUrl = steamGame?.clientIcon
-      ? getSteamAppAsset("icon", objectID, steamGame.clientIcon)
+      ? steamUrlBuilder.icon(objectID, steamGame.clientIcon)
       : null;
 
     await gameRepository

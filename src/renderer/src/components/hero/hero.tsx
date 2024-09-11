@@ -2,12 +2,9 @@ import { useNavigate } from "react-router-dom";
 import * as styles from "./hero.css";
 import { useEffect, useState } from "react";
 import { ShopDetails } from "@types";
-import {
-  buildGameDetailsPath,
-  getSteamLanguage,
-  steamUrlBuilder,
-} from "@renderer/helpers";
+import { buildGameDetailsPath, getSteamLanguage } from "@renderer/helpers";
 import { useTranslation } from "react-i18next";
+import { steamUrlBuilder } from "@shared";
 
 const FEATURED_GAME_TITLE = "ELDEN RING";
 const FEATURED_GAME_ID = "1245620";

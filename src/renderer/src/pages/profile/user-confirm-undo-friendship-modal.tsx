@@ -1,5 +1,5 @@
 import { Button, Modal } from "@renderer/components";
-import * as styles from "./user.css";
+import * as styles from "./profile.css";
 import { useTranslation } from "react-i18next";
 
 export interface UserConfirmUndoFriendshipModalProps {

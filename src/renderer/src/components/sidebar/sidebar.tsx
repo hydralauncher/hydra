@@ -15,6 +15,7 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { SidebarProfile } from "./sidebar-profile";
 import { sortBy } from "lodash-es";
+import { ChevronDownIcon } from "@primer/octicons-react";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -157,17 +158,12 @@ export function Sidebar() {
           width: sidebarWidth,
           minWidth: sidebarWidth,
           maxWidth: sidebarWidth,
+          paddingTop: 8 * 6,
         }}
       >
         <SidebarProfile />
 
-        <div
-          className={styles.content({
-            macos: window.electron.platform === "darwin",
-          })}
-        >
-          {window.electron.platform === "darwin" && <h2>Hydra</h2>}
-
+        <div className={styles.content}>
           <section className={styles.section}>
             <ul className={styles.menu}>
               {routes.map(({ nameKey, path, render }) => (
@@ -184,6 +180,8 @@ export function Sidebar() {
                   >
                     {render(isDownloading)}
                     <span>{t(nameKey)}</span>
+
+                    <ChevronDownIcon />
                   </button>
                 </li>
               ))}

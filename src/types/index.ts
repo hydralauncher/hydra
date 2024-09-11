@@ -99,7 +99,7 @@ export interface CatalogueEntry {
 }
 
 export interface UserGame {
-  objectID: string;
+  objectId: string;
   shop: GameShop;
   title: string;
   iconUrl: string | null;
@@ -219,7 +219,7 @@ export interface RealDebridUnrestrictLink {
 
 export interface RealDebridAddMagnet {
   id: string;
-  // URL of the created ressource
+  // URL of the created resource
   uri: string;
 }
 
@@ -280,6 +280,8 @@ export interface UserFriend {
   id: string;
   displayName: string;
   profileImageUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface UserFriends {
@@ -307,6 +309,10 @@ export interface UserRelation {
   updatedAt: string;
 }
 
+export interface UserProfileCurrentGame extends GameRunning {
+  sessionDurationInSeconds: number;
+}
+
 export interface UserProfile {
   id: string;
   displayName: string;
@@ -318,10 +324,10 @@ export interface UserProfile {
   friends: UserFriend[];
   totalFriends: number;
   relation: UserRelation | null;
-  currentGame: GameRunning | null;
+  currentGame: UserProfileCurrentGame | null;
 }
 
-export interface UpdateProfileProps {
+export interface UpdateProfileRequest {
   displayName?: string;
   profileVisibility?: "PUBLIC" | "PRIVATE" | "FRIENDS";
   profileImageUrl?: string | null;

@@ -39,7 +39,7 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
 
   const title = useMemo(() => {
     if (location.pathname.startsWith("/game")) return headerTitle;
-    if (location.pathname.startsWith("/user")) return headerTitle;
+    if (location.pathname.startsWith("/profile")) return headerTitle;
     if (location.pathname.startsWith("/search")) return t("search_results");
 
     return t(pathTitle[location.pathname]);

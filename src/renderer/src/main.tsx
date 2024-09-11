@@ -22,12 +22,12 @@ import {
   SearchResults,
   Settings,
   Catalogue,
+  Profile,
 } from "@renderer/pages";
 
 import { store } from "./store";
 
 import * as resources from "@locales";
-import { User } from "./pages/user/user";
 
 Sentry.init({});
 
@@ -57,7 +57,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="/game/:shop/:objectID" Component={GameDetails} />
             <Route path="/search" Component={SearchResults} />
             <Route path="/settings" Component={Settings} />
-            <Route path="/user/:userId" Component={User} />
+            <Route path="/profile/:userId" Component={Profile} />
           </Route>
         </Routes>
       </HashRouter>

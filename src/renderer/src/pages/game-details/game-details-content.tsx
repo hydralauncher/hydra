@@ -2,8 +2,6 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { average } from "color.js";
 import Color from "color";
 
-import { steamUrlBuilder } from "@renderer/helpers";
-
 import { HeroPanel } from "./hero";
 import { DescriptionHeader } from "./description-header/description-header";
 import { GallerySlider } from "./gallery-slider/gallery-slider";
@@ -12,6 +10,7 @@ import { Sidebar } from "./sidebar/sidebar";
 import * as styles from "./game-details.css";
 import { useTranslation } from "react-i18next";
 import { gameDetailsContext } from "@renderer/context";
+import { steamUrlBuilder } from "@shared";
 
 const HERO_ANIMATION_THRESHOLD = 25;
 
