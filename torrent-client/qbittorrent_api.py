@@ -32,6 +32,7 @@ class api:
         return f"hashes:{self.torrent_hashes}\ngame_id: {self.downloading_game_id}\nclient: {self.client}"
 
     def start_download(self, game_id: int, magnet: str = "None", save_path: str = None):
+        save_path = None
         params = None
         if save_path is None:
             params = {'urls': magnet}
@@ -39,6 +40,11 @@ class api:
             params = {'urls': magnet, 'save_path': save_path}     
 
         if self.client.torrents.add(**params) != "Ok.":
+            for torrent in self.client.torrents_info():
+                if torrent.infohash_v1.lower() in magnet.lower():
+                    self.downloading_game_id = game_id
+                    self.torrent_hashes[game_id] = torrent.hash
+                    return
             print(params)
             raise Exception("Failed to add torrent.")
 
@@ -51,7 +57,7 @@ class api:
         raise Exception("Cannot find Torrent after Adding it")
 
     def pause_download(self, game_id: int):
-        torrent_hash = self.torrent_hashes.get(game_id)
+        torrent_hash = self.torrent_hashes[game_id]
         if torrent_hash is None:
             self.client.torrents.pause(game_id)
         else:
@@ -63,7 +69,6 @@ class api:
         if torrent_hash is None:
             self.client.torrents.delete(delete_files=True, torrent_hashes=game_id)
         else:
-            torrent_hash.pause()
             self.client.torrents.delete(delete_files=True, torrent_hashes=torrent_hash)
         self.torrent_hashes[game_id] = None
         self.downloading_game_id = -1
@@ -81,7 +86,6 @@ class api:
         self.torrent_hashes = {}
         self.downloading_game_id = -1
 
-    # TODO
     def get_download_status(self, game_id: int = -1):
         torrent_final = None
         if game_id != -1:
@@ -93,9 +97,9 @@ class api:
         elif self.downloading_game_id == -1:
             return None
         else:
-            torrent_hash = self.torrent_hashes.get(self.downloading_game_id)
+            torrent_hash = self.torrent_hashes[self.downloading_game_id]
             for torrent in self.client.torrents_info():
-                if torrent.hash == torrent:
+                if torrent.hash == torrent_hash:
                     torrent_final = torrent
                     break
                 raise Exception("Hash not found")

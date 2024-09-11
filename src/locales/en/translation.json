@@ -189,6 +189,14 @@
     "found_download_option_zero": "No download option found",
     "found_download_option_one": "Found {{countFormatted}} download option",
     "found_download_option_other": "Found {{countFormatted}} download options",
+    "advanced": "Advanced",
+    "advanced-description": "Settings related to the advanced configuration of the torrent client",
+    "enable_client": "Enable External Torrent Client API",
+    "client_type": "Select the Client Type to Use - Must be in the Dropdown",
+    "client_host": "Client Host",
+    "client_port": "Client Port",
+    "client_username": "Client Username",
+    "client_password": "Client Password",
     "import": "Import"
   },
   "notifications": {

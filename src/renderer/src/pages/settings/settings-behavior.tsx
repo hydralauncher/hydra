@@ -1,5 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { logger } from "../../logger";
 
 import { CheckboxField } from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
@@ -9,6 +10,8 @@ export function SettingsBehavior() {
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
+
+  logger.log(userPreferences);
 
   const [showRunAtStartup, setShowRunAtStartup] = useState(false);
 

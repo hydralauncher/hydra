@@ -1,7 +1,17 @@
+import internal from "node:stream";
+
 export interface StartDownloadPayload {
   game_id: number;
+  client: QbittorrentInformation | string;
   magnet: string;
   save_path: string;
+}
+
+export interface QbittorrentInformation {
+  username: string;
+  password: string;
+  host: string;
+  port: number;
 }
 
 export interface PauseDownloadPayload {

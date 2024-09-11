@@ -6,6 +6,7 @@ import {
   GameShopCache,
   Repack,
   UserPreferences,
+  client,
   UserAuth,
 } from "@main/entity";
 
@@ -18,6 +19,7 @@ export const dataSource = new DataSource({
     Game,
     Repack,
     UserPreferences,
+    client,
     GameShopCache,
     DownloadSource,
     DownloadQueue,

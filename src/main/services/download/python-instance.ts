@@ -138,6 +138,7 @@ export class PythonInstance {
     if (!this.pythonProcess) {
       this.spawn({
         game_id: game.id,
+        client: game.client,
         magnet: game.uri!,
         save_path: game.downloadPath!,
       });
@@ -146,6 +147,7 @@ export class PythonInstance {
         .post("/action", {
           action: "start",
           game_id: game.id,
+          client: game.client,
           magnet: game.uri,
           save_path: game.downloadPath,
         } as StartDownloadPayload)

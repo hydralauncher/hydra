@@ -3,6 +3,7 @@ import { Button } from "@renderer/components";
 import * as styles from "./settings.css";
 import { useTranslation } from "react-i18next";
 import { SettingsRealDebrid } from "./settings-real-debrid";
+import { SettingsAdvanced } from "./settings-advanced";
 import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
 
@@ -19,6 +20,7 @@ export function Settings() {
     t("general"),
     t("behavior"),
     t("download_sources"),
+    t("advanced"),
     "Real-Debrid",
   ];
 
@@ -37,6 +39,9 @@ export function Settings() {
 
             if (currentCategoryIndex === 2) {
               return <SettingsDownloadSources />;
+            }
+            if (currentCategoryIndex === 3) {
+              return <SettingsAdvanced />;
             }
 
             return <SettingsRealDebrid />;

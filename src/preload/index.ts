@@ -6,6 +6,7 @@ import type {
   GameShop,
   DownloadProgress,
   UserPreferences,
+  client,
   AppUpdaterEvent,
   StartGameDownloadPayload,
   GameRunning,
@@ -49,6 +50,9 @@ contextBridge.exposeInMainWorld("electron", {
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
   updateUserPreferences: (preferences: UserPreferences) =>
     ipcRenderer.invoke("updateUserPreferences", preferences),
+  getUserClientPreferences: () => ipcRenderer.invoke("getUserClientPreferences"),
+  updateUserClientPreferences: (clientPreferences: client) =>
+    ipcRenderer.invoke("updateUserClientPreferences", clientPreferences),
   autoLaunch: (enabled: boolean) => ipcRenderer.invoke("autoLaunch", enabled),
   authenticateRealDebrid: (apiToken: string) =>
     ipcRenderer.invoke("authenticateRealDebrid", apiToken),

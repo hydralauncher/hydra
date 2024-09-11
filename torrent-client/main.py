@@ -65,7 +65,7 @@ download_payload = sys.argv[4]
 torrent_downloader = None
 if download_payload:
     initial_download = json.loads(urllib.parse.unquote(download_payload))
-    torrent_downloader = TorrentDownloader(port = torrent_port)
+    torrent_downloader = torrentAPI(torrent_client = "qbittorrent")
     torrent_downloader.start_download(initial_download['game_id'], initial_download['magnet'], initial_download['save_path'])
 
 
@@ -136,9 +136,11 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(post_data.decode('utf-8'))
 
             if torrent_downloader is None:
-                torrent_downloader = torrentAPI(port = torrent_port)
+                torrent_downloader = torrentAPI(torrent_client = "qbittorrent")
 
             if data['action'] == 'start':
+                print(data)
+                print(data['magnet'])
                 torrent_downloader.start_download(data['game_id'], data['magnet'], data['save_path'])
             elif data['action'] == 'pause':
                 torrent_downloader.pause_download(data['game_id'])

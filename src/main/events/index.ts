@@ -30,6 +30,8 @@ import "./torrenting/resume-game-download";
 import "./torrenting/start-game-download";
 import "./user-preferences/get-user-preferences";
 import "./user-preferences/update-user-preferences";
+import "./user-preferences/get-user-client-preferences";
+import "./user-preferences/update-user-client-preferencesz";
 import "./user-preferences/auto-launch";
 import "./autoupdater/check-for-updates";
 import "./autoupdater/restart-and-install-update";

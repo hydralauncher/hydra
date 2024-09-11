@@ -7,14 +7,20 @@ import {
   Repack,
   UserPreferences,
   UserAuth,
+  client,
 } from "@main/entity";
 
 export const gameRepository = dataSource.getRepository(Game);
 
 export const repackRepository = dataSource.getRepository(Repack);
 
+export const userPreferencesClientRepository = dataSource.getRepository(client);
+
 export const userPreferencesRepository =
   dataSource.getRepository(UserPreferences);
+
+export const userClientPreferencesRepository =
+  dataSource.getRepository(client);
 
 export const gameShopCacheRepository = dataSource.getRepository(GameShopCache);
 
