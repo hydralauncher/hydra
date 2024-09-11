@@ -1,9 +1,8 @@
-import { getSteamAppAsset } from "@main/helpers";
 import type { CatalogueEntry, GameShop } from "@types";
 
 import { registerEvent } from "../register-event";
 import { RepacksManager, requestSteam250 } from "@main/services";
-import { formatName } from "@shared";
+import { formatName, steamUrlBuilder } from "@shared";
 
 const resultSize = 12;
 
@@ -24,7 +23,7 @@ const getCatalogue = async (_event: Electron.IpcMainInvokeEvent) => {
       objectID,
       title,
       shop: "steam" as GameShop,
-      cover: getSteamAppAsset("library", objectID),
+      cover: steamUrlBuilder.library(objectID),
     };
 
     results.push({ ...catalogueEntry, repacks });

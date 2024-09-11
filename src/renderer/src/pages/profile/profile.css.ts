@@ -2,7 +2,6 @@ import { SPACING_UNIT, vars } from "../../theme.css";
 import { style } from "@vanilla-extract/css";
 
 export const wrapper = style({
-  padding: "24px",
   width: "100%",
   display: "flex",
   flexDirection: "column",

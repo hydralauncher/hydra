@@ -1,21 +1,13 @@
-import { createVar, style } from "@vanilla-extract/css";
+import { style } from "@vanilla-extract/css";
 
 import { SPACING_UNIT, vars } from "../../theme.css";
 
-export const profileContainerBackground = createVar();
-
 export const profileContainer = style({
-  background: profileContainerBackground,
   position: "relative",
   display: "flex",
+  alignItems: "center",
   gap: `${SPACING_UNIT}px`,
-  cursor: "pointer",
-  ":hover": {
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-  },
-  borderBottom: `solid 1px ${vars.color.border}`,
-  boxShadow: "0px 0px 15px 0px rgb(0 0 0 / 70%)",
-  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
+  padding: `${SPACING_UNIT}px ${SPACING_UNIT * 2}px`,
 });
 
 export const profileButton = style({
@@ -25,13 +17,17 @@ export const profileButton = style({
   color: vars.color.muted,
   width: "100%",
   overflow: "hidden",
+  borderRadius: "4px",
+  padding: `${SPACING_UNIT}px ${SPACING_UNIT}px`,
+  ":hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
 });
 
 export const profileButtonContent = style({
   display: "flex",
   alignItems: "center",
   gap: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
-  height: "40px",
   width: "100%",
 });
 
@@ -77,14 +73,31 @@ export const profileButtonTitle = style({
   whiteSpace: "nowrap",
 });
 
-export const friendRequestButton = style({
-  color: vars.color.success,
+export const friendsButton = style({
+  color: vars.color.muted,
   cursor: "pointer",
   borderRadius: "50%",
-  overflow: "hidden",
   width: "40px",
+  minWidth: "40px",
+  minHeight: "40px",
   height: "40px",
+  backgroundColor: vars.color.background,
+  position: "relative",
+  transition: "all ease 0.3s",
   ":hover": {
-    color: vars.color.muted,
+    backgroundColor: "#DADBE1",
   },
+});
+
+export const friendsButtonLabel = style({
+  backgroundColor: vars.color.success,
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  width: "20px",
+  height: "20px",
+  borderRadius: "50%",
+  position: "absolute",
+  top: "-5px",
+  right: "-5px",
 });

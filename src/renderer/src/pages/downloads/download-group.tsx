@@ -6,10 +6,9 @@ import { Badge, Button } from "@renderer/components";
 import {
   buildGameDetailsPath,
   formatDownloadProgress,
-  steamUrlBuilder,
 } from "@renderer/helpers";
 
-import { Downloader, formatBytes } from "@shared";
+import { Downloader, formatBytes, steamUrlBuilder } from "@shared";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import { useAppSelector, useDownload } from "@renderer/hooks";
 

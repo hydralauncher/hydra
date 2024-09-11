@@ -1,18 +1,18 @@
 import { registerEvent } from "../register-event";
-import { HydraApi } from "@main/services";
+import { HydraApi, logger } from "@main/services";
 import axios from "axios";
 import fs from "node:fs";
 import path from "node:path";
 import { fileTypeFromFile } from "file-type";
-import { UpdateProfileProps, UserProfile } from "@types";
+import type { UpdateProfileRequest, UserProfile } from "@types";
 
-const patchUserProfile = async (updateProfile: UpdateProfileProps) => {
+const patchUserProfile = async (updateProfile: UpdateProfileRequest) => {
   return HydraApi.patch("/profile", updateProfile);
 };
 
 const updateProfile = async (
   _event: Electron.IpcMainInvokeEvent,
-  updateProfile: UpdateProfileProps
+  updateProfile: UpdateProfileRequest
 ): Promise<UserProfile> => {
   if (!updateProfile.profileImageUrl) {
     return patchUserProfile(updateProfile);
@@ -40,7 +40,11 @@ const updateProfile = async (
       });
       return profileImageUrl as string;
     })
-    .catch(() => undefined);
+    .catch((err) => {
+      logger.error("Error uploading profile image", err);
+
+      return undefined;
+    });
 
   return patchUserProfile({ ...updateProfile, profileImageUrl });
 };

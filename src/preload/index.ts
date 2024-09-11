@@ -10,7 +10,7 @@ import type {
   StartGameDownloadPayload,
   GameRunning,
   FriendRequestAction,
-  UpdateProfileProps,
+  UpdateProfileRequest,
 } from "@types";
 
 contextBridge.exposeInMainWorld("electron", {
@@ -138,7 +138,7 @@ contextBridge.exposeInMainWorld("electron", {
   getMe: () => ipcRenderer.invoke("getMe"),
   undoFriendship: (userId: string) =>
     ipcRenderer.invoke("undoFriendship", userId),
-  updateProfile: (updateProfile: UpdateProfileProps) =>
+  updateProfile: (updateProfile: UpdateProfileRequest) =>
     ipcRenderer.invoke("updateProfile", updateProfile),
   getFriendRequests: () => ipcRenderer.invoke("getFriendRequests"),
   updateFriendRequest: (userId: string, action: FriendRequestAction) =>

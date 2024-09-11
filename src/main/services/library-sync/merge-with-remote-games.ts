@@ -1,7 +1,7 @@
 import { gameRepository } from "@main/repository";
 import { HydraApi } from "../hydra-api";
 import { steamGamesWorker } from "@main/workers";
-import { getSteamAppAsset } from "@main/helpers";
+import { steamUrlBuilder } from "@shared";
 
 export const mergeWithRemoteGames = async () => {
   return HydraApi.get("/profile/games")
@@ -44,7 +44,7 @@ export const mergeWithRemoteGames = async () => {
 
           if (steamGame) {
             const iconUrl = steamGame?.clientIcon
-              ? getSteamAppAsset("icon", game.objectId, steamGame.clientIcon)
+              ? steamUrlBuilder.icon(game.objectId, steamGame.clientIcon)
               : null;
 
             gameRepository.insert({

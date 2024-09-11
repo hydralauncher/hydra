@@ -1,16 +1,6 @@
 import type { GameShop } from "@types";
 
 import Color from "color";
-import { average } from "color.js";
-
-export const steamUrlBuilder = {
-  library: (objectID: string) =>
-    `https://steamcdn-a.akamaihd.net/steam/apps/${objectID}/header.jpg`,
-  libraryHero: (objectID: string) =>
-    `https://steamcdn-a.akamaihd.net/steam/apps/${objectID}/library_hero.jpg`,
-  logo: (objectID: string) =>
-    `https://cdn.cloudflare.steamstatic.com/steam/apps/${objectID}/logo.png`,
-};
 
 export const formatDownloadProgress = (progress?: number) => {
   if (!progress) return "0%";
@@ -46,14 +36,3 @@ export const buildGameDetailsPath = (
 
 export const darkenColor = (color: string, amount: number, alpha: number = 1) =>
   new Color(color).darken(amount).alpha(alpha).toString();
-
-export const profileBackgroundFromProfileImage = async (
-  profileImageUrl: string
-) => {
-  const output = await average(profileImageUrl, {
-    amount: 1,
-    format: "hex",
-  });
-
-  return `linear-gradient(135deg, ${darkenColor(output as string, 0.6)}, ${darkenColor(output as string, 0.8, 0.7)})`;
-};

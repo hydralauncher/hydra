@@ -1,20 +1,18 @@
 import { Button, Modal } from "@renderer/components";
-import * as styles from "./user.css";
+import * as styles from "./profile.css";
 import { useTranslation } from "react-i18next";
 
-export interface UserBlockModalProps {
+export interface UserSignOutModalProps {
   visible: boolean;
-  displayName: string;
   onConfirm: () => void;
   onClose: () => void;
 }
 
-export const UserBlockModal = ({
+export const UserSignOutModal = ({
   visible,
-  displayName,
   onConfirm,
   onClose,
-}: UserBlockModalProps) => {
+}: UserSignOutModalProps) => {
   const { t } = useTranslation("user_profile");
 
   return (
@@ -25,10 +23,10 @@ export const UserBlockModal = ({
         onClose={onClose}
       >
         <div className={styles.signOutModalContent}>
-          <p>{t("user_block_modal_text", { displayName })}</p>
+          <p>{t("sign_out_modal_text")}</p>
           <div className={styles.signOutModalButtonsContainer}>
             <Button onClick={onConfirm} theme="danger">
-              {t("block_user")}
+              {t("sign_out")}
             </Button>
 
             <Button onClick={onClose} theme="primary">
