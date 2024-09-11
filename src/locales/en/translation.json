@@ -190,7 +190,13 @@
     "found_download_option_zero": "No download option found",
     "found_download_option_one": "Found {{countFormatted}} download option",
     "found_download_option_other": "Found {{countFormatted}} download options",
-    "import": "Import"
+    "import": "Import",
+    "enable_torbox": "Enable TorBox",
+    "torbox_description": "TorBox is an unrestricted downloder that allows you to download files instantly and at the best of your Internet speed. TorBox starts for free but also has paid options.",
+    "torbox_api_token": "API Token",
+    "torbox_api_token_hint": "You can get your API token <0>here</0>",
+    "torbox_linked_message": "Account \"{{email}}\" linked",
+    "torbox_invalid_token": "Invalid token"
   },
   "notifications": {
     "download_complete": "Download complete",

@@ -52,6 +52,8 @@ contextBridge.exposeInMainWorld("electron", {
   autoLaunch: (enabled: boolean) => ipcRenderer.invoke("autoLaunch", enabled),
   authenticateRealDebrid: (apiToken: string) =>
     ipcRenderer.invoke("authenticateRealDebrid", apiToken),
+  authenticateTorBox: (apiToken: string) =>
+    ipcRenderer.invoke("authenticateTorBox", apiToken),
 
   /* Download sources */
   getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),

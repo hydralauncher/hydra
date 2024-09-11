@@ -98,6 +98,7 @@ export const Hydra2_0_3: HydraMigration = {
           table.text("downloadsPath");
           table.text("language").notNullable().defaultTo("en");
           table.text("realDebridApiToken");
+          table.text("torboxApiToken");
           table
             .boolean("downloadNotificationsEnabled")
             .notNullable()

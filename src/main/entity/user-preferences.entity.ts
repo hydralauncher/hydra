@@ -20,6 +20,9 @@ export class UserPreferences {
   @Column("text", { nullable: true })
   realDebridApiToken: string | null;
 
+  @Column("text", { nullable: true })
+  torboxApiToken: string | null;
+
   @Column("boolean", { default: false })
   downloadNotificationsEnabled: boolean;
 

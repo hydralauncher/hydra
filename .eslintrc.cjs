@@ -8,6 +8,11 @@ module.exports = {
     "@electron-toolkit/eslint-config-ts/recommended",
     "plugin:prettier/recommended",
   ],
+  settings: {
+    react: {
+      version: "detect",
+    },
+  },
   rules: {
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/no-unused-vars": [

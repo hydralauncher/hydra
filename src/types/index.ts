@@ -167,6 +167,7 @@ export interface UserPreferences {
   downloadNotificationsEnabled: boolean;
   repackUpdatesNotificationsEnabled: boolean;
   realDebridApiToken: string | null;
+  torboxApiToken: string | null;
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;
 }
@@ -268,6 +269,17 @@ export interface RealDebridUser {
   type: string;
   premium: number;
   expiration: string;
+}
+
+export interface TorBoxUser {
+  id: number;
+  email: string;
+  plan: string;
+  expiration: string;
+}
+
+export interface TorBoxUserRequest {
+  data: TorBoxUser;
 }
 
 export interface UserDetails {
