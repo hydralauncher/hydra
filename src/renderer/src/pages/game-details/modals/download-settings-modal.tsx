@@ -82,7 +82,7 @@ export function DownloadSettingsModal({
     userPreferences?.downloadsPath,
     downloaders,
     userPreferences?.realDebridApiToken,
-    userPreferences?.torboxApiToken
+    userPreferences?.torboxApiToken,
   ]);
 
   const getDiskFreeSpace = (path: string) => {
@@ -143,8 +143,10 @@ export function DownloadSettingsModal({
                   selectedDownloader === downloader ? "primary" : "outline"
                 }
                 disabled={
-                  (downloader === Downloader.RealDebrid && !userPreferences?.realDebridApiToken) ||
-                  (downloader === Downloader.TorBox && !userPreferences?.torboxApiToken)
+                  (downloader === Downloader.RealDebrid &&
+                    !userPreferences?.realDebridApiToken) ||
+                  (downloader === Downloader.TorBox &&
+                    !userPreferences?.torboxApiToken)
                 }
                 onClick={() => setSelectedDownloader(downloader)}
               >
