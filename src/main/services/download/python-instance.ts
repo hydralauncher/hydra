@@ -20,12 +20,8 @@ import {
   ProcessPayload,
 } from "./types";
 import { pythonInstanceLogger as logger } from "../logger";
-import { useAppSelector } from "@renderer/src/hooks";
+import { userClientPreferencesRepository } from "@main/repository";
 
-
-const userClientPreferences = useAppSelector(
-  (state) => state.userClientPreferences.value
-);
 
 
 export class PythonInstance {
@@ -142,6 +138,9 @@ export class PythonInstance {
   }
 
   static async startDownload(game: Game) {
+    const userClientPreferences = await userClientPreferencesRepository.findOne({
+      where: { id: 1 },
+    });
     if (!this.pythonProcess) {
       this.spawn({
         game_id: game.id,

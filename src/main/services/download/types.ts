@@ -1,5 +1,5 @@
 import internal from "node:stream";
-import { client } from "@types"
+import { client } from "@types";
 
 export interface StartDownloadPayload {
   game_id: number;
