@@ -48,7 +48,7 @@ export function SearchResults() {
         .finally(() => {
           setIsLoading(false);
         });
-    }, 300);
+    }, 500);
 
     debouncedFunc.current();
   }, [searchParams, dispatch]);
