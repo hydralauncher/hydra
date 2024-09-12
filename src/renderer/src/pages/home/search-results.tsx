@@ -72,6 +72,32 @@ export function SearchResults() {
     debouncedFunc.current();
   }, [searchParams, dispatch]);
 
+  const noResultsContent = () => {
+    if (isLoading) return null;
+
+    if (showTypingMessage) {
+      return (
+        <div className={styles.noResults}>
+          <SearchIcon size={56} />
+
+          <p>{t("start_typing")}</p>
+        </div>
+      );
+    }
+
+    if (searchResults.length === 0) {
+      return (
+        <div className={styles.noResults}>
+          <InboxIcon size={56} />
+
+          <p>{t("no_results")}</p>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
       <section className={styles.content}>
@@ -94,21 +120,7 @@ export function SearchResults() {
           )}
         </section>
 
-        {!isLoading && showTypingMessage && (
-          <div className={styles.noResults}>
-            <SearchIcon size={56} />
-
-            <p>{t("start_typing")}</p>
-          </div>
-        )}
-
-        {!isLoading && searchResults.length === 0 && (
-          <div className={styles.noResults}>
-            <InboxIcon size={56} />
-
-            <p>{t("no_results")}</p>
-          </div>
-        )}
+        {noResultsContent()}
       </section>
     </SkeletonTheme>
   );
