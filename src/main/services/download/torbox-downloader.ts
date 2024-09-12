@@ -15,7 +15,7 @@ export class TorBoxDownloader extends GenericHttpDownloader {
       const status = download.getStatus();
 
       if (status) {
-        var progress =
+        let progress =
           Number(status.completedLength) / Number(status.totalLength) || 0;
 
         if (progress === Infinity) {
