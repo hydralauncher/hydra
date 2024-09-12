@@ -18,6 +18,7 @@ import type {
   FriendRequestAction,
   UserFriends,
   UserBlocks,
+  TorBoxUser,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -89,6 +90,7 @@ declare global {
     ) => Promise<void>;
     autoLaunch: (enabled: boolean) => Promise<void>;
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
+    authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
 
     /* Download sources */
     getDownloadSources: () => Promise<DownloadSource[]>;

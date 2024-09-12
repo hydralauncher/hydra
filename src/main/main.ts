@@ -16,6 +16,7 @@ import { publishNewRepacksNotifications } from "./services/notifications";
 import { MoreThan } from "typeorm";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
+import { TorBoxClient } from "./services/torbox";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
   RepacksManager.updateRepacks();
@@ -24,6 +25,10 @@ const loadState = async (userPreferences: UserPreferences | null) => {
 
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences?.realDebridApiToken);
+  }
+
+  if (userPreferences?.torboxApiToken) {
+    TorBoxClient.authorize(userPreferences?.torboxApiToken);
   }
 
   HydraApi.setupApi().then(() => {
