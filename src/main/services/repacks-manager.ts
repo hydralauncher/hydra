@@ -49,6 +49,11 @@ export class RepacksManager {
       .map((index) => this.repacks[index]);
   }
 
+  public static findRepacksForCatalogueEntry(entry: CatalogueEntry) {
+    const repacks = this.search({ query: formatName(entry.title) });
+    return { ...entry, repacks };
+  }
+
   public static findRepacksForCatalogueEntries(entries: CatalogueEntry[]) {
     return entries.map((entry) => {
       const repacks = this.search({ query: formatName(entry.title) });

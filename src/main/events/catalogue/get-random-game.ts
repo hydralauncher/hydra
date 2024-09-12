@@ -3,7 +3,7 @@ import { shuffle } from "lodash-es";
 import { getSteam250List } from "@main/services";
 
 import { registerEvent } from "../register-event";
-import { searchSteamGames } from "../helpers/search-games";
+import { getSteamGameById } from "../helpers/search-games";
 import type { Steam250Game } from "@types";
 
 const state = { games: Array<Steam250Game>(), index: 0 };
@@ -12,14 +12,10 @@ const filterGames = async (games: Steam250Game[]) => {
   const results: Steam250Game[] = [];
 
   for (const game of games) {
-    const catalogue = await searchSteamGames({ query: game.title });
+    const steamGame = await getSteamGameById(game.objectID);
 
-    if (catalogue.length) {
-      const [steamGame] = catalogue;
-
-      if (steamGame.repacks.length) {
-        results.push(game);
-      }
+    if (steamGame?.repacks.length) {
+      results.push(game);
     }
   }
 
