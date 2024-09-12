@@ -6,6 +6,12 @@ import { app, dialog } from "electron";
 import type { StartDownloadPayload } from "./types";
 import { Readable } from "node:stream";
 import { pythonInstanceLogger as logger } from "../logger";
+import { useAppSelector } from "@renderer/src/hooks";
+
+
+const userClientPreferences = useAppSelector(
+  (state) => state.userClientPreferences.value
+);
 
 const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
   darwin: "hydra-download-manager",
@@ -29,6 +35,7 @@ export const startTorrentClient = (args?: StartDownloadPayload) => {
     BITTORRENT_PORT,
     RPC_PORT,
     RPC_PASSWORD,
+    userClientPreferences,
     args ? encodeURIComponent(JSON.stringify(args)) : "",
   ];
 

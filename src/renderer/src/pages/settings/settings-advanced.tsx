@@ -35,12 +35,22 @@ export function SettingsAdvanced() {
     if (userPreferences) {
       setForm({
         useExternalClient: userPreferences.useExternalClient,
-        clientType: userClientPreferences ? userClientPreferences.clientType : null,
-        clientHost: userClientPreferences ? userClientPreferences.clientHost : null,
-        clientPort: userClientPreferences ? Number(userClientPreferences.clientPort) : null,
-        clientUsername: userClientPreferences ? userClientPreferences.clientUsername : null,
-        clientPassword: userClientPreferences ? userClientPreferences.clientPassword : null,
-    });
+        clientType: userClientPreferences
+          ? userClientPreferences.clientType
+          : null,
+        clientHost: userClientPreferences
+          ? userClientPreferences.clientHost
+          : null,
+        clientPort: userClientPreferences
+          ? Number(userClientPreferences.clientPort)
+          : null,
+        clientUsername: userClientPreferences
+          ? userClientPreferences.clientUsername
+          : null,
+        clientPassword: userClientPreferences
+          ? userClientPreferences.clientPassword
+          : null,
+      });
     }
   }, [userPreferences, userClientPreferences]);
 
@@ -49,25 +59,31 @@ export function SettingsAdvanced() {
   ) => {
     setIsLoading(true);
     event.preventDefault();
-    
-    if(form.useExternalClient){
+
+    if (form.useExternalClient) {
       updateUserClientPreferences({
         clientType: form.clientType,
         clientHost: form.clientHost,
         clientPort: String(form.clientPort),
         clientUsername: form.clientUsername,
-        clientPassword: form.clientPassword
+        clientPassword: form.clientPassword,
       });
     }
     updateUserPreferences({
-      useExternalClient:  form.useExternalClient
+      useExternalClient: form.useExternalClient,
     });
     setIsLoading(false);
-
   };
 
   const isButtonDisabled =
-    (form.useExternalClient && (!form.useExternalClient  && !form.clientHost && !form.clientPort && !form.clientUsername && !form.clientPassword  && !form.clientType)) || isLoading;
+    (form.useExternalClient &&
+      !form.useExternalClient &&
+      !form.clientHost &&
+      !form.clientPort &&
+      !form.clientUsername &&
+      !form.clientPassword &&
+      !form.clientType) ||
+    isLoading;
 
   return (
     <form className={styles.form} onSubmit={handleFormSubmit}>
@@ -84,15 +100,13 @@ export function SettingsAdvanced() {
         }
       />
 
-        <div >
-          <datalist id="torrentLists">
-            
-            <option value="qbittorrent">Qbittorrent</option>
-          </datalist>
-        </div>
+      <div>
+        <datalist id="torrentLists">
+          <option value="qbittorrent">Qbittorrent</option>
+        </datalist>
+      </div>
 
       {form.useExternalClient && (
-        
         <TextField
           list="torrentLists"
           label={t("client_type")}
@@ -103,7 +117,7 @@ export function SettingsAdvanced() {
           }
           placeholder="Client Type"
           containerProps={{ style: { marginTop: `${SPACING_UNIT}px` } }}
-        /> 
+        />
       )}
 
       {form.useExternalClient && (
@@ -116,19 +130,20 @@ export function SettingsAdvanced() {
           }
           placeholder="Client Host"
           containerProps={{ style: { marginTop: `${SPACING_UNIT}px` } }}
-        /> 
+        />
       )}
       {form.useExternalClient && (
         <TextField
           label={t("client_port")}
           value={form.clientPort ?? ""}
           type="text"
-          onChange={(event) => function() {
-            if((Number(event.target.value))){
-              setForm({ ...form, clientPort: Number(event.target.value) })
-            }
-          }()
-        }
+          onChange={(event) =>
+            (function () {
+              if (Number(event.target.value)) {
+                setForm({ ...form, clientPort: Number(event.target.value) });
+              }
+            })()
+          }
           placeholder="Client Port"
           containerProps={{ style: { marginTop: `${SPACING_UNIT}px` } }}
         />

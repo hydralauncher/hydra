@@ -74,12 +74,13 @@ export function App() {
     );
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
-    useEffect(() => {
-    Promise.all([window.electron.getUserClientPreferences(), updateLibrary()]).then(
-      ([clientPreferences]) => {
-        dispatch(setUserClientPreferences(clientPreferences));
-      }
-    );
+  useEffect(() => {
+    Promise.all([
+      window.electron.getUserClientPreferences(),
+      updateLibrary(),
+    ]).then(([clientPreferences]) => {
+      dispatch(setUserClientPreferences(clientPreferences));
+    });
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   useEffect(() => {

@@ -169,7 +169,7 @@ export interface client {
   clientPassword: string | null;
 }
 
-export interface UserPreferences{
+export interface UserPreferences {
   downloadsPath: string | null;
   language: string;
   downloadNotificationsEnabled: boolean;

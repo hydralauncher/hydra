@@ -20,6 +20,13 @@ import {
   ProcessPayload,
 } from "./types";
 import { pythonInstanceLogger as logger } from "../logger";
+import { useAppSelector } from "@renderer/src/hooks";
+
+
+const userClientPreferences = useAppSelector(
+  (state) => state.userClientPreferences.value
+);
+
 
 export class PythonInstance {
   private static pythonProcess: cp.ChildProcess | null = null;
@@ -138,18 +145,18 @@ export class PythonInstance {
     if (!this.pythonProcess) {
       this.spawn({
         game_id: game.id,
-        client: game.client,
         magnet: game.uri!,
         save_path: game.downloadPath!,
+        torrent_client: userClientPreferences,
       });
     } else {
       await this.rpc
         .post("/action", {
           action: "start",
           game_id: game.id,
-          client: game.client,
           magnet: game.uri,
           save_path: game.downloadPath,
+          torrent_client: userClientPreferences,
         } as StartDownloadPayload)
         .catch(this.handleRpcError);
     }

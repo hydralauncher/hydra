@@ -14,10 +14,7 @@ export const userClientPreferencesSlice = createSlice({
   name: "userClientPreferences",
   initialState,
   reducers: {
-    setUserClientPreferences: (
-      state,
-      action: PayloadAction<client | null>
-    ) => {
+    setUserClientPreferences: (state, action: PayloadAction<client | null>) => {
       state.value = action.payload;
     },
   },

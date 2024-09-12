@@ -86,11 +86,11 @@ declare global {
     /* User preferences */
     getUserPreferences: () => Promise<UserPreferences | null>;
     updateUserPreferences: (
-      preferences: Partial<UserPreferences>,
+      preferences: Partial<UserPreferences>
     ) => Promise<void>;
     getUserClientPreferences: () => Promise<client | null>;
     updateUserClientPreferences: (
-      clientPreferences: Partial<client>,
+      clientPreferences: Partial<client>
     ) => Promise<void>;
     autoLaunch: (enabled: boolean) => Promise<void>;
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;

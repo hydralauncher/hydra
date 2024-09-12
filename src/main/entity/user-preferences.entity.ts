@@ -6,7 +6,6 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 
-
 @Entity("user_preferences")
 export class UserPreferences {
   @PrimaryGeneratedColumn()
@@ -34,7 +33,7 @@ export class UserPreferences {
   runAtStartup: boolean;
 
   @Column("boolean", { default: false })
-  useExternalClient: boolean;  
+  useExternalClient: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

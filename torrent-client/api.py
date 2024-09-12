@@ -3,13 +3,13 @@ import qbittorrent_api
 
 class torrentAPI:
     
-    def __new__(cls, port: str = "notDefined", torrent_client = "base"):
-        if torrent_client == "qbittorrent":
-            return qbittorrent_api.api()
+    def __new__(cls, port: str = "notDefined", torrent_client):
+        if torrent_client.clienType == "qbittorrent":
+            return qbittorrent_api.api(torrent_client)
         else:
             return super(torrentAPI, cls).__new__(cls)
 
-    def __init__(self, port: str, torrent_client = "base"):
+    def __init__(self, port: str, torrent_client):
         self.port = port
         self.torrent_handles = {}
         self.downloading_game_id = -1

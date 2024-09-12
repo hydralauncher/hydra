@@ -9,14 +9,14 @@ class api:
         except qbittorrentapi.exceptions.Forbidden403Error:
             print("logged out of qbitt")
 
-    def __init__(self):
+    def __init__(self, torrent_client):
         self.torrent_hashes = {}
         self.downloading_game_id = -1
         self.connection_info = dict(
-            host="192.168.1.234",
-            port=8000,
-            username="mason",
-            password="Hippowdon19",
+            host=torrent_client.clientHost,
+            port=torrent_client.clientPort,
+            username=torrent_client.clientUsername,
+            password=torrent_client.clientPassword,
         )
         
 

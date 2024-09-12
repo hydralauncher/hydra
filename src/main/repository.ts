@@ -19,8 +19,7 @@ export const userPreferencesClientRepository = dataSource.getRepository(client);
 export const userPreferencesRepository =
   dataSource.getRepository(UserPreferences);
 
-export const userClientPreferencesRepository =
-  dataSource.getRepository(client);
+export const userClientPreferencesRepository = dataSource.getRepository(client);
 
 export const gameShopCacheRepository = dataSource.getRepository(GameShopCache);
 

@@ -1,5 +1,8 @@
 import { createContext, useEffect, useState } from "react";
-import { setUserPreferences, setUserClientPreferences } from "@renderer/features";
+import {
+  setUserPreferences,
+  setUserClientPreferences,
+} from "@renderer/features";
 import { useAppDispatch } from "@renderer/hooks";
 import type { UserPreferences, client } from "@types";
 import { useSearchParams } from "react-router-dom";
@@ -52,21 +55,17 @@ export function SettingsContextProvider({
   const clearSourceUrl = () => setSourceUrl(null);
 
   const updateUserPreferences = async (values: Partial<UserPreferences>) => {
- 
-    await window.electron.updateUserPreferences(values);    
+    await window.electron.updateUserPreferences(values);
     window.electron.getUserPreferences().then((userPreferences) => {
       dispatch(setUserPreferences(userPreferences));
     });
-    
   };
 
   const updateUserClientPreferences = async (values: client) => {
-
-    await window.electron.updateUserClientPreferences(values);    
+    await window.electron.updateUserClientPreferences(values);
     window.electron.getUserClientPreferences().then((userClientPreferences) => {
       dispatch(setUserClientPreferences(userClientPreferences));
     });
-    
   };
 
   return (

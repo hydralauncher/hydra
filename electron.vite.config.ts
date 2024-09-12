@@ -33,6 +33,7 @@ export default defineConfig(({ mode }) => {
           "@locales": resolve("src/locales"),
           "@resources": resolve("resources"),
           "@shared": resolve("src/shared"),
+          "@renderer": resolve("src/renderer"),
         },
       },
       plugins: [externalizeDepsPlugin(), swcPlugin(), sentryPlugin],
