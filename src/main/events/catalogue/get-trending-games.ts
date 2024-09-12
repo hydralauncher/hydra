@@ -14,7 +14,7 @@ const getTrendingGames = async (_event: Electron.IpcMainInvokeEvent) => {
     "/games/trending",
     { language },
     { needsAuth: false }
-  );
+  ).catch(() => []);
 
   return trendingGames;
 };
