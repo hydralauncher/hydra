@@ -22,8 +22,6 @@ import {
 import { pythonInstanceLogger as logger } from "../logger";
 import { userClientPreferencesRepository } from "@main/repository";
 
-
-
 export class PythonInstance {
   private static pythonProcess: cp.ChildProcess | null = null;
   private static downloadingGameId = -1;
@@ -138,9 +136,11 @@ export class PythonInstance {
   }
 
   static async startDownload(game: Game) {
-    const userClientPreferences = await userClientPreferencesRepository.findOne({
-      where: { id: 1 },
-    });
+    const userClientPreferences = await userClientPreferencesRepository.findOne(
+      {
+        where: { id: 1 },
+      }
+    );
     if (!this.pythonProcess) {
       this.spawn({
         game_id: game.id,
