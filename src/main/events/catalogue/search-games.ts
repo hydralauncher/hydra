@@ -1,7 +1,7 @@
 import { registerEvent } from "../register-event";
-import { getSteamGameById } from "../helpers/search-games";
+import { convertSteamGameToCatalogueEntry } from "../helpers/search-games";
 import { CatalogueEntry } from "@types";
-import { HydraApi } from "@main/services";
+import { HydraApi, RepacksManager } from "@main/services";
 
 const searchGamesEvent = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -11,14 +11,15 @@ const searchGamesEvent = async (
     { objectId: string; title: string; shop: string }[]
   >("/games/search", { title: query, take: 12, skip: 0 }, { needsAuth: false });
 
-  const steamGames = await Promise.all(
-    games.map((game) => getSteamGameById(game.objectId))
-  );
-  const filteredGames = steamGames.filter(
-    (game) => game !== null
-  ) as CatalogueEntry[];
+  const steamGames = games.map((game) => {
+    return convertSteamGameToCatalogueEntry({
+      id: Number(game.objectId),
+      name: game.title,
+      clientIcon: null,
+    });
+  });
 
-  return filteredGames;
+  return RepacksManager.findRepacksForCatalogueEntries(steamGames);
 };
 
 registerEvent("searchGames", searchGamesEvent);
