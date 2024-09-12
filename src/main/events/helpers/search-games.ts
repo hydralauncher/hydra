@@ -1,6 +1,3 @@
-import { orderBy } from "lodash-es";
-import flexSearch from "flexsearch";
-
 import type { GameShop, CatalogueEntry, SteamGame } from "@types";
 
 import { getSteamAppAsset } from "@main/helpers";
@@ -23,20 +20,18 @@ export const convertSteamGameToCatalogueEntry = (
   repacks: [],
 });
 
-export const searchSteamGames = async (
-  options: flexSearch.SearchOptions
-): Promise<CatalogueEntry[]> => {
-  const steamGames = (await steamGamesWorker.run(options, {
-    name: "search",
-  })) as SteamGame[];
+export const getSteamGameById = async (
+  objectId: string
+): Promise<CatalogueEntry | null> => {
+  const steamGame = await steamGamesWorker.run(Number(objectId), {
+    name: "getById",
+  });
 
-  const result = RepacksManager.findRepacksForCatalogueEntries(
-    steamGames.map((game) => convertSteamGameToCatalogueEntry(game))
-  );
+  if (!steamGame) return null;
 
-  return orderBy(
-    result,
-    [({ repacks }) => repacks.length, "repacks"],
-    ["desc"]
-  );
+  const catalogueEntry = convertSteamGameToCatalogueEntry(steamGame);
+
+  const result = RepacksManager.findRepacksForCatalogueEntry(catalogueEntry);
+
+  return result;
 };
