@@ -3,8 +3,7 @@ import * as styles from "./hero.css";
 import { useEffect, useState } from "react";
 import { TrendingGame } from "@types";
 import { useTranslation } from "react-i18next";
-import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-import { vars } from "@renderer/theme.css";
+import Skeleton from "react-loading-skeleton";
 
 export function Hero() {
   const [featuredGameDetails, setFeaturedGameDetails] = useState<
@@ -30,11 +29,7 @@ export function Hero() {
   }, [i18n.language]);
 
   if (isLoading) {
-    return (
-      <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
-        <Skeleton className={styles.hero} />
-      </SkeletonTheme>
-    );
+    return <Skeleton className={styles.hero} />;
   }
 
   if (featuredGameDetails?.length) {
