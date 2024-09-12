@@ -14,10 +14,8 @@ const filterGames = async (games: Steam250Game[]) => {
   for (const game of games) {
     const steamGame = await getSteamGameById(game.objectID);
 
-    if (steamGame) {
-      if (steamGame.repacks.length) {
-        results.push(game);
-      }
+    if (steamGame?.repacks.length) {
+      results.push(game);
     }
   }
 
