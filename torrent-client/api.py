@@ -3,8 +3,8 @@ import qbittorrent_api
 
 class torrentAPI:
     
-    def __new__(cls, port: str = "notDefined", torrent_client):
-        if torrent_client.clienType == "qbittorrent":
+    def __new__(cls,torrent_client, port: str = "notDefined"):
+        if torrent_client['clientType'] == "qbittorrent":
             return qbittorrent_api.api(torrent_client)
         else:
             return super(torrentAPI, cls).__new__(cls)

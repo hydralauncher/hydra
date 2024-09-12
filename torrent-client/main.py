@@ -63,7 +63,7 @@ download_payload = sys.argv[4]
 torrent_downloader = None
 if download_payload:
     initial_download = json.loads(urllib.parse.unquote(download_payload))
-    torrent_downloader = torrentAPI(torrent_port, torrent_client = initial_download['torrent_client'])
+    torrent_downloader = torrentAPI(port = torrent_port, torrent_client = ("base" if initial_download['torrent_client'] is None else initial_download['torrent_client']))
     torrent_downloader.start_download(initial_download['game_id'], initial_download['magnet'], initial_download['save_path'])
 
 
@@ -134,7 +134,7 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(post_data.decode('utf-8'))
 
             if torrent_downloader is None:
-                torrent_downloader = torrentAPI(torrent_port, torrent_client = data['torrent_client'])
+                torrent_downloader = torrentAPI(port = torrent_port, torrent_client = data['torrent_client'])
 
             if data['action'] == 'start':
                 torrent_downloader.start_download(data['game_id'], data['magnet'], data['save_path'])

@@ -13,10 +13,10 @@ class api:
         self.torrent_hashes = {}
         self.downloading_game_id = -1
         self.connection_info = dict(
-            host=torrent_client.clientHost,
-            port=torrent_client.clientPort,
-            username=torrent_client.clientUsername,
-            password=torrent_client.clientPassword,
+            host=torrent_client['clientHost'],
+            port=torrent_client['clientPort'],
+            username=torrent_client['clientUsername'],
+            password=torrent_client['clientPassword'],
         )
         
 
@@ -98,12 +98,14 @@ class api:
             return None
         else:
             torrent_hash = self.torrent_hashes[self.downloading_game_id]
-            for torrent in self.client.torrents_info():
-                if torrent.hash == torrent_hash:
-                    torrent_final = torrent
+            torrents = self.client.torrents_info()
+            for i in range(len(torrents)):
+                if torrent_hash == torrents[i].hash:
+                    torrent_final =  torrents[i]
                     break
-                raise Exception("Hash not found")
-            
+                elif (i == len(torrents)-1):
+                    raise Exception("Hash not found")
+   
         return {
             'folderName': torrent_final.name if torrent_final.name else "",
             'fileSize': torrent_final.total_size if torrent_final.total_size else 0,
