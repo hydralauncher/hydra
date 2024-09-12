@@ -134,7 +134,7 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(post_data.decode('utf-8'))
 
             if torrent_downloader is None:
-                torrent_downloader = torrentAPI(port = torrent_port, torrent_client = data['torrent_client'])
+                torrent_downloader = torrentAPI(port = torrent_port, torrent_client = ("base" if data['torrent_client'] is None else data['torrent_client']))
 
             if data['action'] == 'start':
                 torrent_downloader.start_download(data['game_id'], data['magnet'], data['save_path'])
