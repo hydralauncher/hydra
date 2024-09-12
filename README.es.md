@@ -13,14 +13,15 @@
 [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
 [![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
 
-[![be](https://img.shields.io/badge/lang-be-orange)](README.be.md)
-[![pl](https://img.shields.io/badge/lang-pl-white)](README.pl.md)
 [![pt-BR](https://img.shields.io/badge/lang-pt--BR-green.svg)](README.pt-BR.md)
+[![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
 [![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
 [![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
-[![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
+[![be](https://img.shields.io/badge/lang-be-orange)](README.be.md)
+[![es](https://img.shields.io/badge/lang-es-red)](README.es.md)
 [![fr](https://img.shields.io/badge/lang-fr-blue)](README.fr.md)
 [![de](https://img.shields.io/badge/lang-de-black)](README.de.md)
+[![ita](https://img.shields.io/badge/lang-it-red)](README.it.md)
 
 ![Hydra Catalogue](./docs/screenshot.png)
 
@@ -28,11 +29,12 @@
 
 ## Tabla de Contenidos
 
+- [Tabla de Contenidos](#tabla-de-contenidos)
 - [Acerca de](#acerca-de)
-- [Características](#caracteristicas)
-- [Instalación](#Instalacion)
-- [Contribuir](#contribuir)
-  - [Únete a nuestro Telegram](#unete-a-nuestro-telegram)
+- [Caracteristicas](#caracteristicas)
+- [Instalacion](#instalacion)
+- [Contribuir](#-contribuir)
+  - [Unete a nuestro Telegram](#-unete-a-nuestro-telegram)
   - [Haz un fork y clona tu repositorio](#haz-un-fork-y-clona-tu-repositorio)
   - [Maneras en las que puedes contribuir](#maneras-en-las-que-puedes-contribuir)
   - [Estructura del proyecto](#estructura-del-proyecto)
@@ -41,13 +43,14 @@
   - [Instalar Yarn](#instalar-yarn)
   - [Instalar Dependencias de Node](#instalar-dependencias-de-node)
   - [Instalar Python 3.9](#instalar-python-39)
-  - [Instalar Dependencias de Python](#Instalar-dependencias-de-python)
+  - [Instalar Dependencias de Python](#instalar-dependencias-de-python)
 - [Variables del Entorno](#variables-del-entorno)
-- [Ejecución](#ejecucion)
-- [Compilación](#compilacion)
+- [Ejecucion](#ejecucion)
+- [Compilacion](#compilacion)
   - [Compilar el cliente de bittorrent](#compilar-el-cliente-de-bittorrent)
-  - [Compilar la aplicación Electron](#compilar-la-aplicacion-electron)
+  - [Compilar la aplicacion Electron](#compilar-la-aplicacion-electron)
 - [Colaboradores](#colaboradores)
+- [Licencia](#licencia)
 
 ## Acerca de
 
