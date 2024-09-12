@@ -6,7 +6,7 @@ import type { CatalogueEntry } from "@types";
 import type { DebouncedFunc } from "lodash";
 import { debounce } from "lodash";
 
-import { InboxIcon } from "@primer/octicons-react";
+import { InboxIcon, SearchIcon } from "@primer/octicons-react";
 import { clearSearch } from "@renderer/features";
 import { useAppDispatch } from "@renderer/hooks";
 import { useEffect, useRef, useState } from "react";
@@ -25,6 +25,7 @@ export function SearchResults() {
 
   const [searchResults, setSearchResults] = useState<CatalogueEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showMessage, setShowMessage] = useState(false);
 
   const debouncedFunc = useRef<DebouncedFunc<() => void> | null>(null);
 
@@ -35,19 +36,40 @@ export function SearchResults() {
     navigate(buildGameDetailsPath(game));
   };
 
+  const fetchGames = (query: string) => {
+    window.electron
+      .searchGames(query)
+      .then((results) => {
+        console.log(
+          "original query: ",
+          query,
+          "current value: ",
+          searchParams.get("query")
+        );
+        if (query != searchParams.get("query")) return;
+        setSearchResults(results);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  };
+
   useEffect(() => {
     setIsLoading(true);
     if (debouncedFunc.current) debouncedFunc.current.cancel();
 
     debouncedFunc.current = debounce(() => {
-      window.electron
-        .searchGames(searchParams.get("query") ?? "")
-        .then((results) => {
-          setSearchResults(results);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+      const query = searchParams.get("query") ?? "";
+
+      if (query.length < 3) {
+        setIsLoading(false);
+        setShowMessage(true);
+        setSearchResults([]);
+        return;
+      }
+
+      setShowMessage(false);
+      fetchGames(query);
     }, 500);
 
     debouncedFunc.current();
@@ -74,6 +96,14 @@ export function SearchResults() {
             </>
           )}
         </section>
+
+        {!isLoading && showMessage && (
+          <div className={styles.noResults}>
+            <SearchIcon size={56} />
+
+            <p>{"Comece a digitar para pesquisar…"}</p>
+          </div>
+        )}
 
         {!isLoading && searchResults.length === 0 && (
           <div className={styles.noResults}>
