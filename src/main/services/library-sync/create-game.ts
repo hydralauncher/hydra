@@ -3,6 +3,15 @@ import { HydraApi } from "../hydra-api";
 import { gameRepository } from "@main/repository";
 
 export const createGame = async (game: Game) => {
+  console.log({ objectId: game.objectID, shop: game.shop });
+
+  HydraApi.post("/games/download", {
+    objectId: game.objectID,
+    shop: game.shop,
+  }).catch((err) => {
+    console.log(err);
+  });
+
   HydraApi.post(`/profile/games`, {
     objectId: game.objectID,
     playTimeInMilliseconds: Math.trunc(game.playTimeInMilliseconds),

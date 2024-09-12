@@ -309,7 +309,8 @@ export interface UserRelation {
   updatedAt: string;
 }
 
-export interface UserProfileCurrentGame extends GameRunning {
+export interface UserProfileCurrentGame extends Omit<GameRunning, "objectID"> {
+  objectId: string;
   sessionDurationInSeconds: number;
 }
 
@@ -344,4 +345,9 @@ export interface DownloadSource {
   etag: string | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface GameStats {
+  downloadCount: number;
+  playerCount: number;
 }

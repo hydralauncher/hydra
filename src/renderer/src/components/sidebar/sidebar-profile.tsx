@@ -2,10 +2,9 @@ import { useNavigate } from "react-router-dom";
 import { PeopleIcon, PersonIcon } from "@primer/octicons-react";
 import * as styles from "./sidebar-profile.css";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
-import { FriendRequest } from "@types";
 
 export function SidebarProfile() {
   const navigate = useNavigate();
@@ -14,17 +13,13 @@ export function SidebarProfile() {
 
   const { userDetails, friendRequests, showFriendsModal } = useUserDetails();
 
-  const [receivedRequests, setReceivedRequests] = useState<FriendRequest[]>([]);
-
-  useEffect(() => {
-    setReceivedRequests(
-      friendRequests.filter((request) => request.type === "RECEIVED")
-    );
+  const receivedRequests = useMemo(() => {
+    return friendRequests.filter((request) => request.type === "RECEIVED");
   }, [friendRequests]);
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
 
-  const handleButtonClick = () => {
+  const handleProfileClick = () => {
     if (userDetails === null) {
       window.electron.openAuthWindow();
       return;
@@ -33,12 +28,35 @@ export function SidebarProfile() {
     navigate(`/profile/${userDetails!.id}`);
   };
 
+  const friendsButton = useMemo(() => {
+    if (!userDetails) return null;
+
+    return (
+      <button
+        type="button"
+        className={styles.friendsButton}
+        onClick={() =>
+          showFriendsModal(UserFriendModalTab.AddFriend, userDetails.id)
+        }
+        title={t("friends")}
+      >
+        {receivedRequests.length > 0 && (
+          <small className={styles.friendsButtonBadge}>
+            {receivedRequests.length > 99 ? "99+" : receivedRequests.length}
+          </small>
+        )}
+
+        <PeopleIcon size={16} />
+      </button>
+    );
+  }, [userDetails, t, receivedRequests, showFriendsModal]);
+
   return (
     <div className={styles.profileContainer}>
       <button
         type="button"
         className={styles.profileButton}
-        onClick={handleButtonClick}
+        onClick={handleProfileClick}
       >
         <div className={styles.profileButtonContent}>
           <div className={styles.profileAvatar}>
@@ -76,17 +94,7 @@ export function SidebarProfile() {
         </div>
       </button>
 
-      <button
-        type="button"
-        className={styles.friendsButton}
-        onClick={() =>
-          showFriendsModal(UserFriendModalTab.AddFriend, userDetails.id)
-        }
-      >
-        <small className={styles.friendsButtonLabel}>10</small>
-
-        <PeopleIcon size={16} />
-      </button>
+      {friendsButton}
     </div>
   );
 }

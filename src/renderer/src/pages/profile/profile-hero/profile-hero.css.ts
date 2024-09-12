@@ -6,11 +6,11 @@ export const profileContentBox = style({
   flexDirection: "column",
 });
 
-export const profileAvatarContainer = style({
+export const profileAvatarButton = style({
   width: "96px",
   minWidth: "96px",
   height: "96px",
-  borderRadius: "50%",
+  borderRadius: "4px",
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
@@ -18,7 +18,11 @@ export const profileAvatarContainer = style({
   overflow: "hidden",
   border: `solid 1px ${vars.color.border}`,
   boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.7)",
-  zIndex: 1,
+  cursor: "pointer",
+  transition: "all ease 0.3s",
+  ":hover": {
+    boxShadow: "0px 0px 10px 0px rgba(0, 0, 0, 0.7)",
+  },
 });
 
 export const profileAvatar = style({
@@ -43,4 +47,25 @@ export const profileDisplayName = style({
   overflow: "hidden",
   textOverflow: "ellipsis",
   width: "100%",
+});
+
+export const heroPanel = style({
+  width: "100%",
+  height: "72px",
+  minHeight: "72px",
+  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 3}px`,
+  display: "flex",
+  gap: `${SPACING_UNIT}px`,
+  justifyContent: "space-between",
+  backdropFilter: `blur(10px)`,
+  borderTop: `solid 1px rgba(255, 255, 255, 0.1)`,
+  boxShadow: "0px 0px 15px 0px rgba(0, 0, 0, 0.5)",
+  backgroundColor: "rgba(0, 0, 0, 0.3)",
+});
+
+export const userInformation = style({
+  display: "flex",
+  padding: `${SPACING_UNIT * 4}px ${SPACING_UNIT * 3}px`,
+  alignItems: "center",
+  gap: `${SPACING_UNIT * 2}px`,
 });

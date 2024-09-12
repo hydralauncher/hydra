@@ -1,18 +1,26 @@
 import { userProfileContext } from "@renderer/context";
-import { useContext, useEffect, useMemo } from "react";
-import { ProfileHero } from "./profile-hero/profile-hero";
+import { useCallback, useContext, useEffect, useMemo } from "react";
+import { ProfileHero } from "../profile-hero/profile-hero";
 import { useAppDispatch } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { steamUrlBuilder } from "@shared";
-import { SPACING_UNIT } from "@renderer/theme.css";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 
 import * as styles from "./profile-content.css";
-import { ClockIcon, PeopleIcon } from "@primer/octicons-react";
+import { ClockIcon } from "@primer/octicons-react";
+import { Link } from "@renderer/components";
+import { useTranslation } from "react-i18next";
+import { UserGame } from "@types";
+import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
+import { buildGameDetailsPath } from "@renderer/helpers";
+import { useNavigate } from "react-router-dom";
 
 export function ProfileContent() {
   const { userProfile } = useContext(userProfileContext);
 
   const dispatch = useAppDispatch();
+
+  const { i18n, t } = useTranslation("user_profile");
 
   useEffect(() => {
     if (userProfile) {
@@ -21,8 +29,42 @@ export function ProfileContent() {
   }, [userProfile, dispatch]);
 
   const truncatedGamesList = useMemo(() => {
+    if (!userProfile) return [];
     return userProfile?.libraryGames.slice(0, 12);
-  }, [userProfile?.libraryGames]);
+  }, [userProfile]);
+
+  const numberFormatter = useMemo(() => {
+    return new Intl.NumberFormat(i18n.language, {
+      maximumFractionDigits: 0,
+    });
+  }, [i18n.language]);
+
+  const navigate = useNavigate();
+
+  const formatPlayTime = useCallback(
+    (game: UserGame) => {
+      const seconds = game?.playTimeInSeconds || 0;
+      const minutes = seconds / 60;
+
+      if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
+        return t("amount_minutes", {
+          amount: minutes.toFixed(0),
+        });
+      }
+
+      const hours = minutes / 60;
+      return t("amount_hours", { amount: numberFormatter.format(hours) });
+    },
+    [numberFormatter, t]
+  );
+
+  const buildUserGameDetailsPath = (game: UserGame) =>
+    buildGameDetailsPath({
+      ...game,
+      objectID: game.objectId,
+    });
+
+  if (!userProfile) return null;
 
   return (
     <div>
@@ -35,23 +77,14 @@ export function ProfileContent() {
           padding: `${SPACING_UNIT * 3}px`,
         }}
       >
-        <div style={{}}>
+        <div style={{ flex: 1 }}>
           <div className={styles.sectionHeader}>
-            <h2>Library</h2>
+            <h2>{t("library")}</h2>
 
-            <h3>{userProfile?.libraryGames.length}</h3>
+            <h3>{numberFormatter.format(userProfile.libraryGames.length)}</h3>
           </div>
 
-          <ul
-            style={{
-              listStyle: "none",
-              margin: 0,
-              padding: 0,
-              display: "grid",
-              gridTemplateColumns: "repeat(6, 1fr)",
-              gap: `${SPACING_UNIT * 2}px`,
-            }}
-          >
+          <ul className={styles.gamesGrid}>
             {truncatedGamesList.map((game) => (
               <li
                 key={game.objectId}
@@ -64,13 +97,20 @@ export function ProfileContent() {
               >
                 <button
                   type="button"
-                  style={{ cursor: "pointer" }}
+                  style={{
+                    cursor: "pointer",
+                  }}
                   className={styles.gameCover}
+                  onClick={() => navigate(buildUserGameDetailsPath(game))}
                 >
                   <img
                     src={steamUrlBuilder.cover(game.objectId)}
                     alt={game.title}
-                    style={{ width: "100%" }}
+                    style={{
+                      width: "100%",
+                      objectFit: "cover",
+                      borderRadius: 4,
+                    }}
                   />
                 </button>
               </li>
@@ -78,14 +118,7 @@ export function ProfileContent() {
           </ul>
         </div>
 
-        <div
-          style={{
-            minWidth: 350,
-            display: "flex",
-            gap: SPACING_UNIT * 2,
-            flexDirection: "column",
-          }}
-        >
+        <div className={styles.rightContent}>
           <div>
             <div className={styles.sectionHeader}>
               <h2>Played recently</h2>
@@ -94,14 +127,10 @@ export function ProfileContent() {
             <div className={styles.box}>
               <ul className={styles.list}>
                 {userProfile?.recentGames.map((game) => (
-                  <li>
-                    <button
-                      type="button"
-                      style={{
-                        cursor: "pointer",
-                        display: "flex",
-                        gap: `${SPACING_UNIT}px`,
-                      }}
+                  <li key={`${game.shop}-${game.objectId}`}>
+                    <Link
+                      to={buildUserGameDetailsPath(game)}
+                      className={styles.listItem}
                     >
                       <img
                         src={game.iconUrl}
@@ -113,21 +142,27 @@ export function ProfileContent() {
                         }}
                       />
 
-                      <div style={{ display: "flex", flexDirection: "column" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: `${SPACING_UNIT / 2}px`,
+                        }}
+                      >
                         <span style={{ fontWeight: "bold" }}>{game.title}</span>
 
                         <div
                           style={{
                             display: "flex",
                             alignItems: "center",
-                            gap: `${SPACING_UNIT / 2}px`,
+                            gap: `${SPACING_UNIT}px`,
                           }}
                         >
                           <ClockIcon />
-                          <span>{game.playTimeInSeconds}</span>
+                          <small>{formatPlayTime(game)}</small>
                         </div>
                       </div>
-                    </button>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -136,30 +171,31 @@ export function ProfileContent() {
 
           <div>
             <div className={styles.sectionHeader}>
-              <h2>Friends</h2>
-
+              <h2>{t("friends")}</h2>
               <span>{userProfile?.totalFriends}</span>
             </div>
 
             <div className={styles.box}>
               <ul className={styles.list}>
                 {userProfile?.friends.map((friend) => (
-                  <li>
-                    <button
-                      type="button"
-                      style={{ cursor: "pointer" }}
-                      className={styles.friend}
+                  <li key={friend.id}>
+                    <Link
+                      to={`/profile/${friend.id}`}
+                      className={styles.listItem}
                     >
                       <img
                         src={friend.profileImageUrl}
                         alt={friend.displayName}
-                        style={{ width: "100%" }}
-                        className={styles.friendAvatar}
+                        style={{
+                          width: "30px",
+                          height: "30px",
+                          borderRadius: "4px",
+                        }}
                       />
                       <span className={styles.friendName}>
                         {friend.displayName}
                       </span>
-                    </button>
+                    </Link>
                   </li>
                 ))}
               </ul>

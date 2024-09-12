@@ -21,6 +21,11 @@ export const sidebar = recipe({
         pointerEvents: "none",
       },
     },
+    darwin: {
+      true: {
+        paddingTop: `${SPACING_UNIT * 6}px`,
+      },
+    },
   },
 });
 

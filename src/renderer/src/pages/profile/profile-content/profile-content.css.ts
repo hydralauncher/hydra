@@ -1,9 +1,10 @@
-import { vars, SPACING_UNIT } from "../../theme.css";
+import { vars, SPACING_UNIT } from "../../../theme.css";
 import { globalStyle, style } from "@vanilla-extract/css";
 
 export const gameCover = style({
   transition: "all ease 0.2s",
   boxShadow: "0 8px 10px -2px rgba(0, 0, 0, 0.5)",
+  width: "100%",
   ":before": {
     content: "",
     top: "0",
@@ -60,14 +61,66 @@ export const friend = style({
   alignItems: "center",
 });
 
-export const friendAvatar = style({
-  width: "50px",
-  height: "50px",
-  borderRadius: "4px",
-});
-
 export const friendName = style({
   color: vars.color.muted,
   fontWeight: "bold",
   fontSize: vars.size.body,
+});
+
+export const rightContent = style({
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  gap: `${SPACING_UNIT * 2}px`,
+  flexDirection: "column",
+  "@media": {
+    "(min-width: 768px)": {
+      width: "100%",
+      maxWidth: "200px",
+    },
+    "(min-width: 1024px)": {
+      maxWidth: "300px",
+      width: "100%",
+    },
+    "(min-width: 1280px)": {
+      width: "100%",
+      maxWidth: "400px",
+    },
+  },
+});
+
+export const listItem = style({
+  display: "flex",
+  cursor: "pointer",
+  transition: "all ease 0.1s",
+  color: vars.color.muted,
+  width: "100%",
+  overflow: "hidden",
+  borderRadius: "4px",
+  padding: `${SPACING_UNIT}px ${SPACING_UNIT}px`,
+  gap: `${SPACING_UNIT * 2}px`,
+  alignItems: "center",
+  ":hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    textDecoration: "none",
+  },
+});
+
+export const gamesGrid = style({
+  listStyle: "none",
+  margin: 0,
+  padding: 0,
+  display: "grid",
+  gap: `${SPACING_UNIT * 2}px`,
+  "@media": {
+    "(min-width: 768px)": {
+      gridTemplateColumns: "repeat(2, 1fr)",
+    },
+    "(min-width: 1250px)": {
+      gridTemplateColumns: "repeat(3, 1fr)",
+    },
+    "(min-width: 1600px)": {
+      gridTemplateColumns: "repeat(8, 1fr)",
+    },
+  },
 });

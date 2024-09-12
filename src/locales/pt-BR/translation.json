@@ -1,10 +1,13 @@
 {
+  "language_name": "Português (Brasil)",
   "app": {
     "successfully_signed_in": "Autenticado com sucesso"
   },
   "home": {
     "featured": "Destaques",
     "trending": "Populares",
+    "hot": "🔥 Populares agora",
+    "weekly": "📅 Mais baixados da semana",
     "surprise_me": "Surpreenda-me",
     "no_results": "Nenhum resultado encontrado"
   },
@@ -20,7 +23,8 @@
     "home": "Início",
     "queued": "{{title}} (Na fila)",
     "game_has_no_executable": "Jogo não possui executável selecionado",
-    "sign_in": "Login"
+    "sign_in": "Login",
+    "friends": "Amigos"
   },
   "header": {
     "search": "Buscar jogos",
@@ -166,7 +170,7 @@
     "real_debrid_linked_message": "Conta \"{{username}}\" vinculada",
     "save_changes": "Salvar mudanças",
     "changes_saved": "Ajustes salvos com sucesso",
-    "download_sources_description": "Hydra vai buscar links de download em todas as fonte habilitadas. A URL da fonte deve ser um link direto para um arquivo .json contendo uma lista de links.",
+    "download_sources_description": "Hydra vai buscar links de download em todas as fontes habilitadas. A URL da fonte deve ser um link direto para um arquivo .json contendo uma lista de links.",
     "validate_download_source": "Validar",
     "remove_download_source": "Remover",
     "add_download_source": "Adicionar fonte",
@@ -239,7 +243,7 @@
     "cancel": "Cancelar",
     "successfully_signed_out": "Deslogado com sucesso",
     "sign_out": "Sair da conta",
-    "sign_out_modal_title": "Tem certeza?",
+    "sign_out_modal_title": "Deseja mesmo sair?",
     "playing_for": "Jogando por {{amount}}",
     "sign_out_modal_text": "Sua biblioteca de jogos está associada com a sua conta atual. Ao sair, sua biblioteca não aparecerá mais no Hydra e qualquer progresso não será salvo. Deseja continuar?",
     "add_friends": "Adicionar Amigos",
