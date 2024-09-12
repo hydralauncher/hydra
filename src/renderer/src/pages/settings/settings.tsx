@@ -1,3 +1,5 @@
+import { Button } from "@renderer/components";
+
 import * as styles from "./settings.css";
 import { useTranslation } from "react-i18next";
 import { SettingsRealDebrid } from "./settings-real-debrid";
@@ -13,10 +15,12 @@ import {
 export function Settings() {
   const { t } = useTranslation("settings");
 
-  const categories = {
-    [t("account")]: [t("my_profile"), t("friends")],
-    Hydra: [t("general"), t("behavior"), t("download_sources"), "Real-Debrid"],
-  };
+  const categories = [
+    t("general"),
+    t("behavior"),
+    t("download_sources"),
+    "Real-Debrid",
+  ];
 
   return (
     <SettingsContextProvider>
@@ -40,34 +44,21 @@ export function Settings() {
 
           return (
             <section className={styles.container}>
-              <aside className={styles.sidebar}>
-                {Object.entries(categories).map(([category, items]) => (
-                  <div key={category} className={styles.menuGroup}>
-                    <span className={styles.categoryTitle}>{category}</span>
-
-                    <ul className={styles.menu}>
-                      {items.map((item, index) => (
-                        <li
-                          key={`item-${index}`}
-                          className={styles.menuItem({
-                            active: currentCategoryIndex === index,
-                          })}
-                        >
-                          <button
-                            type="button"
-                            className={styles.menuItemButton}
-                            onClick={() => setCurrentCategoryIndex(index)}
-                          >
-                            {item}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </aside>
-
               <div className={styles.content}>
+                <section className={styles.settingsCategories}>
+                  {categories.map((category, index) => (
+                    <Button
+                      key={category}
+                      theme={
+                        currentCategoryIndex === index ? "primary" : "outline"
+                      }
+                      onClick={() => setCurrentCategoryIndex(index)}
+                    >
+                      {category}
+                    </Button>
+                  ))}
+                </section>
+
                 <h2>{categories[currentCategoryIndex]}</h2>
                 {renderCategory()}
               </div>

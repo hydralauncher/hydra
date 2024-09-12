@@ -6,8 +6,7 @@ import { useDate, useDownload } from "@renderer/hooks";
 import { Link } from "@renderer/components";
 
 import { gameDetailsContext } from "@renderer/context";
-
-const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
+import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 
 export function HeroPanelPlaytime() {
   const [lastTimePlayed, setLastTimePlayed] = useState("");
@@ -36,7 +35,7 @@ export function HeroPanelPlaytime() {
     });
   }, [i18n.language]);
 
-  const formatPlayTime = () => {
+  const formattedPlayTime = useMemo(() => {
     const milliseconds = game?.playTimeInMilliseconds || 0;
     const seconds = milliseconds / 1000;
     const minutes = seconds / 60;
@@ -49,7 +48,7 @@ export function HeroPanelPlaytime() {
 
     const hours = minutes / 60;
     return t("amount_hours", { amount: numberFormatter.format(hours) });
-  };
+  }, [game?.playTimeInMilliseconds, numberFormatter, t]);
 
   if (!game) return null;
 
@@ -96,7 +95,7 @@ export function HeroPanelPlaytime() {
     <>
       <p>
         {t("play_time", {
-          amount: formatPlayTime(),
+          amount: formattedPlayTime,
         })}
       </p>
 

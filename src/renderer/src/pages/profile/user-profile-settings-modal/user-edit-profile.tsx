@@ -47,7 +47,7 @@ export const UserEditProfile = ({
       filters: [
         {
           name: "Image",
-          extensions: ["jpg", "jpeg", "png", "webp"],
+          extensions: ["jpg", "jpeg", "png"],
         },
       ],
     });

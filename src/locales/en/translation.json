@@ -1,4 +1,5 @@
 {
+  "language_name": "English",
   "app": {
     "successfully_signed_in": "Successfully signed in"
   },
@@ -20,7 +21,8 @@
     "home": "Home",
     "queued": "{{title}} (Queued)",
     "game_has_no_executable": "Game has no executable selected",
-    "sign_in": "Sign in"
+    "sign_in": "Sign in",
+    "friends": "Friends"
   },
   "header": {
     "search": "Search games",

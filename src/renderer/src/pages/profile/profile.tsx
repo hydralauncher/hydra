@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { ProfileSkeleton } from "./profile-skeleton";
-import { ProfileContent } from "./profile-content";
+import { ProfileContent } from "./profile-content/profile-content";
 import { SkeletonTheme } from "react-loading-skeleton";
 import { vars } from "@renderer/theme.css";
 

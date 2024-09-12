@@ -1,101 +1,164 @@
 import { SPACING_UNIT } from "@renderer/theme.css";
 
 import * as styles from "./profile-hero.css";
-import { useContext, useMemo } from "react";
+import { useContext, useMemo, useState } from "react";
 import { userProfileContext } from "@renderer/context";
 import {
   CheckCircleFillIcon,
+  PencilIcon,
   PersonIcon,
+  SignOutIcon,
   XCircleFillIcon,
 } from "@primer/octicons-react";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { Button, Link } from "@renderer/components";
 import { useTranslation } from "react-i18next";
-import { useDate } from "@renderer/hooks";
+import { useDate, useToast, useUserDetails } from "@renderer/hooks";
+import { addSeconds } from "date-fns";
+import { useNavigate } from "react-router-dom";
+
+import type { FriendRequestAction } from "@types";
+import { UserProfileSettingsModal } from "../user-profile-settings-modal";
+
+type FriendAction =
+  | FriendRequestAction
+  | ("BLOCK" | "UNDO_FRIENDSHIP" | "SEND");
 
 export function ProfileHero() {
-  const { userProfile, heroBackground, isMe } = useContext(userProfileContext);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+
+  const context = useContext(userProfileContext);
+  const {
+    signOut,
+    updateFriendRequestState,
+    sendFriendRequest,
+    undoFriendship,
+    blockUser,
+  } = useUserDetails();
+
+  const { isMe, heroBackground, getUserProfile } = context;
+
+  const userProfile = context.userProfile!;
+  const { currentGame } = userProfile;
 
   const { t } = useTranslation("user_profile");
   const { formatDistance } = useDate();
 
-  if (!userProfile) return null;
+  const { showSuccessToast, showErrorToast } = useToast();
 
-  const { currentGame } = userProfile;
+  const navigate = useNavigate();
 
-  console.log(userProfile);
+  const handleSignOut = async () => {
+    await signOut();
+
+    showSuccessToast(t("successfully_signed_out"));
+    navigate("/");
+  };
+
+  const handleFriendAction = (userId: string, action: FriendAction) => {
+    try {
+      if (action === "UNDO_FRIENDSHIP") {
+        undoFriendship(userId).then(getUserProfile);
+        return;
+      }
+
+      if (action === "BLOCK") {
+        blockUser(userId).then(() => {
+          showSuccessToast(t("user_blocked_successfully"));
+          navigate(-1);
+        });
+
+        return;
+      }
+
+      if (action === "SEND") {
+        sendFriendRequest(userProfile.id).then(getUserProfile);
+        return;
+      }
+
+      updateFriendRequestState(userId, action).then(getUserProfile);
+    } catch (err) {
+      showErrorToast(t("try_again"));
+    }
+  };
 
   const profileActions = useMemo(() => {
     if (isMe) {
       return (
         <>
-          <Button theme="outline">{t("settings")}</Button>
+          <Button theme="outline" onClick={() => setShowEditProfileModal(true)}>
+            <PencilIcon />
+            {t("edit_profile")}
+          </Button>
 
-          <Button theme="danger">{t("sign_out")}</Button>
+          <Button theme="danger" onClick={handleSignOut}>
+            <SignOutIcon />
+            {t("sign_out")}
+          </Button>
         </>
       );
     }
 
-    // if (userProfile.relation == null) {
-    //   return (
-    //     <>
-    //       <Button
-    //         theme="outline"
-    //         onClick={() => handleFriendAction(userProfile.id, "SEND")}
-    //       >
-    //         {t("add_friend")}
-    //       </Button>
+    if (userProfile.relation == null) {
+      return (
+        <>
+          <Button
+            theme="outline"
+            onClick={() => handleFriendAction(userProfile.id, "SEND")}
+          >
+            {t("add_friend")}
+          </Button>
 
-    //       <Button theme="danger" onClick={() => setShowUserBlockModal(true)}>
-    //         {t("block_user")}
-    //       </Button>
-    //     </>
-    //   );
-    // }
+          <Button
+            theme="danger"
+            onClick={() => handleFriendAction(userProfile.id, "BLOCK")}
+          >
+            {t("block_user")}
+          </Button>
+        </>
+      );
+    }
 
-    // if (userProfile.relation.status === "ACCEPTED") {
-    //   return (
-    //     <>
-    //       <Button
-    //         theme="outline"
-    //         // className={styles.cancelRequestButton}
-    //         // onClick={() => setShowUndoFriendshipModal(true)}
-    //       >
-    //         <XCircleFillIcon size={28} /> {t("undo_friendship")}
-    //       </Button>
-    //     </>
-    //   );
-    // }
+    if (userProfile.relation.status === "ACCEPTED") {
+      return (
+        <Button
+          theme="outline"
+          onClick={() => handleFriendAction(userProfile.id, "UNDO_FRIENDSHIP")}
+        >
+          <XCircleFillIcon />
+          {t("undo_friendship")}
+        </Button>
+      );
+    }
 
-    // if (userProfile.relation.BId === userProfile.id) {
-    //   return (
-    //     <Button
-    //       theme="outline"
-    //       // className={styles.cancelRequestButton}
-    //       // onClick={() =>
-    //       //   handleFriendAction(userProfile.relation!.BId, "CANCEL")
-    //       // }
-    //     >
-    //       <XCircleFillIcon size={28} /> {t("cancel_request")}
-    //     </Button>
-    //   );
-    // }
+    if (userProfile.relation.BId === userProfile.id) {
+      return (
+        <Button
+          theme="outline"
+          onClick={() =>
+            handleFriendAction(userProfile.relation!.BId, "CANCEL")
+          }
+        >
+          <XCircleFillIcon size={28} /> {t("cancel_request")}
+        </Button>
+      );
+    }
 
     return (
       <>
         <Button
           theme="outline"
-          // onClick={() =>
-          //   handleFriendAction(userProfile.relation!.AId, "ACCEPTED")
-          // }
+          onClick={() =>
+            handleFriendAction(userProfile.relation!.AId, "ACCEPTED")
+          }
         >
           <CheckCircleFillIcon size={28} /> {t("accept_request")}
         </Button>
         <Button
           theme="outline"
-          // onClick={() =>
-          //   handleFriendAction(userProfile.relation!.AId, "REFUSED")
-          // }
+          onClick={() =>
+            handleFriendAction(userProfile.relation!.AId, "REFUSED")
+          }
         >
           <XCircleFillIcon size={28} /> {t("ignore_request")}
         </Button>
@@ -105,19 +168,27 @@ export function ProfileHero() {
 
   return (
     <>
+      {/* <ConfirmationModal
+        visible
+        title={t("sign_out_modal_title")}
+        descriptionText={t("sign_out_modal_text")}
+        confirmButtonLabel={t("sign_out")}
+        cancelButtonLabel={t("cancel")}
+      /> */}
+
+      <UserProfileSettingsModal
+        visible={showEditProfileModal}
+        userProfile={userProfile}
+        updateUserProfile={getUserProfile}
+        onClose={() => setShowEditProfileModal(false)}
+      />
+
       <section
         className={styles.profileContentBox}
         style={{ background: heroBackground }}
       >
-        <div
-          style={{
-            display: "flex",
-            padding: `${SPACING_UNIT * 4}px ${SPACING_UNIT * 3}px`,
-            alignItems: "center",
-            gap: `${SPACING_UNIT * 2}px`,
-          }}
-        >
-          <div className={styles.profileAvatarContainer}>
+        <div className={styles.userInformation}>
+          <button type="button" className={styles.profileAvatarButton}>
             {userProfile.profileImageUrl ? (
               <img
                 className={styles.profileAvatar}
@@ -127,12 +198,13 @@ export function ProfileHero() {
             ) : (
               <PersonIcon size={72} />
             )}
-          </div>
+          </button>
 
           <div className={styles.profileInformation}>
             <h2 className={styles.profileDisplayName}>
               {userProfile.displayName}
             </h2>
+
             {currentGame && (
               <div
                 style={{
@@ -149,14 +221,23 @@ export function ProfileHero() {
                     alignItems: "center",
                   }}
                 >
-                  <Link to={buildGameDetailsPath(currentGame)}>
+                  <Link
+                    to={buildGameDetailsPath({
+                      ...currentGame,
+                      objectID: currentGame.objectId,
+                    })}
+                  >
                     {currentGame.title}
                   </Link>
                 </div>
+
                 <small>
                   {t("playing_for", {
                     amount: formatDistance(
-                      currentGame.sessionDurationInSeconds,
+                      addSeconds(
+                        new Date(),
+                        -currentGame.sessionDurationInSeconds
+                      ),
                       new Date()
                     ),
                   })}
@@ -166,20 +247,7 @@ export function ProfileHero() {
           </div>
         </div>
 
-        <div
-          style={{
-            width: "100%",
-            height: "72px",
-            minHeight: "72px",
-            padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 3}px`,
-            display: "flex",
-            gap: `${SPACING_UNIT}px`,
-            justifyContent: "space-between",
-            backdropFilter: `blur(10px)`,
-            borderTop: `solid 1px rgba(255, 255, 255, 0.1)`,
-            boxShadow: "0px 0px 15px 0px rgba(0, 0, 0, 0.5)",
-          }}
-        >
+        <div className={styles.heroPanel}>
           <div></div>
           <div style={{ display: "flex", gap: `${SPACING_UNIT}px` }}>
             {profileActions}

@@ -153,12 +153,14 @@ export function Sidebar() {
     <>
       <aside
         ref={sidebarRef}
-        className={styles.sidebar({ resizing: isResizing })}
+        className={styles.sidebar({
+          resizing: isResizing,
+          darwin: window.electron.platform === "darwin",
+        })}
         style={{
           width: sidebarWidth,
           minWidth: sidebarWidth,
           maxWidth: sidebarWidth,
-          paddingTop: 8 * 6,
         }}
       >
         <SidebarProfile />
@@ -180,8 +182,6 @@ export function Sidebar() {
                   >
                     {render(isDownloading)}
                     <span>{t(nameKey)}</span>
-
-                    <ChevronDownIcon />
                   </button>
                 </li>
               ))}

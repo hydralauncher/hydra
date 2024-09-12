@@ -11,6 +11,11 @@ export enum DownloadSourceStatus {
   Errored,
 }
 
+export enum CatalogueCategory {
+  Hot = "hot",
+  Weekly = "weekly",
+}
+
 export class UserNotLoggedInError extends Error {
   constructor() {
     super("user not logged in");

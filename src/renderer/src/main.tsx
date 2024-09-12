@@ -27,7 +27,7 @@ import {
 
 import { store } from "./store";
 
-import * as resources from "@locales";
+import resources from "@locales";
 
 Sentry.init({});
 

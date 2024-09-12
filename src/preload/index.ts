@@ -12,6 +12,7 @@ import type {
   FriendRequestAction,
   UpdateProfileRequest,
 } from "@types";
+import type { CatalogueCategory } from "@shared";
 
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
@@ -34,7 +35,8 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Catalogue */
   searchGames: (query: string) => ipcRenderer.invoke("searchGames", query),
-  getCatalogue: () => ipcRenderer.invoke("getCatalogue"),
+  getCatalogue: (category: CatalogueCategory) =>
+    ipcRenderer.invoke("getCatalogue", category),
   getGameShopDetails: (objectID: string, shop: GameShop, language: string) =>
     ipcRenderer.invoke("getGameShopDetails", objectID, shop, language),
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
@@ -44,6 +46,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGames", take, prevCursor),
   searchGameRepacks: (query: string) =>
     ipcRenderer.invoke("searchGameRepacks", query),
+  getGameStats: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("getGameStats", objectId, shop),
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),

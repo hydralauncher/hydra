@@ -1,3 +1,4 @@
+import type { CatalogueCategory } from "@shared";
 import type {
   AppUpdaterEvent,
   CatalogueEntry,
@@ -19,6 +20,7 @@ import type {
   UserFriends,
   UserBlocks,
   UpdateProfileRequest,
+  GameStats,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -40,7 +42,7 @@ declare global {
 
     /* Catalogue */
     searchGames: (query: string) => Promise<CatalogueEntry[]>;
-    getCatalogue: () => Promise<CatalogueEntry[]>;
+    getCatalogue: (category: CatalogueCategory) => Promise<CatalogueEntry[]>;
     getGameShopDetails: (
       objectID: string,
       shop: GameShop,
@@ -57,6 +59,7 @@ declare global {
       prevCursor?: number
     ) => Promise<{ results: CatalogueEntry[]; cursor: number }>;
     searchGameRepacks: (query: string) => Promise<GameRepack[]>;
+    getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
 
     /* Library */
     addGameToLibrary: (

@@ -1,6 +1,4 @@
 import { useContext, useEffect, useState } from "react";
-import ISO6391 from "iso-639-1";
-
 import {
   TextField,
   Button,
@@ -8,11 +6,9 @@ import {
   SelectField,
 } from "@renderer/components";
 import { useTranslation } from "react-i18next";
-
 import { useAppSelector } from "@renderer/hooks";
-
 import { changeLanguage } from "i18next";
-import * as languageResources from "@locales";
+import languageResources from "@locales";
 import { orderBy } from "lodash-es";
 import { settingsContext } from "@renderer/context";
 
@@ -50,9 +46,9 @@ export function SettingsGeneral() {
 
     setLanguageOptions(
       orderBy(
-        Object.keys(languageResources).map((language) => {
+        Object.entries(languageResources).map(([language, value]) => {
           return {
-            nativeName: ISO6391.getNativeName(language),
+            nativeName: value.language_name,
             option: language,
           };
         }),
@@ -93,8 +89,6 @@ export function SettingsGeneral() {
 
   function updateFormWithUserPreferences() {
     if (userPreferences) {
-      const parsedLanguage = userPreferences.language.split("-")[0];
-
       setForm((prev) => ({
         ...prev,
         downloadsPath: userPreferences.downloadsPath ?? defaultDownloadsPath,
@@ -102,7 +96,7 @@ export function SettingsGeneral() {
           userPreferences.downloadNotificationsEnabled,
         repackUpdatesNotificationsEnabled:
           userPreferences.repackUpdatesNotificationsEnabled,
-        language: parsedLanguage,
+        language: userPreferences.language,
       }));
     }
   }

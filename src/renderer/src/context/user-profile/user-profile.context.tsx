@@ -12,6 +12,8 @@ export interface UserProfileContext {
   heroBackground: string;
   /* Indicates if the current user is viewing their own profile */
   isMe: boolean;
+
+  getUserProfile: () => Promise<void>;
 }
 
 export const DEFAULT_USER_PROFILE_BACKGROUND = "#151515B3";
@@ -20,6 +22,7 @@ export const userProfileContext = createContext<UserProfileContext>({
   userProfile: null,
   heroBackground: DEFAULT_USER_PROFILE_BACKGROUND,
   isMe: false,
+  getUserProfile: async () => {},
 });
 
 const { Provider } = userProfileContext;
@@ -47,7 +50,7 @@ export function UserProfileContextProvider({
       format: "hex",
     });
 
-    return `linear-gradient(135deg, ${darkenColor(output as string, 0.6)}, ${darkenColor(output as string, 0.8, 0.7)})`;
+    return `linear-gradient(135deg, ${darkenColor(output as string, 0.5)}, ${darkenColor(output as string, 0.6, 0.5)})`;
   };
 
   const { t } = useTranslation("user_profile");
@@ -73,6 +76,9 @@ export function UserProfileContextProvider({
   }, [navigate, showErrorToast, userId, t]);
 
   useEffect(() => {
+    setUserProfile(null);
+    setHeroBackground(DEFAULT_USER_PROFILE_BACKGROUND);
+
     getUserProfile();
   }, [getUserProfile]);
 
@@ -82,6 +88,7 @@ export function UserProfileContextProvider({
         userProfile,
         heroBackground,
         isMe: userDetails?.id === userProfile?.id,
+        getUserProfile,
       }}
     >
       {children}

@@ -44,7 +44,12 @@ export const UserProfileSettingsModal = ({
 
   return (
     <>
-      <Modal visible={visible} title={t("settings")} onClose={onClose}>
+      <Modal
+        visible={visible}
+        title={t("settings")}
+        onClose={onClose}
+        clickOutsideToClose={false}
+      >
         <div
           style={{
             display: "flex",

@@ -34,7 +34,7 @@ export const profileButtonContent = style({
 export const profileAvatar = style({
   width: "35px",
   height: "35px",
-  borderRadius: "50%",
+  borderRadius: "4px",
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
@@ -50,17 +50,6 @@ export const profileButtonInformation = style({
   alignItems: "flex-start",
   flex: "1",
   minWidth: 0,
-});
-
-export const statusBadge = style({
-  width: "9px",
-  height: "9px",
-  borderRadius: "50%",
-  backgroundColor: vars.color.danger,
-  position: "absolute",
-  bottom: "-2px",
-  right: "-3px",
-  zIndex: "1",
 });
 
 export const profileButtonTitle = style({
@@ -85,11 +74,11 @@ export const friendsButton = style({
   position: "relative",
   transition: "all ease 0.3s",
   ":hover": {
-    backgroundColor: "#DADBE1",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
   },
 });
 
-export const friendsButtonLabel = style({
+export const friendsButtonBadge = style({
   backgroundColor: vars.color.success,
   display: "flex",
   justifyContent: "center",
