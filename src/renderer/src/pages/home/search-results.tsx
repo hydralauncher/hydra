@@ -25,9 +25,10 @@ export function SearchResults() {
 
   const [searchResults, setSearchResults] = useState<CatalogueEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showMessage, setShowMessage] = useState(false);
+  const [showTypingMessage, setShowTypingMessage] = useState(false);
 
   const debouncedFunc = useRef<DebouncedFunc<() => void> | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const navigate = useNavigate();
 
@@ -36,40 +37,36 @@ export function SearchResults() {
     navigate(buildGameDetailsPath(game));
   };
 
-  const fetchGames = (query: string) => {
-    window.electron
-      .searchGames(query)
-      .then((results) => {
-        console.log(
-          "original query: ",
-          query,
-          "current value: ",
-          searchParams.get("query")
-        );
-        if (query != searchParams.get("query")) return;
-        setSearchResults(results);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  };
-
   useEffect(() => {
     setIsLoading(true);
     if (debouncedFunc.current) debouncedFunc.current.cancel();
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
     debouncedFunc.current = debounce(() => {
       const query = searchParams.get("query") ?? "";
 
       if (query.length < 3) {
         setIsLoading(false);
-        setShowMessage(true);
+        setShowTypingMessage(true);
         setSearchResults([]);
         return;
       }
 
-      setShowMessage(false);
-      fetchGames(query);
+      setShowTypingMessage(false);
+      window.electron
+        .searchGames(query)
+        .then((results) => {
+          if (abortController.signal.aborted) return;
+
+          setSearchResults(results);
+          setIsLoading(false);
+        })
+        .catch(() => {
+          setIsLoading(false);
+        });
     }, 500);
 
     debouncedFunc.current();
@@ -97,11 +94,11 @@ export function SearchResults() {
           )}
         </section>
 
-        {!isLoading && showMessage && (
+        {!isLoading && showTypingMessage && (
           <div className={styles.noResults}>
             <SearchIcon size={56} />
 
-            <p>{"Comece a digitar para pesquisar…"}</p>
+            <p>{t("start_typing")}</p>
           </div>
         )}
 

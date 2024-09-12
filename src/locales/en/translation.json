@@ -7,7 +7,8 @@
     "featured": "Featured",
     "trending": "Trending",
     "surprise_me": "Surprise me",
-    "no_results": "No results found"
+    "no_results": "No results found",
+    "start_typing": "Starting typing to search..."
   },
   "sidebar": {
     "catalogue": "Catalogue",
