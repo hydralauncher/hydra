@@ -1,10 +1,10 @@
 export enum Downloader {
   RealDebrid,
-  TorBox,
   Torrent,
   Gofile,
   PixelDrain,
   Qiwi,
+  TorBox,
 }
 
 export enum DownloadSourceStatus {

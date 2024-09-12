@@ -1,15 +1,16 @@
 import axios, { AxiosInstance } from "axios";
-// import parseTorrent from "parse-torrent";
+import parseTorrent from "parse-torrent";
 import type {
-  RealDebridAddMagnet,
-  RealDebridTorrentInfo,
-  RealDebridUnrestrictLink,
   TorBoxUserRequest,
+  TorBoxTorrentInfoRequest,
+  TorBoxAddTorrentRequest,
+  TorBoxRequestLinkRequest,
 } from "@types";
 
 export class TorBoxClient {
   private static instance: AxiosInstance;
   private static baseURL = "https://api.torbox.app/v1/api";
+  public static apiToken: string;
 
   static authorize(apiToken: string) {
     this.instance = axios.create({
@@ -18,24 +19,33 @@ export class TorBoxClient {
         Authorization: `Bearer ${apiToken}`,
       },
     });
+    this.apiToken = apiToken;
   }
 
   static async addMagnet(magnet: string) {
-    const searchParams = new URLSearchParams({ magnet });
+    const form = new FormData();
+    form.append("magnet", magnet);
 
-    const response = await this.instance.post<RealDebridAddMagnet>(
-      "/torrents/addMagnet",
-      searchParams.toString()
+    const response = await this.instance.post<TorBoxAddTorrentRequest>(
+      "/torrents/createtorrent",
+      form
     );
 
-    return response.data;
+    return response.data.data;
   }
 
-  static async getTorrentInfo(id: string) {
-    const response = await this.instance.get<RealDebridTorrentInfo>(
-      `/torrents/info/${id}`
-    );
-    return response.data;
+  static async getTorrentInfo(id: number) {
+    const response =
+      await this.instance.get<TorBoxTorrentInfoRequest>("/torrents/mylist");
+    const data = response.data.data;
+
+    const info = data.find((item) => item.id === id);
+
+    if (!info) {
+      return null;
+    }
+
+    return info;
   }
 
   static async getUser() {
@@ -43,44 +53,44 @@ export class TorBoxClient {
     return response.data.data;
   }
 
-  static async selectAllFiles(id: string) {
-    const searchParams = new URLSearchParams({ files: "all" });
+  static async requestLink(id: number) {
+    const searchParams = new URLSearchParams({});
 
-    return this.instance.post(
-      `/torrents/selectFiles/${id}`,
-      searchParams.toString()
-    );
-  }
+    searchParams.set("token", this.apiToken);
+    searchParams.set("torrent_id", id.toString());
+    searchParams.set("zip_link", "true");
 
-  static async unrestrictLink(link: string) {
-    const searchParams = new URLSearchParams({ link });
-
-    const response = await this.instance.post<RealDebridUnrestrictLink>(
-      "/unrestrict/link",
-      searchParams.toString()
+    const response = await this.instance.get<TorBoxRequestLinkRequest>(
+      "/torrents/requestdl?" + searchParams.toString()
     );
 
-    return response.data;
+    if (response.status !== 200) {
+      console.error(response.data.error);
+      console.error(response.data.detail);
+      return null;
+    }
+
+    return response.data.data;
   }
 
-  // private static async getAllTorrentsFromUser() {
-  //   const response =
-  //     await this.instance.get<RealDebridTorrentInfo[]>("/torrents");
+  private static async getAllTorrentsFromUser() {
+    const response =
+      await this.instance.get<TorBoxTorrentInfoRequest>("/torrents/mylist");
 
-  //   return response.data;
-  // }
+    return response.data.data;
+  }
 
-  // static async getTorrentId(magnetUri: string) {
-  //   const userTorrents = await RealDebridClient.getAllTorrentsFromUser();
+  static async getTorrentId(magnetUri: string) {
+    const userTorrents = await TorBoxClient.getAllTorrentsFromUser();
 
-  //   const { infoHash } = await parseTorrent(magnetUri);
-  //   const userTorrent = userTorrents.find(
-  //     (userTorrent) => userTorrent.hash === infoHash
-  //   );
+    const { infoHash } = await parseTorrent(magnetUri);
+    const userTorrent = userTorrents.find(
+      (userTorrent) => userTorrent.hash === infoHash
+    );
 
-  //   if (userTorrent) return userTorrent.id;
+    if (userTorrent) return userTorrent.id;
 
-  //   const torrent = await RealDebridClient.addMagnet(magnetUri);
-  //   return torrent.id;
-  // }
+    const torrent = await TorBoxClient.addMagnet(magnetUri);
+    return torrent.torrent_id;
+  }
 }
