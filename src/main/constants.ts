@@ -3,11 +3,8 @@ import path from "node:path";
 
 export const defaultDownloadsPath = app.getPath("downloads");
 
-export const databasePath = path.join(
-  app.getPath("appData"),
-  "hydra",
-  "hydra.db"
-);
+export const databaseDirectory = path.join(app.getPath("appData"), "hydra");
+export const databasePath = path.join(databaseDirectory, "hydra.db");
 
 export const logsPath = path.join(app.getPath("appData"), "hydra", "logs");
 
