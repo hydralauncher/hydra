@@ -141,6 +141,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("undoFriendship", userId),
   updateProfile: (updateProfile: UpdateProfileProps) =>
     ipcRenderer.invoke("updateProfile", updateProfile),
+  processProfileImage: (imagePath: string) =>
+    ipcRenderer.invoke("processProfileImage", imagePath),
   getFriendRequests: () => ipcRenderer.invoke("getFriendRequests"),
   updateFriendRequest: (userId: string, action: FriendRequestAction) =>
     ipcRenderer.invoke("updateFriendRequest", userId, action),
