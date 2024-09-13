@@ -277,6 +277,7 @@
     "pending": "Pendentes",
     "no_pending_invites": "Não tens convites de amizade pendentes",
     "no_blocked_users": "Não tens nenhum utilizador bloqueado",
-    "friend_code_copied": "Código de amigo copiado"
+    "friend_code_copied": "Código de amigo copiado",
+    "image_process_failure": "Falha ao processar a imagem"
   }
 }

@@ -60,6 +60,7 @@ export const UserEditProfile = ({
       const { imagePath } = await window.electron
         .processProfileImage(filePaths[0])
         .catch(() => {
+          showErrorToast(t("image_process_failure"));
           return { imagePath: null };
         })
         .finally(() => setIsLoadingImage(false));
