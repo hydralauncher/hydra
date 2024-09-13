@@ -1,6 +1,5 @@
 import Skeleton from "react-loading-skeleton";
-import cn from "classnames";
-import * as styles from "./profile.css";
+
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { useTranslation } from "react-i18next";
 
@@ -9,9 +8,9 @@ export function ProfileSkeleton() {
 
   return (
     <>
-      <Skeleton className={styles.profileHeaderSkeleton} />
-      <div className={styles.profileContent}>
-        <div className={styles.profileGameSection}>
+      <Skeleton />
+      <div>
+        <div>
           <h2>{t("activity")}</h2>
           {Array.from({ length: 3 }).map((_, index) => (
             <Skeleton
@@ -22,7 +21,7 @@ export function ProfileSkeleton() {
           ))}
         </div>
 
-        <div className={cn(styles.contentSidebar, styles.profileGameSection)}>
+        <div>
           <h2>{t("library")}</h2>
           <div
             style={{

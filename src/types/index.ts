@@ -270,12 +270,6 @@ export interface RealDebridUser {
   expiration: string;
 }
 
-export interface UserDetails {
-  id: string;
-  displayName: string;
-  profileImageUrl: string | null;
-}
-
 export interface UserFriend {
   id: string;
   displayName: string;

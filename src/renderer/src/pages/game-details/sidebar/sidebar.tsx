@@ -16,7 +16,8 @@ export function Sidebar() {
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
-  const { gameTitle, shopDetails, objectID } = useContext(gameDetailsContext);
+  const { gameTitle, shopDetails, objectID, stats } =
+    useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
 
@@ -41,6 +42,15 @@ export function Sidebar() {
         howLongToBeatData={howLongToBeat.data}
         isLoading={howLongToBeat.isLoading}
       />
+
+      <div className={styles.contentSidebarTitle} style={{ border: "none" }}>
+        <h3>{t("stats")}</h3>
+      </div>
+
+      <div>
+        <p>downloadCount {stats?.downloadCount}</p>
+        <p>playerCount {stats?.playerCount}</p>
+      </div>
 
       <div className={styles.contentSidebarTitle} style={{ border: "none" }}>
         <h3>{t("requirements")}</h3>

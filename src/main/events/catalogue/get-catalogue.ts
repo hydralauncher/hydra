@@ -15,7 +15,8 @@ const getCatalogue = async (
   });
 
   const response = await HydraApi.get<{ objectId: string; shop: GameShop }[]>(
-    `/games/${category}?${params.toString()}`
+    `/games/${category}?${params.toString()}`,
+    { needsAuth: false }
   );
 
   return Promise.all(

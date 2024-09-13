@@ -7,14 +7,12 @@ import {
   setFriendsModalVisible,
   setFriendsModalHidden,
 } from "@renderer/features";
-// import { profileBackgroundFromProfileImage } from "@renderer/helpers";
 import type {
   FriendRequestAction,
   UpdateProfileRequest,
-  UserDetails,
+  UserProfile,
 } from "@types";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
-import { logger } from "@renderer/logger";
 
 export function useUserDetails() {
   const dispatch = useAppDispatch();
@@ -42,17 +40,18 @@ export function useUserDetails() {
   }, [clearUserDetails]);
 
   const updateUserDetails = useCallback(
-    async (userDetails: UserDetails) => {
+    async (userDetails: UserProfile) => {
       dispatch(setUserDetails(userDetails));
 
       if (userDetails.profileImageUrl) {
+        // TODO: Decide if we want to use this
         // const profileBackground = await profileBackgroundFromProfileImage(
         //   userDetails.profileImageUrl
         // ).catch((err) => {
         //   logger.error("profileBackgroundFromProfileImage", err);
         //   return `#151515B3`;
         // });
-        dispatch(setProfileBackground(profileBackground));
+        // dispatch(setProfileBackground(profileBackground));
 
         window.localStorage.setItem(
           "userDetails",
@@ -68,7 +67,7 @@ export function useUserDetails() {
         );
       }
     },
-    [dispatch]
+    [dispatch, profileBackground]
   );
 
   const fetchUserDetails = useCallback(async () => {
@@ -83,7 +82,6 @@ export function useUserDetails() {
 
   const patchUser = useCallback(
     async (values: UpdateProfileRequest) => {
-      console.log("values", values);
       const response = await window.electron.updateProfile(values);
       return updateUserDetails(response);
     },

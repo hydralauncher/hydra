@@ -15,7 +15,6 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { SidebarProfile } from "./sidebar-profile";
 import { sortBy } from "lodash-es";
-import { ChevronDownIcon } from "@primer/octicons-react";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;

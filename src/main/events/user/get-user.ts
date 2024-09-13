@@ -81,7 +81,6 @@ const getUser = async (
       totalFriends: friends.totalFriends,
     };
   } catch (err) {
-    console.log("err", err);
     return null;
   }
 };

@@ -5,7 +5,13 @@ import { setHeaderTitle } from "@renderer/features";
 import { getSteamLanguage } from "@renderer/helpers";
 import { useAppDispatch, useAppSelector, useDownload } from "@renderer/hooks";
 
-import type { Game, GameRepack, GameShop, ShopDetails } from "@types";
+import type {
+  Game,
+  GameRepack,
+  GameShop,
+  GameStats,
+  ShopDetails,
+} from "@types";
 
 import { useTranslation } from "react-i18next";
 import { GameDetailsContext } from "./game-details.context.types";
@@ -22,6 +28,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   gameColor: "",
   showRepacksModal: false,
   showGameOptionsModal: false,
+  stats: null,
   setGameColor: () => {},
   selectGameExecutable: async () => null,
   updateGame: async () => {},
@@ -44,6 +51,8 @@ export function GameDetailsContextProvider({
   const [shopDetails, setGameDetails] = useState<ShopDetails | null>(null);
   const [repacks, setRepacks] = useState<GameRepack[]>([]);
   const [game, setGame] = useState<Game | null>(null);
+
+  const [stats, setStats] = useState<GameStats | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
   const [gameColor, setGameColor] = useState("");
@@ -85,13 +94,16 @@ export function GameDetailsContextProvider({
         getSteamLanguage(i18n.language)
       ),
       window.electron.searchGameRepacks(gameTitle),
+      window.electron.getGameStats(objectID!, shop as GameShop),
     ])
-      .then(([appDetailsResult, repacksResult]) => {
+      .then(([appDetailsResult, repacksResult, statsResult]) => {
         if (appDetailsResult.status === "fulfilled")
           setGameDetails(appDetailsResult.value);
 
         if (repacksResult.status === "fulfilled")
           setRepacks(repacksResult.value);
+
+        if (statsResult.status === "fulfilled") setStats(statsResult.value);
       })
       .finally(() => {
         setIsLoading(false);
@@ -167,6 +179,7 @@ export function GameDetailsContextProvider({
         gameColor,
         showGameOptionsModal,
         showRepacksModal,
+        stats,
         setGameColor,
         selectGameExecutable,
         updateGame,

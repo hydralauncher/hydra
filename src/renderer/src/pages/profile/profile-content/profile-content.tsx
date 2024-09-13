@@ -4,7 +4,7 @@ import { ProfileHero } from "../profile-hero/profile-hero";
 import { useAppDispatch } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { steamUrlBuilder } from "@shared";
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
+import { SPACING_UNIT } from "@renderer/theme.css";
 
 import * as styles from "./profile-content.css";
 import { ClockIcon } from "@primer/octicons-react";
@@ -14,6 +14,7 @@ import { UserGame } from "@types";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { useNavigate } from "react-router-dom";
+import { LockedProfile } from "./locked-profile";
 
 export function ProfileContent() {
   const { userProfile } = useContext(userProfileContext);
@@ -64,12 +65,14 @@ export function ProfileContent() {
       objectID: game.objectId,
     });
 
-  if (!userProfile) return null;
+  const content = useMemo(() => {
+    if (!userProfile) return null;
 
-  return (
-    <div>
-      <ProfileHero />
+    if (userProfile?.profileVisibility === "FRIENDS") {
+      return <LockedProfile />;
+    }
 
+    return (
       <section
         style={{
           display: "flex",
@@ -133,7 +136,7 @@ export function ProfileContent() {
                       className={styles.listItem}
                     >
                       <img
-                        src={game.iconUrl}
+                        src={game.iconUrl!}
                         alt={game.title}
                         style={{
                           width: "30px",
@@ -184,7 +187,7 @@ export function ProfileContent() {
                       className={styles.listItem}
                     >
                       <img
-                        src={friend.profileImageUrl}
+                        src={friend.profileImageUrl!}
                         alt={friend.displayName}
                         style={{
                           width: "30px",
@@ -203,6 +206,21 @@ export function ProfileContent() {
           </div>
         </div>
       </section>
+    );
+  }, [
+    userProfile,
+    formatPlayTime,
+    numberFormatter,
+    t,
+    truncatedGamesList,
+    navigate,
+  ]);
+
+  return (
+    <div>
+      <ProfileHero />
+
+      {content}
     </div>
   );
 }
