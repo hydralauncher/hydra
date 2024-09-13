@@ -18,6 +18,7 @@ import {
   setSearch,
   clearSearch,
   setUserPreferences,
+  setUserClientPreferences,
   toggleDraggingDisabled,
   closeToast,
   setUserDetails,
@@ -71,6 +72,15 @@ export function App() {
         dispatch(setUserPreferences(preferences));
       }
     );
+  }, [navigate, location.pathname, dispatch, updateLibrary]);
+
+  useEffect(() => {
+    Promise.all([
+      window.electron.getUserClientPreferences(),
+      updateLibrary(),
+    ]).then(([clientPreferences]) => {
+      dispatch(setUserClientPreferences(clientPreferences));
+    });
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   useEffect(() => {

@@ -161,6 +161,14 @@ export interface DownloadProgress {
   game: LibraryGame;
 }
 
+export interface client {
+  clientType: string | null;
+  clientHost: string | null;
+  clientPort: string | null;
+  clientUsername: string | null;
+  clientPassword: string | null;
+}
+
 export interface UserPreferences {
   downloadsPath: string | null;
   language: string;
@@ -169,6 +177,7 @@ export interface UserPreferences {
   realDebridApiToken: string | null;
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;
+  useExternalClient: boolean;
 }
 
 export interface HowLongToBeatCategory {

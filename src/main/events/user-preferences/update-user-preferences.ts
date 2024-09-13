@@ -11,7 +11,6 @@ const updateUserPreferences = async (
   if (preferences.language) {
     i18next.changeLanguage(preferences.language);
   }
-
   return userPreferencesRepository.upsert(
     {
       id: 1,

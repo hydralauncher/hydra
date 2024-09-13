@@ -32,6 +32,9 @@ export class UserPreferences {
   @Column("boolean", { default: false })
   runAtStartup: boolean;
 
+  @Column("boolean", { default: false })
+  useExternalClient: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

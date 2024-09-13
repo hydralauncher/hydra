@@ -1,7 +1,10 @@
+import { client } from "@types";
+
 export interface StartDownloadPayload {
   game_id: number;
   magnet: string;
   save_path: string;
+  torrent_client: client | null;
 }
 
 export interface PauseDownloadPayload {

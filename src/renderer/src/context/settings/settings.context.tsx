@@ -1,12 +1,15 @@
 import { createContext, useEffect, useState } from "react";
-
-import { setUserPreferences } from "@renderer/features";
+import {
+  setUserPreferences,
+  setUserClientPreferences,
+} from "@renderer/features";
 import { useAppDispatch } from "@renderer/hooks";
-import type { UserPreferences } from "@types";
+import type { UserPreferences, client } from "@types";
 import { useSearchParams } from "react-router-dom";
 
 export interface SettingsContext {
   updateUserPreferences: (values: Partial<UserPreferences>) => Promise<void>;
+  updateUserClientPreferences: (values: client) => Promise<void>;
   setCurrentCategoryIndex: React.Dispatch<React.SetStateAction<number>>;
   clearSourceUrl: () => void;
   sourceUrl: string | null;
@@ -15,6 +18,7 @@ export interface SettingsContext {
 
 export const settingsContext = createContext<SettingsContext>({
   updateUserPreferences: async () => {},
+  updateUserClientPreferences: async () => {},
   setCurrentCategoryIndex: () => {},
   clearSourceUrl: () => {},
   sourceUrl: null,
@@ -57,10 +61,18 @@ export function SettingsContextProvider({
     });
   };
 
+  const updateUserClientPreferences = async (values: client) => {
+    await window.electron.updateUserClientPreferences(values);
+    window.electron.getUserClientPreferences().then((userClientPreferences) => {
+      dispatch(setUserClientPreferences(userClientPreferences));
+    });
+  };
+
   return (
     <Provider
       value={{
         updateUserPreferences,
+        updateUserClientPreferences,
         setCurrentCategoryIndex,
         clearSourceUrl,
         currentCategoryIndex,

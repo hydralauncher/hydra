@@ -20,6 +20,7 @@ import {
   ProcessPayload,
 } from "./types";
 import { pythonInstanceLogger as logger } from "../logger";
+import { userClientPreferencesRepository } from "@main/repository";
 
 export class PythonInstance {
   private static pythonProcess: cp.ChildProcess | null = null;
@@ -135,11 +136,17 @@ export class PythonInstance {
   }
 
   static async startDownload(game: Game) {
+    const userClientPreferences = await userClientPreferencesRepository.findOne(
+      {
+        where: { id: 1 },
+      }
+    );
     if (!this.pythonProcess) {
       this.spawn({
         game_id: game.id,
         magnet: game.uri!,
         save_path: game.downloadPath!,
+        torrent_client: userClientPreferences,
       });
     } else {
       await this.rpc
@@ -148,6 +155,7 @@ export class PythonInstance {
           game_id: game.id,
           magnet: game.uri,
           save_path: game.downloadPath,
+          torrent_client: userClientPreferences,
         } as StartDownloadPayload)
         .catch(this.handleRpcError);
     }
