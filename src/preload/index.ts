@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("searchGameRepacks", query),
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
+  getTrendingGames: () => ipcRenderer.invoke("getTrendingGames"),
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
