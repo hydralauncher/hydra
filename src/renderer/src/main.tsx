@@ -41,8 +41,11 @@ i18n
       escapeValue: false,
     },
   })
-  .then(() => {
-    window.electron.updateUserPreferences({ language: i18n.language });
+  .then(async () => {
+    const userPreferences = await window.electron.getUserPreferences();
+    if (!userPreferences?.language) {
+      window.electron.updateUserPreferences({ language: i18n.language });
+    }
   });
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
