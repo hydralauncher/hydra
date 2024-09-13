@@ -5,7 +5,8 @@ import { UserProfile } from "@types";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as styles from "../user.css";
-import { SPACING_UNIT } from "@renderer/theme.css";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
 export interface UserEditProfileProps {
   userProfile: UserProfile;
@@ -21,9 +22,10 @@ export const UserEditProfile = ({
   const [form, setForm] = useState({
     displayName: userProfile.displayName,
     profileVisibility: userProfile.profileVisibility,
-    imageProfileUrl: null as string | null,
+    profileImageUrl: null as string | null,
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
 
   const { patchUser } = useUserDetails();
 
@@ -53,9 +55,17 @@ export const UserEditProfile = ({
     });
 
     if (filePaths && filePaths.length > 0) {
-      const path = filePaths[0];
+      setIsLoadingImage(true);
 
-      setForm({ ...form, imageProfileUrl: path });
+      const { imagePath } = await window.electron
+        .processProfileImage(filePaths[0])
+        .catch(() => {
+          showErrorToast(t("image_process_failure"));
+          return { imagePath: null };
+        })
+        .finally(() => setIsLoadingImage(false));
+
+      setForm({ ...form, profileImageUrl: imagePath });
     }
   };
 
@@ -85,66 +95,78 @@ export const UserEditProfile = ({
       });
   };
 
-  const avatarUrl = useMemo(() => {
-    if (form.imageProfileUrl) return `local:${form.imageProfileUrl}`;
+  const profileImageUrl = useMemo(() => {
+    if (form.profileImageUrl) return `local:${form.profileImageUrl}`;
     if (userProfile.profileImageUrl) return userProfile.profileImageUrl;
     return null;
   }, [form, userProfile]);
 
+  const profileImageContent = () => {
+    if (isLoadingImage) {
+      return <Skeleton className={styles.profileAvatar} />;
+    }
+
+    if (profileImageUrl) {
+      return (
+        <img
+          className={styles.profileAvatar}
+          alt={userProfile.displayName}
+          src={profileImageUrl}
+        />
+      );
+    }
+
+    return <PersonIcon size={96} />;
+  };
+
   return (
-    <form
-      onSubmit={handleSaveProfile}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        gap: `${SPACING_UNIT * 3}px`,
-        width: "350px",
-      }}
-    >
-      <button
-        type="button"
-        className={styles.profileAvatarEditContainer}
-        onClick={handleChangeProfileAvatar}
+    <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
+      <form
+        onSubmit={handleSaveProfile}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          gap: `${SPACING_UNIT * 3}px`,
+          width: "350px",
+        }}
       >
-        {avatarUrl ? (
-          <img
-            className={styles.profileAvatar}
-            alt={userProfile.displayName}
-            src={avatarUrl}
-          />
-        ) : (
-          <PersonIcon size={96} />
-        )}
-        <div className={styles.editProfileImageBadge}>
-          <DeviceCameraIcon size={16} />
-        </div>
-      </button>
+        <button
+          type="button"
+          className={styles.profileAvatarEditContainer}
+          onClick={handleChangeProfileAvatar}
+        >
+          {profileImageContent()}
+          <div className={styles.editProfileImageBadge}>
+            <DeviceCameraIcon size={16} />
+          </div>
+        </button>
 
-      <TextField
-        label={t("display_name")}
-        value={form.displayName}
-        required
-        minLength={3}
-        maxLength={50}
-        containerProps={{ style: { width: "100%" } }}
-        onChange={(e) => setForm({ ...form, displayName: e.target.value })}
-      />
+        <TextField
+          label={t("display_name")}
+          value={form.displayName}
+          required
+          minLength={3}
+          maxLength={50}
+          containerProps={{ style: { width: "100%" } }}
+          onChange={(e) => setForm({ ...form, displayName: e.target.value })}
+        />
 
-      <SelectField
-        label={t("privacy")}
-        value={form.profileVisibility}
-        onChange={handleProfileVisibilityChange}
-        options={profileVisibilityOptions.map((visiblity) => ({
-          key: visiblity.value,
-          value: visiblity.value,
-          label: visiblity.label,
-        }))}
-      />
+        <SelectField
+          label={t("privacy")}
+          value={form.profileVisibility}
+          onChange={handleProfileVisibilityChange}
+          options={profileVisibilityOptions.map((visiblity) => ({
+            key: visiblity.value,
+            value: visiblity.value,
+            label: visiblity.label,
+          }))}
+        />
 
-      <Button disabled={isSaving} style={{ alignSelf: "end" }} type="submit">
-        {isSaving ? t("saving") : t("save")}
-      </Button>
-    </form>
+        <Button disabled={isSaving} style={{ alignSelf: "end" }} type="submit">
+          {isSaving ? t("saving") : t("save")}
+        </Button>
+      </form>
+    </SkeletonTheme>
   );
 };
