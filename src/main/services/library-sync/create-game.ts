@@ -4,10 +4,14 @@ import { gameRepository } from "@main/repository";
 import { logger } from "../logger";
 
 export const createGame = async (game: Game) => {
-  HydraApi.post("/games/download", {
-    objectId: game.objectID,
-    shop: game.shop,
-  }).catch((err) => {
+  HydraApi.post(
+    "/games/download",
+    {
+      objectId: game.objectID,
+      shop: game.shop,
+    },
+    { needsAuth: false }
+  ).catch((err) => {
     logger.error("Failed to create game download", err);
   });
 
