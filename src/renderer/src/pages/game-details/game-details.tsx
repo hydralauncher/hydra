@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { GameRepack, GameShop, Steam250Game } from "@types";
 
-import { Button } from "@renderer/components";
+import { Button, ConfirmationModal } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";
 
 import starsAnimation from "@renderer/assets/lottie/stars.json";
@@ -83,6 +83,8 @@ export function GameDetails() {
           shop,
           showRepacksModal,
           showGameOptionsModal,
+          hasNSFWContentBlocked,
+          setHasNSFWContentBlocked,
           updateGame,
           setShowRepacksModal,
           setShowGameOptionsModal,
@@ -107,6 +109,10 @@ export function GameDetails() {
             setShowGameOptionsModal(false);
           };
 
+          const handleNSFWContentRefuse = () => {
+            navigate(-1);
+          };
+
           return (
             <SkeletonTheme
               baseColor={vars.color.background}
@@ -118,6 +124,19 @@ export function GameDetails() {
                 visible={showRepacksModal}
                 startDownload={handleStartDownload}
                 onClose={() => setShowRepacksModal(false)}
+              />
+
+              <ConfirmationModal
+                visible={hasNSFWContentBlocked}
+                onClose={handleNSFWContentRefuse}
+                title={t("nsfw_content_title")}
+                descriptionText={t("nsfw_content_description", {
+                  title: gameTitle,
+                })}
+                confirmButtonLabel={t("allow_nsfw_content")}
+                cancelButtonLabel={t("refuse_nsfw_content")}
+                onConfirm={() => setHasNSFWContentBlocked(false)}
+                clickOutsideToClose={false}
               />
 
               {game && (

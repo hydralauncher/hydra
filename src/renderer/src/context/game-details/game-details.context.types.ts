@@ -19,9 +19,11 @@ export interface GameDetailsContext {
   showRepacksModal: boolean;
   showGameOptionsModal: boolean;
   stats: GameStats | null;
+  hasNSFWContentBlocked: boolean;
   setGameColor: React.Dispatch<React.SetStateAction<string>>;
   selectGameExecutable: () => Promise<string | null>;
   updateGame: () => Promise<void>;
   setShowRepacksModal: React.Dispatch<React.SetStateAction<boolean>>;
   setShowGameOptionsModal: React.Dispatch<React.SetStateAction<boolean>>;
+  setHasNSFWContentBlocked: React.Dispatch<React.SetStateAction<boolean>>;
 }

@@ -6,7 +6,8 @@ import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import * as styles from "./game-card.css";
 import { useTranslation } from "react-i18next";
 import { Badge } from "../badge/badge";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
+import { useFormat } from "@renderer/hooks";
 
 export interface GameCardProps
   extends React.DetailedHTMLProps<
@@ -25,8 +26,6 @@ export function GameCard({ game, ...props }: GameCardProps) {
 
   const [stats, setStats] = useState<GameStats | null>(null);
 
-  const { i18n } = useTranslation();
-
   const uniqueRepackers = Array.from(
     new Set(game.repacks.map(({ repacker }) => repacker))
   );
@@ -39,11 +38,7 @@ export function GameCard({ game, ...props }: GameCardProps) {
     }
   }, [game, stats]);
 
-  const numberFormatter = useMemo(() => {
-    return new Intl.NumberFormat(i18n.language, {
-      maximumFractionDigits: 0,
-    });
-  }, [i18n.language]);
+  const { numberFormatter } = useFormat();
 
   return (
     <button

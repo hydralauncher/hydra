@@ -1,6 +1,7 @@
 import { globalStyle, keyframes, style } from "@vanilla-extract/css";
 
 import { SPACING_UNIT, vars } from "../../theme.css";
+import { recipe } from "@vanilla-extract/recipes";
 
 export const HERO_HEIGHT = 300;
 
@@ -9,12 +10,22 @@ export const slideIn = keyframes({
   "100%": { transform: "translateY(0)" },
 });
 
-export const wrapper = style({
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
-  width: "100%",
-  height: "100%",
+export const wrapper = recipe({
+  base: {
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+    width: "100%",
+    height: "100%",
+    transition: "all ease 0.3s",
+  },
+  variants: {
+    blurredContent: {
+      true: {
+        filter: "blur(20px)",
+      },
+    },
+  },
 });
 
 export const hero = style({
@@ -66,6 +77,11 @@ export const heroImage = style({
       minHeight: "350px",
     },
   },
+});
+
+export const gameLogo = style({
+  width: 300,
+  alignSelf: "flex-end",
 });
 
 export const heroImageSkeleton = style({

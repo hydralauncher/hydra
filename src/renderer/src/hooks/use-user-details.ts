@@ -88,7 +88,7 @@ export function useUserDetails() {
     [updateUserDetails]
   );
 
-  const fetchFriendRequests = useCallback(() => {
+  const fetchFriendRequests = useCallback(async () => {
     return window.electron
       .getFriendRequests()
       .then((friendRequests) => {
@@ -127,13 +127,10 @@ export function useUserDetails() {
     [fetchFriendRequests]
   );
 
-  const undoFriendship = (userId: string) => {
-    return window.electron.undoFriendship(userId);
-  };
+  const undoFriendship = (userId: string) =>
+    window.electron.undoFriendship(userId);
 
-  const blockUser = (userId: string) => {
-    return window.electron.blockUser(userId);
-  };
+  const blockUser = (userId: string) => window.electron.blockUser(userId);
 
   const unblockUser = (userId: string) => {
     return window.electron.unblockUser(userId);

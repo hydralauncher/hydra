@@ -67,6 +67,12 @@ export function Home() {
     }
   };
 
+  const handleCategoryClick = (category: CatalogueCategory) => {
+    if (category !== currentCatalogueCategory) {
+      getCatalogue(category);
+    }
+  };
+
   useEffect(() => {
     setIsLoading(true);
     getCatalogue(CatalogueCategory.Hot);
@@ -93,7 +99,7 @@ export function Home() {
                       ? "primary"
                       : "outline"
                   }
-                  onClick={() => getCatalogue(category)}
+                  onClick={() => handleCategoryClick(category)}
                 >
                   {t(category)}
                 </Button>

@@ -22,16 +22,6 @@ export const textField = recipe({
     minHeight: "40px",
   },
   variants: {
-    focused: {
-      true: {
-        borderColor: "#DADBE1",
-      },
-      false: {
-        ":hover": {
-          borderColor: "rgba(255, 255, 255, 0.5)",
-        },
-      },
-    },
     theme: {
       primary: {
         backgroundColor: vars.color.darkBackground,
@@ -40,9 +30,19 @@ export const textField = recipe({
         backgroundColor: vars.color.background,
       },
     },
-    state: {
-      error: {
+    hasError: {
+      true: {
         borderColor: vars.color.danger,
+      },
+    },
+    focused: {
+      true: {
+        borderColor: "#DADBE1",
+      },
+      false: {
+        ":hover": {
+          borderColor: "rgba(255, 255, 255, 0.5)",
+        },
       },
     },
   },
@@ -82,4 +82,8 @@ export const togglePasswordButton = style({
 export const textFieldWrapper = style({
   display: "flex",
   gap: `${SPACING_UNIT}px`,
+});
+
+export const errorLabel = style({
+  color: vars.color.danger,
 });

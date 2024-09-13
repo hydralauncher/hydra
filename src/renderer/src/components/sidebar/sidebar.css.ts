@@ -25,6 +25,9 @@ export const sidebar = recipe({
       true: {
         paddingTop: `${SPACING_UNIT * 6}px`,
       },
+      false: {
+        paddingTop: `${SPACING_UNIT * 2}px`,
+      },
     },
   },
 });

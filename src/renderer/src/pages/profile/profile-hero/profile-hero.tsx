@@ -18,7 +18,7 @@ import { addSeconds } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
 import type { FriendRequestAction } from "@types";
-import { UserProfileSettingsModal } from "../user-profile-settings-modal";
+import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
 
 type FriendAction =
   | FriendRequestAction
@@ -26,6 +26,7 @@ type FriendAction =
 
 export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [isPerformingAction, setIsPerformingAction] = useState(false);
 
   const context = useContext(userProfileContext);
   const {
@@ -49,14 +50,22 @@ export function ProfileHero() {
   const navigate = useNavigate();
 
   const handleSignOut = useCallback(async () => {
-    await signOut();
+    setIsPerformingAction(true);
 
-    showSuccessToast(t("successfully_signed_out"));
+    try {
+      await signOut();
+
+      showSuccessToast(t("successfully_signed_out"));
+    } finally {
+      setIsPerformingAction(false);
+    }
     navigate("/");
   }, [navigate, signOut, showSuccessToast, t]);
 
   const handleFriendAction = useCallback(
     (userId: string, action: FriendAction) => {
+      setIsPerformingAction(true);
+
       try {
         if (action === "UNDO_FRIENDSHIP") {
           undoFriendship(userId).then(getUserProfile);
@@ -80,6 +89,8 @@ export function ProfileHero() {
         updateFriendRequestState(userId, action).then(getUserProfile);
       } catch (err) {
         showErrorToast(t("try_again"));
+      } finally {
+        setIsPerformingAction(false);
       }
     },
     [
@@ -100,12 +111,20 @@ export function ProfileHero() {
     if (isMe) {
       return (
         <>
-          <Button theme="outline" onClick={() => setShowEditProfileModal(true)}>
+          <Button
+            theme="outline"
+            onClick={() => setShowEditProfileModal(true)}
+            disabled={isPerformingAction}
+          >
             <PencilIcon />
             {t("edit_profile")}
           </Button>
 
-          <Button theme="danger" onClick={handleSignOut}>
+          <Button
+            theme="danger"
+            onClick={handleSignOut}
+            disabled={isPerformingAction}
+          >
             <SignOutIcon />
             {t("sign_out")}
           </Button>
@@ -119,6 +138,7 @@ export function ProfileHero() {
           <Button
             theme="outline"
             onClick={() => handleFriendAction(userProfile.id, "SEND")}
+            disabled={isPerformingAction}
           >
             {t("add_friend")}
           </Button>
@@ -126,6 +146,7 @@ export function ProfileHero() {
           <Button
             theme="danger"
             onClick={() => handleFriendAction(userProfile.id, "BLOCK")}
+            disabled={isPerformingAction}
           >
             {t("block_user")}
           </Button>
@@ -138,6 +159,7 @@ export function ProfileHero() {
         <Button
           theme="outline"
           onClick={() => handleFriendAction(userProfile.id, "UNDO_FRIENDSHIP")}
+          disabled={isPerformingAction}
         >
           <XCircleFillIcon />
           {t("undo_friendship")}
@@ -152,6 +174,7 @@ export function ProfileHero() {
           onClick={() =>
             handleFriendAction(userProfile.relation!.BId, "CANCEL")
           }
+          disabled={isPerformingAction}
         >
           <XCircleFillIcon /> {t("cancel_request")}
         </Button>
@@ -165,6 +188,7 @@ export function ProfileHero() {
           onClick={() =>
             handleFriendAction(userProfile.relation!.AId, "ACCEPTED")
           }
+          disabled={isPerformingAction}
         >
           <CheckCircleFillIcon /> {t("accept_request")}
         </Button>
@@ -173,12 +197,20 @@ export function ProfileHero() {
           onClick={() =>
             handleFriendAction(userProfile.relation!.AId, "REFUSED")
           }
+          disabled={isPerformingAction}
         >
           <XCircleFillIcon /> {t("ignore_request")}
         </Button>
       </>
     );
-  }, [handleFriendAction, handleSignOut, isMe, t, userProfile]);
+  }, [
+    handleFriendAction,
+    handleSignOut,
+    isMe,
+    t,
+    isPerformingAction,
+    userProfile,
+  ]);
 
   const handleAvatarClick = useCallback(() => {
     if (isMe) {
@@ -196,10 +228,8 @@ export function ProfileHero() {
         cancelButtonLabel={t("cancel")}
       /> */}
 
-      <UserProfileSettingsModal
+      <EditProfileModal
         visible={showEditProfileModal}
-        userProfile={userProfile}
-        updateUserProfile={getUserProfile}
         onClose={() => setShowEditProfileModal(false)}
       />
 
@@ -230,21 +260,8 @@ export function ProfileHero() {
             </h2>
 
             {currentGame && (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: `${SPACING_UNIT / 2}px`,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "row",
-                    gap: `${SPACING_UNIT}px`,
-                    alignItems: "center",
-                  }}
-                >
+              <div className={styles.currentGameWrapper}>
+                <div className={styles.currentGameDetails}>
                   <Link
                     to={buildGameDetailsPath({
                       ...currentGame,

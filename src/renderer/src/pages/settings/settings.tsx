@@ -11,6 +11,7 @@ import {
   SettingsContextConsumer,
   SettingsContextProvider,
 } from "@renderer/context";
+import { SettingsPrivacy } from "./settings-privacy";
 
 export function Settings() {
   const { t } = useTranslation("settings");
@@ -20,6 +21,7 @@ export function Settings() {
     t("behavior"),
     t("download_sources"),
     "Real-Debrid",
+    t("privacy"),
   ];
 
   return (
@@ -39,7 +41,11 @@ export function Settings() {
               return <SettingsDownloadSources />;
             }
 
-            return <SettingsRealDebrid />;
+            if (currentCategoryIndex === 3) {
+              return <SettingsRealDebrid />;
+            }
+
+            return <SettingsPrivacy />;
           };
 
           return (

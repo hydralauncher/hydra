@@ -21,8 +21,14 @@ export function GameDetailsContent() {
 
   const { t } = useTranslation("game_details");
 
-  const { objectID, shopDetails, game, gameColor, setGameColor } =
-    useContext(gameDetailsContext);
+  const {
+    objectID,
+    shopDetails,
+    game,
+    gameColor,
+    setGameColor,
+    hasNSFWContentBlocked,
+  } = useContext(gameDetailsContext);
 
   const [backdropOpactiy, setBackdropOpacity] = useState(1);
 
@@ -64,7 +70,7 @@ export function GameDetailsContent() {
   };
 
   return (
-    <div className={styles.wrapper}>
+    <div className={styles.wrapper({ blurredContent: hasNSFWContentBlocked })}>
       <img
         src={steamUrlBuilder.libraryHero(objectID!)}
         className={styles.heroImage}
@@ -93,7 +99,7 @@ export function GameDetailsContent() {
             <div className={styles.heroContent}>
               <img
                 src={steamUrlBuilder.logo(objectID!)}
-                style={{ width: 300, alignSelf: "flex-end" }}
+                className={styles.gameLogo}
                 alt={game?.title}
               />
             </div>

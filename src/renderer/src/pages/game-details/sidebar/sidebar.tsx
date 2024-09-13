@@ -6,6 +6,8 @@ import { Button } from "@renderer/components";
 
 import * as styles from "./sidebar.css";
 import { gameDetailsContext } from "@renderer/context";
+import { useFormat } from "@renderer/hooks";
+import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
 
 export function Sidebar() {
   const [howLongToBeat, setHowLongToBeat] = useState<{
@@ -20,6 +22,8 @@ export function Sidebar() {
     useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
+
+  const { numberFormatter } = useFormat();
 
   useEffect(() => {
     if (objectID) {
@@ -43,18 +47,41 @@ export function Sidebar() {
         isLoading={howLongToBeat.isLoading}
       />
 
-      <div className={styles.contentSidebarTitle} style={{ border: "none" }}>
-        <h3>{t("stats")}</h3>
-      </div>
+      {stats && (
+        <>
+          <div
+            className={styles.contentSidebarTitle}
+            style={{ border: "none" }}
+          >
+            <h3>{t("stats")}</h3>
+          </div>
 
-      <div>
-        <p>downloadCount {stats?.downloadCount}</p>
-        <p>playerCount {stats?.playerCount}</p>
-      </div>
+          <div className={styles.statsSection}>
+            <div className={styles.statsCategory}>
+              <p className={styles.statsCategoryTitle}>
+                <DownloadIcon size={18} />
+                {t("download_count")}
+              </p>
+              <p>{numberFormatter.format(stats?.downloadCount)}</p>
+            </div>
 
-      <div className={styles.contentSidebarTitle} style={{ border: "none" }}>
-        <h3>{t("requirements")}</h3>
-      </div>
+            <div className={styles.statsCategory}>
+              <p className={styles.statsCategoryTitle}>
+                <PeopleIcon size={18} />
+                {t("player_count")}
+              </p>
+              <p>{numberFormatter.format(stats?.playerCount)}</p>
+            </div>
+          </div>
+
+          <div
+            className={styles.contentSidebarTitle}
+            style={{ border: "none" }}
+          >
+            <h3>{t("requirements")}</h3>
+          </div>
+        </>
+      )}
 
       <div className={styles.requirementButtonContainer}>
         <Button
