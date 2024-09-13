@@ -289,6 +289,10 @@
     "friend_code_copied": "Código de amigo copiado",
     "undo_friendship_modal_text": "Isso irá remover sua amizade com {{displayName}}",
     "privacy_hint": "Pra controlar quem pode ver seu perfil, acesse a <0>Tela de Configurações</0>",
-    "profile_locked": "Este perfil é privado"
+    "profile_locked": "Este perfil é privado",
+    "image_process_failure": "Falha ao processar a imagem",
+    "required_field": "Este campo é obrigatório",
+    "displayname_min_length": "Nome de exibição deve ter pelo menos 3 caracteres",
+    "displayname_max_length": "Nome de exibição deve ter no máximo 50 caracteres"
   }
 }

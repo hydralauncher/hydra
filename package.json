@@ -54,7 +54,6 @@
     "electron-log": "^5.1.4",
     "electron-updater": "^6.1.8",
     "fetch-cookie": "^3.0.1",
-    "file-type": "^19.0.0",
     "flexsearch": "^0.7.43",
     "i18next": "^23.11.2",
     "i18next-browser-languagedetector": "^7.2.1",

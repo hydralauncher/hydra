@@ -286,6 +286,10 @@
     "friend_code_copied": "Friend code copied",
     "undo_friendship_modal_text": "This will undo your friendship with {{displayName}}",
     "privacy_hint": "To adjust who can see this, go to the <0>Settings</0>",
-    "locked_profile": "This profile is private"
+    "locked_profile": "This profile is private",
+    "image_process_failure": "Failure while processing the image",
+    "required_field": "This field is required",
+    "displayname_min_length": "Display name must be at least 3 characters long",
+    "displayname_max_length": "Display name must be at most 50 characters long"
   }
 }
