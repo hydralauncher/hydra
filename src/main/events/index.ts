@@ -8,6 +8,7 @@ import "./catalogue/get-how-long-to-beat";
 import "./catalogue/get-random-game";
 import "./catalogue/search-games";
 import "./catalogue/search-game-repacks";
+import "./catalogue/get-trending-games";
 import "./hardware/get-disk-free-space";
 import "./library/add-game-to-library";
 import "./library/create-game-shortcut";

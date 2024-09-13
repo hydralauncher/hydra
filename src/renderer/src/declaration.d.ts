@@ -18,6 +18,7 @@ import type {
   FriendRequestAction,
   UserFriends,
   UserBlocks,
+  TrendingGame,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -56,6 +57,7 @@ declare global {
       prevCursor?: number
     ) => Promise<{ results: CatalogueEntry[]; cursor: number }>;
     searchGameRepacks: (query: string) => Promise<GameRepack[]>;
+    getTrendingGames: () => Promise<TrendingGame[]>;
 
     /* Library */
     addGameToLibrary: (
