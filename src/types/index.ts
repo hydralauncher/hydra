@@ -339,3 +339,9 @@ export interface DownloadSource {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface TrendingGame {
+  uri: string;
+  description: string;
+  background: string;
+}
