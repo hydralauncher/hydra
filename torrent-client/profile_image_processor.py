@@ -29,11 +29,3 @@ class ProfileImageProcessor:
     @staticmethod
     def process_image(image_path):
         return ProfileImageProcessor.get_parsed_image_data(image_path)
-    
-    
-if __name__ == "__main__":
-    result = ProfileImageProcessor.get_parsed_image_data("D:\Imagens\807b5c4b02e765bb4930b7c66662ef4b.gif")
-    print(result)
-    
-    result = ProfileImageProcessor.get_parsed_image_data("D:/Imagens/20240416_233352~2.png")
-    print(result)
