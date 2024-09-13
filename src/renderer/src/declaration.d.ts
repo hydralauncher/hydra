@@ -21,6 +21,7 @@ import type {
   UserBlocks,
   UpdateProfileRequest,
   GameStats,
+  TrendingGame,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -60,6 +61,7 @@ declare global {
     ) => Promise<{ results: CatalogueEntry[]; cursor: number }>;
     searchGameRepacks: (query: string) => Promise<GameRepack[]>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
+    getTrendingGames: () => Promise<TrendingGame[]>;
 
     /* Library */
     addGameToLibrary: (

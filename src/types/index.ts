@@ -345,3 +345,9 @@ export interface GameStats {
   downloadCount: number;
   playerCount: number;
 }
+
+export interface TrendingGame {
+  uri: string;
+  description: string;
+  background: string;
+}
