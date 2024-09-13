@@ -150,6 +150,10 @@ declare global {
     updateProfile: (
       updateProfile: UpdateProfileRequest
     ) => Promise<UserProfile>;
+    updateProfile: (updateProfile: UpdateProfileProps) => Promise<UserProfile>;
+    processProfileImage: (
+      path: string
+    ) => Promise<{ imagePath: string; mimeType: string }>;
     getFriendRequests: () => Promise<FriendRequest[]>;
     updateFriendRequest: (
       userId: string,

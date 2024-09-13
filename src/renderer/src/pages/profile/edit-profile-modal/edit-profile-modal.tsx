@@ -102,7 +102,7 @@ export function EditProfileModal(
                   filters: [
                     {
                       name: "Image",
-                      extensions: ["jpg", "jpeg", "png"],
+                      extensions: ["jpg", "jpeg", "png", "gif", "webp"],
                     },
                   ],
                 });
@@ -110,7 +110,14 @@ export function EditProfileModal(
                 if (filePaths && filePaths.length > 0) {
                   const path = filePaths[0];
 
-                  onChange(path);
+                  const { imagePath } = await window.electron
+                    .processProfileImage(path)
+                    .catch(() => {
+                      showErrorToast(t("image_process_failure"));
+                      return { imagePath: null };
+                    });
+
+                  onChange(imagePath);
                 }
               };
 

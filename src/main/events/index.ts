@@ -54,6 +54,7 @@ import "./profile/get-me";
 import "./profile/undo-friendship";
 import "./profile/update-friend-request";
 import "./profile/update-profile";
+import "./profile/process-profile-image";
 import "./profile/send-friend-request";
 import { isPortableVersion } from "@main/helpers";
 

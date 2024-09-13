@@ -166,6 +166,14 @@ export class PythonInstance {
     this.downloadingGameId = -1;
   }
 
+  static async processProfileImage(imagePath: string) {
+    return this.rpc
+      .post<{ imagePath: string; mimeType: string }>("/profile-image", {
+        image_path: imagePath,
+      })
+      .then((response) => response.data);
+  }
+
   private static async handleRpcError(_error: unknown) {
     await this.rpc.get("/healthcheck").catch(() => {
       logger.error(
