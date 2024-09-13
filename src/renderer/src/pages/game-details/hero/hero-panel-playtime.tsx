@@ -2,7 +2,7 @@ import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as styles from "./hero-panel.css";
 import { formatDownloadProgress } from "@renderer/helpers";
-import { useDate, useDownload } from "@renderer/hooks";
+import { useDate, useDownload, useFormat } from "@renderer/hooks";
 import { Link } from "@renderer/components";
 
 import { gameDetailsContext } from "@renderer/context";
@@ -13,7 +13,9 @@ export function HeroPanelPlaytime() {
 
   const { game, isGameRunning } = useContext(gameDetailsContext);
 
-  const { i18n, t } = useTranslation("game_details");
+  const { t } = useTranslation("game_details");
+
+  const { numberFormatter } = useFormat();
 
   const { progress, lastPacket } = useDownload();
 
@@ -28,12 +30,6 @@ export function HeroPanelPlaytime() {
       );
     }
   }, [game?.lastTimePlayed, formatDistance]);
-
-  const numberFormatter = useMemo(() => {
-    return new Intl.NumberFormat(i18n.language, {
-      maximumFractionDigits: 0,
-    });
-  }, [i18n.language]);
 
   const formattedPlayTime = useMemo(() => {
     const milliseconds = game?.playTimeInMilliseconds || 0;

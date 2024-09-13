@@ -1,20 +1,6 @@
-export enum Downloader {
-  RealDebrid,
-  Torrent,
-  Gofile,
-  PixelDrain,
-  Qiwi,
-}
+import { Downloader } from "./constants";
 
-export enum DownloadSourceStatus {
-  UpToDate,
-  Errored,
-}
-
-export enum CatalogueCategory {
-  Hot = "hot",
-  Weekly = "weekly",
-}
+export * from "./constants";
 
 export class UserNotLoggedInError extends Error {
   constructor() {

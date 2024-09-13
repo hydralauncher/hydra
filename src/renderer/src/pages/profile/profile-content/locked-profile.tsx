@@ -11,8 +11,8 @@ export function LockedProfile() {
       <div className={styles.lockIcon}>
         <LockIcon size={24} />
       </div>
+
       <h2>{t("locked_profile")}</h2>
-      <p>{t("locked_profile_description")}</p>
     </div>
   );
 }

@@ -149,95 +149,92 @@ export function Sidebar() {
   };
 
   return (
-    <>
-      <aside
-        ref={sidebarRef}
-        className={styles.sidebar({
-          resizing: isResizing,
-          darwin: window.electron.platform === "darwin",
-        })}
-        style={{
-          width: sidebarWidth,
-          minWidth: sidebarWidth,
-          maxWidth: sidebarWidth,
-        }}
-      >
-        <SidebarProfile />
+    <aside
+      ref={sidebarRef}
+      className={styles.sidebar({
+        resizing: isResizing,
+        darwin: window.electron.platform === "darwin",
+      })}
+      style={{
+        width: sidebarWidth,
+        minWidth: sidebarWidth,
+        maxWidth: sidebarWidth,
+      }}
+    >
+      <SidebarProfile />
 
-        <div className={styles.content}>
-          <section className={styles.section}>
-            <ul className={styles.menu}>
-              {routes.map(({ nameKey, path, render }) => (
-                <li
-                  key={nameKey}
-                  className={styles.menuItem({
-                    active: location.pathname === path,
-                  })}
+      <div className={styles.content}>
+        <section className={styles.section}>
+          <ul className={styles.menu}>
+            {routes.map(({ nameKey, path, render }) => (
+              <li
+                key={nameKey}
+                className={styles.menuItem({
+                  active: location.pathname === path,
+                })}
+              >
+                <button
+                  type="button"
+                  className={styles.menuItemButton}
+                  onClick={() => handleSidebarItemClick(path)}
                 >
-                  <button
-                    type="button"
-                    className={styles.menuItemButton}
-                    onClick={() => handleSidebarItemClick(path)}
-                  >
-                    {render(isDownloading)}
-                    <span>{t(nameKey)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
+                  {render(isDownloading)}
+                  <span>{t(nameKey)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
 
-          <section className={styles.section}>
-            <small className={styles.sectionTitle}>{t("my_library")}</small>
+        <section className={styles.section}>
+          <small className={styles.sectionTitle}>{t("my_library")}</small>
 
-            <TextField
-              placeholder={t("filter")}
-              onChange={handleFilter}
-              theme="dark"
-            />
+          <TextField
+            placeholder={t("filter")}
+            onChange={handleFilter}
+            theme="dark"
+          />
 
-            <ul className={styles.menu}>
-              {filteredLibrary.map((game) => (
-                <li
-                  key={game.id}
-                  className={styles.menuItem({
-                    active:
-                      location.pathname ===
-                      `/game/${game.shop}/${game.objectID}`,
-                    muted: game.status === "removed",
-                  })}
+          <ul className={styles.menu}>
+            {filteredLibrary.map((game) => (
+              <li
+                key={game.id}
+                className={styles.menuItem({
+                  active:
+                    location.pathname === `/game/${game.shop}/${game.objectID}`,
+                  muted: game.status === "removed",
+                })}
+              >
+                <button
+                  type="button"
+                  className={styles.menuItemButton}
+                  onClick={(event) => handleSidebarGameClick(event, game)}
                 >
-                  <button
-                    type="button"
-                    className={styles.menuItemButton}
-                    onClick={(event) => handleSidebarGameClick(event, game)}
-                  >
-                    {game.iconUrl ? (
-                      <img
-                        className={styles.gameIcon}
-                        src={game.iconUrl}
-                        alt={game.title}
-                      />
-                    ) : (
-                      <SteamLogo className={styles.gameIcon} />
-                    )}
+                  {game.iconUrl ? (
+                    <img
+                      className={styles.gameIcon}
+                      src={game.iconUrl}
+                      alt={game.title}
+                    />
+                  ) : (
+                    <SteamLogo className={styles.gameIcon} />
+                  )}
 
-                    <span className={styles.menuItemButtonLabel}>
-                      {getGameTitle(game)}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        </div>
+                  <span className={styles.menuItemButtonLabel}>
+                    {getGameTitle(game)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
 
-        <button
-          type="button"
-          className={styles.handle}
-          onMouseDown={handleMouseDown}
-        />
-      </aside>
-    </>
+      <button
+        type="button"
+        className={styles.handle}
+        onMouseDown={handleMouseDown}
+      />
+    </aside>
   );
 }

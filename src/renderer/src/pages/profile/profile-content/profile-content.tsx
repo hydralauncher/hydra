@@ -1,7 +1,7 @@
 import { userProfileContext } from "@renderer/context";
 import { useCallback, useContext, useEffect, useMemo } from "react";
 import { ProfileHero } from "../profile-hero/profile-hero";
-import { useAppDispatch } from "@renderer/hooks";
+import { useAppDispatch, useFormat } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { steamUrlBuilder } from "@shared";
 import { SPACING_UNIT } from "@renderer/theme.css";
@@ -17,11 +17,11 @@ import { useNavigate } from "react-router-dom";
 import { LockedProfile } from "./locked-profile";
 
 export function ProfileContent() {
-  const { userProfile } = useContext(userProfileContext);
+  const { userProfile, isMe } = useContext(userProfileContext);
 
   const dispatch = useAppDispatch();
 
-  const { i18n, t } = useTranslation("user_profile");
+  const { t } = useTranslation("user_profile");
 
   useEffect(() => {
     if (userProfile) {
@@ -34,11 +34,7 @@ export function ProfileContent() {
     return userProfile?.libraryGames.slice(0, 12);
   }, [userProfile]);
 
-  const numberFormatter = useMemo(() => {
-    return new Intl.NumberFormat(i18n.language, {
-      maximumFractionDigits: 0,
-    });
-  }, [i18n.language]);
+  const { numberFormatter } = useFormat();
 
   const navigate = useNavigate();
 
@@ -65,10 +61,18 @@ export function ProfileContent() {
       objectID: game.objectId,
     });
 
+  const usersAreFriends = useMemo(() => {
+    return userProfile?.relation?.status === "ACCEPTED";
+  }, [userProfile]);
+
   const content = useMemo(() => {
     if (!userProfile) return null;
 
-    if (userProfile?.profileVisibility === "FRIENDS") {
+    const shouldLockProfile =
+      userProfile.profileVisibility === "PRIVATE" ||
+      (userProfile.profileVisibility === "FRIENDS" && !usersAreFriends);
+
+    if (!isMe && shouldLockProfile) {
       return <LockedProfile />;
     }
 
@@ -213,6 +217,8 @@ export function ProfileContent() {
     numberFormatter,
     t,
     truncatedGamesList,
+    usersAreFriends,
+    isMe,
     navigate,
   ]);
 

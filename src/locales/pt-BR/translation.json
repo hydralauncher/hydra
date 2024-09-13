@@ -114,7 +114,14 @@
     "download_paused": "Download pausado",
     "last_downloaded_option": "Última opção baixada",
     "create_shortcut_success": "Atalho criado com sucesso",
-    "create_shortcut_error": "Erro ao criar atalho"
+    "create_shortcut_error": "Erro ao criar atalho",
+    "nsfw_content_title": "Este jogo contém conteúdo inapropriado",
+    "nsfw_content_description": "{{title}} contém conteúdo que pode não ser apropriado para todas as idades. Você deseja continuar?",
+    "allow_nsfw_content": "Continuar",
+    "refuse_nsfw_content": "Voltar",
+    "stats": "Estatísticas",
+    "download_count": "Downloads",
+    "player_count": "Jogadores ativos"
   },
   "activation": {
     "title": "Ativação",
@@ -193,7 +200,13 @@
     "found_download_option_zero": "Nenhuma opção de download encontrada",
     "found_download_option_one": "{{countFormatted}} opção de download encontrada",
     "found_download_option_other": "{{countFormatted}} opções de download encontradas",
-    "import": "Importar"
+    "import": "Importar",
+    "privacy": "Privacidade",
+    "private": "Privado",
+    "friends_only": "Apenas amigos",
+    "public": "Público",
+    "profile_visibility": "Visibilidade do perfil",
+    "profile_visibility_description": "Escolha quem pode ver seu perfil e biblioteca"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -267,11 +280,6 @@
     "request_accepted": "Pedido de amizade aceito",
     "user_blocked_successfully": "Usuário bloqueado com sucesso",
     "user_block_modal_text": "Bloquear {{displayName}}",
-    "settings": "Configurações",
-    "privacy": "Privacidade",
-    "private": "Privado",
-    "friends_only": "Apenas amigos",
-    "public": "Público",
     "blocked_users": "Usuários bloqueados",
     "unblock": "Desbloquear",
     "no_friends_added": "Você ainda não possui amigos adicionados",
@@ -279,6 +287,8 @@
     "no_pending_invites": "Você não possui convites de amizade pendentes",
     "no_blocked_users": "Você não tem nenhum usuário bloqueado",
     "friend_code_copied": "Código de amigo copiado",
-    "undo_friendship_modal_text": "Isso irá remover sua amizade com {{displayName}}"
+    "undo_friendship_modal_text": "Isso irá remover sua amizade com {{displayName}}",
+    "privacy_hint": "Pra controlar quem pode ver seu perfil, acesse a <0>Tela de Configurações</0>",
+    "profile_locked": "Este perfil é privado"
   }
 }

@@ -70,7 +70,7 @@ export const howLongToBeatCategory = style({
   flexDirection: "column",
   gap: "4px",
   backgroundColor: vars.color.background,
-  borderRadius: "8px",
+  borderRadius: "4px",
   padding: `8px 16px`,
   border: `solid 1px ${vars.color.border}`,
 });
@@ -81,8 +81,30 @@ export const howLongToBeatCategoryLabel = style({
 
 export const howLongToBeatCategorySkeleton = style({
   border: `solid 1px ${vars.color.border}`,
-  borderRadius: "8px",
+  borderRadius: "4px",
   height: "76px",
+});
+
+export const statsSection = style({
+  display: "flex",
+  gap: `${SPACING_UNIT * 2}px`,
+  padding: `${SPACING_UNIT * 2}px`,
+  justifyContent: "space-between",
+});
+
+export const statsCategoryTitle = style({
+  fontSize: "16px",
+  fontWeight: "bold",
+  display: "flex",
+  alignItems: "center",
+  gap: `${SPACING_UNIT}px`,
+});
+
+export const statsCategory = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT / 2}px`,
+  alignItems: "flex-end",
 });
 
 globalStyle(`${requirementsDetails} a`, {
