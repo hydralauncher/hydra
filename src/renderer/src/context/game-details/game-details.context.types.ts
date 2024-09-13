@@ -1,4 +1,10 @@
-import type { Game, GameRepack, GameShop, ShopDetails } from "@types";
+import type {
+  Game,
+  GameRepack,
+  GameShop,
+  GameStats,
+  ShopDetails,
+} from "@types";
 
 export interface GameDetailsContext {
   game: Game | null;
@@ -12,6 +18,7 @@ export interface GameDetailsContext {
   gameColor: string;
   showRepacksModal: boolean;
   showGameOptionsModal: boolean;
+  stats: GameStats | null;
   setGameColor: React.Dispatch<React.SetStateAction<string>>;
   selectGameExecutable: () => Promise<string | null>;
   updateGame: () => Promise<void>;

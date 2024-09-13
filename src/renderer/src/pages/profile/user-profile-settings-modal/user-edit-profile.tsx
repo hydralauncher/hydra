@@ -116,8 +116,9 @@ export const UserEditProfile = ({
         ) : (
           <PersonIcon size={96} />
         )}
-        <div className={styles.editProfileImageBadge}>
-          <DeviceCameraIcon size={16} />
+
+        <div className={styles.profileAvatarEditOverlay}>
+          <DeviceCameraIcon size={38} />
         </div>
       </button>
 

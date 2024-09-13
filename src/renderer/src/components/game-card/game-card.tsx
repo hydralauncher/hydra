@@ -1,8 +1,4 @@
-import {
-  DownloadIcon,
-  FileDirectoryIcon,
-  PeopleIcon,
-} from "@primer/octicons-react";
+import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
 import type { CatalogueEntry, GameStats } from "@types";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";

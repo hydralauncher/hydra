@@ -1,7 +1,7 @@
 import { SPACING_UNIT } from "@renderer/theme.css";
 
 import * as styles from "./profile-hero.css";
-import { useContext, useMemo, useState } from "react";
+import { useCallback, useContext, useMemo, useState } from "react";
 import { userProfileContext } from "@renderer/context";
 import {
   CheckCircleFillIcon,
@@ -48,39 +48,53 @@ export function ProfileHero() {
 
   const navigate = useNavigate();
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     await signOut();
 
     showSuccessToast(t("successfully_signed_out"));
     navigate("/");
-  };
+  }, [navigate, signOut, showSuccessToast, t]);
 
-  const handleFriendAction = (userId: string, action: FriendAction) => {
-    try {
-      if (action === "UNDO_FRIENDSHIP") {
-        undoFriendship(userId).then(getUserProfile);
-        return;
+  const handleFriendAction = useCallback(
+    (userId: string, action: FriendAction) => {
+      try {
+        if (action === "UNDO_FRIENDSHIP") {
+          undoFriendship(userId).then(getUserProfile);
+          return;
+        }
+
+        if (action === "BLOCK") {
+          blockUser(userId).then(() => {
+            showSuccessToast(t("user_blocked_successfully"));
+            navigate(-1);
+          });
+
+          return;
+        }
+
+        if (action === "SEND") {
+          sendFriendRequest(userProfile.id).then(getUserProfile);
+          return;
+        }
+
+        updateFriendRequestState(userId, action).then(getUserProfile);
+      } catch (err) {
+        showErrorToast(t("try_again"));
       }
-
-      if (action === "BLOCK") {
-        blockUser(userId).then(() => {
-          showSuccessToast(t("user_blocked_successfully"));
-          navigate(-1);
-        });
-
-        return;
-      }
-
-      if (action === "SEND") {
-        sendFriendRequest(userProfile.id).then(getUserProfile);
-        return;
-      }
-
-      updateFriendRequestState(userId, action).then(getUserProfile);
-    } catch (err) {
-      showErrorToast(t("try_again"));
-    }
-  };
+    },
+    [
+      undoFriendship,
+      blockUser,
+      sendFriendRequest,
+      updateFriendRequestState,
+      t,
+      showErrorToast,
+      getUserProfile,
+      navigate,
+      showSuccessToast,
+      userProfile.id,
+    ]
+  );
 
   const profileActions = useMemo(() => {
     if (isMe) {
@@ -139,7 +153,7 @@ export function ProfileHero() {
             handleFriendAction(userProfile.relation!.BId, "CANCEL")
           }
         >
-          <XCircleFillIcon size={28} /> {t("cancel_request")}
+          <XCircleFillIcon /> {t("cancel_request")}
         </Button>
       );
     }
@@ -152,7 +166,7 @@ export function ProfileHero() {
             handleFriendAction(userProfile.relation!.AId, "ACCEPTED")
           }
         >
-          <CheckCircleFillIcon size={28} /> {t("accept_request")}
+          <CheckCircleFillIcon /> {t("accept_request")}
         </Button>
         <Button
           theme="outline"
@@ -160,11 +174,17 @@ export function ProfileHero() {
             handleFriendAction(userProfile.relation!.AId, "REFUSED")
           }
         >
-          <XCircleFillIcon size={28} /> {t("ignore_request")}
+          <XCircleFillIcon /> {t("ignore_request")}
         </Button>
       </>
     );
-  }, []);
+  }, [handleFriendAction, handleSignOut, isMe, t, userProfile]);
+
+  const handleAvatarClick = useCallback(() => {
+    if (isMe) {
+      setShowEditProfileModal(true);
+    }
+  }, [isMe]);
 
   return (
     <>
@@ -188,7 +208,11 @@ export function ProfileHero() {
         style={{ background: heroBackground }}
       >
         <div className={styles.userInformation}>
-          <button type="button" className={styles.profileAvatarButton}>
+          <button
+            type="button"
+            className={styles.profileAvatarButton}
+            onClick={handleAvatarClick}
+          >
             {userProfile.profileImageUrl ? (
               <img
                 className={styles.profileAvatar}

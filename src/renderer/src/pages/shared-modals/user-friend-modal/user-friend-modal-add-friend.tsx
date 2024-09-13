@@ -42,13 +42,13 @@ export const UserFriendModalAddFriend = ({
 
   const handleClickRequest = (userId: string) => {
     closeModal();
-    navigate(`/user/${userId}`);
+    navigate(`/profile/${userId}`);
   };
 
   const handleClickSeeProfile = () => {
     closeModal();
     if (friendCode.length === 8) {
-      navigate(`/user/${friendCode}`);
+      navigate(`/profile/${friendCode}`);
     }
   };
 
