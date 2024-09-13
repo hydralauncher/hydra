@@ -144,6 +144,9 @@ declare global {
     getMe: () => Promise<UserProfile | null>;
     undoFriendship: (userId: string) => Promise<void>;
     updateProfile: (updateProfile: UpdateProfileProps) => Promise<UserProfile>;
+    processProfileImage: (
+      path: string
+    ) => Promise<{ imagePath: string; mimeType: string }>;
     getFriendRequests: () => Promise<FriendRequest[]>;
     updateFriendRequest: (
       userId: string,
