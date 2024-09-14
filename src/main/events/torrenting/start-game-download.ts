@@ -97,7 +97,7 @@ const startGameDownload = async (
     },
   });
 
-  createGame(updatedGame!);
+  createGame(updatedGame!).catch(() => {});
 
   await downloadQueueRepository.delete({ game: { id: updatedGame!.id } });
   await downloadQueueRepository.insert({ game: { id: updatedGame!.id } });
