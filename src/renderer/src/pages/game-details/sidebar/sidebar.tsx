@@ -1,5 +1,4 @@
 import { useContext, useEffect, useState } from "react";
-import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import type { HowLongToBeatCategory, SteamAppDetails } from "@types";
 import { useTranslation } from "react-i18next";
 import { Button } from "@renderer/components";
@@ -10,7 +9,7 @@ import { useFormat } from "@renderer/hooks";
 import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
 
 export function Sidebar() {
-  const [howLongToBeat, setHowLongToBeat] = useState<{
+  const [_howLongToBeat, setHowLongToBeat] = useState<{
     isLoading: boolean;
     data: HowLongToBeatCategory[] | null;
   }>({ isLoading: true, data: null });
@@ -42,10 +41,10 @@ export function Sidebar() {
 
   return (
     <aside className={styles.contentSidebar}>
-      <HowLongToBeatSection
+      {/* <HowLongToBeatSection
         howLongToBeatData={howLongToBeat.data}
         isLoading={howLongToBeat.isLoading}
-      />
+      /> */}
 
       {stats && (
         <>
