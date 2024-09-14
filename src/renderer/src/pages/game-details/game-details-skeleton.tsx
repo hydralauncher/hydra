@@ -43,7 +43,7 @@ export function GameDetailsSkeleton() {
           </div>
         </div>
         <div className={sidebarStyles.contentSidebar}>
-          <div className={sidebarStyles.contentSidebarTitle}>
+          {/* <div className={sidebarStyles.contentSidebarTitle}>
             <h3>HowLongToBeat</h3>
           </div>
           <ul className={sidebarStyles.howLongToBeatCategoriesList}>
@@ -53,7 +53,7 @@ export function GameDetailsSkeleton() {
                 className={sidebarStyles.howLongToBeatCategorySkeleton}
               />
             ))}
-          </ul>
+          </ul> */}
           <div
             className={sidebarStyles.contentSidebarTitle}
             style={{ border: "none" }}

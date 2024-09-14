@@ -128,7 +128,9 @@
     "player_count": "Active players",
     "download_error": "This download option is not available",
     "download": "Download",
-    "executable_path_in_use": "Executable already in use by \"{{game}}\""
+    "executable_path_in_use": "Executable already in use by \"{{game}}\"",
+    "warning": "Warning:",
+    "hydra_needs_to_remain_open": "for this download, Hydra needs to remain open util its conclusion. In case Hydra closes before the conclusion, you will lose your progress."
   },
   "activation": {
     "title": "Activate Hydra",
