@@ -15,19 +15,17 @@ export const createGame = async (game: Game) => {
     logger.error("Failed to create game download", err);
   });
 
-  HydraApi.post(`/profile/games`, {
+  return HydraApi.post(`/profile/games`, {
     objectId: game.objectID,
     playTimeInMilliseconds: Math.trunc(game.playTimeInMilliseconds),
     shop: game.shop,
     lastTimePlayed: game.lastTimePlayed,
-  })
-    .then((response) => {
-      const { id: remoteId, playTimeInMilliseconds, lastTimePlayed } = response;
+  }).then((response) => {
+    const { id: remoteId, playTimeInMilliseconds, lastTimePlayed } = response;
 
-      gameRepository.update(
-        { objectID: game.objectID },
-        { remoteId, playTimeInMilliseconds, lastTimePlayed }
-      );
-    })
-    .catch(() => {});
+    gameRepository.update(
+      { objectID: game.objectID },
+      { remoteId, playTimeInMilliseconds, lastTimePlayed }
+    );
+  });
 };
