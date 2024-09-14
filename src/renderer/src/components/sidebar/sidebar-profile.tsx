@@ -94,7 +94,14 @@ export function SidebarProfile() {
             </p>
 
             {userDetails && gameRunning && (
-              <div>
+              <div
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  width: "100%",
+                }}
+              >
                 <small>{gameRunning.title}</small>
               </div>
             )}
