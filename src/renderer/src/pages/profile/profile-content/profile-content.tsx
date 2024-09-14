@@ -57,17 +57,9 @@ export function ProfileContent() {
       return <LockedProfile />;
     }
 
-    if (userProfile.libraryGames.length === 0) {
-      return (
-        <div className={styles.noGames}>
-          <div className={styles.telescopeIcon}>
-            <TelescopeIcon size={24} />
-          </div>
-          <h2>{t("no_recent_activity_title")}</h2>
-          {isMe && <p>{t("no_recent_activity_description")}</p>}
-        </div>
-      );
-    }
+    const hasGames = userProfile?.libraryGames.length > 0;
+
+    const shouldShowRightContent = hasGames || userProfile.friends.length > 0;
 
     return (
       <section
@@ -78,57 +70,81 @@ export function ProfileContent() {
         }}
       >
         <div style={{ flex: 1 }}>
-          <div className={styles.sectionHeader}>
-            <h2>{t("library")}</h2>
+          {!hasGames && (
+            <div className={styles.noGames}>
+              <div className={styles.telescopeIcon}>
+                <TelescopeIcon size={24} />
+              </div>
+              <h2>{t("no_recent_activity_title")}</h2>
+              {isMe && <p>{t("no_recent_activity_description")}</p>}
+            </div>
+          )}
 
-            {userStats && (
-              <span>{numberFormatter.format(userStats.libraryCount)}</span>
-            )}
-          </div>
+          {hasGames && (
+            <>
+              <div className={styles.sectionHeader}>
+                <h2>{t("library")}</h2>
 
-          <ul className={styles.gamesGrid}>
-            {userProfile?.libraryGames?.map((game) => (
-              <li
-                key={game.objectId}
-                style={{
-                  borderRadius: 4,
-                  overflow: "hidden",
-                  position: "relative",
-                }}
-                className={styles.game}
-              >
-                <button
-                  type="button"
-                  style={{
-                    cursor: "pointer",
-                  }}
-                  className={styles.gameCover}
-                  onClick={() => navigate(buildUserGameDetailsPath(game))}
-                >
-                  <img
-                    src={steamUrlBuilder.cover(game.objectId)}
-                    alt={game.title}
+                {userStats && (
+                  <span>{numberFormatter.format(userStats.libraryCount)}</span>
+                )}
+              </div>
+
+              <ul className={styles.gamesGrid}>
+                {userProfile?.libraryGames?.map((game) => (
+                  <li
+                    key={game.objectId}
                     style={{
-                      width: "100%",
-                      objectFit: "cover",
                       borderRadius: 4,
+                      overflow: "hidden",
+                      position: "relative",
                     }}
-                  />
-                </button>
-              </li>
-            ))}
-          </ul>
+                    className={styles.game}
+                  >
+                    <button
+                      type="button"
+                      style={{
+                        cursor: "pointer",
+                      }}
+                      className={styles.gameCover}
+                      onClick={() => navigate(buildUserGameDetailsPath(game))}
+                    >
+                      <img
+                        src={steamUrlBuilder.cover(game.objectId)}
+                        alt={game.title}
+                        style={{
+                          width: "100%",
+                          objectFit: "cover",
+                          borderRadius: 4,
+                        }}
+                      />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
 
-        <div className={styles.rightContent}>
-          <RecentGamesBox />
-          <FriendsBox />
+        {shouldShowRightContent && (
+          <div className={styles.rightContent}>
+            <RecentGamesBox />
+            <FriendsBox />
 
-          <ReportProfile />
-        </div>
+            <ReportProfile />
+          </div>
+        )}
       </section>
     );
-  }, [userProfile, isMe, usersAreFriends, numberFormatter, t, navigate]);
+  }, [
+    userProfile,
+    isMe,
+    usersAreFriends,
+    userStats,
+    numberFormatter,
+    t,
+    navigate,
+  ]);
 
   return (
     <div>

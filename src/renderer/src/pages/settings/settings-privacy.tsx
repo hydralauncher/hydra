@@ -57,16 +57,13 @@ export function SettingsPrivacy() {
       unblockUser(id)
         .then(() => {
           fetchBlockedUsers();
-          // show toast
-        })
-        .catch(() => {
-          //show toast
+          showSuccessToast(t("user_unblocked"));
         })
         .finally(() => {
           setIsUnblocking(false);
         });
     },
-    [unblockUser, fetchBlockedUsers]
+    [unblockUser, fetchBlockedUsers, t, showSuccessToast]
   );
 
   return (

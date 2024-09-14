@@ -176,3 +176,14 @@ export const listItemDescription = style({
   alignItems: "center",
   gap: `${SPACING_UNIT}px`,
 });
+
+export const defaultAvatarWrapper = style({
+  width: "32px",
+  height: "32px",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: vars.color.background,
+  border: `solid 1px ${vars.color.border}`,
+  borderRadius: "4px",
+});

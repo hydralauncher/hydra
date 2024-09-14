@@ -212,7 +212,9 @@
     "profile_visibility_description": "Escolha quem pode ver seu perfil e biblioteca",
     "required_field": "Este campo é obrigatório",
     "source_already_exists": "Essa fonte já foi adicionada",
-    "must_be_valid_url": "A fonte deve ser uma URL válida"
+    "must_be_valid_url": "A fonte deve ser uma URL válida",
+    "blocked_users": "Usuários bloqueados",
+    "user_unblocked": "Usuário desbloqueado"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -300,6 +302,17 @@
     "required_field": "Este campo é obrigatório",
     "displayname_min_length": "Nome de exibição deve ter pelo menos 3 caracteres",
     "displayname_max_length": "Nome de exibição deve ter no máximo 50 caracteres",
-    "locked_profile": "Este perfil é privado"
+    "locked_profile": "Este perfil é privado",
+    "report_profile": "Report this profile",
+    "report_reason": "Por que você deseja reportar este perfil?",
+    "report_description": "Informações adicionais",
+    "report_description_placeholder": "Insira aqui",
+    "report": "Reportar",
+    "report_reason_hate": "Discurso de ódio",
+    "report_reason_sexual_content": "Conteúdo sexual",
+    "report_reason_violence": "Violência",
+    "report_reason_spam": "Spam",
+    "report_reason_other": "Outro",
+    "profile_reported": "Perfil reportado"
   }
 }
