@@ -305,7 +305,7 @@
     "displayname_min_length": "Nome de exibição deve ter pelo menos 3 caracteres",
     "displayname_max_length": "Nome de exibição deve ter no máximo 50 caracteres",
     "locked_profile": "Este perfil é privado",
-    "report_profile": "Report this profile",
+    "report_profile": "Reportar este perfil",
     "report_reason": "Por que você deseja reportar este perfil?",
     "report_description": "Informações adicionais",
     "report_description_placeholder": "Insira aqui",
