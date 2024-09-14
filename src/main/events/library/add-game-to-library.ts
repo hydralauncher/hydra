@@ -54,7 +54,7 @@ const addGameToLibrary = async (
 
       const game = await gameRepository.findOne({ where: { objectID } });
 
-      createGame(game!);
+      createGame(game!).catch(() => {});
     });
 };
 

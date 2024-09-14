@@ -70,9 +70,9 @@ function onOpenGame(game: Game) {
   });
 
   if (game.remoteId) {
-    updateGamePlaytime(game, 0, new Date());
+    updateGamePlaytime(game, 0, new Date()).catch(() => {});
   } else {
-    createGame({ ...game, lastTimePlayed: new Date() });
+    createGame({ ...game, lastTimePlayed: new Date() }).catch(() => {});
   }
 }
 
@@ -93,20 +93,22 @@ function onTickGame(game: Game) {
   });
 
   if (currentTick % TICKS_TO_UPDATE_API === 0) {
-    if (game.remoteId) {
-      updateGamePlaytime(
-        game,
-        now - gamePlaytime.lastSyncTick,
-        game.lastTimePlayed!
-      );
-    } else {
-      createGame(game);
-    }
+    const gamePromise = game.remoteId
+      ? updateGamePlaytime(
+          game,
+          now - gamePlaytime.lastSyncTick,
+          game.lastTimePlayed!
+        )
+      : createGame(game);
 
-    gamesPlaytime.set(game.id, {
-      ...gamePlaytime,
-      lastSyncTick: now,
-    });
+    gamePromise
+      .then(() => {
+        gamesPlaytime.set(game.id, {
+          ...gamePlaytime,
+          lastSyncTick: now,
+        });
+      })
+      .catch(() => {});
   }
 }
 
@@ -119,8 +121,8 @@ const onCloseGame = (game: Game) => {
       game,
       performance.now() - gamePlaytime.firstTick,
       game.lastTimePlayed!
-    );
+    ).catch(() => {});
   } else {
-    createGame(game);
+    createGame(game).catch(() => {});
   }
 };
