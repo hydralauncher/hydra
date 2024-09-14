@@ -43,7 +43,10 @@ i18n
   })
   .then(async () => {
     const userPreferences = await window.electron.getUserPreferences();
-    if (!userPreferences?.language) {
+
+    if (userPreferences?.language) {
+      i18n.changeLanguage(userPreferences.language);
+    } else {
       window.electron.updateUserPreferences({ language: i18n.language });
     }
   });
