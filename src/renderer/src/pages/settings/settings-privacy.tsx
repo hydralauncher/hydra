@@ -5,7 +5,8 @@ import { useTranslation } from "react-i18next";
 
 import * as styles from "./settings-privacy.css";
 import { useToast, useUserDetails } from "@renderer/hooks";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { XCircleFillIcon, XIcon } from "@primer/octicons-react";
 
 interface FormValues {
   profileVisibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
@@ -25,11 +26,21 @@ export function SettingsPrivacy() {
 
   const { patchUser, userDetails } = useUserDetails();
 
+  const [blockedUsers, setBlockedUsers] = useState([]);
+
   useEffect(() => {
     if (userDetails?.profileVisibility) {
       setValue("profileVisibility", userDetails.profileVisibility);
     }
   }, [userDetails, setValue]);
+
+  useEffect(() => {
+    window.electron.getBlockedUsers(12, 0).then((users) => {
+      setBlockedUsers(users.blocks);
+    });
+  }, []);
+
+  console.log("BLOCKED USERS", blockedUsers);
 
   const visibilityOptions = [
     { value: "PUBLIC", label: t("public") },
@@ -47,31 +58,71 @@ export function SettingsPrivacy() {
       <Controller
         control={control}
         name="profileVisibility"
-        render={({ field }) => (
-          <>
-            <SelectField
-              label={t("profile_visibility")}
-              value={field.value}
-              onChange={field.onChange}
-              options={visibilityOptions.map((visiblity) => ({
-                key: visiblity.value,
-                value: visiblity.value,
-                label: visiblity.label,
-              }))}
-            />
+        render={({ field }) => {
+          const handleChange = (
+            event: React.ChangeEvent<HTMLSelectElement>
+          ) => {
+            field.onChange(event);
+            handleSubmit(onSubmit)();
+          };
 
-            <small>{t("profile_visibility_description")}</small>
-          </>
-        )}
+          return (
+            <>
+              <SelectField
+                label={t("profile_visibility")}
+                value={field.value}
+                onChange={handleChange}
+                options={visibilityOptions.map((visiblity) => ({
+                  key: visiblity.value,
+                  value: visiblity.value,
+                  label: visiblity.label,
+                }))}
+                disabled={isSubmitting}
+              />
+
+              <small>{t("profile_visibility_description")}</small>
+            </>
+          );
+        }}
       />
 
-      <Button
-        type="submit"
-        style={{ alignSelf: "flex-end", marginTop: `${SPACING_UNIT * 2}px` }}
-        disabled={isSubmitting}
+      <h3 style={{ marginTop: `${SPACING_UNIT * 2}px` }}>
+        Usuários bloqueados
+      </h3>
+
+      <ul
+        style={{
+          padding: 0,
+          margin: 0,
+          listStyle: "none",
+          display: "flex",
+        }}
       >
-        {t("save_changes")}
-      </Button>
+        {blockedUsers.map((user) => {
+          return (
+            <li key={user.id} className={styles.blockedUser}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: `${SPACING_UNIT}px`,
+                  alignItems: "center",
+                }}
+              >
+                <img
+                  src={user.profileImageUrl}
+                  alt={user.displayName}
+                  className={styles.blockedUserAvatar}
+                />
+                <span>{user.displayName}</span>
+              </div>
+
+              <button type="button" className={styles.unblockButton}>
+                <XCircleFillIcon />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </form>
   );
 }

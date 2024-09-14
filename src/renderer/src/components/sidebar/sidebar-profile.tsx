@@ -2,16 +2,21 @@ import { useNavigate } from "react-router-dom";
 import { PeopleIcon, PersonIcon } from "@primer/octicons-react";
 import * as styles from "./sidebar-profile.css";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
+
+const LONG_POLLING_INTERVAL = 10_000;
 
 export function SidebarProfile() {
   const navigate = useNavigate();
 
+  const pollingInterval = useRef<NodeJS.Timeout | null>(null);
+
   const { t } = useTranslation("sidebar");
 
-  const { userDetails, friendRequests, showFriendsModal } = useUserDetails();
+  const { userDetails, friendRequests, showFriendsModal, fetchFriendRequests } =
+    useUserDetails();
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
 
@@ -27,6 +32,18 @@ export function SidebarProfile() {
 
     navigate(`/profile/${userDetails!.id}`);
   };
+
+  useEffect(() => {
+    pollingInterval.current = setInterval(() => {
+      fetchFriendRequests();
+    }, LONG_POLLING_INTERVAL);
+
+    return () => {
+      if (pollingInterval.current) {
+        clearInterval(pollingInterval.current);
+      }
+    };
+  }, [fetchFriendRequests]);
 
   const friendsButton = useMemo(() => {
     if (!userDetails) return null;

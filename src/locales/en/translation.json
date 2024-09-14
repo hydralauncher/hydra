@@ -125,7 +125,8 @@
     "refuse_nsfw_content": "Go back",
     "stats": "Stats",
     "download_count": "Downloads",
-    "player_count": "Active players"
+    "player_count": "Active players",
+    "download_error": "This download option is not available"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -207,7 +208,10 @@
     "friends_only": "Friends only",
     "privacy": "Privacy",
     "profile_visibility": "Profile visibility",
-    "profile_visibility_description": "Choose who can see your profile and library"
+    "profile_visibility_description": "Choose who can see your profile and library",
+    "required_field": "This field is required",
+    "source_already_exists": "This source has been already added",
+    "must_be_valid_url": "The source must be a valid URL"
   },
   "notifications": {
     "download_complete": "Download complete",

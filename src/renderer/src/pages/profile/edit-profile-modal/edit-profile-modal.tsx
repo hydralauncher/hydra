@@ -67,6 +67,7 @@ export function EditProfileModal(
     return patchUser(values)
       .then(async () => {
         await Promise.allSettled([fetchUserDetails(), getUserProfile()]);
+        props.onClose();
         showSuccessToast(t("saved_successfully"));
       })
       .catch(() => {

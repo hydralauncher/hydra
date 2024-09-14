@@ -4,6 +4,10 @@ import { useTranslation } from "react-i18next";
 import { Button, Modal, TextField } from "@renderer/components";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { settingsContext } from "@renderer/context";
+import { useForm } from "react-hook-form";
+
+import * as yup from "yup";
+import { yupResolver } from "@hookform/resolvers/yup";
 
 interface AddDownloadSourceModalProps {
   visible: boolean;
@@ -11,47 +15,83 @@ interface AddDownloadSourceModalProps {
   onAddDownloadSource: () => void;
 }
 
+interface FormValues {
+  url: string;
+}
+
 export function AddDownloadSourceModal({
   visible,
   onClose,
   onAddDownloadSource,
 }: AddDownloadSourceModalProps) {
-  const [value, setValue] = useState("");
+  const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const { t } = useTranslation("settings");
+
+  const schema = yup.object().shape({
+    url: yup.string().required(t("required_field")).url(t("must_be_valid_url")),
+  });
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    setError,
+    clearErrors,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: yupResolver(schema),
+  });
 
   const [validationResult, setValidationResult] = useState<{
     name: string;
     downloadCount: number;
   } | null>(null);
 
-  const { t } = useTranslation("settings");
-
   const { sourceUrl } = useContext(settingsContext);
 
-  const handleValidateDownloadSource = useCallback(async (url: string) => {
-    setIsLoading(true);
+  const onSubmit = useCallback(
+    async (values: FormValues) => {
+      setIsLoading(true);
 
-    try {
-      const result = await window.electron.validateDownloadSource(url);
-      setValidationResult(result);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      try {
+        const result = await window.electron.validateDownloadSource(values.url);
+        setValidationResult(result);
+
+        setUrl(values.url);
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          if (
+            error.message.endsWith("Source with the same url already exists")
+          ) {
+            setError("url", {
+              type: "server",
+              message: t("source_already_exists"),
+            });
+          }
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [setError, t]
+  );
 
   useEffect(() => {
-    setValue("");
+    setValue("url", "");
+    clearErrors();
     setIsLoading(false);
     setValidationResult(null);
 
     if (sourceUrl) {
-      setValue(sourceUrl);
-      handleValidateDownloadSource(sourceUrl);
+      setValue("url", sourceUrl);
+      handleSubmit(onSubmit)();
     }
-  }, [visible, handleValidateDownloadSource, sourceUrl]);
+  }, [visible, clearErrors, handleSubmit, onSubmit, setValue, sourceUrl]);
 
   const handleAddDownloadSource = async () => {
-    await window.electron.addDownloadSource(value);
+    await window.electron.addDownloadSource(url);
     onClose();
     onAddDownloadSource();
   };
@@ -72,17 +112,17 @@ export function AddDownloadSourceModal({
         }}
       >
         <TextField
+          {...register("url")}
           label={t("download_source_url")}
           placeholder={t("insert_valid_json_url")}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
+          error={errors.url}
           rightContent={
             <Button
               type="button"
               theme="outline"
               style={{ alignSelf: "flex-end" }}
-              onClick={() => handleValidateDownloadSource(value)}
-              disabled={isLoading || !value}
+              onClick={handleSubmit(onSubmit)}
+              disabled={isLoading}
             >
               {t("validate_download_source")}
             </Button>
@@ -115,7 +155,11 @@ export function AddDownloadSourceModal({
               </small>
             </div>
 
-            <Button type="button" onClick={handleAddDownloadSource}>
+            <Button
+              type="button"
+              onClick={handleAddDownloadSource}
+              disabled={isLoading}
+            >
               {t("import")}
             </Button>
           </div>
