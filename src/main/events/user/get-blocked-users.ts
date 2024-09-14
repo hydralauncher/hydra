@@ -2,7 +2,7 @@ import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
 import { UserBlocks } from "@types";
 
-export const getUserBlocks = async (
+export const getBlockedUsers = async (
   _event: Electron.IpcMainInvokeEvent,
   take: number,
   skip: number
@@ -10,4 +10,4 @@ export const getUserBlocks = async (
   return HydraApi.get(`/profile/blocks`, { take, skip });
 };
 
-registerEvent("getUserBlocks", getUserBlocks);
+registerEvent("getBlockedUsers", getBlockedUsers);

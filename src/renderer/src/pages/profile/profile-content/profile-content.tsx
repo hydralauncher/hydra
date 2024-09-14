@@ -7,7 +7,7 @@ import { steamUrlBuilder } from "@shared";
 import { SPACING_UNIT } from "@renderer/theme.css";
 
 import * as styles from "./profile-content.css";
-import { ClockIcon } from "@primer/octicons-react";
+import { ClockIcon, TelescopeIcon } from "@primer/octicons-react";
 import { Link } from "@renderer/components";
 import { useTranslation } from "react-i18next";
 import { UserGame } from "@types";
@@ -71,6 +71,18 @@ export function ProfileContent() {
       return <LockedProfile />;
     }
 
+    if (userProfile.libraryGames.length === 0) {
+      return (
+        <div className={styles.noGames}>
+          <div className={styles.telescopeIcon}>
+            <TelescopeIcon size={24} />
+          </div>
+          <h2>{t("no_recent_activity_title")}</h2>
+          {isMe && <p>{t("no_recent_activity_description")}</p>}
+        </div>
+      );
+    }
+
     return (
       <section
         style={{
@@ -83,16 +95,10 @@ export function ProfileContent() {
           <div className={styles.sectionHeader}>
             <h2>{t("library")}</h2>
 
-            <h3>{numberFormatter.format(userProfile.libraryGames.length)}</h3>
+            <span>
+              {numberFormatter.format(userProfile.libraryGames.length)}
+            </span>
           </div>
-
-          {/* <div className={styles.noGames}>
-            <div className={styles.telescopeIcon}>
-              <TelescopeIcon size={24} />
-            </div>
-            <h2>{t("no_recent_activity_title")}</h2>
-            {isMe && <p>{t("no_recent_activity_description")}</p>}
-          </div> */}
 
           <ul className={styles.gamesGrid}>
             {userProfile?.libraryGames?.map((game) => (
@@ -129,60 +135,72 @@ export function ProfileContent() {
         </div>
 
         <div className={styles.rightContent}>
-          <div>
-            <div className={styles.sectionHeader}>
-              <h2>{t("activity")}</h2>
-            </div>
+          {userProfile?.recentGames?.length > 0 && (
+            <div>
+              <div className={styles.sectionHeader}>
+                <h2>{t("activity")}</h2>
+              </div>
 
-            <div className={styles.box}>
-              <ul className={styles.list}>
-                {userProfile?.recentGames.map((game) => (
-                  <li key={`${game.shop}-${game.objectId}`}>
-                    <Link
-                      to={buildUserGameDetailsPath(game)}
-                      className={styles.listItem}
-                    >
-                      <img
-                        src={game.iconUrl!}
-                        alt={game.title}
-                        style={{
-                          width: "30px",
-                          height: "30px",
-                          borderRadius: "4px",
-                        }}
-                      />
-
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: `${SPACING_UNIT / 2}px`,
-                        }}
+              <div className={styles.box}>
+                <ul className={styles.list}>
+                  {userProfile?.recentGames.map((game) => (
+                    <li key={`${game.shop}-${game.objectId}`}>
+                      <Link
+                        to={buildUserGameDetailsPath(game)}
+                        className={styles.listItem}
                       >
-                        <span style={{ fontWeight: "bold" }}>{game.title}</span>
+                        <img
+                          src={game.iconUrl!}
+                          alt={game.title}
+                          style={{
+                            width: "32px",
+                            height: "32px",
+                            borderRadius: "4px",
+                          }}
+                        />
 
                         <div
                           style={{
                             display: "flex",
-                            alignItems: "center",
-                            gap: `${SPACING_UNIT}px`,
+                            flexDirection: "column",
+                            gap: `${SPACING_UNIT / 2}px`,
+                            overflow: "hidden",
                           }}
                         >
-                          <ClockIcon />
-                          <small>{formatPlayTime(game)}</small>
+                          <span
+                            style={{
+                              fontWeight: "bold",
+                              overflow: "hidden",
+                              whiteSpace: "nowrap",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {game.title}
+                          </span>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: `${SPACING_UNIT}px`,
+                            }}
+                          >
+                            <ClockIcon />
+                            <small>{formatPlayTime(game)}</small>
+                          </div>
                         </div>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <div className={styles.sectionHeader}>
               <h2>{t("friends")}</h2>
-              <span>{userProfile?.totalFriends}</span>
+              <span>{numberFormatter.format(userProfile?.totalFriends)}</span>
             </div>
 
             <div className={styles.box}>
@@ -197,8 +215,8 @@ export function ProfileContent() {
                         src={friend.profileImageUrl!}
                         alt={friend.displayName}
                         style={{
-                          width: "30px",
-                          height: "30px",
+                          width: "32px",
+                          height: "32px",
                           borderRadius: "4px",
                         }}
                       />

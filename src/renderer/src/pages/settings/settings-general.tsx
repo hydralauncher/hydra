@@ -134,28 +134,27 @@ export function SettingsGeneral() {
       />
 
       <h3>{t("notifications")}</h3>
-      <>
-        <CheckboxField
-          label={t("enable_download_notifications")}
-          checked={form.downloadNotificationsEnabled}
-          onChange={() =>
-            handleChange({
-              downloadNotificationsEnabled: !form.downloadNotificationsEnabled,
-            })
-          }
-        />
 
-        <CheckboxField
-          label={t("enable_repack_list_notifications")}
-          checked={form.repackUpdatesNotificationsEnabled}
-          onChange={() =>
-            handleChange({
-              repackUpdatesNotificationsEnabled:
-                !form.repackUpdatesNotificationsEnabled,
-            })
-          }
-        />
-      </>
+      <CheckboxField
+        label={t("enable_download_notifications")}
+        checked={form.downloadNotificationsEnabled}
+        onChange={() =>
+          handleChange({
+            downloadNotificationsEnabled: !form.downloadNotificationsEnabled,
+          })
+        }
+      />
+
+      <CheckboxField
+        label={t("enable_repack_list_notifications")}
+        checked={form.repackUpdatesNotificationsEnabled}
+        onChange={() =>
+          handleChange({
+            repackUpdatesNotificationsEnabled:
+              !form.repackUpdatesNotificationsEnabled,
+          })
+        }
+      />
     </>
   );
 }

@@ -142,7 +142,7 @@ declare global {
       take: number,
       skip: number
     ) => Promise<UserFriends>;
-    getUserBlocks: (take: number, skip: number) => Promise<UserBlocks>;
+    getBlockedUsers: (take: number, skip: number) => Promise<UserBlocks>;
 
     /* Profile */
     getMe: () => Promise<UserProfile | null>;

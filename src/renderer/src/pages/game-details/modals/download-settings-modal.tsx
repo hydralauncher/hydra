@@ -10,7 +10,7 @@ import { Downloader, formatBytes, getDownloadersForUris } from "@shared";
 import type { GameRepack } from "@types";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { DOWNLOADER_NAME } from "@renderer/constants";
-import { useAppSelector } from "@renderer/hooks";
+import { useAppSelector, useToast } from "@renderer/hooks";
 
 export interface DownloadSettingsModalProps {
   visible: boolean;
@@ -30,6 +30,8 @@ export function DownloadSettingsModal({
   repack,
 }: DownloadSettingsModalProps) {
   const { t } = useTranslation("game_details");
+
+  const { showErrorToast } = useToast();
 
   const [diskFreeSpace, setDiskFreeSpace] = useState<DiskSpace | null>(null);
   const [selectedPath, setSelectedPath] = useState("");
@@ -104,10 +106,16 @@ export function DownloadSettingsModal({
     if (repack) {
       setDownloadStarting(true);
 
-      startDownload(repack, selectedDownloader!, selectedPath).finally(() => {
-        setDownloadStarting(false);
-        onClose();
-      });
+      startDownload(repack, selectedDownloader!, selectedPath)
+        .then(() => {
+          onClose();
+        })
+        .catch(() => {
+          showErrorToast(t("download_error"));
+        })
+        .finally(() => {
+          setDownloadStarting(false);
+        });
     }
   };
 

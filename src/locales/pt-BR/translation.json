@@ -121,7 +121,8 @@
     "refuse_nsfw_content": "Voltar",
     "stats": "Estatísticas",
     "download_count": "Downloads",
-    "player_count": "Jogadores ativos"
+    "player_count": "Jogadores ativos",
+    "download_error": "Essa opção de download falhou"
   },
   "activation": {
     "title": "Ativação",
@@ -206,7 +207,10 @@
     "friends_only": "Apenas amigos",
     "public": "Público",
     "profile_visibility": "Visibilidade do perfil",
-    "profile_visibility_description": "Escolha quem pode ver seu perfil e biblioteca"
+    "profile_visibility_description": "Escolha quem pode ver seu perfil e biblioteca",
+    "required_field": "Este campo é obrigatório",
+    "source_already_exists": "Essa fonte já foi adicionada",
+    "must_be_valid_url": "A fonte deve ser uma URL válida"
   },
   "notifications": {
     "download_complete": "Download concluído",

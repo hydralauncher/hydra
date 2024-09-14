@@ -1,3 +1,4 @@
+import { appContainer } from "../../../app.css";
 import { vars, SPACING_UNIT } from "../../../theme.css";
 import { globalStyle, style } from "@vanilla-extract/css";
 
@@ -73,11 +74,8 @@ export const rightContent = style({
   display: "flex",
   gap: `${SPACING_UNIT * 2}px`,
   flexDirection: "column",
+  transition: "all ease 0.2s",
   "@media": {
-    "(min-width: 768px)": {
-      width: "100%",
-      maxWidth: "200px",
-    },
     "(min-width: 1024px)": {
       maxWidth: "300px",
       width: "100%",
@@ -108,19 +106,26 @@ export const listItem = style({
 
 export const gamesGrid = style({
   listStyle: "none",
-  margin: 0,
-  padding: 0,
+  margin: "0",
+  padding: "0",
   display: "grid",
   gap: `${SPACING_UNIT * 2}px`,
-  "@media": {
-    "(min-width: 768px)": {
-      gridTemplateColumns: "repeat(2, 1fr)",
+  gridTemplateColumns: "repeat(2, 1fr)",
+  "@container": {
+    [`${appContainer}  (min-width: 1000px)`]: {
+      gridTemplateColumns: "repeat(4, 1fr)",
     },
-    "(min-width: 1250px)": {
-      gridTemplateColumns: "repeat(3, 1fr)",
+    [`${appContainer}  (min-width: 1300px)`]: {
+      gridTemplateColumns: "repeat(5, 1fr)",
     },
-    "(min-width: 1600px)": {
+    [`${appContainer}  (min-width: 2000px)`]: {
+      gridTemplateColumns: "repeat(6, 1fr)",
+    },
+    [`${appContainer}  (min-width: 2600px)`]: {
       gridTemplateColumns: "repeat(8, 1fr)",
+    },
+    [`${appContainer}  (min-width: 3000px)`]: {
+      gridTemplateColumns: "repeat(12, 1fr)",
     },
   },
 });

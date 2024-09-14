@@ -48,6 +48,9 @@ export const profileDisplayName = style({
   overflow: "hidden",
   textOverflow: "ellipsis",
   width: "100%",
+  display: "flex",
+  alignItems: "center",
+  position: "relative",
 });
 
 export const heroPanel = style({

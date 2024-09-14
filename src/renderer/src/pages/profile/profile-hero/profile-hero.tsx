@@ -26,6 +26,7 @@ import { useNavigate } from "react-router-dom";
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
+import Skeleton from "react-loading-skeleton";
 
 type FriendAction =
   | FriendRequestAction
@@ -35,7 +36,8 @@ export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [isPerformingAction, setIsPerformingAction] = useState(false);
 
-  const context = useContext(userProfileContext);
+  const { isMe, heroBackground, getUserProfile, userProfile } =
+    useContext(userProfileContext);
   const {
     signOut,
     updateFriendRequestState,
@@ -45,10 +47,6 @@ export function ProfileHero() {
   } = useUserDetails();
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
-
-  const { isMe, heroBackground, getUserProfile } = context;
-
-  const userProfile = context.userProfile!;
 
   const { t } = useTranslation("user_profile");
   const { formatDistance } = useDate();
@@ -72,6 +70,7 @@ export function ProfileHero() {
 
   const handleFriendAction = useCallback(
     async (userId: string, action: FriendAction) => {
+      if (!userProfile) return;
       setIsPerformingAction(true);
 
       try {
@@ -111,11 +110,13 @@ export function ProfileHero() {
       getUserProfile,
       navigate,
       showSuccessToast,
-      userProfile.id,
+      userProfile,
     ]
   );
 
   const profileActions = useMemo(() => {
+    if (!userProfile) return null;
+
     if (isMe) {
       return (
         <>
@@ -239,7 +240,7 @@ export function ProfileHero() {
 
       return null;
     }
-    return userProfile.currentGame;
+    return userProfile?.currentGame;
   }, [isMe, userProfile, gameRunning]);
 
   return (
@@ -267,11 +268,11 @@ export function ProfileHero() {
             className={styles.profileAvatarButton}
             onClick={handleAvatarClick}
           >
-            {userProfile.profileImageUrl ? (
+            {userProfile?.profileImageUrl ? (
               <img
                 className={styles.profileAvatar}
-                alt={userProfile.displayName}
-                src={userProfile.profileImageUrl}
+                alt={userProfile?.displayName}
+                src={userProfile?.profileImageUrl}
               />
             ) : (
               <PersonIcon size={72} />
@@ -279,9 +280,13 @@ export function ProfileHero() {
           </button>
 
           <div className={styles.profileInformation}>
-            <h2 className={styles.profileDisplayName}>
-              {userProfile.displayName}
-            </h2>
+            {userProfile ? (
+              <h2 className={styles.profileDisplayName}>
+                {userProfile?.displayName}
+              </h2>
+            ) : (
+              <Skeleton width={150} height={28} />
+            )}
 
             {currentGame && (
               <div className={styles.currentGameWrapper}>
