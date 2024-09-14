@@ -167,14 +167,26 @@ export function ProfileHero() {
 
     if (userProfile.relation.status === "ACCEPTED") {
       return (
-        <Button
-          theme="outline"
-          onClick={() => handleFriendAction(userProfile.id, "UNDO_FRIENDSHIP")}
-          disabled={isPerformingAction}
-        >
-          <XCircleFillIcon />
-          {t("undo_friendship")}
-        </Button>
+        <>
+          <Button
+            theme="danger"
+            onClick={() => handleFriendAction(userProfile.id, "BLOCK")}
+            disabled={isPerformingAction}
+          >
+            <BlockedIcon />
+            {t("block_user")}
+          </Button>
+          <Button
+            theme="outline"
+            onClick={() =>
+              handleFriendAction(userProfile.id, "UNDO_FRIENDSHIP")
+            }
+            disabled={isPerformingAction}
+          >
+            <XCircleFillIcon />
+            {t("undo_friendship")}
+          </Button>
+        </>
       );
     }
 

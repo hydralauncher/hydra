@@ -49,6 +49,8 @@ import "./user/get-blocked-users";
 import "./user/block-user";
 import "./user/unblock-user";
 import "./user/get-user-friends";
+import "./user/get-user-stats";
+import "./user/report-user";
 import "./profile/get-friend-requests";
 import "./profile/get-me";
 import "./profile/undo-friendship";

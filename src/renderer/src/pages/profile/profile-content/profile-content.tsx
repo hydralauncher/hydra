@@ -1,5 +1,5 @@
 import { userProfileContext } from "@renderer/context";
-import { useCallback, useContext, useEffect, useMemo } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import { ProfileHero } from "../profile-hero/profile-hero";
 import { useAppDispatch, useFormat } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
@@ -7,23 +7,26 @@ import { steamUrlBuilder } from "@shared";
 import { SPACING_UNIT } from "@renderer/theme.css";
 
 import * as styles from "./profile-content.css";
-import { ClockIcon, TelescopeIcon } from "@primer/octicons-react";
-import { Link } from "@renderer/components";
+import { TelescopeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
-import { UserGame } from "@types";
-import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
-import { buildGameDetailsPath } from "@renderer/helpers";
 import { useNavigate } from "react-router-dom";
 import { LockedProfile } from "./locked-profile";
+import { ReportProfile } from "../report-profile/report-profile";
+import { FriendsBox } from "./friends-box";
+import { RecentGamesBox } from "./recent-games-box";
+import { UserGame } from "@types";
+import { buildGameDetailsPath } from "@renderer/helpers";
 
 export function ProfileContent() {
-  const { userProfile, isMe } = useContext(userProfileContext);
+  const { userProfile, isMe, userStats } = useContext(userProfileContext);
 
   const dispatch = useAppDispatch();
 
   const { t } = useTranslation("user_profile");
 
   useEffect(() => {
+    dispatch(setHeaderTitle(""));
+
     if (userProfile) {
       dispatch(setHeaderTitle(userProfile.displayName));
     }
@@ -33,32 +36,15 @@ export function ProfileContent() {
 
   const navigate = useNavigate();
 
-  const formatPlayTime = useCallback(
-    (game: UserGame) => {
-      const seconds = game?.playTimeInSeconds || 0;
-      const minutes = seconds / 60;
-
-      if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
-        return t("amount_minutes", {
-          amount: minutes.toFixed(0),
-        });
-      }
-
-      const hours = minutes / 60;
-      return t("amount_hours", { amount: numberFormatter.format(hours) });
-    },
-    [numberFormatter, t]
-  );
+  const usersAreFriends = useMemo(() => {
+    return userProfile?.relation?.status === "ACCEPTED";
+  }, [userProfile]);
 
   const buildUserGameDetailsPath = (game: UserGame) =>
     buildGameDetailsPath({
       ...game,
       objectID: game.objectId,
     });
-
-  const usersAreFriends = useMemo(() => {
-    return userProfile?.relation?.status === "ACCEPTED";
-  }, [userProfile]);
 
   const content = useMemo(() => {
     if (!userProfile) return null;
@@ -95,9 +81,9 @@ export function ProfileContent() {
           <div className={styles.sectionHeader}>
             <h2>{t("library")}</h2>
 
-            <span>
-              {numberFormatter.format(userProfile.libraryGames.length)}
-            </span>
+            {userStats && (
+              <span>{numberFormatter.format(userStats.libraryCount)}</span>
+            )}
           </div>
 
           <ul className={styles.gamesGrid}>
@@ -135,112 +121,14 @@ export function ProfileContent() {
         </div>
 
         <div className={styles.rightContent}>
-          {userProfile?.recentGames?.length > 0 && (
-            <div>
-              <div className={styles.sectionHeader}>
-                <h2>{t("activity")}</h2>
-              </div>
+          <RecentGamesBox />
+          <FriendsBox />
 
-              <div className={styles.box}>
-                <ul className={styles.list}>
-                  {userProfile?.recentGames.map((game) => (
-                    <li key={`${game.shop}-${game.objectId}`}>
-                      <Link
-                        to={buildUserGameDetailsPath(game)}
-                        className={styles.listItem}
-                      >
-                        <img
-                          src={game.iconUrl!}
-                          alt={game.title}
-                          style={{
-                            width: "32px",
-                            height: "32px",
-                            borderRadius: "4px",
-                          }}
-                        />
-
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: `${SPACING_UNIT / 2}px`,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontWeight: "bold",
-                              overflow: "hidden",
-                              whiteSpace: "nowrap",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {game.title}
-                          </span>
-
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: `${SPACING_UNIT}px`,
-                            }}
-                          >
-                            <ClockIcon />
-                            <small>{formatPlayTime(game)}</small>
-                          </div>
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-
-          <div>
-            <div className={styles.sectionHeader}>
-              <h2>{t("friends")}</h2>
-              <span>{numberFormatter.format(userProfile?.totalFriends)}</span>
-            </div>
-
-            <div className={styles.box}>
-              <ul className={styles.list}>
-                {userProfile?.friends.map((friend) => (
-                  <li key={friend.id}>
-                    <Link
-                      to={`/profile/${friend.id}`}
-                      className={styles.listItem}
-                    >
-                      <img
-                        src={friend.profileImageUrl!}
-                        alt={friend.displayName}
-                        style={{
-                          width: "32px",
-                          height: "32px",
-                          borderRadius: "4px",
-                        }}
-                      />
-                      <span className={styles.friendName}>
-                        {friend.displayName}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+          <ReportProfile />
         </div>
       </section>
     );
-  }, [
-    userProfile,
-    formatPlayTime,
-    numberFormatter,
-    t,
-    usersAreFriends,
-    isMe,
-    navigate,
-  ]);
+  }, [userProfile, isMe, usersAreFriends, numberFormatter, t, navigate]);
 
   return (
     <div>

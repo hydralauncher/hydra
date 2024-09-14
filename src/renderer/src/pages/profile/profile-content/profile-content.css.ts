@@ -150,3 +150,29 @@ export const noGames = style({
   flexDirection: "column",
   gap: `${SPACING_UNIT}px`,
 });
+
+export const listItemImage = style({
+  width: "32px",
+  height: "32px",
+  borderRadius: "4px",
+});
+
+export const listItemDetails = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT / 2}px`,
+  overflow: "hidden",
+});
+
+export const listItemTitle = style({
+  fontWeight: "bold",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
+});
+
+export const listItemDescription = style({
+  display: "flex",
+  alignItems: "center",
+  gap: `${SPACING_UNIT}px`,
+});

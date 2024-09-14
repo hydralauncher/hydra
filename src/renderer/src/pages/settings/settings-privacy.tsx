@@ -5,8 +5,9 @@ import { useTranslation } from "react-i18next";
 
 import * as styles from "./settings-privacy.css";
 import { useToast, useUserDetails } from "@renderer/hooks";
-import { useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { XCircleFillIcon } from "@primer/octicons-react";
+import { settingsContext } from "@renderer/context";
 
 interface FormValues {
   profileVisibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
@@ -15,7 +16,11 @@ interface FormValues {
 export function SettingsPrivacy() {
   const { t } = useTranslation("settings");
 
+  const [isUnblocking, setIsUnblocking] = useState(false);
+
   const { showSuccessToast } = useToast();
+
+  const { blockedUsers, fetchBlockedUsers } = useContext(settingsContext);
 
   const {
     control,
@@ -26,21 +31,13 @@ export function SettingsPrivacy() {
 
   const { patchUser, userDetails } = useUserDetails();
 
-  const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
+  const { unblockUser } = useUserDetails();
 
   useEffect(() => {
     if (userDetails?.profileVisibility) {
       setValue("profileVisibility", userDetails.profileVisibility);
     }
   }, [userDetails, setValue]);
-
-  useEffect(() => {
-    window.electron.getBlockedUsers(12, 0).then((users) => {
-      setBlockedUsers(users.blocks);
-    });
-  }, []);
-
-  console.log("BLOCKED USERS", blockedUsers);
 
   const visibilityOptions = [
     { value: "PUBLIC", label: t("public") },
@@ -52,6 +49,25 @@ export function SettingsPrivacy() {
     await patchUser(values);
     showSuccessToast(t("changes_saved"));
   };
+
+  const handleUnblockClick = useCallback(
+    (id: string) => {
+      setIsUnblocking(true);
+
+      unblockUser(id)
+        .then(() => {
+          fetchBlockedUsers();
+          // show toast
+        })
+        .catch((err) => {
+          //show toast
+        })
+        .finally(() => {
+          setIsUnblocking(false);
+        });
+    },
+    [unblockUser, fetchBlockedUsers]
+  );
 
   return (
     <form className={styles.form} onSubmit={handleSubmit(onSubmit)}>
@@ -90,14 +106,7 @@ export function SettingsPrivacy() {
         Usuários bloqueados
       </h3>
 
-      <ul
-        style={{
-          padding: 0,
-          margin: 0,
-          listStyle: "none",
-          display: "flex",
-        }}
-      >
+      <ul className={styles.blockedUsersList}>
         {blockedUsers.map((user) => {
           return (
             <li key={user.id} className={styles.blockedUser}>
@@ -116,7 +125,12 @@ export function SettingsPrivacy() {
                 <span>{user.displayName}</span>
               </div>
 
-              <button type="button" className={styles.unblockButton}>
+              <button
+                type="button"
+                className={styles.unblockButton}
+                onClick={() => handleUnblockClick(user.id)}
+                disabled={isUnblocking}
+              >
                 <XCircleFillIcon />
               </button>
             </li>

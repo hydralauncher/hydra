@@ -12,6 +12,7 @@ export const blockedUserAvatar = style({
   width: "32px",
   height: "32px",
   borderRadius: "4px",
+  filter: "grayscale(100%)",
 });
 
 export const blockedUser = style({
@@ -28,4 +29,19 @@ export const blockedUser = style({
 export const unblockButton = style({
   color: vars.color.muted,
   cursor: "pointer",
+  transition: "all ease 0.2s",
+  ":hover": {
+    opacity: "0.7",
+  },
+});
+
+export const blockedUsersList = style({
+  padding: "0",
+  margin: "0",
+  listStyle: "none",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: `${SPACING_UNIT}px`,
+  marginTop: `${SPACING_UNIT}px`,
 });
