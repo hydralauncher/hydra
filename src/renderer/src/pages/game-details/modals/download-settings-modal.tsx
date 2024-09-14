@@ -8,7 +8,7 @@ import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
 import { Downloader, formatBytes, getDownloadersForUris } from "@shared";
 
 import type { GameRepack } from "@types";
-import { SPACING_UNIT } from "@renderer/theme.css";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import { useAppSelector, useToast } from "@renderer/hooks";
 
@@ -129,15 +129,14 @@ export function DownloadSettingsModal({
       onClose={onClose}
     >
       <div className={styles.container}>
-        <div>
-          <span
-            style={{
-              marginBottom: `${SPACING_UNIT}px`,
-              display: "block",
-            }}
-          >
-            {t("downloader")}
-          </span>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: `${SPACING_UNIT}px`,
+          }}
+        >
+          <span>{t("downloader")}</span>
 
           <div className={styles.downloaders}>
             {downloaders.map((downloader) => (
@@ -160,6 +159,13 @@ export function DownloadSettingsModal({
               </Button>
             ))}
           </div>
+
+          {selectedDownloader && selectedDownloader !== Downloader.Torrent && (
+            <p style={{ marginTop: `${SPACING_UNIT}px` }}>
+              <span style={{ color: vars.color.warning }}>{t("warning")}</span>{" "}
+              {t("hydra_needs_to_remain_open")}
+            </p>
+          )}
         </div>
 
         <div

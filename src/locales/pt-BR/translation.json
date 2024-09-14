@@ -124,7 +124,9 @@
     "player_count": "Jogadores ativos",
     "download_error": "Essa opção de download falhou",
     "download": "Baixar",
-    "executable_path_in_use": "Executável em uso por \"{{game}}\""
+    "executable_path_in_use": "Executável em uso por \"{{game}}\"",
+    "warning": "Aviso:",
+    "hydra_needs_to_remain_open": "para este download, o Hydra precisa ficar aberto até a conclusão. Caso o Hydra encerre antes da conclusão, perderá seu progresso."
   },
   "activation": {
     "title": "Ativação",
