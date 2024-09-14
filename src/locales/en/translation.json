@@ -126,7 +126,9 @@
     "stats": "Stats",
     "download_count": "Downloads",
     "player_count": "Active players",
-    "download_error": "This download option is not available"
+    "download_error": "This download option is not available",
+    "download": "Download",
+    "executable_path_in_use": "Executable already in use by \"{{game}}\""
   },
   "activation": {
     "title": "Activate Hydra",

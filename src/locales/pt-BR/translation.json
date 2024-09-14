@@ -122,7 +122,9 @@
     "stats": "Estatísticas",
     "download_count": "Downloads",
     "player_count": "Jogadores ativos",
-    "download_error": "Essa opção de download falhou"
+    "download_error": "Essa opção de download falhou",
+    "download": "Baixar",
+    "executable_path_in_use": "Executável em uso por \"{{game}}\""
   },
   "activation": {
     "title": "Ativação",
