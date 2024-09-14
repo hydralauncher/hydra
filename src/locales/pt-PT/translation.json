@@ -113,7 +113,9 @@
     "create_shortcut_success": "Atalho criado com sucesso",
     "create_shortcut_error": "Erro ao criar atalho",
     "download": "Transferir",
-    "executable_path_in_use": "Executável em uso por \"{{game}}\""
+    "executable_path_in_use": "Executável em uso por \"{{game}}\"",
+    "warning": "Aviso:",
+    "hydra_needs_to_remain_open": "para este download, o Hydra precisa ficar aberto até a conclusão. Caso o Hydra encerre antes da conclusão, perderá seu progresso."
   },
   "activation": {
     "title": "Ativação",
