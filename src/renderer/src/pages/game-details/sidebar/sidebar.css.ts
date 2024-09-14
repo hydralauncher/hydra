@@ -7,10 +7,6 @@ export const contentSidebar = style({
   width: "100%",
   height: "100%",
   "@media": {
-    "(min-width: 768px)": {
-      width: "100%",
-      maxWidth: "200px",
-    },
     "(min-width: 1024px)": {
       maxWidth: "300px",
       width: "100%",
@@ -90,6 +86,14 @@ export const statsSection = style({
   gap: `${SPACING_UNIT * 2}px`,
   padding: `${SPACING_UNIT * 2}px`,
   justifyContent: "space-between",
+  "@media": {
+    "(min-width: 1024px)": {
+      flexDirection: "column",
+    },
+    "(min-width: 1280px)": {
+      flexDirection: "row",
+    },
+  },
 });
 
 export const statsCategoryTitle = style({
@@ -104,7 +108,6 @@ export const statsCategory = style({
   display: "flex",
   flexDirection: "column",
   gap: `${SPACING_UNIT / 2}px`,
-  alignItems: "flex-end",
 });
 
 globalStyle(`${requirementsDetails} a`, {

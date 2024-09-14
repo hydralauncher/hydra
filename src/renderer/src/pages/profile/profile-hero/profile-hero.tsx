@@ -4,8 +4,10 @@ import * as styles from "./profile-hero.css";
 import { useCallback, useContext, useMemo, useState } from "react";
 import { userProfileContext } from "@renderer/context";
 import {
+  BlockedIcon,
   CheckCircleFillIcon,
   PencilIcon,
+  PersonAddIcon,
   PersonIcon,
   SignOutIcon,
   XCircleFillIcon,
@@ -13,7 +15,12 @@ import {
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { Button, Link } from "@renderer/components";
 import { useTranslation } from "react-i18next";
-import { useDate, useToast, useUserDetails } from "@renderer/hooks";
+import {
+  useAppSelector,
+  useDate,
+  useToast,
+  useUserDetails,
+} from "@renderer/hooks";
 import { addSeconds } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
@@ -37,10 +44,11 @@ export function ProfileHero() {
     blockUser,
   } = useUserDetails();
 
+  const { gameRunning } = useAppSelector((state) => state.gameRunning);
+
   const { isMe, heroBackground, getUserProfile } = context;
 
   const userProfile = context.userProfile!;
-  const { currentGame } = userProfile;
 
   const { t } = useTranslation("user_profile");
   const { formatDistance } = useDate();
@@ -63,17 +71,17 @@ export function ProfileHero() {
   }, [navigate, signOut, showSuccessToast, t]);
 
   const handleFriendAction = useCallback(
-    (userId: string, action: FriendAction) => {
+    async (userId: string, action: FriendAction) => {
       setIsPerformingAction(true);
 
       try {
         if (action === "UNDO_FRIENDSHIP") {
-          undoFriendship(userId).then(getUserProfile);
+          await undoFriendship(userId).then(getUserProfile);
           return;
         }
 
         if (action === "BLOCK") {
-          blockUser(userId).then(() => {
+          await blockUser(userId).then(() => {
             showSuccessToast(t("user_blocked_successfully"));
             navigate(-1);
           });
@@ -82,11 +90,11 @@ export function ProfileHero() {
         }
 
         if (action === "SEND") {
-          sendFriendRequest(userProfile.id).then(getUserProfile);
+          await sendFriendRequest(userProfile.id).then(getUserProfile);
           return;
         }
 
-        updateFriendRequestState(userId, action).then(getUserProfile);
+        await updateFriendRequestState(userId, action).then(getUserProfile);
       } catch (err) {
         showErrorToast(t("try_again"));
       } finally {
@@ -140,6 +148,7 @@ export function ProfileHero() {
             onClick={() => handleFriendAction(userProfile.id, "SEND")}
             disabled={isPerformingAction}
           >
+            <PersonAddIcon />
             {t("add_friend")}
           </Button>
 
@@ -148,6 +157,7 @@ export function ProfileHero() {
             onClick={() => handleFriendAction(userProfile.id, "BLOCK")}
             disabled={isPerformingAction}
           >
+            <BlockedIcon />
             {t("block_user")}
           </Button>
         </>
@@ -217,6 +227,20 @@ export function ProfileHero() {
       setShowEditProfileModal(true);
     }
   }, [isMe]);
+
+  const currentGame = useMemo(() => {
+    if (isMe) {
+      if (gameRunning)
+        return {
+          ...gameRunning,
+          objectId: gameRunning.objectID,
+          sessionDurationInSeconds: gameRunning.sessionDurationInMillis / 1000,
+        };
+
+      return null;
+    }
+    return userProfile.currentGame;
+  }, [isMe, userProfile, gameRunning]);
 
   return (
     <>
@@ -289,8 +313,14 @@ export function ProfileHero() {
         </div>
 
         <div className={styles.heroPanel}>
-          <div></div>
-          <div style={{ display: "flex", gap: `${SPACING_UNIT}px` }}>
+          <div
+            style={{
+              display: "flex",
+              gap: `${SPACING_UNIT}px`,
+              justifyContent: "flex-end",
+              flex: 1,
+            }}
+          >
             {profileActions}
           </div>
         </div>

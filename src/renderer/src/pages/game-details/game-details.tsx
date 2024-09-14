@@ -110,6 +110,7 @@ export function GameDetails() {
           };
 
           const handleNSFWContentRefuse = () => {
+            setHasNSFWContentBlocked(false);
             navigate(-1);
           };
 
