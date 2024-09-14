@@ -57,8 +57,17 @@ export function GameOptionsModal({
     const path = await selectGameExecutable();
 
     if (path) {
-      await window.electron.updateExecutablePath(game.id, path);
-      updateGame();
+      const gameUsingPath =
+        await window.electron.verifyExecutablePathInUse(path);
+
+      if (gameUsingPath) {
+        showErrorToast(
+          t("executable_path_in_use", { game: gameUsingPath.title })
+        );
+        return;
+      }
+
+      window.electron.updateExecutablePath(game.id, path).then(updateGame);
     }
   };
 

@@ -111,7 +111,9 @@
     "download_paused": "Transferência pausada",
     "last_downloaded_option": "Última opção transferida",
     "create_shortcut_success": "Atalho criado com sucesso",
-    "create_shortcut_error": "Erro ao criar atalho"
+    "create_shortcut_error": "Erro ao criar atalho",
+    "download": "Transferir",
+    "executable_path_in_use": "Executável em uso por \"{{game}}\""
   },
   "activation": {
     "title": "Ativação",
