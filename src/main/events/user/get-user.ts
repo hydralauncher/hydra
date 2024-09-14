@@ -2,7 +2,6 @@ import { registerEvent } from "../register-event";
 import { HydraApi, logger } from "@main/services";
 import { steamGamesWorker } from "@main/workers";
 import type { UserProfile } from "@types";
-import { getUserFriends } from "./get-user-friends";
 import { steamUrlBuilder } from "@shared";
 
 const getSteamGame = async (objectId: string) => {
