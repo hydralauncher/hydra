@@ -1,9 +1,9 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
-import type { FriendRequest, UserDetails } from "@types";
+import type { FriendRequest, UserProfile } from "@types";
 
 export interface UserDetailsState {
-  userDetails: UserDetails | null;
+  userDetails: UserProfile | null;
   profileBackground: null | string;
   friendRequests: FriendRequest[];
   isFriendsModalVisible: boolean;
@@ -24,7 +24,7 @@ export const userDetailsSlice = createSlice({
   name: "user-details",
   initialState,
   reducers: {
-    setUserDetails: (state, action: PayloadAction<UserDetails | null>) => {
+    setUserDetails: (state, action: PayloadAction<UserProfile | null>) => {
       state.userDetails = action.payload;
     },
     setProfileBackground: (state, action: PayloadAction<string | null>) => {

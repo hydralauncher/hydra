@@ -6,6 +6,8 @@
   "home": {
     "featured": "Destaques",
     "trending": "Populares",
+    "hot": "🔥 Populares agora",
+    "weekly": "📅 Mais baixados da semana",
     "surprise_me": "Surpreenda-me",
     "no_results": "Nenhum resultado encontrado",
     "start_typing": "Comece a digitar para pesquisar…"
@@ -22,7 +24,8 @@
     "home": "Início",
     "queued": "{{title}} (Na fila)",
     "game_has_no_executable": "Jogo não possui executável selecionado",
-    "sign_in": "Login"
+    "sign_in": "Login",
+    "friends": "Amigos"
   },
   "header": {
     "search": "Buscar jogos",
@@ -111,7 +114,19 @@
     "download_paused": "Download pausado",
     "last_downloaded_option": "Última opção baixada",
     "create_shortcut_success": "Atalho criado com sucesso",
-    "create_shortcut_error": "Erro ao criar atalho"
+    "create_shortcut_error": "Erro ao criar atalho",
+    "nsfw_content_title": "Este jogo contém conteúdo inapropriado",
+    "nsfw_content_description": "{{title}} contém conteúdo que pode não ser apropriado para todas as idades. Você deseja continuar?",
+    "allow_nsfw_content": "Continuar",
+    "refuse_nsfw_content": "Voltar",
+    "stats": "Estatísticas",
+    "download_count": "Downloads",
+    "player_count": "Jogadores ativos",
+    "download_error": "Essa opção de download falhou",
+    "download": "Baixar",
+    "executable_path_in_use": "Executável em uso por \"{{game}}\"",
+    "warning": "Aviso:",
+    "hydra_needs_to_remain_open": "para este download, o Hydra precisa ficar aberto até a conclusão. Caso o Hydra encerre antes da conclusão, perderá seu progresso."
   },
   "activation": {
     "title": "Ativação",
@@ -190,7 +205,18 @@
     "found_download_option_zero": "Nenhuma opção de download encontrada",
     "found_download_option_one": "{{countFormatted}} opção de download encontrada",
     "found_download_option_other": "{{countFormatted}} opções de download encontradas",
-    "import": "Importar"
+    "import": "Importar",
+    "privacy": "Privacidade",
+    "private": "Privado",
+    "friends_only": "Apenas amigos",
+    "public": "Público",
+    "profile_visibility": "Visibilidade do perfil",
+    "profile_visibility_description": "Escolha quem pode ver seu perfil e biblioteca",
+    "required_field": "Este campo é obrigatório",
+    "source_already_exists": "Essa fonte já foi adicionada",
+    "must_be_valid_url": "A fonte deve ser uma URL válida",
+    "blocked_users": "Usuários bloqueados",
+    "user_unblocked": "Usuário desbloqueado"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -241,7 +267,7 @@
     "cancel": "Cancelar",
     "successfully_signed_out": "Deslogado com sucesso",
     "sign_out": "Sair da conta",
-    "sign_out_modal_title": "Tem certeza?",
+    "sign_out_modal_title": "Deseja mesmo sair?",
     "playing_for": "Jogando por {{amount}}",
     "sign_out_modal_text": "Sua biblioteca de jogos está associada com a sua conta atual. Ao sair, sua biblioteca não aparecerá mais no Hydra e qualquer progresso não será salvo. Deseja continuar?",
     "add_friends": "Adicionar Amigos",
@@ -264,11 +290,6 @@
     "request_accepted": "Pedido de amizade aceito",
     "user_blocked_successfully": "Usuário bloqueado com sucesso",
     "user_block_modal_text": "Bloquear {{displayName}}",
-    "settings": "Configurações",
-    "privacy": "Privacidade",
-    "private": "Privado",
-    "friends_only": "Apenas amigos",
-    "public": "Público",
     "blocked_users": "Usuários bloqueados",
     "unblock": "Desbloquear",
     "no_friends_added": "Você ainda não possui amigos adicionados",
@@ -277,6 +298,23 @@
     "no_blocked_users": "Você não tem nenhum usuário bloqueado",
     "friend_code_copied": "Código de amigo copiado",
     "undo_friendship_modal_text": "Isso irá remover sua amizade com {{displayName}}",
-    "image_process_failure": "Falha ao processar a imagem"
+    "privacy_hint": "Pra controlar quem pode ver seu perfil, acesse a <0>Tela de Configurações</0>",
+    "profile_locked": "Este perfil é privado",
+    "image_process_failure": "Falha ao processar a imagem",
+    "required_field": "Este campo é obrigatório",
+    "displayname_min_length": "Nome de exibição deve ter pelo menos 3 caracteres",
+    "displayname_max_length": "Nome de exibição deve ter no máximo 50 caracteres",
+    "locked_profile": "Este perfil é privado",
+    "report_profile": "Reportar este perfil",
+    "report_reason": "Por que você deseja reportar este perfil?",
+    "report_description": "Informações adicionais",
+    "report_description_placeholder": "Insira aqui",
+    "report": "Reportar",
+    "report_reason_hate": "Discurso de ódio",
+    "report_reason_sexual_content": "Conteúdo sexual",
+    "report_reason_violence": "Violência",
+    "report_reason_spam": "Spam",
+    "report_reason_other": "Outro",
+    "profile_reported": "Perfil reportado"
   }
 }

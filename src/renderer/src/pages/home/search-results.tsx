@@ -7,7 +7,7 @@ import type { DebouncedFunc } from "lodash";
 import { debounce } from "lodash";
 
 import { InboxIcon, SearchIcon } from "@primer/octicons-react";
-import { clearSearch } from "@renderer/features";
+import { clearSearch, setSearch } from "@renderer/features";
 import { useAppDispatch } from "@renderer/hooks";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -36,6 +36,10 @@ export function SearchResults() {
     dispatch(clearSearch());
     navigate(buildGameDetailsPath(game));
   };
+
+  useEffect(() => {
+    dispatch(setSearch(searchParams.get("query") ?? ""));
+  }, [dispatch, searchParams]);
 
   useEffect(() => {
     setIsLoading(true);

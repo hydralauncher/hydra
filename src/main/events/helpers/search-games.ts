@@ -1,8 +1,8 @@
 import type { GameShop, CatalogueEntry, SteamGame } from "@types";
 
-import { getSteamAppAsset } from "@main/helpers";
 import { steamGamesWorker } from "@main/workers";
 import { RepacksManager } from "@main/services";
+import { steamUrlBuilder } from "@shared";
 
 export interface SearchGamesArgs {
   query?: string;
@@ -16,7 +16,7 @@ export const convertSteamGameToCatalogueEntry = (
   objectID: String(game.id),
   title: game.name,
   shop: "steam" as GameShop,
-  cover: getSteamAppAsset("library", String(game.id)),
+  cover: steamUrlBuilder.library(String(game.id)),
   repacks: [],
 });
 

@@ -7,10 +7,12 @@ import {
   setFriendsModalVisible,
   setFriendsModalHidden,
 } from "@renderer/features";
-import { profileBackgroundFromProfileImage } from "@renderer/helpers";
-import { FriendRequestAction, UpdateProfileProps, UserDetails } from "@types";
+import type {
+  FriendRequestAction,
+  UpdateProfileRequest,
+  UserProfile,
+} from "@types";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
-import { logger } from "@renderer/logger";
 
 export function useUserDetails() {
   const dispatch = useAppDispatch();
@@ -38,17 +40,18 @@ export function useUserDetails() {
   }, [clearUserDetails]);
 
   const updateUserDetails = useCallback(
-    async (userDetails: UserDetails) => {
+    async (userDetails: UserProfile) => {
       dispatch(setUserDetails(userDetails));
 
       if (userDetails.profileImageUrl) {
-        const profileBackground = await profileBackgroundFromProfileImage(
-          userDetails.profileImageUrl
-        ).catch((err) => {
-          logger.error("profileBackgroundFromProfileImage", err);
-          return `#151515B3`;
-        });
-        dispatch(setProfileBackground(profileBackground));
+        // TODO: Decide if we want to use this
+        // const profileBackground = await profileBackgroundFromProfileImage(
+        //   userDetails.profileImageUrl
+        // ).catch((err) => {
+        //   logger.error("profileBackgroundFromProfileImage", err);
+        //   return `#151515B3`;
+        // });
+        // dispatch(setProfileBackground(profileBackground));
 
         window.localStorage.setItem(
           "userDetails",
@@ -64,7 +67,7 @@ export function useUserDetails() {
         );
       }
     },
-    [dispatch]
+    [dispatch, profileBackground]
   );
 
   const fetchUserDetails = useCallback(async () => {
@@ -78,14 +81,14 @@ export function useUserDetails() {
   }, [clearUserDetails]);
 
   const patchUser = useCallback(
-    async (props: UpdateProfileProps) => {
-      const response = await window.electron.updateProfile(props);
+    async (values: UpdateProfileRequest) => {
+      const response = await window.electron.updateProfile(values);
       return updateUserDetails(response);
     },
     [updateUserDetails]
   );
 
-  const fetchFriendRequests = useCallback(() => {
+  const fetchFriendRequests = useCallback(async () => {
     return window.electron
       .getFriendRequests()
       .then((friendRequests) => {
@@ -124,13 +127,10 @@ export function useUserDetails() {
     [fetchFriendRequests]
   );
 
-  const undoFriendship = (userId: string) => {
-    return window.electron.undoFriendship(userId);
-  };
+  const undoFriendship = (userId: string) =>
+    window.electron.undoFriendship(userId);
 
-  const blockUser = (userId: string) => {
-    return window.electron.blockUser(userId);
-  };
+  const blockUser = (userId: string) => window.electron.blockUser(userId);
 
   const unblockUser = (userId: string) => {
     return window.electron.unblockUser(userId);

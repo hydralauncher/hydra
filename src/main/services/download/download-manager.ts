@@ -11,6 +11,7 @@ import { GenericHttpDownloader } from "./generic-http-downloader";
 
 export class DownloadManager {
   private static currentDownloader: Downloader | null = null;
+  private static downloadingGameId: number | null = null;
 
   public static async watchDownloads() {
     let status: DownloadProgress | null = null;
@@ -76,13 +77,14 @@ export class DownloadManager {
 
     WindowManager.mainWindow?.setProgressBar(-1);
     this.currentDownloader = null;
+    this.downloadingGameId = null;
   }
 
   static async resumeDownload(game: Game) {
     return this.startDownload(game);
   }
 
-  static async cancelDownload(gameId: number) {
+  static async cancelDownload(gameId = this.downloadingGameId!) {
     if (this.currentDownloader === Downloader.Torrent) {
       PythonInstance.cancelDownload(gameId);
     } else if (this.currentDownloader === Downloader.RealDebrid) {
@@ -93,6 +95,7 @@ export class DownloadManager {
 
     WindowManager.mainWindow?.setProgressBar(-1);
     this.currentDownloader = null;
+    this.downloadingGameId = null;
   }
 
   static async startDownload(game: Game) {
@@ -131,5 +134,6 @@ export class DownloadManager {
     }
 
     this.currentDownloader = game.downloader;
+    this.downloadingGameId = game.id;
   }
 }

@@ -3,10 +3,11 @@ import { gameRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
 
 import type { GameShop } from "@types";
-import { getFileBase64, getSteamAppAsset } from "@main/helpers";
+import { getFileBase64 } from "@main/helpers";
 
 import { steamGamesWorker } from "@main/workers";
 import { createGame } from "@main/services/library-sync";
+import { steamUrlBuilder } from "@shared";
 
 const addGameToLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -32,7 +33,7 @@ const addGameToLibrary = async (
         });
 
         const iconUrl = steamGame?.clientIcon
-          ? getSteamAppAsset("icon", objectID, steamGame.clientIcon)
+          ? steamUrlBuilder.icon(objectID, steamGame.clientIcon)
           : null;
 
         await gameRepository
@@ -53,7 +54,7 @@ const addGameToLibrary = async (
 
       const game = await gameRepository.findOne({ where: { objectID } });
 
-      createGame(game!);
+      createGame(game!).catch(() => {});
     });
 };
 

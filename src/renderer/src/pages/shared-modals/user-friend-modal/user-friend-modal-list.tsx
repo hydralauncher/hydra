@@ -80,7 +80,7 @@ export const UserFriendModalList = ({
 
   const handleClickFriend = (userId: string) => {
     closeModal();
-    navigate(`/user/${userId}`);
+    navigate(`/profile/${userId}`);
   };
 
   const handleUndoFriendship = (userId: string) => {

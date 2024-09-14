@@ -1,5 +1,12 @@
-import { ComplexStyleRule, globalStyle, style } from "@vanilla-extract/css";
+import {
+  ComplexStyleRule,
+  createContainer,
+  globalStyle,
+  style,
+} from "@vanilla-extract/css";
 import { SPACING_UNIT, vars } from "./theme.css";
+
+export const appContainer = createContainer();
 
 globalStyle("*", {
   boxSizing: "border-box",
@@ -90,6 +97,8 @@ export const container = style({
   overflow: "hidden",
   display: "flex",
   flexDirection: "column",
+  containerName: appContainer,
+  containerType: "inline-size",
 });
 
 export const content = style({

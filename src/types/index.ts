@@ -1,4 +1,5 @@
 import type { DownloadSourceStatus, Downloader } from "@shared";
+import type { SteamAppDetails } from "./steam.types";
 
 export type GameStatus =
   | "active"
@@ -11,58 +12,6 @@ export type GameStatus =
 export type GameShop = "steam" | "epic";
 
 export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
-
-export interface SteamGenre {
-  id: string;
-  name: string;
-}
-
-export interface SteamScreenshot {
-  id: number;
-  path_thumbnail: string;
-  path_full: string;
-}
-
-export interface SteamVideoSource {
-  max: string;
-  "480": string;
-}
-
-export interface SteamMovies {
-  id: number;
-  mp4: SteamVideoSource;
-  webm: SteamVideoSource;
-  thumbnail: string;
-  name: string;
-  highlight: boolean;
-}
-
-export interface SteamAppDetails {
-  name: string;
-  detailed_description: string;
-  about_the_game: string;
-  short_description: string;
-  publishers: string[];
-  genres: SteamGenre[];
-  movies?: SteamMovies[];
-  screenshots?: SteamScreenshot[];
-  pc_requirements: {
-    minimum: string;
-    recommended: string;
-  };
-  mac_requirements: {
-    minimum: string;
-    recommended: string;
-  };
-  linux_requirements: {
-    minimum: string;
-    recommended: string;
-  };
-  release_date: {
-    coming_soon: boolean;
-    date: string;
-  };
-}
 
 export interface GameRepack {
   id: number;
@@ -99,7 +48,7 @@ export interface CatalogueEntry {
 }
 
 export interface UserGame {
-  objectID: string;
+  objectId: string;
   shop: GameShop;
   title: string;
   iconUrl: string | null;
@@ -203,83 +152,12 @@ export interface StartGameDownloadPayload {
   downloader: Downloader;
 }
 
-export interface RealDebridUnrestrictLink {
-  id: string;
-  filename: string;
-  mimeType: string;
-  filesize: number;
-  link: string;
-  host: string;
-  host_icon: string;
-  chunks: number;
-  crc: number;
-  download: string;
-  streamable: number;
-}
-
-export interface RealDebridAddMagnet {
-  id: string;
-  // URL of the created ressource
-  uri: string;
-}
-
-export interface RealDebridTorrentInfo {
-  id: string;
-  filename: string;
-  original_filename: string;
-  hash: string;
-  bytes: number;
-  original_bytes: number;
-  host: string;
-  split: number;
-  progress: number;
-  status:
-    | "magnet_error"
-    | "magnet_conversion"
-    | "waiting_files_selection"
-    | "queued"
-    | "downloading"
-    | "downloaded"
-    | "error"
-    | "virus"
-    | "compressing"
-    | "uploading"
-    | "dead";
-  added: string;
-  files: {
-    id: number;
-    path: string;
-    bytes: number;
-    selected: number;
-  }[];
-  links: string[];
-  ended: string;
-  speed: number;
-  seeders: number;
-}
-
-export interface RealDebridUser {
-  id: number;
-  username: string;
-  email: string;
-  points: number;
-  locale: string;
-  avatar: string;
-  type: string;
-  premium: number;
-  expiration: string;
-}
-
-export interface UserDetails {
-  id: string;
-  displayName: string;
-  profileImageUrl: string | null;
-}
-
 export interface UserFriend {
   id: string;
   displayName: string;
   profileImageUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface UserFriends {
@@ -307,6 +185,11 @@ export interface UserRelation {
   updatedAt: string;
 }
 
+export interface UserProfileCurrentGame extends Omit<GameRunning, "objectID"> {
+  objectId: string;
+  sessionDurationInSeconds: number;
+}
+
 export interface UserProfile {
   id: string;
   displayName: string;
@@ -318,10 +201,10 @@ export interface UserProfile {
   friends: UserFriend[];
   totalFriends: number;
   relation: UserRelation | null;
-  currentGame: GameRunning | null;
+  currentGame: UserProfileCurrentGame | null;
 }
 
-export interface UpdateProfileProps {
+export interface UpdateProfileRequest {
   displayName?: string;
   profileVisibility?: "PUBLIC" | "PRIVATE" | "FRIENDS";
   profileImageUrl?: string | null;
@@ -340,8 +223,22 @@ export interface DownloadSource {
   updatedAt: Date;
 }
 
+export interface GameStats {
+  downloadCount: number;
+  playerCount: number;
+}
+
 export interface TrendingGame {
   uri: string;
   description: string;
   background: string;
+  logo: string | null;
 }
+
+export interface UserStats {
+  libraryCount: number;
+  friendsCount: number;
+}
+
+export * from "./steam.types";
+export * from "./real-debrid.types";

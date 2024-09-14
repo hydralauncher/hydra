@@ -8,6 +8,8 @@
     "trending": "Tendencias",
     "surprise_me": "¡Sorpréndeme!",
     "no_results": "No se encontraron resultados",
+    "hot": "🔥 Caliente ahora",
+    "weekly": "📅 Los mejores juegos de la semana",
     "start_typing": "Empieza a escribir para buscar..."
   },
   "sidebar": {
@@ -22,7 +24,8 @@
     "home": "Inicio",
     "queued": "{{title}} (En Cola)",
     "game_has_no_executable": "El juego no tiene un ejecutable",
-    "sign_in": "Iniciar sesión"
+    "sign_in": "Iniciar sesión",
+    "friends": "Amigos"
   },
   "header": {
     "search": "Buscar juegos",
@@ -115,7 +118,17 @@
     "download_paused": "Descarga pausada",
     "last_downloaded_option": "Última opción descargada",
     "create_shortcut_success": "Atajo creado con éxito",
-    "create_shortcut_error": "Error al crear un atajo"
+    "create_shortcut_error": "Error al crear un atajo",
+    "allow_nsfw_content": "Continuar",
+    "download": "Descargar",
+    "download_count": "Descargas",
+    "download_error": "Esta opción de descarga no está disponible.",
+    "executable_path_in_use": "Ejecutable ya en uso por \"{{game}}\"",
+    "nsfw_content_description": "{{title}} incluye contenido que puede no ser adecuado para todas las edades. \n¿Estás seguro de que quieres continuar?",
+    "nsfw_content_title": "Este juego contiene contenido inapropiado.",
+    "player_count": "Jugadores activos",
+    "refuse_nsfw_content": "Volver",
+    "stats": "Estadísticas"
   },
   "activation": {
     "title": "Activar Hydra",
@@ -191,7 +204,21 @@
     "found_download_option_zero": "No se encontró una opción de descarga",
     "found_download_option_one": "Se encontró {{countFormatted}} opción de descarga",
     "found_download_option_other": "Se encontraron {{countFormatted}} opciones de descarga",
-    "import": "Importar"
+    "import": "Importar",
+    "blocked_users": "Usuarios bloqueados",
+    "download_options_one": "",
+    "download_options_other": "",
+    "download_options_zero": "",
+    "friends_only": "solo amigos",
+    "must_be_valid_url": "La fuente debe ser una URL válida.",
+    "privacy": "Privacidad",
+    "private": "Privado",
+    "profile_visibility": "Visibilidad del perfil",
+    "profile_visibility_description": "Elige quién puede ver tu perfil y biblioteca",
+    "public": "Público",
+    "required_field": "Este campo es obligatorio",
+    "source_already_exists": "Esta fuente ya ha sido agregada.",
+    "user_unblocked": "El usuario ha sido desbloqueado"
   },
   "notifications": {
     "download_complete": "Descarga completada",
@@ -261,11 +288,6 @@
     "request_accepted": "Solicitud aceptada",
     "user_blocked_successfully": "Usuario bloqueado exitosamente",
     "user_block_modal_text": "Esto va a bloquear a {{displayName}}",
-    "settings": "Ajustes",
-    "public": "Público",
-    "private": "Privado",
-    "friends_only": "Solo Amigos",
-    "privacy": "Privacidad",
     "blocked_users": "Usuarios bloqueados",
     "unblock": "Desbloquear",
     "no_friends_added": "Todavía no tienes amigos añadidos",
@@ -274,6 +296,23 @@
     "no_blocked_users": "No has bloqueado a ningún usuario",
     "friend_code_copied": "Código de amigo copiado",
     "undo_friendship_modal_text": "Esto deshará tu amistad con {{displayName}}",
+    "displayname_max_length": "El nombre para mostrar debe tener como máximo 50 caracteres",
+    "displayname_min_length": "El nombre para mostrar debe tener al menos 3 caracteres",
+    "locked_profile": "Este perfil es privado.",
+    "privacy_hint": "Para ajustar quién puede ver esto, ve a <0>Configuración</0>.",
+    "profile_locked": "",
+    "profile_reported": "Perfil reportado",
+    "report": "Informe",
+    "report_description": "Información adicional",
+    "report_description_placeholder": "Información adicional",
+    "report_profile": "Reportar este perfil",
+    "report_reason": "¿Por qué estás denunciando este perfil?",
+    "report_reason_hate": "Discurso de odio",
+    "report_reason_other": "Otro",
+    "report_reason_sexual_content": "Contenido sexual",
+    "report_reason_spam": "Correo basura",
+    "report_reason_violence": "Violencia",
+    "required_field": "Este campo es obligatorio",
     "image_process_failure": "Error al procesar la imagen"
   }
 }

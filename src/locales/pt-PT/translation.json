@@ -111,7 +111,11 @@
     "download_paused": "Transferência pausada",
     "last_downloaded_option": "Última opção transferida",
     "create_shortcut_success": "Atalho criado com sucesso",
-    "create_shortcut_error": "Erro ao criar atalho"
+    "create_shortcut_error": "Erro ao criar atalho",
+    "download": "Transferir",
+    "executable_path_in_use": "Executável em uso por \"{{game}}\"",
+    "warning": "Aviso:",
+    "hydra_needs_to_remain_open": "para este download, o Hydra precisa ficar aberto até a conclusão. Caso o Hydra encerre antes da conclusão, perderá seu progresso."
   },
   "activation": {
     "title": "Ativação",
@@ -169,8 +173,6 @@
     "save_changes": "Guardar alterações",
     "changes_saved": "Definições guardadas com sucesso",
     "download_sources_description": "O Hydra vai procurar links de transferência em todas as fontes ativadas. A URL da página de detalhes da loja não é guardada no seu dispositivo. Utilizamos um sistema de metadados criado pela comunidade para fornecer suporte a mais fontes de transferência de jogos.",
-    "enable_source": "Ativar",
-    "disable_source": "Desativar",
     "validate_download_source": "Validar",
     "remove_download_source": "Remover",
     "add_download_source": "Adicionar fonte",
@@ -266,11 +268,6 @@
     "request_accepted": "Pedido de amizade aceito",
     "user_blocked_successfully": "Utilizador bloqueado com sucesso",
     "user_block_modal_text": "Bloquear {{displayName}}",
-    "settings": "Definições",
-    "privacy": "Privacidade",
-    "private": "Privado",
-    "friends_only": "Apenas amigos",
-    "public": "Público",
     "blocked_users": "Utilizadores bloqueados",
     "unblock": "Desbloquear",
     "no_friends_added": "Ainda não adicionaste amigos",
