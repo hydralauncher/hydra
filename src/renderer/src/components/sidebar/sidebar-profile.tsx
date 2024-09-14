@@ -1,60 +1,79 @@
 import { useNavigate } from "react-router-dom";
-import { PersonAddIcon, PersonIcon } from "@primer/octicons-react";
+import { PeopleIcon, PersonIcon } from "@primer/octicons-react";
 import * as styles from "./sidebar-profile.css";
-import { assignInlineVars } from "@vanilla-extract/dynamic";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { profileContainerBackground } from "./sidebar-profile.css";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
-import { FriendRequest } from "@types";
+
+const LONG_POLLING_INTERVAL = 10_000;
 
 export function SidebarProfile() {
   const navigate = useNavigate();
 
+  const pollingInterval = useRef<NodeJS.Timeout | null>(null);
+
   const { t } = useTranslation("sidebar");
 
-  const { userDetails, profileBackground, friendRequests, showFriendsModal } =
+  const { userDetails, friendRequests, showFriendsModal, fetchFriendRequests } =
     useUserDetails();
-
-  const [receivedRequests, setReceivedRequests] = useState<FriendRequest[]>([]);
-
-  useEffect(() => {
-    setReceivedRequests(
-      friendRequests.filter((request) => request.type === "RECEIVED")
-    );
-  }, [friendRequests]);
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
 
-  const handleButtonClick = () => {
+  const receivedRequests = useMemo(() => {
+    return friendRequests.filter((request) => request.type === "RECEIVED");
+  }, [friendRequests]);
+
+  const handleProfileClick = () => {
     if (userDetails === null) {
       window.electron.openAuthWindow();
       return;
     }
 
-    navigate(`/user/${userDetails!.id}`);
+    navigate(`/profile/${userDetails!.id}`);
   };
 
-  const profileButtonBackground = useMemo(() => {
-    if (profileBackground) return profileBackground;
-    return undefined;
-  }, [profileBackground]);
+  useEffect(() => {
+    pollingInterval.current = setInterval(() => {
+      fetchFriendRequests();
+    }, LONG_POLLING_INTERVAL);
 
-  const showPendingRequests =
-    userDetails && receivedRequests.length > 0 && !gameRunning;
+    return () => {
+      if (pollingInterval.current) {
+        clearInterval(pollingInterval.current);
+      }
+    };
+  }, [fetchFriendRequests]);
+
+  const friendsButton = useMemo(() => {
+    if (!userDetails) return null;
+
+    return (
+      <button
+        type="button"
+        className={styles.friendsButton}
+        onClick={() =>
+          showFriendsModal(UserFriendModalTab.AddFriend, userDetails.id)
+        }
+        title={t("friends")}
+      >
+        {receivedRequests.length > 0 && (
+          <small className={styles.friendsButtonBadge}>
+            {receivedRequests.length > 99 ? "99+" : receivedRequests.length}
+          </small>
+        )}
+
+        <PeopleIcon size={16} />
+      </button>
+    );
+  }, [userDetails, t, receivedRequests, showFriendsModal]);
 
   return (
-    <div
-      className={styles.profileContainer}
-      style={assignInlineVars({
-        [profileContainerBackground]: profileButtonBackground,
-      })}
-    >
+    <div className={styles.profileContainer}>
       <button
         type="button"
         className={styles.profileButton}
-        onClick={handleButtonClick}
+        onClick={handleProfileClick}
       >
         <div className={styles.profileButtonContent}>
           <div className={styles.profileAvatar}>
@@ -75,34 +94,31 @@ export function SidebarProfile() {
             </p>
 
             {userDetails && gameRunning && (
-              <div>
+              <div
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  width: "100%",
+                }}
+              >
                 <small>{gameRunning.title}</small>
               </div>
             )}
           </div>
 
-          {userDetails && gameRunning?.iconUrl && (
+          {userDetails && gameRunning && (
             <img
               alt={gameRunning.title}
               width={24}
               style={{ borderRadius: 4 }}
-              src={gameRunning.iconUrl}
+              src={gameRunning.iconUrl!}
             />
           )}
         </div>
       </button>
-      {showPendingRequests && (
-        <button
-          type="button"
-          className={styles.friendRequestButton}
-          onClick={() =>
-            showFriendsModal(UserFriendModalTab.AddFriend, userDetails.id)
-          }
-        >
-          <PersonAddIcon size={24} />
-          {receivedRequests.length}
-        </button>
-      )}
+
+      {friendsButton}
     </div>
   );
 }

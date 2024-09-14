@@ -11,3 +11,4 @@ export * from "./link/link";
 export * from "./select-field/select-field";
 export * from "./toast/toast";
 export * from "./badge/badge";
+export * from "./confirmation-modal/confirmation-modal";

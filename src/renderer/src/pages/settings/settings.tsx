@@ -11,16 +11,26 @@ import {
   SettingsContextConsumer,
   SettingsContextProvider,
 } from "@renderer/context";
+import { SettingsPrivacy } from "./settings-privacy";
+import { useUserDetails } from "@renderer/hooks";
+import { useMemo } from "react";
 
 export function Settings() {
   const { t } = useTranslation("settings");
 
-  const categories = [
-    t("general"),
-    t("behavior"),
-    t("download_sources"),
-    "Real-Debrid",
-  ];
+  const { userDetails } = useUserDetails();
+
+  const categories = useMemo(() => {
+    const categories = [
+      t("general"),
+      t("behavior"),
+      t("download_sources"),
+      "Real-Debrid",
+    ];
+
+    if (userDetails) return [...categories, t("privacy")];
+    return categories;
+  }, [userDetails, t]);
 
   return (
     <SettingsContextProvider>
@@ -39,7 +49,11 @@ export function Settings() {
               return <SettingsDownloadSources />;
             }
 
-            return <SettingsRealDebrid />;
+            if (currentCategoryIndex === 3) {
+              return <SettingsRealDebrid />;
+            }
+
+            return <SettingsPrivacy />;
           };
 
           return (

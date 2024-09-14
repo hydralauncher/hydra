@@ -81,3 +81,5 @@ export const publishNotificationUpdateReadyToInstall = async (
     icon: trayIcon,
   }).show();
 };
+
+export const publishNewFriendRequestNotification = async () => {};

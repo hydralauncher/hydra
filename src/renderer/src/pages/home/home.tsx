@@ -13,6 +13,7 @@ import * as styles from "./home.css";
 import { vars } from "@renderer/theme.css";
 import Lottie from "lottie-react";
 import { buildGameDetailsPath } from "@renderer/helpers";
+import { CatalogueCategory } from "@shared";
 
 export function Home() {
   const { t } = useTranslation("home");
@@ -21,15 +22,25 @@ export function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [randomGame, setRandomGame] = useState<Steam250Game | null>(null);
 
-  const [catalogue, setCatalogue] = useState<CatalogueEntry[]>([]);
+  const [currentCatalogueCategory, setCurrentCatalogueCategory] = useState(
+    CatalogueCategory.Hot
+  );
 
-  const getCatalogue = useCallback(() => {
+  const [catalogue, setCatalogue] = useState<
+    Record<CatalogueCategory, CatalogueEntry[]>
+  >({
+    [CatalogueCategory.Hot]: [],
+    [CatalogueCategory.Weekly]: [],
+  });
+
+  const getCatalogue = useCallback((category: CatalogueCategory) => {
+    setCurrentCatalogueCategory(category);
     setIsLoading(true);
 
     window.electron
-      .getCatalogue()
+      .getCatalogue(category)
       .then((catalogue) => {
-        setCatalogue(catalogue);
+        setCatalogue((prev) => ({ ...prev, [category]: catalogue }));
       })
       .catch(() => {})
       .finally(() => {
@@ -56,12 +67,20 @@ export function Home() {
     }
   };
 
+  const handleCategoryClick = (category: CatalogueCategory) => {
+    if (category !== currentCatalogueCategory) {
+      getCatalogue(category);
+    }
+  };
+
   useEffect(() => {
     setIsLoading(true);
-    getCatalogue();
+    getCatalogue(CatalogueCategory.Hot);
 
     getRandomGame();
   }, [getCatalogue, getRandomGame]);
+
+  const categories = Object.values(CatalogueCategory);
 
   return (
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
@@ -71,7 +90,22 @@ export function Home() {
         <Hero />
 
         <section className={styles.homeHeader}>
-          <h2>{t("trending")}</h2>
+          <ul className={styles.buttonsList}>
+            {categories.map((category) => (
+              <li key={category}>
+                <Button
+                  theme={
+                    category === currentCatalogueCategory
+                      ? "primary"
+                      : "outline"
+                  }
+                  onClick={() => handleCategoryClick(category)}
+                >
+                  {t(category)}
+                </Button>
+              </li>
+            ))}
+          </ul>
 
           <Button
             onClick={handleRandomizerClick}
@@ -89,12 +123,14 @@ export function Home() {
           </Button>
         </section>
 
+        <h2>{t(currentCatalogueCategory)}</h2>
+
         <section className={styles.cards}>
           {isLoading
             ? Array.from({ length: 12 }).map((_, index) => (
                 <Skeleton key={index} className={styles.cardSkeleton} />
               ))
-            : catalogue.map((result) => (
+            : catalogue[currentCatalogueCategory].map((result) => (
                 <GameCard
                   key={result.objectID}
                   game={result}

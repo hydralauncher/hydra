@@ -2,7 +2,7 @@ import { registerEvent } from "../register-event";
 import { HydraApi, PythonInstance } from "@main/services";
 import fs from "node:fs";
 import path from "node:path";
-import type { UpdateProfileProps, UserProfile } from "@types";
+import type { UpdateProfileRequest, UserProfile } from "@types";
 import { omit } from "lodash-es";
 import axios from "axios";
 
@@ -11,7 +11,7 @@ interface PresignedResponse {
   profileImageUrl: string;
 }
 
-const patchUserProfile = async (updateProfile: UpdateProfileProps) => {
+const patchUserProfile = async (updateProfile: UpdateProfileRequest) => {
   return HydraApi.patch<UserProfile>("/profile", updateProfile);
 };
 
@@ -40,7 +40,7 @@ const getNewProfileImageUrl = async (localImageUrl: string) => {
 
 const updateProfile = async (
   _event: Electron.IpcMainInvokeEvent,
-  updateProfile: UpdateProfileProps
+  updateProfile: UpdateProfileRequest
 ) => {
   if (!updateProfile.profileImageUrl) {
     return patchUserProfile(omit(updateProfile, "profileImageUrl"));

@@ -1,3 +1,4 @@
+import type { CatalogueCategory } from "@shared";
 import type {
   AppUpdaterEvent,
   CatalogueEntry,
@@ -18,7 +19,10 @@ import type {
   FriendRequestAction,
   UserFriends,
   UserBlocks,
+  UpdateProfileRequest,
+  GameStats,
   TrendingGame,
+  UserStats,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -40,7 +44,7 @@ declare global {
 
     /* Catalogue */
     searchGames: (query: string) => Promise<CatalogueEntry[]>;
-    getCatalogue: () => Promise<CatalogueEntry[]>;
+    getCatalogue: (category: CatalogueCategory) => Promise<CatalogueEntry[]>;
     getGameShopDetails: (
       objectID: string,
       shop: GameShop,
@@ -57,6 +61,7 @@ declare global {
       prevCursor?: number
     ) => Promise<{ results: CatalogueEntry[]; cursor: number }>;
     searchGameRepacks: (query: string) => Promise<GameRepack[]>;
+    getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getTrendingGames: () => Promise<TrendingGame[]>;
 
     /* Library */
@@ -67,6 +72,7 @@ declare global {
     ) => Promise<void>;
     createGameShortcut: (id: number) => Promise<boolean>;
     updateExecutablePath: (id: number, executablePath: string) => Promise<void>;
+    verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
     getLibrary: () => Promise<LibraryGame[]>;
     openGameInstaller: (gameId: number) => Promise<boolean>;
     openGameInstallerPath: (gameId: number) => Promise<boolean>;
@@ -138,11 +144,20 @@ declare global {
       take: number,
       skip: number
     ) => Promise<UserFriends>;
-    getUserBlocks: (take: number, skip: number) => Promise<UserBlocks>;
+    getBlockedUsers: (take: number, skip: number) => Promise<UserBlocks>;
+    getUserStats: (userId: string) => Promise<UserStats>;
+    reportUser: (
+      userId: string,
+      reason: string,
+      description: string
+    ) => Promise<void>;
 
     /* Profile */
     getMe: () => Promise<UserProfile | null>;
     undoFriendship: (userId: string) => Promise<void>;
+    updateProfile: (
+      updateProfile: UpdateProfileRequest
+    ) => Promise<UserProfile>;
     updateProfile: (updateProfile: UpdateProfileProps) => Promise<UserProfile>;
     processProfileImage: (
       path: string

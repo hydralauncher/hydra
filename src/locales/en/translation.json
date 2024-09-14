@@ -8,7 +8,9 @@
     "trending": "Trending",
     "surprise_me": "Surprise me",
     "no_results": "No results found",
-    "start_typing": "Starting typing to search..."
+    "start_typing": "Starting typing to search...",
+    "hot": "🔥 Hot now",
+    "weekly": "📅 Top games of the week"
   },
   "sidebar": {
     "catalogue": "Catalogue",
@@ -22,7 +24,8 @@
     "home": "Home",
     "queued": "{{title}} (Queued)",
     "game_has_no_executable": "Game has no executable selected",
-    "sign_in": "Sign in"
+    "sign_in": "Sign in",
+    "friends": "Friends"
   },
   "header": {
     "search": "Search games",
@@ -115,7 +118,19 @@
     "download_paused": "Download paused",
     "last_downloaded_option": "Last downloaded option",
     "create_shortcut_success": "Shortcut created successfully",
-    "create_shortcut_error": "Error creating shortcut"
+    "create_shortcut_error": "Error creating shortcut",
+    "nsfw_content_title": "This game contains innapropriate content",
+    "nsfw_content_description": "{{title}} contains content that may not be suitable for all ages. Are you sure you want to continue?",
+    "allow_nsfw_content": "Continue",
+    "refuse_nsfw_content": "Go back",
+    "stats": "Stats",
+    "download_count": "Downloads",
+    "player_count": "Active players",
+    "download_error": "This download option is not available",
+    "download": "Download",
+    "executable_path_in_use": "Executable already in use by \"{{game}}\"",
+    "warning": "Warning:",
+    "hydra_needs_to_remain_open": "for this download, Hydra needs to remain open util its conclusion. In case Hydra closes before the conclusion, you will lose your progress."
   },
   "activation": {
     "title": "Activate Hydra",
@@ -191,7 +206,18 @@
     "found_download_option_zero": "No download option found",
     "found_download_option_one": "Found {{countFormatted}} download option",
     "found_download_option_other": "Found {{countFormatted}} download options",
-    "import": "Import"
+    "import": "Import",
+    "public": "Public",
+    "private": "Private",
+    "friends_only": "Friends only",
+    "privacy": "Privacy",
+    "profile_visibility": "Profile visibility",
+    "profile_visibility_description": "Choose who can see your profile and library",
+    "required_field": "This field is required",
+    "source_already_exists": "This source has been already added",
+    "must_be_valid_url": "The source must be a valid URL",
+    "blocked_users": "Blocked users",
+    "user_unblocked": "User has been unblocked"
   },
   "notifications": {
     "download_complete": "Download complete",
@@ -261,11 +287,6 @@
     "request_accepted": "Request accepted",
     "user_blocked_successfully": "User blocked successfully",
     "user_block_modal_text": "This will block {{displayName}}",
-    "settings": "Settings",
-    "public": "Public",
-    "private": "Private",
-    "friends_only": "Friends only",
-    "privacy": "Privacy",
     "blocked_users": "Blocked users",
     "unblock": "Unblock",
     "no_friends_added": "You still don't have added friends",
@@ -274,6 +295,22 @@
     "no_blocked_users": "You have no blocked users",
     "friend_code_copied": "Friend code copied",
     "undo_friendship_modal_text": "This will undo your friendship with {{displayName}}",
-    "image_process_failure": "Failure while processing the image"
+    "privacy_hint": "To adjust who can see this, go to the <0>Settings</0>",
+    "locked_profile": "This profile is private",
+    "image_process_failure": "Failure while processing the image",
+    "required_field": "This field is required",
+    "displayname_min_length": "Display name must be at least 3 characters long",
+    "displayname_max_length": "Display name must be at most 50 characters long",
+    "report_profile": "Report this profile",
+    "report_reason": "Why are you reporting this profile?",
+    "report_description": "Additional information",
+    "report_description_placeholder": "Additional information",
+    "report": "Report",
+    "report_reason_hate": "Hate speech",
+    "report_reason_sexual_content": "Sexual content",
+    "report_reason_violence": "Violence",
+    "report_reason_spam": "Spam",
+    "report_reason_other": "Other",
+    "profile_reported": "Profile reported"
   }
 }

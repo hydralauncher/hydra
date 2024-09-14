@@ -7,10 +7,6 @@ export const contentSidebar = style({
   width: "100%",
   height: "100%",
   "@media": {
-    "(min-width: 768px)": {
-      width: "100%",
-      maxWidth: "200px",
-    },
     "(min-width: 1024px)": {
       maxWidth: "300px",
       width: "100%",
@@ -70,7 +66,7 @@ export const howLongToBeatCategory = style({
   flexDirection: "column",
   gap: "4px",
   backgroundColor: vars.color.background,
-  borderRadius: "8px",
+  borderRadius: "4px",
   padding: `8px 16px`,
   border: `solid 1px ${vars.color.border}`,
 });
@@ -81,8 +77,37 @@ export const howLongToBeatCategoryLabel = style({
 
 export const howLongToBeatCategorySkeleton = style({
   border: `solid 1px ${vars.color.border}`,
-  borderRadius: "8px",
+  borderRadius: "4px",
   height: "76px",
+});
+
+export const statsSection = style({
+  display: "flex",
+  gap: `${SPACING_UNIT * 2}px`,
+  padding: `${SPACING_UNIT * 2}px`,
+  justifyContent: "space-between",
+  "@media": {
+    "(min-width: 1024px)": {
+      flexDirection: "column",
+    },
+    "(min-width: 1280px)": {
+      flexDirection: "row",
+    },
+  },
+});
+
+export const statsCategoryTitle = style({
+  fontSize: "14px",
+  fontWeight: "bold",
+  display: "flex",
+  alignItems: "center",
+  gap: `${SPACING_UNIT}px`,
+});
+
+export const statsCategory = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT / 2}px`,
 });
 
 globalStyle(`${requirementsDetails} a`, {

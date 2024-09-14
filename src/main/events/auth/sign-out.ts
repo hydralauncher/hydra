@@ -1,6 +1,11 @@
 import { registerEvent } from "../register-event";
 import * as Sentry from "@sentry/electron/main";
-import { HydraApi, PythonInstance, gamesPlaytime } from "@main/services";
+import {
+  DownloadManager,
+  HydraApi,
+  PythonInstance,
+  gamesPlaytime,
+} from "@main/services";
 import { dataSource } from "@main/data-source";
 import { DownloadQueue, Game, UserAuth } from "@main/entity";
 
@@ -22,6 +27,9 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
 
   /* Removes user from Sentry */
   Sentry.setUser(null);
+
+  /* Cancels any ongoing downloads */
+  DownloadManager.cancelDownload();
 
   /* Disconnects libtorrent */
   PythonInstance.killTorrent();

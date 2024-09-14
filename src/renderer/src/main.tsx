@@ -22,12 +22,12 @@ import {
   SearchResults,
   Settings,
   Catalogue,
+  Profile,
 } from "@renderer/pages";
 
 import { store } from "./store";
 
 import resources from "@locales";
-import { User } from "./pages/user/user";
 
 Sentry.init({});
 
@@ -41,8 +41,14 @@ i18n
       escapeValue: false,
     },
   })
-  .then(() => {
-    window.electron.updateUserPreferences({ language: i18n.language });
+  .then(async () => {
+    const userPreferences = await window.electron.getUserPreferences();
+
+    if (userPreferences?.language) {
+      i18n.changeLanguage(userPreferences.language);
+    } else {
+      window.electron.updateUserPreferences({ language: i18n.language });
+    }
   });
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
@@ -57,7 +63,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="/game/:shop/:objectID" Component={GameDetails} />
             <Route path="/search" Component={SearchResults} />
             <Route path="/settings" Component={Settings} />
-            <Route path="/user/:userId" Component={User} />
+            <Route path="/profile/:userId" Component={Profile} />
           </Route>
         </Routes>
       </HashRouter>

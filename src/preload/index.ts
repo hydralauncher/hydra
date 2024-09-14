@@ -10,8 +10,9 @@ import type {
   StartGameDownloadPayload,
   GameRunning,
   FriendRequestAction,
-  UpdateProfileProps,
+  UpdateProfileRequest,
 } from "@types";
+import type { CatalogueCategory } from "@shared";
 
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
@@ -34,7 +35,8 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Catalogue */
   searchGames: (query: string) => ipcRenderer.invoke("searchGames", query),
-  getCatalogue: () => ipcRenderer.invoke("getCatalogue"),
+  getCatalogue: (category: CatalogueCategory) =>
+    ipcRenderer.invoke("getCatalogue", category),
   getGameShopDetails: (objectID: string, shop: GameShop, language: string) =>
     ipcRenderer.invoke("getGameShopDetails", objectID, shop, language),
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
@@ -44,6 +46,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGames", take, prevCursor),
   searchGameRepacks: (query: string) =>
     ipcRenderer.invoke("searchGameRepacks", query),
+  getGameStats: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("getGameStats", objectId, shop),
   getTrendingGames: () => ipcRenderer.invoke("getTrendingGames"),
 
   /* User preferences */
@@ -71,6 +75,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("createGameShortcut", id),
   updateExecutablePath: (id: number, executablePath: string) =>
     ipcRenderer.invoke("updateExecutablePath", id, executablePath),
+  verifyExecutablePathInUse: (executablePath: string) =>
+    ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
   openGameInstaller: (gameId: number) =>
     ipcRenderer.invoke("openGameInstaller", gameId),
@@ -139,7 +145,7 @@ contextBridge.exposeInMainWorld("electron", {
   getMe: () => ipcRenderer.invoke("getMe"),
   undoFriendship: (userId: string) =>
     ipcRenderer.invoke("undoFriendship", userId),
-  updateProfile: (updateProfile: UpdateProfileProps) =>
+  updateProfile: (updateProfile: UpdateProfileRequest) =>
     ipcRenderer.invoke("updateProfile", updateProfile),
   processProfileImage: (imagePath: string) =>
     ipcRenderer.invoke("processProfileImage", imagePath),
@@ -155,8 +161,11 @@ contextBridge.exposeInMainWorld("electron", {
   unblockUser: (userId: string) => ipcRenderer.invoke("unblockUser", userId),
   getUserFriends: (userId: string, take: number, skip: number) =>
     ipcRenderer.invoke("getUserFriends", userId, take, skip),
-  getUserBlocks: (take: number, skip: number) =>
-    ipcRenderer.invoke("getUserBlocks", take, skip),
+  getBlockedUsers: (take: number, skip: number) =>
+    ipcRenderer.invoke("getBlockedUsers", take, skip),
+  getUserStats: (userId: string) => ipcRenderer.invoke("getUserStats", userId),
+  reportUser: (userId: string, reason: string, description: string) =>
+    ipcRenderer.invoke("reportUser", userId, reason, description),
 
   /* Auth */
   signOut: () => ipcRenderer.invoke("signOut"),

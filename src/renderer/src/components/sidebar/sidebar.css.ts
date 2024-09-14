@@ -21,25 +21,24 @@ export const sidebar = recipe({
         pointerEvents: "none",
       },
     },
-  },
-});
-
-export const content = recipe({
-  base: {
-    display: "flex",
-    flexDirection: "column",
-    padding: `${SPACING_UNIT * 2}px`,
-    gap: `${SPACING_UNIT * 2}px`,
-    width: "100%",
-    overflow: "auto",
-  },
-  variants: {
-    macos: {
+    darwin: {
       true: {
         paddingTop: `${SPACING_UNIT * 6}px`,
       },
+      false: {
+        paddingTop: `${SPACING_UNIT * 2}px`,
+      },
     },
   },
+});
+
+export const content = style({
+  display: "flex",
+  flexDirection: "column",
+  padding: `${SPACING_UNIT * 2}px`,
+  gap: `${SPACING_UNIT * 2}px`,
+  width: "100%",
+  overflow: "auto",
 });
 
 export const handle = style({

@@ -1,11 +1,13 @@
-import { DownloadIcon, FileDirectoryIcon } from "@primer/octicons-react";
-import type { CatalogueEntry } from "@types";
+import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
+import type { CatalogueEntry, GameStats } from "@types";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 
 import * as styles from "./game-card.css";
 import { useTranslation } from "react-i18next";
 import { Badge } from "../badge/badge";
+import { useCallback, useState } from "react";
+import { useFormat } from "@renderer/hooks";
 
 export interface GameCardProps
   extends React.DetailedHTMLProps<
@@ -22,12 +24,29 @@ const shopIcon = {
 export function GameCard({ game, ...props }: GameCardProps) {
   const { t } = useTranslation("game_card");
 
+  const [stats, setStats] = useState<GameStats | null>(null);
+
   const uniqueRepackers = Array.from(
     new Set(game.repacks.map(({ repacker }) => repacker))
   );
 
+  const handleHover = useCallback(() => {
+    if (!stats) {
+      window.electron.getGameStats(game.objectID, game.shop).then((stats) => {
+        setStats(stats);
+      });
+    }
+  }, [game, stats]);
+
+  const { numberFormatter } = useFormat();
+
   return (
-    <button {...props} type="button" className={styles.card}>
+    <button
+      {...props}
+      type="button"
+      className={styles.card}
+      onMouseEnter={handleHover}
+    >
       <div className={styles.backdrop}>
         <img src={game.cover} alt={game.title} className={styles.cover} />
 
@@ -48,19 +67,20 @@ export function GameCard({ game, ...props }: GameCardProps) {
           ) : (
             <p className={styles.noDownloadsLabel}>{t("no_downloads")}</p>
           )}
-
           <div className={styles.specifics}>
             <div className={styles.specificsItem}>
               <DownloadIcon />
-              <span>{game.repacks.length}</span>
+              <span>
+                {stats ? numberFormatter.format(stats.downloadCount) : "…"}
+              </span>
             </div>
 
-            {game.repacks.length > 0 && (
-              <div className={styles.specificsItem}>
-                <FileDirectoryIcon />
-                <span>{game.repacks.at(0)?.fileSize}</span>
-              </div>
-            )}
+            <div className={styles.specificsItem}>
+              <PeopleIcon />
+              <span>
+                {stats ? numberFormatter.format(stats?.playerCount) : "…"}
+              </span>
+            </div>
           </div>
         </div>
       </div>
