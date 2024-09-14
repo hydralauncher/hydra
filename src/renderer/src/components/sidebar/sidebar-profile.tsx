@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { PeopleIcon, PersonIcon } from "@primer/octicons-react";
 import * as styles from "./sidebar-profile.css";
-import { useUserDetails } from "@renderer/hooks";
+import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
@@ -12,6 +12,8 @@ export function SidebarProfile() {
   const { t } = useTranslation("sidebar");
 
   const { userDetails, friendRequests, showFriendsModal } = useUserDetails();
+
+  const { gameRunning } = useAppSelector((state) => state.gameRunning);
 
   const receivedRequests = useMemo(() => {
     return friendRequests.filter((request) => request.type === "RECEIVED");
@@ -74,19 +76,19 @@ export function SidebarProfile() {
               {userDetails ? userDetails.displayName : t("sign_in")}
             </p>
 
-            {userDetails && userDetails.currentGame && (
+            {userDetails && gameRunning && (
               <div>
-                <small>{userDetails.currentGame.title}</small>
+                <small>{gameRunning.title}</small>
               </div>
             )}
           </div>
 
-          {userDetails && userDetails.currentGame && (
+          {userDetails && gameRunning && (
             <img
-              alt={userDetails.currentGame.title}
+              alt={gameRunning.title}
               width={24}
               style={{ borderRadius: 4 }}
-              src={userDetails.currentGame.iconUrl!}
+              src={gameRunning.iconUrl!}
             />
           )}
         </div>

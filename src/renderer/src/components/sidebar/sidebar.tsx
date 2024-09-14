@@ -23,6 +23,8 @@ const SIDEBAR_MAX_WIDTH = 450;
 const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 
 export function Sidebar() {
+  const filterRef = useRef<HTMLInputElement>(null);
+
   const { t } = useTranslation("sidebar");
   const { library, updateLibrary } = useLibrary();
   const navigate = useNavigate();
@@ -78,6 +80,10 @@ export function Sidebar() {
 
   useEffect(() => {
     setFilteredLibrary(sortedLibrary);
+
+    if (filterRef.current) {
+      filterRef.current.value = "";
+    }
   }, [sortedLibrary]);
 
   useEffect(() => {
@@ -139,7 +145,7 @@ export function Sidebar() {
       navigate(path);
     }
 
-    if (event.detail == 2) {
+    if (event.detail === 2) {
       if (game.executablePath) {
         window.electron.openGame(game.id, game.executablePath);
       } else {
@@ -190,6 +196,7 @@ export function Sidebar() {
           <small className={styles.sectionTitle}>{t("my_library")}</small>
 
           <TextField
+            ref={filterRef}
             placeholder={t("filter")}
             onChange={handleFilter}
             theme="dark"

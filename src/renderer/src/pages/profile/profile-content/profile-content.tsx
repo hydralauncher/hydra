@@ -29,11 +29,6 @@ export function ProfileContent() {
     }
   }, [userProfile, dispatch]);
 
-  const truncatedGamesList = useMemo(() => {
-    if (!userProfile) return [];
-    return userProfile?.libraryGames.slice(0, 12);
-  }, [userProfile]);
-
   const { numberFormatter } = useFormat();
 
   const navigate = useNavigate();
@@ -91,8 +86,16 @@ export function ProfileContent() {
             <h3>{numberFormatter.format(userProfile.libraryGames.length)}</h3>
           </div>
 
+          {/* <div className={styles.noGames}>
+            <div className={styles.telescopeIcon}>
+              <TelescopeIcon size={24} />
+            </div>
+            <h2>{t("no_recent_activity_title")}</h2>
+            {isMe && <p>{t("no_recent_activity_description")}</p>}
+          </div> */}
+
           <ul className={styles.gamesGrid}>
-            {truncatedGamesList.map((game) => (
+            {userProfile?.libraryGames?.map((game) => (
               <li
                 key={game.objectId}
                 style={{
@@ -128,7 +131,7 @@ export function ProfileContent() {
         <div className={styles.rightContent}>
           <div>
             <div className={styles.sectionHeader}>
-              <h2>Played recently</h2>
+              <h2>{t("activity")}</h2>
             </div>
 
             <div className={styles.box}>
@@ -216,7 +219,6 @@ export function ProfileContent() {
     formatPlayTime,
     numberFormatter,
     t,
-    truncatedGamesList,
     usersAreFriends,
     isMe,
     navigate,

@@ -293,6 +293,7 @@
     "image_process_failure": "Falha ao processar a imagem",
     "required_field": "Este campo é obrigatório",
     "displayname_min_length": "Nome de exibição deve ter pelo menos 3 caracteres",
-    "displayname_max_length": "Nome de exibição deve ter no máximo 50 caracteres"
+    "displayname_max_length": "Nome de exibição deve ter no máximo 50 caracteres",
+    "locked_profile": "Este perfil é privado"
   }
 }
