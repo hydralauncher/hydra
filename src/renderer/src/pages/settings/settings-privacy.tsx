@@ -118,7 +118,7 @@ export function SettingsPrivacy() {
                 }}
               >
                 <img
-                  src={user.profileImageUrl}
+                  src={user.profileImageUrl!}
                   alt={user.displayName}
                   className={styles.blockedUserAvatar}
                 />
