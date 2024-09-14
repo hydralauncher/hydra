@@ -9,8 +9,8 @@
     "surprise_me": "¡Sorpréndeme!",
     "no_results": "No se encontraron resultados",
     "hot": "🔥 Caliente ahora",
-    "start_typing": "Empezando a escribir para buscar...",
-    "weekly": "📅 Los mejores juegos de la semana"
+    "weekly": "📅 Los mejores juegos de la semana",
+    "start_typing": "Empieza a escribir para buscar..."
   },
   "sidebar": {
     "catalogue": "Catálogo",
@@ -298,7 +298,6 @@
     "undo_friendship_modal_text": "Esto deshará tu amistad con {{displayName}}",
     "displayname_max_length": "El nombre para mostrar debe tener como máximo 50 caracteres",
     "displayname_min_length": "El nombre para mostrar debe tener al menos 3 caracteres",
-    "image_process_failure": "Fallo al procesar la imagen.",
     "locked_profile": "Este perfil es privado.",
     "privacy_hint": "Para ajustar quién puede ver esto, ve a <0>Configuración</0>.",
     "profile_locked": "",
@@ -313,6 +312,7 @@
     "report_reason_sexual_content": "Contenido sexual",
     "report_reason_spam": "Correo basura",
     "report_reason_violence": "Violencia",
-    "required_field": "Este campo es obligatorio"
+    "required_field": "Este campo es obligatorio",
+    "image_process_failure": "Error al procesar la imagen"
   }
 }
