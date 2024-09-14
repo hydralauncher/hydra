@@ -213,7 +213,9 @@
     "profile_visibility_description": "Choose who can see your profile and library",
     "required_field": "This field is required",
     "source_already_exists": "This source has been already added",
-    "must_be_valid_url": "The source must be a valid URL"
+    "must_be_valid_url": "The source must be a valid URL",
+    "blocked_users": "Blocked users",
+    "user_unblocked": "User has been unblocked"
   },
   "notifications": {
     "download_complete": "Download complete",
@@ -296,6 +298,17 @@
     "image_process_failure": "Failure while processing the image",
     "required_field": "This field is required",
     "displayname_min_length": "Display name must be at least 3 characters long",
-    "displayname_max_length": "Display name must be at most 50 characters long"
+    "displayname_max_length": "Display name must be at most 50 characters long",
+    "report_profile": "Report this profile",
+    "report_reason": "Why are you reporting this profile?",
+    "report_description": "Additional information",
+    "report_description_placeholder": "Additional information",
+    "report": "Report",
+    "report_reason_hate": "Hate speech",
+    "report_reason_sexual_content": "Sexual content",
+    "report_reason_violence": "Violence",
+    "report_reason_spam": "Spam",
+    "report_reason_other": "Other",
+    "profile_reported": "Profile reported"
   }
 }

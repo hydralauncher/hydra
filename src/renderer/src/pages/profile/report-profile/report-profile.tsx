@@ -72,7 +72,7 @@ export function ReportProfile() {
       <Modal
         visible={showReportProfileModal}
         onClose={() => setShowReportProfileModal(false)}
-        title="Report this profile"
+        title={t("report_profile")}
         clickOutsideToClose={false}
       >
         <form
@@ -96,7 +96,6 @@ export function ReportProfile() {
                     value: reason,
                     label: t(`report_reason_${reason}`),
                   }))}
-                  disabled={isSubmitting}
                 />
               );
             }}
@@ -122,6 +121,7 @@ export function ReportProfile() {
         type="button"
         className={styles.reportButton}
         onClick={() => setShowReportProfileModal(true)}
+        disabled={isSubmitting}
       >
         <ReportIcon size={13} />
         {t("report_profile")}
