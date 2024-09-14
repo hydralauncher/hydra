@@ -1,4 +1,4 @@
-import { Button, SelectField } from "@renderer/components";
+import { SelectField } from "@renderer/components";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import * as styles from "./settings-privacy.css";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useEffect, useState } from "react";
-import { XCircleFillIcon, XIcon } from "@primer/octicons-react";
+import { XCircleFillIcon } from "@primer/octicons-react";
 
 interface FormValues {
   profileVisibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
