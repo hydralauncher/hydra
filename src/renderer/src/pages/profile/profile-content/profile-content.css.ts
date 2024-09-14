@@ -112,7 +112,7 @@ export const gamesGrid = style({
   gap: `${SPACING_UNIT * 2}px`,
   gridTemplateColumns: "repeat(2, 1fr)",
   "@container": {
-    [`${appContainer}  (min-width: 1000px)`]: {
+    [`${appContainer}  (min-width: 900px)`]: {
       gridTemplateColumns: "repeat(4, 1fr)",
     },
     [`${appContainer}  (min-width: 1300px)`]: {
