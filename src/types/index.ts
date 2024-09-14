@@ -235,5 +235,10 @@ export interface TrendingGame {
   logo: string | null;
 }
 
+export interface UserStats {
+  libraryCount: number;
+  friendsCount: number;
+}
+
 export * from "./steam.types";
 export * from "./real-debrid.types";

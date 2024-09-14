@@ -97,7 +97,7 @@ export const statsSection = style({
 });
 
 export const statsCategoryTitle = style({
-  fontSize: "16px",
+  fontSize: "14px",
   fontWeight: "bold",
   display: "flex",
   alignItems: "center",

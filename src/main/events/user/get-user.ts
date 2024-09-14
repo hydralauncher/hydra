@@ -27,12 +27,7 @@ const getUser = async (
   userId: string
 ): Promise<UserProfile | null> => {
   try {
-    const [profile, friends] = await Promise.all([
-      HydraApi.get<UserProfile | null>(`/users/${userId}`),
-      getUserFriends(userId, 12, 0).catch(() => {
-        return { totalFriends: 0, friends: [] };
-      }),
-    ]);
+    const profile = await HydraApi.get<UserProfile | null>(`/users/${userId}`);
 
     if (!profile) return null;
 
@@ -77,10 +72,9 @@ const getUser = async (
       ...profile,
       libraryGames,
       recentGames,
-      friends: friends.friends,
-      totalFriends: friends.totalFriends,
     };
   } catch (err) {
+    console.log(err);
     return null;
   }
 };

@@ -22,6 +22,7 @@ import type {
   UpdateProfileRequest,
   GameStats,
   TrendingGame,
+  UserStats,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -143,6 +144,12 @@ declare global {
       skip: number
     ) => Promise<UserFriends>;
     getBlockedUsers: (take: number, skip: number) => Promise<UserBlocks>;
+    getUserStats: (userId: string) => Promise<UserStats>;
+    reportUser: (
+      userId: string,
+      reason: string,
+      description: string
+    ) => Promise<void>;
 
     /* Profile */
     getMe: () => Promise<UserProfile | null>;

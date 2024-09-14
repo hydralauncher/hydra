@@ -161,6 +161,9 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getUserFriends", userId, take, skip),
   getBlockedUsers: (take: number, skip: number) =>
     ipcRenderer.invoke("getBlockedUsers", take, skip),
+  getUserStats: (userId: string) => ipcRenderer.invoke("getUserStats", userId),
+  reportUser: (userId: string, reason: string, description: string) =>
+    ipcRenderer.invoke("reportUser", userId, reason, description),
 
   /* Auth */
   signOut: () => ipcRenderer.invoke("signOut"),
