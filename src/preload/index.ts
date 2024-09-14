@@ -75,6 +75,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("createGameShortcut", id),
   updateExecutablePath: (id: number, executablePath: string) =>
     ipcRenderer.invoke("updateExecutablePath", id, executablePath),
+  verifyExecutablePathInUse: (executablePath: string) =>
+    ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
   openGameInstaller: (gameId: number) =>
     ipcRenderer.invoke("openGameInstaller", gameId),
