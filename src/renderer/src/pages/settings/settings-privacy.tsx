@@ -59,7 +59,7 @@ export function SettingsPrivacy() {
           fetchBlockedUsers();
           // show toast
         })
-        .catch((err) => {
+        .catch(() => {
           //show toast
         })
         .finally(() => {
@@ -103,7 +103,7 @@ export function SettingsPrivacy() {
       />
 
       <h3 style={{ marginTop: `${SPACING_UNIT * 2}px` }}>
-        Usuários bloqueados
+        {t("blocked_users")}
       </h3>
 
       <ul className={styles.blockedUsersList}>
