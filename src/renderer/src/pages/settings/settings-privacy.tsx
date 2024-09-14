@@ -26,7 +26,7 @@ export function SettingsPrivacy() {
 
   const { patchUser, userDetails } = useUserDetails();
 
-  const [blockedUsers, setBlockedUsers] = useState([]);
+  const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
 
   useEffect(() => {
     if (userDetails?.profileVisibility) {
