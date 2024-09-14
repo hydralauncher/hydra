@@ -72,6 +72,7 @@ declare global {
     ) => Promise<void>;
     createGameShortcut: (id: number) => Promise<boolean>;
     updateExecutablePath: (id: number, executablePath: string) => Promise<void>;
+    verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
     getLibrary: () => Promise<LibraryGame[]>;
     openGameInstaller: (gameId: number) => Promise<boolean>;
     openGameInstallerPath: (gameId: number) => Promise<boolean>;
