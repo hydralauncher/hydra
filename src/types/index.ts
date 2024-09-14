@@ -232,6 +232,7 @@ export interface TrendingGame {
   uri: string;
   description: string;
   background: string;
+  logo: string | null;
 }
 
 export * from "./steam.types";
