@@ -100,6 +100,7 @@ export function SidebarProfile() {
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
                   width: "100%",
+                  textAlign: "left",
                 }}
               >
                 <small>{gameRunning.title}</small>
