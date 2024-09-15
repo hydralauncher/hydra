@@ -72,16 +72,12 @@ export function Sidebar() {
               <p>{numberFormatter.format(stats?.playerCount)}</p>
             </div>
           </div>
-
-          <div
-            className={styles.contentSidebarTitle}
-            style={{ border: "none" }}
-          >
-            <h3>{t("requirements")}</h3>
-          </div>
         </>
       )}
 
+      <div className={styles.contentSidebarTitle} style={{ border: "none" }}>
+        <h3>{t("requirements")}</h3>
+      </div>
       <div className={styles.requirementButtonContainer}>
         <Button
           className={styles.requirementButton}
