@@ -106,7 +106,7 @@ export class WindowManager {
       });
 
       authWindow.loadURL(
-        `https://auth.hydra.losbroxas.org/?${searchParams.toString()}`
+        `https://auth.hydralauncher.gg/?${searchParams.toString()}`
       );
 
       authWindow.once("ready-to-show", () => {
