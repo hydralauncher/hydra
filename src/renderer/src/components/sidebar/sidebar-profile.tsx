@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 
-const LONG_POLLING_INTERVAL = 10_000;
+const LONG_POLLING_INTERVAL = 60_000;
 
 export function SidebarProfile() {
   const navigate = useNavigate();
