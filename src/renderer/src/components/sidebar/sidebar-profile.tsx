@@ -15,14 +15,14 @@ export function SidebarProfile() {
 
   const { t } = useTranslation("sidebar");
 
-  const { userDetails, friendRequests, showFriendsModal, fetchFriendRequests } =
-    useUserDetails();
+  const {
+    userDetails,
+    FriendRequestCount,
+    showFriendsModal,
+    syncFriendRequests,
+  } = useUserDetails();
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
-
-  const receivedRequests = useMemo(() => {
-    return friendRequests.filter((request) => request.type === "RECEIVED");
-  }, [friendRequests]);
 
   const handleProfileClick = () => {
     if (userDetails === null) {
@@ -35,7 +35,7 @@ export function SidebarProfile() {
 
   useEffect(() => {
     pollingInterval.current = setInterval(() => {
-      fetchFriendRequests();
+      syncFriendRequests();
     }, LONG_POLLING_INTERVAL);
 
     return () => {
@@ -43,7 +43,7 @@ export function SidebarProfile() {
         clearInterval(pollingInterval.current);
       }
     };
-  }, [fetchFriendRequests]);
+  }, [syncFriendRequests]);
 
   const friendsButton = useMemo(() => {
     if (!userDetails) return null;
@@ -57,16 +57,16 @@ export function SidebarProfile() {
         }
         title={t("friends")}
       >
-        {receivedRequests.length > 0 && (
+        {FriendRequestCount > 0 && (
           <small className={styles.friendsButtonBadge}>
-            {receivedRequests.length > 99 ? "99+" : receivedRequests.length}
+            {FriendRequestCount > 99 ? "99+" : FriendRequestCount}
           </small>
         )}
 
         <PeopleIcon size={16} />
       </button>
     );
-  }, [userDetails, t, receivedRequests, showFriendsModal]);
+  }, [userDetails, t, FriendRequestCount, showFriendsModal]);
 
   return (
     <div className={styles.profileContainer}>

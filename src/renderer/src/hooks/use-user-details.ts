@@ -6,6 +6,7 @@ import {
   setFriendRequests,
   setFriendsModalVisible,
   setFriendsModalHidden,
+  setFriendRequestCount,
 } from "@renderer/features";
 import type {
   FriendRequestAction,
@@ -21,6 +22,7 @@ export function useUserDetails() {
     userDetails,
     profileBackground,
     friendRequests,
+    FriendRequestCount,
     isFriendsModalVisible,
     friendModalUserId,
     friendRequetsModalTab,
@@ -95,7 +97,17 @@ export function useUserDetails() {
     return window.electron
       .getFriendRequests()
       .then((friendRequests) => {
+        syncFriendRequests();
         dispatch(setFriendRequests(friendRequests));
+      })
+      .catch(() => {});
+  }, [dispatch]);
+
+  const syncFriendRequests = useCallback(async () => {
+    return window.electron
+      .syncFriendRequests()
+      .then((sync) => {
+        dispatch(setFriendRequestCount(sync.friendRequestCount));
       })
       .catch(() => {});
   }, [dispatch]);
@@ -143,6 +155,7 @@ export function useUserDetails() {
     userDetails,
     profileBackground,
     friendRequests,
+    FriendRequestCount,
     friendRequetsModalTab,
     isFriendsModalVisible,
     friendModalUserId,
@@ -155,6 +168,7 @@ export function useUserDetails() {
     patchUser,
     sendFriendRequest,
     fetchFriendRequests,
+    syncFriendRequests,
     updateFriendRequestState,
     blockUser,
     unblockUser,
