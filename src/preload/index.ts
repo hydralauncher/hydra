@@ -150,6 +150,7 @@ contextBridge.exposeInMainWorld("electron", {
   processProfileImage: (imagePath: string) =>
     ipcRenderer.invoke("processProfileImage", imagePath),
   getFriendRequests: () => ipcRenderer.invoke("getFriendRequests"),
+  syncFriendRequests: () => ipcRenderer.invoke("syncFriendRequests"),
   updateFriendRequest: (userId: string, action: FriendRequestAction) =>
     ipcRenderer.invoke("updateFriendRequest", userId, action),
   sendFriendRequest: (userId: string) =>

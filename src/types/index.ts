@@ -170,6 +170,10 @@ export interface UserBlocks {
   blocks: UserFriend[];
 }
 
+export interface FriendRequestSync {
+  friendRequestCount: number;
+}
+
 export interface FriendRequest {
   id: string;
   displayName: string;
