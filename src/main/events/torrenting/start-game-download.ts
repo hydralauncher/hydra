@@ -2,7 +2,7 @@ import { registerEvent } from "../register-event";
 
 import type { StartGameDownloadPayload } from "@types";
 import { getFileBase64 } from "@main/helpers";
-import { DownloadManager } from "@main/services";
+import { DownloadManager, HydraApi, logger } from "@main/services";
 
 import { Not } from "typeorm";
 import { steamGamesWorker } from "@main/workers";
@@ -100,6 +100,17 @@ const startGameDownload = async (
     });
 
     createGame(updatedGame!).catch(() => {});
+
+    HydraApi.post(
+      "/games/download",
+      {
+        objectId: updatedGame!.objectID,
+        shop: updatedGame!.shop,
+      },
+      { needsAuth: false }
+    ).catch((err) => {
+      logger.error("Failed to create game download", err);
+    });
 
     await DownloadManager.cancelDownload(updatedGame!.id);
     await DownloadManager.startDownload(updatedGame!);
