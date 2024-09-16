@@ -59,6 +59,7 @@ import "./profile/update-friend-request";
 import "./profile/update-profile";
 import "./profile/process-profile-image";
 import "./profile/send-friend-request";
+import "./profile/sync-friend-requests";
 import { isPortableVersion } from "@main/helpers";
 
 ipcMain.handle("ping", () => "pong");

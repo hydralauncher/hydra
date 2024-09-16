@@ -43,7 +43,7 @@ export function App() {
     isFriendsModalVisible,
     friendRequetsModalTab,
     friendModalUserId,
-    fetchFriendRequests,
+    syncFriendRequests,
     hideFriendsModal,
   } = useUserDetails();
 
@@ -105,22 +105,22 @@ export function App() {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
-        fetchFriendRequests();
+        syncFriendRequests();
       }
     });
-  }, [fetchUserDetails, fetchFriendRequests, updateUserDetails, dispatch]);
+  }, [fetchUserDetails, syncFriendRequests, updateUserDetails, dispatch]);
 
   const onSignIn = useCallback(() => {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
-        fetchFriendRequests();
+        syncFriendRequests();
         showSuccessToast(t("successfully_signed_in"));
       }
     });
   }, [
     fetchUserDetails,
-    fetchFriendRequests,
+    syncFriendRequests,
     t,
     showSuccessToast,
     updateUserDetails,

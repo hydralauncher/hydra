@@ -24,6 +24,7 @@ import type {
   TrendingGame,
   UserStats,
   UserDetails,
+  FriendRequestSync,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -164,6 +165,7 @@ declare global {
       path: string
     ) => Promise<{ imagePath: string; mimeType: string }>;
     getFriendRequests: () => Promise<FriendRequest[]>;
+    syncFriendRequests: () => Promise<FriendRequestSync>;
     updateFriendRequest: (
       userId: string,
       action: FriendRequestAction
