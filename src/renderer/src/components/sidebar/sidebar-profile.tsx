@@ -17,7 +17,7 @@ export function SidebarProfile() {
 
   const {
     userDetails,
-    FriendRequestCount,
+    friendRequestCount,
     showFriendsModal,
     syncFriendRequests,
   } = useUserDetails();
@@ -57,16 +57,16 @@ export function SidebarProfile() {
         }
         title={t("friends")}
       >
-        {FriendRequestCount > 0 && (
+        {friendRequestCount > 0 && (
           <small className={styles.friendsButtonBadge}>
-            {FriendRequestCount > 99 ? "99+" : FriendRequestCount}
+            {friendRequestCount > 99 ? "99+" : friendRequestCount}
           </small>
         )}
 
         <PeopleIcon size={16} />
       </button>
     );
-  }, [userDetails, t, FriendRequestCount, showFriendsModal]);
+  }, [userDetails, t, friendRequestCount, showFriendsModal]);
 
   return (
     <div className={styles.profileContainer}>
