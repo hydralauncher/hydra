@@ -105,7 +105,7 @@ export function GameDetailsContextProvider({
           setShopDetails(appDetailsResult.value);
 
           if (
-            appDetailsResult.value!.content_descriptors.ids.includes(
+            appDetailsResult.value?.content_descriptors.ids.includes(
               SteamContentDescriptor.AdultOnlySexualContent
             )
           ) {

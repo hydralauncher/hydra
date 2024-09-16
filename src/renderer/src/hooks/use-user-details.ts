@@ -10,7 +10,7 @@ import {
 import type {
   FriendRequestAction,
   UpdateProfileRequest,
-  UserProfile,
+  UserDetails,
 } from "@types";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 
@@ -40,7 +40,7 @@ export function useUserDetails() {
   }, [clearUserDetails]);
 
   const updateUserDetails = useCallback(
-    async (userDetails: UserProfile) => {
+    async (userDetails: UserDetails) => {
       dispatch(setUserDetails(userDetails));
 
       if (userDetails.profileImageUrl) {
@@ -83,7 +83,10 @@ export function useUserDetails() {
   const patchUser = useCallback(
     async (values: UpdateProfileRequest) => {
       const response = await window.electron.updateProfile(values);
-      return updateUserDetails(response);
+      return updateUserDetails({
+        ...response,
+        username: userDetails?.username || "",
+      });
     },
     [updateUserDetails]
   );
