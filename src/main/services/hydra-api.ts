@@ -6,6 +6,7 @@ import { uploadGamesBatch } from "./library-sync";
 import { clearGamesRemoteIds } from "./library-sync/clear-games-remote-id";
 import { logger } from "./logger";
 import { UserNotLoggedInError } from "@shared";
+import { omit } from "lodash-es";
 
 interface HydraApiOptions {
   needsAuth: boolean;
@@ -96,11 +97,14 @@ export class HydraApi {
     this.instance.interceptors.response.use(
       (response) => {
         logger.log(" ---- RESPONSE -----");
+        const data = Array.isArray(response.data)
+          ? response.data
+          : omit(response.data, ["username", "accessToken", "refreshToken"]);
         logger.log(
           response.status,
           response.config.method,
           response.config.url,
-          response.data
+          data
         );
         return response;
       },
@@ -166,7 +170,10 @@ export class HydraApi {
         this.userAuth.authToken = accessToken;
         this.userAuth.expirationTimestamp = tokenExpirationTimestamp;
 
-        logger.log("Token refreshed", this.userAuth);
+        logger.log(
+          "Token refreshed. New expiration:",
+          this.userAuth.expirationTimestamp
+        );
 
         userAuthRepository.upsert(
           {
