@@ -23,6 +23,8 @@ import type {
   GameStats,
   TrendingGame,
   UserStats,
+  UserDetails,
+  FriendRequestSync,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -153,7 +155,7 @@ declare global {
     ) => Promise<void>;
 
     /* Profile */
-    getMe: () => Promise<UserProfile | null>;
+    getMe: () => Promise<UserDetails | null>;
     undoFriendship: (userId: string) => Promise<void>;
     updateProfile: (
       updateProfile: UpdateProfileRequest
@@ -163,6 +165,7 @@ declare global {
       path: string
     ) => Promise<{ imagePath: string; mimeType: string }>;
     getFriendRequests: () => Promise<FriendRequest[]>;
+    syncFriendRequests: () => Promise<FriendRequestSync>;
     updateFriendRequest: (
       userId: string,
       action: FriendRequestAction
