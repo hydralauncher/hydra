@@ -155,6 +155,7 @@ export const listItemImage = style({
   width: "32px",
   height: "32px",
   borderRadius: "4px",
+  objectFit: "cover",
 });
 
 export const listItemDetails = style({
