@@ -152,7 +152,7 @@ export function Home() {
               <Lottie
                 animationData={starsAnimation}
                 style={{ width: 70, position: "absolute", top: -28, left: -27 }}
-                loop
+                loop={Boolean(randomGame)}
               />
             </div>
             {t("surprise_me")}
