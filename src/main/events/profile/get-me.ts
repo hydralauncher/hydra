@@ -1,32 +1,14 @@
 import { registerEvent } from "../register-event";
 import * as Sentry from "@sentry/electron/main";
-import { HydraApi, logger } from "@main/services";
-import { UserProfile } from "@types";
+import { HydraApi } from "@main/services";
+import { ProfileVisibility, UserDetails } from "@types";
 import { userAuthRepository } from "@main/repository";
-import { steamUrlBuilder, UserNotLoggedInError } from "@shared";
-import { steamGamesWorker } from "@main/workers";
-
-const getSteamGame = async (objectId: string) => {
-  try {
-    const steamGame = await steamGamesWorker.run(Number(objectId), {
-      name: "getById",
-    });
-
-    return {
-      title: steamGame.name,
-      iconUrl: steamUrlBuilder.icon(objectId, steamGame.clientIcon),
-    };
-  } catch (err) {
-    logger.error("Failed to get Steam game", err);
-
-    return null;
-  }
-};
+import { UserNotLoggedInError } from "@shared";
 
 const getMe = async (
   _event: Electron.IpcMainInvokeEvent
-): Promise<UserProfile | null> => {
-  return HydraApi.get(`/profile/me`)
+): Promise<UserDetails | null> => {
+  return HydraApi.get<UserDetails>(`/profile/me`)
     .then(async (me) => {
       userAuthRepository.upsert(
         {
@@ -37,17 +19,6 @@ const getMe = async (
         },
         ["id"]
       );
-
-      if (me.currentGame) {
-        const steamGame = await getSteamGame(me.currentGame.objectId);
-
-        if (steamGame) {
-          me.currentGame = {
-            ...me.currentGame,
-            ...steamGame,
-          };
-        }
-      }
 
       Sentry.setUser({ id: me.id, username: me.username });
 
@@ -61,7 +32,13 @@ const getMe = async (
       const loggedUser = await userAuthRepository.findOne({ where: { id: 1 } });
 
       if (loggedUser) {
-        return { ...loggedUser, id: loggedUser.userId };
+        return {
+          ...loggedUser,
+          id: loggedUser.userId,
+          username: "",
+          bio: "",
+          profileVisibility: "PUBLIC" as ProfileVisibility,
+        };
       }
 
       return null;

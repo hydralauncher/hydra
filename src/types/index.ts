@@ -170,6 +170,10 @@ export interface UserBlocks {
   blocks: UserFriend[];
 }
 
+export interface FriendRequestSync {
+  friendRequestCount: number;
+}
+
 export interface FriendRequest {
   id: string;
   displayName: string;
@@ -190,23 +194,34 @@ export interface UserProfileCurrentGame extends Omit<GameRunning, "objectID"> {
   sessionDurationInSeconds: number;
 }
 
+export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
+
+export interface UserDetails {
+  id: string;
+  username: string;
+  displayName: string;
+  profileImageUrl: string | null;
+  profileVisibility: ProfileVisibility;
+  bio: string;
+}
+
 export interface UserProfile {
   id: string;
   displayName: string;
   profileImageUrl: string | null;
-  profileVisibility: "PUBLIC" | "PRIVATE" | "FRIENDS";
-  totalPlayTimeInSeconds: number;
+  profileVisibility: ProfileVisibility;
   libraryGames: UserGame[];
   recentGames: UserGame[];
   friends: UserFriend[];
   totalFriends: number;
   relation: UserRelation | null;
   currentGame: UserProfileCurrentGame | null;
+  bio: string;
 }
 
 export interface UpdateProfileRequest {
   displayName?: string;
-  profileVisibility?: "PUBLIC" | "PRIVATE" | "FRIENDS";
+  profileVisibility?: ProfileVisibility;
   profileImageUrl?: string | null;
   bio?: string;
 }
