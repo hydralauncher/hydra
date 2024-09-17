@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useState } from "react";
 import type { HowLongToBeatCategory, SteamAppDetails } from "@types";
 import { useTranslation } from "react-i18next";
 import { Button } from "@renderer/components";
@@ -9,7 +9,7 @@ import { useFormat } from "@renderer/hooks";
 import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
 
 export function Sidebar() {
-  const [_howLongToBeat, setHowLongToBeat] = useState<{
+  const [_howLongToBeat, _setHowLongToBeat] = useState<{
     isLoading: boolean;
     data: HowLongToBeatCategory[] | null;
   }>({ isLoading: true, data: null });
@@ -17,27 +17,26 @@ export function Sidebar() {
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
-  const { gameTitle, shopDetails, objectID, stats } =
-    useContext(gameDetailsContext);
+  const { gameTitle, shopDetails, stats } = useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
 
   const { numberFormatter } = useFormat();
 
-  useEffect(() => {
-    if (objectID) {
-      setHowLongToBeat({ isLoading: true, data: null });
+  // useEffect(() => {
+  //   if (objectID) {
+  //     setHowLongToBeat({ isLoading: true, data: null });
 
-      window.electron
-        .getHowLongToBeat(objectID, "steam", gameTitle)
-        .then((howLongToBeat) => {
-          setHowLongToBeat({ isLoading: false, data: howLongToBeat });
-        })
-        .catch(() => {
-          setHowLongToBeat({ isLoading: false, data: null });
-        });
-    }
-  }, [objectID, gameTitle]);
+  //     window.electron
+  //       .getHowLongToBeat(objectID, "steam", gameTitle)
+  //       .then((howLongToBeat) => {
+  //         setHowLongToBeat({ isLoading: false, data: howLongToBeat });
+  //       })
+  //       .catch(() => {
+  //         setHowLongToBeat({ isLoading: false, data: null });
+  //       });
+  //   }
+  // }, [objectID, gameTitle]);
 
   return (
     <aside className={styles.contentSidebar}>
