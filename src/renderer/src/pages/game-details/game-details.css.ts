@@ -149,8 +149,7 @@ export const randomizerButton = style({
   animationName: slideIn,
   animationDuration: "0.2s",
   position: "fixed",
-  /* Bottom panel height + spacing */
-  bottom: `${26 + SPACING_UNIT * 2}px`,
+  bottom: `${SPACING_UNIT * 3}px`,
   /* Scroll bar + spacing */
   right: `${9 + SPACING_UNIT * 2}px`,
   boxShadow: "rgba(255, 255, 255, 0.1) 0px 0px 10px 1px",
