@@ -119,7 +119,7 @@ const onCloseGame = (game: Game) => {
   if (game.remoteId) {
     updateGamePlaytime(
       game,
-      performance.now() - gamePlaytime.firstTick,
+      performance.now() - gamePlaytime.lastSyncTick,
       game.lastTimePlayed!
     ).catch(() => {});
   } else {

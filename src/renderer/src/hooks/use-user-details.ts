@@ -6,11 +6,12 @@ import {
   setFriendRequests,
   setFriendsModalVisible,
   setFriendsModalHidden,
+  setFriendRequestCount,
 } from "@renderer/features";
 import type {
   FriendRequestAction,
   UpdateProfileRequest,
-  UserProfile,
+  UserDetails,
 } from "@types";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 
@@ -21,6 +22,7 @@ export function useUserDetails() {
     userDetails,
     profileBackground,
     friendRequests,
+    friendRequestCount,
     isFriendsModalVisible,
     friendModalUserId,
     friendRequetsModalTab,
@@ -40,7 +42,7 @@ export function useUserDetails() {
   }, [clearUserDetails]);
 
   const updateUserDetails = useCallback(
-    async (userDetails: UserProfile) => {
+    async (userDetails: UserDetails) => {
       dispatch(setUserDetails(userDetails));
 
       if (userDetails.profileImageUrl) {
@@ -83,7 +85,10 @@ export function useUserDetails() {
   const patchUser = useCallback(
     async (values: UpdateProfileRequest) => {
       const response = await window.electron.updateProfile(values);
-      return updateUserDetails(response);
+      return updateUserDetails({
+        ...response,
+        username: userDetails?.username || "",
+      });
     },
     [updateUserDetails]
   );
@@ -92,7 +97,17 @@ export function useUserDetails() {
     return window.electron
       .getFriendRequests()
       .then((friendRequests) => {
+        syncFriendRequests();
         dispatch(setFriendRequests(friendRequests));
+      })
+      .catch(() => {});
+  }, [dispatch]);
+
+  const syncFriendRequests = useCallback(async () => {
+    return window.electron
+      .syncFriendRequests()
+      .then((sync) => {
+        dispatch(setFriendRequestCount(sync.friendRequestCount));
       })
       .catch(() => {});
   }, [dispatch]);
@@ -140,6 +155,7 @@ export function useUserDetails() {
     userDetails,
     profileBackground,
     friendRequests,
+    friendRequestCount,
     friendRequetsModalTab,
     isFriendsModalVisible,
     friendModalUserId,
@@ -152,6 +168,7 @@ export function useUserDetails() {
     patchUser,
     sendFriendRequest,
     fetchFriendRequests,
+    syncFriendRequests,
     updateFriendRequestState,
     blockUser,
     unblockUser,

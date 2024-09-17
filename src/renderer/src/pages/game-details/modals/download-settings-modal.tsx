@@ -160,12 +160,15 @@ export function DownloadSettingsModal({
             ))}
           </div>
 
-          {selectedDownloader && selectedDownloader !== Downloader.Torrent && (
-            <p style={{ marginTop: `${SPACING_UNIT}px` }}>
-              <span style={{ color: vars.color.warning }}>{t("warning")}</span>{" "}
-              {t("hydra_needs_to_remain_open")}
-            </p>
-          )}
+          {selectedDownloader != null &&
+            selectedDownloader !== Downloader.Torrent && (
+              <p style={{ marginTop: `${SPACING_UNIT}px` }}>
+                <span style={{ color: vars.color.warning }}>
+                  {t("warning")}
+                </span>{" "}
+                {t("hydra_needs_to_remain_open")}
+              </p>
+            )}
         </div>
 
         <div
