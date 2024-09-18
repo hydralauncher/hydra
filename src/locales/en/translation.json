@@ -188,6 +188,7 @@
     "save_changes": "Save changes",
     "changes_saved": "Changes successfully saved",
     "download_sources_description": "Hydra will fetch the download links from these sources. The source URL must be a direct link to a .json file containing the download links.",
+    "library_sources_description": "Hydra Library of Sources",
     "validate_download_source": "Validate",
     "remove_download_source": "Remove",
     "add_download_source": "Add source",

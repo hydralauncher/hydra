@@ -184,6 +184,7 @@
     "save_changes": "Salvar mudanças",
     "changes_saved": "Ajustes salvos com sucesso",
     "download_sources_description": "Hydra vai buscar links de download em todas as fontes habilitadas. A URL da fonte deve ser um link direto para um arquivo .json contendo uma lista de links.",
+    "library_sources_description": "Biblioteca Hydra de Fontes",
     "validate_download_source": "Validar",
     "remove_download_source": "Remover",
     "add_download_source": "Adicionar fonte",

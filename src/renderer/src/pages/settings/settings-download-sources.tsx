@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import * as styles from "./settings-download-sources.css";
 import type { DownloadSource } from "@types";
-import { NoEntryIcon, PlusCircleIcon, SyncIcon } from "@primer/octicons-react";
+import { NoEntryIcon, PlusCircleIcon, SyncIcon, BookIcon } from "@primer/octicons-react";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
 import { useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
@@ -102,6 +102,14 @@ export function SettingsDownloadSources() {
         >
           <PlusCircleIcon />
           {t("add_download_source")}
+        </Button>
+
+        <Button
+          type="button"
+          theme="outline"
+          onClick={() => window.open("https://hydralinks.cloud", "_blank")}
+        > <BookIcon />
+          {t("library_sources_description")}
         </Button>
       </div>
 
