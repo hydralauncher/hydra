@@ -27,6 +27,7 @@ nsis:
   createDesktopShortcut: always
   oneClick: false
   allowToChangeInstallationDirectory: true
+  include: installer.nsh
 portable:
   artifactName: ${name}-${version}-portable.${ext}
 mac:
