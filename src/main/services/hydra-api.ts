@@ -51,7 +51,10 @@ export class HydraApi {
       expirationTimestamp: tokenExpirationTimestamp,
     };
 
-    logger.log("Sign in received", this.userAuth);
+    logger.log(
+      "Sign in received. Token expiration timestamp:",
+      tokenExpirationTimestamp
+    );
 
     await userAuthRepository.upsert(
       {
