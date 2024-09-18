@@ -161,7 +161,7 @@ python torrent-client/setup.py build
 
 ### Byg Electron applikationen
 
-Build Electron applicationen ved brug af følgende kommando:
+Byg Electron applikationen ved brug af følgende kommando:
 
 På Windows:
 
