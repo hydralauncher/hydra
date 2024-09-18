@@ -1,5 +1,5 @@
-import { defaultDownloadsPath } from "@main/constants";
-import { app, ipcMain } from "electron";
+import { appVersion, defaultDownloadsPath } from "@main/constants";
+import { ipcMain } from "electron";
 
 import "./catalogue/get-catalogue";
 import "./catalogue/get-game-shop-details";
@@ -63,6 +63,6 @@ import "./profile/sync-friend-requests";
 import { isPortableVersion } from "@main/helpers";
 
 ipcMain.handle("ping", () => "pong");
-ipcMain.handle("getVersion", () => app.getVersion());
+ipcMain.handle("getVersion", () => appVersion);
 ipcMain.handle("isPortableVersion", () => isPortableVersion());
 ipcMain.handle("getDefaultDownloadsPath", () => defaultDownloadsPath);
