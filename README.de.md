@@ -23,6 +23,7 @@
 [![fr](https://img.shields.io/badge/lang-fr-blue)](README.fr.md)
 [![de](https://img.shields.io/badge/lang-de-black)](README.de.md)
 [![cs](https://img.shields.io/badge/lang-cs-purple)](README.cs.md)
+[![da](https://img.shields.io/badge/lang-da-red)](README.da.md)
 
 ![Hydra Katalog](./docs/screenshot.png)
 
