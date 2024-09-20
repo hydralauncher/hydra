@@ -33,18 +33,11 @@ body:
     attributes:
       label: Additional information and data
       description: |
-        If possible, add screenshots and upload your logs file here.
+        Add screenshots and upload your logs file here.
         Logs location on Windows: "%appdata%/hydra"
         Logs location on Linux: "~/.config/hydra/"
     validations:
-      required: false
-  - type: textarea
-    id: screenshots
-    attributes:
-      label: Screenshots
-      description: If possible, add screenshots to help explain your problem.
-    validations:
-      required: false
+      required: true
   - type: input
     id: OS
     attributes:
