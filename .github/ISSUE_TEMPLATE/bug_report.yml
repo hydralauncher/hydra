@@ -1,6 +1,6 @@
 name: Bug Report
 description: Create a report to help us improve. Write in English, please.
-title: "[BUG] "
+title: "[BUG] Write a title for your bug"
 labels: ["bug"]
 body:
   - type: markdown
@@ -29,12 +29,15 @@ body:
     validations:
       required: false
   - type: textarea
-    id: screenshots
+    id: additional-info
     attributes:
-      label: Screenshots
-      description: If applicable, add screenshots to help explain your problem.
+      label: Additional information and data
+      description: |
+        Add screenshots and upload your logs file here.
+        Logs location on Windows: "%appdata%/hydra"
+        Logs location on Linux: "~/.config/hydra/"
     validations:
-      required: false
+      required: true
   - type: input
     id: OS
     attributes:
@@ -49,13 +52,6 @@ body:
       description: Please provide the version of Hydra you are using.
     validations:
       required: true
-  - type: textarea
-    id: additional-info
-    attributes:
-      label: Additional Information
-      description: Please provide any additional information and context about your problem.
-    validations:
-      required: false
   - type: checkboxes
     id: terms
     attributes:

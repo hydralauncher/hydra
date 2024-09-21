@@ -19,6 +19,7 @@ export const gallerySliderMedia = style({
   flexGrow: "0",
   transition: "translate 0.3s ease-in-out",
   borderRadius: "4px",
+  alignSelf: "center",
 });
 
 export const gallerySliderAnimationContainer = style({
@@ -60,7 +61,6 @@ export const mediaPreviewButton = recipe({
   base: {
     cursor: "pointer",
     width: "20%",
-    height: "20%",
     display: "block",
     flexShrink: "0",
     flexGrow: "0",
@@ -84,7 +84,6 @@ export const mediaPreviewButton = recipe({
 
 export const mediaPreview = style({
   width: "100%",
-  height: "100%",
   display: "flex",
 });
 
