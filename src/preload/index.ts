@@ -49,6 +49,8 @@ contextBridge.exposeInMainWorld("electron", {
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
   getTrendingGames: () => ipcRenderer.invoke("getTrendingGames"),
+  /* Meant for Dexie migration */
+  getRepacks: () => ipcRenderer.invoke("getRepacks"),
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),

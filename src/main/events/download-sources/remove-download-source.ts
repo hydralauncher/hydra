@@ -5,9 +5,6 @@ import { RepacksManager } from "@main/services";
 const removeDownloadSource = async (
   _event: Electron.IpcMainInvokeEvent,
   id: number
-) => {
-  await downloadSourceRepository.delete(id);
-  await RepacksManager.updateRepacks();
-};
+) => downloadSourceRepository.delete(id);
 
 registerEvent("removeDownloadSource", removeDownloadSource);

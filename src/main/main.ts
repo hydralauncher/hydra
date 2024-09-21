@@ -1,9 +1,4 @@
-import {
-  DownloadManager,
-  RepacksManager,
-  PythonInstance,
-  startMainLoop,
-} from "./services";
+import { DownloadManager, PythonInstance, startMainLoop } from "./services";
 import {
   downloadQueueRepository,
   repackRepository,
@@ -18,8 +13,6 @@ import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
-  RepacksManager.updateRepacks();
-
   import("./events");
 
   if (userPreferences?.realDebridApiToken) {

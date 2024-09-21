@@ -68,7 +68,6 @@ const runMigrations = async () => {
   });
 
   await knexClient.migrate.latest(migrationConfig);
-  await knexClient.destroy();
 };
 
 // This method will be called when Electron has finished

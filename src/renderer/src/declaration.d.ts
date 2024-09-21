@@ -65,6 +65,8 @@ declare global {
     searchGameRepacks: (query: string) => Promise<GameRepack[]>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getTrendingGames: () => Promise<TrendingGame[]>;
+    /* Meant for Dexie migration */
+    getRepacks: () => Promise<GameRepack[]>;
 
     /* Library */
     addGameToLibrary: (

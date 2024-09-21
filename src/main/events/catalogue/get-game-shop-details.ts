@@ -45,15 +45,17 @@ const getGameShopDetails = async (
 
     const appDetails = getLocalizedSteamAppDetails(objectID, language).then(
       (result) => {
-        gameShopCacheRepository.upsert(
-          {
-            objectID,
-            shop: "steam",
-            language,
-            serializedData: JSON.stringify(result),
-          },
-          ["objectID"]
-        );
+        if (result) {
+          gameShopCacheRepository.upsert(
+            {
+              objectID,
+              shop: "steam",
+              language,
+              serializedData: JSON.stringify(result),
+            },
+            ["objectID"]
+          );
+        }
 
         return result;
       }

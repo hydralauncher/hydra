@@ -1,4 +1,10 @@
-import { createContext, useCallback, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 
 import { setHeaderTitle } from "@renderer/features";
@@ -16,6 +22,7 @@ import type {
 import { useTranslation } from "react-i18next";
 import { GameDetailsContext } from "./game-details.context.types";
 import { SteamContentDescriptor } from "@shared";
+import { repacksContext } from "../repacks/repacks.context";
 
 export const gameDetailsContext = createContext<GameDetailsContext>({
   game: null,
@@ -52,7 +59,6 @@ export function GameDetailsContextProvider({
   const { objectID, shop } = useParams();
 
   const [shopDetails, setShopDetails] = useState<ShopDetails | null>(null);
-  const [repacks, setRepacks] = useState<GameRepack[]>([]);
   const [game, setGame] = useState<Game | null>(null);
   const [hasNSFWContentBlocked, setHasNSFWContentBlocked] = useState(false);
 
@@ -64,9 +70,21 @@ export function GameDetailsContextProvider({
   const [showRepacksModal, setShowRepacksModal] = useState(false);
   const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
 
+  const [repacks, setRepacks] = useState<GameRepack[]>([]);
+
   const [searchParams] = useSearchParams();
 
   const gameTitle = searchParams.get("title")!;
+
+  const { searchRepacks, isIndexingRepacks } = useContext(repacksContext);
+
+  useEffect(() => {
+    if (!isIndexingRepacks) {
+      searchRepacks(gameTitle).then((repacks) => {
+        setRepacks(repacks);
+      });
+    }
+  }, [game, gameTitle, isIndexingRepacks, searchRepacks]);
 
   const { i18n } = useTranslation("game_details");
 
@@ -91,36 +109,30 @@ export function GameDetailsContextProvider({
   }, [updateGame, isGameDownloading, lastPacket?.game.status]);
 
   useEffect(() => {
-    Promise.allSettled([
-      window.electron.getGameShopDetails(
+    window.electron
+      .getGameShopDetails(
         objectID!,
         shop as GameShop,
         getSteamLanguage(i18n.language)
-      ),
-      window.electron.searchGameRepacks(gameTitle),
-      window.electron.getGameStats(objectID!, shop as GameShop),
-    ])
-      .then(([appDetailsResult, repacksResult, statsResult]) => {
-        if (appDetailsResult.status === "fulfilled") {
-          setShopDetails(appDetailsResult.value);
+      )
+      .then((result) => {
+        setShopDetails(result);
 
-          if (
-            appDetailsResult.value?.content_descriptors.ids.includes(
-              SteamContentDescriptor.AdultOnlySexualContent
-            )
-          ) {
-            setHasNSFWContentBlocked(true);
-          }
+        if (
+          result?.content_descriptors.ids.includes(
+            SteamContentDescriptor.AdultOnlySexualContent
+          )
+        ) {
+          setHasNSFWContentBlocked(true);
         }
-
-        if (repacksResult.status === "fulfilled")
-          setRepacks(repacksResult.value);
-
-        if (statsResult.status === "fulfilled") setStats(statsResult.value);
       })
       .finally(() => {
         setIsLoading(false);
       });
+
+    window.electron.getGameStats(objectID!, shop as GameShop).then((result) => {
+      setStats(result);
+    });
 
     updateGame();
   }, [updateGame, dispatch, gameTitle, objectID, shop, i18n.language]);

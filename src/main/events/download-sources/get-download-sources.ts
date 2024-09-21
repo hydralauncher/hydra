@@ -1,11 +1,7 @@
-import { downloadSourceRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
+import { knexClient } from "@main/knex-client";
 
 const getDownloadSources = async (_event: Electron.IpcMainInvokeEvent) =>
-  downloadSourceRepository.find({
-    order: {
-      createdAt: "DESC",
-    },
-  });
+  knexClient.select("*").from("download_source");
 
 registerEvent("getDownloadSources", getDownloadSources);
