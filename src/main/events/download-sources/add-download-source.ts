@@ -4,7 +4,6 @@ import { DownloadSource } from "@main/entity";
 import axios from "axios";
 import { downloadSourceSchema } from "../helpers/validators";
 import { insertDownloadsFromSource } from "@main/helpers";
-import { RepacksManager } from "@main/services";
 
 const addDownloadSource = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -33,8 +32,6 @@ const addDownloadSource = async (
       return downloadSource;
     }
   );
-
-  await RepacksManager.updateRepacks();
 
   return downloadSource;
 };

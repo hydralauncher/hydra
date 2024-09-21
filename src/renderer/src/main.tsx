@@ -29,6 +29,8 @@ import { store } from "./store";
 
 import resources from "@locales";
 
+import "./workers";
+
 Sentry.init({});
 
 i18n

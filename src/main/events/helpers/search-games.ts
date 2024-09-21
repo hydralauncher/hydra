@@ -17,7 +17,6 @@ export const convertSteamGameToCatalogueEntry = (
   title: game.name,
   shop: "steam" as GameShop,
   cover: steamUrlBuilder.library(String(game.id)),
-  repacks: [],
 });
 
 export const getSteamGameById = async (

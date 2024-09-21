@@ -44,7 +44,6 @@ export interface CatalogueEntry {
   title: string;
   /* Epic Games covers cannot be guessed with objectID */
   cover: string;
-  repacks: GameRepack[];
 }
 
 export interface UserGame {
@@ -71,7 +70,6 @@ export interface Game {
   status: GameStatus | null;
   folderName: string;
   downloadPath: string | null;
-  repacks: GameRepack[];
   progress: number;
   bytesDownloaded: number;
   playTimeInMilliseconds: number;

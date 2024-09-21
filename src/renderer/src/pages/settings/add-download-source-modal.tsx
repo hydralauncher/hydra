@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { downloadSourcesTable } from "@renderer/dexie";
 
 interface AddDownloadSourceModalProps {
   visible: boolean;
@@ -91,6 +92,9 @@ export function AddDownloadSourceModal({
   }, [visible, clearErrors, handleSubmit, onSubmit, setValue, sourceUrl]);
 
   const handleAddDownloadSource = async () => {
+    await downloadSourcesTable.add({
+      url,
+    });
     await window.electron.addDownloadSource(url);
     onClose();
     onAddDownloadSource();

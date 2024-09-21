@@ -11,6 +11,7 @@ import { useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { settingsContext } from "@renderer/context";
+import { db, downloadSourcesTable, repacksTable } from "@renderer/dexie";
 
 export function SettingsDownloadSources() {
   const [showAddDownloadSourceModal, setShowAddDownloadSourceModal] =
@@ -25,7 +26,7 @@ export function SettingsDownloadSources() {
   const { showSuccessToast } = useToast();
 
   const getDownloadSources = async () => {
-    return window.electron.getDownloadSources().then((sources) => {
+    downloadSourcesTable.toArray().then((sources) => {
       setDownloadSources(sources);
     });
   };
@@ -39,7 +40,11 @@ export function SettingsDownloadSources() {
   }, [sourceUrl]);
 
   const handleRemoveSource = async (id: number) => {
-    await window.electron.removeDownloadSource(id);
+    await db.transaction("rw", downloadSourcesTable, repacksTable, async () => {
+      await downloadSourcesTable.where({ id }).delete();
+      await repacksTable.where({ downloadSourceId: id }).delete();
+    });
+
     showSuccessToast(t("removed_download_source"));
 
     getDownloadSources();

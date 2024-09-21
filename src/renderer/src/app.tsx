@@ -26,6 +26,10 @@ import {
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
+import { RepacksContextProvider } from "./context";
+import { downloadSourcesWorker } from "./workers";
+
+downloadSourcesWorker.postMessage("OK");
 
 export interface AppProps {
   children: React.ReactNode;
@@ -197,7 +201,7 @@ export function App() {
 
   useEffect(() => {
     new MutationObserver(() => {
-      const modal = document.body.querySelector("[role=modal]");
+      const modal = document.body.querySelector("[role=dialog]");
 
       dispatch(toggleDraggingDisabled(Boolean(modal)));
     }).observe(document.body, {
@@ -211,46 +215,48 @@ export function App() {
   }, [dispatch]);
 
   return (
-    <>
-      {window.electron.platform === "win32" && (
-        <div className={styles.titleBar}>
-          <h4>Hydra</h4>
-        </div>
-      )}
+    <RepacksContextProvider>
+      <>
+        {window.electron.platform === "win32" && (
+          <div className={styles.titleBar}>
+            <h4>Hydra</h4>
+          </div>
+        )}
 
-      <Toast
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type}
-        onClose={handleToastClose}
-      />
-
-      {userDetails && (
-        <UserFriendModal
-          visible={isFriendsModalVisible}
-          initialTab={friendRequetsModalTab}
-          onClose={hideFriendsModal}
-          userId={friendModalUserId}
+        <Toast
+          visible={toast.visible}
+          message={toast.message}
+          type={toast.type}
+          onClose={handleToastClose}
         />
-      )}
 
-      <main>
-        <Sidebar />
-
-        <article className={styles.container}>
-          <Header
-            onSearch={handleSearch}
-            search={search}
-            onClear={handleClear}
+        {userDetails && (
+          <UserFriendModal
+            visible={isFriendsModalVisible}
+            initialTab={friendRequetsModalTab}
+            onClose={hideFriendsModal}
+            userId={friendModalUserId}
           />
+        )}
 
-          <section ref={contentRef} className={styles.content}>
-            <Outlet />
-          </section>
-        </article>
-      </main>
+        <main>
+          <Sidebar />
 
-      <BottomPanel />
-    </>
+          <article className={styles.container}>
+            <Header
+              onSearch={handleSearch}
+              search={search}
+              onClear={handleClear}
+            />
+
+            <section ref={contentRef} className={styles.content}>
+              <Outlet />
+            </section>
+          </article>
+        </main>
+
+        <BottomPanel />
+      </>
+    </RepacksContextProvider>
   );
 }

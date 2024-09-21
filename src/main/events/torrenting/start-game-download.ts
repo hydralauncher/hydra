@@ -9,36 +9,25 @@ import { steamGamesWorker } from "@main/workers";
 import { createGame } from "@main/services/library-sync";
 import { steamUrlBuilder } from "@shared";
 import { dataSource } from "@main/data-source";
-import { DownloadQueue, Game, Repack } from "@main/entity";
+import { DownloadQueue, Game } from "@main/entity";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
   payload: StartGameDownloadPayload
 ) => {
-  const { repackId, objectID, title, shop, downloadPath, downloader, uri } =
-    payload;
+  const { objectID, title, shop, downloadPath, downloader, uri } = payload;
 
   return dataSource.transaction(async (transactionalEntityManager) => {
     const gameRepository = transactionalEntityManager.getRepository(Game);
-    const repackRepository = transactionalEntityManager.getRepository(Repack);
     const downloadQueueRepository =
       transactionalEntityManager.getRepository(DownloadQueue);
 
-    const [game, repack] = await Promise.all([
-      gameRepository.findOne({
-        where: {
-          objectID,
-          shop,
-        },
-      }),
-      repackRepository.findOne({
-        where: {
-          id: repackId,
-        },
-      }),
-    ]);
-
-    if (!repack) return;
+    const game = await gameRepository.findOne({
+      where: {
+        objectID,
+        shop,
+      },
+    });
 
     await DownloadManager.pauseDownload();
 
