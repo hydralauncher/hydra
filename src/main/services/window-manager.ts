@@ -106,7 +106,7 @@ export class WindowManager {
       });
 
       authWindow.loadURL(
-        `https://auth.hydralauncher.gg/?${searchParams.toString()}`
+        `${process.env.MAIN_VITE_AUTH_URL}/?${searchParams.toString()}`
       );
 
       authWindow.once("ready-to-show", () => {
