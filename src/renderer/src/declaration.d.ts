@@ -25,6 +25,7 @@ import type {
   UserStats,
   UserDetails,
   FriendRequestSync,
+  DownloadSourceValidationResult,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -106,10 +107,8 @@ declare global {
     getDownloadSources: () => Promise<DownloadSource[]>;
     validateDownloadSource: (
       url: string
-    ) => Promise<{ name: string; downloadCount: number }>;
-    addDownloadSource: (url: string) => Promise<DownloadSource>;
-    removeDownloadSource: (id: number) => Promise<void>;
-    syncDownloadSources: () => Promise<void>;
+    ) => Promise<DownloadSourceValidationResult>;
+    syncDownloadSources: (downloadSources: DownloadSource[]) => Promise<void>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;

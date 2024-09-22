@@ -1,6 +1,6 @@
 import { downloadSourceSchema } from "@main/events/helpers/validators";
 import { DownloadSourceStatus } from "@shared";
-import type { DownloadSource, GameRepack } from "@types";
+import type { DownloadSource } from "@types";
 import axios, { AxiosError, AxiosHeaders } from "axios";
 import { z } from "zod";
 
@@ -49,23 +49,11 @@ export const getUpdatedRepacks = async (downloadSources: DownloadSource[]) => {
   return results;
 };
 
-export const validateDownloadSource = async ({
-  url,
-  repacks,
-}: {
-  url: string;
-  repacks: GameRepack[];
-}) => {
+export const validateDownloadSource = async (url: string) => {
   const response = await axios.get(url);
 
-  const source = downloadSourceSchema.parse(response.data);
-
-  const existingUris = source.downloads
-    .flatMap((download) => download.uris)
-    .filter((uri) => repacks.some((repack) => repack.magnet === uri));
-
   return {
-    name: source.name,
-    downloadCount: source.downloads.length - existingUris.length,
+    ...downloadSourceSchema.parse(response.data),
+    etag: response.headers["etag"],
   };
 };

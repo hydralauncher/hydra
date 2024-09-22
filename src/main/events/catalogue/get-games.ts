@@ -2,6 +2,7 @@ import type { CatalogueEntry } from "@types";
 
 import { registerEvent } from "../register-event";
 import { steamGamesWorker } from "@main/workers";
+import { steamUrlBuilder } from "@shared";
 
 const getGames = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -14,7 +15,12 @@ const getGames = async (
   );
 
   return {
-    results: steamGames,
+    results: steamGames.map((steamGame) => ({
+      title: steamGame.name,
+      shop: "steam",
+      cover: steamUrlBuilder.library(steamGame.id),
+      objectID: steamGame.id,
+    })),
     cursor: cursor + steamGames.length,
   };
 };

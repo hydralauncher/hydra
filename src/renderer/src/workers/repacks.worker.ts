@@ -37,11 +37,9 @@ self.onmessage = async (
     const results = index.search(formatName(query)).map((index) => {
       const repack = state.repacks.at(index as number) as SerializedGameRepack;
 
-      const uris = JSON.parse(repack.uris);
-
       return {
         ...repack,
-        uris: [...uris, repack.magnet].filter(Boolean),
+        uris: [...repack.uris, repack.magnet].filter(Boolean),
       };
     });
 

@@ -9,6 +9,8 @@ import { useForm } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { downloadSourcesTable } from "@renderer/dexie";
+import { DownloadSourceValidationResult } from "@types";
+import { downloadSourcesWorker } from "@renderer/workers";
 
 interface AddDownloadSourceModalProps {
   visible: boolean;
@@ -40,41 +42,35 @@ export function AddDownloadSourceModal({
     setValue,
     setError,
     clearErrors,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: yupResolver(schema),
   });
 
-  const [validationResult, setValidationResult] = useState<{
-    name: string;
-    downloadCount: number;
-  } | null>(null);
+  const [validationResult, setValidationResult] =
+    useState<DownloadSourceValidationResult | null>(null);
 
   const { sourceUrl } = useContext(settingsContext);
 
   const onSubmit = useCallback(
     async (values: FormValues) => {
-      setIsLoading(true);
+      const existingDownloadSource = await downloadSourcesTable
+        .where({ url: values.url })
+        .first();
 
-      try {
-        const result = await window.electron.validateDownloadSource(values.url);
-        setValidationResult(result);
+      if (existingDownloadSource) {
+        setError("url", {
+          type: "server",
+          message: t("source_already_exists"),
+        });
 
-        setUrl(values.url);
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          if (
-            error.message.endsWith("Source with the same url already exists")
-          ) {
-            setError("url", {
-              type: "server",
-              message: t("source_already_exists"),
-            });
-          }
-        }
-      } finally {
-        setIsLoading(false);
+        return;
       }
+
+      const result = await window.electron.validateDownloadSource(values.url);
+      setValidationResult(result);
+
+      setUrl(values.url);
     },
     [setError, t]
   );
@@ -92,12 +88,23 @@ export function AddDownloadSourceModal({
   }, [visible, clearErrors, handleSubmit, onSubmit, setValue, sourceUrl]);
 
   const handleAddDownloadSource = async () => {
-    await downloadSourcesTable.add({
-      url,
-    });
-    await window.electron.addDownloadSource(url);
-    onClose();
-    onAddDownloadSource();
+    setIsLoading(true);
+
+    if (validationResult) {
+      const channel = new BroadcastChannel(`download_sources:import:${url}`);
+
+      downloadSourcesWorker.postMessage([
+        "IMPORT_DOWNLOAD_SOURCE",
+        { ...validationResult, url },
+      ]);
+
+      channel.onmessage = () => {
+        setIsLoading(false);
+
+        onClose();
+        onAddDownloadSource();
+      };
+    }
   };
 
   return (
@@ -126,7 +133,7 @@ export function AddDownloadSourceModal({
               theme="outline"
               style={{ alignSelf: "flex-end" }}
               onClick={handleSubmit(onSubmit)}
-              disabled={isLoading}
+              disabled={isSubmitting || isLoading}
             >
               {t("validate_download_source")}
             </Button>
@@ -152,9 +159,9 @@ export function AddDownloadSourceModal({
               <h4>{validationResult?.name}</h4>
               <small>
                 {t("found_download_option", {
-                  count: validationResult?.downloadCount,
+                  count: validationResult?.downloads.length,
                   countFormatted:
-                    validationResult?.downloadCount.toLocaleString(),
+                    validationResult?.downloads.length.toLocaleString(),
                 })}
               </small>
             </div>

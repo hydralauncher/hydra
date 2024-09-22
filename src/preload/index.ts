@@ -11,6 +11,7 @@ import type {
   GameRunning,
   FriendRequestAction,
   UpdateProfileRequest,
+  DownloadSource,
 } from "@types";
 import type { CatalogueCategory } from "@shared";
 
@@ -64,11 +65,8 @@ contextBridge.exposeInMainWorld("electron", {
   getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
   validateDownloadSource: (url: string) =>
     ipcRenderer.invoke("validateDownloadSource", url),
-  addDownloadSource: (url: string) =>
-    ipcRenderer.invoke("addDownloadSource", url),
-  removeDownloadSource: (id: number) =>
-    ipcRenderer.invoke("removeDownloadSource", id),
-  syncDownloadSources: () => ipcRenderer.invoke("syncDownloadSources"),
+  syncDownloadSources: (downloadSources: DownloadSource[]) =>
+    ipcRenderer.invoke("syncDownloadSources", downloadSources),
 
   /* Library */
   addGameToLibrary: (objectID: string, title: string, shop: GameShop) =>

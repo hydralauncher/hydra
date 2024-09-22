@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useContext, useEffect, useRef } from "react";
 
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
@@ -26,10 +26,8 @@ import {
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
-import { RepacksContextProvider } from "./context";
-import { downloadSourcesWorker } from "./workers";
-
-downloadSourcesWorker.postMessage("OK");
+import { migrationWorker } from "./workers";
+import { repacksContext } from "./context";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -42,6 +40,8 @@ export function App() {
   const { t } = useTranslation("app");
 
   const { clearDownload, setLastPacket } = useDownload();
+
+  const { indexRepacks } = useContext(repacksContext);
 
   const {
     isFriendsModalVisible,
@@ -210,53 +210,70 @@ export function App() {
     });
   }, [dispatch, draggingDisabled]);
 
+  useEffect(() => {
+    // window.electron.getRepacks().then((repacks) => {
+    //   migrationWorker.postMessage(["MIGRATE_REPACKS", repacks]);
+    // });
+    // window.electron.getDownloadSources().then((downloadSources) => {
+    //   migrationWorker.postMessage([
+    //     "MIGRATE_DOWNLOAD_SOURCES",
+    //     downloadSources,
+    //   ]);
+    // });
+    // migrationWorker.onmessage = (
+    //   event: MessageEvent<"MIGRATE_REPACKS_COMPLETE">
+    // ) => {
+    //   if (event.data === "MIGRATE_REPACKS_COMPLETE") {
+    //     indexRepacks();
+    //   }
+    // };
+  }, [indexRepacks]);
+
   const handleToastClose = useCallback(() => {
     dispatch(closeToast());
   }, [dispatch]);
 
   return (
-    <RepacksContextProvider>
-      <>
-        {window.electron.platform === "win32" && (
-          <div className={styles.titleBar}>
-            <h4>Hydra</h4>
-          </div>
-        )}
+    <>
+      {window.electron.platform === "win32" && (
+        <div className={styles.titleBar}>
+          <h4>Hydra</h4>
+        </div>
+      )}
 
-        <Toast
-          visible={toast.visible}
-          message={toast.message}
-          type={toast.type}
-          onClose={handleToastClose}
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={handleToastClose}
+      />
+
+      {userDetails && (
+        <UserFriendModal
+          visible={isFriendsModalVisible}
+          initialTab={friendRequetsModalTab}
+          onClose={hideFriendsModal}
+          userId={friendModalUserId}
         />
+      )}
 
-        {userDetails && (
-          <UserFriendModal
-            visible={isFriendsModalVisible}
-            initialTab={friendRequetsModalTab}
-            onClose={hideFriendsModal}
-            userId={friendModalUserId}
+      <main>
+        <Sidebar />
+
+        <article className={styles.container}>
+          <Header
+            onSearch={handleSearch}
+            search={search}
+            onClear={handleClear}
           />
-        )}
 
-        <main>
-          <Sidebar />
+          <section ref={contentRef} className={styles.content}>
+            <Outlet />
+          </section>
+        </article>
+      </main>
 
-          <article className={styles.container}>
-            <Header
-              onSearch={handleSearch}
-              search={search}
-              onClear={handleClear}
-            />
-
-            <section ref={contentRef} className={styles.content}>
-              <Outlet />
-            </section>
-          </article>
-        </main>
-
-        <BottomPanel />
-      </>
-    </RepacksContextProvider>
+      <BottomPanel />
+    </>
   );
 }

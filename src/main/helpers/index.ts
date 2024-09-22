@@ -36,6 +36,4 @@ export const requestWebPage = async (url: string) => {
 };
 
 export const isPortableVersion = () =>
-  process.env.PORTABLE_EXECUTABLE_FILE != null;
-
-export * from "./download-source";
+  process.env.PORTABLE_EXECUTABLE_FILE !== null;
