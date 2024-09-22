@@ -10,8 +10,9 @@ import { AddDownloadSourceModal } from "./add-download-source-modal";
 import { useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
 import { SPACING_UNIT } from "@renderer/theme.css";
-import { settingsContext } from "@renderer/context";
-import { db, downloadSourcesTable, repacksTable } from "@renderer/dexie";
+import { repacksContext, settingsContext } from "@renderer/context";
+import { downloadSourcesTable } from "@renderer/dexie";
+import { downloadSourcesWorker } from "@renderer/workers";
 
 export function SettingsDownloadSources() {
   const [showAddDownloadSourceModal, setShowAddDownloadSourceModal] =
@@ -19,16 +20,23 @@ export function SettingsDownloadSources() {
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [isSyncingDownloadSources, setIsSyncingDownloadSources] =
     useState(false);
+  const [isRemovingDownloadSource, setIsRemovingDownloadSource] =
+    useState(false);
 
   const { sourceUrl, clearSourceUrl } = useContext(settingsContext);
 
   const { t } = useTranslation("settings");
   const { showSuccessToast } = useToast();
 
+  const { indexRepacks } = useContext(repacksContext);
+
   const getDownloadSources = async () => {
-    downloadSourcesTable.toArray().then((sources) => {
-      setDownloadSources(sources);
-    });
+    await downloadSourcesTable
+      .toCollection()
+      .sortBy("createdAt")
+      .then((sources) => {
+        setDownloadSources(sources.reverse());
+      });
   };
 
   useEffect(() => {
@@ -39,18 +47,23 @@ export function SettingsDownloadSources() {
     if (sourceUrl) setShowAddDownloadSourceModal(true);
   }, [sourceUrl]);
 
-  const handleRemoveSource = async (id: number) => {
-    await db.transaction("rw", downloadSourcesTable, repacksTable, async () => {
-      await downloadSourcesTable.where({ id }).delete();
-      await repacksTable.where({ downloadSourceId: id }).delete();
-    });
+  const handleRemoveSource = (id: number) => {
+    setIsRemovingDownloadSource(true);
+    const channel = new BroadcastChannel(`download_sources:delete:${id}`);
 
-    showSuccessToast(t("removed_download_source"));
+    downloadSourcesWorker.postMessage(["DELETE_DOWNLOAD_SOURCE", id]);
 
-    getDownloadSources();
+    channel.onmessage = () => {
+      showSuccessToast(t("removed_download_source"));
+
+      getDownloadSources();
+      indexRepacks();
+      setIsRemovingDownloadSource(false);
+    };
   };
 
   const handleAddDownloadSource = async () => {
+    indexRepacks();
     await getDownloadSources();
     showSuccessToast(t("added_download_source"));
   };
@@ -59,7 +72,7 @@ export function SettingsDownloadSources() {
     setIsSyncingDownloadSources(true);
 
     window.electron
-      .syncDownloadSources()
+      .syncDownloadSources(downloadSources)
       .then(() => {
         showSuccessToast(t("download_sources_synced"));
         getDownloadSources();
@@ -93,7 +106,11 @@ export function SettingsDownloadSources() {
         <Button
           type="button"
           theme="outline"
-          disabled={!downloadSources.length || isSyncingDownloadSources}
+          disabled={
+            !downloadSources.length ||
+            isSyncingDownloadSources ||
+            isRemovingDownloadSource
+          }
           onClick={syncDownloadSources}
         >
           <SyncIcon />
@@ -104,6 +121,7 @@ export function SettingsDownloadSources() {
           type="button"
           theme="outline"
           onClick={() => setShowAddDownloadSourceModal(true)}
+          disabled={isSyncingDownloadSources}
         >
           <PlusCircleIcon />
           {t("add_download_source")}
@@ -153,6 +171,7 @@ export function SettingsDownloadSources() {
                   type="button"
                   theme="outline"
                   onClick={() => handleRemoveSource(downloadSource.id)}
+                  disabled={isRemovingDownloadSource}
                 >
                   <NoEntryIcon />
                   {t("remove_download_source")}

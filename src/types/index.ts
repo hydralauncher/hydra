@@ -224,6 +224,19 @@ export interface UpdateProfileRequest {
   bio?: string;
 }
 
+export interface DownloadSourceDownload {
+  title: string;
+  uris: string[];
+  uploadDate: string;
+  fileSize: string;
+}
+
+export interface DownloadSourceValidationResult {
+  name: string;
+  downloads: DownloadSourceDownload[];
+  etag: string;
+}
+
 export interface DownloadSource {
   id: number;
   name: string;

@@ -3,7 +3,7 @@ import { Dexie } from "dexie";
 export const db = new Dexie("Hydra");
 
 db.version(1).stores({
-  repacks: `++id, title, uri, fileSize, uploadDate, downloadSourceId, repacker, createdAt, updatedAt`,
+  repacks: `++id, title, uris, fileSize, uploadDate, downloadSourceId, repacker, createdAt, updatedAt`,
   downloadSources: `++id, url, name, etag, downloadCount, status, createdAt, updatedAt`,
 });
 

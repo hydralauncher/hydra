@@ -1,6 +1,6 @@
 import path from "node:path";
 import steamGamesWorkerPath from "./steam-games.worker?modulePath";
-import downloadSourceWorkerPath from "./download-source.worker?modulePath";
+import downloadSourcesWorkerPath from "./download-sources.worker?modulePath";
 
 import Piscina from "piscina";
 
@@ -14,6 +14,6 @@ export const steamGamesWorker = new Piscina({
   maxThreads: 1,
 });
 
-export const downloadSourceWorker = new Piscina({
-  filename: downloadSourceWorkerPath,
+export const downloadSourcesWorker = new Piscina({
+  filename: downloadSourcesWorkerPath,
 });

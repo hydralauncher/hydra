@@ -5,11 +5,13 @@ import { repacksWorker } from "@renderer/workers";
 
 export interface RepacksContext {
   searchRepacks: (query: string) => Promise<GameRepack[]>;
+  indexRepacks: () => void;
   isIndexingRepacks: boolean;
 }
 
 export const repacksContext = createContext<RepacksContext>({
   searchRepacks: async () => [] as GameRepack[],
+  indexRepacks: () => {},
   isIndexingRepacks: false,
 });
 
@@ -37,7 +39,8 @@ export function RepacksContextProvider({ children }: RepacksContextProps) {
     });
   }, []);
 
-  useEffect(() => {
+  const indexRepacks = useCallback(() => {
+    setIsIndexingRepacks(true);
     repacksWorker.postMessage("INDEX_REPACKS");
 
     repacksWorker.onmessage = () => {
@@ -45,10 +48,15 @@ export function RepacksContextProvider({ children }: RepacksContextProps) {
     };
   }, []);
 
+  useEffect(() => {
+    indexRepacks();
+  }, [indexRepacks]);
+
   return (
     <Provider
       value={{
         searchRepacks,
+        indexRepacks,
         isIndexingRepacks,
       }}
     >
