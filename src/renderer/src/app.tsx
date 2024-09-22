@@ -26,7 +26,7 @@ import {
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
-import { migrationWorker } from "./workers";
+// import { migrationWorker } from "./workers";
 import { repacksContext } from "./context";
 
 export interface AppProps {

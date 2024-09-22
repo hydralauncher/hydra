@@ -90,18 +90,8 @@ export function useUserDetails() {
         username: userDetails?.username || "",
       });
     },
-    [updateUserDetails]
+    [updateUserDetails, userDetails?.username]
   );
-
-  const fetchFriendRequests = useCallback(async () => {
-    return window.electron
-      .getFriendRequests()
-      .then((friendRequests) => {
-        syncFriendRequests();
-        dispatch(setFriendRequests(friendRequests));
-      })
-      .catch(() => {});
-  }, [dispatch]);
 
   const syncFriendRequests = useCallback(async () => {
     return window.electron
@@ -111,6 +101,16 @@ export function useUserDetails() {
       })
       .catch(() => {});
   }, [dispatch]);
+
+  const fetchFriendRequests = useCallback(async () => {
+    return window.electron
+      .getFriendRequests()
+      .then((friendRequests) => {
+        syncFriendRequests();
+        dispatch(setFriendRequests(friendRequests));
+      })
+      .catch(() => {});
+  }, [dispatch, syncFriendRequests]);
 
   const showFriendsModal = useCallback(
     (initialTab: UserFriendModalTab, userId: string) => {
