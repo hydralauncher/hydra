@@ -106,7 +106,7 @@ export class WindowManager {
       });
 
       authWindow.loadURL(
-        `${process.env.MAIN_VITE_AUTH_URL}/?${searchParams.toString()}`
+        `${import.meta.env.MAIN_VITE_AUTH_URL}/?${searchParams.toString()}`
       );
 
       authWindow.once("ready-to-show", () => {
