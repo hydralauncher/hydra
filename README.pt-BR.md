@@ -7,7 +7,7 @@
   <h1 align="center">Hydra Launcher</h1>
 
   <p align="center">
-    <strong>Hydra é um Launcher de Jogos com seu próprio cliente de bittorrent integrado e um wrapper autogerenciado para busca de repacks.</strong>
+    <strong>Hydra é um Launcher de Jogos com seu próprio cliente de bittorrent integrado.</strong>
   </p>
 
 [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
@@ -56,17 +56,15 @@
 
 ## <a name="about"> Sobre
 
-**Hydra** é um **Launcher de Jogos** com seu próprio **Cliente BitTorrent incorporado** e um **raspador de repack auto-gerenciado**.
+**Hydra** é um **Launcher de Jogos** com seu próprio **Cliente BitTorrent incorporado**.
 <br>
 O launcher é escrito em TypeScript (Electron) e Python, que lida com o sistema de torrent usando libtorrent.
 
 ## <a name="features"> Recursos
 
-- Wrapper de repacks auto-gerenciado entre todos os sites mais confiáveis no [Megathread]("https://www.reddit.com/r/Piracy/wiki/megathread/")
 - Cliente BitTorrent incorporado próprio
 - Integração com [How Long To Beat (HLTB)](https://howlongtobeat.com/) na página do jogo
 - Personalização do caminho de downloads
-- Notificações de atualização da lista de repacks
 - Suporte para Windows e Linux
 - Constantemente atualizado
 - E mais ...
@@ -137,14 +135,13 @@ Instale as dependências Python necessárias usando o pip:
 pip install -r requirements.txt
 ```
 
-## <a name="environment-variables"></a> Environment variables
+## <a name="environment-variables"></a> Variáveis de ambiente
 
 Você precisará de uma chave da API SteamGridDB para buscar os ícones do jogo durante a instalação.
-Se você deseja ter o onlinefix como um repacker, precisará adicionar suas credenciais ao arquivo .env.
 
-Depois de obtê-lo, você pode copiar ou renomear o arquivo `.env.example` para `.env` e inserir `STEAMGRIDDB_API_KEY`, `ONLINEFIX_USERNAME` e `ONLINEFIX_PASSWORD`.
+Depois de obtê-lo, você pode copiar ou renomear o arquivo `.env.example` para `.env` e inserir `STEAMGRIDDB_API_KEY`.
 
-## <a name="running"></a> Running
+## <a name="running"></a> Executando
 
 Uma vez que você tenha configurado tudo, você pode executar o seguinte comando para iniciar tanto o processo Electron quanto o cliente BitTorrent:
 
