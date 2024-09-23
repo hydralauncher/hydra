@@ -7,7 +7,7 @@
   <h1 align="center">Hydra Launcher</h1>
 
   <p align="center">
-    <strong>Hydra - to program uruchamiający gry z własnym wbudowanym klientem bittorrent i samodzielnie zarządzanym repackagerem..</strong>
+    <strong>Hydra - to program uruchamiający gry z własnym wbudowanym klientem bittorrent.</strong>
   </p>
 
 [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
@@ -24,6 +24,7 @@
 [![ita](https://img.shields.io/badge/lang-it-red)](README.it.md)
 [![cs](https://img.shields.io/badge/lang-cs-purple)](README.cs.md)
 [![da](https://img.shields.io/badge/lang-da-red)](README.da.md)
+[![nb](https://img.shields.io/badge/lang-nb-blue)](README.nb.md)
 
 ![Hydra Catalogue](./docs/screenshot.png)
 
@@ -56,17 +57,15 @@
 
 ## O nas
 
-**Hydra** - jest **programem uruchamiającym gry** z wbudowanym **klientem BitTorrent** i **samozarządzającym się repackagerem**.
+**Hydra** - jest **programem uruchamiającym gry** z wbudowanym **klientem BitTorrent**.
 <br>
 Ten launcher jest napisany w TypeScript (Electron) i Pythonie, który współpracuje z systemem torrent przy użyciu libtorrent.
 
 ## Cechy
 
-- Samodzielnie zarządzany repackager wśród wszystkich najbardziej zaufanych stron na [Megathread]("https://www.reddit.com/r/Piracy/wiki/megathread/").
 - Własny wbudowany klient bittorrent
 - Integracja funkcji How Long To Beat (HLTB) na stronie gry
 - Personalizacja folderu pobierania
-- Powiadomienia o aktualizacjach listy repacków
 - Wsparcie dla systemów Windows i Linux
 - Stała aktualizacja
 - I nie tylko ...
@@ -144,9 +143,8 @@ pip install -r requirements.txt
 ## Zmienne środowiskowe
 
 Będziesz potrzebował klucza API SteamGridDB, aby uzyskać ikony gier podczas instalacji.
-Jeśli chcesz użyć onlinefix jako repackagera, musisz dodać swoje dane uwierzytelniające do .env
 
-Po jego uzyskaniu można skopiować plik lub zmienić jego nazwę `.env.example` na `.env` i umieść go na`STEAMGRIDDB_API_KEY`, `ONLINEFIX_USERNAME`, `ONLINEFIX_PASSWORD`.
+Po jego uzyskaniu można skopiować plik lub zmienić jego nazwę `.env.example` na `.env` i umieść go na`STEAMGRIDDB_API_KEY`.
 
 ## Run
 

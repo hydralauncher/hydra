@@ -7,6 +7,7 @@ import { clearGamesRemoteIds } from "./library-sync/clear-games-remote-id";
 import { logger } from "./logger";
 import { UserNotLoggedInError } from "@shared";
 import { omit } from "lodash-es";
+import { appVersion } from "@main/constants";
 
 interface HydraApiOptions {
   needsAuth: boolean;
@@ -50,7 +51,10 @@ export class HydraApi {
       expirationTimestamp: tokenExpirationTimestamp,
     };
 
-    logger.log("Sign in received", this.userAuth);
+    logger.log(
+      "Sign in received. Token expiration timestamp:",
+      tokenExpirationTimestamp
+    );
 
     await userAuthRepository.upsert(
       {
@@ -80,12 +84,16 @@ export class HydraApi {
   static async setupApi() {
     this.instance = axios.create({
       baseURL: import.meta.env.MAIN_VITE_API_URL,
+      headers: { "User-Agent": `Hydra Launcher v${appVersion}` },
     });
 
     this.instance.interceptors.request.use(
       (request) => {
         logger.log(" ---- REQUEST -----");
-        logger.log(request.method, request.url, request.params, request.data);
+        const data = Array.isArray(request.data)
+          ? request.data
+          : omit(request.data, ["refreshToken"]);
+        logger.log(request.method, request.url, request.params, data);
         return request;
       },
       (error) => {
