@@ -7,7 +7,7 @@
   <h1 align="center">Hydra Launcher</h1>
 
   <p align="center">
-    <strong>Hydra - гэта гульнявы лаўнчар з уласным убудаваным кліентам BitTorrent і самастойным scraper`ам для рэпакаў.</strong>
+    <strong>Hydra - гэта гульнявы лаўнчар з уласным убудаваным кліентам BitTorrent.</strong>
   </p>
 
 [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
@@ -24,6 +24,7 @@
 [![ita](https://img.shields.io/badge/lang-it-red)](README.it.md)
 [![cs](https://img.shields.io/badge/lang-cs-purple)](README.cs.md)
 [![da](https://img.shields.io/badge/lang-da-red)](README.da.md)
+[![nb](https://img.shields.io/badge/lang-nb-blue)](README.nb.md)
 
 ![Hydra Catalogue](./docs/screenshot.png)
 
@@ -140,9 +141,8 @@ pip install -r requirements.txt
 ## Пераменныя асяроддзі
 
 Вам спатрэбіцца ключ API SteamGridDB, каб атрымаць значкі гульняў пры ўсталёўкі.
-Калі вы жадаеце выкарыстоўваць onlinefix у якасці рэпака, вам трэба дадаць вашыя ўліковыя дадзеныя ў файл .env.
 
-Як толькі вы атрымаеце ключ, вы зможаце скапіяваць або пераназваць файл `.env.example` у `.env` і змясціць у яго `STEAMGRIDDB_API_KEY`, `ONLINEFIX_USERNAME`, `ONLINEFIX_PASSWORD`.
+Як толькі вы атрымаеце ключ, вы зможаце скапіяваць або пераназваць файл `.env.example` у `.env` і змясціць у яго `STEAMGRIDDB_API_KEY`.
 
 ## Запуск
 

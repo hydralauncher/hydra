@@ -7,7 +7,7 @@
   <h1 align="center">Hydra Launcher</h1>
 
   <p align="center">
-    <strong>Hydra es un launcher de juegos con su propio cliente de bittorrent y gestor propio de repacks.</strong>
+    <strong>Hydra es un launcher de juegos con su propio cliente de bittorrent.</strong>
   </p>
 
 [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
@@ -24,6 +24,7 @@
 [![ita](https://img.shields.io/badge/lang-it-red)](README.it.md)
 [![cs](https://img.shields.io/badge/lang-cs-purple)](README.cs.md)
 [![da](https://img.shields.io/badge/lang-da-red)](README.da.md)
+[![nb](https://img.shields.io/badge/lang-nb-blue)](README.nb.md)
 
 ![Hydra Catalogue](./docs/screenshot.png)
 
@@ -56,17 +57,15 @@
 
 ## Acerca de
 
-**Hydra** es un **Launcher de Juegos** con su propio **Cliente Bittorrent** y **autogestor de Repacks**.
+**Hydra** es un **Launcher de Juegos** con su propio **Cliente Bittorrent**.
 <br>
 El launcher está escrito en TypeScript (Electron) y Python, el cuál se encarga del sistema de torrent usando libtorrent.
 
 ## Caracteristicas
 
-- Buscador e instalador autogestionado de repacks a través de las páginas más confiables en él [Megahilo](https://www.reddit.com/r/Piracy/wiki/megathread/)
 - Cliente propio de bittorrent integrado
 - Integración de How Long To Beat (HLTB) en la página del juego
 - Customización de rutas de descargas
-- Notificaciones en actualizaciones a listas de repacks
 - Soporte a Windows y Linux
 - En constante actualización
 - Y mucho más ...
@@ -140,9 +139,8 @@ pip install -r requirements.txt
 ## Variables del Entorno
 
 Necesitas una llave API de SteamGridDB para así poder obtener los íconos de los juegos en la instalación.
-Si quieres también tener los repacks de onlinefix, necesitarás añadir tus credenciales al .env
 
-Una vez que los tengas, puedes copiar o renombrar el archivo `.env.example` cómo `.env` y colocarlo en `STEAMGRIDDB_API_KEY`, `ONLINEFIX_USERNAME`, `ONLINEFIX_PASSWORD`.
+Una vez que los tengas, puedes copiar o renombrar el archivo `.env.example` cómo `.env` y colocarlo en `STEAMGRIDDB_API_KEY`.
 
 ## Ejecucion
 

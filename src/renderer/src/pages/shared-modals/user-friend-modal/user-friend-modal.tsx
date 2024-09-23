@@ -81,7 +81,7 @@ export const UserFriendModal = ({
                 alignItems: "center",
               }}
             >
-              <p>Seu código de amigo: </p>
+              <p>{t("your_friend_code")}</p>
               <button
                 className={styles.friendCodeButton}
                 onClick={copyToClipboard}
