@@ -1,4 +1,4 @@
-import { formatDistance, subMilliseconds } from "date-fns";
+import { format, formatDistance, subMilliseconds } from "date-fns";
 import type { FormatDistanceOptions } from "date-fns";
 import {
   ptBR,
@@ -66,6 +66,11 @@ export function useDate() {
       } catch (err) {
         return "";
       }
+    },
+
+    format: (timestamp: number): string => {
+      const locale = getDateLocale();
+      return format(timestamp, locale == enUS ? "MM/dd/yyyy - HH:mm" : "dd/MM/yyyy - HH:mm");
     },
   };
 }

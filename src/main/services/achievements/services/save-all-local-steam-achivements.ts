@@ -48,7 +48,6 @@ export const saveAllLocalSteamAchivements = async () => {
       );
 
       console.log(achievementFile.filePath);
-      console.log(localAchievementFile);
 
       for (const a of Object.keys(localAchievementFile)) {
         // TODO: use checkUnlockedAchievements after refactoring it to be generic

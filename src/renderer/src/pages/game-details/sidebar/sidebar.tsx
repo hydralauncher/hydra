@@ -5,8 +5,9 @@ import { Button } from "@renderer/components";
 
 import * as styles from "./sidebar.css";
 import { gameDetailsContext } from "@renderer/context";
-import { useFormat } from "@renderer/hooks";
+import { useDate, useFormat } from "@renderer/hooks";
 import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 
 export function Sidebar() {
   const [_howLongToBeat, _setHowLongToBeat] = useState<{
@@ -21,6 +22,7 @@ export function Sidebar() {
     useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
+  const { format } = useDate();
 
   const { numberFormatter } = useFormat();
 
@@ -46,16 +48,42 @@ export function Sidebar() {
         isLoading={howLongToBeat.isLoading}
       /> */}
 
-      {achievements.map((achievement, index) => (
-        <div key={index}>
-          <img
-            src={achievement.unlocked ? achievement.icon : achievement.icongray}
-          />
-          <p>{achievement.displayName}</p>
-          {achievement.unlockTime &&
-            new Date(achievement.unlockTime).toDateString()}
+      {achievements.length && (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: `${SPACING_UNIT}px`,
+            padding: `${SPACING_UNIT}px`,
+          }}
+        >
+          {achievements.map((achievement, index) => (
+            <div
+              key={index}
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: `${SPACING_UNIT}px`,
+              }}
+              title={achievement.description}
+            >
+              <img
+                style={{
+                  height: "72px",
+                }}
+                src={
+                  achievement.unlocked ? achievement.icon : achievement.icongray
+                }
+              />
+              <div>
+                <p>{achievement.displayName}</p>
+                {achievement.unlockTime && format(achievement.unlockTime)}
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
 
       {stats && (
         <>
