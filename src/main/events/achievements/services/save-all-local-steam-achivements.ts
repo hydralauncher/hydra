@@ -1,11 +1,7 @@
 import { gameAchievementRepository, gameRepository } from "@main/repository";
 import { steamFindGameAchievementFiles } from "../steam/steam-find-game-achivement-files";
-import { steamGlobalAchievementPercentages } from "../steam/steam-global-achievement-percentages";
-import { steamAchievementInfo } from "../steam/steam-achievement-info";
-import { steamAchievementMerge } from "../steam/steam-achievement-merge";
 import { parseAchievementFile } from "../util/parseAchievementFile";
-import { checkUnlockedAchievements } from "../util/check-unlocked-achievements";
-import { CheckedAchievements } from "../types";
+import { HydraApi } from "@main/services";
 
 export const saveAllLocalSteamAchivements = async () => {
   const gameAchievementFiles = steamFindGameAchievementFiles();
@@ -19,56 +15,56 @@ export const saveAllLocalSteamAchivements = async () => {
 
     if (!game) continue;
 
-    const hasOnDb = await gameAchievementRepository.existsBy({
+    const savedGameAchievements = await gameAchievementRepository.findOneBy({
       game: game,
     });
 
-    if (hasOnDb) continue;
-
-    const achievementPercentage =
-      await steamGlobalAchievementPercentages(objectId);
-
-    if (!achievementPercentage) {
-      await gameAchievementRepository.save({
-        game,
-        achievements: "[]",
-      });
-      continue;
+    if (!savedGameAchievements || !savedGameAchievements.achievements) {
+      HydraApi.get(
+        "/games/achievements",
+        {
+          shop: "steam",
+          objectId,
+        },
+        { needsAuth: false }
+      )
+        .then((achievements) => {
+          return gameAchievementRepository.upsert(
+            {
+              game: { id: game.id },
+              achievements: JSON.stringify(achievements),
+            },
+            ["game"]
+          );
+        })
+        .catch(console.log);
     }
 
-    const achievementInfo = await steamAchievementInfo(objectId);
-
-    if (!achievementInfo) continue;
-
-    const achievements = steamAchievementMerge(
-      achievementPercentage,
-      achievementInfo
-    );
-
-    if (!achievements) continue;
-
-    const checkedAchievements: CheckedAchievements = {
-      all: achievements,
-      new: [],
-    };
+    const unlockedAchievements: { name: string; unlockTime: number }[] = [];
 
     for (const achievementFile of gameAchievementFiles[key]) {
       const localAchievementFile = await parseAchievementFile(
         achievementFile.filePath
       );
 
-      checkedAchievements.new.push(
-        ...checkUnlockedAchievements(
-          achievementFile.type,
-          localAchievementFile,
-          achievements
-        ).new
-      );
+      console.log(achievementFile.filePath);
+      console.log(localAchievementFile);
+
+      for (const a of Object.keys(localAchievementFile)) {
+        // TODO: use checkUnlockedAchievements after refactoring it to be generic
+        unlockedAchievements.push({
+          name: a,
+          unlockTime: localAchievementFile[a].UnlockTime,
+        });
+      }
     }
 
-    await gameAchievementRepository.save({
-      game,
-      achievements: JSON.stringify(checkedAchievements.all),
-    });
+    await gameAchievementRepository.upsert(
+      {
+        game: { id: game.id },
+        unlockedAchievements: JSON.stringify(unlockedAchievements),
+      },
+      ["game"]
+    );
   }
 };

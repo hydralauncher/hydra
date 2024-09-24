@@ -25,7 +25,7 @@ const iniParse = async (filePath: string) => {
     });
 
     let objectName = "";
-    const object: any = {};
+    const object: Record<string, Record<string, string | number>> = {};
 
     for await (const line of lines) {
       if (line.startsWith("###") || !line.length) continue;

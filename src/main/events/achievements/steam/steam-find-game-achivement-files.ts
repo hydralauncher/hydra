@@ -1,21 +1,21 @@
 import path from "node:path";
-import { existsSync, readdirSync } from "node:fs";
+import fs from "node:fs";
 import { Cracker, GameAchievementFiles } from "../types";
 import { app } from "electron";
 
 const addGame = (
   achievementFiles: GameAchievementFiles,
-  gamePath: string,
+  achievementPath: string,
   objectId: string,
   fileLocation: string[],
   type: Cracker
 ) => {
-  const filePath = path.join(gamePath, objectId, ...fileLocation);
+  const filePath = path.join(achievementPath, objectId, ...fileLocation);
 
-  if (existsSync(filePath)) {
+  if (fs.existsSync(filePath)) {
     const achivementFile = {
       type,
-      filePath: filePath,
+      filePath,
     };
 
     achievementFiles[objectId]
@@ -33,7 +33,7 @@ export const steamFindGameAchievementFiles = (
 
   const gameAchievementFiles: GameAchievementFiles = {};
 
-  const crackers: Cracker[] = [
+  const crackers = [
     Cracker.codex,
     Cracker.goldberg,
     Cracker.rune,
@@ -55,9 +55,9 @@ export const steamFindGameAchievementFiles = (
       fileLocation = ["achievements.ini"];
     }
 
-    if (!existsSync(achievementPath)) continue;
+    if (!fs.existsSync(achievementPath)) continue;
 
-    const objectIds = readdirSync(achievementPath);
+    const objectIds = fs.readdirSync(achievementPath);
 
     if (objectId) {
       if (objectIds.includes(objectId)) {

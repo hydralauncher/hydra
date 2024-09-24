@@ -17,5 +17,8 @@ export class GameAchievement {
   game: Game;
 
   @Column("text", { nullable: true })
+  unlockedAchievements: string;
+
+  @Column("text", { nullable: true })
   achievements: string;
 }
