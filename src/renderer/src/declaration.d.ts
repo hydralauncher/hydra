@@ -25,6 +25,7 @@ import type {
   UserStats,
   UserDetails,
   FriendRequestSync,
+  GameAchievement,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -65,6 +66,10 @@ declare global {
     searchGameRepacks: (query: string) => Promise<GameRepack[]>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getTrendingGames: () => Promise<TrendingGame[]>;
+    getGameAchievements: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<GameAchievement[]>;
 
     /* Library */
     addGameToLibrary: (

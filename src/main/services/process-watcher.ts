@@ -8,7 +8,7 @@ import { Game } from "@main/entity";
 import {
   startGameAchievementObserver,
   stopGameAchievementObserver,
-} from "@main/events/achievements/game-achievements-observer";
+} from "@main/services/achievements/game-achievements-observer";
 
 export const gamesPlaytime = new Map<
   number,

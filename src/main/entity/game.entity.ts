@@ -12,6 +12,7 @@ import { Repack } from "./repack.entity";
 import type { GameShop, GameStatus } from "@types";
 import { Downloader } from "@shared";
 import type { DownloadQueue } from "./download-queue.entity";
+import { GameAchievement } from "./game-achievements.entity";
 
 @Entity("game")
 export class Game {
@@ -75,6 +76,9 @@ export class Game {
   @OneToOne("Repack", "game", { nullable: true })
   @JoinColumn()
   repack: Repack;
+
+  @OneToOne("GameAchievement", "game")
+  achievements: GameAchievement;
 
   @OneToOne("DownloadQueue", "game")
   downloadQueue: DownloadQueue;

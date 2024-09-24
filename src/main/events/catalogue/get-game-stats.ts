@@ -9,13 +9,10 @@ const getGameStats = async (
   objectId: string,
   shop: GameShop
 ) => {
-  const params = new URLSearchParams({
-    objectId,
-    shop,
-  });
-
   const response = await HydraApi.get<GameStats>(
-    `/games/stats?${params.toString()}`
+    `/games/stats`,
+    { objectId, shop },
+    { needsAuth: false }
   );
   return response;
 };

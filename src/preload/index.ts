@@ -13,6 +13,7 @@ import type {
   UpdateProfileRequest,
 } from "@types";
 import type { CatalogueCategory } from "@shared";
+import { Game } from "@main/entity";
 
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
@@ -49,6 +50,8 @@ contextBridge.exposeInMainWorld("electron", {
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
   getTrendingGames: () => ipcRenderer.invoke("getTrendingGames"),
+  getGameAchievements: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("getGameAchievements", objectId, shop),
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),

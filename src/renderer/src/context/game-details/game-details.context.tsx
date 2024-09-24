@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector, useDownload } from "@renderer/hooks";
 
 import type {
   Game,
+  GameAchievement,
   GameRepack,
   GameShop,
   GameStats,
@@ -53,6 +54,7 @@ export function GameDetailsContextProvider({
 
   const [shopDetails, setShopDetails] = useState<ShopDetails | null>(null);
   const [repacks, setRepacks] = useState<GameRepack[]>([]);
+  const [achievements, setAchievements] = useState<GameAchievement[]>([]);
   const [game, setGame] = useState<Game | null>(null);
   const [hasNSFWContentBlocked, setHasNSFWContentBlocked] = useState(false);
 
@@ -99,8 +101,9 @@ export function GameDetailsContextProvider({
       ),
       window.electron.searchGameRepacks(gameTitle),
       window.electron.getGameStats(objectID!, shop as GameShop),
+      window.electron.getGameAchievements(objectID!, shop as GameShop),
     ])
-      .then(([appDetailsResult, repacksResult, statsResult]) => {
+      .then(([appDetailsResult, repacksResult, statsResult, achievements]) => {
         if (appDetailsResult.status === "fulfilled") {
           setShopDetails(appDetailsResult.value);
 
@@ -117,6 +120,11 @@ export function GameDetailsContextProvider({
           setRepacks(repacksResult.value);
 
         if (statsResult.status === "fulfilled") setStats(statsResult.value);
+
+        if (achievements.status === "fulfilled") {
+          console.log(achievements.value);
+          setAchievements(achievements.value);
+        }
       })
       .finally(() => {
         setIsLoading(false);
@@ -193,6 +201,7 @@ export function GameDetailsContextProvider({
         showGameOptionsModal,
         showRepacksModal,
         stats,
+        achievements,
         hasNSFWContentBlocked,
         setHasNSFWContentBlocked,
         setGameColor,

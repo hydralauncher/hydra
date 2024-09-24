@@ -17,7 +17,8 @@ export function Sidebar() {
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
-  const { gameTitle, shopDetails, stats } = useContext(gameDetailsContext);
+  const { gameTitle, shopDetails, stats, achievements } =
+    useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
 
@@ -44,6 +45,17 @@ export function Sidebar() {
         howLongToBeatData={howLongToBeat.data}
         isLoading={howLongToBeat.isLoading}
       /> */}
+
+      {achievements.map((achievement, index) => (
+        <div key={index}>
+          <img
+            src={achievement.unlocked ? achievement.icon : achievement.icongray}
+          />
+          <p>{achievement.displayName}</p>
+          {achievement.unlockTime &&
+            new Date(achievement.unlockTime).toDateString()}
+        </div>
+      ))}
 
       {stats && (
         <>
