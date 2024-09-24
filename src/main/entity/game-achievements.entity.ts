@@ -5,14 +5,14 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
-import { Game } from "./game.entity";
+import type { Game } from "./game.entity";
 
 @Entity("game_achievement")
 export class GameAchievement {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToOne(() => Game)
+  @OneToOne("Game", "achievements")
   @JoinColumn()
   game: Game;
 

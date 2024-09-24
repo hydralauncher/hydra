@@ -28,6 +28,16 @@ export interface GameRepack {
   updatedAt: Date;
 }
 
+export interface GameAchievement {
+  name: string;
+  displayName: string;
+  description?: string;
+  unlocked: boolean;
+  unlockTime: number | null;
+  icon: string;
+  icongray: string;
+}
+
 export type ShopDetails = SteamAppDetails & {
   objectID: string;
 };
