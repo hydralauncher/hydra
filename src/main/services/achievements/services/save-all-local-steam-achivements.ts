@@ -9,17 +9,18 @@ export const saveAllLocalSteamAchivements = async () => {
   for (const key of Object.keys(gameAchievementFiles)) {
     const objectId = key;
 
-    const game = await gameRepository.findOne({
-      where: { objectID: objectId },
-    });
+    const [game, localAchievements] = await Promise.all([
+      gameRepository.findOne({
+        where: { objectID: objectId, shop: "steam", isDeleted: false },
+      }),
+      gameAchievementRepository.findOne({
+        where: { objectId, shop: "steam" },
+      }),
+    ]);
 
     if (!game) continue;
 
-    const savedGameAchievements = await gameAchievementRepository.findOneBy({
-      game: game,
-    });
-
-    if (!savedGameAchievements || !savedGameAchievements.achievements) {
+    if (!localAchievements || !localAchievements.achievements) {
       HydraApi.get(
         "/games/achievements",
         {
@@ -31,10 +32,11 @@ export const saveAllLocalSteamAchivements = async () => {
         .then((achievements) => {
           return gameAchievementRepository.upsert(
             {
-              game: { id: game.id },
+              objectId,
+              shop: "steam",
               achievements: JSON.stringify(achievements),
             },
-            ["game"]
+            ["objectId", "shop"]
           );
         })
         .catch(console.log);
@@ -58,12 +60,13 @@ export const saveAllLocalSteamAchivements = async () => {
       }
     }
 
-    await gameAchievementRepository.upsert(
+    gameAchievementRepository.upsert(
       {
-        game: { id: game.id },
+        objectId,
+        shop: "steam",
         unlockedAchievements: JSON.stringify(unlockedAchievements),
       },
-      ["game"]
+      ["objectId", "shop"]
     );
   }
 };

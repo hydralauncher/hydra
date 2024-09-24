@@ -6,10 +6,11 @@ export const CreateGameAchievement: HydraMigration = {
   up: (knex: Knex) => {
     return knex.schema.createTable("game_achievement", (table) => {
       table.increments("id").primary();
-      table.integer("gameId").notNullable().unique();
+      table.text("objectId").notNullable();
+      table.text("shop").notNullable();
       table.text("achievements");
       table.text("unlockedAchievements");
-      table.foreign("gameId").references("game.id").onDelete("CASCADE");
+      table.unique(["objectId", "shop"]);
     });
   },
 

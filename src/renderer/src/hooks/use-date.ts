@@ -70,7 +70,10 @@ export function useDate() {
 
     format: (timestamp: number): string => {
       const locale = getDateLocale();
-      return format(timestamp, locale == enUS ? "MM/dd/yyyy - HH:mm" : "dd/MM/yyyy - HH:mm");
+      return format(
+        timestamp,
+        locale == enUS ? "MM/dd/yyyy - HH:mm" : "dd/MM/yyyy - HH:mm"
+      );
     },
   };
 }

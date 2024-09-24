@@ -31,6 +31,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   showRepacksModal: false,
   showGameOptionsModal: false,
   stats: null,
+  achievements: [],
   hasNSFWContentBlocked: false,
   setGameColor: () => {},
   selectGameExecutable: async () => null,

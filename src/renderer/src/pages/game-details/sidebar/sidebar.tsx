@@ -7,7 +7,7 @@ import * as styles from "./sidebar.css";
 import { gameDetailsContext } from "@renderer/context";
 import { useDate, useFormat } from "@renderer/hooks";
 import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
+import { SPACING_UNIT } from "@renderer/theme.css";
 
 export function Sidebar() {
   const [_howLongToBeat, _setHowLongToBeat] = useState<{
