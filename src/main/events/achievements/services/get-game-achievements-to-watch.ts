@@ -22,7 +22,9 @@ export const getGameAchievementsToWatch = async (
   const steamId = Number(game.objectID);
 
   const achievements = await steamGetAchivement(game);
+
   console.log(achievements);
+
   if (!achievements || !achievements.length) return;
 
   const achievementFiles = steamFindGameAchievementFiles(game.objectID)[
@@ -50,7 +52,7 @@ export const getGameAchievementsToWatch = async (
         game: { id: gameId },
       },
       {
-        achievements: JSON.stringify(checkedAchievements.all),
+        unlockedAchievements: JSON.stringify(checkedAchievements.all),
       }
     );
   }
