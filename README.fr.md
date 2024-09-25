@@ -7,7 +7,7 @@
   <h1 align="center">Hydra Launcher</h1>
 
   <p align="center">
-    <strong>Hydra est un lanceur de jeux avec son propre client bittorrent intégré et un scraper de repack auto-géré.</strong>
+    <strong>Hydra est un lanceur de jeux avec son propre client bittorrent intégré.</strong>
   </p>
 
 [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
@@ -23,6 +23,7 @@
 [![de](https://img.shields.io/badge/lang-de-black)](README.de.md)
 [![ita](https://img.shields.io/badge/lang-it-red)](README.it.md)
 [![cs](https://img.shields.io/badge/lang-cs-purple)](README.cs.md)
+[![da](https://img.shields.io/badge/lang-da-red)](README.da.md)
 [![nb](https://img.shields.io/badge/lang-nb-blue)](README.nb.md)
 
 ![Catalogue Hydra](./docs/screenshot.png)
@@ -56,17 +57,15 @@
 
 ## À propos
 
-**Hydra** est un **lanceur de jeux** avec son propre **client BitTorrent** intégré et un **scraper de repack auto-géré**.
+**Hydra** est un **lanceur de jeux** avec son propre **client BitTorrent** intégré.
 <br>
 Le lanceur est écrit en TypeScript (Electron) et Python, qui gère le système de torrent en utilisant libtorrent.
 
 ## Fonctionnalités
 
-- Scraper de repack auto-géré parmi tous les sites les plus fiables sur le [Megathread]("https://www.reddit.com/r/Piracy/wiki/megathread/")
 - Client bittorrent intégré
 - Intégration How Long To Beat (HLTB) sur la page du jeu
 - Personnalisation des chemins de téléchargement
-- Notifications de mise à jour de la liste de repack
 - Support pour Windows et Linux
 - Constamment mis à jour
 - Et plus encore ...
@@ -140,9 +139,8 @@ pip install -r requirements.txt
 ## Variables d'environnement
 
 Vous aurez besoin d'une clé API SteamGridDB pour récupérer les icônes de jeux lors de l'installation.
-Si vous voulez avoir onlinefix comme repacker, vous devrez ajouter vos identifiants au fichier .env.
 
-Une fois que vous l'avez, vous pouvez copier ou renommer le fichier `.env.example` en `.env` et y mettre `STEAMGRIDDB_API_KEY`, `ONLINEFIX_USERNAME`, `ONLINEFIX_PASSWORD`.
+Une fois que vous l'avez, vous pouvez copier ou renommer le fichier `.env.example` en `.env` et y mettre `STEAMGRIDDB_API_KEY`.
 
 ## Lancement
 
