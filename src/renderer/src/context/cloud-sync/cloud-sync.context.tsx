@@ -25,7 +25,7 @@ export interface CloudSyncContext {
   setShowCloudSyncModal: React.Dispatch<React.SetStateAction<boolean>>;
   downloadGameArtifact: (gameArtifactId: string) => Promise<void>;
   uploadSaveGame: () => Promise<void>;
-  deleteGameArtifact: (gameArtifactId: string) => Promise<{ ok: boolean }>;
+  deleteGameArtifact: (gameArtifactId: string) => Promise<void>;
   restoringBackup: boolean;
   uploadingBackup: boolean;
 }
@@ -39,7 +39,7 @@ export const cloudSyncContext = createContext<CloudSyncContext>({
   downloadGameArtifact: async () => {},
   uploadSaveGame: async () => {},
   artifacts: [],
-  deleteGameArtifact: async () => ({ ok: false }),
+  deleteGameArtifact: async () => {},
   restoringBackup: false,
   uploadingBackup: false,
 });
@@ -135,19 +135,25 @@ export function CloudSyncContextProvider({
     async (gameArtifactId: string) => {
       return window.electron.deleteGameArtifact(gameArtifactId).then(() => {
         getGameBackupPreview();
-        return { ok: true };
       });
     },
     [getGameBackupPreview]
   );
 
   useEffect(() => {
-    getGameBackupPreview();
-
     window.electron.checkGameCloudSyncSupport(objectId, shop).then((result) => {
       setSupportsCloudSync(result);
     });
   }, [objectId, shop, getGameBackupPreview]);
+
+  useEffect(() => {
+    setBackupPreview(null);
+    setArtifacts([]);
+    setSupportsCloudSync(null);
+    setShowCloudSyncModal(false);
+    setRestoringBackup(false);
+    setUploadingBackup(false);
+  }, [objectId, shop]);
 
   useEffect(() => {
     if (showCloudSyncModal) {
