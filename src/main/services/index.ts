@@ -9,3 +9,4 @@ export * from "./process-watcher";
 export * from "./main-loop";
 export * from "./repacks-manager";
 export * from "./hydra-api";
+export * from "./ludusavi";

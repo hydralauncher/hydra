@@ -26,6 +26,8 @@ import type {
   UserDetails,
   FriendRequestSync,
   DownloadSourceValidationResult,
+  GameArtifact,
+  LudusaviBackup,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -112,6 +114,37 @@ declare global {
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
+
+    /* Cloud sync */
+    uploadSaveGame: (objectId: string, shop: GameShop) => Promise<void>;
+    downloadGameArtifact: (
+      objectId: string,
+      shop: GameShop,
+      gameArtifactId: string
+    ) => Promise<void>;
+    getGameArtifacts: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<GameArtifact[]>;
+    getGameBackupPreview: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<LudusaviBackup | null>;
+    checkGameCloudSyncSupport: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<boolean>;
+    deleteGameArtifact: (gameArtifactId: string) => Promise<{ ok: boolean }>;
+    onDownloadComplete: (
+      objectId: string,
+      shop: GameShop,
+      cb: () => void
+    ) => () => Electron.IpcRenderer;
+    onUploadComplete: (
+      objectId: string,
+      shop: GameShop,
+      cb: () => void
+    ) => () => Electron.IpcRenderer;
 
     /* Misc */
     openExternal: (src: string) => Promise<void>;

@@ -5,7 +5,6 @@ import {
   useEffect,
   useState,
 } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
 
 import { setHeaderTitle } from "@renderer/features";
 import { getSteamLanguage } from "@renderer/helpers";
@@ -51,13 +50,17 @@ export const { Consumer: GameDetailsContextConsumer } = gameDetailsContext;
 
 export interface GameDetailsContextProps {
   children: React.ReactNode;
+  objectId: string;
+  gameTitle: string;
+  shop: GameShop;
 }
 
 export function GameDetailsContextProvider({
   children,
+  objectId,
+  gameTitle,
+  shop,
 }: GameDetailsContextProps) {
-  const { objectID, shop } = useParams();
-
   const [shopDetails, setShopDetails] = useState<ShopDetails | null>(null);
   const [game, setGame] = useState<Game | null>(null);
   const [hasNSFWContentBlocked, setHasNSFWContentBlocked] = useState(false);
@@ -71,10 +74,6 @@ export function GameDetailsContextProvider({
   const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
 
   const [repacks, setRepacks] = useState<GameRepack[]>([]);
-
-  const [searchParams] = useSearchParams();
-
-  const gameTitle = searchParams.get("title")!;
 
   const { searchRepacks, isIndexingRepacks } = useContext(repacksContext);
 
@@ -98,9 +97,9 @@ export function GameDetailsContextProvider({
 
   const updateGame = useCallback(async () => {
     return window.electron
-      .getGameByObjectID(objectID!)
+      .getGameByObjectID(objectId!)
       .then((result) => setGame(result));
-  }, [setGame, objectID]);
+  }, [setGame, objectId]);
 
   const isGameDownloading = lastPacket?.game.id === game?.id;
 
@@ -111,7 +110,7 @@ export function GameDetailsContextProvider({
   useEffect(() => {
     window.electron
       .getGameShopDetails(
-        objectID!,
+        objectId!,
         shop as GameShop,
         getSteamLanguage(i18n.language)
       )
@@ -130,12 +129,12 @@ export function GameDetailsContextProvider({
         setIsLoading(false);
       });
 
-    window.electron.getGameStats(objectID!, shop as GameShop).then((result) => {
+    window.electron.getGameStats(objectId!, shop as GameShop).then((result) => {
       setStats(result);
     });
 
     updateGame();
-  }, [updateGame, dispatch, gameTitle, objectID, shop, i18n.language]);
+  }, [updateGame, dispatch, gameTitle, objectId, shop, i18n.language]);
 
   useEffect(() => {
     setShopDetails(null);
@@ -143,7 +142,7 @@ export function GameDetailsContextProvider({
     setIsLoading(true);
     setisGameRunning(false);
     dispatch(setHeaderTitle(gameTitle));
-  }, [objectID, gameTitle, dispatch]);
+  }, [objectId, gameTitle, dispatch]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesIds) => {
@@ -200,7 +199,7 @@ export function GameDetailsContextProvider({
         gameTitle,
         isGameRunning,
         isLoading,
-        objectID,
+        objectID: objectId,
         gameColor,
         showGameOptionsModal,
         showRepacksModal,

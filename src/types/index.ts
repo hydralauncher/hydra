@@ -266,5 +266,15 @@ export interface UserStats {
   friendsCount: number;
 }
 
+export interface GameArtifact {
+  id: string;
+  artifactLengthInBytes: number;
+  createdAt: string;
+  updatedAt: string;
+  hostname: string;
+  downloadCount: number;
+}
+
 export * from "./steam.types";
 export * from "./real-debrid.types";
+export * from "./ludusavi.types";
