@@ -115,7 +115,7 @@ contextBridge.exposeInMainWorld("electron", {
   getDiskFreeSpace: (path: string) =>
     ipcRenderer.invoke("getDiskFreeSpace", path),
 
-  /* Cloud sync */
+  /* Cloud save */
   uploadSaveGame: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("uploadSaveGame", objectId, shop),
   downloadGameArtifact: (

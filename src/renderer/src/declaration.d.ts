@@ -115,7 +115,7 @@ declare global {
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
 
-    /* Cloud sync */
+    /* Cloud save */
     uploadSaveGame: (objectId: string, shop: GameShop) => Promise<void>;
     downloadGameArtifact: (
       objectId: string,
