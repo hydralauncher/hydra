@@ -4,6 +4,7 @@ import { IsNull } from "typeorm";
 import { HydraApi } from "../hydra-api";
 import { mergeWithRemoteGames } from "./merge-with-remote-games";
 import { WindowManager } from "../window-manager";
+import { saveAllLocalSteamAchivements } from "../achievements/save-all-local-steam-achivements";
 
 export const uploadGamesBatch = async () => {
   const games = await gameRepository.find({
@@ -27,6 +28,8 @@ export const uploadGamesBatch = async () => {
   }
 
   await mergeWithRemoteGames();
+
+  await saveAllLocalSteamAchivements();
 
   if (WindowManager.mainWindow)
     WindowManager.mainWindow.webContents.send("on-library-batch-complete");

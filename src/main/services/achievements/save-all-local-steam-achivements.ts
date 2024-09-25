@@ -1,6 +1,6 @@
 import { gameAchievementRepository, gameRepository } from "@main/repository";
-import { steamFindGameAchievementFiles } from "../steam/steam-find-game-achivement-files";
-import { parseAchievementFile } from "../util/parseAchievementFile";
+import { steamFindGameAchievementFiles } from "./steam/steam-find-game-achivement-files";
+import { parseAchievementFile } from "./util/parseAchievementFile";
 import { HydraApi } from "@main/services";
 
 export const saveAllLocalSteamAchivements = async () => {
@@ -68,5 +68,14 @@ export const saveAllLocalSteamAchivements = async () => {
       },
       ["objectId", "shop"]
     );
+
+    if (game.remoteId) {
+      HydraApi.put("/profile/games/achievements", {
+        id: game.remoteId,
+        achievements: unlockedAchievements,
+      }).catch(() => {
+        console.log("erro");
+      });
+    }
   }
 };

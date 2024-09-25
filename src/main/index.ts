@@ -67,7 +67,6 @@ const runMigrations = async () => {
     );
   });
 
-  await knexClient.migrate.down(migrationConfig);
   await knexClient.migrate.latest(migrationConfig);
   await knexClient.destroy();
 };

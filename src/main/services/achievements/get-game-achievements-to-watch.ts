@@ -1,9 +1,9 @@
 import { gameRepository, gameAchievementRepository } from "@main/repository";
-import { steamGetAchivement } from "../steam/steam-get-achivement";
-import { steamFindGameAchievementFiles } from "../steam/steam-find-game-achivement-files";
-import { AchievementFile, CheckedAchievements } from "../types";
-import { parseAchievementFile } from "../util/parseAchievementFile";
-import { checkUnlockedAchievements } from "../util/check-unlocked-achievements";
+import { steamGetAchivement } from "./steam/steam-get-achivement";
+import { steamFindGameAchievementFiles } from "./steam/steam-find-game-achivement-files";
+import { AchievementFile, CheckedAchievements } from "./types";
+import { parseAchievementFile } from "./util/parseAchievementFile";
+import { checkUnlockedAchievements } from "./util/check-unlocked-achievements";
 
 export const getGameAchievementsToWatch = async (
   gameId: number

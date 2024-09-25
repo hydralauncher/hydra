@@ -1,5 +1,5 @@
 import { watch } from "node:fs/promises";
-import { getGameAchievementsToWatch } from "./services/get-game-achievements-to-watch";
+import { getGameAchievementsToWatch } from "./get-game-achievements-to-watch";
 import { checkUnlockedAchievements } from "./util/check-unlocked-achievements";
 import { parseAchievementFile } from "./util/parseAchievementFile";
 import { gameAchievementRepository } from "@main/repository";
