@@ -33,9 +33,6 @@ const getNewProfileImageUrl = async (localImageUrl: string) => {
     headers: {
       "Content-Type": mimeType,
     },
-    onUploadProgress: (progressEvent) => {
-      console.log(progressEvent);
-    },
   });
 
   return profileImageUrl;

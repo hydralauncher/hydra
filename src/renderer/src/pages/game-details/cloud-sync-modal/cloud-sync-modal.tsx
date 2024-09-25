@@ -87,8 +87,12 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
       );
     }
 
-    return "no_backups";
-  }, [uploadingBackup, lastBackup, restoringBackup]);
+    if (!backupPreview) {
+      return "no_backup_preview";
+    }
+
+    return "no_artifacts";
+  }, [uploadingBackup, lastBackup, backupPreview, restoringBackup]);
 
   const disableActions = uploadingBackup || restoringBackup || deletingArtifact;
 
@@ -116,7 +120,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
         <Button
           type="button"
           onClick={uploadSaveGame}
-          disabled={disableActions}
+          disabled={disableActions || !backupPreview}
         >
           <UploadIcon />
           create_backup

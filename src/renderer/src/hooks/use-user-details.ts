@@ -46,32 +46,9 @@ export function useUserDetails() {
   const updateUserDetails = useCallback(
     async (userDetails: UserDetails) => {
       dispatch(setUserDetails(userDetails));
-
-      if (userDetails.profileImageUrl) {
-        // TODO: Decide if we want to use this
-        // const profileBackground = await profileBackgroundFromProfileImage(
-        //   userDetails.profileImageUrl
-        // ).catch((err) => {
-        //   logger.error("profileBackgroundFromProfileImage", err);
-        //   return `#151515B3`;
-        // });
-        // dispatch(setProfileBackground(profileBackground));
-
-        window.localStorage.setItem(
-          "userDetails",
-          JSON.stringify({ ...userDetails, profileBackground })
-        );
-      } else {
-        const profileBackground = `#151515B3`;
-        dispatch(setProfileBackground(profileBackground));
-
-        window.localStorage.setItem(
-          "userDetails",
-          JSON.stringify({ ...userDetails, profileBackground })
-        );
-      }
+      window.localStorage.setItem("userDetails", JSON.stringify(userDetails));
     },
-    [dispatch, profileBackground]
+    [dispatch]
   );
 
   const fetchUserDetails = useCallback(async () => {
