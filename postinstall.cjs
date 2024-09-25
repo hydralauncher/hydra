@@ -30,10 +30,15 @@ const downloadLudusavi = async () => {
     console.log(`Downloaded ${file}, extracting...`);
 
     const pwd = process.cwd();
+
     const targetPath = path.join(pwd, "ludusavi");
 
     await exec(`npx extract-zip ${file} ${targetPath}`);
-    fs.chmodSync(path.join(targetPath, "ludusavi"), 0o755);
+
+    if (process.platform !== "win32") {
+      fs.chmodSync(path.join(targetPath, "ludusavi"), 0o755);
+    }
+
     console.log("Extracted. Renaming folder...");
 
     console.log(`Extracted ${file}, removing compressed downloaded file...`);
