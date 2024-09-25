@@ -115,6 +115,42 @@ contextBridge.exposeInMainWorld("electron", {
   getDiskFreeSpace: (path: string) =>
     ipcRenderer.invoke("getDiskFreeSpace", path),
 
+  /* Cloud sync */
+  uploadSaveGame: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("uploadSaveGame", objectId, shop),
+  downloadGameArtifact: (
+    objectId: string,
+    shop: GameShop,
+    gameArtifactId: string
+  ) =>
+    ipcRenderer.invoke("downloadGameArtifact", objectId, shop, gameArtifactId),
+  getGameArtifacts: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("getGameArtifacts", objectId, shop),
+  getGameBackupPreview: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("getGameBackupPreview", objectId, shop),
+  checkGameCloudSyncSupport: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("checkGameCloudSyncSupport", objectId, shop),
+  deleteGameArtifact: (gameArtifactId: string) =>
+    ipcRenderer.invoke("deleteGameArtifact", gameArtifactId),
+  onUploadComplete: (objectId: string, shop: GameShop, cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on(`on-upload-complete-${objectId}-${shop}`, listener);
+    return () =>
+      ipcRenderer.removeListener(
+        `on-upload-complete-${objectId}-${shop}`,
+        listener
+      );
+  },
+  onDownloadComplete: (objectId: string, shop: GameShop, cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on(`on-download-complete-${objectId}-${shop}`, listener);
+    return () =>
+      ipcRenderer.removeListener(
+        `on-download-complete-${objectId}-${shop}`,
+        listener
+      );
+  },
+
   /* Misc */
   ping: () => ipcRenderer.invoke("ping"),
   getVersion: () => ipcRenderer.invoke("getVersion"),

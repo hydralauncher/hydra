@@ -1,3 +1,4 @@
+import type { GameShop } from "@types";
 import axios from "axios";
 
 export interface SteamGridResponse {
@@ -22,7 +23,7 @@ export interface SteamGridGameResponse {
 export const getSteamGridData = async (
   objectID: string,
   path: string,
-  shop: string,
+  shop: GameShop,
   params: Record<string, string> = {}
 ): Promise<SteamGridResponse> => {
   const searchParams = new URLSearchParams(params);

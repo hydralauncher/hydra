@@ -18,21 +18,25 @@ import { vars } from "@renderer/theme.css";
 
 import { GameDetailsContent } from "./game-details-content";
 import {
+  CloudSyncContextConsumer,
+  CloudSyncContextProvider,
   GameDetailsContextConsumer,
   GameDetailsContextProvider,
 } from "@renderer/context";
 import { useDownload } from "@renderer/hooks";
 import { GameOptionsModal, RepacksModal } from "./modals";
 import { Downloader, getDownloadersForUri } from "@shared";
+import { CloudSyncModal } from "./cloud-sync-modal/cloud-sync-modal";
 
 export function GameDetails() {
   const [randomGame, setRandomGame] = useState<Steam250Game | null>(null);
   const [randomizerLocked, setRandomizerLocked] = useState(false);
 
-  const { objectID } = useParams();
+  const { objectID, shop } = useParams();
   const [searchParams] = useSearchParams();
 
   const fromRandomizer = searchParams.get("fromRandomizer");
+  const gameTitle = searchParams.get("title");
 
   const { startDownload } = useDownload();
 
@@ -74,7 +78,11 @@ export function GameDetails() {
     repack.uris.find((uri) => getDownloadersForUri(uri).includes(downloader))!;
 
   return (
-    <GameDetailsContextProvider>
+    <GameDetailsContextProvider
+      gameTitle={gameTitle!}
+      shop={shop! as GameShop}
+      objectId={objectID!}
+    >
       <GameDetailsContextConsumer>
         {({
           isLoading,
@@ -115,64 +123,80 @@ export function GameDetails() {
           };
 
           return (
-            <SkeletonTheme
-              baseColor={vars.color.background}
-              highlightColor="#444"
+            <CloudSyncContextProvider
+              objectId={objectID!}
+              shop={shop! as GameShop}
             >
-              {isLoading ? <GameDetailsSkeleton /> : <GameDetailsContent />}
+              <CloudSyncContextConsumer>
+                {({ showCloudSyncModal, setShowCloudSyncModal }) => (
+                  <CloudSyncModal
+                    onClose={() => setShowCloudSyncModal(false)}
+                    visible={showCloudSyncModal}
+                  />
+                )}
+              </CloudSyncContextConsumer>
 
-              <RepacksModal
-                visible={showRepacksModal}
-                startDownload={handleStartDownload}
-                onClose={() => setShowRepacksModal(false)}
-              />
+              <SkeletonTheme
+                baseColor={vars.color.background}
+                highlightColor="#444"
+              >
+                {isLoading ? <GameDetailsSkeleton /> : <GameDetailsContent />}
 
-              <ConfirmationModal
-                visible={hasNSFWContentBlocked}
-                onClose={handleNSFWContentRefuse}
-                title={t("nsfw_content_title")}
-                descriptionText={t("nsfw_content_description", {
-                  title: gameTitle,
-                })}
-                confirmButtonLabel={t("allow_nsfw_content")}
-                cancelButtonLabel={t("refuse_nsfw_content")}
-                onConfirm={() => setHasNSFWContentBlocked(false)}
-                clickOutsideToClose={false}
-              />
-
-              {game && (
-                <GameOptionsModal
-                  visible={showGameOptionsModal}
-                  game={game}
-                  onClose={() => {
-                    setShowGameOptionsModal(false);
-                  }}
+                <RepacksModal
+                  visible={showRepacksModal}
+                  startDownload={handleStartDownload}
+                  onClose={() => setShowRepacksModal(false)}
                 />
-              )}
 
-              {fromRandomizer && (
-                <Button
-                  className={styles.randomizerButton}
-                  onClick={handleRandomizerClick}
-                  theme="outline"
-                  disabled={!randomGame || randomizerLocked}
-                >
-                  <div style={{ width: 16, height: 16, position: "relative" }}>
-                    <Lottie
-                      animationData={starsAnimation}
-                      style={{
-                        width: 70,
-                        position: "absolute",
-                        top: -28,
-                        left: -27,
-                      }}
-                      loop
-                    />
-                  </div>
-                  {t("next_suggestion")}
-                </Button>
-              )}
-            </SkeletonTheme>
+                <ConfirmationModal
+                  visible={hasNSFWContentBlocked}
+                  onClose={handleNSFWContentRefuse}
+                  title={t("nsfw_content_title")}
+                  descriptionText={t("nsfw_content_description", {
+                    title: gameTitle,
+                  })}
+                  confirmButtonLabel={t("allow_nsfw_content")}
+                  cancelButtonLabel={t("refuse_nsfw_content")}
+                  onConfirm={() => setHasNSFWContentBlocked(false)}
+                  clickOutsideToClose={false}
+                />
+
+                {game && (
+                  <GameOptionsModal
+                    visible={showGameOptionsModal}
+                    game={game}
+                    onClose={() => {
+                      setShowGameOptionsModal(false);
+                    }}
+                  />
+                )}
+
+                {fromRandomizer && (
+                  <Button
+                    className={styles.randomizerButton}
+                    onClick={handleRandomizerClick}
+                    theme="outline"
+                    disabled={!randomGame || randomizerLocked}
+                  >
+                    <div
+                      style={{ width: 16, height: 16, position: "relative" }}
+                    >
+                      <Lottie
+                        animationData={starsAnimation}
+                        style={{
+                          width: 70,
+                          position: "absolute",
+                          top: -28,
+                          left: -27,
+                        }}
+                        loop
+                      />
+                    </div>
+                    {t("next_suggestion")}
+                  </Button>
+                )}
+              </SkeletonTheme>
+            </CloudSyncContextProvider>
           );
         }}
       </GameDetailsContextConsumer>

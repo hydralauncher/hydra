@@ -9,8 +9,11 @@ import { Sidebar } from "./sidebar/sidebar";
 
 import * as styles from "./game-details.css";
 import { useTranslation } from "react-i18next";
-import { gameDetailsContext } from "@renderer/context";
+import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import { steamUrlBuilder } from "@shared";
+import Lottie from "lottie-react";
+
+import downloadingAnimation from "@renderer/assets/lottie/cloud.json";
 
 const HERO_ANIMATION_THRESHOLD = 25;
 
@@ -29,6 +32,9 @@ export function GameDetailsContent() {
     setGameColor,
     hasNSFWContentBlocked,
   } = useContext(gameDetailsContext);
+
+  const { supportsCloudSync, setShowCloudSyncModal } =
+    useContext(cloudSyncContext);
 
   const [backdropOpactiy, setBackdropOpacity] = useState(1);
 
@@ -102,6 +108,33 @@ export function GameDetailsContent() {
                 className={styles.gameLogo}
                 alt={game?.title}
               />
+
+              {supportsCloudSync && (
+                <button
+                  type="button"
+                  className={styles.cloudSyncButton}
+                  onClick={() => setShowCloudSyncModal(true)}
+                >
+                  <div
+                    style={{
+                      width: 16 + 4,
+                      height: 16,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      position: "relative",
+                    }}
+                  >
+                    <Lottie
+                      animationData={downloadingAnimation}
+                      loop
+                      autoplay
+                      style={{ width: 26, position: "absolute", top: -3 }}
+                    />
+                  </div>
+                  cloud_sync
+                </button>
+              )}
             </div>
           </div>
         </div>
