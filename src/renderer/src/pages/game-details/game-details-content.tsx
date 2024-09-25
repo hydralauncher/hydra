@@ -132,7 +132,7 @@ export function GameDetailsContent() {
                       style={{ width: 26, position: "absolute", top: -3 }}
                     />
                   </div>
-                  cloud_sync
+                  {t("cloud_save")}
                 </button>
               )}
             </div>

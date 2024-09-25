@@ -16,6 +16,7 @@ import {
 } from "@primer/octicons-react";
 import { useToast } from "@renderer/hooks";
 import { GameBackup, gameBackupsTable } from "@renderer/dexie";
+import { useTranslation } from "react-i18next";
 
 export interface CloudSyncModalProps
   extends Omit<ModalProps, "children" | "title"> {}
@@ -23,6 +24,8 @@ export interface CloudSyncModalProps
 export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
   const [deletingArtifact, setDeletingArtifact] = useState(false);
   const [lastBackup, setLastBackup] = useState<GameBackup | null>(null);
+
+  const { t } = useTranslation("game_details");
 
   const {
     artifacts,
@@ -44,7 +47,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     try {
       await deleteGameArtifact(gameArtifactId);
 
-      showSuccessToast("backup_successfully_deleted");
+      showSuccessToast(t("backup_deleted"));
     } catch (err) {
       showErrorToast("backup_deletion_failed");
     } finally {
@@ -64,7 +67,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <SyncIcon />
-          creating_backup
+          {t("uploading_backup")}
         </span>
       );
     }
@@ -73,34 +76,36 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <SyncIcon />
-          restoring_backup
+          {t("restoring_backup")}
         </span>
       );
     }
 
     if (lastBackup) {
       return (
-        <p style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <CheckCircleFillIcon />
-          Último backup em {format(lastBackup.createdAt, "dd/MM/yyyy HH:mm")}
-        </p>
+          {t("last_backup_date", {
+            date: format(lastBackup.createdAt, "dd/MM/yyyy HH:mm"),
+          })}
+        </span>
       );
     }
 
     if (!backupPreview) {
-      return "no_backup_preview";
+      return t("no_backup_preview");
     }
 
-    return "no_artifacts";
-  }, [uploadingBackup, lastBackup, backupPreview, restoringBackup]);
+    return t("no_backups");
+  }, [uploadingBackup, lastBackup, backupPreview, restoringBackup, t]);
 
   const disableActions = uploadingBackup || restoringBackup || deletingArtifact;
 
   return (
     <Modal
       visible={visible}
-      title="cloud_sync"
-      description="cloud_sync_description"
+      title={t("cloud_save")}
+      description={t("cloud_save_description")}
       onClose={onClose}
       large
     >
@@ -114,7 +119,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
       >
         <div style={{ display: "flex", gap: 4, flexDirection: "column" }}>
           <h2>{gameTitle}</h2>
-          {backupStateLabel}
+          <p>{backupStateLabel}</p>
         </div>
 
         <Button
@@ -123,11 +128,11 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
           disabled={disableActions || !backupPreview}
         >
           <UploadIcon />
-          create_backup
+          {t("create_backup")}
         </Button>
       </div>
 
-      <h2 style={{ marginBottom: 16 }}>backups</h2>
+      <h2 style={{ marginBottom: 16 }}>{t("backups")}</h2>
 
       <ul className={styles.artifacts}>
         {artifacts.map((artifact) => (
@@ -162,7 +167,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
                 disabled={disableActions}
               >
                 <DownloadIcon />
-                install_artifact
+                {t("install_backup")}
               </Button>
               <Button
                 type="button"
@@ -171,7 +176,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
                 disabled={disableActions}
               >
                 <TrashIcon />
-                delete_artifact
+                {t("delete_backup")}
               </Button>
             </div>
           </li>
