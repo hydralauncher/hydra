@@ -1,10 +1,11 @@
 import path from "node:path";
 import fs from "node:fs";
-import { Cracker, GameAchievementFiles } from "../types";
 import { app } from "electron";
+import type { AchievementFile } from "@types";
+import { Cracker } from "@shared";
 
 const addGame = (
-  achievementFiles: GameAchievementFiles,
+  achievementFiles: Map<string, AchievementFile[]>,
   achievementPath: string,
   objectId: string,
   fileLocation: string[],
@@ -17,19 +18,17 @@ const addGame = (
     filePath,
   };
 
-  achievementFiles[objectId]
-    ? achievementFiles[objectId].push(achivementFile)
-    : (achievementFiles[objectId] = [achivementFile]);
+  achievementFiles.get(objectId)
+    ? achievementFiles.get(objectId)!.push(achivementFile)
+    : achievementFiles.set(objectId, [achivementFile]);
 };
 
-export const steamFindGameAchievementFiles = (
-  objectId?: string
-): GameAchievementFiles => {
+export const findSteamGameAchievementFiles = (objectId?: string) => {
   //TODO: change to a automatized method
   const publicDir = path.join("C:", "Users", "Public", "Documents");
   const appData = app.getPath("appData");
 
-  const gameAchievementFiles: GameAchievementFiles = {};
+  const gameAchievementFiles = new Map<string, AchievementFile[]>();
 
   const crackers = [
     Cracker.codex,
