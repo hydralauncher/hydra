@@ -1,9 +1,12 @@
-import { Notification, nativeImage } from "electron";
+import { Notification, app, nativeImage } from "electron";
 import { t } from "i18next";
 import { parseICO } from "icojs";
 import trayIcon from "@resources/tray-icon.png?asset";
 import { Game } from "@main/entity";
 import { gameRepository, userPreferencesRepository } from "@main/repository";
+import axios from "axios";
+import fs from "node:fs";
+import path from "node:path";
 
 const getGameIconNativeImage = async (gameId: number) => {
   try {
@@ -79,6 +82,28 @@ export const publishNotificationUpdateReadyToInstall = async (
       ns: "notifications",
     }),
     icon: trayIcon,
+  }).show();
+};
+
+export const publishNewAchievementNotification = async (
+  game: string,
+  name: string,
+  icon: string
+) => {
+  const iconName = icon.split("/").pop() || "icon.png";
+  await axios.get(icon, { responseType: "stream" }).then((response) => {
+    return response.data.pipe(
+      fs.createWriteStream(path.join(app.getPath("temp"), iconName))
+    );
+  });
+
+  new Notification({
+    title: t("game_achievement_unlocked", {
+      ns: "notifications",
+      game,
+    }),
+    body: name,
+    icon: path.join(app.getPath("temp"), iconName),
   }).show();
 };
 

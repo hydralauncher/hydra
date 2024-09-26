@@ -16,7 +16,6 @@ import { publishNewRepacksNotifications } from "./services/notifications";
 import { MoreThan } from "typeorm";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
-import { saveAllLocalSteamAchivements } from "./services/achievements/save-all-local-steam-achivements";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
   RepacksManager.updateRepacks();
