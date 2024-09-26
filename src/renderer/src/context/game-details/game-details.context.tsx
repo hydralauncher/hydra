@@ -138,6 +138,7 @@ export function GameDetailsContextProvider({
     setGame(null);
     setIsLoading(true);
     setisGameRunning(false);
+    setAchievements([]);
     dispatch(setHeaderTitle(gameTitle));
   }, [objectID, gameTitle, dispatch]);
 
@@ -157,6 +158,22 @@ export function GameDetailsContextProvider({
       unsubscribe();
     };
   }, [game?.id, isGameRunning, updateGame]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onAchievementUnlocked(
+      (objectId, shop) => {
+        if (objectID !== objectId || shop !== shop) return;
+
+        window.electron
+          .getGameAchievements(objectID!, shop as GameShop)
+          .then(setAchievements);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [objectID, shop]);
 
   const getDownloadsPath = async () => {
     if (userPreferences?.downloadsPath) return userPreferences.downloadsPath;

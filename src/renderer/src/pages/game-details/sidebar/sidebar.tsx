@@ -48,7 +48,7 @@ export function Sidebar() {
         isLoading={howLongToBeat.isLoading}
       /> */}
 
-      {achievements.length && (
+      {achievements.length > 0 && (
         <div
           style={{
             display: "flex",
@@ -71,11 +71,14 @@ export function Sidebar() {
               <img
                 style={{
                   height: "72px",
+                  width: "72px",
+                  filter: achievement.unlocked ? "none" : "grayscale(100%)",
                 }}
                 src={
                   achievement.unlocked ? achievement.icon : achievement.icongray
                 }
                 alt={achievement.displayName}
+                loading="lazy"
               />
               <div>
                 <p>{achievement.displayName}</p>
