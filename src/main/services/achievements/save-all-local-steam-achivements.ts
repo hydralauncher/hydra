@@ -17,7 +17,7 @@ export const saveAllLocalSteamAchivements = async () => {
 
   const gameAchievementFiles = findSteamGameAchievementFiles();
 
-  for (const objectId of Object.keys(gameAchievementFiles)) {
+  for (const objectId of gameAchievementFiles.keys()) {
     const [game, localAchievements] = await Promise.all([
       gameRepository.findOne({
         where: { objectID: objectId, shop: "steam", isDeleted: false },
@@ -28,6 +28,12 @@ export const saveAllLocalSteamAchivements = async () => {
     ]);
 
     if (!game) continue;
+
+    console.log(
+      "Achievements files for",
+      game.title,
+      gameAchievementFiles.get(objectId)
+    );
 
     if (!localAchievements || !localAchievements.achievements) {
       await HydraApi.get(
@@ -54,7 +60,7 @@ export const saveAllLocalSteamAchivements = async () => {
 
     const unlockedAchievements: UnlockedAchievement[] = [];
 
-    for (const achievementFile of gameAchievementFiles[objectId]) {
+    for (const achievementFile of gameAchievementFiles.get(objectId)!) {
       const localAchievementFile = await parseAchievementFile(
         achievementFile.filePath
       );
