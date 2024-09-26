@@ -2,80 +2,77 @@ import { watch } from "node:fs/promises";
 import { getGameAchievementsToWatch } from "./get-game-achievements-to-watch";
 import { checkUnlockedAchievements } from "./util/check-unlocked-achievements";
 import { parseAchievementFile } from "./util/parseAchievementFile";
-import { gameAchievementRepository } from "@main/repository";
+import { Game } from "@main/entity";
+import { mergeAchievements } from "./merge-achievements";
+import fs from "node:fs";
+import { AchievementFile } from "./types";
 
 type GameAchievementObserver = {
-  [id: number]: AbortController | null;
+  [id: number]: AbortController;
 };
 
 const gameAchievementObserver: GameAchievementObserver = {};
 
-export const startGameAchievementObserver = async (gameId: number) => {
-  if (
-    gameAchievementObserver[gameId] === null ||
-    gameAchievementObserver[gameId]
-  ) {
-    return;
+const processAchievementFile = async (game: Game, file: AchievementFile) => {
+  const localAchievementFile = await parseAchievementFile(file.filePath);
+  console.log(localAchievementFile);
+
+  if (localAchievementFile) {
+    const unlockedAchievements = checkUnlockedAchievements(
+      file.type,
+      localAchievementFile
+    );
+    console.log(unlockedAchievements);
+
+    if (unlockedAchievements.length) {
+      mergeAchievements(game.objectID, game.shop, unlockedAchievements);
+    }
   }
+};
 
-  console.log(`Starting: ${gameId}`);
+export const startGameAchievementObserver = async (game: Game) => {
+  if (gameAchievementObserver[game.id]) return;
 
-  const achievementsToWatch = await getGameAchievementsToWatch(gameId);
+  console.log(`Starting: ${game.title}`);
 
-  if (!achievementsToWatch) {
-    console.log("No achievements to observe");
-    gameAchievementObserver[gameId] = null;
-    return;
-  }
+  const achievementFiles = await getGameAchievementsToWatch(game.id);
 
-  const { steamId, checkedAchievements, achievementFiles } =
-    achievementsToWatch;
-
-  gameAchievementObserver[gameId] = new AbortController();
-
-  const achievements = checkedAchievements.all;
+  console.log(
+    "Achievements files to observe for:",
+    game.title,
+    achievementFiles
+  );
 
   for (const file of achievementFiles) {
-    const signal = gameAchievementObserver[gameId]?.signal;
-    if (!signal) return;
-    console.log(`cracker: ${file.type}, steamId: ${steamId}`);
+    if (!fs.existsSync(file.filePath)) {
+      continue;
+    }
+
+    console.log(`cracker: ${file.type}, objectId: ${game.objectID}`);
+
+    if (!gameAchievementObserver[game.id]) {
+      const abortController = new AbortController();
+      gameAchievementObserver[game.id] = abortController;
+    }
+
+    const signal = gameAchievementObserver[game.id]?.signal;
+
     (async () => {
       try {
+        processAchievementFile(game, file);
+
         const watcher = watch(file.filePath, {
           signal,
         });
+
         for await (const event of watcher) {
           if (event.eventType === "change") {
-            console.log("file modified");
-            const localAchievementFile = await parseAchievementFile(
-              file.filePath
-            );
-
-            if (!localAchievementFile) continue;
-
-            const checked = checkUnlockedAchievements(
-              file.type,
-              localAchievementFile,
-              achievements
-            );
-
-            if (checked.new) {
-              console.log(checked.new);
-
-              gameAchievementRepository.update(
-                {
-                  game: { id: steamId },
-                },
-                {
-                  achievements: JSON.stringify(checked.all),
-                }
-              );
-            }
+            processAchievementFile(game, file);
           }
         }
       } catch (err: any) {
-        console.log(`cracker: ${file.type}, steamId ${steamId}`);
         if (err?.name === "AbortError") return;
+        console.log(`cracker: ${file.type}, steamId ${game.objectID}`);
         throw err;
       }
     })();

@@ -12,16 +12,14 @@ const addGame = (
 ) => {
   const filePath = path.join(achievementPath, objectId, ...fileLocation);
 
-  if (fs.existsSync(filePath)) {
-    const achivementFile = {
-      type,
-      filePath,
-    };
+  const achivementFile = {
+    type,
+    filePath,
+  };
 
-    achievementFiles[objectId]
-      ? achievementFiles[objectId].push(achivementFile)
-      : (achievementFiles[objectId] = [achivementFile]);
-  }
+  achievementFiles[objectId]
+    ? achievementFiles[objectId].push(achivementFile)
+    : (achievementFiles[objectId] = [achivementFile]);
 };
 
 export const steamFindGameAchievementFiles = (
@@ -55,30 +53,16 @@ export const steamFindGameAchievementFiles = (
       fileLocation = ["achievements.ini"];
     }
 
-    if (!fs.existsSync(achievementPath)) continue;
+    const objectIds = objectId ? [objectId] : fs.readdirSync(achievementPath);
 
-    const objectIds = fs.readdirSync(achievementPath);
-
-    if (objectId) {
-      if (objectIds.includes(objectId)) {
-        addGame(
-          gameAchievementFiles,
-          achievementPath,
-          objectId,
-          fileLocation,
-          cracker
-        );
-      }
-    } else {
-      for (const objectId of objectIds) {
-        addGame(
-          gameAchievementFiles,
-          achievementPath,
-          objectId,
-          fileLocation,
-          cracker
-        );
-      }
+    for (const objectId of objectIds) {
+      addGame(
+        gameAchievementFiles,
+        achievementPath,
+        objectId,
+        fileLocation,
+        cracker
+      );
     }
   }
 

@@ -123,7 +123,6 @@ export function GameDetailsContextProvider({
         if (statsResult.status === "fulfilled") setStats(statsResult.value);
 
         if (achievements.status === "fulfilled") {
-          console.log(achievements.value);
           setAchievements(achievements.value);
         }
       })
