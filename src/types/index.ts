@@ -1,4 +1,4 @@
-import type { DownloadSourceStatus, Downloader } from "@shared";
+import type { Cracker, DownloadSourceStatus, Downloader } from "@shared";
 import type { SteamAppDetails } from "./steam.types";
 
 export type GameStatus =
@@ -264,6 +264,20 @@ export interface UserStats {
   libraryCount: number;
   friendsCount: number;
 }
+
+export interface UnlockedAchievement {
+  name: string;
+  unlockTime: number;
+}
+
+export interface AchievementFile {
+  type: Cracker;
+  filePath: string;
+}
+
+export type GameAchievementFiles = {
+  [id: string]: AchievementFile[];
+};
 
 export * from "./steam.types";
 export * from "./real-debrid.types";

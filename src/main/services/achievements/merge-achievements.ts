@@ -1,7 +1,6 @@
 import { gameAchievementRepository, gameRepository } from "@main/repository";
-import { UnlockedAchievement } from "./types";
 import { publishNewAchievementNotification } from "../notifications";
-import { GameShop } from "@types";
+import type { GameShop, UnlockedAchievement } from "@types";
 
 export const mergeAchievements = async (
   objectId: string,

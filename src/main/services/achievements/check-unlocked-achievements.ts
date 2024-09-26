@@ -1,4 +1,5 @@
-import { Cracker, UnlockedAchievement } from "../types";
+import { Cracker } from "@shared";
+import type { UnlockedAchievement } from "@types";
 
 export const checkUnlockedAchievements = (
   type: Cracker,

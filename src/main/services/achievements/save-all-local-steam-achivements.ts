@@ -3,19 +3,19 @@ import {
   gameRepository,
   userPreferencesRepository,
 } from "@main/repository";
-import { steamFindGameAchievementFiles } from "./steam/steam-find-game-achivement-files";
-import { parseAchievementFile } from "./util/parseAchievementFile";
+import { findSteamGameAchievementFiles } from "./find-steam-game-achivement-files";
+import { parseAchievementFile } from "./parse-achievement-file";
 import { HydraApi } from "@main/services";
-import { checkUnlockedAchievements } from "./util/check-unlocked-achievements";
+import { checkUnlockedAchievements } from "./check-unlocked-achievements";
 import { mergeAchievements } from "./merge-achievements";
-import { UnlockedAchievement } from "./types";
+import type { UnlockedAchievement } from "@types";
 
 export const saveAllLocalSteamAchivements = async () => {
   const userPreferences = await userPreferencesRepository.findOne({
     where: { id: 1 },
   });
 
-  const gameAchievementFiles = steamFindGameAchievementFiles();
+  const gameAchievementFiles = findSteamGameAchievementFiles();
 
   for (const objectId of Object.keys(gameAchievementFiles)) {
     const [game, localAchievements] = await Promise.all([
