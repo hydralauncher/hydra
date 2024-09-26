@@ -1,102 +1,63 @@
-import { Achievement, CheckedAchievements, Cracker } from "../types";
+import { Cracker, UnlockedAchievement } from "../types";
 
 export const checkUnlockedAchievements = (
   type: Cracker,
-  unlockedAchievements: any,
-  achievements: Achievement[]
-): CheckedAchievements => {
-  if (type === Cracker.onlineFix)
-    return onlineFixMerge(unlockedAchievements, achievements);
+  unlockedAchievements: any
+): UnlockedAchievement[] => {
+  if (type === Cracker.onlineFix) return onlineFixMerge(unlockedAchievements);
   if (type === Cracker.goldberg)
-    return goldbergUnlockedAchievements(unlockedAchievements, achievements);
-  return defaultMerge(unlockedAchievements, achievements);
+    return goldbergUnlockedAchievements(unlockedAchievements);
+  return defaultMerge(unlockedAchievements);
 };
 
-const onlineFixMerge = (
-  unlockedAchievements: any,
-  achievements: Achievement[]
-): CheckedAchievements => {
-  const newUnlockedAchievements: Achievement[] = [];
+const onlineFixMerge = (unlockedAchievements: any): UnlockedAchievement[] => {
+  const parsedUnlockedAchievements: UnlockedAchievement[] = [];
 
-  for (const achievement of achievements) {
-    if (achievement.achieved) continue;
+  for (const achievement of Object.keys(unlockedAchievements)) {
+    const unlockedAchievement = unlockedAchievements[achievement];
 
-    const unlockedAchievement = unlockedAchievements[achievement.id];
-
-    if (!unlockedAchievement) continue;
-
-    achievement.achieved = Boolean(
-      unlockedAchievement?.achieved ?? achievement.achieved
-    );
-
-    achievement.unlockTime =
-      unlockedAchievement?.timestamp ?? achievement.unlockTime;
-
-    if (achievement.achieved) {
-      newUnlockedAchievements.push(achievement);
+    if (unlockedAchievement?.achieved) {
+      parsedUnlockedAchievements.push({
+        name: achievement,
+        unlockTime: unlockedAchievement.timestamp,
+      });
     }
   }
 
-  return { all: achievements, new: newUnlockedAchievements };
+  return parsedUnlockedAchievements;
 };
 
 const goldbergUnlockedAchievements = (
-  unlockedAchievements: any,
-  achievements: Achievement[]
-): CheckedAchievements => {
-  const newUnlockedAchievements: Achievement[] = [];
+  unlockedAchievements: any
+): UnlockedAchievement[] => {
+  const newUnlockedAchievements: UnlockedAchievement[] = [];
 
-  for (const achievement of achievements) {
-    if (achievement.achieved) continue;
+  for (const achievement of Object.keys(unlockedAchievements)) {
+    const unlockedAchievement = unlockedAchievements[achievement];
 
-    const unlockedAchievement = unlockedAchievements[achievement.id];
-
-    if (!unlockedAchievement) continue;
-
-    achievement.achieved = Boolean(
-      unlockedAchievement?.earned ?? achievement.achieved
-    );
-
-    achievement.unlockTime =
-      unlockedAchievement?.earned_time ?? achievement.unlockTime;
-
-    if (achievement.achieved) {
-      newUnlockedAchievements.push(achievement);
+    if (unlockedAchievement?.earned) {
+      newUnlockedAchievements.push({
+        name: achievement,
+        unlockTime: unlockedAchievement.earned_time,
+      });
     }
   }
-  return { all: achievements, new: newUnlockedAchievements };
+  return newUnlockedAchievements;
 };
 
-const defaultMerge = (
-  unlockedAchievements: any,
-  achievements: Achievement[]
-): CheckedAchievements => {
-  const newUnlockedAchievements: Achievement[] = [];
-  console.log("checkUnlockedAchievements");
-  for (const achievement of achievements) {
-    if (achievement.achieved) continue;
+const defaultMerge = (unlockedAchievements: any): UnlockedAchievement[] => {
+  const newUnlockedAchievements: UnlockedAchievement[] = [];
 
-    const unlockedAchievement = unlockedAchievements[achievement.id];
+  for (const achievement of Object.keys(unlockedAchievements)) {
+    const unlockedAchievement = unlockedAchievements[achievement];
 
-    if (!unlockedAchievement) continue;
-
-    achievement.achieved = Boolean(
-      unlockedAchievement?.Achieved ?? achievement.achieved
-    );
-
-    achievement.curProgress =
-      unlockedAchievement?.CurProgress ?? achievement.curProgress;
-
-    achievement.maxProgress =
-      unlockedAchievement?.MaxProgress ?? achievement.maxProgress;
-
-    achievement.unlockTime =
-      unlockedAchievement?.UnlockTime ?? achievement.unlockTime;
-
-    if (achievement.achieved) {
-      newUnlockedAchievements.push(achievement);
+    if (unlockedAchievement?.Achieved) {
+      newUnlockedAchievements.push({
+        name: achievement,
+        unlockTime: unlockedAchievement.UnlockTime,
+      });
     }
   }
-  console.log("newUnlocked: ", newUnlockedAchievements);
-  return { all: achievements, new: newUnlockedAchievements };
+
+  return newUnlockedAchievements;
 };

@@ -79,7 +79,7 @@ function onOpenGame(game: Game) {
     createGame({ ...game, lastTimePlayed: new Date() }).catch(() => {});
   }
 
-  startGameAchievementObserver(game.id);
+  startGameAchievementObserver(game);
 }
 
 function onTickGame(game: Game) {
@@ -116,6 +116,8 @@ function onTickGame(game: Game) {
       })
       .catch(() => {});
   }
+
+  startGameAchievementObserver(game);
 }
 
 const onCloseGame = (game: Game) => {

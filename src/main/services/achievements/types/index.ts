@@ -10,6 +10,11 @@ export interface CheckedAchievements {
   new: Achievement[];
 }
 
+export interface UnlockedAchievement {
+  name: string;
+  unlockTime: number;
+}
+
 export interface Achievement {
   id: string;
   percent: number;

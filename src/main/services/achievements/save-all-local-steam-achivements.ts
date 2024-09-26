@@ -2,13 +2,14 @@ import { gameAchievementRepository, gameRepository } from "@main/repository";
 import { steamFindGameAchievementFiles } from "./steam/steam-find-game-achivement-files";
 import { parseAchievementFile } from "./util/parseAchievementFile";
 import { HydraApi } from "@main/services";
+import { checkUnlockedAchievements } from "./util/check-unlocked-achievements";
+import { mergeAchievements } from "./merge-achievements";
+import { UnlockedAchievement } from "./types";
 
 export const saveAllLocalSteamAchivements = async () => {
   const gameAchievementFiles = steamFindGameAchievementFiles();
 
-  for (const key of Object.keys(gameAchievementFiles)) {
-    const objectId = key;
-
+  for (const objectId of Object.keys(gameAchievementFiles)) {
     const [game, localAchievements] = await Promise.all([
       gameRepository.findOne({
         where: { objectID: objectId, shop: "steam", isDeleted: false },
@@ -42,40 +43,20 @@ export const saveAllLocalSteamAchivements = async () => {
         .catch(console.log);
     }
 
-    const unlockedAchievements: { name: string; unlockTime: number }[] = [];
+    const unlockedAchievements: UnlockedAchievement[] = [];
 
-    for (const achievementFile of gameAchievementFiles[key]) {
+    for (const achievementFile of gameAchievementFiles[objectId]) {
       const localAchievementFile = await parseAchievementFile(
         achievementFile.filePath
       );
 
       console.log(achievementFile.filePath);
 
-      for (const a of Object.keys(localAchievementFile)) {
-        // TODO: use checkUnlockedAchievements after refactoring it to be generic
-        unlockedAchievements.push({
-          name: a,
-          unlockTime: localAchievementFile[a].UnlockTime,
-        });
-      }
+      unlockedAchievements.push(
+        ...checkUnlockedAchievements(achievementFile.type, localAchievementFile)
+      );
     }
 
-    gameAchievementRepository.upsert(
-      {
-        objectId,
-        shop: "steam",
-        unlockedAchievements: JSON.stringify(unlockedAchievements),
-      },
-      ["objectId", "shop"]
-    );
-
-    if (game.remoteId) {
-      HydraApi.put("/profile/games/achievements", {
-        id: game.remoteId,
-        achievements: unlockedAchievements,
-      }).catch(() => {
-        console.log("erro");
-      });
-    }
+    mergeAchievements(objectId, "steam", unlockedAchievements);
   }
 };
