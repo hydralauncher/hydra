@@ -1,6 +1,7 @@
 import { gameAchievementRepository, gameRepository } from "@main/repository";
 import { publishNewAchievementNotification } from "../notifications";
 import type { GameShop, UnlockedAchievement } from "@types";
+import { WindowManager } from "../window-manager";
 
 export const mergeAchievements = async (
   objectId: string,
@@ -27,6 +28,14 @@ export const mergeAchievements = async (
       return localAchievement.name === achievement.name;
     });
   });
+
+  if (!newAchievements.length) return;
+
+  WindowManager.mainWindow?.webContents.send(
+    "on-achievement-unlocked",
+    objectId,
+    shop
+  );
 
   for (const achievement of newAchievements) {
     const completeAchievement = JSON.parse(
