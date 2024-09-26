@@ -106,7 +106,7 @@ export const publishNewAchievementNotification = async (
     iconUrl.split("/").pop() || "image.jpg"
   );
 
-  await downloadImage(iconUrl, iconPath);
+  await downloadImage(iconUrl, iconPath).catch(() => {});
 
   new Notification({
     title: t("game_achievement_unlocked", {
