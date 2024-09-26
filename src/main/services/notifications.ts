@@ -85,17 +85,28 @@ export const publishNotificationUpdateReadyToInstall = async (
   }).show();
 };
 
+const downloadImage = async (url: string, iconPath: string) => {
+  const response = await axios.get(url, { responseType: "stream" });
+  const writer = fs.createWriteStream(iconPath);
+  response.data.pipe(writer);
+
+  return new Promise((resolve, reject) => {
+    writer.on("finish", resolve);
+    writer.on("error", reject);
+  });
+};
+
 export const publishNewAchievementNotification = async (
   game: string,
   name: string,
-  icon: string
+  iconUrl: string
 ) => {
-  const iconName = icon.split("/").pop() || "icon.png";
-  await axios.get(icon, { responseType: "stream" }).then((response) => {
-    return response.data.pipe(
-      fs.createWriteStream(path.join(app.getPath("temp"), iconName))
-    );
-  });
+  const iconPath = path.join(
+    app.getPath("temp"),
+    iconUrl.split("/").pop() || "image.jpg"
+  );
+
+  await downloadImage(iconUrl, iconPath);
 
   new Notification({
     title: t("game_achievement_unlocked", {
@@ -103,7 +114,7 @@ export const publishNewAchievementNotification = async (
       game,
     }),
     body: name,
-    icon: path.join(app.getPath("temp"), iconName),
+    icon: iconPath,
   }).show();
 };
 

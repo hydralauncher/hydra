@@ -8,6 +8,7 @@ import { getFileBase64 } from "@main/helpers";
 import { steamGamesWorker } from "@main/workers";
 import { createGame } from "@main/services/library-sync";
 import { steamUrlBuilder } from "@shared";
+import { saveAllLocalSteamAchivements } from "@main/services/achievements/save-all-local-steam-achivements";
 
 const addGameToLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -51,6 +52,10 @@ const addGameToLibrary = async (
             }
           });
       }
+
+      // TODO: search for achievements only from this game
+      console.log("Searching for achievements", title);
+      saveAllLocalSteamAchivements();
 
       const game = await gameRepository.findOne({ where: { objectID } });
 
