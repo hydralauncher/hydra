@@ -2,6 +2,22 @@ import { gameAchievementRepository, gameRepository } from "@main/repository";
 import { publishNewAchievementNotification } from "../notifications";
 import type { GameShop, UnlockedAchievement } from "@types";
 import { WindowManager } from "../window-manager";
+import { HydraApi } from "../hydra-api";
+
+const saveAchievementsOnLocal = async (
+  objectId: string,
+  shop: string,
+  achievements: any[]
+) => {
+  return gameAchievementRepository.upsert(
+    {
+      objectId,
+      shop,
+      unlockedAchievements: JSON.stringify(achievements),
+    },
+    ["objectId", "shop"]
+  );
+};
 
 export const mergeAchievements = async (
   objectId: string,
@@ -29,15 +45,15 @@ export const mergeAchievements = async (
     });
   });
 
-  if (!newAchievements.length) return;
+  if (newAchievements.length) {
+    WindowManager.mainWindow?.webContents.send(
+      "on-achievement-unlocked",
+      objectId,
+      shop
+    );
+  }
 
-  WindowManager.mainWindow?.webContents.send(
-    "on-achievement-unlocked",
-    objectId,
-    shop
-  );
-
-  for (const achievement of newAchievements) {
+  for (const achievement of newAchievements.slice(0, 3)) {
     const completeAchievement = JSON.parse(
       localGameAchievement?.achievements || "[]"
     ).find((steamAchievement) => {
@@ -53,27 +69,24 @@ export const mergeAchievements = async (
     }
   }
 
-  const mergedAchievements = unlockedAchievements.concat(newAchievements);
+  const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);
 
-  gameAchievementRepository.upsert(
-    {
-      objectId,
-      shop,
-      unlockedAchievements: JSON.stringify(mergedAchievements),
-    },
-    ["objectId", "shop"]
-  );
+  if (game?.remoteId) {
+    return HydraApi.put("/profile/games/achievements", {
+      id: game.remoteId,
+      achievements: mergedLocalAchievements,
+    })
+      .then((response) => {
+        return saveAchievementsOnLocal(
+          response.objectId,
+          response.shop,
+          response.achievements
+        );
+      })
+      .catch(() => {
+        return saveAchievementsOnLocal(objectId, shop, mergedLocalAchievements);
+      });
+  }
 
-  // return HydraApi.get("/profile/games/achievements").then(async (response) => {
-  //   console.log(response);
-  // });
-
-  // if (game.remoteId) {
-  //   HydraApi.put("/profile/games/achievements", {
-  //     id: game.remoteId,
-  //     achievements: unlockedAchievements,
-  //   }).catch(() => {
-  //     console.log("erro");
-  //   });
-  // }
+  return saveAchievementsOnLocal(objectId, shop, mergedLocalAchievements);
 };
