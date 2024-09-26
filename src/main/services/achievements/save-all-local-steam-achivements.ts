@@ -1,4 +1,8 @@
-import { gameAchievementRepository, gameRepository } from "@main/repository";
+import {
+  gameAchievementRepository,
+  gameRepository,
+  userPreferencesRepository,
+} from "@main/repository";
 import { steamFindGameAchievementFiles } from "./steam/steam-find-game-achivement-files";
 import { parseAchievementFile } from "./util/parseAchievementFile";
 import { HydraApi } from "@main/services";
@@ -7,6 +11,10 @@ import { mergeAchievements } from "./merge-achievements";
 import { UnlockedAchievement } from "./types";
 
 export const saveAllLocalSteamAchivements = async () => {
+  const userPreferences = await userPreferencesRepository.findOne({
+    where: { id: 1 },
+  });
+
   const gameAchievementFiles = steamFindGameAchievementFiles();
 
   for (const objectId of Object.keys(gameAchievementFiles)) {
@@ -22,11 +30,12 @@ export const saveAllLocalSteamAchivements = async () => {
     if (!game) continue;
 
     if (!localAchievements || !localAchievements.achievements) {
-      HydraApi.get(
+      await HydraApi.get(
         "/games/achievements",
         {
           shop: "steam",
           objectId,
+          language: userPreferences?.language || "en",
         },
         { needsAuth: false }
       )
@@ -50,11 +59,14 @@ export const saveAllLocalSteamAchivements = async () => {
         achievementFile.filePath
       );
 
-      console.log(achievementFile.filePath);
-
-      unlockedAchievements.push(
-        ...checkUnlockedAchievements(achievementFile.type, localAchievementFile)
-      );
+      if (localAchievementFile) {
+        unlockedAchievements.push(
+          ...checkUnlockedAchievements(
+            achievementFile.type,
+            localAchievementFile
+          )
+        );
+      }
     }
 
     mergeAchievements(objectId, "steam", unlockedAchievements);

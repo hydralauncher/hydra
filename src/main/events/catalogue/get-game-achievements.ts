@@ -1,23 +1,30 @@
 import type { GameAchievement, GameShop } from "@types";
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
-import { gameAchievementRepository, gameRepository } from "@main/repository";
+import {
+  gameAchievementRepository,
+  gameRepository,
+  userPreferencesRepository,
+} from "@main/repository";
 
 const getGameAchievements = async (
   _event: Electron.IpcMainInvokeEvent,
   objectId: string,
   shop: GameShop
 ): Promise<GameAchievement[]> => {
-  const [game, cachedAchievements] = await Promise.all([
+  const [game, cachedAchievements, userPreferences] = await Promise.all([
     gameRepository.findOne({
       where: { objectID: objectId, shop },
     }),
     gameAchievementRepository.findOne({ where: { objectId, shop } }),
+    userPreferencesRepository.findOne({
+      where: { id: 1 },
+    }),
   ]);
 
   const apiAchievement = HydraApi.get(
     "/games/achievements",
-    { objectId, shop },
+    { objectId, shop, language: userPreferences?.language || "en" },
     { needsAuth: false }
   )
     .then((achievements) => {

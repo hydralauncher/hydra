@@ -75,6 +75,7 @@ export function Sidebar() {
                 src={
                   achievement.unlocked ? achievement.icon : achievement.icongray
                 }
+                alt={achievement.displayName}
               />
               <div>
                 <p>{achievement.displayName}</p>

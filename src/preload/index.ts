@@ -13,7 +13,6 @@ import type {
   UpdateProfileRequest,
 } from "@types";
 import type { CatalogueCategory } from "@shared";
-import { Game } from "@main/entity";
 
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
