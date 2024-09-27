@@ -8,6 +8,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 
 export enum CloudSyncState {
   New,
@@ -20,12 +21,14 @@ export interface CloudSyncContext {
   backupPreview: LudusaviBackup | null;
   artifacts: GameArtifact[];
   showCloudSyncModal: boolean;
+  showCloudSyncFilesModal: boolean;
   supportsCloudSync: boolean | null;
   backupState: CloudSyncState;
   setShowCloudSyncModal: React.Dispatch<React.SetStateAction<boolean>>;
   downloadGameArtifact: (gameArtifactId: string) => Promise<void>;
   uploadSaveGame: () => Promise<void>;
   deleteGameArtifact: (gameArtifactId: string) => Promise<void>;
+  setShowCloudSyncFilesModal: React.Dispatch<React.SetStateAction<boolean>>;
   restoringBackup: boolean;
   uploadingBackup: boolean;
 }
@@ -40,6 +43,8 @@ export const cloudSyncContext = createContext<CloudSyncContext>({
   uploadSaveGame: async () => {},
   artifacts: [],
   deleteGameArtifact: async () => {},
+  showCloudSyncFilesModal: false,
+  setShowCloudSyncFilesModal: () => {},
   restoringBackup: false,
   uploadingBackup: false,
 });
@@ -58,6 +63,8 @@ export function CloudSyncContextProvider({
   objectId,
   shop,
 }: CloudSyncContextProviderProps) {
+  const { t } = useTranslation("game_details");
+
   const [supportsCloudSync, setSupportsCloudSync] = useState<boolean | null>(
     null
   );
@@ -68,6 +75,7 @@ export function CloudSyncContextProvider({
   );
   const [restoringBackup, setRestoringBackup] = useState(false);
   const [uploadingBackup, setUploadingBackup] = useState(false);
+  const [showCloudSyncFilesModal, setShowCloudSyncFilesModal] = useState(false);
 
   const { showSuccessToast } = useToast();
 
@@ -101,7 +109,7 @@ export function CloudSyncContextProvider({
       objectId,
       shop,
       () => {
-        showSuccessToast("backup_uploaded");
+        showSuccessToast(t("backup_uploaded"));
 
         setUploadingBackup(false);
         gameBackupsTable.add({
@@ -114,22 +122,19 @@ export function CloudSyncContextProvider({
       }
     );
 
-    const removeDownloadCompleteListener = window.electron.onDownloadComplete(
-      objectId,
-      shop,
-      () => {
-        showSuccessToast("backup_restored");
+    const removeDownloadCompleteListener =
+      window.electron.onBackupDownloadComplete(objectId, shop, () => {
+        showSuccessToast(t("backup_restored"));
 
         setRestoringBackup(false);
         getGameBackupPreview();
-      }
-    );
+      });
 
     return () => {
       removeUploadCompleteListener();
       removeDownloadCompleteListener();
     };
-  }, [objectId, shop, showSuccessToast, getGameBackupPreview]);
+  }, [objectId, shop, showSuccessToast, t, getGameBackupPreview]);
 
   const deleteGameArtifact = useCallback(
     async (gameArtifactId: string) => {
@@ -181,10 +186,12 @@ export function CloudSyncContextProvider({
         backupState,
         restoringBackup,
         uploadingBackup,
+        showCloudSyncFilesModal,
         setShowCloudSyncModal,
         uploadSaveGame,
         downloadGameArtifact,
         deleteGameArtifact,
+        setShowCloudSyncFilesModal,
       }}
     >
       {children}

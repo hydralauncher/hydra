@@ -9,7 +9,7 @@ import {
   CheckCircleFillIcon,
   ClockIcon,
   DeviceDesktopIcon,
-  DownloadIcon,
+  HistoryIcon,
   SyncIcon,
   TrashIcon,
   UploadIcon,
@@ -17,6 +17,9 @@ import {
 import { useToast } from "@renderer/hooks";
 import { GameBackup, gameBackupsTable } from "@renderer/dexie";
 import { useTranslation } from "react-i18next";
+import { AxiosProgressEvent } from "axios";
+import { formatDownloadProgress } from "@renderer/helpers";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 
 export interface CloudSyncModalProps
   extends Omit<ModalProps, "children" | "title"> {}
@@ -24,6 +27,8 @@ export interface CloudSyncModalProps
 export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
   const [deletingArtifact, setDeletingArtifact] = useState(false);
   const [lastBackup, setLastBackup] = useState<GameBackup | null>(null);
+  const [backupDownloadProgress, setBackupDownloadProgress] =
+    useState<AxiosProgressEvent | null>(null);
 
   const { t } = useTranslation("game_details");
 
@@ -35,6 +40,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     uploadSaveGame,
     downloadGameArtifact,
     deleteGameArtifact,
+    setShowCloudSyncFilesModal,
   } = useContext(cloudSyncContext);
 
   const { objectID, shop, gameTitle } = useContext(gameDetailsContext);
@@ -60,13 +66,31 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
       .where({ shop: shop, objectId: objectID })
       .last()
       .then((lastBackup) => setLastBackup(lastBackup || null));
+
+    const removeBackupDownloadProgressListener =
+      window.electron.onBackupDownloadProgress(
+        objectID!,
+        shop,
+        (progressEvent) => {
+          setBackupDownloadProgress(progressEvent);
+        }
+      );
+
+    return () => {
+      removeBackupDownloadProgressListener();
+    };
   }, [backupPreview, objectID, shop]);
+
+  const handleBackupInstallClick = async (artifactId: string) => {
+    setBackupDownloadProgress(null);
+    downloadGameArtifact(artifactId);
+  };
 
   const backupStateLabel = useMemo(() => {
     if (uploadingBackup) {
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <SyncIcon />
+          <SyncIcon className={styles.syncIcon} />
           {t("uploading_backup")}
         </span>
       );
@@ -75,8 +99,12 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     if (restoringBackup) {
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <SyncIcon />
-          {t("restoring_backup")}
+          <SyncIcon className={styles.syncIcon} />
+          {t("restoring_backup", {
+            progress: formatDownloadProgress(
+              backupDownloadProgress?.progress ?? 0
+            ),
+          })}
         </span>
       );
     }
@@ -84,7 +112,10 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     if (lastBackup) {
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <CheckCircleFillIcon />
+          <i style={{ color: vars.color.success }}>
+            <CheckCircleFillIcon />
+          </i>
+
           {t("last_backup_date", {
             date: format(lastBackup.createdAt, "dd/MM/yyyy HH:mm"),
           })}
@@ -97,7 +128,14 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     }
 
     return t("no_backups");
-  }, [uploadingBackup, lastBackup, backupPreview, restoringBackup, t]);
+  }, [
+    uploadingBackup,
+    backupDownloadProgress?.progress,
+    lastBackup,
+    backupPreview,
+    restoringBackup,
+    t,
+  ]);
 
   const disableActions = uploadingBackup || restoringBackup || deletingArtifact;
 
@@ -120,6 +158,22 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
         <div style={{ display: "flex", gap: 4, flexDirection: "column" }}>
           <h2>{gameTitle}</h2>
           <p>{backupStateLabel}</p>
+
+          <button
+            type="button"
+            style={{
+              margin: 0,
+              padding: 0,
+              alignSelf: "flex-start",
+              fontSize: 14,
+              cursor: "pointer",
+              textDecoration: "underline",
+              color: vars.color.body,
+            }}
+            onClick={() => setShowCloudSyncFilesModal(true)}
+          >
+            Gerenciar arquivos
+          </button>
         </div>
 
         <Button
@@ -132,7 +186,17 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
         </Button>
       </div>
 
-      <h2 style={{ marginBottom: 16 }}>{t("backups")}</h2>
+      <div
+        style={{
+          marginBottom: 16,
+          display: "flex",
+          alignItems: "center",
+          gap: SPACING_UNIT,
+        }}
+      >
+        <h2>{t("backups")}</h2>
+        <small>2 / 2</small>
+      </div>
 
       <ul className={styles.artifacts}>
         {artifacts.map((artifact) => (
@@ -163,10 +227,10 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <Button
                 type="button"
-                onClick={() => downloadGameArtifact(artifact.id)}
+                onClick={() => handleBackupInstallClick(artifact.id)}
                 disabled={disableActions}
               >
-                <DownloadIcon />
+                <HistoryIcon />
                 {t("install_backup")}
               </Button>
               <Button

@@ -6,6 +6,7 @@ export const gameCover = style({
   transition: "all ease 0.2s",
   boxShadow: "0 8px 10px -2px rgba(0, 0, 0, 0.5)",
   width: "100%",
+  position: "relative",
   ":before": {
     content: "",
     top: "0",

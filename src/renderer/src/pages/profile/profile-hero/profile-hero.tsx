@@ -272,64 +272,86 @@ export function ProfileHero() {
 
       <section
         className={styles.profileContentBox}
-        style={{ background: heroBackground }}
+        // style={{ background: heroBackground }}
       >
-        <div className={styles.userInformation}>
-          <button
-            type="button"
-            className={styles.profileAvatarButton}
-            onClick={handleAvatarClick}
-          >
-            {userProfile?.profileImageUrl ? (
-              <img
-                className={styles.profileAvatar}
-                alt={userProfile?.displayName}
-                src={userProfile?.profileImageUrl}
-              />
-            ) : (
-              <PersonIcon size={72} />
-            )}
-          </button>
+        <img
+          src="https://wallpapers.com/images/featured/cyberpunk-anime-dfyw8eb7bqkw278u.jpg"
+          alt=""
+          style={{
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+          }}
+        />
+        <div
+          style={{
+            background: heroBackground,
+            width: "100%",
+            height: "100%",
+            zIndex: 1,
+          }}
+        >
+          <div className={styles.userInformation}>
+            <button
+              type="button"
+              className={styles.profileAvatarButton}
+              onClick={handleAvatarClick}
+            >
+              {userProfile?.profileImageUrl ? (
+                <img
+                  className={styles.profileAvatar}
+                  alt={userProfile?.displayName}
+                  src={userProfile?.profileImageUrl}
+                />
+              ) : (
+                <PersonIcon size={72} />
+              )}
+            </button>
 
-          <div className={styles.profileInformation}>
-            {userProfile ? (
-              <h2 className={styles.profileDisplayName}>
-                {userProfile?.displayName}
-              </h2>
-            ) : (
-              <Skeleton width={150} height={28} />
-            )}
+            <div className={styles.profileInformation}>
+              {userProfile ? (
+                <h2 className={styles.profileDisplayName}>
+                  {userProfile?.displayName}
+                </h2>
+              ) : (
+                <Skeleton width={150} height={28} />
+              )}
 
-            {currentGame && (
-              <div className={styles.currentGameWrapper}>
-                <div className={styles.currentGameDetails}>
-                  <Link
-                    to={buildGameDetailsPath({
-                      ...currentGame,
-                      objectID: currentGame.objectId,
-                    })}
-                  >
-                    {currentGame.title}
-                  </Link>
-                </div>
+              {currentGame && (
+                <div className={styles.currentGameWrapper}>
+                  <div className={styles.currentGameDetails}>
+                    <Link
+                      to={buildGameDetailsPath({
+                        ...currentGame,
+                        objectID: currentGame.objectId,
+                      })}
+                    >
+                      {currentGame.title}
+                    </Link>
+                  </div>
 
-                <small>
-                  {t("playing_for", {
-                    amount: formatDistance(
-                      addSeconds(
-                        new Date(),
-                        -currentGame.sessionDurationInSeconds
+                  <small>
+                    {t("playing_for", {
+                      amount: formatDistance(
+                        addSeconds(
+                          new Date(),
+                          -currentGame.sessionDurationInSeconds
+                        ),
+                        new Date()
                       ),
-                      new Date()
-                    ),
-                  })}
-                </small>
-              </div>
-            )}
+                    })}
+                  </small>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className={styles.heroPanel}>
+        <div
+          className={styles.heroPanel}
+          style={{ background: heroBackground }}
+        >
           <div
             style={{
               display: "flex",

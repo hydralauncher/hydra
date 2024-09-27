@@ -136,14 +136,15 @@
     "backups": "Backups",
     "install_backup": "Install",
     "delete_backup": "Delete",
-    "create_backup": "Create backup",
+    "create_backup": "New backup",
     "last_backup_date": "Last backup on {{date}}",
-    "no_backup_preview": "Hydra could not locate any save games for this game",
-    "restoring_backup": "Restoring backup…",
+    "no_backup_preview": "No save games were found for this title",
+    "restoring_backup": "Restoring backup ({{progress}} complete)…",
     "uploading_backup": "Uploading backup…",
     "no_backups": "You haven't created any backups for this game yet",
     "backup_uploaded": "Backup uploaded",
-    "backup_deleted": "Backup deleted"
+    "backup_deleted": "Backup deleted",
+    "backup_restored": "Backup restored"
   },
   "activation": {
     "title": "Activate Hydra",

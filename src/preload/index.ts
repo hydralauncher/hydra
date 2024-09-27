@@ -11,9 +11,9 @@ import type {
   GameRunning,
   FriendRequestAction,
   UpdateProfileRequest,
-  DownloadSource,
 } from "@types";
 import type { CatalogueCategory } from "@shared";
+import type { AxiosProgressEvent } from "axios";
 
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
@@ -50,8 +50,6 @@ contextBridge.exposeInMainWorld("electron", {
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
   getTrendingGames: () => ipcRenderer.invoke("getTrendingGames"),
-  /* Meant for Dexie migration */
-  getRepacks: () => ipcRenderer.invoke("getRepacks"),
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
@@ -63,10 +61,8 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Download sources */
   getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
-  validateDownloadSource: (url: string) =>
-    ipcRenderer.invoke("validateDownloadSource", url),
-  syncDownloadSources: (downloadSources: DownloadSource[]) =>
-    ipcRenderer.invoke("syncDownloadSources", downloadSources),
+  deleteDownloadSource: (id: number) =>
+    ipcRenderer.invoke("deleteDownloadSource", id),
 
   /* Library */
   addGameToLibrary: (objectID: string, title: string, shop: GameShop) =>
@@ -141,12 +137,32 @@ contextBridge.exposeInMainWorld("electron", {
         listener
       );
   },
-  onDownloadComplete: (objectId: string, shop: GameShop, cb: () => void) => {
-    const listener = (_event: Electron.IpcRendererEvent) => cb();
-    ipcRenderer.on(`on-download-complete-${objectId}-${shop}`, listener);
+  onBackupDownloadProgress: (
+    objectId: string,
+    shop: GameShop,
+    cb: (progress: AxiosProgressEvent) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      progress: AxiosProgressEvent
+    ) => cb(progress);
+    ipcRenderer.on(`on-backup-download-progress-${objectId}-${shop}`, listener);
     return () =>
       ipcRenderer.removeListener(
-        `on-download-complete-${objectId}-${shop}`,
+        `on-backup-download-complete-${objectId}-${shop}`,
+        listener
+      );
+  },
+  onBackupDownloadComplete: (
+    objectId: string,
+    shop: GameShop,
+    cb: () => void
+  ) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on(`on-backup-download-complete-${objectId}-${shop}`, listener);
+    return () =>
+      ipcRenderer.removeListener(
+        `on-backup-download-complete-${objectId}-${shop}`,
         listener
       );
   },
@@ -218,4 +234,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-signout", listener);
     return () => ipcRenderer.removeListener("on-signout", listener);
   },
+
+  /* Notifications */
+  publishNewRepacksNotification: (newRepacksCount: number) =>
+    ipcRenderer.invoke("publishNewRepacksNotification", newRepacksCount),
 });

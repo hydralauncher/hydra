@@ -233,8 +233,8 @@ export interface DownloadSourceDownload {
 
 export interface DownloadSourceValidationResult {
   name: string;
-  downloads: DownloadSourceDownload[];
   etag: string;
+  downloadCount: number;
 }
 
 export interface DownloadSource {

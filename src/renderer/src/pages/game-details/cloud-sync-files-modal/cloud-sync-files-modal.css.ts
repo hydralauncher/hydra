@@ -1,13 +1,6 @@
-import { keyframes, style } from "@vanilla-extract/css";
+import { style } from "@vanilla-extract/css";
 
 import { SPACING_UNIT, vars } from "../../../theme.css";
-
-export const rotate = keyframes({
-  "0%": { transform: "rotate(0deg)" },
-  "100%": {
-    transform: "rotate(360deg)",
-  },
-});
 
 export const artifacts = style({
   display: "flex",
@@ -30,11 +23,4 @@ export const artifactButton = style({
   border: `1px solid ${vars.color.border}`,
   borderRadius: "4px",
   justifyContent: "space-between",
-});
-
-export const syncIcon = style({
-  animationName: rotate,
-  animationDuration: "1s",
-  animationIterationCount: "infinite",
-  animationTimingFunction: "linear",
 });

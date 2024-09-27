@@ -157,7 +157,7 @@
     "enable_download_notifications": "Quando uma transferência for concluída",
     "enable_repack_list_notifications": "Quando a lista de repacks for atualizada",
     "real_debrid_api_token_label": "Token de API do Real-Debrid",
-    "quit_app_instead_hiding": "Encerrar o Hydra em vez de apenas minimizá-lo ao fechar.",
+    "quit_app_instead_hiding": "Encerrar o Hydra em vez de apenas minimizá-lo ao fechar",
     "launch_with_system": "Iniciar o Hydra com o sistema",
     "general": "Geral",
     "behavior": "Comportamento",
