@@ -25,7 +25,7 @@ const processAchievementFile = async (game: Game, file: AchievementFile) => {
     console.log(unlockedAchievements);
 
     if (unlockedAchievements.length) {
-      mergeAchievements(game.objectID, game.shop, unlockedAchievements);
+      mergeAchievements(game.objectID, game.shop, unlockedAchievements, true);
     }
   }
 };

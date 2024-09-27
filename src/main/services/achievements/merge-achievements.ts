@@ -22,11 +22,14 @@ const saveAchievementsOnLocal = async (
 export const mergeAchievements = async (
   objectId: string,
   shop: string,
-  achievements: UnlockedAchievement[]
+  achievements: UnlockedAchievement[],
+  publishNotification: boolean
 ) => {
   const game = await gameRepository.findOne({
     where: { objectID: objectId, shop: shop as GameShop },
   });
+
+  if (!game) return;
 
   const localGameAchievement = await gameAchievementRepository.findOne({
     where: {
@@ -53,20 +56,20 @@ export const mergeAchievements = async (
     );
   }
 
-  for (const achievement of newAchievements.slice(0, 3)) {
-    const completeAchievement = JSON.parse(
+  if (newAchievements.length > 0 && publishNotification) {
+    const achievement = newAchievements.pop()!;
+    const achievementInfo = JSON.parse(
       localGameAchievement?.achievements || "[]"
     ).find((steamAchievement) => {
       return achievement.name === steamAchievement.name;
     });
 
-    if (completeAchievement) {
-      publishNewAchievementNotification(
-        game?.title || " ",
-        completeAchievement.displayName,
-        completeAchievement.icon
-      );
-    }
+    publishNewAchievementNotification(
+      game.title ?? "",
+      achievementInfo.displayName,
+      achievementInfo.icon,
+      newAchievements.length
+    );
   }
 
   const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);
