@@ -49,24 +49,6 @@ export const publishDownloadCompleteNotification = async (game: Game) => {
   }
 };
 
-export const publishNewRepacksNotifications = async (count: number) => {
-  const userPreferences = await userPreferencesRepository.findOne({
-    where: { id: 1 },
-  });
-
-  if (userPreferences?.repackUpdatesNotificationsEnabled) {
-    new Notification({
-      title: t("repack_list_updated", {
-        ns: "notifications",
-      }),
-      body: t("repack_count", {
-        ns: "notifications",
-        count: count,
-      }),
-    }).show();
-  }
-};
-
 export const publishNotificationUpdateReadyToInstall = async (
   version: string
 ) => {

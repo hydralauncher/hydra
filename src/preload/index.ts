@@ -81,13 +81,8 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Download sources */
   getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
-  validateDownloadSource: (url: string) =>
-    ipcRenderer.invoke("validateDownloadSource", url),
-  addDownloadSource: (url: string) =>
-    ipcRenderer.invoke("addDownloadSource", url),
-  removeDownloadSource: (id: number) =>
-    ipcRenderer.invoke("removeDownloadSource", id),
-  syncDownloadSources: () => ipcRenderer.invoke("syncDownloadSources"),
+  deleteDownloadSource: (id: number) =>
+    ipcRenderer.invoke("deleteDownloadSource", id),
 
   /* Library */
   addGameToLibrary: (objectID: string, title: string, shop: GameShop) =>
@@ -203,4 +198,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-signout", listener);
     return () => ipcRenderer.removeListener("on-signout", listener);
   },
+
+  /* Notifications */
+  publishNewRepacksNotification: (newRepacksCount: number) =>
+    ipcRenderer.invoke("publishNewRepacksNotification", newRepacksCount),
 });

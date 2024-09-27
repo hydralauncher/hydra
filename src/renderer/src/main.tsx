@@ -30,6 +30,9 @@ import { store } from "./store";
 import resources from "@locales";
 import { Achievemnt } from "./pages/achievement/achievement";
 
+import "./workers";
+import { RepacksContextProvider } from "./context";
+
 Sentry.init({});
 
 i18n
@@ -55,20 +58,22 @@ i18n
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Provider store={store}>
-      <HashRouter>
-        <Routes>
-          <Route element={<App />}>
-            <Route path="/" Component={Home} />
-            <Route path="/catalogue" Component={Catalogue} />
-            <Route path="/downloads" Component={Downloads} />
-            <Route path="/game/:shop/:objectID" Component={GameDetails} />
-            <Route path="/search" Component={SearchResults} />
-            <Route path="/settings" Component={Settings} />
-            <Route path="/profile/:userId" Component={Profile} />
-          </Route>
-          <Route path="/achievement-notification" Component={Achievemnt} />
-        </Routes>
-      </HashRouter>
+      <RepacksContextProvider>
+        <HashRouter>
+          <Routes>
+            <Route element={<App />}>
+              <Route path="/" Component={Home} />
+              <Route path="/catalogue" Component={Catalogue} />
+              <Route path="/downloads" Component={Downloads} />
+              <Route path="/game/:shop/:objectID" Component={GameDetails} />
+              <Route path="/search" Component={SearchResults} />
+              <Route path="/settings" Component={Settings} />
+              <Route path="/profile/:userId" Component={Profile} />
+            </Route>
+            <Route path="/achievement-notification" Component={Achievemnt} />
+          </Routes>
+        </HashRouter>
+      </RepacksContextProvider>
     </Provider>
   </React.StrictMode>
 );

@@ -2,8 +2,7 @@ import type { CatalogueEntry } from "@types";
 
 import { registerEvent } from "../register-event";
 import { steamGamesWorker } from "@main/workers";
-import { convertSteamGameToCatalogueEntry } from "../helpers/search-games";
-import { RepacksManager } from "@main/services";
+import { steamUrlBuilder } from "@shared";
 
 const getGames = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -15,13 +14,14 @@ const getGames = async (
     { name: "list" }
   );
 
-  const entries = RepacksManager.findRepacksForCatalogueEntries(
-    steamGames.map((game) => convertSteamGameToCatalogueEntry(game))
-  );
-
   return {
-    results: entries,
-    cursor: cursor + entries.length,
+    results: steamGames.map((steamGame) => ({
+      title: steamGame.name,
+      shop: "steam",
+      cover: steamUrlBuilder.library(steamGame.id),
+      objectID: steamGame.id,
+    })),
+    cursor: cursor + steamGames.length,
   };
 };
 
