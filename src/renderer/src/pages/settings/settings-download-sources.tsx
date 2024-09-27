@@ -59,6 +59,7 @@ export function SettingsDownloadSources() {
       getDownloadSources();
       indexRepacks();
       setIsRemovingDownloadSource(false);
+      channel.close();
     };
   };
 
@@ -71,15 +72,17 @@ export function SettingsDownloadSources() {
   const syncDownloadSources = async () => {
     setIsSyncingDownloadSources(true);
 
-    window.electron
-      .syncDownloadSources(downloadSources)
-      .then(() => {
-        showSuccessToast(t("download_sources_synced"));
-        getDownloadSources();
-      })
-      .finally(() => {
-        setIsSyncingDownloadSources(false);
-      });
+    const id = crypto.randomUUID();
+    const channel = new BroadcastChannel(`download_sources:sync:${id}`);
+
+    downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
+
+    channel.onmessage = () => {
+      showSuccessToast(t("download_sources_synced"));
+      getDownloadSources();
+      setIsSyncingDownloadSources(false);
+      channel.close();
+    };
   };
 
   const statusTitle = {

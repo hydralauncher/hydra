@@ -1,7 +1,6 @@
 import type { GameShop, CatalogueEntry, SteamGame } from "@types";
 
 import { steamGamesWorker } from "@main/workers";
-import { RepacksManager } from "@main/services";
 import { steamUrlBuilder } from "@shared";
 
 export interface SearchGamesArgs {
@@ -28,9 +27,5 @@ export const getSteamGameById = async (
 
   if (!steamGame) return null;
 
-  const catalogueEntry = convertSteamGameToCatalogueEntry(steamGame);
-
-  const result = RepacksManager.findRepacksForCatalogueEntry(catalogueEntry);
-
-  return result;
+  return convertSteamGameToCatalogueEntry(steamGame);
 };

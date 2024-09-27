@@ -25,7 +25,6 @@ import type {
   UserStats,
   UserDetails,
   FriendRequestSync,
-  DownloadSourceValidationResult,
 } from "@types";
 import type { DiskSpace } from "check-disk-space";
 
@@ -66,8 +65,6 @@ declare global {
     searchGameRepacks: (query: string) => Promise<GameRepack[]>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getTrendingGames: () => Promise<TrendingGame[]>;
-    /* Meant for Dexie migration */
-    getRepacks: () => Promise<GameRepack[]>;
 
     /* Library */
     addGameToLibrary: (
@@ -105,10 +102,7 @@ declare global {
 
     /* Download sources */
     getDownloadSources: () => Promise<DownloadSource[]>;
-    validateDownloadSource: (
-      url: string
-    ) => Promise<DownloadSourceValidationResult>;
-    syncDownloadSources: (downloadSources: DownloadSource[]) => Promise<void>;
+    deleteDownloadSource: (id: number) => Promise<void>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
@@ -172,6 +166,9 @@ declare global {
       action: FriendRequestAction
     ) => Promise<void>;
     sendFriendRequest: (userId: string) => Promise<void>;
+
+    /* Notifications */
+    publishNewRepacksNotification: (newRepacksCount: number) => Promise<void>;
   }
 
   interface Window {
