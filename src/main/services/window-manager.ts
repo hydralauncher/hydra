@@ -61,6 +61,53 @@ export class WindowManager {
       show: false,
     });
 
+    this.mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
+      (details, callback) => {
+        callback({
+          requestHeaders: {
+            ...details.requestHeaders,
+            "user-agent":
+              "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+          },
+        });
+      }
+    );
+
+    this.mainWindow.webContents.session.webRequest.onHeadersReceived(
+      (details, callback) => {
+        if (details.webContentsId !== this.mainWindow?.webContents.id) {
+          return callback(details);
+        }
+
+        const headers = {
+          "access-control-allow-origin": ["*"],
+          "access-control-allow-methods": ["GET, POST, PUT, DELETE, OPTIONS"],
+          "access-control-expose-headers": ["ETag"],
+          "access-control-allow-headers": [
+            "Content-Type, Authorization, X-Requested-With, If-None-Match",
+          ],
+        };
+
+        if (details.method === "OPTIONS") {
+          return callback({
+            cancel: false,
+            responseHeaders: {
+              ...details.responseHeaders,
+              ...headers,
+            },
+            statusLine: "HTTP/1.1 200 OK",
+          });
+        }
+
+        return callback({
+          responseHeaders: {
+            ...details.responseHeaders,
+            ...headers,
+          },
+        });
+      }
+    );
+
     this.loadURL();
     this.mainWindow.removeMenu();
 
