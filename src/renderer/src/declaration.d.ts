@@ -71,7 +71,12 @@ declare global {
       shop: GameShop
     ) => Promise<GameAchievement[]>;
     onAchievementUnlocked: (
-      cb: (objectId: string, shop: GameShop) => void
+      cb: (
+        objectId: string,
+        shop: GameShop,
+        displayName: string,
+        iconUrl: string
+      ) => void
     ) => () => Electron.IpcRenderer;
 
     /* Library */

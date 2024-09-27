@@ -28,6 +28,7 @@ import {
 import { store } from "./store";
 
 import resources from "@locales";
+import { Achievemnt } from "./pages/achievement/achievement";
 
 Sentry.init({});
 
@@ -65,6 +66,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="/settings" Component={Settings} />
             <Route path="/profile/:userId" Component={Profile} />
           </Route>
+          <Route path="/achievement-notification" Component={Achievemnt} />
         </Routes>
       </HashRouter>
     </Provider>

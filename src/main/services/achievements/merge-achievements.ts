@@ -49,27 +49,43 @@ export const mergeAchievements = async (
   });
 
   if (newAchievements.length) {
-    WindowManager.mainWindow?.webContents.send(
-      "on-achievement-unlocked",
-      objectId,
-      shop
-    );
-  }
-
-  if (newAchievements.length > 0 && publishNotification) {
-    const achievement = newAchievements.pop()!;
+    const achievement = newAchievements.at(-1)!;
     const achievementInfo = JSON.parse(
       localGameAchievement?.achievements || "[]"
     ).find((steamAchievement) => {
       return achievement.name === steamAchievement.name;
     });
 
-    publishNewAchievementNotification(
-      game.title ?? "",
+    WindowManager.mainWindow?.webContents.send(
+      "on-achievement-unlocked",
+      objectId,
+      shop,
       achievementInfo.displayName,
-      achievementInfo.icon,
-      newAchievements.length
+      achievementInfo.icon
     );
+
+    if (publishNotification) {
+      WindowManager.notificationWindow?.webContents.send(
+        "on-achievement-unlocked",
+        objectId,
+        shop,
+        achievementInfo.displayName,
+        achievementInfo.icon
+      );
+
+      WindowManager.notificationWindow?.setBounds({ y: 50 });
+
+      setTimeout(() => {
+        WindowManager.notificationWindow?.setBounds({ y: -100 });
+      }, 4000);
+
+      publishNewAchievementNotification(
+        game.title ?? "",
+        achievementInfo.displayName,
+        achievementInfo.icon,
+        newAchievements.length
+      );
+    }
   }
 
   const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);
