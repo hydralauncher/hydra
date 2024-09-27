@@ -1,9 +1,8 @@
-import { Button, Modal, ModalProps, TextField } from "@renderer/components";
+import { Modal, ModalProps, TextField } from "@renderer/components";
 import { useContext, useMemo } from "react";
 import { cloudSyncContext } from "@renderer/context";
 
 import { useTranslation } from "react-i18next";
-import { CheckCircleFillIcon } from "@primer/octicons-react";
 
 export interface CloudSyncFilesModalProps
   extends Omit<ModalProps, "children" | "title"> {}
@@ -12,8 +11,6 @@ export function CloudSyncFilesModal({
   visible,
   onClose,
 }: CloudSyncFilesModalProps) {
-  const { t } = useTranslation("game_details");
-
   const { backupPreview } = useContext(cloudSyncContext);
 
   const files = useMemo(() => {
