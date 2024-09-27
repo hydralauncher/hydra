@@ -33,6 +33,7 @@ export function RepacksContextProvider({ children }: RepacksContextProps) {
       const channel = new BroadcastChannel(`repacks:search:${channelId}`);
       channel.onmessage = (event: MessageEvent<GameRepack[]>) => {
         resolve(event.data);
+        channel.close();
       };
 
       return [];

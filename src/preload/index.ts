@@ -11,7 +11,6 @@ import type {
   GameRunning,
   FriendRequestAction,
   UpdateProfileRequest,
-  DownloadSource,
 } from "@types";
 import type { CatalogueCategory } from "@shared";
 
@@ -50,8 +49,6 @@ contextBridge.exposeInMainWorld("electron", {
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
   getTrendingGames: () => ipcRenderer.invoke("getTrendingGames"),
-  /* Meant for Dexie migration */
-  getRepacks: () => ipcRenderer.invoke("getRepacks"),
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
@@ -63,10 +60,8 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Download sources */
   getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
-  validateDownloadSource: (url: string) =>
-    ipcRenderer.invoke("validateDownloadSource", url),
-  syncDownloadSources: (downloadSources: DownloadSource[]) =>
-    ipcRenderer.invoke("syncDownloadSources", downloadSources),
+  deleteDownloadSource: (id: number) =>
+    ipcRenderer.invoke("deleteDownloadSource", id),
 
   /* Library */
   addGameToLibrary: (objectID: string, title: string, shop: GameShop) =>
@@ -182,4 +177,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-signout", listener);
     return () => ipcRenderer.removeListener("on-signout", listener);
   },
+
+  /* Notifications */
+  publishNewRepacksNotification: (newRepacksCount: number) =>
+    ipcRenderer.invoke("publishNewRepacksNotification", newRepacksCount),
 });
