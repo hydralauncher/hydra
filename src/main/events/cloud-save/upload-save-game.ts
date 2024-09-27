@@ -87,17 +87,12 @@ const uploadSaveGame = async (
           true
         );
 
-        // fs.rm(zipLocation, (err) => {
-        //   if (err) {
-        //     logger.error("Failed to remove zip file", err);
-        //     throw err;
-        //   }
-
-        //   WindowManager.mainWindow?.webContents.send(
-        //     `on-upload-complete-${objectId}-${shop}`,
-        //     true
-        //   );
-        // });
+        fs.rm(zipLocation, (err) => {
+          if (err) {
+            logger.error("Failed to remove zip file", err);
+            throw err;
+          }
+        });
       });
     });
   });

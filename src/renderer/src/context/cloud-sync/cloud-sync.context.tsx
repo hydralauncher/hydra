@@ -1,5 +1,6 @@
 import { gameBackupsTable } from "@renderer/dexie";
 import { useToast } from "@renderer/hooks";
+import { logger } from "@renderer/logger";
 import type { LudusaviBackup, GameArtifact, GameShop } from "@types";
 import React, {
   createContext,
@@ -92,11 +93,17 @@ export function CloudSyncContextProvider({
       setArtifacts(results);
     });
 
-    window.electron.getGameBackupPreview(objectId, shop).then((preview) => {
-      if (preview && Object.keys(preview.games).length) {
-        setBackupPreview(preview);
-      }
-    });
+    window.electron
+      .getGameBackupPreview(objectId, shop)
+      .then((preview) => {
+        logger.info("Game backup preview", objectId, shop, preview);
+        if (preview && Object.keys(preview.games).length) {
+          setBackupPreview(preview);
+        }
+      })
+      .catch((err) => {
+        logger.error("Failed to get game backup preview", objectId, shop, err);
+      });
   }, [objectId, shop]);
 
   const uploadSaveGame = useCallback(async () => {
@@ -146,9 +153,15 @@ export function CloudSyncContextProvider({
   );
 
   useEffect(() => {
-    window.electron.checkGameCloudSyncSupport(objectId, shop).then((result) => {
-      setSupportsCloudSync(result);
-    });
+    window.electron
+      .checkGameCloudSyncSupport(objectId, shop)
+      .then((result) => {
+        logger.info("Cloud sync support", objectId, shop, result);
+        setSupportsCloudSync(result);
+      })
+      .catch((err) => {
+        logger.error("Failed to check cloud sync support", err);
+      });
   }, [objectId, shop, getGameBackupPreview]);
 
   useEffect(() => {

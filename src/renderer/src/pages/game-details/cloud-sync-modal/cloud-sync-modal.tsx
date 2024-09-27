@@ -195,7 +195,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
         }}
       >
         <h2>{t("backups")}</h2>
-        <small>2 / 2</small>
+        <small>{artifacts.length} / 2</small>
       </div>
 
       <ul className={styles.artifacts}>
