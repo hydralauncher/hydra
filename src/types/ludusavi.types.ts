@@ -3,6 +3,10 @@ export interface LudusaviScanChange {
   decision: "Processed" | "Cancelled" | "Ignore";
 }
 
+export interface LudusaviGame extends LudusaviScanChange {
+  files: Record<string, LudusaviScanChange>;
+}
+
 export interface LudusaviBackup {
   overall: {
     totalGames: number;
@@ -15,7 +19,7 @@ export interface LudusaviBackup {
       same: number;
     };
   };
-  games: Record<string, LudusaviScanChange>;
+  games: Record<string, LudusaviGame>;
 }
 
 export interface LudusaviFindResult {

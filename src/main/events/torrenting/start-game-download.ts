@@ -1,7 +1,6 @@
 import { registerEvent } from "../register-event";
 
 import type { StartGameDownloadPayload } from "@types";
-import { getFileBase64 } from "@main/helpers";
 import { DownloadManager, HydraApi, logger } from "@main/services";
 
 import { Not } from "typeorm";
@@ -60,26 +59,16 @@ const startGameDownload = async (
         ? steamUrlBuilder.icon(objectID, steamGame.clientIcon)
         : null;
 
-      await gameRepository
-        .insert({
-          title,
-          iconUrl,
-          objectID,
-          downloader,
-          shop,
-          status: "active",
-          downloadPath,
-          uri,
-        })
-        .then((result) => {
-          if (iconUrl) {
-            getFileBase64(iconUrl).then((base64) =>
-              gameRepository.update({ objectID }, { iconUrl: base64 })
-            );
-          }
-
-          return result;
-        });
+      await gameRepository.insert({
+        title,
+        iconUrl,
+        objectID,
+        downloader,
+        shop,
+        status: "active",
+        downloadPath,
+        uri,
+      });
     }
 
     const updatedGame = await gameRepository.findOne({

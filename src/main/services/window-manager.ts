@@ -101,6 +101,8 @@ export class WindowManager {
 
       authWindow.removeMenu();
 
+      if (!app.isPackaged) authWindow.webContents.openDevTools();
+
       const searchParams = new URLSearchParams({
         lng: i18next.language,
       });
@@ -132,7 +134,7 @@ export class WindowManager {
   }
 
   public static createSystemTray(language: string) {
-    let tray;
+    let tray: Tray;
 
     if (process.platform === "darwin") {
       const macIcon = nativeImage

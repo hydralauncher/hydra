@@ -19,12 +19,18 @@ const downloadGameArtifact = async (
     objectKey: string;
   }>(`/games/artifacts/${gameArtifactId}/download`);
 
-  const response = await axios.get(downloadUrl, {
-    responseType: "stream",
-  });
-
   const zipLocation = path.join(app.getPath("userData"), objectKey);
   const backupPath = path.join(backupsPath, `${shop}-${objectId}`);
+
+  const response = await axios.get(downloadUrl, {
+    responseType: "stream",
+    onDownloadProgress: (progressEvent) => {
+      WindowManager.mainWindow?.webContents.send(
+        `on-backup-download-progress-${objectId}-${shop}`,
+        progressEvent
+      );
+    },
+  });
 
   const writer = fs.createWriteStream(zipLocation);
 
@@ -45,7 +51,7 @@ const downloadGameArtifact = async (
 
       Ludusavi.restoreBackup(backupPath).then(() => {
         WindowManager.mainWindow?.webContents.send(
-          `on-download-complete-${objectId}-${shop}`,
+          `on-backup-download-complete-${objectId}-${shop}`,
           true
         );
       });

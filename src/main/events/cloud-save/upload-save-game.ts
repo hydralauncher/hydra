@@ -73,26 +73,31 @@ const uploadSaveGame = async (
           throw err;
         }
 
-        axios.put(uploadUrl, fileBuffer, {
+        await axios.put(uploadUrl, fileBuffer, {
           headers: {
             "Content-Type": "application/zip",
           },
           onUploadProgress: (progressEvent) => {
-            if (progressEvent.progress === 1) {
-              fs.rm(zipLocation, (err) => {
-                if (err) {
-                  logger.error("Failed to remove zip file", err);
-                  throw err;
-                }
-
-                WindowManager.mainWindow?.webContents.send(
-                  `on-upload-complete-${objectId}-${shop}`,
-                  true
-                );
-              });
-            }
+            console.log(progressEvent);
           },
         });
+
+        WindowManager.mainWindow?.webContents.send(
+          `on-upload-complete-${objectId}-${shop}`,
+          true
+        );
+
+        // fs.rm(zipLocation, (err) => {
+        //   if (err) {
+        //     logger.error("Failed to remove zip file", err);
+        //     throw err;
+        //   }
+
+        //   WindowManager.mainWindow?.webContents.send(
+        //     `on-upload-complete-${objectId}-${shop}`,
+        //     true
+        //   );
+        // });
       });
     });
   });

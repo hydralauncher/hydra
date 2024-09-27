@@ -27,6 +27,7 @@ import { useDownload } from "@renderer/hooks";
 import { GameOptionsModal, RepacksModal } from "./modals";
 import { Downloader, getDownloadersForUri } from "@shared";
 import { CloudSyncModal } from "./cloud-sync-modal/cloud-sync-modal";
+import { CloudSyncFilesModal } from "./cloud-sync-files-modal/cloud-sync-files-modal";
 
 export function GameDetails() {
   const [randomGame, setRandomGame] = useState<Steam250Game | null>(null);
@@ -128,11 +129,23 @@ export function GameDetails() {
               shop={shop! as GameShop}
             >
               <CloudSyncContextConsumer>
-                {({ showCloudSyncModal, setShowCloudSyncModal }) => (
-                  <CloudSyncModal
-                    onClose={() => setShowCloudSyncModal(false)}
-                    visible={showCloudSyncModal}
-                  />
+                {({
+                  showCloudSyncModal,
+                  setShowCloudSyncModal,
+                  showCloudSyncFilesModal,
+                  setShowCloudSyncFilesModal,
+                }) => (
+                  <>
+                    <CloudSyncModal
+                      onClose={() => setShowCloudSyncModal(false)}
+                      visible={showCloudSyncModal}
+                    />
+
+                    <CloudSyncFilesModal
+                      onClose={() => setShowCloudSyncFilesModal(false)}
+                      visible={showCloudSyncFilesModal}
+                    />
+                  </>
                 )}
               </CloudSyncContextConsumer>
 

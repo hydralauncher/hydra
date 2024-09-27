@@ -25,7 +25,7 @@
 [![cs](https://img.shields.io/badge/lang-cs-purple)](README.cs.md)
 [![da](https://img.shields.io/badge/lang-da-red)](README.da.md)
 
-![Hydra Catalogue](./docs/screenshot.png)
+![Hydra Catalogue](./screenshot.png)
 
 </div>
 

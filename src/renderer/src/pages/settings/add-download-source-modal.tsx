@@ -67,8 +67,21 @@ export function AddDownloadSourceModal({
         return;
       }
 
-      const result = await window.electron.validateDownloadSource(values.url);
-      setValidationResult(result);
+      downloadSourcesWorker.postMessage([
+        "VALIDATE_DOWNLOAD_SOURCE",
+        values.url,
+      ]);
+
+      const channel = new BroadcastChannel(
+        `download_sources:validate:${values.url}`
+      );
+
+      channel.onmessage = (
+        event: MessageEvent<DownloadSourceValidationResult>
+      ) => {
+        setValidationResult(event.data);
+        channel.close();
+      };
 
       setUrl(values.url);
     },
@@ -93,16 +106,14 @@ export function AddDownloadSourceModal({
     if (validationResult) {
       const channel = new BroadcastChannel(`download_sources:import:${url}`);
 
-      downloadSourcesWorker.postMessage([
-        "IMPORT_DOWNLOAD_SOURCE",
-        { ...validationResult, url },
-      ]);
+      downloadSourcesWorker.postMessage(["IMPORT_DOWNLOAD_SOURCE", url]);
 
       channel.onmessage = () => {
         setIsLoading(false);
 
         onClose();
         onAddDownloadSource();
+        channel.close();
       };
     }
   };
@@ -159,9 +170,9 @@ export function AddDownloadSourceModal({
               <h4>{validationResult?.name}</h4>
               <small>
                 {t("found_download_option", {
-                  count: validationResult?.downloads.length,
+                  count: validationResult?.downloadCount,
                   countFormatted:
-                    validationResult?.downloads.length.toLocaleString(),
+                    validationResult?.downloadCount.toLocaleString(),
                 })}
               </small>
             </div>

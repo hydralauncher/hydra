@@ -25,10 +25,10 @@ import type {
   UserStats,
   UserDetails,
   FriendRequestSync,
-  DownloadSourceValidationResult,
   GameArtifact,
   LudusaviBackup,
 } from "@types";
+import type { AxiosProgressEvent } from "axios";
 import type { DiskSpace } from "check-disk-space";
 
 declare global {
@@ -68,8 +68,6 @@ declare global {
     searchGameRepacks: (query: string) => Promise<GameRepack[]>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getTrendingGames: () => Promise<TrendingGame[]>;
-    /* Meant for Dexie migration */
-    getRepacks: () => Promise<GameRepack[]>;
 
     /* Library */
     addGameToLibrary: (
@@ -107,10 +105,7 @@ declare global {
 
     /* Download sources */
     getDownloadSources: () => Promise<DownloadSource[]>;
-    validateDownloadSource: (
-      url: string
-    ) => Promise<DownloadSourceValidationResult>;
-    syncDownloadSources: (downloadSources: DownloadSource[]) => Promise<void>;
+    deleteDownloadSource: (id: number) => Promise<void>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
@@ -135,7 +130,7 @@ declare global {
       shop: GameShop
     ) => Promise<boolean>;
     deleteGameArtifact: (gameArtifactId: string) => Promise<{ ok: boolean }>;
-    onDownloadComplete: (
+    onBackupDownloadComplete: (
       objectId: string,
       shop: GameShop,
       cb: () => void
@@ -144,6 +139,11 @@ declare global {
       objectId: string,
       shop: GameShop,
       cb: () => void
+    ) => () => Electron.IpcRenderer;
+    onBackupDownloadProgress: (
+      objectId: string,
+      shop: GameShop,
+      cb: (progress: AxiosProgressEvent) => void
     ) => () => Electron.IpcRenderer;
 
     /* Misc */
@@ -205,6 +205,9 @@ declare global {
       action: FriendRequestAction
     ) => Promise<void>;
     sendFriendRequest: (userId: string) => Promise<void>;
+
+    /* Notifications */
+    publishNewRepacksNotification: (newRepacksCount: number) => Promise<void>;
   }
 
   interface Window {

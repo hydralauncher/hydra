@@ -4,6 +4,7 @@ import { style } from "@vanilla-extract/css";
 export const profileContentBox = style({
   display: "flex",
   flexDirection: "column",
+  position: "relative",
 });
 
 export const profileAvatarButton = style({

@@ -14,6 +14,7 @@ import { steamUrlBuilder } from "@shared";
 import Lottie from "lottie-react";
 
 import downloadingAnimation from "@renderer/assets/lottie/cloud.json";
+import { useUserDetails } from "@renderer/hooks";
 
 const HERO_ANIMATION_THRESHOLD = 25;
 
@@ -32,6 +33,8 @@ export function GameDetailsContent() {
     setGameColor,
     hasNSFWContentBlocked,
   } = useContext(gameDetailsContext);
+
+  const { userDetails } = useUserDetails();
 
   const { supportsCloudSync, setShowCloudSyncModal } =
     useContext(cloudSyncContext);
@@ -75,6 +78,15 @@ export function GameDetailsContent() {
     setBackdropOpacity(opacity);
   };
 
+  const handleCloudSaveButtonClick = () => {
+    if (!userDetails) {
+      window.electron.openAuthWindow();
+      return;
+    }
+
+    setShowCloudSyncModal(true);
+  };
+
   return (
     <div className={styles.wrapper({ blurredContent: hasNSFWContentBlocked })}>
       <img
@@ -113,7 +125,7 @@ export function GameDetailsContent() {
                 <button
                   type="button"
                   className={styles.cloudSyncButton}
-                  onClick={() => setShowCloudSyncModal(true)}
+                  onClick={handleCloudSaveButtonClick}
                 >
                   <div
                     style={{

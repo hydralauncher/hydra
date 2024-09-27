@@ -26,7 +26,7 @@ import {
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
-// import { migrationWorker } from "./workers";
+import { downloadSourcesWorker } from "./workers";
 import { repacksContext } from "./context";
 
 export interface AppProps {
@@ -38,6 +38,8 @@ export function App() {
   const { updateLibrary, library } = useLibrary();
 
   const { t } = useTranslation("app");
+
+  const downloadSourceMigrationLock = useRef(false);
 
   const { clearDownload, setLastPacket } = useDownload();
 
@@ -211,22 +213,46 @@ export function App() {
   }, [dispatch, draggingDisabled]);
 
   useEffect(() => {
-    // window.electron.getRepacks().then((repacks) => {
-    //   migrationWorker.postMessage(["MIGRATE_REPACKS", repacks]);
-    // });
-    // window.electron.getDownloadSources().then((downloadSources) => {
-    //   migrationWorker.postMessage([
-    //     "MIGRATE_DOWNLOAD_SOURCES",
-    //     downloadSources,
-    //   ]);
-    // });
-    // migrationWorker.onmessage = (
-    //   event: MessageEvent<"MIGRATE_REPACKS_COMPLETE">
-    // ) => {
-    //   if (event.data === "MIGRATE_REPACKS_COMPLETE") {
-    //     indexRepacks();
-    //   }
-    // };
+    if (downloadSourceMigrationLock.current) return;
+
+    downloadSourceMigrationLock.current = true;
+
+    window.electron.getDownloadSources().then(async (downloadSources) => {
+      if (!downloadSources.length) {
+        const id = crypto.randomUUID();
+        const channel = new BroadcastChannel(`download_sources:sync:${id}`);
+
+        channel.onmessage = (event: MessageEvent<number>) => {
+          const newRepacksCount = event.data;
+          window.electron.publishNewRepacksNotification(newRepacksCount);
+        };
+
+        downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
+      }
+
+      for (const downloadSource of downloadSources) {
+        const channel = new BroadcastChannel(
+          `download_sources:import:${downloadSource.url}`
+        );
+        await new Promise((resolve) => {
+          downloadSourcesWorker.postMessage([
+            "IMPORT_DOWNLOAD_SOURCE",
+            downloadSource.url,
+          ]);
+
+          channel.onmessage = () => {
+            window.electron.deleteDownloadSource(downloadSource.id).then(() => {
+              resolve(true);
+            });
+
+            indexRepacks();
+            channel.close();
+          };
+        }).catch(() => channel.close());
+      }
+
+      downloadSourceMigrationLock.current = false;
+    });
   }, [indexRepacks]);
 
   const handleToastClose = useCallback(() => {

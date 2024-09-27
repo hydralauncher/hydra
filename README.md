@@ -13,20 +13,20 @@
 [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
 [![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
 
-[![pt-BR](https://img.shields.io/badge/lang-pt--BR-green.svg)](README.pt-BR.md)
-[![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
-[![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
-[![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
-[![be](https://img.shields.io/badge/lang-be-orange)](README.be.md)
-[![es](https://img.shields.io/badge/lang-es-red)](README.es.md)
-[![fr](https://img.shields.io/badge/lang-fr-blue)](README.fr.md)
-[![de](https://img.shields.io/badge/lang-de-black)](README.de.md)
-[![ita](https://img.shields.io/badge/lang-it-red)](README.it.md)
-[![cs](https://img.shields.io/badge/lang-cs-purple)](README.cs.md)
-[![da](https://img.shields.io/badge/lang-da-red)](README.da.md)
-[![nb](https://img.shields.io/badge/lang-nb-blue)](README.nb.md)
+[![pt-BR](https://img.shields.io/badge/lang-pt--BR-green.svg)](./README.pt-BR.md)
+[![en](https://img.shields.io/badge/lang-en-red.svg)](./README.md)
+[![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](./README.ru.md)
+[![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](./README.uk-UA.md)
+[![be](https://img.shields.io/badge/lang-be-orange)](./README.be.md)
+[![es](https://img.shields.io/badge/lang-es-red)](./README.es.md)
+[![fr](https://img.shields.io/badge/lang-fr-blue)](./README.fr.md)
+[![de](https://img.shields.io/badge/lang-de-black)](./README.de.md)
+[![ita](https://img.shields.io/badge/lang-it-red)](./README.it.md)
+[![cs](https://img.shields.io/badge/lang-cs-purple)](./README.cs.md)
+[![da](https://img.shields.io/badge/lang-da-red)](./README.da.md)
+[![nb](https://img.shields.io/badge/lang-nb-blue)](./README.nb.md)
 
-![Hydra Catalogue](./docs/screenshot.png)
+![Hydra Catalogue](./screenshot.png)
 
 </div>
 
