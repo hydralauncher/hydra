@@ -3,7 +3,6 @@ import { gameRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
 
 import type { GameShop } from "@types";
-import { getFileBase64 } from "@main/helpers";
 
 import { steamGamesWorker } from "@main/workers";
 import { createGame } from "@main/services/library-sync";
@@ -36,20 +35,12 @@ const addGameToLibrary = async (
           ? steamUrlBuilder.icon(objectID, steamGame.clientIcon)
           : null;
 
-        await gameRepository
-          .insert({
-            title,
-            iconUrl,
-            objectID,
-            shop,
-          })
-          .then(() => {
-            if (iconUrl) {
-              getFileBase64(iconUrl).then((base64) =>
-                gameRepository.update({ objectID }, { iconUrl: base64 })
-              );
-            }
-          });
+        await gameRepository.insert({
+          title,
+          iconUrl,
+          objectID,
+          shop,
+        });
       }
 
       const game = await gameRepository.findOne({ where: { objectID } });

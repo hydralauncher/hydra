@@ -1,7 +1,6 @@
 import { registerEvent } from "../register-event";
 
 import type { StartGameDownloadPayload } from "@types";
-import { getFileBase64 } from "@main/helpers";
 import { DownloadManager, HydraApi, logger } from "@main/services";
 
 import { Not } from "typeorm";
@@ -9,36 +8,25 @@ import { steamGamesWorker } from "@main/workers";
 import { createGame } from "@main/services/library-sync";
 import { steamUrlBuilder } from "@shared";
 import { dataSource } from "@main/data-source";
-import { DownloadQueue, Game, Repack } from "@main/entity";
+import { DownloadQueue, Game } from "@main/entity";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
   payload: StartGameDownloadPayload
 ) => {
-  const { repackId, objectID, title, shop, downloadPath, downloader, uri } =
-    payload;
+  const { objectID, title, shop, downloadPath, downloader, uri } = payload;
 
   return dataSource.transaction(async (transactionalEntityManager) => {
     const gameRepository = transactionalEntityManager.getRepository(Game);
-    const repackRepository = transactionalEntityManager.getRepository(Repack);
     const downloadQueueRepository =
       transactionalEntityManager.getRepository(DownloadQueue);
 
-    const [game, repack] = await Promise.all([
-      gameRepository.findOne({
-        where: {
-          objectID,
-          shop,
-        },
-      }),
-      repackRepository.findOne({
-        where: {
-          id: repackId,
-        },
-      }),
-    ]);
-
-    if (!repack) return;
+    const game = await gameRepository.findOne({
+      where: {
+        objectID,
+        shop,
+      },
+    });
 
     await DownloadManager.pauseDownload();
 
@@ -71,26 +59,16 @@ const startGameDownload = async (
         ? steamUrlBuilder.icon(objectID, steamGame.clientIcon)
         : null;
 
-      await gameRepository
-        .insert({
-          title,
-          iconUrl,
-          objectID,
-          downloader,
-          shop,
-          status: "active",
-          downloadPath,
-          uri,
-        })
-        .then((result) => {
-          if (iconUrl) {
-            getFileBase64(iconUrl).then((base64) =>
-              gameRepository.update({ objectID }, { iconUrl: base64 })
-            );
-          }
-
-          return result;
-        });
+      await gameRepository.insert({
+        title,
+        iconUrl,
+        objectID,
+        downloader,
+        shop,
+        status: "active",
+        downloadPath,
+        uri,
+      });
     }
 
     const updatedGame = await gameRepository.findOne({
