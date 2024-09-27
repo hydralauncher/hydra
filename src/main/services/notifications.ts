@@ -1,4 +1,4 @@
-import { Notification, app, nativeImage } from "electron";
+import { Notification, nativeImage } from "electron";
 import { t } from "i18next";
 import { parseICO } from "icojs";
 import trayIcon from "@resources/tray-icon.png?asset";
