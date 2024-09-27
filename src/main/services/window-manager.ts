@@ -21,7 +21,7 @@ export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
   public static notificationWindow: Electron.BrowserWindow | null = null;
 
-  private static loadURL(hash = "") {
+  private static loadMainWindowURL(hash = "") {
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
     if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
@@ -33,6 +33,21 @@ export class WindowManager {
         path.join(__dirname, "../renderer/index.html"),
         {
           hash,
+        }
+      );
+    }
+  }
+
+  private static loadNotificationWindowURL() {
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+      this.notificationWindow?.loadURL(
+        `${process.env["ELECTRON_RENDERER_URL"]}#/achievement-notification`
+      );
+    } else {
+      this.notificationWindow?.loadFile(
+        path.join(__dirname, "../renderer/index.html"),
+        {
+          hash: "achievement-notification",
         }
       );
     }
@@ -62,7 +77,7 @@ export class WindowManager {
       show: false,
     });
 
-    this.loadURL();
+    this.loadMainWindowURL();
     this.mainWindow.removeMenu();
 
     this.mainWindow.on("ready-to-show", () => {
@@ -81,7 +96,9 @@ export class WindowManager {
       WindowManager.mainWindow?.setProgressBar(-1);
       WindowManager.mainWindow = null;
     });
+  }
 
+  public static createNotificationWindow() {
     this.notificationWindow = new BrowserWindow({
       transparent: true,
       maximizable: false,
@@ -92,32 +109,18 @@ export class WindowManager {
       width: 240,
       height: 60,
       x: 25,
-      y: -100,
+      y: -9999,
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.mjs"),
         sandbox: false,
       },
     });
-    if (!app.isPackaged)
-      WindowManager.notificationWindow?.webContents.openDevTools();
 
     this.notificationWindow.setVisibleOnAllWorkspaces(true, {
       visibleOnFullScreen: true,
     });
     this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
-
-    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      this.notificationWindow.loadURL(
-        `${process.env["ELECTRON_RENDERER_URL"]}#/achievement-notification`
-      );
-    } else {
-      this.notificationWindow.loadFile(
-        path.join(__dirname, "../renderer/index.html"),
-        {
-          hash: "achievement-notification",
-        }
-      );
-    }
+    this.loadNotificationWindowURL();
   }
 
   public static openAuthWindow() {
@@ -164,7 +167,7 @@ export class WindowManager {
 
   public static redirect(hash: string) {
     if (!this.mainWindow) this.createMainWindow();
-    this.loadURL(hash);
+    this.loadMainWindowURL(hash);
 
     if (this.mainWindow?.isMinimized()) this.mainWindow.restore();
     this.mainWindow?.focus();

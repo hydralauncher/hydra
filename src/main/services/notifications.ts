@@ -4,9 +4,6 @@ import { parseICO } from "icojs";
 import trayIcon from "@resources/tray-icon.png?asset";
 import { Game } from "@main/entity";
 import { gameRepository, userPreferencesRepository } from "@main/repository";
-import axios from "axios";
-import fs from "node:fs";
-import path from "node:path";
 
 const getGameIconNativeImage = async (gameId: number) => {
   try {
@@ -83,55 +80,6 @@ export const publishNotificationUpdateReadyToInstall = async (
     }),
     icon: trayIcon,
   }).show();
-};
-
-const downloadImage = async (url: string, iconPath: string) => {
-  const response = await axios.get(url, { responseType: "stream" });
-  const writer = fs.createWriteStream(iconPath);
-  response.data.pipe(writer);
-
-  return new Promise((resolve, reject) => {
-    writer.on("finish", resolve);
-    writer.on("error", reject);
-  });
-};
-
-export const publishNewAchievementNotification = async (
-  game: string,
-  name: string,
-  iconUrl: string,
-  count: number
-) => {
-  const iconPath = path.join(
-    app.getPath("temp"),
-    iconUrl.split("/").pop() || "image.jpg"
-  );
-
-  await downloadImage(iconUrl, iconPath).catch(() => {});
-
-  if (count > 1) {
-    new Notification({
-      title: t("notification_achievement_unlocked_title", {
-        ns: "notifications",
-        game: game,
-      }),
-      body: t("notification_achievement_unlocked_body", {
-        ns: "notifications",
-        achievement: name,
-        count,
-      }),
-      icon: iconPath,
-    }).show();
-  } else {
-    new Notification({
-      title: t("notification_achievement_unlocked_title", {
-        ns: "notifications",
-        game: game,
-      }),
-      body: name,
-      icon: iconPath,
-    }).show();
-  }
 };
 
 export const publishNewFriendRequestNotification = async () => {};

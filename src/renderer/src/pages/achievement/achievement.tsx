@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export function Achievemnt() {
   const [achievementInfo, setAchievementInfo] = useState<{
@@ -6,35 +6,30 @@ export function Achievemnt() {
     icon: string;
   } | null>(null);
 
-  const [audio, setAudio] = useState<string | null>(null);
+  const audio = useMemo(() => {
+    const audio = new Audio(
+      "https://cms-public-artifacts.artlist.io/content/sfx/aac/94201_690187_Classics_-_Achievement_Unlocked_-_MASTERED_-_2496.aac"
+    );
+
+    audio.preload = "auto";
+    return audio;
+  }, []);
 
   useEffect(() => {
     const unsubscribe = window.electron.onAchievementUnlocked(
       (_object, _shop, displayName, icon) => {
-        console.log("Achievement unlocked", displayName, icon);
-        setAudio(
-          "https://us-tuna-sounds-files.voicemod.net/ade71f0d-a41b-4e3a-8097-9f1cc585745c-1646035604239.mp3"
-        );
-
         setAchievementInfo({
           displayName,
           icon,
         });
+
+        audio.play();
       }
     );
 
     return () => {
       unsubscribe();
     };
-  }, []);
-
-  useEffect(() => {
-    if (audio) {
-      const audioElement = new Audio(audio);
-      audioElement.volume = 1.0;
-      audioElement.play();
-      setAudio(null);
-    }
   }, [audio]);
 
   if (!achievementInfo) return <p>Nada</p>;

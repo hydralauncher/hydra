@@ -1,5 +1,4 @@
 import { gameAchievementRepository, gameRepository } from "@main/repository";
-import { publishNewAchievementNotification } from "../notifications";
 import type { GameShop, UnlockedAchievement } from "@types";
 import { WindowManager } from "../window-manager";
 import { HydraApi } from "../hydra-api";
@@ -76,15 +75,8 @@ export const mergeAchievements = async (
       WindowManager.notificationWindow?.setBounds({ y: 50 });
 
       setTimeout(() => {
-        WindowManager.notificationWindow?.setBounds({ y: -100 });
+        WindowManager.notificationWindow?.setBounds({ y: -9999 });
       }, 4000);
-
-      publishNewAchievementNotification(
-        game.title ?? "",
-        achievementInfo.displayName,
-        achievementInfo.icon,
-        newAchievements.length
-      );
     }
   }
 
