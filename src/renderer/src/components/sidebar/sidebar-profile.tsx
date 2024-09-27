@@ -5,6 +5,7 @@ import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
+import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 
 const LONG_POLLING_INTERVAL = 60_000;
 
@@ -68,6 +69,23 @@ export function SidebarProfile() {
     );
   }, [userDetails, t, friendRequestCount, showFriendsModal]);
 
+  const gameRunningDetails = () => {
+    if (!userDetails || !gameRunning) return null;
+
+    if (gameRunning.iconUrl) {
+      return (
+        <img
+          alt={gameRunning.title}
+          width={24}
+          style={{ borderRadius: 4 }}
+          src={gameRunning.iconUrl}
+        />
+      );
+    }
+
+    return <SteamLogo />;
+  };
+
   return (
     <div className={styles.profileContainer}>
       <button
@@ -108,14 +126,7 @@ export function SidebarProfile() {
             )}
           </div>
 
-          {userDetails && gameRunning && (
-            <img
-              alt={gameRunning.title}
-              width={24}
-              style={{ borderRadius: 4 }}
-              src={gameRunning.iconUrl!}
-            />
-          )}
+          {gameRunningDetails()}
         </div>
       </button>
 
