@@ -1,6 +1,5 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import parseTorrent from "parse-torrent";
 
 import { Badge, Button, Modal, TextField } from "@renderer/components";
 import type { GameRepack } from "@types";
@@ -33,8 +32,6 @@ export function RepacksModal({
   const [repack, setRepack] = useState<GameRepack | null>(null);
   const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
 
-  const [infoHash, setInfoHash] = useState<string | null>(null);
-
   const { repacks, game } = useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
@@ -43,18 +40,9 @@ export function RepacksModal({
     return orderBy(repacks, (repack) => repack.uploadDate, "desc");
   }, [repacks]);
 
-  const getInfoHash = useCallback(async () => {
-    if (game?.uri?.startsWith("magnet:")) {
-      const torrent = await parseTorrent(game?.uri ?? "");
-      if (torrent.infoHash) setInfoHash(torrent.infoHash);
-    }
-  }, [game]);
-
   useEffect(() => {
     setFilteredRepacks(sortedRepacks);
-
-    if (game?.uri) getInfoHash();
-  }, [sortedRepacks, visible, game, getInfoHash]);
+  }, [sortedRepacks, visible, game]);
 
   const handleRepackClick = (repack: GameRepack) => {
     setRepack(repack);
@@ -77,9 +65,6 @@ export function RepacksModal({
   };
 
   const checkIfLastDownloadedOption = (repack: GameRepack) => {
-    if (infoHash) return repack.uris.some((uri) => uri.includes(infoHash));
-    if (!game?.uri) return false;
-
     return repack.uris.some((uri) => uri.includes(game?.uri ?? ""));
   };
 
