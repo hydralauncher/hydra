@@ -99,7 +99,8 @@ const downloadImage = async (url: string, iconPath: string) => {
 export const publishNewAchievementNotification = async (
   game: string,
   name: string,
-  iconUrl: string
+  iconUrl: string,
+  count: number
 ) => {
   const iconPath = path.join(
     app.getPath("temp"),
@@ -108,14 +109,29 @@ export const publishNewAchievementNotification = async (
 
   await downloadImage(iconUrl, iconPath).catch(() => {});
 
-  new Notification({
-    title: t("game_achievement_unlocked", {
-      ns: "notifications",
-      game,
-    }),
-    body: name,
-    icon: iconPath,
-  }).show();
+  if (count > 1) {
+    new Notification({
+      title: t("notification_achievement_unlocked_title", {
+        ns: "notifications",
+        game: game,
+      }),
+      body: t("notification_achievement_unlocked_body", {
+        ns: "notifications",
+        achievement: name,
+        count,
+      }),
+      icon: iconPath,
+    }).show();
+  } else {
+    new Notification({
+      title: t("notification_achievement_unlocked_title", {
+        ns: "notifications",
+        game: game,
+      }),
+      body: name,
+      icon: iconPath,
+    }).show();
+  }
 };
 
 export const publishNewFriendRequestNotification = async () => {};

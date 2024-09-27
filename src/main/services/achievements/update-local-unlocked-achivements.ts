@@ -1,21 +1,16 @@
-import {
-  gameAchievementRepository,
-  gameRepository,
-  userPreferencesRepository,
-} from "@main/repository";
+import { gameAchievementRepository, gameRepository } from "@main/repository";
 import { findSteamGameAchievementFiles } from "./find-steam-game-achivement-files";
 import { parseAchievementFile } from "./parse-achievement-file";
-import { HydraApi } from "@main/services";
 import { checkUnlockedAchievements } from "./check-unlocked-achievements";
 import { mergeAchievements } from "./merge-achievements";
 import type { UnlockedAchievement } from "@types";
+import { getGameAchievementData } from "./get-game-achievement-data";
 
-export const saveAllLocalSteamAchivements = async () => {
-  const userPreferences = await userPreferencesRepository.findOne({
-    where: { id: 1 },
-  });
-
-  const gameAchievementFiles = findSteamGameAchievementFiles();
+export const updateLocalUnlockedAchivements = async (
+  publishNotification: boolean,
+  objectId?: string
+) => {
+  const gameAchievementFiles = findSteamGameAchievementFiles(objectId);
 
   for (const objectId of gameAchievementFiles.keys()) {
     const [game, localAchievements] = await Promise.all([
@@ -36,15 +31,7 @@ export const saveAllLocalSteamAchivements = async () => {
     );
 
     if (!localAchievements || !localAchievements.achievements) {
-      await HydraApi.get(
-        "/games/achievements",
-        {
-          shop: "steam",
-          objectId,
-          language: userPreferences?.language || "en",
-        },
-        { needsAuth: false }
-      )
+      await getGameAchievementData(objectId, "steam")
         .then((achievements) => {
           return gameAchievementRepository.upsert(
             {
@@ -75,6 +62,11 @@ export const saveAllLocalSteamAchivements = async () => {
       }
     }
 
-    mergeAchievements(objectId, "steam", unlockedAchievements);
+    mergeAchievements(
+      objectId,
+      "steam",
+      unlockedAchievements,
+      publishNotification
+    );
   }
 };
