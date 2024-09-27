@@ -19,6 +19,7 @@ import { HydraApi } from "./hydra-api";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
+  public static notificationWindow: Electron.BrowserWindow | null = null;
 
   private static loadURL(hash = "") {
     // HMR for renderer base on electron-vite cli.
@@ -78,7 +79,45 @@ export class WindowManager {
         app.quit();
       }
       WindowManager.mainWindow?.setProgressBar(-1);
+      WindowManager.mainWindow = null;
     });
+
+    this.notificationWindow = new BrowserWindow({
+      transparent: true,
+      maximizable: false,
+      minimizable: false,
+      focusable: true,
+      skipTaskbar: true,
+      frame: false,
+      width: 240,
+      height: 60,
+      x: 25,
+      y: -100,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+    });
+    if (!app.isPackaged)
+      WindowManager.notificationWindow?.webContents.openDevTools();
+
+    this.notificationWindow.setVisibleOnAllWorkspaces(true, {
+      visibleOnFullScreen: true,
+    });
+    this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
+
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+      this.notificationWindow.loadURL(
+        `${process.env["ELECTRON_RENDERER_URL"]}#/achievement-notification`
+      );
+    } else {
+      this.notificationWindow.loadFile(
+        path.join(__dirname, "../renderer/index.html"),
+        {
+          hash: "achievement-notification",
+        }
+      );
+    }
   }
 
   public static openAuthWindow() {
