@@ -115,12 +115,7 @@ declare global {
 
     /* Download sources */
     getDownloadSources: () => Promise<DownloadSource[]>;
-    validateDownloadSource: (
-      url: string
-    ) => Promise<{ name: string; downloadCount: number }>;
-    addDownloadSource: (url: string) => Promise<DownloadSource>;
-    removeDownloadSource: (id: number) => Promise<void>;
-    syncDownloadSources: () => Promise<void>;
+    deleteDownloadSource: (id: number) => Promise<void>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
@@ -184,6 +179,9 @@ declare global {
       action: FriendRequestAction
     ) => Promise<void>;
     sendFriendRequest: (userId: string) => Promise<void>;
+
+    /* Notifications */
+    publishNewRepacksNotification: (newRepacksCount: number) => Promise<void>;
   }
 
   interface Window {

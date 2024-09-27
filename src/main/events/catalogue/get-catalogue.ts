@@ -1,8 +1,8 @@
 import type { GameShop } from "@types";
 
 import { registerEvent } from "../register-event";
-import { HydraApi, RepacksManager } from "@main/services";
-import { CatalogueCategory, formatName, steamUrlBuilder } from "@shared";
+import { HydraApi } from "@main/services";
+import { CatalogueCategory, steamUrlBuilder } from "@shared";
 import { steamGamesWorker } from "@main/workers";
 
 const getCatalogue = async (
@@ -26,14 +26,9 @@ const getCatalogue = async (
         name: "getById",
       });
 
-      const repacks = RepacksManager.search({
-        query: formatName(steamGame.name),
-      });
-
       return {
         title: steamGame.name,
         shop: game.shop,
-        repacks,
         cover: steamUrlBuilder.library(game.objectId),
         objectID: game.objectId,
       };

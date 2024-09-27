@@ -51,6 +51,7 @@
     "color.js": "^1.2.0",
     "create-desktop-shortcuts": "^1.11.0",
     "date-fns": "^3.6.0",
+    "dexie": "^4.0.8",
     "electron-log": "^5.1.4",
     "electron-updater": "^6.1.8",
     "fetch-cookie": "^3.0.1",

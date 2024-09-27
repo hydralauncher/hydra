@@ -73,7 +73,6 @@ const getUser = async (
       recentGames,
     };
   } catch (err) {
-    console.log(err);
     return null;
   }
 };

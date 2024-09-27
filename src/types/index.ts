@@ -54,7 +54,6 @@ export interface CatalogueEntry {
   title: string;
   /* Epic Games covers cannot be guessed with objectID */
   cover: string;
-  repacks: GameRepack[];
 }
 
 export interface UserGame {
@@ -81,7 +80,6 @@ export interface Game {
   status: GameStatus | null;
   folderName: string;
   downloadPath: string | null;
-  repacks: GameRepack[];
   progress: number;
   bytesDownloaded: number;
   playTimeInMilliseconds: number;
@@ -234,6 +232,19 @@ export interface UpdateProfileRequest {
   profileVisibility?: ProfileVisibility;
   profileImageUrl?: string | null;
   bio?: string;
+}
+
+export interface DownloadSourceDownload {
+  title: string;
+  uris: string[];
+  uploadDate: string;
+  fileSize: string;
+}
+
+export interface DownloadSourceValidationResult {
+  name: string;
+  etag: string;
+  downloadCount: number;
 }
 
 export interface DownloadSource {

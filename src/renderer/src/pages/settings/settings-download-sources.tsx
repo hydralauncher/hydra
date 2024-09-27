@@ -10,7 +10,9 @@ import { AddDownloadSourceModal } from "./add-download-source-modal";
 import { useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
 import { SPACING_UNIT } from "@renderer/theme.css";
-import { settingsContext } from "@renderer/context";
+import { repacksContext, settingsContext } from "@renderer/context";
+import { downloadSourcesTable } from "@renderer/dexie";
+import { downloadSourcesWorker } from "@renderer/workers";
 
 export function SettingsDownloadSources() {
   const [showAddDownloadSourceModal, setShowAddDownloadSourceModal] =
@@ -18,16 +20,23 @@ export function SettingsDownloadSources() {
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [isSyncingDownloadSources, setIsSyncingDownloadSources] =
     useState(false);
+  const [isRemovingDownloadSource, setIsRemovingDownloadSource] =
+    useState(false);
 
   const { sourceUrl, clearSourceUrl } = useContext(settingsContext);
 
   const { t } = useTranslation("settings");
   const { showSuccessToast } = useToast();
 
+  const { indexRepacks } = useContext(repacksContext);
+
   const getDownloadSources = async () => {
-    return window.electron.getDownloadSources().then((sources) => {
-      setDownloadSources(sources);
-    });
+    await downloadSourcesTable
+      .toCollection()
+      .sortBy("createdAt")
+      .then((sources) => {
+        setDownloadSources(sources.reverse());
+      });
   };
 
   useEffect(() => {
@@ -38,14 +47,24 @@ export function SettingsDownloadSources() {
     if (sourceUrl) setShowAddDownloadSourceModal(true);
   }, [sourceUrl]);
 
-  const handleRemoveSource = async (id: number) => {
-    await window.electron.removeDownloadSource(id);
-    showSuccessToast(t("removed_download_source"));
+  const handleRemoveSource = (id: number) => {
+    setIsRemovingDownloadSource(true);
+    const channel = new BroadcastChannel(`download_sources:delete:${id}`);
 
-    getDownloadSources();
+    downloadSourcesWorker.postMessage(["DELETE_DOWNLOAD_SOURCE", id]);
+
+    channel.onmessage = () => {
+      showSuccessToast(t("removed_download_source"));
+
+      getDownloadSources();
+      indexRepacks();
+      setIsRemovingDownloadSource(false);
+      channel.close();
+    };
   };
 
   const handleAddDownloadSource = async () => {
+    indexRepacks();
     await getDownloadSources();
     showSuccessToast(t("added_download_source"));
   };
@@ -53,15 +72,17 @@ export function SettingsDownloadSources() {
   const syncDownloadSources = async () => {
     setIsSyncingDownloadSources(true);
 
-    window.electron
-      .syncDownloadSources()
-      .then(() => {
-        showSuccessToast(t("download_sources_synced"));
-        getDownloadSources();
-      })
-      .finally(() => {
-        setIsSyncingDownloadSources(false);
-      });
+    const id = crypto.randomUUID();
+    const channel = new BroadcastChannel(`download_sources:sync:${id}`);
+
+    downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
+
+    channel.onmessage = () => {
+      showSuccessToast(t("download_sources_synced"));
+      getDownloadSources();
+      setIsSyncingDownloadSources(false);
+      channel.close();
+    };
   };
 
   const statusTitle = {
@@ -88,7 +109,11 @@ export function SettingsDownloadSources() {
         <Button
           type="button"
           theme="outline"
-          disabled={!downloadSources.length || isSyncingDownloadSources}
+          disabled={
+            !downloadSources.length ||
+            isSyncingDownloadSources ||
+            isRemovingDownloadSource
+          }
           onClick={syncDownloadSources}
         >
           <SyncIcon />
@@ -99,6 +124,7 @@ export function SettingsDownloadSources() {
           type="button"
           theme="outline"
           onClick={() => setShowAddDownloadSourceModal(true)}
+          disabled={isSyncingDownloadSources}
         >
           <PlusCircleIcon />
           {t("add_download_source")}
@@ -148,6 +174,7 @@ export function SettingsDownloadSources() {
                   type="button"
                   theme="outline"
                   onClick={() => handleRemoveSource(downloadSource.id)}
+                  disabled={isRemovingDownloadSource}
                 >
                   <NoEntryIcon />
                   {t("remove_download_source")}
