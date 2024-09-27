@@ -2,8 +2,6 @@ import { Modal, ModalProps, TextField } from "@renderer/components";
 import { useContext, useMemo } from "react";
 import { cloudSyncContext } from "@renderer/context";
 
-import { useTranslation } from "react-i18next";
-
 export interface CloudSyncFilesModalProps
   extends Omit<ModalProps, "children" | "title"> {}
 
