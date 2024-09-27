@@ -7,16 +7,6 @@ export const getFileBuffer = async (url: string) =>
     response.arrayBuffer().then((buffer) => Buffer.from(buffer))
   );
 
-export const getFileBase64 = async (url: string) =>
-  fetch(url, { method: "GET" }).then((response) =>
-    response.arrayBuffer().then((buffer) => {
-      const base64 = Buffer.from(buffer).toString("base64");
-      const contentType = response.headers.get("content-type");
-
-      return `data:${contentType};base64,${base64}`;
-    })
-  );
-
 export const sleep = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -36,6 +26,4 @@ export const requestWebPage = async (url: string) => {
 };
 
 export const isPortableVersion = () =>
-  process.env.PORTABLE_EXECUTABLE_FILE != null;
-
-export * from "./download-source";
+  process.env.PORTABLE_EXECUTABLE_FILE !== null;
