@@ -145,7 +145,9 @@ export function GameDetailsContextProvider({
       .then((achievements) => {
         setAchievements(achievements);
       })
-      .catch(() => {});
+      .catch(() => {
+        // TODO: handle user not logged in error
+      });
 
     updateGame();
   }, [updateGame, dispatch, gameTitle, objectID, shop, i18n.language]);
@@ -183,7 +185,8 @@ export function GameDetailsContextProvider({
 
         window.electron
           .getGameAchievements(objectID!, shop as GameShop)
-          .then(setAchievements);
+          .then(setAchievements)
+          .catch(() => {});
       }
     );
 
