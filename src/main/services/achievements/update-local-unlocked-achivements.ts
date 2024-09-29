@@ -42,7 +42,7 @@ export const updateLocalUnlockedAchivements = async (
             ["objectId", "shop"]
           );
         })
-        .catch(console.log);
+        .catch(() => {});
     }
 
     const unlockedAchievements: UnlockedAchievement[] = [];

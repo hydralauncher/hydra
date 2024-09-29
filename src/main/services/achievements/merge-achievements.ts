@@ -8,14 +8,22 @@ const saveAchievementsOnLocal = async (
   shop: string,
   achievements: any[]
 ) => {
-  return gameAchievementRepository.upsert(
-    {
-      objectId,
-      shop,
-      unlockedAchievements: JSON.stringify(achievements),
-    },
-    ["objectId", "shop"]
-  );
+  return gameAchievementRepository
+    .upsert(
+      {
+        objectId,
+        shop,
+        unlockedAchievements: JSON.stringify(achievements),
+      },
+      ["objectId", "shop"]
+    )
+    .then(() => {
+      WindowManager.mainWindow?.webContents.send(
+        "on-achievement-unlocked",
+        objectId,
+        shop
+      );
+    });
 };
 
 export const mergeAchievements = async (
@@ -61,14 +69,6 @@ export const mergeAchievements = async (
     ).find((steamAchievement) => {
       return achievement.name === steamAchievement.name;
     });
-
-    WindowManager.mainWindow?.webContents.send(
-      "on-achievement-unlocked",
-      objectId,
-      shop,
-      achievementInfo.displayName,
-      achievementInfo.icon
-    );
 
     if (publishNotification) {
       WindowManager.notificationWindow?.webContents.send(
