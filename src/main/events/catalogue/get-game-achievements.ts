@@ -6,6 +6,7 @@ import {
   gameRepository,
   userPreferencesRepository,
 } from "@main/repository";
+import { UserNotLoggedInError } from "@shared";
 
 const getGameAchievements = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -22,11 +23,11 @@ const getGameAchievements = async (
     }),
   ]);
 
-  const apiAchievement = HydraApi.get(
-    "/games/achievements",
-    { objectId, shop, language: userPreferences?.language || "en" },
-    { needsAuth: false }
-  )
+  const apiAchievement = HydraApi.get("/games/achievements", {
+    objectId,
+    shop,
+    language: userPreferences?.language || "en",
+  })
     .then((achievements) => {
       if (game) {
         gameAchievementRepository.upsert(
@@ -41,7 +42,10 @@ const getGameAchievements = async (
 
       return achievements;
     })
-    .catch(() => []);
+    .catch((err) => {
+      if (err instanceof UserNotLoggedInError) throw err;
+      return [];
+    });
 
   const gameAchievements = cachedAchievements?.achievements
     ? JSON.parse(cachedAchievements.achievements)
