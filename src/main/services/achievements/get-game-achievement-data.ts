@@ -9,13 +9,9 @@ export const getGameAchievementData = async (
     where: { id: 1 },
   });
 
-  return HydraApi.get(
-    "/games/achievements",
-    {
-      shop,
-      objectId,
-      language: userPreferences?.language || "en",
-    },
-    { needsAuth: false }
-  );
+  return HydraApi.get("/games/achievements", {
+    shop,
+    objectId,
+    language: userPreferences?.language || "en",
+  });
 };
