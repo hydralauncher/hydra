@@ -67,7 +67,7 @@ const getGameAchievements = async (
         return {
           ...achievement,
           unlocked: true,
-          unlockTime: unlockedAchiement.unlockTime * 1000,
+          unlockTime: unlockedAchiement.unlockTime,
         };
       }
 

@@ -41,11 +41,18 @@ export const mergeAchievements = async (
     localGameAchievement?.unlockedAchievements || "[]"
   );
 
-  const newAchievements = achievements.filter((achievement) => {
-    return !unlockedAchievements.some((localAchievement) => {
-      return localAchievement.name === achievement.name;
+  const newAchievements = achievements
+    .filter((achievement) => {
+      return !unlockedAchievements.some((localAchievement) => {
+        return localAchievement.name === achievement.name;
+      });
+    })
+    .map((achievement) => {
+      return {
+        ...achievement,
+        unlockTime: achievement.unlockTime * 1000,
+      };
     });
-  });
 
   if (newAchievements.length) {
     const achievement = newAchievements.at(-1)!;
