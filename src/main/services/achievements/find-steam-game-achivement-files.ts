@@ -4,6 +4,10 @@ import { app } from "electron";
 import type { AchievementFile } from "@types";
 import { Cracker } from "@shared";
 
+//TODO: change to a automatized method
+const publicDir = path.join("C:", "Users", "Public", "Documents");
+const appData = app.getPath("appData");
+
 const addGame = (
   achievementFiles: Map<string, AchievementFile[]>,
   achievementPath: string,
@@ -32,10 +36,6 @@ const getObjectIdsInFolder = (path: string) => {
 };
 
 export const findSteamGameAchievementFiles = (objectId?: string) => {
-  //TODO: change to a automatized method
-  const publicDir = path.join("C:", "Users", "Public", "Documents");
-  const appData = app.getPath("appData");
-
   const gameAchievementFiles = new Map<string, AchievementFile[]>();
 
   const crackers = [
