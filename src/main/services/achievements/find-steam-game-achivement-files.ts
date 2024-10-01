@@ -23,6 +23,14 @@ const addGame = (
     : achievementFiles.set(objectId, [achivementFile]);
 };
 
+const getObjectIdsInFolder = (path: string) => {
+  if (fs.existsSync(path)) {
+    return fs.readdirSync(path);
+  }
+
+  return [];
+};
+
 export const findSteamGameAchievementFiles = (objectId?: string) => {
   //TODO: change to a automatized method
   const publicDir = path.join("C:", "Users", "Public", "Documents");
@@ -52,7 +60,9 @@ export const findSteamGameAchievementFiles = (objectId?: string) => {
       fileLocation = ["achievements.ini"];
     }
 
-    const objectIds = objectId ? [objectId] : fs.readdirSync(achievementPath);
+    const objectIds = objectId
+      ? [objectId]
+      : getObjectIdsInFolder(achievementPath);
 
     for (const objectId of objectIds) {
       addGame(
