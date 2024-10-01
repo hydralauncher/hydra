@@ -99,7 +99,7 @@
     "@vanilla-extract/vite-plugin": "^4.0.7",
     "@vitejs/plugin-react": "^4.2.1",
     "electron": "^30.3.0",
-    "electron-builder": "^25.0.1",
+    "electron-builder": "^25.1.6",
     "electron-vite": "^2.0.0",
     "eslint": "^8.56.0",
     "eslint-plugin-jsx-a11y": "^6.8.0",
