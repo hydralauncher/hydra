@@ -62,29 +62,35 @@ export const mergeAchievements = async (
       };
     });
 
-  if (newAchievements.length) {
-    const achievement = newAchievements.at(-1)!;
-    const achievementInfo = JSON.parse(
-      localGameAchievement?.achievements || "[]"
-    ).find((steamAchievement) => {
-      return achievement.name === steamAchievement.name;
-    });
+  if (newAchievements.length && publishNotification) {
+    const achievementsInfo = newAchievements
+      .map((achievement) => {
+        return JSON.parse(localGameAchievement?.achievements || "[]").find(
+          (steamAchievement) => {
+            return achievement.name === steamAchievement.name;
+          }
+        );
+      })
+      .filter((achievement) => achievement)
+      .map((achievement) => {
+        return {
+          displayName: achievement.displayName,
+          iconUrl: achievement.icon,
+        };
+      });
 
-    if (publishNotification) {
-      WindowManager.notificationWindow?.webContents.send(
-        "on-achievement-unlocked",
-        objectId,
-        shop,
-        achievementInfo.displayName,
-        achievementInfo.icon
-      );
+    WindowManager.notificationWindow?.webContents.send(
+      "on-achievement-unlocked",
+      objectId,
+      shop,
+      achievementsInfo
+    );
 
-      WindowManager.notificationWindow?.setBounds({ y: 50 });
+    WindowManager.notificationWindow?.setBounds({ y: 50 });
 
-      setTimeout(() => {
-        WindowManager.notificationWindow?.setBounds({ y: -9999 });
-      }, 4000);
-    }
+    setTimeout(() => {
+      WindowManager.notificationWindow?.setBounds({ y: -9999 });
+    }, 4000);
   }
 
   const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);

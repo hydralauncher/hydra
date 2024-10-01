@@ -51,21 +51,21 @@ contextBridge.exposeInMainWorld("electron", {
   getTrendingGames: () => ipcRenderer.invoke("getTrendingGames"),
   getGameAchievements: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameAchievements", objectId, shop),
+  updateGameUnlockedAchievements: (objectId: string) =>
+    ipcRenderer.invoke("updateGameUnlockedAchievements", objectId),
   onAchievementUnlocked: (
     cb: (
       objectId: string,
       shop: GameShop,
-      displayName: string,
-      iconUrl: string
+      achievements?: { displayName: string; iconUrl: string }[]
     ) => void
   ) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
       objectId: string,
       shop: GameShop,
-      displayName: string,
-      iconUrl: string
-    ) => cb(objectId, shop, displayName, iconUrl);
+      achievements?: { displayName: string; iconUrl: string }[]
+    ) => cb(objectId, shop, achievements);
     ipcRenderer.on("on-achievement-unlocked", listener);
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked", listener);
