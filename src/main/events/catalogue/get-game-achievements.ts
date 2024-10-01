@@ -7,23 +7,18 @@ import {
   userPreferencesRepository,
 } from "@main/repository";
 import { UserNotLoggedInError } from "@shared";
+import { Game } from "@main/entity";
 
-const getGameAchievements = async (
-  _event: Electron.IpcMainInvokeEvent,
+const getAchievementsDataFromApi = async (
   objectId: string,
-  shop: GameShop
-): Promise<GameAchievement[]> => {
-  const [game, cachedAchievements, userPreferences] = await Promise.all([
-    gameRepository.findOne({
-      where: { objectID: objectId, shop },
-    }),
-    gameAchievementRepository.findOne({ where: { objectId, shop } }),
-    userPreferencesRepository.findOne({
-      where: { id: 1 },
-    }),
-  ]);
+  shop: string,
+  game: Game | null
+) => {
+  const userPreferences = await userPreferencesRepository.findOne({
+    where: { id: 1 },
+  });
 
-  const apiAchievement = HydraApi.get("/games/achievements", {
+  return HydraApi.get("/games/achievements", {
     objectId,
     shop,
     language: userPreferences?.language || "en",
@@ -46,10 +41,23 @@ const getGameAchievements = async (
       if (err instanceof UserNotLoggedInError) throw err;
       return [];
     });
+};
+
+const getGameAchievements = async (
+  _event: Electron.IpcMainInvokeEvent,
+  objectId: string,
+  shop: GameShop
+): Promise<GameAchievement[]> => {
+  const [game, cachedAchievements] = await Promise.all([
+    gameRepository.findOne({
+      where: { objectID: objectId, shop },
+    }),
+    gameAchievementRepository.findOne({ where: { objectId, shop } }),
+  ]);
 
   const gameAchievements = cachedAchievements?.achievements
     ? JSON.parse(cachedAchievements.achievements)
-    : await apiAchievement;
+    : await getAchievementsDataFromApi(objectId, shop, game);
 
   const unlockedAchievements = JSON.parse(
     cachedAchievements?.unlockedAchievements || "[]"

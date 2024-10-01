@@ -315,5 +315,8 @@
     "report_reason_other": "Other",
     "profile_reported": "Profile reported",
     "your_friend_code": "Your friend code:"
+  },
+  "achievement": {
+    "achievement_unlocked": "Achievement unlocked"
   }
 }

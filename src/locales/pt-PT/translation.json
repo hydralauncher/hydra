@@ -277,5 +277,8 @@
     "friend_code_copied": "Código de amigo copiado",
     "image_process_failure": "Falha ao processar a imagem",
     "your_friend_code": "Seu código de amigo:"
+  },
+  "achievement": {
+    "achievement_unlocked": "Conquista desbloqueada"
   }
 }
