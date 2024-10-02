@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import achievementSound from "@renderer/assets/audio/achievement.wav";
 import { useTranslation } from "react-i18next";
+import { vars } from "@renderer/theme.css";
 
-export function Achievemnt() {
+export function Achievement() {
   const { t } = useTranslation("achievement");
 
   const [achievementInfo, setAchievementInfo] = useState<{
@@ -39,7 +40,7 @@ export function Achievemnt() {
     };
   }, [audio]);
 
-  if (!achievementInfo) return <p>Nada</p>;
+  if (!achievementInfo) return null;
 
   return (
     <div
@@ -48,6 +49,7 @@ export function Achievemnt() {
         flexDirection: "row",
         gap: "8px",
         alignItems: "center",
+        background: vars.color.background,
       }}
     >
       <img
