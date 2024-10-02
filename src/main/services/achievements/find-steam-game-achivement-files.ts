@@ -93,14 +93,10 @@ export const findAchievementFileInExecutableDirectory = (
     "user_stats.ini"
   );
 
-  if (fs.existsSync(steamDataPath)) {
-    return {
-      type: Cracker.generic,
-      filePath: steamDataPath,
-    };
-  }
-
-  return null;
+  return {
+    type: Cracker.generic,
+    filePath: steamDataPath,
+  };
 };
 
 export const findAllSteamGameAchievementFiles = () => {

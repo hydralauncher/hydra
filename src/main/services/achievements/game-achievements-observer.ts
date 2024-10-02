@@ -54,7 +54,9 @@ const compareFile = async (game: Game, file: AchievementFile) => {
       fileStats.get(file.filePath)
     );
     await processAchievementFile(game, file);
-  } catch (err) {}
+  } catch (err) {
+    fileStats.set(file.filePath, -1);
+  }
 };
 
 export const startGameAchievementObserver = async (games: Game[]) => {
