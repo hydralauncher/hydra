@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { app } from "electron";
 import type { AchievementFile } from "@types";
 import { Cracker } from "@shared";
+import { Game } from "@main/entity";
 
 //TODO: change to a automatized method
 const publicDir = path.join("C:", "Users", "Public", "Documents");
@@ -16,6 +17,8 @@ const addGame = (
   type: Cracker
 ) => {
   const filePath = path.join(achievementPath, objectId, ...fileLocation);
+
+  if (!fs.existsSync(filePath)) return;
 
   const achivementFile = {
     type,
@@ -35,12 +38,13 @@ const getObjectIdsInFolder = (path: string) => {
   return [];
 };
 
-export const findSteamGameAchievementFiles = (objectId: string) => {
+export const findSteamGameAchievementFiles = (game: Game) => {
   const crackers = [
     Cracker.codex,
     Cracker.goldberg,
     Cracker.rune,
     Cracker.onlineFix,
+    Cracker.generic,
   ];
 
   const achievementFiles: AchievementFile[] = [];
@@ -54,18 +58,49 @@ export const findSteamGameAchievementFiles = (objectId: string) => {
     } else if (cracker === Cracker.goldberg) {
       achievementPath = path.join(appData, "Goldberg SteamEmu Saves");
       fileLocation = ["achievements.json"];
+    } else if (cracker === Cracker.generic) {
+      achievementPath = path.join(publicDir, Cracker.generic);
+      fileLocation = ["user_stats.ini"];
     } else {
       achievementPath = path.join(publicDir, "Steam", cracker);
       fileLocation = ["achievements.ini"];
     }
 
-    achievementFiles.push({
-      type: cracker,
-      filePath: path.join(achievementPath, objectId, ...fileLocation),
-    });
+    const filePath = path.join(achievementPath, game.objectID, ...fileLocation);
+
+    if (fs.existsSync(filePath)) {
+      achievementFiles.push({
+        type: cracker,
+        filePath: path.join(achievementPath, game.objectID, ...fileLocation),
+      });
+    }
   }
 
   return achievementFiles;
+};
+
+export const findAchievementFileInExecutableDirectory = (
+  game: Game
+): AchievementFile | null => {
+  if (!game.executablePath) {
+    return null;
+  }
+
+  const steamDataPath = path.join(
+    game.executablePath,
+    "..",
+    "SteamData",
+    "user_stats.ini"
+  );
+
+  if (fs.existsSync(steamDataPath)) {
+    return {
+      type: Cracker.generic,
+      filePath: steamDataPath,
+    };
+  }
+
+  return null;
 };
 
 export const findAllSteamGameAchievementFiles = () => {

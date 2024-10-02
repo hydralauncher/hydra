@@ -102,6 +102,7 @@ export class WindowManager {
     this.notificationWindow = new BrowserWindow({
       transparent: true,
       maximizable: false,
+      autoHideMenuBar: true,
       minimizable: false,
       focusable: true,
       skipTaskbar: true,

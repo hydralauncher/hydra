@@ -8,6 +8,7 @@ export const checkUnlockedAchievements = (
   if (type === Cracker.onlineFix) return onlineFixMerge(unlockedAchievements);
   if (type === Cracker.goldberg)
     return goldbergUnlockedAchievements(unlockedAchievements);
+  if (type == Cracker.generic) return genericMerge(unlockedAchievements);
   return defaultMerge(unlockedAchievements);
 };
 
@@ -56,6 +57,23 @@ const defaultMerge = (unlockedAchievements: any): UnlockedAchievement[] => {
       newUnlockedAchievements.push({
         name: achievement,
         unlockTime: unlockedAchievement.UnlockTime,
+      });
+    }
+  }
+
+  return newUnlockedAchievements;
+};
+
+const genericMerge = (unlockedAchievements: any): UnlockedAchievement[] => {
+  const newUnlockedAchievements: UnlockedAchievement[] = [];
+
+  for (const achievement of Object.keys(unlockedAchievements)) {
+    const unlockedAchievement = unlockedAchievements[achievement];
+
+    if (unlockedAchievement?.unlocked) {
+      newUnlockedAchievements.push({
+        name: achievement,
+        unlockTime: unlockedAchievement.time,
       });
     }
   }
