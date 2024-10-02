@@ -35,7 +35,40 @@ const getObjectIdsInFolder = (path: string) => {
   return [];
 };
 
-export const findSteamGameAchievementFiles = (objectId?: string) => {
+export const findSteamGameAchievementFiles = (objectId: string) => {
+  const crackers = [
+    Cracker.codex,
+    Cracker.goldberg,
+    Cracker.rune,
+    Cracker.onlineFix,
+  ];
+
+  const achievementFiles: AchievementFile[] = [];
+  for (const cracker of crackers) {
+    let achievementPath: string;
+    let fileLocation: string[];
+
+    if (cracker === Cracker.onlineFix) {
+      achievementPath = path.join(publicDir, Cracker.onlineFix);
+      fileLocation = ["Stats", "Achievements.ini"];
+    } else if (cracker === Cracker.goldberg) {
+      achievementPath = path.join(appData, "Goldberg SteamEmu Saves");
+      fileLocation = ["achievements.json"];
+    } else {
+      achievementPath = path.join(publicDir, "Steam", cracker);
+      fileLocation = ["achievements.ini"];
+    }
+
+    achievementFiles.push({
+      type: cracker,
+      filePath: path.join(achievementPath, objectId, ...fileLocation),
+    });
+  }
+
+  return achievementFiles;
+};
+
+export const findAllSteamGameAchievementFiles = () => {
   const gameAchievementFiles = new Map<string, AchievementFile[]>();
 
   const crackers = [
@@ -60,9 +93,7 @@ export const findSteamGameAchievementFiles = (objectId?: string) => {
       fileLocation = ["achievements.ini"];
     }
 
-    const objectIds = objectId
-      ? [objectId]
-      : getObjectIdsInFolder(achievementPath);
+    const objectIds = getObjectIdsInFolder(achievementPath);
 
     for (const objectId of objectIds) {
       addGame(

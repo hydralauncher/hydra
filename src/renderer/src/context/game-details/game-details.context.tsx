@@ -179,8 +179,6 @@ export function GameDetailsContextProvider({
   }, [game?.id, isGameRunning, updateGame]);
 
   useEffect(() => {
-    window.electron.updateGameUnlockedAchievements(objectID!).catch(() => {});
-
     const unsubscribe = window.electron.onAchievementUnlocked(
       (objectId, shop) => {
         if (objectID !== objectId || shop !== shop) return;
