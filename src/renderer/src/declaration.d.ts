@@ -70,7 +70,6 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<GameAchievement[]>;
-    updateGameUnlockedAchievements: (objectId: string) => Promise<void>;
     onAchievementUnlocked: (
       cb: (
         objectId: string,

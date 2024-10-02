@@ -37,14 +37,10 @@ const processAchievementFile = async (game: Game, file: AchievementFile) => {
 };
 
 const startFileWatch = async (game: Game, file: AchievementFile) => {
-  const signal = gameAchievementObserver[game.id]?.signal;
-
   try {
     await processAchievementFile(game, file);
 
-    const watcher = watch(file.filePath, {
-      signal,
-    });
+    const watcher = watch(file.filePath);
 
     for await (const event of watcher) {
       if (event.eventType === "change") {
@@ -62,8 +58,7 @@ export const startGameAchievementObserver = async (game: Game) => {
   if (game.shop !== "steam") return;
   if (gameAchievementObserver[game.id]) return;
 
-  const achievementFiles =
-    findSteamGameAchievementFiles(game.objectID).get(game.objectID) || [];
+  const achievementFiles = findSteamGameAchievementFiles(game.objectID);
 
   logger.log(
     "Achievements files to observe for:",
@@ -83,9 +78,4 @@ export const startGameAchievementObserver = async (game: Game) => {
 
     startFileWatch(game, file);
   }
-};
-
-export const stopGameAchievementObserver = (gameId: number) => {
-  gameAchievementObserver[gameId]?.abort();
-  delete gameAchievementObserver[gameId];
 };
