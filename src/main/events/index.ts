@@ -9,6 +9,7 @@ import "./catalogue/get-random-game";
 import "./catalogue/search-games";
 import "./catalogue/get-game-stats";
 import "./catalogue/get-trending-games";
+import "./catalogue/get-game-achievements";
 import "./hardware/get-disk-free-space";
 import "./library/add-game-to-library";
 import "./library/create-game-shortcut";

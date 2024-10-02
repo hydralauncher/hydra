@@ -25,12 +25,12 @@ export const watchProcesses = async () => {
   if (games.length === 0) return;
   const processes = await PythonInstance.getProcessList();
 
+  const processSet = new Set(processes.map((process) => process.exe));
+
   for (const game of games) {
     const executablePath = game.executablePath!;
 
-    const gameProcess = processes.find((runningProcess) => {
-      return executablePath == runningProcess.exe;
-    });
+    const gameProcess = processSet.has(executablePath);
 
     if (gameProcess) {
       if (gamesPlaytime.has(game.id)) {

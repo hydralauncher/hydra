@@ -240,7 +240,9 @@
     "repack_count_one": "{{count}} repack added",
     "repack_count_other": "{{count}} repacks added",
     "new_update_available": "Version {{version}} available",
-    "restart_to_install_update": "Restart Hydra to install the update"
+    "restart_to_install_update": "Restart Hydra to install the update",
+    "notification_achievement_unlocked_title": "Achievement unlocked for {{game}}",
+    "notification_achievement_unlocked_body": "{{achievement}} and other {{count}} were unlocked"
   },
   "system_tray": {
     "open": "Open Hydra",
@@ -327,5 +329,8 @@
     "report_reason_other": "Other",
     "profile_reported": "Profile reported",
     "your_friend_code": "Your friend code:"
+  },
+  "achievement": {
+    "achievement_unlocked": "Achievement unlocked"
   }
 }
