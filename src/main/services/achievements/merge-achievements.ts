@@ -85,12 +85,6 @@ export const mergeAchievements = async (
       shop,
       achievementsInfo
     );
-
-    WindowManager.notificationWindow?.setBounds({ y: 50 });
-
-    setTimeout(() => {
-      WindowManager.notificationWindow?.setBounds({ y: -9999 });
-    }, 4000);
   }
 
   const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);

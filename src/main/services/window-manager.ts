@@ -104,19 +104,21 @@ export class WindowManager {
       maximizable: false,
       autoHideMenuBar: true,
       minimizable: false,
-      focusable: true,
+      focusable: false,
       skipTaskbar: true,
       frame: false,
       width: 240,
       height: 60,
       x: 25,
-      y: -9999,
+      y: 25,
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.mjs"),
         sandbox: false,
       },
     });
 
+    this.notificationWindow.setIgnoreMouseEvents(true);
+    this.notificationWindow.webContents.openDevTools();
     this.notificationWindow.setVisibleOnAllWorkspaces(true, {
       visibleOnFullScreen: true,
     });
