@@ -52,7 +52,9 @@ export const mergeAchievements = async (
   const newAchievements = achievements
     .filter((achievement) => {
       return !unlockedAchievements.some((localAchievement) => {
-        return localAchievement.name === achievement.name;
+        return (
+          localAchievement.name.toUpperCase() === achievement.name.toUpperCase()
+        );
       });
     })
     .map((achievement) => {
@@ -67,7 +69,10 @@ export const mergeAchievements = async (
       .map((achievement) => {
         return JSON.parse(localGameAchievement?.achievements || "[]").find(
           (steamAchievement) => {
-            return achievement.name === steamAchievement.name;
+            return (
+              achievement.name.toUpperCase() ===
+              steamAchievement.name.toUpperCase()
+            );
           }
         );
       })

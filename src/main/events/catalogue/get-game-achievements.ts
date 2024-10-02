@@ -67,7 +67,10 @@ const getGameAchievements = async (
     .map((achievement) => {
       const unlockedAchiement = unlockedAchievements.find(
         (localAchievement) => {
-          return localAchievement.name == achievement.name;
+          return (
+            localAchievement.name.toUpperCase() ==
+            achievement.name.toUpperCase()
+          );
         }
       );
 
