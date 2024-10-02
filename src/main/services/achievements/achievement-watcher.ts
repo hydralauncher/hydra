@@ -1,5 +1,5 @@
 import { gameRepository } from "@main/repository";
-import { startGameAchievementObserver } from "./game-achievements-observer";
+import { startGameAchievementObserver as searchForAchievements } from "./game-achievements-observer";
 
 export const watchAchievements = async () => {
   const games = await gameRepository.find({
@@ -10,7 +10,5 @@ export const watchAchievements = async () => {
 
   if (games.length === 0) return;
 
-  for (const game of games) {
-    startGameAchievementObserver(game);
-  }
+  await searchForAchievements(games);
 };

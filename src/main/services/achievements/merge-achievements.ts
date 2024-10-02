@@ -52,14 +52,12 @@ export const mergeAchievements = async (
   const newAchievements = achievements
     .filter((achievement) => {
       return !unlockedAchievements.some((localAchievement) => {
-        return (
-          localAchievement.name.toUpperCase() === achievement.name.toUpperCase()
-        );
+        return localAchievement.name === achievement.name.toUpperCase();
       });
     })
     .map((achievement) => {
       return {
-        ...achievement,
+        name: achievement.name.toUpperCase(),
         unlockTime: achievement.unlockTime * 1000,
       };
     });
@@ -69,10 +67,7 @@ export const mergeAchievements = async (
       .map((achievement) => {
         return JSON.parse(localGameAchievement?.achievements || "[]").find(
           (steamAchievement) => {
-            return (
-              achievement.name.toUpperCase() ===
-              steamAchievement.name.toUpperCase()
-            );
+            return achievement.name === steamAchievement.name;
           }
         );
       })

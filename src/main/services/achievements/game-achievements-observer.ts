@@ -1,21 +1,22 @@
-import { watch } from "node:fs/promises";
 import { checkUnlockedAchievements } from "./check-unlocked-achievements";
 import { parseAchievementFile } from "./parse-achievement-file";
 import { Game } from "@main/entity";
 import { mergeAchievements } from "./merge-achievements";
 import fs from "node:fs";
-import { findSteamGameAchievementFiles } from "./find-steam-game-achivement-files";
+import {
+  findAchievementFileInExecutableDirectory,
+  findAllSteamGameAchievementFiles,
+} from "./find-steam-game-achivement-files";
 import type { AchievementFile } from "@types";
 import { logger } from "../logger";
 
-type GameAchievementObserver = {
-  [id: number]: AbortController;
-};
-
-const gameAchievementObserver: GameAchievementObserver = {};
+const fileStats: Map<string, number> = new Map();
 
 const processAchievementFile = async (game: Game, file: AchievementFile) => {
-  const localAchievementFile = await parseAchievementFile(file.filePath);
+  const localAchievementFile = await parseAchievementFile(
+    file.filePath,
+    file.type
+  );
 
   logger.log("Parsed achievements file", file.filePath, localAchievementFile);
   if (localAchievementFile) {
@@ -36,46 +37,48 @@ const processAchievementFile = async (game: Game, file: AchievementFile) => {
   }
 };
 
-const startFileWatch = async (game: Game, file: AchievementFile) => {
+const compareFile = async (game: Game, file: AchievementFile) => {
   try {
-    await processAchievementFile(game, file);
+    const stat = fs.statSync(file.filePath);
+    const currentFileStat = fileStats.get(file.filePath);
+    fileStats.set(file.filePath, stat.mtimeMs);
 
-    const watcher = watch(file.filePath);
-
-    for await (const event of watcher) {
-      if (event.eventType === "change") {
-        logger.log("Detected change in file", file.filePath);
-        await processAchievementFile(game, file);
-      }
+    if (!currentFileStat || currentFileStat === stat.mtimeMs) {
+      return;
     }
-  } catch (err: any) {
-    if (err?.name === "AbortError") return;
-    logger.error("Failed to watch file", file.filePath, err);
-  }
+
+    logger.log(
+      "Detected change in file",
+      file.filePath,
+      stat.mtimeMs,
+      fileStats.get(file.filePath)
+    );
+    await processAchievementFile(game, file);
+  } catch (err) {}
 };
 
-export const startGameAchievementObserver = async (game: Game) => {
-  if (game.shop !== "steam") return;
-  if (gameAchievementObserver[game.id]) return;
+export const startGameAchievementObserver = async (games: Game[]) => {
+  const achievementFiles = findAllSteamGameAchievementFiles();
 
-  const achievementFiles = findSteamGameAchievementFiles(game.objectID);
+  for (const game of games) {
+    const gameAchievementFiles = achievementFiles.get(game.objectID) || [];
+    const achievementFileInsideDirectory =
+      findAchievementFileInExecutableDirectory(game);
 
-  logger.log(
-    "Achievements files to observe for:",
-    game.title,
-    achievementFiles
-  );
-
-  for (const file of achievementFiles) {
-    if (!fs.existsSync(file.filePath)) {
-      continue;
+    if (achievementFileInsideDirectory) {
+      gameAchievementFiles.push(achievementFileInsideDirectory);
     }
 
-    if (!gameAchievementObserver[game.id]) {
-      const abortController = new AbortController();
-      gameAchievementObserver[game.id] = abortController;
-    }
+    if (!gameAchievementFiles.length) continue;
 
-    startFileWatch(game, file);
+    logger.log(
+      "Achievements files to observe for:",
+      game.title,
+      gameAchievementFiles
+    );
+
+    for (const file of gameAchievementFiles) {
+      compareFile(game, file);
+    }
   }
 };

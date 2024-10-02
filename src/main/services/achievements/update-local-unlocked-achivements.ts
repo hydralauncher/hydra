@@ -10,9 +10,11 @@ import type { UnlockedAchievement } from "@types";
 import { getGameAchievementData } from "./get-game-achievement-data";
 
 export const updateAllLocalUnlockedAchievements = async () => {
-  const gameAchievementFiles = findAllSteamGameAchievementFiles();
+  const gameAchievementFilesMap = findAllSteamGameAchievementFiles();
 
-  for (const objectId of gameAchievementFiles.keys()) {
+  for (const objectId of gameAchievementFilesMap.keys()) {
+    const gameAchievementFiles = gameAchievementFilesMap.get(objectId)!;
+
     const [game, localAchievements] = await Promise.all([
       gameRepository.findOne({
         where: { objectID: objectId, shop: "steam", isDeleted: false },
@@ -24,11 +26,7 @@ export const updateAllLocalUnlockedAchievements = async () => {
 
     if (!game) continue;
 
-    console.log(
-      "Achievements files for",
-      game.title,
-      gameAchievementFiles.get(objectId)
-    );
+    console.log("Achievements files for", game.title, gameAchievementFiles);
 
     if (!localAchievements || !localAchievements.achievements) {
       await getGameAchievementData(objectId, "steam")
@@ -47,9 +45,10 @@ export const updateAllLocalUnlockedAchievements = async () => {
 
     const unlockedAchievements: UnlockedAchievement[] = [];
 
-    for (const achievementFile of gameAchievementFiles.get(objectId)!) {
+    for (const achievementFile of gameAchievementFiles) {
       const localAchievementFile = await parseAchievementFile(
-        achievementFile.filePath
+        achievementFile.filePath,
+        achievementFile.type
       );
 
       if (localAchievementFile) {
@@ -70,8 +69,6 @@ export const updateLocalUnlockedAchivements = async (
   publishNotification: boolean,
   objectId: string
 ) => {
-  const gameAchievementFiles = findSteamGameAchievementFiles(objectId);
-
   const [game, localAchievements] = await Promise.all([
     gameRepository.findOne({
       where: { objectID: objectId, shop: "steam", isDeleted: false },
@@ -82,6 +79,8 @@ export const updateLocalUnlockedAchivements = async (
   ]);
 
   if (!game) return;
+
+  const gameAchievementFiles = findSteamGameAchievementFiles(game);
 
   console.log("Achievements files for", game.title, gameAchievementFiles);
 
@@ -104,7 +103,8 @@ export const updateLocalUnlockedAchivements = async (
 
   for (const achievementFile of gameAchievementFiles) {
     const localAchievementFile = await parseAchievementFile(
-      achievementFile.filePath
+      achievementFile.filePath,
+      achievementFile.type
     );
 
     if (localAchievementFile) {
