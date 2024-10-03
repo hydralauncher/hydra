@@ -29,7 +29,10 @@ export enum Cracker {
   rune = "RUNE",
   onlineFix = "OnlineFix",
   goldberg = "Goldberg",
-  goldberg2 = "Goldberg2",
   userstats = "user_stats",
   rld = "RLD!",
+  empress = "EMPRESS",
+  skidrow = "SKIDROW",
+  creamAPI = "CreamAPI",
+  smartSteamEmu = "SmartSteamEmu",
 }

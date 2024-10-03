@@ -9,11 +9,28 @@ export const parseAchievementFile = async (
 ): Promise<UnlockedAchievement[]> => {
   if (!existsSync(filePath)) return [];
 
+  if (type === Cracker.empress) {
+    return [];
+  }
+
+  if (type === Cracker.skidrow) {
+    const parsed = await iniParse(filePath);
+    return processSkidrow(parsed);
+  }
+
+  if (type === Cracker.smartSteamEmu) {
+    return [];
+  }
+
+  if (type === Cracker.creamAPI) {
+    return [];
+  }
+
   if (type === Cracker.onlineFix) {
     const parsed = await iniParse(filePath);
     return processOnlineFix(parsed);
   }
-  if (type === Cracker.goldberg || type === Cracker.goldberg2) {
+  if (type === Cracker.goldberg) {
     const parsed = await jsonParse(filePath);
     return processGoldberg(parsed);
   }
@@ -81,6 +98,24 @@ const processOnlineFix = (unlockedAchievements: any): UnlockedAchievement[] => {
       parsedUnlockedAchievements.push({
         name: achievement,
         unlockTime: unlockedAchievement.timestamp,
+      });
+    }
+  }
+
+  return parsedUnlockedAchievements;
+};
+
+const processSkidrow = (unlockedAchievements: any): UnlockedAchievement[] => {
+  const parsedUnlockedAchievements: UnlockedAchievement[] = [];
+  const achievements = unlockedAchievements["Achievements"];
+
+  for (const achievement of Object.keys(achievements)) {
+    const unlockedAchievement = achievements[achievement].split("@");
+
+    if (unlockedAchievement[0] === "1") {
+      parsedUnlockedAchievements.push({
+        name: achievement,
+        unlockTime: unlockedAchievement[unlockedAchievement.length - 1],
       });
     }
   }

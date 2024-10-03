@@ -9,54 +9,120 @@ import { Game } from "@main/entity";
 const publicDir = path.join("C:", "Users", "Public", "Documents");
 const programData = path.join("C:", "ProgramData");
 const appData = app.getPath("appData");
+const documents = app.getPath("documents");
 
 const crackers = [
   Cracker.codex,
   Cracker.goldberg,
-  Cracker.goldberg2,
   Cracker.rune,
   Cracker.onlineFix,
   Cracker.userstats,
   Cracker.rld,
+  Cracker.creamAPI,
+  Cracker.skidrow,
+  Cracker.smartSteamEmu,
+  Cracker.empress,
 ];
 
-const getPathFromCracker = (cracker: Cracker) => {
-  let folderPath: string;
-  let fileLocation: string[];
-
-  if (cracker === Cracker.onlineFix) {
-    folderPath = path.join(publicDir, Cracker.onlineFix);
-    fileLocation = ["Stats", "Achievements.ini"];
-  } else if (cracker === Cracker.goldberg) {
-    folderPath = path.join(appData, "Goldberg SteamEmu Saves");
-    fileLocation = ["achievements.json"];
-  } else if (cracker === Cracker.goldberg2) {
-    folderPath = path.join(appData, "GSE Saves");
-    fileLocation = ["achievements.json"];
-  } else if (cracker === Cracker.rld) {
-    folderPath = path.join(programData, Cracker.rld);
-    fileLocation = ["achievements.ini"];
-  } else {
-    folderPath = path.join(publicDir, "Steam", cracker);
-    fileLocation = ["achievements.ini"];
+const getPathFromCracker = async (cracker: Cracker) => {
+  if (cracker === Cracker.smartSteamEmu) {
+    return [
+      {
+        folderPath: path.join(appData, "SmartSteamEmu"),
+        fileLocation: ["User", "Achievements"],
+      },
+    ];
   }
 
-  return { folderPath, fileLocation };
+  if (cracker === Cracker.onlineFix) {
+    return [
+      {
+        folderPath: path.join(publicDir, Cracker.onlineFix),
+        fileLocation: ["Stats", "Achievements.ini"],
+      },
+    ];
+  }
+
+  if (cracker === Cracker.goldberg) {
+    return [
+      {
+        folderPath: path.join(appData, "Goldberg SteamEmu Saves"),
+        fileLocation: ["achievements.json"],
+      },
+      {
+        folderPath: path.join(appData, "GSE Saves"),
+        fileLocation: ["achievements.json"],
+      },
+    ];
+  }
+
+  if (cracker === Cracker.rld) {
+    return [
+      {
+        folderPath: path.join(programData, "RLD!"),
+        fileLocation: ["achievements.ini"],
+      },
+    ];
+  }
+
+  if (cracker === Cracker.creamAPI) {
+    return [
+      {
+        folderPath: path.join(appData, "CreamAPI"),
+        fileLocation: ["achievements.ini"],
+      },
+    ];
+  }
+
+  if (cracker === Cracker.skidrow) {
+    return [
+      {
+        folderPath: path.join(documents, "SKIDROW"),
+        fileLocation: ["SteamEmu", "UserStats", "achiev.ini"],
+      },
+      {
+        folderPath: path.join(documents, "Player"),
+        fileLocation: ["SteamEmu", "UserStats", "achiev.ini"],
+      },
+    ];
+  }
+
+  if (cracker === Cracker.codex) {
+    return [
+      {
+        folderPath: path.join(publicDir, "Steam", "CODEX"),
+        fileLocation: ["achievements.ini"],
+      },
+      {
+        folderPath: path.join(appData, "Steam", "CODEX"),
+        fileLocation: ["achievements.ini"],
+      },
+    ];
+  }
+
+  return [
+    {
+      folderPath: path.join(publicDir, "Steam", cracker),
+      fileLocation: ["achievements.ini"],
+    },
+  ];
 };
 
-export const findAchievementFiles = (game: Game) => {
+export const findAchievementFiles = async (game: Game) => {
   const achievementFiles: AchievementFile[] = [];
 
   for (const cracker of crackers) {
-    const { folderPath, fileLocation } = getPathFromCracker(cracker);
+    for (const { folderPath, fileLocation } of await getPathFromCracker(
+      cracker
+    )) {
+      const filePath = path.join(folderPath, game.objectID, ...fileLocation);
 
-    const filePath = path.join(folderPath, game.objectID, ...fileLocation);
-
-    if (fs.existsSync(filePath)) {
-      achievementFiles.push({
-        type: cracker,
-        filePath: path.join(folderPath, game.objectID, ...fileLocation),
-      });
+      if (fs.existsSync(filePath)) {
+        achievementFiles.push({
+          type: cracker,
+          filePath,
+        });
+      }
     }
   }
 
@@ -83,31 +149,33 @@ export const findAchievementFileInExecutableDirectory = (
   };
 };
 
-export const findAllAchievementFiles = () => {
+export const findAllAchievementFiles = async () => {
   const gameAchievementFiles = new Map<string, AchievementFile[]>();
 
   for (const cracker of crackers) {
-    const { folderPath, fileLocation } = getPathFromCracker(cracker);
+    for (const { folderPath, fileLocation } of await getPathFromCracker(
+      cracker
+    )) {
+      if (!fs.existsSync(folderPath)) {
+        continue;
+      }
 
-    if (!fs.existsSync(folderPath)) {
-      return gameAchievementFiles;
-    }
+      const objectIds = fs.readdirSync(folderPath);
 
-    const objectIds = fs.readdirSync(folderPath);
+      for (const objectId of objectIds) {
+        const filePath = path.join(folderPath, objectId, ...fileLocation);
 
-    for (const objectId of objectIds) {
-      const filePath = path.join(folderPath, objectId, ...fileLocation);
+        if (!fs.existsSync(filePath)) continue;
 
-      if (!fs.existsSync(filePath)) continue;
+        const achivementFile = {
+          type: cracker,
+          filePath,
+        };
 
-      const achivementFile = {
-        type: cracker,
-        filePath,
-      };
-
-      gameAchievementFiles.get(objectId)
-        ? gameAchievementFiles.get(objectId)!.push(achivementFile)
-        : gameAchievementFiles.set(objectId, [achivementFile]);
+        gameAchievementFiles.get(objectId)
+          ? gameAchievementFiles.get(objectId)!.push(achivementFile)
+          : gameAchievementFiles.set(objectId, [achivementFile]);
+      }
     }
   }
 
