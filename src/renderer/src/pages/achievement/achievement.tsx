@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import achievementSound from "@renderer/assets/audio/achievement.wav";
 import { useTranslation } from "react-i18next";
-import { vars } from "@renderer/theme.css";
+import * as styles from "./achievement.css";
 
 interface AchievementInfo {
   displayName: string;
@@ -11,8 +11,16 @@ interface AchievementInfo {
 export function Achievement() {
   const { t } = useTranslation("achievement");
 
+  const [isClosing, setIsClosing] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
   const [achievements, setAchievements] = useState<AchievementInfo[]>([]);
+  const [currentAchievement, setCurrentAchievement] =
+    useState<AchievementInfo | null>(null);
+
   const achievementAnimation = useRef(-1);
+  const closingAnimation = useRef(-1);
+  const visibleAnimation = useRef(-1);
 
   const audio = useMemo(() => {
     const audio = new Audio(achievementSound);
@@ -24,11 +32,9 @@ export function Achievement() {
   useEffect(() => {
     const unsubscribe = window.electron.onAchievementUnlocked(
       (_object, _shop, achievements) => {
-        if (!achievements) return;
+        if (!achievements || !achievements.length) return;
 
-        if (achievements.length) {
-          setAchievements((ach) => ach.concat(achievements));
-        }
+        setAchievements((ach) => ach.concat(achievements));
 
         audio.play();
       }
@@ -41,12 +47,37 @@ export function Achievement() {
 
   const hasAchievementsPending = achievements.length > 0;
 
+  const startAnimateClosing = useCallback(() => {
+    cancelAnimationFrame(closingAnimation.current);
+    cancelAnimationFrame(visibleAnimation.current);
+    cancelAnimationFrame(achievementAnimation.current);
+
+    setIsClosing(true);
+
+    const zero = performance.now();
+    closingAnimation.current = requestAnimationFrame(
+      function animateClosing(time) {
+        if (time - zero <= 1000) {
+          closingAnimation.current = requestAnimationFrame(animateClosing);
+        } else {
+          setIsVisible(false);
+        }
+      }
+    );
+  }, []);
+
   useEffect(() => {
     if (hasAchievementsPending) {
+      setIsClosing(false);
+      setIsVisible(true);
+
       let zero = performance.now();
+      cancelAnimationFrame(closingAnimation.current);
+      cancelAnimationFrame(visibleAnimation.current);
+      cancelAnimationFrame(achievementAnimation.current);
       achievementAnimation.current = requestAnimationFrame(
         function animateLock(time) {
-          if (time - zero > 3000) {
+          if (time - zero > 2500) {
             zero = performance.now();
             setAchievements((ach) => ach.slice(1));
           }
@@ -54,30 +85,30 @@ export function Achievement() {
         }
       );
     } else {
-      cancelAnimationFrame(achievementAnimation.current);
+      startAnimateClosing();
     }
   }, [hasAchievementsPending]);
 
-  if (!hasAchievementsPending) return null;
+  useEffect(() => {
+    if (achievements.length) {
+      setCurrentAchievement(achievements[0]);
+    }
+  }, [achievements]);
+
+  if (!isVisible || !currentAchievement) return null;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "row",
-        gap: "8px",
-        alignItems: "center",
-        background: vars.color.background,
-      }}
-    >
-      <img
-        src={achievements[0].iconUrl}
-        alt={achievements[0].displayName}
-        style={{ width: 60, height: 60 }}
-      />
-      <div>
-        <p>{t("achievement_unlocked")}</p>
-        <p>{achievements[0].displayName}</p>
+    <div className={styles.container({ closing: isClosing })}>
+      <div className={styles.content}>
+        <img
+          src={currentAchievement.iconUrl}
+          alt={currentAchievement.displayName}
+          style={{ flex: 1, width: "60px" }}
+        />
+        <div>
+          <p>{t("achievement_unlocked")}</p>
+          <p>{currentAchievement.displayName}</p>
+        </div>
       </div>
     </div>
   );
