@@ -66,6 +66,9 @@ export const mergeAchievements = async (
 
   if (newAchievements.length && publishNotification) {
     const achievementsInfo = newAchievements
+      .sort((a, b) => {
+        return a.unlockTime - b.unlockTime;
+      })
       .map((achievement) => {
         return JSON.parse(localGameAchievement?.achievements || "[]").find(
           (steamAchievement) => {
