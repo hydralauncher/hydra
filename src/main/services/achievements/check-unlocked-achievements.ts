@@ -6,7 +6,7 @@ export const checkUnlockedAchievements = (
   unlockedAchievements: any
 ): UnlockedAchievement[] => {
   if (type === Cracker.onlineFix) return onlineFixMerge(unlockedAchievements);
-  if (type === Cracker.goldberg)
+  if (type === Cracker.goldberg || type === Cracker.goldberg2)
     return goldbergUnlockedAchievements(unlockedAchievements);
   if (type == Cracker.generic) return genericMerge(unlockedAchievements);
   return defaultMerge(unlockedAchievements);
