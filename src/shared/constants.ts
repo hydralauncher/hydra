@@ -29,5 +29,6 @@ export enum Cracker {
   rune = "RUNE",
   onlineFix = "OnlineFix",
   goldberg = "Goldberg",
+  goldberg2 = "Goldberg2",
   generic = "Generic",
 }
