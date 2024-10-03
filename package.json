@@ -44,6 +44,7 @@
     "@vanilla-extract/recipes": "^0.5.2",
     "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
+    "archiver-utils": "^5.0.2",
     "auto-launch": "^5.0.6",
     "axios": "^1.7.7",
     "better-sqlite3": "^11.3.0",

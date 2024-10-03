@@ -52,7 +52,9 @@ export const mergeAchievements = async (
   const newAchievements = achievements
     .filter((achievement) => {
       return !unlockedAchievements.some((localAchievement) => {
-        return localAchievement.name === achievement.name.toUpperCase();
+        return (
+          localAchievement.name.toUpperCase() === achievement.name.toUpperCase()
+        );
       });
     })
     .map((achievement) => {
@@ -64,10 +66,16 @@ export const mergeAchievements = async (
 
   if (newAchievements.length && publishNotification) {
     const achievementsInfo = newAchievements
+      .sort((a, b) => {
+        return a.unlockTime - b.unlockTime;
+      })
       .map((achievement) => {
         return JSON.parse(localGameAchievement?.achievements || "[]").find(
           (steamAchievement) => {
-            return achievement.name === steamAchievement.name;
+            return (
+              achievement.name.toUpperCase() ===
+              steamAchievement.name.toUpperCase()
+            );
           }
         );
       })
@@ -85,12 +93,6 @@ export const mergeAchievements = async (
       shop,
       achievementsInfo
     );
-
-    WindowManager.notificationWindow?.setBounds({ y: 50 });
-
-    setTimeout(() => {
-      WindowManager.notificationWindow?.setBounds({ y: -9999 });
-    }, 4000);
   }
 
   const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);

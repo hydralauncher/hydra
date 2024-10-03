@@ -9,6 +9,15 @@ import { Game } from "@main/entity";
 const publicDir = path.join("C:", "Users", "Public", "Documents");
 const appData = app.getPath("appData");
 
+const crackers = [
+  Cracker.codex,
+  Cracker.goldberg,
+  Cracker.goldberg2,
+  Cracker.rune,
+  Cracker.onlineFix,
+  Cracker.generic,
+];
+
 const addGame = (
   achievementFiles: Map<string, AchievementFile[]>,
   achievementPath: string,
@@ -39,14 +48,6 @@ const getObjectIdsInFolder = (path: string) => {
 };
 
 export const findSteamGameAchievementFiles = (game: Game) => {
-  const crackers = [
-    Cracker.codex,
-    Cracker.goldberg,
-    Cracker.rune,
-    Cracker.onlineFix,
-    Cracker.generic,
-  ];
-
   const achievementFiles: AchievementFile[] = [];
   for (const cracker of crackers) {
     let achievementPath: string;
@@ -58,9 +59,9 @@ export const findSteamGameAchievementFiles = (game: Game) => {
     } else if (cracker === Cracker.goldberg) {
       achievementPath = path.join(appData, "Goldberg SteamEmu Saves");
       fileLocation = ["achievements.json"];
-    } else if (cracker === Cracker.generic) {
-      achievementPath = path.join(publicDir, Cracker.generic);
-      fileLocation = ["user_stats.ini"];
+    } else if (cracker === Cracker.goldberg2) {
+      achievementPath = path.join(appData, "GSE Saves");
+      fileLocation = ["achievements.json"];
     } else {
       achievementPath = path.join(publicDir, "Steam", cracker);
       fileLocation = ["achievements.ini"];
@@ -102,13 +103,6 @@ export const findAchievementFileInExecutableDirectory = (
 export const findAllSteamGameAchievementFiles = () => {
   const gameAchievementFiles = new Map<string, AchievementFile[]>();
 
-  const crackers = [
-    Cracker.codex,
-    Cracker.goldberg,
-    Cracker.rune,
-    Cracker.onlineFix,
-  ];
-
   for (const cracker of crackers) {
     let achievementPath: string;
     let fileLocation: string[];
@@ -116,6 +110,9 @@ export const findAllSteamGameAchievementFiles = () => {
     if (cracker === Cracker.onlineFix) {
       achievementPath = path.join(publicDir, Cracker.onlineFix);
       fileLocation = ["Stats", "Achievements.ini"];
+    } else if (cracker === Cracker.goldberg2) {
+      achievementPath = path.join(appData, "GSE Saves");
+      fileLocation = ["achievements.json"];
     } else if (cracker === Cracker.goldberg) {
       achievementPath = path.join(appData, "Goldberg SteamEmu Saves");
       fileLocation = ["achievements.json"];
