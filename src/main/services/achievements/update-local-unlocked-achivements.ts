@@ -9,7 +9,7 @@ import type { UnlockedAchievement } from "@types";
 import { getGameAchievementData } from "./get-game-achievement-data";
 
 export const updateAllLocalUnlockedAchievements = async () => {
-  const gameAchievementFilesMap = findAllAchievementFiles();
+  const gameAchievementFilesMap = await findAllAchievementFiles();
 
   for (const objectId of gameAchievementFilesMap.keys()) {
     const gameAchievementFiles = gameAchievementFilesMap.get(objectId)!;
@@ -69,7 +69,7 @@ export const updateLocalUnlockedAchivements = async (objectId: string) => {
 
   if (!game) return;
 
-  const gameAchievementFiles = findAchievementFiles(game);
+  const gameAchievementFiles = await findAchievementFiles(game);
 
   console.log("Achievements files for", game.title, gameAchievementFiles);
 

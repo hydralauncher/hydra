@@ -55,7 +55,7 @@ const compareFile = async (game: Game, file: AchievementFile) => {
 };
 
 export const checkAchievementFileChange = async (games: Game[]) => {
-  const achievementFiles = findAllAchievementFiles();
+  const achievementFiles = await findAllAchievementFiles();
 
   for (const game of games) {
     const gameAchievementFiles = achievementFiles.get(game.objectID) || [];
