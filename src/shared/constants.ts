@@ -30,5 +30,6 @@ export enum Cracker {
   onlineFix = "OnlineFix",
   goldberg = "Goldberg",
   goldberg2 = "Goldberg2",
-  generic = "Generic",
+  userstats = "user_stats",
+  rld = "RLD!",
 }
