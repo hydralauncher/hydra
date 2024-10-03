@@ -165,7 +165,6 @@ export class WindowManager {
     });
 
     this.notificationWindow.setIgnoreMouseEvents(true);
-    this.notificationWindow.webContents.openDevTools();
     this.notificationWindow.setVisibleOnAllWorkspaces(true, {
       visibleOnFullScreen: true,
     });
