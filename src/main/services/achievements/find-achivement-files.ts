@@ -4,12 +4,14 @@ import { app } from "electron";
 import type { AchievementFile } from "@types";
 import { Cracker } from "@shared";
 import { Game } from "@main/entity";
+import { achievementsLogger } from "../logger";
 
 //TODO: change to a automatized method
-const publicDir = path.join("C:", "Users", "Public", "Documents");
+const publicDocuments = path.join("C:", "Users", "Public", "Documents");
 const programData = path.join("C:", "ProgramData");
 const appData = app.getPath("appData");
 const documents = app.getPath("documents");
+const localAppData = path.join(appData, "..", "Local");
 
 const crackers = [
   Cracker.codex,
@@ -25,11 +27,24 @@ const crackers = [
 ];
 
 const getPathFromCracker = async (cracker: Cracker) => {
-  if (cracker === Cracker.smartSteamEmu) {
+  if (cracker === Cracker.codex) {
     return [
       {
-        folderPath: path.join(appData, "SmartSteamEmu"),
-        fileLocation: ["User", "Achievements"],
+        folderPath: path.join(publicDocuments, "Steam", "CODEX"),
+        fileLocation: ["achievements.ini"],
+      },
+      {
+        folderPath: path.join(appData, "Steam", "CODEX"),
+        fileLocation: ["achievements.ini"],
+      },
+    ];
+  }
+
+  if (cracker === Cracker.rune) {
+    return [
+      {
+        folderPath: path.join(publicDocuments, "Steam", "RUNE"),
+        fileLocation: ["achievements.ini"],
       },
     ];
   }
@@ -37,7 +52,7 @@ const getPathFromCracker = async (cracker: Cracker) => {
   if (cracker === Cracker.onlineFix) {
     return [
       {
-        folderPath: path.join(publicDir, Cracker.onlineFix),
+        folderPath: path.join(publicDocuments, Cracker.onlineFix),
         fileLocation: ["Stats", "Achievements.ini"],
       },
     ];
@@ -56,20 +71,32 @@ const getPathFromCracker = async (cracker: Cracker) => {
     ];
   }
 
+  if (cracker === Cracker.userstats) {
+    return [];
+  }
+
   if (cracker === Cracker.rld) {
     return [
       {
         folderPath: path.join(programData, "RLD!"),
         fileLocation: ["achievements.ini"],
       },
+      {
+        folderPath: path.join(programData, "Steam", "Player"),
+        fileLocation: ["achievements.ini"],
+      },
     ];
   }
 
-  if (cracker === Cracker.creamAPI) {
+  if (cracker === Cracker.empress) {
     return [
       {
-        folderPath: path.join(appData, "CreamAPI"),
-        fileLocation: ["achievements.ini"],
+        folderPath: path.join(appData, "EMPRESS", "remote"),
+        fileLocation: ["achievements.json"],
+      },
+      {
+        folderPath: path.join(publicDocuments, "EMPRESS", "remote"),
+        fileLocation: ["achievements.json"],
       },
     ];
   }
@@ -84,28 +111,33 @@ const getPathFromCracker = async (cracker: Cracker) => {
         folderPath: path.join(documents, "Player"),
         fileLocation: ["SteamEmu", "UserStats", "achiev.ini"],
       },
+      {
+        folderPath: path.join(localAppData, "SKIDROW"),
+        fileLocation: ["SteamEmu", "UserStats", "achiev.ini"],
+      },
     ];
   }
 
-  if (cracker === Cracker.codex) {
+  if (cracker === Cracker.creamAPI) {
     return [
       {
-        folderPath: path.join(publicDir, "Steam", "CODEX"),
-        fileLocation: ["achievements.ini"],
-      },
-      {
-        folderPath: path.join(appData, "Steam", "CODEX"),
-        fileLocation: ["achievements.ini"],
+        folderPath: path.join(appData, "CreamAPI"),
+        fileLocation: ["stats", "CreamAPI.Achievements.cfg"],
       },
     ];
   }
 
-  return [
-    {
-      folderPath: path.join(publicDir, "Steam", cracker),
-      fileLocation: ["achievements.ini"],
-    },
-  ];
+  if (cracker === Cracker.smartSteamEmu) {
+    return [
+      {
+        folderPath: path.join(appData, "SmartSteamEmu"),
+        fileLocation: ["User", "Achievements"],
+      },
+    ];
+  }
+
+  achievementsLogger.error(`Cracker ${cracker} not implemented`);
+  throw new Error(`Cracker ${cracker} not implemented`);
 };
 
 export const findAchievementFiles = async (game: Game) => {

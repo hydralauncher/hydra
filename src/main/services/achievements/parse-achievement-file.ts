@@ -2,6 +2,7 @@ import { Cracker } from "@shared";
 import { UnlockedAchievement } from "@types";
 import { existsSync, createReadStream, readFileSync } from "node:fs";
 import readline from "node:readline";
+import { achievementsLogger } from "../logger";
 
 export const parseAchievementFile = async (
   filePath: string,
@@ -9,27 +10,21 @@ export const parseAchievementFile = async (
 ): Promise<UnlockedAchievement[]> => {
   if (!existsSync(filePath)) return [];
 
-  if (type === Cracker.empress) {
-    return [];
-  }
-
-  if (type === Cracker.skidrow) {
+  if (type == Cracker.codex) {
     const parsed = await iniParse(filePath);
-    return processSkidrow(parsed);
+    return processDefault(parsed);
   }
 
-  if (type === Cracker.smartSteamEmu) {
-    return [];
-  }
-
-  if (type === Cracker.creamAPI) {
-    return [];
+  if (type == Cracker.rune) {
+    const parsed = await iniParse(filePath);
+    return processDefault(parsed);
   }
 
   if (type === Cracker.onlineFix) {
     const parsed = await iniParse(filePath);
     return processOnlineFix(parsed);
   }
+
   if (type === Cracker.goldberg) {
     const parsed = await jsonParse(filePath);
     return processGoldberg(parsed);
@@ -45,8 +40,13 @@ export const parseAchievementFile = async (
     return processRld(parsed);
   }
 
-  const parsed = await iniParse(filePath);
-  return processDefault(parsed);
+  if (type === Cracker.skidrow) {
+    const parsed = await iniParse(filePath);
+    return processSkidrow(parsed);
+  }
+
+  achievementsLogger.log(`${type} achievements found on ${filePath}`);
+  return [];
 };
 
 const iniParse = async (filePath: string) => {
