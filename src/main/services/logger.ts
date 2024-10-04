@@ -29,3 +29,4 @@ log.initialize();
 
 export const pythonInstanceLogger = log.scope("python-instance");
 export const logger = log.scope("main");
+export const achievementsLogger = log.scope("achievements");
