@@ -83,7 +83,7 @@ const getPathFromCracker = async (cracker: Cracker) => {
       },
       {
         folderPath: path.join(programData, "Steam", "Player"),
-        fileLocation: ["achievements.ini"],
+        fileLocation: ["stats", "achievements.ini"],
       },
     ];
   }
