@@ -9,12 +9,11 @@ const getGameStats = async (
   objectId: string,
   shop: GameShop
 ) => {
-  const response = await HydraApi.get<GameStats>(
+  return HydraApi.get<GameStats>(
     `/games/stats`,
     { objectId, shop },
     { needsAuth: false }
   );
-  return response;
 };
 
 registerEvent("getGameStats", getGameStats);
