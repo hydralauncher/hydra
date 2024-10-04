@@ -8,6 +8,8 @@ interface AchievementInfo {
   iconUrl: string;
 }
 
+const NOTIFICATION_TIMEOUT = 4000;
+
 export function Achievement() {
   const { t } = useTranslation("achievement");
 
@@ -77,7 +79,7 @@ export function Achievement() {
       cancelAnimationFrame(achievementAnimation.current);
       achievementAnimation.current = requestAnimationFrame(
         function animateLock(time) {
-          if (time - zero > 2500) {
+          if (time - zero > NOTIFICATION_TIMEOUT) {
             zero = performance.now();
             setAchievements((ach) => ach.slice(1));
           }
