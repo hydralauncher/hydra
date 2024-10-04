@@ -7,6 +7,7 @@ import { parseAchievementFile } from "./parse-achievement-file";
 import { mergeAchievements } from "./merge-achievements";
 import type { UnlockedAchievement } from "@types";
 import { getGameAchievementData } from "./get-game-achievement-data";
+import { achievementsLogger } from "../logger";
 
 export const updateAllLocalUnlockedAchievements = async () => {
   const gameAchievementFilesMap = await findAllAchievementFiles();
@@ -47,10 +48,16 @@ export const updateAllLocalUnlockedAchievements = async () => {
         achievementFile.filePath,
         achievementFile.type
       );
-      console.log("Parsed for", game.title, parsedAchievements);
+
       if (parsedAchievements.length) {
         unlockedAchievements.push(...parsedAchievements);
       }
+
+      achievementsLogger.log(
+        "Achievement file for",
+        game.title,
+        achievementFile.filePath
+      );
     }
 
     mergeAchievements(objectId, "steam", unlockedAchievements, false);

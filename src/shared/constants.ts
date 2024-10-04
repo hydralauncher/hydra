@@ -35,4 +35,5 @@ export enum Cracker {
   skidrow = "SKIDROW",
   creamAPI = "CreamAPI",
   smartSteamEmu = "SmartSteamEmu",
+  _3dm = "3dm",
 }
