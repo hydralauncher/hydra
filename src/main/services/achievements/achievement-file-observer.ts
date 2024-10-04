@@ -62,9 +62,7 @@ export const checkAchievementFileChange = async (games: Game[]) => {
     const achievementFileInsideDirectory =
       findAchievementFileInExecutableDirectory(game);
 
-    if (achievementFileInsideDirectory) {
-      gameAchievementFiles.push(achievementFileInsideDirectory);
-    }
+    gameAchievementFiles.push(...achievementFileInsideDirectory);
 
     if (!gameAchievementFiles.length) continue;
 

@@ -45,6 +45,11 @@ export const parseAchievementFile = async (
     return processSkidrow(parsed);
   }
 
+  if (type === Cracker._3dm) {
+    const parsed = await iniParse(filePath);
+    return process3DM(parsed);
+  }
+
   achievementsLogger.log(`${type} achievements found on ${filePath}`);
   return [];
 };
@@ -136,6 +141,28 @@ const processGoldberg = (unlockedAchievements: any): UnlockedAchievement[] => {
       });
     }
   }
+  return newUnlockedAchievements;
+};
+
+const process3DM = (unlockedAchievements: any): UnlockedAchievement[] => {
+  const newUnlockedAchievements: UnlockedAchievement[] = [];
+
+  const achievements = unlockedAchievements["State"];
+  const times = unlockedAchievements["Time"];
+
+  for (const achievement of Object.keys(achievements)) {
+    if (achievements[achievement] == "0101") {
+      const time = times[achievement];
+
+      newUnlockedAchievements.push({
+        name: achievement,
+        unlockTime: new DataView(
+          new Uint8Array(Buffer.from(time.toString(), "hex")).buffer
+        ).getUint32(0, true),
+      });
+    }
+  }
+
   return newUnlockedAchievements;
 };
 
