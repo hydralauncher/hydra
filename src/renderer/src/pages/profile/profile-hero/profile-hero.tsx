@@ -274,15 +274,7 @@ export function ProfileHero() {
     if (filePaths && filePaths.length > 0) {
       const path = filePaths[0];
 
-      const { imagePath } = await window.electron
-        .processProfileImage(path)
-        .catch(() => {
-          showErrorToast(t("image_process_failure"));
-          return { imagePath: null };
-        });
-
-      console.log("imagePath", imagePath);
-      setHero(imagePath);
+      setHero(path);
 
       // onChange(imagePath);
     }
@@ -292,7 +284,7 @@ export function ProfileHero() {
     if (hero) return `local:${hero}`;
     // if (userDetails?.profileImageUrl) return userDetails.profileImageUrl;
 
-    return null;
+    return "";
   };
 
   // const imageUrl = getImageUrl();
