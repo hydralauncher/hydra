@@ -1,5 +1,6 @@
 import type {
   Game,
+  GameAchievement,
   GameRepack,
   GameShop,
   GameStats,
@@ -19,6 +20,7 @@ export interface GameDetailsContext {
   showRepacksModal: boolean;
   showGameOptionsModal: boolean;
   stats: GameStats | null;
+  achievements: GameAchievement[];
   hasNSFWContentBlocked: boolean;
   setGameColor: React.Dispatch<React.SetStateAction<string>>;
   selectGameExecutable: () => Promise<string | null>;

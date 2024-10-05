@@ -1,5 +1,6 @@
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
+import { UserNotLoggedInError } from "@shared";
 import { UserBlocks } from "@types";
 
 export const getBlockedUsers = async (
@@ -7,7 +8,12 @@ export const getBlockedUsers = async (
   take: number,
   skip: number
 ): Promise<UserBlocks> => {
-  return HydraApi.get(`/profile/blocks`, { take, skip });
+  return HydraApi.get(`/profile/blocks`, { take, skip }).catch((err) => {
+    if (err instanceof UserNotLoggedInError) {
+      return { blocks: [] };
+    }
+    throw err;
+  });
 };
 
 registerEvent("getBlockedUsers", getBlockedUsers);

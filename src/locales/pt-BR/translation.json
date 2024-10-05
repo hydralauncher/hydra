@@ -331,5 +331,8 @@
     "report_reason_other": "Outro",
     "profile_reported": "Perfil reportado",
     "your_friend_code": "Seu código de amigo:"
+  },
+  "achievement": {
+    "achievement_unlocked": "Conquista desbloqueada"
   }
 }

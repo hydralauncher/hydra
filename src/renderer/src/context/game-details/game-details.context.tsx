@@ -12,6 +12,7 @@ import { useAppDispatch, useAppSelector, useDownload } from "@renderer/hooks";
 
 import type {
   Game,
+  GameAchievement,
   GameRepack,
   GameShop,
   GameStats,
@@ -36,6 +37,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   showRepacksModal: false,
   showGameOptionsModal: false,
   stats: null,
+  achievements: [],
   hasNSFWContentBlocked: false,
   setGameColor: () => {},
   selectGameExecutable: async () => null,
@@ -62,6 +64,7 @@ export function GameDetailsContextProvider({
   shop,
 }: GameDetailsContextProps) {
   const [shopDetails, setShopDetails] = useState<ShopDetails | null>(null);
+  const [achievements, setAchievements] = useState<GameAchievement[]>([]);
   const [game, setGame] = useState<Game | null>(null);
   const [hasNSFWContentBlocked, setHasNSFWContentBlocked] = useState(false);
 
@@ -133,6 +136,15 @@ export function GameDetailsContextProvider({
       setStats(result);
     });
 
+    window.electron
+      .getGameAchievements(objectId!, shop as GameShop)
+      .then((achievements) => {
+        setAchievements(achievements);
+      })
+      .catch(() => {
+        // TODO: handle user not logged in error
+      });
+
     updateGame();
   }, [updateGame, dispatch, gameTitle, objectId, shop, i18n.language]);
 
@@ -141,6 +153,7 @@ export function GameDetailsContextProvider({
     setGame(null);
     setIsLoading(true);
     setisGameRunning(false);
+    setAchievements([]);
     dispatch(setHeaderTitle(gameTitle));
   }, [objectId, gameTitle, dispatch]);
 
@@ -160,6 +173,23 @@ export function GameDetailsContextProvider({
       unsubscribe();
     };
   }, [game?.id, isGameRunning, updateGame]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onAchievementUnlocked(
+      (objectId, shop) => {
+        if (objectId !== objectId || shop !== shop) return;
+
+        window.electron
+          .getGameAchievements(objectId!, shop as GameShop)
+          .then(setAchievements)
+          .catch(() => {});
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [objectId, shop]);
 
   const getDownloadsPath = async () => {
     if (userPreferences?.downloadsPath) return userPreferences.downloadsPath;
@@ -204,6 +234,7 @@ export function GameDetailsContextProvider({
         showGameOptionsModal,
         showRepacksModal,
         stats,
+        achievements,
         hasNSFWContentBlocked,
         setHasNSFWContentBlocked,
         setGameColor,
