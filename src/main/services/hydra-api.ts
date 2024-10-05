@@ -227,9 +227,9 @@ export class HydraApi {
     throw err;
   };
 
-  static async get<T = any>(
+  static async get<T = unknown>(
     url: string,
-    params?: any,
+    params?: Record<string, unknown>,
     options?: HydraApiOptions
   ) {
     if (!options || options.needsAuth) {
@@ -243,9 +243,9 @@ export class HydraApi {
       .catch(this.handleUnauthorizedError);
   }
 
-  static async post<T = any>(
+  static async post<T = unknown>(
     url: string,
-    data?: any,
+    data?: Record<string, unknown>,
     options?: HydraApiOptions
   ) {
     if (!options || options.needsAuth) {
@@ -259,9 +259,9 @@ export class HydraApi {
       .catch(this.handleUnauthorizedError);
   }
 
-  static async put<T = any>(
+  static async put<T = unknown>(
     url: string,
-    data?: any,
+    data?: Record<string, unknown>,
     options?: HydraApiOptions
   ) {
     if (!options || options.needsAuth) {
@@ -275,9 +275,9 @@ export class HydraApi {
       .catch(this.handleUnauthorizedError);
   }
 
-  static async patch<T = any>(
+  static async patch<T = unknown>(
     url: string,
-    data?: any,
+    data?: Record<string, unknown>,
     options?: HydraApiOptions
   ) {
     if (!options || options.needsAuth) {
@@ -291,7 +291,7 @@ export class HydraApi {
       .catch(this.handleUnauthorizedError);
   }
 
-  static async delete<T = any>(url: string, options?: HydraApiOptions) {
+  static async delete<T = unknown>(url: string, options?: HydraApiOptions) {
     if (!options || options.needsAuth) {
       if (!this.isLoggedIn()) throw new UserNotLoggedInError();
       await this.revalidateAccessTokenIfExpired();
