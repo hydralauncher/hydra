@@ -36,11 +36,6 @@ const replaceLudusaviBackupWithCurrentUser = (
   // TODO: Only works on Windows
   const usersDirPath = path.join(gameBackupPath, "drive-C", "Users");
 
-  fs.rmSync(gameBackupPath, {
-    recursive: true,
-    force: true,
-  });
-
   fs.renameSync(
     path.join(usersDirPath, path.basename(backupHomeDir)),
     path.join(usersDirPath, path.basename(currentHomeDir))
@@ -77,6 +72,13 @@ const downloadGameArtifact = async (
 
   const zipLocation = path.join(app.getPath("userData"), objectKey);
   const backupPath = path.join(backupsPath, `${shop}-${objectId}`);
+
+  if (fs.existsSync(backupPath)) {
+    fs.rmSync(backupPath, {
+      recursive: true,
+      force: true,
+    });
+  }
 
   const response = await axios.get(downloadUrl, {
     responseType: "stream",
