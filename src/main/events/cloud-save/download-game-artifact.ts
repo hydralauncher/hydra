@@ -36,6 +36,11 @@ const replaceLudusaviBackupWithCurrentUser = (
   // TODO: Only works on Windows
   const usersDirPath = path.join(gameBackupPath, "drive-C", "Users");
 
+  fs.rmSync(gameBackupPath, {
+    recursive: true,
+    force: true,
+  });
+
   fs.renameSync(
     path.join(usersDirPath, path.basename(backupHomeDir)),
     path.join(usersDirPath, path.basename(currentHomeDir))
@@ -54,8 +59,6 @@ const replaceLudusaviBackupWithCurrentUser = (
       files,
     };
   });
-
-  console.log(backups);
 
   fs.writeFileSync(mappingYamlPath, YAML.stringify({ ...manifest, backups }));
 };
