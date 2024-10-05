@@ -8,6 +8,8 @@ import path from "node:path";
 import { backupsPath } from "@main/constants";
 import type { GameShop } from "@types";
 
+import os from "node:os";
+
 import YAML from "yaml";
 
 export interface LudusaviBackup {
@@ -20,13 +22,26 @@ export interface LudusaviBackup {
 }
 
 const replaceLudusaviBackupWithCurrentUser = (
-  mappingPath: string,
+  gameBackupPath: string,
   backupHomeDir: string
 ) => {
-  const data = fs.readFileSync(mappingPath, "utf8");
-  const manifest = YAML.parse(data);
+  const mappingYamlPath = path.join(gameBackupPath, "mapping.yaml");
+
+  const data = fs.readFileSync(mappingYamlPath, "utf8");
+  const manifest = YAML.parse(data) as {
+    backups: LudusaviBackup[];
+    drives: Record<string, string>;
+  };
 
   const currentHomeDir = app.getPath("home");
+
+  // TODO: Only works on Windows
+  const usersDirPath = path.join(gameBackupPath, "drive-C", "Users");
+
+  fs.renameSync(
+    path.join(usersDirPath, path.basename(backupHomeDir)),
+    path.join(usersDirPath, os.userInfo().username)
+  );
 
   const backups = manifest.backups.map((backup: LudusaviBackup) => {
     const files = Object.entries(backup.files).reduce((prev, [key, value]) => {
@@ -42,7 +57,9 @@ const replaceLudusaviBackupWithCurrentUser = (
     };
   });
 
-  fs.writeFileSync(mappingPath, YAML.stringify({ ...manifest, backups }));
+  console.log(backups);
+
+  fs.writeFileSync(mappingYamlPath, YAML.stringify({ ...manifest, backups }));
 };
 
 const downloadGameArtifact = async (
@@ -89,14 +106,10 @@ const downloadGameArtifact = async (
         const [game] = await Ludusavi.findGames(shop, objectId);
         if (!game) throw new Error("Game not found in Ludusavi manifest");
 
-        const mappingPath = path.join(
-          backupsPath,
-          `${shop}-${objectId}`,
-          game,
-          "mapping.yaml"
+        replaceLudusaviBackupWithCurrentUser(
+          path.join(backupPath, game),
+          path.normalize(homeDir).replace(/\\/g, "/")
         );
-
-        replaceLudusaviBackupWithCurrentUser(mappingPath, homeDir);
 
         Ludusavi.restoreBackup(backupPath).then(() => {
           WindowManager.mainWindow?.webContents.send(
