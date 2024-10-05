@@ -12,7 +12,9 @@ const getGameArtifacts = async (
     shop,
   });
 
-  return HydraApi.get<GameArtifact[]>(`/games/artifacts?${params.toString()}`);
+  return HydraApi.get<GameArtifact[]>(
+    `/profile/games/artifacts?${params.toString()}`
+  );
 };
 
 registerEvent("getGameArtifacts", getGameArtifacts);

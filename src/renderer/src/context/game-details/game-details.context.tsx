@@ -31,7 +31,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   gameTitle: "",
   isGameRunning: false,
   isLoading: false,
-  objectID: undefined,
+  objectId: undefined,
   gameColor: "",
   showRepacksModal: false,
   showGameOptionsModal: false,
@@ -97,7 +97,7 @@ export function GameDetailsContextProvider({
 
   const updateGame = useCallback(async () => {
     return window.electron
-      .getGameByObjectID(objectId!)
+      .getGameByObjectId(objectId!)
       .then((result) => setGame(result));
   }, [setGame, objectId]);
 
@@ -199,7 +199,7 @@ export function GameDetailsContextProvider({
         gameTitle,
         isGameRunning,
         isLoading,
-        objectID: objectId,
+        objectId,
         gameColor,
         showGameOptionsModal,
         showRepacksModal,

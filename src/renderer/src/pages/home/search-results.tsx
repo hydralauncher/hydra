@@ -115,7 +115,7 @@ export function SearchResults() {
             <>
               {searchResults.map((game) => (
                 <GameCard
-                  key={game.objectID}
+                  key={game.objectId}
                   game={game}
                   onClick={() => handleGameClick(game)}
                 />

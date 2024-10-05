@@ -26,7 +26,7 @@ export function GameDetailsContent() {
   const { t } = useTranslation("game_details");
 
   const {
-    objectID,
+    objectId,
     shopDetails,
     game,
     gameColor,
@@ -42,7 +42,7 @@ export function GameDetailsContent() {
   const [backdropOpactiy, setBackdropOpacity] = useState(1);
 
   const handleHeroLoad = async () => {
-    const output = await average(steamUrlBuilder.libraryHero(objectID!), {
+    const output = await average(steamUrlBuilder.libraryHero(objectId!), {
       amount: 1,
       format: "hex",
     });
@@ -56,7 +56,7 @@ export function GameDetailsContent() {
 
   useEffect(() => {
     setBackdropOpacity(1);
-  }, [objectID]);
+  }, [objectId]);
 
   const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
     const heroHeight = heroRef.current?.clientHeight ?? styles.HERO_HEIGHT;
@@ -90,7 +90,7 @@ export function GameDetailsContent() {
   return (
     <div className={styles.wrapper({ blurredContent: hasNSFWContentBlocked })}>
       <img
-        src={steamUrlBuilder.libraryHero(objectID!)}
+        src={steamUrlBuilder.libraryHero(objectId!)}
         className={styles.heroImage}
         alt={game?.title}
         onLoad={handleHeroLoad}
@@ -116,7 +116,7 @@ export function GameDetailsContent() {
           >
             <div className={styles.heroContent}>
               <img
-                src={steamUrlBuilder.logo(objectID!)}
+                src={steamUrlBuilder.logo(objectId!)}
                 className={styles.gameLogo}
                 alt={game?.title}
               />

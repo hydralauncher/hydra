@@ -93,6 +93,7 @@ export const downloadRightContent = style({
   padding: `${SPACING_UNIT * 2}px`,
   flex: "1",
   gap: `${SPACING_UNIT}px`,
+  background: "linear-gradient(90deg, transparent 20%, rgb(0 0 0 / 20%) 100%)",
 });
 
 export const downloadActions = style({

@@ -1,4 +1,4 @@
-import { SPACING_UNIT } from "@renderer/theme.css";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 
 import * as styles from "./profile-hero.css";
 import { useCallback, useContext, useMemo, useState } from "react";
@@ -10,6 +10,7 @@ import {
   PersonAddIcon,
   PersonIcon,
   SignOutIcon,
+  UploadIcon,
   XCircleFillIcon,
 } from "@primer/octicons-react";
 import { buildGameDetailsPath } from "@renderer/helpers";
@@ -36,8 +37,7 @@ export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [isPerformingAction, setIsPerformingAction] = useState(false);
 
-  const { isMe, heroBackground, getUserProfile, userProfile } =
-    useContext(userProfileContext);
+  const { isMe, getUserProfile, userProfile } = useContext(userProfileContext);
   const {
     signOut,
     updateFriendRequestState,
@@ -47,6 +47,8 @@ export function ProfileHero() {
   } = useUserDetails();
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
+
+  const [hero, setHero] = useState("");
 
   const { t } = useTranslation("user_profile");
   const { formatDistance } = useDate();
@@ -124,6 +126,7 @@ export function ProfileHero() {
             theme="outline"
             onClick={() => setShowEditProfileModal(true)}
             disabled={isPerformingAction}
+            style={{ borderColor: vars.color.body }}
           >
             <PencilIcon />
             {t("edit_profile")}
@@ -148,6 +151,7 @@ export function ProfileHero() {
             theme="outline"
             onClick={() => handleFriendAction(userProfile.id, "SEND")}
             disabled={isPerformingAction}
+            style={{ borderColor: vars.color.body }}
           >
             <PersonAddIcon />
             {t("add_friend")}
@@ -198,6 +202,7 @@ export function ProfileHero() {
             handleFriendAction(userProfile.relation!.BId, "CANCEL")
           }
           disabled={isPerformingAction}
+          style={{ borderColor: vars.color.body }}
         >
           <XCircleFillIcon /> {t("cancel_request")}
         </Button>
@@ -212,11 +217,12 @@ export function ProfileHero() {
             handleFriendAction(userProfile.relation!.AId, "ACCEPTED")
           }
           disabled={isPerformingAction}
+          style={{ borderColor: vars.color.body }}
         >
           <CheckCircleFillIcon /> {t("accept_request")}
         </Button>
         <Button
-          theme="outline"
+          theme="danger"
           onClick={() =>
             handleFriendAction(userProfile.relation!.AId, "REFUSED")
           }
@@ -246,7 +252,6 @@ export function ProfileHero() {
       if (gameRunning)
         return {
           ...gameRunning,
-          objectId: gameRunning.objectID,
           sessionDurationInSeconds: gameRunning.sessionDurationInMillis / 1000,
         };
 
@@ -254,6 +259,43 @@ export function ProfileHero() {
     }
     return userProfile?.currentGame;
   }, [isMe, userProfile, gameRunning]);
+
+  const handleChangeCoverClick = async () => {
+    const { filePaths } = await window.electron.showOpenDialog({
+      properties: ["openFile"],
+      filters: [
+        {
+          name: "Image",
+          extensions: ["jpg", "jpeg", "png", "gif", "webp"],
+        },
+      ],
+    });
+
+    if (filePaths && filePaths.length > 0) {
+      const path = filePaths[0];
+
+      const { imagePath } = await window.electron
+        .processProfileImage(path)
+        .catch(() => {
+          showErrorToast(t("image_process_failure"));
+          return { imagePath: null };
+        });
+
+      console.log("imagePath", imagePath);
+      setHero(imagePath);
+
+      // onChange(imagePath);
+    }
+  };
+
+  const getImageUrl = () => {
+    if (hero) return `local:${hero}`;
+    // if (userDetails?.profileImageUrl) return userDetails.profileImageUrl;
+
+    return null;
+  };
+
+  // const imageUrl = getImageUrl();
 
   return (
     <>
@@ -270,12 +312,9 @@ export function ProfileHero() {
         onClose={() => setShowEditProfileModal(false)}
       />
 
-      <section
-        className={styles.profileContentBox}
-        // style={{ background: heroBackground }}
-      >
+      <section className={styles.profileContentBox}>
         <img
-          src="https://wallpapers.com/images/featured/cyberpunk-anime-dfyw8eb7bqkw278u.jpg"
+          src={getImageUrl()}
           alt=""
           style={{
             position: "absolute",
@@ -286,7 +325,8 @@ export function ProfileHero() {
         />
         <div
           style={{
-            background: heroBackground,
+            background:
+              "linear-gradient(135deg, rgb(0 0 0 / 70%), rgb(0 0 0 / 60%))",
             width: "100%",
             height: "100%",
             zIndex: 1,
@@ -324,7 +364,7 @@ export function ProfileHero() {
                     <Link
                       to={buildGameDetailsPath({
                         ...currentGame,
-                        objectID: currentGame.objectId,
+                        objectId: currentGame.objectID,
                       })}
                     >
                       {currentGame.title}
@@ -345,12 +385,30 @@ export function ProfileHero() {
                 </div>
               )}
             </div>
+
+            <Button
+              theme="outline"
+              style={{
+                position: "absolute",
+                top: 16,
+                right: 16,
+                borderColor: vars.color.body,
+              }}
+              onClick={handleChangeCoverClick}
+            >
+              <UploadIcon />
+              Upload cover
+            </Button>
           </div>
         </div>
 
         <div
           className={styles.heroPanel}
-          style={{ background: heroBackground }}
+          // style={{ background: heroBackground }}
+          style={{
+            background:
+              "linear-gradient(135deg, rgb(0 0 0 / 70%), rgb(0 0 0 / 60%))",
+          }}
         >
           <div
             style={{

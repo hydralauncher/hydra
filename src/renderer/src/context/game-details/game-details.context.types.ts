@@ -14,7 +14,7 @@ export interface GameDetailsContext {
   gameTitle: string;
   isGameRunning: boolean;
   isLoading: boolean;
-  objectID: string | undefined;
+  objectId: string | undefined;
   gameColor: string;
   showRepacksModal: boolean;
   showGameOptionsModal: boolean;

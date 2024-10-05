@@ -43,7 +43,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     setShowCloudSyncFilesModal,
   } = useContext(cloudSyncContext);
 
-  const { objectID, shop, gameTitle } = useContext(gameDetailsContext);
+  const { objectId, shop, gameTitle } = useContext(gameDetailsContext);
 
   const { showSuccessToast, showErrorToast } = useToast();
 
@@ -63,13 +63,13 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
 
   useEffect(() => {
     gameBackupsTable
-      .where({ shop: shop, objectId: objectID })
+      .where({ shop: shop, objectId })
       .last()
       .then((lastBackup) => setLastBackup(lastBackup || null));
 
     const removeBackupDownloadProgressListener =
       window.electron.onBackupDownloadProgress(
-        objectID!,
+        objectId!,
         shop,
         (progressEvent) => {
           setBackupDownloadProgress(progressEvent);
@@ -79,7 +79,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     return () => {
       removeBackupDownloadProgressListener();
     };
-  }, [backupPreview, objectID, shop]);
+  }, [backupPreview, objectId, shop]);
 
   const handleBackupInstallClick = async (artifactId: string) => {
     setBackupDownloadProgress(null);

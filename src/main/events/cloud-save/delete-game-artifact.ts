@@ -4,6 +4,9 @@ import { registerEvent } from "../register-event";
 const deleteGameArtifact = async (
   _event: Electron.IpcMainInvokeEvent,
   gameArtifactId: string
-) => HydraApi.delete<{ ok: boolean }>(`/games/artifacts/${gameArtifactId}`);
+) =>
+  HydraApi.delete<{ ok: boolean }>(
+    `/profile/games/artifacts/${gameArtifactId}`
+  );
 
 registerEvent("deleteGameArtifact", deleteGameArtifact);

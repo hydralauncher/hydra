@@ -1,4 +1,4 @@
-import { Modal, ModalProps, TextField } from "@renderer/components";
+import { Modal, ModalProps } from "@renderer/components";
 import { useContext, useMemo } from "react";
 import { cloudSyncContext } from "@renderer/context";
 
@@ -10,6 +10,8 @@ export function CloudSyncFilesModal({
   onClose,
 }: CloudSyncFilesModalProps) {
   const { backupPreview } = useContext(cloudSyncContext);
+
+  console.log(backupPreview);
 
   const files = useMemo(() => {
     if (!backupPreview) {
@@ -51,22 +53,24 @@ export function CloudSyncFilesModal({
         ))}
       </div> */}
 
-      <ul
-        style={{
-          margin: 0,
-          padding: 0,
-          listStyle: "none",
-          gap: 16,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {files.map((file) => (
-          <li key={file.path}>
-            <TextField value={file.path} readOnly />
-          </li>
-        ))}
-      </ul>
+      <table>
+        <thead>
+          <tr>
+            <th style={{ textAlign: "left" }}>Arquivo</th>
+            <th style={{ textAlign: "left" }}>Hash</th>
+            <th style={{ textAlign: "left" }}>Tamanho</th>
+          </tr>
+        </thead>
+        <tbody>
+          {files.map((file) => (
+            <tr key={file.path}>
+              <td style={{ textAlign: "left" }}>{file.path}</td>
+              <td style={{ textAlign: "left" }}>{file.change}</td>
+              <td style={{ textAlign: "left" }}>{file.path}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </Modal>
   );
 }

@@ -21,7 +21,7 @@ export interface SteamGridGameResponse {
 }
 
 export const getSteamGridData = async (
-  objectID: string,
+  objectId: string,
   path: string,
   shop: GameShop,
   params: Record<string, string> = {}
@@ -33,7 +33,7 @@ export const getSteamGridData = async (
   }
 
   const response = await axios.get(
-    `https://www.steamgriddb.com/api/v2/${path}/${shop}/${objectID}?${searchParams.toString()}`,
+    `https://www.steamgriddb.com/api/v2/${path}/${shop}/${objectId}?${searchParams.toString()}`,
     {
       headers: {
         Authorization: `Bearer ${import.meta.env.MAIN_VITE_STEAMGRIDDB_API_KEY}`,
@@ -59,10 +59,10 @@ export const getSteamGridGameById = async (
   return response.data;
 };
 
-export const getSteamGameClientIcon = async (objectID: string) => {
+export const getSteamGameClientIcon = async (objectId: string) => {
   const {
     data: { id: steamGridGameId },
-  } = await getSteamGridData(objectID, "games", "steam");
+  } = await getSteamGridData(objectId, "games", "steam");
 
   const steamGridGame = await getSteamGridGameById(steamGridGameId);
   return steamGridGame.data.platforms.steam.metadata.clienticon;

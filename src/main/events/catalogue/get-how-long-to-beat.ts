@@ -6,14 +6,14 @@ import { gameShopCacheRepository } from "@main/repository";
 
 const getHowLongToBeat = async (
   _event: Electron.IpcMainInvokeEvent,
-  objectID: string,
+  objectId: string,
   shop: GameShop,
   title: string
 ): Promise<HowLongToBeatCategory[] | null> => {
   const searchHowLongToBeatPromise = searchHowLongToBeat(title);
 
   const gameShopCache = await gameShopCacheRepository.findOne({
-    where: { objectID, shop },
+    where: { objectID: objectId, shop },
   });
 
   const howLongToBeatCachedData = gameShopCache?.howLongToBeatSerializedData
@@ -23,7 +23,7 @@ const getHowLongToBeat = async (
 
   return searchHowLongToBeatPromise.then(async (response) => {
     const game = response.data.find(
-      (game) => game.profile_steam === Number(objectID)
+      (game) => game.profile_steam === Number(objectId)
     );
 
     if (!game) return null;
@@ -31,7 +31,7 @@ const getHowLongToBeat = async (
 
     gameShopCacheRepository.upsert(
       {
-        objectID,
+        objectID: objectId,
         shop,
         howLongToBeatSerializedData: JSON.stringify(howLongToBeat),
       },

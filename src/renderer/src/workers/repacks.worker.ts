@@ -5,13 +5,13 @@ import flexSearch from "flexsearch";
 
 const index = new flexSearch.Index();
 
-const state = {
-  repacks: [] as any[],
-};
-
 interface SerializedGameRepack extends Omit<GameRepack, "uris"> {
   uris: string;
 }
+
+const state = {
+  repacks: [] as SerializedGameRepack[],
+};
 
 self.onmessage = async (
   event: MessageEvent<[string, string] | "INDEX_REPACKS">

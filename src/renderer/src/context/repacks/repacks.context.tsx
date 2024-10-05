@@ -50,6 +50,7 @@ export function RepacksContextProvider({ children }: RepacksContextProps) {
   }, []);
 
   useEffect(() => {
+    console.log("CALLED");
     indexRepacks();
   }, [indexRepacks]);
 
