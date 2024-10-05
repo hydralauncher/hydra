@@ -51,27 +51,24 @@ declare global {
     searchGames: (query: string) => Promise<CatalogueEntry[]>;
     getCatalogue: (category: CatalogueCategory) => Promise<CatalogueEntry[]>;
     getGameShopDetails: (
-      objectID: string,
+      objectId: string,
       shop: GameShop,
       language: string
     ) => Promise<ShopDetails | null>;
     getRandomGame: () => Promise<Steam250Game>;
     getHowLongToBeat: (
-      objectID: string,
+      objectId: string,
       shop: GameShop,
       title: string
     ) => Promise<HowLongToBeatCategory[] | null>;
-    getGames: (
-      take?: number,
-      prevCursor?: number
-    ) => Promise<{ results: CatalogueEntry[]; cursor: number }>;
+    getGames: (take?: number, skip?: number) => Promise<CatalogueEntry[]>;
     searchGameRepacks: (query: string) => Promise<GameRepack[]>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getTrendingGames: () => Promise<TrendingGame[]>;
 
     /* Library */
     addGameToLibrary: (
-      objectID: string,
+      objectId: string,
       title: string,
       shop: GameShop
     ) => Promise<void>;
@@ -87,7 +84,7 @@ declare global {
     removeGameFromLibrary: (gameId: number) => Promise<void>;
     removeGame: (gameId: number) => Promise<void>;
     deleteGameFolder: (gameId: number) => Promise<unknown>;
-    getGameByObjectID: (objectID: string) => Promise<Game | null>;
+    getGameByObjectId: (objectId: string) => Promise<Game | null>;
     onGamesRunning: (
       cb: (
         gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]

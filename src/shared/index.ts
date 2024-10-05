@@ -91,14 +91,14 @@ export const getDownloadersForUris = (uris: string[]) => {
 };
 
 export const steamUrlBuilder = {
-  library: (objectID: string) =>
-    `https://steamcdn-a.akamaihd.net/steam/apps/${objectID}/header.jpg`,
-  libraryHero: (objectID: string) =>
-    `https://steamcdn-a.akamaihd.net/steam/apps/${objectID}/library_hero.jpg`,
-  logo: (objectID: string) =>
-    `https://cdn.cloudflare.steamstatic.com/steam/apps/${objectID}/logo.png`,
-  cover: (objectID: string) =>
-    `https://cdn.cloudflare.steamstatic.com/steam/apps/${objectID}/library_600x900.jpg`,
-  icon: (objectID: string, clientIcon: string) =>
-    `https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/${objectID}/${clientIcon}.ico`,
+  library: (objectId: string) =>
+    `https://steamcdn-a.akamaihd.net/steam/apps/${objectId}/header.jpg`,
+  libraryHero: (objectId: string) =>
+    `https://steamcdn-a.akamaihd.net/steam/apps/${objectId}/library_hero.jpg`,
+  logo: (objectId: string) =>
+    `https://cdn.cloudflare.steamstatic.com/steam/apps/${objectId}/logo.png`,
+  cover: (objectId: string) =>
+    `https://cdn.cloudflare.steamstatic.com/steam/apps/${objectId}/library_600x900.jpg`,
+  icon: (objectId: string, clientIcon: string) =>
+    `https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/${objectId}/${clientIcon}.ico`,
 };

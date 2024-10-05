@@ -29,7 +29,7 @@ export interface GameRepack {
 }
 
 export type ShopDetails = SteamAppDetails & {
-  objectID: string;
+  objectId: string;
 };
 
 export interface TorrentFile {
@@ -39,7 +39,7 @@ export interface TorrentFile {
 
 /* Used by the catalogue */
 export interface CatalogueEntry {
-  objectID: string;
+  objectId: string;
   shop: GameShop;
   title: string;
   /* Epic Games covers cannot be guessed with objectID */
@@ -54,6 +54,8 @@ export interface UserGame {
   cover: string;
   playTimeInSeconds: number;
   lastTimePlayed: Date | null;
+  unlockedAchievementCount: number;
+  achievementCount: number;
 }
 
 export interface DownloadQueue {
@@ -126,7 +128,7 @@ export interface HowLongToBeatCategory {
 
 export interface Steam250Game {
   title: string;
-  objectID: string;
+  objectId: string;
 }
 
 export interface SteamGame {
@@ -142,7 +144,7 @@ export type AppUpdaterEvent =
 /* Events */
 export interface StartGameDownloadPayload {
   repackId: number;
-  objectID: string;
+  objectId: string;
   title: string;
   shop: GameShop;
   uri: string;
@@ -187,7 +189,7 @@ export interface UserRelation {
   updatedAt: string;
 }
 
-export interface UserProfileCurrentGame extends Omit<GameRunning, "objectID"> {
+export interface UserProfileCurrentGame extends Omit<GameRunning, "objectId"> {
   objectId: string;
   sessionDurationInSeconds: number;
 }

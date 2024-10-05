@@ -15,7 +15,7 @@ export const gameCover = style({
     height: "172%",
     position: "absolute",
     background:
-      "linear-gradient(35deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.07) 51.5%, rgba(255, 255, 255, 0.15) 54%, rgba(255, 255, 255, 0.15) 100%);",
+      "linear-gradient(35deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.07) 51.5%, rgba(255, 255, 255, 0.15) 54%, rgba(255, 255, 255, 0.15) 100%)",
     transition: "all ease 0.3s",
     transform: "translateY(-36%)",
     opacity: "0.5",
@@ -188,4 +188,16 @@ export const defaultAvatarWrapper = style({
   backgroundColor: vars.color.background,
   border: `solid 1px ${vars.color.border}`,
   borderRadius: "4px",
+});
+
+export const achievementsProgressBar = style({
+  width: "100%",
+  height: "4px",
+  transition: "all ease 0.2s",
+  "::-webkit-progress-bar": {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
+  "::-webkit-progress-value": {
+    backgroundColor: vars.color.muted,
+  },
 });

@@ -28,20 +28,18 @@ export const backupGame = ({
   title,
   backupPath,
   preview = false,
+  winePrefix,
 }: {
   title: string;
   backupPath: string;
   preview?: boolean;
+  winePrefix?: string;
 }) => {
   const args = ["backup", title, "--api", "--force"];
 
-  if (preview) {
-    args.push("--preview");
-  }
-
-  if (backupPath) {
-    args.push("--path", backupPath);
-  }
+  if (preview) args.push("--preview");
+  if (backupPath) args.push("--path", backupPath);
+  if (winePrefix) args.push("--wine-prefix", winePrefix);
 
   const result = cp.execFileSync(binaryPath, args);
 
@@ -59,3 +57,5 @@ export const restoreBackup = (backupPath: string) => {
 
   return JSON.parse(result.toString("utf-8")) as LudusaviBackup;
 };
+
+// --wine-prefix

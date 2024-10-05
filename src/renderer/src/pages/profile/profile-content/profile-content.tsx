@@ -7,7 +7,7 @@ import { steamUrlBuilder } from "@shared";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 
 import * as styles from "./profile-content.css";
-import { ClockIcon, TelescopeIcon } from "@primer/octicons-react";
+import { ClockIcon, TelescopeIcon, TrophyIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { LockedProfile } from "./locked-profile";
@@ -15,7 +15,10 @@ import { ReportProfile } from "../report-profile/report-profile";
 import { FriendsBox } from "./friends-box";
 import { RecentGamesBox } from "./recent-games-box";
 import { UserGame } from "@types";
-import { buildGameDetailsPath } from "@renderer/helpers";
+import {
+  buildGameDetailsPath,
+  formatDownloadProgress,
+} from "@renderer/helpers";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 
 export function ProfileContent() {
@@ -44,7 +47,7 @@ export function ProfileContent() {
   const buildUserGameDetailsPath = (game: UserGame) =>
     buildGameDetailsPath({
       ...game,
-      objectID: game.objectId,
+      objectId: game.objectId,
     });
 
   const formatPlayTime = useCallback(
@@ -115,6 +118,7 @@ export function ProfileContent() {
                       borderRadius: 4,
                       overflow: "hidden",
                       position: "relative",
+                      display: "flex",
                     }}
                     className={styles.game}
                   >
@@ -126,23 +130,85 @@ export function ProfileContent() {
                       className={styles.gameCover}
                       onClick={() => navigate(buildUserGameDetailsPath(game))}
                     >
-                      <div style={{ position: "absolute", padding: 4 }}>
+                      <div
+                        style={{
+                          position: "absolute",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "flex-start",
+                          justifyContent: "space-between",
+                          height: "100%",
+                          width: "100%",
+                          background:
+                            "linear-gradient(0deg, rgba(0, 0, 0, 0.7) 20%, transparent 100%)",
+                          padding: 8,
+                        }}
+                      >
                         <small
                           style={{
                             backgroundColor: vars.color.background,
                             color: vars.color.muted,
-                            // border: `solid 1px ${vars.color.border}`,
+                            border: `solid 1px ${vars.color.border}`,
                             borderRadius: 4,
                             display: "flex",
                             alignItems: "center",
                             gap: 4,
-                            padding: "4px 4px",
+                            padding: "4px",
                           }}
                         >
                           <ClockIcon size={11} />
                           {formatPlayTime(game.playTimeInSeconds)}
                         </small>
+
+                        <div
+                          style={{
+                            color: "white",
+                            width: "100%",
+                            display: "flex",
+                            flexDirection: "column",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              marginBottom: 8,
+                              color: vars.color.muted,
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                              }}
+                            >
+                              <TrophyIcon size={13} />
+                              <span>
+                                {game.unlockedAchievementCount} /{" "}
+                                {game.achievementCount}
+                              </span>
+                            </div>
+
+                            <span>
+                              {formatDownloadProgress(
+                                game.unlockedAchievementCount /
+                                  game.achievementCount
+                              )}
+                            </span>
+                          </div>
+
+                          <progress
+                            max={1}
+                            value={
+                              game.unlockedAchievementCount /
+                              game.achievementCount
+                            }
+                            className={styles.achievementsProgressBar}
+                          />
+                        </div>
                       </div>
+
                       <img
                         src={steamUrlBuilder.cover(game.objectId)}
                         alt={game.title}
@@ -178,6 +244,7 @@ export function ProfileContent() {
     userStats,
     numberFormatter,
     t,
+    formatPlayTime,
     navigate,
   ]);
 

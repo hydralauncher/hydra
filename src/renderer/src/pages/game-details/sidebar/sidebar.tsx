@@ -24,11 +24,11 @@ export function Sidebar() {
   const { numberFormatter } = useFormat();
 
   // useEffect(() => {
-  //   if (objectID) {
+  //   if (objectId) {
   //     setHowLongToBeat({ isLoading: true, data: null });
 
   //     window.electron
-  //       .getHowLongToBeat(objectID, "steam", gameTitle)
+  //       .getHowLongToBeat(objectId, "steam", gameTitle)
   //       .then((howLongToBeat) => {
   //         setHowLongToBeat({ isLoading: false, data: howLongToBeat });
   //       })
@@ -36,7 +36,7 @@ export function Sidebar() {
   //         setHowLongToBeat({ isLoading: false, data: null });
   //       });
   //   }
-  // }, [objectID, gameTitle]);
+  // }, [objectId, gameTitle]);
 
   return (
     <aside className={styles.contentSidebar}>

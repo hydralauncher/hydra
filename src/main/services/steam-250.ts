@@ -17,7 +17,7 @@ export const requestSteam250 = async (path: string) => {
 
           return {
             title: $title.textContent,
-            objectID: steamGameUrl.split("/").pop(),
+            objectId: steamGameUrl.split("/").pop(),
           } as Steam250Game;
         })
         .filter((game) => game != null);
@@ -38,7 +38,7 @@ export const getSteam250List = async () => {
   ).flat();
 
   const gamesMap: Map<string, Steam250Game> = gamesList.reduce((map, item) => {
-    if (item) map.set(item.objectID, item);
+    if (item) map.set(item.objectId, item);
 
     return map;
   }, new Map());

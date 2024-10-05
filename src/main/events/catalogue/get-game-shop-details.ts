@@ -7,16 +7,16 @@ import { registerEvent } from "../register-event";
 import { steamGamesWorker } from "@main/workers";
 
 const getLocalizedSteamAppDetails = async (
-  objectID: string,
+  objectId: string,
   language: string
 ): Promise<ShopDetails | null> => {
   if (language === "english") {
-    return getSteamAppDetails(objectID, language);
+    return getSteamAppDetails(objectId, language);
   }
 
-  return getSteamAppDetails(objectID, language).then(
+  return getSteamAppDetails(objectId, language).then(
     async (localizedAppDetails) => {
-      const steamGame = await steamGamesWorker.run(Number(objectID), {
+      const steamGame = await steamGamesWorker.run(Number(objectId), {
         name: "getById",
       });
 
@@ -34,21 +34,21 @@ const getLocalizedSteamAppDetails = async (
 
 const getGameShopDetails = async (
   _event: Electron.IpcMainInvokeEvent,
-  objectID: string,
+  objectId: string,
   shop: GameShop,
   language: string
 ): Promise<ShopDetails | null> => {
   if (shop === "steam") {
     const cachedData = await gameShopCacheRepository.findOne({
-      where: { objectID, language },
+      where: { objectID: objectId, language },
     });
 
-    const appDetails = getLocalizedSteamAppDetails(objectID, language).then(
+    const appDetails = getLocalizedSteamAppDetails(objectId, language).then(
       (result) => {
         if (result) {
           gameShopCacheRepository.upsert(
             {
-              objectID,
+              objectID: objectId,
               shop: "steam",
               language,
               serializedData: JSON.stringify(result),
@@ -68,7 +68,7 @@ const getGameShopDetails = async (
     if (cachedGame) {
       return {
         ...cachedGame,
-        objectID,
+        objectId,
       } as ShopDetails;
     }
 

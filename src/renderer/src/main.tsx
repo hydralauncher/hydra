@@ -64,7 +64,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               <Route path="/" Component={Home} />
               <Route path="/catalogue" Component={Catalogue} />
               <Route path="/downloads" Component={Downloads} />
-              <Route path="/game/:shop/:objectID" Component={GameDetails} />
+              <Route path="/game/:shop/:objectId" Component={GameDetails} />
               <Route path="/search" Component={SearchResults} />
               <Route path="/settings" Component={Settings} />
               <Route path="/profile/:userId" Component={Profile} />

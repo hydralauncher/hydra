@@ -30,7 +30,7 @@ const getCatalogue = async (
         title: steamGame.name,
         shop: game.shop,
         cover: steamUrlBuilder.library(game.objectId),
-        objectID: game.objectId,
+        objectId: game.objectId,
       };
     })
   );

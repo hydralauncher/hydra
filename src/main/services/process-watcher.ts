@@ -2,7 +2,7 @@ import { IsNull, Not } from "typeorm";
 import { gameRepository } from "@main/repository";
 import { WindowManager } from "./window-manager";
 import { createGame, updateGamePlaytime } from "./library-sync";
-import { GameRunning } from "@types";
+import type { GameRunning } from "@types";
 import { PythonInstance } from "./download";
 import { Game } from "@main/entity";
 

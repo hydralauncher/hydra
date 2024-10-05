@@ -33,7 +33,7 @@ export function GameDetails() {
   const [randomGame, setRandomGame] = useState<Steam250Game | null>(null);
   const [randomizerLocked, setRandomizerLocked] = useState(false);
 
-  const { objectID, shop } = useParams();
+  const { objectId, shop } = useParams();
   const [searchParams] = useSearchParams();
 
   const fromRandomizer = searchParams.get("fromRandomizer");
@@ -50,7 +50,7 @@ export function GameDetails() {
     window.electron.getRandomGame().then((randomGame) => {
       setRandomGame(randomGame);
     });
-  }, [objectID]);
+  }, [objectId]);
 
   const handleRandomizerClick = () => {
     if (randomGame) {
@@ -82,7 +82,7 @@ export function GameDetails() {
     <GameDetailsContextProvider
       gameTitle={gameTitle!}
       shop={shop! as GameShop}
-      objectId={objectID!}
+      objectId={objectId!}
     >
       <GameDetailsContextConsumer>
         {({
@@ -105,7 +105,7 @@ export function GameDetails() {
           ) => {
             await startDownload({
               repackId: repack.id,
-              objectID: objectID!,
+              objectId: objectId!,
               title: gameTitle,
               downloader,
               shop: shop as GameShop,
@@ -125,7 +125,7 @@ export function GameDetails() {
 
           return (
             <CloudSyncContextProvider
-              objectId={objectID!}
+              objectId={objectId!}
               shop={shop! as GameShop}
             >
               <CloudSyncContextConsumer>
