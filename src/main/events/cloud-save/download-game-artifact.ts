@@ -8,8 +8,6 @@ import path from "node:path";
 import { backupsPath } from "@main/constants";
 import type { GameShop } from "@types";
 
-import os from "node:os";
-
 import YAML from "yaml";
 
 export interface LudusaviBackup {
@@ -40,7 +38,7 @@ const replaceLudusaviBackupWithCurrentUser = (
 
   fs.renameSync(
     path.join(usersDirPath, path.basename(backupHomeDir)),
-    path.join(usersDirPath, os.userInfo().username)
+    path.join(usersDirPath, path.basename(currentHomeDir))
   );
 
   const backups = manifest.backups.map((backup: LudusaviBackup) => {
