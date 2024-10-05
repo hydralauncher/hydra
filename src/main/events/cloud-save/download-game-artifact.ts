@@ -94,6 +94,8 @@ const downloadGameArtifact = async (
     throw err;
   });
 
+  fs.mkdirSync(backupPath, { recursive: true });
+
   writer.on("close", () => {
     tar
       .x({
