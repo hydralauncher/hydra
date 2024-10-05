@@ -23,3 +23,16 @@ export enum SteamContentDescriptor {
   FrequentNudityOrSexualContent = 4,
   GeneralMatureContent = 5,
 }
+
+export enum Cracker {
+  codex = "CODEX",
+  rune = "RUNE",
+  onlineFix = "OnlineFix",
+  goldberg = "Goldberg",
+  userstats = "user_stats",
+  rld = "RLD!",
+  empress = "EMPRESS",
+  skidrow = "SKIDROW",
+  creamAPI = "CreamAPI",
+  smartSteamEmu = "SmartSteamEmu",
+}

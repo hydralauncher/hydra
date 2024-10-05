@@ -1,4 +1,4 @@
-import type { DownloadSourceStatus, Downloader } from "@shared";
+import type { Cracker, DownloadSourceStatus, Downloader } from "@shared";
 import type { SteamAppDetails } from "./steam.types";
 
 export type GameStatus =
@@ -26,6 +26,16 @@ export interface GameRepack {
   uploadDate: Date | string | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface GameAchievement {
+  name: string;
+  displayName: string;
+  description?: string;
+  unlocked: boolean;
+  unlockTime: number | null;
+  icon: string;
+  icongray: string;
 }
 
 export type ShopDetails = SteamAppDetails & {
@@ -267,6 +277,20 @@ export interface UserStats {
   libraryCount: number;
   friendsCount: number;
 }
+
+export interface UnlockedAchievement {
+  name: string;
+  unlockTime: number;
+}
+
+export interface AchievementFile {
+  type: Cracker;
+  filePath: string;
+}
+
+export type GameAchievementFiles = {
+  [id: string]: AchievementFile[];
+};
 
 export interface GameArtifact {
   id: string;

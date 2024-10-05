@@ -39,7 +39,6 @@ globalStyle("body", {
   userSelect: "none",
   fontFamily: "Noto Sans, sans-serif",
   fontSize: vars.size.body,
-  background: vars.color.background,
   color: vars.color.body,
   margin: "0",
 });
