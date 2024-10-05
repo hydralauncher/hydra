@@ -2,35 +2,41 @@ import { gameAchievementRepository, gameRepository } from "@main/repository";
 import {
   findAllAchievementFiles,
   findAchievementFiles,
+  findAchievementFileInExecutableDirectory,
 } from "./find-achivement-files";
 import { parseAchievementFile } from "./parse-achievement-file";
 import { mergeAchievements } from "./merge-achievements";
 import type { UnlockedAchievement } from "@types";
 import { getGameAchievementData } from "./get-game-achievement-data";
+import { achievementsLogger } from "../logger";
 
 export const updateAllLocalUnlockedAchievements = async () => {
   const gameAchievementFilesMap = await findAllAchievementFiles();
 
-  for (const objectId of gameAchievementFilesMap.keys()) {
-    const gameAchievementFiles = gameAchievementFilesMap.get(objectId)!;
+  const games = await gameRepository.find({
+    where: {
+      isDeleted: false,
+    },
+  });
 
-    const [game, localAchievements] = await Promise.all([
-      gameRepository.findOne({
-        where: { objectID: objectId, shop: "steam", isDeleted: false },
-      }),
-      gameAchievementRepository.findOne({
-        where: { objectId, shop: "steam" },
-      }),
-    ]);
+  for (const game of games) {
+    const gameAchievementFiles =
+      gameAchievementFilesMap.get(game.objectID) || [];
+    const achievementFileInsideDirectory =
+      findAchievementFileInExecutableDirectory(game);
 
-    if (!game) continue;
+    gameAchievementFiles.push(...achievementFileInsideDirectory);
+
+    const localAchievements = await gameAchievementRepository.findOne({
+      where: { objectId: game.objectID, shop: "steam" },
+    });
 
     if (!localAchievements || !localAchievements.achievements) {
-      await getGameAchievementData(objectId, "steam")
+      await getGameAchievementData(game.objectID, "steam")
         .then((achievements) => {
           return gameAchievementRepository.upsert(
             {
-              objectId,
+              objectId: game.objectID,
               shop: "steam",
               achievements: JSON.stringify(achievements),
             },
@@ -47,13 +53,20 @@ export const updateAllLocalUnlockedAchievements = async () => {
         achievementFile.filePath,
         achievementFile.type
       );
-      console.log("Parsed for", game.title, parsedAchievements);
+
       if (parsedAchievements.length) {
         unlockedAchievements.push(...parsedAchievements);
       }
+
+      achievementsLogger.log(
+        "Achievement file for",
+        game.title,
+        achievementFile.filePath,
+        parsedAchievements
+      );
     }
 
-    mergeAchievements(objectId, "steam", unlockedAchievements, false);
+    mergeAchievements(game.objectID, "steam", unlockedAchievements, false);
   }
 };
 
@@ -70,6 +83,11 @@ export const updateLocalUnlockedAchivements = async (objectId: string) => {
   if (!game) return;
 
   const gameAchievementFiles = await findAchievementFiles(game);
+
+  const achievementFileInsideDirectory =
+    findAchievementFileInExecutableDirectory(game);
+
+  gameAchievementFiles.push(...achievementFileInsideDirectory);
 
   console.log("Achievements files for", game.title, gameAchievementFiles);
 

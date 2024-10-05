@@ -136,6 +136,10 @@ const getPathFromCracker = async (cracker: Cracker) => {
     ];
   }
 
+  if (cracker === Cracker._3dm) {
+    return [];
+  }
+
   achievementsLogger.error(`Cracker ${cracker} not implemented`);
   throw new Error(`Cracker ${cracker} not implemented`);
 };
@@ -163,22 +167,33 @@ export const findAchievementFiles = async (game: Game) => {
 
 export const findAchievementFileInExecutableDirectory = (
   game: Game
-): AchievementFile | null => {
+): AchievementFile[] => {
   if (!game.executablePath) {
-    return null;
+    return [];
   }
 
-  const steamDataPath = path.join(
-    game.executablePath,
-    "..",
-    "SteamData",
-    "user_stats.ini"
-  );
-
-  return {
-    type: Cracker.userstats,
-    filePath: steamDataPath,
-  };
+  return [
+    {
+      type: Cracker.userstats,
+      filePath: path.join(
+        game.executablePath,
+        "..",
+        "SteamData",
+        "user_stats.ini"
+      ),
+    },
+    {
+      type: Cracker._3dm,
+      filePath: path.join(
+        game.executablePath,
+        "..",
+        "3DMGAME",
+        "Player",
+        "stats",
+        "achievements.ini"
+      ),
+    },
+  ];
 };
 
 export const findAllAchievementFiles = async () => {
