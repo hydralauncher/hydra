@@ -36,10 +36,20 @@ const replaceLudusaviBackupWithCurrentUser = (
   // TODO: Only works on Windows
   const usersDirPath = path.join(gameBackupPath, "drive-C", "Users");
 
-  fs.renameSync(
-    path.join(usersDirPath, path.basename(backupHomeDir)),
-    path.join(usersDirPath, path.basename(currentHomeDir))
-  );
+  const oldPath = path.join(usersDirPath, path.basename(backupHomeDir));
+  const newPath = path.join(usersDirPath, path.basename(currentHomeDir));
+
+  // Directories are different, rename
+  if (backupHomeDir !== currentHomeDir) {
+    if (fs.existsSync(newPath)) {
+      fs.rmSync(newPath, {
+        recursive: true,
+        force: true,
+      });
+    }
+
+    fs.renameSync(oldPath, newPath);
+  }
 
   const backups = manifest.backups.map((backup: LudusaviBackup) => {
     const files = Object.entries(backup.files).reduce((prev, [key, value]) => {
