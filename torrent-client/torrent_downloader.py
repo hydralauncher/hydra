@@ -4,7 +4,11 @@ class TorrentDownloader:
     def __init__(self, port: str):
         self.torrent_handles = {}
         self.downloading_game_id = -1
-        self.session = lt.session({'listen_interfaces': '0.0.0.0:{port}'.format(port=port)})
+        try:
+            self.session = lt.session({'listen_interfaces': '0.0.0.0:{port}'.format(port=port)})
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize torrent session: {e}")
+
         self.trackers = [
             "udp://tracker.opentrackr.org:1337/announce",
             "http://tracker.opentrackr.org:1337/announce",
@@ -103,56 +107,81 @@ class TorrentDownloader:
         ]
 
     def start_download(self, game_id: int, magnet: str, save_path: str):
-        params = {'url': magnet, 'save_path': save_path, 'trackers': self.trackers}
-        torrent_handle = self.session.add_torrent(params)
-        self.torrent_handles[game_id] = torrent_handle
-        torrent_handle.set_flags(lt.torrent_flags.auto_managed)
-        torrent_handle.resume()
+        try:
+            params = {'url': magnet, 'save_path': save_path, 'trackers': self.trackers}
+            torrent_handle = self.session.add_torrent(params)
+            self.torrent_handles[game_id] = torrent_handle
+            torrent_handle.set_flags(lt.torrent_flags.auto_managed)
+            torrent_handle.resume()
 
-        self.downloading_game_id = game_id
+            self.downloading_game_id = game_id
+        except Exception as e:
+            raise RuntimeError(f"Failed to start download for game {game_id}: {e}")
+
+
 
     def pause_download(self, game_id: int):
-        torrent_handle = self.torrent_handles.get(game_id)
-        if torrent_handle:
-            torrent_handle.pause()
-            torrent_handle.unset_flags(lt.torrent_flags.auto_managed)
-            self.downloading_game_id = -1
+        try:
+            torrent_handle = self.torrent_handles.get(game_id)
+            if torrent_handle:
+                torrent_handle.pause()
+                torrent_handle.unset_flags(lt.torrent_flags.auto_managed)
+                self.downloading_game_id = -1
+            else:
+                raise KeyError(f"Torrent handle not found for game {game_id}")
+        except Exception as e:
+            raise RuntimeError(f"Failed to pause download for game {game_id}: {e}")
+
 
     def cancel_download(self, game_id: int):
-        torrent_handle = self.torrent_handles.get(game_id)
-        if torrent_handle:
-            torrent_handle.pause()
-            self.session.remove_torrent(torrent_handle)
-            self.torrent_handles[game_id] = None
-            self.downloading_game_id = -1
+        try:
+            torrent_handle = self.torrent_handles.get(game_id)
+            if torrent_handle:
+                torrent_handle.pause()
+                self.session.remove_torrent(torrent_handle)
+                self.torrent_handles[game_id] = None
+                self.downloading_game_id = -1
+            else:
+                raise KeyError(f"Torrent handle not found for game {game_id}")
+        except Exception as e:
+            raise RuntimeError(f"Failed to cancel download for game {game_id}: {e}")
+
 
     def abort_session(self):
-        for game_id in self.torrent_handles:
-            torrent_handle = self.torrent_handles[game_id]
-            torrent_handle.pause()
-            self.session.remove_torrent(torrent_handle)
-            
-        self.session.abort()
-        self.torrent_handles = {}
-        self.downloading_game_id = -1
+        try:
+            for game_id in self.torrent_handles:
+                torrent_handle = self.torrent_handles[game_id]
+                torrent_handle.pause()
+                self.session.remove_torrent(torrent_handle)
+
+            self.session.abort()
+            self.torrent_handles = {}
+            self.downloading_game_id = -1
+        except Exception as e:
+            raise RuntimeError(f"Failed to abort torrent session: {e}")
 
     def get_download_status(self):
         if self.downloading_game_id == -1:
             return None
 
-        torrent_handle = self.torrent_handles.get(self.downloading_game_id)
+        try:
+            torrent_handle = self.torrent_handles.get(self.downloading_game_id)
+            if not torrent_handle:
+                raise KeyError(f"Torrent handle not found for game {self.downloading_game_id}")
 
-        status = torrent_handle.status()
-        info = torrent_handle.get_torrent_info()
+            status = torrent_handle.status()
+            info = torrent_handle.get_torrent_info()
 
-        return {
-            'folderName': info.name() if info else "",
-            'fileSize': info.total_size() if info else 0,
-            'gameId': self.downloading_game_id,
-            'progress': status.progress,
-            'downloadSpeed': status.download_rate,
-            'numPeers': status.num_peers,
-            'numSeeds': status.num_seeds,
-            'status': status.state,
-            'bytesDownloaded': status.progress * info.total_size() if info else status.all_time_download,
-        }
+            return {
+                'folderName': info.name() if info else "",
+                'fileSize': info.total_size() if info else 0,
+                'gameId': self.downloading_game_id,
+                'progress': status.progress,
+                'downloadSpeed': status.download_rate,
+                'numPeers': status.num_peers,
+                'numSeeds': status.num_seeds,
+                'status': status.state,
+                'bytesDownloaded': status.progress * info.total_size() if info else status.all_time_download,
+            }
+        except Exception as e:
+            raise RuntimeError(f"Failed to get download status for game {self.downloading_game_id}: {e}")
