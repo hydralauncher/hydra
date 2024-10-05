@@ -61,7 +61,8 @@ export const updateAllLocalUnlockedAchievements = async () => {
       achievementsLogger.log(
         "Achievement file for",
         game.title,
-        achievementFile.filePath
+        achievementFile.filePath,
+        parsedAchievements
       );
     }
 

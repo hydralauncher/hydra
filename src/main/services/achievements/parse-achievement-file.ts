@@ -74,11 +74,10 @@ const iniParse = async (filePath: string) => {
         object[objectName] = {};
       } else {
         const [name, ...value] = line.split("=");
-        object[objectName][name.trim()] = value.join("").trim();
+        object[objectName][name.trim()] = value.join("=").trim();
       }
     }
 
-    console.log("Parsed ini", object);
     return object;
   } catch {
     return null;
@@ -222,7 +221,7 @@ const processUserStats = (unlockedAchievements: any): UnlockedAchievement[] => {
 
     if (!isNaN(unlockTime)) {
       newUnlockedAchievements.push({
-        name: achievement,
+        name: achievement.replace(/"/g, ``),
         unlockTime: unlockTime,
       });
     }
