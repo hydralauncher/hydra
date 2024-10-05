@@ -50,7 +50,7 @@ const uploadSaveGame = async (
       shop,
       objectId,
       hostname: os.hostname(),
-      homeDir: app.getPath("home"),
+      homeDir: path.normalize(app.getPath("home")).replace(/\\/g, "/"),
       platform: os.platform(),
     });
 
