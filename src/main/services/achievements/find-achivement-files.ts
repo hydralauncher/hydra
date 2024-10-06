@@ -27,7 +27,7 @@ const crackers = [
   Cracker.flt,
 ];
 
-const getPathFromCracker = async (cracker: Cracker) => {
+const getPathFromCracker = (cracker: Cracker) => {
   if (cracker === Cracker.codex) {
     return [
       {
@@ -167,7 +167,8 @@ const getPathFromCracker = async (cracker: Cracker) => {
   throw new Error(`Cracker ${cracker} not implemented`);
 };
 
-const getAlternativeObjectIds = (objectId: string) => {
+export const getAlternativeObjectIds = (objectId: string) => {
+  // Dishonored
   if (objectId === "205100") {
     return ["205100", "217980", "31292"];
   }
@@ -175,13 +176,11 @@ const getAlternativeObjectIds = (objectId: string) => {
   return [objectId];
 };
 
-export const findAchievementFiles = async (game: Game) => {
+export const findAchievementFiles = (game: Game) => {
   const achievementFiles: AchievementFile[] = [];
 
   for (const cracker of crackers) {
-    for (const { folderPath, fileLocation } of await getPathFromCracker(
-      cracker
-    )) {
+    for (const { folderPath, fileLocation } of getPathFromCracker(cracker)) {
       for (const objectId of getAlternativeObjectIds(game.objectID)) {
         const filePath = path.join(folderPath, objectId, ...fileLocation);
 
@@ -229,13 +228,11 @@ export const findAchievementFileInExecutableDirectory = (
   ];
 };
 
-export const findAllAchievementFiles = async () => {
+export const findAllAchievementFiles = () => {
   const gameAchievementFiles = new Map<string, AchievementFile[]>();
 
   for (const cracker of crackers) {
-    for (const { folderPath, fileLocation } of await getPathFromCracker(
-      cracker
-    )) {
+    for (const { folderPath, fileLocation } of getPathFromCracker(cracker)) {
       if (!fs.existsSync(folderPath)) {
         continue;
       }

@@ -44,11 +44,11 @@ const addGameToLibrary = async (
         });
       }
 
-      updateLocalUnlockedAchivements(objectId);
-
       const game = await gameRepository.findOne({
         where: { objectID: objectId },
       });
+
+      updateLocalUnlockedAchivements(game!);
 
       createGame(game!).catch(() => {});
     });
