@@ -168,6 +168,7 @@ const getPathFromCracker = (cracker: Cracker) => {
 };
 
 export const getAlternativeObjectIds = (objectId: string) => {
+  // Dishonored
   if (objectId === "205100") {
     return ["205100", "217980", "31292"];
   }
