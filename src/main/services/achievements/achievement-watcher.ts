@@ -23,7 +23,27 @@ export const watchAchievements = async () => {
 
   if (games.length === 0) return;
 
-  await searchForAchievements(games);
+  const achievementFiles = await findAllAchievementFiles();
+
+  for (const game of games) {
+    const gameAchievementFiles = achievementFiles.get(game.objectID) || [];
+    const achievementFileInsideDirectory =
+      findAchievementFileInExecutableDirectory(game);
+
+    gameAchievementFiles.push(...achievementFileInsideDirectory);
+
+    if (!gameAchievementFiles.length) continue;
+
+    console.log(
+      "Achievements files to observe for:",
+      game.title,
+      gameAchievementFiles
+    );
+
+    for (const file of gameAchievementFiles) {
+      compareFile(game, file);
+    }
+  }
 };
 
 const processAchievementFileDiff = async (
@@ -99,29 +119,5 @@ const compareFile = async (game: Game, file: AchievementFile) => {
     await processAchievementFileDiff(game, file);
   } catch (err) {
     fileStats.set(file.filePath, -1);
-  }
-};
-
-const searchForAchievements = async (games: Game[]) => {
-  const achievementFiles = await findAllAchievementFiles();
-
-  for (const game of games) {
-    const gameAchievementFiles = achievementFiles.get(game.objectID) || [];
-    const achievementFileInsideDirectory =
-      findAchievementFileInExecutableDirectory(game);
-
-    gameAchievementFiles.push(...achievementFileInsideDirectory);
-
-    if (!gameAchievementFiles.length) continue;
-
-    logger.log(
-      "Achievements files to observe for:",
-      game.title,
-      gameAchievementFiles
-    );
-
-    for (const file of gameAchievementFiles) {
-      compareFile(game, file);
-    }
   }
 };
