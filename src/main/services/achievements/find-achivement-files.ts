@@ -150,6 +150,19 @@ const getPathFromCracker = async (cracker: Cracker) => {
     ];
   }
 
+  if (cracker == Cracker.rle) {
+    return [
+      {
+        folderPath: path.join(appData, "RLE"),
+        fileLocation: ["achievements.ini"],
+      },
+      {
+        folderPath: path.join(appData, "RLE"),
+        fileLocation: ["Achievements.ini"],
+      },
+    ];
+  }
+
   achievementsLogger.error(`Cracker ${cracker} not implemented`);
   throw new Error(`Cracker ${cracker} not implemented`);
 };
