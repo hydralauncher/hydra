@@ -1,57 +1,51 @@
 import { Cracker } from "@shared";
 import { UnlockedAchievement } from "@types";
-import {
-  existsSync,
-  createReadStream,
-  readFileSync,
-  readdirSync,
-} from "node:fs";
-import readline from "node:readline";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { achievementsLogger } from "../logger";
 
-export const parseAchievementFile = async (
+export const parseAchievementFile = (
   filePath: string,
   type: Cracker
-): Promise<UnlockedAchievement[]> => {
+): UnlockedAchievement[] => {
   if (!existsSync(filePath)) return [];
 
   if (type == Cracker.codex) {
-    const parsed = await iniParse(filePath);
+    const parsed = iniParse(filePath);
     return processDefault(parsed);
   }
 
   if (type == Cracker.rune) {
-    const parsed = await iniParse(filePath);
+    const parsed = iniParse(filePath);
     return processDefault(parsed);
   }
 
   if (type === Cracker.onlineFix) {
-    const parsed = await iniParse(filePath);
+    const parsed = iniParse(filePath);
     return processOnlineFix(parsed);
   }
 
   if (type === Cracker.goldberg) {
-    const parsed = await jsonParse(filePath);
+    const parsed = jsonParse(filePath);
     return processGoldberg(parsed);
   }
 
   if (type == Cracker.userstats) {
-    const parsed = await iniParse(filePath);
+    const parsed = iniParse(filePath);
     return processUserStats(parsed);
   }
 
   if (type == Cracker.rld) {
-    const parsed = await iniParse(filePath);
+    const parsed = iniParse(filePath);
     return processRld(parsed);
   }
 
   if (type === Cracker.skidrow) {
-    const parsed = await iniParse(filePath);
+    const parsed = iniParse(filePath);
     return processSkidrow(parsed);
   }
 
   if (type === Cracker._3dm) {
-    const parsed = await iniParse(filePath);
+    const parsed = iniParse(filePath);
     return process3DM(parsed);
   }
 
@@ -67,27 +61,24 @@ export const parseAchievementFile = async (
   }
 
   if (type === Cracker.creamAPI) {
-    const parsed = await iniParse(filePath);
+    const parsed = iniParse(filePath);
     return processCreamAPI(parsed);
   }
 
-  achievementsLogger.log(`${type} achievements found on ${filePath}`);
+  achievementsLogger.log(
+    `Unprocessed ${type} achievements found on ${filePath}`
+  );
   return [];
 };
 
-const iniParse = async (filePath: string) => {
+const iniParse = (filePath: string) => {
   try {
-    const file = createReadStream(filePath);
-
-    const lines = readline.createInterface({
-      input: file,
-      crlfDelay: Infinity,
-    });
+    const lines = readFileSync(filePath, "utf-8").split(/[\r\n]+/);
 
     let objectName = "";
     const object: Record<string, Record<string, string | number>> = {};
 
-    for await (const line of lines) {
+    for (const line of lines) {
       if (line.startsWith("###") || !line.length) continue;
 
       if (line.startsWith("[") && line.endsWith("]")) {
@@ -100,7 +91,8 @@ const iniParse = async (filePath: string) => {
     }
 
     return object;
-  } catch {
+  } catch (err) {
+    achievementsLogger.error(`Error parsing ${filePath}`, err);
     return null;
   }
 };
@@ -108,7 +100,8 @@ const iniParse = async (filePath: string) => {
 const jsonParse = (filePath: string) => {
   try {
     return JSON.parse(readFileSync(filePath, "utf-8"));
-  } catch {
+  } catch (err) {
+    achievementsLogger.error(`Error parsing ${filePath}`, err);
     return null;
   }
 };

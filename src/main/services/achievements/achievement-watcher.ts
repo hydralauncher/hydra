@@ -6,6 +6,7 @@ import fs, { readdirSync } from "node:fs";
 import {
   findAchievementFileInExecutableDirectory,
   findAllAchievementFiles,
+  getAlternativeObjectIds,
 } from "./find-achivement-files";
 import type { AchievementFile } from "@types";
 import { achievementsLogger, logger } from "../logger";
@@ -23,25 +24,27 @@ export const watchAchievements = async () => {
 
   if (games.length === 0) return;
 
-  const achievementFiles = await findAllAchievementFiles();
+  const achievementFiles = findAllAchievementFiles();
 
   for (const game of games) {
-    const gameAchievementFiles = achievementFiles.get(game.objectID) || [];
-    const achievementFileInsideDirectory =
-      findAchievementFileInExecutableDirectory(game);
+    for (const objectId of getAlternativeObjectIds(game.objectID)) {
+      const gameAchievementFiles = achievementFiles.get(objectId) || [];
+      const achievementFileInsideDirectory =
+        findAchievementFileInExecutableDirectory(game);
 
-    gameAchievementFiles.push(...achievementFileInsideDirectory);
+      gameAchievementFiles.push(...achievementFileInsideDirectory);
 
-    if (!gameAchievementFiles.length) continue;
+      if (!gameAchievementFiles.length) continue;
 
-    console.log(
-      "Achievements files to observe for:",
-      game.title,
-      gameAchievementFiles
-    );
+      console.log(
+        "Achievements files to observe for:",
+        game.title,
+        gameAchievementFiles
+      );
 
-    for (const file of gameAchievementFiles) {
-      compareFile(game, file);
+      for (const file of gameAchievementFiles) {
+        compareFile(game, file);
+      }
     }
   }
 };
@@ -50,10 +53,7 @@ const processAchievementFileDiff = async (
   game: Game,
   file: AchievementFile
 ) => {
-  const unlockedAchievements = await parseAchievementFile(
-    file.filePath,
-    file.type
-  );
+  const unlockedAchievements = parseAchievementFile(file.filePath, file.type);
 
   logger.log("Achievements from file", file.filePath, unlockedAchievements);
 
