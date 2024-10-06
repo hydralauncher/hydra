@@ -37,4 +37,5 @@ export enum Cracker {
   smartSteamEmu = "SmartSteamEmu",
   _3dm = "3dm",
   flt = "FLT",
+  rle = "RLE",
 }
