@@ -1,6 +1,11 @@
 import { Cracker } from "@shared";
 import { UnlockedAchievement } from "@types";
-import { existsSync, createReadStream, readFileSync } from "node:fs";
+import {
+  existsSync,
+  createReadStream,
+  readFileSync,
+  readdirSync,
+} from "node:fs";
 import readline from "node:readline";
 import { achievementsLogger } from "../logger";
 
@@ -48,6 +53,17 @@ export const parseAchievementFile = async (
   if (type === Cracker._3dm) {
     const parsed = await iniParse(filePath);
     return process3DM(parsed);
+  }
+
+  if (type === Cracker.flt) {
+    const achievements = readdirSync(filePath);
+
+    return achievements.map((achievement) => {
+      return {
+        name: achievement,
+        unlockTime: Date.now(),
+      };
+    });
   }
 
   achievementsLogger.log(`${type} achievements found on ${filePath}`);
@@ -101,7 +117,7 @@ const processOnlineFix = (unlockedAchievements: any): UnlockedAchievement[] => {
     if (unlockedAchievement?.achieved) {
       parsedUnlockedAchievements.push({
         name: achievement,
-        unlockTime: unlockedAchievement.timestamp,
+        unlockTime: unlockedAchievement.timestamp * 1000,
       });
     }
   }
@@ -119,7 +135,7 @@ const processSkidrow = (unlockedAchievements: any): UnlockedAchievement[] => {
     if (unlockedAchievement[0] === "1") {
       parsedUnlockedAchievements.push({
         name: achievement,
-        unlockTime: unlockedAchievement[unlockedAchievement.length - 1],
+        unlockTime: unlockedAchievement[unlockedAchievement.length - 1] * 1000,
       });
     }
   }
@@ -136,7 +152,7 @@ const processGoldberg = (unlockedAchievements: any): UnlockedAchievement[] => {
     if (unlockedAchievement?.earned) {
       newUnlockedAchievements.push({
         name: achievement,
-        unlockTime: unlockedAchievement.earned_time,
+        unlockTime: unlockedAchievement.earned_time * 1000,
       });
     }
   }
@@ -155,9 +171,10 @@ const process3DM = (unlockedAchievements: any): UnlockedAchievement[] => {
 
       newUnlockedAchievements.push({
         name: achievement,
-        unlockTime: new DataView(
-          new Uint8Array(Buffer.from(time.toString(), "hex")).buffer
-        ).getUint32(0, true),
+        unlockTime:
+          new DataView(
+            new Uint8Array(Buffer.from(time.toString(), "hex")).buffer
+          ).getUint32(0, true) * 1000,
       });
     }
   }
@@ -174,7 +191,7 @@ const processDefault = (unlockedAchievements: any): UnlockedAchievement[] => {
     if (unlockedAchievement?.Achieved) {
       newUnlockedAchievements.push({
         name: achievement,
-        unlockTime: unlockedAchievement.UnlockTime,
+        unlockTime: unlockedAchievement.UnlockTime * 1000,
       });
     }
   }
@@ -193,11 +210,12 @@ const processRld = (unlockedAchievements: any): UnlockedAchievement[] => {
     if (unlockedAchievement?.State) {
       newUnlockedAchievements.push({
         name: achievement,
-        unlockTime: new DataView(
-          new Uint8Array(
-            Buffer.from(unlockedAchievement.Time.toString(), "hex")
-          ).buffer
-        ).getUint32(0, true),
+        unlockTime:
+          new DataView(
+            new Uint8Array(
+              Buffer.from(unlockedAchievement.Time.toString(), "hex")
+            ).buffer
+          ).getUint32(0, true) * 1000,
       });
     }
   }
@@ -222,7 +240,7 @@ const processUserStats = (unlockedAchievements: any): UnlockedAchievement[] => {
     if (!isNaN(unlockTime)) {
       newUnlockedAchievements.push({
         name: achievement.replace(/"/g, ``),
-        unlockTime: unlockTime,
+        unlockTime: unlockTime * 1000,
       });
     }
   }
