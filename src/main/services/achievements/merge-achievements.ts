@@ -47,7 +47,7 @@ export const mergeAchievements = async (
 
   const unlockedAchievements = JSON.parse(
     localGameAchievement?.unlockedAchievements || "[]"
-  );
+  ).filter((achievement) => achievement.name);
 
   const newAchievements = achievements
     .filter((achievement) => {
@@ -60,7 +60,7 @@ export const mergeAchievements = async (
     .map((achievement) => {
       return {
         name: achievement.name.toUpperCase(),
-        unlockTime: achievement.unlockTime * 1000,
+        unlockTime: achievement.unlockTime,
       };
     });
 

@@ -36,4 +36,5 @@ export enum Cracker {
   creamAPI = "CreamAPI",
   smartSteamEmu = "SmartSteamEmu",
   _3dm = "3dm",
+  flt = "FLT",
 }
