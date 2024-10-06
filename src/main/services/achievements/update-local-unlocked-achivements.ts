@@ -3,6 +3,7 @@ import {
   findAllAchievementFiles,
   findAchievementFiles,
   findAchievementFileInExecutableDirectory,
+  getAlternativeObjectIds,
 } from "./find-achivement-files";
 import { parseAchievementFile } from "./parse-achievement-file";
 import { mergeAchievements } from "./merge-achievements";
@@ -11,7 +12,7 @@ import { getGameAchievementData } from "./get-game-achievement-data";
 import { achievementsLogger } from "../logger";
 
 export const updateAllLocalUnlockedAchievements = async () => {
-  const gameAchievementFilesMap = await findAllAchievementFiles();
+  const gameAchievementFilesMap = findAllAchievementFiles();
 
   const games = await gameRepository.find({
     where: {
@@ -20,53 +21,54 @@ export const updateAllLocalUnlockedAchievements = async () => {
   });
 
   for (const game of games) {
-    const gameAchievementFiles =
-      gameAchievementFilesMap.get(game.objectID) || [];
-    const achievementFileInsideDirectory =
-      findAchievementFileInExecutableDirectory(game);
+    for (const objectId of getAlternativeObjectIds(game.objectID)) {
+      const gameAchievementFiles = gameAchievementFilesMap.get(objectId) || [];
+      const achievementFileInsideDirectory =
+        findAchievementFileInExecutableDirectory(game);
 
-    gameAchievementFiles.push(...achievementFileInsideDirectory);
+      gameAchievementFiles.push(...achievementFileInsideDirectory);
 
-    const localAchievements = await gameAchievementRepository.findOne({
-      where: { objectId: game.objectID, shop: "steam" },
-    });
+      const localAchievements = await gameAchievementRepository.findOne({
+        where: { objectId: game.objectID, shop: "steam" },
+      });
 
-    if (!localAchievements || !localAchievements.achievements) {
-      await getGameAchievementData(game.objectID, "steam")
-        .then((achievements) => {
-          return gameAchievementRepository.upsert(
-            {
-              objectId: game.objectID,
-              shop: "steam",
-              achievements: JSON.stringify(achievements),
-            },
-            ["objectId", "shop"]
-          );
-        })
-        .catch(() => {});
-    }
-
-    const unlockedAchievements: UnlockedAchievement[] = [];
-
-    for (const achievementFile of gameAchievementFiles) {
-      const parsedAchievements = await parseAchievementFile(
-        achievementFile.filePath,
-        achievementFile.type
-      );
-
-      if (parsedAchievements.length) {
-        unlockedAchievements.push(...parsedAchievements);
+      if (!localAchievements || !localAchievements.achievements) {
+        await getGameAchievementData(game.objectID, "steam")
+          .then((achievements) => {
+            return gameAchievementRepository.upsert(
+              {
+                objectId: game.objectID,
+                shop: "steam",
+                achievements: JSON.stringify(achievements),
+              },
+              ["objectId", "shop"]
+            );
+          })
+          .catch(() => {});
       }
 
-      achievementsLogger.log(
-        "Achievement file for",
-        game.title,
-        achievementFile.filePath,
-        parsedAchievements
-      );
-    }
+      const unlockedAchievements: UnlockedAchievement[] = [];
 
-    mergeAchievements(game.objectID, "steam", unlockedAchievements, false);
+      for (const achievementFile of gameAchievementFiles) {
+        const parsedAchievements = await parseAchievementFile(
+          achievementFile.filePath,
+          achievementFile.type
+        );
+
+        if (parsedAchievements.length) {
+          unlockedAchievements.push(...parsedAchievements);
+        }
+
+        achievementsLogger.log(
+          "Achievement file for",
+          game.title,
+          achievementFile.filePath,
+          parsedAchievements
+        );
+      }
+
+      mergeAchievements(game.objectID, "steam", unlockedAchievements, false);
+    }
   }
 };
 
