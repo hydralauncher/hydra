@@ -79,7 +79,14 @@ const compareFile = async (game: Game, file: AchievementFile) => {
     const previousStat = fileStats.get(file.filePath);
     fileStats.set(file.filePath, currentStat.mtimeMs);
 
-    if (!previousStat || previousStat === currentStat.mtimeMs) {
+    if (!previousStat) {
+      if (currentStat.mtimeMs) {
+        await processAchievementFileDiff(game, file);
+        return;
+      }
+    }
+
+    if (previousStat === currentStat.mtimeMs) {
       return;
     }
 
