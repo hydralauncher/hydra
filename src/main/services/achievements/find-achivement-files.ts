@@ -24,6 +24,7 @@ const crackers = [
   Cracker.skidrow,
   Cracker.smartSteamEmu,
   Cracker.empress,
+  Cracker.flt,
 ];
 
 const getPathFromCracker = async (cracker: Cracker) => {
@@ -131,13 +132,35 @@ const getPathFromCracker = async (cracker: Cracker) => {
     return [
       {
         folderPath: path.join(appData, "SmartSteamEmu"),
-        fileLocation: ["User", "Achievements"],
+        fileLocation: ["User", "Achievements.ini"],
       },
     ];
   }
 
   if (cracker === Cracker._3dm) {
     return [];
+  }
+
+  if (cracker === Cracker.flt) {
+    return [
+      {
+        folderPath: path.join(appData, "FLT"),
+        fileLocation: ["stats"],
+      },
+    ];
+  }
+
+  if (cracker == Cracker.rle) {
+    return [
+      {
+        folderPath: path.join(appData, "RLE"),
+        fileLocation: ["achievements.ini"],
+      },
+      {
+        folderPath: path.join(appData, "RLE"),
+        fileLocation: ["Achievements.ini"],
+      },
+    ];
   }
 
   achievementsLogger.error(`Cracker ${cracker} not implemented`);
