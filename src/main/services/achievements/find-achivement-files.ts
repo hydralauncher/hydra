@@ -167,6 +167,14 @@ const getPathFromCracker = async (cracker: Cracker) => {
   throw new Error(`Cracker ${cracker} not implemented`);
 };
 
+const getAlternativeObjectIds = (objectId: string) => {
+  if (objectId === "205100") {
+    return ["205100", "217980", "31292"];
+  }
+
+  return [objectId];
+};
+
 export const findAchievementFiles = async (game: Game) => {
   const achievementFiles: AchievementFile[] = [];
 
@@ -174,13 +182,15 @@ export const findAchievementFiles = async (game: Game) => {
     for (const { folderPath, fileLocation } of await getPathFromCracker(
       cracker
     )) {
-      const filePath = path.join(folderPath, game.objectID, ...fileLocation);
+      for (const objectId of getAlternativeObjectIds(game.objectID)) {
+        const filePath = path.join(folderPath, objectId, ...fileLocation);
 
-      if (fs.existsSync(filePath)) {
-        achievementFiles.push({
-          type: cracker,
-          filePath,
-        });
+        if (fs.existsSync(filePath)) {
+          achievementFiles.push({
+            type: cracker,
+            filePath,
+          });
+        }
       }
     }
   }
