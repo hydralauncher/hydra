@@ -66,6 +66,11 @@ export const parseAchievementFile = async (
     });
   }
 
+  if (type === Cracker.creamAPI) {
+    const parsed = await iniParse(filePath);
+    return processCreamAPI(parsed);
+  }
+
   achievementsLogger.log(`${type} achievements found on ${filePath}`);
   return [];
 };
@@ -118,6 +123,27 @@ const processOnlineFix = (unlockedAchievements: any): UnlockedAchievement[] => {
       parsedUnlockedAchievements.push({
         name: achievement,
         unlockTime: unlockedAchievement.timestamp * 1000,
+      });
+    }
+  }
+
+  return parsedUnlockedAchievements;
+};
+
+const processCreamAPI = (unlockedAchievements: any): UnlockedAchievement[] => {
+  const parsedUnlockedAchievements: UnlockedAchievement[] = [];
+
+  for (const achievement of Object.keys(unlockedAchievements)) {
+    const unlockedAchievement = unlockedAchievements[achievement];
+
+    if (unlockedAchievement?.achieved) {
+      const unlockTime = unlockedAchievement.unlocktime;
+      parsedUnlockedAchievements.push({
+        name: achievement,
+        unlockTime:
+          unlockTime.length === 7
+            ? unlockTime * 1000 * 1000
+            : unlockTime * 1000,
       });
     }
   }
