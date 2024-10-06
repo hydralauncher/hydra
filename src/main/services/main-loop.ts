@@ -12,6 +12,6 @@ export const startMainLoop = async () => {
       watchAchievements(),
     ]);
 
-    await sleep(1000);
+    await sleep(1500);
   }
 };

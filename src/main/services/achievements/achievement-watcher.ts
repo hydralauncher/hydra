@@ -53,10 +53,7 @@ const processAchievementFileDiff = async (
   game: Game,
   file: AchievementFile
 ) => {
-  const unlockedAchievements = await parseAchievementFile(
-    file.filePath,
-    file.type
-  );
+  const unlockedAchievements = parseAchievementFile(file.filePath, file.type);
 
   logger.log("Achievements from file", file.filePath, unlockedAchievements);
 
