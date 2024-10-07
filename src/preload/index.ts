@@ -13,6 +13,7 @@ import type {
   UpdateProfileRequest,
 } from "@types";
 import type { CatalogueCategory } from "@shared";
+import type { AxiosProgressEvent } from "axios";
 
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
@@ -37,13 +38,13 @@ contextBridge.exposeInMainWorld("electron", {
   searchGames: (query: string) => ipcRenderer.invoke("searchGames", query),
   getCatalogue: (category: CatalogueCategory) =>
     ipcRenderer.invoke("getCatalogue", category),
-  getGameShopDetails: (objectID: string, shop: GameShop, language: string) =>
-    ipcRenderer.invoke("getGameShopDetails", objectID, shop, language),
+  getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
+    ipcRenderer.invoke("getGameShopDetails", objectId, shop, language),
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
-  getHowLongToBeat: (objectID: string, shop: GameShop, title: string) =>
-    ipcRenderer.invoke("getHowLongToBeat", objectID, shop, title),
-  getGames: (take?: number, prevCursor?: number) =>
-    ipcRenderer.invoke("getGames", take, prevCursor),
+  getHowLongToBeat: (title: string) =>
+    ipcRenderer.invoke("getHowLongToBeat", title),
+  getGames: (take?: number, skip?: number) =>
+    ipcRenderer.invoke("getGames", take, skip),
   searchGameRepacks: (query: string) =>
     ipcRenderer.invoke("searchGameRepacks", query),
   getGameStats: (objectId: string, shop: GameShop) =>
@@ -83,8 +84,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("deleteDownloadSource", id),
 
   /* Library */
-  addGameToLibrary: (objectID: string, title: string, shop: GameShop) =>
-    ipcRenderer.invoke("addGameToLibrary", objectID, title, shop),
+  addGameToLibrary: (objectId: string, title: string, shop: GameShop) =>
+    ipcRenderer.invoke("addGameToLibrary", objectId, title, shop),
   createGameShortcut: (id: number) =>
     ipcRenderer.invoke("createGameShortcut", id),
   updateExecutablePath: (id: number, executablePath: string) =>
@@ -106,8 +107,8 @@ contextBridge.exposeInMainWorld("electron", {
   removeGame: (gameId: number) => ipcRenderer.invoke("removeGame", gameId),
   deleteGameFolder: (gameId: number) =>
     ipcRenderer.invoke("deleteGameFolder", gameId),
-  getGameByObjectID: (objectID: string) =>
-    ipcRenderer.invoke("getGameByObjectID", objectID),
+  getGameByObjectId: (objectId: string) =>
+    ipcRenderer.invoke("getGameByObjectId", objectId),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
@@ -128,6 +129,62 @@ contextBridge.exposeInMainWorld("electron", {
   /* Hardware */
   getDiskFreeSpace: (path: string) =>
     ipcRenderer.invoke("getDiskFreeSpace", path),
+
+  /* Cloud save */
+  uploadSaveGame: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("uploadSaveGame", objectId, shop),
+  downloadGameArtifact: (
+    objectId: string,
+    shop: GameShop,
+    gameArtifactId: string
+  ) =>
+    ipcRenderer.invoke("downloadGameArtifact", objectId, shop, gameArtifactId),
+  getGameArtifacts: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("getGameArtifacts", objectId, shop),
+  getGameBackupPreview: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("getGameBackupPreview", objectId, shop),
+  checkGameCloudSyncSupport: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("checkGameCloudSyncSupport", objectId, shop),
+  deleteGameArtifact: (gameArtifactId: string) =>
+    ipcRenderer.invoke("deleteGameArtifact", gameArtifactId),
+  onUploadComplete: (objectId: string, shop: GameShop, cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on(`on-upload-complete-${objectId}-${shop}`, listener);
+    return () =>
+      ipcRenderer.removeListener(
+        `on-upload-complete-${objectId}-${shop}`,
+        listener
+      );
+  },
+  onBackupDownloadProgress: (
+    objectId: string,
+    shop: GameShop,
+    cb: (progress: AxiosProgressEvent) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      progress: AxiosProgressEvent
+    ) => cb(progress);
+    ipcRenderer.on(`on-backup-download-progress-${objectId}-${shop}`, listener);
+    return () =>
+      ipcRenderer.removeListener(
+        `on-backup-download-complete-${objectId}-${shop}`,
+        listener
+      );
+  },
+  onBackupDownloadComplete: (
+    objectId: string,
+    shop: GameShop,
+    cb: () => void
+  ) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on(`on-backup-download-complete-${objectId}-${shop}`, listener);
+    return () =>
+      ipcRenderer.removeListener(
+        `on-backup-download-complete-${objectId}-${shop}`,
+        listener
+      );
+  },
 
   /* Misc */
   ping: () => ipcRenderer.invoke("ping"),

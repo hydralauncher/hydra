@@ -5,7 +5,6 @@ import {
   useEffect,
   useState,
 } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
 
 import { setHeaderTitle } from "@renderer/features";
 import { getSteamLanguage } from "@renderer/helpers";
@@ -33,7 +32,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   gameTitle: "",
   isGameRunning: false,
   isLoading: false,
-  objectID: undefined,
+  objectId: undefined,
   gameColor: "",
   showRepacksModal: false,
   showGameOptionsModal: false,
@@ -53,13 +52,17 @@ export const { Consumer: GameDetailsContextConsumer } = gameDetailsContext;
 
 export interface GameDetailsContextProps {
   children: React.ReactNode;
+  objectId: string;
+  gameTitle: string;
+  shop: GameShop;
 }
 
 export function GameDetailsContextProvider({
   children,
+  objectId,
+  gameTitle,
+  shop,
 }: GameDetailsContextProps) {
-  const { objectID, shop } = useParams();
-
   const [shopDetails, setShopDetails] = useState<ShopDetails | null>(null);
   const [achievements, setAchievements] = useState<GameAchievement[]>([]);
   const [game, setGame] = useState<Game | null>(null);
@@ -74,10 +77,6 @@ export function GameDetailsContextProvider({
   const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
 
   const [repacks, setRepacks] = useState<GameRepack[]>([]);
-
-  const [searchParams] = useSearchParams();
-
-  const gameTitle = searchParams.get("title")!;
 
   const { searchRepacks, isIndexingRepacks } = useContext(repacksContext);
 
@@ -101,9 +100,9 @@ export function GameDetailsContextProvider({
 
   const updateGame = useCallback(async () => {
     return window.electron
-      .getGameByObjectID(objectID!)
+      .getGameByObjectId(objectId!)
       .then((result) => setGame(result));
-  }, [setGame, objectID]);
+  }, [setGame, objectId]);
 
   const isGameDownloading = lastPacket?.game.id === game?.id;
 
@@ -114,7 +113,7 @@ export function GameDetailsContextProvider({
   useEffect(() => {
     window.electron
       .getGameShopDetails(
-        objectID!,
+        objectId!,
         shop as GameShop,
         getSteamLanguage(i18n.language)
       )
@@ -133,15 +132,12 @@ export function GameDetailsContextProvider({
         setIsLoading(false);
       });
 
-    window.electron
-      .getGameStats(objectID!, shop as GameShop)
-      .then((result) => {
-        setStats(result);
-      })
-      .catch(() => {});
+    window.electron.getGameStats(objectId!, shop as GameShop).then((result) => {
+      setStats(result);
+    });
 
     window.electron
-      .getGameAchievements(objectID!, shop as GameShop)
+      .getGameAchievements(objectId!, shop as GameShop)
       .then((achievements) => {
         setAchievements(achievements);
       })
@@ -150,7 +146,7 @@ export function GameDetailsContextProvider({
       });
 
     updateGame();
-  }, [updateGame, dispatch, gameTitle, objectID, shop, i18n.language]);
+  }, [updateGame, dispatch, gameTitle, objectId, shop, i18n.language]);
 
   useEffect(() => {
     setShopDetails(null);
@@ -159,7 +155,7 @@ export function GameDetailsContextProvider({
     setisGameRunning(false);
     setAchievements([]);
     dispatch(setHeaderTitle(gameTitle));
-  }, [objectID, gameTitle, dispatch]);
+  }, [objectId, gameTitle, dispatch]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesIds) => {
@@ -181,10 +177,10 @@ export function GameDetailsContextProvider({
   useEffect(() => {
     const unsubscribe = window.electron.onAchievementUnlocked(
       (objectId, shop) => {
-        if (objectID !== objectId || shop !== shop) return;
+        if (objectId !== objectId || shop !== shop) return;
 
         window.electron
-          .getGameAchievements(objectID!, shop as GameShop)
+          .getGameAchievements(objectId!, shop as GameShop)
           .then(setAchievements)
           .catch(() => {});
       }
@@ -193,7 +189,7 @@ export function GameDetailsContextProvider({
     return () => {
       unsubscribe();
     };
-  }, [objectID, shop]);
+  }, [objectId, shop]);
 
   const getDownloadsPath = async () => {
     if (userPreferences?.downloadsPath) return userPreferences.downloadsPath;
@@ -233,7 +229,7 @@ export function GameDetailsContextProvider({
         gameTitle,
         isGameRunning,
         isLoading,
-        objectID,
+        objectId,
         gameColor,
         showGameOptionsModal,
         showRepacksModal,

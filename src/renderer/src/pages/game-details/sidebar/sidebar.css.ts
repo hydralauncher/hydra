@@ -3,7 +3,8 @@ import { globalStyle, style } from "@vanilla-extract/css";
 import { SPACING_UNIT, vars } from "../../../theme.css";
 
 export const contentSidebar = style({
-  borderLeft: `solid 1px ${vars.color.border};`,
+  borderLeft: `solid 1px ${vars.color.border}`,
+  backgroundColor: vars.color.darkBackground,
   width: "100%",
   height: "100%",
   "@media": {
@@ -16,15 +17,6 @@ export const contentSidebar = style({
       maxWidth: "400px",
     },
   },
-});
-
-export const contentSidebarTitle = style({
-  height: "72px",
-  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
-  display: "flex",
-  alignItems: "center",
-  backgroundColor: vars.color.background,
-  justifyContent: "space-between",
 });
 
 export const requirementButtonContainer = style({
@@ -56,7 +48,7 @@ export const requirementsDetailsSkeleton = style({
 
 export const howLongToBeatCategoriesList = style({
   margin: "0",
-  padding: "16px",
+  padding: `${SPACING_UNIT * 2}px`,
   display: "flex",
   flexDirection: "column",
   gap: "16px",
@@ -66,7 +58,8 @@ export const howLongToBeatCategory = style({
   display: "flex",
   flexDirection: "column",
   gap: "4px",
-  backgroundColor: vars.color.background,
+  background:
+    "linear-gradient(90deg, transparent 20%, rgb(255 255 255 / 2%) 100%)",
   borderRadius: "4px",
   padding: `8px 16px`,
   border: `solid 1px ${vars.color.border}`,
@@ -87,6 +80,8 @@ export const statsSection = style({
   gap: `${SPACING_UNIT * 2}px`,
   padding: `${SPACING_UNIT * 2}px`,
   justifyContent: "space-between",
+  transition: "max-height ease 0.5s",
+  overflow: "hidden",
   "@media": {
     "(min-width: 1024px)": {
       flexDirection: "column",

@@ -43,23 +43,6 @@ export function GameDetailsSkeleton() {
           </div>
         </div>
         <div className={sidebarStyles.contentSidebar}>
-          {/* <div className={sidebarStyles.contentSidebarTitle}>
-            <h3>HowLongToBeat</h3>
-          </div>
-          <ul className={sidebarStyles.howLongToBeatCategoriesList}>
-            {Array.from({ length: 3 }).map((_, index) => (
-              <Skeleton
-                key={index}
-                className={sidebarStyles.howLongToBeatCategorySkeleton}
-              />
-            ))}
-          </ul> */}
-          <div
-            className={sidebarStyles.contentSidebarTitle}
-            style={{ border: "none" }}
-          >
-            <h3>{t("requirements")}</h3>
-          </div>
           <div className={sidebarStyles.requirementButtonContainer}>
             <Button
               className={sidebarStyles.requirementButton}
