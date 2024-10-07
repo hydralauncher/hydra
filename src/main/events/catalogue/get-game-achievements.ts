@@ -38,8 +38,7 @@ const getAchievements = async (
   return { achievementsData, unlockedAchievements };
 };
 
-const getGameAchievements = async (
-  _event: Electron.IpcMainInvokeEvent,
+export const getGameAchievements = async (
   objectId: string,
   shop: GameShop,
   userId?: string
@@ -78,4 +77,13 @@ const getGameAchievements = async (
     });
 };
 
-registerEvent("getGameAchievements", getGameAchievements);
+const getGameAchievementsEvent = async (
+  _event: Electron.IpcMainInvokeEvent,
+  objectId: string,
+  shop: GameShop,
+  userId?: string
+): Promise<GameAchievement[]> => {
+  return getGameAchievements(objectId, shop, userId);
+};
+
+registerEvent("getGameAchievements", getGameAchievementsEvent);
