@@ -68,7 +68,8 @@ declare global {
     getTrendingGames: () => Promise<TrendingGame[]>;
     getGameAchievements: (
       objectId: string,
-      shop: GameShop
+      shop: GameShop,
+      userId?: string
     ) => Promise<GameAchievement[]>;
     onAchievementUnlocked: (
       cb: (

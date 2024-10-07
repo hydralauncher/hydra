@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import achievementSound from "@renderer/assets/audio/achievement.wav";
 import { useTranslation } from "react-i18next";
-import * as styles from "./achievement.css";
+import * as styles from "./achievement-notification.css";
 
 interface AchievementInfo {
   displayName: string;
@@ -10,7 +10,7 @@ interface AchievementInfo {
 
 const NOTIFICATION_TIMEOUT = 4000;
 
-export function Achievement() {
+export function AchievementNotification() {
   const { t } = useTranslation("achievement");
 
   const [isClosing, setIsClosing] = useState(false);
