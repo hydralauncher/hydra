@@ -130,12 +130,6 @@ export interface UserPreferences {
   runAtStartup: boolean;
 }
 
-export interface HowLongToBeatCategory {
-  title: string;
-  duration: string;
-  accuracy: string;
-}
-
 export interface Steam250Game {
   title: string;
   objectId: string;
@@ -304,3 +298,4 @@ export interface GameArtifact {
 export * from "./steam.types";
 export * from "./real-debrid.types";
 export * from "./ludusavi.types";
+export * from "./howlongtobeat.types";

@@ -58,8 +58,6 @@ declare global {
     ) => Promise<ShopDetails | null>;
     getRandomGame: () => Promise<Steam250Game>;
     getHowLongToBeat: (
-      objectId: string,
-      shop: GameShop,
       title: string
     ) => Promise<HowLongToBeatCategory[] | null>;
     getGames: (take?: number, skip?: number) => Promise<CatalogueEntry[]>;

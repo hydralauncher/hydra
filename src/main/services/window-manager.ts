@@ -16,6 +16,7 @@ import trayIcon from "@resources/tray-icon.png?asset";
 import { gameRepository, userPreferencesRepository } from "@main/repository";
 import { IsNull, Not } from "typeorm";
 import { HydraApi } from "./hydra-api";
+import UserAgent from "user-agents";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -79,11 +80,12 @@ export class WindowManager {
 
     this.mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
       (details, callback) => {
+        const userAgent = new UserAgent();
+
         callback({
           requestHeaders: {
             ...details.requestHeaders,
-            "user-agent":
-              "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+            "user-agent": userAgent.toString(),
           },
         });
       }
@@ -146,30 +148,29 @@ export class WindowManager {
   }
 
   public static createNotificationWindow() {
-    this.notificationWindow = new BrowserWindow({
-      transparent: true,
-      maximizable: false,
-      autoHideMenuBar: true,
-      minimizable: false,
-      focusable: false,
-      skipTaskbar: true,
-      frame: false,
-      width: 350,
-      height: 104,
-      x: 0,
-      y: 0,
-      webPreferences: {
-        preload: path.join(__dirname, "../preload/index.mjs"),
-        sandbox: false,
-      },
-    });
-
-    this.notificationWindow.setIgnoreMouseEvents(true);
-    this.notificationWindow.setVisibleOnAllWorkspaces(true, {
-      visibleOnFullScreen: true,
-    });
-    this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
-    this.loadNotificationWindowURL();
+    // this.notificationWindow = new BrowserWindow({
+    //   transparent: true,
+    //   maximizable: false,
+    //   autoHideMenuBar: true,
+    //   minimizable: false,
+    //   focusable: false,
+    //   skipTaskbar: true,
+    //   frame: false,
+    //   width: 350,
+    //   height: 104,
+    //   x: 0,
+    //   y: 0,
+    //   webPreferences: {
+    //     preload: path.join(__dirname, "../preload/index.mjs"),
+    //     sandbox: false,
+    //   },
+    // });
+    // this.notificationWindow.setIgnoreMouseEvents(true);
+    // this.notificationWindow.setVisibleOnAllWorkspaces(true, {
+    //   visibleOnFullScreen: true,
+    // });
+    // this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
+    // this.loadNotificationWindowURL();
   }
 
   public static openAuthWindow() {

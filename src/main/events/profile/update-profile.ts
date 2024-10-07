@@ -48,7 +48,9 @@ const updateProfile = async (
 
   const profileImageUrl = await getNewProfileImageUrl(
     updateProfile.profileImageUrl
-  ).catch(() => undefined);
+  ).catch((err) => {
+    console.log(err);
+  });
 
   return patchUserProfile({ ...updateProfile, profileImageUrl });
 };

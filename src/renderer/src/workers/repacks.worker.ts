@@ -3,20 +3,21 @@ import { formatName } from "@shared";
 import { GameRepack } from "@types";
 import flexSearch from "flexsearch";
 
-const index = new flexSearch.Index();
-
 interface SerializedGameRepack extends Omit<GameRepack, "uris"> {
   uris: string;
 }
 
 const state = {
   repacks: [] as SerializedGameRepack[],
+  index: null as flexSearch.Index | null,
 };
 
 self.onmessage = async (
   event: MessageEvent<[string, string] | "INDEX_REPACKS">
 ) => {
   if (event.data === "INDEX_REPACKS") {
+    state.index = new flexSearch.Index();
+
     repacksTable
       .toCollection()
       .sortBy("uploadDate")
@@ -26,7 +27,7 @@ self.onmessage = async (
         for (let i = 0; i < state.repacks.length; i++) {
           const repack = state.repacks[i];
           const formattedTitle = formatName(repack.title);
-          index.add(i, formattedTitle);
+          state.index!.add(i, formattedTitle);
         }
 
         self.postMessage("INDEXING_COMPLETE");
@@ -34,7 +35,7 @@ self.onmessage = async (
   } else {
     const [requestId, query] = event.data;
 
-    const results = index.search(formatName(query)).map((index) => {
+    const results = state.index!.search(formatName(query)).map((index) => {
       const repack = state.repacks.at(index as number) as SerializedGameRepack;
 
       return {

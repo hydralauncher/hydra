@@ -41,10 +41,12 @@ export function RepacksContextProvider({ children }: RepacksContextProps) {
   }, []);
 
   const indexRepacks = useCallback(() => {
+    console.log("INDEXING");
     setIsIndexingRepacks(true);
     repacksWorker.postMessage("INDEX_REPACKS");
 
     repacksWorker.onmessage = () => {
+      console.log("INDEXING COMPLETE");
       setIsIndexingRepacks(false);
     };
   }, []);
