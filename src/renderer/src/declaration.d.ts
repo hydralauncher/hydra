@@ -76,6 +76,11 @@ declare global {
         achievements?: { displayName: string; iconUrl: string }[]
       ) => void
     ) => () => Electron.IpcRenderer;
+    onUpdateAchievements: (
+      objectId: string,
+      shop: GameShop,
+      cb: (achievements: GameAchievement[]) => void
+    ) => () => Electron.IpcRenderer;
 
     /* Library */
     addGameToLibrary: (

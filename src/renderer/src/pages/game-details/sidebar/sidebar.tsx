@@ -82,7 +82,6 @@ export function Sidebar() {
         >
           <span>
             <Link to={buildGameAchievementPath()}>Ver todas</Link>
-            <a></a>
           </span>
           <div
             style={{
