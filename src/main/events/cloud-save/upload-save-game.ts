@@ -13,6 +13,11 @@ import { app } from "electron";
 const bundleBackup = async (shop: GameShop, objectId: string) => {
   const backupPath = path.join(backupsPath, `${shop}-${objectId}`);
 
+  // Remove existing backup
+  if (fs.existsSync(backupPath)) {
+    fs.rmSync(backupPath, { recursive: true });
+  }
+
   await Ludusavi.backupGame(shop, objectId, backupPath);
 
   const tarLocation = path.join(backupsPath, `${crypto.randomUUID()}.zip`);
