@@ -1,32 +1,65 @@
 import axios from "axios";
 import { requestWebPage } from "@main/helpers";
-import { HowLongToBeatCategory } from "@types";
+import type {
+  HowLongToBeatCategory,
+  HowLongToBeatSearchResponse,
+} from "@types";
 import { formatName } from "@shared";
 import { logger } from "./logger";
+import UserAgent from "user-agents";
 
-export interface HowLongToBeatResult {
-  game_id: number;
-  profile_steam: number;
-}
+const state = {
+  apiKey: null as string | null,
+};
 
-export interface HowLongToBeatSearchResponse {
-  data: HowLongToBeatResult[];
-}
+const getHowLongToBeatSearchApiKey = async () => {
+  const userAgent = new UserAgent();
+
+  const document = await requestWebPage("https://howlongtobeat.com/");
+  const scripts = Array.from(document.querySelectorAll("script"));
+
+  const appScript = scripts.find((script) =>
+    script.src.startsWith("/_next/static/chunks/pages/_app")
+  );
+
+  if (!appScript) return null;
+
+  const response = await axios.get(
+    `https://howlongtobeat.com${appScript.src}`,
+    {
+      headers: {
+        "User-Agent": userAgent.toString(),
+      },
+    }
+  );
+
+  const results = /fetch\("\/api\/search\/"\.concat\("(.*?)"\)/gm.exec(
+    response.data
+  );
+
+  if (!results) return null;
+
+  return results[1];
+};
 
 export const searchHowLongToBeat = async (gameName: string) => {
+  state.apiKey = state.apiKey ?? (await getHowLongToBeatSearchApiKey());
+  if (!state.apiKey) return { data: [] };
+
+  const userAgent = new UserAgent();
+
   const response = await axios
     .post(
-      "https://howlongtobeat.com/api/search",
+      "https://howlongtobeat.com/api/search/8fbd64723a8204dd",
       {
         searchType: "games",
         searchTerms: formatName(gameName).split(" "),
         searchPage: 1,
-        size: 100,
+        size: 20,
       },
       {
         headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+          "User-Agent": userAgent.toString(),
           Referer: "https://howlongtobeat.com/",
         },
       }

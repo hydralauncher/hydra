@@ -1,3 +1,4 @@
+import { charMap } from "./char-map";
 import { Downloader } from "./constants";
 
 export * from "./constants";
@@ -51,6 +52,12 @@ export const replaceUnderscoreWithSpace = (name: string) =>
   name.replace(/_/g, " ");
 
 export const formatName = pipe<string>(
+  (str) =>
+    str.replace(
+      new RegExp(Object.keys(charMap).join("|"), "g"),
+      (match) => charMap[match]
+    ),
+  (str) => str.toLowerCase(),
   removeReleaseYearFromName,
   removeSpecialEditionFromName,
   replaceUnderscoreWithSpace,

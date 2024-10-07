@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import type { HowLongToBeatCategory, SteamAppDetails } from "@types";
 import { useTranslation } from "react-i18next";
 import { Button } from "@renderer/components";
@@ -8,9 +8,12 @@ import { gameDetailsContext } from "@renderer/context";
 import { useDate, useFormat } from "@renderer/hooks";
 import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
 import { SPACING_UNIT } from "@renderer/theme.css";
+import { HowLongToBeatSection } from "./how-long-to-beat-section";
+import { howLongToBeatEntriesTable } from "@renderer/dexie";
+import { SidebarSection } from "../sidebar-section/sidebar-section";
 
 export function Sidebar() {
-  const [_howLongToBeat, _setHowLongToBeat] = useState<{
+  const [howLongToBeat, setHowLongToBeat] = useState<{
     isLoading: boolean;
     data: HowLongToBeatCategory[] | null;
   }>({ isLoading: true, data: null });
@@ -18,7 +21,7 @@ export function Sidebar() {
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
-  const { gameTitle, shopDetails, stats, achievements } =
+  const { gameTitle, shopDetails, objectId, shop, stats, achievements } =
     useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
@@ -26,28 +29,45 @@ export function Sidebar() {
 
   const { numberFormatter } = useFormat();
 
-  // useEffect(() => {
-  //   if (objectId) {
-  //     setHowLongToBeat({ isLoading: true, data: null });
+  useEffect(() => {
+    if (objectId) {
+      setHowLongToBeat({ isLoading: true, data: null });
 
-  //     window.electron
-  //       .getHowLongToBeat(objectId, "steam", gameTitle)
-  //       .then((howLongToBeat) => {
-  //         setHowLongToBeat({ isLoading: false, data: howLongToBeat });
-  //       })
-  //       .catch(() => {
-  //         setHowLongToBeat({ isLoading: false, data: null });
-  //       });
-  //   }
-  // }, [objectId, gameTitle]);
+      howLongToBeatEntriesTable
+        .where({ shop, objectId })
+        .first()
+        .then(async (cachedHowLongToBeat) => {
+          if (cachedHowLongToBeat) {
+            setHowLongToBeat({
+              isLoading: false,
+              data: cachedHowLongToBeat.categories,
+            });
+          } else {
+            try {
+              const howLongToBeat =
+                await window.electron.getHowLongToBeat(gameTitle);
+
+              if (howLongToBeat) {
+                howLongToBeatEntriesTable.add({
+                  objectId,
+                  shop: "steam",
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                  categories: howLongToBeat,
+                });
+              }
+
+              setHowLongToBeat({ isLoading: false, data: howLongToBeat });
+            } catch (err) {
+              setHowLongToBeat({ isLoading: false, data: null });
+            }
+          }
+        });
+    }
+  }, [objectId, shop, gameTitle]);
 
   return (
     <aside className={styles.contentSidebar}>
-      {/* <HowLongToBeatSection
-        howLongToBeatData={howLongToBeat.data}
-        isLoading={howLongToBeat.isLoading}
-      /> */}
-
       {achievements.length > 0 && (
         <div
           style={{
@@ -90,14 +110,7 @@ export function Sidebar() {
       )}
 
       {stats && (
-        <>
-          <div
-            className={styles.contentSidebarTitle}
-            style={{ border: "none" }}
-          >
-            <h3>{t("stats")}</h3>
-          </div>
-
+        <SidebarSection title={t("stats")}>
           <div className={styles.statsSection}>
             <div className={styles.statsCategory}>
               <p className={styles.statsCategoryTitle}>
@@ -115,40 +128,44 @@ export function Sidebar() {
               <p>{numberFormatter.format(stats?.playerCount)}</p>
             </div>
           </div>
-        </>
+        </SidebarSection>
       )}
 
-      <div className={styles.contentSidebarTitle} style={{ border: "none" }}>
-        <h3>{t("requirements")}</h3>
-      </div>
-      <div className={styles.requirementButtonContainer}>
-        <Button
-          className={styles.requirementButton}
-          onClick={() => setActiveRequirement("minimum")}
-          theme={activeRequirement === "minimum" ? "primary" : "outline"}
-        >
-          {t("minimum")}
-        </Button>
-
-        <Button
-          className={styles.requirementButton}
-          onClick={() => setActiveRequirement("recommended")}
-          theme={activeRequirement === "recommended" ? "primary" : "outline"}
-        >
-          {t("recommended")}
-        </Button>
-      </div>
-
-      <div
-        className={styles.requirementsDetails}
-        dangerouslySetInnerHTML={{
-          __html:
-            shopDetails?.pc_requirements?.[activeRequirement] ??
-            t(`no_${activeRequirement}_requirements`, {
-              gameTitle,
-            }),
-        }}
+      <HowLongToBeatSection
+        howLongToBeatData={howLongToBeat.data}
+        isLoading={howLongToBeat.isLoading}
       />
+
+      <SidebarSection title={t("requirements")}>
+        <div className={styles.requirementButtonContainer}>
+          <Button
+            className={styles.requirementButton}
+            onClick={() => setActiveRequirement("minimum")}
+            theme={activeRequirement === "minimum" ? "primary" : "outline"}
+          >
+            {t("minimum")}
+          </Button>
+
+          <Button
+            className={styles.requirementButton}
+            onClick={() => setActiveRequirement("recommended")}
+            theme={activeRequirement === "recommended" ? "primary" : "outline"}
+          >
+            {t("recommended")}
+          </Button>
+        </div>
+
+        <div
+          className={styles.requirementsDetails}
+          dangerouslySetInnerHTML={{
+            __html:
+              shopDetails?.pc_requirements?.[activeRequirement] ??
+              t(`no_${activeRequirement}_requirements`, {
+                gameTitle,
+              }),
+          }}
+        />
+      </SidebarSection>
     </aside>
   );
 }

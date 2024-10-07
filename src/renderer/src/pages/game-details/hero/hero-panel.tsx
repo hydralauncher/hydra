@@ -29,6 +29,7 @@ export function HeroPanel({ isHeaderStuck }: HeroPanelProps) {
       const [latestRepack] = repacks;
 
       if (latestRepack) {
+        console.log(latestRepack);
         const lastUpdate = format(latestRepack.uploadDate!, "dd/MM/yyyy");
         const repacksCount = repacks.length;
 
