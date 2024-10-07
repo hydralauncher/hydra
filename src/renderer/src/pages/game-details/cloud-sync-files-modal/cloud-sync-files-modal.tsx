@@ -11,8 +11,6 @@ export function CloudSyncFilesModal({
 }: CloudSyncFilesModalProps) {
   const { backupPreview } = useContext(cloudSyncContext);
 
-  console.log(backupPreview);
-
   const files = useMemo(() => {
     if (!backupPreview) {
       return [];
