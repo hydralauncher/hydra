@@ -148,29 +148,29 @@ export class WindowManager {
   }
 
   public static createNotificationWindow() {
-    // this.notificationWindow = new BrowserWindow({
-    //   transparent: true,
-    //   maximizable: false,
-    //   autoHideMenuBar: true,
-    //   minimizable: false,
-    //   focusable: false,
-    //   skipTaskbar: true,
-    //   frame: false,
-    //   width: 350,
-    //   height: 104,
-    //   x: 0,
-    //   y: 0,
-    //   webPreferences: {
-    //     preload: path.join(__dirname, "../preload/index.mjs"),
-    //     sandbox: false,
-    //   },
-    // });
-    // this.notificationWindow.setIgnoreMouseEvents(true);
+    this.notificationWindow = new BrowserWindow({
+      transparent: true,
+      maximizable: false,
+      autoHideMenuBar: true,
+      minimizable: false,
+      focusable: false,
+      skipTaskbar: true,
+      frame: false,
+      width: 350,
+      height: 104,
+      x: 0,
+      y: 0,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+    });
+    this.notificationWindow.setIgnoreMouseEvents(true);
     // this.notificationWindow.setVisibleOnAllWorkspaces(true, {
     //   visibleOnFullScreen: true,
     // });
-    // this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
-    // this.loadNotificationWindowURL();
+    this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
+    this.loadNotificationWindowURL();
   }
 
   public static openAuthWindow() {
