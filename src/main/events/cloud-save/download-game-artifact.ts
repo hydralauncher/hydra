@@ -42,6 +42,7 @@ const replaceLudusaviBackupWithCurrentUser = (
   // Directories are different, rename
   if (backupHomeDir !== currentHomeDir) {
     if (fs.existsSync(newPath)) {
+      // Ensures that the destination is empty
       fs.rmSync(newPath, {
         recursive: true,
         force: true,

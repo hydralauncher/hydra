@@ -64,8 +64,6 @@ export function EditProfileModal(
   const { showSuccessToast, showErrorToast } = useToast();
 
   const onSubmit = async (values: FormValues) => {
-    console.log(values);
-
     return patchUser(values)
       .then(async () => {
         await Promise.allSettled([fetchUserDetails(), getUserProfile()]);
@@ -119,8 +117,6 @@ export function EditProfileModal(
                       showErrorToast(t("image_process_failure"));
                       return { imagePath: null };
                     });
-
-                  console.log(imagePath);
 
                   onChange(imagePath);
                 }
