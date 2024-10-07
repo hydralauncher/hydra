@@ -49,44 +49,60 @@ export function Sidebar() {
       /> */}
 
       {achievements.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: `${SPACING_UNIT}px`,
-            padding: `${SPACING_UNIT}px`,
-          }}
-        >
-          {achievements.map((achievement, index) => (
-            <div
-              key={index}
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-                gap: `${SPACING_UNIT}px`,
-              }}
-              title={achievement.description}
-            >
-              <img
+        <>
+          <div
+            className={styles.contentSidebarTitle}
+            style={{ border: "none" }}
+          >
+            <h3>
+              {t("achievements")}{" "}
+              <span style={{ fontSize: "12px" }}>
+                ({achievements.filter((a) => a.unlocked).length}/
+                {achievements.length})
+              </span>
+            </h3>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: `${SPACING_UNIT}px`,
+              padding: `${SPACING_UNIT * 2}px`,
+            }}
+          >
+            {achievements.map((achievement, index) => (
+              <div
+                key={index}
                 style={{
-                  height: "72px",
-                  width: "72px",
-                  filter: achievement.unlocked ? "none" : "grayscale(100%)",
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: `${SPACING_UNIT}px`,
                 }}
-                src={
-                  achievement.unlocked ? achievement.icon : achievement.icongray
-                }
-                alt={achievement.displayName}
-                loading="lazy"
-              />
-              <div>
-                <p>{achievement.displayName}</p>
-                {achievement.unlockTime && format(achievement.unlockTime)}
+                title={achievement.description}
+              >
+                <img
+                  style={{
+                    height: "60px",
+                    width: "60px",
+                    filter: achievement.unlocked ? "none" : "grayscale(100%)",
+                  }}
+                  src={
+                    achievement.unlocked
+                      ? achievement.icon
+                      : achievement.icongray
+                  }
+                  alt={achievement.displayName}
+                  loading="lazy"
+                />
+                <div>
+                  <p>{achievement.displayName}</p>
+                  {achievement.unlockTime && format(achievement.unlockTime)}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
 
       {stats && (
