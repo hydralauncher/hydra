@@ -126,7 +126,8 @@
     "download": "Baixar",
     "executable_path_in_use": "Executável em uso por \"{{game}}\"",
     "warning": "Aviso:",
-    "hydra_needs_to_remain_open": "para este download, o Hydra precisa ficar aberto até a conclusão. Caso o Hydra encerre antes da conclusão, perderá seu progresso."
+    "hydra_needs_to_remain_open": "para este download, o Hydra precisa ficar aberto até a conclusão. Caso o Hydra encerre antes da conclusão, perderá seu progresso.",
+    "achievements": "Conquistas"
   },
   "activation": {
     "title": "Ativação",

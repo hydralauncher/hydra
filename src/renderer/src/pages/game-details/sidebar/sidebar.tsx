@@ -54,15 +54,20 @@ export function Sidebar() {
             className={styles.contentSidebarTitle}
             style={{ border: "none" }}
           >
-            <h3>{t("achievements")}</h3>
-            <span>{achievements.length}</span>
+            <h3>
+              {t("achievements")}{" "}
+              <span style={{ fontSize: "12px" }}>
+                ({achievements.filter((a) => a.unlocked).length}/
+                {achievements.length})
+              </span>
+            </h3>
           </div>
           <div
             style={{
               display: "flex",
               flexDirection: "column",
               gap: `${SPACING_UNIT}px`,
-              padding: `${SPACING_UNIT}px`,
+              padding: `${SPACING_UNIT * 2}px`,
             }}
           >
             {achievements.map((achievement, index) => (
@@ -78,8 +83,8 @@ export function Sidebar() {
               >
                 <img
                   style={{
-                    height: "72px",
-                    width: "72px",
+                    height: "60px",
+                    width: "60px",
                     filter: achievement.unlocked ? "none" : "grayscale(100%)",
                   }}
                   src={
