@@ -1,7 +1,7 @@
 libtorrent
 cx_Freeze
 cx_Logging; sys_platform == 'win32'
-lief; sys_platform == 'win32'
 pywin32; sys_platform == 'win32'
 psutil
 Pillow
+requests

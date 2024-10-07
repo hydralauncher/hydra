@@ -16,6 +16,7 @@ import trayIcon from "@resources/tray-icon.png?asset";
 import { gameRepository, userPreferencesRepository } from "@main/repository";
 import { IsNull, Not } from "typeorm";
 import { HydraApi } from "./hydra-api";
+import UserAgent from "user-agents";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -77,6 +78,54 @@ export class WindowManager {
       show: false,
     });
 
+    this.mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
+      (details, callback) => {
+        const userAgent = new UserAgent();
+
+        callback({
+          requestHeaders: {
+            ...details.requestHeaders,
+            "user-agent": userAgent.toString(),
+          },
+        });
+      }
+    );
+
+    this.mainWindow.webContents.session.webRequest.onHeadersReceived(
+      (details, callback) => {
+        if (details.webContentsId !== this.mainWindow?.webContents.id) {
+          return callback(details);
+        }
+
+        const headers = {
+          "access-control-allow-origin": ["*"],
+          "access-control-allow-methods": ["GET, POST, PUT, DELETE, OPTIONS"],
+          "access-control-expose-headers": ["ETag"],
+          "access-control-allow-headers": [
+            "Content-Type, Authorization, X-Requested-With, If-None-Match",
+          ],
+        };
+
+        if (details.method === "OPTIONS") {
+          return callback({
+            cancel: false,
+            responseHeaders: {
+              ...details.responseHeaders,
+              ...headers,
+            },
+            statusLine: "HTTP/1.1 200 OK",
+          });
+        }
+
+        return callback({
+          responseHeaders: {
+            ...details.responseHeaders,
+            ...headers,
+          },
+        });
+      }
+    );
+
     this.loadMainWindowURL();
     this.mainWindow.removeMenu();
 
@@ -116,11 +165,10 @@ export class WindowManager {
         sandbox: false,
       },
     });
-
     this.notificationWindow.setIgnoreMouseEvents(true);
-    this.notificationWindow.setVisibleOnAllWorkspaces(true, {
-      visibleOnFullScreen: true,
-    });
+    // this.notificationWindow.setVisibleOnAllWorkspaces(true, {
+    //   visibleOnFullScreen: true,
+    // });
     this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
     this.loadNotificationWindowURL();
   }
@@ -144,6 +192,8 @@ export class WindowManager {
       });
 
       authWindow.removeMenu();
+
+      if (!app.isPackaged) authWindow.webContents.openDevTools();
 
       const searchParams = new URLSearchParams({
         lng: i18next.language,
@@ -176,7 +226,7 @@ export class WindowManager {
   }
 
   public static createSystemTray(language: string) {
-    let tray;
+    let tray: Tray;
 
     if (process.platform === "darwin") {
       const macIcon = nativeImage

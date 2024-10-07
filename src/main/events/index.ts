@@ -57,6 +57,12 @@ import "./profile/update-profile";
 import "./profile/process-profile-image";
 import "./profile/send-friend-request";
 import "./profile/sync-friend-requests";
+import "./cloud-save/download-game-artifact";
+import "./cloud-save/get-game-artifacts";
+import "./cloud-save/get-game-backup-preview";
+import "./cloud-save/upload-save-game";
+import "./cloud-save/check-game-cloud-sync-support";
+import "./cloud-save/delete-game-artifact";
 import "./notifications/publish-new-repacks-notification";
 import { isPortableVersion } from "@main/helpers";
 

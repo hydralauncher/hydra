@@ -17,4 +17,6 @@ export const seedsPath = app.isPackaged
   ? path.join(process.resourcesPath, "seeds")
   : path.join(__dirname, "..", "..", "seeds");
 
+export const backupsPath = path.join(app.getPath("userData"), "Backups");
+
 export const appVersion = app.getVersion();

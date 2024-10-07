@@ -11,14 +11,14 @@ import { updateLocalUnlockedAchivements } from "@main/services/achievements/upda
 
 const addGameToLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
-  objectID: string,
+  objectId: string,
   title: string,
   shop: GameShop
 ) => {
   return gameRepository
     .update(
       {
-        objectID,
+        objectID: objectId,
       },
       {
         shop,
@@ -28,23 +28,25 @@ const addGameToLibrary = async (
     )
     .then(async ({ affected }) => {
       if (!affected) {
-        const steamGame = await steamGamesWorker.run(Number(objectID), {
+        const steamGame = await steamGamesWorker.run(Number(objectId), {
           name: "getById",
         });
 
         const iconUrl = steamGame?.clientIcon
-          ? steamUrlBuilder.icon(objectID, steamGame.clientIcon)
+          ? steamUrlBuilder.icon(objectId, steamGame.clientIcon)
           : null;
 
         await gameRepository.insert({
           title,
           iconUrl,
-          objectID,
+          objectID: objectId,
           shop,
         });
       }
 
-      const game = await gameRepository.findOne({ where: { objectID } });
+      const game = await gameRepository.findOne({
+        where: { objectID: objectId },
+      });
 
       updateLocalUnlockedAchivements(game!);
 

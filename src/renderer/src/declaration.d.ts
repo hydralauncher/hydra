@@ -26,7 +26,10 @@ import type {
   UserDetails,
   FriendRequestSync,
   GameAchievement,
+  GameArtifact,
+  LudusaviBackup,
 } from "@types";
+import type { AxiosProgressEvent } from "axios";
 import type { DiskSpace } from "check-disk-space";
 
 declare global {
@@ -49,20 +52,15 @@ declare global {
     searchGames: (query: string) => Promise<CatalogueEntry[]>;
     getCatalogue: (category: CatalogueCategory) => Promise<CatalogueEntry[]>;
     getGameShopDetails: (
-      objectID: string,
+      objectId: string,
       shop: GameShop,
       language: string
     ) => Promise<ShopDetails | null>;
     getRandomGame: () => Promise<Steam250Game>;
     getHowLongToBeat: (
-      objectID: string,
-      shop: GameShop,
       title: string
     ) => Promise<HowLongToBeatCategory[] | null>;
-    getGames: (
-      take?: number,
-      prevCursor?: number
-    ) => Promise<{ results: CatalogueEntry[]; cursor: number }>;
+    getGames: (take?: number, skip?: number) => Promise<CatalogueEntry[]>;
     searchGameRepacks: (query: string) => Promise<GameRepack[]>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getTrendingGames: () => Promise<TrendingGame[]>;
@@ -81,7 +79,7 @@ declare global {
 
     /* Library */
     addGameToLibrary: (
-      objectID: string,
+      objectId: string,
       title: string,
       shop: GameShop
     ) => Promise<void>;
@@ -97,7 +95,7 @@ declare global {
     removeGameFromLibrary: (gameId: number) => Promise<void>;
     removeGame: (gameId: number) => Promise<void>;
     deleteGameFolder: (gameId: number) => Promise<unknown>;
-    getGameByObjectID: (objectID: string) => Promise<Game | null>;
+    getGameByObjectId: (objectId: string) => Promise<Game | null>;
     onGamesRunning: (
       cb: (
         gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
@@ -119,6 +117,42 @@ declare global {
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
+
+    /* Cloud save */
+    uploadSaveGame: (objectId: string, shop: GameShop) => Promise<void>;
+    downloadGameArtifact: (
+      objectId: string,
+      shop: GameShop,
+      gameArtifactId: string
+    ) => Promise<void>;
+    getGameArtifacts: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<GameArtifact[]>;
+    getGameBackupPreview: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<LudusaviBackup | null>;
+    checkGameCloudSyncSupport: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<boolean>;
+    deleteGameArtifact: (gameArtifactId: string) => Promise<{ ok: boolean }>;
+    onBackupDownloadComplete: (
+      objectId: string,
+      shop: GameShop,
+      cb: () => void
+    ) => () => Electron.IpcRenderer;
+    onUploadComplete: (
+      objectId: string,
+      shop: GameShop,
+      cb: () => void
+    ) => () => Electron.IpcRenderer;
+    onBackupDownloadProgress: (
+      objectId: string,
+      shop: GameShop,
+      cb: (progress: AxiosProgressEvent) => void
+    ) => () => Electron.IpcRenderer;
 
     /* Misc */
     openExternal: (src: string) => Promise<void>;
