@@ -24,6 +24,7 @@ export const contentSidebarTitle = style({
   display: "flex",
   alignItems: "center",
   backgroundColor: vars.color.background,
+  justifyContent: "space-between",
 });
 
 export const requirementButtonContainer = style({
