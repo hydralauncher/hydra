@@ -49,8 +49,8 @@ contextBridge.exposeInMainWorld("electron", {
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
   getTrendingGames: () => ipcRenderer.invoke("getTrendingGames"),
-  getGameAchievements: (objectId: string, shop: GameShop) =>
-    ipcRenderer.invoke("getGameAchievements", objectId, shop),
+  getGameAchievements: (objectId: string, shop: GameShop, userId?: string) =>
+    ipcRenderer.invoke("getGameAchievements", objectId, shop, userId),
   onAchievementUnlocked: (
     cb: (
       objectId: string,

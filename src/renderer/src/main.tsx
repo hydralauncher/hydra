@@ -28,10 +28,11 @@ import {
 import { store } from "./store";
 
 import resources from "@locales";
-import { Achievement } from "./pages/achievement/achievement";
+import { AchievementNotification } from "./pages/achievement/notification/achievement-notification";
 
 import "./workers";
 import { RepacksContextProvider } from "./context";
+import { Achievement } from "./pages/achievement/achievements";
 
 Sentry.init({});
 
@@ -69,8 +70,12 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               <Route path="/search" Component={SearchResults} />
               <Route path="/settings" Component={Settings} />
               <Route path="/profile/:userId" Component={Profile} />
+              <Route path="/achievements" Component={Achievement} />
             </Route>
-            <Route path="/achievement-notification" Component={Achievement} />
+            <Route
+              path="/achievement-notification"
+              Component={AchievementNotification}
+            />
           </Routes>
         </HashRouter>
       </RepacksContextProvider>

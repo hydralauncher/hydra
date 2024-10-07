@@ -1,7 +1,7 @@
 import { useContext, useState } from "react";
 import type { HowLongToBeatCategory, SteamAppDetails } from "@types";
 import { useTranslation } from "react-i18next";
-import { Button } from "@renderer/components";
+import { Button, Link } from "@renderer/components";
 
 import * as styles from "./sidebar.css";
 import { gameDetailsContext } from "@renderer/context";
@@ -18,13 +18,18 @@ export function Sidebar() {
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
-  const { gameTitle, shopDetails, stats, achievements } =
+  const { gameTitle, shopDetails, stats, achievements, shop, objectID } =
     useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
   const { format } = useDate();
 
   const { numberFormatter } = useFormat();
+
+  const buildGameAchievementPath = () => {
+    const urlParams = new URLSearchParams({ objectId: objectID!, shop });
+    return `/achievements?${urlParams.toString()}`;
+  };
 
   // useEffect(() => {
   //   if (objectID) {
@@ -61,6 +66,10 @@ export function Sidebar() {
                 {achievements.length})
               </span>
             </h3>
+            <span>
+              <Link to={buildGameAchievementPath()}>Ver todas</Link>
+              <a></a>
+            </span>
           </div>
           <div
             style={{
@@ -70,7 +79,7 @@ export function Sidebar() {
               padding: `${SPACING_UNIT * 2}px`,
             }}
           >
-            {achievements.map((achievement, index) => (
+            {achievements.slice(0, 6).map((achievement, index) => (
               <div
                 key={index}
                 style={{
