@@ -50,7 +50,8 @@ const openGameInstaller = async (
   }
 
   if (fs.lstatSync(gamePath).isFile()) {
-    return executeGameInstaller(gamePath);
+    shell.showItemInFolder(gamePath);
+    return true;
   }
 
   const setupPath = path.join(gamePath, "setup.exe");

@@ -10,7 +10,6 @@ import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { howLongToBeatEntriesTable } from "@renderer/dexie";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
-import { useNavigate } from "react-router-dom";
 
 export function Sidebar() {
   const [howLongToBeat, setHowLongToBeat] = useState<{
