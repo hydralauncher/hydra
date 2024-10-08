@@ -20,3 +20,5 @@ export const seedsPath = app.isPackaged
 export const backupsPath = path.join(app.getPath("userData"), "Backups");
 
 export const appVersion = app.getVersion();
+
+export const artifactMetadataFileName = "hydra-launcher-metadata.json";
