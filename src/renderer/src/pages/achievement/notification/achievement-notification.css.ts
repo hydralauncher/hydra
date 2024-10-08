@@ -1,5 +1,5 @@
 import { recipe } from "@vanilla-extract/recipes";
-import { vars } from "../../theme.css";
+import { vars } from "../../../theme.css";
 import { keyframes, style } from "@vanilla-extract/css";
 
 const animationIn = keyframes({

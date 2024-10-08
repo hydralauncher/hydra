@@ -2,6 +2,7 @@ import { gameAchievementRepository, gameRepository } from "@main/repository";
 import type { GameShop, UnlockedAchievement } from "@types";
 import { WindowManager } from "../window-manager";
 import { HydraApi } from "../hydra-api";
+import { getGameAchievements } from "@main/events/catalogue/get-game-achievements";
 
 const saveAchievementsOnLocal = async (
   objectId: string,
@@ -17,11 +18,10 @@ const saveAchievementsOnLocal = async (
       },
       ["objectId", "shop"]
     )
-    .then(() => {
+    .then(async () => {
       WindowManager.mainWindow?.webContents.send(
-        "on-achievement-unlocked",
-        objectId,
-        shop
+        `on-update-achievements-${objectId}-${shop}`,
+        await getGameAchievements(objectId, shop as GameShop)
       );
     });
 };
@@ -47,7 +47,7 @@ export const mergeAchievements = async (
 
   const unlockedAchievements = JSON.parse(
     localGameAchievement?.unlockedAchievements || "[]"
-  );
+  ).filter((achievement) => achievement.name);
 
   const newAchievements = achievements
     .filter((achievement) => {
@@ -60,7 +60,7 @@ export const mergeAchievements = async (
     .map((achievement) => {
       return {
         name: achievement.name.toUpperCase(),
-        unlockTime: achievement.unlockTime * 1000,
+        unlockTime: achievement.unlockTime,
       };
     });
 

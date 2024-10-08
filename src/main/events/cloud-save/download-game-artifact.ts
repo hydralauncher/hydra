@@ -20,11 +20,6 @@ export interface LudusaviBackup {
   };
 }
 
-const getPathDrive = (key: string) => {
-  const parts = key.split("/");
-  return parts[0];
-};
-
 const replaceLudusaviBackupWithCurrentUser = (
   backupPath: string,
   title: string
