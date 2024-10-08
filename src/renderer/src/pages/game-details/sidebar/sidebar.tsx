@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import type { HowLongToBeatCategory, SteamAppDetails } from "@types";
 import { useTranslation } from "react-i18next";
-import { Button } from "@renderer/components";
+import { Button, Link } from "@renderer/components";
 
 import * as styles from "./sidebar.css";
 import { gameDetailsContext } from "@renderer/context";
@@ -28,6 +28,11 @@ export function Sidebar() {
   const { format } = useDate();
 
   const { numberFormatter } = useFormat();
+
+  const buildGameAchievementPath = () => {
+    const urlParams = new URLSearchParams({ objectId: objectId!, shop });
+    return `/achievements?${urlParams.toString()}`;
+  };
 
   useEffect(() => {
     if (objectId) {
@@ -69,44 +74,56 @@ export function Sidebar() {
   return (
     <aside className={styles.contentSidebar}>
       {achievements.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: `${SPACING_UNIT}px`,
-            padding: `${SPACING_UNIT}px`,
-          }}
+        <SidebarSection
+          title={t("achievements", {
+            unlockedCount: achievements.filter((a) => a.unlocked).length,
+            achievementsCount: achievements.length,
+          })}
         >
-          {achievements.map((achievement, index) => (
-            <div
-              key={index}
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-                gap: `${SPACING_UNIT}px`,
-              }}
-              title={achievement.description}
-            >
-              <img
+          <span>
+            <Link to={buildGameAchievementPath()}>Ver todas</Link>
+          </span>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: `${SPACING_UNIT}px`,
+              padding: `${SPACING_UNIT * 2}px`,
+            }}
+          >
+            {achievements.slice(0, 6).map((achievement, index) => (
+              <div
+                key={index}
                 style={{
-                  height: "72px",
-                  width: "72px",
-                  filter: achievement.unlocked ? "none" : "grayscale(100%)",
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: `${SPACING_UNIT}px`,
                 }}
-                src={
-                  achievement.unlocked ? achievement.icon : achievement.icongray
-                }
-                alt={achievement.displayName}
-                loading="lazy"
-              />
-              <div>
-                <p>{achievement.displayName}</p>
-                {achievement.unlockTime && format(achievement.unlockTime)}
+                title={achievement.description}
+              >
+                <img
+                  style={{
+                    height: "60px",
+                    width: "60px",
+                    filter: achievement.unlocked ? "none" : "grayscale(100%)",
+                  }}
+                  src={
+                    achievement.unlocked
+                      ? achievement.icon
+                      : achievement.icongray
+                  }
+                  alt={achievement.displayName}
+                  loading="lazy"
+                />
+                <div>
+                  <p>{achievement.displayName}</p>
+                  {achievement.unlockTime && format(achievement.unlockTime)}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </SidebarSection>
       )}
 
       {stats && (

@@ -24,9 +24,10 @@ const crackers = [
   Cracker.skidrow,
   Cracker.smartSteamEmu,
   Cracker.empress,
+  Cracker.flt,
 ];
 
-const getPathFromCracker = async (cracker: Cracker) => {
+const getPathFromCracker = (cracker: Cracker) => {
   if (cracker === Cracker.codex) {
     return [
       {
@@ -85,6 +86,10 @@ const getPathFromCracker = async (cracker: Cracker) => {
         folderPath: path.join(programData, "Steam", "Player"),
         fileLocation: ["stats", "achievements.ini"],
       },
+      {
+        folderPath: path.join(programData, "Steam", "dodi"),
+        fileLocation: ["stats", "achievements.ini"],
+      },
     ];
   }
 
@@ -131,7 +136,33 @@ const getPathFromCracker = async (cracker: Cracker) => {
     return [
       {
         folderPath: path.join(appData, "SmartSteamEmu"),
-        fileLocation: ["User", "Achievements"],
+        fileLocation: ["User", "Achievements.ini"],
+      },
+    ];
+  }
+
+  if (cracker === Cracker._3dm) {
+    return [];
+  }
+
+  if (cracker === Cracker.flt) {
+    return [
+      {
+        folderPath: path.join(appData, "FLT"),
+        fileLocation: ["stats"],
+      },
+    ];
+  }
+
+  if (cracker == Cracker.rle) {
+    return [
+      {
+        folderPath: path.join(appData, "RLE"),
+        fileLocation: ["achievements.ini"],
+      },
+      {
+        folderPath: path.join(appData, "RLE"),
+        fileLocation: ["Achievements.ini"],
       },
     ];
   }
@@ -140,20 +171,29 @@ const getPathFromCracker = async (cracker: Cracker) => {
   throw new Error(`Cracker ${cracker} not implemented`);
 };
 
-export const findAchievementFiles = async (game: Game) => {
+export const getAlternativeObjectIds = (objectId: string) => {
+  // Dishonored
+  if (objectId === "205100") {
+    return ["205100", "217980", "31292"];
+  }
+
+  return [objectId];
+};
+
+export const findAchievementFiles = (game: Game) => {
   const achievementFiles: AchievementFile[] = [];
 
   for (const cracker of crackers) {
-    for (const { folderPath, fileLocation } of await getPathFromCracker(
-      cracker
-    )) {
-      const filePath = path.join(folderPath, game.objectID, ...fileLocation);
+    for (const { folderPath, fileLocation } of getPathFromCracker(cracker)) {
+      for (const objectId of getAlternativeObjectIds(game.objectID)) {
+        const filePath = path.join(folderPath, objectId, ...fileLocation);
 
-      if (fs.existsSync(filePath)) {
-        achievementFiles.push({
-          type: cracker,
-          filePath,
-        });
+        if (fs.existsSync(filePath)) {
+          achievementFiles.push({
+            type: cracker,
+            filePath,
+          });
+        }
       }
     }
   }
@@ -163,31 +203,40 @@ export const findAchievementFiles = async (game: Game) => {
 
 export const findAchievementFileInExecutableDirectory = (
   game: Game
-): AchievementFile | null => {
+): AchievementFile[] => {
   if (!game.executablePath) {
-    return null;
+    return [];
   }
 
-  const steamDataPath = path.join(
-    game.executablePath,
-    "..",
-    "SteamData",
-    "user_stats.ini"
-  );
-
-  return {
-    type: Cracker.userstats,
-    filePath: steamDataPath,
-  };
+  return [
+    {
+      type: Cracker.userstats,
+      filePath: path.join(
+        game.executablePath,
+        "..",
+        "SteamData",
+        "user_stats.ini"
+      ),
+    },
+    {
+      type: Cracker._3dm,
+      filePath: path.join(
+        game.executablePath,
+        "..",
+        "3DMGAME",
+        "Player",
+        "stats",
+        "achievements.ini"
+      ),
+    },
+  ];
 };
 
-export const findAllAchievementFiles = async () => {
+export const findAllAchievementFiles = () => {
   const gameAchievementFiles = new Map<string, AchievementFile[]>();
 
   for (const cracker of crackers) {
-    for (const { folderPath, fileLocation } of await getPathFromCracker(
-      cracker
-    )) {
+    for (const { folderPath, fileLocation } of getPathFromCracker(cracker)) {
       if (!fs.existsSync(folderPath)) {
         continue;
       }

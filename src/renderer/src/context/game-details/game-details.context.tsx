@@ -132,13 +132,14 @@ export function GameDetailsContextProvider({
         setIsLoading(false);
       });
 
-    window.electron.getGameStats(objectId!, shop as GameShop).then((result) => {
+    window.electron.getGameStats(objectId, shop as GameShop).then((result) => {
       setStats(result);
     });
 
     window.electron
-      .getGameAchievements(objectId!, shop as GameShop)
+      .getGameAchievements(objectId, shop as GameShop)
       .then((achievements) => {
+        // TODO: race condition
         setAchievements(achievements);
       })
       .catch(() => {
@@ -175,14 +176,11 @@ export function GameDetailsContextProvider({
   }, [game?.id, isGameRunning, updateGame]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onAchievementUnlocked(
-      (objectId, shop) => {
-        if (objectId !== objectId || shop !== shop) return;
-
-        window.electron
-          .getGameAchievements(objectId!, shop as GameShop)
-          .then(setAchievements)
-          .catch(() => {});
+    const unsubscribe = window.electron.onUpdateAchievements(
+      objectId,
+      shop,
+      (achievements) => {
+        setAchievements(achievements);
       }
     );
 

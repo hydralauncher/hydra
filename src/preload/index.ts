@@ -14,6 +14,7 @@ import type {
 } from "@types";
 import type { CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
+import { GameAchievement } from "@main/entity";
 
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
@@ -50,8 +51,8 @@ contextBridge.exposeInMainWorld("electron", {
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
   getTrendingGames: () => ipcRenderer.invoke("getTrendingGames"),
-  getGameAchievements: (objectId: string, shop: GameShop) =>
-    ipcRenderer.invoke("getGameAchievements", objectId, shop),
+  getGameAchievements: (objectId: string, shop: GameShop, userId?: string) =>
+    ipcRenderer.invoke("getGameAchievements", objectId, shop, userId),
   onAchievementUnlocked: (
     cb: (
       objectId: string,
@@ -68,6 +69,22 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-achievement-unlocked", listener);
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked", listener);
+  },
+  onUpdateAchievements: (
+    objectId: string,
+    shop: GameShop,
+    cb: (achievements: GameAchievement[]) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      achievements: GameAchievement[]
+    ) => cb(achievements);
+    ipcRenderer.on(`on-update-achievements-${objectId}-${shop}`, listener);
+    return () =>
+      ipcRenderer.removeListener(
+        `on-update-achievements-${objectId}-${shop}`,
+        listener
+      );
   },
 
   /* User preferences */

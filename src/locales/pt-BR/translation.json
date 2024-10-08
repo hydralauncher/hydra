@@ -127,6 +127,7 @@
     "executable_path_in_use": "Executável em uso por \"{{game}}\"",
     "warning": "Aviso:",
     "hydra_needs_to_remain_open": "para este download, o Hydra precisa ficar aberto até a conclusão. Caso o Hydra encerre antes da conclusão, perderá seu progresso.",
+    "achievements": "Conquistas {{unlockedCount}}/{{achievementsCount}}",
     "cloud_save": "Salvamento em nuvem",
     "cloud_save_description": "Matenha seu progresso na nuvem e continue de onde parou em qualquer dispositivo",
     "backups": "Backups",

@@ -1,88 +1,74 @@
-import type { GameAchievement, GameShop } from "@types";
+import type { GameAchievement, GameShop, UnlockedAchievement } from "@types";
 import { registerEvent } from "../register-event";
-import { HydraApi } from "@main/services";
 import {
   gameAchievementRepository,
-  gameRepository,
-  userPreferencesRepository,
+  userAuthRepository,
 } from "@main/repository";
-import { UserNotLoggedInError } from "@shared";
-import { Game } from "@main/entity";
+import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
+import { HydraApi } from "@main/services";
 
-const getAchievementsDataFromApi = async (
-  objectId: string,
+const getAchievements = async (
   shop: string,
-  game: Game | null
+  objectId: string,
+  userId?: string
 ) => {
-  const userPreferences = await userPreferencesRepository.findOne({
-    where: { id: 1 },
+  const userAuth = await userAuthRepository.findOne({ where: { userId } });
+
+  const cachedAchievements = await gameAchievementRepository.findOne({
+    where: { objectId, shop },
   });
 
-  return HydraApi.get("/games/achievements", {
-    objectId,
-    shop,
-    language: userPreferences?.language || "en",
-  })
-    .then((achievements) => {
-      if (game) {
-        gameAchievementRepository.upsert(
-          {
-            objectId,
-            shop,
-            achievements: JSON.stringify(achievements),
-          },
-          ["objectId", "shop"]
-        );
-      }
+  const achievementsData = cachedAchievements?.achievements
+    ? JSON.parse(cachedAchievements.achievements)
+    : await getGameAchievementData(objectId, shop);
 
-      return achievements;
-    })
-    .catch((err) => {
-      if (err instanceof UserNotLoggedInError) throw err;
-      return [];
-    });
+  if (!userId || userAuth) {
+    const unlockedAchievements = JSON.parse(
+      cachedAchievements?.unlockedAchievements || "[]"
+    ) as UnlockedAchievement[];
+
+    return { achievementsData, unlockedAchievements };
+  }
+
+  const unlockedAchievements = await HydraApi.get<UnlockedAchievement[]>(
+    `/users/${userId}/games/achievements`,
+    { shop, objectId, language: "en" }
+  );
+
+  return { achievementsData, unlockedAchievements };
 };
 
-const getGameAchievements = async (
-  _event: Electron.IpcMainInvokeEvent,
+export const getGameAchievements = async (
   objectId: string,
-  shop: GameShop
+  shop: GameShop,
+  userId?: string
 ): Promise<GameAchievement[]> => {
-  const [game, cachedAchievements] = await Promise.all([
-    gameRepository.findOne({
-      where: { objectID: objectId, shop },
-    }),
-    gameAchievementRepository.findOne({ where: { objectId, shop } }),
-  ]);
+  const { achievementsData, unlockedAchievements } = await getAchievements(
+    shop,
+    objectId,
+    userId
+  );
 
-  const gameAchievements = cachedAchievements?.achievements
-    ? JSON.parse(cachedAchievements.achievements)
-    : await getAchievementsDataFromApi(objectId, shop, game);
-
-  const unlockedAchievements = JSON.parse(
-    cachedAchievements?.unlockedAchievements || "[]"
-  ) as { name: string; unlockTime: number }[];
-
-  return gameAchievements
-    .map((achievement) => {
+  return achievementsData
+    .map((achievementData) => {
       const unlockedAchiement = unlockedAchievements.find(
         (localAchievement) => {
           return (
             localAchievement.name.toUpperCase() ==
-            achievement.name.toUpperCase()
+            achievementData.name.toUpperCase()
           );
         }
       );
 
       if (unlockedAchiement) {
         return {
-          ...achievement,
+          ...achievementData,
           unlocked: true,
           unlockTime: unlockedAchiement.unlockTime,
         };
       }
 
-      return { ...achievement, unlocked: false, unlockTime: null };
+      return { ...achievementData, unlocked: false, unlockTime: null };
     })
     .sort((a, b) => {
       if (a.unlocked && !b.unlocked) return -1;
@@ -91,4 +77,13 @@ const getGameAchievements = async (
     });
 };
 
-registerEvent("getGameAchievements", getGameAchievements);
+const getGameAchievementsEvent = async (
+  _event: Electron.IpcMainInvokeEvent,
+  objectId: string,
+  shop: GameShop,
+  userId?: string
+): Promise<GameAchievement[]> => {
+  return getGameAchievements(objectId, shop, userId);
+};
+
+registerEvent("getGameAchievements", getGameAchievementsEvent);
