@@ -9,6 +9,7 @@ import axios from "axios";
 import os from "node:os";
 import { backupsPath } from "@main/constants";
 import { app } from "electron";
+import { normalizePath } from "@main/helpers";
 
 const bundleBackup = async (shop: GameShop, objectId: string) => {
   const backupPath = path.join(backupsPath, `${shop}-${objectId}`);
@@ -55,7 +56,7 @@ const uploadSaveGame = async (
       shop,
       objectId,
       hostname: os.hostname(),
-      homeDir: path.normalize(app.getPath("home")).replace(/\\/g, "/"),
+      homeDir: normalizePath(app.getPath("home")),
       platform: os.platform(),
     });
 
