@@ -22,7 +22,7 @@ export function Achievement() {
           setAchievements(achievements);
         });
     }
-  }, []);
+  }, [objectId, shop, userId]);
 
   return (
     <div>
