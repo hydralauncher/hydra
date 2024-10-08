@@ -1,6 +1,7 @@
 import axios from "axios";
 import { JSDOM } from "jsdom";
 import UserAgent from "user-agents";
+import path from "node:path";
 
 export const getFileBuffer = async (url: string) =>
   fetch(url, { method: "GET" }).then((response) =>
@@ -27,3 +28,6 @@ export const requestWebPage = async (url: string) => {
 
 export const isPortableVersion = () =>
   process.env.PORTABLE_EXECUTABLE_FILE !== null;
+
+export const normalizePath = (str: string) =>
+  path.normalize(str.replace(/\\/g, "/"));

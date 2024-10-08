@@ -9,6 +9,7 @@ import { backupsPath } from "@main/constants";
 import type { GameShop } from "@types";
 
 import YAML from "yaml";
+import { normalizePath } from "@main/helpers";
 
 export interface LudusaviBackup {
   files: {
@@ -31,7 +32,7 @@ const replaceLudusaviBackupWithCurrentUser = (
     drives: Record<string, string>;
   };
 
-  const currentHomeDir = app.getPath("home");
+  const currentHomeDir = normalizePath(app.getPath("home"));
 
   // TODO: Only works on Windows
   const usersDirPath = path.join(gameBackupPath, "drive-C", "Users");
@@ -124,7 +125,7 @@ const downloadGameArtifact = async (
 
         replaceLudusaviBackupWithCurrentUser(
           path.join(backupPath, game),
-          path.normalize(homeDir).replace(/\\/g, "/")
+          normalizePath(path.normalize(homeDir))
         );
 
         Ludusavi.restoreBackup(backupPath).then(() => {
