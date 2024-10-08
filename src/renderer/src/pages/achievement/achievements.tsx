@@ -1,4 +1,5 @@
-import { useDate } from "@renderer/hooks";
+import { setHeaderTitle } from "@renderer/features";
+import { useAppDispatch, useDate } from "@renderer/hooks";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { GameAchievement, GameShop } from "@types";
 import { useEffect, useState } from "react";
@@ -8,9 +9,12 @@ export function Achievement() {
   const [searchParams] = useSearchParams();
   const objectId = searchParams.get("objectId");
   const shop = searchParams.get("shop");
+  const title = searchParams.get("title");
   const userId = searchParams.get("userId");
 
   const { format } = useDate();
+
+  const dispatch = useAppDispatch();
 
   const [achievements, setAchievements] = useState<GameAchievement[]>([]);
 
@@ -23,6 +27,12 @@ export function Achievement() {
         });
     }
   }, [objectId, shop, userId]);
+
+  useEffect(() => {
+    if (title) {
+      dispatch(setHeaderTitle(title + " Achievements"));
+    }
+  }, [dispatch, title]);
 
   return (
     <div>
@@ -61,6 +71,7 @@ export function Achievement() {
             />
             <div>
               <p>{achievement.displayName}</p>
+              <p>{achievement.description}</p>
               {achievement.unlockTime && format(achievement.unlockTime)}
             </div>
           </div>

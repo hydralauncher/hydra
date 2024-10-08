@@ -1,6 +1,7 @@
 import { globalStyle, style } from "@vanilla-extract/css";
 
 import { SPACING_UNIT, vars } from "../../../theme.css";
+import { recipe } from "@vanilla-extract/recipes";
 
 export const contentSidebar = style({
   borderLeft: `solid 1px ${vars.color.border}`,
@@ -109,4 +110,47 @@ export const statsCategory = style({
 globalStyle(`${requirementsDetails} a`, {
   display: "flex",
   color: vars.color.body,
+});
+
+export const list = style({
+  listStyle: "none",
+  margin: "0",
+  display: "flex",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT * 2}px`,
+  padding: `${SPACING_UNIT * 2}px`,
+});
+
+export const listItem = style({
+  display: "flex",
+  cursor: "pointer",
+  transition: "all ease 0.1s",
+  color: vars.color.muted,
+  width: "100%",
+  overflow: "hidden",
+  borderRadius: "4px",
+  padding: `${SPACING_UNIT}px ${SPACING_UNIT}px`,
+  gap: `${SPACING_UNIT * 2}px`,
+  alignItems: "center",
+  textAlign: "left",
+  ":hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    textDecoration: "none",
+  },
+});
+
+export const listItemImage = recipe({
+  base: {
+    width: "54px",
+    height: "54px",
+    borderRadius: "4px",
+    objectFit: "cover",
+  },
+  variants: {
+    unlocked: {
+      false: {
+        filter: "grayscale(100%)",
+      },
+    },
+  },
 });
