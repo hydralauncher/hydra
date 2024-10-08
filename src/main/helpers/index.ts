@@ -30,4 +30,4 @@ export const isPortableVersion = () =>
   process.env.PORTABLE_EXECUTABLE_FILE !== null;
 
 export const normalizePath = (str: string) =>
-  path.normalize(str.replace(/\\/g, "/"));
+  path.posix.normalize(str).replace(/\\/g, "/");
