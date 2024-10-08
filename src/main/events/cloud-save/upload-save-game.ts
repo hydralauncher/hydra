@@ -7,7 +7,7 @@ import crypto from "node:crypto";
 import { GameShop } from "@types";
 import axios from "axios";
 import os from "node:os";
-import { backupsPath } from "@main/constants";
+import { artifactMetadataFileName, backupsPath } from "@main/constants";
 import { app } from "electron";
 import { normalizePath } from "@main/helpers";
 
@@ -22,6 +22,21 @@ const bundleBackup = async (shop: GameShop, objectId: string) => {
   await Ludusavi.backupGame(shop, objectId, backupPath);
 
   const tarLocation = path.join(backupsPath, `${crypto.randomUUID()}.zip`);
+
+  fs.writeFileSync(
+    path.join(backupPath, artifactMetadataFileName),
+    JSON.stringify({
+      home: normalizePath(app.getPath("home")),
+      documents: normalizePath(app.getPath("documents")),
+    })
+  );
+
+  console.log(
+    JSON.stringify({
+      home: normalizePath(app.getPath("home")),
+      documents: normalizePath(app.getPath("documents")),
+    })
+  );
 
   await tar.create(
     {

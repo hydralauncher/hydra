@@ -5,7 +5,7 @@ import { registerEvent } from "../register-event";
 import axios from "axios";
 import { app } from "electron";
 import path from "node:path";
-import { backupsPath } from "@main/constants";
+import { artifactMetadataFileName, backupsPath } from "@main/constants";
 import type { GameShop } from "@types";
 
 import YAML from "yaml";
@@ -20,10 +20,16 @@ export interface LudusaviBackup {
   };
 }
 
+const getPathDrive = (key: string) => {
+  const parts = key.split("/");
+  return parts[0];
+};
+
 const replaceLudusaviBackupWithCurrentUser = (
-  gameBackupPath: string,
-  backupHomeDir: string
+  backupPath: string,
+  title: string
 ) => {
+  const gameBackupPath = path.join(backupPath, title);
   const mappingYamlPath = path.join(gameBackupPath, "mapping.yaml");
 
   const data = fs.readFileSync(mappingYamlPath, "utf8");
@@ -32,32 +38,54 @@ const replaceLudusaviBackupWithCurrentUser = (
     drives: Record<string, string>;
   };
 
+  const metadataPath = path.join(backupPath, artifactMetadataFileName);
+
+  if (!fs.existsSync(metadataPath)) {
+    logger.error(`metadata not found in backup ${gameBackupPath}`);
+    return;
+  }
+
+  const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf8")) as {
+    home: string;
+    documents: string;
+  };
+
   const currentHomeDir = normalizePath(app.getPath("home"));
+  const currentDocumentsDir = normalizePath(app.getPath("documents"));
 
-  // TODO: Only works on Windows
-  const usersDirPath = path.join(gameBackupPath, "drive-C", "Users");
+  /* Renaming logic */
+  const mappedHomeDir = path.join(
+    gameBackupPath,
+    metadata.home.replace("C:", "drive-C")
+  );
+  const mappedDocumentsDir = path.join(
+    gameBackupPath,
+    metadata.documents.replace("C:", "drive-C")
+  );
 
-  const oldPath = path.join(usersDirPath, path.basename(backupHomeDir));
-  const newPath = path.join(usersDirPath, path.basename(currentHomeDir));
+  if (fs.existsSync(mappedHomeDir)) {
+    fs.renameSync(
+      mappedHomeDir,
+      path.join(gameBackupPath, currentHomeDir.replace("C:", "drive-C"))
+    );
+  }
 
-  // Directories are different, rename
-  if (backupHomeDir !== currentHomeDir) {
-    if (fs.existsSync(newPath)) {
-      // Ensures that the destination is empty
-      fs.rmSync(newPath, {
-        recursive: true,
-        force: true,
-      });
-    }
-
-    fs.renameSync(oldPath, newPath);
+  if (fs.existsSync(mappedDocumentsDir)) {
+    fs.renameSync(
+      mappedDocumentsDir,
+      path.join(gameBackupPath, currentDocumentsDir.replace("C:", "drive-C"))
+    );
   }
 
   const backups = manifest.backups.map((backup: LudusaviBackup) => {
     const files = Object.entries(backup.files).reduce((prev, [key, value]) => {
+      const updatedKey = key
+        .replace(metadata.documents, currentDocumentsDir)
+        .replace(metadata.home, currentHomeDir);
+
       return {
         ...prev,
-        [key.replace(backupHomeDir, currentHomeDir)]: value,
+        [updatedKey]: value,
       };
     }, {});
 
@@ -76,10 +104,9 @@ const downloadGameArtifact = async (
   shop: GameShop,
   gameArtifactId: string
 ) => {
-  const { downloadUrl, objectKey, homeDir } = await HydraApi.post<{
+  const { downloadUrl, objectKey } = await HydraApi.post<{
     downloadUrl: string;
     objectKey: string;
-    homeDir: string;
   }>(`/profile/games/artifacts/${gameArtifactId}/download`);
 
   const zipLocation = path.join(app.getPath("userData"), objectKey);
@@ -123,10 +150,7 @@ const downloadGameArtifact = async (
         const [game] = await Ludusavi.findGames(shop, objectId);
         if (!game) throw new Error("Game not found in Ludusavi manifest");
 
-        replaceLudusaviBackupWithCurrentUser(
-          path.join(backupPath, game),
-          normalizePath(path.normalize(homeDir))
-        );
+        replaceLudusaviBackupWithCurrentUser(backupPath, game);
 
         Ludusavi.restoreBackup(backupPath).then(() => {
           WindowManager.mainWindow?.webContents.send(
