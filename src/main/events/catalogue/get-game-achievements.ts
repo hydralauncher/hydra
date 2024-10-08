@@ -1,4 +1,9 @@
-import type { GameAchievement, GameShop, UnlockedAchievement } from "@types";
+import type {
+  AchievementData,
+  GameAchievement,
+  GameShop,
+  UnlockedAchievement,
+} from "@types";
 import { registerEvent } from "../register-event";
 import {
   gameAchievementRepository,
@@ -18,7 +23,7 @@ const getAchievements = async (
     where: { objectId, shop },
   });
 
-  const achievementsData = cachedAchievements?.achievements
+  const achievementsData: AchievementData[] = cachedAchievements?.achievements
     ? JSON.parse(cachedAchievements.achievements)
     : await getGameAchievementData(objectId, shop);
 
@@ -51,7 +56,7 @@ export const getGameAchievements = async (
 
   return achievementsData
     .map((achievementData) => {
-      const unlockedAchiement = unlockedAchievements.find(
+      const unlockedAchiementData = unlockedAchievements.find(
         (localAchievement) => {
           return (
             localAchievement.name.toUpperCase() ==
@@ -60,20 +65,33 @@ export const getGameAchievements = async (
         }
       );
 
-      if (unlockedAchiement) {
+      const icongray = achievementData.icongray.endsWith("/")
+        ? achievementData.icon
+        : achievementData.icongray;
+
+      if (unlockedAchiementData) {
         return {
           ...achievementData,
           unlocked: true,
-          unlockTime: unlockedAchiement.unlockTime,
+          unlockTime: unlockedAchiementData.unlockTime,
+          icongray,
         };
       }
 
-      return { ...achievementData, unlocked: false, unlockTime: null };
+      return {
+        ...achievementData,
+        unlocked: false,
+        unlockTime: null,
+        icongray,
+      };
     })
-    .sort((a, b) => {
+    .sort((a: GameAchievement, b: GameAchievement) => {
       if (a.unlocked && !b.unlocked) return -1;
       if (!a.unlocked && b.unlocked) return 1;
-      return b.unlockTime - a.unlockTime;
+      if (a.unlocked && b.unlocked) {
+        return b.unlockTime! - a.unlockTime!;
+      }
+      return Number(a.hidden) - Number(b.hidden);
     });
 };
 
