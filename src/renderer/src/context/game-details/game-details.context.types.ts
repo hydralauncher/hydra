@@ -1,5 +1,6 @@
 import type {
   Game,
+  GameAchievement,
   GameRepack,
   GameShop,
   GameStats,
@@ -14,11 +15,12 @@ export interface GameDetailsContext {
   gameTitle: string;
   isGameRunning: boolean;
   isLoading: boolean;
-  objectID: string | undefined;
+  objectId: string | undefined;
   gameColor: string;
   showRepacksModal: boolean;
   showGameOptionsModal: boolean;
   stats: GameStats | null;
+  achievements: GameAchievement[];
   hasNSFWContentBlocked: boolean;
   setGameColor: React.Dispatch<React.SetStateAction<string>>;
   selectGameExecutable: () => Promise<string | null>;

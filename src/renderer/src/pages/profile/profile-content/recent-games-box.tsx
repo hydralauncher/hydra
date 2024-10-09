@@ -37,7 +37,7 @@ export function RecentGamesBox() {
   const buildUserGameDetailsPath = (game: UserGame) =>
     buildGameDetailsPath({
       ...game,
-      objectID: game.objectId,
+      objectId: game.objectId,
     });
 
   if (!userProfile?.recentGames.length) return null;

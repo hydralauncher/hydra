@@ -186,7 +186,7 @@ export function Home() {
               ))
             : catalogue[currentCatalogueCategory].map((result) => (
                 <GameCard
-                  key={result.objectID}
+                  key={result.objectId}
                   game={result}
                   onClick={() => navigate(buildGameDetailsPath(result))}
                 />

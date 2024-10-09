@@ -28,6 +28,7 @@ import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { downloadSourcesWorker } from "./workers";
 import { repacksContext } from "./context";
+import { logger } from "./logger";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -231,6 +232,8 @@ export function App() {
       }
 
       for (const downloadSource of downloadSources) {
+        logger.info("Migrating download source", downloadSource.url);
+
         const channel = new BroadcastChannel(
           `download_sources:import:${downloadSource.url}`
         );
@@ -243,6 +246,10 @@ export function App() {
           channel.onmessage = () => {
             window.electron.deleteDownloadSource(downloadSource.id).then(() => {
               resolve(true);
+              logger.info(
+                "Deleted download source from SQLite",
+                downloadSource.url
+              );
             });
 
             indexRepacks();

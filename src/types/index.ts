@@ -1,4 +1,4 @@
-import type { DownloadSourceStatus, Downloader } from "@shared";
+import type { Cracker, DownloadSourceStatus, Downloader } from "@shared";
 import type { SteamAppDetails } from "./steam.types";
 
 export type GameStatus =
@@ -28,8 +28,18 @@ export interface GameRepack {
   updatedAt: Date;
 }
 
+export interface GameAchievement {
+  name: string;
+  displayName: string;
+  description?: string;
+  unlocked: boolean;
+  unlockTime: number | null;
+  icon: string;
+  icongray: string;
+}
+
 export type ShopDetails = SteamAppDetails & {
-  objectID: string;
+  objectId: string;
 };
 
 export interface TorrentFile {
@@ -39,7 +49,7 @@ export interface TorrentFile {
 
 /* Used by the catalogue */
 export interface CatalogueEntry {
-  objectID: string;
+  objectId: string;
   shop: GameShop;
   title: string;
   /* Epic Games covers cannot be guessed with objectID */
@@ -54,6 +64,8 @@ export interface UserGame {
   cover: string;
   playTimeInSeconds: number;
   lastTimePlayed: Date | null;
+  unlockedAchievementCount: number;
+  achievementCount: number;
 }
 
 export interface DownloadQueue {
@@ -118,15 +130,9 @@ export interface UserPreferences {
   runAtStartup: boolean;
 }
 
-export interface HowLongToBeatCategory {
-  title: string;
-  duration: string;
-  accuracy: string;
-}
-
 export interface Steam250Game {
   title: string;
-  objectID: string;
+  objectId: string;
 }
 
 export interface SteamGame {
@@ -142,7 +148,7 @@ export type AppUpdaterEvent =
 /* Events */
 export interface StartGameDownloadPayload {
   repackId: number;
-  objectID: string;
+  objectId: string;
   title: string;
   shop: GameShop;
   uri: string;
@@ -187,7 +193,7 @@ export interface UserRelation {
   updatedAt: string;
 }
 
-export interface UserProfileCurrentGame extends Omit<GameRunning, "objectID"> {
+export interface UserProfileCurrentGame extends Omit<GameRunning, "objectId"> {
   objectId: string;
   sessionDurationInSeconds: number;
 }
@@ -266,5 +272,30 @@ export interface UserStats {
   friendsCount: number;
 }
 
+export interface UnlockedAchievement {
+  name: string;
+  unlockTime: number;
+}
+
+export interface AchievementFile {
+  type: Cracker;
+  filePath: string;
+}
+
+export type GameAchievementFiles = {
+  [id: string]: AchievementFile[];
+};
+
+export interface GameArtifact {
+  id: string;
+  artifactLengthInBytes: number;
+  createdAt: string;
+  updatedAt: string;
+  hostname: string;
+  downloadCount: number;
+}
+
 export * from "./steam.types";
 export * from "./real-debrid.types";
+export * from "./ludusavi.types";
+export * from "./howlongtobeat.types";

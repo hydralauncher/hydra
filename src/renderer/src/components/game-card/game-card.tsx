@@ -44,7 +44,7 @@ export function GameCard({ game, ...props }: GameCardProps) {
 
   const handleHover = useCallback(() => {
     if (!stats) {
-      window.electron.getGameStats(game.objectID, game.shop).then((stats) => {
+      window.electron.getGameStats(game.objectId, game.shop).then((stats) => {
         setStats(stats);
       });
     }
