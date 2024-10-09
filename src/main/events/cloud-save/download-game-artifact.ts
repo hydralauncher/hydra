@@ -125,7 +125,11 @@ const downloadGameArtifact = async (
           const [game] = await Ludusavi.findGames(shop, objectId);
           if (!game) throw new Error("Game not found in Ludusavi manifest");
 
-          replaceLudusaviBackupWithCurrentUser(backupPath, game, homeDir);
+          replaceLudusaviBackupWithCurrentUser(
+            backupPath,
+            game.replaceAll(":", "_"),
+            normalizePath(homeDir)
+          );
 
           Ludusavi.restoreBackup(backupPath).then(() => {
             WindowManager.mainWindow?.webContents.send(
