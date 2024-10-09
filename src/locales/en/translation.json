@@ -333,6 +333,8 @@
     "your_friend_code": "Your friend code:"
   },
   "achievement": {
-    "achievement_unlocked": "Achievement unlocked"
+    "achievement_unlocked": "Achievement unlocked",
+    "user_achievements": "{{displayName}}'s Achievements",
+    "your_achievements": "Your Achievements"
   }
 }

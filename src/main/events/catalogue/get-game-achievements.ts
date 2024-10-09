@@ -83,9 +83,9 @@ export const getGameAchievements = async (
         unlocked: false,
         unlockTime: null,
         icongray,
-      };
+      } as GameAchievement;
     })
-    .sort((a: GameAchievement, b: GameAchievement) => {
+    .sort((a, b) => {
       if (a.unlocked && !b.unlocked) return -1;
       if (!a.unlocked && b.unlocked) return 1;
       if (a.unlocked && b.unlocked) {
