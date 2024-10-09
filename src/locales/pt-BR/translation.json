@@ -335,6 +335,8 @@
     "your_friend_code": "Seu código de amigo:"
   },
   "achievement": {
-    "achievement_unlocked": "Conquista desbloqueada"
+    "achievement_unlocked": "Conquista desbloqueada",
+    "your_achievements": "Suas Conquistas",
+    "user_achievements": "Conquistas de {{displayName}}"
   }
 }

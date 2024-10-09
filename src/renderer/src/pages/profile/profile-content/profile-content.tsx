@@ -16,7 +16,7 @@ import { FriendsBox } from "./friends-box";
 import { RecentGamesBox } from "./recent-games-box";
 import { UserGame } from "@types";
 import {
-  buildGameDetailsPath,
+  buildGameAchievementPath,
   formatDownloadProgress,
 } from "@renderer/helpers";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
@@ -44,11 +44,19 @@ export function ProfileContent() {
     return userProfile?.relation?.status === "ACCEPTED";
   }, [userProfile]);
 
-  const buildUserGameDetailsPath = (game: UserGame) =>
-    buildGameDetailsPath({
-      ...game,
-      objectId: game.objectId,
-    });
+  const buildUserGameDetailsPath = (game: UserGame) => {
+    // TODO: check if user has hydra cloud
+    // buildGameDetailsPath({
+    //   ...game,
+    //   objectId: game.objectId,
+    // });
+
+    const userParams = userProfile
+      ? { userId: userProfile.id, displayName: userProfile.displayName }
+      : undefined;
+
+    return buildGameAchievementPath({ ...game }, userParams);
+  };
 
   const formatPlayTime = useCallback(
     (playTimeInSeconds = 0) => {

@@ -10,6 +10,7 @@ import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { howLongToBeatEntriesTable } from "@renderer/dexie";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
+import { buildGameAchievementPath } from "@renderer/helpers";
 
 export function Sidebar() {
   const [howLongToBeat, setHowLongToBeat] = useState<{
@@ -27,16 +28,6 @@ export function Sidebar() {
   const { format } = useDate();
 
   const { numberFormatter } = useFormat();
-
-  const buildGameAchievementPath = () => {
-    const urlParams = new URLSearchParams({
-      objectId: objectId!,
-      shop,
-      title: gameTitle,
-    });
-
-    return `/achievements?${urlParams.toString()}`;
-  };
 
   useEffect(() => {
     if (objectId) {
@@ -88,7 +79,11 @@ export function Sidebar() {
             {achievements.slice(0, 4).map((achievement, index) => (
               <li key={index}>
                 <Link
-                  to={buildGameAchievementPath()}
+                  to={buildGameAchievementPath({
+                    shop: shop,
+                    objectId: objectId!,
+                    title: gameTitle,
+                  })}
                   className={styles.listItem}
                   title={achievement.description}
                 >
@@ -116,7 +111,11 @@ export function Sidebar() {
 
             <Link
               style={{ textAlign: "center" }}
-              to={buildGameAchievementPath()}
+              to={buildGameAchievementPath({
+                shop: shop,
+                objectId: objectId!,
+                title: gameTitle,
+              })}
             >
               {t("see_all_achievements")}
             </Link>

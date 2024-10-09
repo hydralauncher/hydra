@@ -1,9 +1,17 @@
 import { setHeaderTitle } from "@renderer/features";
 import { useAppDispatch, useDate } from "@renderer/hooks";
-import { SPACING_UNIT } from "@renderer/theme.css";
-import { GameAchievement, GameShop } from "@types";
+import { steamUrlBuilder } from "@shared";
+import type { GameAchievement, GameShop } from "@types";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import * as styles from "./achievements.css";
+import {
+  buildGameDetailsPath,
+  formatDownloadProgress,
+} from "@renderer/helpers";
+import { TrophyIcon } from "@primer/octicons-react";
+import { vars } from "@renderer/theme.css";
 
 export function Achievement() {
   const [searchParams] = useSearchParams();
@@ -11,8 +19,12 @@ export function Achievement() {
   const shop = searchParams.get("shop");
   const title = searchParams.get("title");
   const userId = searchParams.get("userId");
+  const displayName = searchParams.get("displayName");
+
+  const { t } = useTranslation("achievement");
 
   const { format } = useDate();
+  const navigate = useNavigate();
 
   const dispatch = useAppDispatch();
 
@@ -30,53 +42,109 @@ export function Achievement() {
 
   useEffect(() => {
     if (title) {
-      dispatch(setHeaderTitle(title + " Achievements"));
+      dispatch(setHeaderTitle(title));
     }
   }, [dispatch, title]);
 
-  return (
-    <div>
-      <h1>Achievement</h1>
+  if (!objectId || !shop || !title) return null;
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: `${SPACING_UNIT}px`,
-          padding: `${SPACING_UNIT * 2}px`,
-        }}
-      >
-        {achievements.map((achievement, index) => (
+  const unlockedAchievementCount = achievements.filter(
+    (achievement) => achievement.unlocked
+  ).length;
+
+  const totalAchievementCount = achievements.length;
+
+  const handleClickGame = () => {
+    navigate(
+      buildGameDetailsPath({
+        shop: shop as GameShop,
+        objectId,
+        title,
+      })
+    );
+  };
+
+  return (
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <button onClick={handleClickGame}>
+          <img
+            src={steamUrlBuilder.cover(objectId)}
+            alt={title}
+            className={styles.headerImage}
+          />
+        </button>
+        <div
+          style={{
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <h1>
+            {displayName
+              ? t("user_achievements", {
+                  displayName,
+                })
+              : t("your_achievements")}
+          </h1>
           <div
-            key={index}
             style={{
               display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              gap: `${SPACING_UNIT}px`,
+              justifyContent: "space-between",
+              marginBottom: 8,
+              color: vars.color.muted,
             }}
-            title={achievement.description}
           >
-            <img
+            <div
               style={{
-                height: "60px",
-                width: "60px",
-                filter: achievement.unlocked ? "none" : "grayscale(100%)",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
               }}
+            >
+              <TrophyIcon size={13} />
+              <span>
+                {unlockedAchievementCount} / {totalAchievementCount}
+              </span>
+            </div>
+
+            <span>
+              {formatDownloadProgress(
+                unlockedAchievementCount / totalAchievementCount
+              )}
+            </span>
+          </div>
+          <progress
+            max={1}
+            value={unlockedAchievementCount / totalAchievementCount}
+            className={styles.achievementsProgressBar}
+          />
+        </div>
+      </div>
+
+      <ul className={styles.list}>
+        {achievements.map((achievement, index) => (
+          <li key={index} className={styles.listItem}>
+            <img
+              className={styles.listItemImage({
+                unlocked: achievement.unlocked,
+              })}
               src={
                 achievement.unlocked ? achievement.icon : achievement.icongray
               }
-              alt={achievement.displayName}
               loading="lazy"
             />
             <div>
               <p>{achievement.displayName}</p>
               <p>{achievement.description}</p>
-              {achievement.unlockTime && format(achievement.unlockTime)}
+              <small>
+                {achievement.unlockTime && format(achievement.unlockTime)}
+              </small>
             </div>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

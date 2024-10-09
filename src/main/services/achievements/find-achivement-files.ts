@@ -53,7 +53,7 @@ const getPathFromCracker = (cracker: Cracker) => {
   if (cracker === Cracker.onlineFix) {
     return [
       {
-        folderPath: path.join(publicDocuments, Cracker.onlineFix),
+        folderPath: path.join(publicDocuments, "OnlineFix"),
         fileLocation: ["Stats", "Achievements.ini"],
       },
     ];
