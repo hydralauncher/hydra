@@ -1,5 +1,17 @@
 import { SPACING_UNIT, vars } from "../../../theme.css";
-import { style } from "@vanilla-extract/css";
+import { keyframes, style } from "@vanilla-extract/css";
+
+const animateBackground = keyframes({
+  "0%": {
+    backgroundPosition: "0% 50%",
+  },
+  "50%": {
+    backgroundPosition: "100% 50%",
+  },
+  "100%": {
+    backgroundPosition: "0% 50%",
+  },
+});
 
 export const profileContentBox = style({
   display: "flex",
@@ -16,12 +28,12 @@ export const profileAvatarButton = style({
   justifyContent: "center",
   alignItems: "center",
   backgroundColor: vars.color.background,
-  overflow: "hidden",
   border: `solid 1px ${vars.color.border}`,
   boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.7)",
   cursor: "pointer",
   transition: "all ease 0.3s",
   color: vars.color.muted,
+  position: "relative",
   ":hover": {
     boxShadow: "0px 0px 10px 0px rgba(0, 0, 0, 0.7)",
   },
@@ -86,4 +98,26 @@ export const currentGameDetails = style({
   flexDirection: "row",
   gap: `${SPACING_UNIT}px`,
   alignItems: "center",
+});
+
+export const xdTotal = style({
+  background: `linear-gradient(
+    60deg,
+    #f79533,
+    #f37055,
+    #ef4e7b,
+    #a166ab,
+    #5073b8,
+    #1098ad,
+    #07b39b,
+    #6fba82
+  )`,
+  width: "102px",
+  minWidth: "102px",
+  height: "102px",
+  animation: `${animateBackground} 4s ease alternate infinite`,
+  backgroundSize: "300% 300%",
+  zIndex: -1,
+  borderRadius: "4px",
+  position: "absolute",
 });
