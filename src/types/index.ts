@@ -37,15 +37,34 @@ export interface AchievementData {
   hidden: boolean;
 }
 
+export interface UserAchievement {
+  name: string;
+  hidden: boolean;
+  displayName: string;
+  description?: string;
+  unlocked: boolean;
+  unlockTime: number | null;
+  icon: string;
+}
+
+export interface RemoteUnlockedAchievement {
+  name: string;
+  hidden: boolean;
+  icon: string;
+  displayName: string;
+  description?: string;
+  unlockTime: number;
+}
+
 export interface GameAchievement {
   name: string;
+  hidden: boolean;
   displayName: string;
   description?: string;
   unlocked: boolean;
   unlockTime: number | null;
   icon: string;
   icongray: string;
-  hidden: boolean;
 }
 
 export type ShopDetails = SteamAppDetails & {

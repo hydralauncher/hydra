@@ -1,7 +1,7 @@
 import { setHeaderTitle } from "@renderer/features";
 import { useAppDispatch, useDate } from "@renderer/hooks";
 import { steamUrlBuilder } from "@shared";
-import type { GameAchievement, GameShop } from "@types";
+import type { GameShop, UserAchievement } from "@types";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -28,7 +28,7 @@ export function Achievement() {
 
   const dispatch = useAppDispatch();
 
-  const [achievements, setAchievements] = useState<GameAchievement[]>([]);
+  const [achievements, setAchievements] = useState<UserAchievement[]>([]);
 
   useEffect(() => {
     if (objectId && shop) {
@@ -130,9 +130,7 @@ export function Achievement() {
               className={styles.listItemImage({
                 unlocked: achievement.unlocked,
               })}
-              src={
-                achievement.unlocked ? achievement.icon : achievement.icongray
-              }
+              src={achievement.icon}
               alt={achievement.displayName}
               loading="lazy"
             />

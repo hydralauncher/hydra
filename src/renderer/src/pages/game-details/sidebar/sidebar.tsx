@@ -91,11 +91,7 @@ export function Sidebar() {
                     className={styles.listItemImage({
                       unlocked: achievement.unlocked,
                     })}
-                    src={
-                      achievement.unlocked
-                        ? achievement.icon
-                        : achievement.icongray
-                    }
+                    src={achievement.icon}
                     alt={achievement.displayName}
                     loading="lazy"
                   />
