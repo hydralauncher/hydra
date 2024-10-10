@@ -130,7 +130,23 @@
     "download": "Download",
     "executable_path_in_use": "Executable already in use by \"{{game}}\"",
     "warning": "Warning:",
-    "hydra_needs_to_remain_open": "for this download, Hydra needs to remain open util its conclusion. In case Hydra closes before the conclusion, you will lose your progress."
+    "hydra_needs_to_remain_open": "for this download, Hydra needs to remain open util its conclusion. In case Hydra closes before the conclusion, you will lose your progress.",
+    "achievements": "Achievements {{unlockedCount}}/{{achievementsCount}}",
+    "cloud_save": "Cloud save",
+    "cloud_save_description": "Save your progress in the cloud and continue playing on any device",
+    "backups": "Backups",
+    "install_backup": "Install",
+    "delete_backup": "Delete",
+    "create_backup": "New backup",
+    "last_backup_date": "Last backup on {{date}}",
+    "no_backup_preview": "No save games were found for this title",
+    "restoring_backup": "Restoring backup ({{progress}} complete)…",
+    "uploading_backup": "Uploading backup…",
+    "no_backups": "You haven't created any backups for this game yet",
+    "backup_uploaded": "Backup uploaded",
+    "backup_deleted": "Backup deleted",
+    "backup_restored": "Backup restored",
+    "see_all_achievements": "See all achievements"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -226,7 +242,9 @@
     "repack_count_one": "{{count}} repack added",
     "repack_count_other": "{{count}} repacks added",
     "new_update_available": "Version {{version}} available",
-    "restart_to_install_update": "Restart Hydra to install the update"
+    "restart_to_install_update": "Restart Hydra to install the update",
+    "notification_achievement_unlocked_title": "Achievement unlocked for {{game}}",
+    "notification_achievement_unlocked_body": "{{achievement}} and other {{count}} were unlocked"
   },
   "system_tray": {
     "open": "Open Hydra",
@@ -313,5 +331,10 @@
     "report_reason_other": "Other",
     "profile_reported": "Profile reported",
     "your_friend_code": "Your friend code:"
+  },
+  "achievement": {
+    "achievement_unlocked": "Achievement unlocked",
+    "user_achievements": "{{displayName}}'s Achievements",
+    "your_achievements": "Your Achievements"
   }
 }

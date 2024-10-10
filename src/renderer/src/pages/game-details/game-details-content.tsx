@@ -9,8 +9,12 @@ import { Sidebar } from "./sidebar/sidebar";
 
 import * as styles from "./game-details.css";
 import { useTranslation } from "react-i18next";
-import { gameDetailsContext } from "@renderer/context";
+import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import { steamUrlBuilder } from "@shared";
+import Lottie from "lottie-react";
+
+import downloadingAnimation from "@renderer/assets/lottie/cloud.json";
+import { useUserDetails } from "@renderer/hooks";
 
 const HERO_ANIMATION_THRESHOLD = 25;
 
@@ -22,7 +26,7 @@ export function GameDetailsContent() {
   const { t } = useTranslation("game_details");
 
   const {
-    objectID,
+    objectId,
     shopDetails,
     game,
     gameColor,
@@ -30,10 +34,15 @@ export function GameDetailsContent() {
     hasNSFWContentBlocked,
   } = useContext(gameDetailsContext);
 
+  const { userDetails } = useUserDetails();
+
+  const { supportsCloudSync, setShowCloudSyncModal } =
+    useContext(cloudSyncContext);
+
   const [backdropOpactiy, setBackdropOpacity] = useState(1);
 
   const handleHeroLoad = async () => {
-    const output = await average(steamUrlBuilder.libraryHero(objectID!), {
+    const output = await average(steamUrlBuilder.libraryHero(objectId!), {
       amount: 1,
       format: "hex",
     });
@@ -47,7 +56,7 @@ export function GameDetailsContent() {
 
   useEffect(() => {
     setBackdropOpacity(1);
-  }, [objectID]);
+  }, [objectId]);
 
   const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
     const heroHeight = heroRef.current?.clientHeight ?? styles.HERO_HEIGHT;
@@ -69,10 +78,19 @@ export function GameDetailsContent() {
     setBackdropOpacity(opacity);
   };
 
+  const handleCloudSaveButtonClick = () => {
+    if (!userDetails) {
+      window.electron.openAuthWindow();
+      return;
+    }
+
+    setShowCloudSyncModal(true);
+  };
+
   return (
     <div className={styles.wrapper({ blurredContent: hasNSFWContentBlocked })}>
       <img
-        src={steamUrlBuilder.libraryHero(objectID!)}
+        src={steamUrlBuilder.libraryHero(objectId!)}
         className={styles.heroImage}
         alt={game?.title}
         onLoad={handleHeroLoad}
@@ -98,10 +116,37 @@ export function GameDetailsContent() {
           >
             <div className={styles.heroContent}>
               <img
-                src={steamUrlBuilder.logo(objectID!)}
+                src={steamUrlBuilder.logo(objectId!)}
                 className={styles.gameLogo}
                 alt={game?.title}
               />
+
+              {supportsCloudSync && (
+                <button
+                  type="button"
+                  className={styles.cloudSyncButton}
+                  onClick={handleCloudSaveButtonClick}
+                >
+                  <div
+                    style={{
+                      width: 16 + 4,
+                      height: 16,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      position: "relative",
+                    }}
+                  >
+                    <Lottie
+                      animationData={downloadingAnimation}
+                      loop
+                      autoplay
+                      style={{ width: 26, position: "absolute", top: -3 }}
+                    />
+                  </div>
+                  {t("cloud_save")}
+                </button>
+              )}
             </div>
           </div>
         </div>

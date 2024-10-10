@@ -7,6 +7,7 @@ import {
   Repack,
   UserPreferences,
   UserAuth,
+  GameAchievement,
 } from "@main/entity";
 
 import { databasePath } from "./constants";
@@ -21,6 +22,7 @@ export const dataSource = new DataSource({
     DownloadSource,
     DownloadQueue,
     UserAuth,
+    GameAchievement,
   ],
   synchronize: false,
   database: databasePath,

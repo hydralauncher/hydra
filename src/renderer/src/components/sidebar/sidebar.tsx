@@ -140,7 +140,10 @@ export function Sidebar() {
     event: React.MouseEvent,
     game: LibraryGame
   ) => {
-    const path = buildGameDetailsPath(game);
+    const path = buildGameDetailsPath({
+      ...game,
+      objectId: game.objectID,
+    });
     if (path !== location.pathname) {
       navigate(path);
     }
