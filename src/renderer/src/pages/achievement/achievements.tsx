@@ -133,6 +133,7 @@ export function Achievement() {
               src={
                 achievement.unlocked ? achievement.icon : achievement.icongray
               }
+              alt={achievement.displayName}
               loading="lazy"
             />
             <div>
