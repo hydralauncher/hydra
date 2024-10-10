@@ -330,6 +330,7 @@ export function ProfileHero() {
               className={styles.profileAvatarButton}
               onClick={handleAvatarClick}
             >
+              <div className={styles.xdTotal} />
               {userProfile?.profileImageUrl ? (
                 <img
                   className={styles.profileAvatar}
