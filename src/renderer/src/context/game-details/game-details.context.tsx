@@ -12,11 +12,11 @@ import { useAppDispatch, useAppSelector, useDownload } from "@renderer/hooks";
 
 import type {
   Game,
-  GameAchievement,
   GameRepack,
   GameShop,
   GameStats,
   ShopDetails,
+  UserAchievement,
 } from "@types";
 
 import { useTranslation } from "react-i18next";
@@ -64,7 +64,7 @@ export function GameDetailsContextProvider({
   shop,
 }: GameDetailsContextProps) {
   const [shopDetails, setShopDetails] = useState<ShopDetails | null>(null);
-  const [achievements, setAchievements] = useState<GameAchievement[]>([]);
+  const [achievements, setAchievements] = useState<UserAchievement[]>([]);
   const [game, setGame] = useState<Game | null>(null);
   const [hasNSFWContentBlocked, setHasNSFWContentBlocked] = useState(false);
 
