@@ -11,7 +11,7 @@ import {
   formatDownloadProgress,
 } from "@renderer/helpers";
 import { TrophyIcon } from "@primer/octicons-react";
-import { vars } from "@renderer/theme.css";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 
 export function Achievement() {
   const [searchParams] = useSearchParams();
@@ -42,7 +42,15 @@ export function Achievement() {
 
   useEffect(() => {
     if (title) {
-      dispatch(setHeaderTitle(title));
+      dispatch(
+        setHeaderTitle(
+          displayName
+            ? t("user_achievements", {
+                displayName,
+              })
+            : t("your_achievements")
+        )
+      );
     }
   }, [dispatch, title]);
 
@@ -69,7 +77,7 @@ export function Achievement() {
       <div className={styles.header}>
         <button onClick={handleClickGame}>
           <img
-            src={steamUrlBuilder.cover(objectId)}
+            src={steamUrlBuilder.libraryHero(objectId)}
             alt={title}
             className={styles.headerImage}
           />
@@ -79,15 +87,10 @@ export function Achievement() {
             width: "100%",
             display: "flex",
             flexDirection: "column",
+            padding: `0 ${SPACING_UNIT * 2}px`,
           }}
         >
-          <h1>
-            {displayName
-              ? t("user_achievements", {
-                  displayName,
-                })
-              : t("your_achievements")}
-          </h1>
+          <h1>{title}</h1>
           <div
             style={{
               display: "flex",
