@@ -14,29 +14,11 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v4
 
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "YARN_CACHE_DIR=$(yarn cache dir)" >> $GITHUB_ENV
-
-      - run: echo $YARN_CACHE_DIR
-
-      - name: Cache node modules
-        id: cache-npm
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-node-modules
-        with:
-          path: ${{ env.YARN_CACHE_DIR }}
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
-
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20.11.1
+          cache: "yarn"
 
       - name: Install dependencies
         run: yarn
@@ -45,6 +27,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.9
+          cache: "pip"
 
       - name: Install dependencies
         run: pip install -r requirements.txt
