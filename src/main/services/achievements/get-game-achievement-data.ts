@@ -3,6 +3,7 @@ import {
   userPreferencesRepository,
 } from "@main/repository";
 import { HydraApi } from "../hydra-api";
+import { AchievementData } from "@types";
 
 export const getGameAchievementData = async (
   objectId: string,
@@ -12,13 +13,13 @@ export const getGameAchievementData = async (
     where: { id: 1 },
   });
 
-  return HydraApi.get("/games/achievements", {
+  return HydraApi.get<AchievementData[]>("/games/achievements", {
     shop,
     objectId,
     language: userPreferences?.language || "en",
   })
-    .then(async (achievements) => {
-      await gameAchievementRepository.upsert(
+    .then((achievements) => {
+      gameAchievementRepository.upsert(
         {
           objectId,
           shop,
@@ -29,5 +30,13 @@ export const getGameAchievementData = async (
 
       return achievements;
     })
-    .catch(() => []);
+    .catch(() => {
+      return gameAchievementRepository
+        .findOne({
+          where: { objectId, shop },
+        })
+        .then((gameAchievements) => {
+          return JSON.parse(gameAchievements?.achievements || "[]");
+        });
+    });
 };

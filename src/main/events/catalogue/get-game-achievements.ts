@@ -11,16 +11,14 @@ import {
   userPreferencesRepository,
 } from "@main/repository";
 import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
-import { HydraApi, logger } from "@main/services";
+import { HydraApi } from "@main/services";
 
 const getAchievementLocalUser = async (shop: string, objectId: string) => {
   const cachedAchievements = await gameAchievementRepository.findOne({
     where: { objectId, shop },
   });
 
-  const achievementsData: AchievementData[] = cachedAchievements?.achievements
-    ? JSON.parse(cachedAchievements.achievements)
-    : await getGameAchievementData(objectId, shop);
+  const achievementsData = await getGameAchievementData(objectId, shop);
 
   const unlockedAchievements = JSON.parse(
     cachedAchievements?.unlockedAchievements || "[]"
@@ -28,8 +26,6 @@ const getAchievementLocalUser = async (shop: string, objectId: string) => {
 
   return achievementsData
     .map((achievementData) => {
-      logger.info("unclockedAchievements", unlockedAchievements);
-
       const unlockedAchiementData = unlockedAchievements.find(
         (localAchievement) => {
           return (
@@ -77,13 +73,10 @@ const getAchievementsRemoteUser = async (
     where: { id: 1 },
   });
 
-  const cachedAchievements = await gameAchievementRepository.findOne({
-    where: { objectId, shop },
-  });
-
-  const achievementsData: AchievementData[] = cachedAchievements?.achievements
-    ? JSON.parse(cachedAchievements.achievements)
-    : await getGameAchievementData(objectId, shop);
+  const achievementsData: AchievementData[] = await getGameAchievementData(
+    objectId,
+    shop
+  );
 
   const unlockedAchievements = await HydraApi.get<RemoteUnlockedAchievement[]>(
     `/users/${userId}/games/achievements`,
