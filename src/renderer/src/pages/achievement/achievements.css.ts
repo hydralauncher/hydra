@@ -2,25 +2,80 @@ import { SPACING_UNIT, vars } from "../../theme.css";
 import { style } from "@vanilla-extract/css";
 import { recipe } from "@vanilla-extract/recipes";
 
-export const container = style({
-  width: "100%",
+export const HERO_HEIGHT = 300;
+
+export const wrapper = style({
   display: "flex",
   flexDirection: "column",
-  gap: `${SPACING_UNIT * 2}px`,
+  overflow: "hidden",
+  width: "100%",
+  height: "100%",
+  transition: "all ease 0.3s",
 });
 
 export const header = style({
   display: "flex",
+  height: `${HERO_HEIGHT}px`,
+  minHeight: `${HERO_HEIGHT}px`,
   gap: `${SPACING_UNIT}px`,
   flexDirection: "column",
+  position: "relative",
+  transition: "all ease 0.2s",
+  "@media": {
+    "(min-width: 1250px)": {
+      height: "350px",
+      minHeight: "350px",
+    },
+  },
 });
 
 export const headerImage = style({
+  position: "absolute",
+  inset: "0",
   borderRadius: "4px",
   objectFit: "cover",
   cursor: "pointer",
   width: "100%",
   transition: "all ease 0.2s",
+});
+
+export const gameLogo = style({
+  padding: `${SPACING_UNIT * 2}px`,
+  width: "300px",
+});
+
+export const container = style({
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  flexDirection: "column",
+  overflow: "auto",
+  zIndex: "1",
+});
+
+export const panel = recipe({
+  base: {
+    width: "100%",
+    height: "100px",
+    minHeight: "100px",
+    padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
+    backgroundColor: vars.color.darkBackground,
+    display: "flex",
+    flexDirection: "column",
+    transition: "all ease 0.2s",
+    borderBottom: `solid 1px ${vars.color.border}`,
+    position: "sticky",
+    overflow: "hidden",
+    top: "0",
+    zIndex: "1",
+  },
+  variants: {
+    stuck: {
+      true: {
+        boxShadow: "0px 0px 15px 0px rgba(0, 0, 0, 0.8)",
+      },
+    },
+  },
 });
 
 export const list = style({
@@ -30,6 +85,7 @@ export const list = style({
   flexDirection: "column",
   gap: `${SPACING_UNIT * 2}px`,
   padding: `${SPACING_UNIT * 2}px`,
+  backgroundColor: vars.color.background,
 });
 
 export const listItem = style({
