@@ -4,7 +4,6 @@ import { recipe } from "@vanilla-extract/recipes";
 
 export const container = style({
   width: "100%",
-  padding: `${SPACING_UNIT * 2}px`,
   display: "flex",
   flexDirection: "column",
   gap: `${SPACING_UNIT * 2}px`,
@@ -13,18 +12,15 @@ export const container = style({
 export const header = style({
   display: "flex",
   gap: `${SPACING_UNIT}px`,
-  width: "50%",
+  flexDirection: "column",
 });
 
 export const headerImage = style({
   borderRadius: "4px",
   objectFit: "cover",
   cursor: "pointer",
-  height: "160px",
+  width: "100%",
   transition: "all ease 0.2s",
-  ":hover": {
-    transform: "scale(1.05)",
-  },
 });
 
 export const list = style({
@@ -33,7 +29,7 @@ export const list = style({
   display: "flex",
   flexDirection: "column",
   gap: `${SPACING_UNIT * 2}px`,
-  padding: 0,
+  padding: `${SPACING_UNIT * 2}px`,
 });
 
 export const listItem = style({
