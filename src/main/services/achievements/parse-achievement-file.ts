@@ -112,7 +112,7 @@ const processOnlineFix = (unlockedAchievements: any): UnlockedAchievement[] => {
   for (const achievement of Object.keys(unlockedAchievements)) {
     const unlockedAchievement = unlockedAchievements[achievement];
 
-    if (unlockedAchievement?.achieved) {
+    if (unlockedAchievement?.achieved == "true") {
       parsedUnlockedAchievements.push({
         name: achievement,
         unlockTime: unlockedAchievement.timestamp * 1000,
@@ -129,7 +129,7 @@ const processCreamAPI = (unlockedAchievements: any): UnlockedAchievement[] => {
   for (const achievement of Object.keys(unlockedAchievements)) {
     const unlockedAchievement = unlockedAchievements[achievement];
 
-    if (unlockedAchievement?.achieved) {
+    if (unlockedAchievement?.achieved == "true") {
       const unlockTime = unlockedAchievement.unlocktime;
       parsedUnlockedAchievements.push({
         name: achievement,
@@ -207,7 +207,7 @@ const processDefault = (unlockedAchievements: any): UnlockedAchievement[] => {
   for (const achievement of Object.keys(unlockedAchievements)) {
     const unlockedAchievement = unlockedAchievements[achievement];
 
-    if (unlockedAchievement?.Achieved) {
+    if (unlockedAchievement?.Achieved == "1") {
       newUnlockedAchievements.push({
         name: achievement,
         unlockTime: unlockedAchievement.UnlockTime * 1000,
