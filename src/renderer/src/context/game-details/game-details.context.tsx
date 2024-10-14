@@ -43,7 +43,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   showRepacksModal: false,
   showGameOptionsModal: false,
   stats: null,
-  achievements: [],
+  achievements: null,
   hasNSFWContentBlocked: false,
   setGameColor: () => {},
   selectGameExecutable: async () => null,
@@ -70,7 +70,9 @@ export function GameDetailsContextProvider({
   shop,
 }: GameDetailsContextProps) {
   const [shopDetails, setShopDetails] = useState<ShopDetails | null>(null);
-  const [achievements, setAchievements] = useState<UserAchievement[]>([]);
+  const [achievements, setAchievements] = useState<UserAchievement[] | null>(
+    null
+  );
   const [game, setGame] = useState<Game | null>(null);
   const [hasNSFWContentBlocked, setHasNSFWContentBlocked] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -176,7 +178,7 @@ export function GameDetailsContextProvider({
     setGame(null);
     setIsLoading(true);
     setisGameRunning(false);
-    setAchievements([]);
+    setAchievements(null);
     dispatch(setHeaderTitle(gameTitle));
   }, [objectId, gameTitle, dispatch]);
 

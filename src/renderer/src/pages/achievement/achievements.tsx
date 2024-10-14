@@ -1,7 +1,7 @@
 import { setHeaderTitle } from "@renderer/features";
 import { useAppDispatch, useUserDetails } from "@renderer/hooks";
-import type { GameShop } from "@types";
-import { useEffect } from "react";
+import type { GameShop, UserAchievement } from "@types";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { vars } from "@renderer/theme.css";
 import {
@@ -22,6 +22,10 @@ export function Achievement() {
 
   const { userDetails } = useUserDetails();
 
+  const [otherUserAchievements, setOtherUserAchievements] = useState<
+    UserAchievement[] | null
+  >(null);
+
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -30,9 +34,34 @@ export function Achievement() {
     }
   }, [dispatch, title]);
 
+  useEffect(() => {
+    setOtherUserAchievements(null);
+    if (userDetails?.id == userId) {
+      setOtherUserAchievements([]);
+      return;
+    }
+
+    if (objectId && shop && userId) {
+      window.electron
+        .getGameAchievements(objectId, shop as GameShop, userId)
+        .then((achievements) => {
+          setOtherUserAchievements(achievements);
+        });
+    }
+  }, [objectId, shop, userId]);
+
   if (!objectId || !shop || !title) return null;
 
   const otherUserId = userDetails?.id == userId ? null : userId;
+
+  const otherUser =
+    otherUserId != null
+      ? {
+          userId: otherUserId,
+          displayName: displayName || "",
+          achievements: otherUserAchievements || [],
+        }
+      : null;
 
   return (
     <GameDetailsContextProvider
@@ -41,19 +70,18 @@ export function Achievement() {
       objectId={objectId}
     >
       <GameDetailsContextConsumer>
-        {({ isLoading }) => {
+        {({ isLoading, achievements }) => {
           return (
             <SkeletonTheme
               baseColor={vars.color.background}
               highlightColor="#444"
             >
-              {isLoading ? (
+              {isLoading ||
+              achievements === null ||
+              otherUserAchievements === null ? (
                 <AchievementsSkeleton />
               ) : (
-                <AchievementsContent
-                  otherUserId={otherUserId}
-                  otherUserDisplayName={displayName}
-                />
+                <AchievementsContent otherUser={otherUser} />
               )}
             </SkeletonTheme>
           );
