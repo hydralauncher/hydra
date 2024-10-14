@@ -29,7 +29,7 @@ export const header = style({
   },
 });
 
-export const headerImage = style({
+export const hero = style({
   position: "absolute",
   inset: "0",
   borderRadius: "4px",
@@ -39,9 +39,17 @@ export const headerImage = style({
   transition: "all ease 0.2s",
 });
 
-export const gameLogo = style({
+export const heroContent = style({
   padding: `${SPACING_UNIT * 2}px`,
-  width: "300px",
+  height: "100%",
+  width: "100%",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-end",
+});
+
+export const gameLogo = style({
+  width: 300,
 });
 
 export const container = style({
@@ -131,4 +139,41 @@ export const achievementsProgressBar = style({
   "::-webkit-progress-value": {
     backgroundColor: vars.color.muted,
   },
+});
+
+export const heroLogoBackdrop = style({
+  width: "100%",
+  height: "100%",
+  background: "linear-gradient(0deg, rgba(0, 0, 0, 0.3) 60%, transparent 100%)",
+  position: "absolute",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "flex-end",
+});
+
+export const heroImageSkeleton = style({
+  height: "300px",
+  "@media": {
+    "(min-width: 1250px)": {
+      height: "350px",
+    },
+  },
+});
+
+export const heroPanelSkeleton = style({
+  width: "100%",
+  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
+  display: "flex",
+  alignItems: "center",
+  backgroundColor: vars.color.background,
+  height: "72px",
+  borderBottom: `solid 1px ${vars.color.border}`,
+});
+
+export const listItemSkeleton = style({
+  width: "100%",
+  overflow: "hidden",
+  borderRadius: "4px",
+  padding: `${SPACING_UNIT}px ${SPACING_UNIT}px`,
+  gap: `${SPACING_UNIT * 2}px`,
 });
