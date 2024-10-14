@@ -3,7 +3,7 @@ import {
   gameRepository,
   userPreferencesRepository,
 } from "@main/repository";
-import type { GameShop, UnlockedAchievement } from "@types";
+import type { AchievementData, GameShop, UnlockedAchievement } from "@types";
 import { WindowManager } from "../window-manager";
 import { HydraApi } from "../hydra-api";
 import { getGameAchievements } from "@main/events/catalogue/get-game-achievements";
@@ -52,9 +52,13 @@ export const mergeAchievements = async (
     userPreferencesRepository.findOne({ where: { id: 1 } }),
   ]);
 
+  const achievementsData = JSON.parse(
+    localGameAchievement?.achievements || "[]"
+  ) as AchievementData[];
+
   const unlockedAchievements = JSON.parse(
     localGameAchievement?.unlockedAchievements || "[]"
-  ).filter((achievement) => achievement.name);
+  ).filter((achievement) => achievement.name) as UnlockedAchievement[];
 
   const newAchievements = achievements
     .filter((achievement) => {
@@ -81,20 +85,18 @@ export const mergeAchievements = async (
         return a.unlockTime - b.unlockTime;
       })
       .map((achievement) => {
-        return JSON.parse(localGameAchievement?.achievements || "[]").find(
-          (steamAchievement) => {
-            return (
-              achievement.name.toUpperCase() ===
-              steamAchievement.name.toUpperCase()
-            );
-          }
-        );
+        return achievementsData.find((steamAchievement) => {
+          return (
+            achievement.name.toUpperCase() ===
+            steamAchievement.name.toUpperCase()
+          );
+        });
       })
       .filter((achievement) => achievement)
       .map((achievement) => {
         return {
-          displayName: achievement.displayName,
-          iconUrl: achievement.icon,
+          displayName: achievement!.displayName,
+          iconUrl: achievement!.icon,
         };
       });
 

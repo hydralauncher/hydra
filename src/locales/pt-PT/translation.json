@@ -282,6 +282,7 @@
     "your_friend_code": "Seu código de amigo:"
   },
   "achievement": {
-    "achievement_unlocked": "Conquista desbloqueada"
+    "achievement_unlocked": "Conquista desbloqueada",
+    "unlocked_at": "Desbloqueado em:"
   }
 }

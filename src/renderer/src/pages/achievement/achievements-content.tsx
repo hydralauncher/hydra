@@ -1,7 +1,7 @@
 import { setHeaderTitle } from "@renderer/features";
 import { useAppDispatch, useDate } from "@renderer/hooks";
 import { steamUrlBuilder } from "@shared";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as styles from "./achievements.css";
 import { formatDownloadProgress } from "@renderer/helpers";
@@ -21,6 +21,7 @@ interface AchievementsContentProps {
 
 interface AchievementListProps {
   achievements: UserAchievement[];
+  otherUserAchievements: UserAchievement[];
 }
 
 interface AchievementPanelProps {
@@ -92,27 +93,106 @@ function AchievementPanel({
   );
 }
 
-function AchievementList({ achievements }: AchievementListProps) {
+function AchievementList({
+  achievements,
+  otherUserAchievements,
+}: AchievementListProps) {
+  const { t } = useTranslation("achievement");
   const { formatDateTime } = useDate();
+
+  if (otherUserAchievements.length === 0) {
+    return (
+      <ul className={styles.list}>
+        {achievements.map((achievement, index) => (
+          <li
+            key={index}
+            className={styles.listItem}
+            style={{ display: "flex" }}
+          >
+            <img
+              className={styles.listItemImage({
+                unlocked: achievement.unlocked,
+              })}
+              src={achievement.icon}
+              alt={achievement.displayName}
+              loading="lazy"
+            />
+            <div style={{ flex: 1 }}>
+              <h4>{achievement.displayName}</h4>
+              <p>{achievement.description}</p>
+            </div>
+            {achievement.unlockTime && (
+              <div style={{ whiteSpace: "nowrap" }}>
+                <small>{t("unlocked_at")}</small>
+                <p>{formatDateTime(achievement.unlockTime)}</p>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    );
+  }
 
   return (
     <ul className={styles.list}>
-      {achievements.map((achievement, index) => (
-        <li key={index} className={styles.listItem}>
-          <img
-            className={styles.listItemImage({
-              unlocked: achievement.unlocked,
-            })}
-            src={achievement.icon}
-            alt={achievement.displayName}
-            loading="lazy"
-          />
-          <div>
-            <p>{achievement.displayName}</p>
-            <p>{achievement.description}</p>
-            <small>
-              {achievement.unlockTime && formatDateTime(achievement.unlockTime)}
-            </small>
+      {otherUserAchievements.map((otherUserAchievement, index) => (
+        <li
+          key={index}
+          className={styles.listItem}
+          style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr" }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: `${SPACING_UNIT}px`,
+            }}
+          >
+            <img
+              className={styles.listItemImage({
+                unlocked: otherUserAchievement.unlocked,
+              })}
+              src={otherUserAchievement.icon}
+              alt={otherUserAchievement.displayName}
+              loading="lazy"
+            />
+            {otherUserAchievement.unlockTime && (
+              <div style={{ whiteSpace: "nowrap" }}>
+                <small>{t("unlocked_at")}</small>
+                <p>{formatDateTime(otherUserAchievement.unlockTime)}</p>
+              </div>
+            )}
+          </div>
+
+          <div style={{ textAlign: "center" }}>
+            <h4>{otherUserAchievement.displayName}</h4>
+            <p>{otherUserAchievement.description}</p>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row-reverse",
+              alignItems: "center",
+              gap: `${SPACING_UNIT}px`,
+              textAlign: "right",
+            }}
+          >
+            <img
+              className={styles.listItemImage({
+                unlocked: achievements[index].unlocked,
+              })}
+              src={achievements[index].icon}
+              alt={achievements[index].displayName}
+              loading="lazy"
+            />
+            {achievements[index].unlockTime && (
+              <div style={{ whiteSpace: "nowrap" }}>
+                <small>{t("unlocked_at")}</small>
+                <p>{formatDateTime(achievements[index].unlockTime)}</p>
+              </div>
+            )}
           </div>
         </li>
       ))}
@@ -128,12 +208,26 @@ export function AchievementsContent({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isHeaderStuck, setIsHeaderStuck] = useState(false);
   const [backdropOpactiy, setBackdropOpacity] = useState(1);
-  const [pageAchievements, setPageAchievements] = useState<UserAchievement[]>(
-    []
-  );
+  const [otherUserAchievements, setOtherUserAchievements] = useState<
+    UserAchievement[]
+  >([]);
 
   const { gameTitle, objectId, shop, achievements, gameColor, setGameColor } =
     useContext(gameDetailsContext);
+
+  const sortedAchievements = useMemo(() => {
+    if (otherUserAchievements.length === 0) return achievements;
+
+    return achievements.sort((a, b) => {
+      const indexA = otherUserAchievements.findIndex(
+        (achievement) => achievement.name === a.name
+      );
+      const indexB = otherUserAchievements.findIndex(
+        (achievement) => achievement.name === b.name
+      );
+      return indexA - indexB;
+    });
+  }, [achievements, otherUserAchievements]);
 
   const dispatch = useAppDispatch();
 
@@ -161,7 +255,7 @@ export function AchievementsContent({
       window.electron
         .getGameAchievements(objectId, shop as GameShop, userId)
         .then((achievements) => {
-          setPageAchievements(achievements);
+          setOtherUserAchievements(achievements);
         });
     }
   }, [objectId, shop, userId]);
@@ -187,8 +281,6 @@ export function AchievementsContent({
   };
 
   if (!objectId || !shop || !gameTitle) return null;
-
-  const userAchievements = userId ? pageAchievements : achievements;
 
   return (
     <div className={styles.wrapper}>
@@ -228,25 +320,30 @@ export function AchievementsContent({
         </div>
 
         <div className={styles.panel({ stuck: isHeaderStuck })}>
-          <AchievementPanel
-            displayName={displayName}
-            achievements={userAchievements}
-          />
-          {pageAchievements.length > 0 && (
-            <AchievementPanel displayName={null} achievements={achievements} />
+          {userId && (
+            <AchievementPanel
+              displayName={displayName}
+              achievements={otherUserAchievements}
+            />
           )}
+
+          <AchievementPanel
+            displayName={null}
+            achievements={sortedAchievements}
+          />
         </div>
         <div
           style={{
             display: "flex",
             flexDirection: "row",
+            width: "100%",
+            backgroundColor: vars.color.background,
           }}
         >
-          {pageAchievements.length > 0 && (
-            <AchievementList achievements={pageAchievements} />
-          )}
-
-          <AchievementList achievements={achievements} />
+          <AchievementList
+            achievements={sortedAchievements}
+            otherUserAchievements={otherUserAchievements}
+          />
         </div>
       </section>
     </div>
