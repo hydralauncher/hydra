@@ -73,7 +73,12 @@ export const parseAchievementFile = (
 
 const iniParse = (filePath: string) => {
   try {
-    const lines = readFileSync(filePath, "utf-8").split(/[\r\n]+/);
+    const fileContent = readFileSync(filePath, "utf-8");
+
+    const lines =
+      fileContent.charCodeAt(0) === 0xfeff
+        ? fileContent.slice(1).split(/[\r\n]+/)
+        : fileContent.split(/[\r\n]+/);
 
     let objectName = "";
     const object: Record<string, Record<string, string | number>> = {};
@@ -116,6 +121,16 @@ const processOnlineFix = (unlockedAchievements: any): UnlockedAchievement[] => {
       parsedUnlockedAchievements.push({
         name: achievement,
         unlockTime: unlockedAchievement.timestamp * 1000,
+      });
+    } else if (unlockedAchievement?.Achieved == "true") {
+      const unlockTime = unlockedAchievement.TimeUnlocked;
+
+      parsedUnlockedAchievements.push({
+        name: achievement,
+        unlockTime:
+          unlockTime.length === 7
+            ? unlockTime * 1000 * 1000
+            : unlockTime * 1000,
       });
     }
   }
