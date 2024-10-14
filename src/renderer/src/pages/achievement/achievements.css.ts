@@ -93,11 +93,10 @@ export const list = style({
   flexDirection: "column",
   gap: `${SPACING_UNIT * 2}px`,
   padding: `${SPACING_UNIT * 2}px`,
-  backgroundColor: vars.color.background,
+  width: "100%",
 });
 
 export const listItem = style({
-  display: "flex",
   transition: "all ease 0.1s",
   color: vars.color.muted,
   width: "100%",
