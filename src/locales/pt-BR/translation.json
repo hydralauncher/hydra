@@ -234,7 +234,8 @@
     "source_already_exists": "Essa fonte já foi adicionada",
     "must_be_valid_url": "A fonte deve ser uma URL válida",
     "blocked_users": "Usuários bloqueados",
-    "user_unblocked": "Usuário desbloqueado"
+    "user_unblocked": "Usuário desbloqueado",
+    "enable_achievement_notifications": "Quando uma conquista é desbloqueada"
   },
   "notifications": {
     "download_complete": "Download concluído",
