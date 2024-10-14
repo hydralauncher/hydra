@@ -4,6 +4,7 @@ import {
 } from "@main/repository";
 import { HydraApi } from "../hydra-api";
 import { AchievementData } from "@types";
+import { UserNotLoggedInError } from "@shared";
 
 export const getGameAchievementData = async (
   objectId: string,
@@ -30,7 +31,11 @@ export const getGameAchievementData = async (
 
       return achievements;
     })
-    .catch(() => {
+    .catch((err) => {
+      if (err instanceof UserNotLoggedInError) {
+        throw err;
+      }
+
       return gameAchievementRepository
         .findOne({
           where: { objectId, shop },

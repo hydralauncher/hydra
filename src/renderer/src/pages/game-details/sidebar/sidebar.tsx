@@ -1,22 +1,57 @@
 import { useContext, useEffect, useState } from "react";
-import type { HowLongToBeatCategory, SteamAppDetails } from "@types";
+import type {
+  HowLongToBeatCategory,
+  SteamAppDetails,
+  UserAchievement,
+} from "@types";
 import { useTranslation } from "react-i18next";
 import { Button, Link } from "@renderer/components";
 
 import * as styles from "./sidebar.css";
 import { gameDetailsContext } from "@renderer/context";
-import { useDate, useFormat } from "@renderer/hooks";
-import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
+import { useDate, useFormat, useUserDetails } from "@renderer/hooks";
+import { DownloadIcon, LockIcon, PeopleIcon } from "@primer/octicons-react";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { howLongToBeatEntriesTable } from "@renderer/dexie";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
+import { SPACING_UNIT } from "@renderer/theme.css";
+
+const fakeAchievements: UserAchievement[] = [
+  {
+    displayName: "Timber!!",
+    name: "",
+    hidden: false,
+    description: "Chop down your first tree.",
+    icon: "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/105600/0fbb33098c9da39d1d4771d8209afface9c46e81.jpg",
+    unlocked: true,
+    unlockTime: Date.now(),
+  },
+  {
+    displayName: "Supreme Helper Minion!",
+    name: "",
+    hidden: false,
+    icon: "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/105600/0a6ff6a36670c96ceb4d30cf6fd69d2fdf55f38e.jpg",
+    unlocked: false,
+    unlockTime: null,
+  },
+  {
+    displayName: "Feast of Midas",
+    name: "",
+    hidden: false,
+    icon: "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/105600/2d10311274fe7c92ab25cc29afdca86b019ad472.jpg",
+    unlocked: false,
+    unlockTime: null,
+  },
+];
 
 export function Sidebar() {
   const [howLongToBeat, setHowLongToBeat] = useState<{
     isLoading: boolean;
     data: HowLongToBeatCategory[] | null;
   }>({ isLoading: true, data: null });
+
+  const { userDetails } = useUserDetails();
 
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
@@ -68,9 +103,53 @@ export function Sidebar() {
 
   return (
     <aside className={styles.contentSidebar}>
-      {achievements.length > 0 && (
+      {userDetails === null && (
+        <SidebarSection title={t("achievements")}>
+          <div
+            style={{
+              position: "absolute",
+              zIndex: 2,
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              background: "rgba(0, 0, 0, 0.7)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              flexDirection: "column",
+              gap: `${SPACING_UNIT}px`,
+            }}
+          >
+            <LockIcon size={36} />
+            <h3>{t("sign_in_to_see_achievements")}</h3>
+          </div>
+          <ul className={styles.list} style={{ filter: "blur(4px)" }}>
+            {fakeAchievements.map((achievement, index) => (
+              <li key={index}>
+                <div className={styles.listItem}>
+                  <img
+                    style={{ filter: "blur(8px)" }}
+                    className={styles.listItemImage({
+                      unlocked: achievement.unlocked,
+                    })}
+                    src={achievement.icon}
+                    alt={achievement.displayName}
+                  />
+                  <div>
+                    <p>{achievement.displayName}</p>
+                    <small>
+                      {achievement.unlockTime && format(achievement.unlockTime)}
+                    </small>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </SidebarSection>
+      )}
+      {userDetails && achievements.length > 0 && (
         <SidebarSection
-          title={t("achievements", {
+          title={t("achievements_count", {
             unlockedCount: achievements.filter((a) => a.unlocked).length,
             achievementsCount: achievements.length,
           })}
@@ -93,7 +172,6 @@ export function Sidebar() {
                     })}
                     src={achievement.icon}
                     alt={achievement.displayName}
-                    loading="lazy"
                   />
                   <div>
                     <p>{achievement.displayName}</p>

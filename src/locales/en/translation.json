@@ -131,7 +131,8 @@
     "executable_path_in_use": "Executable already in use by \"{{game}}\"",
     "warning": "Warning:",
     "hydra_needs_to_remain_open": "for this download, Hydra needs to remain open util its conclusion. In case Hydra closes before the conclusion, you will lose your progress.",
-    "achievements": "Achievements {{unlockedCount}}/{{achievementsCount}}",
+    "achievements": "Achievements",
+    "achievements_count": "Achievements {{unlockedCount}}/{{achievementsCount}}",
     "cloud_save": "Cloud save",
     "cloud_save_description": "Save your progress in the cloud and continue playing on any device",
     "backups": "Backups",
@@ -146,7 +147,8 @@
     "backup_uploaded": "Backup uploaded",
     "backup_deleted": "Backup deleted",
     "backup_restored": "Backup restored",
-    "see_all_achievements": "See all achievements"
+    "see_all_achievements": "See all achievements",
+    "sign_in_to_see_achievements": "Sign in to see achievements"
   },
   "activation": {
     "title": "Activate Hydra",
