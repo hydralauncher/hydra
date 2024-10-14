@@ -56,6 +56,10 @@ const getPathFromCracker = (cracker: Cracker) => {
         folderPath: path.join(publicDocuments, "OnlineFix"),
         fileLocation: ["Stats", "Achievements.ini"],
       },
+      {
+        folderPath: path.join(publicDocuments, "OnlineFix"),
+        fileLocation: ["Achievements.ini"],
+      },
     ];
   }
 
