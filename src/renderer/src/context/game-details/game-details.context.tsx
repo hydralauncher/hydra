@@ -3,12 +3,18 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
 import { setHeaderTitle } from "@renderer/features";
 import { getSteamLanguage } from "@renderer/helpers";
-import { useAppDispatch, useAppSelector, useDownload } from "@renderer/hooks";
+import {
+  useAppDispatch,
+  useAppSelector,
+  useDownload,
+  useUserDetails,
+} from "@renderer/hooks";
 
 import type {
   Game,
@@ -67,6 +73,7 @@ export function GameDetailsContextProvider({
   const [achievements, setAchievements] = useState<UserAchievement[]>([]);
   const [game, setGame] = useState<Game | null>(null);
   const [hasNSFWContentBlocked, setHasNSFWContentBlocked] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const [stats, setStats] = useState<GameStats | null>(null);
 
@@ -93,6 +100,7 @@ export function GameDetailsContextProvider({
   const dispatch = useAppDispatch();
 
   const { lastPacket } = useDownload();
+  const { userDetails } = useUserDetails();
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -111,6 +119,10 @@ export function GameDetailsContextProvider({
   }, [updateGame, isGameDownloading, lastPacket?.game.status]);
 
   useEffect(() => {
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     window.electron
       .getGameShopDetails(
         objectId!,
@@ -118,6 +130,8 @@ export function GameDetailsContextProvider({
         getSteamLanguage(i18n.language)
       )
       .then((result) => {
+        if (abortController.signal.aborted) return;
+
         setShopDetails(result);
 
         if (
@@ -133,21 +147,29 @@ export function GameDetailsContextProvider({
       });
 
     window.electron.getGameStats(objectId, shop as GameShop).then((result) => {
+      if (abortController.signal.aborted) return;
       setStats(result);
     });
 
     window.electron
       .getGameAchievements(objectId, shop as GameShop)
       .then((achievements) => {
-        // TODO: race condition
+        if (abortController.signal.aborted) return;
+        if (!userDetails) return;
         setAchievements(achievements);
       })
-      .catch(() => {
-        // TODO: handle user not logged in error
-      });
+      .catch(() => {});
 
     updateGame();
-  }, [updateGame, dispatch, gameTitle, objectId, shop, i18n.language]);
+  }, [
+    updateGame,
+    dispatch,
+    gameTitle,
+    objectId,
+    shop,
+    i18n.language,
+    userDetails,
+  ]);
 
   useEffect(() => {
     setShopDetails(null);
@@ -180,6 +202,7 @@ export function GameDetailsContextProvider({
       objectId,
       shop,
       (achievements) => {
+        if (!userDetails) return;
         setAchievements(achievements);
       }
     );
@@ -187,7 +210,7 @@ export function GameDetailsContextProvider({
     return () => {
       unsubscribe();
     };
-  }, [objectId, shop]);
+  }, [objectId, shop, userDetails]);
 
   const getDownloadsPath = async () => {
     if (userPreferences?.downloadsPath) return userPreferences.downloadsPath;
