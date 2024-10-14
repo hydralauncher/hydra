@@ -7,11 +7,11 @@ import type { GameRepack } from "@types";
 import * as styles from "./repacks-modal.css";
 
 import { SPACING_UNIT } from "@renderer/theme.css";
-import { format } from "date-fns";
 import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "@renderer/context";
 import { Downloader } from "@shared";
 import { orderBy } from "lodash-es";
+import { useDate } from "@renderer/hooks";
 
 export interface RepacksModalProps {
   visible: boolean;
@@ -35,6 +35,8 @@ export function RepacksModal({
   const { repacks, game } = useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
+
+  const { formatDate } = useDate();
 
   const sortedRepacks = useMemo(() => {
     return orderBy(repacks, (repack) => repack.uploadDate, "desc");
@@ -109,9 +111,7 @@ export function RepacksModal({
 
                 <p style={{ fontSize: "12px" }}>
                   {repack.fileSize} - {repack.repacker} -{" "}
-                  {repack.uploadDate
-                    ? format(repack.uploadDate, "dd/MM/yyyy")
-                    : ""}
+                  {repack.uploadDate ? formatDate(repack.uploadDate!) : ""}
                 </p>
               </Button>
             );

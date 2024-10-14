@@ -60,7 +60,7 @@ export function Sidebar() {
     useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
-  const { format } = useDate();
+  const { formatDateTime } = useDate();
 
   const { numberFormatter } = useFormat();
 
@@ -138,7 +138,8 @@ export function Sidebar() {
                   <div>
                     <p>{achievement.displayName}</p>
                     <small>
-                      {achievement.unlockTime && format(achievement.unlockTime)}
+                      {achievement.unlockTime &&
+                        formatDateTime(achievement.unlockTime)}
                     </small>
                   </div>
                 </div>
@@ -176,7 +177,8 @@ export function Sidebar() {
                   <div>
                     <p>{achievement.displayName}</p>
                     <small>
-                      {achievement.unlockTime && format(achievement.unlockTime)}
+                      {achievement.unlockTime &&
+                        formatDateTime(achievement.unlockTime)}
                     </small>
                   </div>
                 </Link>

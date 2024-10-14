@@ -27,7 +27,7 @@ export function Achievement() {
 
   const { t } = useTranslation("achievement");
 
-  const { format } = useDate();
+  const { formatDateTime } = useDate();
 
   const dispatch = useAppDispatch();
 
@@ -163,7 +163,8 @@ export function Achievement() {
                 <p>{achievement.displayName}</p>
                 <p>{achievement.description}</p>
                 <small>
-                  {achievement.unlockTime && format(achievement.unlockTime)}
+                  {achievement.unlockTime &&
+                    formatDateTime(achievement.unlockTime)}
                 </small>
               </div>
             </li>
