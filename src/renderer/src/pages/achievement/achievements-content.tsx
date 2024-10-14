@@ -8,20 +8,23 @@ import { formatDownloadProgress } from "@renderer/helpers";
 import { TrophyIcon } from "@primer/octicons-react";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { gameDetailsContext } from "@renderer/context";
-import { GameShop, UserAchievement } from "@types";
+import { UserAchievement } from "@types";
 import { average } from "color.js";
 import Color from "color";
 
 const HERO_ANIMATION_THRESHOLD = 25;
 
 interface AchievementsContentProps {
-  otherUserId: string | null;
-  otherUserDisplayName: string | null;
+  otherUser: {
+    userId: string;
+    displayName: string;
+    achievements: UserAchievement[];
+  } | null;
 }
 
 interface AchievementListProps {
   achievements: UserAchievement[];
-  otherUserAchievements: UserAchievement[];
+  otherUserAchievements?: UserAchievement[];
 }
 
 interface AchievementPanelProps {
@@ -100,7 +103,7 @@ function AchievementList({
   const { t } = useTranslation("achievement");
   const { formatDateTime } = useDate();
 
-  if (otherUserAchievements.length === 0) {
+  if (!otherUserAchievements || otherUserAchievements.length === 0) {
     return (
       <ul className={styles.list}>
         {achievements.map((achievement, index) => (
@@ -200,34 +203,28 @@ function AchievementList({
   );
 }
 
-export function AchievementsContent({
-  otherUserId: userId,
-  otherUserDisplayName: displayName,
-}: AchievementsContentProps) {
+export function AchievementsContent({ otherUser }: AchievementsContentProps) {
   const heroRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isHeaderStuck, setIsHeaderStuck] = useState(false);
   const [backdropOpactiy, setBackdropOpacity] = useState(1);
-  const [otherUserAchievements, setOtherUserAchievements] = useState<
-    UserAchievement[]
-  >([]);
 
   const { gameTitle, objectId, shop, achievements, gameColor, setGameColor } =
     useContext(gameDetailsContext);
 
   const sortedAchievements = useMemo(() => {
-    if (otherUserAchievements.length === 0) return achievements;
+    if (!otherUser || otherUser.achievements.length === 0) return achievements!;
 
-    return achievements.sort((a, b) => {
-      const indexA = otherUserAchievements.findIndex(
+    return achievements!.sort((a, b) => {
+      const indexA = otherUser.achievements.findIndex(
         (achievement) => achievement.name === a.name
       );
-      const indexB = otherUserAchievements.findIndex(
+      const indexB = otherUser.achievements.findIndex(
         (achievement) => achievement.name === b.name
       );
       return indexA - indexB;
     });
-  }, [achievements, otherUserAchievements]);
+  }, [achievements, otherUser]);
 
   const dispatch = useAppDispatch();
 
@@ -249,16 +246,6 @@ export function AchievementsContent({
 
     setGameColor(backgroundColor);
   };
-
-  useEffect(() => {
-    if (objectId && shop && userId) {
-      window.electron
-        .getGameAchievements(objectId, shop as GameShop, userId)
-        .then((achievements) => {
-          setOtherUserAchievements(achievements);
-        });
-    }
-  }, [objectId, shop, userId]);
 
   const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
     const heroHeight = heroRef.current?.clientHeight ?? styles.HERO_HEIGHT;
@@ -320,10 +307,10 @@ export function AchievementsContent({
         </div>
 
         <div className={styles.panel({ stuck: isHeaderStuck })}>
-          {userId && (
+          {otherUser && (
             <AchievementPanel
-              displayName={displayName}
-              achievements={otherUserAchievements}
+              displayName={otherUser.displayName}
+              achievements={otherUser.achievements}
             />
           )}
 
@@ -342,7 +329,7 @@ export function AchievementsContent({
         >
           <AchievementList
             achievements={sortedAchievements}
-            otherUserAchievements={otherUserAchievements}
+            otherUserAchievements={otherUser?.achievements}
           />
         </div>
       </section>

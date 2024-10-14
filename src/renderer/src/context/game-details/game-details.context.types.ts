@@ -20,7 +20,7 @@ export interface GameDetailsContext {
   showRepacksModal: boolean;
   showGameOptionsModal: boolean;
   stats: GameStats | null;
-  achievements: UserAchievement[];
+  achievements: UserAchievement[] | null;
   hasNSFWContentBlocked: boolean;
   setGameColor: React.Dispatch<React.SetStateAction<string>>;
   selectGameExecutable: () => Promise<string | null>;
