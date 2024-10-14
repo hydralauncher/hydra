@@ -154,6 +154,7 @@ export interface UserPreferences {
   language: string;
   downloadNotificationsEnabled: boolean;
   repackUpdatesNotificationsEnabled: boolean;
+  achievementNotificationsEnabled: boolean;
   realDebridApiToken: string | null;
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;

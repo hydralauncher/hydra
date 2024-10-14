@@ -1,4 +1,8 @@
-import { gameAchievementRepository, gameRepository } from "@main/repository";
+import {
+  gameAchievementRepository,
+  gameRepository,
+  userPreferencesRepository,
+} from "@main/repository";
 import type { GameShop, UnlockedAchievement } from "@types";
 import { WindowManager } from "../window-manager";
 import { HydraApi } from "../hydra-api";
@@ -38,12 +42,15 @@ export const mergeAchievements = async (
 
   if (!game) return;
 
-  const localGameAchievement = await gameAchievementRepository.findOne({
-    where: {
-      objectId,
-      shop,
-    },
-  });
+  const [localGameAchievement, userPreferences] = await Promise.all([
+    gameAchievementRepository.findOne({
+      where: {
+        objectId,
+        shop,
+      },
+    }),
+    userPreferencesRepository.findOne({ where: { id: 1 } }),
+  ]);
 
   const unlockedAchievements = JSON.parse(
     localGameAchievement?.unlockedAchievements || "[]"
@@ -64,7 +71,11 @@ export const mergeAchievements = async (
       };
     });
 
-  if (newAchievements.length && publishNotification) {
+  if (
+    newAchievements.length &&
+    publishNotification &&
+    userPreferences?.achievementNotificationsEnabled
+  ) {
     const achievementsInfo = newAchievements
       .sort((a, b) => {
         return a.unlockTime - b.unlockTime;

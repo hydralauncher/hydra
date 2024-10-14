@@ -235,7 +235,8 @@
     "source_already_exists": "This source has been already added",
     "must_be_valid_url": "The source must be a valid URL",
     "blocked_users": "Blocked users",
-    "user_unblocked": "User has been unblocked"
+    "user_unblocked": "User has been unblocked",
+    "enable_achievement_notifications": "When an achievement in unlocked"
   },
   "notifications": {
     "download_complete": "Download complete",
