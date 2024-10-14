@@ -15,8 +15,8 @@ import Color from "color";
 const HERO_ANIMATION_THRESHOLD = 25;
 
 interface AchievementsContentProps {
-  userId: string | null;
-  displayName: string | null;
+  otherUserId: string | null;
+  otherUserDisplayName: string | null;
 }
 
 interface AchievementListProps {
@@ -201,8 +201,8 @@ function AchievementList({
 }
 
 export function AchievementsContent({
-  userId,
-  displayName,
+  otherUserId: userId,
+  otherUserDisplayName: displayName,
 }: AchievementsContentProps) {
   const heroRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);

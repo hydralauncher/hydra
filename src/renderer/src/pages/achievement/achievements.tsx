@@ -1,5 +1,5 @@
 import { setHeaderTitle } from "@renderer/features";
-import { useAppDispatch } from "@renderer/hooks";
+import { useAppDispatch, useUserDetails } from "@renderer/hooks";
 import type { GameShop } from "@types";
 import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -20,6 +20,8 @@ export function Achievement() {
   const userId = searchParams.get("userId");
   const displayName = searchParams.get("displayName");
 
+  const { userDetails } = useUserDetails();
+
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -29,6 +31,8 @@ export function Achievement() {
   }, [dispatch, title]);
 
   if (!objectId || !shop || !title) return null;
+
+  const otherUserId = userDetails?.id == userId ? null : userId;
 
   return (
     <GameDetailsContextProvider
@@ -47,8 +51,8 @@ export function Achievement() {
                 <AchievementsSkeleton />
               ) : (
                 <AchievementsContent
-                  userId={userId}
-                  displayName={displayName}
+                  otherUserId={otherUserId}
+                  otherUserDisplayName={displayName}
                 />
               )}
             </SkeletonTheme>
