@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import * as styles from "./achievements.css";
 import { formatDownloadProgress } from "@renderer/helpers";
 import { TrophyIcon } from "@primer/octicons-react";
-import { vars } from "@renderer/theme.css";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { gameDetailsContext } from "@renderer/context";
 import { GameShop, UserAchievement } from "@types";
 import { average } from "color.js";
@@ -17,6 +17,107 @@ const HERO_ANIMATION_THRESHOLD = 25;
 interface AchievementsContentProps {
   userId: string | null;
   displayName: string | null;
+}
+
+interface AchievementListProps {
+  achievements: UserAchievement[];
+}
+
+interface AchievementPanelProps {
+  achievements: UserAchievement[];
+  displayName: string | null;
+}
+
+function AchievementPanel({
+  achievements,
+  displayName,
+}: AchievementPanelProps) {
+  const { t } = useTranslation("achievement");
+
+  const unlockedAchievementCount = achievements.filter(
+    (achievement) => achievement.unlocked
+  ).length;
+
+  const totalAchievementCount = achievements.length;
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
+        padding: `0 ${SPACING_UNIT * 2}px`,
+      }}
+    >
+      <h1 style={{ fontSize: "1.2em", marginBottom: "8px" }}>
+        {displayName
+          ? t("user_achievements", {
+              displayName,
+            })
+          : t("your_achievements")}
+      </h1>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 8,
+          width: "100%",
+          color: vars.color.muted,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <TrophyIcon size={13} />
+          <span>
+            {unlockedAchievementCount} / {totalAchievementCount}
+          </span>
+        </div>
+
+        <span>
+          {formatDownloadProgress(
+            unlockedAchievementCount / totalAchievementCount
+          )}
+        </span>
+      </div>
+      <progress
+        max={1}
+        value={unlockedAchievementCount / totalAchievementCount}
+        className={styles.achievementsProgressBar}
+      />
+    </div>
+  );
+}
+
+function AchievementList({ achievements }: AchievementListProps) {
+  const { formatDateTime } = useDate();
+
+  return (
+    <ul className={styles.list}>
+      {achievements.map((achievement, index) => (
+        <li key={index} className={styles.listItem}>
+          <img
+            className={styles.listItemImage({
+              unlocked: achievement.unlocked,
+            })}
+            src={achievement.icon}
+            alt={achievement.displayName}
+            loading="lazy"
+          />
+          <div>
+            <p>{achievement.displayName}</p>
+            <p>{achievement.description}</p>
+            <small>
+              {achievement.unlockTime && formatDateTime(achievement.unlockTime)}
+            </small>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export function AchievementsContent({
@@ -31,12 +132,8 @@ export function AchievementsContent({
     []
   );
 
-  const { t } = useTranslation("achievement");
-
   const { gameTitle, objectId, shop, achievements, gameColor, setGameColor } =
     useContext(gameDetailsContext);
-
-  const { formatDateTime } = useDate();
 
   const dispatch = useAppDispatch();
 
@@ -93,12 +190,6 @@ export function AchievementsContent({
 
   const userAchievements = userId ? pageAchievements : achievements;
 
-  const unlockedAchievementCount = userAchievements.filter(
-    (achievement) => achievement.unlocked
-  ).length;
-
-  const totalAchievementCount = userAchievements.length;
-
   return (
     <div className={styles.wrapper}>
       <img
@@ -137,70 +228,26 @@ export function AchievementsContent({
         </div>
 
         <div className={styles.panel({ stuck: isHeaderStuck })}>
-          <h1 style={{ fontSize: "1.2em", marginBottom: "8px" }}>
-            {displayName
-              ? t("user_achievements", {
-                  displayName,
-                })
-              : t("your_achievements")}
-          </h1>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: 8,
-              width: "100%",
-              color: vars.color.muted,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <TrophyIcon size={13} />
-              <span>
-                {unlockedAchievementCount} / {totalAchievementCount}
-              </span>
-            </div>
-
-            <span>
-              {formatDownloadProgress(
-                unlockedAchievementCount / totalAchievementCount
-              )}
-            </span>
-          </div>
-          <progress
-            max={1}
-            value={unlockedAchievementCount / totalAchievementCount}
-            className={styles.achievementsProgressBar}
+          <AchievementPanel
+            displayName={displayName}
+            achievements={userAchievements}
           />
+          {pageAchievements.length > 0 && (
+            <AchievementPanel displayName={null} achievements={achievements} />
+          )}
         </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+          }}
+        >
+          {pageAchievements.length > 0 && (
+            <AchievementList achievements={pageAchievements} />
+          )}
 
-        <ul className={styles.list}>
-          {userAchievements.map((achievement, index) => (
-            <li key={index} className={styles.listItem}>
-              <img
-                className={styles.listItemImage({
-                  unlocked: achievement.unlocked,
-                })}
-                src={achievement.icon}
-                alt={achievement.displayName}
-                loading="lazy"
-              />
-              <div>
-                <p>{achievement.displayName}</p>
-                <p>{achievement.description}</p>
-                <small>
-                  {achievement.unlockTime &&
-                    formatDateTime(achievement.unlockTime)}
-                </small>
-              </div>
-            </li>
-          ))}
-        </ul>
+          <AchievementList achievements={achievements} />
+        </div>
       </section>
     </div>
   );
