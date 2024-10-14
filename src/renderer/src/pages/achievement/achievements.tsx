@@ -52,16 +52,15 @@ export function Achievement() {
 
   if (!objectId || !shop || !title) return null;
 
-  const otherUserId = userDetails?.id == userId ? null : userId;
+  const otherUserId = userDetails?.id === userId ? null : userId;
 
-  const otherUser =
-    otherUserId != null
-      ? {
-          userId: otherUserId,
-          displayName: displayName || "",
-          achievements: otherUserAchievements || [],
-        }
-      : null;
+  const otherUser = otherUserId
+    ? {
+        userId: otherUserId,
+        displayName: displayName || "",
+        achievements: otherUserAchievements || [],
+      }
+    : null;
 
   return (
     <GameDetailsContextProvider
@@ -78,7 +77,7 @@ export function Achievement() {
             >
               {isLoading ||
               achievements === null ||
-              otherUserAchievements === null ? (
+              (otherUserId && otherUserAchievements === null) ? (
                 <AchievementsSkeleton />
               ) : (
                 <AchievementsContent otherUser={otherUser} />
