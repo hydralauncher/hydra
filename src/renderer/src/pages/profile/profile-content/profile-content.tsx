@@ -52,7 +52,11 @@ export function ProfileContent() {
     // });
 
     const userParams = userProfile
-      ? { userId: userProfile.id, displayName: userProfile.displayName }
+      ? {
+          userId: userProfile.id,
+          displayName: userProfile.displayName,
+          profileImageUrl: userProfile.profileImageUrl,
+        }
       : undefined;
 
     return buildGameAchievementPath({ ...game }, userParams);

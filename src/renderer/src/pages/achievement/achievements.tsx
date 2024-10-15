@@ -19,6 +19,7 @@ export function Achievement() {
   const title = searchParams.get("title");
   const userId = searchParams.get("userId");
   const displayName = searchParams.get("displayName");
+  const profileImageUrl = searchParams.get("profileImageUrl");
 
   const { userDetails } = useUserDetails();
 
@@ -59,6 +60,7 @@ export function Achievement() {
         userId: otherUserId,
         displayName: displayName || "",
         achievements: otherUserAchievements || [],
+        profileImageUrl: profileImageUrl || "",
       }
     : null;
 
