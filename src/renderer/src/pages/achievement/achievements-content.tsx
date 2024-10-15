@@ -18,7 +18,7 @@ interface UserInfo {
   userId: string;
   displayName: string;
   achievements: UserAchievement[];
-  profileImageUrl: string;
+  profileImageUrl: string | null;
 }
 
 interface AchievementsContentProps {
@@ -31,26 +31,14 @@ interface AchievementListProps {
 }
 
 interface AchievementPanelProps {
-  achievements: UserAchievement[];
-  displayName: string | null;
-  profileImageUrl: string | null;
+  user: UserInfo;
+  otherUser: UserInfo | null;
 }
 
-function AchievementPanel({
-  achievements,
-  displayName,
-  profileImageUrl,
-}: AchievementPanelProps) {
+function AchievementPanel({ user, otherUser }: AchievementPanelProps) {
   const { t } = useTranslation("achievement");
 
-  const unlockedAchievementCount = achievements.filter(
-    (achievement) => achievement.unlocked
-  ).length;
-
-  const { userDetails } = useUserDetails();
-
-  const getProfileImage = () => {
-    const imageUrl = profileImageUrl || userDetails?.profileImageUrl;
+  const getProfileImage = (imageUrl: string | null | undefined) => {
     return (
       <div className={styles.profileAvatar}>
         {imageUrl ? (
@@ -62,67 +50,195 @@ function AchievementPanel({
     );
   };
 
-  const totalAchievementCount = achievements.length;
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "row",
-        width: "100%",
-        padding: `0 ${SPACING_UNIT * 2}px`,
-        gap: `${SPACING_UNIT * 2}px`,
-      }}
-    >
-      {getProfileImage()}
+  const userTotalAchievementCount = user.achievements.length;
+  const userUnlockedAchievementCount = user.achievements.filter(
+    (achievement) => achievement.unlocked
+  ).length;
+
+  if (!otherUser) {
+    return (
       <div
         style={{
           display: "flex",
-          flexDirection: "column",
+          flexDirection: "row",
           width: "100%",
+          padding: `0 ${SPACING_UNIT * 2}px`,
+          gap: `${SPACING_UNIT * 2}px`,
         }}
       >
-        <h1 style={{ fontSize: "1.2em", marginBottom: "8px" }}>
-          {displayName
-            ? t("user_achievements", {
-                displayName,
-              })
-            : t("your_achievements")}
-        </h1>
+        {getProfileImage(user.profileImageUrl)}
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 8,
+            flexDirection: "column",
             width: "100%",
-            color: vars.color.muted,
           }}
         >
+          <h1 style={{ fontSize: "1.2em", marginBottom: "8px" }}>
+            {t("your_achievements")}
+          </h1>
           <div
             style={{
               display: "flex",
-              alignItems: "center",
-              gap: 8,
+              justifyContent: "space-between",
+              marginBottom: 8,
+              width: "100%",
+              color: vars.color.muted,
             }}
           >
-            <TrophyIcon size={13} />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <TrophyIcon size={13} />
+              <span>
+                {userUnlockedAchievementCount} / {userTotalAchievementCount}
+              </span>
+            </div>
+
             <span>
-              {unlockedAchievementCount} / {totalAchievementCount}
+              {formatDownloadProgress(
+                userUnlockedAchievementCount / userTotalAchievementCount
+              )}
             </span>
           </div>
-
-          <span>
-            {formatDownloadProgress(
-              unlockedAchievementCount / totalAchievementCount
-            )}
-          </span>
+          <progress
+            max={1}
+            value={userUnlockedAchievementCount / userTotalAchievementCount}
+            className={styles.achievementsProgressBar}
+          />
         </div>
-        <progress
-          max={1}
-          value={unlockedAchievementCount / totalAchievementCount}
-          className={styles.achievementsProgressBar}
-        />
       </div>
-    </div>
+    );
+  }
+
+  const otherUserUnlockedAchievementCount = otherUser.achievements.filter(
+    (achievement) => achievement.unlocked
+  ).length;
+  const otherUserTotalAchievementCount = otherUser.achievements.length;
+
+  return (
+    <>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          width: "100%",
+          padding: `0 ${SPACING_UNIT * 2}px`,
+          gap: `${SPACING_UNIT * 2}px`,
+        }}
+      >
+        {getProfileImage(otherUser.profileImageUrl)}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            width: "100%",
+          }}
+        >
+          <h1 style={{ fontSize: "1.2em", marginBottom: "8px" }}>
+            {t("user_achievements", {
+              displayName: otherUser.displayName,
+            })}
+          </h1>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: 8,
+              width: "100%",
+              color: vars.color.muted,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <TrophyIcon size={13} />
+              <span>
+                {otherUserUnlockedAchievementCount} /{" "}
+                {otherUserTotalAchievementCount}
+              </span>
+            </div>
+
+            <span>
+              {formatDownloadProgress(
+                otherUserUnlockedAchievementCount /
+                  otherUserTotalAchievementCount
+              )}
+            </span>
+          </div>
+          <progress
+            max={1}
+            value={
+              otherUserUnlockedAchievementCount / otherUserTotalAchievementCount
+            }
+            className={styles.achievementsProgressBar}
+          />
+        </div>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row-reverse",
+          width: "100%",
+          padding: `0 ${SPACING_UNIT * 2}px`,
+          gap: `${SPACING_UNIT * 2}px`,
+        }}
+      >
+        {getProfileImage(user.profileImageUrl)}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            width: "100%",
+          }}
+        >
+          <h1 style={{ fontSize: "1.2em", marginBottom: "8px" }}>
+            {t("your_achievements")}
+          </h1>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: 8,
+              width: "100%",
+              color: vars.color.muted,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <TrophyIcon size={13} />
+              <span>
+                {userUnlockedAchievementCount} / {userTotalAchievementCount}
+              </span>
+            </div>
+
+            <span>
+              {formatDownloadProgress(
+                userUnlockedAchievementCount / userTotalAchievementCount
+              )}
+            </span>
+          </div>
+          <progress
+            max={1}
+            value={userUnlockedAchievementCount / userTotalAchievementCount}
+            className={styles.achievementsProgressBar}
+          />
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -258,6 +374,8 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
 
   const dispatch = useAppDispatch();
 
+  const { userDetails } = useUserDetails();
+
   useEffect(() => {
     if (gameTitle) {
       dispatch(setHeaderTitle(gameTitle));
@@ -297,7 +415,7 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
     setBackdropOpacity(opacity);
   };
 
-  if (!objectId || !shop || !gameTitle) return null;
+  if (!objectId || !shop || !gameTitle || !userDetails) return null;
 
   return (
     <div className={styles.wrapper}>
@@ -337,18 +455,13 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
         </div>
 
         <div className={styles.panel({ stuck: isHeaderStuck })}>
-          {otherUser && (
-            <AchievementPanel
-              displayName={otherUser.displayName}
-              achievements={otherUser.achievements}
-              profileImageUrl={otherUser.profileImageUrl}
-            />
-          )}
-
           <AchievementPanel
-            displayName={null}
-            achievements={sortedAchievements}
-            profileImageUrl={null}
+            user={{
+              ...userDetails,
+              userId: userDetails.id,
+              achievements: achievements!,
+            }}
+            otherUser={otherUser}
           />
         </div>
         <div
