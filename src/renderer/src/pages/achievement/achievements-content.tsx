@@ -1,11 +1,11 @@
 import { setHeaderTitle } from "@renderer/features";
-import { useAppDispatch, useDate } from "@renderer/hooks";
+import { useAppDispatch, useDate, useUserDetails } from "@renderer/hooks";
 import { steamUrlBuilder } from "@shared";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as styles from "./achievements.css";
 import { formatDownloadProgress } from "@renderer/helpers";
-import { TrophyIcon } from "@primer/octicons-react";
+import { PersonIcon, TrophyIcon } from "@primer/octicons-react";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { gameDetailsContext } from "@renderer/context";
 import { UserAchievement } from "@types";
@@ -14,12 +14,15 @@ import Color from "color";
 
 const HERO_ANIMATION_THRESHOLD = 25;
 
+interface UserInfo {
+  userId: string;
+  displayName: string;
+  achievements: UserAchievement[];
+  profileImageUrl: string;
+}
+
 interface AchievementsContentProps {
-  otherUser: {
-    userId: string;
-    displayName: string;
-    achievements: UserAchievement[];
-  } | null;
+  otherUser: UserInfo | null;
 }
 
 interface AchievementListProps {
@@ -30,11 +33,13 @@ interface AchievementListProps {
 interface AchievementPanelProps {
   achievements: UserAchievement[];
   displayName: string | null;
+  profileImageUrl: string | null;
 }
 
 function AchievementPanel({
   achievements,
   displayName,
+  profileImageUrl,
 }: AchievementPanelProps) {
   const { t } = useTranslation("achievement");
 
@@ -42,56 +47,81 @@ function AchievementPanel({
     (achievement) => achievement.unlocked
   ).length;
 
+  const { userDetails } = useUserDetails();
+
+  const getProfileImage = () => {
+    const imageUrl = profileImageUrl || userDetails?.profileImageUrl;
+    return (
+      <div className={styles.profileAvatar}>
+        {imageUrl ? (
+          <img className={styles.profileAvatar} src={imageUrl} alt={"teste"} />
+        ) : (
+          <PersonIcon size={24} />
+        )}
+      </div>
+    );
+  };
+
   const totalAchievementCount = achievements.length;
   return (
     <div
       style={{
         display: "flex",
-        flexDirection: "column",
+        flexDirection: "row",
         width: "100%",
         padding: `0 ${SPACING_UNIT * 2}px`,
+        gap: `${SPACING_UNIT * 2}px`,
       }}
     >
-      <h1 style={{ fontSize: "1.2em", marginBottom: "8px" }}>
-        {displayName
-          ? t("user_achievements", {
-              displayName,
-            })
-          : t("your_achievements")}
-      </h1>
+      {getProfileImage()}
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 8,
+          flexDirection: "column",
           width: "100%",
-          color: vars.color.muted,
         }}
       >
+        <h1 style={{ fontSize: "1.2em", marginBottom: "8px" }}>
+          {displayName
+            ? t("user_achievements", {
+                displayName,
+              })
+            : t("your_achievements")}
+        </h1>
         <div
           style={{
             display: "flex",
-            alignItems: "center",
-            gap: 8,
+            justifyContent: "space-between",
+            marginBottom: 8,
+            width: "100%",
+            color: vars.color.muted,
           }}
         >
-          <TrophyIcon size={13} />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <TrophyIcon size={13} />
+            <span>
+              {unlockedAchievementCount} / {totalAchievementCount}
+            </span>
+          </div>
+
           <span>
-            {unlockedAchievementCount} / {totalAchievementCount}
+            {formatDownloadProgress(
+              unlockedAchievementCount / totalAchievementCount
+            )}
           </span>
         </div>
-
-        <span>
-          {formatDownloadProgress(
-            unlockedAchievementCount / totalAchievementCount
-          )}
-        </span>
+        <progress
+          max={1}
+          value={unlockedAchievementCount / totalAchievementCount}
+          className={styles.achievementsProgressBar}
+        />
       </div>
-      <progress
-        max={1}
-        value={unlockedAchievementCount / totalAchievementCount}
-        className={styles.achievementsProgressBar}
-      />
     </div>
   );
 }
@@ -311,12 +341,14 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
             <AchievementPanel
               displayName={otherUser.displayName}
               achievements={otherUser.achievements}
+              profileImageUrl={otherUser.profileImageUrl}
             />
           )}
 
           <AchievementPanel
             displayName={null}
             achievements={sortedAchievements}
+            profileImageUrl={null}
           />
         </div>
         <div

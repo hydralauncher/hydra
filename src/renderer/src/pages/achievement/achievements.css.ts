@@ -176,3 +176,15 @@ export const listItemSkeleton = style({
   padding: `${SPACING_UNIT}px ${SPACING_UNIT}px`,
   gap: `${SPACING_UNIT * 2}px`,
 });
+
+export const profileAvatar = style({
+  height: "65px",
+  width: "65px",
+  borderRadius: "4px",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: vars.color.background,
+  position: "relative",
+  objectFit: "cover",
+});
