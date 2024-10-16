@@ -18,6 +18,7 @@ const getMe = async (
           id: 1,
           displayName: me.displayName,
           profileImageUrl: me.profileImageUrl,
+          backgroundImageUrl: me.backgroundImageUrl,
           userId: me.id,
         },
         ["id"]
