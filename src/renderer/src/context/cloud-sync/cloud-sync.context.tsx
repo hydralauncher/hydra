@@ -23,13 +23,13 @@ export interface CloudSyncContext {
   artifacts: GameArtifact[];
   showCloudSyncModal: boolean;
   showCloudSyncFilesModal: boolean;
-  supportsCloudSync: boolean | null;
   backupState: CloudSyncState;
   setShowCloudSyncModal: React.Dispatch<React.SetStateAction<boolean>>;
   downloadGameArtifact: (gameArtifactId: string) => Promise<void>;
   uploadSaveGame: () => Promise<void>;
   deleteGameArtifact: (gameArtifactId: string) => Promise<void>;
   setShowCloudSyncFilesModal: React.Dispatch<React.SetStateAction<boolean>>;
+  getGameBackupPreview: () => Promise<void>;
   restoringBackup: boolean;
   uploadingBackup: boolean;
 }
@@ -37,7 +37,6 @@ export interface CloudSyncContext {
 export const cloudSyncContext = createContext<CloudSyncContext>({
   backupPreview: null,
   showCloudSyncModal: false,
-  supportsCloudSync: null,
   backupState: CloudSyncState.Unknown,
   setShowCloudSyncModal: () => {},
   downloadGameArtifact: async () => {},
@@ -46,6 +45,7 @@ export const cloudSyncContext = createContext<CloudSyncContext>({
   deleteGameArtifact: async () => {},
   showCloudSyncFilesModal: false,
   setShowCloudSyncFilesModal: () => {},
+  getGameBackupPreview: async () => {},
   restoringBackup: false,
   uploadingBackup: false,
 });
@@ -66,9 +66,6 @@ export function CloudSyncContextProvider({
 }: CloudSyncContextProviderProps) {
   const { t } = useTranslation("game_details");
 
-  const [supportsCloudSync, setSupportsCloudSync] = useState<boolean | null>(
-    null
-  );
   const [artifacts, setArtifacts] = useState<GameArtifact[]>([]);
   const [showCloudSyncModal, setShowCloudSyncModal] = useState(false);
   const [backupPreview, setBackupPreview] = useState<LudusaviBackup | null>(
@@ -89,21 +86,26 @@ export function CloudSyncContextProvider({
   );
 
   const getGameBackupPreview = useCallback(async () => {
-    window.electron.getGameArtifacts(objectId, shop).then((results) => {
-      setArtifacts(results);
-    });
-
-    window.electron
-      .getGameBackupPreview(objectId, shop)
-      .then((preview) => {
-        logger.info("Game backup preview", objectId, shop, preview);
-        if (preview && Object.keys(preview.games).length) {
-          setBackupPreview(preview);
-        }
-      })
-      .catch((err) => {
-        logger.error("Failed to get game backup preview", objectId, shop, err);
-      });
+    await Promise.allSettled([
+      window.electron.getGameArtifacts(objectId, shop).then((results) => {
+        setArtifacts(results);
+      }),
+      window.electron
+        .getGameBackupPreview(objectId, shop)
+        .then((preview) => {
+          if (preview && Object.keys(preview.games).length) {
+            setBackupPreview(preview);
+          }
+        })
+        .catch((err) => {
+          logger.error(
+            "Failed to get game backup preview",
+            objectId,
+            shop,
+            err
+          );
+        }),
+    ]);
   }, [objectId, shop]);
 
   const uploadSaveGame = useCallback(async () => {
@@ -153,31 +155,12 @@ export function CloudSyncContextProvider({
   );
 
   useEffect(() => {
-    window.electron
-      .checkGameCloudSyncSupport(objectId, shop)
-      .then((result) => {
-        logger.info("Cloud sync support", objectId, shop, result);
-        setSupportsCloudSync(result);
-      })
-      .catch((err) => {
-        logger.error("Failed to check cloud sync support", err);
-      });
-  }, [objectId, shop, getGameBackupPreview]);
-
-  useEffect(() => {
     setBackupPreview(null);
     setArtifacts([]);
-    setSupportsCloudSync(null);
     setShowCloudSyncModal(false);
     setRestoringBackup(false);
     setUploadingBackup(false);
   }, [objectId, shop]);
-
-  useEffect(() => {
-    if (showCloudSyncModal) {
-      getGameBackupPreview();
-    }
-  }, [getGameBackupPreview, showCloudSyncModal]);
 
   const backupState = useMemo(() => {
     if (!backupPreview) return CloudSyncState.Unknown;
@@ -192,7 +175,6 @@ export function CloudSyncContextProvider({
   return (
     <Provider
       value={{
-        supportsCloudSync,
         backupPreview,
         showCloudSyncModal,
         artifacts,
@@ -205,6 +187,7 @@ export function CloudSyncContextProvider({
         downloadGameArtifact,
         deleteGameArtifact,
         setShowCloudSyncFilesModal,
+        getGameBackupPreview,
       }}
     >
       {children}

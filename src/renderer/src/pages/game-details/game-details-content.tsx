@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { average } from "color.js";
 import Color from "color";
 
@@ -13,7 +13,7 @@ import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import { steamUrlBuilder } from "@shared";
 import Lottie from "lottie-react";
 
-import downloadingAnimation from "@renderer/assets/lottie/cloud.json";
+import cloudAnimation from "@renderer/assets/lottie/cloud.json";
 import { useUserDetails } from "@renderer/hooks";
 
 const HERO_ANIMATION_THRESHOLD = 25;
@@ -36,8 +36,27 @@ export function GameDetailsContent() {
 
   const { userDetails } = useUserDetails();
 
-  const { supportsCloudSync, setShowCloudSyncModal } =
+  const { setShowCloudSyncModal, getGameBackupPreview } =
     useContext(cloudSyncContext);
+
+  const aboutTheGame = useMemo(() => {
+    const aboutTheGame = shopDetails?.about_the_game;
+    if (aboutTheGame) {
+      const document = new DOMParser().parseFromString(
+        aboutTheGame,
+        "text/html"
+      );
+
+      const $images = Array.from(document.querySelectorAll("img"));
+      $images.forEach(($image) => {
+        $image.loading = "lazy";
+      });
+
+      return document.body.outerHTML;
+    }
+
+    return t("no_shop_details");
+  }, [shopDetails, t]);
 
   const [backdropOpactiy, setBackdropOpacity] = useState(1);
 
@@ -87,6 +106,10 @@ export function GameDetailsContent() {
     setShowCloudSyncModal(true);
   };
 
+  useEffect(() => {
+    getGameBackupPreview();
+  }, [getGameBackupPreview]);
+
   return (
     <div className={styles.wrapper({ blurredContent: hasNSFWContentBlocked })}>
       <img
@@ -121,32 +144,30 @@ export function GameDetailsContent() {
                 alt={game?.title}
               />
 
-              {supportsCloudSync && (
-                <button
-                  type="button"
-                  className={styles.cloudSyncButton}
-                  onClick={handleCloudSaveButtonClick}
+              <button
+                type="button"
+                className={styles.cloudSyncButton}
+                onClick={handleCloudSaveButtonClick}
+              >
+                <div
+                  style={{
+                    width: 16 + 4,
+                    height: 16,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    position: "relative",
+                  }}
                 >
-                  <div
-                    style={{
-                      width: 16 + 4,
-                      height: 16,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      position: "relative",
-                    }}
-                  >
-                    <Lottie
-                      animationData={downloadingAnimation}
-                      loop
-                      autoplay
-                      style={{ width: 26, position: "absolute", top: -3 }}
-                    />
-                  </div>
-                  {t("cloud_save")}
-                </button>
-              )}
+                  <Lottie
+                    animationData={cloudAnimation}
+                    loop
+                    autoplay
+                    style={{ width: 26, position: "absolute", top: -3 }}
+                  />
+                </div>
+                {t("cloud_save")}
+              </button>
             </div>
           </div>
         </div>
@@ -160,7 +181,7 @@ export function GameDetailsContent() {
 
             <div
               dangerouslySetInnerHTML={{
-                __html: shopDetails?.about_the_game ?? t("no_shop_details"),
+                __html: aboutTheGame,
               }}
               className={styles.description}
             />

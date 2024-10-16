@@ -4,8 +4,7 @@ import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as styles from "./profile-content.css";
-import { Link } from "@renderer/components";
-import { PersonIcon } from "@primer/octicons-react";
+import { Avatar, Link } from "@renderer/components";
 
 export function FriendsBox() {
   const { userProfile, userStats } = useContext(userProfileContext);
@@ -30,17 +29,11 @@ export function FriendsBox() {
           {userProfile?.friends.map((friend) => (
             <li key={friend.id}>
               <Link to={`/profile/${friend.id}`} className={styles.listItem}>
-                {friend.profileImageUrl ? (
-                  <img
-                    src={friend.profileImageUrl!}
-                    alt={friend.displayName}
-                    className={styles.listItemImage}
-                  />
-                ) : (
-                  <div className={styles.defaultAvatarWrapper}>
-                    <PersonIcon size={16} />
-                  </div>
-                )}
+                <Avatar
+                  size={32}
+                  src={friend.profileImageUrl}
+                  alt={friend.displayName}
+                />
 
                 <span className={styles.friendName}>{friend.displayName}</span>
               </Link>

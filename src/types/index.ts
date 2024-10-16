@@ -205,6 +205,7 @@ export interface UserDetails {
   username: string;
   displayName: string;
   profileImageUrl: string | null;
+  backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
   bio: string;
 }
@@ -213,6 +214,7 @@ export interface UserProfile {
   id: string;
   displayName: string;
   profileImageUrl: string | null;
+  backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
   libraryGames: UserGame[];
   recentGames: UserGame[];
@@ -227,6 +229,7 @@ export interface UpdateProfileRequest {
   displayName?: string;
   profileVisibility?: ProfileVisibility;
   profileImageUrl?: string | null;
+  backgroundImageUrl?: string | null;
   bio?: string;
 }
 

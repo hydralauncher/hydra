@@ -1,11 +1,12 @@
 import { useNavigate } from "react-router-dom";
-import { PeopleIcon, PersonIcon } from "@primer/octicons-react";
+import { PeopleIcon } from "@primer/octicons-react";
 import * as styles from "./sidebar-profile.css";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
+import { Avatar } from "../avatar/avatar";
 
 const LONG_POLLING_INTERVAL = 60_000;
 
@@ -94,17 +95,11 @@ export function SidebarProfile() {
         onClick={handleProfileClick}
       >
         <div className={styles.profileButtonContent}>
-          <div className={styles.profileAvatar}>
-            {userDetails?.profileImageUrl ? (
-              <img
-                className={styles.profileAvatar}
-                src={userDetails.profileImageUrl}
-                alt={userDetails.displayName}
-              />
-            ) : (
-              <PersonIcon size={24} />
-            )}
-          </div>
+          <Avatar
+            size={35}
+            src={userDetails?.profileImageUrl}
+            alt={userDetails?.displayName}
+          />
 
           <div className={styles.profileButtonInformation}>
             <p className={styles.profileButtonTitle}>

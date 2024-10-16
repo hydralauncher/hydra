@@ -14,7 +14,7 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 
-export function Catalogue() {
+export default function Catalogue() {
   const dispatch = useAppDispatch();
 
   const { t } = useTranslation("catalogue");

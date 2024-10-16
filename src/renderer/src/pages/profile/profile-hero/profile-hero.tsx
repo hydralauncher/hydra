@@ -8,13 +8,11 @@ import {
   CheckCircleFillIcon,
   PencilIcon,
   PersonAddIcon,
-  PersonIcon,
   SignOutIcon,
-  UploadIcon,
   XCircleFillIcon,
 } from "@primer/octicons-react";
 import { buildGameDetailsPath } from "@renderer/helpers";
-import { Button, Link } from "@renderer/components";
+import { Avatar, Button, Link } from "@renderer/components";
 import { useTranslation } from "react-i18next";
 import {
   useAppSelector,
@@ -28,16 +26,21 @@ import { useNavigate } from "react-router-dom";
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
 import Skeleton from "react-loading-skeleton";
+import { UploadBackgroundImageButton } from "../upload-background-image-button/upload-background-image-button";
 
 type FriendAction =
   | FriendRequestAction
   | ("BLOCK" | "UNDO_FRIENDSHIP" | "SEND");
 
+const backgroundImageLayer =
+  "linear-gradient(135deg, rgb(0 0 0 / 50%), rgb(0 0 0 / 60%))";
+
 export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [isPerformingAction, setIsPerformingAction] = useState(false);
 
-  const { isMe, getUserProfile, userProfile } = useContext(userProfileContext);
+  const { isMe, getUserProfile, userProfile, heroBackground, backgroundImage } =
+    useContext(userProfileContext);
   const {
     signOut,
     updateFriendRequestState,
@@ -47,8 +50,6 @@ export function ProfileHero() {
   } = useUserDetails();
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
-
-  const [hero, setHero] = useState("");
 
   const { t } = useTranslation("user_profile");
   const { formatDistance } = useDate();
@@ -186,6 +187,7 @@ export function ProfileHero() {
               handleFriendAction(userProfile.id, "UNDO_FRIENDSHIP")
             }
             disabled={isPerformingAction}
+            style={{ borderColor: vars.color.body }}
           >
             <XCircleFillIcon />
             {t("undo_friendship")}
@@ -260,35 +262,6 @@ export function ProfileHero() {
     return userProfile?.currentGame;
   }, [isMe, userProfile, gameRunning]);
 
-  const handleChangeCoverClick = async () => {
-    const { filePaths } = await window.electron.showOpenDialog({
-      properties: ["openFile"],
-      filters: [
-        {
-          name: "Image",
-          extensions: ["jpg", "jpeg", "png", "gif", "webp"],
-        },
-      ],
-    });
-
-    if (filePaths && filePaths.length > 0) {
-      const path = filePaths[0];
-
-      setHero(path);
-
-      // onChange(imagePath);
-    }
-  };
-
-  const getImageUrl = () => {
-    if (hero) return `local:${hero}`;
-    // if (userDetails?.profileImageUrl) return userDetails.profileImageUrl;
-
-    return "";
-  };
-
-  // const imageUrl = getImageUrl();
-
   return (
     <>
       {/* <ConfirmationModal
@@ -304,21 +277,26 @@ export function ProfileHero() {
         onClose={() => setShowEditProfileModal(false)}
       />
 
-      <section className={styles.profileContentBox}>
-        <img
-          src={getImageUrl()}
-          alt=""
-          style={{
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-          }}
-        />
+      <section
+        className={styles.profileContentBox}
+        style={{ background: heroBackground }}
+      >
+        {backgroundImage && (
+          <img
+            src={backgroundImage}
+            alt=""
+            style={{
+              position: "absolute",
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
+        )}
+
         <div
           style={{
-            background:
-              "linear-gradient(135deg, rgb(0 0 0 / 70%), rgb(0 0 0 / 60%))",
+            background: backgroundImage ? backgroundImageLayer : "transparent",
             width: "100%",
             height: "100%",
             zIndex: 1,
@@ -330,16 +308,11 @@ export function ProfileHero() {
               className={styles.profileAvatarButton}
               onClick={handleAvatarClick}
             >
-              <div className={styles.xdTotal} />
-              {userProfile?.profileImageUrl ? (
-                <img
-                  className={styles.profileAvatar}
-                  alt={userProfile?.displayName}
-                  src={userProfile?.profileImageUrl}
-                />
-              ) : (
-                <PersonIcon size={72} />
-              )}
+              <Avatar
+                size={96}
+                alt={userProfile?.displayName}
+                src={userProfile?.profileImageUrl}
+              />
             </button>
 
             <div className={styles.profileInformation}>
@@ -379,28 +352,14 @@ export function ProfileHero() {
               )}
             </div>
 
-            <Button
-              theme="outline"
-              style={{
-                position: "absolute",
-                top: 16,
-                right: 16,
-                borderColor: vars.color.body,
-              }}
-              onClick={handleChangeCoverClick}
-            >
-              <UploadIcon />
-              Upload cover
-            </Button>
+            <UploadBackgroundImageButton />
           </div>
         </div>
 
         <div
           className={styles.heroPanel}
-          // style={{ background: heroBackground }}
           style={{
-            background:
-              "linear-gradient(135deg, rgb(0 0 0 / 70%), rgb(0 0 0 / 60%))",
+            background: backgroundImage ? backgroundImageLayer : heroBackground,
           }}
         >
           <div
