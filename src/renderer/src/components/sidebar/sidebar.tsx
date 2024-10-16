@@ -225,6 +225,7 @@ export function Sidebar() {
                       className={styles.gameIcon}
                       src={game.iconUrl}
                       alt={game.title}
+                      loading="lazy"
                     />
                   ) : (
                     <SteamLogo className={styles.gameIcon} />

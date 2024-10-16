@@ -49,7 +49,12 @@ export function Hero() {
 
           <div className={styles.content}>
             {game.logo && (
-              <img src={game.logo} width="250px" alt={game.description} />
+              <img
+                src={game.logo}
+                width="250px"
+                alt={game.description}
+                loading="eager"
+              />
             )}
             <p className={styles.description}>{game.description}</p>
           </div>

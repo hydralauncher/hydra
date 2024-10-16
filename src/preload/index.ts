@@ -160,8 +160,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGameArtifacts", objectId, shop),
   getGameBackupPreview: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameBackupPreview", objectId, shop),
-  checkGameCloudSyncSupport: (objectId: string, shop: GameShop) =>
-    ipcRenderer.invoke("checkGameCloudSyncSupport", objectId, shop),
   deleteGameArtifact: (gameArtifactId: string) =>
     ipcRenderer.invoke("deleteGameArtifact", gameArtifactId),
   onUploadComplete: (objectId: string, shop: GameShop, cb: () => void) => {

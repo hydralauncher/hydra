@@ -2,8 +2,9 @@ import { useContext, useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Trans, useTranslation } from "react-i18next";
 
-import { DeviceCameraIcon, PersonIcon } from "@primer/octicons-react";
+import { DeviceCameraIcon } from "@primer/octicons-react";
 import {
+  Avatar,
   Button,
   Link,
   Modal,
@@ -111,14 +112,14 @@ export function EditProfileModal(
                 if (filePaths && filePaths.length > 0) {
                   const path = filePaths[0];
 
-                  const { imagePath } = await window.electron
-                    .processProfileImage(path)
-                    .catch(() => {
-                      showErrorToast(t("image_process_failure"));
-                      return { imagePath: null };
-                    });
+                  // const { imagePath } = await window.electron
+                  //   .processProfileImage(path)
+                  //   .catch(() => {
+                  //     showErrorToast(t("image_process_failure"));
+                  //     return { imagePath: null };
+                  //   });
 
-                  onChange(imagePath);
+                  onChange(path);
                 }
               };
 
@@ -138,15 +139,11 @@ export function EditProfileModal(
                   className={styles.profileAvatarEditContainer}
                   onClick={handleChangeProfileAvatar}
                 >
-                  {imageUrl ? (
-                    <img
-                      className={styles.profileAvatar}
-                      alt={userDetails?.displayName}
-                      src={imageUrl}
-                    />
-                  ) : (
-                    <PersonIcon size={96} />
-                  )}
+                  <Avatar
+                    size={128}
+                    src={imageUrl}
+                    alt={userDetails?.displayName}
+                  />
 
                   <div className={styles.profileAvatarEditOverlay}>
                     <DeviceCameraIcon size={38} />

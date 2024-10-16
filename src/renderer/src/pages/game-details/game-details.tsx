@@ -29,7 +29,7 @@ import { Downloader, getDownloadersForUri } from "@shared";
 import { CloudSyncModal } from "./cloud-sync-modal/cloud-sync-modal";
 import { CloudSyncFilesModal } from "./cloud-sync-files-modal/cloud-sync-files-modal";
 
-export function GameDetails() {
+export default function GameDetails() {
   const [randomGame, setRandomGame] = useState<Steam250Game | null>(null);
   const [randomizerLocked, setRandomizerLocked] = useState(false);
 

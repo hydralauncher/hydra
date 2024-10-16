@@ -11,7 +11,7 @@ import { LibraryGame } from "@types";
 import { orderBy } from "lodash-es";
 import { ArrowDownIcon } from "@primer/octicons-react";
 
-export function Downloads() {
+export default function Downloads() {
   const { library, updateLibrary } = useLibrary();
 
   const { t } = useTranslation("downloads");

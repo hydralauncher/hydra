@@ -138,10 +138,6 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<LudusaviBackup | null>;
-    checkGameCloudSyncSupport: (
-      objectId: string,
-      shop: GameShop
-    ) => Promise<boolean>;
     deleteGameArtifact: (gameArtifactId: string) => Promise<{ ok: boolean }>;
     onBackupDownloadComplete: (
       objectId: string,

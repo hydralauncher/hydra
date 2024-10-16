@@ -15,15 +15,6 @@ import "@fontsource/noto-sans/700.css";
 import "react-loading-skeleton/dist/skeleton.css";
 
 import { App } from "./app";
-import {
-  Home,
-  Downloads,
-  GameDetails,
-  SearchResults,
-  Settings,
-  Catalogue,
-  Profile,
-} from "@renderer/pages";
 
 import { store } from "./store";
 
@@ -33,6 +24,17 @@ import { AchievementNotification } from "./pages/achievement/notification/achiev
 import "./workers";
 import { RepacksContextProvider } from "./context";
 import { Achievement } from "./pages/achievement/achievements";
+import { SuspenseWrapper } from "./components";
+
+const Home = React.lazy(() => import("./pages/home/home"));
+const GameDetails = React.lazy(
+  () => import("./pages/game-details/game-details")
+);
+const Downloads = React.lazy(() => import("./pages/downloads/downloads"));
+const SearchResults = React.lazy(() => import("./pages/home/search-results"));
+const Settings = React.lazy(() => import("./pages/settings/settings"));
+const Catalogue = React.lazy(() => import("./pages/catalogue/catalogue"));
+const Profile = React.lazy(() => import("./pages/profile/profile"));
 
 Sentry.init({});
 
@@ -63,13 +65,31 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <HashRouter>
           <Routes>
             <Route element={<App />}>
-              <Route path="/" Component={Home} />
-              <Route path="/catalogue" Component={Catalogue} />
-              <Route path="/downloads" Component={Downloads} />
-              <Route path="/game/:shop/:objectId" Component={GameDetails} />
-              <Route path="/search" Component={SearchResults} />
-              <Route path="/settings" Component={Settings} />
-              <Route path="/profile/:userId" Component={Profile} />
+              <Route path="/" element={<SuspenseWrapper Component={Home} />} />
+              <Route
+                path="/catalogue"
+                element={<SuspenseWrapper Component={Catalogue} />}
+              />
+              <Route
+                path="/downloads"
+                element={<SuspenseWrapper Component={Downloads} />}
+              />
+              <Route
+                path="/game/:shop/:objectId"
+                element={<SuspenseWrapper Component={GameDetails} />}
+              />
+              <Route
+                path="/search"
+                element={<SuspenseWrapper Component={SearchResults} />}
+              />
+              <Route
+                path="/settings"
+                element={<SuspenseWrapper Component={Settings} />}
+              />
+              <Route
+                path="/profile/:userId"
+                element={<SuspenseWrapper Component={Profile} />}
+              />
               <Route path="/achievements" Component={Achievement} />
             </Route>
             <Route
