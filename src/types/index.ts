@@ -261,6 +261,7 @@ export interface UserProfile {
   relation: UserRelation | null;
   currentGame: UserProfileCurrentGame | null;
   bio: string;
+  hasActiveSubscription: boolean;
 }
 
 export interface UpdateProfileRequest {
