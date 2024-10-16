@@ -3,6 +3,9 @@ import {
   userPreferencesRepository,
 } from "@main/repository";
 import { HydraApi } from "../hydra-api";
+import { AchievementData } from "@types";
+import { UserNotLoggedInError } from "@shared";
+import { logger } from "../logger";
 
 export const getGameAchievementData = async (
   objectId: string,
@@ -12,13 +15,13 @@ export const getGameAchievementData = async (
     where: { id: 1 },
   });
 
-  return HydraApi.get("/games/achievements", {
+  return HydraApi.get<AchievementData[]>("/games/achievements", {
     shop,
     objectId,
     language: userPreferences?.language || "en",
   })
-    .then(async (achievements) => {
-      await gameAchievementRepository.upsert(
+    .then((achievements) => {
+      gameAchievementRepository.upsert(
         {
           objectId,
           shop,
@@ -29,5 +32,17 @@ export const getGameAchievementData = async (
 
       return achievements;
     })
-    .catch(() => []);
+    .catch((err) => {
+      if (err instanceof UserNotLoggedInError) {
+        throw err;
+      }
+      logger.error("Failed to get game achievements", err);
+      return gameAchievementRepository
+        .findOne({
+          where: { objectId, shop },
+        })
+        .then((gameAchievements) => {
+          return JSON.parse(gameAchievements?.achievements || "[]");
+        });
+    });
 };

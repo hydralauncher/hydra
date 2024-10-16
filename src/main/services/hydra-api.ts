@@ -1,16 +1,23 @@
-import { userAuthRepository } from "@main/repository";
+import {
+  userAuthRepository,
+  userSubscriptionRepository,
+} from "@main/repository";
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { WindowManager } from "./window-manager";
 import url from "url";
 import { uploadGamesBatch } from "./library-sync";
 import { clearGamesRemoteIds } from "./library-sync/clear-games-remote-id";
 import { logger } from "./logger";
-import { UserNotLoggedInError } from "@shared";
+import {
+  UserNotLoggedInError,
+  UserWithoutCloudSubscriptionError,
+} from "@shared";
 import { omit } from "lodash-es";
 import { appVersion } from "@main/constants";
 
 interface HydraApiOptions {
-  needsAuth: boolean;
+  needsAuth?: boolean;
+  needsCloud?: boolean;
 }
 
 export class HydraApi {
@@ -29,6 +36,19 @@ export class HydraApi {
 
   private static isLoggedIn() {
     return this.userAuth.authToken !== "";
+  }
+
+  private static async hasCloudSubscription() {
+    // TODO change this later, this is just a quick test
+    return userSubscriptionRepository
+      .findOne({ where: { id: 1 } })
+      .then((userSubscription) => {
+        if (userSubscription?.status !== "active") return false;
+        return (
+          !userSubscription.expiresAt ||
+          userSubscription!.expiresAt > new Date()
+        );
+      });
   }
 
   static async handleExternalAuth(uri: string) {
@@ -234,15 +254,28 @@ export class HydraApi {
     throw err;
   };
 
+  private static async validateOptions(options?: HydraApiOptions) {
+    const needsAuth = options?.needsAuth == undefined || options.needsAuth;
+    const needsCloud = options?.needsCloud === true;
+
+    if (needsAuth) {
+      if (!this.isLoggedIn()) throw new UserNotLoggedInError();
+      await this.revalidateAccessTokenIfExpired();
+    }
+
+    if (needsCloud) {
+      if (!(await this.hasCloudSubscription())) {
+        throw new UserWithoutCloudSubscriptionError();
+      }
+    }
+  }
+
   static async get<T = any>(
     url: string,
     params?: any,
     options?: HydraApiOptions
   ) {
-    if (!options || options.needsAuth) {
-      if (!this.isLoggedIn()) throw new UserNotLoggedInError();
-      await this.revalidateAccessTokenIfExpired();
-    }
+    await this.validateOptions(options);
 
     return this.instance
       .get<T>(url, { params, ...this.getAxiosConfig() })
@@ -255,10 +288,7 @@ export class HydraApi {
     data?: any,
     options?: HydraApiOptions
   ) {
-    if (!options || options.needsAuth) {
-      if (!this.isLoggedIn()) throw new UserNotLoggedInError();
-      await this.revalidateAccessTokenIfExpired();
-    }
+    await this.validateOptions(options);
 
     return this.instance
       .post<T>(url, data, this.getAxiosConfig())
@@ -271,10 +301,7 @@ export class HydraApi {
     data?: any,
     options?: HydraApiOptions
   ) {
-    if (!options || options.needsAuth) {
-      if (!this.isLoggedIn()) throw new UserNotLoggedInError();
-      await this.revalidateAccessTokenIfExpired();
-    }
+    await this.validateOptions(options);
 
     return this.instance
       .put<T>(url, data, this.getAxiosConfig())
@@ -287,10 +314,7 @@ export class HydraApi {
     data?: any,
     options?: HydraApiOptions
   ) {
-    if (!options || options.needsAuth) {
-      if (!this.isLoggedIn()) throw new UserNotLoggedInError();
-      await this.revalidateAccessTokenIfExpired();
-    }
+    await this.validateOptions(options);
 
     return this.instance
       .patch<T>(url, data, this.getAxiosConfig())
@@ -299,10 +323,7 @@ export class HydraApi {
   }
 
   static async delete<T = any>(url: string, options?: HydraApiOptions) {
-    if (!options || options.needsAuth) {
-      if (!this.isLoggedIn()) throw new UserNotLoggedInError();
-      await this.revalidateAccessTokenIfExpired();
-    }
+    await this.validateOptions(options);
 
     return this.instance
       .delete<T>(url, this.getAxiosConfig())

@@ -1,57 +1,32 @@
-import type { GameAchievement, GameShop, UnlockedAchievement } from "@types";
+import type {
+  AchievementData,
+  GameShop,
+  RemoteUnlockedAchievement,
+  UnlockedAchievement,
+  UserAchievement,
+} from "@types";
 import { registerEvent } from "../register-event";
 import {
   gameAchievementRepository,
-  userAuthRepository,
+  userPreferencesRepository,
 } from "@main/repository";
 import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
 import { HydraApi } from "@main/services";
 
-const getAchievements = async (
-  shop: string,
-  objectId: string,
-  userId?: string
-) => {
-  const userAuth = await userAuthRepository.findOne({ where: { userId } });
-
+const getAchievementLocalUser = async (shop: string, objectId: string) => {
   const cachedAchievements = await gameAchievementRepository.findOne({
     where: { objectId, shop },
   });
 
-  const achievementsData = cachedAchievements?.achievements
-    ? JSON.parse(cachedAchievements.achievements)
-    : await getGameAchievementData(objectId, shop);
+  const achievementsData = await getGameAchievementData(objectId, shop);
 
-  if (!userId || userAuth) {
-    const unlockedAchievements = JSON.parse(
-      cachedAchievements?.unlockedAchievements || "[]"
-    ) as UnlockedAchievement[];
-
-    return { achievementsData, unlockedAchievements };
-  }
-
-  const unlockedAchievements = await HydraApi.get<UnlockedAchievement[]>(
-    `/users/${userId}/games/achievements`,
-    { shop, objectId, language: "en" }
-  );
-
-  return { achievementsData, unlockedAchievements };
-};
-
-export const getGameAchievements = async (
-  objectId: string,
-  shop: GameShop,
-  userId?: string
-): Promise<GameAchievement[]> => {
-  const { achievementsData, unlockedAchievements } = await getAchievements(
-    shop,
-    objectId,
-    userId
-  );
+  const unlockedAchievements = JSON.parse(
+    cachedAchievements?.unlockedAchievements || "[]"
+  ) as UnlockedAchievement[];
 
   return achievementsData
     .map((achievementData) => {
-      const unlockedAchiement = unlockedAchievements.find(
+      const unlockedAchiementData = unlockedAchievements.find(
         (localAchievement) => {
           return (
             localAchievement.name.toUpperCase() ==
@@ -60,21 +35,104 @@ export const getGameAchievements = async (
         }
       );
 
-      if (unlockedAchiement) {
+      const icongray = achievementData.icongray.endsWith("/")
+        ? achievementData.icon
+        : achievementData.icongray;
+
+      if (unlockedAchiementData) {
         return {
           ...achievementData,
           unlocked: true,
-          unlockTime: unlockedAchiement.unlockTime,
+          unlockTime: unlockedAchiementData.unlockTime,
         };
       }
 
-      return { ...achievementData, unlocked: false, unlockTime: null };
+      return {
+        ...achievementData,
+        unlocked: false,
+        unlockTime: null,
+        icon: icongray,
+      } as UserAchievement;
     })
     .sort((a, b) => {
       if (a.unlocked && !b.unlocked) return -1;
       if (!a.unlocked && b.unlocked) return 1;
-      return b.unlockTime - a.unlockTime;
+      if (a.unlocked && b.unlocked) {
+        return b.unlockTime! - a.unlockTime!;
+      }
+      return Number(a.hidden) - Number(b.hidden);
     });
+};
+
+const getAchievementsRemoteUser = async (
+  shop: string,
+  objectId: string,
+  userId: string
+) => {
+  const userPreferences = await userPreferencesRepository.findOne({
+    where: { id: 1 },
+  });
+
+  const achievementsData: AchievementData[] = await getGameAchievementData(
+    objectId,
+    shop
+  );
+
+  const unlockedAchievements = await HydraApi.get<RemoteUnlockedAchievement[]>(
+    `/users/${userId}/games/achievements`,
+    { shop, objectId, language: userPreferences?.language || "en" }
+  );
+
+  return achievementsData
+    .map((achievementData) => {
+      const unlockedAchiementData = unlockedAchievements.find(
+        (localAchievement) => {
+          return (
+            localAchievement.name.toUpperCase() ==
+            achievementData.name.toUpperCase()
+          );
+        }
+      );
+
+      const icongray = achievementData.icongray.endsWith("/")
+        ? achievementData.icon
+        : achievementData.icongray;
+
+      if (unlockedAchiementData) {
+        return {
+          ...achievementData,
+          unlocked: true,
+          unlockTime: unlockedAchiementData.unlockTime,
+        };
+      }
+
+      return {
+        ...achievementData,
+        unlocked: false,
+        unlockTime: null,
+        icon: icongray,
+      } as UserAchievement;
+    })
+    .sort((a, b) => {
+      if (a.unlocked && !b.unlocked) return -1;
+      if (!a.unlocked && b.unlocked) return 1;
+      if (a.unlocked && b.unlocked) {
+        return b.unlockTime! - a.unlockTime!;
+      }
+      return Number(a.hidden) - Number(b.hidden);
+    });
+};
+
+export const getGameAchievements = async (
+  objectId: string,
+  shop: GameShop,
+  userId?: string
+): Promise<UserAchievement[]> => {
+  if (!userId) {
+    return getAchievementLocalUser(shop, objectId);
+  }
+
+  return getAchievementsRemoteUser(shop, objectId, userId);
 };
 
 const getGameAchievementsEvent = async (
@@ -82,7 +140,7 @@ const getGameAchievementsEvent = async (
   objectId: string,
   shop: GameShop,
   userId?: string
-): Promise<GameAchievement[]> => {
+): Promise<UserAchievement[]> => {
   return getGameAchievements(objectId, shop, userId);
 };
 

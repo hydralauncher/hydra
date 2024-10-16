@@ -127,7 +127,8 @@
     "executable_path_in_use": "Executável em uso por \"{{game}}\"",
     "warning": "Aviso:",
     "hydra_needs_to_remain_open": "para este download, o Hydra precisa ficar aberto até a conclusão. Caso o Hydra encerre antes da conclusão, perderá seu progresso.",
-    "achievements": "Conquistas {{unlockedCount}}/{{achievementsCount}}",
+    "achievements": "Conquistas",
+    "achievements_count": "Conquistas ({{unlockedCount}}/{{achievementsCount}})",
     "cloud_save": "Salvamento em nuvem",
     "cloud_save_description": "Matenha seu progresso na nuvem e continue de onde parou em qualquer dispositivo",
     "backups": "Backups",
@@ -141,7 +142,9 @@
     "no_backups": "Você ainda não fez nenhum backup deste jogo",
     "backup_uploaded": "Backup criado",
     "backup_deleted": "Backup apagado",
-    "backup_restored": "Backup restaurado"
+    "backup_restored": "Backup restaurado",
+    "see_all_achievements": "Ver todas as conquistas",
+    "sign_in_to_see_achievements": "Faça login para ver as conquistas"
   },
   "activation": {
     "title": "Ativação",
@@ -231,7 +234,8 @@
     "source_already_exists": "Essa fonte já foi adicionada",
     "must_be_valid_url": "A fonte deve ser uma URL válida",
     "blocked_users": "Usuários bloqueados",
-    "user_unblocked": "Usuário desbloqueado"
+    "user_unblocked": "Usuário desbloqueado",
+    "enable_achievement_notifications": "Quando uma conquista é desbloqueada"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -334,6 +338,9 @@
     "your_friend_code": "Seu código de amigo:"
   },
   "achievement": {
-    "achievement_unlocked": "Conquista desbloqueada"
+    "achievement_unlocked": "Conquista desbloqueada",
+    "your_achievements": "Suas Conquistas",
+    "user_achievements": "Conquistas de {{displayName}}",
+    "unlocked_at": "Desbloqueado em:"
   }
 }

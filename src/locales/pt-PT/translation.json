@@ -116,7 +116,9 @@
     "executable_path_in_use": "Executável em uso por \"{{game}}\"",
     "warning": "Aviso:",
     "hydra_needs_to_remain_open": "para este download, o Hydra precisa ficar aberto até a conclusão. Caso o Hydra encerre antes da conclusão, perderá seu progresso.",
-    "achievements": "Conquistas {{unlockedCount}}/{{achievementsCount}}"
+    "achievements": "Conquistas",
+    "achievements_count": "Conquistas ({{unlockedCount}}/{{achievementsCount}})",
+    "see_all_achievements": "Ver todas as conquistas"
   },
   "activation": {
     "title": "Ativação",
@@ -280,6 +282,7 @@
     "your_friend_code": "Seu código de amigo:"
   },
   "achievement": {
-    "achievement_unlocked": "Conquista desbloqueada"
+    "achievement_unlocked": "Conquista desbloqueada",
+    "unlocked_at": "Desbloqueado em:"
   }
 }

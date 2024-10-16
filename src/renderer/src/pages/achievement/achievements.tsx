@@ -1,71 +1,93 @@
-import { useDate } from "@renderer/hooks";
-import { SPACING_UNIT } from "@renderer/theme.css";
-import { GameAchievement, GameShop } from "@types";
+import { setHeaderTitle } from "@renderer/features";
+import { useAppDispatch, useUserDetails } from "@renderer/hooks";
+import type { GameShop, UserAchievement } from "@types";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { vars } from "@renderer/theme.css";
+import {
+  GameDetailsContextConsumer,
+  GameDetailsContextProvider,
+} from "@renderer/context";
+import { SkeletonTheme } from "react-loading-skeleton";
+import { AchievementsSkeleton } from "./achievements-skeleton";
+import { AchievementsContent } from "./achievements-content";
 
 export function Achievement() {
   const [searchParams] = useSearchParams();
   const objectId = searchParams.get("objectId");
   const shop = searchParams.get("shop");
+  const title = searchParams.get("title");
   const userId = searchParams.get("userId");
+  const displayName = searchParams.get("displayName");
+  const profileImageUrl = searchParams.get("profileImageUrl");
 
-  const { format } = useDate();
+  const { userDetails } = useUserDetails();
 
-  const [achievements, setAchievements] = useState<GameAchievement[]>([]);
+  const [otherUserAchievements, setOtherUserAchievements] = useState<
+    UserAchievement[] | null
+  >(null);
+
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
-    if (objectId && shop) {
+    if (title) {
+      dispatch(setHeaderTitle(title));
+    }
+  }, [dispatch, title]);
+
+  useEffect(() => {
+    setOtherUserAchievements(null);
+    if (userDetails?.id == userId) {
+      setOtherUserAchievements([]);
+      return;
+    }
+
+    if (objectId && shop && userId) {
       window.electron
-        .getGameAchievements(objectId, shop as GameShop, userId || undefined)
+        .getGameAchievements(objectId, shop as GameShop, userId)
         .then((achievements) => {
-          setAchievements(achievements);
+          setOtherUserAchievements(achievements);
         });
     }
   }, [objectId, shop, userId]);
 
-  return (
-    <div>
-      <h1>Achievement</h1>
+  if (!objectId || !shop || !title) return null;
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: `${SPACING_UNIT}px`,
-          padding: `${SPACING_UNIT * 2}px`,
+  const otherUserId = userDetails?.id === userId ? null : userId;
+
+  const otherUser = otherUserId
+    ? {
+        userId: otherUserId,
+        displayName: displayName || "",
+        achievements: otherUserAchievements || [],
+        profileImageUrl: profileImageUrl || "",
+      }
+    : null;
+
+  return (
+    <GameDetailsContextProvider
+      gameTitle={title}
+      shop={shop as GameShop}
+      objectId={objectId}
+    >
+      <GameDetailsContextConsumer>
+        {({ isLoading, achievements }) => {
+          return (
+            <SkeletonTheme
+              baseColor={vars.color.background}
+              highlightColor="#444"
+            >
+              {isLoading ||
+              achievements === null ||
+              (otherUserId && otherUserAchievements === null) ? (
+                <AchievementsSkeleton />
+              ) : (
+                <AchievementsContent otherUser={otherUser} />
+              )}
+            </SkeletonTheme>
+          );
         }}
-      >
-        {achievements.map((achievement, index) => (
-          <div
-            key={index}
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              gap: `${SPACING_UNIT}px`,
-            }}
-            title={achievement.description}
-          >
-            <img
-              style={{
-                height: "60px",
-                width: "60px",
-                filter: achievement.unlocked ? "none" : "grayscale(100%)",
-              }}
-              src={
-                achievement.unlocked ? achievement.icon : achievement.icongray
-              }
-              alt={achievement.displayName}
-              loading="lazy"
-            />
-            <div>
-              <p>{achievement.displayName}</p>
-              {achievement.unlockTime && format(achievement.unlockTime)}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+      </GameDetailsContextConsumer>
+    </GameDetailsContextProvider>
   );
 }

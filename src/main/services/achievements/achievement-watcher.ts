@@ -113,8 +113,8 @@ const compareFile = async (game: Game, file: AchievementFile) => {
     logger.log(
       "Detected change in file",
       file.filePath,
-      currentStat.mtimeMs,
-      fileStats.get(file.filePath)
+      previousStat,
+      currentStat.mtimeMs
     );
     await processAchievementFileDiff(game, file);
   } catch (err) {

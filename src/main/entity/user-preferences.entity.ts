@@ -26,6 +26,9 @@ export class UserPreferences {
   @Column("boolean", { default: false })
   repackUpdatesNotificationsEnabled: boolean;
 
+  @Column("boolean", { default: true })
+  achievementNotificationsEnabled: boolean;
+
   @Column("boolean", { default: false })
   preferQuitInsteadOfHiding: boolean;
 
