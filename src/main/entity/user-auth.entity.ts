@@ -22,6 +22,9 @@ export class UserAuth {
   @Column("text", { nullable: true })
   profileImageUrl: string | null;
 
+  @Column("text", { nullable: true })
+  backgroundImageUrl: string | null;
+
   @Column("text", { default: "" })
   accessToken: string;
 
