@@ -28,8 +28,37 @@ export interface GameRepack {
   updatedAt: Date;
 }
 
+export interface AchievementData {
+  name: string;
+  displayName: string;
+  description?: string;
+  icon: string;
+  icongray: string;
+  hidden: boolean;
+}
+
+export interface UserAchievement {
+  name: string;
+  hidden: boolean;
+  displayName: string;
+  description?: string;
+  unlocked: boolean;
+  unlockTime: number | null;
+  icon: string;
+}
+
+export interface RemoteUnlockedAchievement {
+  name: string;
+  hidden: boolean;
+  icon: string;
+  displayName: string;
+  description?: string;
+  unlockTime: number;
+}
+
 export interface GameAchievement {
   name: string;
+  hidden: boolean;
   displayName: string;
   description?: string;
   unlocked: boolean;
@@ -125,6 +154,7 @@ export interface UserPreferences {
   language: string;
   downloadNotificationsEnabled: boolean;
   repackUpdatesNotificationsEnabled: boolean;
+  achievementNotificationsEnabled: boolean;
   realDebridApiToken: string | null;
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;
@@ -200,6 +230,15 @@ export interface UserProfileCurrentGame extends Omit<GameRunning, "objectId"> {
 
 export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
 
+export type SubscriptionStatus = "active" | "pending" | "cancelled";
+
+export interface Subscription {
+  id: string;
+  status: SubscriptionStatus;
+  plan: { id: string; name: string };
+  expiresAt: Date | null;
+}
+
 export interface UserDetails {
   id: string;
   username: string;
@@ -208,6 +247,7 @@ export interface UserDetails {
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
   bio: string;
+  subscription: Subscription | null;
 }
 
 export interface UserProfile {
@@ -223,6 +263,7 @@ export interface UserProfile {
   relation: UserRelation | null;
   currentGame: UserProfileCurrentGame | null;
   bio: string;
+  hasActiveSubscription: boolean;
 }
 
 export interface UpdateProfileRequest {

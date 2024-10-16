@@ -68,12 +68,17 @@ export function useDate() {
       }
     },
 
-    format: (timestamp: number): string => {
+    formatDateTime: (date: number | Date | string): string => {
       const locale = getDateLocale();
       return format(
-        timestamp,
+        date,
         locale == enUS ? "MM/dd/yyyy - HH:mm" : "dd/MM/yyyy - HH:mm"
       );
+    },
+
+    formatDate: (date: number | Date | string): string => {
+      const locale = getDateLocale();
+      return format(date, locale == enUS ? "MM/dd/yyyy" : "dd/MM/yyyy");
     },
   };
 }

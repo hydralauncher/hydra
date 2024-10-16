@@ -4,7 +4,9 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToOne,
 } from "typeorm";
+import { UserSubscription } from "./user-subscription.entity";
 
 @Entity("user_auth")
 export class UserAuth {
@@ -28,6 +30,9 @@ export class UserAuth {
 
   @Column("int", { default: 0 })
   tokenExpirationTimestamp: number;
+
+  @OneToOne("UserSubscription", "user")
+  subscription: UserSubscription | null;
 
   @CreateDateColumn()
   createdAt: Date;

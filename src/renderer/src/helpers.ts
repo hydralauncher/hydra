@@ -34,5 +34,21 @@ export const buildGameDetailsPath = (
   return `/game/${game.shop}/${game.objectId}?${searchParams.toString()}`;
 };
 
+export const buildGameAchievementPath = (
+  game: { shop: GameShop; objectId: string; title: string },
+  user?: { userId: string; displayName: string; profileImageUrl: string | null }
+) => {
+  const searchParams = new URLSearchParams({
+    title: game.title,
+    shop: game.shop,
+    objectId: game.objectId,
+    userId: user?.userId || "",
+    displayName: user?.displayName || "",
+    profileImageUrl: user?.profileImageUrl || "",
+  });
+
+  return `/achievements/?${searchParams.toString()}`;
+};
+
 export const darkenColor = (color: string, amount: number, alpha: number = 1) =>
   new Color(color).darken(amount).alpha(alpha).toString();

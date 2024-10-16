@@ -67,6 +67,7 @@ export function useUserDetails() {
       return updateUserDetails({
         ...response,
         username: userDetails?.username || "",
+        subscription: userDetails?.subscription || null,
       });
     },
     [updateUserDetails, userDetails?.username]

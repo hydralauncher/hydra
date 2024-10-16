@@ -28,6 +28,7 @@ import type {
   GameAchievement,
   GameArtifact,
   LudusaviBackup,
+  UserAchievement,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type { DiskSpace } from "check-disk-space";
@@ -68,7 +69,7 @@ declare global {
       objectId: string,
       shop: GameShop,
       userId?: string
-    ) => Promise<GameAchievement[]>;
+    ) => Promise<UserAchievement[]>;
     onAchievementUnlocked: (
       cb: (
         objectId: string,

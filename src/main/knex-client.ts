@@ -7,6 +7,8 @@ import { EnsureRepackUris } from "./migrations/20240915035339_ensure_repack_uris
 import { app } from "electron";
 import { FixMissingColumns } from "./migrations/20240918001920_FixMissingColumns";
 import { CreateGameAchievement } from "./migrations/20240919030940_create_game_achievement";
+import { AddAchievementNotificationPreference } from "./migrations/20241013012900_add_achievement_notification_preference";
+import { CreateUserSubscription } from "./migrations/20241015235142_create_user_subscription";
 
 export type HydraMigration = Knex.Migration & { name: string };
 
@@ -19,6 +21,8 @@ class MigrationSource implements Knex.MigrationSource<HydraMigration> {
       EnsureRepackUris,
       FixMissingColumns,
       CreateGameAchievement,
+      AddAchievementNotificationPreference,
+      CreateUserSubscription,
     ]);
   }
   getMigrationName(migration: HydraMigration): string {

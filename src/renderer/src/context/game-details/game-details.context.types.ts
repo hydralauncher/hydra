@@ -1,10 +1,10 @@
 import type {
   Game,
-  GameAchievement,
   GameRepack,
   GameShop,
   GameStats,
   ShopDetails,
+  UserAchievement,
 } from "@types";
 
 export interface GameDetailsContext {
@@ -20,7 +20,7 @@ export interface GameDetailsContext {
   showRepacksModal: boolean;
   showGameOptionsModal: boolean;
   stats: GameStats | null;
-  achievements: GameAchievement[];
+  achievements: UserAchievement[] | null;
   hasNSFWContentBlocked: boolean;
   setGameColor: React.Dispatch<React.SetStateAction<string>>;
   selectGameExecutable: () => Promise<string | null>;

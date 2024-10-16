@@ -16,6 +16,7 @@ import { FriendsBox } from "./friends-box";
 import { RecentGamesBox } from "./recent-games-box";
 import { UserGame } from "@types";
 import {
+  buildGameAchievementPath,
   buildGameDetailsPath,
   formatDownloadProgress,
 } from "@renderer/helpers";
@@ -44,11 +45,24 @@ export function ProfileContent() {
     return userProfile?.relation?.status === "ACCEPTED";
   }, [userProfile]);
 
-  const buildUserGameDetailsPath = (game: UserGame) =>
-    buildGameDetailsPath({
-      ...game,
-      objectId: game.objectId,
-    });
+  const buildUserGameDetailsPath = (game: UserGame) => {
+    if (!userProfile?.hasActiveSubscription) {
+      return buildGameDetailsPath({
+        ...game,
+        objectId: game.objectId,
+      });
+    }
+
+    const userParams = userProfile
+      ? {
+          userId: userProfile.id,
+          displayName: userProfile.displayName,
+          profileImageUrl: userProfile.profileImageUrl,
+        }
+      : undefined;
+
+    return buildGameAchievementPath({ ...game }, userParams);
+  };
 
   const formatPlayTime = useCallback(
     (playTimeInSeconds = 0) => {
@@ -160,53 +174,55 @@ export function ProfileContent() {
                           {formatPlayTime(game.playTimeInSeconds)}
                         </small>
 
-                        <div
-                          style={{
-                            color: "white",
-                            width: "100%",
-                            display: "flex",
-                            flexDirection: "column",
-                          }}
-                        >
+                        {userProfile.hasActiveSubscription && (
                           <div
                             style={{
+                              color: "white",
+                              width: "100%",
                               display: "flex",
-                              justifyContent: "space-between",
-                              marginBottom: 8,
-                              color: vars.color.muted,
+                              flexDirection: "column",
                             }}
                           >
                             <div
                               style={{
                                 display: "flex",
-                                alignItems: "center",
-                                gap: 8,
+                                justifyContent: "space-between",
+                                marginBottom: 8,
+                                color: vars.color.muted,
                               }}
                             >
-                              <TrophyIcon size={13} />
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 8,
+                                }}
+                              >
+                                <TrophyIcon size={13} />
+                                <span>
+                                  {game.unlockedAchievementCount} /{" "}
+                                  {game.achievementCount}
+                                </span>
+                              </div>
+
                               <span>
-                                {game.unlockedAchievementCount} /{" "}
-                                {game.achievementCount}
+                                {formatDownloadProgress(
+                                  game.unlockedAchievementCount /
+                                    game.achievementCount
+                                )}
                               </span>
                             </div>
 
-                            <span>
-                              {formatDownloadProgress(
+                            <progress
+                              max={1}
+                              value={
                                 game.unlockedAchievementCount /
-                                  game.achievementCount
-                              )}
-                            </span>
+                                game.achievementCount
+                              }
+                              className={styles.achievementsProgressBar}
+                            />
                           </div>
-
-                          <progress
-                            max={1}
-                            value={
-                              game.unlockedAchievementCount /
-                              game.achievementCount
-                            }
-                            className={styles.achievementsProgressBar}
-                          />
-                        </div>
+                        )}
                       </div>
 
                       <img

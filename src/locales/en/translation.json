@@ -131,7 +131,8 @@
     "executable_path_in_use": "Executable already in use by \"{{game}}\"",
     "warning": "Warning:",
     "hydra_needs_to_remain_open": "for this download, Hydra needs to remain open util its conclusion. In case Hydra closes before the conclusion, you will lose your progress.",
-    "achievements": "Achievements {{unlockedCount}}/{{achievementsCount}}",
+    "achievements": "Achievements",
+    "achievements_count": "Achievements {{unlockedCount}}/{{achievementsCount}}",
     "cloud_save": "Cloud save",
     "cloud_save_description": "Save your progress in the cloud and continue playing on any device",
     "backups": "Backups",
@@ -145,7 +146,9 @@
     "no_backups": "You haven't created any backups for this game yet",
     "backup_uploaded": "Backup uploaded",
     "backup_deleted": "Backup deleted",
-    "backup_restored": "Backup restored"
+    "backup_restored": "Backup restored",
+    "see_all_achievements": "See all achievements",
+    "sign_in_to_see_achievements": "Sign in to see achievements"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -232,7 +235,8 @@
     "source_already_exists": "This source has been already added",
     "must_be_valid_url": "The source must be a valid URL",
     "blocked_users": "Blocked users",
-    "user_unblocked": "User has been unblocked"
+    "user_unblocked": "User has been unblocked",
+    "enable_achievement_notifications": "When an achievement in unlocked"
   },
   "notifications": {
     "download_complete": "Download complete",
@@ -332,6 +336,9 @@
     "your_friend_code": "Your friend code:"
   },
   "achievement": {
-    "achievement_unlocked": "Achievement unlocked"
+    "achievement_unlocked": "Achievement unlocked",
+    "user_achievements": "{{displayName}}'s Achievements",
+    "your_achievements": "Your Achievements",
+    "unlocked_at": "Unlocked at:"
   }
 }
