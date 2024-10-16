@@ -1,45 +1,23 @@
-import type { GameShop, HowLongToBeatCategory } from "@types";
+import type { HowLongToBeatCategory } from "@types";
 import { getHowLongToBeatGame, searchHowLongToBeat } from "@main/services";
 
 import { registerEvent } from "../register-event";
-import { gameShopCacheRepository } from "@main/repository";
+import { formatName } from "@shared";
 
 const getHowLongToBeat = async (
   _event: Electron.IpcMainInvokeEvent,
-  objectID: string,
-  shop: GameShop,
   title: string
 ): Promise<HowLongToBeatCategory[] | null> => {
-  const searchHowLongToBeatPromise = searchHowLongToBeat(title);
+  const response = await searchHowLongToBeat(title);
 
-  const gameShopCache = await gameShopCacheRepository.findOne({
-    where: { objectID, shop },
+  const game = response.data.find((game) => {
+    return formatName(game.game_name) === formatName(title);
   });
 
-  const howLongToBeatCachedData = gameShopCache?.howLongToBeatSerializedData
-    ? JSON.parse(gameShopCache?.howLongToBeatSerializedData)
-    : null;
-  if (howLongToBeatCachedData) return howLongToBeatCachedData;
+  if (!game) return null;
+  const howLongToBeat = await getHowLongToBeatGame(String(game.game_id));
 
-  return searchHowLongToBeatPromise.then(async (response) => {
-    const game = response.data.find(
-      (game) => game.profile_steam === Number(objectID)
-    );
-
-    if (!game) return null;
-    const howLongToBeat = await getHowLongToBeatGame(String(game.game_id));
-
-    gameShopCacheRepository.upsert(
-      {
-        objectID,
-        shop,
-        howLongToBeatSerializedData: JSON.stringify(howLongToBeat),
-      },
-      ["objectID"]
-    );
-
-    return howLongToBeat;
-  });
+  return howLongToBeat;
 };
 
 registerEvent("getHowLongToBeat", getHowLongToBeat);

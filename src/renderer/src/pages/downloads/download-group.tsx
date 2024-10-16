@@ -227,7 +227,14 @@ export function DownloadGroup({
                     <button
                       type="button"
                       className={styles.downloadTitle}
-                      onClick={() => navigate(buildGameDetailsPath(game))}
+                      onClick={() =>
+                        navigate(
+                          buildGameDetailsPath({
+                            ...game,
+                            objectId: game.objectID,
+                          })
+                        )
+                      }
                     >
                       {game.title}
                     </button>
