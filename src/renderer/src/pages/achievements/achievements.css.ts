@@ -13,11 +13,11 @@ export const wrapper = style({
   transition: "all ease 0.3s",
 });
 
-export const header = style({
-  display: "flex",
+export const hero = style({
+  width: "100%",
   height: `${HERO_HEIGHT}px`,
   minHeight: `${HERO_HEIGHT}px`,
-  gap: `${SPACING_UNIT}px`,
+  display: "flex",
   flexDirection: "column",
   position: "relative",
   transition: "all ease 0.2s",
@@ -29,14 +29,22 @@ export const header = style({
   },
 });
 
-export const hero = style({
-  position: "absolute",
-  inset: "0",
-  borderRadius: "4px",
-  objectFit: "cover",
-  cursor: "pointer",
+export const heroImage = style({
   width: "100%",
+  height: `${HERO_HEIGHT}px`,
+  minHeight: `${HERO_HEIGHT}px`,
+  objectFit: "cover",
+  objectPosition: "top",
   transition: "all ease 0.2s",
+  position: "absolute",
+  zIndex: "0",
+  "@media": {
+    "(min-width: 1250px)": {
+      objectPosition: "center",
+      height: "350px",
+      minHeight: "350px",
+    },
+  },
 });
 
 export const heroContent = style({

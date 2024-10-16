@@ -46,7 +46,7 @@ export function ProfileContent() {
   }, [userProfile]);
 
   const buildUserGameDetailsPath = (game: UserGame) => {
-    if (!userProfile?.hasActiveSubscription) {
+    if (!userProfile?.hasActiveSubscription || game.achievementCount === 0) {
       return buildGameDetailsPath({
         ...game,
         objectId: game.objectId,
@@ -174,55 +174,56 @@ export function ProfileContent() {
                           {formatPlayTime(game.playTimeInSeconds)}
                         </small>
 
-                        {userProfile.hasActiveSubscription && (
-                          <div
-                            style={{
-                              color: "white",
-                              width: "100%",
-                              display: "flex",
-                              flexDirection: "column",
-                            }}
-                          >
+                        {userProfile.hasActiveSubscription &&
+                          game.achievementCount > 0 && (
                             <div
                               style={{
+                                color: "white",
+                                width: "100%",
                                 display: "flex",
-                                justifyContent: "space-between",
-                                marginBottom: 8,
-                                color: vars.color.muted,
+                                flexDirection: "column",
                               }}
                             >
                               <div
                                 style={{
                                   display: "flex",
-                                  alignItems: "center",
-                                  gap: 8,
+                                  justifyContent: "space-between",
+                                  marginBottom: 8,
+                                  color: vars.color.muted,
                                 }}
                               >
-                                <TrophyIcon size={13} />
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                  }}
+                                >
+                                  <TrophyIcon size={13} />
+                                  <span>
+                                    {game.unlockedAchievementCount} /{" "}
+                                    {game.achievementCount}
+                                  </span>
+                                </div>
+
                                 <span>
-                                  {game.unlockedAchievementCount} /{" "}
-                                  {game.achievementCount}
+                                  {formatDownloadProgress(
+                                    game.unlockedAchievementCount /
+                                      game.achievementCount
+                                  )}
                                 </span>
                               </div>
 
-                              <span>
-                                {formatDownloadProgress(
+                              <progress
+                                max={1}
+                                value={
                                   game.unlockedAchievementCount /
-                                    game.achievementCount
-                                )}
-                              </span>
+                                  game.achievementCount
+                                }
+                                className={styles.achievementsProgressBar}
+                              />
                             </div>
-
-                            <progress
-                              max={1}
-                              value={
-                                game.unlockedAchievementCount /
-                                game.achievementCount
-                              }
-                              className={styles.achievementsProgressBar}
-                            />
-                          </div>
-                        )}
+                          )}
                       </div>
 
                       <img
