@@ -30,6 +30,7 @@ export function SettingsGeneral() {
     downloadsPath: "",
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
+    achievementNotificationsEnabled: false,
     language: "",
   });
 
@@ -103,6 +104,8 @@ export function SettingsGeneral() {
           userPreferences.downloadNotificationsEnabled,
         repackUpdatesNotificationsEnabled:
           userPreferences.repackUpdatesNotificationsEnabled,
+        achievementNotificationsEnabled:
+          userPreferences.achievementNotificationsEnabled,
         language: language ?? "en",
       }));
     }
@@ -152,6 +155,17 @@ export function SettingsGeneral() {
           handleChange({
             repackUpdatesNotificationsEnabled:
               !form.repackUpdatesNotificationsEnabled,
+          })
+        }
+      />
+
+      <CheckboxField
+        label={t("enable_achievement_notifications")}
+        checked={form.achievementNotificationsEnabled}
+        onChange={() =>
+          handleChange({
+            achievementNotificationsEnabled:
+              !form.achievementNotificationsEnabled,
           })
         }
       />

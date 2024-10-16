@@ -16,7 +16,7 @@ import Lottie, { type LottieRefCurrentProps } from "lottie-react";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { CatalogueCategory } from "@shared";
 
-export function Home() {
+export default function Home() {
   const { t } = useTranslation("home");
   const navigate = useNavigate();
 
@@ -186,7 +186,7 @@ export function Home() {
               ))
             : catalogue[currentCatalogueCategory].map((result) => (
                 <GameCard
-                  key={result.objectID}
+                  key={result.objectId}
                   game={result}
                   onClick={() => navigate(buildGameDetailsPath(result))}
                 />

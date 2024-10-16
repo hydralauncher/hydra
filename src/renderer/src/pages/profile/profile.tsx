@@ -6,7 +6,7 @@ import * as styles from "./profile.css";
 import { UserProfileContextProvider } from "@renderer/context";
 import { useParams } from "react-router-dom";
 
-export function Profile() {
+export default function Profile() {
   const { userId } = useParams();
 
   return (
