@@ -422,7 +422,7 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
       <img
         src={steamUrlBuilder.libraryHero(objectId)}
         alt={gameTitle}
-        className={styles.hero}
+        className={styles.heroImage}
         onLoad={handleHeroLoad}
       />
 
@@ -431,7 +431,7 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
         onScroll={onScroll}
         className={styles.container}
       >
-        <div ref={heroRef} className={styles.header}>
+        <div ref={heroRef} className={styles.hero}>
           <div
             style={{
               backgroundColor: gameColor,
