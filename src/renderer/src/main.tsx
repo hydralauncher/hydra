@@ -19,11 +19,10 @@ import { App } from "./app";
 import { store } from "./store";
 
 import resources from "@locales";
-import { AchievementNotification } from "./pages/achievement/notification/achievement-notification";
+import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
 
 import "./workers";
 import { RepacksContextProvider } from "./context";
-import { Achievement } from "./pages/achievement/achievements";
 import { SuspenseWrapper } from "./components";
 
 const Home = React.lazy(() => import("./pages/home/home"));
@@ -35,6 +34,9 @@ const SearchResults = React.lazy(() => import("./pages/home/search-results"));
 const Settings = React.lazy(() => import("./pages/settings/settings"));
 const Catalogue = React.lazy(() => import("./pages/catalogue/catalogue"));
 const Profile = React.lazy(() => import("./pages/profile/profile"));
+const Achievements = React.lazy(
+  () => import("./pages/achievements/achievements")
+);
 
 Sentry.init({});
 
@@ -90,7 +92,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 path="/profile/:userId"
                 element={<SuspenseWrapper Component={Profile} />}
               />
-              <Route path="/achievements" Component={Achievement} />
+              <Route
+                path="/achievements"
+                element={<SuspenseWrapper Component={Achievements} />}
+              />
             </Route>
             <Route
               path="/achievement-notification"

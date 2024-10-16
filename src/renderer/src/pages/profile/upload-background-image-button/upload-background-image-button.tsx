@@ -9,6 +9,7 @@ import { useToast, useUserDetails } from "@renderer/hooks";
 export function UploadBackgroundImageButton() {
   const [isUploadingBackgroundImage, setIsUploadingBackgorundImage] =
     useState(false);
+  const { hasActiveSubscription } = useUserDetails();
 
   const { isMe, setSelectedBackgroundImage } = useContext(userProfileContext);
   const { patchUser } = useUserDetails();
@@ -42,7 +43,7 @@ export function UploadBackgroundImageButton() {
     }
   };
 
-  if (!isMe) return null;
+  if (!isMe || !hasActiveSubscription) return null;
 
   return (
     <Button
