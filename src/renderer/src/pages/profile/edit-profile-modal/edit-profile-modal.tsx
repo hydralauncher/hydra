@@ -11,7 +11,7 @@ import {
   ModalProps,
   TextField,
 } from "@renderer/components";
-import { useAppSelector, useToast, useUserDetails } from "@renderer/hooks";
+import { useToast, useUserDetails } from "@renderer/hooks";
 
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -51,8 +51,8 @@ export function EditProfileModal(
 
   const { getUserProfile } = useContext(userProfileContext);
 
-  const { userDetails } = useAppSelector((state) => state.userDetails);
-  const { fetchUserDetails } = useUserDetails();
+  const { userDetails, fetchUserDetails, hasActiveSubscription } =
+    useUserDetails();
 
   useEffect(() => {
     if (userDetails) {
@@ -112,14 +112,18 @@ export function EditProfileModal(
                 if (filePaths && filePaths.length > 0) {
                   const path = filePaths[0];
 
-                  // const { imagePath } = await window.electron
-                  //   .processProfileImage(path)
-                  //   .catch(() => {
-                  //     showErrorToast(t("image_process_failure"));
-                  //     return { imagePath: null };
-                  //   });
+                  if (!hasActiveSubscription) {
+                    const { imagePath } = await window.electron
+                      .processProfileImage(path)
+                      .catch(() => {
+                        showErrorToast(t("image_process_failure"));
+                        return { imagePath: null };
+                      });
 
-                  onChange(path);
+                    onChange(imagePath);
+                  } else {
+                    onChange(path);
+                  }
                 }
               };
 

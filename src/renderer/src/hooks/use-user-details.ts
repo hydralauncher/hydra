@@ -70,7 +70,7 @@ export function useUserDetails() {
         subscription: userDetails?.subscription || null,
       });
     },
-    [updateUserDetails, userDetails?.username]
+    [updateUserDetails, userDetails?.username, userDetails?.subscription]
   );
 
   const syncFriendRequests = useCallback(async () => {
@@ -127,9 +127,9 @@ export function useUserDetails() {
 
   const blockUser = (userId: string) => window.electron.blockUser(userId);
 
-  const unblockUser = (userId: string) => {
-    return window.electron.unblockUser(userId);
-  };
+  const unblockUser = (userId: string) => window.electron.unblockUser(userId);
+
+  const hasActiveSubscription = userDetails?.subscription?.status === "active";
 
   return {
     userDetails,
@@ -139,6 +139,7 @@ export function useUserDetails() {
     friendRequetsModalTab,
     isFriendsModalVisible,
     friendModalUserId,
+    hasActiveSubscription,
     showFriendsModal,
     hideFriendsModal,
     fetchUserDetails,

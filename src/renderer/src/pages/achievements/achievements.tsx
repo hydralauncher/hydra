@@ -12,7 +12,7 @@ import { SkeletonTheme } from "react-loading-skeleton";
 import { AchievementsSkeleton } from "./achievements-skeleton";
 import { AchievementsContent } from "./achievements-content";
 
-export function Achievement() {
+export default function Achievements() {
   const [searchParams] = useSearchParams();
   const objectId = searchParams.get("objectId");
   const shop = searchParams.get("shop");
@@ -51,8 +51,6 @@ export function Achievement() {
     }
   }, [objectId, shop, userId]);
 
-  if (!objectId || !shop || !title) return null;
-
   const otherUserId = userDetails?.id === userId ? null : userId;
 
   const otherUser = otherUserId
@@ -66,9 +64,9 @@ export function Achievement() {
 
   return (
     <GameDetailsContextProvider
-      gameTitle={title}
+      gameTitle={title!}
       shop={shop as GameShop}
-      objectId={objectId}
+      objectId={objectId!}
     >
       <GameDetailsContextConsumer>
         {({ isLoading, achievements }) => {
