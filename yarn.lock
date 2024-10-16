@@ -5347,7 +5347,7 @@ i18next@^23.11.2:
   dependencies:
     "@babel/runtime" "^7.23.2"
 
-icojs@^0.19.3:
+icojs@^0.19.4:
   version "0.19.4"
   resolved "https://registry.yarnpkg.com/icojs/-/icojs-0.19.4.tgz#fdbc9e61a0945ed1d331beb358d67f72cf7d78dc"
   integrity sha512-86oNepPk2jAmbb96BPeucZI7HoSBobFlXDhhjIbwRb3wkQpvdBO5HO9KtMUNzMFT3qqQZsjLsfW+L0/9Rl9VqA==

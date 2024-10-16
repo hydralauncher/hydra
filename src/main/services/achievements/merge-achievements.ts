@@ -22,11 +22,15 @@ const saveAchievementsOnLocal = async (
       },
       ["objectId", "shop"]
     )
-    .then(async () => {
-      WindowManager.mainWindow?.webContents.send(
-        `on-update-achievements-${objectId}-${shop}`,
-        await getGameAchievements(objectId, shop as GameShop)
-      );
+    .then(() => {
+      return getGameAchievements(objectId, shop as GameShop)
+        .then((achievements) => {
+          WindowManager.mainWindow?.webContents.send(
+            `on-update-achievements-${objectId}-${shop}`,
+            achievements
+          );
+        })
+        .catch(() => {});
     });
 };
 

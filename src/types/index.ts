@@ -230,6 +230,15 @@ export interface UserProfileCurrentGame extends Omit<GameRunning, "objectId"> {
 
 export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
 
+export type SubscriptionStatus = "active" | "pending" | "cancelled";
+
+export interface Subscription {
+  id: string;
+  status: SubscriptionStatus;
+  plan: { id: string; name: string };
+  expiresAt: Date | null;
+}
+
 export interface UserDetails {
   id: string;
   username: string;
@@ -237,6 +246,7 @@ export interface UserDetails {
   profileImageUrl: string | null;
   profileVisibility: ProfileVisibility;
   bio: string;
+  subscription: Subscription | null;
 }
 
 export interface UserProfile {
