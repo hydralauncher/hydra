@@ -45,6 +45,7 @@ export interface UserAchievement {
   unlocked: boolean;
   unlockTime: number | null;
   icon: string;
+  icongray: string;
 }
 
 export interface RemoteUnlockedAchievement {

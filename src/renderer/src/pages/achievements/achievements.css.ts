@@ -72,12 +72,10 @@ export const container = style({
 export const panel = recipe({
   base: {
     width: "100%",
-    height: "100px",
-    minHeight: "100px",
-    padding: `${SPACING_UNIT * 2}px 0`,
+    height: "180px",
+    minHeight: "180px",
+    padding: `${SPACING_UNIT * 2}px`,
     backgroundColor: vars.color.darkBackground,
-    display: "flex",
-    flexDirection: "row",
     transition: "all ease 0.2s",
     borderBottom: `solid 1px ${vars.color.border}`,
     position: "sticky",

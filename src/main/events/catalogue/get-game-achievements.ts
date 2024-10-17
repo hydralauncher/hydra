@@ -110,7 +110,7 @@ const getAchievementsRemoteUser = async (
         ...achievementData,
         unlocked: false,
         unlockTime: null,
-        icon: icongray,
+        icongray: icongray,
       } as UserAchievement;
     })
     .sort((a, b) => {

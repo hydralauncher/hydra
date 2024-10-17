@@ -64,7 +64,13 @@ export const mergeAchievements = async (
     localGameAchievement?.unlockedAchievements || "[]"
   ).filter((achievement) => achievement.name) as UnlockedAchievement[];
 
-  const newAchievements = achievements
+  const newAchievementsMap = new Map(
+    achievements.reverse().map((achievement) => {
+      return [achievement.name.toUpperCase(), achievement];
+    })
+  );
+
+  const newAchievements = [...newAchievementsMap.values()]
     .filter((achievement) => {
       return !unlockedAchievements.some((localAchievement) => {
         return (
