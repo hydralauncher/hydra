@@ -37,6 +37,7 @@ interface AchievementPanelProps {
 
 function AchievementPanel({ user, otherUser }: AchievementPanelProps) {
   const { t } = useTranslation("achievement");
+  const { userDetails } = useUserDetails();
 
   const getProfileImage = (imageUrl: string | null | undefined) => {
     return (
@@ -121,35 +122,29 @@ function AchievementPanel({ user, otherUser }: AchievementPanelProps) {
   const otherUserTotalAchievementCount = otherUser.achievements.length;
 
   return (
-    <>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          width: "100%",
-          padding: `0 ${SPACING_UNIT * 2}px`,
-          gap: `${SPACING_UNIT * 2}px`,
-        }}
-      >
-        {getProfileImage(otherUser.profileImageUrl)}
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "3fr 1fr 1fr",
+        gap: `${SPACING_UNIT * 2}px`,
+        padding: `${SPACING_UNIT}px`,
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column" }}>
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            width: "100%",
           }}
         >
           <h1 style={{ fontSize: "1.2em", marginBottom: "8px" }}>
-            {t("user_achievements", {
-              displayName: otherUser.displayName,
-            })}
+            {otherUser.displayName}
           </h1>
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
               marginBottom: 8,
-              width: "100%",
               color: vars.color.muted,
             }}
           >
@@ -182,26 +177,14 @@ function AchievementPanel({ user, otherUser }: AchievementPanelProps) {
             className={styles.achievementsProgressBar}
           />
         </div>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "row-reverse",
-          width: "100%",
-          padding: `0 ${SPACING_UNIT * 2}px`,
-          gap: `${SPACING_UNIT * 2}px`,
-        }}
-      >
-        {getProfileImage(user.profileImageUrl)}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            width: "100%",
           }}
         >
           <h1 style={{ fontSize: "1.2em", marginBottom: "8px" }}>
-            {t("your_achievements")}
+            {userDetails?.displayName}
           </h1>
           <div
             style={{
@@ -238,7 +221,9 @@ function AchievementPanel({ user, otherUser }: AchievementPanelProps) {
           />
         </div>
       </div>
-    </>
+      <div>{getProfileImage(otherUser.profileImageUrl)}</div>
+      <div>{getProfileImage(user.profileImageUrl)}</div>
+    </div>
   );
 }
 
@@ -288,7 +273,7 @@ function AchievementList({
         <li
           key={index}
           className={styles.listItem}
-          style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr" }}
+          style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr" }}
         >
           <div
             style={{
@@ -306,41 +291,31 @@ function AchievementList({
               alt={otherUserAchievement.displayName}
               loading="lazy"
             />
-            {otherUserAchievement.unlockTime && (
+            <div>
+              <h4>{otherUserAchievement.displayName}</h4>
+              <p>{otherUserAchievement.description}</p>
+            </div>
+          </div>
+
+          <div>
+            {otherUserAchievement.unlockTime ? (
               <div style={{ whiteSpace: "nowrap" }}>
                 <small>{t("unlocked_at")}</small>
                 <p>{formatDateTime(otherUserAchievement.unlockTime)}</p>
               </div>
+            ) : (
+              "Não desbloqueada"
             )}
           </div>
 
-          <div style={{ textAlign: "center" }}>
-            <h4>{otherUserAchievement.displayName}</h4>
-            <p>{otherUserAchievement.description}</p>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "row-reverse",
-              alignItems: "center",
-              gap: `${SPACING_UNIT}px`,
-              textAlign: "right",
-            }}
-          >
-            <img
-              className={styles.listItemImage({
-                unlocked: achievements[index].unlocked,
-              })}
-              src={achievements[index].icon}
-              alt={achievements[index].displayName}
-              loading="lazy"
-            />
-            {achievements[index].unlockTime && (
+          <div>
+            {achievements[index].unlockTime ? (
               <div style={{ whiteSpace: "nowrap" }}>
                 <small>{t("unlocked_at")}</small>
                 <p>{formatDateTime(achievements[index].unlockTime)}</p>
               </div>
+            ) : (
+              "Não desbloqueada"
             )}
           </div>
         </li>
