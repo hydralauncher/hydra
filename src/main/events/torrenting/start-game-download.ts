@@ -14,7 +14,7 @@ const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
   payload: StartGameDownloadPayload
 ) => {
-  const { objectID, title, shop, downloadPath, downloader, uri } = payload;
+  const { objectId, title, shop, downloadPath, downloader, uri } = payload;
 
   return dataSource.transaction(async (transactionalEntityManager) => {
     const gameRepository = transactionalEntityManager.getRepository(Game);
@@ -23,7 +23,7 @@ const startGameDownload = async (
 
     const game = await gameRepository.findOne({
       where: {
-        objectID,
+        objectID: objectId,
         shop,
       },
     });
@@ -51,18 +51,18 @@ const startGameDownload = async (
         }
       );
     } else {
-      const steamGame = await steamGamesWorker.run(Number(objectID), {
+      const steamGame = await steamGamesWorker.run(Number(objectId), {
         name: "getById",
       });
 
       const iconUrl = steamGame?.clientIcon
-        ? steamUrlBuilder.icon(objectID, steamGame.clientIcon)
+        ? steamUrlBuilder.icon(objectId, steamGame.clientIcon)
         : null;
 
       await gameRepository.insert({
         title,
         iconUrl,
-        objectID,
+        objectID: objectId,
         downloader,
         shop,
         status: "active",
@@ -73,7 +73,7 @@ const startGameDownload = async (
 
     const updatedGame = await gameRepository.findOne({
       where: {
-        objectID,
+        objectID: objectId,
       },
     });
 

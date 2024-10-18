@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "./redux";
 import {
   setProfileBackground,
@@ -14,6 +14,7 @@ import type {
   UserDetails,
 } from "@types";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
+import { gameBackupsTable } from "@renderer/dexie";
 
 export function useUserDetails() {
   const dispatch = useAppDispatch();
@@ -32,6 +33,7 @@ export function useUserDetails() {
     dispatch(setUserDetails(null));
     dispatch(setProfileBackground(null));
 
+    await gameBackupsTable.clear();
     window.localStorage.removeItem("userDetails");
   }, [dispatch]);
 
@@ -44,32 +46,9 @@ export function useUserDetails() {
   const updateUserDetails = useCallback(
     async (userDetails: UserDetails) => {
       dispatch(setUserDetails(userDetails));
-
-      if (userDetails.profileImageUrl) {
-        // TODO: Decide if we want to use this
-        // const profileBackground = await profileBackgroundFromProfileImage(
-        //   userDetails.profileImageUrl
-        // ).catch((err) => {
-        //   logger.error("profileBackgroundFromProfileImage", err);
-        //   return `#151515B3`;
-        // });
-        // dispatch(setProfileBackground(profileBackground));
-
-        window.localStorage.setItem(
-          "userDetails",
-          JSON.stringify({ ...userDetails, profileBackground })
-        );
-      } else {
-        const profileBackground = `#151515B3`;
-        dispatch(setProfileBackground(profileBackground));
-
-        window.localStorage.setItem(
-          "userDetails",
-          JSON.stringify({ ...userDetails, profileBackground })
-        );
-      }
+      window.localStorage.setItem("userDetails", JSON.stringify(userDetails));
     },
-    [dispatch, profileBackground]
+    [dispatch]
   );
 
   const fetchUserDetails = useCallback(async () => {
@@ -88,9 +67,10 @@ export function useUserDetails() {
       return updateUserDetails({
         ...response,
         username: userDetails?.username || "",
+        subscription: userDetails?.subscription || null,
       });
     },
-    [updateUserDetails, userDetails?.username]
+    [updateUserDetails, userDetails?.username, userDetails?.subscription]
   );
 
   const syncFriendRequests = useCallback(async () => {
@@ -147,9 +127,18 @@ export function useUserDetails() {
 
   const blockUser = (userId: string) => window.electron.blockUser(userId);
 
-  const unblockUser = (userId: string) => {
-    return window.electron.unblockUser(userId);
-  };
+  const unblockUser = (userId: string) => window.electron.unblockUser(userId);
+
+  const hasActiveSubscription = useMemo(() => {
+    if (!userDetails?.subscription) {
+      return false;
+    }
+
+    return (
+      userDetails.subscription.expiresAt == null ||
+      new Date(userDetails.subscription.expiresAt) > new Date()
+    );
+  }, [userDetails]);
 
   return {
     userDetails,
@@ -159,6 +148,7 @@ export function useUserDetails() {
     friendRequetsModalTab,
     isFriendsModalVisible,
     friendModalUserId,
+    hasActiveSubscription,
     showFriendsModal,
     hideFriendsModal,
     fetchUserDetails,
