@@ -10,7 +10,6 @@ import {
   LockIcon,
   PersonIcon,
   TrophyIcon,
-  UnlockIcon,
 } from "@primer/octicons-react";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { gameDetailsContext } from "@renderer/context";
@@ -192,49 +191,55 @@ function AchievementList({ user, otherUser }: AchievementListProps) {
             </div>
           </div>
 
-          <div
-            title={
-              otherUserAchievement.unlockTime
-                ? formatDateTime(otherUserAchievement.unlockTime)
-                : undefined
-            }
-          >
-            {otherUserAchievement.unlockTime ? (
-              <div
-                style={{
-                  whiteSpace: "nowrap",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <CheckCircleIcon />
-                <small>{formatDateTime(otherUserAchievement.unlockTime)}</small>
-              </div>
-            ) : (
-              <div>
-                <LockIcon />
-              </div>
-            )}
-          </div>
+          {otherUserAchievement.unlocked ? (
+            <div
+              style={{
+                whiteSpace: "nowrap",
+                display: "flex",
+                flexDirection: "row",
+                gap: `${SPACING_UNIT}px`,
+                justifyContent: "center",
+              }}
+            >
+              <CheckCircleIcon />
+              <small>{formatDateTime(otherUserAchievement.unlockTime!)}</small>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                padding: `${SPACING_UNIT}px`,
+                justifyContent: "center",
+              }}
+            >
+              <LockIcon />
+            </div>
+          )}
 
-          <div
-            title={
-              userDetails?.subscription && achievements[index].unlockTime
-                ? formatDateTime(achievements[index].unlockTime)
-                : undefined
-            }
-          >
-            {userDetails?.subscription && achievements[index].unlockTime ? (
-              <div style={{ whiteSpace: "nowrap" }}>
-                <UnlockIcon />
-                <p>{formatDateTime(achievements[index].unlockTime)}</p>
-              </div>
-            ) : (
-              <div>
-                <LockIcon />
-              </div>
-            )}
-          </div>
+          {userDetails?.subscription && achievements[index].unlocked ? (
+            <div
+              style={{
+                whiteSpace: "nowrap",
+                display: "flex",
+                flexDirection: "row",
+                gap: `${SPACING_UNIT}px`,
+                justifyContent: "center",
+              }}
+            >
+              <CheckCircleIcon />
+              <small>{formatDateTime(achievements[index].unlockTime!)}</small>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                padding: `${SPACING_UNIT}px`,
+                justifyContent: "center",
+              }}
+            >
+              <LockIcon />
+            </div>
+          )}
         </li>
       ))}
     </ul>
@@ -371,17 +376,20 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
         </div>
 
         {otherUser && (
-          <div className={styles.panel({ stuck: isHeaderStuck })}>
+          <div className={styles.tableHeader({ stuck: isHeaderStuck })}>
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns: "3fr 1fr 1fr",
-                padding: `${SPACING_UNIT}px`,
+                gap: `${SPACING_UNIT * 2}px`,
+                padding: `${SPACING_UNIT}px ${SPACING_UNIT * 3}px`,
               }}
             >
               <div></div>
-              <div>{getProfileImage(otherUser)}</div>
-              <div>
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                {getProfileImage(otherUser)}
+              </div>
+              <div style={{ display: "flex", justifyContent: "center" }}>
                 {getProfileImage({
                   ...userDetails,
                   userId: userDetails.id,
