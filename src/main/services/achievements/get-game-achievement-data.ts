@@ -42,7 +42,9 @@ export const getGameAchievementData = async (
           where: { objectId, shop },
         })
         .then((gameAchievements) => {
-          return JSON.parse(gameAchievements?.achievements || "[]");
+          return JSON.parse(
+            gameAchievements?.achievements || "[]"
+          ) as AchievementData[];
         });
     });
 };

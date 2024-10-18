@@ -51,7 +51,7 @@ const getAchievementLocalUser = async (shop: string, objectId: string) => {
         ...achievementData,
         unlocked: false,
         unlockTime: null,
-        icon: icongray,
+        icongray: icongray,
       } as UserAchievement;
     })
     .sort((a, b) => {

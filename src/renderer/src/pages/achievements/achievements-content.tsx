@@ -5,7 +5,7 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as styles from "./achievements.css";
 import { formatDownloadProgress } from "@renderer/helpers";
-import { PersonIcon, TrophyIcon } from "@primer/octicons-react";
+import { LockIcon, PersonIcon, TrophyIcon } from "@primer/octicons-react";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { gameDetailsContext } from "@renderer/context";
 import { UserAchievement } from "@types";
@@ -26,8 +26,8 @@ interface AchievementsContentProps {
 }
 
 interface AchievementListProps {
-  achievements: UserAchievement[];
-  otherUserAchievements?: UserAchievement[];
+  user: UserInfo;
+  otherUser: UserInfo | null;
 }
 
 interface AchievementPanelProps {
@@ -38,18 +38,6 @@ interface AchievementPanelProps {
 function AchievementPanel({ user, otherUser }: AchievementPanelProps) {
   const { t } = useTranslation("achievement");
   const { userDetails } = useUserDetails();
-
-  const getProfileImage = (imageUrl: string | null | undefined) => {
-    return (
-      <div className={styles.profileAvatar}>
-        {imageUrl ? (
-          <img className={styles.profileAvatar} src={imageUrl} alt={"teste"} />
-        ) : (
-          <PersonIcon size={24} />
-        )}
-      </div>
-    );
-  };
 
   const userTotalAchievementCount = user.achievements.length;
   const userUnlockedAchievementCount = user.achievements.filter(
@@ -63,11 +51,9 @@ function AchievementPanel({ user, otherUser }: AchievementPanelProps) {
           display: "flex",
           flexDirection: "row",
           width: "100%",
-          padding: `0 ${SPACING_UNIT * 2}px`,
           gap: `${SPACING_UNIT * 2}px`,
         }}
       >
-        {getProfileImage(user.profileImageUrl)}
         <div
           style={{
             display: "flex",
@@ -125,7 +111,7 @@ function AchievementPanel({ user, otherUser }: AchievementPanelProps) {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "3fr 1fr 1fr",
+        gridTemplateColumns: "2fr 1fr 1fr",
         gap: `${SPACING_UNIT * 2}px`,
         padding: `${SPACING_UNIT}px`,
       }}
@@ -221,18 +207,30 @@ function AchievementPanel({ user, otherUser }: AchievementPanelProps) {
           />
         </div>
       </div>
-      <div>{getProfileImage(otherUser.profileImageUrl)}</div>
-      <div>{getProfileImage(user.profileImageUrl)}</div>
     </div>
   );
 }
 
-function AchievementList({
-  achievements,
-  otherUserAchievements,
-}: AchievementListProps) {
+function AchievementList({ user, otherUser }: AchievementListProps) {
+  const achievements = user.achievements;
+  const otherUserAchievements = otherUser?.achievements;
+
   const { t } = useTranslation("achievement");
   const { formatDateTime } = useDate();
+
+  const { userDetails } = useUserDetails();
+
+  const getProfileImage = (imageUrl: string | null | undefined) => {
+    return (
+      <div className={styles.profileAvatar}>
+        {imageUrl ? (
+          <img className={styles.profileAvatar} src={imageUrl} alt={"teste"} />
+        ) : (
+          <PersonIcon size={24} />
+        )}
+      </div>
+    );
+  };
 
   if (!otherUserAchievements || otherUserAchievements.length === 0) {
     return (
@@ -273,7 +271,7 @@ function AchievementList({
         <li
           key={index}
           className={styles.listItem}
-          style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr" }}
+          style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr" }}
         >
           <div
             style={{
@@ -285,7 +283,7 @@ function AchievementList({
           >
             <img
               className={styles.listItemImage({
-                unlocked: otherUserAchievement.unlocked,
+                unlocked: true,
               })}
               src={otherUserAchievement.icon}
               alt={otherUserAchievement.displayName}
@@ -300,22 +298,30 @@ function AchievementList({
           <div>
             {otherUserAchievement.unlockTime ? (
               <div style={{ whiteSpace: "nowrap" }}>
+                {getProfileImage(otherUser.profileImageUrl)}
                 <small>{t("unlocked_at")}</small>
                 <p>{formatDateTime(otherUserAchievement.unlockTime)}</p>
               </div>
             ) : (
-              "Não desbloqueada"
+              <div>
+                <LockIcon />
+                <p>Não desbloqueada</p>
+              </div>
             )}
           </div>
 
           <div>
-            {achievements[index].unlockTime ? (
+            {userDetails?.subscription && achievements[index].unlockTime ? (
               <div style={{ whiteSpace: "nowrap" }}>
+                {getProfileImage(user.profileImageUrl)}
                 <small>{t("unlocked_at")}</small>
                 <p>{formatDateTime(achievements[index].unlockTime)}</p>
               </div>
             ) : (
-              "Não desbloqueada"
+              <div>
+                <LockIcon />
+                <p>Não desbloqueada</p>
+              </div>
             )}
           </div>
         </li>
@@ -434,7 +440,7 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
             user={{
               ...userDetails,
               userId: userDetails.id,
-              achievements: achievements!,
+              achievements: sortedAchievements,
             }}
             otherUser={otherUser}
           />
@@ -448,8 +454,12 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
           }}
         >
           <AchievementList
-            achievements={sortedAchievements}
-            otherUserAchievements={otherUser?.achievements}
+            user={{
+              ...userDetails,
+              userId: userDetails.id,
+              achievements: sortedAchievements,
+            }}
+            otherUser={otherUser}
           />
         </div>
       </section>
