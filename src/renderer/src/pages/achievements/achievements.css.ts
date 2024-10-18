@@ -72,8 +72,8 @@ export const container = style({
 export const panel = recipe({
   base: {
     width: "100%",
-    height: "180px",
-    minHeight: "180px",
+    height: "150px",
+    minHeight: "150px",
     padding: `${SPACING_UNIT * 2}px`,
     backgroundColor: vars.color.darkBackground,
     transition: "all ease 0.2s",
@@ -184,8 +184,8 @@ export const listItemSkeleton = style({
 });
 
 export const profileAvatar = style({
-  height: "65px",
-  width: "65px",
+  height: "32px",
+  width: "32px",
   borderRadius: "4px",
   display: "flex",
   justifyContent: "center",
