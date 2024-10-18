@@ -72,7 +72,7 @@ export function useDate() {
       const locale = getDateLocale();
       return format(
         date,
-        locale == enUS ? "MM/dd/yyyy - HH:mm" : "dd/MM/yyyy - HH:mm"
+        locale == enUS ? "MM/dd/yyyy - HH:mm" : "dd/MM/yyyy HH:mm"
       );
     },
 

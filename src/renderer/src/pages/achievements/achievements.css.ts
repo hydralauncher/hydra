@@ -4,6 +4,7 @@ import { recipe } from "@vanilla-extract/recipes";
 
 export const HERO_HEIGHT = 150;
 export const LOGO_HEIGHT = 100;
+export const LOGO_MAX_WIDTH = 200;
 
 export const wrapper = style({
   display: "flex",
@@ -59,7 +60,9 @@ export const heroContent = style({
 });
 
 export const gameLogo = style({
+  width: LOGO_MAX_WIDTH,
   height: LOGO_HEIGHT,
+  objectFit: "contain",
 });
 
 export const container = style({
@@ -71,7 +74,7 @@ export const container = style({
   zIndex: "1",
 });
 
-export const panel = recipe({
+export const tableHeader = recipe({
   base: {
     width: "100%",
     backgroundColor: vars.color.darkBackground,
