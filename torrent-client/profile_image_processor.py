@@ -1,6 +1,5 @@
 from PIL import Image
-import tempfile
-import os, uuid
+import os, uuid, tempfile
 
 class ProfileImageProcessor:
     
