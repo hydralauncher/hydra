@@ -5,14 +5,18 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as styles from "./achievements.css";
 import { formatDownloadProgress } from "@renderer/helpers";
-import { LockIcon, PersonIcon, TrophyIcon } from "@primer/octicons-react";
+import {
+  CheckCircleIcon,
+  LockIcon,
+  PersonIcon,
+  TrophyIcon,
+  UnlockIcon,
+} from "@primer/octicons-react";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { gameDetailsContext } from "@renderer/context";
 import { UserAchievement } from "@types";
 import { average } from "color.js";
 import Color from "color";
-
-const HERO_ANIMATION_THRESHOLD = 25;
 
 interface UserInfo {
   userId: string;
@@ -32,180 +36,85 @@ interface AchievementListProps {
 
 interface AchievementPanelProps {
   user: UserInfo;
-  otherUser: UserInfo | null;
 }
 
-function AchievementPanel({ user, otherUser }: AchievementPanelProps) {
-  const { t } = useTranslation("achievement");
-  const { userDetails } = useUserDetails();
+function AchievementPanel({ user }: AchievementPanelProps) {
+  const { userDetails, hasActiveSubscription } = useUserDetails();
 
   const userTotalAchievementCount = user.achievements.length;
   const userUnlockedAchievementCount = user.achievements.filter(
     (achievement) => achievement.unlocked
   ).length;
 
-  if (!otherUser) {
+  const getProfileImage = (user: UserInfo) => {
     return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          width: "100%",
-          gap: `${SPACING_UNIT * 2}px`,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            width: "100%",
-          }}
-        >
-          <h1 style={{ fontSize: "1.2em", marginBottom: "8px" }}>
-            {t("your_achievements")}
-          </h1>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: 8,
-              width: "100%",
-              color: vars.color.muted,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <TrophyIcon size={13} />
-              <span>
-                {userUnlockedAchievementCount} / {userTotalAchievementCount}
-              </span>
-            </div>
-
-            <span>
-              {formatDownloadProgress(
-                userUnlockedAchievementCount / userTotalAchievementCount
-              )}
-            </span>
-          </div>
-          <progress
-            max={1}
-            value={userUnlockedAchievementCount / userTotalAchievementCount}
-            className={styles.achievementsProgressBar}
+      <div className={styles.profileAvatar}>
+        {user.profileImageUrl ? (
+          <img
+            className={styles.profileAvatar}
+            src={user.profileImageUrl}
+            alt={user.displayName}
           />
-        </div>
+        ) : (
+          <PersonIcon size={24} />
+        )}
       </div>
     );
-  }
+  };
 
-  const otherUserUnlockedAchievementCount = otherUser.achievements.filter(
-    (achievement) => achievement.unlocked
-  ).length;
-  const otherUserTotalAchievementCount = otherUser.achievements.length;
+  if (userDetails?.id == user.userId && !hasActiveSubscription) {
+    return <></>;
+  }
 
   return (
     <div
       style={{
-        display: "grid",
-        gridTemplateColumns: "2fr 1fr 1fr",
+        display: "flex",
         gap: `${SPACING_UNIT * 2}px`,
-        padding: `${SPACING_UNIT}px`,
+        alignItems: "center",
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column" }}>
+      {getProfileImage(user)}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+        }}
+      >
+        <h1 style={{ marginBottom: "8px" }}>{user.displayName}</h1>
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
+            justifyContent: "space-between",
+            marginBottom: 8,
+            color: vars.color.muted,
           }}
         >
-          <h1 style={{ fontSize: "1.2em", marginBottom: "8px" }}>
-            {otherUser.displayName}
-          </h1>
           <div
             style={{
               display: "flex",
-              justifyContent: "space-between",
-              marginBottom: 8,
-              color: vars.color.muted,
+              alignItems: "center",
+              gap: 8,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <TrophyIcon size={13} />
-              <span>
-                {otherUserUnlockedAchievementCount} /{" "}
-                {otherUserTotalAchievementCount}
-              </span>
-            </div>
-
+            <TrophyIcon size={13} />
             <span>
-              {formatDownloadProgress(
-                otherUserUnlockedAchievementCount /
-                  otherUserTotalAchievementCount
-              )}
+              {userUnlockedAchievementCount} / {userTotalAchievementCount}
             </span>
           </div>
-          <progress
-            max={1}
-            value={
-              otherUserUnlockedAchievementCount / otherUserTotalAchievementCount
-            }
-            className={styles.achievementsProgressBar}
-          />
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <h1 style={{ fontSize: "1.2em", marginBottom: "8px" }}>
-            {userDetails?.displayName}
-          </h1>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: 8,
-              width: "100%",
-              color: vars.color.muted,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <TrophyIcon size={13} />
-              <span>
-                {userUnlockedAchievementCount} / {userTotalAchievementCount}
-              </span>
-            </div>
 
-            <span>
-              {formatDownloadProgress(
-                userUnlockedAchievementCount / userTotalAchievementCount
-              )}
-            </span>
-          </div>
-          <progress
-            max={1}
-            value={userUnlockedAchievementCount / userTotalAchievementCount}
-            className={styles.achievementsProgressBar}
-          />
+          <span>
+            {formatDownloadProgress(
+              userUnlockedAchievementCount / userTotalAchievementCount
+            )}
+          </span>
         </div>
+        <progress
+          max={1}
+          value={userUnlockedAchievementCount / userTotalAchievementCount}
+          className={styles.achievementsProgressBar}
+        />
       </div>
     </div>
   );
@@ -219,18 +128,6 @@ function AchievementList({ user, otherUser }: AchievementListProps) {
   const { formatDateTime } = useDate();
 
   const { userDetails } = useUserDetails();
-
-  const getProfileImage = (imageUrl: string | null | undefined) => {
-    return (
-      <div className={styles.profileAvatar}>
-        {imageUrl ? (
-          <img className={styles.profileAvatar} src={imageUrl} alt={"teste"} />
-        ) : (
-          <PersonIcon size={24} />
-        )}
-      </div>
-    );
-  };
 
   if (!otherUserAchievements || otherUserAchievements.length === 0) {
     return (
@@ -271,7 +168,7 @@ function AchievementList({ user, otherUser }: AchievementListProps) {
         <li
           key={index}
           className={styles.listItem}
-          style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr" }}
+          style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr" }}
         >
           <div
             style={{
@@ -295,32 +192,46 @@ function AchievementList({ user, otherUser }: AchievementListProps) {
             </div>
           </div>
 
-          <div>
+          <div
+            title={
+              otherUserAchievement.unlockTime
+                ? formatDateTime(otherUserAchievement.unlockTime)
+                : undefined
+            }
+          >
             {otherUserAchievement.unlockTime ? (
-              <div style={{ whiteSpace: "nowrap" }}>
-                {getProfileImage(otherUser.profileImageUrl)}
-                <small>{t("unlocked_at")}</small>
-                <p>{formatDateTime(otherUserAchievement.unlockTime)}</p>
+              <div
+                style={{
+                  whiteSpace: "nowrap",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <CheckCircleIcon />
+                <small>{formatDateTime(otherUserAchievement.unlockTime)}</small>
               </div>
             ) : (
               <div>
                 <LockIcon />
-                <p>Não desbloqueada</p>
               </div>
             )}
           </div>
 
-          <div>
+          <div
+            title={
+              userDetails?.subscription && achievements[index].unlockTime
+                ? formatDateTime(achievements[index].unlockTime)
+                : undefined
+            }
+          >
             {userDetails?.subscription && achievements[index].unlockTime ? (
               <div style={{ whiteSpace: "nowrap" }}>
-                {getProfileImage(user.profileImageUrl)}
-                <small>{t("unlocked_at")}</small>
+                <UnlockIcon />
                 <p>{formatDateTime(achievements[index].unlockTime)}</p>
               </div>
             ) : (
               <div>
                 <LockIcon />
-                <p>Não desbloqueada</p>
               </div>
             )}
           </div>
@@ -334,7 +245,6 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
   const heroRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isHeaderStuck, setIsHeaderStuck] = useState(false);
-  const [backdropOpactiy, setBackdropOpacity] = useState(1);
 
   const { gameTitle, objectId, shop, achievements, gameColor, setGameColor } =
     useContext(gameDetailsContext);
@@ -380,11 +290,6 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
     const heroHeight = heroRef.current?.clientHeight ?? styles.HERO_HEIGHT;
 
     const scrollY = (event.target as HTMLDivElement).scrollTop;
-    const opacity = Math.max(
-      0,
-      1 - scrollY / (heroHeight - HERO_ANIMATION_THRESHOLD)
-    );
-
     if (scrollY >= heroHeight && !isHeaderStuck) {
       setIsHeaderStuck(true);
     }
@@ -392,8 +297,22 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
     if (scrollY <= heroHeight && isHeaderStuck) {
       setIsHeaderStuck(false);
     }
+  };
 
-    setBackdropOpacity(opacity);
+  const getProfileImage = (user: UserInfo) => {
+    return (
+      <div className={styles.profileAvatarSmall}>
+        {user.profileImageUrl ? (
+          <img
+            className={styles.profileAvatarSmall}
+            src={user.profileImageUrl}
+            alt={user.displayName}
+          />
+        ) : (
+          <PersonIcon size={24} />
+        )}
+      </div>
+    );
   };
 
   if (!objectId || !shop || !gameTitle || !userDetails) return null;
@@ -402,6 +321,7 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
     <div className={styles.wrapper}>
       <img
         src={steamUrlBuilder.libraryHero(objectId)}
+        style={{ display: "none" }}
         alt={gameTitle}
         className={styles.heroImage}
         onLoad={handleHeroLoad}
@@ -412,19 +332,14 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
         onScroll={onScroll}
         className={styles.container}
       >
-        <div ref={heroRef} className={styles.hero}>
-          <div
-            style={{
-              backgroundColor: gameColor,
-              flex: 1,
-              opacity: Math.min(1, 1 - backdropOpactiy),
-            }}
-          />
-
-          <div
-            className={styles.heroLogoBackdrop}
-            style={{ opacity: backdropOpactiy }}
-          >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            background: `linear-gradient(0deg, ${vars.color.darkBackground} 0%, ${gameColor} 100%)`,
+          }}
+        >
+          <div ref={heroRef} className={styles.hero}>
             <div className={styles.heroContent}>
               <img
                 src={steamUrlBuilder.logo(objectId)}
@@ -433,18 +348,50 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
               />
             </div>
           </div>
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              gap: `${SPACING_UNIT * 2}px`,
+              padding: `${SPACING_UNIT * 2}px`,
+            }}
+          >
+            <AchievementPanel
+              user={{
+                ...userDetails,
+                userId: userDetails.id,
+                achievements: sortedAchievements,
+              }}
+            />
+
+            {otherUser && <AchievementPanel user={otherUser} />}
+          </div>
         </div>
 
-        <div className={styles.panel({ stuck: isHeaderStuck })}>
-          <AchievementPanel
-            user={{
-              ...userDetails,
-              userId: userDetails.id,
-              achievements: sortedAchievements,
-            }}
-            otherUser={otherUser}
-          />
-        </div>
+        {otherUser && (
+          <div className={styles.panel({ stuck: isHeaderStuck })}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "3fr 1fr 1fr",
+                padding: `${SPACING_UNIT}px`,
+              }}
+            >
+              <div></div>
+              <div>{getProfileImage(otherUser)}</div>
+              <div>
+                {getProfileImage({
+                  ...userDetails,
+                  userId: userDetails.id,
+                  achievements: sortedAchievements,
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div
           style={{
             display: "flex",

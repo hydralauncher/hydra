@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "./redux";
 import {
   setProfileBackground,
@@ -129,7 +129,16 @@ export function useUserDetails() {
 
   const unblockUser = (userId: string) => window.electron.unblockUser(userId);
 
-  const hasActiveSubscription = userDetails?.subscription?.status === "active";
+  const hasActiveSubscription = useMemo(() => {
+    if (!userDetails?.subscription) {
+      return false;
+    }
+
+    return (
+      userDetails.subscription.expiresAt == null ||
+      new Date(userDetails.subscription.expiresAt) > new Date()
+    );
+  }, [userDetails]);
 
   return {
     userDetails,
