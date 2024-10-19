@@ -4,6 +4,7 @@
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/hydralauncher/hydra.git"
