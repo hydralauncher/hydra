@@ -25,6 +25,7 @@ import "./library/update-executable-path";
 import "./library/verify-executable-path";
 import "./library/remove-game";
 import "./library/remove-game-from-library";
+import "./library/select-game-wine-prefix";
 import "./misc/open-external";
 import "./misc/show-open-dialog";
 import "./torrenting/cancel-game-download";

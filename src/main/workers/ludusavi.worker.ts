@@ -58,4 +58,8 @@ export const restoreBackup = (backupPath: string) => {
   return JSON.parse(result.toString("utf-8")) as LudusaviBackup;
 };
 
-// --wine-prefix
+export const generateConfig = () => {
+  const result = cp.execFileSync(binaryPath, ["schema", "config"]);
+
+  return JSON.parse(result.toString("utf-8")) as LudusaviBackup;
+};

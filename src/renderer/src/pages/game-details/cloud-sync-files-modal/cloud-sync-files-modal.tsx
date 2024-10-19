@@ -1,6 +1,7 @@
-import { Modal, ModalProps } from "@renderer/components";
+import { Button, Modal, ModalProps, TextField } from "@renderer/components";
 import { useContext, useMemo } from "react";
 import { cloudSyncContext } from "@renderer/context";
+import { useTranslation } from "react-i18next";
 
 export interface CloudSyncFilesModalProps
   extends Omit<ModalProps, "children" | "title"> {}
@@ -10,6 +11,8 @@ export function CloudSyncFilesModal({
   onClose,
 }: CloudSyncFilesModalProps) {
   const { backupPreview } = useContext(cloudSyncContext);
+
+  const { t } = useTranslation("game_details");
 
   const files = useMemo(() => {
     if (!backupPreview) {
@@ -24,6 +27,24 @@ export function CloudSyncFilesModal({
     });
   }, [backupPreview]);
 
+  const handleChangeExecutableLocation = async () => {
+    const path = await selectGameExecutable();
+
+    if (path) {
+      const gameUsingPath =
+        await window.electron.verifyExecutablePathInUse(path);
+
+      if (gameUsingPath) {
+        showErrorToast(
+          t("executable_path_in_use", { game: gameUsingPath.title })
+        );
+        return;
+      }
+
+      window.electron.updateExecutablePath(game.id, path).then(updateGame);
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -31,11 +52,11 @@ export function CloudSyncFilesModal({
       description="Escolha quais diretórios serão sincronizados"
       onClose={onClose}
     >
-      {/* <div className={styles.downloaders}>
+      {/* <div>
         {["AUTOMATIC", "CUSTOM"].map((downloader) => (
           <Button
             key={downloader}
-            className={styles.downloaderOption}
+            // className={styles.downloaderOption}
             theme={selectedDownloader === downloader ? "primary" : "outline"}
             disabled={
               downloader === Downloader.RealDebrid &&
@@ -50,6 +71,23 @@ export function CloudSyncFilesModal({
           </Button>
         ))}
       </div> */}
+
+      <TextField
+        // value={game.executablePath || ""}
+        readOnly
+        theme="dark"
+        disabled
+        placeholder={t("no_directory_selected")}
+        rightContent={
+          <Button
+            type="button"
+            theme="outline"
+            onClick={handleChangeExecutableLocation}
+          >
+            {t("select_directory")}
+          </Button>
+        }
+      />
 
       <table>
         <thead>

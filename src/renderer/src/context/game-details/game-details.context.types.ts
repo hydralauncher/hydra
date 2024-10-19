@@ -22,6 +22,7 @@ export interface GameDetailsContext {
   stats: GameStats | null;
   achievements: UserAchievement[] | null;
   hasNSFWContentBlocked: boolean;
+  lastDownloadedOption: GameRepack | null;
   setGameColor: React.Dispatch<React.SetStateAction<string>>;
   selectGameExecutable: () => Promise<string | null>;
   updateGame: () => Promise<void>;

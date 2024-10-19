@@ -70,7 +70,7 @@ export const heroPanel = style({
 
 export const userInformation = style({
   display: "flex",
-  padding: `${SPACING_UNIT * 6}px ${SPACING_UNIT * 3}px`,
+  padding: `${SPACING_UNIT * 7}px ${SPACING_UNIT * 3}px`,
   alignItems: "center",
   gap: `${SPACING_UNIT * 2}px`,
 });

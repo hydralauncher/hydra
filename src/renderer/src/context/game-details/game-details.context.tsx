@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -45,6 +46,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   stats: null,
   achievements: null,
   hasNSFWContentBlocked: false,
+  lastDownloadedOption: null,
   setGameColor: () => {},
   selectGameExecutable: async () => null,
   updateGame: async () => {},
@@ -199,6 +201,19 @@ export function GameDetailsContextProvider({
     };
   }, [game?.id, isGameRunning, updateGame]);
 
+  const lastDownloadedOption = useMemo(() => {
+    if (game?.uri) {
+      const repack = repacks.find((repack) =>
+        repack.uris.some((uri) => uri.includes(game.uri!))
+      );
+
+      if (!repack) return null;
+      return repack;
+    }
+
+    return null;
+  }, [game?.uri, repacks]);
+
   useEffect(() => {
     const unsubscribe = window.electron.onUpdateAchievements(
       objectId,
@@ -259,6 +274,7 @@ export function GameDetailsContextProvider({
         stats,
         achievements,
         hasNSFWContentBlocked,
+        lastDownloadedOption,
         setHasNSFWContentBlocked,
         setGameColor,
         selectGameExecutable,

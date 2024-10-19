@@ -50,7 +50,7 @@ export const searchHowLongToBeat = async (gameName: string) => {
 
   const response = await axios
     .post(
-      "https://howlongtobeat.com/api/search/8fbd64723a8204dd",
+      `https://howlongtobeat.com/api/search/${state.apiKey}`,
       {
         searchType: "games",
         searchTerms: formatName(gameName).split(" "),
