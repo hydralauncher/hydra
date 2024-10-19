@@ -26,7 +26,7 @@ export interface CloudSyncContext {
   backupState: CloudSyncState;
   setShowCloudSyncModal: React.Dispatch<React.SetStateAction<boolean>>;
   downloadGameArtifact: (gameArtifactId: string) => Promise<void>;
-  uploadSaveGame: () => Promise<void>;
+  uploadSaveGame: (downloadOptionTitle: string | null) => Promise<void>;
   deleteGameArtifact: (gameArtifactId: string) => Promise<void>;
   setShowCloudSyncFilesModal: React.Dispatch<React.SetStateAction<boolean>>;
   getGameBackupPreview: () => Promise<void>;
@@ -108,10 +108,13 @@ export function CloudSyncContextProvider({
     ]);
   }, [objectId, shop]);
 
-  const uploadSaveGame = useCallback(async () => {
-    setUploadingBackup(true);
-    window.electron.uploadSaveGame(objectId, shop);
-  }, [objectId, shop]);
+  const uploadSaveGame = useCallback(
+    async (downloadOptionTitle: string | null) => {
+      setUploadingBackup(true);
+      window.electron.uploadSaveGame(objectId, shop, downloadOptionTitle);
+    },
+    [objectId, shop]
+  );
 
   useEffect(() => {
     const removeUploadCompleteListener = window.electron.onUploadComplete(

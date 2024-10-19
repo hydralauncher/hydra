@@ -38,3 +38,14 @@ export const syncIcon = style({
   animationIterationCount: "infinite",
   animationTimingFunction: "linear",
 });
+
+export const progress = style({
+  width: "100%",
+  height: "5px",
+  "::-webkit-progress-bar": {
+    backgroundColor: vars.color.darkBackground,
+  },
+  "::-webkit-progress-value": {
+    backgroundColor: vars.color.muted,
+  },
+});

@@ -116,6 +116,7 @@ export interface Game {
   bytesDownloaded: number;
   playTimeInMilliseconds: number;
   downloader: Downloader;
+  winePrefixPath: string | null;
   executablePath: string | null;
   lastTimePlayed: Date | null;
   uri: string | null;
@@ -334,6 +335,7 @@ export type GameAchievementFiles = {
 export interface GameArtifact {
   id: string;
   artifactLengthInBytes: number;
+  downloadOptionTitle: string | null;
   createdAt: string;
   updatedAt: string;
   hostname: string;
