@@ -33,11 +33,12 @@ interface AchievementListProps {
   otherUser: UserInfo | null;
 }
 
-interface AchievementPanelProps {
+interface AchievementSummaryProps {
   user: UserInfo;
+  isComparison?: boolean;
 }
 
-function AchievementPanel({ user }: AchievementPanelProps) {
+function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
   const { userDetails, hasActiveSubscription } = useUserDetails();
 
   const userTotalAchievementCount = user.achievements.length;
@@ -61,8 +62,55 @@ function AchievementPanel({ user }: AchievementPanelProps) {
     );
   };
 
-  if (userDetails?.id == user.userId && !hasActiveSubscription) {
-    return <></>;
+  if (
+    isComparison &&
+    userDetails?.id == user.userId &&
+    !hasActiveSubscription
+  ) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          gap: `${SPACING_UNIT * 2}px`,
+          alignItems: "center",
+          position: "relative",
+          padding: `${SPACING_UNIT}px`,
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            zIndex: 2,
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            background: "rgba(0, 0, 0, 0.7)",
+            display: "flex",
+            alignItems: "center",
+            flexDirection: "row",
+            gap: `${SPACING_UNIT}px`,
+            borderRadius: "4px",
+            justifyContent: "center",
+          }}
+        >
+          <LockIcon size={24} />
+          <h3>Assine o HYDRA CLOUD para comparar suas conquistas!!!!</h3>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: `${SPACING_UNIT * 2}px`,
+            alignItems: "center",
+            height: "62px",
+            position: "relative",
+            filter: "blur(4px)",
+          }}
+        >
+          {getProfileImage(user)}
+          <h1 style={{ marginBottom: "8px" }}>{user.displayName}</h1>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -71,6 +119,7 @@ function AchievementPanel({ user }: AchievementPanelProps) {
         display: "flex",
         gap: `${SPACING_UNIT * 2}px`,
         alignItems: "center",
+        padding: `${SPACING_UNIT}px`,
       }}
     >
       {getProfileImage(user)}
@@ -126,7 +175,7 @@ function AchievementList({ user, otherUser }: AchievementListProps) {
   const { t } = useTranslation("achievement");
   const { formatDateTime } = useDate();
 
-  const { userDetails } = useUserDetails();
+  const { hasActiveSubscription } = useUserDetails();
 
   if (!otherUserAchievements || otherUserAchievements.length === 0) {
     return (
@@ -167,7 +216,12 @@ function AchievementList({ user, otherUser }: AchievementListProps) {
         <li
           key={index}
           className={styles.listItem}
-          style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr" }}
+          style={{
+            display: "grid",
+            gridTemplateColumns: hasActiveSubscription
+              ? "3fr 1fr 1fr"
+              : "3fr 2fr",
+          }}
         >
           <div
             style={{
@@ -191,6 +245,33 @@ function AchievementList({ user, otherUser }: AchievementListProps) {
             </div>
           </div>
 
+          {hasActiveSubscription ? (
+            achievements[index].unlocked ? (
+              <div
+                style={{
+                  whiteSpace: "nowrap",
+                  display: "flex",
+                  flexDirection: "row",
+                  gap: `${SPACING_UNIT}px`,
+                  justifyContent: "center",
+                }}
+              >
+                <CheckCircleIcon />
+                <small>{formatDateTime(achievements[index].unlockTime!)}</small>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  padding: `${SPACING_UNIT}px`,
+                  justifyContent: "center",
+                }}
+              >
+                <LockIcon />
+              </div>
+            )
+          ) : null}
+
           {otherUserAchievement.unlocked ? (
             <div
               style={{
@@ -203,31 +284,6 @@ function AchievementList({ user, otherUser }: AchievementListProps) {
             >
               <CheckCircleIcon />
               <small>{formatDateTime(otherUserAchievement.unlockTime!)}</small>
-            </div>
-          ) : (
-            <div
-              style={{
-                display: "flex",
-                padding: `${SPACING_UNIT}px`,
-                justifyContent: "center",
-              }}
-            >
-              <LockIcon />
-            </div>
-          )}
-
-          {userDetails?.subscription && achievements[index].unlocked ? (
-            <div
-              style={{
-                whiteSpace: "nowrap",
-                display: "flex",
-                flexDirection: "row",
-                gap: `${SPACING_UNIT}px`,
-                justifyContent: "center",
-              }}
-            >
-              <CheckCircleIcon />
-              <small>{formatDateTime(achievements[index].unlockTime!)}</small>
             </div>
           ) : (
             <div
@@ -270,7 +326,7 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
 
   const dispatch = useAppDispatch();
 
-  const { userDetails } = useUserDetails();
+  const { userDetails, hasActiveSubscription } = useUserDetails();
 
   useEffect(() => {
     if (gameTitle) {
@@ -359,19 +415,20 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
               display: "flex",
               flexDirection: "column",
               width: "100%",
-              gap: `${SPACING_UNIT * 2}px`,
-              padding: `${SPACING_UNIT * 2}px`,
+              gap: `${SPACING_UNIT}px`,
+              padding: `${SPACING_UNIT}px`,
             }}
           >
-            <AchievementPanel
+            <AchievementSummary
               user={{
                 ...userDetails,
                 userId: userDetails.id,
                 achievements: sortedAchievements,
               }}
+              isComparison={otherUser !== null}
             />
 
-            {otherUser && <AchievementPanel user={otherUser} />}
+            {otherUser && <AchievementSummary user={otherUser} />}
           </div>
         </div>
 
@@ -380,21 +437,25 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "3fr 1fr 1fr",
+                gridTemplateColumns: hasActiveSubscription
+                  ? "3fr 1fr 1fr"
+                  : "3fr 2fr",
                 gap: `${SPACING_UNIT * 2}px`,
                 padding: `${SPACING_UNIT}px ${SPACING_UNIT * 3}px`,
               }}
             >
               <div></div>
+              {hasActiveSubscription && (
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  {getProfileImage({
+                    ...userDetails,
+                    userId: userDetails.id,
+                    achievements: sortedAchievements,
+                  })}
+                </div>
+              )}
               <div style={{ display: "flex", justifyContent: "center" }}>
                 {getProfileImage(otherUser)}
-              </div>
-              <div style={{ display: "flex", justifyContent: "center" }}>
-                {getProfileImage({
-                  ...userDetails,
-                  userId: userDetails.id,
-                  achievements: sortedAchievements,
-                })}
               </div>
             </div>
           </div>

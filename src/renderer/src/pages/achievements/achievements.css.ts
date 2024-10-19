@@ -52,7 +52,6 @@ export const heroImage = style({
 
 export const heroContent = style({
   padding: `${SPACING_UNIT * 2}px`,
-  height: "100%",
   width: "100%",
   display: "flex",
   justifyContent: "space-between",
