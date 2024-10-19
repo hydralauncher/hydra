@@ -4,7 +4,10 @@ import { steamUrlBuilder } from "@shared";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as styles from "./achievements.css";
-import { formatDownloadProgress } from "@renderer/helpers";
+import {
+  buildGameDetailsPath,
+  formatDownloadProgress,
+} from "@renderer/helpers";
 import {
   CheckCircleIcon,
   LockIcon,
@@ -16,6 +19,7 @@ import { gameDetailsContext } from "@renderer/context";
 import { UserAchievement } from "@types";
 import { average } from "color.js";
 import Color from "color";
+import { Link } from "@renderer/components";
 
 interface UserInfo {
   userId: string;
@@ -95,7 +99,9 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
           }}
         >
           <LockIcon size={24} />
-          <h3>{t("subscription_needed")}</h3>
+          <h3>
+            <Link to={""}>{t("subscription_needed")}</Link>
+          </h3>
         </div>
         <div
           style={{
@@ -403,11 +409,15 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
         >
           <div ref={heroRef} className={styles.hero}>
             <div className={styles.heroContent}>
-              <img
-                src={steamUrlBuilder.logo(objectId)}
-                className={styles.gameLogo}
-                alt={gameTitle}
-              />
+              <Link
+                to={buildGameDetailsPath({ shop, objectId, title: gameTitle })}
+              >
+                <img
+                  src={steamUrlBuilder.logo(objectId)}
+                  className={styles.gameLogo}
+                  alt={gameTitle}
+                />
+              </Link>
             </div>
           </div>
 
