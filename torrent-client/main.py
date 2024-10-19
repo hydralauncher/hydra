@@ -1,8 +1,5 @@
-import sys
+import sys, json, urllib.parse, psutil
 from http.server import HTTPServer, BaseHTTPRequestHandler
-import json
-import urllib.parse
-import psutil
 from torrent_downloader import TorrentDownloader
 from profile_image_processor import ProfileImageProcessor
 
