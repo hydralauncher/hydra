@@ -40,7 +40,7 @@
   "bottom_panel": {
     "no_downloads_in_progress": "No downloads in progress",
     "downloading_metadata": "Downloading {{title}} metadata…",
-    "downloading": "Downloading {{title}}… ({{percentage}} complete) - Conclusion {{eta}} - {{speed}}",
+    "downloading": "Downloading {{title}}… ({{percentage}} complete) - Completion {{eta}} - {{speed}}",
     "calculating_eta": "Downloading {{title}}… ({{percentage}} complete) - Calculating remaining time…",
     "checking_files": "Checking {{title}} files… ({{percentage}} complete)"
   },
