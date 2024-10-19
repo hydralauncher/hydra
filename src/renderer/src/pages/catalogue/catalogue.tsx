@@ -21,10 +21,13 @@ export function Catalogue() {
 
   const [searchResults, setSearchResults] = useState<CatalogueEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingInfScroll, setIsLoadingInfScroll] = useState(false);
+  const [resultsExhausted, setResultsExhausted] = useState(false);
 
   const contentRef = useRef<HTMLElement>(null);
 
   const cursorRef = useRef<number>(0);
+  const cursorInfScrollRef = useRef<number>(cursorRef.current + 24);
 
   const navigate = useNavigate();
 
@@ -62,7 +65,42 @@ export function Catalogue() {
       cursor: cursorRef.current.toString(),
     });
 
+    resetInfiniteScroll();
+
     navigate(`/catalogue?${params.toString()}`);
+  };
+
+  const resetInfiniteScroll = () => {
+    cursorInfScrollRef.current = cursorRef.current + 24;
+    setResultsExhausted(false);
+  };
+
+  const infiniteLoading = () => {
+    if (resultsExhausted || !contentRef.current) return;
+    const isAtBottom =
+      contentRef.current.offsetHeight + contentRef.current.scrollTop ==
+      contentRef.current.scrollHeight;
+
+    if (isAtBottom) {
+      setIsLoadingInfScroll(true);
+      window.electron
+        .getGames(24, cursorInfScrollRef.current)
+        .then(({ results, cursor }) => {
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              if (results.length == 0) {
+                setResultsExhausted(true);
+              }
+              cursorInfScrollRef.current += cursor;
+              setSearchResults([...searchResults, ...results]);
+              resolve(null);
+            }, 500);
+          });
+        })
+        .finally(() => {
+          setIsLoadingInfScroll(false);
+        });
+    }
   };
 
   return (
@@ -78,7 +116,10 @@ export function Catalogue() {
         }}
       >
         <Button
-          onClick={() => navigate(-1)}
+          onClick={() => {
+            resetInfiniteScroll();
+            navigate(-1);
+          }}
           theme="outline"
           disabled={cursor === 0 || isLoading}
         >
@@ -92,7 +133,11 @@ export function Catalogue() {
         </Button>
       </section>
 
-      <section ref={contentRef} className={styles.content}>
+      <section
+        ref={contentRef}
+        className={styles.content}
+        onScroll={infiniteLoading}
+      >
         <section className={styles.cards}>
           {isLoading &&
             Array.from({ length: 12 }).map((_, index) => (
@@ -110,6 +155,11 @@ export function Catalogue() {
               ))}
             </>
           )}
+
+          {isLoadingInfScroll &&
+            Array.from({ length: 12 }).map((_, index) => (
+              <Skeleton key={index} className={styles.cardSkeleton} />
+            ))}
         </section>
       </section>
     </SkeletonTheme>
