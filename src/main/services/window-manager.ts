@@ -80,6 +80,10 @@ export class WindowManager {
 
     this.mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
       (details, callback) => {
+        if (details.webContentsId !== this.mainWindow?.webContents.id) {
+          return callback(details);
+        }
+
         const userAgent = new UserAgent();
 
         callback({
