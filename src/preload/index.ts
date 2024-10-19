@@ -259,6 +259,17 @@ contextBridge.exposeInMainWorld("electron", {
   getUserStats: (userId: string) => ipcRenderer.invoke("getUserStats", userId),
   reportUser: (userId: string, reason: string, description: string) =>
     ipcRenderer.invoke("reportUser", userId, reason, description),
+  getComparedUnlockedAchievements: (
+    objectId: string,
+    shop: GameShop,
+    userId: string
+  ) =>
+    ipcRenderer.invoke(
+      "getComparedUnlockedAchievements",
+      objectId,
+      shop,
+      userId
+    ),
 
   /* Auth */
   signOut: () => ipcRenderer.invoke("signOut"),
