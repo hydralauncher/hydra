@@ -1,40 +1,37 @@
 import { setHeaderTitle } from "@renderer/features";
 import { useAppDispatch, useDate, useUserDetails } from "@renderer/hooks";
 import { steamUrlBuilder } from "@shared";
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as styles from "./achievements.css";
 import {
   buildGameDetailsPath,
   formatDownloadProgress,
 } from "@renderer/helpers";
-import {
-  CheckCircleIcon,
-  LockIcon,
-  PersonIcon,
-  TrophyIcon,
-} from "@primer/octicons-react";
+import { LockIcon, PersonIcon, TrophyIcon } from "@primer/octicons-react";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { gameDetailsContext } from "@renderer/context";
-import { UserAchievement } from "@types";
+import { ComparedAchievements, UserAchievement } from "@types";
 import { average } from "color.js";
 import Color from "color";
 import { Link } from "@renderer/components";
+import { ComparedAchievementList } from "./compared-achievement-list";
 
 interface UserInfo {
   userId: string;
   displayName: string;
-  achievements: UserAchievement[];
   profileImageUrl: string | null;
+  totalAchievementCount: number;
+  unlockedAchievementCount: number;
 }
 
 interface AchievementsContentProps {
   otherUser: UserInfo | null;
+  comparedAchievements: ComparedAchievements | null;
 }
 
 interface AchievementListProps {
-  user: UserInfo;
-  otherUser: UserInfo | null;
+  achievements: UserAchievement[];
 }
 
 interface AchievementSummaryProps {
@@ -45,11 +42,6 @@ interface AchievementSummaryProps {
 function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
   const { t } = useTranslation("achievement");
   const { userDetails, hasActiveSubscription } = useUserDetails();
-
-  const userTotalAchievementCount = user.achievements.length;
-  const userUnlockedAchievementCount = user.achievements.filter(
-    (achievement) => achievement.unlocked
-  ).length;
 
   const getProfileImage = (user: UserInfo) => {
     return (
@@ -155,19 +147,19 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
           >
             <TrophyIcon size={13} />
             <span>
-              {userUnlockedAchievementCount} / {userTotalAchievementCount}
+              {user.unlockedAchievementCount} / {user.totalAchievementCount}
             </span>
           </div>
 
           <span>
             {formatDownloadProgress(
-              userUnlockedAchievementCount / userTotalAchievementCount
+              user.unlockedAchievementCount / user.totalAchievementCount
             )}
           </span>
         </div>
         <progress
           max={1}
-          value={userUnlockedAchievementCount / userTotalAchievementCount}
+          value={user.unlockedAchievementCount / user.totalAchievementCount}
           className={styles.achievementsProgressBar}
         />
       </div>
@@ -175,132 +167,30 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
   );
 }
 
-function AchievementList({ user, otherUser }: AchievementListProps) {
-  const achievements = user.achievements;
-  const otherUserAchievements = otherUser?.achievements;
-
+function AchievementList({ achievements }: AchievementListProps) {
   const { t } = useTranslation("achievement");
   const { formatDateTime } = useDate();
 
-  const { hasActiveSubscription } = useUserDetails();
-
-  if (!otherUserAchievements || otherUserAchievements.length === 0) {
-    return (
-      <ul className={styles.list}>
-        {achievements.map((achievement, index) => (
-          <li
-            key={index}
-            className={styles.listItem}
-            style={{ display: "flex" }}
-          >
-            <img
-              className={styles.listItemImage({
-                unlocked: achievement.unlocked,
-              })}
-              src={achievement.icon}
-              alt={achievement.displayName}
-              loading="lazy"
-            />
-            <div style={{ flex: 1 }}>
-              <h4>{achievement.displayName}</h4>
-              <p>{achievement.description}</p>
-            </div>
-            {achievement.unlockTime && (
-              <div style={{ whiteSpace: "nowrap" }}>
-                <small>{t("unlocked_at")}</small>
-                <p>{formatDateTime(achievement.unlockTime)}</p>
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
   return (
     <ul className={styles.list}>
-      {otherUserAchievements.map((otherUserAchievement, index) => (
-        <li
-          key={index}
-          className={styles.listItem}
-          style={{
-            display: "grid",
-            gridTemplateColumns: hasActiveSubscription
-              ? "3fr 1fr 1fr"
-              : "3fr 2fr",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              gap: `${SPACING_UNIT}px`,
-            }}
-          >
-            <img
-              className={styles.listItemImage({
-                unlocked: true,
-              })}
-              src={otherUserAchievement.icon}
-              alt={otherUserAchievement.displayName}
-              loading="lazy"
-            />
-            <div>
-              <h4>{otherUserAchievement.displayName}</h4>
-              <p>{otherUserAchievement.description}</p>
-            </div>
+      {achievements.map((achievement, index) => (
+        <li key={index} className={styles.listItem} style={{ display: "flex" }}>
+          <img
+            className={styles.listItemImage({
+              unlocked: achievement.unlocked,
+            })}
+            src={achievement.icon}
+            alt={achievement.displayName}
+            loading="lazy"
+          />
+          <div style={{ flex: 1 }}>
+            <h4>{achievement.displayName}</h4>
+            <p>{achievement.description}</p>
           </div>
-
-          {hasActiveSubscription ? (
-            achievements[index].unlocked ? (
-              <div
-                style={{
-                  whiteSpace: "nowrap",
-                  display: "flex",
-                  flexDirection: "row",
-                  gap: `${SPACING_UNIT}px`,
-                  justifyContent: "center",
-                }}
-              >
-                <CheckCircleIcon />
-                <small>{formatDateTime(achievements[index].unlockTime!)}</small>
-              </div>
-            ) : (
-              <div
-                style={{
-                  display: "flex",
-                  padding: `${SPACING_UNIT}px`,
-                  justifyContent: "center",
-                }}
-              >
-                <LockIcon />
-              </div>
-            )
-          ) : null}
-
-          {otherUserAchievement.unlocked ? (
-            <div
-              style={{
-                whiteSpace: "nowrap",
-                display: "flex",
-                flexDirection: "row",
-                gap: `${SPACING_UNIT}px`,
-                justifyContent: "center",
-              }}
-            >
-              <CheckCircleIcon />
-              <small>{formatDateTime(otherUserAchievement.unlockTime!)}</small>
-            </div>
-          ) : (
-            <div
-              style={{
-                display: "flex",
-                padding: `${SPACING_UNIT}px`,
-                justifyContent: "center",
-              }}
-            >
-              <LockIcon />
+          {achievement.unlockTime && (
+            <div style={{ whiteSpace: "nowrap" }}>
+              <small>{t("unlocked_at")}</small>
+              <p>{formatDateTime(achievement.unlockTime)}</p>
             </div>
           )}
         </li>
@@ -309,27 +199,16 @@ function AchievementList({ user, otherUser }: AchievementListProps) {
   );
 }
 
-export function AchievementsContent({ otherUser }: AchievementsContentProps) {
+export function AchievementsContent({
+  otherUser,
+  comparedAchievements,
+}: AchievementsContentProps) {
   const heroRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isHeaderStuck, setIsHeaderStuck] = useState(false);
 
   const { gameTitle, objectId, shop, achievements, gameColor, setGameColor } =
     useContext(gameDetailsContext);
-
-  const sortedAchievements = useMemo(() => {
-    if (!otherUser || otherUser.achievements.length === 0) return achievements!;
-
-    return achievements!.sort((a, b) => {
-      const indexA = otherUser.achievements.findIndex(
-        (achievement) => achievement.name === a.name
-      );
-      const indexB = otherUser.achievements.findIndex(
-        (achievement) => achievement.name === b.name
-      );
-      return indexA - indexB;
-    });
-  }, [achievements, otherUser]);
 
   const dispatch = useAppDispatch();
 
@@ -367,14 +246,17 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
     }
   };
 
-  const getProfileImage = (user: UserInfo) => {
+  const getProfileImage = (
+    profileImageUrl: string | null,
+    displayName: string
+  ) => {
     return (
       <div className={styles.profileAvatarSmall}>
-        {user.profileImageUrl ? (
+        {profileImageUrl ? (
           <img
             className={styles.profileAvatarSmall}
-            src={user.profileImageUrl}
-            alt={user.displayName}
+            src={profileImageUrl}
+            alt={displayName}
           />
         ) : (
           <PersonIcon size={24} />
@@ -434,7 +316,13 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
               user={{
                 ...userDetails,
                 userId: userDetails.id,
-                achievements: sortedAchievements,
+                totalAchievementCount: comparedAchievements
+                  ? comparedAchievements.ownerUser.totalAchievementCount
+                  : achievements!.length,
+                unlockedAchievementCount: comparedAchievements
+                  ? comparedAchievements.ownerUser.unlockedAchievementCount
+                  : achievements!.filter((achievement) => achievement.unlocked)
+                      .length,
               }}
               isComparison={otherUser !== null}
             />
@@ -458,15 +346,17 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
               <div></div>
               {hasActiveSubscription && (
                 <div style={{ display: "flex", justifyContent: "center" }}>
-                  {getProfileImage({
-                    ...userDetails,
-                    userId: userDetails.id,
-                    achievements: sortedAchievements,
-                  })}
+                  {getProfileImage(
+                    userDetails.profileImageUrl,
+                    userDetails.displayName
+                  )}
                 </div>
               )}
               <div style={{ display: "flex", justifyContent: "center" }}>
-                {getProfileImage(otherUser)}
+                {getProfileImage(
+                  otherUser.profileImageUrl,
+                  otherUser.displayName
+                )}
               </div>
             </div>
           </div>
@@ -480,14 +370,11 @@ export function AchievementsContent({ otherUser }: AchievementsContentProps) {
             backgroundColor: vars.color.background,
           }}
         >
-          <AchievementList
-            user={{
-              ...userDetails,
-              userId: userDetails.id,
-              achievements: sortedAchievements,
-            }}
-            otherUser={otherUser}
-          />
+          {otherUser ? (
+            <ComparedAchievementList achievements={comparedAchievements!} />
+          ) : (
+            <AchievementList achievements={achievements!} />
+          )}
         </div>
       </section>
     </div>
