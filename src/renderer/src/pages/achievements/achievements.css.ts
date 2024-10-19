@@ -134,9 +134,11 @@ export const achievementsProgressBar = style({
   transition: "all ease 0.2s",
   "::-webkit-progress-bar": {
     backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: "4px",
   },
   "::-webkit-progress-value": {
     backgroundColor: vars.color.muted,
+    borderRadius: "4px",
   },
 });
 

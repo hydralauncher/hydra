@@ -91,6 +91,7 @@ declare global {
     ) => Promise<void>;
     createGameShortcut: (id: number) => Promise<boolean>;
     updateExecutablePath: (id: number, executablePath: string) => Promise<void>;
+    selectGameWinePrefix: (id: number, winePrefixPath: string) => Promise<void>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
     getLibrary: () => Promise<LibraryGame[]>;
     openGameInstaller: (gameId: number) => Promise<boolean>;
@@ -125,7 +126,11 @@ declare global {
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
 
     /* Cloud save */
-    uploadSaveGame: (objectId: string, shop: GameShop) => Promise<void>;
+    uploadSaveGame: (
+      objectId: string,
+      shop: GameShop,
+      downloadOptionTitle: string | null
+    ) => Promise<void>;
     downloadGameArtifact: (
       objectId: string,
       shop: GameShop,

@@ -107,6 +107,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("createGameShortcut", id),
   updateExecutablePath: (id: number, executablePath: string) =>
     ipcRenderer.invoke("updateExecutablePath", id, executablePath),
+  selectGameWinePrefix: (id: number, winePrefixPath: string) =>
+    ipcRenderer.invoke("selectGameWinePrefix", id, winePrefixPath),
   verifyExecutablePathInUse: (executablePath: string) =>
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
@@ -148,8 +150,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getDiskFreeSpace", path),
 
   /* Cloud save */
-  uploadSaveGame: (objectId: string, shop: GameShop) =>
-    ipcRenderer.invoke("uploadSaveGame", objectId, shop),
+  uploadSaveGame: (
+    objectId: string,
+    shop: GameShop,
+    downloadOptionTitle: string | null
+  ) =>
+    ipcRenderer.invoke("uploadSaveGame", objectId, shop, downloadOptionTitle),
   downloadGameArtifact: (
     objectId: string,
     shop: GameShop,
@@ -183,7 +189,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on(`on-backup-download-progress-${objectId}-${shop}`, listener);
     return () =>
       ipcRenderer.removeListener(
-        `on-backup-download-complete-${objectId}-${shop}`,
+        `on-backup-download-progress-${objectId}-${shop}`,
         listener
       );
   },

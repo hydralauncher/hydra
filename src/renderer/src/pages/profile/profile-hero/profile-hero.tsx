@@ -33,7 +33,7 @@ type FriendAction =
   | ("BLOCK" | "UNDO_FRIENDSHIP" | "SEND");
 
 const backgroundImageLayer =
-  "linear-gradient(135deg, rgb(0 0 0 / 50%), rgb(0 0 0 / 60%))";
+  "linear-gradient(135deg, rgb(0 0 0 / 40%), rgb(0 0 0 / 30%))";
 
 export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);

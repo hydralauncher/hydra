@@ -1,4 +1,9 @@
-import { Button, Modal, ModalProps } from "@renderer/components";
+import {
+  Button,
+  ConfirmationModal,
+  Modal,
+  ModalProps,
+} from "@renderer/components";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
@@ -10,6 +15,7 @@ import {
   ClockIcon,
   DeviceDesktopIcon,
   HistoryIcon,
+  InfoIcon,
   SyncIcon,
   TrashIcon,
   UploadIcon,
@@ -43,7 +49,8 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     setShowCloudSyncFilesModal,
   } = useContext(cloudSyncContext);
 
-  const { objectId, shop, gameTitle } = useContext(gameDetailsContext);
+  const { objectId, shop, gameTitle, lastDownloadedOption } =
+    useContext(gameDetailsContext);
 
   const { showSuccessToast, showErrorToast } = useToast();
 
@@ -140,112 +147,137 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
   const disableActions = uploadingBackup || restoringBackup || deletingArtifact;
 
   return (
-    <Modal
-      visible={visible}
-      title={t("cloud_save")}
-      description={t("cloud_save_description")}
-      onClose={onClose}
-      large
-    >
-      <div
-        style={{
-          marginBottom: 24,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ display: "flex", gap: 4, flexDirection: "column" }}>
-          <h2>{gameTitle}</h2>
-          <p>{backupStateLabel}</p>
+    <>
+      {/* <ConfirmationModal
+        confirmButtonLabel="confirm"
+        cancelButtonLabel="cancel"
+        descriptionText="description"
+        title="title"
+        onConfirm={() => {}}
+        onClose={() => {}}
+        visible
+      /> */}
 
-          <button
+      <Modal
+        visible={visible}
+        title={t("cloud_save")}
+        description={t("cloud_save_description")}
+        onClose={onClose}
+        large
+      >
+        <div
+          style={{
+            marginBottom: 24,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div style={{ display: "flex", gap: 4, flexDirection: "column" }}>
+            <h2>{gameTitle}</h2>
+            <p>{backupStateLabel}</p>
+
+            <button
+              type="button"
+              style={{
+                margin: 0,
+                padding: 0,
+                alignSelf: "flex-start",
+                fontSize: 14,
+                cursor: "pointer",
+                textDecoration: "underline",
+                color: vars.color.body,
+              }}
+              onClick={() => setShowCloudSyncFilesModal(true)}
+            >
+              Gerenciar arquivos
+            </button>
+          </div>
+
+          <Button
             type="button"
-            style={{
-              margin: 0,
-              padding: 0,
-              alignSelf: "flex-start",
-              fontSize: 14,
-              cursor: "pointer",
-              textDecoration: "underline",
-              color: vars.color.body,
-            }}
-            onClick={() => setShowCloudSyncFilesModal(true)}
+            onClick={() => uploadSaveGame(lastDownloadedOption?.title ?? null)}
+            disabled={disableActions || !backupPreview}
           >
-            Gerenciar arquivos
-          </button>
+            <UploadIcon />
+            {t("create_backup")}
+          </Button>
         </div>
 
-        <Button
-          type="button"
-          onClick={uploadSaveGame}
-          disabled={disableActions || !backupPreview}
-        >
-          <UploadIcon />
-          {t("create_backup")}
-        </Button>
-      </div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <div
+            style={{
+              marginBottom: 16,
+              display: "flex",
+              alignItems: "center",
+              gap: SPACING_UNIT,
+            }}
+          >
+            <h2>{t("backups")}</h2>
+            <small>{artifacts.length} / 2</small>
+          </div>
 
-      <div
-        style={{
-          marginBottom: 16,
-          display: "flex",
-          alignItems: "center",
-          gap: SPACING_UNIT,
-        }}
-      >
-        <h2>{t("backups")}</h2>
-        <small>{artifacts.length} / 2</small>
-      </div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <small>Espaço usado</small>
+            <progress className={styles.progress} />
+          </div>
+        </div>
 
-      <ul className={styles.artifacts}>
-        {artifacts.map((artifact) => (
-          <li key={artifact.id} className={styles.artifactButton}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <h3>Backup do dia {format(artifact.createdAt, "dd/MM")}</h3>
-                <small>{formatBytes(artifact.artifactLengthInBytes)}</small>
+        <ul className={styles.artifacts}>
+          {artifacts.map((artifact) => (
+            <li key={artifact.id} className={styles.artifactButton}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 4,
+                  }}
+                >
+                  <h3>Backup do dia {format(artifact.createdAt, "dd/MM")}</h3>
+                  <small>{formatBytes(artifact.artifactLengthInBytes)}</small>
+                </div>
+
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <DeviceDesktopIcon size={14} />
+                  {artifact.hostname}
+                </span>
+
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <InfoIcon size={14} />
+                  {artifact.downloadOptionTitle ?? t("no_download_option_info")}
+                </span>
+
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <ClockIcon size={14} />
+                  {format(artifact.createdAt, "dd/MM/yyyy HH:mm:ss")}
+                </span>
               </div>
 
-              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <DeviceDesktopIcon size={14} />
-                {artifact.hostname}
-              </span>
-
-              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <ClockIcon size={14} />
-                {format(artifact.createdAt, "dd/MM/yyyy HH:mm:ss")}
-              </span>
-            </div>
-
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <Button
-                type="button"
-                onClick={() => handleBackupInstallClick(artifact.id)}
-                disabled={disableActions}
-              >
-                <HistoryIcon />
-                {t("install_backup")}
-              </Button>
-              <Button
-                type="button"
-                onClick={() => handleDeleteArtifactClick(artifact.id)}
-                theme="danger"
-                disabled={disableActions}
-              >
-                <TrashIcon />
-                {t("delete_backup")}
-              </Button>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </Modal>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <Button
+                  type="button"
+                  onClick={() => handleBackupInstallClick(artifact.id)}
+                  disabled={disableActions}
+                >
+                  <HistoryIcon />
+                  {t("install_backup")}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => handleDeleteArtifactClick(artifact.id)}
+                  theme="danger"
+                  disabled={disableActions}
+                >
+                  <TrashIcon />
+                  {t("delete_backup")}
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Modal>
+    </>
   );
 }

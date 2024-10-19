@@ -25,3 +25,18 @@ export interface LudusaviBackup {
 export interface LudusaviFindResult {
   games: Record<string, unknown>;
 }
+
+export interface LudusaviConfig {
+  manifest: {
+    enable: boolean;
+    secondary: {
+      url: string;
+      enable: boolean;
+    }[];
+  };
+  customGames: {
+    name: string;
+    files: string[];
+    registry: [];
+  }[];
+}
