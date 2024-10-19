@@ -341,6 +341,7 @@
     "achievement_unlocked": "Conquista desbloqueada",
     "your_achievements": "Suas Conquistas",
     "user_achievements": "Conquistas de {{displayName}}",
-    "unlocked_at": "Desbloqueado em:"
+    "unlocked_at": "Desbloqueado em:",
+    "subscription_needed": "Você precisa de uma assinatura Hydra Cloud para visualizar este conteúdo"
   }
 }

@@ -39,6 +39,7 @@ interface AchievementSummaryProps {
 }
 
 function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
+  const { t } = useTranslation("achievement");
   const { userDetails, hasActiveSubscription } = useUserDetails();
 
   const userTotalAchievementCount = user.achievements.length;
@@ -94,7 +95,7 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
           }}
         >
           <LockIcon size={24} />
-          <h3>Assine o HYDRA CLOUD para comparar suas conquistas!!!!</h3>
+          <h3>{t("subscription_needed")}</h3>
         </div>
         <div
           style={{
