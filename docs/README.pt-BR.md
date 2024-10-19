@@ -50,9 +50,9 @@
 - [Environment variables](#-environment-variables)
 - [Running](#-running)
 - [Build](#-build)
-  - [Build the bittorrent client](#-build-the-bittorrent-client)
-  - [Build the Electron application](#-build-the-electron-application)
-- [Contributors](#-contributors)
+  - [ Criar o cliente bittorrent](#-build-the-bittorrent-client)
+  - [Criar a aplicação Electron](#-build-the-electron-application)
+- [Contribuidores](#-contributors)
 - [Licença](#-licença)
 
 ## <a name="about"> Sobre
@@ -152,7 +152,7 @@ yarn dev
 
 ## <a name="build"></a> Build
 
-### <a name="build-the-bittorrent-client"></a> Build the bittorrent client
+### <a name="build-the-bittorrent-client"></a> Criar o cliente bittorrent
 
 Compile o cliente BitTorrent usando este comando
 
@@ -160,7 +160,7 @@ Compile o cliente BitTorrent usando este comando
 python torrent-client/setup.py build
 ```
 
-### <a name="build-the-electron-application"></a> Build the Electron application
+### <a name="build-the-electron-application"></a> Criar a aplicação Electron
 
 Compile a aplicação Electron usando este comando:
 
@@ -176,7 +176,7 @@ No Linux:
 yarn build:linux
 ```
 
-## <a name="contributors"></a> Contributors
+## <a name="contributors"></a> Contribuidores
 
 <a href="https://github.com/hydralauncher/hydra/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=hydralauncher/hydra" />
