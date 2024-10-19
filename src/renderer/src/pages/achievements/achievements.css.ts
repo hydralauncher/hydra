@@ -62,6 +62,10 @@ export const gameLogo = style({
   width: LOGO_MAX_WIDTH,
   height: LOGO_HEIGHT,
   objectFit: "contain",
+  transition: "all ease 0.2s",
+  ":hover": {
+    transform: "scale(1.05)",
+  },
 });
 
 export const container = style({
