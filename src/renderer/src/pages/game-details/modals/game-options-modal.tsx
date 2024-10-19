@@ -7,6 +7,7 @@ import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import { useDownload, useToast } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
+import { FileDirectoryIcon, FileIcon } from "@primer/octicons-react";
 
 export interface GameOptionsModalProps {
   visible: boolean;
@@ -94,6 +95,20 @@ export function GameOptionsModal({
     await window.electron.openGameExecutablePath(game.id);
   };
 
+  const handleChangeWinePrefixPath = async () => {
+    const { filePaths } = await window.electron.showOpenDialog({
+      properties: ["openDirectory"],
+    });
+
+    if (filePaths && filePaths.length > 0) {
+      await window.electron.selectGameWinePrefix(game.id, filePaths[0]);
+      await updateGame();
+    }
+  };
+
+  const shouldShowWinePrefixConfiguration =
+    window.electron.platform === "darwin";
+
   return (
     <>
       <DeleteGameModal
@@ -135,6 +150,7 @@ export function GameOptionsModal({
                 theme="outline"
                 onClick={handleChangeExecutableLocation}
               >
+                <FileIcon />
                 {t("select_executable")}
               </Button>
             }
@@ -155,12 +171,41 @@ export function GameOptionsModal({
             </div>
           )}
 
+          {shouldShowWinePrefixConfiguration && (
+            <div className={styles.optionsContainer}>
+              <div className={styles.gameOptionHeader}>
+                <h2>{t("wine_prefix")}</h2>
+                <h4 className={styles.gameOptionHeaderDescription}>
+                  {t("wine_prefix_description")}
+                </h4>
+              </div>
+              <TextField
+                value={game.winePrefixPath || ""}
+                readOnly
+                theme="dark"
+                disabled
+                placeholder={t("no_directory_selected")}
+                rightContent={
+                  <Button
+                    type="button"
+                    theme="outline"
+                    onClick={handleChangeWinePrefixPath}
+                  >
+                    <FileDirectoryIcon />
+                    {t("select_executable")}
+                  </Button>
+                }
+              />
+            </div>
+          )}
+
           <div className={styles.gameOptionHeader}>
             <h2>{t("downloads_secion_title")}</h2>
             <h4 className={styles.gameOptionHeaderDescription}>
               {t("downloads_section_description")}
             </h4>
           </div>
+
           <div className={styles.gameOptionRow}>
             <Button
               onClick={() => setShowRepacksModal(true)}
@@ -179,12 +224,14 @@ export function GameOptionsModal({
               </Button>
             )}
           </div>
+
           <div className={styles.gameOptionHeader}>
             <h2>{t("danger_zone_section_title")}</h2>
             <h4 className={styles.gameOptionHeaderDescription}>
               {t("danger_zone_section_description")}
             </h4>
           </div>
+
           <div className={styles.gameOptionRow}>
             <Button
               onClick={() => setShowRemoveGameModal(true)}

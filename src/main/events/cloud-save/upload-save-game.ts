@@ -10,8 +10,13 @@ import os from "node:os";
 import { backupsPath } from "@main/constants";
 import { app } from "electron";
 import { normalizePath } from "@main/helpers";
+import { gameRepository } from "@main/repository";
 
-const bundleBackup = async (shop: GameShop, objectId: string) => {
+const bundleBackup = async (
+  shop: GameShop,
+  objectId: string,
+  winePrefix: string | null
+) => {
   const backupPath = path.join(backupsPath, `${shop}-${objectId}`);
 
   // Remove existing backup
@@ -19,7 +24,7 @@ const bundleBackup = async (shop: GameShop, objectId: string) => {
     fs.rmSync(backupPath, { recursive: true });
   }
 
-  await Ludusavi.backupGame(shop, objectId, backupPath);
+  await Ludusavi.backupGame(shop, objectId, backupPath, winePrefix);
 
   const tarLocation = path.join(backupsPath, `${crypto.randomUUID()}.tar`);
 
@@ -38,9 +43,21 @@ const bundleBackup = async (shop: GameShop, objectId: string) => {
 const uploadSaveGame = async (
   _event: Electron.IpcMainInvokeEvent,
   objectId: string,
-  shop: GameShop
+  shop: GameShop,
+  downloadOptionTitle: string | null
 ) => {
-  const bundleLocation = await bundleBackup(shop, objectId);
+  const game = await gameRepository.findOne({
+    where: {
+      objectID: objectId,
+      shop,
+    },
+  });
+
+  const bundleLocation = await bundleBackup(
+    shop,
+    objectId,
+    game?.winePrefixPath ?? null
+  );
 
   fs.stat(bundleLocation, async (err, stat) => {
     if (err) {
@@ -57,6 +74,7 @@ const uploadSaveGame = async (
       objectId,
       hostname: os.hostname(),
       homeDir: normalizePath(app.getPath("home")),
+      downloadOptionTitle,
       platform: os.platform(),
     });
 

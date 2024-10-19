@@ -12,7 +12,7 @@ export function UploadBackgroundImageButton() {
   const { hasActiveSubscription } = useUserDetails();
 
   const { isMe, setSelectedBackgroundImage } = useContext(userProfileContext);
-  const { patchUser } = useUserDetails();
+  const { patchUser, fetchUserDetails } = useUserDetails();
 
   const { showSuccessToast } = useToast();
 
@@ -37,6 +37,7 @@ export function UploadBackgroundImageButton() {
         await patchUser({ backgroundImageUrl: path });
 
         showSuccessToast("Background image updated");
+        await fetchUserDetails();
       }
     } finally {
       setIsUploadingBackgorundImage(false);
