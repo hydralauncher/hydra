@@ -242,15 +242,23 @@ const processRld = (unlockedAchievements: any): UnlockedAchievement[] => {
     const unlockedAchievement = unlockedAchievements[achievement];
 
     if (unlockedAchievement?.State) {
-      newUnlockedAchievements.push({
-        name: achievement,
-        unlockTime:
-          new DataView(
-            new Uint8Array(
-              Buffer.from(unlockedAchievement.Time.toString(), "hex")
-            ).buffer
-          ).getUint32(0, true) * 1000,
-      });
+      const unlocked = new DataView(
+        new Uint8Array(
+          Buffer.from(unlockedAchievement.State.toString(), "hex")
+        ).buffer
+      ).getUint32(0, true);
+
+      if (unlocked === 1) {
+        newUnlockedAchievements.push({
+          name: achievement,
+          unlockTime:
+            new DataView(
+              new Uint8Array(
+                Buffer.from(unlockedAchievement.Time.toString(), "hex")
+              ).buffer
+            ).getUint32(0, true) * 1000,
+        });
+      }
     }
   }
 

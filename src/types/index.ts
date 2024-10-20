@@ -45,6 +45,7 @@ export interface UserAchievement {
   unlocked: boolean;
   unlockTime: number | null;
   icon: string;
+  icongray: string;
 }
 
 export interface RemoteUnlockedAchievement {
@@ -339,6 +340,33 @@ export interface GameArtifact {
   updatedAt: string;
   hostname: string;
   downloadCount: number;
+}
+
+export interface ComparedAchievements {
+  ownerUser: {
+    totalAchievementCount: number;
+    unlockedAchievementCount: number;
+  };
+  otherUser: {
+    displayName: string;
+    profileImageUrl: string;
+    totalAchievementCount: number;
+    unlockedAchievementCount: number;
+  };
+  achievements: {
+    hidden: boolean;
+    icon: string;
+    displayName: string;
+    description: string;
+    onwerUserStat?: {
+      unlocked: boolean;
+      unlockTime: number;
+    };
+    otherUserStat: {
+      unlocked: boolean;
+      unlockTime: number;
+    };
+  }[];
 }
 
 export * from "./steam.types";

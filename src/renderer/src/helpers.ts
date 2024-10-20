@@ -36,15 +36,13 @@ export const buildGameDetailsPath = (
 
 export const buildGameAchievementPath = (
   game: { shop: GameShop; objectId: string; title: string },
-  user?: { userId: string; displayName: string; profileImageUrl: string | null }
+  user?: { userId: string }
 ) => {
   const searchParams = new URLSearchParams({
     title: game.title,
     shop: game.shop,
     objectId: game.objectId,
     userId: user?.userId || "",
-    displayName: user?.displayName || "",
-    profileImageUrl: user?.profileImageUrl || "",
   });
 
   return `/achievements/?${searchParams.toString()}`;

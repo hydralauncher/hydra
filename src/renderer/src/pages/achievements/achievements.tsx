@@ -1,7 +1,7 @@
 import { setHeaderTitle } from "@renderer/features";
 import { useAppDispatch, useUserDetails } from "@renderer/hooks";
-import type { GameShop, UserAchievement } from "@types";
-import { useEffect, useState } from "react";
+import type { ComparedAchievements, GameShop } from "@types";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { vars } from "@renderer/theme.css";
 import {
@@ -18,14 +18,11 @@ export default function Achievements() {
   const shop = searchParams.get("shop");
   const title = searchParams.get("title");
   const userId = searchParams.get("userId");
-  const displayName = searchParams.get("displayName");
-  const profileImageUrl = searchParams.get("profileImageUrl");
 
   const { userDetails } = useUserDetails();
 
-  const [otherUserAchievements, setOtherUserAchievements] = useState<
-    UserAchievement[] | null
-  >(null);
+  const [comparedAchievements, setComparedAchievements] =
+    useState<ComparedAchievements | null>(null);
 
   const dispatch = useAppDispatch();
 
@@ -36,31 +33,34 @@ export default function Achievements() {
   }, [dispatch, title]);
 
   useEffect(() => {
-    setOtherUserAchievements(null);
+    setComparedAchievements(null);
+
     if (userDetails?.id == userId) {
-      setOtherUserAchievements([]);
       return;
     }
 
     if (objectId && shop && userId) {
       window.electron
-        .getGameAchievements(objectId, shop as GameShop, userId)
-        .then((achievements) => {
-          setOtherUserAchievements(achievements);
-        });
+        .getComparedUnlockedAchievements(objectId, shop as GameShop, userId)
+        .then(setComparedAchievements);
     }
   }, [objectId, shop, userId]);
 
   const otherUserId = userDetails?.id === userId ? null : userId;
 
-  const otherUser = otherUserId
-    ? {
-        userId: otherUserId,
-        displayName: displayName || "",
-        achievements: otherUserAchievements || [],
-        profileImageUrl: profileImageUrl || "",
-      }
-    : null;
+  const otherUser = useMemo(() => {
+    if (!otherUserId || !comparedAchievements) return null;
+
+    return {
+      userId: otherUserId,
+      displayName: comparedAchievements.otherUser.displayName,
+      profileImageUrl: comparedAchievements.otherUser.profileImageUrl,
+      totalAchievementCount:
+        comparedAchievements.otherUser.totalAchievementCount,
+      unlockedAchievementCount:
+        comparedAchievements.otherUser.unlockedAchievementCount,
+    };
+  }, [otherUserId, comparedAchievements]);
 
   return (
     <GameDetailsContextProvider
@@ -70,17 +70,23 @@ export default function Achievements() {
     >
       <GameDetailsContextConsumer>
         {({ isLoading, achievements }) => {
+          const showSkeleton =
+            isLoading ||
+            achievements === null ||
+            (otherUserId && comparedAchievements === null);
+
           return (
             <SkeletonTheme
               baseColor={vars.color.background}
               highlightColor="#444"
             >
-              {isLoading ||
-              achievements === null ||
-              (otherUserId && otherUserAchievements === null) ? (
+              {showSkeleton ? (
                 <AchievementsSkeleton />
               ) : (
-                <AchievementsContent otherUser={otherUser} />
+                <AchievementsContent
+                  otherUser={otherUser}
+                  comparedAchievements={comparedAchievements!}
+                />
               )}
             </SkeletonTheme>
           );
