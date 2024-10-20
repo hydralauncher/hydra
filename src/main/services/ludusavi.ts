@@ -9,7 +9,7 @@ import YAML from "yaml";
 import ludusaviWorkerPath from "../workers/ludusavi.worker?modulePath";
 import axios from "axios";
 
-let a = null;
+let a: Record<string, string> | null = null;
 
 export class Ludusavi {
   private static ludusaviPath = path.join(app.getPath("appData"), "ludusavi");
@@ -65,7 +65,7 @@ export class Ludusavi {
   }
 
   static async getBackupPreview(
-    shop: GameShop,
+    _shop: GameShop,
     objectId: string,
     backupPath: string
   ): Promise<LudusaviBackup | null> {
@@ -80,7 +80,7 @@ export class Ludusavi {
         });
     }
 
-    const game = a[objectId];
+    const game = a?.[objectId];
 
     // if (!games.length) return null;
 
