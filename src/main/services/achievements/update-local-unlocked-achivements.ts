@@ -72,7 +72,7 @@ export const updateLocalUnlockedAchivements = async (game: Game) => {
 
   gameAchievementFiles.push(...achievementFileInsideDirectory);
 
-  // console.log("Achievements files for", game.title, gameAchievementFiles);
+  console.log("Achievements files for", game.title, gameAchievementFiles);
 
   const unlockedAchievements: UnlockedAchievement[] = [];
 

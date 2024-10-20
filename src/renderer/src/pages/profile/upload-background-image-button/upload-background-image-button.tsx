@@ -54,7 +54,7 @@ export function UploadBackgroundImageButton() {
       disabled={isUploadingBackgroundImage}
     >
       <UploadIcon />
-      {isUploadingBackgroundImage ? "Uploading..." : "Upload background"}
+      {isUploadingBackgroundImage ? "Uploading..." : "Atualizar banner"}
     </Button>
   );
 }
