@@ -11,6 +11,7 @@ const getGameBackupPreview = async (
 ) => {
   const backupPath = path.join(backupsPath, `${shop}-${objectId}`);
 
+  console.log("preview invoked>>");
   return Ludusavi.getBackupPreview(shop, objectId, backupPath);
 };
 

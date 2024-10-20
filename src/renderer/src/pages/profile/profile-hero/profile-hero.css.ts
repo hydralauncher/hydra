@@ -52,6 +52,8 @@ export const profileDisplayName = style({
   display: "flex",
   alignItems: "center",
   position: "relative",
+  textShadow:
+    "0 0 40px rgb(0 0 0), 0 0 20px rgb(0 0 0 / 50%), 0 0 10px rgb(0 0 0 / 20%)",
 });
 
 export const heroPanel = style({

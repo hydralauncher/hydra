@@ -36,11 +36,11 @@ export const watchAchievements = async () => {
 
       if (!gameAchievementFiles.length) continue;
 
-      console.log(
-        "Achievements files to observe for:",
-        game.title,
-        gameAchievementFiles
-      );
+      // console.log(
+      //   "Achievements files to observe for:",
+      //   game.title,
+      //   gameAchievementFiles
+      // );
 
       for (const file of gameAchievementFiles) {
         compareFile(game, file);
