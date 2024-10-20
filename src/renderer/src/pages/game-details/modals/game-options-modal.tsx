@@ -107,7 +107,7 @@ export function GameOptionsModal({
   };
 
   const shouldShowWinePrefixConfiguration =
-    window.electron.platform === "darwin";
+    window.electron.platform === "linux";
 
   return (
     <>

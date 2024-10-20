@@ -12,7 +12,7 @@ import {
   UserNotLoggedInError,
   UserWithoutCloudSubscriptionError,
 } from "@shared";
-import { omit } from "lodash-es";
+// import { omit } from "lodash-es";
 import { appVersion } from "@main/constants";
 
 interface HydraApiOptions {
@@ -109,64 +109,59 @@ export class HydraApi {
     });
 
     if (this.ADD_LOG_INTERCEPTOR) {
-      this.instance.interceptors.request.use(
-        (request) => {
-          logger.log(" ---- REQUEST -----");
-          const data = Array.isArray(request.data)
-            ? request.data
-            : omit(request.data, ["refreshToken"]);
-          logger.log(request.method, request.url, request.params, data);
-          return request;
-        },
-        (error) => {
-          logger.error("request error", error);
-          return Promise.reject(error);
-        }
-      );
-
-      this.instance.interceptors.response.use(
-        (response) => {
-          logger.log(" ---- RESPONSE -----");
-          const data = Array.isArray(response.data)
-            ? response.data
-            : omit(response.data, ["username", "accessToken", "refreshToken"]);
-          logger.log(
-            response.status,
-            response.config.method,
-            response.config.url,
-            data
-          );
-          return response;
-        },
-        (error) => {
-          logger.error(" ---- RESPONSE ERROR -----");
-
-          const { config } = error;
-
-          logger.error(
-            config.method,
-            config.baseURL,
-            config.url,
-            config.headers,
-            config.data
-          );
-
-          if (error.response) {
-            logger.error(
-              "Response",
-              error.response.status,
-              error.response.data
-            );
-          } else if (error.request) {
-            logger.error("Request", error.request);
-          } else {
-            logger.error("Error", error.message);
-          }
-
-          logger.error(" ----- END RESPONSE ERROR -------");
-          return Promise.reject(error);
-        }
-      );
+      // this.instance.interceptors.request.use(
+      //   (request) => {
+      //     logger.log(" ---- REQUEST -----");
+      //     const data = Array.isArray(request.data)
+      //       ? request.data
+      //       : omit(request.data, ["refreshToken"]);
+      //     logger.log(request.method, request.url, request.params, data);
+      //     return request;
+      //   },
+      //   (error) => {
+      //     logger.error("request error", error);
+      //     return Promise.reject(error);
+      //   }
+      // );
+      // this.instance.interceptors.response.use(
+      //   (response) => {
+      //     logger.log(" ---- RESPONSE -----");
+      //     const data = Array.isArray(response.data)
+      //       ? response.data
+      //       : omit(response.data, ["username", "accessToken", "refreshToken"]);
+      //     logger.log(
+      //       response.status,
+      //       response.config.method,
+      //       response.config.url,
+      //       data
+      //     );
+      //     return response;
+      //   },
+      //   (error) => {
+      //     logger.error(" ---- RESPONSE ERROR -----");
+      //     const { config } = error;
+      //     logger.error(
+      //       config.method,
+      //       config.baseURL,
+      //       config.url,
+      //       config.headers,
+      //       config.data
+      //     );
+      //     if (error.response) {
+      //       logger.error(
+      //         "Response",
+      //         error.response.status,
+      //         error.response.data
+      //       );
+      //     } else if (error.request) {
+      //       logger.error("Request", error.request);
+      //     } else {
+      //       logger.error("Error", error.message);
+      //     }
+      //     logger.error(" ----- END RESPONSE ERROR -------");
+      //     return Promise.reject(error);
+      //   }
+      // );
     }
 
     const userAuth = await userAuthRepository.findOne({

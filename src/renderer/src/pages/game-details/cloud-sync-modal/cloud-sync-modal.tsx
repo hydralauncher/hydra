@@ -1,9 +1,4 @@
-import {
-  Button,
-  ConfirmationModal,
-  Modal,
-  ModalProps,
-} from "@renderer/components";
+import { Button, Modal, ModalProps } from "@renderer/components";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
