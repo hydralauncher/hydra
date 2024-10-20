@@ -66,13 +66,16 @@ export class Ludusavi {
     objectId: string,
     backupPath: string
   ): Promise<LudusaviBackup | null> {
+    console.log("a");
     const games = await this.findGames(shop, objectId);
     if (!games.length) return null;
+    console.log("b");
 
     const backupData = await this.worker.run(
       { title: games[0], backupPath, preview: true },
       { name: "backupGame" }
     );
+    console.log("c");
 
     return backupData;
   }

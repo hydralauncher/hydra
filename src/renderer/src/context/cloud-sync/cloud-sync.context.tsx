@@ -7,6 +7,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -66,6 +67,8 @@ export function CloudSyncContextProvider({
 }: CloudSyncContextProviderProps) {
   const { t } = useTranslation("game_details");
 
+  const backupPreviewLock = useRef("");
+
   const [artifacts, setArtifacts] = useState<GameArtifact[]>([]);
   const [showCloudSyncModal, setShowCloudSyncModal] = useState(false);
   const [backupPreview, setBackupPreview] = useState<LudusaviBackup | null>(
@@ -86,26 +89,32 @@ export function CloudSyncContextProvider({
   );
 
   const getGameBackupPreview = useCallback(async () => {
-    await Promise.allSettled([
-      window.electron.getGameArtifacts(objectId, shop).then((results) => {
-        setArtifacts(results);
-      }),
-      window.electron
-        .getGameBackupPreview(objectId, shop)
-        .then((preview) => {
-          if (preview && Object.keys(preview.games).length) {
-            setBackupPreview(preview);
-          }
-        })
-        .catch((err) => {
-          logger.error(
-            "Failed to get game backup preview",
-            objectId,
-            shop,
-            err
-          );
+    const backupPreviewLockKey = `${objectId}-${shop}`;
+
+    if (backupPreviewLock.current !== backupPreviewLockKey) {
+      backupPreviewLock.current = backupPreviewLockKey;
+      await Promise.allSettled([
+        window.electron.getGameArtifacts(objectId, shop).then((results) => {
+          setArtifacts(results);
         }),
-    ]);
+        window.electron
+          .getGameBackupPreview(objectId, shop)
+          .then((preview) => {
+            backupPreviewLock.current = "";
+            if (preview && Object.keys(preview.games).length) {
+              setBackupPreview(preview);
+            }
+          })
+          .catch((err) => {
+            logger.error(
+              "Failed to get game backup preview",
+              objectId,
+              shop,
+              err
+            );
+          }),
+      ]);
+    }
   }, [objectId, shop]);
 
   const uploadSaveGame = useCallback(
