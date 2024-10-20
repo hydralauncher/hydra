@@ -49,14 +49,14 @@ export const updateAllLocalUnlockedAchievements = async () => {
 
         if (parsedAchievements.length) {
           unlockedAchievements.push(...parsedAchievements);
-        }
 
-        achievementsLogger.log(
-          "Achievement file for",
-          game.title,
-          achievementFile.filePath,
-          parsedAchievements
-        );
+          achievementsLogger.log(
+            "Achievement file for",
+            game.title,
+            achievementFile.filePath,
+            parsedAchievements
+          );
+        }
       }
 
       mergeAchievements(game.objectID, "steam", unlockedAchievements, false);
