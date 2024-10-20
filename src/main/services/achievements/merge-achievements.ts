@@ -120,7 +120,7 @@ export const mergeAchievements = async (
 
   const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);
 
-  if (game?.remoteId) {
+  if (game.remoteId) {
     return HydraApi.put(
       "/profile/games/achievements",
       {
