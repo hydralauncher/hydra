@@ -53,12 +53,11 @@ export default function Achievements() {
 
     return {
       userId: otherUserId,
-      displayName: comparedAchievements.otherUser.displayName,
-      profileImageUrl: comparedAchievements.otherUser.profileImageUrl,
-      totalAchievementCount:
-        comparedAchievements.otherUser.totalAchievementCount,
+      displayName: comparedAchievements.target.displayName,
+      profileImageUrl: comparedAchievements.target.profileImageUrl,
+      totalAchievementCount: comparedAchievements.target.totalAchievementCount,
       unlockedAchievementCount:
-        comparedAchievements.otherUser.unlockedAchievementCount,
+        comparedAchievements.target.unlockedAchievementCount,
     };
   }, [otherUserId, comparedAchievements]);
 
