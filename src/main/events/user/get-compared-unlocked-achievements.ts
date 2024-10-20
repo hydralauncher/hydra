@@ -22,10 +22,10 @@ const getComparedUnlockedAchievements = async (
     }
   ).then((achievements) => {
     const sortedAchievements = achievements.achievements.sort((a, b) => {
-      if (a.otherUserStat.unlocked && !b.otherUserStat.unlocked) return -1;
-      if (!a.otherUserStat.unlocked && b.otherUserStat.unlocked) return 1;
-      if (a.otherUserStat.unlocked && b.otherUserStat.unlocked) {
-        return b.otherUserStat.unlockTime! - a.otherUserStat.unlockTime!;
+      if (a.targetStat.unlocked && !b.targetStat.unlocked) return -1;
+      if (!a.targetStat.unlocked && b.targetStat.unlocked) return 1;
+      if (a.targetStat.unlocked && b.targetStat.unlocked) {
+        return b.targetStat.unlockTime! - a.targetStat.unlockTime!;
       }
 
       return Number(a.hidden) - Number(b.hidden);

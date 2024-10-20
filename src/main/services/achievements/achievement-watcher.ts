@@ -11,11 +11,12 @@ import {
 import type { AchievementFile } from "@types";
 import { achievementsLogger } from "../logger";
 import { Cracker } from "@shared";
+import { IsNull, Not } from "typeorm";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
 
-export const watchAchievements = async () => {
+const watchAchiievementsWindows = async () => {
   const games = await gameRepository.find({
     where: {
       isDeleted: false,
@@ -23,7 +24,6 @@ export const watchAchievements = async () => {
   });
 
   if (games.length === 0) return;
-
   const achievementFiles = findAllAchievementFiles();
 
   for (const game of games) {
@@ -36,17 +36,32 @@ export const watchAchievements = async () => {
 
       if (!gameAchievementFiles.length) continue;
 
-      // console.log(
-      //   "Achievements files to observe for:",
-      //   game.title,
-      //   gameAchievementFiles
-      // );
-
       for (const file of gameAchievementFiles) {
         compareFile(game, file);
       }
     }
   }
+};
+
+const watchAchievementsWithWine = async () => {
+  const games = await gameRepository.find({
+    where: {
+      isDeleted: false,
+      winePrefixPath: Not(IsNull()),
+    },
+  });
+
+  if (games.length === 0) return;
+
+  // TODO: watch achievements with wine
+};
+
+export const watchAchievements = async () => {
+  if (process.platform === "win32") {
+    return watchAchiievementsWindows();
+  }
+
+  watchAchievementsWithWine();
 };
 
 const processAchievementFileDiff = async (

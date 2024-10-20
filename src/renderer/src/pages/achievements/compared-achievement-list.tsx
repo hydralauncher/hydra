@@ -21,7 +21,7 @@ export function ComparedAchievementList({
           className={styles.listItem}
           style={{
             display: "grid",
-            gridTemplateColumns: achievement.onwerUserStat
+            gridTemplateColumns: achievement.ownerStat
               ? "3fr 1fr 1fr"
               : "3fr 2fr",
           }}
@@ -48,8 +48,8 @@ export function ComparedAchievementList({
             </div>
           </div>
 
-          {achievement.onwerUserStat ? (
-            achievement.onwerUserStat.unlocked ? (
+          {achievement.ownerStat ? (
+            achievement.ownerStat.unlocked ? (
               <div
                 style={{
                   whiteSpace: "nowrap",
@@ -61,7 +61,7 @@ export function ComparedAchievementList({
               >
                 <CheckCircleIcon />
                 <small>
-                  {formatDateTime(achievement.onwerUserStat.unlockTime!)}
+                  {formatDateTime(achievement.ownerStat.unlockTime!)}
                 </small>
               </div>
             ) : (
@@ -77,7 +77,7 @@ export function ComparedAchievementList({
             )
           ) : null}
 
-          {achievement.otherUserStat.unlocked ? (
+          {achievement.targetStat.unlocked ? (
             <div
               style={{
                 whiteSpace: "nowrap",
@@ -89,7 +89,7 @@ export function ComparedAchievementList({
             >
               <CheckCircleIcon />
               <small>
-                {formatDateTime(achievement.otherUserStat.unlockTime!)}
+                {formatDateTime(achievement.targetStat.unlockTime!)}
               </small>
             </div>
           ) : (

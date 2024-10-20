@@ -343,11 +343,11 @@ export interface GameArtifact {
 }
 
 export interface ComparedAchievements {
-  ownerUser: {
+  owner: {
     totalAchievementCount: number;
     unlockedAchievementCount: number;
   };
-  otherUser: {
+  target: {
     displayName: string;
     profileImageUrl: string;
     totalAchievementCount: number;
@@ -358,11 +358,11 @@ export interface ComparedAchievements {
     icon: string;
     displayName: string;
     description: string;
-    onwerUserStat?: {
+    ownerStat?: {
       unlocked: boolean;
       unlockTime: number;
     };
-    otherUserStat: {
+    targetStat: {
       unlocked: boolean;
       unlockTime: number;
     };

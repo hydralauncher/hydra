@@ -317,10 +317,10 @@ export function AchievementsContent({
                 ...userDetails,
                 userId: userDetails.id,
                 totalAchievementCount: comparedAchievements
-                  ? comparedAchievements.ownerUser.totalAchievementCount
+                  ? comparedAchievements.owner.totalAchievementCount
                   : achievements!.length,
                 unlockedAchievementCount: comparedAchievements
-                  ? comparedAchievements.ownerUser.unlockedAchievementCount
+                  ? comparedAchievements.owner.unlockedAchievementCount
                   : achievements!.filter((achievement) => achievement.unlocked)
                       .length,
               }}
