@@ -50,6 +50,7 @@ import "./user/unblock-user";
 import "./user/get-user-friends";
 import "./user/get-user-stats";
 import "./user/report-user";
+import "./user/get-compared-unlocked-achievements";
 import "./profile/get-friend-requests";
 import "./profile/get-me";
 import "./profile/undo-friendship";

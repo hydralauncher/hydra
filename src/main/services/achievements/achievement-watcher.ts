@@ -9,7 +9,7 @@ import {
   getAlternativeObjectIds,
 } from "./find-achivement-files";
 import type { AchievementFile } from "@types";
-import { achievementsLogger, logger } from "../logger";
+import { achievementsLogger } from "../logger";
 import { Cracker } from "@shared";
 
 const fileStats: Map<string, number> = new Map();
@@ -55,8 +55,6 @@ const processAchievementFileDiff = async (
 ) => {
   const unlockedAchievements = parseAchievementFile(file.filePath, file.type);
 
-  logger.log("Achievements from file", file.filePath, unlockedAchievements);
-
   if (unlockedAchievements.length) {
     return mergeAchievements(
       game.objectID,
@@ -80,7 +78,7 @@ const compareFltFolder = async (game: Game, file: AchievementFile) => {
       return;
     }
 
-    logger.log("Detected change in FLT folder", file.filePath);
+    achievementsLogger.log("Detected change in FLT folder", file.filePath);
     await processAchievementFileDiff(game, file);
   } catch (err) {
     achievementsLogger.error(err);
@@ -101,6 +99,13 @@ const compareFile = async (game: Game, file: AchievementFile) => {
 
     if (!previousStat) {
       if (currentStat.mtimeMs) {
+        achievementsLogger.log(
+          "First change in file",
+          file.filePath,
+          previousStat,
+          currentStat.mtimeMs
+        );
+
         await processAchievementFileDiff(game, file);
         return;
       }
@@ -110,7 +115,7 @@ const compareFile = async (game: Game, file: AchievementFile) => {
       return;
     }
 
-    logger.log(
+    achievementsLogger.log(
       "Detected change in file",
       file.filePath,
       previousStat,

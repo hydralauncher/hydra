@@ -2,7 +2,9 @@ import { SPACING_UNIT, vars } from "../../theme.css";
 import { style } from "@vanilla-extract/css";
 import { recipe } from "@vanilla-extract/recipes";
 
-export const HERO_HEIGHT = 300;
+export const HERO_HEIGHT = 150;
+export const LOGO_HEIGHT = 100;
+export const LOGO_MAX_WIDTH = 200;
 
 export const wrapper = style({
   display: "flex",
@@ -13,11 +15,11 @@ export const wrapper = style({
   transition: "all ease 0.3s",
 });
 
-export const header = style({
-  display: "flex",
+export const hero = style({
+  width: "100%",
   height: `${HERO_HEIGHT}px`,
   minHeight: `${HERO_HEIGHT}px`,
-  gap: `${SPACING_UNIT}px`,
+  display: "flex",
   flexDirection: "column",
   position: "relative",
   transition: "all ease 0.2s",
@@ -29,27 +31,41 @@ export const header = style({
   },
 });
 
-export const hero = style({
-  position: "absolute",
-  inset: "0",
-  borderRadius: "4px",
-  objectFit: "cover",
-  cursor: "pointer",
+export const heroImage = style({
   width: "100%",
+  height: `${HERO_HEIGHT}px`,
+  minHeight: `${HERO_HEIGHT}px`,
+  objectFit: "cover",
+  objectPosition: "top",
   transition: "all ease 0.2s",
+  position: "absolute",
+  zIndex: "0",
+  filter: "blur(5px)",
+  "@media": {
+    "(min-width: 1250px)": {
+      objectPosition: "center",
+      height: "350px",
+      minHeight: "350px",
+    },
+  },
 });
 
 export const heroContent = style({
   padding: `${SPACING_UNIT * 2}px`,
-  height: "100%",
   width: "100%",
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "flex-end",
+  alignItems: "center",
 });
 
 export const gameLogo = style({
-  width: 300,
+  width: LOGO_MAX_WIDTH,
+  height: LOGO_HEIGHT,
+  objectFit: "contain",
+  transition: "all ease 0.2s",
+  ":hover": {
+    transform: "scale(1.05)",
+  },
 });
 
 export const container = style({
@@ -61,19 +77,13 @@ export const container = style({
   zIndex: "1",
 });
 
-export const panel = recipe({
+export const tableHeader = recipe({
   base: {
     width: "100%",
-    height: "100px",
-    minHeight: "100px",
-    padding: `${SPACING_UNIT * 2}px 0`,
     backgroundColor: vars.color.darkBackground,
-    display: "flex",
-    flexDirection: "row",
     transition: "all ease 0.2s",
     borderBottom: `solid 1px ${vars.color.border}`,
     position: "sticky",
-    overflow: "hidden",
     top: "0",
     zIndex: "1",
   },
@@ -145,7 +155,6 @@ export const achievementsProgressBar = style({
 export const heroLogoBackdrop = style({
   width: "100%",
   height: "100%",
-  background: "linear-gradient(0deg, rgba(0, 0, 0, 0.3) 60%, transparent 100%)",
   position: "absolute",
   display: "flex",
   flexDirection: "column",
@@ -180,8 +189,20 @@ export const listItemSkeleton = style({
 });
 
 export const profileAvatar = style({
-  height: "65px",
-  width: "65px",
+  height: "54px",
+  width: "54px",
+  borderRadius: "4px",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: vars.color.background,
+  position: "relative",
+  objectFit: "cover",
+});
+
+export const profileAvatarSmall = style({
+  height: "32px",
+  width: "32px",
   borderRadius: "4px",
   display: "flex",
   justifyContent: "center",

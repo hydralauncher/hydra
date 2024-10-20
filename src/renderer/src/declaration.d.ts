@@ -29,6 +29,7 @@ import type {
   GameArtifact,
   LudusaviBackup,
   UserAchievement,
+  ComparedAchievements,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type { DiskSpace } from "check-disk-space";
@@ -202,6 +203,11 @@ declare global {
       reason: string,
       description: string
     ) => Promise<void>;
+    getComparedUnlockedAchievements: (
+      objectId: string,
+      shop: GameShop,
+      userId: string
+    ) => Promise<ComparedAchievements>;
 
     /* Profile */
     getMe: () => Promise<UserDetails | null>;
