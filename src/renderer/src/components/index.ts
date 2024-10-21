@@ -1,3 +1,4 @@
+export * from "./avatar/avatar";
 export * from "./bottom-panel/bottom-panel";
 export * from "./button/button";
 export * from "./game-card/game-card";
@@ -12,3 +13,4 @@ export * from "./select-field/select-field";
 export * from "./toast/toast";
 export * from "./badge/badge";
 export * from "./confirmation-modal/confirmation-modal";
+export * from "./suspense-wrapper/suspense-wrapper";

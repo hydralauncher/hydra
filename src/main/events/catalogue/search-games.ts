@@ -1,6 +1,6 @@
 import { registerEvent } from "../register-event";
 import { convertSteamGameToCatalogueEntry } from "../helpers/search-games";
-import { CatalogueEntry } from "@types";
+import type { CatalogueEntry } from "@types";
 import { HydraApi } from "@main/services";
 
 const searchGamesEvent = async (

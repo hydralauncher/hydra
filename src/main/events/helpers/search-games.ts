@@ -12,7 +12,7 @@ export interface SearchGamesArgs {
 export const convertSteamGameToCatalogueEntry = (
   game: SteamGame
 ): CatalogueEntry => ({
-  objectID: String(game.id),
+  objectId: String(game.id),
   title: game.name,
   shop: "steam" as GameShop,
   cover: steamUrlBuilder.library(String(game.id)),

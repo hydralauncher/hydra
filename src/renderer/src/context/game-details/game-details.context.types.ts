@@ -4,6 +4,7 @@ import type {
   GameShop,
   GameStats,
   ShopDetails,
+  UserAchievement,
 } from "@types";
 
 export interface GameDetailsContext {
@@ -14,12 +15,14 @@ export interface GameDetailsContext {
   gameTitle: string;
   isGameRunning: boolean;
   isLoading: boolean;
-  objectID: string | undefined;
+  objectId: string | undefined;
   gameColor: string;
   showRepacksModal: boolean;
   showGameOptionsModal: boolean;
   stats: GameStats | null;
+  achievements: UserAchievement[] | null;
   hasNSFWContentBlocked: boolean;
+  lastDownloadedOption: GameRepack | null;
   setGameColor: React.Dispatch<React.SetStateAction<string>>;
   selectGameExecutable: () => Promise<string | null>;
   updateGame: () => Promise<void>;

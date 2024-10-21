@@ -7,7 +7,7 @@ import {
   startTorrentClient as startRPCClient,
 } from "./torrent-client";
 import { gameRepository } from "@main/repository";
-import { DownloadProgress } from "@types";
+import type { DownloadProgress } from "@types";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { calculateETA } from "./helpers";
 import axios from "axios";

@@ -1,4 +1,4 @@
-import { AppUpdaterEvent } from "@types";
+import type { AppUpdaterEvent } from "@types";
 import { registerEvent } from "../register-event";
 import updater, { UpdateInfo } from "electron-updater";
 import { WindowManager } from "@main/services";

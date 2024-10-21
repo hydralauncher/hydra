@@ -1,4 +1,4 @@
-import { SteamGame } from "@types";
+import type { SteamGame } from "@types";
 import { slice } from "lodash-es";
 import fs from "node:fs";
 

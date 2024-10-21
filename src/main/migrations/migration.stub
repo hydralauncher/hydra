@@ -3,8 +3,8 @@ import type { Knex } from "knex";
 
 export const MigrationName: HydraMigration = {
   name: "MigrationName",
-  up: async (knex: Knex) => {
-    await knex.schema.createTable("table_name", (table) => {});
+  up: (knex: Knex) => {
+    return knex.schema.createTable("table_name", async (table) => {});
   },
 
   down: async (knex: Knex) => {},

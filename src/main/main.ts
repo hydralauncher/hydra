@@ -1,4 +1,9 @@
-import { DownloadManager, PythonInstance, startMainLoop } from "./services";
+import {
+  DownloadManager,
+  Ludusavi,
+  PythonInstance,
+  startMainLoop,
+} from "./services";
 import {
   downloadQueueRepository,
   userPreferencesRepository,
@@ -7,6 +12,7 @@ import { UserPreferences } from "./entity";
 import { RealDebridClient } from "./services/real-debrid";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
+import { getUserData } from "./services/user/get-user-data";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
   import("./events");
@@ -15,7 +21,10 @@ const loadState = async (userPreferences: UserPreferences | null) => {
     RealDebridClient.authorize(userPreferences?.realDebridApiToken);
   }
 
-  HydraApi.setupApi().then(() => {
+  Ludusavi.addManifestToLudusaviConfig();
+
+  HydraApi.setupApi().then(async () => {
+    await getUserData().catch(() => {});
     uploadGamesBatch();
   });
 
