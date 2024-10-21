@@ -20,7 +20,7 @@ import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { howLongToBeatEntriesTable } from "@renderer/dexie";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
+import { SPACING_UNIT } from "@renderer/theme.css";
 
 const fakeAchievements: UserAchievement[] = [
   {

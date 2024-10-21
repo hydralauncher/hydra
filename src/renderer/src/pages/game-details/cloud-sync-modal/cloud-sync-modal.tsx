@@ -40,6 +40,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     downloadGameArtifact,
     deleteGameArtifact,
     setShowCloudSyncFilesModal,
+    getGameBackupPreview,
   } = useContext(cloudSyncContext);
 
   const { objectId, shop, gameTitle, lastDownloadedOption } =
@@ -80,6 +81,10 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     setBackupDownloadProgress(null);
     downloadGameArtifact(artifactId);
   };
+
+  useEffect(() => {
+    getGameBackupPreview();
+  }, [getGameBackupPreview]);
 
   const backupStateLabel = useMemo(() => {
     if (uploadingBackup) {
