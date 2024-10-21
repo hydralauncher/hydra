@@ -9,8 +9,19 @@ import { logger } from "../logger";
 
 export const getGameAchievementData = async (
   objectId: string,
-  shop: GameShop
+  shop: GameShop,
+  useCachedData: boolean
 ) => {
+  if (useCachedData) {
+    const cachedAchievements = await gameAchievementRepository.findOne({
+      where: { objectId, shop },
+    });
+
+    if (cachedAchievements && cachedAchievements.achievements) {
+      return JSON.parse(cachedAchievements.achievements) as AchievementData[];
+    }
+  }
+
   const userPreferences = await userPreferencesRepository.findOne({
     where: { id: 1 },
   });

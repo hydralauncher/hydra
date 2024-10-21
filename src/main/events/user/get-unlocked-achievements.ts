@@ -5,13 +5,18 @@ import { getGameAchievementData } from "@main/services/achievements/get-game-ach
 
 export const getUnlockedAchievements = async (
   objectId: string,
-  shop: GameShop
+  shop: GameShop,
+  useCachedData: boolean
 ): Promise<UserAchievement[]> => {
   const cachedAchievements = await gameAchievementRepository.findOne({
     where: { objectId, shop },
   });
 
-  const achievementsData = await getGameAchievementData(objectId, shop);
+  const achievementsData = await getGameAchievementData(
+    objectId,
+    shop,
+    useCachedData
+  );
 
   const unlockedAchievements = JSON.parse(
     cachedAchievements?.unlockedAchievements || "[]"
@@ -57,12 +62,12 @@ export const getUnlockedAchievements = async (
     });
 };
 
-const getGameAchievementsEvent = async (
+const getUnlockedAchievementsEvent = async (
   _event: Electron.IpcMainInvokeEvent,
   objectId: string,
   shop: GameShop
 ): Promise<UserAchievement[]> => {
-  return getUnlockedAchievements(objectId, shop);
+  return getUnlockedAchievements(objectId, shop, false);
 };
 
-registerEvent("getUnlockedAchievements", getGameAchievementsEvent);
+registerEvent("getUnlockedAchievements", getUnlockedAchievementsEvent);
