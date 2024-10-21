@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { PeopleIcon } from "@primer/octicons-react";
 import * as styles from "./sidebar-profile.css";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
@@ -12,8 +12,6 @@ const LONG_POLLING_INTERVAL = 60_000;
 
 export function SidebarProfile() {
   const navigate = useNavigate();
-
-  const pollingInterval = useRef<NodeJS.Timeout | null>(null);
 
   const { t } = useTranslation("sidebar");
 
@@ -36,14 +34,12 @@ export function SidebarProfile() {
   };
 
   useEffect(() => {
-    pollingInterval.current = setInterval(() => {
+    const pollingInterval = setInterval(() => {
       syncFriendRequests();
     }, LONG_POLLING_INTERVAL);
 
     return () => {
-      if (pollingInterval.current) {
-        clearInterval(pollingInterval.current);
-      }
+      clearInterval(pollingInterval);
     };
   }, [syncFriendRequests]);
 

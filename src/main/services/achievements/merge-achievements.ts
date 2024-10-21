@@ -11,7 +11,8 @@ import { getUnlockedAchievements } from "@main/events/user/get-unlocked-achievem
 const saveAchievementsOnLocal = async (
   objectId: string,
   shop: GameShop,
-  achievements: any[]
+  achievements: any[],
+  sendUpdateEvent: boolean
 ) => {
   return gameAchievementRepository
     .upsert(
@@ -23,6 +24,8 @@ const saveAchievementsOnLocal = async (
       ["objectId", "shop"]
     )
     .then(() => {
+      if (!sendUpdateEvent) return;
+
       return getUnlockedAchievements(objectId, shop)
         .then((achievements) => {
           WindowManager.mainWindow?.webContents.send(
@@ -133,13 +136,24 @@ export const mergeAchievements = async (
         return saveAchievementsOnLocal(
           response.objectId,
           response.shop,
-          response.achievements
+          response.achievements,
+          publishNotification
         );
       })
       .catch(() => {
-        return saveAchievementsOnLocal(objectId, shop, mergedLocalAchievements);
+        return saveAchievementsOnLocal(
+          objectId,
+          shop,
+          mergedLocalAchievements,
+          publishNotification
+        );
       });
   }
 
-  return saveAchievementsOnLocal(objectId, shop, mergedLocalAchievements);
+  return saveAchievementsOnLocal(
+    objectId,
+    shop,
+    mergedLocalAchievements,
+    publishNotification
+  );
 };
