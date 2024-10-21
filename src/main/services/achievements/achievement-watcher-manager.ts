@@ -1,4 +1,4 @@
-import { gameAchievementRepository, gameRepository } from "@main/repository";
+import { gameRepository } from "@main/repository";
 import { parseAchievementFile } from "./parse-achievement-file";
 import { Game } from "@main/entity";
 import { mergeAchievements } from "./merge-achievements";
@@ -13,7 +13,6 @@ import type { AchievementFile, UnlockedAchievement } from "@types";
 import { achievementsLogger } from "../logger";
 import { Cracker } from "@shared";
 import { IsNull, Not } from "typeorm";
-import { getGameAchievementData } from "./get-game-achievement-data";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
@@ -196,16 +195,6 @@ export class AchievementWatcherManager {
 
     return Promise.all(
       games.map((game) => {
-        gameAchievementRepository
-          .findOne({
-            where: { objectId: game.objectID, shop: game.shop },
-          })
-          .then((localAchievements) => {
-            if (!localAchievements || !localAchievements.achievements) {
-              getGameAchievementData(game.objectID, game.shop);
-            }
-          });
-
         const gameAchievementFiles: AchievementFile[] = [];
 
         for (const objectId of getAlternativeObjectIds(game.objectID)) {
@@ -233,16 +222,6 @@ export class AchievementWatcherManager {
 
     return Promise.all(
       games.map((game) => {
-        gameAchievementRepository
-          .findOne({
-            where: { objectId: game.objectID, shop: game.shop },
-          })
-          .then((localAchievements) => {
-            if (!localAchievements || !localAchievements.achievements) {
-              getGameAchievementData(game.objectID, game.shop);
-            }
-          });
-
         const gameAchievementFiles = findAchievementFiles(game);
         const achievementFileInsideDirectory =
           findAchievementFileInExecutableDirectory(game);

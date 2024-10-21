@@ -26,7 +26,7 @@ const saveAchievementsOnLocal = async (
     .then(() => {
       if (!sendUpdateEvent) return;
 
-      return getUnlockedAchievements(objectId, shop)
+      return getUnlockedAchievements(objectId, shop, true)
         .then((achievements) => {
           WindowManager.mainWindow?.webContents.send(
             `on-update-achievements-${objectId}-${shop}`,
