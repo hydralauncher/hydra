@@ -1,4 +1,4 @@
-import { gameRepository } from "@main/repository";
+import { gameAchievementRepository, gameRepository } from "@main/repository";
 import { parseAchievementFile } from "./parse-achievement-file";
 import { Game } from "@main/entity";
 import { mergeAchievements } from "./merge-achievements";
@@ -9,10 +9,11 @@ import {
   findAllAchievementFiles,
   getAlternativeObjectIds,
 } from "./find-achivement-files";
-import type { AchievementFile } from "@types";
+import type { AchievementFile, UnlockedAchievement } from "@types";
 import { achievementsLogger } from "../logger";
 import { Cracker } from "@shared";
 import { IsNull, Not } from "typeorm";
+import { getGameAchievementData } from "./get-game-achievement-data";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
@@ -69,30 +70,6 @@ const watchAchievementsWithWine = async () => {
     for (const file of gameAchievementFiles) {
       await compareFile(game, file);
     }
-  }
-};
-
-export const watchAchievements = async () => {
-  if (process.platform === "win32") {
-    return watchAchievementsWindows();
-  }
-
-  watchAchievementsWithWine();
-};
-
-const processAchievementFileDiff = async (
-  game: Game,
-  file: AchievementFile
-) => {
-  const unlockedAchievements = parseAchievementFile(file.filePath, file.type);
-
-  if (unlockedAchievements.length) {
-    return mergeAchievements(
-      game.objectID,
-      game.shop,
-      unlockedAchievements,
-      true
-    );
   }
 };
 
@@ -156,3 +133,104 @@ const compareFile = (game: Game, file: AchievementFile) => {
     return;
   }
 };
+
+const processAchievementFileDiff = async (
+  game: Game,
+  file: AchievementFile
+) => {
+  const unlockedAchievements = parseAchievementFile(file.filePath, file.type);
+
+  if (unlockedAchievements.length) {
+    return mergeAchievements(
+      game.objectID,
+      game.shop,
+      unlockedAchievements,
+      true
+    );
+  }
+};
+
+export class AchievementWatcherManager {
+  private static hasFinishedMergingWithRemote = false;
+
+  public static watchAchievements = async () => {
+    if (!this.hasFinishedMergingWithRemote) return;
+
+    if (process.platform === "win32") {
+      return watchAchievementsWindows();
+    }
+
+    watchAchievementsWithWine();
+  };
+
+  public static preSearchAchievements = async () => {
+    const games = await gameRepository.find({
+      where: {
+        isDeleted: false,
+      },
+    });
+
+    const gameAchievementFilesMap = findAllAchievementFiles();
+
+    await Promise.all(
+      games.map(async (game) => {
+        gameAchievementRepository
+          .findOne({
+            where: { objectId: game.objectID, shop: "steam" },
+          })
+          .then((localAchievements) => {
+            if (!localAchievements || !localAchievements.achievements) {
+              getGameAchievementData(game.objectID, "steam");
+            }
+          });
+
+        const gameAchievementFiles: AchievementFile[] = [];
+        const unlockedAchievements: UnlockedAchievement[] = [];
+
+        for (const objectId of getAlternativeObjectIds(game.objectID)) {
+          gameAchievementFiles.push(
+            ...(gameAchievementFilesMap.get(objectId) || [])
+          );
+
+          gameAchievementFiles.push(
+            ...findAchievementFileInExecutableDirectory(game)
+          );
+        }
+
+        for (const achievementFile of gameAchievementFiles) {
+          const parsedAchievements = parseAchievementFile(
+            achievementFile.filePath,
+            achievementFile.type
+          );
+
+          try {
+            const currentStat = fs.statSync(achievementFile.filePath);
+            fileStats.set(achievementFile.filePath, currentStat.mtimeMs);
+          } catch {
+            fileStats.set(achievementFile.filePath, -1);
+          }
+
+          if (parsedAchievements.length) {
+            unlockedAchievements.push(...parsedAchievements);
+
+            achievementsLogger.log(
+              "Achievement file for",
+              game.title,
+              achievementFile.filePath,
+              parsedAchievements
+            );
+          }
+
+          await mergeAchievements(
+            game.objectID,
+            "steam",
+            unlockedAchievements,
+            false
+          );
+        }
+      })
+    );
+
+    this.hasFinishedMergingWithRemote = true;
+  };
+}
