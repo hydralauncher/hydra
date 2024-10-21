@@ -14,8 +14,12 @@ const openCheckout = async (_event: Electron.IpcMainInvokeEvent) => {
     refreshToken: userAuth.refreshToken,
   }).then((response) => response.accessToken);
 
+  const params = new URLSearchParams({
+    token: paymentToken,
+  });
+
   shell.openExternal(
-    "https://checkout.hydralauncher.gg/?token=" + paymentToken
+    `${import.meta.env.MAIN_VITE_CHECKOUT_URL}?${params.toString()}`
   );
 };
 
