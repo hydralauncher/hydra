@@ -13,7 +13,7 @@ const getAppDataPath = () => {
 
   const user = app.getPath("home").split("/").pop();
 
-  return path.join("drive_c", "Users", user || "", "AppData", "Roaming");
+  return path.join("drive_c", "users", user || "", "AppData", "Roaming");
 };
 
 const getDocumentsPath = () => {
@@ -31,7 +31,7 @@ const getPublicDocumentsPath = () => {
     return path.join("C:", "Users", "Public", "Documents");
   }
 
-  return path.join("drive_c", "Users", "Public", "Documents");
+  return path.join("drive_c", "users", "Public", "Documents");
 };
 
 const getLocalAppDataPath = () => {
