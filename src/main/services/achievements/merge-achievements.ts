@@ -119,12 +119,6 @@ export const mergeAchievements = async (
   const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);
 
   if (game.remoteId) {
-    achievementsLogger.log(
-      "Syncing achievements with cloud",
-      game.title,
-      game.objectID,
-      game.remoteId
-    );
     await HydraApi.put(
       "/profile/games/achievements",
       {
@@ -142,7 +136,7 @@ export const mergeAchievements = async (
         );
       })
       .catch((err) => {
-        if (err! instanceof SubscriptionRequiredError) {
+        if (!(err instanceof SubscriptionRequiredError)) {
           achievementsLogger.error(err);
         }
 

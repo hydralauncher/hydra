@@ -34,7 +34,7 @@ export function GameDetailsContent() {
     hasNSFWContentBlocked,
   } = useContext(gameDetailsContext);
 
-  const { userDetails } = useUserDetails();
+  const { userDetails, hasActiveSubscription } = useUserDetails();
 
   const { setShowCloudSyncModal, getGameBackupPreview } =
     useContext(cloudSyncContext);
@@ -100,6 +100,11 @@ export function GameDetailsContent() {
   const handleCloudSaveButtonClick = () => {
     if (!userDetails) {
       window.electron.openAuthWindow();
+      return;
+    }
+
+    if (!hasActiveSubscription) {
+      window.electron.openCheckout();
       return;
     }
 
