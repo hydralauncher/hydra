@@ -8,10 +8,7 @@ import url from "url";
 import { uploadGamesBatch } from "./library-sync";
 import { clearGamesRemoteIds } from "./library-sync/clear-games-remote-id";
 import { logger } from "./logger";
-import {
-  UserNotLoggedInError,
-  UserWithoutCloudSubscriptionError,
-} from "@shared";
+import { UserNotLoggedInError, SubscriptionRequiredError } from "@shared";
 // import { omit } from "lodash-es";
 import { appVersion } from "@main/constants";
 import { omit } from "lodash-es";
@@ -40,7 +37,6 @@ export class HydraApi {
   }
 
   private static async hasCloudSubscription() {
-    // TODO change this later, this is just a quick test
     return userSubscriptionRepository
       .findOne({ where: { id: 1 } })
       .then((userSubscription) => {
@@ -262,7 +258,7 @@ export class HydraApi {
 
     if (needsCloud) {
       if (!(await this.hasCloudSubscription())) {
-        throw new UserWithoutCloudSubscriptionError();
+        throw new SubscriptionRequiredError();
       }
     }
   }
