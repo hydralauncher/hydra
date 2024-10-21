@@ -68,6 +68,18 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked", listener);
   },
+  onCombinedAchievementsUnlocked: (
+    cb: (gameCount: number, achievementsCount: number) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      gameCount: number,
+      achievementCount: number
+    ) => cb(gameCount, achievementCount);
+    ipcRenderer.on("on-combined-achievements-unlocked", listener);
+    return () =>
+      ipcRenderer.removeListener("on-combined-achievements-unlocked", listener);
+  },
   onUpdateAchievements: (
     objectId: string,
     shop: GameShop,

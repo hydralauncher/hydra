@@ -201,10 +201,10 @@ const getPathFromCracker = (cracker: Cracker) => {
 
   if (cracker === Cracker.flt) {
     return [
-      {
-        folderPath: path.join(appData, "FLT"),
-        fileLocation: ["stats"],
-      },
+      // {
+      //   folderPath: path.join(appData, "FLT"),
+      //   fileLocation: ["stats"],
+      // },
     ];
   }
 

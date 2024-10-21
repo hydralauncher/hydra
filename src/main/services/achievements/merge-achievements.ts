@@ -117,7 +117,7 @@ export const mergeAchievements = async (
   const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);
 
   if (game.remoteId) {
-    return HydraApi.put(
+    await HydraApi.put(
       "/profile/games/achievements",
       {
         id: game.remoteId,
@@ -141,12 +141,14 @@ export const mergeAchievements = async (
           publishNotification
         );
       });
+  } else {
+    await saveAchievementsOnLocal(
+      game.objectID,
+      game.shop,
+      mergedLocalAchievements,
+      publishNotification
+    );
   }
 
-  return saveAchievementsOnLocal(
-    game.objectID,
-    game.shop,
-    mergedLocalAchievements,
-    publishNotification
-  );
+  return newAchievements.length;
 };

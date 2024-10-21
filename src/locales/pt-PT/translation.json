@@ -284,6 +284,7 @@
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",
     "unlocked_at": "Desbloqueado em:",
-    "subscription_needed": "Você precisa de uma assinatura Hydra Cloud para visualizar este conteúdo"
+    "subscription_needed": "Você precisa de uma assinatura Hydra Cloud para visualizar este conteúdo",
+    "new_achievements_unlocked": "Encontradas {{achievementCount}} novas conquistas de {{gameCount}} jogos"
   }
 }

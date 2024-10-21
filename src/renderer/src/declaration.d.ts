@@ -73,6 +73,9 @@ declare global {
         achievements?: { displayName: string; iconUrl: string }[]
       ) => void
     ) => () => Electron.IpcRenderer;
+    onCombinedAchievementsUnlocked: (
+      cb: (gameCount: number, achievementCount: number) => void
+    ) => () => Electron.IpcRenderer;
     onUpdateAchievements: (
       objectId: string,
       shop: GameShop,
