@@ -137,6 +137,10 @@ const getPathFromCracker = (cracker: Cracker) => {
         fileLocation: ["stats", "achievements.ini"],
       },
       {
+        folderPath: path.join(programData, "Steam", "RLD!"),
+        fileLocation: ["stats", "achievements.ini"],
+      },
+      {
         folderPath: path.join(programData, "Steam", "dodi"),
         fileLocation: ["stats", "achievements.ini"],
       },
