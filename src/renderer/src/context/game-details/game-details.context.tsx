@@ -53,6 +53,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   setShowGameOptionsModal: () => {},
   setShowRepacksModal: () => {},
   setHasNSFWContentBlocked: () => {},
+  handleClickOpenCheckout: () => {},
 });
 
 const { Provider } = gameDetailsContext;
@@ -109,6 +110,11 @@ export function GameDetailsContextProvider({
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
+
+  const handleClickOpenCheckout = () => {
+    // TODO: show modal before redirecting to checkout page
+    window.electron.openCheckout();
+  };
 
   const updateGame = useCallback(async () => {
     return window.electron
@@ -282,6 +288,7 @@ export function GameDetailsContextProvider({
         updateGame,
         setShowRepacksModal,
         setShowGameOptionsModal,
+        handleClickOpenCheckout,
       }}
     >
       {children}

@@ -10,12 +10,17 @@ import { Button, Link } from "@renderer/components";
 import * as styles from "./sidebar.css";
 import { gameDetailsContext } from "@renderer/context";
 import { useDate, useFormat, useUserDetails } from "@renderer/hooks";
-import { DownloadIcon, LockIcon, PeopleIcon } from "@primer/octicons-react";
+import {
+  CloudOfflineIcon,
+  DownloadIcon,
+  LockIcon,
+  PeopleIcon,
+} from "@primer/octicons-react";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { howLongToBeatEntriesTable } from "@renderer/dexie";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
-import { SPACING_UNIT } from "@renderer/theme.css";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 
 const fakeAchievements: UserAchievement[] = [
   {
@@ -57,13 +62,20 @@ export function Sidebar() {
     data: HowLongToBeatCategory[] | null;
   }>({ isLoading: true, data: null });
 
-  const { userDetails } = useUserDetails();
+  const { userDetails, hasActiveSubscription } = useUserDetails();
 
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
-  const { gameTitle, shopDetails, objectId, shop, stats, achievements } =
-    useContext(gameDetailsContext);
+  const {
+    gameTitle,
+    shopDetails,
+    objectId,
+    shop,
+    stats,
+    achievements,
+    handleClickOpenCheckout,
+  } = useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
@@ -162,6 +174,16 @@ export function Sidebar() {
           })}
         >
           <ul className={styles.list}>
+            {!hasActiveSubscription && (
+              <button
+                className={styles.subscriptionRequiredButton}
+                onClick={handleClickOpenCheckout}
+              >
+                <CloudOfflineIcon size={16} />
+                <span>{t("achievements_not_sync")}</span>
+              </button>
+            )}
+
             {achievements.slice(0, 4).map((achievement, index) => (
               <li key={index}>
                 <Link

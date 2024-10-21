@@ -32,6 +32,7 @@ export function GameDetailsContent() {
     gameColor,
     setGameColor,
     hasNSFWContentBlocked,
+    handleClickOpenCheckout,
   } = useContext(gameDetailsContext);
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
@@ -104,7 +105,7 @@ export function GameDetailsContent() {
     }
 
     if (!hasActiveSubscription) {
-      window.electron.openCheckout();
+      handleClickOpenCheckout();
       return;
     }
 

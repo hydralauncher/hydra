@@ -156,7 +156,8 @@
     "wine_prefix_description": "O prefixo Wine que foi utilizado para instalar o jogo",
     "no_download_option_info": "Sem informações disponíveis",
     "backup_deletion_failed": "Falha ao apagar backup",
-    "max_number_of_artifacts_reached": "Número máximo de backups atingido para este jogo"
+    "max_number_of_artifacts_reached": "Número máximo de backups atingido para este jogo",
+    "achievements_not_sync": "Suas conquistas não estão sincronizadas"
   },
   "activation": {
     "title": "Ativação",
