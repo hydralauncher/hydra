@@ -37,7 +37,7 @@ export function GameDetailsContent() {
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
 
-  const { setShowCloudSyncModal, getGameBackupPreview, getGameArtifacts } =
+  const { setShowCloudSyncModal, getGameArtifacts } =
     useContext(cloudSyncContext);
 
   const aboutTheGame = useMemo(() => {
@@ -113,9 +113,8 @@ export function GameDetailsContent() {
   };
 
   useEffect(() => {
-    getGameBackupPreview();
     getGameArtifacts();
-  }, [getGameBackupPreview, getGameArtifacts]);
+  }, [getGameArtifacts]);
 
   return (
     <div className={styles.wrapper({ blurredContent: hasNSFWContentBlocked })}>
