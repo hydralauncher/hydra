@@ -160,7 +160,8 @@
     "wine_prefix_description": "The Wine prefix used to run this game",
     "no_download_option_info": "No information available",
     "backup_deletion_failed": "Failed to delete backup",
-    "max_number_of_artifacts_reached": "Maximum number of backups reached for this game"
+    "max_number_of_artifacts_reached": "Maximum number of backups reached for this game",
+    "achievements_not_sync": "Your achievements are not synchronized"
   },
   "activation": {
     "title": "Activate Hydra",

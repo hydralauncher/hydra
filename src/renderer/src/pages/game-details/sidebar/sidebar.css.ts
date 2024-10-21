@@ -154,3 +154,16 @@ export const listItemImage = recipe({
     },
   },
 });
+
+export const subscriptionRequiredButton = style({
+  textDecoration: "none",
+  display: "flex",
+  justifyContent: "center",
+  width: "100%",
+  gap: `${SPACING_UNIT / 2}px`,
+  color: vars.color.warning,
+  cursor: "pointer",
+  ":hover": {
+    textDecoration: "underline",
+  },
+});
