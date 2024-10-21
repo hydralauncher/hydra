@@ -1,7 +1,7 @@
 import { registerEvent } from "../register-event";
 import * as Sentry from "@sentry/electron/main";
 import { HydraApi, logger } from "@main/services";
-import { ProfileVisibility, UserDetails } from "@types";
+import type { ProfileVisibility, UserDetails } from "@types";
 import {
   userAuthRepository,
   userSubscriptionRepository,

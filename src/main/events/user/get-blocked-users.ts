@@ -1,7 +1,7 @@
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
 import { UserNotLoggedInError } from "@shared";
-import { UserBlocks } from "@types";
+import type { UserBlocks } from "@types";
 
 export const getBlockedUsers = async (
   _event: Electron.IpcMainInvokeEvent,

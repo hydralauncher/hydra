@@ -16,7 +16,7 @@ import { IsNull, Not } from "typeorm";
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
 
-const watchAchiievementsWindows = async () => {
+const watchAchievementsWindows = async () => {
   const games = await gameRepository.find({
     where: {
       isDeleted: false,
@@ -53,12 +53,17 @@ const watchAchievementsWithWine = async () => {
 
   if (games.length === 0) return;
 
+  // const user = app.getPath("home").split("/").pop()
+
+  // for (const game of games) {
+  // }
+
   // TODO: watch achievements with wine
 };
 
 export const watchAchievements = async () => {
   if (process.platform === "win32") {
-    return watchAchiievementsWindows();
+    return watchAchievementsWindows();
   }
 
   watchAchievementsWithWine();
@@ -101,10 +106,9 @@ const compareFltFolder = async (game: Game, file: AchievementFile) => {
   }
 };
 
-const compareFile = async (game: Game, file: AchievementFile) => {
+const compareFile = (game: Game, file: AchievementFile) => {
   if (file.type === Cracker.flt) {
-    await compareFltFolder(game, file);
-    return;
+    return compareFltFolder(game, file);
   }
 
   try {
@@ -121,8 +125,7 @@ const compareFile = async (game: Game, file: AchievementFile) => {
           currentStat.mtimeMs
         );
 
-        await processAchievementFileDiff(game, file);
-        return;
+        return processAchievementFileDiff(game, file);
       }
     }
 
@@ -136,8 +139,9 @@ const compareFile = async (game: Game, file: AchievementFile) => {
       previousStat,
       currentStat.mtimeMs
     );
-    await processAchievementFileDiff(game, file);
+    return processAchievementFileDiff(game, file);
   } catch (err) {
     fileStats.set(file.filePath, -1);
+    return;
   }
 };

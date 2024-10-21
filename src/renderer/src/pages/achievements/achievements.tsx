@@ -52,7 +52,7 @@ export default function Achievements() {
     if (!otherUserId || !comparedAchievements) return null;
 
     return {
-      userId: otherUserId,
+      id: otherUserId,
       displayName: comparedAchievements.target.displayName,
       profileImageUrl: comparedAchievements.target.profileImageUrl,
       totalAchievementCount: comparedAchievements.target.totalAchievementCount,

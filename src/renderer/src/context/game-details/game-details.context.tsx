@@ -155,14 +155,15 @@ export function GameDetailsContextProvider({
       setStats(result);
     });
 
-    window.electron
-      .getGameAchievements(objectId, shop as GameShop)
-      .then((achievements) => {
-        if (abortController.signal.aborted) return;
-        if (!userDetails) return;
-        setAchievements(achievements);
-      })
-      .catch(() => {});
+    if (userDetails) {
+      window.electron
+        .getUnlockedAchievements(objectId, shop as GameShop)
+        .then((achievements) => {
+          if (abortController.signal.aborted) return;
+          setAchievements(achievements);
+        })
+        .catch(() => {});
+    }
 
     updateGame();
   }, [

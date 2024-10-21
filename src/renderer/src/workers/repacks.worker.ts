@@ -1,6 +1,6 @@
 import { repacksTable } from "@renderer/dexie";
 import { formatName } from "@shared";
-import { GameRepack } from "@types";
+import type { GameRepack } from "@types";
 import flexSearch from "flexsearch";
 
 interface SerializedGameRepack extends Omit<GameRepack, "uris"> {

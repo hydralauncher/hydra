@@ -3,13 +3,13 @@ import {
   userPreferencesRepository,
 } from "@main/repository";
 import { HydraApi } from "../hydra-api";
-import { AchievementData } from "@types";
+import type { AchievementData, GameShop } from "@types";
 import { UserNotLoggedInError } from "@shared";
 import { logger } from "../logger";
 
 export const getGameAchievementData = async (
   objectId: string,
-  shop: string
+  shop: GameShop
 ) => {
   const userPreferences = await userPreferencesRepository.findOne({
     where: { id: 1 },

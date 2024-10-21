@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import * as styles from "./hero.css";
 import { useEffect, useState } from "react";
-import { TrendingGame } from "@types";
+import type { TrendingGame } from "@types";
 import { useTranslation } from "react-i18next";
 import Skeleton from "react-loading-skeleton";
 

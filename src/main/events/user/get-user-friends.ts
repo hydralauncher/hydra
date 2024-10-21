@@ -1,7 +1,7 @@
 import { userAuthRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
-import { UserFriends } from "@types";
+import type { UserFriends } from "@types";
 
 export const getUserFriends = async (
   userId: string,
