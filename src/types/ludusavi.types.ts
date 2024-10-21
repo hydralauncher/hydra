@@ -1,6 +1,7 @@
 export interface LudusaviScanChange {
   change: "New" | "Different" | "Removed" | "Same" | "Unknown";
   decision: "Processed" | "Cancelled" | "Ignore";
+  bytes: number;
 }
 
 export interface LudusaviGame extends LudusaviScanChange {

@@ -49,3 +49,17 @@ export const progress = style({
     backgroundColor: vars.color.muted,
   },
 });
+
+export const manageFilesButton = style({
+  margin: "0",
+  padding: "0",
+  alignSelf: "flex-start",
+  fontSize: 14,
+  cursor: "pointer",
+  textDecoration: "underline",
+  color: vars.color.body,
+  ":disabled": {
+    cursor: "not-allowed",
+    opacity: vars.opacity.disabled,
+  },
+});

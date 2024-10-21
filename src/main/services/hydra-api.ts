@@ -9,9 +9,8 @@ import { uploadGamesBatch } from "./library-sync";
 import { clearGamesRemoteIds } from "./library-sync/clear-games-remote-id";
 import { logger } from "./logger";
 import { UserNotLoggedInError, SubscriptionRequiredError } from "@shared";
-// import { omit } from "lodash-es";
-import { appVersion } from "@main/constants";
 import { omit } from "lodash-es";
+import { appVersion } from "@main/constants";
 
 interface HydraApiOptions {
   needsAuth?: boolean;

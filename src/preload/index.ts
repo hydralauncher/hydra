@@ -226,6 +226,8 @@ contextBridge.exposeInMainWorld("electron", {
   openCheckout: () => ipcRenderer.invoke("openCheckout"),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
+  showItemInFolder: (path: string) =>
+    ipcRenderer.invoke("showItemInFolder", path),
   platform: process.platform,
 
   /* Auto update */

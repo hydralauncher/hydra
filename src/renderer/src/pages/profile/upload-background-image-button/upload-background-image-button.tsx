@@ -5,11 +5,14 @@ import { userProfileContext } from "@renderer/context";
 
 import * as styles from "./upload-background-image-button.css";
 import { useToast, useUserDetails } from "@renderer/hooks";
+import { useTranslation } from "react-i18next";
 
 export function UploadBackgroundImageButton() {
   const [isUploadingBackgroundImage, setIsUploadingBackgorundImage] =
     useState(false);
-  const { hasActiveSubscription } = useUserDetails();
+  const { userDetails } = useUserDetails();
+
+  const { t } = useTranslation("user_profile");
 
   const { isMe, setSelectedBackgroundImage } = useContext(userProfileContext);
   const { patchUser, fetchUserDetails } = useUserDetails();
@@ -44,7 +47,8 @@ export function UploadBackgroundImageButton() {
     }
   };
 
-  if (!isMe || !hasActiveSubscription) return null;
+  if (!isMe || !userDetails?.subscription) return null;
+  if (userDetails.subscription.plan.name !== "plus") return null;
 
   return (
     <Button
@@ -54,7 +58,7 @@ export function UploadBackgroundImageButton() {
       disabled={isUploadingBackgroundImage}
     >
       <UploadIcon />
-      {isUploadingBackgroundImage ? "Uploading..." : "Upload background"}
+      {isUploadingBackgroundImage ? t("uploading_banner") : t("upload_banner")}
     </Button>
   );
 }

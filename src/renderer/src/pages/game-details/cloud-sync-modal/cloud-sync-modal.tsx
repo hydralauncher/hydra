@@ -6,7 +6,6 @@ import * as styles from "./cloud-sync-modal.css";
 import { formatBytes } from "@shared";
 import { format } from "date-fns";
 import {
-  CheckCircleFillIcon,
   ClockIcon,
   DeviceDesktopIcon,
   HistoryIcon,
@@ -16,18 +15,16 @@ import {
   UploadIcon,
 } from "@primer/octicons-react";
 import { useToast } from "@renderer/hooks";
-import { GameBackup, gameBackupsTable } from "@renderer/dexie";
 import { useTranslation } from "react-i18next";
 import { AxiosProgressEvent } from "axios";
 import { formatDownloadProgress } from "@renderer/helpers";
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
+import { SPACING_UNIT } from "@renderer/theme.css";
 
 export interface CloudSyncModalProps
   extends Omit<ModalProps, "children" | "title"> {}
 
 export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
   const [deletingArtifact, setDeletingArtifact] = useState(false);
-  const [lastBackup, setLastBackup] = useState<GameBackup | null>(null);
   const [backupDownloadProgress, setBackupDownloadProgress] =
     useState<AxiosProgressEvent | null>(null);
 
@@ -38,6 +35,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     backupPreview,
     uploadingBackup,
     restoringBackup,
+    loadingPreview,
     uploadSaveGame,
     downloadGameArtifact,
     deleteGameArtifact,
@@ -64,11 +62,6 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
   };
 
   useEffect(() => {
-    gameBackupsTable
-      .where({ shop: shop, objectId })
-      .last()
-      .then((lastBackup) => setLastBackup(lastBackup || null));
-
     const removeBackupDownloadProgressListener =
       window.electron.onBackupDownloadProgress(
         objectId!,
@@ -111,18 +104,17 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
       );
     }
 
-    if (lastBackup) {
+    if (loadingPreview) {
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <i style={{ color: vars.color.success }}>
-            <CheckCircleFillIcon />
-          </i>
-
-          {t("last_backup_date", {
-            date: format(lastBackup.createdAt, "dd/MM/yyyy HH:mm"),
-          })}
+          <SyncIcon className={styles.syncIcon} />
+          {t("loading_save_preview")}
         </span>
       );
+    }
+
+    if (artifacts.length >= 2) {
+      return t("max_number_of_artifacts_reached");
     }
 
     if (!backupPreview) {
@@ -133,93 +125,76 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
   }, [
     uploadingBackup,
     backupDownloadProgress?.progress,
-    lastBackup,
     backupPreview,
     restoringBackup,
+    loadingPreview,
+    artifacts,
     t,
   ]);
 
   const disableActions = uploadingBackup || restoringBackup || deletingArtifact;
 
   return (
-    <>
-      {/* <ConfirmationModal
-        confirmButtonLabel="confirm"
-        cancelButtonLabel="cancel"
-        descriptionText="description"
-        title="title"
-        onConfirm={() => {}}
-        onClose={() => {}}
-        visible
-      /> */}
-
-      <Modal
-        visible={visible}
-        title={t("cloud_save")}
-        description={t("cloud_save_description")}
-        onClose={onClose}
-        large
+    <Modal
+      visible={visible}
+      title={t("cloud_save")}
+      description={t("cloud_save_description")}
+      onClose={onClose}
+      large
+    >
+      <div
+        style={{
+          marginBottom: 24,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
       >
+        <div style={{ display: "flex", gap: 4, flexDirection: "column" }}>
+          <h2>{gameTitle}</h2>
+          <p>{backupStateLabel}</p>
+
+          <button
+            type="button"
+            className={styles.manageFilesButton}
+            onClick={() => setShowCloudSyncFilesModal(true)}
+            disabled={disableActions || !backupPreview?.overall.totalGames}
+          >
+            {t("manage_files")}
+          </button>
+        </div>
+
+        <Button
+          type="button"
+          onClick={() => uploadSaveGame(lastDownloadedOption?.title ?? null)}
+          disabled={
+            disableActions ||
+            !backupPreview?.overall.totalGames ||
+            artifacts.length >= 2
+          }
+        >
+          <UploadIcon />
+          {t("create_backup")}
+        </Button>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
         <div
           style={{
-            marginBottom: 24,
+            marginBottom: 16,
             display: "flex",
-            justifyContent: "space-between",
             alignItems: "center",
+            gap: SPACING_UNIT,
           }}
         >
-          <div style={{ display: "flex", gap: 4, flexDirection: "column" }}>
-            <h2>{gameTitle}</h2>
-            <p>{backupStateLabel}</p>
-
-            <button
-              type="button"
-              style={{
-                margin: 0,
-                padding: 0,
-                alignSelf: "flex-start",
-                fontSize: 14,
-                cursor: "pointer",
-                textDecoration: "underline",
-                color: vars.color.body,
-              }}
-              onClick={() => setShowCloudSyncFilesModal(true)}
-            >
-              Gerenciar arquivos
-            </button>
-          </div>
-
-          <Button
-            type="button"
-            onClick={() => uploadSaveGame(lastDownloadedOption?.title ?? null)}
-            disabled={disableActions || !backupPreview}
-          >
-            <UploadIcon />
-            {t("create_backup")}
-          </Button>
+          <h2>{t("backups")}</h2>
+          <small>{artifacts.length} / 2</small>
         </div>
+      </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div
-            style={{
-              marginBottom: 16,
-              display: "flex",
-              alignItems: "center",
-              gap: SPACING_UNIT,
-            }}
-          >
-            <h2>{t("backups")}</h2>
-            <small>{artifacts.length} / 2</small>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <small>Espaço usado</small>
-            <progress className={styles.progress} />
-          </div>
-        </div>
-
+      {artifacts.length > 0 ? (
         <ul className={styles.artifacts}>
-          {artifacts.map((artifact) => (
+          {artifacts.map((artifact, index) => (
             <li key={artifact.id} className={styles.artifactButton}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <div
@@ -230,7 +205,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
                     marginBottom: 4,
                   }}
                 >
-                  <h3>Backup do dia {format(artifact.createdAt, "dd/MM")}</h3>
+                  <h3>{t("backup_title", { number: index + 1 })}</h3>
                   <small>{formatBytes(artifact.artifactLengthInBytes)}</small>
                 </div>
 
@@ -272,7 +247,9 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
             </li>
           ))}
         </ul>
-      </Modal>
-    </>
+      ) : (
+        <p>{t("no_backups_created")}</p>
+      )}
+    </Modal>
   );
 }
