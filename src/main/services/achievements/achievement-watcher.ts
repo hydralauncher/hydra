@@ -5,6 +5,7 @@ import { mergeAchievements } from "./merge-achievements";
 import fs, { readdirSync } from "node:fs";
 import {
   findAchievementFileInExecutableDirectory,
+  findAchievementFiles,
   findAllAchievementFiles,
   getAlternativeObjectIds,
 } from "./find-achivement-files";
@@ -53,12 +54,19 @@ const watchAchievementsWithWine = async () => {
 
   if (games.length === 0) return;
 
-  // const user = app.getPath("home").split("/").pop()
+  for (const game of games) {
+    const gameAchievementFiles = findAchievementFiles(game);
+    const achievementFileInsideDirectory =
+      findAchievementFileInExecutableDirectory(game);
 
-  // for (const game of games) {
-  // }
+    gameAchievementFiles.push(...achievementFileInsideDirectory);
 
-  // TODO: watch achievements with wine
+    if (!gameAchievementFiles.length) continue;
+
+    for (const file of gameAchievementFiles) {
+      compareFile(game, file);
+    }
+  }
 };
 
 export const watchAchievements = async () => {

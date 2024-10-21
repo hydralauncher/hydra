@@ -6,12 +6,59 @@ import { Cracker } from "@shared";
 import { Game } from "@main/entity";
 import { achievementsLogger } from "../logger";
 
+const getAppDataPath = () => {
+  if (process.platform === "win32") {
+    return app.getPath("appData");
+  }
+
+  const user = app.getPath("home").split("/").pop();
+
+  return path.join("drive_c", "users", user || "", "AppData", "Roaming");
+};
+
+const getDocumentsPath = () => {
+  if (process.platform === "win32") {
+    return app.getPath("appData");
+  }
+
+  const user = app.getPath("home").split("/").pop();
+
+  return path.join("drive_c", "users", user || "", "Documents");
+};
+
+const getPublicDocumentsPath = () => {
+  if (process.platform === "win32") {
+    return app.getPath("appData");
+  }
+  // /media/jackenx/JED2/.newprefix/dosdevices/c:/users/Public/Documents/Steam/CODEX/489830
+
+  return path.join("drive_c", "users", "Public", "Documents");
+};
+
+const getLocalAppDataPath = () => {
+  if (process.platform === "win32") {
+    return path.join(appData, "..", "Local");
+  }
+
+  const user = app.getPath("home").split("/").pop();
+
+  return path.join("drive_c", "users", user || "", "AppData", "Local");
+};
+
+const getProgramDataPath = () => {
+  if (process.platform === "win32") {
+    return path.join("C:", "ProgramData");
+  }
+
+  return path.join("drive_c", "ProgramData");
+};
+
 //TODO: change to a automatized method
-const publicDocuments = path.join("C:", "Users", "Public", "Documents");
-const programData = path.join("C:", "ProgramData");
-const appData = app.getPath("appData");
-const documents = app.getPath("documents");
-const localAppData = path.join(appData, "..", "Local");
+const publicDocuments = getPublicDocumentsPath();
+const programData = getProgramDataPath();
+const appData = getAppDataPath();
+const documents = getDocumentsPath();
+const localAppData = getLocalAppDataPath();
 
 const crackers = [
   Cracker.codex,
@@ -190,7 +237,12 @@ export const findAchievementFiles = (game: Game) => {
   for (const cracker of crackers) {
     for (const { folderPath, fileLocation } of getPathFromCracker(cracker)) {
       for (const objectId of getAlternativeObjectIds(game.objectID)) {
-        const filePath = path.join(folderPath, objectId, ...fileLocation);
+        const filePath = path.join(
+          game.winePrefixPath ?? "",
+          folderPath,
+          objectId,
+          ...fileLocation
+        );
 
         if (fs.existsSync(filePath)) {
           achievementFiles.push({
@@ -216,6 +268,7 @@ export const findAchievementFileInExecutableDirectory = (
     {
       type: Cracker.userstats,
       filePath: path.join(
+        game.winePrefixPath ?? "",
         game.executablePath,
         "..",
         "SteamData",
@@ -225,6 +278,7 @@ export const findAchievementFileInExecutableDirectory = (
     {
       type: Cracker._3dm,
       filePath: path.join(
+        game.winePrefixPath ?? "",
         game.executablePath,
         "..",
         "3DMGAME",
