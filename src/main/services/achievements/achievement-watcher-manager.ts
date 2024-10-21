@@ -13,6 +13,7 @@ import type { AchievementFile, UnlockedAchievement } from "@types";
 import { achievementsLogger } from "../logger";
 import { Cracker } from "@shared";
 import { IsNull, Not } from "typeorm";
+import { WindowManager } from "../window-manager";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
@@ -136,6 +137,8 @@ const processAchievementFileDiff = async (
   if (unlockedAchievements.length) {
     return mergeAchievements(game, unlockedAchievements, true);
   }
+
+  return 0;
 };
 
 export class AchievementWatcherManager {
@@ -234,11 +237,16 @@ export class AchievementWatcherManager {
   };
 
   public static preSearchAchievements = async () => {
-    if (process.platform === "win32") {
-      await this.preSearchAchievementsWindows();
-    } else {
-      await this.preSearchAchievementsWithWine();
-    }
+    const newAchievementsCount =
+      process.platform === "win32"
+        ? await this.preSearchAchievementsWindows()
+        : await this.preSearchAchievementsWithWine();
+
+    WindowManager.notificationWindow?.webContents.send(
+      "on-combined-achievements-unlocked",
+      newAchievementsCount.filter((achievements) => achievements).length,
+      newAchievementsCount.reduce((acc, val) => acc + val, 0)
+    );
 
     this.hasFinishedMergingWithRemote = true;
   };

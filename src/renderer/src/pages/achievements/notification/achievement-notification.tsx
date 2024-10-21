@@ -32,6 +32,31 @@ export function AchievementNotification() {
   }, []);
 
   useEffect(() => {
+    const unsubscribe = window.electron.onCombinedAchievementsUnlocked(
+      (gameCount, achievementCount) => {
+        if (gameCount === 0 || achievementCount === 0) return;
+
+        setAchievements([
+          {
+            displayName: t("new_achievements_unlocked", {
+              gameCount,
+              achievementCount,
+            }),
+            iconUrl:
+              "https://avatars.githubusercontent.com/u/164102380?s=400&u=01a13a7b4f0c642f7e547b8e1d70440ea06fa750&v=4",
+          },
+        ]);
+
+        audio.play();
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [audio]);
+
+  useEffect(() => {
     const unsubscribe = window.electron.onAchievementUnlocked(
       (_object, _shop, achievements) => {
         if (!achievements || !achievements.length) return;
