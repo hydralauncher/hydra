@@ -12,8 +12,8 @@ export class GameAchievement {
   shop: string;
 
   @Column("text", { nullable: true })
-  unlockedAchievements: string;
+  unlockedAchievements: string | null;
 
   @Column("text", { nullable: true })
-  achievements: string;
+  achievements: string | null;
 }

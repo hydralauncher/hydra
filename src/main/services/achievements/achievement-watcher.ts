@@ -25,21 +25,24 @@ const watchAchievementsWindows = async () => {
   });
 
   if (games.length === 0) return;
+
   const achievementFiles = findAllAchievementFiles();
 
   for (const game of games) {
+    const gameAchievementFiles: AchievementFile[] = [];
+
     for (const objectId of getAlternativeObjectIds(game.objectID)) {
-      const gameAchievementFiles = achievementFiles.get(objectId) || [];
-      const achievementFileInsideDirectory =
-        findAchievementFileInExecutableDirectory(game);
+      gameAchievementFiles.push(...(achievementFiles.get(objectId) || []));
 
-      gameAchievementFiles.push(...achievementFileInsideDirectory);
+      gameAchievementFiles.push(
+        ...findAchievementFileInExecutableDirectory(game)
+      );
+    }
 
-      if (!gameAchievementFiles.length) continue;
+    if (!gameAchievementFiles.length) continue;
 
-      for (const file of gameAchievementFiles) {
-        compareFile(game, file);
-      }
+    for (const file of gameAchievementFiles) {
+      await compareFile(game, file);
     }
   }
 };
@@ -64,7 +67,7 @@ const watchAchievementsWithWine = async () => {
     if (!gameAchievementFiles.length) continue;
 
     for (const file of gameAchievementFiles) {
-      compareFile(game, file);
+      await compareFile(game, file);
     }
   }
 };

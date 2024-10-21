@@ -13,12 +13,12 @@ const getAppDataPath = () => {
 
   const user = app.getPath("home").split("/").pop();
 
-  return path.join("drive_c", "users", user || "", "AppData", "Roaming");
+  return path.join("drive_c", "Users", user || "", "AppData", "Roaming");
 };
 
 const getDocumentsPath = () => {
   if (process.platform === "win32") {
-    return app.getPath("appData");
+    return app.getPath("documents");
   }
 
   const user = app.getPath("home").split("/").pop();
@@ -28,11 +28,10 @@ const getDocumentsPath = () => {
 
 const getPublicDocumentsPath = () => {
   if (process.platform === "win32") {
-    return app.getPath("appData");
+    return path.join("C:", "Users", "Public", "Documents");
   }
-  // /media/jackenx/JED2/.newprefix/dosdevices/c:/users/Public/Documents/Steam/CODEX/489830
 
-  return path.join("drive_c", "users", "Public", "Documents");
+  return path.join("drive_c", "Users", "Public", "Documents");
 };
 
 const getLocalAppDataPath = () => {
