@@ -162,6 +162,7 @@ declare global {
 
     /* Misc */
     openExternal: (src: string) => Promise<void>;
+    openCheckout: () => Promise<void>;
     getVersion: () => Promise<string>;
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
