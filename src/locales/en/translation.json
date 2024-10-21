@@ -148,7 +148,19 @@
     "backup_deleted": "Backup deleted",
     "backup_restored": "Backup restored",
     "see_all_achievements": "See all achievements",
-    "sign_in_to_see_achievements": "Sign in to see achievements"
+    "sign_in_to_see_achievements": "Sign in to see achievements",
+    "mapping_method_automatic": "Automatic",
+    "mapping_method_manual": "Manual",
+    "mapping_method_label": "Mapping method",
+    "files_automatically_mapped": "Files automatically mapped",
+    "no_backups_created": "No backups created for this game",
+    "manage_files": "Manage files",
+    "loading_save_preview": "Searching for save games…",
+    "wine_prefix": "Wine Prefix",
+    "wine_prefix_description": "The Wine prefix used to run this game",
+    "no_download_option_info": "No information available",
+    "backup_deletion_failed": "Failed to delete backup",
+    "max_number_of_artifacts_reached": "Maximum number of backups reached for this game"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -333,7 +345,9 @@
     "report_reason_spam": "Spam",
     "report_reason_other": "Other",
     "profile_reported": "Profile reported",
-    "your_friend_code": "Your friend code:"
+    "your_friend_code": "Your friend code:",
+    "upload_banner": "Upload banner",
+    "uploading_banner": "Uploading banner…"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",

@@ -34,6 +34,7 @@ export default function Home() {
   >({
     [CatalogueCategory.Hot]: [],
     [CatalogueCategory.Weekly]: [],
+    [CatalogueCategory.Achievements]: [],
   });
 
   const getCatalogue = useCallback((category: CatalogueCategory) => {

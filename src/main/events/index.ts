@@ -67,6 +67,7 @@ import "./cloud-save/upload-save-game";
 import "./cloud-save/delete-game-artifact";
 import "./notifications/publish-new-repacks-notification";
 import { isPortableVersion } from "@main/helpers";
+import "./misc/show-item-in-folder";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => appVersion);

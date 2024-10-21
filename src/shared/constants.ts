@@ -14,6 +14,7 @@ export enum DownloadSourceStatus {
 export enum CatalogueCategory {
   Hot = "hot",
   Weekly = "weekly",
+  Achievements = "achievements",
 }
 
 export enum SteamContentDescriptor {
