@@ -1,6 +1,6 @@
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
-import { FriendRequestAction } from "@types";
+import type { FriendRequestAction } from "@types";
 
 const updateFriendRequest = async (
   _event: Electron.IpcMainInvokeEvent,

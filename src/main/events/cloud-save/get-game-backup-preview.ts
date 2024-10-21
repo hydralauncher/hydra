@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import { GameShop } from "@types";
+import type { GameShop } from "@types";
 import { Ludusavi } from "@main/services";
 import path from "node:path";
 import { backupsPath } from "@main/constants";

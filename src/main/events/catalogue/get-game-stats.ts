@@ -1,8 +1,6 @@
-import type { GameShop } from "@types";
-
+import type { GameShop, GameStats } from "@types";
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
-import type { GameStats } from "@types";
 
 const getGameStats = async (
   _event: Electron.IpcMainInvokeEvent,

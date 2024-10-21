@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import * as tar from "tar";
 import crypto from "node:crypto";
-import { GameShop } from "@types";
+import type { GameShop } from "@types";
 import axios from "axios";
 import os from "node:os";
 import { backupsPath } from "@main/constants";

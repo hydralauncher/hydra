@@ -3,8 +3,8 @@ import { style } from "@vanilla-extract/css";
 import { recipe } from "@vanilla-extract/recipes";
 
 export const HERO_HEIGHT = 150;
-export const LOGO_HEIGHT = 100;
-export const LOGO_MAX_WIDTH = 200;
+const LOGO_HEIGHT = 100;
+const LOGO_MAX_WIDTH = 200;
 
 export const wrapper = style({
   display: "flex",
@@ -104,6 +104,7 @@ export const list = style({
   gap: `${SPACING_UNIT * 2}px`,
   padding: `${SPACING_UNIT * 2}px`,
   width: "100%",
+  backgroundColor: vars.color.background,
 });
 
 export const listItem = style({
@@ -162,12 +163,7 @@ export const heroLogoBackdrop = style({
 });
 
 export const heroImageSkeleton = style({
-  height: "300px",
-  "@media": {
-    "(min-width: 1250px)": {
-      height: "350px",
-    },
-  },
+  height: "150px",
 });
 
 export const heroPanelSkeleton = style({

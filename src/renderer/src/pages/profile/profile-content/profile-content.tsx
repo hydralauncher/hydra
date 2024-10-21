@@ -14,7 +14,7 @@ import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
 import { FriendsBox } from "./friends-box";
 import { RecentGamesBox } from "./recent-games-box";
-import { UserGame } from "@types";
+import type { UserGame } from "@types";
 import {
   buildGameAchievementPath,
   buildGameDetailsPath,

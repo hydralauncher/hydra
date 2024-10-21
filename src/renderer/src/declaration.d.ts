@@ -66,11 +66,6 @@ declare global {
     searchGameRepacks: (query: string) => Promise<GameRepack[]>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getTrendingGames: () => Promise<TrendingGame[]>;
-    getGameAchievements: (
-      objectId: string,
-      shop: GameShop,
-      userId?: string
-    ) => Promise<UserAchievement[]>;
     onAchievementUnlocked: (
       cb: (
         objectId: string,
@@ -208,6 +203,10 @@ declare global {
       shop: GameShop,
       userId: string
     ) => Promise<ComparedAchievements>;
+    getUnlockedAchievements: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<UserAchievement[]>;
 
     /* Profile */
     getMe: () => Promise<UserDetails | null>;

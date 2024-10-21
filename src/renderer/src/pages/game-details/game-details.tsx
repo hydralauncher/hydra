@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import { GameRepack, GameShop, Steam250Game } from "@types";
+import type { GameRepack, GameShop, Steam250Game } from "@types";
 
 import { Button, ConfirmationModal } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";

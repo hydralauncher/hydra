@@ -11,14 +11,14 @@ import {
 import { LockIcon, PersonIcon, TrophyIcon } from "@primer/octicons-react";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { gameDetailsContext } from "@renderer/context";
-import { ComparedAchievements, UserAchievement } from "@types";
+import type { ComparedAchievements, UserAchievement } from "@types";
 import { average } from "color.js";
 import Color from "color";
 import { Link } from "@renderer/components";
 import { ComparedAchievementList } from "./compared-achievement-list";
 
 interface UserInfo {
-  userId: string;
+  id: string;
   displayName: string;
   profileImageUrl: string | null;
   totalAchievementCount: number;
@@ -43,7 +43,9 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
   const { t } = useTranslation("achievement");
   const { userDetails, hasActiveSubscription } = useUserDetails();
 
-  const getProfileImage = (user: UserInfo) => {
+  const getProfileImage = (
+    user: Pick<UserInfo, "profileImageUrl" | "displayName">
+  ) => {
     return (
       <div className={styles.profileAvatar}>
         {user.profileImageUrl ? (
@@ -59,11 +61,7 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
     );
   };
 
-  if (
-    isComparison &&
-    userDetails?.id == user.userId &&
-    !hasActiveSubscription
-  ) {
+  if (isComparison && userDetails?.id == user.id && !hasActiveSubscription) {
     return (
       <div
         style={{
@@ -213,11 +211,8 @@ export function AchievementsContent({
   const dispatch = useAppDispatch();
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
-
   useEffect(() => {
-    if (gameTitle) {
-      dispatch(setHeaderTitle(gameTitle));
-    }
+    dispatch(setHeaderTitle(gameTitle));
   }, [dispatch, gameTitle]);
 
   const handleHeroLoad = async () => {
@@ -247,16 +242,15 @@ export function AchievementsContent({
   };
 
   const getProfileImage = (
-    profileImageUrl: string | null,
-    displayName: string
+    user: Pick<UserInfo, "profileImageUrl" | "displayName">
   ) => {
     return (
       <div className={styles.profileAvatarSmall}>
-        {profileImageUrl ? (
+        {user.profileImageUrl ? (
           <img
             className={styles.profileAvatarSmall}
-            src={profileImageUrl}
-            alt={displayName}
+            src={user.profileImageUrl}
+            alt={user.displayName}
           />
         ) : (
           <PersonIcon size={24} />
@@ -315,7 +309,6 @@ export function AchievementsContent({
             <AchievementSummary
               user={{
                 ...userDetails,
-                userId: userDetails.id,
                 totalAchievementCount: comparedAchievements
                   ? comparedAchievements.owner.totalAchievementCount
                   : achievements!.length,
@@ -346,36 +339,21 @@ export function AchievementsContent({
               <div></div>
               {hasActiveSubscription && (
                 <div style={{ display: "flex", justifyContent: "center" }}>
-                  {getProfileImage(
-                    userDetails.profileImageUrl,
-                    userDetails.displayName
-                  )}
+                  {getProfileImage({ ...userDetails })}
                 </div>
               )}
               <div style={{ display: "flex", justifyContent: "center" }}>
-                {getProfileImage(
-                  otherUser.profileImageUrl,
-                  otherUser.displayName
-                )}
+                {getProfileImage(otherUser)}
               </div>
             </div>
           </div>
         )}
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            width: "100%",
-            backgroundColor: vars.color.background,
-          }}
-        >
-          {otherUser ? (
-            <ComparedAchievementList achievements={comparedAchievements!} />
-          ) : (
-            <AchievementList achievements={achievements!} />
-          )}
-        </div>
+        {otherUser ? (
+          <ComparedAchievementList achievements={comparedAchievements!} />
+        ) : (
+          <AchievementList achievements={achievements!} />
+        )}
       </section>
     </div>
   );

@@ -1,7 +1,7 @@
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
 import { UserNotLoggedInError } from "@shared";
-import { FriendRequestSync } from "@types";
+import type { FriendRequestSync } from "@types";
 
 const syncFriendRequests = async (_event: Electron.IpcMainInvokeEvent) => {
   return HydraApi.get<FriendRequestSync>(`/profile/friend-requests/sync`).catch(
