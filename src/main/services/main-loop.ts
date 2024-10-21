@@ -1,7 +1,7 @@
 import { sleep } from "@main/helpers";
 import { DownloadManager } from "./download";
 import { watchProcesses } from "./process-watcher";
-import { AchievementWatcherManager } from "./achievements/AchievementWatcherManager";
+import { AchievementWatcherManager } from "./achievements/achievement-watcher-manager";
 
 export const startMainLoop = async () => {
   // eslint-disable-next-line no-constant-condition

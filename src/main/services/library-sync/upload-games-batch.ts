@@ -4,7 +4,7 @@ import { IsNull } from "typeorm";
 import { HydraApi } from "../hydra-api";
 import { mergeWithRemoteGames } from "./merge-with-remote-games";
 import { WindowManager } from "../window-manager";
-import { AchievementWatcherManager } from "../achievements/AchievementWatcherManager";
+import { AchievementWatcherManager } from "../achievements/achievement-watcher-manager";
 
 export const uploadGamesBatch = async () => {
   const games = await gameRepository.find({
@@ -29,7 +29,7 @@ export const uploadGamesBatch = async () => {
 
   await mergeWithRemoteGames();
 
-  await AchievementWatcherManager.preSearchAchievements();
+  AchievementWatcherManager.preSearchAchievements();
 
   if (WindowManager.mainWindow)
     WindowManager.mainWindow.webContents.send("on-library-batch-complete");
