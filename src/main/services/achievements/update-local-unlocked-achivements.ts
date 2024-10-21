@@ -28,5 +28,5 @@ export const updateLocalUnlockedAchivements = async (game: Game) => {
     }
   }
 
-  mergeAchievements(game.objectID, "steam", unlockedAchievements, false);
+  mergeAchievements(game, unlockedAchievements, false);
 };
