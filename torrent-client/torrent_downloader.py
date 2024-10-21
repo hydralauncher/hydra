@@ -144,8 +144,8 @@ class TorrentDownloader:
 
         status = torrent_handle.status()
         info = torrent_handle.get_torrent_info()
-
-        return {
+        
+        response = {
             'folderName': info.name() if info else "",
             'fileSize': info.total_size() if info else 0,
             'gameId': self.downloading_game_id,
@@ -156,3 +156,10 @@ class TorrentDownloader:
             'status': status.state,
             'bytesDownloaded': status.progress * info.total_size() if info else status.all_time_download,
         }
+
+        if status.progress == 1:
+            torrent_handle.pause()
+            self.session.remove_torrent(torrent_handle)
+            self.downloading_game_id = -1
+
+        return response

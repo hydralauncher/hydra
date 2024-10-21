@@ -2,7 +2,7 @@ import { IsNull, Not } from "typeorm";
 import { gameRepository } from "@main/repository";
 import { WindowManager } from "./window-manager";
 import { createGame, updateGamePlaytime } from "./library-sync";
-import { GameRunning } from "@types";
+import type { GameRunning } from "@types";
 import { PythonInstance } from "./download";
 import { Game } from "@main/entity";
 
@@ -25,12 +25,12 @@ export const watchProcesses = async () => {
   if (games.length === 0) return;
   const processes = await PythonInstance.getProcessList();
 
+  const processSet = new Set(processes.map((process) => process.exe));
+
   for (const game of games) {
     const executablePath = game.executablePath!;
 
-    const gameProcess = processes.find((runningProcess) => {
-      return executablePath == runningProcess.exe;
-    });
+    const gameProcess = processSet.has(executablePath);
 
     if (gameProcess) {
       if (gamesPlaytime.has(game.id)) {

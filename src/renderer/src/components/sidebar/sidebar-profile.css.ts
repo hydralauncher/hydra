@@ -31,19 +31,6 @@ export const profileButtonContent = style({
   width: "100%",
 });
 
-export const profileAvatar = style({
-  width: "35px",
-  height: "35px",
-  borderRadius: "4px",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  backgroundColor: vars.color.background,
-  border: `solid 1px ${vars.color.border}`,
-  position: "relative",
-  objectFit: "cover",
-});
-
 export const profileButtonInformation = style({
   display: "flex",
   flexDirection: "column",

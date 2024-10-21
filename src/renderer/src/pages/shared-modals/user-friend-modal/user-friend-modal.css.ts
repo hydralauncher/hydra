@@ -1,20 +1,6 @@
 import { SPACING_UNIT, vars } from "../../../theme.css";
 import { style } from "@vanilla-extract/css";
 
-export const friendAvatarContainer = style({
-  width: "35px",
-  minWidth: "35px",
-  height: "35px",
-  borderRadius: "50%",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  backgroundColor: vars.color.background,
-  overflow: "hidden",
-  border: `solid 1px ${vars.color.border}`,
-  boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.7)",
-});
-
 export const friendListDisplayName = style({
   fontWeight: "bold",
   fontSize: vars.size.body,
@@ -22,12 +8,6 @@ export const friendListDisplayName = style({
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-});
-
-export const profileAvatar = style({
-  height: "100%",
-  width: "100%",
-  objectFit: "cover",
 });
 
 export const friendListContainer = style({

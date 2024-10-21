@@ -1,4 +1,4 @@
-import { app, BrowserWindow, net, protocol, session } from "electron";
+import { app, BrowserWindow, net, protocol } from "electron";
 import { init } from "@sentry/electron/main";
 import updater from "electron-updater";
 import i18n from "i18next";
@@ -102,47 +102,8 @@ app.whenReady().then(async () => {
   }
 
   WindowManager.createMainWindow();
+  WindowManager.createNotificationWindow();
   WindowManager.createSystemTray(userPreferences?.language || "en");
-
-  session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
-    callback({
-      requestHeaders: {
-        ...details.requestHeaders,
-        "user-agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-      },
-    });
-  });
-
-  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    const headers = {
-      "access-control-allow-origin": ["*"],
-      "access-control-allow-methods": ["GET, POST, PUT, DELETE, OPTIONS"],
-      "access-control-expose-headers": ["ETag"],
-      "access-control-allow-headers": [
-        "Content-Type, Authorization, X-Requested-With, If-None-Match",
-      ],
-      "access-control-allow-credentials": ["true"],
-    };
-
-    if (details.method === "OPTIONS") {
-      callback({
-        cancel: false,
-        responseHeaders: {
-          ...details.responseHeaders,
-          ...headers,
-        },
-        statusLine: "HTTP/1.1 200 OK",
-      });
-    } else {
-      callback({
-        responseHeaders: {
-          ...details.responseHeaders,
-          ...headers,
-        },
-      });
-    }
-  });
 });
 
 app.on("browser-window-created", (_, window) => {
