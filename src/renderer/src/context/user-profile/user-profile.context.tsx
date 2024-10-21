@@ -13,8 +13,9 @@ export interface UserProfileContext {
   /* Indicates if the current user is viewing their own profile */
   isMe: boolean;
   userStats: UserStats | null;
-
   getUserProfile: () => Promise<void>;
+  setSelectedBackgroundImage: React.Dispatch<React.SetStateAction<string>>;
+  backgroundImage: string;
 }
 
 export const DEFAULT_USER_PROFILE_BACKGROUND = "#151515B3";
@@ -25,6 +26,8 @@ export const userProfileContext = createContext<UserProfileContext>({
   isMe: false,
   userStats: null,
   getUserProfile: async () => {},
+  setSelectedBackgroundImage: () => {},
+  backgroundImage: "",
 });
 
 const { Provider } = userProfileContext;
@@ -47,6 +50,9 @@ export function UserProfileContextProvider({
   const [heroBackground, setHeroBackground] = useState(
     DEFAULT_USER_PROFILE_BACKGROUND
   );
+  const [selectedBackgroundImage, setSelectedBackgroundImage] = useState("");
+
+  const isMe = userDetails?.id === userProfile?.id;
 
   const getHeroBackgroundFromImageUrl = async (imageUrl: string) => {
     const output = await average(imageUrl, {
@@ -55,6 +61,14 @@ export function UserProfileContextProvider({
     });
 
     return `linear-gradient(135deg, ${darkenColor(output as string, 0.5)}, ${darkenColor(output as string, 0.6, 0.5)})`;
+  };
+
+  const getBackgroundImageUrl = () => {
+    if (selectedBackgroundImage && isMe)
+      return `local:${selectedBackgroundImage}`;
+    if (userProfile?.backgroundImageUrl) return userProfile.backgroundImageUrl;
+
+    return "";
   };
 
   const { t } = useTranslation("user_profile");
@@ -99,8 +113,10 @@ export function UserProfileContextProvider({
       value={{
         userProfile,
         heroBackground,
-        isMe: userDetails?.id === userProfile?.id,
+        isMe,
         getUserProfile,
+        setSelectedBackgroundImage,
+        backgroundImage: getBackgroundImageUrl(),
         userStats,
       }}
     >

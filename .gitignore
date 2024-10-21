@@ -1,5 +1,5 @@
-.vscode
-node_modules
+.vscode/
+node_modules/
 hydra-download-manager/
 fastlist.exe
 __pycache__
@@ -10,3 +10,4 @@ out
 .env
 .vite
 sentry.properties
+ludusavi/

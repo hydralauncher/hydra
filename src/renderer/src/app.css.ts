@@ -26,6 +26,10 @@ globalStyle("::-webkit-scrollbar-thumb", {
   borderRadius: "24px",
 });
 
+globalStyle("::-webkit-scrollbar-thumb:hover", {
+  backgroundColor: "rgba(255, 255, 255, 0.16)",
+});
+
 globalStyle("html, body, #root, main", {
   height: "100%",
 });
@@ -35,7 +39,6 @@ globalStyle("body", {
   userSelect: "none",
   fontFamily: "Noto Sans, sans-serif",
   fontSize: vars.size.body,
-  background: vars.color.background,
   color: vars.color.body,
   margin: "0",
 });
