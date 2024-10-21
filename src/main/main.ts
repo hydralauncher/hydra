@@ -23,7 +23,7 @@ const loadState = async (userPreferences: UserPreferences | null) => {
 
   Ludusavi.addManifestToLudusaviConfig();
 
-  HydraApi.setupApi().then(async () => {
+  await HydraApi.setupApi().then(async () => {
     await getUserData().catch(() => {});
     uploadGamesBatch();
   });
