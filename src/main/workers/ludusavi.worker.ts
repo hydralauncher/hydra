@@ -35,7 +35,7 @@ export const backupGame = ({
   preview?: boolean;
   winePrefix?: string;
 }) => {
-  const args = ["backup", title, "--api", "--force"];
+  const args = ["backup", `"${title}"`, "--api", "--force"];
 
   if (preview) args.push("--preview");
   if (backupPath) args.push("--path", backupPath);
