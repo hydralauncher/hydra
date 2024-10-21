@@ -98,7 +98,7 @@ const iniParse = (filePath: string) => {
     return object;
   } catch (err) {
     achievementsLogger.error(`Error parsing ${filePath}`, err);
-    return null;
+    return {};
   }
 };
 
@@ -107,7 +107,7 @@ const jsonParse = (filePath: string) => {
     return JSON.parse(readFileSync(filePath, "utf-8"));
   } catch (err) {
     achievementsLogger.error(`Error parsing ${filePath}`, err);
-    return null;
+    return {};
   }
 };
 
