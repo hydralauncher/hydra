@@ -135,12 +135,7 @@ const processAchievementFileDiff = async (
   const unlockedAchievements = parseAchievementFile(file.filePath, file.type);
 
   if (unlockedAchievements.length) {
-    return mergeAchievements(
-      game.objectID,
-      game.shop,
-      unlockedAchievements,
-      true
-    );
+    return mergeAchievements(game, unlockedAchievements, true);
   }
 };
 
@@ -187,12 +182,7 @@ export class AchievementWatcherManager {
       }
     }
 
-    return mergeAchievements(
-      game.objectID,
-      "steam",
-      unlockedAchievements,
-      false
-    );
+    return mergeAchievements(game, unlockedAchievements, false);
   };
 
   private static preSearchAchievementsWindows = async () => {

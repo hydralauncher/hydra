@@ -1,12 +1,12 @@
 import {
   gameAchievementRepository,
-  gameRepository,
   userPreferencesRepository,
 } from "@main/repository";
 import type { AchievementData, GameShop, UnlockedAchievement } from "@types";
 import { WindowManager } from "../window-manager";
 import { HydraApi } from "../hydra-api";
 import { getUnlockedAchievements } from "@main/events/user/get-unlocked-achievements";
+import { Game } from "@main/entity";
 
 const saveAchievementsOnLocal = async (
   objectId: string,
@@ -38,22 +38,15 @@ const saveAchievementsOnLocal = async (
 };
 
 export const mergeAchievements = async (
-  objectId: string,
-  shop: GameShop,
+  game: Game,
   achievements: UnlockedAchievement[],
   publishNotification: boolean
 ) => {
-  const game = await gameRepository.findOne({
-    where: { objectID: objectId, shop: shop },
-  });
-
-  if (!game) return;
-
   const [localGameAchievement, userPreferences] = await Promise.all([
     gameAchievementRepository.findOne({
       where: {
-        objectId,
-        shop,
+        objectId: game.objectID,
+        shop: game.shop,
       },
     }),
     userPreferencesRepository.findOne({ where: { id: 1 } }),
@@ -115,8 +108,8 @@ export const mergeAchievements = async (
 
     WindowManager.notificationWindow?.webContents.send(
       "on-achievement-unlocked",
-      objectId,
-      shop,
+      game.objectID,
+      game.shop,
       achievementsInfo
     );
   }
@@ -142,8 +135,8 @@ export const mergeAchievements = async (
       })
       .catch(() => {
         return saveAchievementsOnLocal(
-          objectId,
-          shop,
+          game.objectID,
+          game.shop,
           mergedLocalAchievements,
           publishNotification
         );
@@ -151,8 +144,8 @@ export const mergeAchievements = async (
   }
 
   return saveAchievementsOnLocal(
-    objectId,
-    shop,
+    game.objectID,
+    game.shop,
     mergedLocalAchievements,
     publishNotification
   );
