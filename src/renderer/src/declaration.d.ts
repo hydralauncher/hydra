@@ -171,6 +171,7 @@ declare global {
     showOpenDialog: (
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
+    showItemInFolder: (path: string) => Promise<void>;
     platform: NodeJS.Platform;
 
     /* Auto update */
