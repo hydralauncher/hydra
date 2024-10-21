@@ -44,7 +44,7 @@ export function GameCard({ game, ...props }: GameCardProps) {
 
   const handleHover = useCallback(() => {
     if (!stats) {
-      window.electron.getGameStats(game.objectID, game.shop).then((stats) => {
+      window.electron.getGameStats(game.objectId, game.shop).then((stats) => {
         setStats(stats);
       });
     }
@@ -60,7 +60,12 @@ export function GameCard({ game, ...props }: GameCardProps) {
       onMouseEnter={handleHover}
     >
       <div className={styles.backdrop}>
-        <img src={game.cover} alt={game.title} className={styles.cover} />
+        <img
+          src={game.cover}
+          alt={game.title}
+          className={styles.cover}
+          loading="lazy"
+        />
 
         <div className={styles.content}>
           <div className={styles.titleContainer}>

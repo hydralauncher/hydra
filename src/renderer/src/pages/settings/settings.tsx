@@ -15,7 +15,7 @@ import { SettingsPrivacy } from "./settings-privacy";
 import { useUserDetails } from "@renderer/hooks";
 import { useMemo } from "react";
 
-export function Settings() {
+export default function Settings() {
   const { t } = useTranslation("settings");
 
   const { userDetails } = useUserDetails();

@@ -4,6 +4,7 @@ import { style } from "@vanilla-extract/css";
 export const profileContentBox = style({
   display: "flex",
   flexDirection: "column",
+  position: "relative",
 });
 
 export const profileAvatarButton = style({
@@ -15,12 +16,12 @@ export const profileAvatarButton = style({
   justifyContent: "center",
   alignItems: "center",
   backgroundColor: vars.color.background,
-  overflow: "hidden",
   border: `solid 1px ${vars.color.border}`,
   boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.7)",
   cursor: "pointer",
   transition: "all ease 0.3s",
   color: vars.color.muted,
+  position: "relative",
   ":hover": {
     boxShadow: "0px 0px 10px 0px rgba(0, 0, 0, 0.7)",
   },
@@ -51,6 +52,7 @@ export const profileDisplayName = style({
   display: "flex",
   alignItems: "center",
   position: "relative",
+  textShadow: "0 0 5px rgb(0 0 0 / 40%)",
 });
 
 export const heroPanel = style({
@@ -61,7 +63,7 @@ export const heroPanel = style({
   display: "flex",
   gap: `${SPACING_UNIT}px`,
   justifyContent: "space-between",
-  backdropFilter: `blur(10px)`,
+  backdropFilter: `blur(15px)`,
   borderTop: `solid 1px rgba(255, 255, 255, 0.1)`,
   boxShadow: "0px 0px 15px 0px rgba(0, 0, 0, 0.5)",
   backgroundColor: "rgba(0, 0, 0, 0.3)",
@@ -69,7 +71,7 @@ export const heroPanel = style({
 
 export const userInformation = style({
   display: "flex",
-  padding: `${SPACING_UNIT * 4}px ${SPACING_UNIT * 3}px`,
+  padding: `${SPACING_UNIT * 7}px ${SPACING_UNIT * 3}px`,
   alignItems: "center",
   gap: `${SPACING_UNIT * 2}px`,
 });

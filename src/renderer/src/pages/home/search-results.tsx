@@ -17,7 +17,7 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 
 import { vars } from "@renderer/theme.css";
 
-export function SearchResults() {
+export default function SearchResults() {
   const dispatch = useAppDispatch();
 
   const { t } = useTranslation("home");
@@ -115,7 +115,7 @@ export function SearchResults() {
             <>
               {searchResults.map((game) => (
                 <GameCard
-                  key={game.objectID}
+                  key={game.objectId}
                   game={game}
                   onClick={() => handleGameClick(game)}
                 />
