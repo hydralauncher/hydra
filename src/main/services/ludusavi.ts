@@ -7,9 +7,6 @@ import path from "node:path";
 import YAML from "yaml";
 
 import ludusaviWorkerPath from "../workers/ludusavi.worker?modulePath";
-import axios from "axios";
-
-let a: Record<string, string> | null = null;
 
 export class Ludusavi {
   private static ludusaviPath = path.join(app.getPath("appData"), "ludusavi");
@@ -65,26 +62,14 @@ export class Ludusavi {
   }
 
   static async getBackupPreview(
-    _shop: GameShop,
+    shop: GameShop,
     objectId: string,
     backupPath: string
   ): Promise<LudusaviBackup | null> {
-    if (!a) {
-      await axios
-        .get(
-          "https://gist.githubusercontent.com/thegrannychaseroperation/b23d53e654e3ea060066a5c01b0cacc8/raw/57bf254a1c99dab9315136f660ff7b3d547de215/keys.json"
-        )
-        .then((response) => {
-          a = response.data;
-          return response.data;
-        });
-    }
+    const games = await this.findGames(shop, objectId);
 
-    const game = a?.[objectId];
-
-    // if (!games.length) return null;
-
-    // const [game] = games;
+    if (!games.length) return null;
+    const [game] = games;
 
     const backupData = await this.worker.run(
       { title: game, backupPath, preview: true },

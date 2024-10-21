@@ -14,7 +14,6 @@ import type {
   UserDetails,
 } from "@types";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
-import { gameBackupsTable } from "@renderer/dexie";
 
 export function useUserDetails() {
   const dispatch = useAppDispatch();
@@ -33,7 +32,6 @@ export function useUserDetails() {
     dispatch(setUserDetails(null));
     dispatch(setProfileBackground(null));
 
-    await gameBackupsTable.clear();
     window.localStorage.removeItem("userDetails");
   }, [dispatch]);
 
@@ -130,7 +128,7 @@ export function useUserDetails() {
   const unblockUser = (userId: string) => window.electron.unblockUser(userId);
 
   const hasActiveSubscription = useMemo(() => {
-    if (!userDetails?.subscription) {
+    if (!userDetails?.subscription?.plan) {
       return false;
     }
 

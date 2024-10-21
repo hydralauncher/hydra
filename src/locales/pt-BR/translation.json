@@ -5,9 +5,9 @@
   },
   "home": {
     "featured": "Destaques",
-    "trending": "Populares",
-    "hot": "Populares agora",
+    "hot": "Populares",
     "weekly": "📅 Mais baixados da semana",
+    "achievements": "🏆 Pra platinar",
     "surprise_me": "Surpreenda-me",
     "no_results": "Nenhum resultado encontrado",
     "start_typing": "Comece a digitar para pesquisar…"
@@ -144,7 +144,19 @@
     "backup_deleted": "Backup apagado",
     "backup_restored": "Backup restaurado",
     "see_all_achievements": "Ver todas as conquistas",
-    "sign_in_to_see_achievements": "Faça login para ver as conquistas"
+    "sign_in_to_see_achievements": "Faça login para ver as conquistas",
+    "mapping_method_automatic": "Automático",
+    "mapping_method_manual": "Manual",
+    "mapping_method_label": "Método de mapeamento",
+    "files_automatically_mapped": "Arquivos automaticamente mapeados",
+    "no_backups_created": "Nenhum backup criado para este jogo",
+    "manage_files": "Gerenciar arquivos",
+    "loading_save_preview": "Buscando por arquivos de salvamento…",
+    "wine_prefix": "Prefixo Wine",
+    "wine_prefix_description": "O prefixo Wine que foi utilizado para instalar o jogo",
+    "no_download_option_info": "Sem informações disponíveis",
+    "backup_deletion_failed": "Falha ao apagar backup",
+    "max_number_of_artifacts_reached": "Número máximo de backups atingido para este jogo"
   },
   "activation": {
     "title": "Ativação",
@@ -335,7 +347,9 @@
     "report_reason_spam": "Spam",
     "report_reason_other": "Outro",
     "profile_reported": "Perfil reportado",
-    "your_friend_code": "Seu código de amigo:"
+    "your_friend_code": "Seu código de amigo:",
+    "upload_banner": "Carregar banner",
+    "uploading_banner": "Carregando banner…"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",

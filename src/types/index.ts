@@ -237,7 +237,7 @@ export type SubscriptionStatus = "active" | "pending" | "cancelled";
 export interface Subscription {
   id: string;
   status: SubscriptionStatus;
-  plan: { id: string; name: string };
+  plan: { id: string; name: "basic" | "plus" };
   expiresAt: Date | null;
 }
 
