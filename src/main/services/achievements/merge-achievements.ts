@@ -7,6 +7,7 @@ import { WindowManager } from "../window-manager";
 import { HydraApi } from "../hydra-api";
 import { getUnlockedAchievements } from "@main/events/user/get-unlocked-achievements";
 import { Game } from "@main/entity";
+import { achievementsLogger } from "../logger";
 
 const saveAchievementsOnLocal = async (
   objectId: string,
@@ -117,6 +118,12 @@ export const mergeAchievements = async (
   const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);
 
   if (game.remoteId) {
+    achievementsLogger.log(
+      "Syncing achievements with cloud",
+      game.title,
+      game.objectID,
+      game.remoteId
+    );
     await HydraApi.put(
       "/profile/games/achievements",
       {
@@ -133,7 +140,8 @@ export const mergeAchievements = async (
           publishNotification
         );
       })
-      .catch(() => {
+      .catch((err) => {
+        achievementsLogger.error(err);
         return saveAchievementsOnLocal(
           game.objectID,
           game.shop,

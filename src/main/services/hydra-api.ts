@@ -44,7 +44,8 @@ export class HydraApi {
     return userSubscriptionRepository
       .findOne({ where: { id: 1 } })
       .then((userSubscription) => {
-        if (userSubscription?.status !== "active") return false;
+        if (!userSubscription) return false;
+
         return (
           !userSubscription.expiresAt ||
           userSubscription!.expiresAt > new Date()
