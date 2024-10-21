@@ -27,6 +27,7 @@ export const profileAvatarEditOverlay = style({
   justifyContent: "center",
   transition: "all ease 0.2s",
   alignItems: "center",
+  borderRadius: "4px",
   opacity: "0",
 });
 
