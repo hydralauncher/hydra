@@ -12,7 +12,6 @@ import { UserPreferences } from "./entity";
 import { RealDebridClient } from "./services/real-debrid";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
-import { getUserData } from "./services/user/get-user-data";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
   import("./events");
@@ -23,8 +22,7 @@ const loadState = async (userPreferences: UserPreferences | null) => {
 
   Ludusavi.addManifestToLudusaviConfig();
 
-  await HydraApi.setupApi().then(async () => {
-    await getUserData().catch(() => {});
+  HydraApi.setupApi().then(() => {
     uploadGamesBatch();
   });
 
