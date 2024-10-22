@@ -7,6 +7,7 @@ import path from "node:path";
 import YAML from "yaml";
 
 import ludusaviWorkerPath from "../workers/ludusavi.worker?modulePath";
+import { LUDUSAVI_MANIFEST_URL } from "@main/constants";
 
 export class Ludusavi {
   private static ludusaviPath = path.join(app.getPath("appData"), "ludusavi");
@@ -25,15 +26,6 @@ export class Ludusavi {
     },
   });
 
-  static async findGames(shop: GameShop, objectId: string): Promise<string[]> {
-    const games = await this.worker.run(
-      { objectId, shop },
-      { name: "findGames" }
-    );
-
-    return games;
-  }
-
   static async getConfig() {
     if (!fs.existsSync(this.ludusaviConfigPath)) {
       await this.worker.run(undefined, { name: "generateConfig" });
@@ -47,36 +39,36 @@ export class Ludusavi {
   }
 
   static async backupGame(
-    shop: GameShop,
+    _shop: GameShop,
     objectId: string,
     backupPath: string,
     winePrefix?: string | null
   ): Promise<LudusaviBackup> {
-    const games = await this.findGames(shop, objectId);
-    if (!games.length) throw new Error("Game not found");
-
     return this.worker.run(
-      { title: games[0], backupPath, winePrefix },
+      { title: objectId, backupPath, winePrefix },
       { name: "backupGame" }
     );
   }
 
   static async getBackupPreview(
-    shop: GameShop,
-    objectId: string,
-    backupPath: string
+    _shop: GameShop,
+    objectId: string
   ): Promise<LudusaviBackup | null> {
-    const games = await this.findGames(shop, objectId);
-
-    if (!games.length) return null;
-    const [game] = games;
+    const config = await this.getConfig();
 
     const backupData = await this.worker.run(
-      { title: game, backupPath, preview: true },
+      { title: objectId, preview: true },
       { name: "backupGame" }
     );
 
-    return backupData;
+    const customGame = config.customGames.find(
+      (game) => game.name === objectId
+    );
+
+    return {
+      ...backupData,
+      customBackupPath: customGame?.files[0] || null,
+    };
   }
 
   static async restoreBackup(backupPath: string) {
@@ -87,24 +79,24 @@ export class Ludusavi {
     const config = await this.getConfig();
 
     config.manifest.enable = false;
-    config.manifest.secondary = [
-      { url: "https://cdn.losbroxas.org/manifest.yaml", enable: true },
-    ];
+    config.manifest.secondary = [{ url: LUDUSAVI_MANIFEST_URL, enable: true }];
 
     fs.writeFileSync(this.ludusaviConfigPath, YAML.stringify(config));
   }
 
-  static async addCustomGame(title: string, savePath: string) {
+  static async addCustomGame(title: string, savePath: string | null) {
     const config = await this.getConfig();
     const filteredGames = config.customGames.filter(
       (game) => game.name !== title
     );
 
-    filteredGames.push({
-      name: title,
-      files: [savePath],
-      registry: [],
-    });
+    if (savePath) {
+      filteredGames.push({
+        name: title,
+        files: [savePath],
+        registry: [],
+      });
+    }
 
     config.customGames = filteredGames;
     fs.writeFileSync(this.ludusaviConfigPath, YAML.stringify(config));

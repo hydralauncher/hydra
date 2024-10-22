@@ -169,6 +169,7 @@ export function CloudSyncContextProvider({
     setShowCloudSyncModal(false);
     setRestoringBackup(false);
     setUploadingBackup(false);
+    setLoadingPreview(false);
   }, [objectId, shop]);
 
   const backupState = useMemo(() => {

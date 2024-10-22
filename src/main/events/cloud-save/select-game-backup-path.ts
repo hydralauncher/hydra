@@ -2,12 +2,13 @@ import { registerEvent } from "../register-event";
 import type { GameShop } from "@types";
 import { Ludusavi } from "@main/services";
 
-const getGameBackupPreview = async (
+const selectGameBackupPath = async (
   _event: Electron.IpcMainInvokeEvent,
+  _shop: GameShop,
   objectId: string,
-  shop: GameShop
+  backupPath: string | null
 ) => {
-  return Ludusavi.getBackupPreview(shop, objectId);
+  return Ludusavi.addCustomGame(objectId, backupPath);
 };
 
-registerEvent("getGameBackupPreview", getGameBackupPreview);
+registerEvent("selectGameBackupPath", selectGameBackupPath);

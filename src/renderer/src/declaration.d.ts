@@ -144,6 +144,11 @@ declare global {
       shop: GameShop
     ) => Promise<LudusaviBackup | null>;
     deleteGameArtifact: (gameArtifactId: string) => Promise<{ ok: boolean }>;
+    selectGameBackupPath: (
+      shop: GameShop,
+      objectId: string,
+      backupPath: string | null
+    ) => Promise<void>;
     onBackupDownloadComplete: (
       objectId: string,
       shop: GameShop,
