@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import achievementSound from "@renderer/assets/audio/achievement.wav";
 import { useTranslation } from "react-i18next";
 import * as styles from "./achievement-notification.css";
@@ -24,11 +24,10 @@ export function AchievementNotification() {
   const closingAnimation = useRef(-1);
   const visibleAnimation = useRef(-1);
 
-  const audio = useMemo(() => {
+  const playAudio = useCallback(() => {
     const audio = new Audio(achievementSound);
     audio.volume = 0.2;
-    audio.preload = "auto";
-    return audio;
+    audio.play();
   }, []);
 
   useEffect(() => {
@@ -47,14 +46,14 @@ export function AchievementNotification() {
           },
         ]);
 
-        audio.play();
+        playAudio();
       }
     );
 
     return () => {
       unsubscribe();
     };
-  }, [audio]);
+  }, [playAudio]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onAchievementUnlocked(
@@ -63,14 +62,14 @@ export function AchievementNotification() {
 
         setAchievements((ach) => ach.concat(achievements));
 
-        audio.play();
+        playAudio();
       }
     );
 
     return () => {
       unsubscribe();
     };
-  }, [audio]);
+  }, [playAudio]);
 
   const hasAchievementsPending = achievements.length > 0;
 
