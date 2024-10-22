@@ -39,7 +39,7 @@ export function UploadBackgroundImageButton() {
 
         await patchUser({ backgroundImageUrl: path });
 
-        showSuccessToast("Background image updated");
+        showSuccessToast(t("background_image_updated"));
         await fetchUserDetails();
       }
     } finally {
