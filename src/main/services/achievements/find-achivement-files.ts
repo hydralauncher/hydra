@@ -71,6 +71,7 @@ const crackers = [
   Cracker.smartSteamEmu,
   Cracker.empress,
   Cracker.flt,
+  Cracker.razor1911,
 ];
 
 const getPathFromCracker = (cracker: Cracker) => {
@@ -217,6 +218,15 @@ const getPathFromCracker = (cracker: Cracker) => {
       {
         folderPath: path.join(appData, "RLE"),
         fileLocation: ["Achievements.ini"],
+      },
+    ];
+  }
+
+  if (cracker == Cracker.razor1911) {
+    return [
+      {
+        folderPath: path.join(appData, ".1911"),
+        fileLocation: ["achievement"],
       },
     ];
   }
