@@ -449,7 +449,7 @@
   "tour": {
     "subscription_tour_title": "Hydra Cloud Tellimus",
     "subscribe_now": "Telli kohe",
-    "cloud_saving": "Pilvesalvestus (kuni {{gameCount}} mängu)",
+    "cloud_saving": "Pilvesalvestus",
     "cloud_achievements": "Salvesta oma saavutused pilve",
     "animated_profile_picture": "Animeeritud profiilipildid",
     "premium_support": "Premium tugi",

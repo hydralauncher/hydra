@@ -361,7 +361,7 @@
   "tour": {
     "subscription_tour_title": "Hydra Cloud Subscription",
     "subscribe_now": "Subscribe now",
-    "cloud_saving": "Cloud saving (up to {{gameCount}} games)",
+    "cloud_saving": "Cloud saving",
     "cloud_achievements": "Save your achievements on the cloud",
     "animated_profile_picture": "Animated profile pictures",
     "premium_support": "Premium Support",
