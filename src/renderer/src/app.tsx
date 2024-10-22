@@ -308,7 +308,7 @@ export function App() {
       />
 
       <SubscriptionTourModal
-        visible={showSubscritionTourModal}
+        visible={showSubscritionTourModal && false}
         onClose={handleCloseSubscriptionTourModal}
       />
 
