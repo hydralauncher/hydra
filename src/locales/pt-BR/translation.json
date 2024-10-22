@@ -367,6 +367,7 @@
     "animated_profile_picture": "Fotos de perfil animadas",
     "premium_support": "Suporte Premium",
     "show_and_compare_achievements": "Exiba e compare suas conquistas com outros usuários",
-    "animated_profile_banner": "Banner animado no perfil"
+    "animated_profile_banner": "Banner animado no perfil",
+    "cloud_saving": "Saves na Cloud (até {{gameCount}} jogos)"
   }
 }
