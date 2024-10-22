@@ -1,13 +1,13 @@
-import { Button, Modal, ModalProps } from "@renderer/components";
-import { useContext, useMemo, useState } from "react";
-import { cloudSyncContext } from "@renderer/context";
+import { Button, Modal, ModalProps, TextField } from "@renderer/components";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import { useTranslation } from "react-i18next";
-import { CheckCircleFillIcon } from "@primer/octicons-react";
+import { CheckCircleFillIcon, FileDirectoryIcon } from "@primer/octicons-react";
 
 import * as styles from "./cloud-sync-files-modal.css";
 import { formatBytes } from "@shared";
-import { vars } from "@renderer/theme.css";
-// import { useToast } from "@renderer/hooks";
+import { useToast } from "@renderer/hooks";
+import { useForm } from "react-hook-form";
 
 export interface CloudSyncFilesModalProps
   extends Omit<ModalProps, "children" | "title"> {}
@@ -23,12 +23,30 @@ export function CloudSyncFilesModal({
 }: CloudSyncFilesModalProps) {
   const [selectedFileMappingMethod, setSelectedFileMappingMethod] =
     useState<FileMappingMethod>(FileMappingMethod.Automatic);
-  const { backupPreview } = useContext(cloudSyncContext);
-  // const { gameTitle } = useContext(gameDetailsContext);
+  const { backupPreview, getGameBackupPreview } = useContext(cloudSyncContext);
+  const { shop, objectId } = useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
 
-  // const { showSuccessToast } = useToast();
+  const { showSuccessToast } = useToast();
+
+  const { register, setValue } = useForm<{
+    customBackupPath: string | null;
+  }>({
+    defaultValues: {
+      customBackupPath: null,
+    },
+  });
+
+  useEffect(() => {
+    if (backupPreview?.customBackupPath) {
+      setSelectedFileMappingMethod(FileMappingMethod.Manual);
+    } else {
+      setSelectedFileMappingMethod(FileMappingMethod.Automatic);
+    }
+
+    setValue("customBackupPath", backupPreview?.customBackupPath ?? null);
+  }, [visible, setValue, backupPreview]);
 
   const files = useMemo(() => {
     if (!backupPreview) {
@@ -44,28 +62,42 @@ export function CloudSyncFilesModal({
     });
   }, [backupPreview]);
 
-  // const handleAddCustomPathClick = useCallback(async () => {
-  //   const { filePaths } = await window.electron.showOpenDialog({
-  //     properties: ["openDirectory"],
-  //   });
+  const handleAddCustomPathClick = useCallback(async () => {
+    const { filePaths } = await window.electron.showOpenDialog({
+      properties: ["openDirectory"],
+    });
 
-  //   if (filePaths && filePaths.length > 0) {
-  //     const path = filePaths[0];
-  //     await window.electron.selectGameBackupDirectory(gameTitle, path);
-  //     showSuccessToast("custom_backup_location_set");
-  //     getGameBackupPreview();
-  //   }
-  // }, [gameTitle, showSuccessToast, getGameBackupPreview]);
+    if (filePaths && filePaths.length > 0) {
+      const path = filePaths[0];
+      setValue("customBackupPath", path);
+
+      await window.electron.selectGameBackupPath(shop, objectId!, path);
+      showSuccessToast("custom_backup_location_set");
+      getGameBackupPreview();
+    }
+  }, [objectId, setValue, shop, showSuccessToast, getGameBackupPreview]);
+
+  const handleFileMappingMethodClick = useCallback(
+    (mappingOption: FileMappingMethod) => {
+      if (mappingOption === FileMappingMethod.Automatic) {
+        getGameBackupPreview();
+        window.electron.selectGameBackupPath(shop, objectId!, null);
+      }
+
+      setSelectedFileMappingMethod(mappingOption);
+    },
+    [getGameBackupPreview, shop, objectId]
+  );
 
   return (
     <Modal
       visible={visible}
-      title="Gerenciar arquivos"
-      description="Escolha quais diretórios serão sincronizados"
+      title={t("manage_files")}
+      description={t("manage_files_description")}
       onClose={onClose}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <span>{t("mapping_method_label")}</span>
+        <span style={{ marginBottom: 8 }}>{t("mapping_method_label")}</span>
 
         <div className={styles.mappingMethods}>
           {Object.values(FileMappingMethod).map((mappingMethod) => (
@@ -76,8 +108,7 @@ export function CloudSyncFilesModal({
                   ? "primary"
                   : "outline"
               }
-              onClick={() => setSelectedFileMappingMethod(mappingMethod)}
-              disabled={mappingMethod === FileMappingMethod.Manual}
+              onClick={() => handleFileMappingMethodClick(mappingMethod)}
             >
               {selectedFileMappingMethod === mappingMethod && (
                 <CheckCircleFillIcon />
@@ -89,46 +120,33 @@ export function CloudSyncFilesModal({
       </div>
 
       <div style={{ marginTop: 16 }}>
-        {/* <TextField
-          readOnly
-          theme="dark"
-          disabled
-          placeholder={t("select_folder")}
-          rightContent={
-            <Button
-              type="button"
-              theme="outline"
-              onClick={handleAddCustomPathClick}
-            >
-              <FileDirectoryIcon />
-              {t("select_executable")}
-            </Button>
-          }
-        /> */}
+        {selectedFileMappingMethod === FileMappingMethod.Automatic ? (
+          <p>{t("files_automatically_mapped")}</p>
+        ) : (
+          <TextField
+            {...register("customBackupPath")}
+            readOnly
+            theme="dark"
+            disabled
+            placeholder={t("select_folder")}
+            rightContent={
+              <Button
+                type="button"
+                theme="outline"
+                onClick={handleAddCustomPathClick}
+              >
+                <FileDirectoryIcon />
+                {t("select_executable")}
+              </Button>
+            }
+          />
+        )}
 
-        <p>{t("files_automatically_mapped")}</p>
-
-        <ul
-          style={{
-            listStyle: "none",
-            margin: 0,
-            padding: 0,
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            marginTop: 16,
-          }}
-        >
+        <ul className={styles.fileList}>
           {files.map((file) => (
             <li key={file.path} style={{ display: "flex" }}>
               <button
-                style={{
-                  flex: 1,
-                  color: vars.color.muted,
-                  textDecoration: "underline",
-                  display: "flex",
-                  cursor: "pointer",
-                }}
+                className={styles.fileItem}
                 onClick={() => window.electron.showItemInFolder(file.path)}
               >
                 {file.path.split("/").at(-1)}
