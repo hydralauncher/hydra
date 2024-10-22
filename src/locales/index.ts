@@ -51,5 +51,5 @@ export default {
   kk,
   cs,
   nb,
-  et
+  et,
 };
