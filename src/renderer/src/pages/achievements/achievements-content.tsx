@@ -42,6 +42,7 @@ interface AchievementSummaryProps {
 function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
   const { t } = useTranslation("achievement");
   const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { handleClickOpenCheckout } = useContext(gameDetailsContext);
 
   const getProfileImage = (
     user: Pick<UserInfo, "profileImageUrl" | "displayName">
@@ -90,7 +91,12 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
         >
           <LockIcon size={24} />
           <h3>
-            <Link to={""}>{t("subscription_needed")}</Link>
+            <button
+              className={styles.subscriptionRequiredButton}
+              onClick={handleClickOpenCheckout}
+            >
+              {t("subscription_needed")}
+            </button>
           </h3>
         </div>
         <div
