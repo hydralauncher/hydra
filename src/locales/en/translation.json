@@ -161,7 +161,9 @@
     "no_download_option_info": "No information available",
     "backup_deletion_failed": "Failed to delete backup",
     "max_number_of_artifacts_reached": "Maximum number of backups reached for this game",
-    "achievements_not_sync": "Your achievements are not synchronized"
+    "achievements_not_sync": "Your achievements are not synchronized",
+    "manage_files_description": "Manage which files will be backed up and restored",
+    "select_folder": "Select folder"
   },
   "activation": {
     "title": "Activate Hydra",

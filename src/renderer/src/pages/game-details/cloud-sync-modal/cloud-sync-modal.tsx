@@ -163,7 +163,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
             type="button"
             className={styles.manageFilesButton}
             onClick={() => setShowCloudSyncFilesModal(true)}
-            disabled={disableActions || !backupPreview?.overall.totalGames}
+            disabled={disableActions}
           >
             {t("manage_files")}
           </button>
@@ -199,7 +199,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
 
       {artifacts.length > 0 ? (
         <ul className={styles.artifacts}>
-          {artifacts.map((artifact, index) => (
+          {artifacts.map((artifact) => (
             <li key={artifact.id} className={styles.artifactButton}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <div
@@ -210,7 +210,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
                     marginBottom: 4,
                   }}
                 >
-                  <h3>{t("backup_title", { number: index + 1 })}</h3>
+                  <h3>Backup from 22/10</h3>
                   <small>{formatBytes(artifact.artifactLengthInBytes)}</small>
                 </div>
 

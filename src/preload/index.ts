@@ -178,6 +178,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGameBackupPreview", objectId, shop),
   deleteGameArtifact: (gameArtifactId: string) =>
     ipcRenderer.invoke("deleteGameArtifact", gameArtifactId),
+  selectGameBackupPath: (
+    shop: GameShop,
+    objectId: string,
+    backupPath: string | null
+  ) => ipcRenderer.invoke("selectGameBackupPath", shop, objectId, backupPath),
   onUploadComplete: (objectId: string, shop: GameShop, cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on(`on-upload-complete-${objectId}-${shop}`, listener);

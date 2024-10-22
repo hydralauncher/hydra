@@ -21,10 +21,9 @@ export interface LudusaviBackup {
     };
   };
   games: Record<string, LudusaviGame>;
-}
 
-export interface LudusaviFindResult {
-  games: Record<string, unknown>;
+  // Custom path for the backup, extracted from the config
+  customBackupPath?: string | null;
 }
 
 export interface LudusaviConfig {
