@@ -46,7 +46,7 @@ export function CloudSyncFilesModal({
     }
 
     setValue("customBackupPath", backupPreview?.customBackupPath ?? null);
-  }, [visible, backupPreview]);
+  }, [visible, setValue, backupPreview]);
 
   const files = useMemo(() => {
     if (!backupPreview) {
@@ -75,7 +75,7 @@ export function CloudSyncFilesModal({
       showSuccessToast("custom_backup_location_set");
       getGameBackupPreview();
     }
-  }, [objectId, showSuccessToast, getGameBackupPreview]);
+  }, [objectId, setValue, shop, showSuccessToast, getGameBackupPreview]);
 
   const handleFileMappingMethodClick = useCallback(
     (mappingOption: FileMappingMethod) => {
@@ -86,7 +86,7 @@ export function CloudSyncFilesModal({
 
       setSelectedFileMappingMethod(mappingOption);
     },
-    []
+    [getGameBackupPreview, shop, objectId]
   );
 
   return (
