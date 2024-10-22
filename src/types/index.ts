@@ -238,7 +238,7 @@ export interface Subscription {
   id: string;
   status: SubscriptionStatus;
   plan: { id: string; name: string };
-  expiresAt: Date | null;
+  expiresAt: string | null;
 }
 
 export interface UserDetails {

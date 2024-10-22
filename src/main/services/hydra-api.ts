@@ -11,10 +11,18 @@ import { logger } from "./logger";
 import { UserNotLoggedInError, SubscriptionRequiredError } from "@shared";
 import { omit } from "lodash-es";
 import { appVersion } from "@main/constants";
+import { getUserData } from "./user/get-user-data";
 
 interface HydraApiOptions {
   needsAuth?: boolean;
-  needsCloud?: boolean;
+  needsSubscription?: boolean;
+}
+
+interface HydraApiUserAuth {
+  authToken: string;
+  refreshToken: string;
+  expirationTimestamp: number;
+  subscription: { expiresAt: Date | null } | null;
 }
 
 export class HydraApi {
@@ -25,27 +33,22 @@ export class HydraApi {
 
   private static secondsToMilliseconds = (seconds: number) => seconds * 1000;
 
-  private static userAuth = {
+  private static userAuth: HydraApiUserAuth = {
     authToken: "",
     refreshToken: "",
     expirationTimestamp: 0,
+    subscription: null,
   };
 
   private static isLoggedIn() {
     return this.userAuth.authToken !== "";
   }
 
-  private static async hasCloudSubscription() {
-    return userSubscriptionRepository
-      .findOne({ where: { id: 1 } })
-      .then((userSubscription) => {
-        if (!userSubscription) return false;
-
-        return (
-          !userSubscription.expiresAt ||
-          userSubscription!.expiresAt > new Date()
-        );
-      });
+  private static hasCloudSubscription() {
+    return (
+      this.userAuth.subscription?.expiresAt &&
+      this.userAuth.subscription.expiresAt > new Date()
+    );
   }
 
   static async handleExternalAuth(uri: string) {
@@ -67,6 +70,7 @@ export class HydraApi {
       authToken: accessToken,
       refreshToken: refreshToken,
       expirationTimestamp: tokenExpirationTimestamp,
+      subscription: null,
     };
 
     logger.log(
@@ -84,6 +88,16 @@ export class HydraApi {
       ["id"]
     );
 
+    await getUserData().then((userDetails) => {
+      if (userDetails?.subscription) {
+        this.userAuth.subscription = {
+          expiresAt: userDetails.subscription.expiresAt
+            ? new Date(userDetails.subscription.expiresAt)
+            : null,
+        };
+      }
+    });
+
     if (WindowManager.mainWindow) {
       WindowManager.mainWindow.webContents.send("on-signin");
       await clearGamesRemoteIds();
@@ -96,6 +110,7 @@ export class HydraApi {
       authToken: "",
       refreshToken: "",
       expirationTimestamp: 0,
+      subscription: null,
     };
   }
 
@@ -161,14 +176,20 @@ export class HydraApi {
       );
     }
 
+    await getUserData();
+
     const userAuth = await userAuthRepository.findOne({
       where: { id: 1 },
+      relations: { subscription: true },
     });
 
     this.userAuth = {
       authToken: userAuth?.accessToken ?? "",
       refreshToken: userAuth?.refreshToken ?? "",
       expirationTimestamp: userAuth?.tokenExpirationTimestamp ?? 0,
+      subscription: userAuth?.subscription
+        ? { expiresAt: userAuth.subscription?.expiresAt }
+        : null,
     };
   }
 
@@ -236,9 +257,11 @@ export class HydraApi {
         authToken: "",
         expirationTimestamp: 0,
         refreshToken: "",
+        subscription: null,
       };
 
       userAuthRepository.delete({ id: 1 });
+      userSubscriptionRepository.delete({ id: 1 });
 
       this.sendSignOutEvent();
     }
@@ -248,14 +271,14 @@ export class HydraApi {
 
   private static async validateOptions(options?: HydraApiOptions) {
     const needsAuth = options?.needsAuth == undefined || options.needsAuth;
-    const needsCloud = options?.needsCloud === true;
+    const needsSubscription = options?.needsSubscription === true;
 
     if (needsAuth) {
       if (!this.isLoggedIn()) throw new UserNotLoggedInError();
       await this.revalidateAccessTokenIfExpired();
     }
 
-    if (needsCloud) {
+    if (needsSubscription) {
       if (!(await this.hasCloudSubscription())) {
         throw new SubscriptionRequiredError();
       }

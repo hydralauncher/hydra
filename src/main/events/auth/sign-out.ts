@@ -7,7 +7,7 @@ import {
   gamesPlaytime,
 } from "@main/services";
 import { dataSource } from "@main/data-source";
-import { DownloadQueue, Game, UserAuth } from "@main/entity";
+import { DownloadQueue, Game, UserAuth, UserSubscription } from "@main/entity";
 
 const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
   const databaseOperations = dataSource
@@ -18,6 +18,10 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
 
       await transactionalEntityManager
         .getRepository(UserAuth)
+        .delete({ id: 1 });
+
+      await transactionalEntityManager
+        .getRepository(UserSubscription)
         .delete({ id: 1 });
     })
     .then(() => {
