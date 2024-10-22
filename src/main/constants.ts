@@ -1,6 +1,8 @@
 import { app } from "electron";
 import path from "node:path";
 
+export const LUDUSAVI_MANIFEST_URL = "https://cdn.losbroxas.org/manifest.yaml";
+
 export const defaultDownloadsPath = app.getPath("downloads");
 
 export const databaseDirectory = path.join(app.getPath("appData"), "hydra");
