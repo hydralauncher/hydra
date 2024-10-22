@@ -157,7 +157,11 @@
     "no_download_option_info": "Sem informações disponíveis",
     "backup_deletion_failed": "Falha ao apagar backup",
     "max_number_of_artifacts_reached": "Número máximo de backups atingido para este jogo",
-    "achievements_not_sync": "Suas conquistas não estão sincronizadas"
+    "achievements_not_sync": "Suas conquistas não estão sincronizadas",
+    "backup_from": "Backup de {{date}}",
+    "custom_backup_location_set": "Localização customizada selecionada",
+    "select_folder": "Selecione a pasta",
+    "manage_files_description": "Gerencie quais arquivos serão feitos backup"
   },
   "activation": {
     "title": "Ativação",
@@ -221,9 +225,6 @@
     "download_count_zero": "Sem downloads na lista",
     "download_count_one": "{{countFormatted}} download na lista",
     "download_count_other": "{{countFormatted}} downloads na lista",
-    "download_options_zero": "Sem downloads disponíveis",
-    "download_options_one": "{{countFormatted}} download disponível",
-    "download_options_other": "{{countFormatted}} downloads disponíveis",
     "download_source_url": "URL da fonte",
     "add_download_source_description": "Insira a URL contendo o arquivo .json",
     "download_source_up_to_date": "Sincronizada",
@@ -331,7 +332,6 @@
     "friend_code_copied": "Código de amigo copiado",
     "undo_friendship_modal_text": "Isso irá remover sua amizade com {{displayName}}",
     "privacy_hint": "Pra controlar quem pode ver seu perfil, acesse a <0>Tela de Configurações</0>",
-    "profile_locked": "Este perfil é privado",
     "image_process_failure": "Falha ao processar a imagem",
     "required_field": "Este campo é obrigatório",
     "displayname_min_length": "Nome de exibição deve ter pelo menos 3 caracteres",
@@ -368,6 +368,6 @@
     "premium_support": "Suporte Premium",
     "show_and_compare_achievements": "Exiba e compare suas conquistas com outros usuários",
     "animated_profile_banner": "Banner animado no perfil",
-    "cloud_saving": "Saves na Cloud (até {{gameCount}} jogos)"
+    "cloud_saving": "Saves de jogos em nuvem"
   }
 }

@@ -5,7 +5,6 @@
   },
   "home": {
     "featured": "Рекомендоване",
-    "trending": "У тренді",
     "surprise_me": "Здивуй мене",
     "no_results": "Результатів не знайдено"
   },
@@ -161,9 +160,6 @@
     "download_count_one": "{{countFormatted}} завантаження в списку",
     "download_count_other": "{{countFormatted}} завантажень в списку",
     "download_count_zero": "В списку немає завантажень",
-    "download_options_one": "{{countFormatted}} доступний варіант завантаження",
-    "download_options_other": "{{countFormatted}} доступних варіантів завантаження",
-    "download_options_zero": "Немає доступних завантажень",
     "download_source_errored": "Помилка",
     "download_source_up_to_date": "Оновлено",
     "download_source_url": "Посилання на джерело",

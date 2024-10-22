@@ -5,7 +5,6 @@
   },
   "home": {
     "featured": "Destaques",
-    "trending": "Populares",
     "surprise_me": "Surpreende-me",
     "no_results": "Nenhum resultado encontrado",
     "start_typing": "Comece a digitar para pesquisar…"
@@ -182,9 +181,6 @@
     "download_count_zero": "Sem transferências na lista",
     "download_count_one": "{{countFormatted}} transferência na lista",
     "download_count_other": "{{countFormatted}} transferências na lista",
-    "download_options_zero": "Sem transferências disponíveis",
-    "download_options_one": "{{countFormatted}} transferência disponível",
-    "download_options_other": "{{countFormatted}} transferências disponíveis",
     "download_source_url": "URL da fonte",
     "add_download_source_description": "Insira o URL contendo o arquivo .json",
     "download_source_up_to_date": "Sincronizada",
@@ -283,7 +279,7 @@
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",
-    "unlocked_at": "Desbloqueado em:",
+    "unlocked_at": "Desbloqueada em:",
     "subscription_needed": "Você precisa de uma assinatura Hydra Cloud para visualizar este conteúdo",
     "new_achievements_unlocked": "Encontradas {{achievementCount}} novas conquistas de {{gameCount}} jogos"
   }
