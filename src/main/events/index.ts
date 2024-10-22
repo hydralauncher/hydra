@@ -65,6 +65,7 @@ import "./cloud-save/get-game-artifacts";
 import "./cloud-save/get-game-backup-preview";
 import "./cloud-save/upload-save-game";
 import "./cloud-save/delete-game-artifact";
+import "./cloud-save/select-game-backup-path";
 import "./notifications/publish-new-repacks-notification";
 import { isPortableVersion } from "@main/helpers";
 import "./misc/show-item-in-folder";
