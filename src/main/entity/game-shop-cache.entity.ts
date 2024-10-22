@@ -18,6 +18,9 @@ export class GameShopCache {
   @Column("text", { nullable: true })
   serializedData: string;
 
+  /**
+   * @deprecated Use IndexedDB's `howLongToBeatEntries` instead
+   */
   @Column("text", { nullable: true })
   howLongToBeatSerializedData: string;
 

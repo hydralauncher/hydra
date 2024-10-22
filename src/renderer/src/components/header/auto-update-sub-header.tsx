@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { SyncIcon } from "@primer/octicons-react";
 import { Link } from "../link/link";
 import * as styles from "./header.css";
-import { AppUpdaterEvent } from "@types";
+import type { AppUpdaterEvent } from "@types";
 
 export const releasesPageUrl =
   "https://github.com/hydralauncher/hydra/releases/latest";

@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import * as styles from "./hero.css";
 import { useEffect, useState } from "react";
-import { TrendingGame } from "@types";
+import type { TrendingGame } from "@types";
 import { useTranslation } from "react-i18next";
 import Skeleton from "react-loading-skeleton";
 
@@ -49,7 +49,12 @@ export function Hero() {
 
           <div className={styles.content}>
             {game.logo && (
-              <img src={game.logo} width="250px" alt={game.description} />
+              <img
+                src={game.logo}
+                width="250px"
+                alt={game.description}
+                loading="eager"
+              />
             )}
             <p className={styles.description}>{game.description}</p>
           </div>

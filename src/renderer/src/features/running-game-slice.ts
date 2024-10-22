@@ -1,5 +1,5 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
-import { GameRunning } from "@types";
+import type { GameRunning } from "@types";
 
 export interface GameRunningState {
   gameRunning: GameRunning | null;
