@@ -125,7 +125,7 @@ export const mergeAchievements = async (
         id: game.remoteId,
         achievements: mergedLocalAchievements,
       },
-      { needsCloud: true }
+      { needsSubscription: true }
     )
       .then((response) => {
         return saveAchievementsOnLocal(

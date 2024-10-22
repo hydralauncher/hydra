@@ -41,7 +41,7 @@
   "bottom_panel": {
     "no_downloads_in_progress": "No downloads in progress",
     "downloading_metadata": "Downloading {{title}} metadata…",
-    "downloading": "Downloading {{title}}… ({{percentage}} complete) - Conclusion {{eta}} - {{speed}}",
+    "downloading": "Downloading {{title}}… ({{percentage}} complete) - Completion {{eta}} - {{speed}}",
     "calculating_eta": "Downloading {{title}}… ({{percentage}} complete) - Calculating remaining time…",
     "checking_files": "Checking {{title}} files… ({{percentage}} complete)"
   },
@@ -358,7 +358,7 @@
     "user_achievements": "{{displayName}}'s Achievements",
     "your_achievements": "Your Achievements",
     "unlocked_at": "Unlocked at:",
-    "subscription_needed": "A Hydra Cloud subscription is needed to see this content",
+    "subscription_needed": "A Hydra Cloud subscription is required to see this content",
     "new_achievements_unlocked": "Unlocked {{achievementCount}} new achievements from {{gameCount}} games"
   },
   "tour": {

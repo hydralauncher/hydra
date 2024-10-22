@@ -39,4 +39,5 @@ export enum Cracker {
   _3dm = "3dm",
   flt = "FLT",
   rle = "RLE",
+  razor1911 = "RAZOR1911",
 }

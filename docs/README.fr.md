@@ -25,6 +25,7 @@
 [![cs](https://img.shields.io/badge/lang-cs-purple)](README.cs.md)
 [![da](https://img.shields.io/badge/lang-da-red)](README.da.md)
 [![nb](https://img.shields.io/badge/lang-nb-blue)](README.nb.md)
+[![et](https://img.shields.io/badge/lang-et-blue.svg)](README.et.md)
 
 ![Catalogue Hydra](./screenshot.png)
 
