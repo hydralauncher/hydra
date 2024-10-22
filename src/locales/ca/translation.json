@@ -5,7 +5,6 @@
   },
   "home": {
     "featured": "Destacats",
-    "trending": "Populars",
     "surprise_me": "Sorprèn-me",
     "no_results": "No s'ha trobat res"
   },
@@ -179,7 +178,7 @@
     "download_count_one": "{{countFormatted}} a la llista de baixades",
     "download_count_other": "{{countFormatted}} baixades a la llista",
     "download_options_zero": "No hi ha cap descàrrega disponible",
-    "download_options_one": "{{countFormatted}} descàrrega disponible",
+    "download_options_one": "",
     "download_options_other": "{{countFormatted}} baixades disponibles",
     "download_source_url": "Descarrega l'URL de la font",
     "add_download_source_description": "Inseriu la URL que conté el fitxer .json",
