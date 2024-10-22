@@ -307,12 +307,10 @@ export function App() {
         onClose={handleToastClose}
       />
 
-      {showSubscritionTourModal && (
-        <SubscriptionTourModal
-          visible={showSubscritionTourModal}
-          onClose={handleCloseSubscriptionTourModal}
-        />
-      )}
+      <SubscriptionTourModal
+        visible={showSubscritionTourModal}
+        onClose={handleCloseSubscriptionTourModal}
+      />
 
       {userDetails && (
         <UserFriendModal

@@ -5,7 +5,6 @@
   },
   "home": {
     "featured": "Destacado",
-    "trending": "Tendencia",
     "surprise_me": "¡Sorpréndeme!",
     "no_results": "Sin resultados encontrados",
     "start_typing": "Empieza a escribir para buscar...",
@@ -361,7 +360,7 @@
   "tour": {
     "subscription_tour_title": "Suscripción Hydra Cloud",
     "subscribe_now": "Suscribirse ahora",
-    "cloud_saving": "Guardado en la nube (hasta {{gameCount}} juegos)",
+    "cloud_saving": "Guardado en la nube",
     "cloud_achievements": "Guarda tus logros en la nube",
     "animated_profile_picture": "Fotos de perfil animadas",
     "premium_support": "Soporte Premium",

@@ -72,7 +72,7 @@ export function CloudSyncFilesModal({
       setValue("customBackupPath", path);
 
       await window.electron.selectGameBackupPath(shop, objectId!, path);
-      showSuccessToast("custom_backup_location_set");
+      showSuccessToast(t("custom_backup_location_set"));
       getGameBackupPreview();
     }
   }, [objectId, setValue, shop, showSuccessToast, getGameBackupPreview]);

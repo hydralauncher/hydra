@@ -5,13 +5,12 @@
   },
   "home": {
     "featured": "Featured",
-    "trending": "Trending",
     "surprise_me": "Surprise me",
     "no_results": "No results found",
     "start_typing": "Starting typing to search...",
     "hot": "Hot now",
     "weekly": "📅 Top games of the week",
-    "achievements": "🏆 Good with achievements"
+    "achievements": "🏆 Games to beat"
   },
   "sidebar": {
     "catalogue": "Catalogue",
@@ -164,7 +163,9 @@
     "max_number_of_artifacts_reached": "Maximum number of backups reached for this game",
     "achievements_not_sync": "Your achievements are not synchronized",
     "manage_files_description": "Manage which files will be backed up and restored",
-    "select_folder": "Select folder"
+    "select_folder": "Select folder",
+    "backup_from": "Backup from {{date}}",
+    "custom_backup_location_set": "Custom backup location set"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -364,7 +365,7 @@
   "tour": {
     "subscription_tour_title": "Hydra Cloud Subscription",
     "subscribe_now": "Subscribe now",
-    "cloud_saving": "Cloud saving (up to {{gameCount}} games)",
+    "cloud_saving": "Cloud saving",
     "cloud_achievements": "Save your achievements on the cloud",
     "animated_profile_picture": "Animated profile pictures",
     "premium_support": "Premium Support",

@@ -21,7 +21,6 @@ export const SubscriptionTourModal = ({
     <Modal
       visible={visible}
       title={t("subscription_tour_title")}
-      large={true}
       onClose={onClose}
     >
       <div
@@ -34,7 +33,6 @@ export const SubscriptionTourModal = ({
         <div
           style={{
             display: "flex",
-            width: "100%",
             flexDirection: "row",
             gap: `${SPACING_UNIT * 2}px`,
             justifyContent: "space-around",
@@ -50,34 +48,7 @@ export const SubscriptionTourModal = ({
             <h2>Hydra Cloud</h2>
             <ul style={{ margin: "0", padding: "0" }}>
               <li style={{ margin: `${SPACING_UNIT}px ${SPACING_UNIT * 2}px` }}>
-                {t("cloud_saving", { gameCount: 15 })}
-              </li>
-              <li style={{ margin: `${SPACING_UNIT}px ${SPACING_UNIT * 2}px` }}>
-                {t("cloud_achievements")}
-              </li>
-              <li style={{ margin: `${SPACING_UNIT}px ${SPACING_UNIT * 2}px` }}>
-                {t("show_and_compare_achievements")}
-              </li>
-              <li style={{ margin: `${SPACING_UNIT}px ${SPACING_UNIT * 2}px` }}>
-                {t("animated_profile_picture")}
-              </li>
-              <li style={{ margin: `${SPACING_UNIT}px ${SPACING_UNIT * 2}px` }}>
-                {t("premium_support")}
-              </li>
-            </ul>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: `${SPACING_UNIT * 2}px`,
-            }}
-          >
-            <h2>Hydra Cloud+</h2>
-            <ul style={{ margin: "0", padding: "0" }}>
-              <li style={{ margin: `${SPACING_UNIT}px ${SPACING_UNIT * 2}px` }}>
-                {t("cloud_saving", { gameCount: 30 })}
+                {t("cloud_saving")}
               </li>
               <li style={{ margin: `${SPACING_UNIT}px ${SPACING_UNIT * 2}px` }}>
                 {t("cloud_achievements")}
