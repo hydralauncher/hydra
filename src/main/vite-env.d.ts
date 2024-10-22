@@ -5,6 +5,7 @@ interface ImportMetaEnv {
   readonly MAIN_VITE_API_URL: string;
   readonly MAIN_VITE_AUTH_URL: string;
   readonly MAIN_VITE_SENTRY_DSN: string;
+  readonly MAIN_VITE_CHECKOUT_URL: string;
 }
 
 interface ImportMeta {

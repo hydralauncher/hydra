@@ -10,6 +10,10 @@ log.transports.file.resolvePathFn = (
     return path.join(logsPath, "pythoninstance.txt");
   }
 
+  if (message?.scope == "achievements") {
+    return path.join(logsPath, "achievements.txt");
+  }
+
   if (message?.level === "error") {
     return path.join(logsPath, "error.txt");
   }
@@ -29,3 +33,4 @@ log.initialize();
 
 export const pythonInstanceLogger = log.scope("python-instance");
 export const logger = log.scope("main");
+export const achievementsLogger = log.scope("achievements");

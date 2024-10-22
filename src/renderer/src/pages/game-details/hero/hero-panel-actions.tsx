@@ -18,7 +18,7 @@ export function HeroPanelActions() {
     game,
     repacks,
     isGameRunning,
-    objectID,
+    objectId,
     gameTitle,
     setShowGameOptionsModal,
     setShowRepacksModal,
@@ -39,7 +39,7 @@ export function HeroPanelActions() {
     setToggleLibraryGameDisabled(true);
 
     try {
-      await window.electron.addGameToLibrary(objectID!, gameTitle, "steam");
+      await window.electron.addGameToLibrary(objectId!, gameTitle, "steam");
 
       updateLibrary();
       updateGame();

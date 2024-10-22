@@ -1,4 +1,4 @@
-import type { DownloadSourceStatus, Downloader } from "@shared";
+import type { Cracker, DownloadSourceStatus, Downloader } from "@shared";
 import type { SteamAppDetails } from "./steam.types";
 
 export type GameStatus =
@@ -28,8 +28,48 @@ export interface GameRepack {
   updatedAt: Date;
 }
 
+export interface AchievementData {
+  name: string;
+  displayName: string;
+  description?: string;
+  icon: string;
+  icongray: string;
+  hidden: boolean;
+}
+
+export interface UserAchievement {
+  name: string;
+  hidden: boolean;
+  displayName: string;
+  description?: string;
+  unlocked: boolean;
+  unlockTime: number | null;
+  icon: string;
+  icongray: string;
+}
+
+export interface RemoteUnlockedAchievement {
+  name: string;
+  hidden: boolean;
+  icon: string;
+  displayName: string;
+  description?: string;
+  unlockTime: number;
+}
+
+export interface GameAchievement {
+  name: string;
+  hidden: boolean;
+  displayName: string;
+  description?: string;
+  unlocked: boolean;
+  unlockTime: number | null;
+  icon: string;
+  icongray: string;
+}
+
 export type ShopDetails = SteamAppDetails & {
-  objectID: string;
+  objectId: string;
 };
 
 export interface TorrentFile {
@@ -39,7 +79,7 @@ export interface TorrentFile {
 
 /* Used by the catalogue */
 export interface CatalogueEntry {
-  objectID: string;
+  objectId: string;
   shop: GameShop;
   title: string;
   /* Epic Games covers cannot be guessed with objectID */
@@ -54,6 +94,8 @@ export interface UserGame {
   cover: string;
   playTimeInSeconds: number;
   lastTimePlayed: Date | null;
+  unlockedAchievementCount: number;
+  achievementCount: number;
 }
 
 export interface DownloadQueue {
@@ -74,6 +116,7 @@ export interface Game {
   bytesDownloaded: number;
   playTimeInMilliseconds: number;
   downloader: Downloader;
+  winePrefixPath: string | null;
   executablePath: string | null;
   lastTimePlayed: Date | null;
   uri: string | null;
@@ -113,20 +156,15 @@ export interface UserPreferences {
   language: string;
   downloadNotificationsEnabled: boolean;
   repackUpdatesNotificationsEnabled: boolean;
+  achievementNotificationsEnabled: boolean;
   realDebridApiToken: string | null;
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;
 }
 
-export interface HowLongToBeatCategory {
-  title: string;
-  duration: string;
-  accuracy: string;
-}
-
 export interface Steam250Game {
   title: string;
-  objectID: string;
+  objectId: string;
 }
 
 export interface SteamGame {
@@ -142,7 +180,7 @@ export type AppUpdaterEvent =
 /* Events */
 export interface StartGameDownloadPayload {
   repackId: number;
-  objectID: string;
+  objectId: string;
   title: string;
   shop: GameShop;
   uri: string;
@@ -187,26 +225,38 @@ export interface UserRelation {
   updatedAt: string;
 }
 
-export interface UserProfileCurrentGame extends Omit<GameRunning, "objectID"> {
+export interface UserProfileCurrentGame extends Omit<GameRunning, "objectId"> {
   objectId: string;
   sessionDurationInSeconds: number;
 }
 
 export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
 
+export type SubscriptionStatus = "active" | "pending" | "cancelled";
+
+export interface Subscription {
+  id: string;
+  status: SubscriptionStatus;
+  plan: { id: string; name: string };
+  expiresAt: string | null;
+}
+
 export interface UserDetails {
   id: string;
   username: string;
   displayName: string;
   profileImageUrl: string | null;
+  backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
   bio: string;
+  subscription: Subscription | null;
 }
 
 export interface UserProfile {
   id: string;
   displayName: string;
   profileImageUrl: string | null;
+  backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
   libraryGames: UserGame[];
   recentGames: UserGame[];
@@ -215,12 +265,14 @@ export interface UserProfile {
   relation: UserRelation | null;
   currentGame: UserProfileCurrentGame | null;
   bio: string;
+  hasActiveSubscription: boolean;
 }
 
 export interface UpdateProfileRequest {
   displayName?: string;
   profileVisibility?: ProfileVisibility;
   profileImageUrl?: string | null;
+  backgroundImageUrl?: string | null;
   bio?: string;
 }
 
@@ -266,5 +318,58 @@ export interface UserStats {
   friendsCount: number;
 }
 
+export interface UnlockedAchievement {
+  name: string;
+  unlockTime: number;
+}
+
+export interface AchievementFile {
+  type: Cracker;
+  filePath: string;
+}
+
+export type GameAchievementFiles = {
+  [id: string]: AchievementFile[];
+};
+
+export interface GameArtifact {
+  id: string;
+  artifactLengthInBytes: number;
+  downloadOptionTitle: string | null;
+  createdAt: string;
+  updatedAt: string;
+  hostname: string;
+  downloadCount: number;
+}
+
+export interface ComparedAchievements {
+  owner: {
+    totalAchievementCount: number;
+    unlockedAchievementCount: number;
+  };
+  target: {
+    displayName: string;
+    profileImageUrl: string;
+    totalAchievementCount: number;
+    unlockedAchievementCount: number;
+  };
+  achievements: {
+    hidden: boolean;
+    icon: string;
+    displayName: string;
+    description: string;
+    ownerStat?: {
+      unlocked: boolean;
+      unlockTime: number;
+    };
+    targetStat: {
+      unlocked: boolean;
+      unlockTime: number;
+    };
+  }[];
+}
+
 export * from "./steam.types";
 export * from "./real-debrid.types";
+export * from "./ludusavi.types";
+export * from "./howlongtobeat.types";

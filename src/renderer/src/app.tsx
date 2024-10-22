@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useRef } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
@@ -28,6 +28,12 @@ import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { downloadSourcesWorker } from "./workers";
 import { repacksContext } from "./context";
+import { logger } from "./logger";
+import { SubscriptionTourModal } from "./pages/shared-modals/subscription-tour-modal";
+
+interface TourModals {
+  subscriptionModal?: boolean;
+}
 
 export interface AppProps {
   children: React.ReactNode;
@@ -70,6 +76,9 @@ export function App() {
   const toast = useAppSelector((state) => state.toast);
 
   const { showSuccessToast } = useToast();
+
+  const [showSubscritionTourModal, setShowSubscritionTourModal] =
+    useState(false);
 
   useEffect(() => {
     Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
@@ -115,6 +124,16 @@ export function App() {
       }
     });
   }, [fetchUserDetails, syncFriendRequests, updateUserDetails, dispatch]);
+
+  useEffect(() => {
+    const tourModalsString = window.localStorage.getItem("tourModals") || "{}";
+
+    const tourModals = JSON.parse(tourModalsString) as TourModals;
+
+    if (!tourModals.subscriptionModal) {
+      setShowSubscritionTourModal(true);
+    }
+  }, []);
 
   const onSignIn = useCallback(() => {
     fetchUserDetails().then((response) => {
@@ -231,6 +250,8 @@ export function App() {
       }
 
       for (const downloadSource of downloadSources) {
+        logger.info("Migrating download source", downloadSource.url);
+
         const channel = new BroadcastChannel(
           `download_sources:import:${downloadSource.url}`
         );
@@ -243,6 +264,10 @@ export function App() {
           channel.onmessage = () => {
             window.electron.deleteDownloadSource(downloadSource.id).then(() => {
               resolve(true);
+              logger.info(
+                "Deleted download source from SQLite",
+                downloadSource.url
+              );
             });
 
             indexRepacks();
@@ -254,6 +279,14 @@ export function App() {
       downloadSourceMigrationLock.current = false;
     });
   }, [indexRepacks]);
+
+  const handleCloseSubscriptionTourModal = () => {
+    setShowSubscritionTourModal(false);
+    window.localStorage.setItem(
+      "tourModals",
+      JSON.stringify({ subscriptionModal: true } as TourModals)
+    );
+  };
 
   const handleToastClose = useCallback(() => {
     dispatch(closeToast());
@@ -273,6 +306,13 @@ export function App() {
         type={toast.type}
         onClose={handleToastClose}
       />
+
+      {showSubscritionTourModal && (
+        <SubscriptionTourModal
+          visible={showSubscritionTourModal}
+          onClose={handleCloseSubscriptionTourModal}
+        />
+      )}
 
       {userDetails && (
         <UserFriendModal
