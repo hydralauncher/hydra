@@ -126,7 +126,11 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
       return t("no_backup_preview");
     }
 
-    return t("no_backups");
+    if (artifacts.length === 0) {
+      return t("no_backups");
+    }
+
+    return "";
   }, [
     uploadingBackup,
     backupDownloadProgress?.progress,
@@ -210,7 +214,11 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
                     marginBottom: 4,
                   }}
                 >
-                  <h3>Backup from 22/10</h3>
+                  <h3>
+                    {t("backup_from", {
+                      date: format(artifact.createdAt, "dd/MM/yyyy"),
+                    })}
+                  </h3>
                   <small>{formatBytes(artifact.artifactLengthInBytes)}</small>
                 </div>
 
