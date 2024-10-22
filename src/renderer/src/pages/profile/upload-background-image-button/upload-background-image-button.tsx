@@ -10,7 +10,7 @@ import { useTranslation } from "react-i18next";
 export function UploadBackgroundImageButton() {
   const [isUploadingBackgroundImage, setIsUploadingBackgorundImage] =
     useState(false);
-  const { userDetails } = useUserDetails();
+  const { hasActiveSubscription } = useUserDetails();
 
   const { t } = useTranslation("user_profile");
 
@@ -47,8 +47,7 @@ export function UploadBackgroundImageButton() {
     }
   };
 
-  if (!isMe || !userDetails?.subscription) return null;
-  if (userDetails.subscription.plan.name !== "plus") return null;
+  if (!isMe || !hasActiveSubscription) return null;
 
   return (
     <Button
