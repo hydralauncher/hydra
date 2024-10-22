@@ -52,12 +52,13 @@ export class Ludusavi {
 
   static async getBackupPreview(
     _shop: GameShop,
-    objectId: string
+    objectId: string,
+    winePrefix?: string | null
   ): Promise<LudusaviBackup | null> {
     const config = await this.getConfig();
 
     const backupData = await this.worker.run(
-      { title: objectId, preview: true },
+      { title: objectId, winePrefix, preview: true },
       { name: "backupGame" }
     );
 
