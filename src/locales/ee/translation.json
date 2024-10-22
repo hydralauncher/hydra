@@ -446,14 +446,14 @@
 		"subscription_needed": "Selle sisu nägemiseks on vaja Hydra Cloud tellimust",
 		"new_achievements_unlocked": "Avatud {{achievementCount}} uut saavutust {{gameCount}} mängust"
 	  },
-	  "tour": {
-		"subscription_tour_title": "Hydra Cloud Tellimus",
-		"subscribe_now": "Telli kohe",
-		"cloud_saving": "Pilvesalvestus (kuni {{gameCount}} mängu)",
-		"cloud_achievements": "Salvesta oma saavutused pilve",
-		"animated_profile_picture": "Animeeritud profiilipildid",
-		"premium_support": "Premium tugi",
-		"show_and_compare_achievements": "Näita ja võrdle oma saavutusi teiste kasutajatega",
-		"animated_profile_banner": "Animeeritud profiilibänner"
-	  }
+  "tour": {
+    "subscription_tour_title": "Hydra Cloud Tellimus",
+    "subscribe_now": "Telli kohe",
+    "cloud_saving": "Pilvesalvestus (kuni {{gameCount}} mängu)",
+    "cloud_achievements": "Salvesta oma saavutused pilve",
+    "animated_profile_picture": "Animeeritud profiilipildid",
+    "premium_support": "Premium tugi",
+    "show_and_compare_achievements": "Näita ja võrdle oma saavutusi teiste kasutajatega",
+    "animated_profile_banner": "Animeeritud profiilibänner"
+  }
 }
