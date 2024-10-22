@@ -157,7 +157,11 @@
     "no_download_option_info": "Sem informações disponíveis",
     "backup_deletion_failed": "Falha ao apagar backup",
     "max_number_of_artifacts_reached": "Número máximo de backups atingido para este jogo",
-    "achievements_not_sync": "Suas conquistas não estão sincronizadas"
+    "achievements_not_sync": "Suas conquistas não estão sincronizadas",
+    "backup_from": "Backup de {{date}}",
+    "custom_backup_location_set": "Localização customizada selecionada",
+    "select_folder": "Selecione a pasta",
+    "manage_files_description": "Gerencie quais arquivos serão feitos backup"
   },
   "activation": {
     "title": "Ativação",

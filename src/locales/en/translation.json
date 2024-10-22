@@ -163,7 +163,9 @@
     "max_number_of_artifacts_reached": "Maximum number of backups reached for this game",
     "achievements_not_sync": "Your achievements are not synchronized",
     "manage_files_description": "Manage which files will be backed up and restored",
-    "select_folder": "Select folder"
+    "select_folder": "Select folder",
+    "backup_from": "Backup from {{date}}",
+    "custom_backup_location_set": "Custom backup location set"
   },
   "activation": {
     "title": "Activate Hydra",
