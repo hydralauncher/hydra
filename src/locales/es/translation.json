@@ -9,7 +9,8 @@
     "no_results": "Sin resultados encontrados",
     "start_typing": "Empieza a escribir para buscar...",
     "hot": "Popular Ahora",
-    "weekly": "📅 Mejores juegos de la semana"
+    "weekly": "📅 Mejores juegos de la semana",
+    "achievements": "🏆 Juegos para completar"
   },
   "sidebar": {
     "catalogue": "Catálogo",
@@ -160,7 +161,11 @@
     "no_download_option_info": "Sin información disponible",
     "backup_deletion_failed": "La eliminación de la copia de seguridad falló",
     "max_number_of_artifacts_reached": "Número máximo de copias de seguridad de este juego alcanzadas",
-    "achievements_not_sync": "Tus logros no están sincronizadas"
+    "achievements_not_sync": "Tus logros no están sincronizados",
+    "manage_files_description": "Gestiona los archivos que serán respaldados y restaurados",
+    "select_folder": "Seleccionar carpeta",
+    "backup_from": "Copia de seguridad de {{date}}",
+    "custom_backup_location_set": "Se configuró la carpeta de copia de seguridad"
   },
   "activation": {
     "title": "Activar Hydra",
@@ -347,7 +352,8 @@
     "profile_reported": "Perfil reportado",
     "your_friend_code": "Tu código de amigo:",
     "upload_banner": "Subir un banner",
-    "uploading_banner": "Subiendo banner…"
+    "uploading_banner": "Subiendo banner…",
+    "background_image_updated": "Imagen de fondo actualizada"
   },
   "achievement": {
     "achievement_unlocked": "Logro desbloqueado",
