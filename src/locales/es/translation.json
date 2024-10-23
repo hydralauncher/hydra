@@ -161,7 +161,7 @@
     "no_download_option_info": "Sin información disponible",
     "backup_deletion_failed": "La eliminación de la copia de seguridad falló",
     "max_number_of_artifacts_reached": "Número máximo de copias de seguridad de este juego alcanzadas",
-    "achievements_not_sync": "Tus logros no están sincronizados"
+    "achievements_not_sync": "Tus logros no están sincronizados",
     "manage_files_description": "Gestiona los archivos que serán respaldados y restaurados",
     "select_folder": "Seleccionar carpeta",
     "backup_from": "Copia de seguridad de {{date}}",
