@@ -79,7 +79,8 @@ Follow the steps below to install:
    - Download only .exe if you want to install Hydra on Windows.
    - Download .deb or .rpm or .zip if you want to install Hydra on Linux. (depends on your Linux distro)
 2. Run the downloaded file.
-3. Enjoy Hydra!
+3. Go to the [Hydra Links](https://hydralinks.cloud) website to install downloadable fonts.
+4. Enjoy Hydra!
 
 ## <a name="contributing"> Contributing
 
