@@ -44,7 +44,7 @@ export class HydraApi {
     return this.userAuth.authToken !== "";
   }
 
-  private static hasCloudSubscription() {
+  private static hasActiveSubscription() {
     return (
       this.userAuth.subscription?.expiresAt &&
       this.userAuth.subscription.expiresAt > new Date()
@@ -279,7 +279,7 @@ export class HydraApi {
     }
 
     if (needsSubscription) {
-      if (!(await this.hasCloudSubscription())) {
+      if (!(await this.hasActiveSubscription())) {
         throw new SubscriptionRequiredError();
       }
     }
