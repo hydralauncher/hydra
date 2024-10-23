@@ -8,7 +8,7 @@ import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-mo
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { Avatar } from "../avatar/avatar";
 
-const LONG_POLLING_INTERVAL = 60_000;
+const LONG_POLLING_INTERVAL = 120_000;
 
 export function SidebarProfile() {
   const navigate = useNavigate();
