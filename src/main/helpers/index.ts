@@ -26,8 +26,9 @@ export const requestWebPage = async (url: string) => {
   return window.document;
 };
 
-export const isPortableVersion = () =>
-  process.env.PORTABLE_EXECUTABLE_FILE !== null;
+export const isPortableVersion = () => {
+  return !!process.env.PORTABLE_EXECUTABLE_FILE;
+};
 
 export const normalizePath = (str: string) =>
   path.posix.normalize(str).replace(/\\/g, "/");
