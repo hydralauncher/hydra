@@ -133,7 +133,7 @@ export function useUserDetails() {
     }
 
     return (
-      userDetails.subscription.expiresAt == null ||
+      userDetails.subscription.expiresAt &&
       new Date(userDetails.subscription.expiresAt) > new Date()
     );
   }, [userDetails]);
