@@ -126,7 +126,7 @@ export function Sidebar() {
           <div
             style={{
               position: "absolute",
-              zIndex: 2,
+              zIndex: 1,
               inset: 0,
               width: "100%",
               height: "100%",
