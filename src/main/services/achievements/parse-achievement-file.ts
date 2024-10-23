@@ -65,6 +65,11 @@ export const parseAchievementFile = (
     return processCreamAPI(parsed);
   }
 
+  if (type === Cracker.empress) {
+    const parsed = jsonParse(filePath);
+    return processGoldberg(parsed);
+  }
+
   if (type === Cracker.razor1911) {
     return processRazor1911(filePath);
   }
