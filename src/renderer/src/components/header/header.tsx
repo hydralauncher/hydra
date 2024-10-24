@@ -71,6 +71,11 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
       if (!isFocused && ctrlKey && key === "k") {
         focusInput();
       }
+
+      if (isFocused && key === "Escape" && inputRef.current) {
+        inputRef.current.blur();
+        handleBlur();
+      }
     };
 
     return () => {
