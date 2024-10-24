@@ -56,6 +56,15 @@ const ariaLabelSummary = (
   });
 };
 
+const ariaLabelAchievement = (
+  t: TFunction,
+  achievement: UserAchievement
+): string => {
+  return `${
+    achievement.unlocked ? t("achievement_unlocked") : t("achievement_locked")
+  }, ${achievement.displayName}, ${achievement.description}`;
+};
+
 function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
   const { t } = useTranslation("achievement");
   const { userDetails, hasActiveSubscription } = useUserDetails();
@@ -195,9 +204,15 @@ function AchievementList({ achievements }: AchievementListProps) {
   const { formatDateTime } = useDate();
 
   return (
-    <ul className={styles.list}>
+    <ul className={styles.list} role="list">
       {achievements.map((achievement, index) => (
-        <li key={index} className={styles.listItem} style={{ display: "flex" }}>
+        <li
+          key={index}
+          className={styles.listItem}
+          style={{ display: "flex" }}
+          role="listitem"
+          aria-label={ariaLabelAchievement(t, achievement)}
+        >
           <img
             className={styles.listItemImage({
               unlocked: achievement.unlocked,
