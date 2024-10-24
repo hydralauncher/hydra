@@ -112,7 +112,7 @@ export const listItem = style({
   color: vars.color.muted,
   width: "100%",
   overflow: "hidden",
-  borderRadius: "4px",
+  borderRadius: "12px", // Borda arredondada maior
   padding: `${SPACING_UNIT}px ${SPACING_UNIT}px`,
   gap: `${SPACING_UNIT * 2}px`,
   alignItems: "center",
@@ -127,7 +127,7 @@ export const listItemImage = recipe({
   base: {
     width: "54px",
     height: "54px",
-    borderRadius: "4px",
+    borderRadius: "50%", // Torna a imagem circular
     objectFit: "cover",
   },
   variants: {
@@ -138,6 +138,7 @@ export const listItemImage = recipe({
     },
   },
 });
+
 
 export const achievementsProgressBar = style({
   width: "100%",
