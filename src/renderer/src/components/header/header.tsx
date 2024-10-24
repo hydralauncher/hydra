@@ -101,6 +101,7 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
               type="button"
               className={styles.actionButton}
               onClick={focusInput}
+              tabIndex={-1}
             >
               <SearchIcon />
             </button>
