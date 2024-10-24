@@ -36,7 +36,8 @@
     "search_results": "Search results",
     "settings": "Settings",
     "version_available_install": "Version {{version}} available. Click here to restart and install.",
-    "version_available_download": "Version {{version}} available. Click here to download."
+    "version_available_download": "Version {{version}} available. Click here to download.",
+    "back": "Back"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "No downloads in progress",

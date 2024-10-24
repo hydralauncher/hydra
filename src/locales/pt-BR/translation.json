@@ -36,7 +36,8 @@
     "settings": "Ajustes",
     "home": "Início",
     "version_available_install": "Versão {{version}} disponível. Clique aqui para reiniciar e instalar.",
-    "version_available_download": "Versão {{version}} disponível. Clique aqui para fazer o download."
+    "version_available_download": "Versão {{version}} disponível. Clique aqui para fazer o download.",
+    "back": "Voltar"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Sem downloads em andamento",
