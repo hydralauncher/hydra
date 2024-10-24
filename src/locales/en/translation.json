@@ -372,5 +372,8 @@
     "premium_support": "Premium Support",
     "show_and_compare_achievements": "Show and compare your achievements to other users",
     "animated_profile_banner": "Animated profile banner"
+  },
+  "aria-labels": {
+    "achievement_summary": "{{displayName}} achievements for {{gameTitle}}, {{achievementCount}} unlocked of {{totalAchievementCount}}, {{percentage}} completed"
   }
 }
