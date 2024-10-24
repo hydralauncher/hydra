@@ -68,6 +68,22 @@ export function Sidebar() {
       sidebarRef.current?.clientWidth || SIDEBAR_INITIAL_WIDTH;
   };
 
+  const handleKeyDown: React.KeyboardEventHandler<HTMLButtonElement> = (
+    event
+  ) => {
+    const { key } = event;
+
+    if (key === "ArrowRight") {
+      setSidebarWidth((prevWidth) => 
+        prevWidth < SIDEBAR_INITIAL_WIDTH ? SIDEBAR_INITIAL_WIDTH : SIDEBAR_MAX_WIDTH
+      );
+    } else if (key === "ArrowLeft") {
+      setSidebarWidth((prevWidth) => 
+        prevWidth > SIDEBAR_INITIAL_WIDTH ? SIDEBAR_INITIAL_WIDTH : SIDEBAR_MIN_WIDTH
+      );
+    }
+  };
+
   const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
     setFilteredLibrary(
       sortedLibrary.filter((game) =>
@@ -246,6 +262,7 @@ export function Sidebar() {
         type="button"
         className={styles.handle}
         onMouseDown={handleMouseDown}
+        onKeyDown={handleKeyDown}
       />
     </aside>
   );
