@@ -39,7 +39,7 @@ export function HowLongToBeatSection({
                   key={category.title}
                   className={styles.howLongToBeatCategory}
                   aria-label={`${category.title}, ${getDuration(
-                    category.duration,
+                    category.duration
                   )}`}
                 >
                   <p
