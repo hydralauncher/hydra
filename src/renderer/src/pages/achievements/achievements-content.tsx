@@ -204,13 +204,12 @@ function AchievementList({ achievements }: AchievementListProps) {
   const { formatDateTime } = useDate();
 
   return (
-    <ul className={styles.list} role="list">
+    <ul className={styles.list}>
       {achievements.map((achievement, index) => (
         <li
           key={index}
           className={styles.listItem}
           style={{ display: "flex" }}
-          role="listitem"
           aria-label={ariaLabelAchievement(t, achievement)}
         >
           <img
