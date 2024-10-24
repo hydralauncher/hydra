@@ -74,12 +74,16 @@ export function Sidebar() {
     const { key } = event;
 
     if (key === "ArrowRight") {
-      setSidebarWidth((prevWidth) => 
-        prevWidth < SIDEBAR_INITIAL_WIDTH ? SIDEBAR_INITIAL_WIDTH : SIDEBAR_MAX_WIDTH
+      setSidebarWidth((prevWidth) =>
+        prevWidth < SIDEBAR_INITIAL_WIDTH
+          ? SIDEBAR_INITIAL_WIDTH
+          : SIDEBAR_MAX_WIDTH
       );
     } else if (key === "ArrowLeft") {
-      setSidebarWidth((prevWidth) => 
-        prevWidth > SIDEBAR_INITIAL_WIDTH ? SIDEBAR_INITIAL_WIDTH : SIDEBAR_MIN_WIDTH
+      setSidebarWidth((prevWidth) =>
+        prevWidth > SIDEBAR_INITIAL_WIDTH
+          ? SIDEBAR_INITIAL_WIDTH
+          : SIDEBAR_MIN_WIDTH
       );
     }
   };
