@@ -359,7 +359,8 @@
     "user_achievements": "Conquistas de {{displayName}}",
     "unlocked_at": "Desbloqueado em:",
     "subscription_needed": "Você precisa de uma assinatura Hydra Cloud para visualizar este conteúdo",
-    "new_achievements_unlocked": "{{achievementCount}} novas conquistas de {{gameCount}} jogos"
+    "new_achievements_unlocked": "{{achievementCount}} novas conquistas de {{gameCount}} jogos",
+    "achievement_summary": "Conquistas de {{displayName}} em {{gameTitle}}, {{achievementCount}} desbloqueadas de {{totalAchievementCount}}, {{percentage}} concluídas"
   },
   "tour": {
     "subscription_tour_title": "Assinatura Hydra Cloud",
@@ -370,8 +371,5 @@
     "show_and_compare_achievements": "Exiba e compare suas conquistas com outros usuários",
     "animated_profile_banner": "Banner animado no perfil",
     "cloud_saving": "Saves de jogos em nuvem"
-  },
-  "aria-labels": {
-    "achievement_summary": "Conquistas de {{displayName}} em {{gameTitle}}, {{achievementCount}} desbloqueadas de {{totalAchievementCount}}, {{percentage}} concluídas"
   }
 }
