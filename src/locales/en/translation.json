@@ -357,13 +357,13 @@
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",
+    "achievement_locked": "Achievement locked",
     "user_achievements": "{{displayName}}'s Achievements",
     "your_achievements": "Your Achievements",
     "unlocked_at": "Unlocked at:",
     "subscription_needed": "A Hydra Cloud subscription is required to see this content",
     "new_achievements_unlocked": "Unlocked {{achievementCount}} new achievements from {{gameCount}} games",
-    "aria_achievement_summary": "{{userDisplayName}} achievements for {{gameTitle}}, {{userAchievementCount}} unlocked of {{userTotalAchievementCount}}, {{percentage}} completed",
-    "aria_achievement": "Achievement {{achievementStatus}}, {{achievementDisplayName}}, {{achievementDescription}}"
+    "aria_achievement_summary": "{{userDisplayName}} achievements for {{gameTitle}}, {{userAchievementCount}} unlocked of {{userTotalAchievementCount}}, {{percentage}} completed"
   },
   "tour": {
     "subscription_tour_title": "Hydra Cloud Subscription",
