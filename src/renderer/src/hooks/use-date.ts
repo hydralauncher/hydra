@@ -77,6 +77,8 @@ export function useDate() {
     },
 
     formatDate: (date: number | Date | string): string => {
+      if (isNaN(new Date(date).getDate())) return "N/A";
+
       const locale = getDateLocale();
       return format(date, locale == enUS ? "MM/dd/yyyy" : "dd/MM/yyyy");
     },

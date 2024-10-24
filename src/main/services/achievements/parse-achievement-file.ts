@@ -65,6 +65,11 @@ export const parseAchievementFile = (
     return processCreamAPI(parsed);
   }
 
+  if (type === Cracker.empress) {
+    const parsed = jsonParse(filePath);
+    return processGoldberg(parsed);
+  }
+
   if (type === Cracker.razor1911) {
     return processRazor1911(filePath);
   }
@@ -118,7 +123,7 @@ const jsonParse = (filePath: string) => {
 const processRazor1911 = (filePath: string): UnlockedAchievement[] => {
   try {
     const fileContent = readFileSync(filePath, "utf-8");
-    achievementsLogger.log("processing file", filePath, fileContent);
+
     const lines =
       fileContent.charCodeAt(0) === 0xfeff
         ? fileContent.slice(1).split(/[\r\n]+/)
@@ -136,7 +141,7 @@ const processRazor1911 = (filePath: string): UnlockedAchievement[] => {
         });
       }
     }
-    achievementsLogger.log("processing file", achievements);
+
     return achievements;
   } catch (err) {
     achievementsLogger.error(`Error processing ${filePath}`, err);

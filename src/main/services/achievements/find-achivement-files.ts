@@ -79,11 +79,11 @@ const getPathFromCracker = (cracker: Cracker) => {
     return [
       {
         folderPath: path.join(publicDocuments, "Steam", "CODEX"),
-        fileLocation: ["achievements.ini"],
+        fileLocation: ["<objectId>", "achievements.ini"],
       },
       {
         folderPath: path.join(appData, "Steam", "CODEX"),
-        fileLocation: ["achievements.ini"],
+        fileLocation: ["<objectId>", "achievements.ini"],
       },
     ];
   }
@@ -92,7 +92,7 @@ const getPathFromCracker = (cracker: Cracker) => {
     return [
       {
         folderPath: path.join(publicDocuments, "Steam", "RUNE"),
-        fileLocation: ["achievements.ini"],
+        fileLocation: ["<objectId>", "achievements.ini"],
       },
     ];
   }
@@ -101,11 +101,11 @@ const getPathFromCracker = (cracker: Cracker) => {
     return [
       {
         folderPath: path.join(publicDocuments, "OnlineFix"),
-        fileLocation: ["Stats", "Achievements.ini"],
+        fileLocation: ["<objectId>", "Stats", "Achievements.ini"],
       },
       {
         folderPath: path.join(publicDocuments, "OnlineFix"),
-        fileLocation: ["Achievements.ini"],
+        fileLocation: ["<objectId>", "Achievements.ini"],
       },
     ];
   }
@@ -114,11 +114,11 @@ const getPathFromCracker = (cracker: Cracker) => {
     return [
       {
         folderPath: path.join(appData, "Goldberg SteamEmu Saves"),
-        fileLocation: ["achievements.json"],
+        fileLocation: ["<objectId>", "achievements.json"],
       },
       {
         folderPath: path.join(appData, "GSE Saves"),
-        fileLocation: ["achievements.json"],
+        fileLocation: ["<objectId>", "achievements.json"],
       },
     ];
   }
@@ -131,19 +131,19 @@ const getPathFromCracker = (cracker: Cracker) => {
     return [
       {
         folderPath: path.join(programData, "RLD!"),
-        fileLocation: ["achievements.ini"],
+        fileLocation: ["<objectId>", "achievements.ini"],
       },
       {
         folderPath: path.join(programData, "Steam", "Player"),
-        fileLocation: ["stats", "achievements.ini"],
+        fileLocation: ["<objectId>", "stats", "achievements.ini"],
       },
       {
         folderPath: path.join(programData, "Steam", "RLD!"),
-        fileLocation: ["stats", "achievements.ini"],
+        fileLocation: ["<objectId>", "stats", "achievements.ini"],
       },
       {
         folderPath: path.join(programData, "Steam", "dodi"),
-        fileLocation: ["stats", "achievements.ini"],
+        fileLocation: ["<objectId>", "stats", "achievements.ini"],
       },
     ];
   }
@@ -152,11 +152,16 @@ const getPathFromCracker = (cracker: Cracker) => {
     return [
       {
         folderPath: path.join(appData, "EMPRESS", "remote"),
-        fileLocation: ["achievements.json"],
+        fileLocation: ["<objectId>", "achievements.json"],
       },
       {
-        folderPath: path.join(publicDocuments, "EMPRESS", "remote"),
-        fileLocation: ["achievements.json"],
+        folderPath: path.join(publicDocuments, "EMPRESS"),
+        fileLocation: [
+          "<objectId>",
+          "remote",
+          "<objectId>",
+          "achievements.json",
+        ],
       },
     ];
   }
@@ -165,15 +170,15 @@ const getPathFromCracker = (cracker: Cracker) => {
     return [
       {
         folderPath: path.join(documents, "SKIDROW"),
-        fileLocation: ["SteamEmu", "UserStats", "achiev.ini"],
+        fileLocation: ["<objectId>", "SteamEmu", "UserStats", "achiev.ini"],
       },
       {
         folderPath: path.join(documents, "Player"),
-        fileLocation: ["SteamEmu", "UserStats", "achiev.ini"],
+        fileLocation: ["<objectId>", "SteamEmu", "UserStats", "achiev.ini"],
       },
       {
         folderPath: path.join(localAppData, "SKIDROW"),
-        fileLocation: ["SteamEmu", "UserStats", "achiev.ini"],
+        fileLocation: ["<objectId>", "SteamEmu", "UserStats", "achiev.ini"],
       },
     ];
   }
@@ -182,7 +187,7 @@ const getPathFromCracker = (cracker: Cracker) => {
     return [
       {
         folderPath: path.join(appData, "CreamAPI"),
-        fileLocation: ["stats", "CreamAPI.Achievements.cfg"],
+        fileLocation: ["<objectId>", "stats", "CreamAPI.Achievements.cfg"],
       },
     ];
   }
@@ -191,7 +196,7 @@ const getPathFromCracker = (cracker: Cracker) => {
     return [
       {
         folderPath: path.join(appData, "SmartSteamEmu"),
-        fileLocation: ["User", "Achievements.ini"],
+        fileLocation: ["<objectId>", "User", "Achievements.ini"],
       },
     ];
   }
@@ -213,11 +218,11 @@ const getPathFromCracker = (cracker: Cracker) => {
     return [
       {
         folderPath: path.join(appData, "RLE"),
-        fileLocation: ["achievements.ini"],
+        fileLocation: ["<objectId>", "achievements.ini"],
       },
       {
         folderPath: path.join(appData, "RLE"),
-        fileLocation: ["Achievements.ini"],
+        fileLocation: ["<objectId>", "Achievements.ini"],
       },
     ];
   }
@@ -226,7 +231,7 @@ const getPathFromCracker = (cracker: Cracker) => {
     return [
       {
         folderPath: path.join(appData, ".1911"),
-        fileLocation: ["achievement"],
+        fileLocation: ["<objectId>", "achievement"],
       },
     ];
   }
@@ -253,8 +258,7 @@ export const findAchievementFiles = (game: Game) => {
         const filePath = path.join(
           game.winePrefixPath ?? "",
           folderPath,
-          objectId,
-          ...fileLocation
+          ...mapFileLocationWithObjectId(fileLocation, objectId)
         );
 
         if (fs.existsSync(filePath)) {
@@ -303,6 +307,15 @@ export const findAchievementFileInExecutableDirectory = (
   ];
 };
 
+const mapFileLocationWithObjectId = (
+  fileLocation: string[],
+  objectId: string
+) => {
+  return fileLocation.map((location) =>
+    location.replace("<objectId>", objectId)
+  );
+};
+
 export const findAllAchievementFiles = () => {
   const gameAchievementFiles = new Map<string, AchievementFile[]>();
 
@@ -315,7 +328,10 @@ export const findAllAchievementFiles = () => {
       const objectIds = fs.readdirSync(folderPath);
 
       for (const objectId of objectIds) {
-        const filePath = path.join(folderPath, objectId, ...fileLocation);
+        const filePath = path.join(
+          folderPath,
+          ...mapFileLocationWithObjectId(fileLocation, objectId)
+        );
 
         if (!fs.existsSync(filePath)) continue;
 
