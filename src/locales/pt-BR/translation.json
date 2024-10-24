@@ -26,7 +26,8 @@
     "game_has_no_executable": "Jogo não possui executável selecionado",
     "sign_in": "Login",
     "friends": "Amigos",
-    "aria_view_profile": "Ver perfil"
+    "aria_view_profile": "Ver perfil",
+    "resize_sidebar": "Redimensionar barra lateral"
   },
   "header": {
     "search": "Buscar jogos",

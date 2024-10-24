@@ -267,6 +267,7 @@ export function Sidebar() {
         className={styles.handle}
         onMouseDown={handleMouseDown}
         onKeyDown={handleKeyDown}
+        title={t("resize_sidebar")}
       />
     </aside>
   );
