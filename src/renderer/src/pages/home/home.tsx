@@ -126,7 +126,7 @@ export default function Home() {
                       <Lottie
                         lottieRef={flameAnimationRef}
                         animationData={flameAnimation}
-                        loop
+                        loop={false}
                         autoplay={false}
                         style={{
                           width: 30,
@@ -153,7 +153,7 @@ export default function Home() {
               <Lottie
                 animationData={starsAnimation}
                 style={{ width: 70, position: "absolute", top: -28, left: -27 }}
-                loop={Boolean(randomGame)}
+                loop={false}
               />
             </div>
             {t("surprise_me")}
@@ -165,7 +165,7 @@ export default function Home() {
             <div style={{ width: 24, height: 24, position: "relative" }}>
               <Lottie
                 animationData={flameAnimation}
-                loop
+                loop={false}
                 autoplay
                 style={{
                   width: 40,
