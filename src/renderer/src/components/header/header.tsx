@@ -65,6 +65,19 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
     navigate(-1);
   };
 
+  useEffect(() => {
+    window.onkeydown = (event: KeyboardEvent) => {
+      const { key, ctrlKey } = event;
+      if (!isFocused && ctrlKey && key === "k") {
+        focusInput();
+      }
+    };
+
+    return () => {
+      window.onkeydown = null;
+    };
+  }, [isFocused]);
+
   return (
     <>
       <header
