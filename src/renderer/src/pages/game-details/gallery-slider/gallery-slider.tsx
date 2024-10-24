@@ -140,7 +140,7 @@ export function GallerySlider() {
                 direction: "left",
               })}
               aria-label={t("previous_screenshot")}
-              tabIndex={0}
+              tabIndex={-1}
             >
               <ChevronLeftIcon size={36} />
             </button>
@@ -153,7 +153,7 @@ export function GallerySlider() {
                 direction: "right",
               })}
               aria-label={t("next_screenshot")}
-              tabIndex={0}
+              tabIndex={-1}
             >
               <ChevronRightIcon size={36} />
             </button>
@@ -169,6 +169,7 @@ export function GallerySlider() {
                 })}
                 onClick={() => setMediaIndex(i)}
                 aria-label={t("open_screenshot", { number: i + 1 })}
+                onFocus={() => setMediaIndex(i)}
               >
                 <img
                   src={media.thumbnail}
