@@ -360,7 +360,7 @@
     "unlocked_at": "Desbloqueado em:",
     "subscription_needed": "Você precisa de uma assinatura Hydra Cloud para visualizar este conteúdo",
     "new_achievements_unlocked": "{{achievementCount}} novas conquistas de {{gameCount}} jogos",
-    "achievement_summary": "Conquistas de {{displayName}} em {{gameTitle}}, {{achievementCount}} desbloqueadas de {{totalAchievementCount}}, {{percentage}} concluídas"
+    "achievement_summary": "Conquistas de {{userDisplayName}} em {{gameTitle}}, {{userAchievementCount}} desbloqueadas de {{userTotalAchievementCount}}, {{percentage}} concluídas"
   },
   "tour": {
     "subscription_tour_title": "Assinatura Hydra Cloud",
