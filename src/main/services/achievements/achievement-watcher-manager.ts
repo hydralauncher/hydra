@@ -242,10 +242,18 @@ export class AchievementWatcherManager {
         ? await this.preSearchAchievementsWindows()
         : await this.preSearchAchievementsWithWine();
 
+    const totalNewGamesWithAchievements = newAchievementsCount.filter(
+      (achievements) => achievements
+    ).length;
+    const totalNewAchievements = newAchievementsCount.reduce(
+      (acc, val) => acc + val,
+      0
+    );
+
     WindowManager.notificationWindow?.webContents.send(
       "on-combined-achievements-unlocked",
-      newAchievementsCount.filter((achievements) => achievements).length,
-      newAchievementsCount.reduce((acc, val) => acc + val, 0)
+      totalNewGamesWithAchievements,
+      totalNewAchievements
     );
 
     this.hasFinishedMergingWithRemote = true;

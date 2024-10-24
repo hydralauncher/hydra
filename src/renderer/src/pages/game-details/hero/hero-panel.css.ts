@@ -18,7 +18,7 @@ export const panel = recipe({
     position: "sticky",
     overflow: "hidden",
     top: "0",
-    zIndex: "1",
+    zIndex: "2",
   },
   variants: {
     stuck: {
