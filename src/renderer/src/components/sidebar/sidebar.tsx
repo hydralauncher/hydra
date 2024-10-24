@@ -219,6 +219,7 @@ export function Sidebar() {
                   type="button"
                   className={styles.menuItemButton}
                   onClick={(event) => handleSidebarGameClick(event, game)}
+                  aria-label={game.title}
                 >
                   {game.iconUrl ? (
                     <img

@@ -89,6 +89,7 @@ export function SidebarProfile() {
         type="button"
         className={styles.profileButton}
         onClick={handleProfileClick}
+        aria-label={t("aria_view_profile")}
       >
         <div className={styles.profileButtonContent}>
           <Avatar

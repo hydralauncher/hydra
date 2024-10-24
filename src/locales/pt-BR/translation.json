@@ -25,7 +25,8 @@
     "queued": "{{title}} (Na fila)",
     "game_has_no_executable": "Jogo não possui executável selecionado",
     "sign_in": "Login",
-    "friends": "Amigos"
+    "friends": "Amigos",
+    "aria_view_profile": "Ver perfil"
   },
   "header": {
     "search": "Buscar jogos",
