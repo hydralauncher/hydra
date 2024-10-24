@@ -81,6 +81,7 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
             })}
             onClick={handleBackButtonClick}
             disabled={location.key === "default"}
+            title={t("back")}
           >
             <ArrowLeftIcon />
           </button>
