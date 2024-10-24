@@ -102,6 +102,7 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
               className={styles.actionButton}
               onClick={focusInput}
               tabIndex={-1}
+              title={t("search")}
             >
               <SearchIcon />
             </button>
@@ -123,6 +124,7 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
                 type="button"
                 onClick={onClear}
                 className={styles.actionButton}
+                title={t("clear_search")}
               >
                 <XIcon />
               </button>
