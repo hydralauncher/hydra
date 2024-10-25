@@ -65,6 +65,24 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
     navigate(-1);
   };
 
+  useEffect(() => {
+    window.onkeydown = (event: KeyboardEvent) => {
+      const { key, ctrlKey } = event;
+      if (!isFocused && ctrlKey && key === "k") {
+        focusInput();
+      }
+
+      if (isFocused && key === "Escape" && inputRef.current) {
+        inputRef.current.blur();
+        handleBlur();
+      }
+    };
+
+    return () => {
+      window.onkeydown = null;
+    };
+  }, [isFocused]);
+
   return (
     <>
       <header
@@ -81,6 +99,7 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
             })}
             onClick={handleBackButtonClick}
             disabled={location.key === "default"}
+            title={t("back")}
           >
             <ArrowLeftIcon />
           </button>
@@ -100,6 +119,8 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
               type="button"
               className={styles.actionButton}
               onClick={focusInput}
+              tabIndex={-1}
+              title={t("search")}
             >
               <SearchIcon />
             </button>
@@ -121,6 +142,7 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
                 type="button"
                 onClick={onClear}
                 className={styles.actionButton}
+                title={t("clear_search")}
               >
                 <XIcon />
               </button>
