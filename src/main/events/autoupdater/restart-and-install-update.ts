@@ -7,7 +7,7 @@ const { autoUpdater } = updater;
 const restartAndInstallUpdate = async (_event: Electron.IpcMainInvokeEvent) => {
   autoUpdater.removeAllListeners();
   if (app.isPackaged) {
-    autoUpdater.quitAndInstall(true, true);
+    autoUpdater.quitAndInstall(false);
   }
 };
 
