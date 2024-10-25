@@ -94,8 +94,6 @@ export interface UserGame {
   cover: string;
   playTimeInSeconds: number;
   lastTimePlayed: Date | null;
-  unlockedAchievementCount: number;
-  achievementCount: number;
 }
 
 export interface DownloadQueue {
@@ -258,7 +256,10 @@ export interface UserProfile {
   profileImageUrl: string | null;
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
-  libraryGames: UserGame[];
+  libraryGames: (UserGame & {
+    unlockedAchievementCount: number;
+    achievementCount: number;
+  })[];
   recentGames: UserGame[];
   friends: UserFriend[];
   totalFriends: number;

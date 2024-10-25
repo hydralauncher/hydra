@@ -1,9 +1,13 @@
-import { Notification, nativeImage } from "electron";
+import { Notification, app, nativeImage } from "electron";
 import { t } from "i18next";
 import { parseICO } from "icojs";
 import trayIcon from "@resources/tray-icon.png?asset";
 import { Game } from "@main/entity";
 import { gameRepository, userPreferencesRepository } from "@main/repository";
+import { Toast } from "powertoast";
+import fs from "node:fs";
+import axios from "axios";
+import path from "node:path";
 
 const getGameIconNativeImage = async (gameId: number) => {
   try {
@@ -65,3 +69,42 @@ export const publishNotificationUpdateReadyToInstall = async (
 };
 
 export const publishNewFriendRequestNotification = async () => {};
+
+async function downloadImage(url: string) {
+  const fileName = url.split("/").pop()!;
+  const outputPath = path.join(app.getPath("temp"), fileName);
+  const writer = fs.createWriteStream(outputPath);
+
+  const response = await axios.get(url, {
+    responseType: "stream",
+  });
+
+  response.data.pipe(writer);
+
+  return new Promise<string>((resolve, reject) => {
+    writer.on("finish", () => {
+      resolve(outputPath);
+    });
+    writer.on("error", reject);
+  });
+}
+
+export const publishNewAchievementNotification = async (achievement: {
+  displayName: string;
+  icon: string;
+}) => {
+  const iconPath = await downloadImage(achievement.icon);
+
+  new Toast({
+    aumid: "gg.hydralauncher.hydra",
+    title: "New achievement unlocked",
+    message: achievement.displayName,
+    icon: iconPath,
+    sound: true,
+    audio: "ms-appx:///resources/achievement.wav",
+    progress: {
+      value: 30,
+      valueOverride: "30/100 achievements",
+    },
+  }).show();
+};
