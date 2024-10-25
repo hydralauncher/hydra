@@ -2828,6 +2828,26 @@
     "@types/babel__core" "^7.20.5"
     react-refresh "^0.14.0"
 
+"@xan105/error@^1.6.2", "@xan105/error@^1.7.0":
+  version "1.7.1"
+  resolved "https://registry.yarnpkg.com/@xan105/error/-/error-1.7.1.tgz#d417e839cef7d79df4594943553d3d5b14f26bfa"
+  integrity sha512-FYIUYijbmg62L9QQ5BsR14DuZatAJJvwo10yzuEDEsu8L0FAa4DZivWFAf66nYjEiSz50SFGtMxWSyG+y/ZGGw==
+
+"@xan105/fs@^2.2.1":
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/@xan105/fs/-/fs-2.2.1.tgz#46ca0f943443f5fa5daebd0af6bee289637be098"
+  integrity sha512-jYvheYkJ1F6XfUYSfCIgdfgx/yWiW5uitXhydEceirICNMRubboNQM1LUB5+ZDmKq4hCNyjqxv4TPeARMcOepQ==
+  dependencies:
+    "@xan105/error" "^1.6.2"
+    "@xan105/is" "^2.9.3"
+
+"@xan105/is@^2.9.3":
+  version "2.9.3"
+  resolved "https://registry.yarnpkg.com/@xan105/is/-/is-2.9.3.tgz#81c2152202e450c0aad8927fdc6eea30649f30d6"
+  integrity sha512-1Ivr52VENqksdcvhar+rv+kTSsDWFBPyScpMIJibZJMzSOyiGmu25bJOwiSVl0x2hFJcQW2FFUURUqYyxe9X1g==
+  dependencies:
+    "@xan105/error" "^1.6.2"
+
 "@xmldom/xmldom@^0.8.8":
   version "0.8.10"
   resolved "https://registry.npmjs.org/@xmldom/xmldom/-/xmldom-0.8.10.tgz"
@@ -7080,6 +7100,15 @@ postgres-range@^1.1.1:
   version "1.1.4"
   resolved "https://registry.yarnpkg.com/postgres-range/-/postgres-range-1.1.4.tgz#a59c5f9520909bcec5e63e8cf913a92e4c952863"
   integrity sha512-i/hbxIE9803Alj/6ytL7UHQxRvZkI9O4Sy+J3HGc4F4oo/2eQAjTSNJ0bfxyse3bH0nuVesCk+3IRLaMtG3H6w==
+
+powertoast@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/powertoast/-/powertoast-3.0.0.tgz#38cbcfde8cb15867ef14d89d0c890c76a445f828"
+  integrity sha512-nlGnBkMchJS6P4uQgjROpzHs72WqgB6cYP7hDFACXOZUSu2lXgDqJ5fKt2B/53jO+UynVlbhAQHHQvSOLUAUmQ==
+  dependencies:
+    "@xan105/error" "^1.7.0"
+    "@xan105/fs" "^2.2.1"
+    "@xan105/is" "^2.9.3"
 
 prebuild-install@^7.1.1:
   version "7.1.2"
