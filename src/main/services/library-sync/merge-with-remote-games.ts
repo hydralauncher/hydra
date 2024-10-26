@@ -1,12 +1,12 @@
 import { gameRepository } from "@main/repository";
 import { HydraApi } from "../hydra-api";
 import { steamGamesWorker } from "@main/workers";
-import { getSteamAppAsset } from "@main/helpers";
+import { steamUrlBuilder } from "@shared";
 
 export const mergeWithRemoteGames = async () => {
-  return HydraApi.get("/games")
+  return HydraApi.get("/profile/games")
     .then(async (response) => {
-      for (const game of response.data) {
+      for (const game of response) {
         const localGame = await gameRepository.findOne({
           where: {
             objectID: game.objectId,
@@ -44,7 +44,7 @@ export const mergeWithRemoteGames = async () => {
 
           if (steamGame) {
             const iconUrl = steamGame?.clientIcon
-              ? getSteamAppAsset("icon", game.objectId, steamGame.clientIcon)
+              ? steamUrlBuilder.icon(game.objectId, steamGame.clientIcon)
               : null;
 
             gameRepository.insert({

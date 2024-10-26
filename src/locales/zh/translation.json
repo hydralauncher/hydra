@@ -1,10 +1,10 @@
 {
+  "language_name": "中文",
   "app": {
     "successfully_signed_in": "已成功登录"
   },
   "home": {
     "featured": "特色推荐",
-    "trending": "最近热门",
     "surprise_me": "向我推荐",
     "no_results": "没有找到结果"
   },
@@ -169,9 +169,6 @@
     "download_count_zero": "列表中无下载",
     "download_count_one": "列表中有 {{countFormatted}} 个下载",
     "download_count_other": "列表中有 {{countFormatted}} 个下载",
-    "download_options_zero": "无可用下载",
-    "download_options_one": "有 {{countFormatted}} 个下载可用",
-    "download_options_other": "有 {{countFormatted}} 个下载可用",
     "download_source_url": "下载源 URL",
     "add_download_source_description": "插入包含 .json 文件的 URL",
     "download_source_up_to_date": "已更新",

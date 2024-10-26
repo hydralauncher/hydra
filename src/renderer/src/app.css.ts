@@ -1,5 +1,12 @@
-import { ComplexStyleRule, globalStyle, style } from "@vanilla-extract/css";
+import {
+  ComplexStyleRule,
+  createContainer,
+  globalStyle,
+  style,
+} from "@vanilla-extract/css";
 import { SPACING_UNIT, vars } from "./theme.css";
+
+export const appContainer = createContainer();
 
 globalStyle("*", {
   boxSizing: "border-box",
@@ -19,6 +26,10 @@ globalStyle("::-webkit-scrollbar-thumb", {
   borderRadius: "24px",
 });
 
+globalStyle("::-webkit-scrollbar-thumb:hover", {
+  backgroundColor: "rgba(255, 255, 255, 0.16)",
+});
+
 globalStyle("html, body, #root, main", {
   height: "100%",
 });
@@ -26,9 +37,8 @@ globalStyle("html, body, #root, main", {
 globalStyle("body", {
   overflow: "hidden",
   userSelect: "none",
-  fontFamily: "'Fira Mono', monospace",
+  fontFamily: "Noto Sans, sans-serif",
   fontSize: vars.size.body,
-  background: vars.color.background,
   color: vars.color.body,
   margin: "0",
 });
@@ -90,6 +100,8 @@ export const container = style({
   overflow: "hidden",
   display: "flex",
   flexDirection: "column",
+  containerName: appContainer,
+  containerType: "inline-size",
 });
 
 export const content = style({

@@ -1,16 +1,7 @@
-import { downloadSourceRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
+import { knexClient } from "@main/knex-client";
 
-const getDownloadSources = async (_event: Electron.IpcMainInvokeEvent) => {
-  return downloadSourceRepository
-    .createQueryBuilder("downloadSource")
-    .leftJoin("downloadSource.repacks", "repacks")
-    .orderBy("downloadSource.createdAt", "DESC")
-    .loadRelationCountAndMap(
-      "downloadSource.repackCount",
-      "downloadSource.repacks"
-    )
-    .getMany();
-};
+const getDownloadSources = async (_event: Electron.IpcMainInvokeEvent) =>
+  knexClient.select("*").from("download_source");
 
 registerEvent("getDownloadSources", getDownloadSources);

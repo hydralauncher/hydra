@@ -1,36 +1,39 @@
-import { getSteamAppAsset } from "@main/helpers";
-import type { CatalogueEntry, GameShop } from "@types";
+import type { GameShop } from "@types";
 
 import { registerEvent } from "../register-event";
-import { RepacksManager, requestSteam250 } from "@main/services";
-import { formatName } from "@shared";
+import { HydraApi } from "@main/services";
+import { CatalogueCategory, steamUrlBuilder } from "@shared";
+import { steamGamesWorker } from "@main/workers";
 
-const resultSize = 12;
+const getCatalogue = async (
+  _event: Electron.IpcMainInvokeEvent,
+  category: CatalogueCategory
+) => {
+  const params = new URLSearchParams({
+    take: "12",
+    skip: "0",
+  });
 
-const getCatalogue = async (_event: Electron.IpcMainInvokeEvent) => {
-  const trendingGames = await requestSteam250("/90day");
-  const results: CatalogueEntry[] = [];
+  const response = await HydraApi.get<{ objectId: string; shop: GameShop }[]>(
+    `/catalogue/${category}?${params.toString()}`,
+    {},
+    { needsAuth: false }
+  );
 
-  for (let i = 0; i < resultSize; i++) {
-    if (!trendingGames[i]) {
-      i++;
-      continue;
-    }
+  return Promise.all(
+    response.map(async (game) => {
+      const steamGame = await steamGamesWorker.run(Number(game.objectId), {
+        name: "getById",
+      });
 
-    const { title, objectID } = trendingGames[i]!;
-    const repacks = RepacksManager.search({ query: formatName(title) });
-
-    const catalogueEntry = {
-      objectID,
-      title,
-      shop: "steam" as GameShop,
-      cover: getSteamAppAsset("library", objectID),
-    };
-
-    results.push({ ...catalogueEntry, repacks });
-  }
-
-  return results;
+      return {
+        title: steamGame.name,
+        shop: game.shop,
+        cover: steamUrlBuilder.library(game.objectId),
+        objectId: game.objectId,
+      };
+    })
+  );
 };
 
 registerEvent("getCatalogue", getCatalogue);

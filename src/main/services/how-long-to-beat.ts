@@ -1,35 +1,73 @@
 import axios from "axios";
-import { JSDOM } from "jsdom";
 import { requestWebPage } from "@main/helpers";
-import { HowLongToBeatCategory } from "@types";
+import type {
+  HowLongToBeatCategory,
+  HowLongToBeatSearchResponse,
+} from "@types";
 import { formatName } from "@shared";
+import { logger } from "./logger";
+import UserAgent from "user-agents";
 
-export interface HowLongToBeatResult {
-  game_id: number;
-  profile_steam: number;
-}
+const state = {
+  apiKey: null as string | null,
+};
 
-export interface HowLongToBeatSearchResponse {
-  data: HowLongToBeatResult[];
-}
+const getHowLongToBeatSearchApiKey = async () => {
+  const userAgent = new UserAgent();
 
-export const searchHowLongToBeat = async (gameName: string) => {
-  const response = await axios.post(
-    "https://howlongtobeat.com/api/search",
-    {
-      searchType: "games",
-      searchTerms: formatName(gameName).split(" "),
-      searchPage: 1,
-      size: 100,
-    },
+  const document = await requestWebPage("https://howlongtobeat.com/");
+  const scripts = Array.from(document.querySelectorAll("script"));
+
+  const appScript = scripts.find((script) =>
+    script.src.startsWith("/_next/static/chunks/pages/_app")
+  );
+
+  if (!appScript) return null;
+
+  const response = await axios.get(
+    `https://howlongtobeat.com${appScript.src}`,
     {
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-        Referer: "https://howlongtobeat.com/",
+        "User-Agent": userAgent.toString(),
       },
     }
   );
+
+  const results = /fetch\("\/api\/search\/"\.concat\("(.*?)"\)/gm.exec(
+    response.data
+  );
+
+  if (!results) return null;
+
+  return results[1];
+};
+
+export const searchHowLongToBeat = async (gameName: string) => {
+  state.apiKey = state.apiKey ?? (await getHowLongToBeatSearchApiKey());
+  if (!state.apiKey) return { data: [] };
+
+  const userAgent = new UserAgent();
+
+  const response = await axios
+    .post(
+      `https://howlongtobeat.com/api/search/${state.apiKey}`,
+      {
+        searchType: "games",
+        searchTerms: formatName(gameName).split(" "),
+        searchPage: 1,
+        size: 20,
+      },
+      {
+        headers: {
+          "User-Agent": userAgent.toString(),
+          Referer: "https://howlongtobeat.com/",
+        },
+      }
+    )
+    .catch((error) => {
+      logger.error("Error searching HowLongToBeat:", error?.response?.status);
+      return { data: { data: [] } };
+    });
 
   return response.data as HowLongToBeatSearchResponse;
 };
@@ -52,10 +90,7 @@ const parseListItems = ($lis: Element[]) => {
 export const getHowLongToBeatGame = async (
   id: string
 ): Promise<HowLongToBeatCategory[]> => {
-  const response = await requestWebPage(`https://howlongtobeat.com/game/${id}`);
-
-  const { window } = new JSDOM(response);
-  const { document } = window;
+  const document = await requestWebPage(`https://howlongtobeat.com/game/${id}`);
 
   const $ul = document.querySelector(".shadow_shadow ul");
   if (!$ul) return [];

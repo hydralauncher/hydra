@@ -6,10 +6,9 @@ import { Badge, Button } from "@renderer/components";
 import {
   buildGameDetailsPath,
   formatDownloadProgress,
-  steamUrlBuilder,
 } from "@renderer/helpers";
 
-import { Downloader, formatBytes } from "@shared";
+import { Downloader, formatBytes, steamUrlBuilder } from "@shared";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import { useAppSelector, useDownload } from "@renderer/hooks";
 
@@ -228,7 +227,14 @@ export function DownloadGroup({
                     <button
                       type="button"
                       className={styles.downloadTitle}
-                      onClick={() => navigate(buildGameDetailsPath(game))}
+                      onClick={() =>
+                        navigate(
+                          buildGameDetailsPath({
+                            ...game,
+                            objectId: game.objectID,
+                          })
+                        )
+                      }
                     >
                       {game.title}
                     </button>

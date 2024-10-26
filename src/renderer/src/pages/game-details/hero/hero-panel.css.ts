@@ -9,6 +9,7 @@ export const panel = recipe({
     height: "72px",
     minHeight: "72px",
     padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 3}px`,
+    backgroundColor: vars.color.darkBackground,
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
@@ -17,7 +18,7 @@ export const panel = recipe({
     position: "sticky",
     overflow: "hidden",
     top: "0",
-    zIndex: "1",
+    zIndex: "2",
   },
   variants: {
     stuck: {

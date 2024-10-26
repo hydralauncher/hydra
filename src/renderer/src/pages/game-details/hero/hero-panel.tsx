@@ -1,8 +1,7 @@
-import { format } from "date-fns";
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useDownload } from "@renderer/hooks";
+import { useDate, useDownload } from "@renderer/hooks";
 
 import { HeroPanelActions } from "./hero-panel-actions";
 import * as styles from "./hero-panel.css";
@@ -17,6 +16,8 @@ export interface HeroPanelProps {
 export function HeroPanel({ isHeaderStuck }: HeroPanelProps) {
   const { t } = useTranslation("game_details");
 
+  const { formatDate } = useDate();
+
   const { game, repacks, gameColor } = useContext(gameDetailsContext);
 
   const { lastPacket } = useDownload();
@@ -29,7 +30,9 @@ export function HeroPanel({ isHeaderStuck }: HeroPanelProps) {
       const [latestRepack] = repacks;
 
       if (latestRepack) {
-        const lastUpdate = format(latestRepack.uploadDate!, "dd/MM/yyyy");
+        const lastUpdate = latestRepack.uploadDate
+          ? formatDate(latestRepack.uploadDate!)
+          : "";
         const repacksCount = repacks.length;
 
         return (

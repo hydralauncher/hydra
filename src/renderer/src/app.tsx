@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
@@ -25,6 +25,15 @@ import {
   setGameRunning,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
+import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
+import { downloadSourcesWorker } from "./workers";
+import { repacksContext } from "./context";
+import { logger } from "./logger";
+import { SubscriptionTourModal } from "./pages/shared-modals/subscription-tour-modal";
+
+interface TourModals {
+  subscriptionModal?: boolean;
+}
 
 export interface AppProps {
   children: React.ReactNode;
@@ -36,9 +45,21 @@ export function App() {
 
   const { t } = useTranslation("app");
 
+  const downloadSourceMigrationLock = useRef(false);
+
   const { clearDownload, setLastPacket } = useDownload();
 
-  const { fetchUserDetails, updateUserDetails, clearUserDetails } =
+  const { indexRepacks } = useContext(repacksContext);
+
+  const {
+    isFriendsModalVisible,
+    friendRequetsModalTab,
+    friendModalUserId,
+    syncFriendRequests,
+    hideFriendsModal,
+  } = useUserDetails();
+
+  const { userDetails, fetchUserDetails, updateUserDetails, clearUserDetails } =
     useUserDetails();
 
   const dispatch = useAppDispatch();
@@ -55,6 +76,9 @@ export function App() {
   const toast = useAppSelector((state) => state.toast);
 
   const { showSuccessToast } = useToast();
+
+  const [showSubscritionTourModal, setShowSubscritionTourModal] =
+    useState(false);
 
   useEffect(() => {
     Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
@@ -94,18 +118,38 @@ export function App() {
     }
 
     fetchUserDetails().then((response) => {
-      if (response) updateUserDetails(response);
+      if (response) {
+        updateUserDetails(response);
+        syncFriendRequests();
+      }
     });
-  }, [fetchUserDetails, updateUserDetails, dispatch]);
+  }, [fetchUserDetails, syncFriendRequests, updateUserDetails, dispatch]);
+
+  useEffect(() => {
+    const tourModalsString = window.localStorage.getItem("tourModals") || "{}";
+
+    const tourModals = JSON.parse(tourModalsString) as TourModals;
+
+    if (!tourModals.subscriptionModal) {
+      setShowSubscritionTourModal(true);
+    }
+  }, []);
 
   const onSignIn = useCallback(() => {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
+        syncFriendRequests();
         showSuccessToast(t("successfully_signed_in"));
       }
     });
-  }, [fetchUserDetails, t, showSuccessToast, updateUserDetails]);
+  }, [
+    fetchUserDetails,
+    syncFriendRequests,
+    t,
+    showSuccessToast,
+    updateUserDetails,
+  ]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
@@ -178,7 +222,7 @@ export function App() {
 
   useEffect(() => {
     new MutationObserver(() => {
-      const modal = document.body.querySelector("[role=modal]");
+      const modal = document.body.querySelector("[role=dialog]");
 
       dispatch(toggleDraggingDisabled(Boolean(modal)));
     }).observe(document.body, {
@@ -186,6 +230,63 @@ export function App() {
       childList: true,
     });
   }, [dispatch, draggingDisabled]);
+
+  useEffect(() => {
+    if (downloadSourceMigrationLock.current) return;
+
+    downloadSourceMigrationLock.current = true;
+
+    window.electron.getDownloadSources().then(async (downloadSources) => {
+      if (!downloadSources.length) {
+        const id = crypto.randomUUID();
+        const channel = new BroadcastChannel(`download_sources:sync:${id}`);
+
+        channel.onmessage = (event: MessageEvent<number>) => {
+          const newRepacksCount = event.data;
+          window.electron.publishNewRepacksNotification(newRepacksCount);
+        };
+
+        downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
+      }
+
+      for (const downloadSource of downloadSources) {
+        logger.info("Migrating download source", downloadSource.url);
+
+        const channel = new BroadcastChannel(
+          `download_sources:import:${downloadSource.url}`
+        );
+        await new Promise((resolve) => {
+          downloadSourcesWorker.postMessage([
+            "IMPORT_DOWNLOAD_SOURCE",
+            downloadSource.url,
+          ]);
+
+          channel.onmessage = () => {
+            window.electron.deleteDownloadSource(downloadSource.id).then(() => {
+              resolve(true);
+              logger.info(
+                "Deleted download source from SQLite",
+                downloadSource.url
+              );
+            });
+
+            indexRepacks();
+            channel.close();
+          };
+        }).catch(() => channel.close());
+      }
+
+      downloadSourceMigrationLock.current = false;
+    });
+  }, [indexRepacks]);
+
+  const handleCloseSubscriptionTourModal = () => {
+    setShowSubscritionTourModal(false);
+    window.localStorage.setItem(
+      "tourModals",
+      JSON.stringify({ subscriptionModal: true } as TourModals)
+    );
+  };
 
   const handleToastClose = useCallback(() => {
     dispatch(closeToast());
@@ -205,6 +306,20 @@ export function App() {
         type={toast.type}
         onClose={handleToastClose}
       />
+
+      <SubscriptionTourModal
+        visible={showSubscritionTourModal && false}
+        onClose={handleCloseSubscriptionTourModal}
+      />
+
+      {userDetails && (
+        <UserFriendModal
+          visible={isFriendsModalVisible}
+          initialTab={friendRequetsModalTab}
+          onClose={hideFriendsModal}
+          userId={friendModalUserId}
+        />
+      )}
 
       <main>
         <Sidebar />
