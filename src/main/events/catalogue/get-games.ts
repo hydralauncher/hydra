@@ -1,28 +1,29 @@
 import type { CatalogueEntry } from "@types";
 
 import { registerEvent } from "../register-event";
-import { steamGamesWorker } from "@main/workers";
-import { convertSteamGameToCatalogueEntry } from "../helpers/search-games";
-import { RepacksManager } from "@main/services";
+import { HydraApi } from "@main/services";
+import { steamUrlBuilder } from "@shared";
 
 const getGames = async (
   _event: Electron.IpcMainInvokeEvent,
   take = 12,
-  cursor = 0
-): Promise<{ results: CatalogueEntry[]; cursor: number }> => {
-  const steamGames = await steamGamesWorker.run(
-    { limit: take, offset: cursor },
-    { name: "list" }
+  skip = 0
+): Promise<CatalogueEntry[]> => {
+  const searchParams = new URLSearchParams({
+    take: take.toString(),
+    skip: skip.toString(),
+  });
+
+  const games = await HydraApi.get<CatalogueEntry[]>(
+    `/games/catalogue?${searchParams.toString()}`,
+    undefined,
+    { needsAuth: false }
   );
 
-  const entries = RepacksManager.findRepacksForCatalogueEntries(
-    steamGames.map((game) => convertSteamGameToCatalogueEntry(game))
-  );
-
-  return {
-    results: entries,
-    cursor: cursor + entries.length,
-  };
+  return games.map((game) => ({
+    ...game,
+    cover: steamUrlBuilder.library(game.objectId),
+  }));
 };
 
 registerEvent("getGames", getGames);

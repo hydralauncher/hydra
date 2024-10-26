@@ -128,6 +128,7 @@ export function GallerySlider() {
                   src={image.path_full}
                   style={{ translate: `${-100 * mediaIndex}%` }}
                   alt={t("screenshot", { number: i + 1 })}
+                  loading="lazy"
                 />
               ))}
 

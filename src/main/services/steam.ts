@@ -12,11 +12,11 @@ export interface SteamAppDetailsResponse {
 }
 
 export const getSteamAppDetails = async (
-  objectID: string,
+  objectId: string,
   language: string
 ) => {
   const searchParams = new URLSearchParams({
-    appids: objectID,
+    appids: objectId,
     l: language,
   });
 
@@ -25,7 +25,7 @@ export const getSteamAppDetails = async (
       `http://store.steampowered.com/api/appdetails?${searchParams.toString()}`
     )
     .then((response) => {
-      if (response.data[objectID].success) return response.data[objectID].data;
+      if (response.data[objectId].success) return response.data[objectId].data;
       return null;
     })
     .catch((err) => {

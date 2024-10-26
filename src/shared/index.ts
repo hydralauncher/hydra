@@ -1,17 +1,19 @@
-export enum Downloader {
-  RealDebrid,
-  Torrent,
-}
+import { charMap } from "./char-map";
+import { Downloader } from "./constants";
 
-export enum DownloadSourceStatus {
-  UpToDate,
-  Errored,
-}
+export * from "./constants";
 
 export class UserNotLoggedInError extends Error {
   constructor() {
     super("user not logged in");
     this.name = "UserNotLoggedInError";
+  }
+}
+
+export class SubscriptionRequiredError extends Error {
+  constructor() {
+    super("user does not have hydra cloud subscription");
+    this.name = "UserWithoutCloudSubscriptionError";
   }
 }
 
@@ -51,15 +53,66 @@ export const removeSpecialEditionFromName = (name: string) =>
 export const removeDuplicateSpaces = (name: string) =>
   name.replace(/\s{2,}/g, " ");
 
+export const replaceDotsWithSpace = (name: string) => name.replace(/\./g, " ");
+
 export const replaceUnderscoreWithSpace = (name: string) =>
   name.replace(/_/g, " ");
 
 export const formatName = pipe<string>(
+  (str) =>
+    str.replace(
+      new RegExp(Object.keys(charMap).join("|"), "g"),
+      (match) => charMap[match]
+    ),
+  (str) => str.toLowerCase(),
   removeReleaseYearFromName,
   removeSpecialEditionFromName,
   replaceUnderscoreWithSpace,
+  replaceDotsWithSpace,
   (str) => str.replace(/DIRECTOR'S CUT/g, ""),
   removeSymbolsFromName,
   removeDuplicateSpaces,
   (str) => str.trim()
 );
+
+const realDebridHosts = ["https://1fichier.com", "https://mediafire.com"];
+
+export const getDownloadersForUri = (uri: string) => {
+  if (uri.startsWith("https://gofile.io")) return [Downloader.Gofile];
+
+  if (uri.startsWith("https://pixeldrain.com")) return [Downloader.PixelDrain];
+  if (uri.startsWith("https://qiwi.gg")) return [Downloader.Qiwi];
+
+  if (realDebridHosts.some((host) => uri.startsWith(host)))
+    return [Downloader.RealDebrid];
+
+  if (uri.startsWith("magnet:")) {
+    return [Downloader.Torrent, Downloader.RealDebrid];
+  }
+
+  return [];
+};
+
+export const getDownloadersForUris = (uris: string[]) => {
+  const downloadersSet = uris.reduce<Set<Downloader>>((prev, next) => {
+    const downloaders = getDownloadersForUri(next);
+    downloaders.forEach((downloader) => prev.add(downloader));
+
+    return prev;
+  }, new Set());
+
+  return Array.from(downloadersSet);
+};
+
+export const steamUrlBuilder = {
+  library: (objectId: string) =>
+    `https://steamcdn-a.akamaihd.net/steam/apps/${objectId}/header.jpg`,
+  libraryHero: (objectId: string) =>
+    `https://steamcdn-a.akamaihd.net/steam/apps/${objectId}/library_hero.jpg`,
+  logo: (objectId: string) =>
+    `https://cdn.cloudflare.steamstatic.com/steam/apps/${objectId}/logo.png`,
+  cover: (objectId: string) =>
+    `https://cdn.cloudflare.steamstatic.com/steam/apps/${objectId}/library_600x900.jpg`,
+  icon: (objectId: string, clientIcon: string) =>
+    `https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/${objectId}/${clientIcon}.ico`,
+};

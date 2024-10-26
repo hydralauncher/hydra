@@ -9,6 +9,5 @@ export const form = style({
 });
 
 export const description = style({
-  fontFamily: "'Fira Sans', sans-serif",
   marginBottom: `${SPACING_UNIT * 2}px`,
 });

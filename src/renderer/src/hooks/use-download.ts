@@ -22,13 +22,13 @@ export function useDownload() {
   );
   const dispatch = useAppDispatch();
 
-  const startDownload = (payload: StartGameDownloadPayload) => {
+  const startDownload = async (payload: StartGameDownloadPayload) => {
     dispatch(clearDownload());
-    window.electron.startGameDownload(payload).then((game) => {
-      updateLibrary();
 
-      return game;
-    });
+    const game = await window.electron.startGameDownload(payload);
+
+    await updateLibrary();
+    return game;
   };
 
   const pauseDownload = async (gameId: number) => {

@@ -7,11 +7,11 @@ import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
 import { DeleteGameModal } from "./delete-game-modal";
 import { DownloadGroup } from "./download-group";
-import { LibraryGame } from "@types";
+import type { LibraryGame } from "@types";
 import { orderBy } from "lodash-es";
 import { ArrowDownIcon } from "@primer/octicons-react";
 
-export function Downloads() {
+export default function Downloads() {
   const { library, updateLibrary } = useLibrary();
 
   const { t } = useTranslation("downloads");
@@ -132,9 +132,7 @@ export function Downloads() {
             <ArrowDownIcon size={24} />
           </div>
           <h2>{t("no_downloads_title")}</h2>
-          <p style={{ fontFamily: "Fira Sans" }}>
-            {t("no_downloads_description")}
-          </p>
+          <p>{t("no_downloads_description")}</p>
         </div>
       )}
     </>

@@ -39,7 +39,8 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
 
   const title = useMemo(() => {
     if (location.pathname.startsWith("/game")) return headerTitle;
-    if (location.pathname.startsWith("/user")) return headerTitle;
+    if (location.pathname.startsWith("/achievements")) return headerTitle;
+    if (location.pathname.startsWith("/profile")) return headerTitle;
     if (location.pathname.startsWith("/search")) return t("search_results");
 
     return t(pathTitle[location.pathname]);
@@ -72,7 +73,7 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
           isWindows: window.electron.platform === "win32",
         })}
       >
-        <section className={styles.section}>
+        <section className={styles.section} style={{ flex: 1 }}>
           <button
             type="button"
             className={styles.backButton({

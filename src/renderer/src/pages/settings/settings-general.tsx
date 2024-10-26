@@ -1,6 +1,4 @@
 import { useContext, useEffect, useState } from "react";
-import ISO6391 from "iso-639-1";
-
 import {
   TextField,
   Button,
@@ -8,11 +6,9 @@ import {
   SelectField,
 } from "@renderer/components";
 import { useTranslation } from "react-i18next";
-
 import { useAppSelector } from "@renderer/hooks";
-
 import { changeLanguage } from "i18next";
-import * as languageResources from "@locales";
+import languageResources from "@locales";
 import { orderBy } from "lodash-es";
 import { settingsContext } from "@renderer/context";
 
@@ -34,6 +30,7 @@ export function SettingsGeneral() {
     downloadsPath: "",
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
+    achievementNotificationsEnabled: false,
     language: "",
   });
 
@@ -42,17 +39,15 @@ export function SettingsGeneral() {
   const [defaultDownloadsPath, setDefaultDownloadsPath] = useState("");
 
   useEffect(() => {
-    async function fetchdefaultDownloadsPath() {
-      setDefaultDownloadsPath(await window.electron.getDefaultDownloadsPath());
-    }
-
-    fetchdefaultDownloadsPath();
+    window.electron.getDefaultDownloadsPath().then((path) => {
+      setDefaultDownloadsPath(path);
+    });
 
     setLanguageOptions(
       orderBy(
-        Object.keys(languageResources).map((language) => {
+        Object.entries(languageResources).map(([language, value]) => {
           return {
-            nativeName: ISO6391.getNativeName(language),
+            nativeName: value.language_name,
             option: language,
           };
         }),
@@ -93,7 +88,14 @@ export function SettingsGeneral() {
 
   function updateFormWithUserPreferences() {
     if (userPreferences) {
-      const parsedLanguage = userPreferences.language.split("-")[0];
+      const languageKeys = Object.keys(languageResources);
+      const language =
+        languageKeys.find((language) => {
+          return language === userPreferences.language;
+        }) ??
+        languageKeys.find((language) => {
+          return language.startsWith(userPreferences.language.split("-")[0]);
+        });
 
       setForm((prev) => ({
         ...prev,
@@ -102,7 +104,9 @@ export function SettingsGeneral() {
           userPreferences.downloadNotificationsEnabled,
         repackUpdatesNotificationsEnabled:
           userPreferences.repackUpdatesNotificationsEnabled,
-        language: parsedLanguage,
+        achievementNotificationsEnabled:
+          userPreferences.achievementNotificationsEnabled,
+        language: language ?? "en",
       }));
     }
   }
@@ -133,28 +137,38 @@ export function SettingsGeneral() {
       />
 
       <h3>{t("notifications")}</h3>
-      <>
-        <CheckboxField
-          label={t("enable_download_notifications")}
-          checked={form.downloadNotificationsEnabled}
-          onChange={() =>
-            handleChange({
-              downloadNotificationsEnabled: !form.downloadNotificationsEnabled,
-            })
-          }
-        />
 
-        <CheckboxField
-          label={t("enable_repack_list_notifications")}
-          checked={form.repackUpdatesNotificationsEnabled}
-          onChange={() =>
-            handleChange({
-              repackUpdatesNotificationsEnabled:
-                !form.repackUpdatesNotificationsEnabled,
-            })
-          }
-        />
-      </>
+      <CheckboxField
+        label={t("enable_download_notifications")}
+        checked={form.downloadNotificationsEnabled}
+        onChange={() =>
+          handleChange({
+            downloadNotificationsEnabled: !form.downloadNotificationsEnabled,
+          })
+        }
+      />
+
+      <CheckboxField
+        label={t("enable_repack_list_notifications")}
+        checked={form.repackUpdatesNotificationsEnabled}
+        onChange={() =>
+          handleChange({
+            repackUpdatesNotificationsEnabled:
+              !form.repackUpdatesNotificationsEnabled,
+          })
+        }
+      />
+
+      <CheckboxField
+        label={t("enable_achievement_notifications")}
+        checked={form.achievementNotificationsEnabled}
+        onChange={() =>
+          handleChange({
+            achievementNotificationsEnabled:
+              !form.achievementNotificationsEnabled,
+          })
+        }
+      />
     </>
   );
 }

@@ -1,10 +1,10 @@
 {
+  "language_name": "қазақ тілі",
   "app": {
     "successfully_signed_in": "Сәтті кіру"
   },
   "home": {
     "featured": "Ұсынылған",
-    "trending": "Трендте",
     "surprise_me": "Таңқалдыр",
     "no_results": "Ештеңе табылмады"
   },
@@ -175,9 +175,6 @@
     "download_count_zero": "Жүктеулер тізімінде жоқ",
     "download_count_one": "{{countFormatted}} жүктеу тізімде",
     "download_count_other": "{{countFormatted}} жүктеу тізімде",
-    "download_options_zero": "Қолжетімді жүктеулер жоқ",
-    "download_options_one": "{{countFormatted}} жүктеу нұсқасы қол жетімді",
-    "download_options_other": "{{countFormatted}} жүктеу нұсқалары қол жетімді",
     "download_source_url": "Көздің сілтемесі",
     "add_download_source_description": ".json файлға сілтемені қойыңыз",
     "download_source_up_to_date": "Жаңартылған",

@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import * as styles from "./hero-panel-actions.css";
 
 import { gameDetailsContext } from "@renderer/context";
+import { DownloadIcon } from "@renderer/components/sidebar/download-icon";
 
 export function HeroPanelActions() {
   const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
@@ -17,13 +18,18 @@ export function HeroPanelActions() {
     game,
     repacks,
     isGameRunning,
-    objectID,
+    objectId,
     gameTitle,
     setShowGameOptionsModal,
     setShowRepacksModal,
     updateGame,
     selectGameExecutable,
   } = useContext(gameDetailsContext);
+
+  const { lastPacket } = useDownload();
+
+  const isGameDownloading =
+    game?.status === "active" && lastPacket?.game.id === game?.id;
 
   const { updateLibrary } = useLibrary();
 
@@ -33,7 +39,7 @@ export function HeroPanelActions() {
     setToggleLibraryGameDisabled(true);
 
     try {
-      await window.electron.addGameToLibrary(objectID!, gameTitle, "steam");
+      await window.electron.addGameToLibrary(objectId!, gameTitle, "steam");
 
       updateLibrary();
       updateGame();
@@ -84,6 +90,47 @@ export function HeroPanelActions() {
     </Button>
   );
 
+  const gameActionButton = () => {
+    if (isGameRunning) {
+      return (
+        <Button
+          onClick={closeGame}
+          theme="outline"
+          disabled={deleting}
+          className={styles.heroPanelAction}
+        >
+          {t("close")}
+        </Button>
+      );
+    }
+
+    if (game?.executablePath) {
+      return (
+        <Button
+          onClick={openGame}
+          theme="outline"
+          disabled={deleting || isGameRunning}
+          className={styles.heroPanelAction}
+        >
+          <PlayIcon />
+          {t("play")}
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        onClick={() => setShowRepacksModal(true)}
+        theme="outline"
+        disabled={isGameDownloading || !repacks.length}
+        className={styles.heroPanelAction}
+      >
+        <DownloadIcon isDownloading={false} />
+        {t("download")}
+      </Button>
+    );
+  };
+
   if (repacks.length && !game) {
     return (
       <>
@@ -96,26 +143,7 @@ export function HeroPanelActions() {
   if (game) {
     return (
       <div className={styles.actions}>
-        {isGameRunning ? (
-          <Button
-            onClick={closeGame}
-            theme="outline"
-            disabled={deleting}
-            className={styles.heroPanelAction}
-          >
-            {t("close")}
-          </Button>
-        ) : (
-          <Button
-            onClick={openGame}
-            theme="outline"
-            disabled={deleting || isGameRunning}
-            className={styles.heroPanelAction}
-          >
-            <PlayIcon />
-            {t("play")}
-          </Button>
-        )}
+        {gameActionButton()}
 
         <div className={styles.separator} />
 

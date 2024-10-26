@@ -39,6 +39,9 @@ export class Game {
   @Column("text", { nullable: true })
   executablePath: string | null;
 
+  @Column("text", { nullable: true })
+  winePrefixPath: string | null;
+
   @Column("int", { default: 0 })
   playTimeInMilliseconds: number;
 
