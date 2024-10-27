@@ -247,7 +247,7 @@
     "torbox_api_token": "API Token",
     "torbox_api_token_hint": "You can get your API token <0>here</0>",
     "torbox_linked_message": "Account \"{{email}}\" linked",
-    "torbox_invalid_token": "Invalid token"
+    "torbox_invalid_token": "Invalid token",
     "public": "Public",
     "private": "Private",
     "friends_only": "Friends only",
