@@ -1,9 +1,7 @@
-import sys
+import sys, json, urllib.parse, psutil
 from http.server import HTTPServer, BaseHTTPRequestHandler
-import json
-import urllib.parse
-import psutil
 from torrent_downloader import TorrentDownloader
+from profile_image_processor import ProfileImageProcessor
 
 torrent_port = sys.argv[1]
 http_port = sys.argv[2]
@@ -73,16 +71,30 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         global torrent_downloader
 
-        if self.path == "/action":
-            if self.headers.get(self.rpc_password_header) != rpc_password:
-                self.send_response(401)
+        if self.headers.get(self.rpc_password_header) != rpc_password:
+            self.send_response(401)
+            self.end_headers()
+            return
+
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        data = json.loads(post_data.decode('utf-8'))
+
+        if self.path == "/profile-image":
+            parsed_image_path = data['image_path']
+            
+            try:
+                parsed_image_path, mime_type = ProfileImageProcessor.process_image(parsed_image_path)
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
                 self.end_headers()
-                return
+                
+                self.wfile.write(json.dumps({'imagePath': parsed_image_path, 'mimeType': mime_type}).encode('utf-8'))
+            except:
+                self.send_response(400)
+                self.end_headers()
 
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            data = json.loads(post_data.decode('utf-8'))
-
+        elif self.path == "/action":
             if torrent_downloader is None:
                 torrent_downloader = TorrentDownloader(torrent_port)
 
@@ -97,6 +109,10 @@ class Handler(BaseHTTPRequestHandler):
                 torrent_downloader = None
 
             self.send_response(200)
+            self.end_headers()
+
+        else:
+            self.send_response(404)
             self.end_headers()
 
 

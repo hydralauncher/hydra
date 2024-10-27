@@ -1,76 +1,80 @@
 import { registerEvent } from "../register-event";
-import { HydraApi } from "@main/services";
+import { HydraApi, logger } from "@main/services";
 import { steamGamesWorker } from "@main/workers";
-import { GameRunning, UserGame, UserProfile } from "@types";
-import { convertSteamGameToCatalogueEntry } from "../helpers/search-games";
-import { getSteamAppAsset } from "@main/helpers";
-import { getUserFriends } from "./get-user-friends";
+import type { UserProfile } from "@types";
+import { steamUrlBuilder } from "@shared";
+
+const getSteamGame = async (objectId: string) => {
+  try {
+    const steamGame = await steamGamesWorker.run(Number(objectId), {
+      name: "getById",
+    });
+
+    return {
+      title: steamGame.name,
+      iconUrl: steamUrlBuilder.icon(objectId, steamGame.clientIcon),
+    };
+  } catch (err) {
+    logger.error("Failed to get Steam game", err);
+
+    return null;
+  }
+};
 
 const getUser = async (
   _event: Electron.IpcMainInvokeEvent,
   userId: string
 ): Promise<UserProfile | null> => {
   try {
-    const [profile, friends] = await Promise.all([
-      HydraApi.get(`/users/${userId}`),
-      getUserFriends(userId, 12, 0).catch(() => {
-        return { totalFriends: 0, friends: [] };
-      }),
-    ]);
+    const profile = await HydraApi.get<UserProfile | null>(`/users/${userId}`);
+
+    if (!profile) return null;
 
     const recentGames = await Promise.all(
-      profile.recentGames.map(async (game) => {
-        return getSteamUserGame(game);
-      })
+      profile.recentGames
+        .map(async (game) => {
+          const steamGame = await getSteamGame(game.objectId);
+
+          return {
+            ...game,
+            ...steamGame,
+          };
+        })
+        .filter((game) => game)
     );
 
     const libraryGames = await Promise.all(
-      profile.libraryGames.map(async (game) => {
-        return getSteamUserGame(game);
-      })
+      profile.libraryGames
+        .map(async (game) => {
+          const steamGame = await getSteamGame(game.objectId);
+
+          return {
+            ...game,
+            ...steamGame,
+          };
+        })
+        .filter((game) => game)
     );
 
-    const currentGame = await getGameRunning(profile.currentGame);
+    if (profile.currentGame) {
+      const steamGame = await getSteamGame(profile.currentGame.objectId);
+
+      if (steamGame) {
+        profile.currentGame = {
+          ...profile.currentGame,
+          ...steamGame,
+        };
+      }
+    }
 
     return {
       ...profile,
       libraryGames,
       recentGames,
-      friends: friends.friends,
-      totalFriends: friends.totalFriends,
-      currentGame,
     };
   } catch (err) {
     return null;
   }
-};
-
-const getGameRunning = async (currentGame): Promise<GameRunning | null> => {
-  if (!currentGame) {
-    return null;
-  }
-
-  const gameRunning = await getSteamUserGame(currentGame);
-
-  return {
-    ...gameRunning,
-    sessionDurationInMillis: currentGame.sessionDurationInSeconds * 1000,
-  };
-};
-
-const getSteamUserGame = async (game): Promise<UserGame> => {
-  const steamGame = await steamGamesWorker.run(Number(game.objectId), {
-    name: "getById",
-  });
-  const iconUrl = steamGame?.clientIcon
-    ? getSteamAppAsset("icon", game.objectId, steamGame.clientIcon)
-    : null;
-
-  return {
-    ...game,
-    ...convertSteamGameToCatalogueEntry(steamGame),
-    iconUrl,
-  };
 };
 
 registerEvent("getUser", getUser);

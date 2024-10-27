@@ -1,21 +1,19 @@
-export enum Downloader {
-  RealDebrid,
-  Torrent,
-  Gofile,
-  PixelDrain,
-  Qiwi,
-  TorBox,
-}
+import { charMap } from "./char-map";
+import { Downloader } from "./constants";
 
-export enum DownloadSourceStatus {
-  UpToDate,
-  Errored,
-}
+export * from "./constants";
 
 export class UserNotLoggedInError extends Error {
   constructor() {
     super("user not logged in");
     this.name = "UserNotLoggedInError";
+  }
+}
+
+export class SubscriptionRequiredError extends Error {
+  constructor() {
+    super("user does not have hydra cloud subscription");
+    this.name = "UserWithoutCloudSubscriptionError";
   }
 }
 
@@ -61,6 +59,12 @@ export const replaceUnderscoreWithSpace = (name: string) =>
   name.replace(/_/g, " ");
 
 export const formatName = pipe<string>(
+  (str) =>
+    str.replace(
+      new RegExp(Object.keys(charMap).join("|"), "g"),
+      (match) => charMap[match]
+    ),
+  (str) => str.toLowerCase(),
   removeReleaseYearFromName,
   removeSpecialEditionFromName,
   replaceUnderscoreWithSpace,
@@ -98,4 +102,17 @@ export const getDownloadersForUris = (uris: string[]) => {
   }, new Set());
 
   return Array.from(downloadersSet);
+};
+
+export const steamUrlBuilder = {
+  library: (objectId: string) =>
+    `https://steamcdn-a.akamaihd.net/steam/apps/${objectId}/header.jpg`,
+  libraryHero: (objectId: string) =>
+    `https://steamcdn-a.akamaihd.net/steam/apps/${objectId}/library_hero.jpg`,
+  logo: (objectId: string) =>
+    `https://cdn.cloudflare.steamstatic.com/steam/apps/${objectId}/logo.png`,
+  cover: (objectId: string) =>
+    `https://cdn.cloudflare.steamstatic.com/steam/apps/${objectId}/library_600x900.jpg`,
+  icon: (objectId: string, clientIcon: string) =>
+    `https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/${objectId}/${clientIcon}.ico`,
 };

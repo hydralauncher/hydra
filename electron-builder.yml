@@ -1,8 +1,9 @@
-appId: site.hydralauncher.hydra
+appId: gg.hydralauncher.hydra
 productName: Hydra
 directories:
   buildResources: build
 extraResources:
+  - ludusavi
   - hydra-download-manager
   - seeds
   - from: node_modules/create-desktop-shortcuts/src/windows.vbs
@@ -27,6 +28,7 @@ nsis:
   createDesktopShortcut: always
   oneClick: false
   allowToChangeInstallationDirectory: true
+  include: installer.nsh
 portable:
   artifactName: ${name}-${version}-portable.${ext}
 mac:

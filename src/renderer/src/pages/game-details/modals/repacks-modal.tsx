@@ -1,6 +1,5 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import parseTorrent from "parse-torrent";
 
 import { Badge, Button, Modal, TextField } from "@renderer/components";
 import type { GameRepack } from "@types";
@@ -8,11 +7,11 @@ import type { GameRepack } from "@types";
 import * as styles from "./repacks-modal.css";
 
 import { SPACING_UNIT } from "@renderer/theme.css";
-import { format } from "date-fns";
 import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "@renderer/context";
 import { Downloader } from "@shared";
 import { orderBy } from "lodash-es";
+import { useDate } from "@renderer/hooks";
 
 export interface RepacksModalProps {
   visible: boolean;
@@ -33,28 +32,19 @@ export function RepacksModal({
   const [repack, setRepack] = useState<GameRepack | null>(null);
   const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
 
-  const [infoHash, setInfoHash] = useState<string | null>(null);
-
   const { repacks, game } = useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
+
+  const { formatDate } = useDate();
 
   const sortedRepacks = useMemo(() => {
     return orderBy(repacks, (repack) => repack.uploadDate, "desc");
   }, [repacks]);
 
-  const getInfoHash = useCallback(async () => {
-    if (game?.uri?.startsWith("magnet:")) {
-      const torrent = await parseTorrent(game?.uri ?? "");
-      if (torrent.infoHash) setInfoHash(torrent.infoHash);
-    }
-  }, [game]);
-
   useEffect(() => {
     setFilteredRepacks(sortedRepacks);
-
-    if (game?.uri) getInfoHash();
-  }, [sortedRepacks, visible, game, getInfoHash]);
+  }, [sortedRepacks, visible, game]);
 
   const handleRepackClick = (repack: GameRepack) => {
     setRepack(repack);
@@ -77,10 +67,8 @@ export function RepacksModal({
   };
 
   const checkIfLastDownloadedOption = (repack: GameRepack) => {
-    if (infoHash) return repack.uris.some((uri) => uri.includes(infoHash));
-    if (!game?.uri) return false;
-
-    return repack.uris.some((uri) => uri.includes(game?.uri ?? ""));
+    if (!game) return false;
+    return repack.uris.some((uri) => uri.includes(game.uri!));
   };
 
   return (
@@ -123,9 +111,7 @@ export function RepacksModal({
 
                 <p style={{ fontSize: "12px" }}>
                   {repack.fileSize} - {repack.repacker} -{" "}
-                  {repack.uploadDate
-                    ? format(repack.uploadDate, "dd/MM/yyyy")
-                    : ""}
+                  {repack.uploadDate ? formatDate(repack.uploadDate!) : ""}
                 </p>
               </Button>
             );

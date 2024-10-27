@@ -1,8 +1,8 @@
-import { createContext, useEffect, useState } from "react";
+import { createContext, useCallback, useEffect, useState } from "react";
 
 import { setUserPreferences } from "@renderer/features";
 import { useAppDispatch } from "@renderer/hooks";
-import type { UserPreferences } from "@types";
+import type { UserBlocks, UserPreferences } from "@types";
 import { useSearchParams } from "react-router-dom";
 
 export interface SettingsContext {
@@ -11,6 +11,8 @@ export interface SettingsContext {
   clearSourceUrl: () => void;
   sourceUrl: string | null;
   currentCategoryIndex: number;
+  blockedUsers: UserBlocks["blocks"];
+  fetchBlockedUsers: () => Promise<void>;
 }
 
 export const settingsContext = createContext<SettingsContext>({
@@ -19,6 +21,8 @@ export const settingsContext = createContext<SettingsContext>({
   clearSourceUrl: () => {},
   sourceUrl: null,
   currentCategoryIndex: 0,
+  blockedUsers: [],
+  fetchBlockedUsers: async () => {},
 });
 
 const { Provider } = settingsContext;
@@ -35,6 +39,8 @@ export function SettingsContextProvider({
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
 
+  const [blockedUsers, setBlockedUsers] = useState<UserBlocks["blocks"]>([]);
+
   const [searchParams] = useSearchParams();
   const defaultSourceUrl = searchParams.get("urls");
 
@@ -47,6 +53,15 @@ export function SettingsContextProvider({
       setSourceUrl(defaultSourceUrl);
     }
   }, [defaultSourceUrl]);
+
+  const fetchBlockedUsers = useCallback(async () => {
+    const blockedUsers = await window.electron.getBlockedUsers(12, 0);
+    setBlockedUsers(blockedUsers.blocks);
+  }, []);
+
+  useEffect(() => {
+    fetchBlockedUsers();
+  }, [fetchBlockedUsers]);
 
   const clearSourceUrl = () => setSourceUrl(null);
 
@@ -63,8 +78,10 @@ export function SettingsContextProvider({
         updateUserPreferences,
         setCurrentCategoryIndex,
         clearSourceUrl,
+        fetchBlockedUsers,
         currentCategoryIndex,
         sourceUrl,
+        blockedUsers,
       }}
     >
       {children}

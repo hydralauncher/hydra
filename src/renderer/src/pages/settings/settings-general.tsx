@@ -30,6 +30,7 @@ export function SettingsGeneral() {
     downloadsPath: "",
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
+    achievementNotificationsEnabled: false,
     language: "",
   });
 
@@ -38,11 +39,9 @@ export function SettingsGeneral() {
   const [defaultDownloadsPath, setDefaultDownloadsPath] = useState("");
 
   useEffect(() => {
-    async function fetchdefaultDownloadsPath() {
-      setDefaultDownloadsPath(await window.electron.getDefaultDownloadsPath());
-    }
-
-    fetchdefaultDownloadsPath();
+    window.electron.getDefaultDownloadsPath().then((path) => {
+      setDefaultDownloadsPath(path);
+    });
 
     setLanguageOptions(
       orderBy(
@@ -89,6 +88,15 @@ export function SettingsGeneral() {
 
   function updateFormWithUserPreferences() {
     if (userPreferences) {
+      const languageKeys = Object.keys(languageResources);
+      const language =
+        languageKeys.find((language) => {
+          return language === userPreferences.language;
+        }) ??
+        languageKeys.find((language) => {
+          return language.startsWith(userPreferences.language.split("-")[0]);
+        });
+
       setForm((prev) => ({
         ...prev,
         downloadsPath: userPreferences.downloadsPath ?? defaultDownloadsPath,
@@ -96,7 +104,9 @@ export function SettingsGeneral() {
           userPreferences.downloadNotificationsEnabled,
         repackUpdatesNotificationsEnabled:
           userPreferences.repackUpdatesNotificationsEnabled,
-        language: userPreferences.language,
+        achievementNotificationsEnabled:
+          userPreferences.achievementNotificationsEnabled,
+        language: language ?? "en",
       }));
     }
   }
@@ -127,28 +137,38 @@ export function SettingsGeneral() {
       />
 
       <h3>{t("notifications")}</h3>
-      <>
-        <CheckboxField
-          label={t("enable_download_notifications")}
-          checked={form.downloadNotificationsEnabled}
-          onChange={() =>
-            handleChange({
-              downloadNotificationsEnabled: !form.downloadNotificationsEnabled,
-            })
-          }
-        />
 
-        <CheckboxField
-          label={t("enable_repack_list_notifications")}
-          checked={form.repackUpdatesNotificationsEnabled}
-          onChange={() =>
-            handleChange({
-              repackUpdatesNotificationsEnabled:
-                !form.repackUpdatesNotificationsEnabled,
-            })
-          }
-        />
-      </>
+      <CheckboxField
+        label={t("enable_download_notifications")}
+        checked={form.downloadNotificationsEnabled}
+        onChange={() =>
+          handleChange({
+            downloadNotificationsEnabled: !form.downloadNotificationsEnabled,
+          })
+        }
+      />
+
+      <CheckboxField
+        label={t("enable_repack_list_notifications")}
+        checked={form.repackUpdatesNotificationsEnabled}
+        onChange={() =>
+          handleChange({
+            repackUpdatesNotificationsEnabled:
+              !form.repackUpdatesNotificationsEnabled,
+          })
+        }
+      />
+
+      <CheckboxField
+        label={t("enable_achievement_notifications")}
+        checked={form.achievementNotificationsEnabled}
+        onChange={() =>
+          handleChange({
+            achievementNotificationsEnabled:
+              !form.achievementNotificationsEnabled,
+          })
+        }
+      />
     </>
   );
 }

@@ -1,11 +1,8 @@
-import {
-  CheckCircleIcon,
-  PersonIcon,
-  XCircleIcon,
-} from "@primer/octicons-react";
+import { CheckCircleIcon, XCircleIcon } from "@primer/octicons-react";
 import * as styles from "./user-friend-modal.css";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { useTranslation } from "react-i18next";
+import { Avatar } from "@renderer/components";
 
 export type UserFriendItemProps = {
   userId: string;
@@ -109,17 +106,8 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
     return (
       <div className={styles.friendListContainer}>
         <div className={styles.friendListButton} style={{ cursor: "inherit" }}>
-          <div className={styles.friendAvatarContainer}>
-            {profileImageUrl ? (
-              <img
-                className={styles.profileAvatar}
-                alt={displayName}
-                src={profileImageUrl}
-              />
-            ) : (
-              <PersonIcon size={24} />
-            )}
-          </div>
+          <Avatar size={35} src={profileImageUrl} alt={displayName} />
+
           <div
             style={{
               display: "flex",
@@ -154,17 +142,7 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
         className={styles.friendListButton}
         onClick={() => props.onClickItem(userId)}
       >
-        <div className={styles.friendAvatarContainer}>
-          {profileImageUrl ? (
-            <img
-              className={styles.profileAvatar}
-              alt={displayName}
-              src={profileImageUrl}
-            />
-          ) : (
-            <PersonIcon size={24} />
-          )}
-        </div>
+        <Avatar size={35} src={profileImageUrl} alt={displayName} />
         <div
           style={{
             display: "flex",

@@ -1,26 +1,20 @@
 import {
   DownloadManager,
-  RepacksManager,
+  Ludusavi,
   PythonInstance,
   startMainLoop,
 } from "./services";
 import {
   downloadQueueRepository,
-  repackRepository,
   userPreferencesRepository,
 } from "./repository";
 import { UserPreferences } from "./entity";
 import { RealDebridClient } from "./services/real-debrid";
-import { fetchDownloadSourcesAndUpdate } from "./helpers";
-import { publishNewRepacksNotifications } from "./services/notifications";
-import { MoreThan } from "typeorm";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
 import { TorBoxClient } from "./services/torbox";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
-  RepacksManager.updateRepacks();
-
   import("./events");
 
   if (userPreferences?.realDebridApiToken) {
@@ -30,6 +24,8 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   if (userPreferences?.torboxApiToken) {
     TorBoxClient.authorize(userPreferences?.torboxApiToken);
   }
+
+  Ludusavi.addManifestToLudusaviConfig();
 
   HydraApi.setupApi().then(() => {
     uploadGamesBatch();
@@ -51,18 +47,6 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   }
 
   startMainLoop();
-
-  const now = new Date();
-
-  fetchDownloadSourcesAndUpdate().then(async () => {
-    const newRepacksCount = await repackRepository.count({
-      where: {
-        createdAt: MoreThan(now),
-      },
-    });
-
-    if (newRepacksCount > 0) publishNewRepacksNotifications(newRepacksCount);
-  });
 };
 
 userPreferencesRepository

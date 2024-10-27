@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "./redux";
 import {
   setProfileBackground,
@@ -6,11 +6,14 @@ import {
   setFriendRequests,
   setFriendsModalVisible,
   setFriendsModalHidden,
+  setFriendRequestCount,
 } from "@renderer/features";
-import { profileBackgroundFromProfileImage } from "@renderer/helpers";
-import { FriendRequestAction, UpdateProfileProps, UserDetails } from "@types";
+import type {
+  FriendRequestAction,
+  UpdateProfileRequest,
+  UserDetails,
+} from "@types";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
-import { logger } from "@renderer/logger";
 
 export function useUserDetails() {
   const dispatch = useAppDispatch();
@@ -19,6 +22,7 @@ export function useUserDetails() {
     userDetails,
     profileBackground,
     friendRequests,
+    friendRequestCount,
     isFriendsModalVisible,
     friendModalUserId,
     friendRequetsModalTab,
@@ -40,29 +44,7 @@ export function useUserDetails() {
   const updateUserDetails = useCallback(
     async (userDetails: UserDetails) => {
       dispatch(setUserDetails(userDetails));
-
-      if (userDetails.profileImageUrl) {
-        const profileBackground = await profileBackgroundFromProfileImage(
-          userDetails.profileImageUrl
-        ).catch((err) => {
-          logger.error("profileBackgroundFromProfileImage", err);
-          return `#151515B3`;
-        });
-        dispatch(setProfileBackground(profileBackground));
-
-        window.localStorage.setItem(
-          "userDetails",
-          JSON.stringify({ ...userDetails, profileBackground })
-        );
-      } else {
-        const profileBackground = `#151515B3`;
-        dispatch(setProfileBackground(profileBackground));
-
-        window.localStorage.setItem(
-          "userDetails",
-          JSON.stringify({ ...userDetails, profileBackground })
-        );
-      }
+      window.localStorage.setItem("userDetails", JSON.stringify(userDetails));
     },
     [dispatch]
   );
@@ -78,21 +60,35 @@ export function useUserDetails() {
   }, [clearUserDetails]);
 
   const patchUser = useCallback(
-    async (props: UpdateProfileProps) => {
-      const response = await window.electron.updateProfile(props);
-      return updateUserDetails(response);
+    async (values: UpdateProfileRequest) => {
+      const response = await window.electron.updateProfile(values);
+      return updateUserDetails({
+        ...response,
+        username: userDetails?.username || "",
+        subscription: userDetails?.subscription || null,
+      });
     },
-    [updateUserDetails]
+    [updateUserDetails, userDetails?.username, userDetails?.subscription]
   );
 
-  const fetchFriendRequests = useCallback(() => {
+  const syncFriendRequests = useCallback(async () => {
     return window.electron
-      .getFriendRequests()
-      .then((friendRequests) => {
-        dispatch(setFriendRequests(friendRequests));
+      .syncFriendRequests()
+      .then((sync) => {
+        dispatch(setFriendRequestCount(sync.friendRequestCount));
       })
       .catch(() => {});
   }, [dispatch]);
+
+  const fetchFriendRequests = useCallback(async () => {
+    return window.electron
+      .getFriendRequests()
+      .then((friendRequests) => {
+        syncFriendRequests();
+        dispatch(setFriendRequests(friendRequests));
+      })
+      .catch(() => {});
+  }, [dispatch, syncFriendRequests]);
 
   const showFriendsModal = useCallback(
     (initialTab: UserFriendModalTab, userId: string) => {
@@ -124,25 +120,29 @@ export function useUserDetails() {
     [fetchFriendRequests]
   );
 
-  const undoFriendship = (userId: string) => {
-    return window.electron.undoFriendship(userId);
-  };
+  const undoFriendship = (userId: string) =>
+    window.electron.undoFriendship(userId);
 
-  const blockUser = (userId: string) => {
-    return window.electron.blockUser(userId);
-  };
+  const blockUser = (userId: string) => window.electron.blockUser(userId);
 
-  const unblockUser = (userId: string) => {
-    return window.electron.unblockUser(userId);
-  };
+  const unblockUser = (userId: string) => window.electron.unblockUser(userId);
+
+  const hasActiveSubscription = useMemo(() => {
+    return (
+      userDetails?.subscription?.expiresAt &&
+      new Date(userDetails.subscription.expiresAt) > new Date()
+    );
+  }, [userDetails]);
 
   return {
     userDetails,
     profileBackground,
     friendRequests,
+    friendRequestCount,
     friendRequetsModalTab,
     isFriendsModalVisible,
     friendModalUserId,
+    hasActiveSubscription,
     showFriendsModal,
     hideFriendsModal,
     fetchUserDetails,
@@ -152,6 +152,7 @@ export function useUserDetails() {
     patchUser,
     sendFriendRequest,
     fetchFriendRequests,
+    syncFriendRequests,
     updateFriendRequestState,
     blockUser,
     unblockUser,

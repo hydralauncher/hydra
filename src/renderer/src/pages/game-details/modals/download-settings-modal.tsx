@@ -8,9 +8,9 @@ import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
 import { Downloader, formatBytes, getDownloadersForUris } from "@shared";
 
 import type { GameRepack } from "@types";
-import { SPACING_UNIT } from "@renderer/theme.css";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { DOWNLOADER_NAME } from "@renderer/constants";
-import { useAppSelector } from "@renderer/hooks";
+import { useAppSelector, useToast } from "@renderer/hooks";
 
 export interface DownloadSettingsModalProps {
   visible: boolean;
@@ -30,6 +30,8 @@ export function DownloadSettingsModal({
   repack,
 }: DownloadSettingsModalProps) {
   const { t } = useTranslation("game_details");
+
+  const { showErrorToast } = useToast();
 
   const [diskFreeSpace, setDiskFreeSpace] = useState<DiskSpace | null>(null);
   const [selectedPath, setSelectedPath] = useState("");
@@ -107,10 +109,16 @@ export function DownloadSettingsModal({
     if (repack) {
       setDownloadStarting(true);
 
-      startDownload(repack, selectedDownloader!, selectedPath).finally(() => {
-        setDownloadStarting(false);
-        onClose();
-      });
+      startDownload(repack, selectedDownloader!, selectedPath)
+        .then(() => {
+          onClose();
+        })
+        .catch(() => {
+          showErrorToast(t("download_error"));
+        })
+        .finally(() => {
+          setDownloadStarting(false);
+        });
     }
   };
 
@@ -124,15 +132,14 @@ export function DownloadSettingsModal({
       onClose={onClose}
     >
       <div className={styles.container}>
-        <div>
-          <span
-            style={{
-              marginBottom: `${SPACING_UNIT}px`,
-              display: "block",
-            }}
-          >
-            {t("downloader")}
-          </span>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: `${SPACING_UNIT}px`,
+          }}
+        >
+          <span>{t("downloader")}</span>
 
           <div className={styles.downloaders}>
             {downloaders.map((downloader) => (
@@ -157,6 +164,16 @@ export function DownloadSettingsModal({
               </Button>
             ))}
           </div>
+
+          {selectedDownloader != null &&
+            selectedDownloader !== Downloader.Torrent && (
+              <p style={{ marginTop: `${SPACING_UNIT}px` }}>
+                <span style={{ color: vars.color.warning }}>
+                  {t("warning")}
+                </span>{" "}
+                {t("hydra_needs_to_remain_open")}
+              </p>
+            )}
         </div>
 
         <div

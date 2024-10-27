@@ -4,12 +4,14 @@ import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
 import url from "node:url";
+import fs from "node:fs";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { logger, PythonInstance, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
 import { knexClient, migrationConfig } from "./knex-client";
+import { databaseDirectory } from "./constants";
 
 const { autoUpdater } = updater;
 
@@ -54,6 +56,10 @@ if (process.defaultApp) {
 }
 
 const runMigrations = async () => {
+  if (!fs.existsSync(databaseDirectory)) {
+    fs.mkdirSync(databaseDirectory, { recursive: true });
+  }
+
   await knexClient.migrate.list(migrationConfig).then((result) => {
     logger.log(
       "Migrations to run:",
@@ -62,14 +68,13 @@ const runMigrations = async () => {
   });
 
   await knexClient.migrate.latest(migrationConfig);
-  await knexClient.destroy();
 };
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
-  electronApp.setAppUserModelId("site.hydralauncher.hydra");
+  electronApp.setAppUserModelId("gg.hydralauncher.hydra");
 
   protocol.handle("local", (request) => {
     const filePath = request.url.slice("local:".length);
@@ -97,6 +102,7 @@ app.whenReady().then(async () => {
   }
 
   WindowManager.createMainWindow();
+  WindowManager.createNotificationWindow();
   WindowManager.createSystemTray(userPreferences?.language || "en");
 });
 

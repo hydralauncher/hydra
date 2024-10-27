@@ -1,5 +1,5 @@
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
-import { UserFriend } from "@types";
+import type { UserFriend } from "@types";
 import { useEffect, useRef, useState } from "react";
 import { UserFriendItem } from "./user-friend-item";
 import { useNavigate } from "react-router-dom";
@@ -80,7 +80,7 @@ export const UserFriendModalList = ({
 
   const handleClickFriend = (userId: string) => {
     closeModal();
-    navigate(`/user/${userId}`);
+    navigate(`/profile/${userId}`);
   };
 
   const handleUndoFriendship = (userId: string) => {

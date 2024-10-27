@@ -7,7 +7,7 @@ import {
   startTorrentClient as startRPCClient,
 } from "./torrent-client";
 import { gameRepository } from "@main/repository";
-import { DownloadProgress } from "@types";
+import type { DownloadProgress } from "@types";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { calculateETA } from "./helpers";
 import axios from "axios";
@@ -164,6 +164,14 @@ export class PythonInstance {
       .catch(() => {});
 
     this.downloadingGameId = -1;
+  }
+
+  static async processProfileImage(imagePath: string) {
+    return this.rpc
+      .post<{ imagePath: string; mimeType: string }>("/profile-image", {
+        image_path: imagePath,
+      })
+      .then((response) => response.data);
   }
 
   private static async handleRpcError(_error: unknown) {

@@ -5,7 +5,6 @@
   },
   "home": {
     "featured": "Unggulan",
-    "trending": "Sedang Tren",
     "surprise_me": "Kejutkan saya",
     "no_results": "Tidak ada hasil ditemukan"
   },
@@ -178,9 +177,6 @@
     "download_count_zero": "Tidak ada unduhan dalam daftar",
     "download_count_one": "{{countFormatted}} unduhan dalam daftar",
     "download_count_other": "{{countFormatted}} unduhan dalam daftar",
-    "download_options_zero": "Tidak ada unduhan tersedia",
-    "download_options_one": "{{countFormatted}} unduhan tersedia",
-    "download_options_other": "{{countFormatted}} unduhan tersedia",
     "download_source_url": "URL sumber unduhan",
     "add_download_source_description": "Masukkan URL yang berisi file .json",
     "download_source_up_to_date": "Terkini",
