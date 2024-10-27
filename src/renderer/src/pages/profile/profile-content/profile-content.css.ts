@@ -203,3 +203,23 @@ export const achievementsProgressBar = style({
     borderRadius: "4px",
   },
 });
+
+export const gridSorting = style({
+  marginBottom: `${SPACING_UNIT * 2}px`,
+});
+
+export const sortOption = style({
+  transition: "0.2s",
+  display: "inline-block",
+  ":hover": {
+    color: "white",
+    cursor: "pointer",
+  },
+});
+
+export const selectedSortOption = style({
+  color: "white",
+  ":hover": {
+    cursor: "pointer",
+  },
+});

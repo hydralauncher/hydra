@@ -1,5 +1,5 @@
 import { userProfileContext } from "@renderer/context";
-import { useCallback, useContext, useEffect, useMemo } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { ProfileHero } from "../profile-hero/profile-hero";
 import { useAppDispatch, useFormat } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
@@ -28,6 +28,8 @@ export function ProfileContent() {
   const dispatch = useAppDispatch();
 
   const { t } = useTranslation("user_profile");
+
+  const [sortOption, setSortOption] = useState("lastPlayed"); // Estado para o critério de ordenação
 
   useEffect(() => {
     dispatch(setHeaderTitle(""));
@@ -78,6 +80,30 @@ export function ProfileContent() {
     [numberFormatter, t]
   );
 
+  const sortGames = (games) => {
+    return games.slice().sort((a, b) => {
+      if (sortOption === "playtime") {
+        return b.playTimeInSeconds - a.playTimeInSeconds;
+      } else if (sortOption === "achievements") {
+        const achievementPercentageA =
+          a.achievementCount > 0
+            ? a.unlockedAchievementCount / a.achievementCount
+            : 0;
+        const achievementPercentageB =
+          b.achievementCount > 0
+            ? b.unlockedAchievementCount / b.achievementCount
+            : 0;
+        return achievementPercentageB - achievementPercentageA;
+      } else if (sortOption === "lastPlayed") {
+        // Verifica a validade das datas
+        const dateA = a.lastPlayed ? new Date(a.lastPlayed).getTime() : 0;
+        const dateB = b.lastPlayed ? new Date(b.lastPlayed).getTime() : 0;
+        return dateB - dateA; // Ordena de forma decrescente
+      }
+      return 0;
+    });
+  };
+
   const content = useMemo(() => {
     if (!userProfile) return null;
 
@@ -92,6 +118,8 @@ export function ProfileContent() {
     const hasGames = userProfile?.libraryGames.length > 0;
 
     const shouldShowRightContent = hasGames || userProfile.friends.length > 0;
+
+    const sortedGames = sortGames(userProfile.libraryGames || []); // Ordena os jogos conforme o critério
 
     return (
       <section
@@ -122,8 +150,32 @@ export function ProfileContent() {
                 )}
               </div>
 
+              <div className={styles.gridSorting}>
+                <label htmlFor="sort-options">Ordenar por: </label>
+                <span
+                  className={`${sortOption === "lastPlayed" ? styles.selectedSortOption : styles.sortOption}`}
+                  onClick={() => setSortOption("lastPlayed")}
+                >
+                  Jogado por último
+                </span>
+                {" / "}
+                <span
+                  className={`${sortOption === "playtime" ? styles.selectedSortOption : styles.sortOption}`}
+                  onClick={() => setSortOption("playtime")}
+                >
+                  Tempo jogado
+                </span>
+                {" / "}
+                <span
+                  className={`${sortOption === "achievements" ? styles.selectedSortOption : styles.sortOption}`}
+                  onClick={() => setSortOption("achievements")}
+                >
+                  Quantidade de conquistas
+                </span>
+              </div>
+
               <ul className={styles.gamesGrid}>
-                {userProfile?.libraryGames?.map((game) => (
+                {sortedGames.map((game) => (
                   <li
                     key={game.objectId}
                     style={{
@@ -261,6 +313,7 @@ export function ProfileContent() {
     t,
     formatPlayTime,
     navigate,
+    sortOption,
   ]);
 
   return (
