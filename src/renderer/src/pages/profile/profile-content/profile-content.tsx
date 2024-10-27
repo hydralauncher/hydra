@@ -155,6 +155,7 @@ export function ProfileContent() {
                 <span
                   className={`${sortOption === "lastPlayed" ? styles.selectedSortOption : styles.sortOption}`}
                   onClick={() => setSortOption("lastPlayed")}
+                  onKeyDown={(e) => e.key === 'Enter' && setSortOption("lastPlayed")} // Add keyboard support
                 >
                   Jogado por último
                 </span>
@@ -162,6 +163,7 @@ export function ProfileContent() {
                 <span
                   className={`${sortOption === "playtime" ? styles.selectedSortOption : styles.sortOption}`}
                   onClick={() => setSortOption("playtime")}
+                  onKeyDown={(e) => e.key === 'Enter' && setSortOption("playtime")} // Add keyboard support
                 >
                   Tempo jogado
                 </span>
@@ -169,10 +171,12 @@ export function ProfileContent() {
                 <span
                   className={`${sortOption === "achievements" ? styles.selectedSortOption : styles.sortOption}`}
                   onClick={() => setSortOption("achievements")}
+                  onKeyDown={(e) => e.key === 'Enter' && setSortOption("achievements")} // Add keyboard support
                 >
                   Quantidade de conquistas
                 </span>
               </div>
+
 
               <ul className={styles.gamesGrid}>
                 {sortedGames.map((game) => (
