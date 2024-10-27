@@ -155,8 +155,9 @@ export function ProfileContent() {
                 <button
                   className={`${sortOption === "lastPlayed" ? styles.selectedSortOption : styles.sortOption}`}
                   onClick={() => setSortOption("lastPlayed")}
-                  onKeyDown={(e) => e.key === 'Enter' && setSortOption("lastPlayed")} // Add keyboard support
-                  role="button" // Optional if you keep using <span>
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && setSortOption("lastPlayed")
+                  } // Add keyboard support
                   tabIndex={0} // Optional if you keep using <span>
                 >
                   Jogado por último
@@ -165,8 +166,9 @@ export function ProfileContent() {
                 <button
                   className={`${sortOption === "playtime" ? styles.selectedSortOption : styles.sortOption}`}
                   onClick={() => setSortOption("playtime")}
-                  onKeyDown={(e) => e.key === 'Enter' && setSortOption("playtime")} // Add keyboard support
-                  role="button" // Optional if you keep using <span>
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && setSortOption("playtime")
+                  } // Add keyboard support
                   tabIndex={0} // Optional if you keep using <span>
                 >
                   Tempo jogado
@@ -175,14 +177,14 @@ export function ProfileContent() {
                 <button
                   className={`${sortOption === "achievements" ? styles.selectedSortOption : styles.sortOption}`}
                   onClick={() => setSortOption("achievements")}
-                  onKeyDown={(e) => e.key === 'Enter' && setSortOption("achievements")} // Add keyboard support
-                  role="button" // Optional if you keep using <span>
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && setSortOption("achievements")
+                  } // Add keyboard support
                   tabIndex={0} // Optional if you keep using <span>
                 >
                   Quantidade de conquistas
                 </button>
               </div>
-
 
               <ul className={styles.gamesGrid}>
                 {sortedGames.map((game) => (
