@@ -211,6 +211,8 @@ export const gridSorting = style({
 export const sortOption = style({
   transition: "0.2s",
   display: "inline-block",
+  color: vars.color.body,
+  fontSize: "14px",
   ":hover": {
     color: "white",
     cursor: "pointer",
@@ -219,6 +221,7 @@ export const sortOption = style({
 
 export const selectedSortOption = style({
   color: "white",
+  fontSize: "14px",
   ":hover": {
     cursor: "pointer",
   },

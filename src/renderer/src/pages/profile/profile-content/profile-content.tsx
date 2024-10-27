@@ -152,29 +152,35 @@ export function ProfileContent() {
 
               <div className={styles.gridSorting}>
                 <label htmlFor="sort-options">Ordenar por: </label>
-                <span
+                <button
                   className={`${sortOption === "lastPlayed" ? styles.selectedSortOption : styles.sortOption}`}
                   onClick={() => setSortOption("lastPlayed")}
                   onKeyDown={(e) => e.key === 'Enter' && setSortOption("lastPlayed")} // Add keyboard support
+                  role="button" // Optional if you keep using <span>
+                  tabIndex={0} // Optional if you keep using <span>
                 >
                   Jogado por último
-                </span>
+                </button>
                 {" / "}
-                <span
+                <button
                   className={`${sortOption === "playtime" ? styles.selectedSortOption : styles.sortOption}`}
                   onClick={() => setSortOption("playtime")}
                   onKeyDown={(e) => e.key === 'Enter' && setSortOption("playtime")} // Add keyboard support
+                  role="button" // Optional if you keep using <span>
+                  tabIndex={0} // Optional if you keep using <span>
                 >
                   Tempo jogado
-                </span>
+                </button>
                 {" / "}
-                <span
+                <button
                   className={`${sortOption === "achievements" ? styles.selectedSortOption : styles.sortOption}`}
                   onClick={() => setSortOption("achievements")}
                   onKeyDown={(e) => e.key === 'Enter' && setSortOption("achievements")} // Add keyboard support
+                  role="button" // Optional if you keep using <span>
+                  tabIndex={0} // Optional if you keep using <span>
                 >
                   Quantidade de conquistas
-                </span>
+                </button>
               </div>
 
 
