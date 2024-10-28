@@ -8,7 +8,6 @@ import { HydraApi } from "../hydra-api";
 import { getUnlockedAchievements } from "@main/events/user/get-unlocked-achievements";
 import { Game } from "@main/entity";
 import { achievementsLogger } from "../logger";
-import { SubscriptionRequiredError } from "@shared";
 
 const saveAchievementsOnLocal = async (
   objectId: string,
@@ -132,9 +131,7 @@ export const mergeAchievements = async (
         );
       })
       .catch((err) => {
-        if (!(err instanceof SubscriptionRequiredError)) {
-          achievementsLogger.error(err);
-        }
+        achievementsLogger.error(err);
 
         return saveAchievementsOnLocal(
           game.objectID,
