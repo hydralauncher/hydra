@@ -203,3 +203,44 @@ export const achievementsProgressBar = style({
     borderRadius: "4px",
   },
 });
+
+export const gridSorting = style({
+  display: "flex", // Usa flexbox para organizar o layout
+  justifyContent: "space-between", // Espaça o label e os botões
+  alignItems: "center", // Centraliza verticalmente
+  marginBottom: `${SPACING_UNIT * 2}px`,
+});
+
+export const sortOption = style({
+  transition: "all ease 0.2s",
+  display: "inline-flex", // Altera para inline-flex para alinhar itens no botão
+  alignItems: "center", // Centraliza o ícone e o texto verticalmente
+  gap: "10px", // Define o espaçamento entre o ícone e o texto
+  color: vars.color.body,
+  ":hover": {
+    color: "white",
+    cursor: "pointer",
+  },
+});
+
+export const selectedSortOption = style({
+  transition: "all ease 0.2s",
+  display: "inline-flex", // Altera para inline-flex para alinhar itens no botão
+  alignItems: "center", // Centraliza o ícone e o texto verticalmente
+  color: "white",
+  gap: "10px", // Define o espaçamento entre o ícone e o texto
+  ":hover": {
+    cursor: "pointer",
+  },
+});
+
+export const sortOptionsWrapper = style({
+  display: "flex",
+  flexDirection: "row",
+  gap: "5px",
+});
+
+export const sortDivider = style({
+  border: `0.5px solid ${vars.color.body}`,
+  margin: "0px 5px"
+});
