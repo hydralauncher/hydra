@@ -219,7 +219,6 @@ export class AchievementWatcherManager {
     const games = await gameRepository.find({
       where: {
         isDeleted: false,
-        winePrefixPath: Not(IsNull()),
       },
     });
 
