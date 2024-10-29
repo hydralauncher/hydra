@@ -202,7 +202,7 @@ export default function GameDetails() {
                           top: -28,
                           left: -27,
                         }}
-                        loop
+                        loop={false}
                       />
                     </div>
                     {t("next_suggestion")}

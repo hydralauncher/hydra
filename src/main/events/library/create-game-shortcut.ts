@@ -24,6 +24,7 @@ const createGameShortcut = async (
     const options = {
       filePath,
       name: removeSymbolsFromName(game.title),
+      outputPath: app.getPath("desktop"),
     };
 
     return createDesktopShortcut({

@@ -167,7 +167,7 @@ export function GameDetailsContent() {
                 >
                   <Lottie
                     animationData={cloudAnimation}
-                    loop
+                    loop={false}
                     autoplay
                     style={{ width: 26, position: "absolute", top: -3 }}
                   />
