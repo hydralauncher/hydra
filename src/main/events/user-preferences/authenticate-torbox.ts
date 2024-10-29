@@ -7,8 +7,7 @@ const authenticateTorBox = async (
 ) => {
   TorBoxClient.authorize(apiToken);
 
-  const user = await TorBoxClient.getUser();
-  return user;
+  return TorBoxClient.getUser();
 };
 
 registerEvent("authenticateTorBox", authenticateTorBox);
