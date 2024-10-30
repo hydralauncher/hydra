@@ -10,6 +10,7 @@ import axios from "axios";
 import path from "node:path";
 import sound from "sound-play";
 import { achievementSoundPath } from "@main/constants";
+import icon from "@resources/icon.png?asset";
 
 const getGameIconNativeImage = async (gameId: number) => {
   try {
@@ -91,13 +92,46 @@ async function downloadImage(url: string) {
   });
 }
 
+export const publishNewAchievementBulkNotification = async (
+  achievementCount,
+  gameCount,
+  achievementIcon?: string
+) => {
+  const iconPath = achievementIcon
+    ? await downloadImage(achievementIcon)
+    : icon;
+
+  new Notification({
+    title: "New achievement unlocked",
+    body: t("new_achievements_unlocked", {
+      ns: "achievement",
+      gameCount,
+      achievementCount,
+    }),
+    icon: iconPath,
+    silent: true,
+    toastXml: toXmlString({
+      title: "New achievement unlocked",
+      message: t("new_achievements_unlocked", {
+        ns: "achievement",
+        gameCount,
+        achievementCount,
+      }),
+      icon: iconPath,
+      silent: true,
+    }),
+  }).show();
+
+  sound.play(achievementSoundPath);
+};
+
 export const publishNewAchievementNotification = async (achievement: {
   displayName: string;
-  icon: string;
+  achievementIcon: string;
   unlockedAchievementCount: number;
   totalAchievementCount: number;
 }) => {
-  const iconPath = await downloadImage(achievement.icon);
+  const iconPath = await downloadImage(achievement.achievementIcon);
 
   new Notification({
     title: "New achievement unlocked",

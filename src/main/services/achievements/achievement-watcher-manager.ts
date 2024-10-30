@@ -14,6 +14,7 @@ import { achievementsLogger } from "../logger";
 import { Cracker } from "@shared";
 import { IsNull, Not } from "typeorm";
 import { WindowManager } from "../window-manager";
+import { publishNewAchievementBulkNotification } from "../notifications";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
@@ -249,10 +250,9 @@ export class AchievementWatcherManager {
       0
     );
 
-    WindowManager.notificationWindow?.webContents.send(
-      "on-combined-achievements-unlocked",
-      totalNewGamesWithAchievements,
-      totalNewAchievements
+    publishNewAchievementBulkNotification(
+      totalNewAchievements,
+      totalNewGamesWithAchievements
     );
 
     this.hasFinishedMergingWithRemote = true;

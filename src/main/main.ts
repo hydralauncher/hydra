@@ -12,8 +12,6 @@ import { UserPreferences } from "./entity";
 import { RealDebridClient } from "./services/real-debrid";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
-import { Toast } from "powertoast";
-import { publishNewAchievementNotification } from "./services/notifications";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
   import("./events");
@@ -51,12 +49,5 @@ userPreferencesRepository
     where: { id: 1 },
   })
   .then((userPreferences) => {
-    publishNewAchievementNotification({
-      icon: "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/72850/c3a604f698d247b53d20f212e9f31a9ec707a180.jpg",
-      displayName: "Hydra has started",
-      totalAchievementCount: 75,
-      unlockedAchievementCount: 23,
-    });
-
     loadState(userPreferences);
   });

@@ -20,7 +20,6 @@ import UserAgent from "user-agents";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
-  public static notificationWindow: Electron.BrowserWindow | null = null;
 
   private static loadMainWindowURL(hash = "") {
     // HMR for renderer base on electron-vite cli.
@@ -34,21 +33,6 @@ export class WindowManager {
         path.join(__dirname, "../renderer/index.html"),
         {
           hash,
-        }
-      );
-    }
-  }
-
-  private static loadNotificationWindowURL() {
-    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      this.notificationWindow?.loadURL(
-        `${process.env["ELECTRON_RENDERER_URL"]}#/achievement-notification`
-      );
-    } else {
-      this.notificationWindow?.loadFile(
-        path.join(__dirname, "../renderer/index.html"),
-        {
-          hash: "achievement-notification",
         }
       );
     }
@@ -149,32 +133,6 @@ export class WindowManager {
       WindowManager.mainWindow?.setProgressBar(-1);
       WindowManager.mainWindow = null;
     });
-  }
-
-  public static createNotificationWindow() {
-    this.notificationWindow = new BrowserWindow({
-      transparent: true,
-      maximizable: false,
-      autoHideMenuBar: true,
-      minimizable: false,
-      focusable: false,
-      skipTaskbar: true,
-      frame: false,
-      width: 350,
-      height: 104,
-      x: 0,
-      y: 0,
-      webPreferences: {
-        preload: path.join(__dirname, "../preload/index.mjs"),
-        sandbox: false,
-      },
-    });
-    this.notificationWindow.setIgnoreMouseEvents(true);
-    // this.notificationWindow.setVisibleOnAllWorkspaces(true, {
-    //   visibleOnFullScreen: true,
-    // });
-    this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
-    this.loadNotificationWindowURL();
   }
 
   public static openAuthWindow() {
