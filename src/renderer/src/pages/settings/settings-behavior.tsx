@@ -62,7 +62,7 @@ export function SettingsBehavior() {
           label={t("launch_with_system")}
           onChange={() => {
             handleChange({ runAtStartup: !form.runAtStartup });
-            window.electron.autoLaunch(!form.runAtStartup);
+            window.electron.autoLaunch({ enabled: !form.runAtStartup });
           }}
           checked={form.runAtStartup}
         />
@@ -77,6 +77,7 @@ export function SettingsBehavior() {
             disabled={!form.runAtStartup}
             onChange={() => {
               handleChange({ startMinimized: !form.startMinimized });
+              window.electron.autoLaunch({ minimized: !form.startMinimized });
             }}
           />
         </div>
