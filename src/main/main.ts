@@ -12,6 +12,10 @@ import { UserPreferences } from "./entity";
 import { RealDebridClient } from "./services/real-debrid";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
+import {
+  publishCombinedNewAchievementNotification,
+  publishNewAchievementNotification,
+} from "./services/notifications";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
   import("./events");
@@ -49,5 +53,15 @@ userPreferencesRepository
     where: { id: 1 },
   })
   .then((userPreferences) => {
+    publishCombinedNewAchievementNotification(1000, 999);
+
+    publishNewAchievementNotification({
+      displayName: "Teste 1",
+      achievementIcon:
+        "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/105600/0fbb33098c9da39d1d4771d8209afface9c46e81.jpg",
+      unlockedAchievementCount: 10,
+      totalAchievementCount: 34,
+    });
+
     loadState(userPreferences);
   });

@@ -92,7 +92,7 @@ async function downloadImage(url: string) {
   });
 }
 
-export const publishNewAchievementBulkNotification = async (
+export const publishCombinedNewAchievementNotification = async (
   achievementCount,
   gameCount,
   achievementIcon?: string

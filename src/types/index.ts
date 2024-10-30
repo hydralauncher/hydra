@@ -94,6 +94,8 @@ export interface UserGame {
   cover: string;
   playTimeInSeconds: number;
   lastTimePlayed: Date | null;
+  unlockedAchievementCount: number;
+  achievementCount: number;
 }
 
 export interface DownloadQueue {
