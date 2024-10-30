@@ -9,7 +9,7 @@ import { getUnlockedAchievements } from "@main/events/user/get-unlocked-achievem
 import { Game } from "@main/entity";
 import { achievementsLogger } from "../logger";
 import {
-  publishNewAchievementBulkNotification as publishCombinedNewAchievementNotification,
+  publishCombinedNewAchievementNotification,
   publishNewAchievementNotification,
 } from "../notifications";
 
