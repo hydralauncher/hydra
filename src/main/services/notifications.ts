@@ -4,11 +4,12 @@ import { parseICO } from "icojs";
 import trayIcon from "@resources/tray-icon.png?asset";
 import { Game } from "@main/entity";
 import { gameRepository, userPreferencesRepository } from "@main/repository";
-import { Toast } from "powertoast";
+import { toXmlString } from "powertoast";
 import fs from "node:fs";
 import axios from "axios";
 import path from "node:path";
 import sound from "sound-play";
+import { achievementSoundPath } from "@main/constants";
 
 const getGameIconNativeImage = async (gameId: number) => {
   try {
@@ -93,23 +94,30 @@ async function downloadImage(url: string) {
 export const publishNewAchievementNotification = async (achievement: {
   displayName: string;
   icon: string;
+  unlockedAchievementCount: number;
+  totalAchievementCount: number;
 }) => {
   const iconPath = await downloadImage(achievement.icon);
 
-  new Toast({
-    aumid: "gg.hydralauncher.hydra",
+  new Notification({
     title: "New achievement unlocked",
-    message: achievement.displayName,
+    body: achievement.displayName,
     icon: iconPath,
     silent: true,
-    progress: {
-      value: 30,
-      valueOverride: "30/100 achievements",
-    },
+    toastXml: toXmlString({
+      title: "New achievement unlocked",
+      message: achievement.displayName,
+      icon: iconPath,
+      silent: true,
+      progress: {
+        value: Math.round(
+          (achievement.unlockedAchievementCount * 100) /
+            achievement.totalAchievementCount
+        ),
+        valueOverride: `${achievement.unlockedAchievementCount}/${achievement.totalAchievementCount} achievements`,
+      },
+    }),
   }).show();
 
-  const audioPath = path.join(app.getAppPath(), "resources", "achievement.wav");
-
-  console.log(audioPath);
-  sound.play(audioPath);
+  sound.play(achievementSoundPath);
 };

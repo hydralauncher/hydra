@@ -54,6 +54,8 @@ userPreferencesRepository
     publishNewAchievementNotification({
       icon: "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/72850/c3a604f698d247b53d20f212e9f31a9ec707a180.jpg",
       displayName: "Hydra has started",
+      totalAchievementCount: 75,
+      unlockedAchievementCount: 23,
     });
 
     loadState(userPreferences);
