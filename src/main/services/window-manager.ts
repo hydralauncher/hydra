@@ -136,6 +136,10 @@ export class WindowManager {
     this.mainWindow.on("ready-to-show", () => {
       if (!app.isPackaged) WindowManager.mainWindow?.webContents.openDevTools();
       WindowManager.mainWindow?.show();
+
+      if (process.argv.includes("--hide") || process.argv.includes("--hidden")) {
+        WindowManager.mainWindow?.hide();
+      }
     });
 
     this.mainWindow.on("close", async () => {
