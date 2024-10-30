@@ -102,7 +102,6 @@ app.whenReady().then(async () => {
   }
 
   WindowManager.createMainWindow();
-  WindowManager.createNotificationWindow();
   WindowManager.createSystemTray(userPreferences?.language || "en");
 });
 

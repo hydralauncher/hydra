@@ -20,7 +20,7 @@ export const seedsPath = app.isPackaged
   : path.join(__dirname, "..", "..", "seeds");
 
 export const achievementSoundPath = app.isPackaged
-  ? path.join(process.resourcesPath, "resources", "achievement.wav")
+  ? path.join(process.resourcesPath, "achievement.wav")
   : path.join(__dirname, "..", "..", "resources", "achievement.wav");
 
 export const backupsPath = path.join(app.getPath("userData"), "Backups");
