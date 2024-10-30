@@ -4,13 +4,13 @@ import { parseICO } from "icojs";
 import trayIcon from "@resources/tray-icon.png?asset";
 import { Game } from "@main/entity";
 import { gameRepository, userPreferencesRepository } from "@main/repository";
-import { toXmlString } from "powertoast";
 import fs from "node:fs";
 import axios from "axios";
 import path from "node:path";
 import sound from "sound-play";
 import { achievementSoundPath } from "@main/constants";
 import icon from "@resources/icon.png?asset";
+import { NotificationOptions, toXmlString } from "./xml";
 
 const getGameIconNativeImage = async (gameId: number) => {
   try {
@@ -101,7 +101,7 @@ export const publishCombinedNewAchievementNotification = async (
     ? await downloadImage(achievementIcon)
     : icon;
 
-  new Notification({
+  const options: NotificationOptions = {
     title: "New achievement unlocked",
     body: t("new_achievements_unlocked", {
       ns: "achievement",
@@ -110,16 +110,11 @@ export const publishCombinedNewAchievementNotification = async (
     }),
     icon: iconPath,
     silent: true,
-    toastXml: toXmlString({
-      title: "New achievement unlocked",
-      message: t("new_achievements_unlocked", {
-        ns: "achievement",
-        gameCount,
-        achievementCount,
-      }),
-      icon: iconPath,
-      silent: true,
-    }),
+  };
+
+  new Notification({
+    ...options,
+    toastXml: toXmlString(options),
   }).show();
 
   sound.play(achievementSoundPath);
@@ -133,24 +128,22 @@ export const publishNewAchievementNotification = async (achievement: {
 }) => {
   const iconPath = await downloadImage(achievement.achievementIcon);
 
-  new Notification({
+  const options: NotificationOptions = {
     title: "New achievement unlocked",
     body: achievement.displayName,
     icon: iconPath,
     silent: true,
-    toastXml: toXmlString({
-      title: "New achievement unlocked",
-      message: achievement.displayName,
-      icon: iconPath,
-      silent: true,
-      progress: {
-        value: Math.round(
-          (achievement.unlockedAchievementCount * 100) /
-            achievement.totalAchievementCount
-        ),
-        valueOverride: `${achievement.unlockedAchievementCount}/${achievement.totalAchievementCount} achievements`,
-      },
-    }),
+    progress: {
+      value:
+        achievement.unlockedAchievementCount /
+        achievement.totalAchievementCount,
+      valueOverride: `${achievement.unlockedAchievementCount}/${achievement.totalAchievementCount} achievements`,
+    },
+  };
+
+  new Notification({
+    ...options,
+    toastXml: toXmlString(options),
   }).show();
 
   sound.play(achievementSoundPath);
