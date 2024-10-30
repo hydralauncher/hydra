@@ -32,8 +32,6 @@ export function SettingsBehavior() {
     }
   }, [userPreferences]);
 
-  console.log(userPreferences?.startMinimized);
-
   useEffect(() => {
     window.electron.isPortableVersion().then((isPortableVersion) => {
       setShowRunAtStartup(!isPortableVersion);
