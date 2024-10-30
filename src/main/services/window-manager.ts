@@ -137,7 +137,10 @@ export class WindowManager {
       if (!app.isPackaged) WindowManager.mainWindow?.webContents.openDevTools();
       WindowManager.mainWindow?.show();
 
-      if (process.argv.includes("--hide") || process.argv.includes("--hidden")) {
+      if (
+        process.argv.includes("--hide") ||
+        process.argv.includes("--hidden")
+      ) {
         WindowManager.mainWindow?.hide();
       }
     });
