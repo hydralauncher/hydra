@@ -8,6 +8,7 @@ import { Toast } from "powertoast";
 import fs from "node:fs";
 import axios from "axios";
 import path from "node:path";
+import sound from "sound-play";
 
 const getGameIconNativeImage = async (gameId: number) => {
   try {
@@ -100,11 +101,15 @@ export const publishNewAchievementNotification = async (achievement: {
     title: "New achievement unlocked",
     message: achievement.displayName,
     icon: iconPath,
-    sound: true,
-    audio: "ms-appx:///resources/achievement.wav",
+    silent: true,
     progress: {
       value: 30,
       valueOverride: "30/100 achievements",
     },
   }).show();
+
+  const audioPath = path.join(app.getAppPath(), "resources", "achievement.wav");
+
+  console.log(audioPath);
+  sound.play(audioPath);
 };
