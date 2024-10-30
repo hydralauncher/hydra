@@ -17,6 +17,7 @@ export function SettingsBehavior() {
   const [form, setForm] = useState({
     preferQuitInsteadOfHiding: false,
     runAtStartup: false,
+    startMinimized: false,
   });
 
   const { t } = useTranslation("settings");
@@ -26,9 +27,12 @@ export function SettingsBehavior() {
       setForm({
         preferQuitInsteadOfHiding: userPreferences.preferQuitInsteadOfHiding,
         runAtStartup: userPreferences.runAtStartup,
+        startMinimized: userPreferences.startMinimized,
       });
     }
   }, [userPreferences]);
+
+  console.log(userPreferences?.startMinimized);
 
   useEffect(() => {
     window.electron.isPortableVersion().then((isPortableVersion) => {
@@ -62,6 +66,20 @@ export function SettingsBehavior() {
           }}
           checked={form.runAtStartup}
         />
+      )}
+
+      {showRunAtStartup && (
+        <div style={{ opacity: form.runAtStartup ? 1 : 0.5 }}>
+          <CheckboxField
+            label={t("launch_minimized")}
+            style={{ cursor: form.runAtStartup ? "pointer" : "not-allowed" }}
+            checked={form.runAtStartup && form.startMinimized}
+            disabled={!form.runAtStartup}
+            onChange={() => {
+              handleChange({ startMinimized: !form.startMinimized });
+            }}
+          />
+        </div>
       )}
     </>
   );
