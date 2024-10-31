@@ -259,10 +259,7 @@ export interface UserProfile {
   profileImageUrl: string | null;
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
-  libraryGames: (UserGame & {
-    unlockedAchievementCount: number;
-    achievementCount: number;
-  })[];
+  libraryGames: UserGame[];
   recentGames: UserGame[];
   friends: UserFriend[];
   totalFriends: number;
