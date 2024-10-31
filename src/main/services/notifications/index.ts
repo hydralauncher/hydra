@@ -102,7 +102,7 @@ export const publishCombinedNewAchievementNotification = async (
     : icon;
 
   const options: NotificationOptions = {
-    title: "New achievement unlocked",
+    title: t("achievement_unlocked", { ns: "achievement" }),
     body: t("new_achievements_unlocked", {
       ns: "achievement",
       gameCount,
@@ -129,7 +129,7 @@ export const publishNewAchievementNotification = async (achievement: {
   const iconPath = await downloadImage(achievement.achievementIcon);
 
   const options: NotificationOptions = {
-    title: "New achievement unlocked",
+    title: t("achievement_unlocked", { ns: "achievement" }),
     body: achievement.displayName,
     icon: iconPath,
     silent: true,
@@ -137,7 +137,11 @@ export const publishNewAchievementNotification = async (achievement: {
       value:
         achievement.unlockedAchievementCount /
         achievement.totalAchievementCount,
-      valueOverride: `${achievement.unlockedAchievementCount}/${achievement.totalAchievementCount} achievements`,
+      valueOverride: t("achievement_progress", {
+        ns: "achievement",
+        unlockedCount: achievement.unlockedAchievementCount,
+        totalCount: achievement.totalAchievementCount,
+      }),
     },
   };
 
