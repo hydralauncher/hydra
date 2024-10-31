@@ -35,6 +35,9 @@ export class UserPreferences {
   @Column("boolean", { default: false })
   runAtStartup: boolean;
 
+  @Column("boolean", { default: false })
+  startMinimized: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
