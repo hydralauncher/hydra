@@ -56,11 +56,17 @@ userPreferencesRepository
     publishCombinedNewAchievementNotification(1000, 999);
 
     publishNewAchievementNotification({
-      displayName: "Teste 1",
-      achievementIcon:
-        "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/105600/0fbb33098c9da39d1d4771d8209afface9c46e81.jpg",
+      achievements: [
+        {
+          displayName: "Teste 1",
+          iconUrl:
+            "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/105600/0fbb33098c9da39d1d4771d8209afface9c46e81.jpg",
+        },
+      ],
       unlockedAchievementCount: 10,
       totalAchievementCount: 34,
+      gameTitle: "Teste",
+      gameIcon: null,
     });
 
     loadState(userPreferences);

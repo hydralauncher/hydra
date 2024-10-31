@@ -120,27 +120,39 @@ export const publishCombinedNewAchievementNotification = async (
   sound.play(achievementSoundPath);
 };
 
-export const publishNewAchievementNotification = async (achievement: {
-  displayName: string;
-  achievementIcon: string;
+export const publishNewAchievementNotification = async (info: {
+  achievements: { displayName: string; iconUrl: string }[];
   unlockedAchievementCount: number;
   totalAchievementCount: number;
+  gameTitle: string;
+  gameIcon: string | null;
 }) => {
-  const iconPath = await downloadImage(achievement.achievementIcon);
+  const partialOptions =
+    info.achievements.length > 1
+      ? {
+          title: t("achievements_unlocked_for_game", {
+            ns: "achievement",
+            gameTitle: info.gameTitle,
+            achievementCount: info.achievements.length,
+          }),
+          body: info.achievements.map((a) => a.displayName).join(", "),
+          icon: info.gameIcon ? await downloadImage(info.gameIcon) : icon,
+        }
+      : {
+          title: t("achievement_unlocked", { ns: "achievement" }),
+          body: info.achievements[0].displayName,
+          icon: await downloadImage(info.achievements[0].iconUrl),
+        };
 
   const options: NotificationOptions = {
-    title: t("achievement_unlocked", { ns: "achievement" }),
-    body: achievement.displayName,
-    icon: iconPath,
+    ...partialOptions,
     silent: true,
     progress: {
-      value:
-        achievement.unlockedAchievementCount /
-        achievement.totalAchievementCount,
+      value: info.unlockedAchievementCount / info.totalAchievementCount,
       valueOverride: t("achievement_progress", {
         ns: "achievement",
-        unlockedCount: achievement.unlockedAchievementCount,
-        totalCount: achievement.totalAchievementCount,
+        unlockedCount: info.unlockedAchievementCount,
+        totalCount: info.totalAchievementCount,
       }),
     },
   };

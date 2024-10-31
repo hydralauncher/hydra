@@ -363,7 +363,8 @@
     "unlocked_at": "Unlocked at:",
     "subscription_needed": "A Hydra Cloud subscription is required to see this content",
     "new_achievements_unlocked": "Unlocked {{achievementCount}} new achievements from {{gameCount}} games",
-    "achievement_progress": "{{unlockedCount}}/{{totalCount}} achievements"
+    "achievement_progress": "{{unlockedCount}}/{{totalCount}} achievements",
+    "achievements_unlocked_for_game": "Unlocked {{achievementCount}} new achievements for {{gameTitle}}"
   },
   "tour": {
     "subscription_tour_title": "Hydra Cloud Subscription",
