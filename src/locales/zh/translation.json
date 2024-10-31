@@ -42,7 +42,7 @@
     "downloading_metadata": "正在下载{{title}}的元数据…",
     "downloading": "正在下载{{title}}… ({{percentage}}完成) - 剩余时间{{eta}} - 速度{{speed}}",
     "calculating_eta": "正在下载 {{title}}… (已完成{{percentage}}.) - 正在计算剩余时间...",
-        "checking_files": "正在校验 {{title}} 的文件... ({{percentage}} 已完成)"
+    "checking_files": "正在校验 {{title}} 的文件... ({{percentage}} 已完成)"
   },
   "catalogue": {
     "next_page": "下一页",
@@ -374,4 +374,3 @@
     "animated_profile_banner": "动态个人简介横幅"
   }
 }
-
