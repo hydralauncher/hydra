@@ -8,10 +8,7 @@ import { HydraApi } from "../hydra-api";
 import { getUnlockedAchievements } from "@main/events/user/get-unlocked-achievements";
 import { Game } from "@main/entity";
 import { achievementsLogger } from "../logger";
-import {
-  publishCombinedNewAchievementNotification,
-  publishNewAchievementNotification,
-} from "../notifications";
+import { publishNewAchievementNotification } from "../notifications";
 
 const saveAchievementsOnLocal = async (
   objectId: string,
