@@ -5,12 +5,12 @@ export interface NotificationOptions {
   duration?: "short" | "long";
   silent?: boolean;
   progress?: {
-    title?: string;
     status?: string;
     value: number;
     valueOverride: string;
   };
 }
+
 function escape(string: string) {
   return string.replace(/[<>&'"]/g, (match) => {
     switch (match) {
@@ -30,35 +30,17 @@ function escape(string: string) {
   });
 }
 
-function addAttributeOrTrim(name, value) {
+function addAttributeOrTrim(name: string, value: string) {
   return value ? `${name}="${value}" ` : "";
 }
-
-const Activation = {
-  types: [
-    "protocol",
-    "background",
-    "foreground",
-    "system", //system call such as alarm (snooze/dismiss), also used by Notification Visualizer
-  ],
-  behavior: ["default", "pendingUpdate"],
-};
-
-const Scenarios = [
-  "default",
-  "alarm",
-  "reminder",
-  "incomingCall",
-  "urgent", //win10/11 22h2
-];
 
 export function toXmlString(options: NotificationOptions) {
   let template =
     "<toast " +
     `displayTimestamp="${new Date().toISOString()}" ` +
-    `scenario="${Scenarios[0]}" ` +
+    `scenario="default" ` +
     `duration="${options.duration ?? "short"}" ` +
-    `activationType="${Activation.types[0]}" ` +
+    `activationType="protocol" ` +
     ">";
 
   //Visual
@@ -75,7 +57,6 @@ export function toXmlString(options: NotificationOptions) {
       "<progress " +
       `value="${options.progress.value}" ` +
       `status="" ` +
-      addAttributeOrTrim("title", escape(options.progress.title || "")) +
       addAttributeOrTrim(
         "valueStringOverride",
         escape(options.progress.valueOverride)
