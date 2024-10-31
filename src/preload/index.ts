@@ -72,7 +72,8 @@ contextBridge.exposeInMainWorld("electron", {
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
   updateUserPreferences: (preferences: UserPreferences) =>
     ipcRenderer.invoke("updateUserPreferences", preferences),
-  autoLaunch: (enabled: boolean) => ipcRenderer.invoke("autoLaunch", enabled),
+  autoLaunch: (autoLaunchProps: { enabled: boolean; minimized: boolean }) =>
+    ipcRenderer.invoke("autoLaunch", autoLaunchProps),
   authenticateRealDebrid: (apiToken: string) =>
     ipcRenderer.invoke("authenticateRealDebrid", apiToken),
 

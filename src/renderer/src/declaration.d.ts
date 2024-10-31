@@ -104,7 +104,10 @@ declare global {
     updateUserPreferences: (
       preferences: Partial<UserPreferences>
     ) => Promise<void>;
-    autoLaunch: (enabled: boolean) => Promise<void>;
+    autoLaunch: (autoLaunchProps: {
+      enabled: boolean;
+      minimized: boolean;
+    }) => Promise<void>;
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
 
     /* Download sources */
