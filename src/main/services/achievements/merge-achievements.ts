@@ -13,7 +13,7 @@ import { publishNewAchievementNotification } from "../notifications";
 const saveAchievementsOnLocal = async (
   objectId: string,
   shop: GameShop,
-  achievements: any[],
+  achievements: UnlockedAchievement[],
   sendUpdateEvent: boolean
 ) => {
   return gameAchievementRepository
