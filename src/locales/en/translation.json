@@ -253,7 +253,8 @@
     "must_be_valid_url": "The source must be a valid URL",
     "blocked_users": "Blocked users",
     "user_unblocked": "User has been unblocked",
-    "enable_achievement_notifications": "When an achievement in unlocked"
+    "enable_achievement_notifications": "When an achievement in unlocked",
+    "launch_minimized": "Launch Hydra minimized"
   },
   "notifications": {
     "download_complete": "Download complete",
