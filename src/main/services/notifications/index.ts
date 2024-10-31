@@ -73,7 +73,10 @@ export const publishNotificationUpdateReadyToInstall = async (
 
 export const publishNewFriendRequestNotification = async () => {};
 
-async function downloadImage(url: string) {
+async function downloadImage(url: string | null) {
+  if (!url) return null;
+  if (!url.startsWith("http")) return null;
+
   const fileName = url.split("/").pop()!;
   const outputPath = path.join(app.getPath("temp"), fileName);
   const writer = fs.createWriteStream(outputPath);
@@ -94,13 +97,8 @@ async function downloadImage(url: string) {
 
 export const publishCombinedNewAchievementNotification = async (
   achievementCount,
-  gameCount,
-  achievementIcon?: string
+  gameCount
 ) => {
-  const iconPath = achievementIcon
-    ? await downloadImage(achievementIcon)
-    : icon;
-
   const options: NotificationOptions = {
     title: t("achievement_unlocked", { ns: "achievement" }),
     body: t("new_achievements_unlocked", {
@@ -108,7 +106,7 @@ export const publishCombinedNewAchievementNotification = async (
       gameCount,
       achievementCount,
     }),
-    icon: iconPath,
+    icon,
     silent: true,
   };
 
@@ -117,7 +115,9 @@ export const publishCombinedNewAchievementNotification = async (
     toastXml: toXmlString(options),
   }).show();
 
-  sound.play(achievementSoundPath);
+  if (process.platform !== "linux") {
+    sound.play(achievementSoundPath);
+  }
 };
 
 export const publishNewAchievementNotification = async (info: {
@@ -136,12 +136,12 @@ export const publishNewAchievementNotification = async (info: {
             achievementCount: info.achievements.length,
           }),
           body: info.achievements.map((a) => a.displayName).join(", "),
-          icon: info.gameIcon ? await downloadImage(info.gameIcon) : icon,
+          icon: (await downloadImage(info.gameIcon)) ?? icon,
         }
       : {
           title: t("achievement_unlocked", { ns: "achievement" }),
           body: info.achievements[0].displayName,
-          icon: await downloadImage(info.achievements[0].iconUrl),
+          icon: (await downloadImage(info.achievements[0].iconUrl)) ?? icon,
         };
 
   const options: NotificationOptions = {
@@ -162,5 +162,7 @@ export const publishNewAchievementNotification = async (info: {
     toastXml: toXmlString(options),
   }).show();
 
-  sound.play(achievementSoundPath);
+  if (process.platform !== "linux") {
+    sound.play(achievementSoundPath);
+  }
 };
