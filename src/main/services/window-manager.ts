@@ -268,14 +268,15 @@ export class WindowManager {
     if (process.platform !== "darwin") {
       tray.addListener("click", () => {
         if (this.mainWindow) {
-          if (WindowManager.mainWindow?.isMinimized())
-            WindowManager.mainWindow.restore();
-
-          WindowManager.mainWindow?.focus();
-          return;
+          if (
+            WindowManager.mainWindow?.isMinimized() ||
+            !WindowManager.mainWindow?.isVisible()
+          ) {
+            WindowManager.mainWindow?.show();
+          }
+        } else {
+          this.createMainWindow();
         }
-
-        this.createMainWindow();
       });
 
       tray.addListener("right-click", showContextMenu);

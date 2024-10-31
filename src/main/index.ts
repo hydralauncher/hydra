@@ -101,7 +101,10 @@ app.whenReady().then(async () => {
     i18n.changeLanguage(userPreferences.language);
   }
 
-  WindowManager.createMainWindow();
+  if (!process.argv.includes("--hidden")) {
+    WindowManager.createMainWindow();
+  }
+
   WindowManager.createSystemTray(userPreferences?.language || "en");
 });
 

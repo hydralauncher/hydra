@@ -249,7 +249,8 @@
     "must_be_valid_url": "A fonte deve ser uma URL válida",
     "blocked_users": "Usuários bloqueados",
     "user_unblocked": "Usuário desbloqueado",
-    "enable_achievement_notifications": "Quando uma conquista é desbloqueada"
+    "enable_achievement_notifications": "Quando uma conquista é desbloqueada",
+    "launch_minimized": "Iniciar o Hydra minimizado"
   },
   "notifications": {
     "download_complete": "Download concluído",
