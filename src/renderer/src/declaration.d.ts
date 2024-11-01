@@ -19,6 +19,7 @@ import type {
   FriendRequestAction,
   UserFriends,
   UserBlocks,
+  TorBoxUser,
   UpdateProfileRequest,
   GameStats,
   TrendingGame,
@@ -119,6 +120,7 @@ declare global {
       minimized: boolean;
     }) => Promise<void>;
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
+    authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
 
     /* Download sources */
     getDownloadSources: () => Promise<DownloadSource[]>;

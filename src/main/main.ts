@@ -12,12 +12,17 @@ import { UserPreferences } from "./entity";
 import { RealDebridClient } from "./services/real-debrid";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
+import { TorBoxClient } from "./services/torbox";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
   import("./events");
 
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences?.realDebridApiToken);
+  }
+
+  if (userPreferences?.torboxApiToken) {
+    TorBoxClient.authorize(userPreferences?.torboxApiToken);
   }
 
   Ludusavi.addManifestToLudusaviConfig();

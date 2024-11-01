@@ -5,6 +5,7 @@ import { WindowManager } from "../window-manager";
 import { downloadQueueRepository, gameRepository } from "@main/repository";
 import { publishDownloadCompleteNotification } from "../notifications";
 import { RealDebridDownloader } from "./real-debrid-downloader";
+import { TorBoxDownloader } from "./torbox-downloader";
 import type { DownloadProgress } from "@types";
 import { GofileApi, QiwiApi } from "../hosters";
 import { GenericHttpDownloader } from "./generic-http-downloader";
@@ -20,6 +21,8 @@ export class DownloadManager {
       status = await PythonInstance.getStatus();
     } else if (this.currentDownloader === Downloader.RealDebrid) {
       status = await RealDebridDownloader.getStatus();
+    } else if (this.currentDownloader === Downloader.TorBox) {
+      status = await TorBoxDownloader.getStatus();
     } else {
       status = await GenericHttpDownloader.getStatus();
     }
@@ -71,6 +74,8 @@ export class DownloadManager {
       await PythonInstance.pauseDownload();
     } else if (this.currentDownloader === Downloader.RealDebrid) {
       await RealDebridDownloader.pauseDownload();
+    } else if (this.currentDownloader === Downloader.TorBox) {
+      await TorBoxDownloader.pauseDownload();
     } else {
       await GenericHttpDownloader.pauseDownload();
     }
@@ -89,6 +94,8 @@ export class DownloadManager {
       PythonInstance.cancelDownload(gameId);
     } else if (this.currentDownloader === Downloader.RealDebrid) {
       RealDebridDownloader.cancelDownload(gameId);
+    } else if (this.currentDownloader === Downloader.TorBox) {
+      TorBoxDownloader.cancelDownload(gameId);
     } else {
       GenericHttpDownloader.cancelDownload(gameId);
     }
@@ -131,6 +138,10 @@ export class DownloadManager {
         break;
       case Downloader.RealDebrid:
         RealDebridDownloader.startDownload(game);
+        break;
+      case Downloader.TorBox:
+        TorBoxDownloader.startDownload(game);
+        break;
     }
 
     this.currentDownloader = game.downloader;

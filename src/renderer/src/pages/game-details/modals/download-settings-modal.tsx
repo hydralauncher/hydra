@@ -65,6 +65,8 @@ export function DownloadSettingsModal({
     const filteredDownloaders = downloaders.filter((downloader) => {
       if (downloader === Downloader.RealDebrid)
         return userPreferences?.realDebridApiToken;
+      if (downloader === Downloader.TorBox)
+        return userPreferences?.torboxApiToken;
       return true;
     });
 
@@ -82,6 +84,7 @@ export function DownloadSettingsModal({
     userPreferences?.downloadsPath,
     downloaders,
     userPreferences?.realDebridApiToken,
+    userPreferences?.torboxApiToken,
   ]);
 
   const getDiskFreeSpace = (path: string) => {
@@ -147,8 +150,10 @@ export function DownloadSettingsModal({
                   selectedDownloader === downloader ? "primary" : "outline"
                 }
                 disabled={
-                  downloader === Downloader.RealDebrid &&
-                  !userPreferences?.realDebridApiToken
+                  (downloader === Downloader.RealDebrid &&
+                    !userPreferences?.realDebridApiToken) ||
+                  (downloader === Downloader.TorBox &&
+                    !userPreferences?.torboxApiToken)
                 }
                 onClick={() => setSelectedDownloader(downloader)}
               >
