@@ -5,7 +5,10 @@ export const AddSeedAfterDownloadCompletesColumn: HydraMigration = {
   name: "AddSeedAfterDownloadCompletesColumn",
   up: (knex: Knex) => {
     return knex.schema.alterTable("user_preferences", (table) => {
-      return table.boolean("seedAfterDownloadCompletes").notNullable().defaultTo(1);
+      return table
+        .boolean("seedAfterDownloadCompletes")
+        .notNullable()
+        .defaultTo(1);
     });
   },
 
