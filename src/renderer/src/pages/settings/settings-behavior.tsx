@@ -18,6 +18,7 @@ export function SettingsBehavior() {
     preferQuitInsteadOfHiding: false,
     runAtStartup: false,
     startMinimized: false,
+    seedAfterDownloadCompletes: true,
   });
 
   const { t } = useTranslation("settings");
@@ -28,6 +29,7 @@ export function SettingsBehavior() {
         preferQuitInsteadOfHiding: userPreferences.preferQuitInsteadOfHiding,
         runAtStartup: userPreferences.runAtStartup,
         startMinimized: userPreferences.startMinimized,
+        seedAfterDownloadCompletes: userPreferences.seedAfterDownloadCompletes,
       });
     }
   }, [userPreferences]);
@@ -86,6 +88,16 @@ export function SettingsBehavior() {
           />
         </div>
       )}
+
+      <CheckboxField
+        label={t("seed_after_download_completes")}
+        checked={form.seedAfterDownloadCompletes}
+        onChange={() =>
+          handleChange({
+            seedAfterDownloadCompletes: !form.seedAfterDownloadCompletes,
+          })
+        }
+      />
     </>
   );
 }
