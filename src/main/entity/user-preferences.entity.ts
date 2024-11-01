@@ -38,6 +38,9 @@ export class UserPreferences {
   @Column("boolean", { default: false })
   startMinimized: boolean;
 
+  @Column("boolean", { default: true })
+  seedAfterDownloadCompletes: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

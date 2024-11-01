@@ -254,7 +254,8 @@
     "blocked_users": "Blocked users",
     "user_unblocked": "User has been unblocked",
     "enable_achievement_notifications": "When an achievement in unlocked",
-    "launch_minimized": "Launch Hydra minimized"
+    "launch_minimized": "Launch Hydra minimized",
+    "seed_after_download_completes": "Seed after download completes"
   },
   "notifications": {
     "download_complete": "Download complete",
