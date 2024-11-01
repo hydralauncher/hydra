@@ -25,7 +25,9 @@
     "queued": "{{title}} (Queued)",
     "game_has_no_executable": "Game has no executable selected",
     "sign_in": "Sign in",
-    "friends": "Friends"
+    "friends": "Friends",
+    "aria_view_profile": "View profile",
+    "resize_sidebar": "Resize sidebar"
   },
   "header": {
     "search": "Search games",
@@ -35,7 +37,9 @@
     "search_results": "Search results",
     "settings": "Settings",
     "version_available_install": "Version {{version}} available. Click here to restart and install.",
-    "version_available_download": "Version {{version}} available. Click here to download."
+    "version_available_download": "Version {{version}} available. Click here to download.",
+    "back": "Back",
+    "clear_search": "Clear search"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "No downloads in progress",
@@ -132,6 +136,7 @@
     "warning": "Warning:",
     "hydra_needs_to_remain_open": "for this download, Hydra needs to remain open util it's completed. If Hydra closes before completing, you will lose your progress.",
     "achievements": "Achievements",
+    "achievement": "Achievement",
     "achievements_count": "Achievements {{unlockedCount}}/{{achievementsCount}}",
     "cloud_save": "Cloud save",
     "cloud_save_description": "Save your progress in the cloud and continue playing on any device",
@@ -358,11 +363,13 @@
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",
+    "achievement_locked": "Achievement locked",
     "user_achievements": "{{displayName}}'s Achievements",
     "your_achievements": "Your Achievements",
     "unlocked_at": "Unlocked at:",
     "subscription_needed": "A Hydra Cloud subscription is required to see this content",
-    "new_achievements_unlocked": "Unlocked {{achievementCount}} new achievements from {{gameCount}} games"
+    "new_achievements_unlocked": "Unlocked {{achievementCount}} new achievements from {{gameCount}} games",
+    "aria_achievement_summary": "{{userDisplayName}} achievements for {{gameTitle}}, {{userAchievementCount}} unlocked of {{userTotalAchievementCount}}, {{percentage}} completed"
   },
   "tour": {
     "subscription_tour_title": "Hydra Cloud Subscription",

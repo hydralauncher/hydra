@@ -25,7 +25,9 @@
     "queued": "{{title}} (Na fila)",
     "game_has_no_executable": "Jogo não possui executável selecionado",
     "sign_in": "Login",
-    "friends": "Amigos"
+    "friends": "Amigos",
+    "aria_view_profile": "Ver perfil",
+    "resize_sidebar": "Redimensionar barra lateral"
   },
   "header": {
     "search": "Buscar jogos",
@@ -35,7 +37,9 @@
     "settings": "Ajustes",
     "home": "Início",
     "version_available_install": "Versão {{version}} disponível. Clique aqui para reiniciar e instalar.",
-    "version_available_download": "Versão {{version}} disponível. Clique aqui para fazer o download."
+    "version_available_download": "Versão {{version}} disponível. Clique aqui para fazer o download.",
+    "back": "Voltar",
+    "clear_search": "Limpar busca"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Sem downloads em andamento",
@@ -128,6 +132,7 @@
     "warning": "Aviso:",
     "hydra_needs_to_remain_open": "para este download, o Hydra precisa ficar aberto até a conclusão. Caso o Hydra encerre antes da conclusão, perderá seu progresso.",
     "achievements": "Conquistas",
+    "achievement": "Conquista",
     "achievements_count": "Conquistas ({{unlockedCount}}/{{achievementsCount}})",
     "cloud_save": "Salvamento em nuvem",
     "cloud_save_description": "Mantenha seu progresso na nuvem e continue de onde parou em qualquer dispositivo",
@@ -356,11 +361,13 @@
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",
+    "achievement_locked": "Conquista bloqueada",
     "your_achievements": "Suas Conquistas",
     "user_achievements": "Conquistas de {{displayName}}",
     "unlocked_at": "Desbloqueado em:",
     "subscription_needed": "Você precisa de uma assinatura Hydra Cloud para visualizar este conteúdo",
-    "new_achievements_unlocked": "{{achievementCount}} novas conquistas de {{gameCount}} jogos"
+    "new_achievements_unlocked": "{{achievementCount}} novas conquistas de {{gameCount}} jogos",
+    "aria_achievement_summary": "Conquistas de {{userDisplayName}} em {{gameTitle}}, {{userAchievementCount}} desbloqueadas de {{userTotalAchievementCount}}, {{percentage}} concluídas"
   },
   "tour": {
     "subscription_tour_title": "Assinatura Hydra Cloud",
