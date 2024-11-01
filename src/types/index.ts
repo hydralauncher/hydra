@@ -161,6 +161,7 @@ export interface UserPreferences {
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;
   startMinimized: boolean;
+  seedAfterDownloadCompletes: boolean;
 }
 
 export interface Steam250Game {
