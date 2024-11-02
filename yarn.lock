@@ -3255,10 +3255,10 @@ bep53-range@^2.0.0:
   resolved "https://registry.yarnpkg.com/bep53-range/-/bep53-range-2.0.0.tgz#a1770475661b4b814c4359e4b66f7cbd88de2b10"
   integrity sha512-sMm2sV5PRs0YOVk0LTKtjuIprVzxgTQUsrGX/7Yph2Rm4FO2Fqqtq7hNjsOB5xezM4v4+5rljCgK++UeQJZguA==
 
-better-sqlite3@^11.3.0:
-  version "11.3.0"
-  resolved "https://registry.yarnpkg.com/better-sqlite3/-/better-sqlite3-11.3.0.tgz#f10b32ddff665c33176d148e707bd1e57dfd0284"
-  integrity sha512-iHt9j8NPYF3oKCNOO5ZI4JwThjt3Z6J6XrcwG85VNMVzv1ByqrHWv5VILEbCMFWDsoHhXvQ7oC8vgRXFAKgl9w==
+better-sqlite3@^11.5.0:
+  version "11.5.0"
+  resolved "https://registry.yarnpkg.com/better-sqlite3/-/better-sqlite3-11.5.0.tgz#58faa51e02845a578dd154f0083487132ead0695"
+  integrity sha512-e/6eggfOutzoK0JWiU36jsisdWoHOfN9iWiW/SieKvb7SAa6aGNmBM/UKyp+/wWSXpLlWNN8tCPwoDNPhzUvuQ==
   dependencies:
     bindings "^1.5.0"
     prebuild-install "^7.1.1"

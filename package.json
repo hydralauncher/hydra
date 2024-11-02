@@ -44,7 +44,7 @@
     "@vanilla-extract/recipes": "^0.5.2",
     "auto-launch": "^5.0.6",
     "axios": "^1.7.7",
-    "better-sqlite3": "^11.3.0",
+    "better-sqlite3": "^11.5.0",
     "check-disk-space": "^3.4.0",
     "classnames": "^2.5.1",
     "color": "^4.2.3",
