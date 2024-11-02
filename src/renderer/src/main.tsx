@@ -20,7 +20,6 @@ import { store } from "./store";
 
 import resources from "@locales";
 
-import "./workers";
 import { RepacksContextProvider } from "./context";
 import { SuspenseWrapper } from "./components";
 

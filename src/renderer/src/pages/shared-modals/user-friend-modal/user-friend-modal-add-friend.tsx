@@ -101,6 +101,7 @@ export const UserFriendModalAddFriend = ({
         >
           {isAddingFriend ? t("sending") : t("add")}
         </Button>
+
         <Button
           onClick={handleClickSeeProfile}
           disabled={isAddingFriend}
