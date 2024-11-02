@@ -9,5 +9,4 @@ out
 *.log*
 .env
 .vite
-sentry.properties
 ludusavi/

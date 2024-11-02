@@ -5,8 +5,6 @@ import { workerData } from "node:worker_threads";
 
 const { binaryPath } = workerData;
 
-let backupGameProcess: cp.ChildProcess | null = null;
-
 export const backupGame = ({
   title,
   backupPath,
@@ -18,11 +16,6 @@ export const backupGame = ({
   preview?: boolean;
   winePrefix?: string;
 }) => {
-  if (backupGameProcess && !backupGameProcess.killed) {
-    backupGameProcess.kill();
-    backupGameProcess = null;
-  }
-
   return new Promise((resolve, reject) => {
     const args = ["backup", title, "--api", "--force"];
 
@@ -30,16 +23,14 @@ export const backupGame = ({
     if (backupPath) args.push("--path", backupPath);
     if (winePrefix) args.push("--wine-prefix", winePrefix);
 
-    backupGameProcess = cp.execFile(
+    cp.execFile(
       binaryPath,
       args,
       (err: cp.ExecFileException | null, stdout: string) => {
         if (err) {
-          backupGameProcess = null;
           return reject(err);
         }
 
-        backupGameProcess = null;
         return resolve(JSON.parse(stdout) as LudusaviBackup);
       }
     );
