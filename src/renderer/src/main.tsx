@@ -19,7 +19,6 @@ import { App } from "./app";
 import { store } from "./store";
 
 import resources from "@locales";
-import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
 
 import { RepacksContextProvider } from "./context";
 import { SuspenseWrapper } from "./components";
@@ -96,10 +95,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 element={<SuspenseWrapper Component={Achievements} />}
               />
             </Route>
-            <Route
-              path="/achievement-notification"
-              Component={AchievementNotification}
-            />
           </Routes>
         </HashRouter>
       </RepacksContextProvider>
