@@ -8,11 +8,12 @@ import { HydraApi } from "../hydra-api";
 import { getUnlockedAchievements } from "@main/events/user/get-unlocked-achievements";
 import { Game } from "@main/entity";
 import { achievementsLogger } from "../logger";
+import { publishNewAchievementNotification } from "../notifications";
 
 const saveAchievementsOnLocal = async (
   objectId: string,
   shop: GameShop,
-  achievements: any[],
+  achievements: UnlockedAchievement[],
   sendUpdateEvent: boolean
 ) => {
   return gameAchievementRepository
@@ -82,6 +83,8 @@ export const mergeAchievements = async (
       };
     });
 
+  const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);
+
   if (
     newAchievements.length &&
     publishNotification &&
@@ -107,15 +110,14 @@ export const mergeAchievements = async (
         };
       });
 
-    WindowManager.notificationWindow?.webContents.send(
-      "on-achievement-unlocked",
-      game.objectID,
-      game.shop,
-      achievementsInfo
-    );
+    publishNewAchievementNotification({
+      achievements: achievementsInfo,
+      unlockedAchievementCount: mergedLocalAchievements.length,
+      totalAchievementCount: achievementsData.length,
+      gameTitle: game.title,
+      gameIcon: game.iconUrl,
+    });
   }
-
-  const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);
 
   if (game.remoteId) {
     await HydraApi.put("/profile/games/achievements", {
