@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef } from "react";
 
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
