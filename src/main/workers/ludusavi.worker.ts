@@ -5,6 +5,8 @@ import { workerData } from "node:worker_threads";
 
 const { binaryPath } = workerData;
 
+let backupGameProcess: cp.ChildProcess | null = null;
+
 export const backupGame = ({
   title,
   backupPath,
@@ -16,15 +18,32 @@ export const backupGame = ({
   preview?: boolean;
   winePrefix?: string;
 }) => {
-  const args = ["backup", title, "--api", "--force"];
+  if (backupGameProcess && !backupGameProcess.killed) {
+    backupGameProcess.kill();
+    backupGameProcess = null;
+  }
 
-  if (preview) args.push("--preview");
-  if (backupPath) args.push("--path", backupPath);
-  if (winePrefix) args.push("--wine-prefix", winePrefix);
+  return new Promise((resolve, reject) => {
+    const args = ["backup", title, "--api", "--force"];
 
-  const result = cp.execFileSync(binaryPath, args);
+    if (preview) args.push("--preview");
+    if (backupPath) args.push("--path", backupPath);
+    if (winePrefix) args.push("--wine-prefix", winePrefix);
 
-  return JSON.parse(result.toString("utf-8")) as LudusaviBackup;
+    backupGameProcess = cp.execFile(
+      binaryPath,
+      args,
+      (err: cp.ExecFileException | null, stdout: string) => {
+        if (err) {
+          backupGameProcess = null;
+          return reject(err);
+        }
+
+        backupGameProcess = null;
+        return resolve(JSON.parse(stdout) as LudusaviBackup);
+      }
+    );
+  });
 };
 
 export const restoreBackup = (backupPath: string) => {

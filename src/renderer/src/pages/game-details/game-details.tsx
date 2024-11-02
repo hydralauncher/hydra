@@ -6,9 +6,8 @@ import type { GameRepack, GameShop, Steam250Game } from "@types";
 import { Button, ConfirmationModal } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";
 
-import starsAnimation from "@renderer/assets/lottie/stars.json";
+import starsIconAnimated from "@renderer/assets/icons/stars-animated.gif";
 
-import Lottie from "lottie-react";
 import { useTranslation } from "react-i18next";
 import { SkeletonTheme } from "react-loading-skeleton";
 import { GameDetailsSkeleton } from "./game-details-skeleton";
@@ -194,15 +193,15 @@ export default function GameDetails() {
                     <div
                       style={{ width: 16, height: 16, position: "relative" }}
                     >
-                      <Lottie
-                        animationData={starsAnimation}
+                      <img
+                        src={starsIconAnimated}
+                        alt="Stars animation"
                         style={{
                           width: 70,
                           position: "absolute",
                           top: -28,
                           left: -27,
                         }}
-                        loop={false}
                       />
                     </div>
                     {t("next_suggestion")}

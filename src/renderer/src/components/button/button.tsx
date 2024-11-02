@@ -1,12 +1,13 @@
 import cn from "classnames";
-import * as styles from "./button.css";
+
+import "./button.scss";
 
 export interface ButtonProps
   extends React.DetailedHTMLProps<
     React.ButtonHTMLAttributes<HTMLButtonElement>,
     HTMLButtonElement
   > {
-  theme?: keyof typeof styles.button;
+  theme?: "primary" | "outline" | "dark" | "danger";
 }
 
 export function Button({
@@ -18,7 +19,7 @@ export function Button({
   return (
     <button
       type="button"
-      className={cn(styles.button[theme], className)}
+      className={cn("button", `button--${theme}`, className)}
       {...props}
     >
       {children}
