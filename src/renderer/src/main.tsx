@@ -6,8 +6,6 @@ import { Provider } from "react-redux";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { HashRouter, Route, Routes } from "react-router-dom";
 
-import * as Sentry from "@sentry/electron/renderer";
-
 import "@fontsource/noto-sans/400.css";
 import "@fontsource/noto-sans/500.css";
 import "@fontsource/noto-sans/700.css";
@@ -35,8 +33,6 @@ const Profile = React.lazy(() => import("./pages/profile/profile"));
 const Achievements = React.lazy(
   () => import("./pages/achievements/achievements")
 );
-
-Sentry.init({});
 
 i18n
   .use(LanguageDetector)

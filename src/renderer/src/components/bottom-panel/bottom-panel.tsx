@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { useDownload, useUserDetails } from "@renderer/hooks";
 
-import * as styles from "./bottom-panel.css";
+import "./bottom-panel.scss";
 
 import { useNavigate } from "react-router-dom";
 import { VERSION_CODENAME } from "@renderer/constants";
@@ -72,10 +72,10 @@ export function BottomPanel() {
   ]);
 
   return (
-    <footer className={styles.bottomPanel}>
+    <footer className="bottom-panel">
       <button
         type="button"
-        className={styles.downloadsButton}
+        className="bottom-panel__downloads-button"
         onClick={() => navigate("/downloads")}
       >
         <small>{status}</small>

@@ -83,8 +83,10 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
   };
 
   useEffect(() => {
-    getGameBackupPreview();
-  }, [getGameBackupPreview]);
+    if (visible) {
+      getGameBackupPreview();
+    }
+  }, [getGameBackupPreview, visible]);
 
   const backupStateLabel = useMemo(() => {
     if (uploadingBackup) {
