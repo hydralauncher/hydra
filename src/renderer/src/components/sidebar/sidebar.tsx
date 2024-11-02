@@ -50,10 +50,6 @@ export function Sidebar() {
     updateLibrary();
   }, [lastPacket?.game.id, updateLibrary]);
 
-  const isDownloading = sortedLibrary.some(
-    (game) => game.status === "active" && game.progress !== 1
-  );
-
   const sidebarRef = useRef<HTMLElement>(null);
 
   const cursorPos = useRef({ x: 0 });
@@ -187,7 +183,7 @@ export function Sidebar() {
                   className={styles.menuItemButton}
                   onClick={() => handleSidebarItemClick(path)}
                 >
-                  {render(isDownloading)}
+                  {render()}
                   <span>{t(nameKey)}</span>
                 </button>
               </li>

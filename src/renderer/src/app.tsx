@@ -29,11 +29,6 @@ import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { downloadSourcesWorker } from "./workers";
 import { repacksContext } from "./context";
 import { logger } from "./logger";
-import { SubscriptionTourModal } from "./pages/shared-modals/subscription-tour-modal";
-
-interface TourModals {
-  subscriptionModal?: boolean;
-}
 
 export interface AppProps {
   children: React.ReactNode;
@@ -76,9 +71,6 @@ export function App() {
   const toast = useAppSelector((state) => state.toast);
 
   const { showSuccessToast } = useToast();
-
-  const [showSubscritionTourModal, setShowSubscritionTourModal] =
-    useState(false);
 
   useEffect(() => {
     Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
@@ -124,16 +116,6 @@ export function App() {
       }
     });
   }, [fetchUserDetails, syncFriendRequests, updateUserDetails, dispatch]);
-
-  useEffect(() => {
-    const tourModalsString = window.localStorage.getItem("tourModals") || "{}";
-
-    const tourModals = JSON.parse(tourModalsString) as TourModals;
-
-    if (!tourModals.subscriptionModal) {
-      setShowSubscritionTourModal(true);
-    }
-  }, []);
 
   const onSignIn = useCallback(() => {
     fetchUserDetails().then((response) => {
@@ -280,14 +262,6 @@ export function App() {
     });
   }, [indexRepacks]);
 
-  const handleCloseSubscriptionTourModal = () => {
-    setShowSubscritionTourModal(false);
-    window.localStorage.setItem(
-      "tourModals",
-      JSON.stringify({ subscriptionModal: true } as TourModals)
-    );
-  };
-
   const handleToastClose = useCallback(() => {
     dispatch(closeToast());
   }, [dispatch]);
@@ -305,11 +279,6 @@ export function App() {
         message={toast.message}
         type={toast.type}
         onClose={handleToastClose}
-      />
-
-      <SubscriptionTourModal
-        visible={showSubscritionTourModal && false}
-        onClose={handleCloseSubscriptionTourModal}
       />
 
       {userDetails && (
