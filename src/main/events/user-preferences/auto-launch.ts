@@ -16,15 +16,16 @@ const windowsStartupPath = path.join(
 
 const autoLaunch = async (
   _event: Electron.IpcMainInvokeEvent,
-  enabled: boolean
+  autoLaunchProps: { enabled: boolean; minimized: boolean }
 ) => {
   if (!app.isPackaged) return;
 
   const appLauncher = new AutoLaunch({
     name: app.getName(),
+    isHidden: autoLaunchProps.minimized,
   });
 
-  if (enabled) {
+  if (autoLaunchProps.enabled) {
     appLauncher.enable().catch((err) => {
       logger.error(err);
     });
