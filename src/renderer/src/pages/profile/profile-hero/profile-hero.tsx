@@ -254,6 +254,7 @@ export function ProfileHero() {
       if (gameRunning)
         return {
           ...gameRunning,
+          objectId: gameRunning.objectID,
           sessionDurationInSeconds: gameRunning.sessionDurationInMillis / 1000,
         };
 
@@ -330,7 +331,7 @@ export function ProfileHero() {
                     <Link
                       to={buildGameDetailsPath({
                         ...currentGame,
-                        objectId: currentGame.objectID,
+                        objectId: currentGame.objectId,
                       })}
                     >
                       {currentGame.title}
