@@ -160,6 +160,7 @@ export interface UserPreferences {
   realDebridApiToken: string | null;
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;
+  startMinimized: boolean;
 }
 
 export interface Steam250Game {
