@@ -2,7 +2,12 @@ import { Game } from "@main/entity";
 import { Downloader } from "@shared";
 import { PythonInstance } from "./python-instance";
 import { WindowManager } from "../window-manager";
-import { downloadQueueRepository, gameRepository } from "@main/repository";
+import {
+  downloadQueueRepository,
+  gameRepository,
+  seedListRepository,
+  userPreferencesRepository,
+} from "@main/repository";
 import { publishDownloadCompleteNotification } from "../notifications";
 import { RealDebridDownloader } from "./real-debrid-downloader";
 import type { DownloadProgress } from "@types";
@@ -49,6 +54,22 @@ export class DownloadManager {
         publishDownloadCompleteNotification(game);
 
         await downloadQueueRepository.delete({ game });
+
+        const userPreferences = await userPreferencesRepository.findOne({
+          where: { id: 1 },
+        });
+
+        if (
+          userPreferences?.seedAfterDownloadCompletes &&
+          this.currentDownloader === Downloader.Torrent
+        ) {
+          await seedListRepository.save({
+            downloadUri: game.uri!,
+            shouldSeed: true,
+          });
+
+          this.startSeedDownload(game);
+        }
 
         const [nextQueueItem] = await downloadQueueRepository.find({
           order: {
@@ -135,5 +156,11 @@ export class DownloadManager {
 
     this.currentDownloader = game.downloader;
     this.downloadingGameId = game.id;
+  }
+
+  static async startSeedDownload(game: Game) {
+    if (game) {
+      await PythonInstance.startSeeding(game);
+    }
   }
 }
