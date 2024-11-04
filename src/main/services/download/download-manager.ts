@@ -63,10 +63,21 @@ export class DownloadManager {
           userPreferences?.seedAfterDownloadCompletes &&
           this.currentDownloader === Downloader.Torrent
         ) {
-          await seedListRepository.save({
-            downloadUri: game.uri!,
-            shouldSeed: true,
+          const existingSeed = await seedListRepository.findOne({
+            where: { downloadUri: game.uri! }
           });
+
+          if (existingSeed) {
+            await seedListRepository.update(
+              { downloadUri: game.uri! },
+              { shouldSeed: true }
+            );
+          } else {
+            await seedListRepository.save({
+              downloadUri: game.uri!,
+              shouldSeed: true,
+            });
+          }
 
           this.startSeedDownload(game);
         }
