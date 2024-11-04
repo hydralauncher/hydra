@@ -9,6 +9,7 @@ import {
   UserAuth,
   GameAchievement,
   UserSubscription,
+  SeedList,
 } from "@main/entity";
 
 export const gameRepository = dataSource.getRepository(Game);
@@ -26,6 +27,8 @@ export const downloadSourceRepository =
 export const downloadQueueRepository = dataSource.getRepository(DownloadQueue);
 
 export const userAuthRepository = dataSource.getRepository(UserAuth);
+
+export const seedListRepository = dataSource.getRepository(SeedList);
 
 export const userSubscriptionRepository =
   dataSource.getRepository(UserSubscription);

@@ -8,3 +8,4 @@ export * from "./game.entity";
 export * from "./game-achievements.entity";
 export * from "./download-source.entity";
 export * from "./download-queue.entity";
+export * from "./seed-list.entity";
