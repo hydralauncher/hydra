@@ -62,6 +62,7 @@ export class PythonInstance {
 
   public static async getStatus() {
     if (this.downloadingGameId === -1) return null;
+    console.log("getting status");
 
     const response = await this.rpc.get<LibtorrentPayload | null>("/status");
 
@@ -129,7 +130,7 @@ export class PythonInstance {
         action: "pause",
         game_id: this.downloadingGameId,
       } as PauseDownloadPayload)
-      .catch(() => {});
+      .catch(() => { });
 
     this.downloadingGameId = -1;
   }
@@ -161,7 +162,7 @@ export class PythonInstance {
         action: "cancel",
         game_id: gameId,
       } as CancelDownloadPayload)
-      .catch(() => {});
+      .catch(() => { });
 
     this.downloadingGameId = -1;
   }
@@ -172,6 +173,21 @@ export class PythonInstance {
         image_path: imagePath,
       })
       .then((response) => response.data);
+  }
+
+  static async startSeeding(game: Game) {
+    if (!this.pythonProcess) {
+      this.spawn();
+    }
+
+    await this.rpc
+      .post("/action", {
+        action: "start-seeding",
+        game_id: game.id,
+        magnet: game.uri,
+        save_path: game.downloadPath,
+      } as StartDownloadPayload)
+      .catch(() => { });
   }
 
   private static async handleRpcError(_error: unknown) {

@@ -163,3 +163,12 @@ class TorrentDownloader:
             self.downloading_game_id = -1
 
         return response
+
+    def start_seeding(self, game_id: int, magnet: str, save_path: str):
+        print("seed log 1")
+        params = {'url': magnet, 'save_path': save_path, 'trackers': self.trackers}
+        torrent_handle = self.session.add_torrent(params)
+        self.torrent_handles[game_id] = torrent_handle
+        torrent_handle.set_flags(lt.torrent_flags.seed_mode)
+        torrent_handle.resume()
+        print("seed log 2")

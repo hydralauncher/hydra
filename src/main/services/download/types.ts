@@ -36,3 +36,8 @@ export interface ProcessPayload {
   exe: string;
   pid: number;
 }
+
+export interface SeedPayload {
+  should_seed: boolean;
+}
+
