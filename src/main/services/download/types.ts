@@ -40,4 +40,3 @@ export interface ProcessPayload {
 export interface SeedPayload {
   should_seed: boolean;
 }
-

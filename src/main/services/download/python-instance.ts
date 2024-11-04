@@ -130,7 +130,7 @@ export class PythonInstance {
         action: "pause",
         game_id: this.downloadingGameId,
       } as PauseDownloadPayload)
-      .catch(() => { });
+      .catch(() => {});
 
     this.downloadingGameId = -1;
   }
@@ -162,7 +162,7 @@ export class PythonInstance {
         action: "cancel",
         game_id: gameId,
       } as CancelDownloadPayload)
-      .catch(() => { });
+      .catch(() => {});
 
     this.downloadingGameId = -1;
   }
@@ -187,7 +187,7 @@ export class PythonInstance {
         magnet: game.uri,
         save_path: game.downloadPath,
       } as StartDownloadPayload)
-      .catch(() => { });
+      .catch(() => {});
   }
 
   private static async handleRpcError(_error: unknown) {
