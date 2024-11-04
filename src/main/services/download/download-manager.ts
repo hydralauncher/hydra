@@ -64,7 +64,7 @@ export class DownloadManager {
           this.currentDownloader === Downloader.Torrent
         ) {
           const existingSeed = await seedListRepository.findOne({
-            where: { downloadUri: game.uri! }
+            where: { downloadUri: game.uri! },
           });
 
           if (existingSeed) {
