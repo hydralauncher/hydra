@@ -9,6 +9,7 @@ import {
   UserAuth,
   GameAchievement,
   UserSubscription,
+  SeedList,
 } from "@main/entity";
 
 import { databasePath } from "./constants";
@@ -25,6 +26,7 @@ export const dataSource = new DataSource({
     DownloadSource,
     DownloadQueue,
     GameAchievement,
+    SeedList,
   ],
   synchronize: false,
   database: databasePath,
