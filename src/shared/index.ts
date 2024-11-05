@@ -55,6 +55,9 @@ export const removeDuplicateSpaces = (name: string) =>
 
 export const replaceDotsWithSpace = (name: string) => name.replace(/\./g, " ");
 
+export const replaceNbspWithSpace = (name: string) =>
+  name.replace(new RegExp(String.fromCharCode(160), "g"), " ");
+
 export const replaceUnderscoreWithSpace = (name: string) =>
   name.replace(/_/g, " ");
 
@@ -69,6 +72,7 @@ export const formatName = pipe<string>(
   removeSpecialEditionFromName,
   replaceUnderscoreWithSpace,
   replaceDotsWithSpace,
+  replaceNbspWithSpace,
   (str) => str.replace(/DIRECTOR'S CUT/g, ""),
   removeSymbolsFromName,
   removeDuplicateSpaces,
