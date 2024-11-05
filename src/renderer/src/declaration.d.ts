@@ -66,16 +66,6 @@ declare global {
     searchGameRepacks: (query: string) => Promise<GameRepack[]>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getTrendingGames: () => Promise<TrendingGame[]>;
-    onAchievementUnlocked: (
-      cb: (
-        objectId: string,
-        shop: GameShop,
-        achievements?: { displayName: string; iconUrl: string }[]
-      ) => void
-    ) => () => Electron.IpcRenderer;
-    onCombinedAchievementsUnlocked: (
-      cb: (gameCount: number, achievementCount: number) => void
-    ) => () => Electron.IpcRenderer;
     onUpdateAchievements: (
       objectId: string,
       shop: GameShop,

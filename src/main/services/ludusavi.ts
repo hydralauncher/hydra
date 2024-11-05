@@ -24,6 +24,7 @@ export class Ludusavi {
     workerData: {
       binaryPath: this.binaryPath,
     },
+    maxThreads: 1,
   });
 
   static async getConfig() {

@@ -1,5 +1,4 @@
 import jwt from "jsonwebtoken";
-import * as Sentry from "@sentry/electron/main";
 
 import { userAuthRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
@@ -9,8 +8,6 @@ const getSessionHash = async (_event: Electron.IpcMainInvokeEvent) => {
 
   if (!auth) return null;
   const payload = jwt.decode(auth.accessToken) as jwt.JwtPayload;
-
-  Sentry.setContext("sessionId", payload.sessionId);
 
   return payload.sessionId;
 };

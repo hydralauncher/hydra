@@ -23,31 +23,6 @@ export const hero = style({
   flexDirection: "column",
   position: "relative",
   transition: "all ease 0.2s",
-  "@media": {
-    "(min-width: 1250px)": {
-      height: "350px",
-      minHeight: "350px",
-    },
-  },
-});
-
-export const heroImage = style({
-  width: "100%",
-  height: `${HERO_HEIGHT}px`,
-  minHeight: `${HERO_HEIGHT}px`,
-  objectFit: "cover",
-  objectPosition: "top",
-  transition: "all ease 0.2s",
-  position: "absolute",
-  zIndex: "0",
-  filter: "blur(5px)",
-  "@media": {
-    "(min-width: 1250px)": {
-      objectPosition: "center",
-      height: "350px",
-      minHeight: "350px",
-    },
-  },
 });
 
 export const heroContent = style({

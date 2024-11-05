@@ -13,7 +13,7 @@ import type { AchievementFile, UnlockedAchievement } from "@types";
 import { achievementsLogger } from "../logger";
 import { Cracker } from "@shared";
 import { IsNull, Not } from "typeorm";
-import { WindowManager } from "../window-manager";
+import { publishCombinedNewAchievementNotification } from "../notifications";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
@@ -249,11 +249,12 @@ export class AchievementWatcherManager {
       0
     );
 
-    WindowManager.notificationWindow?.webContents.send(
-      "on-combined-achievements-unlocked",
-      totalNewGamesWithAchievements,
-      totalNewAchievements
-    );
+    if (totalNewAchievements > 0) {
+      publishCombinedNewAchievementNotification(
+        totalNewAchievements,
+        totalNewGamesWithAchievements
+      );
+    }
 
     this.hasFinishedMergingWithRemote = true;
   };

@@ -4,7 +4,6 @@ import {
   userAuthRepository,
   userSubscriptionRepository,
 } from "@main/repository";
-import * as Sentry from "@sentry/electron/main";
 import { UserNotLoggedInError } from "@shared";
 import { logger } from "../logger";
 
@@ -38,8 +37,6 @@ export const getUserData = () => {
       } else {
         await userSubscriptionRepository.delete({ id: 1 });
       }
-
-      Sentry.setUser({ id: me.id, username: me.username });
 
       return me;
     })

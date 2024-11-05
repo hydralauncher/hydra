@@ -1,4 +1,9 @@
-import { GearIcon, PlayIcon, PlusCircleIcon } from "@primer/octicons-react";
+import {
+  DownloadIcon,
+  GearIcon,
+  PlayIcon,
+  PlusCircleIcon,
+} from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
 import { useContext, useState } from "react";
@@ -6,7 +11,6 @@ import { useTranslation } from "react-i18next";
 import * as styles from "./hero-panel-actions.css";
 
 import { gameDetailsContext } from "@renderer/context";
-import { DownloadIcon } from "@renderer/components/sidebar/download-icon";
 
 export function HeroPanelActions() {
   const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
@@ -125,7 +129,7 @@ export function HeroPanelActions() {
         disabled={isGameDownloading || !repacks.length}
         className={styles.heroPanelAction}
       >
-        <DownloadIcon isDownloading={false} />
+        <DownloadIcon />
         {t("download")}
       </Button>
     );

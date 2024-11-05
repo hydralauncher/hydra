@@ -1,5 +1,4 @@
 import { registerEvent } from "../register-event";
-import * as Sentry from "@sentry/electron/main";
 import {
   DownloadManager,
   HydraApi,
@@ -28,9 +27,6 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
       /* Removes all games being played */
       gamesPlaytime.clear();
     });
-
-  /* Removes user from Sentry */
-  Sentry.setUser(null);
 
   /* Cancels any ongoing downloads */
   DownloadManager.cancelDownload();
