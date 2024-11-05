@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-
+import parseTorrent from "parse-torrent";
 import type { StartGameDownloadPayload } from "@types";
 import { DownloadManager, HydraApi, logger } from "@main/services";
 
@@ -91,7 +91,10 @@ const startGameDownload = async (
       logger.error("Failed to create game download", err);
     });
 
-    HydraAnalytics.postDownload(payload.uri).catch(() => {});
+    const { infoHash } = await parseTorrent(payload.uri);
+    if (infoHash) {
+      HydraAnalytics.postDownload(infoHash).catch(() => {});
+    }
 
     await DownloadManager.cancelDownload(updatedGame!.id);
     await DownloadManager.startDownload(updatedGame!);
