@@ -25,7 +25,8 @@
     "queued": "{{title}} (Queued)",
     "game_has_no_executable": "Game has no executable selected",
     "sign_in": "Sign in",
-    "friends": "Friends"
+    "friends": "Friends",
+    "need_help": "Need help?"
   },
   "header": {
     "search": "Search games",
