@@ -137,51 +137,38 @@ class TorrentDownloader:
         self.downloading_game_id = -1
 
     def get_download_status(self):
-        if self.downloading_game_id == -1:
-            return None
-
         response = {
-            'downloading': {},
+            'downloading': None,
             'seeding': []
         }
 
-        if self.downloading_game_id != -1:
-            torrent_handle = self.torrent_handles.get(self.downloading_game_id)
-            if torrent_handle:
-                status = torrent_handle.status()
-                info = torrent_handle.torrent_file()
-                if status.progress < 1.0:
-                    response['downloading'] = {
-                        'folderName': info.name() if info else "",
-                        'fileSize': info.total_size() if info else 0,
-                        'gameId': self.downloading_game_id,
-                        'progress': status.progress,
-                        'downloadSpeed': status.download_rate,
-                        'uploadSpeed': status.upload_rate,
-                        'numPeers': status.num_peers,
-                        'numSeeds': status.num_seeds,
-                        'status': status.state,
-                        'bytesDownloaded': status.progress * info.total_size() if info else status.all_time_download,
-                    }
-
         for game_id, torrent_handle in self.torrent_handles.items():
-            if torrent_handle:
-                status = torrent_handle.status()
-                if status.state == 5:
-                    info = torrent_handle.torrent_file()
-                    seed_info = {
-                        'folderName': info.name() if info else "",
-                        'fileSize': info.total_size() if info else 0,
-                        'gameId': self.downloading_game_id,
-                        'progress': status.progress,
-                        'downloadSpeed': status.download_rate,
-                        'uploadSpeed': status.upload_rate,
-                        'numPeers': status.num_peers,
-                        'numSeeds': status.num_seeds,
-                        'status': status.state,
-                        'bytesDownloaded': status.progress * info.total_size() if info else status.all_time_download,
-                    }
-
-                    response['seeding'].append(seed_info)
+            status = torrent_handle.status()
+            info = torrent_handle.torrent_file()
+            
+            torrent_info = {
+                'folderName': info.name() if info else "",
+                'fileSize': info.total_size() if info else 0,
+                'gameId': self.downloading_game_id,
+                'progress': status.progress,
+                'downloadSpeed': status.download_rate,
+                'uploadSpeed': status.upload_rate,
+                'numPeers': status.num_peers,
+                'numSeeds': status.num_seeds,
+                'status': status.state,
+                'bytesDownloaded': status.progress * info.total_size() if info else status.all_time_download,
+            }
+            
+            if game_id == self.downloading_game_id:
+                response['downloading'] = torrent_info
+                
+                if status.progress == 1:
+                    # this probably should stay here
+                    self.downloading_game_id = -1
+                    
+            elif status.state == 5:
+                response['seeding'].append(torrent_info)
 
         print(response)
+        # return response
+        return None
