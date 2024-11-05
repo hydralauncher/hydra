@@ -188,75 +188,80 @@ export function Sidebar() {
         maxWidth: sidebarWidth,
       }}
     >
-      <SidebarProfile />
+      <div
+        style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}
+      >
+        <SidebarProfile />
 
-      <div className={styles.content}>
-        <section className={styles.section}>
-          <ul className={styles.menu}>
-            {routes.map(({ nameKey, path, render }) => (
-              <li
-                key={nameKey}
-                className={styles.menuItem({
-                  active: location.pathname === path,
-                })}
-              >
-                <button
-                  type="button"
-                  className={styles.menuItemButton}
-                  onClick={() => handleSidebarItemClick(path)}
+        <div className={styles.content}>
+          <section className={styles.section}>
+            <ul className={styles.menu}>
+              {routes.map(({ nameKey, path, render }) => (
+                <li
+                  key={nameKey}
+                  className={styles.menuItem({
+                    active: location.pathname === path,
+                  })}
                 >
-                  {render()}
-                  <span>{t(nameKey)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+                  <button
+                    type="button"
+                    className={styles.menuItemButton}
+                    onClick={() => handleSidebarItemClick(path)}
+                  >
+                    {render()}
+                    <span>{t(nameKey)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
 
-        <section className={styles.section}>
-          <small className={styles.sectionTitle}>{t("my_library")}</small>
+          <section className={styles.section}>
+            <small className={styles.sectionTitle}>{t("my_library")}</small>
 
-          <TextField
-            ref={filterRef}
-            placeholder={t("filter")}
-            onChange={handleFilter}
-            theme="dark"
-          />
+            <TextField
+              ref={filterRef}
+              placeholder={t("filter")}
+              onChange={handleFilter}
+              theme="dark"
+            />
 
-          <ul className={styles.menu}>
-            {filteredLibrary.map((game) => (
-              <li
-                key={game.id}
-                className={styles.menuItem({
-                  active:
-                    location.pathname === `/game/${game.shop}/${game.objectID}`,
-                  muted: game.status === "removed",
-                })}
-              >
-                <button
-                  type="button"
-                  className={styles.menuItemButton}
-                  onClick={(event) => handleSidebarGameClick(event, game)}
+            <ul className={styles.menu}>
+              {filteredLibrary.map((game) => (
+                <li
+                  key={game.id}
+                  className={styles.menuItem({
+                    active:
+                      location.pathname ===
+                      `/game/${game.shop}/${game.objectID}`,
+                    muted: game.status === "removed",
+                  })}
                 >
-                  {game.iconUrl ? (
-                    <img
-                      className={styles.gameIcon}
-                      src={game.iconUrl}
-                      alt={game.title}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <SteamLogo className={styles.gameIcon} />
-                  )}
+                  <button
+                    type="button"
+                    className={styles.menuItemButton}
+                    onClick={(event) => handleSidebarGameClick(event, game)}
+                  >
+                    {game.iconUrl ? (
+                      <img
+                        className={styles.gameIcon}
+                        src={game.iconUrl}
+                        alt={game.title}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <SteamLogo className={styles.gameIcon} />
+                    )}
 
-                  <span className={styles.menuItemButtonLabel}>
-                    {getGameTitle(game)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+                    <span className={styles.menuItemButtonLabel}>
+                      {getGameTitle(game)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
       </div>
 
       {hasActiveSubscription && (

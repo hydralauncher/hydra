@@ -13,6 +13,7 @@ export const sidebar = recipe({
     borderRight: `solid 1px ${vars.color.border}`,
     position: "relative",
     overflow: "hidden",
+    justifyContent: "space-between",
   },
   variants: {
     resizing: {
@@ -132,7 +133,6 @@ export const helpButton = style({
   display: "flex",
   alignItems: "center",
   cursor: "pointer",
-  boxShadow: "0px 0px 15px 0px rgba(0, 0, 0, 0.6)",
   borderTop: `solid 1px ${vars.color.border}`,
   transition: "background-color ease 0.1s",
   ":hover": {
