@@ -1,9 +1,8 @@
-import { Notification, app, nativeImage } from "electron";
+import { Notification, app } from "electron";
 import { t } from "i18next";
-import { parseICO } from "icojs";
 import trayIcon from "@resources/tray-icon.png?asset";
 import { Game } from "@main/entity";
-import { gameRepository, userPreferencesRepository } from "@main/repository";
+import { userPreferencesRepository } from "@main/repository";
 import fs from "node:fs";
 import axios from "axios";
 import path from "node:path";
@@ -11,36 +10,37 @@ import sound from "sound-play";
 import { achievementSoundPath } from "@main/constants";
 import icon from "@resources/icon.png?asset";
 import { NotificationOptions, toXmlString } from "./xml";
+import { logger } from "../logger";
 
-const getGameIconNativeImage = async (gameId: number) => {
-  try {
-    const game = await gameRepository.findOne({
-      where: {
-        id: gameId,
-      },
+async function downloadImage(url: string | null) {
+  if (!url) return undefined;
+  if (!url.startsWith("http")) return undefined;
+
+  const fileName = url.split("/").pop()!;
+  const outputPath = path.join(app.getPath("temp"), fileName);
+  const writer = fs.createWriteStream(outputPath);
+
+  const response = await axios.get(url, {
+    responseType: "stream",
+  });
+
+  response.data.pipe(writer);
+
+  return new Promise<string | undefined>((resolve) => {
+    writer.on("finish", () => {
+      resolve(outputPath);
     });
-
-    if (!game?.iconUrl) return undefined;
-
-    const images = await parseICO(
-      Buffer.from(game.iconUrl.split("base64,")[1], "base64")
-    );
-
-    const highResIcon = images.find((image) => image.width >= 128);
-    if (!highResIcon) return undefined;
-
-    return nativeImage.createFromBuffer(Buffer.from(highResIcon.buffer));
-  } catch (err) {
-    return undefined;
-  }
-};
+    writer.on("error", () => {
+      logger.error("Failed to download image", { url });
+      resolve(undefined);
+    });
+  });
+}
 
 export const publishDownloadCompleteNotification = async (game: Game) => {
   const userPreferences = await userPreferencesRepository.findOne({
     where: { id: 1 },
   });
-
-  const icon = await getGameIconNativeImage(game.id);
 
   if (userPreferences?.downloadNotificationsEnabled) {
     new Notification({
@@ -51,7 +51,7 @@ export const publishDownloadCompleteNotification = async (game: Game) => {
         ns: "notifications",
         title: game.title,
       }),
-      icon,
+      icon: await downloadImage(game.iconUrl),
     }).show();
   }
 };
@@ -72,28 +72,6 @@ export const publishNotificationUpdateReadyToInstall = async (
 };
 
 export const publishNewFriendRequestNotification = async () => {};
-
-async function downloadImage(url: string | null) {
-  if (!url) return null;
-  if (!url.startsWith("http")) return null;
-
-  const fileName = url.split("/").pop()!;
-  const outputPath = path.join(app.getPath("temp"), fileName);
-  const writer = fs.createWriteStream(outputPath);
-
-  const response = await axios.get(url, {
-    responseType: "stream",
-  });
-
-  response.data.pipe(writer);
-
-  return new Promise<string>((resolve, reject) => {
-    writer.on("finish", () => {
-      resolve(outputPath);
-    });
-    writer.on("error", reject);
-  });
-}
 
 export const publishCombinedNewAchievementNotification = async (
   achievementCount,
