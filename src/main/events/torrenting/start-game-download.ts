@@ -9,6 +9,7 @@ import { createGame } from "@main/services/library-sync";
 import { steamUrlBuilder } from "@shared";
 import { dataSource } from "@main/data-source";
 import { DownloadQueue, Game } from "@main/entity";
+import { HydraAnalytics } from "@main/services/hydra-analytics";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -89,6 +90,8 @@ const startGameDownload = async (
     ).catch((err) => {
       logger.error("Failed to create game download", err);
     });
+
+    HydraAnalytics.postDownload(payload.uri).catch(() => {});
 
     await DownloadManager.cancelDownload(updatedGame!.id);
     await DownloadManager.startDownload(updatedGame!);
