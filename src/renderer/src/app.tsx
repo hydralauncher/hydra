@@ -37,7 +37,7 @@ export interface AppProps {
 }
 
 Intercom({
-  app_id: "pq96v8fh",
+  app_id: import.meta.env.RENDERER_VITE_INTERCOM_APP_ID,
 });
 
 export function App() {
