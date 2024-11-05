@@ -126,3 +126,9 @@ export const titleBar = style({
   zIndex: "4",
   borderBottom: `1px solid ${vars.color.border}`,
 } as ComplexStyleRule);
+
+export const cloudText = style({
+  background: "linear-gradient(270deg, #16B195 50%, #3E62C0 100%)",
+  backgroundClip: "text",
+  color: "transparent",
+});

@@ -85,6 +85,10 @@ export class WindowManager {
           return callback(details);
         }
 
+        if (details.url.includes("intercom.io")) {
+          return callback(details);
+        }
+
         const headers = {
           "access-control-allow-origin": ["*"],
           "access-control-allow-methods": ["GET, POST, PUT, DELETE, OPTIONS"],

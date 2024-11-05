@@ -2,6 +2,8 @@ import { useCallback, useContext, useEffect, useRef } from "react";
 
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
+import Intercom from "@intercom/messenger-js-sdk";
+
 import {
   useAppDispatch,
   useAppSelector,
@@ -34,6 +36,10 @@ export interface AppProps {
   children: React.ReactNode;
 }
 
+Intercom({
+  app_id: "pq96v8fh",
+});
+
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library } = useLibrary();
@@ -54,8 +60,13 @@ export function App() {
     hideFriendsModal,
   } = useUserDetails();
 
-  const { userDetails, fetchUserDetails, updateUserDetails, clearUserDetails } =
-    useUserDetails();
+  const {
+    userDetails,
+    hasActiveSubscription,
+    fetchUserDetails,
+    updateUserDetails,
+    clearUserDetails,
+  } = useUserDetails();
 
   const dispatch = useAppDispatch();
 
@@ -204,7 +215,9 @@ export function App() {
 
   useEffect(() => {
     new MutationObserver(() => {
-      const modal = document.body.querySelector("[role=dialog]");
+      const modal = document.body.querySelector(
+        "[role=dialog]:not([data-intercom-frame='true'])"
+      );
 
       dispatch(toggleDraggingDisabled(Boolean(modal)));
     }).observe(document.body, {
@@ -270,7 +283,12 @@ export function App() {
     <>
       {window.electron.platform === "win32" && (
         <div className={styles.titleBar}>
-          <h4>Hydra</h4>
+          <h4>
+            Hydra
+            {hasActiveSubscription && (
+              <span className={styles.cloudText}> Cloud</span>
+            )}
+          </h4>
         </div>
       )}
 
