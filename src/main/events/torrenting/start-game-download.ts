@@ -91,9 +91,15 @@ const startGameDownload = async (
       logger.error("Failed to create game download", err);
     });
 
-    const { infoHash } = await parseTorrent(payload.uri);
-    if (infoHash) {
-      HydraAnalytics.postDownload(infoHash).catch(() => {});
+    if (uri.startsWith("magnet:")) {
+      try {
+        const { infoHash } = await parseTorrent(payload.uri);
+        if (infoHash) {
+          HydraAnalytics.postDownload(infoHash).catch(() => {});
+        }
+      } catch (err) {
+        logger.error("Failed to parse torrent", err);
+      }
     }
 
     await DownloadManager.cancelDownload(updatedGame!.id);
