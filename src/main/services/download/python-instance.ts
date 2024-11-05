@@ -62,13 +62,13 @@ export class PythonInstance {
 
   public static async getStatus() {
     if (this.downloadingGameId === -1) return null;
-    
+
     const response = await this.rpc.get<LibtorrentPayload | null>("/status");
 
     if (response.data === null) return null;
 
     console.log(response.data);
-    
+
     try {
       const {
         progress,
@@ -106,7 +106,11 @@ export class PythonInstance {
         );
       }
 
-      if (progress === 1 && !isCheckingFiles && status !== LibtorrentStatus.Seeding) {
+      if (
+        progress === 1 &&
+        !isCheckingFiles &&
+        status !== LibtorrentStatus.Seeding
+      ) {
         this.downloadingGameId = -1;
       }
 
