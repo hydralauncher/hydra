@@ -102,7 +102,7 @@ export const mergeAchievements = async (
           );
         });
       })
-      .filter((achievement) => achievement)
+      .filter((achievement) => Boolean(achievement))
       .map((achievement) => {
         return {
           displayName: achievement!.displayName,
