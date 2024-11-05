@@ -273,7 +273,6 @@ export function AchievementsContent({
         src={steamUrlBuilder.libraryHero(objectId)}
         style={{ display: "none" }}
         alt={gameTitle}
-        className={styles.heroImage}
         onLoad={handleHeroLoad}
       />
 

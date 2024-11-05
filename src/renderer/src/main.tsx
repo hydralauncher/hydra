@@ -6,8 +6,6 @@ import { Provider } from "react-redux";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { HashRouter, Route, Routes } from "react-router-dom";
 
-import * as Sentry from "@sentry/electron/renderer";
-
 import "@fontsource/noto-sans/400.css";
 import "@fontsource/noto-sans/500.css";
 import "@fontsource/noto-sans/700.css";
@@ -19,9 +17,7 @@ import { App } from "./app";
 import { store } from "./store";
 
 import resources from "@locales";
-import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
 
-import "./workers";
 import { RepacksContextProvider } from "./context";
 import { SuspenseWrapper } from "./components";
 
@@ -37,8 +33,6 @@ const Profile = React.lazy(() => import("./pages/profile/profile"));
 const Achievements = React.lazy(
   () => import("./pages/achievements/achievements")
 );
-
-Sentry.init({});
 
 i18n
   .use(LanguageDetector)
@@ -97,10 +91,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 element={<SuspenseWrapper Component={Achievements} />}
               />
             </Route>
-            <Route
-              path="/achievement-notification"
-              Component={AchievementNotification}
-            />
           </Routes>
         </HashRouter>
       </RepacksContextProvider>
