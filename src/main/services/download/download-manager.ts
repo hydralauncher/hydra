@@ -79,7 +79,7 @@ export class DownloadManager {
             });
           }
 
-          this.startSeedDownload(game);
+          this.resumeDownload(game);
         }
 
         const [nextQueueItem] = await downloadQueueRepository.find({
@@ -167,11 +167,5 @@ export class DownloadManager {
 
     this.currentDownloader = game.downloader;
     this.downloadingGameId = game.id;
-  }
-
-  static async startSeedDownload(game: Game) {
-    if (game) {
-      await PythonInstance.startSeeding(game);
-    }
   }
 }
