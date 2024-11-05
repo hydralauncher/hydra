@@ -15,6 +15,14 @@ import * as styles from "./home.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { CatalogueCategory } from "@shared";
+import { catalogueCacheTable, db } from "@renderer/dexie";
+import { add } from "date-fns";
+
+const categoryCacheDurationInSeconds = {
+  [CatalogueCategory.Hot]: 60 * 60 * 2,
+  [CatalogueCategory.Weekly]: 60 * 60 * 24,
+  [CatalogueCategory.Achievements]: 60 * 60 * 24,
+};
 
 export default function Home() {
   const { t } = useTranslation("home");
@@ -36,19 +44,43 @@ export default function Home() {
     [CatalogueCategory.Achievements]: [],
   });
 
-  const getCatalogue = useCallback((category: CatalogueCategory) => {
-    setCurrentCatalogueCategory(category);
-    setIsLoading(true);
+  const getCatalogue = useCallback(async (category: CatalogueCategory) => {
+    try {
+      const catalogueCache = await catalogueCacheTable
+        .where("expiresAt")
+        .above(new Date())
+        .and((cache) => cache.category === category)
+        .first();
 
-    window.electron
-      .getCatalogue(category)
-      .then((catalogue) => {
-        setCatalogue((prev) => ({ ...prev, [category]: catalogue }));
-      })
-      .catch(() => {})
-      .finally(() => {
-        setIsLoading(false);
+      setCurrentCatalogueCategory(category);
+      setIsLoading(true);
+
+      if (catalogueCache)
+        return setCatalogue((prev) => ({
+          ...prev,
+          [category]: catalogueCache.games,
+        }));
+
+      const catalogue = await window.electron.getCatalogue(category);
+
+      db.transaction("rw", catalogueCacheTable, async () => {
+        await catalogueCacheTable.where("category").equals(category).delete();
+
+        await catalogueCacheTable.add({
+          category,
+          games: catalogue,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          expiresAt: add(new Date(), {
+            seconds: categoryCacheDurationInSeconds[category],
+          }),
+        });
       });
+
+      setCatalogue((prev) => ({ ...prev, [category]: catalogue }));
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   const getRandomGame = useCallback(() => {

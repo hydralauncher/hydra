@@ -24,7 +24,8 @@
     "queued": "{{title}} (В очереди)",
     "game_has_no_executable": "Файл запуска игры не выбран",
     "sign_in": "Войти",
-    "friends": "Друзья"
+    "friends": "Друзья",
+    "need_help": "Нужна помощь?"
   },
   "header": {
     "search": "Поиск",
