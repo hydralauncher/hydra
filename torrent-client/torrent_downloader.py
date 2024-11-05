@@ -106,7 +106,7 @@ class TorrentDownloader:
         params = {'url': magnet, 'save_path': save_path, 'trackers': self.trackers}
         torrent_handle = self.session.add_torrent(params)
         self.torrent_handles[game_id] = torrent_handle
-        torrent_handle.set_flags(lt.torrent_flags.auto_managed)
+        torrent_handle.set_flags(lt.torrent_flags.auto_managed, lt.torrent_flags.seed_mode)
         torrent_handle.resume()
 
         self.downloading_game_id = game_id
@@ -151,24 +151,16 @@ class TorrentDownloader:
             'gameId': self.downloading_game_id,
             'progress': status.progress,
             'downloadSpeed': status.download_rate,
+            'uploadSpeed': status.upload_rate,
             'numPeers': status.num_peers,
             'numSeeds': status.num_seeds,
             'status': status.state,
             'bytesDownloaded': status.progress * info.total_size() if info else status.all_time_download,
         }
 
-        if status.progress == 1:
-            torrent_handle.pause()
-            self.session.remove_torrent(torrent_handle)
-            self.downloading_game_id = -1
+        # if status.progress == 1:
+            # torrent_handle.pause()
+            # self.session.remove_torrent(torrent_handle)
+            # self.downloading_game_id = -1
 
         return response
-
-    def start_seeding(self, game_id: int, magnet: str, save_path: str):
-        print("seed log 1")
-        params = {'url': magnet, 'save_path': save_path, 'trackers': self.trackers}
-        torrent_handle = self.session.add_torrent(params)
-        self.torrent_handles[game_id] = torrent_handle
-        torrent_handle.set_flags(lt.torrent_flags.seed_mode)
-        torrent_handle.resume()
-        print("seed log 2")
