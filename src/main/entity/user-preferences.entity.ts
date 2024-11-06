@@ -38,6 +38,9 @@ export class UserPreferences {
   @Column("boolean", { default: false })
   startMinimized: boolean;
 
+  @Column("boolean", { default: false })
+  disableNsfwPopup: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
