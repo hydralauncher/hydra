@@ -161,7 +161,7 @@ export interface UserPreferences {
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;
   startMinimized: boolean;
-  disableNsfwPopup: boolean;
+  disableNsfwAlert: boolean;
 }
 
 export interface Steam250Game {

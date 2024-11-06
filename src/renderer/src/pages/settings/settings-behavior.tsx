@@ -18,7 +18,7 @@ export function SettingsBehavior() {
     preferQuitInsteadOfHiding: false,
     runAtStartup: false,
     startMinimized: false,
-    disableNsfwPopup: false,
+    disableNsfwAlert: false,
   });
 
   const { t } = useTranslation("settings");
@@ -29,7 +29,7 @@ export function SettingsBehavior() {
         preferQuitInsteadOfHiding: userPreferences.preferQuitInsteadOfHiding,
         runAtStartup: userPreferences.runAtStartup,
         startMinimized: userPreferences.startMinimized,
-        disableNsfwPopup: userPreferences.disableNsfwPopup,
+        disableNsfwAlert: userPreferences.disableNsfwAlert,
       });
     }
   }, [userPreferences]);
@@ -90,10 +90,10 @@ export function SettingsBehavior() {
       )}
 
       <CheckboxField
-        label={t("disable_nsfw_popup")}
-        checked={form.disableNsfwPopup}
+        label={t("disable_nsfw_alert")}
+        checked={form.disableNsfwAlert}
         onChange={() =>
-          handleChange({ disableNsfwPopup: !form.disableNsfwPopup })
+          handleChange({ disableNsfwAlert: !form.disableNsfwAlert })
         }
       />
     </>

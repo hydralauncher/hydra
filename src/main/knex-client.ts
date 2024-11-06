@@ -12,7 +12,7 @@ import { CreateUserSubscription } from "./migrations/20241015235142_create_user_
 import { AddBackgroundImageUrl } from "./migrations/20241016100249_add_background_image_url";
 import { AddWinePrefixToGame } from "./migrations/20241019081648_add_wine_prefix_to_game";
 import { AddStartMinimizedColumn } from "./migrations/20241030171454_add_start_minimized_column";
-import { AddDisableNsfwPopupColumn } from "./migrations/20241106053733_add_disable_nsfw_popup_column";
+import { AddDisableNsfwAlertColumn } from "./migrations/20241106053733_add_disable_nsfw_alert_column";
 export type HydraMigration = Knex.Migration & { name: string };
 
 class MigrationSource implements Knex.MigrationSource<HydraMigration> {
@@ -29,7 +29,7 @@ class MigrationSource implements Knex.MigrationSource<HydraMigration> {
       AddBackgroundImageUrl,
       AddWinePrefixToGame,
       AddStartMinimizedColumn,
-      AddDisableNsfwPopupColumn,
+      AddDisableNsfwAlertColumn,
     ]);
   }
   getMigrationName(migration: HydraMigration): string {
