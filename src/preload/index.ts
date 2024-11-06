@@ -38,11 +38,13 @@ contextBridge.exposeInMainWorld("electron", {
     return () => ipcRenderer.removeListener("on-download-progress", listener);
   },
   onSeedingList: (cb: (value: LibtorrentSeedingPayload[]) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, value: LibtorrentSeedingPayload[]) => cb(value);
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      value: LibtorrentSeedingPayload[]
+    ) => cb(value);
     ipcRenderer.on("on-seeding-list", listener);
     return () => ipcRenderer.removeListener("on-seeding-list", listener);
   },
-
 
   /* Catalogue */
   searchGames: (query: string) => ipcRenderer.invoke("searchGames", query),
