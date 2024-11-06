@@ -78,8 +78,6 @@ export class DownloadManager {
               shouldSeed: true,
             });
           }
-
-          this.resumeDownload(game);
         }
 
         const [nextQueueItem] = await downloadQueueRepository.find({
