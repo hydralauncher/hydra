@@ -139,7 +139,7 @@ export class PythonInstance {
         action: "pause",
         game_id: this.downloadingGameId,
       } as PauseDownloadPayload)
-      .catch(() => { });
+      .catch(() => {});
 
     this.downloadingGameId = -1;
   }
@@ -171,7 +171,7 @@ export class PythonInstance {
         action: "cancel",
         game_id: gameId,
       } as CancelDownloadPayload)
-      .catch(() => { });
+      .catch(() => {});
 
     this.downloadingGameId = -1;
   }
