@@ -18,6 +18,7 @@ export function SettingsBehavior() {
     preferQuitInsteadOfHiding: false,
     runAtStartup: false,
     startMinimized: false,
+    disableNsfwPopup: false,
   });
 
   const { t } = useTranslation("settings");
@@ -28,6 +29,7 @@ export function SettingsBehavior() {
         preferQuitInsteadOfHiding: userPreferences.preferQuitInsteadOfHiding,
         runAtStartup: userPreferences.runAtStartup,
         startMinimized: userPreferences.startMinimized,
+        disableNsfwPopup: userPreferences.disableNsfwPopup,
       });
     }
   }, [userPreferences]);
@@ -86,6 +88,14 @@ export function SettingsBehavior() {
           />
         </div>
       )}
+
+      <CheckboxField
+        label={t("disable_nsfw_popup")}
+        checked={form.disableNsfwPopup}
+        onChange={() =>
+          handleChange({ disableNsfwPopup: !form.disableNsfwPopup })
+        }
+      />
     </>
   );
 }
