@@ -68,66 +68,69 @@ export class PythonInstance {
 
   public static async getStatus() {
     const response = await this.rpc.get<LibtorrentPayload | null>("/status");
-    if (response.data?.downloading === null) return null;
 
-    try {
-      const {
-        progress,
-        numPeers,
-        numSeeds,
-        downloadSpeed,
-        bytesDownloaded,
-        fileSize,
-        folderName,
-        status,
-        gameId,
-      } = response.data?.downloading!;
-
-      this.downloadingGameId = gameId;
-
-      const isDownloadingMetadata =
-        status === LibtorrentStatus.DownloadingMetadata;
-
-      const isCheckingFiles = status === LibtorrentStatus.CheckingFiles;
-
-      if (!isDownloadingMetadata && !isCheckingFiles) {
-        const update: QueryDeepPartialEntity<Game> = {
+    if (response.data?.downloading) {
+      try {
+        const {
+          progress,
+          numPeers,
+          numSeeds,
+          downloadSpeed,
           bytesDownloaded,
           fileSize,
+          folderName,
+          status,
+          gameId,
+        } = response.data.downloading;
+
+        this.downloadingGameId = gameId;
+
+        const isDownloadingMetadata =
+          status === LibtorrentStatus.DownloadingMetadata;
+
+        const isCheckingFiles = status === LibtorrentStatus.CheckingFiles;
+
+        if (!isDownloadingMetadata && !isCheckingFiles) {
+          const update: QueryDeepPartialEntity<Game> = {
+            bytesDownloaded,
+            fileSize,
+            progress,
+            status: "active",
+          };
+
+          await gameRepository.update(
+            { id: gameId },
+            {
+              ...update,
+              folderName,
+            }
+          );
+        }
+
+        if (
+          progress === 1 &&
+          !isCheckingFiles &&
+          status !== LibtorrentStatus.Seeding
+        ) {
+          this.downloadingGameId = -1;
+        }
+
+        return {
+          numPeers,
+          numSeeds,
+          downloadSpeed,
+          timeRemaining: calculateETA(fileSize, bytesDownloaded, downloadSpeed),
+          isDownloadingMetadata,
+          isCheckingFiles,
           progress,
-          status: "active",
-        };
-
-        await gameRepository.update(
-          { id: gameId },
-          {
-            ...update,
-            folderName,
-          }
-        );
+          gameId,
+        } as DownloadProgress;
+      } catch (err) {
+        return null;
       }
-
-      if (
-        progress === 1 &&
-        !isCheckingFiles &&
-        status !== LibtorrentStatus.Seeding
-      ) {
-        this.downloadingGameId = -1;
-      }
-
-      return {
-        numPeers,
-        numSeeds,
-        downloadSpeed,
-        timeRemaining: calculateETA(fileSize, bytesDownloaded, downloadSpeed),
-        isDownloadingMetadata,
-        isCheckingFiles,
-        progress,
-        gameId,
-      } as DownloadProgress;
-    } catch (err) {
-      return null;
     }
+
+    return null;
   }
 
   static async pauseDownload() {
@@ -136,7 +139,7 @@ export class PythonInstance {
         action: "pause",
         game_id: this.downloadingGameId,
       } as PauseDownloadPayload)
-      .catch(() => {});
+      .catch(() => { });
 
     this.downloadingGameId = -1;
   }
@@ -168,7 +171,7 @@ export class PythonInstance {
         action: "cancel",
         game_id: gameId,
       } as CancelDownloadPayload)
-      .catch(() => {});
+      .catch(() => { });
 
     this.downloadingGameId = -1;
   }
