@@ -169,6 +169,6 @@ class TorrentDownloader:
             elif status.state == 5:
                 response['seeding'].append(torrent_info)
 
-        print(response)
-        # return response
-        return None
+        # print(response)
+        return response
+        # return None

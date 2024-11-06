@@ -20,12 +20,29 @@ export enum LibtorrentStatus {
   Seeding = 5,
 }
 
-export interface LibtorrentPayload {
+export interface LibtorrentGamePayload {
   progress: number;
   numPeers: number;
   numSeeds: number;
   downloadSpeed: number;
   bytesDownloaded: number;
+  fileSize: number;
+  folderName: string;
+  status: LibtorrentStatus;
+  gameId: number;
+}
+
+export interface LibtorrentPayload {
+  downloading?: LibtorrentGamePayload;
+  seeding: LibtorrentGamePayload[];
+}
+
+export interface LibtorrentSeedingPayload {
+  progress: number;
+  numPeers: number;
+  numSeeds: number;
+  uploadSpeed: number;
+  // isCheckingFiles: boolean;
   fileSize: number;
   folderName: string;
   status: LibtorrentStatus;

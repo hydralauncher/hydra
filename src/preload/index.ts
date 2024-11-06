@@ -15,6 +15,7 @@ import type {
 import type { CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
 import { GameAchievement } from "@main/entity";
+import { LibtorrentSeedingPayload } from "@main/services/download/types";
 
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
@@ -36,6 +37,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-download-progress", listener);
     return () => ipcRenderer.removeListener("on-download-progress", listener);
   },
+  onSeedingList: (cb: (value: LibtorrentSeedingPayload[]) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, value: LibtorrentSeedingPayload[]) => cb(value);
+    ipcRenderer.on("on-seeding-list", listener);
+    return () => ipcRenderer.removeListener("on-seeding-list", listener);
+  },
+
 
   /* Catalogue */
   searchGames: (query: string) => ipcRenderer.invoke("searchGames", query),

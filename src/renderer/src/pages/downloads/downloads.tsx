@@ -2,12 +2,12 @@ import { useTranslation } from "react-i18next";
 
 import { useDownload, useLibrary } from "@renderer/hooks";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
 import { DeleteGameModal } from "./delete-game-modal";
 import { DownloadGroup } from "./download-group";
-import type { LibraryGame } from "@types";
+import type { LibraryGame, SeedingList } from "@types";
 import { orderBy } from "lodash-es";
 import { ArrowDownIcon } from "@primer/octicons-react";
 
@@ -29,6 +29,14 @@ export default function Downloads() {
   };
 
   const { lastPacket } = useDownload();
+
+  const [seedingList, setSeedingList] = useState<SeedingList[]>([]);
+
+  useEffect(() => {
+    window.electron.onSeedingList((value) => setSeedingList(value));
+  }, []);
+
+  console.log("sexo", seedingList);
 
   const handleOpenGameInstaller = (gameId: number) =>
     window.electron.openGameInstaller(gameId).then((isBinaryInPath) => {

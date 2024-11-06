@@ -10,6 +10,7 @@ export const startMainLoop = async () => {
       watchProcesses(),
       DownloadManager.watchDownloads(),
       AchievementWatcherManager.watchAchievements(),
+      DownloadManager.watchSeedingList(),
     ]);
 
     await sleep(1500);

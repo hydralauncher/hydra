@@ -49,6 +49,9 @@ declare global {
     onDownloadProgress: (
       cb: (value: DownloadProgress) => void
     ) => () => Electron.IpcRenderer;
+    onSeedingList: (
+      cb: (value: LibtorrentSeedingPayload[]) => void
+    ) => () => Electron.IpcRenderer;
 
     /* Catalogue */
     searchGames: (query: string) => Promise<CatalogueEntry[]>;
