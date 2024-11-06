@@ -39,7 +39,7 @@ export class UserPreferences {
   startMinimized: boolean;
 
   @Column("boolean", { default: false })
-  disableNsfwPopup: boolean;
+  disableNsfwAlert: boolean;
 
   @CreateDateColumn()
   createdAt: Date;
