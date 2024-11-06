@@ -60,14 +60,15 @@ export class PythonInstance {
     );
   }
 
-  public static async getStatus() {
-    if (this.downloadingGameId === -1) return null;
-
+  public static async getSeedingList() {
     const response = await this.rpc.get<LibtorrentPayload | null>("/status");
 
-    if (response.data === null) return null;
+    return response.data?.seeding || [];
+  }
 
-    console.log(response.data);
+  public static async getStatus() {
+    const response = await this.rpc.get<LibtorrentPayload | null>("/status");
+    if (response.data?.downloading === null) return null;
 
     try {
       const {
@@ -80,7 +81,7 @@ export class PythonInstance {
         folderName,
         status,
         gameId,
-      } = response.data;
+      } = response.data?.downloading!;
 
       this.downloadingGameId = gameId;
 

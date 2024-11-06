@@ -98,6 +98,17 @@ export class DownloadManager {
     }
   }
 
+  public static async watchSeedingList() {
+    const seedingList = await PythonInstance.getSeedingList();
+
+    if (seedingList) {
+      WindowManager.mainWindow?.webContents.send(
+        "on-seeding-list",
+        JSON.parse(JSON.stringify(seedingList))
+      );
+    }
+  }
+
   static async pauseDownload() {
     if (this.currentDownloader === Downloader.Torrent) {
       await PythonInstance.pauseDownload();
