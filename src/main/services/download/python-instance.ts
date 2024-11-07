@@ -70,7 +70,9 @@ export class PythonInstance {
   }
 
   public static async getStatus() {
-    const response = await this.rpc.get<LibtorrentDownloadingPayload | null>("/status");
+    const response = await this.rpc.get<LibtorrentDownloadingPayload | null>(
+      "/status"
+    );
 
     if (response.data) {
       try {
