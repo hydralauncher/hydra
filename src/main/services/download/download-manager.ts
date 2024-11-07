@@ -5,7 +5,6 @@ import { WindowManager } from "../window-manager";
 import {
   downloadQueueRepository,
   gameRepository,
-  seedListRepository,
   userPreferencesRepository,
 } from "@main/repository";
 import { publishDownloadCompleteNotification } from "../notifications";
@@ -63,20 +62,8 @@ export class DownloadManager {
           userPreferences?.seedAfterDownloadCompletes &&
           this.currentDownloader === Downloader.Torrent
         ) {
-          const existingSeed = await seedListRepository.findOne({
-            where: { downloadUri: game.uri! },
-          });
-
-          if (existingSeed) {
-            await seedListRepository.update(
-              { downloadUri: game.uri! },
-              { shouldSeed: true }
-            );
-          } else {
-            await seedListRepository.save({
-              downloadUri: game.uri!,
-              shouldSeed: true,
-            });
+          if (!game.shouldSeed) {
+            await gameRepository.update(game.id, { shouldSeed: true });
           }
         }
 
@@ -97,9 +84,13 @@ export class DownloadManager {
   }
 
   public static async watchSeedingList() {
-    const seedingList = await PythonInstance.getSeedingList();
+    const shouldSeedGames = await gameRepository.findOne({
+      where: { shouldSeed: true },
+    });
 
-    if (seedingList) {
+    if (shouldSeedGames) {
+      const seedingList = await PythonInstance.getSeedingList();
+
       WindowManager.mainWindow?.webContents.send(
         "on-seeding-list",
         JSON.parse(JSON.stringify(seedingList))

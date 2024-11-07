@@ -198,7 +198,10 @@
     "queued": "Queued",
     "no_downloads_title": "Such empty",
     "no_downloads_description": "You haven't downloaded anything with Hydra yet, but it's never too late to start.",
-    "checking_files": "Checking files…"
+    "checking_files": "Checking files…",
+    "seeding": "Seeding",
+    "stop_seed": "Stop seed",
+    "resume_seed": "Resume seed"
   },
   "settings": {
     "downloads_path": "Downloads path",

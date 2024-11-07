@@ -7,7 +7,8 @@ export type GameStatus =
   | "paused"
   | "error"
   | "complete"
-  | "removed";
+  | "removed"
+  | "seeding";
 
 export type GameShop = "steam" | "epic";
 
@@ -124,6 +125,7 @@ export interface Game {
   objectID: string;
   shop: GameShop;
   downloadQueue: DownloadQueue | null;
+  shouldSeed: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -156,6 +158,9 @@ export interface SeedingList {
   numPeers: number;
   numSeeds: number;
   uploadSpeed: number;
+  gameId: number;
+  folderName: string;
+  fileSize: number;
 }
 
 export interface UserPreferences {

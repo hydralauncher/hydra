@@ -37,7 +37,6 @@ export interface LibtorrentSeedingPayload {
   numPeers: number;
   numSeeds: number;
   uploadSpeed: number;
-  // isCheckingFiles: boolean;
   fileSize: number;
   folderName: string;
   status: LibtorrentStatus;

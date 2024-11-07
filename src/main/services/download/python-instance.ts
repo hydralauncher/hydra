@@ -66,6 +66,16 @@ export class PythonInstance {
       "/seed-list"
     );
 
+    if (response.data && response.data.length > 0) {
+
+      for (const seed of response.data) {
+        await gameRepository.update(
+          { id: seed.gameId },
+          { status: "seeding" }
+        );
+      }
+    }
+
     return response.data;
   }
 
