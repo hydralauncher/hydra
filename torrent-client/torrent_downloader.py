@@ -176,7 +176,7 @@ class TorrentDownloader:
             torrent_info = {
                 'folderName': info.name() if info else "",
                 'fileSize': info.total_size() if info else 0,
-                'gameId': self.downloading_game_id,
+                'gameId': game_id,
                 'progress': status.progress,
                 'downloadSpeed': status.download_rate,
                 'uploadSpeed': status.upload_rate,
@@ -189,6 +189,4 @@ class TorrentDownloader:
             if status.state == 5:
                 response.append(torrent_info)
 
-        # print(response)
         return response
-        # return None

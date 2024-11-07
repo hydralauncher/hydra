@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
+import { useMemo } from "react";
 
-import type { LibraryGame } from "@types";
+import type { LibraryGame, SeedingList } from "@types";
 
 import { Badge, Button } from "@renderer/components";
 import {
@@ -21,6 +22,7 @@ export interface DownloadGroupProps {
   title: string;
   openDeleteGameModal: (gameId: number) => void;
   openGameInstaller: (gameId: number) => void;
+  seedingList: SeedingList[];
 }
 
 export function DownloadGroup({
@@ -28,6 +30,7 @@ export function DownloadGroup({
   title,
   openDeleteGameModal,
   openGameInstaller,
+  seedingList = [],
 }: DownloadGroupProps) {
   const navigate = useNavigate();
 
@@ -46,6 +49,17 @@ export function DownloadGroup({
     isGameDeleting,
   } = useDownload();
 
+  const seedingMap = useMemo(() => {
+    if (!Array.isArray(seedingList) || seedingList.length === 0) {
+      return new Map<number, SeedingList>();
+    }
+    const map = new Map<number, SeedingList>();
+    seedingList.forEach((seed) => {
+      map.set(seed.gameId, seed);
+    });
+    return map;
+  }, [seedingList]);
+
   const getFinalDownloadSize = (game: LibraryGame) => {
     const isGameDownloading = lastPacket?.game.id === game.id;
 
@@ -60,6 +74,7 @@ export function DownloadGroup({
   const getGameInfo = (game: LibraryGame) => {
     const isGameDownloading = lastPacket?.game.id === game.id;
     const finalDownloadSize = getFinalDownloadSize(game);
+    const seed = seedingMap.get(game.id);
 
     if (isGameDeleting(game.id)) {
       return <p>{t("deleting")}</p>;
@@ -98,7 +113,18 @@ export function DownloadGroup({
     }
 
     if (game.progress === 1) {
-      return <p>{t("completed")}</p>;
+      return (
+        <>
+          {seed ? (
+            <>
+              <p>{t("seeding")}</p>
+              <p>{formatBytes(seed.uploadSpeed ?? 0)}/s</p>
+            </>
+          ) : (
+            <p>{t("completed")}</p>
+          )}
+        </>
+      );
     }
 
     if (game.status === "paused") {
@@ -127,8 +153,8 @@ export function DownloadGroup({
 
   const getGameActions = (game: LibraryGame) => {
     const isGameDownloading = lastPacket?.game.id === game.id;
-
     const deleting = isGameDeleting(game.id);
+    const seed = seedingMap.get(game.id);
 
     if (game.progress === 1) {
       return (
@@ -144,6 +170,18 @@ export function DownloadGroup({
           <Button onClick={() => openDeleteGameModal(game.id)} theme="outline">
             {t("delete")}
           </Button>
+
+          {seed && game.shouldSeed && (
+            <Button theme="outline">
+              {t("stop_seed")}
+            </Button>
+          )}
+
+          {seed && !game.shouldSeed && (
+            <Button theme="outline">
+              {t("resume_seed")}
+            </Button>
+          )}
         </>
       );
     }

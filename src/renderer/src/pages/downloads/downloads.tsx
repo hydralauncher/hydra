@@ -36,8 +36,6 @@ export default function Downloads() {
     window.electron.onSeedingList((value) => setSeedingList(value));
   }, []);
 
-  console.log("sexo", seedingList);
-
   const handleOpenGameInstaller = (gameId: number) =>
     window.electron.openGameInstaller(gameId).then((isBinaryInPath) => {
       if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
@@ -130,6 +128,7 @@ export default function Downloads() {
                 library={group.library}
                 openDeleteGameModal={handleOpenDeleteGameModal}
                 openGameInstaller={handleOpenGameInstaller}
+                seedingList={seedingList}
               />
             ))}
           </div>

@@ -54,6 +54,9 @@ export class Game {
   @Column("int", { default: Downloader.Torrent })
   downloader: Downloader;
 
+  @Column("boolean", { default: false })
+  shouldSeed: boolean;
+
   /**
    * Progress is a float between 0 and 1
    */
