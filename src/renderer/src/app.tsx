@@ -2,6 +2,8 @@ import { useCallback, useContext, useEffect, useRef } from "react";
 
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
+import "./app.scss";
+
 import {
   useAppDispatch,
   useAppSelector,

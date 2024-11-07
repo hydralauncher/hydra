@@ -6,8 +6,9 @@ import {
   XIcon,
 } from "@primer/octicons-react";
 
-import * as styles from "./toast.css";
+import "./toast.scss";
 import { SPACING_UNIT } from "@renderer/theme.css";
+import cn from "classnames";
 
 export interface ToastProps {
   visible: boolean;
@@ -77,22 +78,28 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
   if (!visible) return null;
 
   return (
-    <div className={styles.toast({ closing: isClosing })}>
-      <div className={styles.toastContent}>
+    <div
+      className={cn("toast", {
+        "toast--closing": isClosing,
+      })}
+    >
+      <div className="toast__content">
         <div style={{ display: "flex", gap: `${SPACING_UNIT}px` }}>
           {type === "success" && (
-            <CheckCircleFillIcon className={styles.successIcon} />
+            <CheckCircleFillIcon className="toast__success-icon" />
           )}
 
-          {type === "error" && <XCircleFillIcon className={styles.errorIcon} />}
+          {type === "error" && (
+            <XCircleFillIcon className="toast__error-icon" />
+          )}
 
-          {type === "warning" && <AlertIcon className={styles.warningIcon} />}
+          {type === "warning" && <AlertIcon className="toast__warning-icon" />}
           <span style={{ fontWeight: "bold" }}>{message}</span>
         </div>
 
         <button
           type="button"
-          className={styles.closeButton}
+          className="toast__close-button"
           onClick={startAnimateClosing}
           aria-label="Close toast"
         >
@@ -100,7 +107,7 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
         </button>
       </div>
 
-      <progress className={styles.progress} value={progress} max={100} />
+      <progress className="toast__progress" value={progress} max={100} />
     </div>
   );
 }

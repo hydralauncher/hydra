@@ -1,0 +1,32 @@
+@use "../../scss/globals.scss";
+
+.auto-update-sub-header {
+  border-bottom: solid 1px globals.$body-color;
+  padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 3);
+
+  &__new-version-link {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    color: #8e919b;
+    font-size: 12px;
+  }
+
+  &__new-version-icon {
+    color: globals.$success-color;
+  }
+
+  &__new-version-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: globals.$spacing-unit;
+    color: globals.$body-color;
+    font-size: 12px;
+
+    &:hover {
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  }
+}
