@@ -16,8 +16,9 @@ import {
   StartDownloadPayload,
   PauseDownloadPayload,
   LibtorrentStatus,
-  LibtorrentPayload,
   ProcessPayload,
+  LibtorrentSeedingPayload,
+  LibtorrentDownloadingPayload,
 } from "./types";
 import { pythonInstanceLogger as logger } from "../logger";
 
@@ -61,15 +62,17 @@ export class PythonInstance {
   }
 
   public static async getSeedingList() {
-    const response = await this.rpc.get<LibtorrentPayload>("/seed-list");
+    const response = await this.rpc.get<LibtorrentSeedingPayload[] | null>(
+      "/seed-list"
+    );
 
     return response.data;
   }
 
   public static async getStatus() {
-    const response = await this.rpc.get<LibtorrentPayload | null>("/status");
+    const response = await this.rpc.get<LibtorrentDownloadingPayload | null>("/status");
 
-    if (response.data?.downloading) {
+    if (response.data) {
       try {
         const {
           progress,
@@ -81,7 +84,7 @@ export class PythonInstance {
           folderName,
           status,
           gameId,
-        } = response.data.downloading;
+        } = response.data;
 
         this.downloadingGameId = gameId;
 
