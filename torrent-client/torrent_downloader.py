@@ -151,6 +151,7 @@ class TorrentDownloader:
             'gameId': self.downloading_game_id,
             'progress': status.progress,
             'downloadSpeed': status.download_rate,
+            'uploadSpeed': status.upload_rate,
             'numPeers': status.num_peers,
             'numSeeds': status.num_seeds,
             'status': status.state,
@@ -158,7 +159,6 @@ class TorrentDownloader:
         }
 
         if status.progress == 1:
-            self.session.remove_torrent(torrent_handle)
             self.downloading_game_id = -1
 
         return response
@@ -168,7 +168,7 @@ class TorrentDownloader:
 
         for game_id, torrent_handle in self.torrent_handles.items():
             if game_id == self.downloading_game_id:
-                return
+                continue
             
             status = torrent_handle.status()
             info = torrent_handle.torrent_file()
