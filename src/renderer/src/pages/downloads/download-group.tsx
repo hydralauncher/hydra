@@ -172,15 +172,11 @@ export function DownloadGroup({
           </Button>
 
           {seed && game.shouldSeed && (
-            <Button theme="outline">
-              {t("stop_seed")}
-            </Button>
+            <Button theme="outline">{t("stop_seed")}</Button>
           )}
 
           {seed && !game.shouldSeed && (
-            <Button theme="outline">
-              {t("resume_seed")}
-            </Button>
+            <Button theme="outline">{t("resume_seed")}</Button>
           )}
         </>
       );
