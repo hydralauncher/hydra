@@ -1,0 +1,39 @@
+@use "../../scss/globals.scss";
+
+.checkbox-field {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: globals.$spacing-unit;
+  cursor: pointer;
+
+  &__checkbox {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background-color: globals.$dark-background-color;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    transition: all ease 0.2s;
+    border: solid 1px globals.$border-color;
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  &__input {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    margin: 0;
+    padding: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  &__label {
+    cursor: pointer;
+  }
+}

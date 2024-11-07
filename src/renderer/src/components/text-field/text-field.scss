@@ -1,0 +1,75 @@
+@use "../../scss/globals.scss";
+
+.text-field-container {
+  flex: 1;
+  gap: globals.$spacing-unit;
+  display: flex;
+  flex-direction: column;
+
+  &__text-field {
+    display: inline-flex;
+    transition: all ease 0.2s;
+    width: 100%;
+    align-items: center;
+    border-radius: 8px;
+    border: solid 1px globals.$border-color;
+    height: 40px;
+    min-height: 40px;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    &--primary {
+      background-color: globals.$dark-background-color;
+    }
+
+    &--dark {
+      background-color: globals.$background-color;
+    }
+
+    &--has-error {
+      border-color: globals.$danger-color;
+    }
+
+    &--focused {
+      border-color: #dadbe1;
+    }
+  }
+
+  &__text-field-input {
+    background-color: transparent;
+    border: none;
+    width: 100%;
+    height: 100%;
+    outline: none;
+    color: #dadbe1;
+    cursor: default;
+    font-family: inherit;
+    text-overflow: ellipsis;
+    padding: globals.$spacing-unit;
+
+    &:focus {
+      cursor: text;
+    }
+
+    &--read-only {
+      text-overflow: inherit;
+    }
+  }
+
+  &__toggle-password-button {
+    cursor: pointer;
+    color: globals.$muted-color;
+    padding: globals.$spacing-unit;
+  }
+
+  &__text-field-wrapper {
+    display: flex;
+    gap: globals.$spacing-unit;
+  }
+
+  &__error-label {
+    color: globals.$danger-color;
+  }
+}
