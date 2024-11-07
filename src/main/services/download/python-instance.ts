@@ -61,9 +61,9 @@ export class PythonInstance {
   }
 
   public static async getSeedingList() {
-    const response = await this.rpc.get<LibtorrentPayload>("/status");
+    const response = await this.rpc.get<LibtorrentPayload>("/seed-list");
 
-    return response.data.seeding;
+    return response.data;
   }
 
   public static async getStatus() {

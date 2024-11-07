@@ -137,12 +137,39 @@ class TorrentDownloader:
         self.downloading_game_id = -1
 
     def get_download_status(self):
+        if self.downloading_game_id == -1:
+            return None
+
+        torrent_handle = self.torrent_handles.get(self.downloading_game_id)
+
+        status = torrent_handle.status()
+        info = torrent_handle.get_torrent_info()
+        
         response = {
-            'downloading': None,
-            'seeding': []
+            'folderName': info.name() if info else "",
+            'fileSize': info.total_size() if info else 0,
+            'gameId': self.downloading_game_id,
+            'progress': status.progress,
+            'downloadSpeed': status.download_rate,
+            'numPeers': status.num_peers,
+            'numSeeds': status.num_seeds,
+            'status': status.state,
+            'bytesDownloaded': status.progress * info.total_size() if info else status.all_time_download,
         }
 
+        if status.progress == 1:
+            self.session.remove_torrent(torrent_handle)
+            self.downloading_game_id = -1
+
+        return response
+    
+    def get_seed_list(self):
+        response = []
+
         for game_id, torrent_handle in self.torrent_handles.items():
+            if game_id == self.downloading_game_id:
+                return
+            
             status = torrent_handle.status()
             info = torrent_handle.torrent_file()
             
@@ -158,16 +185,9 @@ class TorrentDownloader:
                 'status': status.state,
                 'bytesDownloaded': status.progress * info.total_size() if info else status.all_time_download,
             }
-            
-            if game_id == self.downloading_game_id:
-                response['downloading'] = torrent_info
-                
-                if status.progress == 1:
-                    # this probably should stay here
-                    self.downloading_game_id = -1
                     
-            elif status.state == 5:
-                response['seeding'].append(torrent_info)
+            if status.state == 5:
+                response.append(torrent_info)
 
         # print(response)
         return response
