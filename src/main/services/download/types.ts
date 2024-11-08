@@ -25,6 +25,7 @@ export interface LibtorrentPayload {
   numPeers: number;
   numSeeds: number;
   downloadSpeed: number;
+  uploadSpeed: number;
   bytesDownloaded: number;
   fileSize: number;
   folderName: string;
