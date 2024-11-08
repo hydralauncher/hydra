@@ -30,16 +30,18 @@ import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { downloadSourcesWorker } from "./workers";
 import { repacksContext } from "./context";
 import { logger } from "./logger";
+import { insertCustomStyles } from "./helpers";
 
 export interface AppProps {
   children: React.ReactNode;
 }
 
-console.log(import.meta.env);
-
 Intercom({
   app_id: import.meta.env.RENDERER_VITE_INTERCOM_APP_ID,
 });
+
+const customStyles = window.localStorage.getItem("customStyles");
+insertCustomStyles(customStyles || "");
 
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);

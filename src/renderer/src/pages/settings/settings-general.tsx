@@ -11,6 +11,7 @@ import { changeLanguage } from "i18next";
 import languageResources from "@locales";
 import { orderBy } from "lodash-es";
 import { settingsContext } from "@renderer/context";
+import { insertCustomStyles } from "@renderer/helpers";
 
 interface LanguageOption {
   option: string;
@@ -32,6 +33,8 @@ export function SettingsGeneral() {
     repackUpdatesNotificationsEnabled: false,
     achievementNotificationsEnabled: false,
     language: "",
+
+    customStyles: window.localStorage.getItem("customStyles") || "",
   });
 
   const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([]);
@@ -111,6 +114,19 @@ export function SettingsGeneral() {
     }
   }
 
+  const handleSaveStylesClick = () => {
+    const existingStyles = document.getElementById("custom-styles");
+    if (existingStyles) {
+      existingStyles.remove();
+    }
+
+    const css = document.querySelector("textarea")?.value;
+    if (css) {
+      insertCustomStyles(css);
+      window.localStorage.setItem("customStyles", css);
+    }
+  };
+
   return (
     <>
       <TextField
@@ -169,6 +185,11 @@ export function SettingsGeneral() {
           })
         }
       />
+
+      <textarea defaultValue={form.customStyles} placeholder="CSS goes here" />
+      <Button theme="primary" onClick={handleSaveStylesClick}>
+        Save CSS
+      </Button>
     </>
   );
 }
