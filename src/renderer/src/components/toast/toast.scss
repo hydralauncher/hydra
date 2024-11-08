@@ -1,6 +1,6 @@
 @use "../../scss/globals.scss";
 
-$toast-height: 80;
+$toast-height: 80px;
 
 .toast {
   animation-duration: 0.2s;
@@ -12,7 +12,7 @@ $toast-height: 80;
   border: solid 1px globals.$border-color;
   right: calc(globals.$spacing-unit * 2);
   //bottom panel height + 16px
-  bottom: calc(26 + #{globals.$spacing-unit * 2});
+  bottom: calc(26px + #{globals.$spacing-unit * 2});
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -24,7 +24,7 @@ $toast-height: 80;
 
   &--closing {
     animation-name: slide-out;
-    transform: translateY(calc($toast-height #{globals.$spacing-unit * 2}));
+    transform: translateY(calc($toast-height + #{globals.$spacing-unit * 2}));
   }
 
   &__content {
@@ -38,10 +38,10 @@ $toast-height: 80;
   &__progress {
     width: 100%;
     height: 5px;
-    ::-webkit-progress-bar {
+    &::-webkit-progress-bar {
       background-color: globals.$dark-background-color;
     }
-    ::-webkit-progress-value {
+    &::-webkit-progress-value {
       background-color: globals.$muted-color;
     }
   }
@@ -68,7 +68,7 @@ $toast-height: 80;
 
 @keyframes slide-in {
   0% {
-    transform: translateY(calc($toast-height #{globals.$spacing-unit * 2}));
+    transform: translateY(calc($toast-height + #{globals.$spacing-unit * 2}));
   }
 
   100% {
@@ -76,12 +76,12 @@ $toast-height: 80;
   }
 }
 
-@keyframes slide-in {
+@keyframes slide-out {
   0% {
     transform: translateY(0);
   }
 
   100% {
-    transform: translateY(calc($toast-height #{globals.$spacing-unit * 2}));
+    transform: translateY(calc($toast-height + #{globals.$spacing-unit * 2}));
   }
 }

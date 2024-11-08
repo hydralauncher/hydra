@@ -25,7 +25,8 @@
     "queued": "{{title}} (Na fila)",
     "game_has_no_executable": "Jogo não possui executável selecionado",
     "sign_in": "Login",
-    "friends": "Amigos"
+    "friends": "Amigos",
+    "need_help": "Precisa de ajuda?"
   },
   "header": {
     "search": "Buscar jogos",
@@ -250,7 +251,8 @@
     "blocked_users": "Usuários bloqueados",
     "user_unblocked": "Usuário desbloqueado",
     "enable_achievement_notifications": "Quando uma conquista é desbloqueada",
-    "launch_minimized": "Iniciar o Hydra minimizado"
+    "launch_minimized": "Iniciar o Hydra minimizado",
+    "disable_nsfw_alert": "Desativar alerta de conteúdo inapropriado"
   },
   "notifications": {
     "download_complete": "Download concluído",

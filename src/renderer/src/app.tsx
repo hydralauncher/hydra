@@ -3,6 +3,7 @@ import { useCallback, useContext, useEffect, useRef } from "react";
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
 import "./app.scss";
+import Intercom from "@intercom/messenger-js-sdk";
 
 import {
   useAppDispatch,
@@ -12,8 +13,6 @@ import {
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
-
-import * as styles from "./app.css";
 
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -36,6 +35,12 @@ export interface AppProps {
   children: React.ReactNode;
 }
 
+console.log(import.meta.env);
+
+Intercom({
+  app_id: import.meta.env.RENDERER_VITE_INTERCOM_APP_ID,
+});
+
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library } = useLibrary();
@@ -56,8 +61,13 @@ export function App() {
     hideFriendsModal,
   } = useUserDetails();
 
-  const { userDetails, fetchUserDetails, updateUserDetails, clearUserDetails } =
-    useUserDetails();
+  const {
+    userDetails,
+    hasActiveSubscription,
+    fetchUserDetails,
+    updateUserDetails,
+    clearUserDetails,
+  } = useUserDetails();
 
   const dispatch = useAppDispatch();
 
@@ -206,7 +216,9 @@ export function App() {
 
   useEffect(() => {
     new MutationObserver(() => {
-      const modal = document.body.querySelector("[role=dialog]");
+      const modal = document.body.querySelector(
+        "[role=dialog]:not([data-intercom-frame='true'])"
+      );
 
       dispatch(toggleDraggingDisabled(Boolean(modal)));
     }).observe(document.body, {
@@ -271,8 +283,13 @@ export function App() {
   return (
     <>
       {window.electron.platform === "win32" && (
-        <div className={styles.titleBar}>
-          <h4>Hydra</h4>
+        <div className="title-bar">
+          <h4>
+            Hydra
+            {hasActiveSubscription && (
+              <span className="title-bar__cloud-text"> Cloud</span>
+            )}
+          </h4>
         </div>
       )}
 
@@ -295,14 +312,14 @@ export function App() {
       <main>
         <Sidebar />
 
-        <article className={styles.container}>
+        <article className="container">
           <Header
             onSearch={handleSearch}
             search={search}
             onClear={handleClear}
           />
 
-          <section ref={contentRef} className={styles.content}>
+          <section ref={contentRef} className="container__content">
             <Outlet />
           </section>
         </article>

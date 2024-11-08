@@ -107,4 +107,30 @@
     flex-direction: column;
     padding-bottom: globals.$spacing-unit;
   }
+
+  &__help-button {
+    color: globals.$muted-color;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    gap: 9px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    border-top: solid 1px globals.$border-color;
+    transition: background-color ease 0.1s;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  &__help-button-icon {
+    background: linear-gradient(0deg, #16b195 50%, #3e62c0 100%);
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    border-radius: 50%;
+  }
 }

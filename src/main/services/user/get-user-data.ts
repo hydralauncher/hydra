@@ -56,6 +56,7 @@ export const getUserData = () => {
           id: loggedUser.userId,
           username: "",
           bio: "",
+          email: null,
           profileVisibility: "PUBLIC" as ProfileVisibility,
           subscription: loggedUser.subscription
             ? {

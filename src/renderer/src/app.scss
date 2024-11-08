@@ -127,4 +127,10 @@ progress[value] {
   -webkit-app-region: drag;
   z-index: 4;
   border-bottom: 1px solid globals.$border-color;
+
+  &__cloud-text {
+    background: linear-gradient(270deg, #16b195 50%, #3e62c0 100%);
+    background-clip: text;
+    color: transparent;
+  }
 }

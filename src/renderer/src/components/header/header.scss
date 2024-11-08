@@ -10,6 +10,7 @@
   padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 3);
   color: globals.$muted-color;
   border-bottom: solid 1px globals.$border-color;
+  background-color: globals.$dark-background-color;
 
   &--dragging-disabled {
     -webkit-app-region: no-drag;
@@ -20,7 +21,7 @@
   }
 
   &__search {
-    background-color: globals.$dark-background-color;
+    background-color: globals.$background-color;
     display: inline-flex;
     transition: all ease 0.2s;
     width: 200px;
