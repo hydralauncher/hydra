@@ -124,6 +124,7 @@ export interface Game {
   objectID: string;
   shop: GameShop;
   downloadQueue: DownloadQueue | null;
+  shouldSeed: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -162,6 +163,7 @@ export interface UserPreferences {
   runAtStartup: boolean;
   startMinimized: boolean;
   disableNsfwAlert: boolean;
+  seedAfterDownloadComplete: boolean;
 }
 
 export interface Steam250Game {
