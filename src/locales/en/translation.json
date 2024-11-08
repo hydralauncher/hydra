@@ -25,7 +25,8 @@
     "queued": "{{title}} (Queued)",
     "game_has_no_executable": "Game has no executable selected",
     "sign_in": "Sign in",
-    "friends": "Friends"
+    "friends": "Friends",
+    "need_help": "Need help?"
   },
   "header": {
     "search": "Search games",
@@ -254,7 +255,8 @@
     "blocked_users": "Blocked users",
     "user_unblocked": "User has been unblocked",
     "enable_achievement_notifications": "When an achievement is unlocked",
-    "launch_minimized": "Launch Hydra minimized"
+    "launch_minimized": "Launch Hydra minimized",
+    "disable_nsfw_alert": "Disable NSFW alert"
   },
   "notifications": {
     "download_complete": "Download complete",

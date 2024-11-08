@@ -161,6 +161,7 @@ export interface UserPreferences {
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;
   startMinimized: boolean;
+  disableNsfwAlert: boolean;
 }
 
 export interface Steam250Game {
@@ -245,6 +246,7 @@ export interface Subscription {
 export interface UserDetails {
   id: string;
   username: string;
+  email: string | null;
   displayName: string;
   profileImageUrl: string | null;
   backgroundImageUrl: string | null;
@@ -257,6 +259,7 @@ export interface UserProfile {
   id: string;
   displayName: string;
   profileImageUrl: string | null;
+  email: string | null;
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
   libraryGames: UserGame[];
@@ -373,4 +376,4 @@ export interface ComparedAchievements {
 export * from "./steam.types";
 export * from "./real-debrid.types";
 export * from "./ludusavi.types";
-export * from "./howlongtobeat.types";
+export * from "./how-long-to-beat.types";

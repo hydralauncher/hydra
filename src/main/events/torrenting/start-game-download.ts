@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-
+import parseTorrent from "parse-torrent";
 import type { StartGameDownloadPayload } from "@types";
 import { DownloadManager, HydraApi, logger } from "@main/services";
 
@@ -9,6 +9,7 @@ import { createGame } from "@main/services/library-sync";
 import { steamUrlBuilder } from "@shared";
 import { dataSource } from "@main/data-source";
 import { DownloadQueue, Game } from "@main/entity";
+import { HydraAnalytics } from "@main/services/hydra-analytics";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -89,6 +90,17 @@ const startGameDownload = async (
     ).catch((err) => {
       logger.error("Failed to create game download", err);
     });
+
+    if (uri.startsWith("magnet:")) {
+      try {
+        const { infoHash } = await parseTorrent(payload.uri);
+        if (infoHash) {
+          HydraAnalytics.postDownload(infoHash).catch(() => {});
+        }
+      } catch (err) {
+        logger.error("Failed to parse torrent", err);
+      }
+    }
 
     await DownloadManager.cancelDownload(updatedGame!.id);
     await DownloadManager.startDownload(updatedGame!);

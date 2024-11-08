@@ -5,7 +5,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import type { LibraryGame } from "@types";
 
 import { TextField } from "@renderer/components";
-import { useDownload, useLibrary, useToast } from "@renderer/hooks";
+import {
+  useDownload,
+  useLibrary,
+  useToast,
+  useUserDetails,
+} from "@renderer/hooks";
 
 import { routes } from "./routes";
 
@@ -17,6 +22,9 @@ import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { SidebarProfile } from "./sidebar-profile";
 import { sortBy } from "lodash-es";
 import cn from "classnames";
+import { CommentDiscussionIcon } from "@primer/octicons-react";
+
+import { show, update } from "@intercom/messenger-js-sdk";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -43,6 +51,20 @@ export function Sidebar() {
   const sortedLibrary = useMemo(() => {
     return sortBy(library, (game) => game.title);
   }, [library]);
+
+  const { userDetails, hasActiveSubscription } = useUserDetails();
+
+  useEffect(() => {
+    if (userDetails) {
+      update({
+        name: userDetails.displayName,
+        Username: userDetails.username,
+        Email: userDetails.email,
+        "Subscription expiration date": userDetails?.subscription?.expiresAt,
+        "Payment status": userDetails?.subscription?.status,
+      });
+    }
+  }, [userDetails, hasActiveSubscription]);
 
   const { lastPacket, progress } = useDownload();
 
@@ -168,76 +190,90 @@ export function Sidebar() {
         maxWidth: sidebarWidth,
       }}
     >
-      <SidebarProfile />
+      <div
+        style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}
+      >
+        <SidebarProfile />
 
-      <div className="sidebar__content">
-        <section className="sidebar__section">
-          <ul className="sidebar__menu">
-            {routes.map(({ nameKey, path, render }) => (
-              <li
-                key={nameKey}
-                className={cn("sidebar__menu-item", {
-                  "sidebar__menu-item--active": location.pathname === path,
-                })}
-              >
-                <button
-                  type="button"
-                  className="sidebar__menu-item-button"
-                  onClick={() => handleSidebarItemClick(path)}
+        <div className="sidebar__content">
+          <section className="sidebar__section">
+            <ul className="sidebar__menu">
+              {routes.map(({ nameKey, path, render }) => (
+                <li
+                  key={nameKey}
+                  className={cn("sidebar__menu-item", {
+                    "sidebar__menu-item--active": location.pathname === path,
+                  })}
                 >
-                  {render()}
-                  <span>{t(nameKey)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+                  <button
+                    type="button"
+                    className="sidebar__menu-item-button"
+                    onClick={() => handleSidebarItemClick(path)}
+                  >
+                    {render()}
+                    <span>{t(nameKey)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
 
-        <section className="sidebar__section">
-          <small className="sidebar__section-title">{t("my_library")}</small>
+          <section className="sidebar__section">
+            <small className="sidebar__section-title">{t("my_library")}</small>
 
-          <TextField
-            ref={filterRef}
-            placeholder={t("filter")}
-            onChange={handleFilter}
-            theme="dark"
-          />
+            <TextField
+              ref={filterRef}
+              placeholder={t("filter")}
+              onChange={handleFilter}
+              theme="dark"
+            />
 
-          <ul className="sidebar__menu">
-            {filteredLibrary.map((game) => (
-              <li
-                key={game.id}
-                className={cn("sidebar__menu-item", {
-                  "sidebar__menu-item--active":
-                    location.pathname === `/game/${game.shop}/${game.objectID}`,
-                  "sidebar__menu-item--muted": game.status === "removed",
-                })}
-              >
-                <button
-                  type="button"
-                  className="sidebar__menu-item-button"
-                  onClick={(event) => handleSidebarGameClick(event, game)}
+            <ul className="sidebar__menu">
+              {filteredLibrary.map((game) => (
+                <li
+                  key={game.id}
+                  className={cn("sidebar__menu-item", {
+                    "sidebar__menu-item--active":
+                      location.pathname ===
+                      `/game/${game.shop}/${game.objectID}`,
+                    "sidebar__menu-item--muted": game.status === "removed",
+                  })}
                 >
-                  {game.iconUrl ? (
-                    <img
-                      className="sidebar__game-icon"
-                      src={game.iconUrl}
-                      alt={game.title}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <SteamLogo className="sidebar__game-icon" />
-                  )}
+                  <button
+                    type="button"
+                    className="sidebar__menu-item-button"
+                    onClick={(event) => handleSidebarGameClick(event, game)}
+                  >
+                    {game.iconUrl ? (
+                      <img
+                        className="sidebar__game-icon"
+                        src={game.iconUrl}
+                        alt={game.title}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <SteamLogo className="sidebar__game-icon" />
+                    )}
 
-                  <span className="sidebar__menu-item-button-label">
-                    {getGameTitle(game)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+                    <span className="sidebar__menu-item-button-label">
+                      {getGameTitle(game)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
       </div>
+
+      {hasActiveSubscription && (
+        <button type="button" className="sidebar__help-button" onClick={show}>
+          <div className="sidebar__help-button-icon">
+            <CommentDiscussionIcon size={14} />
+          </div>
+          <span>{t("need_help")}</span>
+        </button>
+      )}
 
       <button
         type="button"

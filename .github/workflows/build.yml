@@ -43,6 +43,8 @@ jobs:
           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
           MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
           MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_STAGING_CHECKOUT_URL }}
+          MAIN_VITE_ANALYTICS_API_URL: ${{ vars.MAIN_VITE_ANALYTICS_API_URL }}
+          RENDERER_VITE_INTERCOM_APP_ID: ${{ vars.RENDERER_VITE_INTERCOM_APP_ID }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Windows
@@ -52,6 +54,8 @@ jobs:
           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
           MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
           MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_STAGING_CHECKOUT_URL }}
+          MAIN_VITE_ANALYTICS_API_URL: ${{ vars.MAIN_VITE_ANALYTICS_API_URL }}
+          RENDERER_VITE_INTERCOM_APP_ID: ${{ vars.RENDERER_VITE_INTERCOM_APP_ID }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create artifact
