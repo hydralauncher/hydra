@@ -123,6 +123,16 @@ export class PythonInstance {
     }
   }
 
+  public static async getSeedStatus() {
+    const response = await this.rpc.get<LibtorrentPayload[] | null>(
+      "/seed-status"
+    );
+
+    if (response.data === null) return [];
+
+    return response.data;
+  }
+
   static async pauseDownload() {
     await this.rpc
       .post("/action", {

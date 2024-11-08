@@ -50,6 +50,20 @@ class Handler(BaseHTTPRequestHandler):
 
             self.wfile.write(json.dumps(status).encode('utf-8'))
 
+        elif self.path == "/seed-status":
+            if self.headers.get(self.rpc_password_header) != rpc_password:
+                self.send_response(401)
+                self.end_headers()
+                return
+
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+
+            status = torrent_downloader.get_seed_status()
+
+            self.wfile.write(json.dumps(status).encode('utf-8'))
+
         elif self.path == "/healthcheck":
             self.send_response(200)
             self.end_headers()
