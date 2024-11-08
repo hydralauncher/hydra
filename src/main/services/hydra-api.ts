@@ -112,6 +112,8 @@ export class HydraApi {
       expirationTimestamp: 0,
       subscription: null,
     };
+
+    this.post("/auth/logout", {}, { needsAuth: false }).catch(() => {});
   }
 
   static async setupApi() {
