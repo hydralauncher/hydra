@@ -31,7 +31,7 @@ export default function Downloads() {
   const { lastPacket } = useDownload();
 
   const [seedingStatus, setSeedingStatus] = useState<SeedingStatus[]>([]);
-  
+
   useEffect(() => {
     window.electron.onSeedingStatus((value) => setSeedingStatus(value));
   }, []);
