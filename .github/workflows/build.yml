@@ -92,3 +92,4 @@ jobs:
               echo "https://artifacts.hydralauncher.gg/$GITHUB_SHA/$(basename $file)"
             fi
           done
+        shell: bash
