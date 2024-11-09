@@ -31,7 +31,7 @@ jobs:
       - name: Push build to R2
         env:
           S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
-        run: aws s3 cp ./docs s3://${{ vars.BUILDS_BUCKET_NAME }} --endpoint-url $S3_ENDPOINT --expires "$(date -d "7 days" --utc +'%Y-%m-%dT%H:%M:%SZ')"
+        run: aws s3 cp ./docs/screenshot.png s3://${{ vars.BUILDS_BUCKET_NAME }} --endpoint-url $S3_ENDPOINT --expires "$(date -d "7 days" --utc +'%Y-%m-%dT%H:%M:%SZ')"
 
       - name: Install dependencies
         run: yarn
