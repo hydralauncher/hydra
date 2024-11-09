@@ -7,6 +7,7 @@ export type GameStatus =
   | "paused"
   | "error"
   | "complete"
+  | "seeding"
   | "removed";
 
 export type GameShop = "steam" | "epic";

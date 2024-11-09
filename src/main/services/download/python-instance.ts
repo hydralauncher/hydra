@@ -18,6 +18,8 @@ import {
   LibtorrentStatus,
   LibtorrentPayload,
   ProcessPayload,
+  PauseSeedingPayload,
+  ResumeSeedingPayload,
 } from "./types";
 import { pythonInstanceLogger as logger } from "../logger";
 
@@ -131,6 +133,26 @@ export class PythonInstance {
     if (response.data === null) return [];
 
     return response.data;
+  }
+
+  static async pauseSeeding(gameId: number) {
+    await this.rpc
+      .post("/action", {
+        action: "pause-seeding",
+        game_id: gameId,
+      } as PauseSeedingPayload)
+      .catch(() => {});
+  }
+
+  static async resumeSeeding(gameId: number, magnet: string, savePath: string) {
+    await this.rpc
+      .post("/action", {
+        action: "resume-seeding",
+        game_id: gameId,
+        magnet,
+        save_path: savePath,
+      } as ResumeSeedingPayload)
+      .catch(() => {});
   }
 
   static async pauseDownload() {

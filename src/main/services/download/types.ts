@@ -37,3 +37,11 @@ export interface ProcessPayload {
   exe: string;
   pid: number;
 }
+
+export interface PauseSeedingPayload {
+  game_id: number;
+}
+
+export interface ResumeSeedingPayload {
+  game_id: number;
+}

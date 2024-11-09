@@ -189,3 +189,16 @@ class TorrentDownloader:
                 response.append(torrent_info)
 
         return response
+
+    def pause_seeding(self, game_id: int):
+        torrent_handle = self.torrent_handles.get(game_id)
+        if torrent_handle:
+            torrent_handle.pause()
+            torrent_handle.unset_flags(lt.torrent_flags.auto_managed)
+
+    def resume_seeding(self, game_id: int, magnet: str, save_path: str):
+        params = {'url': magnet, 'save_path': save_path, 'trackers': self.trackers}
+        torrent_handle = self.session.add_torrent(params)
+        self.torrent_handles[game_id] = torrent_handle
+        torrent_handle.set_flags(lt.torrent_flags.auto_managed)
+        torrent_handle.resume()
