@@ -28,7 +28,7 @@ jobs:
           aws configure set aws_access_key_id "$R2_ACCESS_KEY_ID"
           aws configure set aws_secret_access_key "$R2_SECRET_ACCESS_KEY"
           aws configure set default.region us-east-1
-          aws s3 cp ./docs s3://${{ vars.BUILDS_BUCKET_NAME }}/$GITHUB_SHA --exclude "*" --include "*-portable.exe" --include ".png" --endpoint-url $S3_ENDPOINT --expires "$(date -d "7 days" --utc +'%Y-%m-%dT%H:%M:%SZ')"
+          aws s3 cp ./docs s3://${{ vars.BUILDS_BUCKET_NAME }}/$GITHUB_SHA --exclude "*" --include "*-portable.exe" --include "*.png" --endpoint-url $S3_ENDPOINT --expires "$(date -d "7 days" --utc +'%Y-%m-%dT%H:%M:%SZ')"
           for file in ./dist/*.exe ./docs/*.png; do
             if [[ -e "$file" ]]; then
               echo "https://artifacts.hydralauncher.gg/$GITHUB_SHA/$(basename $file)"
