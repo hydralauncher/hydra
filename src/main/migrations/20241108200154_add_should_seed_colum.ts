@@ -5,7 +5,7 @@ export const AddShouldSeedColumn: HydraMigration = {
   name: "AddShouldSeedColumn",
   up: (knex: Knex) => {
     return knex.schema.alterTable("game", (table) => {
-      return table.boolean("shouldSeed").notNullable().defaultTo(false);
+      return table.boolean("shouldSeed").notNullable().defaultTo(true);
     });
   },
 
