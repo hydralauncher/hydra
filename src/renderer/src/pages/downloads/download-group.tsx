@@ -15,6 +15,7 @@ import { useAppSelector, useDownload } from "@renderer/hooks";
 import * as styles from "./download-group.css";
 import { useTranslation } from "react-i18next";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
+import { XCircleIcon } from "@primer/octicons-react";
 
 export interface DownloadGroupProps {
   library: LibraryGame[];
@@ -44,6 +45,8 @@ export function DownloadGroup({
     resumeDownload,
     cancelDownload,
     isGameDeleting,
+    pauseSeeding,
+    resumeSeeding,
   } = useDownload();
 
   const getFinalDownloadSize = (game: LibraryGame) => {
@@ -98,7 +101,13 @@ export function DownloadGroup({
     }
 
     if (game.progress === 1) {
-      return <p>{t("completed")}</p>;
+      // return <p>{t("completed")}</p>;
+
+      return game.status === "seeding" ? (
+        <p>{t("seeding")}</p>
+      ) : (
+        <p>{t("completed")}</p>
+      );
     }
 
     if (game.status === "paused") {
@@ -141,9 +150,15 @@ export function DownloadGroup({
             {t("install")}
           </Button>
 
-          <Button onClick={() => openDeleteGameModal(game.id)} theme="outline">
-            {t("delete")}
-          </Button>
+          {game.status === "seeding" ? (
+            <Button onClick={() => pauseSeeding(game.id)} theme="outline">
+              {t("stop seeding")}
+            </Button>
+          ) : (
+            <Button onClick={() => resumeSeeding(game.id)} theme="outline">
+              {t("resume seeding")}
+            </Button>
+          )}
         </>
       );
     }
@@ -207,7 +222,11 @@ export function DownloadGroup({
       <ul className={styles.downloads}>
         {library.map((game) => {
           return (
-            <li key={game.id} className={styles.download}>
+            <li
+              key={game.id}
+              className={styles.download}
+              style={{ position: "relative" }}
+            >
               <div className={styles.downloadCover}>
                 <div className={styles.downloadCoverBackdrop}>
                   <img
@@ -246,6 +265,23 @@ export function DownloadGroup({
                 <div className={styles.downloadActions}>
                   {getGameActions(game)}
                 </div>
+                <Button
+                  style={{
+                    position: "absolute",
+                    right: 0,
+                    top: 0,
+                    padding: 8,
+                    margin: 6,
+                    border: "none",
+                    minHeight: "unset",
+                    borderRadius: "50%",
+                    color: vars.color.danger,
+                  }}
+                  onClick={() => openDeleteGameModal(game.id)}
+                  theme="outline"
+                >
+                  <XCircleIcon />
+                </Button>
               </div>
             </li>
           );
