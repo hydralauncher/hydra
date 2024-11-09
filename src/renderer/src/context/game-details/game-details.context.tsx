@@ -147,7 +147,8 @@ export function GameDetailsContextProvider({
         if (
           result?.content_descriptors.ids.includes(
             SteamContentDescriptor.AdultOnlySexualContent
-          )
+          ) &&
+          !userPreferences?.disableNsfwAlert
         ) {
           setHasNSFWContentBlocked(true);
         }
