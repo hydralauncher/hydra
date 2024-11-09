@@ -36,8 +36,6 @@ export interface AppProps {
   children: React.ReactNode;
 }
 
-console.log(import.meta.env);
-
 Intercom({
   app_id: import.meta.env.RENDERER_VITE_INTERCOM_APP_ID,
 });
