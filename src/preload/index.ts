@@ -26,6 +26,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("pauseGameDownload", gameId),
   resumeGameDownload: (gameId: number) =>
     ipcRenderer.invoke("resumeGameDownload", gameId),
+  pauseGameSeed: (gameId: number) =>
+    ipcRenderer.invoke("pauseGameSeed", gameId),
+  resumeGameSeed: (gameId: number) =>
+    ipcRenderer.invoke("resumeGameSeed", gameId),
   onDownloadProgress: (cb: (value: DownloadProgress) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,

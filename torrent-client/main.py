@@ -121,6 +121,10 @@ class Handler(BaseHTTPRequestHandler):
             elif data['action'] == 'kill-torrent':
                 torrent_downloader.abort_session()
                 torrent_downloader = None
+            elif data['action'] == 'pause-seeding':
+                torrent_downloader.pause_seeding(data['game_id'])
+            elif data['action'] == 'resume-seeding':
+                torrent_downloader.resume_seeding(data['game_id'], data['magnet'], data['save_path'])
 
             self.send_response(200)
             self.end_headers()

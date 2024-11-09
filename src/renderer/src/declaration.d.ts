@@ -46,6 +46,8 @@ declare global {
     cancelGameDownload: (gameId: number) => Promise<void>;
     pauseGameDownload: (gameId: number) => Promise<void>;
     resumeGameDownload: (gameId: number) => Promise<void>;
+    pauseGameSeed: (gameId: number) => Promise<void>;
+    resumeGameSeed: (gameId: number) => Promise<void>;
     onDownloadProgress: (
       cb: (value: DownloadProgress) => void
     ) => () => Electron.IpcRenderer;
