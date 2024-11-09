@@ -5,7 +5,6 @@ import { WindowManager } from "../window-manager";
 import {
   downloadQueueRepository,
   gameRepository,
-  userPreferencesRepository,
 } from "@main/repository";
 import { publishDownloadCompleteNotification } from "../notifications";
 import { RealDebridDownloader } from "./real-debrid-downloader";
@@ -103,36 +102,6 @@ export class DownloadManager {
         { id: In(updateList.map((game) => game.id)) },
         { status: "seeding" }
       );
-    }
-
-    const userPreferences = await userPreferencesRepository.findOneBy({
-      id: 1,
-    });
-
-    const shouldSeedOrNot = await gameRepository.find({
-      where: {
-        id: In(gameIds),
-        shouldSeed: false,
-        isDeleted: false,
-        status: Not(In(["complete", "seeding"])),
-      },
-    });
-
-    if (shouldSeedOrNot.length === 0) return;
-
-    if (userPreferences?.seedAfterDownloadComplete) {
-      await gameRepository.update(
-        { id: In(shouldSeedOrNot.map((game) => game.id)) },
-        { shouldSeed: true, status: "seeding" }
-      );
-    } else {
-      await gameRepository.update(
-        { id: In(shouldSeedOrNot.map((game) => game.id)) },
-        { shouldSeed: false, status: "complete" }
-      );
-      for (const game of shouldSeedOrNot) {
-        await this.pauseSeeding(game.id);
-      }
     }
   }
 
