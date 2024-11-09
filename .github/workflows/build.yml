@@ -19,14 +19,22 @@ jobs:
         with:
           node-version: 20.18.0
 
-      - name: Configure AWS CLI for R2
+      - name: Push build to R2
         env:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
         run: |
           aws configure set aws_access_key_id "$R2_ACCESS_KEY_ID"
           aws configure set aws_secret_access_key "$R2_SECRET_ACCESS_KEY"
           aws configure set default.region us-east-1
+          aws s3 cp ./docs s3://${{ vars.BUILDS_BUCKET_NAME }}/$GITHUB_SHA --exclude "*" --include "*-portable.exe" --include ".png" --endpoint-url $S3_ENDPOINT --expires "$(date -d "7 days" --utc +'%Y-%m-%dT%H:%M:%SZ')"
+          for file in ./docs/*.exe ./dist/*.png; do
+            if [[ -e "$file" ]]; then
+              echo "https://artifacts.hydralauncher.gg/$GITHUB_SHA/$(basename $file)"
+            fi
+          done
+        shell: bash
 
       - name: Install dependencies
         run: yarn
@@ -66,15 +74,3 @@ jobs:
           MAIN_VITE_ANALYTICS_API_URL: ${{ vars.MAIN_VITE_ANALYTICS_API_URL }}
           RENDERER_VITE_INTERCOM_APP_ID: ${{ vars.RENDERER_VITE_INTERCOM_APP_ID }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push build to R2
-        env:
-          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
-        run: |
-          aws s3 cp ./dist s3://${{ vars.BUILDS_BUCKET_NAME }}/$GITHUB_SHA --recursive --exclude "*" --include "*.exe" --include ".deb" --endpoint-url $S3_ENDPOINT --expires "$(date -d "7 days" --utc +'%Y-%m-%dT%H:%M:%SZ')"
-          for file in ./dist/*.exe ./dist/*.deb; do
-            if [[ -e "$file" ]]; then
-              echo "https://artifacts.hydralauncher.gg/$GITHUB_SHA/$(basename $file)"
-            fi
-          done
-        shell: bash
