@@ -29,7 +29,9 @@ jobs:
           aws configure set default.region us-east-1
 
       - name: Push build to R2
-        run: aws s3 sync ./docs s3://${{ vars.BUILDS_BUCKET_NAME }}
+        env:
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+        run: aws s3 sync ./docs s3://${{ vars.BUILDS_BUCKET_NAME }} --endpoint-url $S3_ENDPOINT
 
       - name: Install dependencies
         run: yarn
