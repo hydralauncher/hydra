@@ -110,7 +110,7 @@
     "remove_from_library_description": "Това ще премахне {{game}} от Библиотеката",
     "options": "Опции",
     "executable_section_title": "Стартиращ файл",
-    "executable_section_description": "Пътят на файла, който ще се изпълни, когато се щракне върху \"Играй\“",
+    "executable_section_description": "Пътят на файла, който ще се изпълни, когато се щракне върху \"Играй\"",
     "downloads_secion_title": "Свалени",
     "downloads_section_description": "Вижте актуализации или други версии на тази игра",
     "danger_zone_section_title": "Опасна зона",
