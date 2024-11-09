@@ -32,7 +32,7 @@ jobs:
         env:
           S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
         run: |
-          aws s3 cp ./docs s3://${{ vars.BUILDS_BUCKET_NAME }} --recursive --include "*.png" --endpoint-url $S3_ENDPOINT --expires "$(date -d "7 days" --utc +'%Y-%m-%dT%H:%M:%SZ')"
+          aws s3 cp ./docs s3://${{ vars.BUILDS_BUCKET_NAME }} --recursive --exclude "*" --include "*.png" --endpoint-url $S3_ENDPOINT --expires "$(date -d "7 days" --utc +'%Y-%m-%dT%H:%M:%SZ')"
 
       - name: Install dependencies
         run: yarn
