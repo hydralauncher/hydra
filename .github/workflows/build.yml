@@ -2,6 +2,9 @@ name: Build
 
 on: pull_request
 
+env:
+  AWS_REGION: us-east-1
+
 jobs:
   build:
     strategy:
@@ -18,6 +21,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20.18.0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Push build to R2
+        run: aws s3 sync ./docs s3://${{ vars.BUILDS_BUCKET_NAME }}
 
       - name: Install dependencies
         run: yarn
