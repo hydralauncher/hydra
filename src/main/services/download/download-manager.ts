@@ -2,12 +2,17 @@ import { Game } from "@main/entity";
 import { Downloader } from "@shared";
 import { PythonInstance } from "./python-instance";
 import { WindowManager } from "../window-manager";
-import { downloadQueueRepository, gameRepository } from "@main/repository";
+import {
+  downloadQueueRepository,
+  gameRepository,
+  userPreferencesRepository,
+} from "@main/repository";
 import { publishDownloadCompleteNotification } from "../notifications";
 import { RealDebridDownloader } from "./real-debrid-downloader";
 import type { DownloadProgress } from "@types";
 import { GofileApi, QiwiApi } from "../hosters";
 import { GenericHttpDownloader } from "./generic-http-downloader";
+import { In, Not } from "typeorm";
 
 export class DownloadManager {
   private static currentDownloader: Downloader | null = null;
@@ -64,6 +69,79 @@ export class DownloadManager {
         }
       }
     }
+  }
+
+  public static async getSeedStatus() {
+    const gamesToSeed = await gameRepository.find({
+      where: { shouldSeed: true, isDeleted: false },
+    });
+
+    if (gamesToSeed.length === 0) return;
+
+    const seedStatus = await PythonInstance.getSeedStatus();
+
+    if (seedStatus.length === 0) {
+      for (const game of gamesToSeed) {
+        if (game.uri && game.downloadPath) {
+          await this.resumeSeeding(game.id, game.uri, game.downloadPath);
+        }
+      }
+    }
+
+    const gameIds = seedStatus.map((status) => status.gameId);
+    const updateList = await gameRepository.find({
+      where: {
+        id: In(gameIds),
+        status: Not(In(["complete", "seeding"])),
+        shouldSeed: true,
+        isDeleted: false,
+      },
+    });
+
+    if (updateList.length > 0) {
+      await gameRepository.update(
+        { id: In(updateList.map((game) => game.id)) },
+        { status: "seeding" }
+      );
+    }
+
+    const userPreferences = await userPreferencesRepository.findOneBy({
+      id: 1,
+    });
+
+    const shouldSeedOrNot = await gameRepository.find({
+      where: {
+        id: In(gameIds),
+        shouldSeed: false,
+        isDeleted: false,
+        status: Not(In(["complete", "seeding"])),
+      },
+    });
+
+    if (shouldSeedOrNot.length === 0) return;
+
+    if (userPreferences?.seedAfterDownloadComplete) {
+      await gameRepository.update(
+        { id: In(shouldSeedOrNot.map((game) => game.id)) },
+        { shouldSeed: true, status: "seeding" }
+      );
+    } else {
+      await gameRepository.update(
+        { id: In(shouldSeedOrNot.map((game) => game.id)) },
+        { shouldSeed: false, status: "complete" }
+      );
+      for (const game of shouldSeedOrNot) {
+        await this.pauseSeeding(game.id);
+      }
+    }
+  }
+
+  static async pauseSeeding(gameId: number) {
+    await PythonInstance.pauseSeeding(gameId);
+  }
+
+  static async resumeSeeding(gameId: number, magnet: string, savePath: string) {
+    await PythonInstance.resumeSeeding(gameId, magnet, savePath);
   }
 
   static async pauseDownload() {
