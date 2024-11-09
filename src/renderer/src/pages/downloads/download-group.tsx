@@ -170,11 +170,11 @@ export function DownloadGroup({
 
           {game.status === "seeding" ? (
             <Button onClick={() => pauseSeeding(game.id)} theme="outline">
-              {t("stop seeding")}
+              {t("stop_seeding")}
             </Button>
           ) : (
             <Button onClick={() => resumeSeeding(game.id)} theme="outline">
-              {t("resume seeding")}
+              {t("resume_seeding")}
             </Button>
           )}
         </>
