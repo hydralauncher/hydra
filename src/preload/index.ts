@@ -11,6 +11,7 @@ import type {
   GameRunning,
   FriendRequestAction,
   UpdateProfileRequest,
+  SeedingStatus,
 } from "@types";
 import type { CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -37,6 +38,14 @@ contextBridge.exposeInMainWorld("electron", {
     ) => cb(value);
     ipcRenderer.on("on-download-progress", listener);
     return () => ipcRenderer.removeListener("on-download-progress", listener);
+  },
+  onSeedingStatus: (cb: (value: SeedingStatus[]) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      value: SeedingStatus[]
+    ) => cb(value);
+    ipcRenderer.on("on-seeding-status", listener);
+    return () => ipcRenderer.removeListener("on-seeding-status", listener);
   },
 
   /* Catalogue */
