@@ -259,6 +259,7 @@ export function ProfileContent() {
     userStats,
     numberFormatter,
     t,
+    buildUserGameDetailsPath,
     formatPlayTime,
     navigate,
   ]);
