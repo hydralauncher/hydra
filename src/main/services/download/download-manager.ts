@@ -76,6 +76,8 @@ export class DownloadManager {
 
     const seedStatus = await PythonInstance.getSeedStatus();
 
+    console.log(seedStatus);
+
     if (seedStatus.length === 0) {
       for (const game of gamesToSeed) {
         if (game.uri && game.downloadPath) {
