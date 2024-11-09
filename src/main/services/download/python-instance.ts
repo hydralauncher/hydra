@@ -6,7 +6,7 @@ import {
   RPC_PORT,
   startTorrentClient as startRPCClient,
 } from "./torrent-client";
-import { gameRepository } from "@main/repository";
+import { gameRepository, userPreferencesRepository } from "@main/repository";
 import type { DownloadProgress } from "@types";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { calculateETA } from "./helpers";
@@ -107,6 +107,22 @@ export class PythonInstance {
       }
 
       if (progress === 1 && !isCheckingFiles) {
+        const userPreferences = await userPreferencesRepository.findOneBy({
+          id: 1,
+        });
+
+        if (userPreferences?.seedAfterDownloadComplete) {
+          gameRepository.update(
+            { id: gameId },
+            { status: "seeding", shouldSeed: true }
+          );
+        } else {
+          gameRepository.update(
+            { id: gameId },
+            { status: "complete", shouldSeed: false }
+          );
+        }
+
         this.downloadingGameId = -1;
       }
 
