@@ -21,11 +21,13 @@ export default function Downloads() {
   const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const { removeGameInstaller } = useDownload();
+  const { removeGameInstaller, pauseSeeding } = useDownload();
 
   const handleDeleteGame = async () => {
-    if (gameToBeDeleted.current)
+    if (gameToBeDeleted.current) {
+      await pauseSeeding(gameToBeDeleted.current);
       await removeGameInstaller(gameToBeDeleted.current);
+    }
   };
 
   const { lastPacket } = useDownload();
