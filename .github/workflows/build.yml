@@ -67,21 +67,6 @@ jobs:
           RENDERER_VITE_INTERCOM_APP_ID: ${{ vars.RENDERER_VITE_INTERCOM_APP_ID }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Build-${{ matrix.os }}
-          path: |
-            dist/*-portable.exe
-            dist/*.zip
-            dist/*.dmg
-            dist/*.deb
-            dist/*.rpm
-            dist/*.tar.gz
-            dist/*.yml
-            dist/*.blockmap
-            dist/*.pacman
-
       - name: Push build to R2
         env:
           S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
