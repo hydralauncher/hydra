@@ -55,7 +55,6 @@ export function Sidebar() {
   useEffect(() => {
     if (userDetails) {
       update({
-        user_id: userDetails.id,
         name: userDetails.displayName,
         Username: userDetails.username,
         email: userDetails.email ?? undefined,
