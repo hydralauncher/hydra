@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
-import type { LibraryGame } from "@types";
+import type { LibraryGame, SeedingStatus } from "@types";
 
 import { Badge, Button } from "@renderer/components";
 import {
@@ -16,12 +16,14 @@ import * as styles from "./download-group.css";
 import { useTranslation } from "react-i18next";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { XCircleIcon } from "@primer/octicons-react";
+import { useMemo } from "react";
 
 export interface DownloadGroupProps {
   library: LibraryGame[];
   title: string;
   openDeleteGameModal: (gameId: number) => void;
   openGameInstaller: (gameId: number) => void;
+  seedingStatus: SeedingStatus[];
 }
 
 export function DownloadGroup({
@@ -29,6 +31,7 @@ export function DownloadGroup({
   title,
   openDeleteGameModal,
   openGameInstaller,
+  seedingStatus,
 }: DownloadGroupProps) {
   const navigate = useNavigate();
 
@@ -60,9 +63,21 @@ export function DownloadGroup({
     return "N/A";
   };
 
+  const seedingMap = useMemo(() => {
+    if (!Array.isArray(seedingStatus) || seedingStatus.length === 0) {
+      return new Map<number, SeedingStatus>();
+    }
+    const map = new Map<number, SeedingStatus>();
+    seedingStatus.forEach((seed) => {
+      map.set(seed.gameId, seed);
+    });
+    return map;
+  }, [seedingStatus]);
+
   const getGameInfo = (game: LibraryGame) => {
     const isGameDownloading = lastPacket?.game.id === game.id;
     const finalDownloadSize = getFinalDownloadSize(game);
+    const seedingStatus = seedingMap.get(game.id);
 
     if (isGameDeleting(game.id)) {
       return <p>{t("deleting")}</p>;
@@ -101,10 +116,13 @@ export function DownloadGroup({
     }
 
     if (game.progress === 1) {
-      // return <p>{t("completed")}</p>;
+      const uploadSpeed = formatBytes(seedingStatus?.uploadSpeed ?? 0);
 
       return game.status === "seeding" ? (
-        <p>{t("seeding")}</p>
+        <>
+          <p>{t("seeding")}</p>
+          {uploadSpeed && <p>{uploadSpeed}/s</p>}
+        </>
       ) : (
         <p>{t("completed")}</p>
       );

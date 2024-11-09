@@ -153,6 +153,12 @@ export interface DownloadProgress {
   game: LibraryGame;
 }
 
+export interface SeedingStatus {
+  gameId: number;
+  status: GameStatus;
+  uploadSpeed: number;
+}
+
 export interface UserPreferences {
   downloadsPath: string | null;
   language: string;
