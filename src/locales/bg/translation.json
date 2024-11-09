@@ -223,7 +223,7 @@
     "real_debrid_linked_message": "Акаунтът \"{{username}}\" е свързан",
     "save_changes": "Запази промените",
     "changes_saved": "Промените са успешно запазни",
-    "download_sources_description": „Hydra ще извлича връзките за изтегляне от тези източници. URL адресът на източника трябва да е директна връзка към .json файл, съдържащ връзките за изтегляне.",
+    "download_sources_description": "Hydra ще извлича връзките за изтегляне от тези източници. URL адресът на източника трябва да е директна връзка към .json файл, съдържащ връзките за изтегляне.",
     "validate_download_source": "Валидиране",
     "remove_download_source": "Премахни",
     "add_download_source": "Добави източник",
