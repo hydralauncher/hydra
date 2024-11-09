@@ -19,10 +19,9 @@ const resumeGameSeed = async (
   if (!game) return;
 
   await dataSource.transaction(async (transactionalEntityManager) => {
-    
     await transactionalEntityManager
-    .getRepository(Game)
-    .update({ id: gameId }, { status: "seeding", shouldSeed: true });
+      .getRepository(Game)
+      .update({ id: gameId }, { status: "seeding", shouldSeed: true });
   });
 
   await DownloadManager.resumeSeeding(gameId, game.uri!, game.downloadPath!);
