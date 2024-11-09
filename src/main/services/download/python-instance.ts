@@ -121,6 +121,8 @@ export class PythonInstance {
             { id: gameId },
             { status: "complete", shouldSeed: false }
           );
+
+          this.pauseSeeding(gameId);
         }
 
         this.downloadingGameId = -1;
