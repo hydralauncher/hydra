@@ -28,12 +28,6 @@ jobs:
           aws configure set aws_secret_access_key "$R2_SECRET_ACCESS_KEY"
           aws configure set default.region us-east-1
 
-      - name: Push build to R2
-        env:
-          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
-        run: |
-          aws s3 cp ./docs s3://${{ vars.BUILDS_BUCKET_NAME }}/$GITHUB_SHA --recursive --exclude "*" --include "*.png" --endpoint-url $S3_ENDPOINT --expires "$(date -d "7 days" --utc +'%Y-%m-%dT%H:%M:%SZ')"
-
       - name: Install dependencies
         run: yarn
 
@@ -87,3 +81,14 @@ jobs:
             dist/*.yml
             dist/*.blockmap
             dist/*.pacman
+
+      - name: Push build to R2
+        env:
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+        run: |
+          aws s3 cp ./dist s3://${{ vars.BUILDS_BUCKET_NAME }}/$GITHUB_SHA --recursive --exclude "*" --include "*.exe" --include ".deb" --endpoint-url $S3_ENDPOINT --expires "$(date -d "7 days" --utc +'%Y-%m-%dT%H:%M:%SZ')"
+          for file in ./dist/*.exe ./dist/*.deb; do
+            if [[ -e "$file" ]]; then
+              echo "https://artifacts.hydralauncher.gg/$GITHUB_SHA/$(basename $file)"
+            fi
+          done
