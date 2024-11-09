@@ -2,10 +2,7 @@ import { Game } from "@main/entity";
 import { Downloader } from "@shared";
 import { PythonInstance } from "./python-instance";
 import { WindowManager } from "../window-manager";
-import {
-  downloadQueueRepository,
-  gameRepository,
-} from "@main/repository";
+import { downloadQueueRepository, gameRepository } from "@main/repository";
 import { publishDownloadCompleteNotification } from "../notifications";
 import { RealDebridDownloader } from "./real-debrid-downloader";
 import type { DownloadProgress } from "@types";
