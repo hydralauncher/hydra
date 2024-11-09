@@ -195,6 +195,8 @@ class TorrentDownloader:
         if torrent_handle:
             torrent_handle.pause()
             torrent_handle.unset_flags(lt.torrent_flags.auto_managed)
+            self.session.remove_torrent(torrent_handle)
+            self.torrent_handles.pop(game_id, None)
 
     def resume_seeding(self, game_id: int, magnet: str, save_path: str):
         params = {'url': magnet, 'save_path': save_path, 'trackers': self.trackers}
