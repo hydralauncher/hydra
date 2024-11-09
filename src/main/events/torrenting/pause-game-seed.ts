@@ -9,10 +9,9 @@ const pauseGameSeed = async (
   gameId: number
 ) => {
   await dataSource.transaction(async (transactionalEntityManager) => {
-    
     await transactionalEntityManager
-    .getRepository(Game)
-    .update({ id: gameId }, { status: "complete", shouldSeed: false });
+      .getRepository(Game)
+      .update({ id: gameId }, { status: "complete", shouldSeed: false });
   });
 
   await DownloadManager.pauseSeeding(gameId);
