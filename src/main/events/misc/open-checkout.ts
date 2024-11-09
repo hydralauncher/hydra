@@ -1,10 +1,16 @@
 import { shell } from "electron";
 import { registerEvent } from "../register-event";
-import { userAuthRepository } from "@main/repository";
+import {
+  userAuthRepository,
+  userPreferencesRepository,
+} from "@main/repository";
 import { HydraApi } from "@main/services";
 
 const openCheckout = async (_event: Electron.IpcMainInvokeEvent) => {
-  const userAuth = await userAuthRepository.findOne({ where: { id: 1 } });
+  const [userAuth, userPreferences] = await Promise.all([
+    userAuthRepository.findOne({ where: { id: 1 } }),
+    userPreferencesRepository.findOne({ where: { id: 1 } }),
+  ]);
 
   if (!userAuth) {
     return;
@@ -16,6 +22,7 @@ const openCheckout = async (_event: Electron.IpcMainInvokeEvent) => {
 
   const params = new URLSearchParams({
     token: paymentToken,
+    lng: userPreferences?.language || "en",
   });
 
   shell.openExternal(
