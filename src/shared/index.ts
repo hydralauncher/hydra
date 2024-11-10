@@ -46,7 +46,7 @@ export const removeSymbolsFromName = (name: string) =>
 
 export const removeSpecialEditionFromName = (name: string) =>
   name.replace(
-    /(The |Digital )?(GOTY|Deluxe|Standard|Ultimate|Definitive|Enhanced|Collector's|Premium|Digital|Limited|Game of the Year|Reloaded|[0-9]{4}) Edition/g,
+    /(The |Digital )?(GOTY|Deluxe|Standard|Ultimate|Definitive|Enhanced|Collector's|Premium|Digital|Limited|Game of the Year|Reloaded|[0-9]{4}) Edition/gi,
     ""
   );
 
@@ -73,7 +73,7 @@ export const formatName = pipe<string>(
   replaceUnderscoreWithSpace,
   replaceDotsWithSpace,
   replaceNbspWithSpace,
-  (str) => str.replace(/DIRECTOR'S CUT/g, ""),
+  (str) => str.replace(/DIRECTOR'S CUT/gi, ""),
   removeSymbolsFromName,
   removeDuplicateSpaces,
   (str) => str.trim()
