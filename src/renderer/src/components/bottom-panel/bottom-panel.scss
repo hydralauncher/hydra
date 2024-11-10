@@ -1,7 +1,7 @@
 @use "../../scss/globals.scss";
 
 .bottom-panel {
-  width: "100%";
+  width: 100%;
   border-top: solid 1px globals.$border-color;
   background-color: globals.$background-color;
   padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 2);
