@@ -9,6 +9,8 @@ import type { DownloadProgress } from "@types";
 import { GofileApi, QiwiApi } from "../hosters";
 import { GenericHttpDownloader } from "./generic-http-downloader";
 import { In, Not } from "typeorm";
+import path from "path";
+import fs from "fs";
 
 export class DownloadManager {
   private static currentDownloader: Downloader | null = null;
@@ -85,6 +87,30 @@ export class DownloadManager {
     }
 
     const gameIds = seedStatus.map((status) => status.gameId);
+
+    for (const gameId of gameIds) {
+      const game = await gameRepository.findOne({
+        where: { id: gameId },
+      });
+
+      if (game) {
+        const isNotDeleted = fs.existsSync(
+          path.join(game.downloadPath!, game.folderName!)
+        );
+
+        if (!isNotDeleted) {
+          await this.pauseSeeding(game.id);
+
+          await gameRepository.update(game.id, {
+            status: "complete",
+            shouldSeed: false,
+          });
+
+          WindowManager.mainWindow?.webContents.send("on-hard-delete");
+        }
+      }
+    }
+
     const updateList = await gameRepository.find({
       where: {
         id: In(gameIds),

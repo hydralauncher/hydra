@@ -55,6 +55,7 @@ declare global {
     onSeedingStatus: (
       cb: (value: SeedingStatus[]) => void
     ) => () => Electron.IpcRenderer;
+    onHardDelete: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* Catalogue */
     searchGames: (query: string) => Promise<CatalogueEntry[]>;
