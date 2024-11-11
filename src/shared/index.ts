@@ -74,6 +74,7 @@ export const formatName = pipe<string>(
   replaceDotsWithSpace,
   replaceNbspWithSpace,
   (str) => str.replace(/DIRECTOR'S CUT/gi, ""),
+  (str) => str.replace(/Friend's Pass/gi, ""),
   removeSymbolsFromName,
   removeDuplicateSpaces,
   (str) => str.trim()
