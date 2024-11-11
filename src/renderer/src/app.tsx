@@ -113,7 +113,7 @@ export function App() {
     const unsubscribe = window.electron.onHardDelete(() => {
       updateLibrary();
     });
-    
+
     return () => unsubscribe();
   }, [updateLibrary]);
 
