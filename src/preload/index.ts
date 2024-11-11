@@ -39,6 +39,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-download-progress", listener);
     return () => ipcRenderer.removeListener("on-download-progress", listener);
   },
+  onHardDelete: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-hard-delete", listener);
+    return () => ipcRenderer.removeListener("on-hard-delete", listener);
+  },
   onSeedingStatus: (cb: (value: SeedingStatus[]) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
