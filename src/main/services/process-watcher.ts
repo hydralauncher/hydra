@@ -25,21 +25,43 @@ export const watchProcesses = async () => {
   if (games.length === 0) return;
   const processes = await PythonInstance.getProcessList();
 
-  const processSet = new Set(processes.map((process) => process.exe));
+  if (process.platform === "linux") {
+    const processSet = new Set(processes.map((process) => process.name));
 
-  for (const game of games) {
-    const executablePath = game.executablePath!;
+    for (const game of games) {
+      const executable = game.executablePath?.split("/").at(-1);
 
-    const gameProcess = processSet.has(executablePath);
+      if (!executable) continue;
 
-    if (gameProcess) {
-      if (gamesPlaytime.has(game.id)) {
-        onTickGame(game);
-      } else {
-        onOpenGame(game);
+      const gameProcess = processSet.has(executable);
+
+      if (gameProcess) {
+        if (gamesPlaytime.has(game.id)) {
+          onTickGame(game);
+        } else {
+          onOpenGame(game);
+        }
+      } else if (gamesPlaytime.has(game.id)) {
+        onCloseGame(game);
       }
-    } else if (gamesPlaytime.has(game.id)) {
-      onCloseGame(game);
+    }
+  } else {
+    const processSet = new Set(processes.map((process) => process.exe));
+
+    for (const game of games) {
+      const executablePath = game.executablePath!;
+
+      const gameProcess = processSet.has(executablePath);
+
+      if (gameProcess) {
+        if (gamesPlaytime.has(game.id)) {
+          onTickGame(game);
+        } else {
+          onOpenGame(game);
+        }
+      } else if (gamesPlaytime.has(game.id)) {
+        onCloseGame(game);
+      }
     }
   }
 

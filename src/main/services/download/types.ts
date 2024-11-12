@@ -35,4 +35,5 @@ export interface LibtorrentPayload {
 export interface ProcessPayload {
   exe: string;
   pid: number;
+  name: string;
 }
