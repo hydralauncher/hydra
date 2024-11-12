@@ -1,7 +1,6 @@
 @use "../../scss/globals.scss";
 
 .dropdown-menu {
-
   &__content {
     background-color: globals.$dark-background-color;
     border: 1px solid globals.$border-color;
@@ -22,7 +21,7 @@
     font-size: 14px;
     font-weight: 500;
     color: globals.$muted-color;
-}
+  }
 
   &__separator {
     width: 100%;
@@ -42,7 +41,7 @@
     cursor: pointer;
     transition: background-color 0.1s ease-in-out;
     font-size: 14px;
-}
+  }
 
   &__item--disabled {
     cursor: default;
