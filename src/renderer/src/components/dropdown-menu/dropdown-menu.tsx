@@ -46,30 +46,29 @@ export default ({
       >
         {title && (
           <DropdownMenu.Group className="dropdown-menu__group">
-            <div className="dropdown-menu__title-bar">
-              {title}
-            </div>
+            <div className="dropdown-menu__title-bar">{title}</div>
           </DropdownMenu.Group>
         )}
 
         <DropdownMenu.Separator className="dropdown-menu__separator" />
 
         <DropdownMenu.Group className="dropdown-menu__group">
-          {items.map((item) =>
-            item.show !== false && (
-              <DropdownMenu.Item
-                key={item.label}
-                aria-label={item.label}
-                onSelect={item.onClick}
-                className={`dropdown-menu__item ${item.disabled ? "dropdown-menu__item--disabled" : ""}`}
-                disabled={item.disabled}
-              >
-                {item.icon && (
-                  <div className="dropdown-menu__item-icon">{item.icon}</div>
-                )}
-                {item.label}
-              </DropdownMenu.Item>
-            )
+          {items.map(
+            (item) =>
+              item.show !== false && (
+                <DropdownMenu.Item
+                  key={item.label}
+                  aria-label={item.label}
+                  onSelect={item.onClick}
+                  className={`dropdown-menu__item ${item.disabled ? "dropdown-menu__item--disabled" : ""}`}
+                  disabled={item.disabled}
+                >
+                  {item.icon && (
+                    <div className="dropdown-menu__item-icon">{item.icon}</div>
+                  )}
+                  {item.label}
+                </DropdownMenu.Item>
+              )
           )}
         </DropdownMenu.Group>
       </DropdownMenu.Content>
