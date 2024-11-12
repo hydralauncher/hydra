@@ -198,7 +198,8 @@
     "checking_files": "Verificando arquivos…",
     "seeding": "Semeando",
     "stop_seeding": "Parar semeio",
-    "resume_seeding": "Retomar semeio"
+    "resume_seeding": "Retomar semeio",
+    "options": "Gerenciar"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",

@@ -202,7 +202,8 @@
     "checking_files": "Checking files…",
     "seeding": "Seeding",
     "stop_seeding": "Stop seeding",
-    "resume_seeding": "Resume seeding"
+    "resume_seeding": "Resume seeding",
+    "options": "Manage"
   },
   "settings": {
     "downloads_path": "Downloads path",
