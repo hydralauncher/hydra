@@ -16,7 +16,10 @@ import * as styles from "./download-group.css";
 import { useTranslation } from "react-i18next";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { useMemo } from "react";
-import { DropdownMenu, DropdownMenuItem } from "@renderer/components/dropdown-menu/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuItem,
+} from "@renderer/components/dropdown-menu/dropdown-menu";
 import { ThreeBarsIcon } from "@primer/octicons-react";
 
 export interface DownloadGroupProps {
