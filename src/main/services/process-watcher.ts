@@ -14,6 +14,20 @@ export const gamesPlaytime = new Map<
 const TICKS_TO_UPDATE_API = 120;
 let currentTick = 1;
 
+const getSystemProcessSet = async () => {
+  const processes = await PythonInstance.getProcessList();
+
+  if (process.platform === "linux")
+    return new Set(processes.map((process) => process.name));
+  return new Set(processes.map((process) => process.exe));
+};
+
+const getExecutable = (game: Game) => {
+  if (process.platform === "linux")
+    return game.executablePath?.split("/").at(-1);
+  return game.executablePath;
+};
+
 export const watchProcesses = async () => {
   const games = await gameRepository.find({
     where: {
@@ -23,45 +37,24 @@ export const watchProcesses = async () => {
   });
 
   if (games.length === 0) return;
-  const processes = await PythonInstance.getProcessList();
 
-  if (process.platform === "linux") {
-    const processSet = new Set(processes.map((process) => process.name));
+  const processSet = await getSystemProcessSet();
 
-    for (const game of games) {
-      const executable = game.executablePath?.split("/").at(-1);
+  for (const game of games) {
+    const executable = getExecutable(game);
 
-      if (!executable) continue;
+    if (!executable) continue;
 
-      const gameProcess = processSet.has(executable);
+    const gameProcess = processSet.has(executable);
 
-      if (gameProcess) {
-        if (gamesPlaytime.has(game.id)) {
-          onTickGame(game);
-        } else {
-          onOpenGame(game);
-        }
-      } else if (gamesPlaytime.has(game.id)) {
-        onCloseGame(game);
+    if (gameProcess) {
+      if (gamesPlaytime.has(game.id)) {
+        onTickGame(game);
+      } else {
+        onOpenGame(game);
       }
-    }
-  } else {
-    const processSet = new Set(processes.map((process) => process.exe));
-
-    for (const game of games) {
-      const executablePath = game.executablePath!;
-
-      const gameProcess = processSet.has(executablePath);
-
-      if (gameProcess) {
-        if (gamesPlaytime.has(game.id)) {
-          onTickGame(game);
-        } else {
-          onOpenGame(game);
-        }
-      } else if (gamesPlaytime.has(game.id)) {
-        onCloseGame(game);
-      }
+    } else if (gamesPlaytime.has(game.id)) {
+      onCloseGame(game);
     }
   }
 
