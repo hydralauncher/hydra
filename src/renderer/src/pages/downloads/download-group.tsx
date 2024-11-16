@@ -285,7 +285,6 @@ export function DownloadGroup({
 
                 {getGameActions(game) !== null && (
                   <DropdownMenu
-                    title={t("options")}
                     align="end"
                     items={getGameActions(game)}
                     sideOffset={-70}
