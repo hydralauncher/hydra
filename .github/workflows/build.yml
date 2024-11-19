@@ -61,6 +61,13 @@ jobs:
           RENDERER_VITE_INTERCOM_APP_ID: ${{ vars.RENDERER_VITE_INTERCOM_APP_ID }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Upload build to Discord
+        uses: sinshutu/upload-to-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: ./dist/*-portable.exe ./dist/*.deb
+
       - name: Create artifact
         uses: actions/upload-artifact@v4
         with:
@@ -68,10 +75,3 @@ jobs:
           path: |
             dist/*-portable.exe
             dist/*.deb
-
-      - name: Upload build to Discord
-        uses: sinshutu/upload-to-discord@master
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        with:
-          args: ./dist/*-portable.exe ./dist/*.deb
