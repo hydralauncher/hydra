@@ -17,61 +17,59 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v4
 
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.18.0
+      # - name: Install Node.js
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: 20.18.0
 
-      - name: Install dependencies
-        run: yarn
+      # - name: Install dependencies
+      #   run: yarn
 
-      - name: Install Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.9
+      # - name: Install Python
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     python-version: 3.9
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      # - name: Install dependencies
+      #   run: pip install -r requirements.txt
 
-      - name: Build with cx_Freeze
-        run: python torrent-client/setup.py build
+      # - name: Build with cx_Freeze
+      #   run: python torrent-client/setup.py build
 
-      - name: Build Linux
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libarchive-tools
-          yarn build:linux
-        env:
-          MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
-          MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
-          MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_STAGING_CHECKOUT_URL }}
-          MAIN_VITE_ANALYTICS_API_URL: ${{ vars.MAIN_VITE_ANALYTICS_API_URL }}
-          RENDERER_VITE_INTERCOM_APP_ID: ${{ vars.RENDERER_VITE_INTERCOM_APP_ID }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Build Linux
+      #   if: matrix.os == 'ubuntu-latest'
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y libarchive-tools
+      #     yarn build:linux
+      #   env:
+      #     MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
+      #     MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
+      #     MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_STAGING_CHECKOUT_URL }}
+      #     MAIN_VITE_ANALYTICS_API_URL: ${{ vars.MAIN_VITE_ANALYTICS_API_URL }}
+      #     RENDERER_VITE_INTERCOM_APP_ID: ${{ vars.RENDERER_VITE_INTERCOM_APP_ID }}
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Windows
-        if: matrix.os == 'windows-latest'
-        run: yarn build:win
-        env:
-          MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
-          MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
-          MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_STAGING_CHECKOUT_URL }}
-          MAIN_VITE_ANALYTICS_API_URL: ${{ vars.MAIN_VITE_ANALYTICS_API_URL }}
-          RENDERER_VITE_INTERCOM_APP_ID: ${{ vars.RENDERER_VITE_INTERCOM_APP_ID }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload build to Discord
-        uses: sinshutu/upload-to-discord@master
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        with:
-          args: ./dist/*-portable.exe ./dist/*.deb
+      # - name: Build Windows
+      #   if: matrix.os == 'windows-latest'
+      #   run: yarn build:win
+      #   env:
+      #     MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
+      #     MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
+      #     MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_STAGING_CHECKOUT_URL }}
+      #     MAIN_VITE_ANALYTICS_API_URL: ${{ vars.MAIN_VITE_ANALYTICS_API_URL }}
+      #     RENDERER_VITE_INTERCOM_APP_ID: ${{ vars.RENDERER_VITE_INTERCOM_APP_ID }}
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create artifact
+        id: artifact-upload-step
         uses: actions/upload-artifact@v4
         with:
           name: Build-${{ matrix.os }}
           path: |
             dist/*-portable.exe
             dist/*.deb
+            README.md
+
+      - name: Output artifact URL
+        run: echo 'Artifact URL is ${{ steps.artifact-upload-step.outputs.artifact-url }}'
