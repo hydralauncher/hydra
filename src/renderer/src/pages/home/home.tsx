@@ -1,63 +1,87 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
 import { Button, GameCard, Hero } from "@renderer/components";
-import {
-  Steam250Game,
-  type CatalogueCategory,
-  type CatalogueEntry,
-} from "@types";
+import type { Steam250Game, CatalogueEntry } from "@types";
 
-import starsAnimation from "@renderer/assets/lottie/stars.json";
+import flameIconStatic from "@renderer/assets/icons/flame-static.png";
+import flameIconAnimated from "@renderer/assets/icons/flame-animated.gif";
+import starsIconAnimated from "@renderer/assets/icons/stars-animated.gif";
 
 import * as styles from "./home.css";
-import { vars } from "../../theme.css";
-import Lottie from "lottie-react";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { buildGameDetailsPath } from "@renderer/helpers";
+import { CatalogueCategory } from "@shared";
+import { catalogueCacheTable, db } from "@renderer/dexie";
+import { add } from "date-fns";
 
-const categories: CatalogueCategory[] = ["trending", "recently_added"];
+const categoryCacheDurationInSeconds = {
+  [CatalogueCategory.Hot]: 60 * 60 * 2,
+  [CatalogueCategory.Weekly]: 60 * 60 * 24,
+  [CatalogueCategory.Achievements]: 60 * 60 * 24,
+};
 
-export function Home() {
+export default function Home() {
   const { t } = useTranslation("home");
   const navigate = useNavigate();
 
+  const [animateFlame, setAnimateFlame] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [randomGame, setRandomGame] = useState<Steam250Game | null>(null);
 
-  const [searchParams] = useSearchParams();
+  const [currentCatalogueCategory, setCurrentCatalogueCategory] = useState(
+    CatalogueCategory.Hot
+  );
 
   const [catalogue, setCatalogue] = useState<
     Record<CatalogueCategory, CatalogueEntry[]>
   >({
-    trending: [],
-    recently_added: [],
+    [CatalogueCategory.Hot]: [],
+    [CatalogueCategory.Weekly]: [],
+    [CatalogueCategory.Achievements]: [],
   });
 
-  const getCatalogue = useCallback((category: CatalogueCategory) => {
-    setIsLoading(true);
+  const getCatalogue = useCallback(async (category: CatalogueCategory) => {
+    try {
+      const catalogueCache = await catalogueCacheTable
+        .where("expiresAt")
+        .above(new Date())
+        .and((cache) => cache.category === category)
+        .first();
 
-    window.electron
-      .getCatalogue(category)
-      .then((catalogue) => {
-        setCatalogue((prev) => ({ ...prev, [category]: catalogue }));
-      })
-      .catch(() => {})
-      .finally(() => {
-        setIsLoading(false);
+      setCurrentCatalogueCategory(category);
+      setIsLoading(true);
+
+      if (catalogueCache)
+        return setCatalogue((prev) => ({
+          ...prev,
+          [category]: catalogueCache.games,
+        }));
+
+      const catalogue = await window.electron.getCatalogue(category);
+
+      db.transaction("rw", catalogueCacheTable, async () => {
+        await catalogueCacheTable.where("category").equals(category).delete();
+
+        await catalogueCacheTable.add({
+          category,
+          games: catalogue,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          expiresAt: add(new Date(), {
+            seconds: categoryCacheDurationInSeconds[category],
+          }),
+        });
       });
-  }, []);
 
-  const currentCategory = searchParams.get("category") || categories[0];
-
-  const handleSelectCategory = (category: CatalogueCategory) => {
-    if (category !== currentCategory) {
-      getCatalogue(category);
-      navigate(`/?category=${category}`);
+      setCatalogue((prev) => ({ ...prev, [category]: catalogue }));
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, []);
 
   const getRandomGame = useCallback(() => {
     window.electron.getRandomGame().then((game) => {
@@ -78,11 +102,32 @@ export function Home() {
     }
   };
 
+  const handleCategoryClick = (category: CatalogueCategory) => {
+    if (category !== currentCatalogueCategory) {
+      getCatalogue(category);
+    }
+  };
+
   useEffect(() => {
     setIsLoading(true);
-    getCatalogue(currentCategory as CatalogueCategory);
+    getCatalogue(CatalogueCategory.Hot);
+
     getRandomGame();
-  }, [getCatalogue, currentCategory, getRandomGame]);
+  }, [getCatalogue, getRandomGame]);
+
+  const categories = Object.values(CatalogueCategory);
+
+  const handleMouseEnterCategory = (category: CatalogueCategory) => {
+    if (category === CatalogueCategory.Hot) {
+      setAnimateFlame(true);
+    }
+  };
+
+  const handleMouseLeaveCategory = (category: CatalogueCategory) => {
+    if (category === CatalogueCategory.Hot) {
+      setAnimateFlame(false);
+    }
+  };
 
   return (
     <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
@@ -92,17 +137,43 @@ export function Home() {
         <Hero />
 
         <section className={styles.homeHeader}>
-          <div className={styles.homeCategories}>
+          <ul className={styles.buttonsList}>
             {categories.map((category) => (
-              <Button
-                key={category}
-                theme={currentCategory === category ? "primary" : "outline"}
-                onClick={() => handleSelectCategory(category)}
-              >
-                {t(category)}
-              </Button>
+              <li key={category}>
+                <Button
+                  theme={
+                    category === currentCatalogueCategory
+                      ? "primary"
+                      : "outline"
+                  }
+                  onClick={() => handleCategoryClick(category)}
+                  onMouseEnter={() => handleMouseEnterCategory(category)}
+                  onMouseLeave={() => handleMouseLeaveCategory(category)}
+                >
+                  {category === CatalogueCategory.Hot && (
+                    <div
+                      style={{ width: 16, height: 16, position: "relative" }}
+                    >
+                      <img
+                        src={flameIconStatic}
+                        alt="Flame icon"
+                        className={styles.flameIcon}
+                        style={{ display: animateFlame ? "none" : "block" }}
+                      />
+                      <img
+                        src={flameIconAnimated}
+                        alt="Flame animation"
+                        className={styles.flameIcon}
+                        style={{ display: animateFlame ? "block" : "none" }}
+                      />
+                    </div>
+                  )}
+
+                  {t(category)}
+                </Button>
+              </li>
             ))}
-          </div>
+          </ul>
 
           <Button
             onClick={handleRandomizerClick}
@@ -110,26 +181,43 @@ export function Home() {
             disabled={!randomGame}
           >
             <div style={{ width: 16, height: 16, position: "relative" }}>
-              <Lottie
-                animationData={starsAnimation}
+              <img
+                src={starsIconAnimated}
+                alt="Stars animation"
                 style={{ width: 70, position: "absolute", top: -28, left: -27 }}
-                loop
               />
             </div>
             {t("surprise_me")}
           </Button>
         </section>
 
-        <h2>{t(currentCategory)}</h2>
+        <h2 style={{ display: "flex", gap: SPACING_UNIT }}>
+          {currentCatalogueCategory === CatalogueCategory.Hot && (
+            <div style={{ width: 24, height: 24, position: "relative" }}>
+              <img
+                src={flameIconAnimated}
+                alt="Flame animation"
+                style={{
+                  width: 40,
+                  top: -10,
+                  left: -5,
+                  position: "absolute",
+                }}
+              />
+            </div>
+          )}
+
+          {t(currentCatalogueCategory)}
+        </h2>
 
         <section className={styles.cards}>
           {isLoading
             ? Array.from({ length: 12 }).map((_, index) => (
                 <Skeleton key={index} className={styles.cardSkeleton} />
               ))
-            : catalogue[currentCategory as CatalogueCategory].map((result) => (
+            : catalogue[currentCatalogueCategory].map((result) => (
                 <GameCard
-                  key={result.objectID}
+                  key={result.objectId}
                   game={result}
                   onClick={() => navigate(buildGameDetailsPath(result))}
                 />

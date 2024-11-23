@@ -1,23 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import * as styles from "./hero-panel.css";
+import { formatDownloadProgress } from "@renderer/helpers";
+import { useDate, useDownload, useFormat } from "@renderer/hooks";
+import { Link } from "@renderer/components";
 
-import type { Game } from "@types";
-import { useDate } from "@renderer/hooks";
+import { gameDetailsContext } from "@renderer/context";
+import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 
-const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
-
-export interface HeroPanelPlaytimeProps {
-  game: Game;
-  isGamePlaying: boolean;
-}
-
-export function HeroPanelPlaytime({
-  game,
-  isGamePlaying,
-}: HeroPanelPlaytimeProps) {
+export function HeroPanelPlaytime() {
   const [lastTimePlayed, setLastTimePlayed] = useState("");
 
-  const { i18n, t } = useTranslation("game_details");
+  const { game, isGameRunning } = useContext(gameDetailsContext);
+
+  const { t } = useTranslation("game_details");
+
+  const { numberFormatter } = useFormat();
+
+  const { progress, lastPacket } = useDownload();
 
   const { formatDistance } = useDate();
 
@@ -31,13 +31,7 @@ export function HeroPanelPlaytime({
     }
   }, [game?.lastTimePlayed, formatDistance]);
 
-  const numberFormatter = useMemo(() => {
-    return new Intl.NumberFormat(i18n.language, {
-      maximumFractionDigits: 0,
-    });
-  }, [i18n.language]);
-
-  const formatPlayTime = () => {
+  const formattedPlayTime = useMemo(() => {
     const milliseconds = game?.playTimeInMilliseconds || 0;
     const seconds = milliseconds / 1000;
     const minutes = seconds / 60;
@@ -50,22 +44,59 @@ export function HeroPanelPlaytime({
 
     const hours = minutes / 60;
     return t("amount_hours", { amount: numberFormatter.format(hours) });
-  };
+  }, [game?.playTimeInMilliseconds, numberFormatter, t]);
+
+  if (!game) return null;
+
+  const hasDownload =
+    ["active", "paused"].includes(game.status as string) && game.progress !== 1;
+
+  const isGameDownloading =
+    game.status === "active" && lastPacket?.game.id === game.id;
+
+  const downloadInProgressInfo = (
+    <div className={styles.downloadDetailsRow}>
+      <Link to="/downloads" className={styles.downloadsLink}>
+        {game.status === "active"
+          ? t("download_in_progress")
+          : t("download_paused")}
+      </Link>
+
+      <small>
+        {isGameDownloading ? progress : formatDownloadProgress(game.progress)}
+      </small>
+    </div>
+  );
 
   if (!game.lastTimePlayed) {
-    return <p>{t("not_played_yet", { title: game.title })}</p>;
+    return (
+      <>
+        <p>{t("not_played_yet", { title: game?.title })}</p>
+        {hasDownload && downloadInProgressInfo}
+      </>
+    );
+  }
+
+  if (isGameRunning) {
+    return (
+      <>
+        <p>{t("playing_now")}</p>
+
+        {hasDownload && downloadInProgressInfo}
+      </>
+    );
   }
 
   return (
     <>
       <p>
         {t("play_time", {
-          amount: formatPlayTime(),
+          amount: formattedPlayTime,
         })}
       </p>
 
-      {isGamePlaying ? (
-        <p>{t("playing_now")}</p>
+      {hasDownload ? (
+        downloadInProgressInfo
       ) : (
         <p>
           {t("last_time_played", {

@@ -2,18 +2,15 @@ import { gameRepository } from "@main/repository";
 
 import { registerEvent } from "../register-event";
 
-const getGameByObjectID = async (
+const getGameByObjectId = async (
   _event: Electron.IpcMainInvokeEvent,
-  objectID: string
+  objectId: string
 ) =>
   gameRepository.findOne({
     where: {
-      objectID,
+      objectID: objectId,
       isDeleted: false,
-    },
-    relations: {
-      repack: true,
     },
   });
 
-registerEvent("getGameByObjectID", getGameByObjectID);
+registerEvent("getGameByObjectId", getGameByObjectId);

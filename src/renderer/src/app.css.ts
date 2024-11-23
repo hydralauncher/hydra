@@ -1,5 +1,12 @@
-import { ComplexStyleRule, globalStyle, style } from "@vanilla-extract/css";
+import {
+  ComplexStyleRule,
+  createContainer,
+  globalStyle,
+  style,
+} from "@vanilla-extract/css";
 import { SPACING_UNIT, vars } from "./theme.css";
+
+export const appContainer = createContainer();
 
 globalStyle("*", {
   boxSizing: "border-box",
@@ -7,6 +14,7 @@ globalStyle("*", {
 
 globalStyle("::-webkit-scrollbar", {
   width: "9px",
+  backgroundColor: vars.color.darkBackground,
 });
 
 globalStyle("::-webkit-scrollbar-track", {
@@ -18,6 +26,10 @@ globalStyle("::-webkit-scrollbar-thumb", {
   borderRadius: "24px",
 });
 
+globalStyle("::-webkit-scrollbar-thumb:hover", {
+  backgroundColor: "rgba(255, 255, 255, 0.16)",
+});
+
 globalStyle("html, body, #root, main", {
   height: "100%",
 });
@@ -25,10 +37,9 @@ globalStyle("html, body, #root, main", {
 globalStyle("body", {
   overflow: "hidden",
   userSelect: "none",
-  fontFamily: "'Fira Mono', monospace",
-  fontSize: vars.size.bodyFontSize,
-  background: vars.color.background,
-  color: vars.color.bodyText,
+  fontFamily: "Noto Sans, sans-serif",
+  fontSize: vars.size.body,
+  color: vars.color.body,
   margin: "0",
 });
 
@@ -68,7 +79,7 @@ globalStyle(
 );
 
 globalStyle("label", {
-  fontSize: vars.size.bodyFontSize,
+  fontSize: vars.size.body,
 });
 
 globalStyle("input[type=number]", {
@@ -79,12 +90,18 @@ globalStyle("img", {
   WebkitUserDrag: "none",
 } as Record<string, string>);
 
+globalStyle("progress[value]", {
+  WebkitAppearance: "none",
+});
+
 export const container = style({
   width: "100%",
   height: "100%",
   overflow: "hidden",
   display: "flex",
   flexDirection: "column",
+  containerName: appContainer,
+  containerType: "inline-size",
 });
 
 export const content = style({
@@ -106,6 +123,12 @@ export const titleBar = style({
   alignItems: "center",
   padding: `0 ${SPACING_UNIT * 2}px`,
   WebkitAppRegion: "drag",
-  zIndex: "2",
+  zIndex: "4",
   borderBottom: `1px solid ${vars.color.border}`,
 } as ComplexStyleRule);
+
+export const cloudText = style({
+  background: "linear-gradient(270deg, #16B195 50%, #3E62C0 100%)",
+  backgroundClip: "text",
+  color: "transparent",
+});

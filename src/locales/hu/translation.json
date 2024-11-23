@@ -1,8 +1,7 @@
 {
+  "language_name": "Magyar",
   "home": {
     "featured": "Featured",
-    "recently_added": "Nemrég hozzáadott",
-    "trending": "Népszerű",
     "surprise_me": "Lepj meg",
     "no_results": "Nem található"
   },
@@ -12,11 +11,9 @@
     "settings": "Beállítások",
     "my_library": "Könyvtáram",
     "downloading_metadata": "{{title}} (Metadata letöltése…)",
-    "checking_files": "{{title}} ({{percentage}} - Fájlok ellenőrzése…)",
     "paused": "{{title}} (Szünet)",
     "downloading": "{{title}} ({{percentage}} - Letöltés…)",
     "filter": "Könyvtár szűrése",
-    "follow_us": "Kövess minket",
     "home": "Főoldal"
   },
   "header": {
@@ -30,7 +27,6 @@
   "bottom_panel": {
     "no_downloads_in_progress": "Nincsenek folyamatban lévő letöltések",
     "downloading_metadata": "{{title}} metaadatainak letöltése…",
-    "checking_files": "{{title}} fájlok ellenőrzése… ({{percentage}} kész)",
     "downloading": "{{title}} letöltése… ({{percentage}} kész) - Befejezés {{eta}} - {{speed}}"
   },
   "catalogue": {
@@ -48,22 +44,15 @@
     "pause": "Szüneteltetés",
     "cancel": "Mégse",
     "remove": "Eltávolítás",
-    "remove_from_list": "Eltávolítás",
     "space_left_on_disk": "{{space}} szabad hely a lemezen",
     "eta": "Befejezés {{eta}}",
     "downloading_metadata": "Metaadatok letöltése…",
-    "checking_files": "Fájlok ellenőrzése…",
     "filter": "Repackek szűrése",
     "requirements": "Rendszerkövetelmények",
     "minimum": "Minimális",
     "recommended": "Ajánlott",
-    "no_minimum_requirements": "{{title}} nem tartalmaz információt a minimális követelményekről",
-    "no_recommended_requirements": "{{title}} nem tartalmaz információt az ajánlott követelményekről",
-    "paused_progress": "{{progress}} (Szünetel)",
     "release_date": "Megjelenés: {{date}}",
     "publisher": "Kiadta: {{publisher}}",
-    "copy_link_to_clipboard": "Link másolása",
-    "copied_link_to_clipboard": "Link másolva",
     "hours": "óra",
     "minutes": "perc",
     "amount_hours": "{{amount}} óra",
@@ -82,7 +71,6 @@
     "playing_now": "Jelenleg játszva",
     "change": "Változtatás",
     "repacks_modal_description": "Choose the repack you want to download",
-    "downloads_path": "Letöltések helye",
     "select_folder_hint": "Ahhoz, hogy megváltoztasd a helyet, hozzákell férned a",
     "download_now": "Töltsd le most"
   },
@@ -100,19 +88,13 @@
     "eta": "Befejezés {{eta}}",
     "paused": "Szüneteltetve",
     "verifying": "Ellenőrzés…",
-    "completed_at": "Befejezve {{date}}-kor",
     "completed": "Befejezve",
-    "cancelled": "Megszakítva",
-    "download_again": "Újra letöltés",
     "cancel": "Mégse",
     "filter": "Letöltött játékok szűrése",
     "remove": "Eltávolítás",
     "downloading_metadata": "Metaadatok letöltése…",
-    "checking_files": "Fájlok ellenőrzése…",
-    "starting_download": "Letöltés indítása…",
     "deleting": "Telepítő törlése…",
     "delete": "Telepítő eltávolítása",
-    "remove_from_list": "Eltávolítás",
     "delete_modal_title": "Biztos vagy benne?",
     "delete_modal_description": "Ez eltávolít minden telepítési fájlt a számítógépedről",
     "install": "Telepítés"
@@ -122,9 +104,7 @@
     "change": "Frissítés",
     "notifications": "Értesítések",
     "enable_download_notifications": "Amikor egy letöltés befejeződik",
-    "enable_repack_list_notifications": "Amikor egy új repack hozzáadásra kerül",
-    "telemetry": "Telemetria",
-    "telemetry_description": "Névtelen felhasználási statisztikák engedélyezése"
+    "enable_repack_list_notifications": "Amikor egy új repack hozzáadásra kerül"
   },
   "notifications": {
     "download_complete": "Letöltés befejeződött",

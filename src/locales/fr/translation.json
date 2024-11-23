@@ -1,8 +1,7 @@
 {
+  "language_name": "Français",
   "home": {
     "featured": "En vedette",
-    "recently_added": "Récemment ajouté",
-    "trending": "Tendance",
     "surprise_me": "Surprenez-moi",
     "no_results": "Aucun résultat trouvé"
   },
@@ -12,12 +11,10 @@
     "settings": "Paramètres",
     "my_library": "Ma bibliothèque",
     "downloading_metadata": "{{title}} (Téléchargement des métadonnées…)",
-    "checking_files": "{{title}} ({{percentage}} - Vérification des fichiers…)",
     "paused": "{{title}} (En pause)",
     "downloading": "{{title}} ({{percentage}} - Téléchargement en cours…)",
     "filter": "Filtrer la bibliothèque",
-    "home": "Page d’accueil",
-    "follow_us": "Suivez-nous"
+    "home": "Page d’accueil"
   },
   "header": {
     "search": "Recherche",
@@ -30,7 +27,6 @@
   "bottom_panel": {
     "no_downloads_in_progress": "Aucun téléchargement en cours",
     "downloading_metadata": "Téléchargement des métadonnées de {{title}}…",
-    "checking_files": "Vérification des fichiers de {{title}}… ({{percentage}} terminé)",
     "downloading": "Téléchargement de {{title}}… ({{percentage}} terminé) - Fin dans {{eta}} - {{speed}}"
   },
   "game_details": {
@@ -43,22 +39,15 @@
     "pause": "Pause",
     "cancel": "Annuler",
     "remove": "Supprimer",
-    "remove_from_list": "Retirer",
     "space_left_on_disk": "{{space}} restant sur le disque",
     "eta": "Fin dans {{eta}}",
     "downloading_metadata": "Téléchargement des métadonnées en cours…",
-    "checking_files": "Vérification des fichiers…",
     "filter": "Filtrer les repacks",
     "requirements": "Configuration requise",
     "minimum": "Minimum",
     "recommended": "Recommandée",
-    "no_minimum_requirements": "{{title}} ne fournit pas d'informations sur les configurations minimales",
-    "no_recommended_requirements": "{{title}} ne fournit pas d'informations sur les configurations recommandées",
-    "paused_progress": "{{progress}} (En pause)",
     "release_date": "Sorti le {{date}}",
     "publisher": "Édité par {{publisher}}",
-    "copy_link_to_clipboard": "Copier le lien",
-    "copied_link_to_clipboard": "Lien copié",
     "hours": "heures",
     "minutes": "minutes",
     "amount_hours": "{{amount}} heures",
@@ -68,14 +57,14 @@
     "remove_from_library": "Supprimer de la bibliothèque",
     "no_downloads": "Aucun téléchargement disponible",
     "next_suggestion": "Suggestion suivante",
-    "play_time": "Joué pour {{montant}}",
+    "play_time": "Joué pour {{amount}}",
     "install": "Installer",
     "play": "Jouer",
     "not_played_yet": "Vous n'avez pas encore joué à {{title}}",
     "close": "Fermer",
     "deleting": "Suppression du programme d'installation…",
     "playing_now": "Jeu en cours",
-    "last_time_played": "Dernièrement joué {{période}}"
+    "last_time_played": "Dernièrement joué {{period}}"
   },
   "activation": {
     "title": "Activer Hydra",
@@ -91,17 +80,11 @@
     "eta": "Fin dans {{eta}}",
     "paused": "En pause",
     "verifying": "Vérification en cours…",
-    "completed_at": "Terminé en {{date}}",
     "completed": "Terminé",
-    "cancelled": "Annulé",
-    "download_again": "Télécharger à nouveau",
     "cancel": "Annuler",
     "filter": "Filtrer les jeux téléchargés",
     "remove": "Supprimer",
     "downloading_metadata": "Téléchargement des métadonnées en cours…",
-    "checking_files": "Vérification des fichiers…",
-    "starting_download": "Démarrage du téléchargement…",
-    "remove_from_list": "Retirer",
     "delete": "Supprimer le programme d'installation",
     "delete_modal_description": "Cela supprimera tous les fichiers d'installation de votre ordinateur",
     "delete_modal_title": "Es-tu sûr?",
@@ -114,8 +97,7 @@
     "notifications": "Notifications",
     "enable_download_notifications": "Quand un téléchargement est terminé",
     "enable_repack_list_notifications": "Quand un nouveau repack est ajouté",
-    "telemetry": "Télémétrie",
-    "telemetry_description": "Activer les statistiques d'utilisation anonymes"
+    "language": "Langue"
   },
   "notifications": {
     "download_complete": "Téléchargement terminé",

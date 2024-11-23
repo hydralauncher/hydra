@@ -1,11 +1,14 @@
-import { DownloadIcon, FileDirectoryIcon } from "@primer/octicons-react";
-import type { CatalogueEntry } from "@types";
+import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
+import type { CatalogueEntry, GameRepack, GameStats } from "@types";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import EpicGamesLogo from "@renderer/assets/epic-games-logo.svg?react";
 
 import * as styles from "./game-card.css";
 import { useTranslation } from "react-i18next";
+import { Badge } from "../badge/badge";
+import { useCallback, useContext, useEffect, useState } from "react";
+import { useFormat } from "@renderer/hooks";
+import { repacksContext } from "@renderer/context";
 
 export interface GameCardProps
   extends React.DetailedHTMLProps<
@@ -16,21 +19,53 @@ export interface GameCardProps
 }
 
 const shopIcon = {
-  epic: <EpicGamesLogo className={styles.shopIcon} />,
   steam: <SteamLogo className={styles.shopIcon} />,
 };
 
 export function GameCard({ game, ...props }: GameCardProps) {
   const { t } = useTranslation("game_card");
 
+  const [stats, setStats] = useState<GameStats | null>(null);
+  const [repacks, setRepacks] = useState<GameRepack[]>([]);
+
+  const { searchRepacks, isIndexingRepacks } = useContext(repacksContext);
+
+  useEffect(() => {
+    if (!isIndexingRepacks) {
+      searchRepacks(game.title).then((repacks) => {
+        setRepacks(repacks);
+      });
+    }
+  }, [game, isIndexingRepacks, searchRepacks]);
+
   const uniqueRepackers = Array.from(
-    new Set(game.repacks.map(({ repacker }) => repacker))
+    new Set(repacks.map(({ repacker }) => repacker))
   );
 
+  const handleHover = useCallback(() => {
+    if (!stats) {
+      window.electron.getGameStats(game.objectId, game.shop).then((stats) => {
+        setStats(stats);
+      });
+    }
+  }, [game, stats]);
+
+  const { numberFormatter } = useFormat();
+
   return (
-    <button {...props} type="button" className={styles.card}>
+    <button
+      {...props}
+      type="button"
+      className={styles.card}
+      onMouseEnter={handleHover}
+    >
       <div className={styles.backdrop}>
-        <img src={game.cover} alt={game.title} className={styles.cover} />
+        <img
+          src={game.cover}
+          alt={game.title}
+          className={styles.cover}
+          loading="lazy"
+        />
 
         <div className={styles.content}>
           <div className={styles.titleContainer}>
@@ -41,27 +76,28 @@ export function GameCard({ game, ...props }: GameCardProps) {
           {uniqueRepackers.length > 0 ? (
             <ul className={styles.downloadOptions}>
               {uniqueRepackers.map((repacker) => (
-                <li key={repacker} className={styles.downloadOption}>
-                  <span>{repacker}</span>
+                <li key={repacker}>
+                  <Badge>{repacker}</Badge>
                 </li>
               ))}
             </ul>
           ) : (
             <p className={styles.noDownloadsLabel}>{t("no_downloads")}</p>
           )}
-
           <div className={styles.specifics}>
             <div className={styles.specificsItem}>
               <DownloadIcon />
-              <span>{game.repacks.length}</span>
+              <span>
+                {stats ? numberFormatter.format(stats.downloadCount) : "…"}
+              </span>
             </div>
 
-            {game.repacks.length > 0 && (
-              <div className={styles.specificsItem}>
-                <FileDirectoryIcon />
-                <span>{game.repacks.at(0)?.fileSize}</span>
-              </div>
-            )}
+            <div className={styles.specificsItem}>
+              <PeopleIcon />
+              <span>
+                {stats ? numberFormatter.format(stats?.playerCount) : "…"}
+              </span>
+            </div>
           </div>
         </div>
       </div>

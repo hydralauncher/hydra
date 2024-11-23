@@ -1,77 +1,128 @@
-import path from "node:path";
-
 import { IsNull, Not } from "typeorm";
 import { gameRepository } from "@main/repository";
-import { getProcesses } from "@main/helpers";
 import { WindowManager } from "./window-manager";
+import { createGame, updateGamePlaytime } from "./library-sync";
+import type { GameRunning } from "@types";
+import { PythonInstance } from "./download";
+import { Game } from "@main/entity";
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+export const gamesPlaytime = new Map<
+  number,
+  { lastTick: number; firstTick: number; lastSyncTick: number }
+>();
 
-export const startProcessWatcher = async () => {
-  const sleepTime = 500;
-  const gamesPlaytime = new Map<number, number>();
+const TICKS_TO_UPDATE_API = 120;
+let currentTick = 1;
 
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const games = await gameRepository.find({
-      where: {
-        executablePath: Not(IsNull()),
-        isDeleted: false,
-      },
+export const watchProcesses = async () => {
+  const games = await gameRepository.find({
+    where: {
+      executablePath: Not(IsNull()),
+      isDeleted: false,
+    },
+  });
+
+  if (games.length === 0) return;
+  const processes = await PythonInstance.getProcessList();
+
+  const processSet = new Set(processes.map((process) => process.exe));
+
+  for (const game of games) {
+    const executablePath = game.executablePath!;
+
+    const gameProcess = processSet.has(executablePath);
+
+    if (gameProcess) {
+      if (gamesPlaytime.has(game.id)) {
+        onTickGame(game);
+      } else {
+        onOpenGame(game);
+      }
+    } else if (gamesPlaytime.has(game.id)) {
+      onCloseGame(game);
+    }
+  }
+
+  currentTick++;
+
+  if (WindowManager.mainWindow) {
+    const gamesRunning = Array.from(gamesPlaytime.entries()).map((entry) => {
+      return {
+        id: entry[0],
+        sessionDurationInMillis: performance.now() - entry[1].firstTick,
+      };
     });
 
-    if (games.length === 0) {
-      await sleep(sleepTime);
-      continue;
-    }
+    WindowManager.mainWindow.webContents.send(
+      "on-games-running",
+      gamesRunning as Pick<GameRunning, "id" | "sessionDurationInMillis">[]
+    );
+  }
+};
 
-    const processes = await getProcesses();
+function onOpenGame(game: Game) {
+  const now = performance.now();
 
-    for (const game of games) {
-      const executablePath = game.executablePath!;
-      const basename = path.win32.basename(executablePath);
-      const basenameWithoutExtension = path.win32.basename(
-        executablePath,
-        path.extname(executablePath)
-      );
+  gamesPlaytime.set(game.id, {
+    lastTick: now,
+    firstTick: now,
+    lastSyncTick: now,
+  });
 
-      const gameProcess = processes.find((runningProcess) => {
-        if (process.platform === "win32") {
-          return runningProcess.name === basename;
-        }
+  if (game.remoteId) {
+    updateGamePlaytime(game, 0, new Date()).catch(() => {});
+  } else {
+    createGame({ ...game, lastTimePlayed: new Date() }).catch(() => {});
+  }
+}
 
-        return [basename, basenameWithoutExtension].includes(
-          runningProcess.name
-        );
-      });
+function onTickGame(game: Game) {
+  const now = performance.now();
+  const gamePlaytime = gamesPlaytime.get(game.id)!;
 
-      if (gameProcess) {
-        if (gamesPlaytime.has(game.id)) {
-          const zero = gamesPlaytime.get(game.id) ?? 0;
-          const delta = performance.now() - zero;
+  const delta = now - gamePlaytime.lastTick;
 
-          if (WindowManager.mainWindow) {
-            WindowManager.mainWindow.webContents.send("on-playtime", game.id);
-          }
+  gameRepository.update(game.id, {
+    playTimeInMilliseconds: game.playTimeInMilliseconds + delta,
+    lastTimePlayed: new Date(),
+  });
 
-          await gameRepository.update(game.id, {
-            playTimeInMilliseconds: game.playTimeInMilliseconds + delta,
-          });
+  gamesPlaytime.set(game.id, {
+    ...gamePlaytime,
+    lastTick: now,
+  });
 
-          gameRepository.update(game.id, {
-            lastTimePlayed: new Date().toUTCString(),
-          });
-        }
+  if (currentTick % TICKS_TO_UPDATE_API === 0) {
+    const gamePromise = game.remoteId
+      ? updateGamePlaytime(
+          game,
+          now - gamePlaytime.lastSyncTick,
+          game.lastTimePlayed!
+        )
+      : createGame(game);
 
-        gamesPlaytime.set(game.id, performance.now());
-      } else if (gamesPlaytime.has(game.id)) {
-        gamesPlaytime.delete(game.id);
-        if (WindowManager.mainWindow) {
-          WindowManager.mainWindow.webContents.send("on-game-close", game.id);
-        }
-      }
-    }
+    gamePromise
+      .then(() => {
+        gamesPlaytime.set(game.id, {
+          ...gamePlaytime,
+          lastSyncTick: now,
+        });
+      })
+      .catch(() => {});
+  }
+}
 
-    await sleep(sleepTime);
+const onCloseGame = (game: Game) => {
+  const gamePlaytime = gamesPlaytime.get(game.id)!;
+  gamesPlaytime.delete(game.id);
+
+  if (game.remoteId) {
+    updateGamePlaytime(
+      game,
+      performance.now() - gamePlaytime.lastSyncTick,
+      game.lastTimePlayed!
+    ).catch(() => {});
+  } else {
+    createGame(game).catch(() => {});
   }
 };

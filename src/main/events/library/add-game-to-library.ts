@@ -3,54 +3,54 @@ import { gameRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
 
 import type { GameShop } from "@types";
-import { getFileBase64, getSteamAppAsset } from "@main/helpers";
-import { stateManager } from "@main/state-manager";
+
+import { steamGamesWorker } from "@main/workers";
+import { createGame } from "@main/services/library-sync";
+import { steamUrlBuilder } from "@shared";
+import { updateLocalUnlockedAchivements } from "@main/services/achievements/update-local-unlocked-achivements";
 
 const addGameToLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
-  objectID: string,
+  objectId: string,
   title: string,
-  gameShop: GameShop,
-  executablePath: string | null
+  shop: GameShop
 ) => {
   return gameRepository
     .update(
       {
-        objectID,
+        objectID: objectId,
       },
       {
-        shop: gameShop,
+        shop,
         status: null,
-        executablePath,
         isDeleted: false,
       }
     )
     .then(async ({ affected }) => {
       if (!affected) {
-        const steamGame = stateManager
-          .getValue("steamGames")
-          .find((game) => game.id === Number(objectID));
+        const steamGame = await steamGamesWorker.run(Number(objectId), {
+          name: "getById",
+        });
 
         const iconUrl = steamGame?.clientIcon
-          ? getSteamAppAsset("icon", objectID, steamGame.clientIcon)
+          ? steamUrlBuilder.icon(objectId, steamGame.clientIcon)
           : null;
 
-        await gameRepository
-          .insert({
-            title,
-            iconUrl,
-            objectID,
-            shop: gameShop,
-            executablePath,
-          })
-          .then(() => {
-            if (iconUrl) {
-              getFileBase64(iconUrl).then((base64) =>
-                gameRepository.update({ objectID }, { iconUrl: base64 })
-              );
-            }
-          });
+        await gameRepository.insert({
+          title,
+          iconUrl,
+          objectID: objectId,
+          shop,
+        });
       }
+
+      const game = await gameRepository.findOne({
+        where: { objectID: objectId },
+      });
+
+      updateLocalUnlockedAchivements(game!);
+
+      createGame(game!).catch(() => {});
     });
 };
 

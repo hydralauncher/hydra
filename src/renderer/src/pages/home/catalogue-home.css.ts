@@ -1,5 +1,5 @@
 import { style } from "@vanilla-extract/css";
-import { recipe } from "@vanilla-extract/recipes";
+
 import { SPACING_UNIT } from "../../theme.css";
 
 export const catalogueCategories = style({
@@ -16,11 +16,9 @@ export const content = style({
   flex: "1",
 });
 
-export const cards = recipe({
-  base: {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, 1fr)",
-    gap: `${SPACING_UNIT * 2}px`,
-    transition: "all ease 0.2s",
-  },
+export const cards = style({
+  display: "grid",
+  gridTemplateColumns: "repeat(2, 1fr)",
+  gap: `${SPACING_UNIT * 2}px`,
+  transition: "all ease 0.2s",
 });

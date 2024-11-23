@@ -4,6 +4,7 @@ import { Button } from "@renderer/components";
 
 import * as styles from "./game-details.css";
 import * as sidebarStyles from "./sidebar/sidebar.css";
+import * as descriptionHeaderStyles from "./description-header/description-header.css";
 
 import { useTranslation } from "react-i18next";
 
@@ -16,15 +17,15 @@ export function GameDetailsSkeleton() {
         <Skeleton className={styles.heroImageSkeleton} />
       </div>
       <div className={styles.heroPanelSkeleton}>
-        <section className={styles.descriptionHeaderInfo}>
+        <section className={descriptionHeaderStyles.descriptionHeaderInfo}>
           <Skeleton width={155} />
           <Skeleton width={135} />
         </section>
       </div>
       <div className={styles.descriptionContainer}>
         <div className={styles.descriptionContent}>
-          <div className={styles.descriptionHeader}>
-            <section className={styles.descriptionHeaderInfo}>
+          <div className={descriptionHeaderStyles.descriptionHeader}>
+            <section className={descriptionHeaderStyles.descriptionHeaderInfo}>
               <Skeleton width={145} />
               <Skeleton width={150} />
             </section>
@@ -42,23 +43,6 @@ export function GameDetailsSkeleton() {
           </div>
         </div>
         <div className={sidebarStyles.contentSidebar}>
-          <div className={sidebarStyles.contentSidebarTitle}>
-            <h3>HowLongToBeat</h3>
-          </div>
-          <ul className={sidebarStyles.howLongToBeatCategoriesList}>
-            {Array.from({ length: 3 }).map((_, index) => (
-              <Skeleton
-                key={index}
-                className={sidebarStyles.howLongToBeatCategorySkeleton}
-              />
-            ))}
-          </ul>
-          <div
-            className={sidebarStyles.contentSidebarTitle}
-            style={{ border: "none" }}
-          >
-            <h3>{t("requirements")}</h3>
-          </div>
           <div className={sidebarStyles.requirementButtonContainer}>
             <Button
               className={sidebarStyles.requirementButton}

@@ -1,16 +1,14 @@
 import { globalStyle, style } from "@vanilla-extract/css";
 
 import { SPACING_UNIT, vars } from "../../../theme.css";
+import { recipe } from "@vanilla-extract/recipes";
 
 export const contentSidebar = style({
-  borderLeft: `solid 1px ${vars.color.border};`,
+  borderLeft: `solid 1px ${vars.color.border}`,
+  backgroundColor: vars.color.darkBackground,
   width: "100%",
   height: "100%",
   "@media": {
-    "(min-width: 768px)": {
-      width: "100%",
-      maxWidth: "200px",
-    },
     "(min-width: 1024px)": {
       maxWidth: "300px",
       width: "100%",
@@ -20,14 +18,6 @@ export const contentSidebar = style({
       maxWidth: "400px",
     },
   },
-});
-
-export const contentSidebarTitle = style({
-  height: "72px",
-  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
-  display: "flex",
-  alignItems: "center",
-  backgroundColor: vars.color.background,
 });
 
 export const requirementButtonContainer = style({
@@ -46,7 +36,6 @@ export const requirementButton = style({
 export const requirementsDetails = style({
   padding: `${SPACING_UNIT * 2}px`,
   lineHeight: "22px",
-  fontFamily: "'Fira Sans', sans-serif",
   fontSize: "16px",
 });
 
@@ -60,7 +49,7 @@ export const requirementsDetailsSkeleton = style({
 
 export const howLongToBeatCategoriesList = style({
   margin: "0",
-  padding: "16px",
+  padding: `${SPACING_UNIT * 2}px`,
   display: "flex",
   flexDirection: "column",
   gap: "16px",
@@ -70,8 +59,9 @@ export const howLongToBeatCategory = style({
   display: "flex",
   flexDirection: "column",
   gap: "4px",
-  backgroundColor: vars.color.background,
-  borderRadius: "8px",
+  background:
+    "linear-gradient(90deg, transparent 20%, rgb(255 255 255 / 2%) 100%)",
+  borderRadius: "4px",
   padding: `8px 16px`,
   border: `solid 1px ${vars.color.border}`,
 });
@@ -82,11 +72,98 @@ export const howLongToBeatCategoryLabel = style({
 
 export const howLongToBeatCategorySkeleton = style({
   border: `solid 1px ${vars.color.border}`,
-  borderRadius: "8px",
+  borderRadius: "4px",
   height: "76px",
+});
+
+export const statsSection = style({
+  display: "flex",
+  gap: `${SPACING_UNIT * 2}px`,
+  padding: `${SPACING_UNIT * 2}px`,
+  justifyContent: "space-between",
+  transition: "max-height ease 0.5s",
+  overflow: "hidden",
+  "@media": {
+    "(min-width: 1024px)": {
+      flexDirection: "column",
+    },
+    "(min-width: 1280px)": {
+      flexDirection: "row",
+    },
+  },
+});
+
+export const statsCategoryTitle = style({
+  fontSize: "14px",
+  fontWeight: "bold",
+  display: "flex",
+  alignItems: "center",
+  gap: `${SPACING_UNIT}px`,
+});
+
+export const statsCategory = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT / 2}px`,
 });
 
 globalStyle(`${requirementsDetails} a`, {
   display: "flex",
-  color: vars.color.bodyText,
+  color: vars.color.body,
+});
+
+export const list = style({
+  listStyle: "none",
+  margin: "0",
+  display: "flex",
+  flexDirection: "column",
+  gap: `${SPACING_UNIT * 2}px`,
+  padding: `${SPACING_UNIT * 2}px`,
+});
+
+export const listItem = style({
+  display: "flex",
+  cursor: "pointer",
+  transition: "all ease 0.1s",
+  color: vars.color.muted,
+  width: "100%",
+  overflow: "hidden",
+  borderRadius: "4px",
+  padding: `${SPACING_UNIT}px ${SPACING_UNIT}px`,
+  gap: `${SPACING_UNIT * 2}px`,
+  alignItems: "center",
+  textAlign: "left",
+  ":hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    textDecoration: "none",
+  },
+});
+
+export const listItemImage = recipe({
+  base: {
+    width: "54px",
+    height: "54px",
+    borderRadius: "4px",
+    objectFit: "cover",
+  },
+  variants: {
+    unlocked: {
+      false: {
+        filter: "grayscale(100%)",
+      },
+    },
+  },
+});
+
+export const subscriptionRequiredButton = style({
+  textDecoration: "none",
+  display: "flex",
+  justifyContent: "center",
+  width: "100%",
+  gap: `${SPACING_UNIT / 2}px`,
+  color: vars.color.warning,
+  cursor: "pointer",
+  ":hover": {
+    textDecoration: "underline",
+  },
 });
