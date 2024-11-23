@@ -1,8 +1,7 @@
 {
+  "language_name": "Türkçe",
   "home": {
     "featured": "Öne çıkan",
-    "recently_added": "Son eklenen",
-    "trending": "Popüler",
     "surprise_me": "Şaşırt beni",
     "no_results": "Sonuç bulunamadı"
   },
@@ -12,16 +11,10 @@
     "settings": "Ayarlar",
     "my_library": "Kütüphane",
     "downloading_metadata": "{{title}} (Metadata indiriliyor…)",
-    "checking_files": "{{title}} ({{percentage}} - Dosyalar kontrol ediliyor…)",
     "paused": "{{title}} (Duraklatıldı)",
     "downloading": "{{title}} ({{percentage}} - İndiriliyor…)",
     "filter": "Kütüphaneyi filtrele",
-    "follow_us": "Bizi takip et",
-    "home": "Ana menü",
-    "discord": "Discord'umuza katıl",
-    "telegram": "Telegram'umuza katıl",
-    "x": "X'te bizi takip et",
-    "github": "GitHub'da bize katkı yap"
+    "home": "Ana menü"
   },
   "header": {
     "search": "Ara",
@@ -34,7 +27,6 @@
   "bottom_panel": {
     "no_downloads_in_progress": "İndirilen bir şey yok",
     "downloading_metadata": "{{title}} metadatası indiriliyor…",
-    "checking_files": "{{title}} dosyaları kontrol ediliyor… ({{percentage}} tamamlandı)",
     "downloading": "{{title}} indiriliyor… ({{percentage}} tamamlandı) - Bitiş {{eta}} - {{speed}}"
   },
   "catalogue": {
@@ -52,22 +44,15 @@
     "pause": "Duraklat",
     "cancel": "İptal et",
     "remove": "Sil",
-    "remove_from_list": "Sil",
     "space_left_on_disk": "Diskte {{space}} yer kaldı",
     "eta": "Bitiş {{eta}}",
     "downloading_metadata": "Metadata indiriliyor…",
-    "checking_files": "Dosyalar kontrol ediliyor…",
     "filter": "Repackleri filtrele",
     "requirements": "Sistem gereksinimleri",
     "minimum": "Minimum",
     "recommended": "Önerilen",
-    "no_minimum_requirements": "{{title}} minimum sistem gereksinim bilgilerini karşılamıyor",
-    "no_recommended_requirements": "{{title}} önerilen sistem gereksinim bilgilerini karşılamıyor",
-    "paused_progress": "{{progress}} (Duraklatıldı)",
     "release_date": "{{date}} tarihinde çıktı",
     "publisher": "{{publisher}} tarihinde yayınlandı",
-    "copy_link_to_clipboard": "Link'i kopyala",
-    "copied_link_to_clipboard": "Link kopyalandı",
     "hours": "saatler",
     "minutes": "dakikalar",
     "amount_hours": "{{amount}} saat",
@@ -86,17 +71,8 @@
     "playing_now": "Şimdi oynanıyor",
     "change": "Değiştir",
     "repacks_modal_description": "İndirmek istediğiiniz repacki seçin",
-    "downloads_path": "İndirme yolu",
     "select_folder_hint": "Varsayılan klasörü değiştirmek için ulaşmanız gereken ayar",
-    "download_now": "Şimdi",
-    "installation_instructions": "Kurulum",
-    "installation_instructions_description": "Bu oyunu kurmak için ek adımlar gerekiyor",
-    "online_fix_instruction": "OnlineFix oyunlarını ayıklamak için parola gerekiyor. Gerekli olduğunda bu parolayı kullanın:",
-    "dodi_installation_instruction": "Dodi installerını açtığınızda, kurulumu başlatmak için bu tuşa basın <0 />:",
-    "dont_show_it_again": "Tekrar gösterme",
-    "copy_to_clipboard": "Kopyala",
-    "copied_to_clipboard": "Kopyalandı",
-    "got_it": "Tamam"
+    "download_now": "Şimdi"
   },
   "activation": {
     "title": "Hydra'yı aktif et",
@@ -112,19 +88,13 @@
     "eta": "Bitiş {{eta}}",
     "paused": "Duraklatıldı",
     "verifying": "Doğrulanıyor…",
-    "completed_at": "{{date}} tarihinde tamamlanacak",
     "completed": "Tamamlandı",
-    "cancelled": "İptal edildi",
-    "download_again": "Tekrar indir",
     "cancel": "İptal et",
     "filter": "Yüklü oyunları filtrele",
     "remove": "Kaldır",
     "downloading_metadata": "Metadata indiriliyor…",
-    "checking_files": "Dosyalar kontrol ediliyor…",
-    "starting_download": "İndirme başlatılıyor…",
     "deleting": "Installer siliniyor…",
     "delete": "Installer'ı sil",
-    "remove_from_list": "Kaldır",
     "delete_modal_title": "Emin misiniz?",
     "delete_modal_description": "Bu bilgisayarınızdan tüm kurulum dosyalarını silecek",
     "install": "Kur"
@@ -134,9 +104,7 @@
     "change": "Güncelle",
     "notifications": "Bildirimler",
     "enable_download_notifications": "Bir indirme bittiğinde",
-    "enable_repack_list_notifications": "Yeni bir repack eklendiğinde",
-    "telemetry": "Telemetri",
-    "telemetry_description": "Anonim kullanım istatistiklerini aktifleştir"
+    "enable_repack_list_notifications": "Yeni bir repack eklendiğinde"
   },
   "notifications": {
     "download_complete": "İndirme tamamlandı",

@@ -1,0 +1,21 @@
+@use "../../scss/globals.scss";
+
+.profile-avatar {
+  border-radius: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: globals.$background-color;
+  border: solid 1px globals.$border-color;
+  cursor: pointer;
+  color: globals.$muted-color;
+  position: relative;
+
+  &__image {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    overflow: hidden;
+    border-radius: 4px;
+  }
+}

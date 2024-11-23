@@ -1,6 +1,5 @@
 import { registerEvent } from "../register-event";
 import { gameRepository } from "../../repository";
-import { GameStatus } from "@shared";
 
 const removeGame = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -9,10 +8,9 @@ const removeGame = async (
   await gameRepository.update(
     {
       id: gameId,
-      status: GameStatus.Cancelled,
     },
     {
-      status: null,
+      status: "removed",
       downloadPath: null,
       bytesDownloaded: 0,
       progress: 0,

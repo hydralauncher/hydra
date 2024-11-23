@@ -1,15 +1,12 @@
 import { style } from "@vanilla-extract/css";
-import { SPACING_UNIT, vars } from "../../theme.css";
 
-export const homeCategories = style({
-  display: "flex",
-  gap: `${SPACING_UNIT}px`,
-});
+import { SPACING_UNIT, vars } from "../../theme.css";
 
 export const homeHeader = style({
   display: "flex",
   gap: `${SPACING_UNIT}px`,
   justifyContent: "space-between",
+  alignItems: "center",
 });
 
 export const content = style({
@@ -62,4 +59,19 @@ export const noResults = style({
   flexDirection: "column",
   gap: "16px",
   gridColumn: "1 / -1",
+});
+
+export const buttonsList = style({
+  display: "flex",
+  listStyle: "none",
+  margin: "0",
+  padding: "0",
+  gap: `${SPACING_UNIT}px`,
+});
+
+export const flameIcon = style({
+  width: "30px",
+  top: "-10px",
+  left: "-5px",
+  position: "absolute",
 });

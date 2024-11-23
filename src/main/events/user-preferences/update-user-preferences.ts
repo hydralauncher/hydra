@@ -2,17 +2,17 @@ import { userPreferencesRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
 
 import type { UserPreferences } from "@types";
-import { RealDebridClient } from "@main/services/real-debrid";
+import i18next from "i18next";
 
 const updateUserPreferences = async (
   _event: Electron.IpcMainInvokeEvent,
   preferences: Partial<UserPreferences>
 ) => {
-  if (preferences.realDebridApiToken) {
-    RealDebridClient.authorize(preferences.realDebridApiToken);
+  if (preferences.language) {
+    i18next.changeLanguage(preferences.language);
   }
 
-  await userPreferencesRepository.upsert(
+  return userPreferencesRepository.upsert(
     {
       id: 1,
       ...preferences,

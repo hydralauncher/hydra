@@ -1,116 +1,113 @@
-import {
-  gameRepository,
-  repackRepository,
-  userPreferencesRepository,
-} from "@main/repository";
-
 import { registerEvent } from "../register-event";
+import parseTorrent from "parse-torrent";
+import type { StartGameDownloadPayload } from "@types";
+import { DownloadManager, HydraApi, logger } from "@main/services";
 
-import type { GameShop } from "@types";
-import { getFileBase64, getSteamAppAsset } from "@main/helpers";
-import { In } from "typeorm";
-import { DownloadManager } from "@main/services";
-import { Downloader, GameStatus } from "@shared";
-import { stateManager } from "@main/state-manager";
+import { Not } from "typeorm";
+import { steamGamesWorker } from "@main/workers";
+import { createGame } from "@main/services/library-sync";
+import { steamUrlBuilder } from "@shared";
+import { dataSource } from "@main/data-source";
+import { DownloadQueue, Game } from "@main/entity";
+import { HydraAnalytics } from "@main/services/hydra-analytics";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
-  repackId: number,
-  objectID: string,
-  title: string,
-  gameShop: GameShop,
-  downloadPath: string
+  payload: StartGameDownloadPayload
 ) => {
-  const userPreferences = await userPreferencesRepository.findOne({
-    where: { id: 1 },
-  });
+  const { objectId, title, shop, downloadPath, downloader, uri } = payload;
 
-  const downloader = userPreferences?.realDebridApiToken
-    ? Downloader.RealDebrid
-    : Downloader.Torrent;
+  return dataSource.transaction(async (transactionalEntityManager) => {
+    const gameRepository = transactionalEntityManager.getRepository(Game);
+    const downloadQueueRepository =
+      transactionalEntityManager.getRepository(DownloadQueue);
 
-  const [game, repack] = await Promise.all([
-    gameRepository.findOne({
+    const game = await gameRepository.findOne({
       where: {
-        objectID,
+        objectID: objectId,
+        shop,
       },
-    }),
-    repackRepository.findOne({
-      where: {
-        id: repackId,
-      },
-    }),
-  ]);
+    });
 
-  if (!repack || game?.status === GameStatus.Downloading) return;
-  DownloadManager.pauseDownload();
+    await DownloadManager.pauseDownload();
 
-  await gameRepository.update(
-    {
-      status: In([
-        GameStatus.Downloading,
-        GameStatus.DownloadingMetadata,
-        GameStatus.CheckingFiles,
-      ]),
-    },
-    { status: GameStatus.Paused }
-  );
-
-  if (game) {
     await gameRepository.update(
-      {
-        id: game.id,
-      },
-      {
-        status: GameStatus.DownloadingMetadata,
-        downloadPath: downloadPath,
-        downloader,
-        repack: { id: repackId },
-        isDeleted: false,
-      }
+      { status: "active", progress: Not(1) },
+      { status: "paused" }
     );
 
-    DownloadManager.downloadGame(game.id);
-
-    game.status = GameStatus.DownloadingMetadata;
-
-    return game;
-  } else {
-    const steamGame = stateManager
-      .getValue("steamGames")
-      .find((game) => game.id === Number(objectID));
-
-    const iconUrl = steamGame?.clientIcon
-      ? getSteamAppAsset("icon", objectID, steamGame.clientIcon)
-      : null;
-
-    const createdGame = await gameRepository
-      .save({
-        title,
-        iconUrl,
-        objectID,
-        downloader,
-        shop: gameShop,
-        status: GameStatus.Downloading,
-        downloadPath,
-        repack: { id: repackId },
-      })
-      .then((result) => {
-        if (iconUrl) {
-          getFileBase64(iconUrl).then((base64) =>
-            gameRepository.update({ objectID }, { iconUrl: base64 })
-          );
+    if (game) {
+      await gameRepository.update(
+        {
+          id: game.id,
+        },
+        {
+          status: "active",
+          progress: 0,
+          bytesDownloaded: 0,
+          downloadPath,
+          downloader,
+          uri,
+          isDeleted: false,
         }
-
-        return result;
+      );
+    } else {
+      const steamGame = await steamGamesWorker.run(Number(objectId), {
+        name: "getById",
       });
 
-    DownloadManager.downloadGame(createdGame.id);
+      const iconUrl = steamGame?.clientIcon
+        ? steamUrlBuilder.icon(objectId, steamGame.clientIcon)
+        : null;
 
-    const { repack: _, ...rest } = createdGame;
+      await gameRepository.insert({
+        title,
+        iconUrl,
+        objectID: objectId,
+        downloader,
+        shop,
+        status: "active",
+        downloadPath,
+        uri,
+      });
+    }
 
-    return rest;
-  }
+    const updatedGame = await gameRepository.findOne({
+      where: {
+        objectID: objectId,
+      },
+    });
+
+    createGame(updatedGame!).catch(() => {});
+
+    HydraApi.post(
+      "/games/download",
+      {
+        objectId: updatedGame!.objectID,
+        shop: updatedGame!.shop,
+      },
+      { needsAuth: false }
+    ).catch((err) => {
+      logger.error("Failed to create game download", err);
+    });
+
+    if (uri.startsWith("magnet:")) {
+      try {
+        const { infoHash } = await parseTorrent(payload.uri);
+        if (infoHash) {
+          HydraAnalytics.postDownload(infoHash).catch(() => {});
+        }
+      } catch (err) {
+        logger.error("Failed to parse torrent", err);
+      }
+    }
+
+    await DownloadManager.cancelDownload(updatedGame!.id);
+    await DownloadManager.startDownload(updatedGame!);
+
+    await downloadQueueRepository.delete({ game: { id: updatedGame!.id } });
+    await downloadQueueRepository.insert({ game: { id: updatedGame!.id } });
+  });
 };
 
 registerEvent("startGameDownload", startGameDownload);

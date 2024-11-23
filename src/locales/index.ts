@@ -1,18 +1,57 @@
-export { default as en } from "./en/translation.json";
-export { default as pt } from "./pt/translation.json";
-export { default as es } from "./es/translation.json";
-export { default as nl } from "./nl/translation.json";
-export { default as fr } from "./fr/translation.json";
-export { default as hu } from "./hu/translation.json";
-export { default as it } from "./it/translation.json";
-export { default as pl } from "./pl/translation.json";
-export { default as ru } from "./ru/translation.json";
-export { default as tr } from "./tr/translation.json";
-export { default as be } from "./be/translation.json";
-export { default as uk } from "./uk/translation.json";
-export { default as zh } from "./zh/translation.json";
-export { default as id } from "./id/translation.json";
-export { default as ko } from "./ko/translation.json";
-export { default as da } from "./da/translation.json";
-export { default as ar } from "./ar/translation.json";
-export { default as fa } from "./fa/translation.json";
+import en from "./en/translation.json";
+import ptPT from "./pt-PT/translation.json";
+import ptBR from "./pt-BR/translation.json";
+import es from "./es/translation.json";
+import nl from "./nl/translation.json";
+import fr from "./fr/translation.json";
+import hu from "./hu/translation.json";
+import it from "./it/translation.json";
+import de from "./de/translation.json";
+import pl from "./pl/translation.json";
+import ru from "./ru/translation.json";
+import tr from "./tr/translation.json";
+import be from "./be/translation.json";
+import uk from "./uk/translation.json";
+import zh from "./zh/translation.json";
+import id from "./id/translation.json";
+import ko from "./ko/translation.json";
+import da from "./da/translation.json";
+import ar from "./ar/translation.json";
+import fa from "./fa/translation.json";
+import ro from "./ro/translation.json";
+import ca from "./ca/translation.json";
+import kk from "./kk/translation.json";
+import cs from "./cs/translation.json";
+import nb from "./nb/translation.json";
+import et from "./et/translation.json";
+import bg from "./bg/translation.json";
+
+export default {
+  "pt-BR": ptBR,
+  "pt-PT": ptPT,
+  en,
+  de,
+  es,
+  nl,
+  fr,
+  hu,
+  it,
+  pl,
+  ru,
+  tr,
+  be,
+  uk,
+  zh,
+  id,
+  ko,
+  da,
+  ar,
+  fa,
+  ro,
+  ca,
+  bg,
+  kk,
+  cs,
+  nb,
+  et,
+};

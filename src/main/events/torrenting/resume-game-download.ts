@@ -1,9 +1,11 @@
+import { Not } from "typeorm";
+
 import { registerEvent } from "../register-event";
 import { gameRepository } from "../../repository";
-import { getDownloadsPath } from "../helpers/get-downloads-path";
-import { In } from "typeorm";
+
 import { DownloadManager } from "@main/services";
-import { GameStatus } from "@shared";
+import { dataSource } from "@main/data-source";
+import { DownloadQueue, Game } from "@main/entity";
 
 const resumeGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -14,35 +16,32 @@ const resumeGameDownload = async (
       id: gameId,
       isDeleted: false,
     },
-    relations: { repack: true },
   });
 
   if (!game) return;
-  DownloadManager.pauseDownload();
 
-  if (game.status === GameStatus.Paused) {
-    const downloadsPath = game.downloadPath ?? (await getDownloadsPath());
+  if (game.status === "paused") {
+    await dataSource.transaction(async (transactionalEntityManager) => {
+      await DownloadManager.pauseDownload();
 
-    DownloadManager.resumeDownload(gameId);
+      await transactionalEntityManager
+        .getRepository(Game)
+        .update({ status: "active", progress: Not(1) }, { status: "paused" });
 
-    await gameRepository.update(
-      {
-        status: In([
-          GameStatus.Downloading,
-          GameStatus.DownloadingMetadata,
-          GameStatus.CheckingFiles,
-        ]),
-      },
-      { status: GameStatus.Paused }
-    );
+      await DownloadManager.resumeDownload(game);
 
-    await gameRepository.update(
-      { id: game.id },
-      {
-        status: GameStatus.Downloading,
-        downloadPath: downloadsPath,
-      }
-    );
+      await transactionalEntityManager
+        .getRepository(DownloadQueue)
+        .delete({ game: { id: gameId } });
+
+      await transactionalEntityManager
+        .getRepository(DownloadQueue)
+        .insert({ game: { id: gameId } });
+
+      await transactionalEntityManager
+        .getRepository(Game)
+        .update({ id: gameId }, { status: "active" });
+    });
   }
 };
 

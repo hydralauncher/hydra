@@ -1,3 +1,4 @@
+export * from "./avatar/avatar";
 export * from "./bottom-panel/bottom-panel";
 export * from "./button/button";
 export * from "./game-card/game-card";
@@ -8,3 +9,8 @@ export * from "./sidebar/sidebar";
 export * from "./text-field/text-field";
 export * from "./checkbox-field/checkbox-field";
 export * from "./link/link";
+export * from "./select-field/select-field";
+export * from "./toast/toast";
+export * from "./badge/badge";
+export * from "./confirmation-modal/confirmation-modal";
+export * from "./suspense-wrapper/suspense-wrapper";

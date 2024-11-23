@@ -7,3 +7,7 @@ export const form = style({
   flexDirection: "column",
   gap: `${SPACING_UNIT}px`,
 });
+
+export const description = style({
+  marginBottom: `${SPACING_UNIT * 2}px`,
+});

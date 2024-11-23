@@ -1,15 +1,37 @@
 import { globalStyle, keyframes, style } from "@vanilla-extract/css";
+
 import { SPACING_UNIT, vars } from "../../theme.css";
+import { recipe } from "@vanilla-extract/recipes";
+
+export const HERO_HEIGHT = 300;
 
 export const slideIn = keyframes({
-  "0%": { transform: `translateY(${40 + 16}px)` },
-  "100%": { transform: "translateY(0)" },
+  "0%": { transform: `translateY(${40 + SPACING_UNIT * 2}px)`, opacity: "0px" },
+  "100%": { transform: "translateY(0)", opacity: "1" },
+});
+
+export const wrapper = recipe({
+  base: {
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+    width: "100%",
+    height: "100%",
+    transition: "all ease 0.3s",
+  },
+  variants: {
+    blurredContent: {
+      true: {
+        filter: "blur(20px)",
+      },
+    },
+  },
 });
 
 export const hero = style({
   width: "100%",
-  height: "300px",
-  minHeight: "300px",
+  height: `${HERO_HEIGHT}px`,
+  minHeight: `${HERO_HEIGHT}px`,
   display: "flex",
   flexDirection: "column",
   position: "relative",
@@ -27,9 +49,11 @@ export const heroContent = style({
   height: "100%",
   width: "100%",
   display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-end",
 });
 
-export const heroBackdrop = style({
+export const heroLogoBackdrop = style({
   width: "100%",
   height: "100%",
   background: "linear-gradient(0deg, rgba(0, 0, 0, 0.3) 60%, transparent 100%)",
@@ -41,15 +65,25 @@ export const heroBackdrop = style({
 
 export const heroImage = style({
   width: "100%",
-  height: "100%",
+  height: `${HERO_HEIGHT}px`,
+  minHeight: `${HERO_HEIGHT}px`,
   objectFit: "cover",
   objectPosition: "top",
   transition: "all ease 0.2s",
+  position: "absolute",
+  zIndex: "0",
   "@media": {
     "(min-width: 1250px)": {
       objectPosition: "center",
+      height: "350px",
+      minHeight: "350px",
     },
   },
+});
+
+export const gameLogo = style({
+  width: 300,
+  alignSelf: "flex-end",
 });
 
 export const heroImageSkeleton = style({
@@ -66,12 +100,15 @@ export const container = style({
   height: "100%",
   display: "flex",
   flexDirection: "column",
+  overflow: "auto",
+  zIndex: "1",
 });
 
 export const descriptionContainer = style({
   display: "flex",
   width: "100%",
   flex: "1",
+  background: `linear-gradient(0deg, ${vars.color.background} 50%, ${vars.color.darkBackground} 100%)`,
 });
 
 export const descriptionContent = style({
@@ -82,7 +119,6 @@ export const descriptionContent = style({
 export const description = style({
   userSelect: "text",
   lineHeight: "22px",
-  fontFamily: "'Fira Sans', sans-serif",
   fontSize: "16px",
   padding: `${SPACING_UNIT * 3}px ${SPACING_UNIT * 2}px`,
   "@media": {
@@ -111,32 +147,16 @@ export const descriptionSkeleton = style({
   marginRight: "auto",
 });
 
-export const descriptionHeader = style({
-  width: "100%",
-  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  backgroundColor: vars.color.background,
-  height: "72px",
-});
-
-export const descriptionHeaderInfo = style({
-  display: "flex",
-  gap: `${SPACING_UNIT}px`,
-  flexDirection: "column",
-});
-
 export const randomizerButton = style({
   animationName: slideIn,
   animationDuration: "0.2s",
   position: "fixed",
-  /* Bottom panel height + spacing */
-  bottom: `${26 + SPACING_UNIT * 2}px`,
+  bottom: `${SPACING_UNIT * 3}px`,
   /* Scroll bar + spacing */
   right: `${9 + SPACING_UNIT * 2}px`,
-  boxShadow: "rgba(255, 255, 255, 0.1) 0px 0px 10px 3px",
+  boxShadow: "rgba(255, 255, 255, 0.1) 0px 0px 10px 1px",
   border: `solid 2px ${vars.color.border}`,
+  zIndex: "1",
   backgroundColor: vars.color.background,
   ":hover": {
     backgroundColor: vars.color.background,
@@ -145,6 +165,12 @@ export const randomizerButton = style({
   },
   ":active": {
     transform: "scale(0.98)",
+  },
+  ":disabled": {
+    boxShadow: "none",
+    transform: "none",
+    opacity: "0.8",
+    backgroundColor: vars.color.background,
   },
 });
 
@@ -174,5 +200,35 @@ globalStyle(`${description} img`, {
 });
 
 globalStyle(`${description} a`, {
-  color: vars.color.bodyText,
+  color: vars.color.body,
+});
+
+export const cloudSyncButton = style({
+  padding: `${SPACING_UNIT * 1.5}px ${SPACING_UNIT * 2}px`,
+  backgroundColor: "rgba(0, 0, 0, 0.6)",
+  backdropFilter: "blur(20px)",
+  borderRadius: "8px",
+  transition: "all ease 0.2s",
+  cursor: "pointer",
+  minHeight: "40px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: `${SPACING_UNIT}px`,
+  color: vars.color.muted,
+  fontSize: "14px",
+  border: `solid 1px ${vars.color.border}`,
+  boxShadow: "0px 0px 10px 0px rgba(0, 0, 0, 0.8)",
+  animation: `${slideIn} 0.2s cubic-bezier(0.33, 1, 0.68, 1) 0s 1 normal none running`,
+  animationDuration: "0.3s",
+  ":active": {
+    opacity: "0.9",
+  },
+  ":disabled": {
+    opacity: vars.opacity.disabled,
+    cursor: "not-allowed",
+  },
+  ":hover": {
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
 });

@@ -1,6 +1,6 @@
 name: Bug Report
-description: Create a report to help us improve. Write in English, please.
-title: "[BUG] "
+description: Create a report to help us improve. Write in English.
+title: "[BUG] Write a title for your bug"
 labels: ["bug"]
 body:
   - type: markdown
@@ -27,14 +27,17 @@ body:
       label: Expected behavior
       description: A clear and concise description of what you expected to happen.
     validations:
-      required: true
-  - type: textarea
-    id: screenshots
-    attributes:
-      label: Screenshots
-      description: If applicable, add screenshots to help explain your problem.
-    validations:
       required: false
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional information and data
+      description: |
+        Add screenshots and upload your logs file here.
+        Logs location on Windows: "%appdata%/hydra"
+        Logs location on Linux: "~/.config/hydra/"
+    validations:
+      required: true
   - type: input
     id: OS
     attributes:
@@ -49,10 +52,14 @@ body:
       description: Please provide the version of Hydra you are using.
     validations:
       required: true
-  - type: textarea
-    id: additional-info
+  - type: checkboxes
+    id: terms
     attributes:
-      label: Additional Information
-      description: Please provide any additional information and context about your problem.
-    validations:
-      required: false
+      label: Before opening this Issue
+      options:
+        - label: I have searched the issues of this repository and believe that this is not a duplicate.
+          required: true
+        - label: I am aware that Hydra team does not offer any support or help regarding the downloaded games.
+          required: true
+        - label: I have read the [Frequently Asked Questions (FAQ)](https://github.com/hydralauncher/hydra/wiki/FAQ).
+          required: true

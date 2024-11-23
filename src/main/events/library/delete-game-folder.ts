@@ -1,7 +1,6 @@
 import path from "node:path";
 import fs from "node:fs";
 
-import { GameStatus } from "@shared";
 import { gameRepository } from "@main/repository";
 
 import { getDownloadsPath } from "../helpers/get-downloads-path";
@@ -13,11 +12,18 @@ const deleteGameFolder = async (
   gameId: number
 ): Promise<void> => {
   const game = await gameRepository.findOne({
-    where: {
-      id: gameId,
-      status: GameStatus.Cancelled,
-      isDeleted: false,
-    },
+    where: [
+      {
+        id: gameId,
+        isDeleted: false,
+        status: "removed",
+      },
+      {
+        id: gameId,
+        progress: 1,
+        isDeleted: false,
+      },
+    ],
   });
 
   if (!game) return;
@@ -29,7 +35,7 @@ const deleteGameFolder = async (
     );
 
     if (fs.existsSync(folderPath)) {
-      return new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         fs.rm(
           folderPath,
           { recursive: true, force: true, maxRetries: 5, retryDelay: 200 },
@@ -45,6 +51,11 @@ const deleteGameFolder = async (
       });
     }
   }
+
+  await gameRepository.update(
+    { id: gameId },
+    { downloadPath: null, folderName: null, status: null, progress: 0 }
+  );
 };
 
 registerEvent("deleteGameFolder", deleteGameFolder);

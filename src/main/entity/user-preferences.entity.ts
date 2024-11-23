@@ -26,11 +26,20 @@ export class UserPreferences {
   @Column("boolean", { default: false })
   repackUpdatesNotificationsEnabled: boolean;
 
+  @Column("boolean", { default: true })
+  achievementNotificationsEnabled: boolean;
+
   @Column("boolean", { default: false })
   preferQuitInsteadOfHiding: boolean;
 
   @Column("boolean", { default: false })
   runAtStartup: boolean;
+
+  @Column("boolean", { default: false })
+  startMinimized: boolean;
+
+  @Column("boolean", { default: false })
+  disableNsfwAlert: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

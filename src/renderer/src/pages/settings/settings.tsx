@@ -1,77 +1,85 @@
-import { useEffect, useState } from "react";
 import { Button } from "@renderer/components";
 
 import * as styles from "./settings.css";
 import { useTranslation } from "react-i18next";
-import { UserPreferences } from "@types";
 import { SettingsRealDebrid } from "./settings-real-debrid";
 import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
 
-const categories = ["general", "behavior", "real_debrid"];
+import { SettingsDownloadSources } from "./settings-download-sources";
+import {
+  SettingsContextConsumer,
+  SettingsContextProvider,
+} from "@renderer/context";
+import { SettingsPrivacy } from "./settings-privacy";
+import { useUserDetails } from "@renderer/hooks";
+import { useMemo } from "react";
 
-export function Settings() {
-  const [currentCategory, setCurrentCategory] = useState(categories.at(0)!);
-  const [userPreferences, setUserPreferences] =
-    useState<UserPreferences | null>(null);
-
+export default function Settings() {
   const { t } = useTranslation("settings");
 
-  useEffect(() => {
-    window.electron.getUserPreferences().then((userPreferences) => {
-      setUserPreferences(userPreferences);
-    });
-  }, []);
+  const { userDetails } = useUserDetails();
 
-  const handleUpdateUserPreferences = (values: Partial<UserPreferences>) => {
-    window.electron.updateUserPreferences(values);
-  };
+  const categories = useMemo(() => {
+    const categories = [
+      t("general"),
+      t("behavior"),
+      t("download_sources"),
+      "Real-Debrid",
+    ];
 
-  const renderCategory = () => {
-    if (currentCategory === "general") {
-      return (
-        <SettingsGeneral
-          userPreferences={userPreferences}
-          updateUserPreferences={handleUpdateUserPreferences}
-        />
-      );
-    }
-
-    if (currentCategory === "real_debrid") {
-      return (
-        <SettingsRealDebrid
-          userPreferences={userPreferences}
-          updateUserPreferences={handleUpdateUserPreferences}
-        />
-      );
-    }
-
-    return (
-      <SettingsBehavior
-        userPreferences={userPreferences}
-        updateUserPreferences={handleUpdateUserPreferences}
-      />
-    );
-  };
+    if (userDetails) return [...categories, t("privacy")];
+    return categories;
+  }, [userDetails, t]);
 
   return (
-    <section className={styles.container}>
-      <div className={styles.content}>
-        <section className={styles.settingsCategories}>
-          {categories.map((category) => (
-            <Button
-              key={category}
-              theme={currentCategory === category ? "primary" : "outline"}
-              onClick={() => setCurrentCategory(category)}
-            >
-              {t(category)}
-            </Button>
-          ))}
-        </section>
+    <SettingsContextProvider>
+      <SettingsContextConsumer>
+        {({ currentCategoryIndex, setCurrentCategoryIndex }) => {
+          const renderCategory = () => {
+            if (currentCategoryIndex === 0) {
+              return <SettingsGeneral />;
+            }
 
-        <h2>{t(currentCategory)}</h2>
-        {renderCategory()}
-      </div>
-    </section>
+            if (currentCategoryIndex === 1) {
+              return <SettingsBehavior />;
+            }
+
+            if (currentCategoryIndex === 2) {
+              return <SettingsDownloadSources />;
+            }
+
+            if (currentCategoryIndex === 3) {
+              return <SettingsRealDebrid />;
+            }
+
+            return <SettingsPrivacy />;
+          };
+
+          return (
+            <section className={styles.container}>
+              <div className={styles.content}>
+                <section className={styles.settingsCategories}>
+                  {categories.map((category, index) => (
+                    <Button
+                      key={category}
+                      theme={
+                        currentCategoryIndex === index ? "primary" : "outline"
+                      }
+                      onClick={() => setCurrentCategoryIndex(index)}
+                    >
+                      {category}
+                    </Button>
+                  ))}
+                </section>
+
+                <h2>{categories[currentCategoryIndex]}</h2>
+                {renderCategory()}
+              </div>
+            </section>
+          );
+        }}
+      </SettingsContextConsumer>
+    </SettingsContextProvider>
   );
 }

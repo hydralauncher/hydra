@@ -1,43 +1,58 @@
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useDownload } from "@renderer/hooks";
+import { useDownload, useUserDetails } from "@renderer/hooks";
 
-import * as styles from "./bottom-panel.css";
-import { vars } from "../../theme.css";
-import { useEffect, useMemo, useState } from "react";
+import "./bottom-panel.scss";
+
 import { useNavigate } from "react-router-dom";
 import { VERSION_CODENAME } from "@renderer/constants";
-import { GameStatus, GameStatusHelper } from "@shared";
 
 export function BottomPanel() {
   const { t } = useTranslation("bottom_panel");
 
   const navigate = useNavigate();
 
-  const { game, progress, downloadSpeed, eta } = useDownload();
+  const { userDetails } = useUserDetails();
 
-  const isGameDownloading =
-    game && GameStatusHelper.isDownloading(game.status ?? null);
+  const { lastPacket, progress, downloadSpeed, eta } = useDownload();
+
+  const isGameDownloading = !!lastPacket?.game;
 
   const [version, setVersion] = useState("");
+  const [sessionHash, setSessionHash] = useState<null | string>("");
 
   useEffect(() => {
     window.electron.getVersion().then((result) => setVersion(result));
   }, []);
 
+  useEffect(() => {
+    window.electron.getSessionHash().then((result) => setSessionHash(result));
+  }, [userDetails?.id]);
+
   const status = useMemo(() => {
     if (isGameDownloading) {
-      if (game.status === GameStatus.DownloadingMetadata)
-        return t("downloading_metadata", { title: game.title });
-
-      if (game.status === GameStatus.CheckingFiles)
+      if (lastPacket?.isCheckingFiles)
         return t("checking_files", {
-          title: game.title,
+          title: lastPacket?.game.title,
           percentage: progress,
         });
 
+      if (lastPacket?.isDownloadingMetadata)
+        return t("downloading_metadata", {
+          title: lastPacket?.game.title,
+          percentage: progress,
+        });
+
+      if (!eta) {
+        return t("calculating_eta", {
+          title: lastPacket?.game.title,
+          percentage: progress,
+        });
+      }
+
       return t("downloading", {
-        title: game?.title,
+        title: lastPacket?.game.title,
         percentage: progress,
         eta,
         speed: downloadSpeed,
@@ -45,27 +60,30 @@ export function BottomPanel() {
     }
 
     return t("no_downloads_in_progress");
-  }, [t, isGameDownloading, game, progress, eta, downloadSpeed]);
+  }, [
+    t,
+    isGameDownloading,
+    lastPacket?.game,
+    lastPacket?.isDownloadingMetadata,
+    lastPacket?.isCheckingFiles,
+    progress,
+    eta,
+    downloadSpeed,
+  ]);
 
   return (
-    <footer
-      className={styles.bottomPanel}
-      style={{
-        background: isGameDownloading
-          ? `linear-gradient(90deg, ${vars.color.background} ${progress}, ${vars.color.darkBackground} ${progress})`
-          : vars.color.darkBackground,
-      }}
-    >
+    <footer className="bottom-panel">
       <button
         type="button"
-        className={styles.downloadsButton}
+        className="bottom-panel__downloads-button"
         onClick={() => navigate("/downloads")}
       >
         <small>{status}</small>
       </button>
 
       <small>
-        v{version} &quot;{VERSION_CODENAME}&quot;
+        {sessionHash ? `${sessionHash} -` : ""} v{version} &quot;
+        {VERSION_CODENAME}&quot;
       </small>
     </footer>
   );

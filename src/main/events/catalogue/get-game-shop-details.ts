@@ -4,54 +4,58 @@ import { getSteamAppDetails } from "@main/services";
 import type { ShopDetails, GameShop, SteamAppDetails } from "@types";
 
 import { registerEvent } from "../register-event";
-import { stateManager } from "@main/state-manager";
+import { steamGamesWorker } from "@main/workers";
 
-const getLocalizedSteamAppDetails = (
-  objectID: string,
+const getLocalizedSteamAppDetails = async (
+  objectId: string,
   language: string
 ): Promise<ShopDetails | null> => {
   if (language === "english") {
-    return getSteamAppDetails(objectID, language);
+    return getSteamAppDetails(objectId, language);
   }
 
-  return getSteamAppDetails(objectID, language).then((localizedAppDetails) => {
-    const steamGame = stateManager
-      .getValue("steamGames")
-      .find((game) => game.id === Number(objectID));
+  return getSteamAppDetails(objectId, language).then(
+    async (localizedAppDetails) => {
+      const steamGame = await steamGamesWorker.run(Number(objectId), {
+        name: "getById",
+      });
 
-    if (steamGame && localizedAppDetails) {
-      return {
-        ...localizedAppDetails,
-        name: steamGame.name,
-      };
+      if (steamGame && localizedAppDetails) {
+        return {
+          ...localizedAppDetails,
+          name: steamGame.name,
+        };
+      }
+
+      return null;
     }
-
-    return null;
-  });
+  );
 };
 
 const getGameShopDetails = async (
   _event: Electron.IpcMainInvokeEvent,
-  objectID: string,
+  objectId: string,
   shop: GameShop,
   language: string
 ): Promise<ShopDetails | null> => {
   if (shop === "steam") {
     const cachedData = await gameShopCacheRepository.findOne({
-      where: { objectID, language },
+      where: { objectID: objectId, language },
     });
 
-    const appDetails = getLocalizedSteamAppDetails(objectID, language).then(
+    const appDetails = getLocalizedSteamAppDetails(objectId, language).then(
       (result) => {
-        gameShopCacheRepository.upsert(
-          {
-            objectID,
-            shop: "steam",
-            language,
-            serializedData: JSON.stringify(result),
-          },
-          ["objectID"]
-        );
+        if (result) {
+          gameShopCacheRepository.upsert(
+            {
+              objectID: objectId,
+              shop: "steam",
+              language,
+              serializedData: JSON.stringify(result),
+            },
+            ["objectID"]
+          );
+        }
 
         return result;
       }
@@ -64,7 +68,7 @@ const getGameShopDetails = async (
     if (cachedGame) {
       return {
         ...cachedGame,
-        objectID,
+        objectId,
       } as ShopDetails;
     }
 

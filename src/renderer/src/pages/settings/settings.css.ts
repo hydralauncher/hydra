@@ -1,5 +1,6 @@
-import { SPACING_UNIT, vars } from "../../theme.css";
 import { style } from "@vanilla-extract/css";
+
+import { SPACING_UNIT, vars } from "../../theme.css";
 
 export const container = style({
   padding: "24px",

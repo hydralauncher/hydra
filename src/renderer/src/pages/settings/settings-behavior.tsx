@@ -1,22 +1,24 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { UserPreferences } from "@types";
-
 import { CheckboxField } from "@renderer/components";
+import { useAppSelector } from "@renderer/hooks";
+import { settingsContext } from "@renderer/context";
 
-export interface SettingsBehaviorProps {
-  userPreferences: UserPreferences | null;
-  updateUserPreferences: (values: Partial<UserPreferences>) => void;
-}
+export function SettingsBehavior() {
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
 
-export function SettingsBehavior({
-  updateUserPreferences,
-  userPreferences,
-}: SettingsBehaviorProps) {
+  const [showRunAtStartup, setShowRunAtStartup] = useState(false);
+
+  const { updateUserPreferences } = useContext(settingsContext);
+
   const [form, setForm] = useState({
     preferQuitInsteadOfHiding: false,
     runAtStartup: false,
+    startMinimized: false,
+    disableNsfwAlert: false,
   });
 
   const { t } = useTranslation("settings");
@@ -26,9 +28,17 @@ export function SettingsBehavior({
       setForm({
         preferQuitInsteadOfHiding: userPreferences.preferQuitInsteadOfHiding,
         runAtStartup: userPreferences.runAtStartup,
+        startMinimized: userPreferences.startMinimized,
+        disableNsfwAlert: userPreferences.disableNsfwAlert,
       });
     }
   }, [userPreferences]);
+
+  useEffect(() => {
+    window.electron.isPortableVersion().then((isPortableVersion) => {
+      setShowRunAtStartup(!isPortableVersion);
+    });
+  }, []);
 
   const handleChange = (values: Partial<typeof form>) => {
     setForm((prev) => ({ ...prev, ...values }));
@@ -47,13 +57,44 @@ export function SettingsBehavior({
         }
       />
 
+      {showRunAtStartup && (
+        <CheckboxField
+          label={t("launch_with_system")}
+          onChange={() => {
+            handleChange({ runAtStartup: !form.runAtStartup });
+            window.electron.autoLaunch({
+              enabled: !form.runAtStartup,
+              minimized: form.startMinimized,
+            });
+          }}
+          checked={form.runAtStartup}
+        />
+      )}
+
+      {showRunAtStartup && (
+        <div style={{ opacity: form.runAtStartup ? 1 : 0.5 }}>
+          <CheckboxField
+            label={t("launch_minimized")}
+            style={{ cursor: form.runAtStartup ? "pointer" : "not-allowed" }}
+            checked={form.runAtStartup && form.startMinimized}
+            disabled={!form.runAtStartup}
+            onChange={() => {
+              handleChange({ startMinimized: !form.startMinimized });
+              window.electron.autoLaunch({
+                minimized: !form.startMinimized,
+                enabled: form.runAtStartup,
+              });
+            }}
+          />
+        </div>
+      )}
+
       <CheckboxField
-        label={t("launch_with_system")}
-        onChange={() => {
-          handleChange({ runAtStartup: !form.runAtStartup });
-          window.electron.autoLaunch(!form.runAtStartup);
-        }}
-        checked={form.runAtStartup}
+        label={t("disable_nsfw_alert")}
+        checked={form.disableNsfwAlert}
+        onChange={() =>
+          handleChange({ disableNsfwAlert: !form.disableNsfwAlert })
+        }
       />
     </>
   );

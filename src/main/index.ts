@@ -2,11 +2,16 @@ import { app, BrowserWindow, net, protocol } from "electron";
 import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
+import url from "node:url";
+import fs from "node:fs";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
-import { logger, resolveDatabaseUpdates, WindowManager } from "@main/services";
+import { logger, PythonInstance, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
-import * as resources from "@locales";
+import resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
+import { knexClient, migrationConfig } from "./knex-client";
+import { databaseDirectory } from "./constants";
+
 const { autoUpdater } = updater;
 
 autoUpdater.setFeedURL({
@@ -43,35 +48,76 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient(PROTOCOL);
 }
 
+const runMigrations = async () => {
+  if (!fs.existsSync(databaseDirectory)) {
+    fs.mkdirSync(databaseDirectory, { recursive: true });
+  }
+
+  await knexClient.migrate.list(migrationConfig).then((result) => {
+    logger.log(
+      "Migrations to run:",
+      result[1].map((migration) => migration.name)
+    );
+  });
+
+  await knexClient.migrate.latest(migrationConfig);
+};
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
-  electronApp.setAppUserModelId("site.hydralauncher.hydra");
+app.whenReady().then(async () => {
+  electronApp.setAppUserModelId("gg.hydralauncher.hydra");
 
-  protocol.handle("hydra", (request) =>
-    net.fetch("file://" + request.url.slice("hydra://".length))
-  );
+  protocol.handle("local", (request) => {
+    const filePath = request.url.slice("local:".length);
+    return net.fetch(url.pathToFileURL(decodeURI(filePath)).toString());
+  });
 
-  dataSource.initialize().then(async () => {
-    await dataSource.runMigrations();
-
-    await resolveDatabaseUpdates();
-
-    await import("./main");
-
-    const userPreferences = await userPreferencesRepository.findOne({
-      where: { id: 1 },
+  await runMigrations()
+    .then(() => {
+      logger.log("Migrations executed successfully");
+    })
+    .catch((err) => {
+      logger.log("Migrations failed to run:", err);
     });
 
-    WindowManager.createMainWindow();
-    WindowManager.createSystemTray(userPreferences?.language || "en");
+  await dataSource.initialize();
+
+  await import("./main");
+
+  const userPreferences = await userPreferencesRepository.findOne({
+    where: { id: 1 },
   });
+
+  if (userPreferences?.language) {
+    i18n.changeLanguage(userPreferences.language);
+  }
+
+  if (!process.argv.includes("--hidden")) {
+    WindowManager.createMainWindow();
+  }
+
+  WindowManager.createSystemTray(userPreferences?.language || "en");
 });
 
 app.on("browser-window-created", (_, window) => {
   optimizer.watchWindowShortcuts(window);
 });
+
+const handleDeepLinkPath = (uri?: string) => {
+  if (!uri) return;
+
+  try {
+    const url = new URL(uri);
+
+    if (url.host === "install-source") {
+      WindowManager.redirect(`settings${url.search}`);
+    }
+  } catch (error) {
+    logger.error("Error handling deep link", uri, error);
+  }
+};
 
 app.on("second-instance", (_event, commandLine) => {
   // Someone tried to run a second instance, we should focus our window.
@@ -84,13 +130,11 @@ app.on("second-instance", (_event, commandLine) => {
     WindowManager.createMainWindow();
   }
 
-  const [, path] = commandLine.pop()?.split("://") ?? [];
-  if (path) WindowManager.redirect(path);
+  handleDeepLinkPath(commandLine.pop());
 });
 
 app.on("open-url", (_event, url) => {
-  const [, path] = url.split("://");
-  WindowManager.redirect(path);
+  handleDeepLinkPath(url);
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -98,6 +142,11 @@ app.on("open-url", (_event, url) => {
 // explicitly with Cmd + Q.
 app.on("window-all-closed", () => {
   WindowManager.mainWindow = null;
+});
+
+app.on("before-quit", () => {
+  /* Disconnects libtorrent */
+  PythonInstance.kill();
 });
 
 app.on("activate", () => {

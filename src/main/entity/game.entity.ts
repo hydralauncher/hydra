@@ -9,8 +9,9 @@ import {
 } from "typeorm";
 import { Repack } from "./repack.entity";
 
-import type { GameShop } from "@types";
-import { Downloader, GameStatus } from "@shared";
+import type { GameShop, GameStatus } from "@types";
+import { Downloader } from "@shared";
+import type { DownloadQueue } from "./download-queue.entity";
 
 @Entity("game")
 export class Game {
@@ -19,6 +20,9 @@ export class Game {
 
   @Column("text", { unique: true })
   objectID: string;
+
+  @Column("text", { unique: true, nullable: true })
+  remoteId: string | null;
 
   @Column("text")
   title: string;
@@ -34,6 +38,9 @@ export class Game {
 
   @Column("text", { nullable: true })
   executablePath: string | null;
+
+  @Column("text", { nullable: true })
+  winePrefixPath: string | null;
 
   @Column("int", { default: 0 })
   playTimeInMilliseconds: number;
@@ -53,21 +60,27 @@ export class Game {
   @Column("float", { default: 0 })
   progress: number;
 
-  @Column("float", { default: 0 })
-  fileVerificationProgress: number;
-
   @Column("int", { default: 0 })
   bytesDownloaded: number;
 
-  @Column("text", { nullable: true })
+  @Column("datetime", { nullable: true })
   lastTimePlayed: Date | null;
 
   @Column("float", { default: 0 })
   fileSize: number;
 
-  @OneToOne(() => Repack, { nullable: true })
+  @Column("text", { nullable: true })
+  uri: string | null;
+
+  /**
+   * @deprecated
+   */
+  @OneToOne("Repack", "game", { nullable: true })
   @JoinColumn()
   repack: Repack;
+
+  @OneToOne("DownloadQueue", "game")
+  downloadQueue: DownloadQueue;
 
   @Column("boolean", { default: false })
   isDeleted: boolean;

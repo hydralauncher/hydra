@@ -6,14 +6,15 @@ import type { CatalogueEntry } from "@types";
 
 import { clearSearch } from "@renderer/features";
 import { useAppDispatch } from "@renderer/hooks";
-import { SPACING_UNIT, vars } from "../../theme.css";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import * as styles from "../home/home.css";
 import { ArrowLeftIcon, ArrowRightIcon } from "@primer/octicons-react";
 import { buildGameDetailsPath } from "@renderer/helpers";
 
-export function Catalogue() {
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
+
+export default function Catalogue() {
   const dispatch = useAppDispatch();
 
   const { t } = useTranslation("catalogue");
@@ -23,12 +24,10 @@ export function Catalogue() {
 
   const contentRef = useRef<HTMLElement>(null);
 
-  const cursorRef = useRef<number>(0);
-
   const navigate = useNavigate();
 
   const [searchParams] = useSearchParams();
-  const cursor = Number(searchParams.get("cursor") ?? 0);
+  const skip = Number(searchParams.get("skip") ?? 0);
 
   const handleGameClick = (game: CatalogueEntry) => {
     dispatch(clearSearch());
@@ -41,11 +40,10 @@ export function Catalogue() {
     setSearchResults([]);
 
     window.electron
-      .getGames(24, cursor)
-      .then(({ results, cursor }) => {
+      .getGames(24, skip)
+      .then((results) => {
         return new Promise((resolve) => {
           setTimeout(() => {
-            cursorRef.current = cursor;
             setSearchResults(results);
             resolve(null);
           }, 500);
@@ -54,11 +52,11 @@ export function Catalogue() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [dispatch, cursor, searchParams]);
+  }, [dispatch, skip, searchParams]);
 
   const handleNextPage = () => {
     const params = new URLSearchParams({
-      cursor: cursorRef.current.toString(),
+      skip: String(skip + 24),
     });
 
     navigate(`/catalogue?${params.toString()}`);
@@ -79,7 +77,7 @@ export function Catalogue() {
         <Button
           onClick={() => navigate(-1)}
           theme="outline"
-          disabled={cursor === 0 || isLoading}
+          disabled={skip === 0 || isLoading}
         >
           <ArrowLeftIcon />
           {t("previous_page")}
@@ -102,7 +100,7 @@ export function Catalogue() {
             <>
               {searchResults.map((game) => (
                 <GameCard
-                  key={game.objectID}
+                  key={game.objectId}
                   game={game}
                   onClick={() => handleGameClick(game)}
                 />

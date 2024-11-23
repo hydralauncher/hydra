@@ -1,5 +1,6 @@
-import { SPACING_UNIT, vars } from "../../theme.css";
 import { style } from "@vanilla-extract/css";
+
+import { SPACING_UNIT, vars } from "../../theme.css";
 
 export const checkboxField = style({
   display: "flex",

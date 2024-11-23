@@ -1,46 +1,73 @@
-import { useEffect, useState } from "react";
-
-import { TextField, Button, CheckboxField } from "@renderer/components";
+import { useContext, useEffect, useState } from "react";
+import {
+  TextField,
+  Button,
+  CheckboxField,
+  SelectField,
+} from "@renderer/components";
 import { useTranslation } from "react-i18next";
+import { useAppSelector } from "@renderer/hooks";
+import { changeLanguage } from "i18next";
+import languageResources from "@locales";
+import { orderBy } from "lodash-es";
+import { settingsContext } from "@renderer/context";
 
-import * as styles from "./settings-general.css";
-import type { UserPreferences } from "@types";
-
-export interface SettingsGeneralProps {
-  userPreferences: UserPreferences | null;
-  updateUserPreferences: (values: Partial<UserPreferences>) => void;
+interface LanguageOption {
+  option: string;
+  nativeName: string;
 }
 
-export function SettingsGeneral({
-  userPreferences,
-  updateUserPreferences,
-}: SettingsGeneralProps) {
+export function SettingsGeneral() {
+  const { t } = useTranslation("settings");
+
+  const { updateUserPreferences } = useContext(settingsContext);
+
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+
   const [form, setForm] = useState({
     downloadsPath: "",
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
+    achievementNotificationsEnabled: false,
+    language: "",
   });
 
+  const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([]);
+
+  const [defaultDownloadsPath, setDefaultDownloadsPath] = useState("");
+
   useEffect(() => {
-    if (userPreferences) {
-      const {
-        downloadsPath,
-        downloadNotificationsEnabled,
-        repackUpdatesNotificationsEnabled,
-      } = userPreferences;
+    window.electron.getDefaultDownloadsPath().then((path) => {
+      setDefaultDownloadsPath(path);
+    });
 
-      window.electron.getDefaultDownloadsPath().then((defaultDownloadsPath) => {
-        setForm((prev) => ({
-          ...prev,
-          downloadsPath: downloadsPath ?? defaultDownloadsPath,
-          downloadNotificationsEnabled,
-          repackUpdatesNotificationsEnabled,
-        }));
-      });
-    }
-  }, [userPreferences]);
+    setLanguageOptions(
+      orderBy(
+        Object.entries(languageResources).map(([language, value]) => {
+          return {
+            nativeName: value.language_name,
+            option: language,
+          };
+        }),
+        ["nativeName"],
+        "asc"
+      )
+    );
+  }, []);
 
-  const { t } = useTranslation("settings");
+  useEffect(updateFormWithUserPreferences, [
+    userPreferences,
+    defaultDownloadsPath,
+  ]);
+
+  const handleLanguageChange = (event) => {
+    const value = event.target.value;
+
+    handleChange({ language: value });
+    changeLanguage(value);
+  };
 
   const handleChange = (values: Partial<typeof form>) => {
     setForm((prev) => ({ ...prev, ...values }));
@@ -56,28 +83,58 @@ export function SettingsGeneral({
     if (filePaths && filePaths.length > 0) {
       const path = filePaths[0];
       handleChange({ downloadsPath: path });
-      updateUserPreferences({ downloadsPath: path });
     }
   };
 
+  function updateFormWithUserPreferences() {
+    if (userPreferences) {
+      const languageKeys = Object.keys(languageResources);
+      const language =
+        languageKeys.find((language) => {
+          return language === userPreferences.language;
+        }) ??
+        languageKeys.find((language) => {
+          return language.startsWith(userPreferences.language.split("-")[0]);
+        });
+
+      setForm((prev) => ({
+        ...prev,
+        downloadsPath: userPreferences.downloadsPath ?? defaultDownloadsPath,
+        downloadNotificationsEnabled:
+          userPreferences.downloadNotificationsEnabled,
+        repackUpdatesNotificationsEnabled:
+          userPreferences.repackUpdatesNotificationsEnabled,
+        achievementNotificationsEnabled:
+          userPreferences.achievementNotificationsEnabled,
+        language: language ?? "en",
+      }));
+    }
+  }
+
   return (
     <>
-      <div className={styles.downloadsPathField}>
-        <TextField
-          label={t("downloads_path")}
-          value={form.downloadsPath}
-          readOnly
-          disabled
-        />
+      <TextField
+        label={t("downloads_path")}
+        value={form.downloadsPath}
+        readOnly
+        disabled
+        rightContent={
+          <Button theme="outline" onClick={handleChooseDownloadsPath}>
+            {t("change")}
+          </Button>
+        }
+      />
 
-        <Button
-          style={{ alignSelf: "flex-end" }}
-          theme="outline"
-          onClick={handleChooseDownloadsPath}
-        >
-          {t("change")}
-        </Button>
-      </div>
+      <SelectField
+        label={t("language")}
+        value={form.language}
+        onChange={handleLanguageChange}
+        options={languageOptions.map((language) => ({
+          key: language.option,
+          value: language.option,
+          label: language.nativeName,
+        }))}
+      />
 
       <h3>{t("notifications")}</h3>
 
@@ -98,6 +155,17 @@ export function SettingsGeneral({
           handleChange({
             repackUpdatesNotificationsEnabled:
               !form.repackUpdatesNotificationsEnabled,
+          })
+        }
+      />
+
+      <CheckboxField
+        label={t("enable_achievement_notifications")}
+        checked={form.achievementNotificationsEnabled}
+        onChange={() =>
+          handleChange({
+            achievementNotificationsEnabled:
+              !form.achievementNotificationsEnabled,
           })
         }
       />
