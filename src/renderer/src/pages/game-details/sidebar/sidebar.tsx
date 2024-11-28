@@ -97,8 +97,10 @@ export function Sidebar() {
             });
           } else {
             try {
-              const howLongToBeat =
-                await window.electron.getHowLongToBeat(gameTitle);
+              const howLongToBeat = await window.electron.getHowLongToBeat(
+                shop,
+                objectId
+              );
 
               if (howLongToBeat) {
                 howLongToBeatEntriesTable.add({

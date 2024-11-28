@@ -45,22 +45,25 @@ export function ProfileContent() {
     return userProfile?.relation?.status === "ACCEPTED";
   }, [userProfile]);
 
-  const buildUserGameDetailsPath = (game: UserGame) => {
-    if (!userProfile?.hasActiveSubscription || game.achievementCount === 0) {
-      return buildGameDetailsPath({
-        ...game,
-        objectId: game.objectId,
-      });
-    }
+  const buildUserGameDetailsPath = useCallback(
+    (game: UserGame) => {
+      if (!userProfile?.hasActiveSubscription || game.achievementCount === 0) {
+        return buildGameDetailsPath({
+          ...game,
+          objectId: game.objectId,
+        });
+      }
 
-    const userParams = userProfile
-      ? {
-          userId: userProfile.id,
-        }
-      : undefined;
+      const userParams = userProfile
+        ? {
+            userId: userProfile.id,
+          }
+        : undefined;
 
-    return buildGameAchievementPath({ ...game }, userParams);
-  };
+      return buildGameAchievementPath({ ...game }, userParams);
+    },
+    [userProfile]
+  );
 
   const formatPlayTime = useCallback(
     (playTimeInSeconds = 0) => {
@@ -176,7 +179,7 @@ export function ProfileContent() {
                           game.achievementCount > 0 && (
                             <div
                               style={{
-                                color: "white",
+                                color: "#fff",
                                 width: "100%",
                                 display: "flex",
                                 flexDirection: "column",
@@ -232,6 +235,8 @@ export function ProfileContent() {
                           borderRadius: 4,
                           width: "100%",
                           height: "100%",
+                          minWidth: "100%",
+                          minHeight: "100%",
                         }}
                       />
                     </button>
@@ -259,6 +264,7 @@ export function ProfileContent() {
     userStats,
     numberFormatter,
     t,
+    buildUserGameDetailsPath,
     formatPlayTime,
     navigate,
   ]);
