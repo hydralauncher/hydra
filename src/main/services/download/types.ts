@@ -1,9 +1,3 @@
-export interface StartDownloadPayload {
-  game_id: number;
-  magnet: string;
-  save_path: string;
-}
-
 export interface PauseDownloadPayload {
   game_id: number;
 }
@@ -25,6 +19,7 @@ export interface LibtorrentPayload {
   numPeers: number;
   numSeeds: number;
   downloadSpeed: number;
+  uploadSpeed: number;
   bytesDownloaded: number;
   fileSize: number;
   folderName: string;
@@ -35,4 +30,12 @@ export interface LibtorrentPayload {
 export interface ProcessPayload {
   exe: string;
   pid: number;
+}
+
+export interface PauseSeedingPayload {
+  game_id: number;
+}
+
+export interface ResumeSeedingPayload {
+  game_id: number;
 }

@@ -2,12 +2,12 @@ import { useTranslation } from "react-i18next";
 
 import { useDownload, useLibrary } from "@renderer/hooks";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
 import { DeleteGameModal } from "./delete-game-modal";
 import { DownloadGroup } from "./download-group";
-import type { LibraryGame } from "@types";
+import type { LibraryGame, SeedingStatus } from "@types";
 import { orderBy } from "lodash-es";
 import { ArrowDownIcon } from "@primer/octicons-react";
 
@@ -21,14 +21,22 @@ export default function Downloads() {
   const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const { removeGameInstaller } = useDownload();
+  const { removeGameInstaller, pauseSeeding } = useDownload();
 
   const handleDeleteGame = async () => {
-    if (gameToBeDeleted.current)
+    if (gameToBeDeleted.current) {
+      await pauseSeeding(gameToBeDeleted.current);
       await removeGameInstaller(gameToBeDeleted.current);
+    }
   };
 
   const { lastPacket } = useDownload();
+
+  const [seedingStatus, setSeedingStatus] = useState<SeedingStatus[]>([]);
+
+  useEffect(() => {
+    window.electron.onSeedingStatus((value) => setSeedingStatus(value));
+  }, []);
 
   const handleOpenGameInstaller = (gameId: number) =>
     window.electron.openGameInstaller(gameId).then((isBinaryInPath) => {
@@ -119,9 +127,10 @@ export default function Downloads() {
               <DownloadGroup
                 key={group.title}
                 title={group.title}
-                library={group.library}
+                library={orderBy(group.library, ["updatedAt"], ["desc"])}
                 openDeleteGameModal={handleOpenDeleteGameModal}
                 openGameInstaller={handleOpenGameInstaller}
+                seedingStatus={seedingStatus}
               />
             ))}
           </div>

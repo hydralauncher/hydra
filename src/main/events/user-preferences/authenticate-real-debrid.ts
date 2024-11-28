@@ -1,4 +1,4 @@
-import { RealDebridClient } from "@main/services/real-debrid";
+import { RealDebridClient } from "@main/services/download/real-debrid";
 import { registerEvent } from "../register-event";
 
 const authenticateRealDebrid = async (

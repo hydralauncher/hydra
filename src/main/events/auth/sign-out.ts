@@ -1,10 +1,5 @@
 import { registerEvent } from "../register-event";
-import {
-  DownloadManager,
-  HydraApi,
-  PythonInstance,
-  gamesPlaytime,
-} from "@main/services";
+import { DownloadManager, HydraApi, gamesPlaytime } from "@main/services";
 import { dataSource } from "@main/data-source";
 import { DownloadQueue, Game, UserAuth, UserSubscription } from "@main/entity";
 
@@ -32,7 +27,8 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
   DownloadManager.cancelDownload();
 
   /* Disconnects libtorrent */
-  PythonInstance.killTorrent();
+  // TODO
+  // TorrentDownloader.killTorrent();
 
   HydraApi.handleSignOut();
 
