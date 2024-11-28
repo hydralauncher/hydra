@@ -54,13 +54,16 @@ export function Sidebar() {
 
   useEffect(() => {
     if (userDetails) {
-      update({
-        name: userDetails.displayName,
-        Username: userDetails.username,
-        email: userDetails.email ?? undefined,
-        Email: userDetails.email,
-        "Subscription expiration date": userDetails?.subscription?.expiresAt,
-        "Payment status": userDetails?.subscription?.status,
+      window.electron.isStaging().then((isStaging) => {
+        update({
+          user_id: userDetails.id + (isStaging ? "-staging" : ""),
+          name: userDetails.displayName,
+          Username: userDetails.username,
+          email: userDetails.email ?? undefined,
+          Email: userDetails.email,
+          "Subscription expiration date": userDetails?.subscription?.expiresAt,
+          "Payment status": userDetails?.subscription?.status,
+        });
       });
     }
   }, [userDetails, hasActiveSubscription]);
