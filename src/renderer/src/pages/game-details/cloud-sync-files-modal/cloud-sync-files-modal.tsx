@@ -75,7 +75,7 @@ export function CloudSyncFilesModal({
       showSuccessToast(t("custom_backup_location_set"));
       getGameBackupPreview();
     }
-  }, [objectId, setValue, shop, showSuccessToast, getGameBackupPreview]);
+  }, [objectId, setValue, shop, showSuccessToast, getGameBackupPreview, t]);
 
   const handleFileMappingMethodClick = useCallback(
     (mappingOption: FileMappingMethod) => {
