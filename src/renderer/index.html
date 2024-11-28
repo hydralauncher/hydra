@@ -6,45 +6,8 @@
     <title>Hydra</title>
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src * 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://do.featurebase.app/js/sdk.css; img-src 'self' data: local: *; media-src 'self' local: data: *; connect-src *; font-src *;"
+      content="default-src 'self'; script-src *; style-src 'self' 'unsafe-inline'; img-src 'self' data: local: *; media-src 'self' local: data: *; connect-src *; font-src *;"
     />
-    <script>
-      !(function (e, t) {
-        const a = "featurebase-sdk";
-        function n() {
-          if (!t.getElementById(a)) {
-            var e = t.createElement("script");
-            (e.id = a),
-              (e.src = "https://do.featurebase.app/js/sdk.js"),
-              t
-                .getElementsByTagName("script")[0]
-                .parentNode.insertBefore(
-                  e,
-                  t.getElementsByTagName("script")[0]
-                );
-          }
-        }
-        "function" != typeof e.Featurebase &&
-          (e.Featurebase = function () {
-            (e.Featurebase.q = e.Featurebase.q || []).push(arguments);
-          }),
-          "complete" === t.readyState || "interactive" === t.readyState
-            ? n()
-            : t.addEventListener("DOMContentLoaded", n);
-      })(window, document);
-    </script>
-
-    <script>
-      Featurebase("initialize_feedback_widget", {
-        organization: "https://hydralauncher.featurebase.app", // Replace this with your organization name, copy-paste the subdomain part from your Featurebase workspace url (e.g. https://*yourorg*.featurebase.app)
-        theme: "light", // required
-        placement: "right", // optional - remove to hide the floating button
-        email: "youruser@example.com", // optional
-        defaultBoard: "yourboardname", // optional - preselect a board
-        locale: "en", // Change the language, view all available languages from https://help.featurebase.app/en/articles/8879098-using-featurebase-in-my-language
-        metadata: null, // Attach session-specific metadata to feedback. Refer to the advanced section for the details: https://help.featurebase.app/en/articles/3774671-advanced#7k8iriyap66
-      });
-    </script>
   </head>
   <body>
     <div id="root"></div>

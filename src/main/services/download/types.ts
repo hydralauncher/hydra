@@ -1,9 +1,3 @@
-export interface StartDownloadPayload {
-  game_id: number;
-  magnet: string;
-  save_path: string;
-}
-
 export interface PauseDownloadPayload {
   game_id: number;
 }
