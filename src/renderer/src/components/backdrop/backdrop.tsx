@@ -1,4 +1,5 @@
-import * as styles from "./backdrop.css";
+import "./backdrop.scss";
+import cn from "classnames";
 
 export interface BackdropProps {
   isClosing?: boolean;
@@ -8,9 +9,9 @@ export interface BackdropProps {
 export function Backdrop({ isClosing = false, children }: BackdropProps) {
   return (
     <div
-      className={styles.backdrop({
-        closing: isClosing,
-        windows: window.electron.platform === "win32",
+      className={cn("backdrop", {
+        "backdrop--closing": isClosing,
+        "backdrop--windows": window.electron.platform === "win32",
       })}
     >
       {children}
