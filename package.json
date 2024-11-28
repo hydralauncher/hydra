@@ -38,6 +38,7 @@
     "@hookform/resolvers": "^3.9.0",
     "@intercom/messenger-js-sdk": "^0.0.14",
     "@primer/octicons-react": "^19.9.0",
+    "@radix-ui/react-dropdown-menu": "^2.1.2",
     "@reduxjs/toolkit": "^2.2.3",
     "@vanilla-extract/css": "^1.14.2",
     "@vanilla-extract/dynamic": "^2.1.1",

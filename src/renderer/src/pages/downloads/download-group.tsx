@@ -15,8 +15,12 @@ import { useAppSelector, useDownload } from "@renderer/hooks";
 import * as styles from "./download-group.css";
 import { useTranslation } from "react-i18next";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
-import { XCircleIcon } from "@primer/octicons-react";
 import { useMemo } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuItem,
+} from "@renderer/components/dropdown-menu/dropdown-menu";
+import { ThreeBarsIcon } from "@primer/octicons-react";
 
 export interface DownloadGroupProps {
   library: LibraryGame[];
@@ -152,65 +156,64 @@ export function DownloadGroup({
     return <p>{t(game.status as string)}</p>;
   };
 
-  const getGameActions = (game: LibraryGame) => {
+  const getGameActions = (game: LibraryGame): DropdownMenuItem[] => {
     const isGameDownloading = lastPacket?.game.id === game.id;
 
     const deleting = isGameDeleting(game.id);
 
     if (game.progress === 1) {
-      return (
-        <>
-          <Button
-            onClick={() => openGameInstaller(game.id)}
-            theme="outline"
-            disabled={deleting}
-          >
-            {t("install")}
-          </Button>
-
-          {game.status === "seeding" ? (
-            <Button onClick={() => pauseSeeding(game.id)} theme="outline">
-              {t("stop_seeding")}
-            </Button>
-          ) : (
-            <Button onClick={() => resumeSeeding(game.id)} theme="outline">
-              {t("resume_seeding")}
-            </Button>
-          )}
-        </>
-      );
+      return [
+        {
+          label: t("install"),
+          disabled: deleting,
+          onClick: () => openGameInstaller(game.id),
+        },
+        {
+          label: t("stop_seeding"),
+          disabled: deleting,
+          show: game.status === "seeding",
+          onClick: () => pauseSeeding(game.id),
+        },
+        {
+          label: t("resume_seeding"),
+          disabled: deleting,
+          show: game.status !== "seeding",
+          onClick: () => resumeSeeding(game.id),
+        },
+        {
+          label: t("delete"),
+          disabled: deleting,
+          onClick: () => openDeleteGameModal(game.id),
+        },
+      ];
     }
 
     if (isGameDownloading || game.status === "active") {
-      return (
-        <>
-          <Button onClick={() => pauseDownload(game.id)} theme="outline">
-            {t("pause")}
-          </Button>
-          <Button onClick={() => cancelDownload(game.id)} theme="outline">
-            {t("cancel")}
-          </Button>
-        </>
-      );
+      return [
+        {
+          label: t("pause"),
+          onClick: () => pauseDownload(game.id),
+        },
+        {
+          label: t("cancel"),
+          onClick: () => cancelDownload(game.id),
+        },
+      ];
     }
 
-    return (
-      <>
-        <Button
-          onClick={() => resumeDownload(game.id)}
-          theme="outline"
-          disabled={
-            game.downloader === Downloader.RealDebrid &&
-            !userPreferences?.realDebridApiToken
-          }
-        >
-          {t("resume")}
-        </Button>
-        <Button onClick={() => cancelDownload(game.id)} theme="outline">
-          {t("cancel")}
-        </Button>
-      </>
-    );
+    return [
+      {
+        label: t("resume"),
+        disabled:
+          game.downloader === Downloader.RealDebrid &&
+          !userPreferences?.realDebridApiToken,
+        onClick: () => resumeDownload(game.id),
+      },
+      {
+        label: t("cancel"),
+        onClick: () => cancelDownload(game.id),
+      },
+    ];
   };
 
   if (!library.length) return null;
@@ -280,26 +283,28 @@ export function DownloadGroup({
                   {getGameInfo(game)}
                 </div>
 
-                <div className={styles.downloadActions}>
-                  {getGameActions(game)}
-                </div>
-                <Button
-                  style={{
-                    position: "absolute",
-                    right: 0,
-                    top: 0,
-                    padding: 8,
-                    margin: 6,
-                    border: "none",
-                    minHeight: "unset",
-                    borderRadius: "50%",
-                    color: vars.color.danger,
-                  }}
-                  onClick={() => openDeleteGameModal(game.id)}
-                  theme="outline"
-                >
-                  <XCircleIcon />
-                </Button>
+                {getGameActions(game) !== null && (
+                  <DropdownMenu
+                    align="end"
+                    items={getGameActions(game)}
+                    sideOffset={-70}
+                  >
+                    <Button
+                      style={{
+                        position: "absolute",
+                        top: "12px",
+                        right: "12px",
+                        borderRadius: "50%",
+                        border: "none",
+                        padding: "8px",
+                        minHeight: "unset",
+                      }}
+                      theme="outline"
+                    >
+                      <ThreeBarsIcon />
+                    </Button>
+                  </DropdownMenu>
+                )}
               </div>
             </li>
           );
