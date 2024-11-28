@@ -200,11 +200,15 @@ export class DownloadManager {
     // );
   }
 
-  static async pauseSeeding(gameId: number) {
+  static async pauseSeeding(_gameId: number) {
     // await TorrentDownloader.pauseSeeding(gameId);
   }
 
-  static async resumeSeeding(gameId: number, magnet: string, savePath: string) {
+  static async resumeSeeding(
+    _gameId: number,
+    _magnet: string,
+    _savePath: string
+  ) {
     // await TorrentDownloader.resumeSeeding(gameId, magnet, savePath);
   }
 
