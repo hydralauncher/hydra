@@ -1,4 +1,4 @@
-import { DownloadManager, Ludusavi, startMainLoop } from "./services";
+import { Ludusavi, startMainLoop } from "./services";
 import {
   downloadQueueRepository,
   userPreferencesRepository,
@@ -25,14 +25,14 @@ const loadState = async (userPreferences: UserPreferences | null) => {
     uploadGamesBatch();
   });
 
-  const [nextQueueItem] = await downloadQueueRepository.find({
-    order: {
-      id: "DESC",
-    },
-    relations: {
-      game: true,
-    },
-  });
+  // const [nextQueueItem] = await downloadQueueRepository.find({
+  //   order: {
+  //     id: "DESC",
+  //   },
+  //   relations: {
+  //     game: true,
+  //   },
+  // });
 
   PythonRPC.spawn();
   // start download
