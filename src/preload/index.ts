@@ -55,8 +55,8 @@ contextBridge.exposeInMainWorld("electron", {
   getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
     ipcRenderer.invoke("getGameShopDetails", objectId, shop, language),
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
-  getHowLongToBeat: (title: string) =>
-    ipcRenderer.invoke("getHowLongToBeat", title),
+  getHowLongToBeat: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getHowLongToBeat", shop, objectId),
   getGames: (take?: number, skip?: number) =>
     ipcRenderer.invoke("getGames", take, skip),
   searchGameRepacks: (query: string) =>
