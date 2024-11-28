@@ -5,12 +5,14 @@ import path from "node:path";
 import url from "node:url";
 import fs from "node:fs";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
-import { logger, PythonInstance, WindowManager } from "@main/services";
+import { logger, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
 import { knexClient, migrationConfig } from "./knex-client";
 import { databaseDirectory } from "./constants";
+import { PythonRPC } from "./services/python-rpc";
+import { Aria2 } from "./services/aria2";
 
 const { autoUpdater } = updater;
 
@@ -146,7 +148,8 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   /* Disconnects libtorrent */
-  PythonInstance.kill();
+  PythonRPC.kill();
+  Aria2.kill();
 });
 
 app.on("activate", () => {

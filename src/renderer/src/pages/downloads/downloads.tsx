@@ -127,7 +127,7 @@ export default function Downloads() {
               <DownloadGroup
                 key={group.title}
                 title={group.title}
-                library={group.library}
+                library={orderBy(group.library, ["updatedAt"], ["desc"])}
                 openDeleteGameModal={handleOpenDeleteGameModal}
                 openGameInstaller={handleOpenGameInstaller}
                 seedingStatus={seedingStatus}

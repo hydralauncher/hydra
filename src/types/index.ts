@@ -386,3 +386,4 @@ export * from "./steam.types";
 export * from "./real-debrid.types";
 export * from "./ludusavi.types";
 export * from "./how-long-to-beat.types";
+export * from "./torbox.types";
