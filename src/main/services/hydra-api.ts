@@ -12,6 +12,7 @@ import { UserNotLoggedInError, SubscriptionRequiredError } from "@shared";
 import { omit } from "lodash-es";
 import { appVersion } from "@main/constants";
 import { getUserData } from "./user/get-user-data";
+import { isFuture, isToday } from "date-fns";
 
 interface HydraApiOptions {
   needsAuth?: boolean;
@@ -45,10 +46,8 @@ export class HydraApi {
   }
 
   private static hasActiveSubscription() {
-    return (
-      this.userAuth.subscription?.expiresAt &&
-      this.userAuth.subscription.expiresAt > new Date()
-    );
+    const expiresAt = this.userAuth.subscription?.expiresAt;
+    return expiresAt && (isFuture(expiresAt) || isToday(expiresAt));
   }
 
   static async handleExternalAuth(uri: string) {
