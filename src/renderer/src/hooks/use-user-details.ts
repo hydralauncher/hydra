@@ -14,6 +14,7 @@ import type {
   UserDetails,
 } from "@types";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
+import { isFuture, isToday } from "date-fns";
 
 export function useUserDetails() {
   const dispatch = useAppDispatch();
@@ -128,10 +129,8 @@ export function useUserDetails() {
   const unblockUser = (userId: string) => window.electron.unblockUser(userId);
 
   const hasActiveSubscription = useMemo(() => {
-    return (
-      userDetails?.subscription?.expiresAt &&
-      new Date(userDetails.subscription.expiresAt) > new Date()
-    );
+    const expiresAt = userDetails?.subscription?.expiresAt;
+    return expiresAt && (isFuture(expiresAt) || isToday(expiresAt));
   }, [userDetails]);
 
   return {
