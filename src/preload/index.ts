@@ -15,7 +15,6 @@ import type {
 import type { CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
 import { GameAchievement } from "@main/entity";
-import { isStaging } from "@main/constants";
 
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
@@ -43,8 +42,8 @@ contextBridge.exposeInMainWorld("electron", {
   getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
     ipcRenderer.invoke("getGameShopDetails", objectId, shop, language),
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
-  getHowLongToBeat: (title: string) =>
-    ipcRenderer.invoke("getHowLongToBeat", title),
+  getHowLongToBeat: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("getHowLongToBeat", objectId, shop),
   getGames: (take?: number, skip?: number) =>
     ipcRenderer.invoke("getGames", take, skip),
   searchGameRepacks: (query: string) =>
@@ -199,7 +198,7 @@ contextBridge.exposeInMainWorld("electron", {
   ping: () => ipcRenderer.invoke("ping"),
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
-  isStaging,
+  isStaging: () => ipcRenderer.invoke("isStaging"),
   isPortableVersion: () => ipcRenderer.invoke("isPortableVersion"),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
   openCheckout: () => ipcRenderer.invoke("openCheckout"),
