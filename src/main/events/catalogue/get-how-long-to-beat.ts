@@ -13,15 +13,9 @@ const getHowLongToBeat = async (
     shop,
   });
 
-  const response = await HydraApi.get(
-    `/games/how-long-to-beat?${params.toString()}`,
-    null,
-    {
-      needsAuth: false,
-    }
-  );
-
-  return response;
+  return HydraApi.get(`/games/how-long-to-beat?${params.toString()}`, null, {
+    needsAuth: false,
+  });
 };
 
 registerEvent("getHowLongToBeat", getHowLongToBeat);
