@@ -47,6 +47,7 @@ jobs:
           MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_CHECKOUT_URL }}
           MAIN_VITE_ANALYTICS_API_URL: ${{ vars.MAIN_VITE_ANALYTICS_API_URL }}
           RENDERER_VITE_INTERCOM_APP_ID: ${{ vars.RENDERER_VITE_INTERCOM_APP_ID }}
+          RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.RENDERER_VITE_EXTERNAL_RESOURCES_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build Windows
         if: matrix.os == 'windows-latest'
@@ -57,6 +58,7 @@ jobs:
           MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_CHECKOUT_URL }}
           MAIN_VITE_ANALYTICS_API_URL: ${{ vars.MAIN_VITE_ANALYTICS_API_URL }}
           RENDERER_VITE_INTERCOM_APP_ID: ${{ vars.RENDERER_VITE_INTERCOM_APP_ID }}
+          RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.RENDERER_VITE_EXTERNAL_RESOURCES_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create artifact
         uses: actions/upload-artifact@v4
