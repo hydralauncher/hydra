@@ -45,22 +45,25 @@ export function ProfileContent() {
     return userProfile?.relation?.status === "ACCEPTED";
   }, [userProfile]);
 
-  const buildUserGameDetailsPath = (game: UserGame) => {
-    if (!userProfile?.hasActiveSubscription || game.achievementCount === 0) {
-      return buildGameDetailsPath({
-        ...game,
-        objectId: game.objectId,
-      });
-    }
+  const buildUserGameDetailsPath = useCallback(
+    (game: UserGame) => {
+      if (!userProfile?.hasActiveSubscription || game.achievementCount === 0) {
+        return buildGameDetailsPath({
+          ...game,
+          objectId: game.objectId,
+        });
+      }
 
-    const userParams = userProfile
-      ? {
-          userId: userProfile.id,
-        }
-      : undefined;
+      const userParams = userProfile
+        ? {
+            userId: userProfile.id,
+          }
+        : undefined;
 
-    return buildGameAchievementPath({ ...game }, userParams);
-  };
+      return buildGameAchievementPath({ ...game }, userParams);
+    },
+    [userProfile]
+  );
 
   const formatPlayTime = useCallback(
     (playTimeInSeconds = 0) => {
@@ -259,6 +262,7 @@ export function ProfileContent() {
     userStats,
     numberFormatter,
     t,
+    buildUserGameDetailsPath,
     formatPlayTime,
     navigate,
   ]);
