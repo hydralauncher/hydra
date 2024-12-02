@@ -254,7 +254,7 @@
     "must_be_valid_url": "La fuente debe ser una URL válida.",
     "blocked_users": "Usuarios bloqueados",
     "user_unblocked": "El usuario ha sido desbloqueado",
-    "enable_achievement_notifications": "Cuando un logro se desbloquea"
+    "enable_achievement_notifications": "Cuando un logro se desbloquea",
     "launch_minimized": "Iniciar Hydra minimizado",
     "disable_nsfw_alert": "Desactivar alerta NSFW"
   },
