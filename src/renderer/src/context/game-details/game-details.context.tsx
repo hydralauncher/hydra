@@ -181,6 +181,7 @@ export function GameDetailsContextProvider({
     shop,
     i18n.language,
     userDetails,
+    userPreferences,
   ]);
 
   useEffect(() => {
