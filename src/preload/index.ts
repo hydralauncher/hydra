@@ -15,6 +15,7 @@ import type {
 import type { CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
 import { GameAchievement } from "@main/entity";
+import { isStaging } from "@main/constants";
 
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
@@ -198,7 +199,7 @@ contextBridge.exposeInMainWorld("electron", {
   ping: () => ipcRenderer.invoke("ping"),
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
-  isStaging: () => ipcRenderer.invoke("isStaging"),
+  isStaging,
   isPortableVersion: () => ipcRenderer.invoke("isPortableVersion"),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
   openCheckout: () => ipcRenderer.invoke("openCheckout"),

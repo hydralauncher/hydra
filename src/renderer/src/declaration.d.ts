@@ -162,7 +162,6 @@ declare global {
     openExternal: (src: string) => Promise<void>;
     openCheckout: () => Promise<void>;
     getVersion: () => Promise<string>;
-    isStaging: () => Promise<boolean>;
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
     isPortableVersion: () => Promise<boolean>;
@@ -232,6 +231,8 @@ declare global {
 
     /* Notifications */
     publishNewRepacksNotification: (newRepacksCount: number) => Promise<void>;
+
+    isStaging: boolean;
   }
 
   interface Window {
