@@ -62,25 +62,6 @@ export function App() {
     clearUserDetails,
   } = useUserDetails();
 
-  useEffect(() => {
-    if (userDetails) {
-      const $existingScript = document.getElementById("user-details");
-
-      const content = `window.userDetails = ${JSON.stringify(userDetails)};`;
-
-      if ($existingScript) {
-        $existingScript.textContent = content;
-      } else {
-        const $script = document.createElement("script");
-        $script.id = "user-details";
-        $script.type = "text/javascript";
-        $script.textContent = content;
-
-        document.head.appendChild($script);
-      }
-    }
-  }, [userDetails]);
-
   const dispatch = useAppDispatch();
 
   const navigate = useNavigate();
@@ -133,12 +114,33 @@ export function App() {
       dispatch(setProfileBackground(profileBackground));
     }
 
-    fetchUserDetails().then((response) => {
-      if (response) {
-        updateUserDetails(response);
-        syncFriendRequests();
-      }
-    });
+    fetchUserDetails()
+      .then((response) => {
+        if (response) {
+          updateUserDetails(response);
+          syncFriendRequests();
+
+          const $existingScript = document.getElementById("user-details");
+
+          const content = `window.userDetails = ${JSON.stringify(response)};`;
+
+          if ($existingScript) {
+            $existingScript.textContent = content;
+          } else {
+            const $script = document.createElement("script");
+            $script.id = "user-details";
+            $script.type = "text/javascript";
+            $script.textContent = content;
+
+            document.head.appendChild($script);
+          }
+        }
+      })
+      .finally(() => {
+        const $script = document.createElement("script");
+        $script.src = import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL;
+        document.head.appendChild($script);
+      });
   }, [fetchUserDetails, syncFriendRequests, updateUserDetails, dispatch]);
 
   const onSignIn = useCallback(() => {
