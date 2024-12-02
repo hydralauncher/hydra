@@ -138,7 +138,7 @@ export function App() {
       })
       .finally(() => {
         const $script = document.createElement("script");
-        $script.src = import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL;
+        $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}?t=${Date.now()}`;
         document.head.appendChild($script);
       });
   }, [fetchUserDetails, syncFriendRequests, updateUserDetails, dispatch]);
