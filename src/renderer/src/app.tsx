@@ -2,8 +2,6 @@ import { useCallback, useContext, useEffect, useRef } from "react";
 
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
-import Intercom from "@intercom/messenger-js-sdk";
-
 import {
   useAppDispatch,
   useAppSelector,
@@ -36,10 +34,6 @@ export interface AppProps {
   children: React.ReactNode;
 }
 
-Intercom({
-  app_id: import.meta.env.RENDERER_VITE_INTERCOM_APP_ID,
-});
-
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library } = useLibrary();
@@ -67,6 +61,25 @@ export function App() {
     updateUserDetails,
     clearUserDetails,
   } = useUserDetails();
+
+  useEffect(() => {
+    if (userDetails) {
+      const $existingScript = document.getElementById("user-details");
+
+      const content = `window.userDetails = ${JSON.stringify(userDetails)};`;
+
+      if ($existingScript) {
+        $existingScript.textContent = content;
+      } else {
+        const $script = document.createElement("script");
+        $script.id = "user-details";
+        $script.type = "text/javascript";
+        $script.textContent = content;
+
+        document.head.appendChild($script);
+      }
+    }
+  }, [userDetails]);
 
   const dispatch = useAppDispatch();
 
@@ -215,9 +228,7 @@ export function App() {
 
   useEffect(() => {
     new MutationObserver(() => {
-      const modal = document.body.querySelector(
-        "[role=dialog]:not([data-intercom-frame='true'])"
-      );
+      const modal = document.body.querySelector("[data-hydra-dialog]");
 
       dispatch(toggleDraggingDisabled(Boolean(modal)));
     }).observe(document.body, {
