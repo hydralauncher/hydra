@@ -60,7 +60,8 @@ declare global {
     ) => Promise<ShopDetails | null>;
     getRandomGame: () => Promise<Steam250Game>;
     getHowLongToBeat: (
-      title: string
+      objectId: string,
+      shop: GameShop
     ) => Promise<HowLongToBeatCategory[] | null>;
     getGames: (take?: number, skip?: number) => Promise<CatalogueEntry[]>;
     searchGameRepacks: (query: string) => Promise<GameRepack[]>;
@@ -162,6 +163,7 @@ declare global {
     openExternal: (src: string) => Promise<void>;
     openCheckout: () => Promise<void>;
     getVersion: () => Promise<string>;
+    isStaging: () => Promise<boolean>;
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
     isPortableVersion: () => Promise<boolean>;
