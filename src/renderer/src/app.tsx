@@ -119,8 +119,6 @@ export function App() {
         if (response) {
           updateUserDetails(response);
           syncFriendRequests();
-
-          window["userDetails"] = response;
         }
       })
       .finally(() => {
