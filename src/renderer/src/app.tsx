@@ -120,20 +120,7 @@ export function App() {
           updateUserDetails(response);
           syncFriendRequests();
 
-          const $existingScript = document.getElementById("user-details");
-
-          const content = `window.userDetails = ${JSON.stringify(response)};`;
-
-          if ($existingScript) {
-            $existingScript.textContent = content;
-          } else {
-            const $script = document.createElement("script");
-            $script.id = "user-details";
-            $script.type = "text/javascript";
-            $script.textContent = content;
-
-            document.head.appendChild($script);
-          }
+          window["userDetails"] = response;
         }
       })
       .finally(() => {
