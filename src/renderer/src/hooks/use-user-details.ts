@@ -56,6 +56,8 @@ export function useUserDetails() {
         clearUserDetails();
       }
 
+      window["userDetails"] = userDetails;
+
       return userDetails;
     });
   }, [clearUserDetails]);
