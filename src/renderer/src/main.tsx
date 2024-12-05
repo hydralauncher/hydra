@@ -20,6 +20,7 @@ import resources from "@locales";
 
 import { RepacksContextProvider } from "./context";
 import { SuspenseWrapper } from "./components";
+import { logger } from "./logger";
 
 const Home = React.lazy(() => import("./pages/home/home"));
 const GameDetails = React.lazy(
@@ -33,6 +34,8 @@ const Profile = React.lazy(() => import("./pages/profile/profile"));
 const Achievements = React.lazy(
   () => import("./pages/achievements/achievements")
 );
+
+console.log = logger.log;
 
 i18n
   .use(LanguageDetector)
