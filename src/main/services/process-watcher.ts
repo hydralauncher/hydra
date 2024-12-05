@@ -14,6 +14,20 @@ export const gamesPlaytime = new Map<
 const TICKS_TO_UPDATE_API = 120;
 let currentTick = 1;
 
+const getSystemProcessSet = async () => {
+  const processes = await PythonInstance.getProcessList();
+
+  if (process.platform === "linux")
+    return new Set(processes.map((process) => process.name));
+  return new Set(processes.map((process) => process.exe));
+};
+
+const getExecutable = (game: Game) => {
+  if (process.platform === "linux")
+    return game.executablePath?.split("/").at(-1);
+  return game.executablePath;
+};
+
 export const watchProcesses = async () => {
   const games = await gameRepository.find({
     where: {
@@ -23,14 +37,15 @@ export const watchProcesses = async () => {
   });
 
   if (games.length === 0) return;
-  const processes = await PythonInstance.getProcessList();
 
-  const processSet = new Set(processes.map((process) => process.exe));
+  const processSet = await getSystemProcessSet();
 
   for (const game of games) {
-    const executablePath = game.executablePath!;
+    const executable = getExecutable(game);
 
-    const gameProcess = processSet.has(executablePath);
+    if (!executable) continue;
+
+    const gameProcess = processSet.has(executable);
 
     if (gameProcess) {
       if (gamesPlaytime.has(game.id)) {
