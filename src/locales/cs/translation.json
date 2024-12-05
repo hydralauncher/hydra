@@ -133,7 +133,7 @@
     "warning": "Varování",
     "hydra_needs_to_remain_open": "Pro tohle stažení, musí Hydra zůstat otevřená až do konce stahování. Pokud Hydru zavřete dříve, postup stahování bude ztracen.",
     "achievements": "Achievementy",
-    "achievements_count":"Achievementy {{unlockedCount}}/{{achievementsCount}}",
+    "achievements_count": "Achievementy {{unlockedCount}}/{{achievementsCount}}",
     "cloud_save": "Uložení v cloudu",
     "cloud_save_description": "Uložte si svůj postup v cloud a pokračujte v hraní na jakémkoliv zářízení",
     "backups": "Zálohy",
