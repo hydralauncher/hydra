@@ -174,8 +174,10 @@ export class PythonInstance {
       .then((response) => response.data);
   }
 
-  private static async handleRpcError(_error: unknown) {
-    await this.rpc.get("/healthcheck").catch(() => {
+  private static async handleRpcError(error: unknown) {
+    logger.error(error);
+
+    return this.rpc.get("/healthcheck").catch(() => {
       logger.error(
         "RPC healthcheck failed. Killing process and starting again"
       );
