@@ -85,7 +85,11 @@ export class WindowManager {
           return callback(details);
         }
 
-        if (details.url.includes("intercom.io")) {
+        if (details.url.includes("featurebase")) {
+          return callback(details);
+        }
+
+        if (details.url.includes("chatwoot")) {
           return callback(details);
         }
 
