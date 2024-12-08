@@ -254,7 +254,9 @@
     "must_be_valid_url": "La fuente debe ser una URL válida.",
     "blocked_users": "Usuarios bloqueados",
     "user_unblocked": "El usuario ha sido desbloqueado",
-    "enable_achievement_notifications": "Cuando un logro se desbloquea"
+    "enable_achievement_notifications": "Cuando un logro se desbloquea",
+    "launch_minimized": "Iniciar Hydra minimizado",
+    "disable_nsfw_alert": "Desactivar alerta NSFW"
   },
   "notifications": {
     "download_complete": "Descarga completada",
@@ -361,8 +363,10 @@
     "user_achievements": "Logros de {{displayName}}",
     "your_achievements": "Tus Logros",
     "unlocked_at": "Desbloqueado el:",
-    "subscription_needed": "Se necesita una suscripción a Hydra Cloud se necesita para ver este contenido",
-    "new_achievements_unlocked": "Desbloqueados {{achievementCount}} nuevos logros de {{gameCount}} juegos"
+    "subscription_needed": "Se necesita una suscripción a Hydra Cloud necesita para ver este contenido",
+    "new_achievements_unlocked": "Desbloqueados {{achievementCount}} nuevos logros de {{gameCount}} juegos",
+    "achievement_progress": "{{unlockedCount}}/{{totalCount}} logros",
+    "achievements_unlocked_for_game": "Se han desbloqueado {{achievementCount}} nuevos logros de {{gameTitle}}"
   },
   "tour": {
     "subscription_tour_title": "Suscripción Hydra Cloud",

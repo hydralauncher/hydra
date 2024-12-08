@@ -44,7 +44,7 @@ export const getUserData = () => {
       if (err instanceof UserNotLoggedInError) {
         return null;
       }
-      logger.error("Failed to get logged user", err);
+      logger.error("Failed to get logged user");
       const loggedUser = await userAuthRepository.findOne({
         where: { id: 1 },
         relations: { subscription: true },
