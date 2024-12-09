@@ -153,21 +153,26 @@ export class HydraApi {
         (error) => {
           logger.error(" ---- RESPONSE ERROR -----");
           const { config } = error;
+          const data = JSON.parse(config.data);
+
           logger.error(
             config.method,
             config.baseURL,
             config.url,
-            config.headers,
-            config.data
+            omit(config.headers, ["accessToken", "refreshToken"]),
+            Array.isArray(data)
+              ? data
+              : omit(data, ["accessToken", "refreshToken"])
           );
           if (error.response) {
             logger.error(
-              "Response",
+              "Response error:",
               error.response.status,
               error.response.data
             );
           } else if (error.request) {
-            logger.error("Request", error.request);
+            const errorData = error.toJSON();
+            logger.error("Request error:", errorData.message);
           } else {
             logger.error("Error", error.message);
           }
