@@ -100,7 +100,7 @@
     "open_screenshot": "Abrir captura {{number}}",
     "download_settings": "Ajustes de descarga",
     "downloader": "Método de descarga",
-    "select_executable": "Seleccionar ejecutable",
+    "select_executable": "Seleccionar",
     "no_executable_selected": "No se seleccionó un ejecutable",
     "open_folder": "Abrir carpeta",
     "open_download_location": "Ver archivos descargados",
@@ -166,7 +166,9 @@
     "manage_files_description": "Gestiona los archivos que serán respaldados y restaurados",
     "select_folder": "Seleccionar carpeta",
     "backup_from": "Copia de seguridad de {{date}}",
-    "custom_backup_location_set": "Se configuró la carpeta de copia de seguridad"
+    "custom_backup_location_set": "Se configuró la carpeta de copia de seguridad",
+    "clear": "Limpiar",
+    "no_directory_selected": "No se seleccionó un directório"
   },
   "activation": {
     "title": "Activar Hydra",

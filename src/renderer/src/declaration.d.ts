@@ -80,8 +80,14 @@ declare global {
       shop: GameShop
     ) => Promise<void>;
     createGameShortcut: (id: number) => Promise<boolean>;
-    updateExecutablePath: (id: number, executablePath: string) => Promise<void>;
-    selectGameWinePrefix: (id: number, winePrefixPath: string) => Promise<void>;
+    updateExecutablePath: (
+      id: number,
+      executablePath: string | null
+    ) => Promise<void>;
+    selectGameWinePrefix: (
+      id: number,
+      winePrefixPath: string | null
+    ) => Promise<void>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
     getLibrary: () => Promise<LibraryGame[]>;
     openGameInstaller: (gameId: number) => Promise<boolean>;
