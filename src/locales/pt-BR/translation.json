@@ -162,7 +162,9 @@
     "backup_from": "Backup de {{date}}",
     "custom_backup_location_set": "Localização customizada selecionada",
     "select_folder": "Selecione a pasta",
-    "manage_files_description": "Gerencie quais arquivos serão feitos backup"
+    "manage_files_description": "Gerencie quais arquivos serão feitos backup",
+    "clear": "Limpar",
+    "no_directory_selected": "Nenhum diretório selecionado"
   },
   "activation": {
     "title": "Ativação",
