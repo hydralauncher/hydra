@@ -21,6 +21,7 @@ import resources from "@locales";
 import { RepacksContextProvider } from "./context";
 import { SuspenseWrapper } from "./components";
 import { logger } from "./logger";
+import { addCookieInterceptor } from "./cookies";
 
 const Home = React.lazy(() => import("./pages/home/home"));
 const GameDetails = React.lazy(
@@ -36,6 +37,8 @@ const Achievements = React.lazy(
 );
 
 console.log = logger.log;
+
+addCookieInterceptor();
 
 i18n
   .use(LanguageDetector)
