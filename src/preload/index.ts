@@ -87,9 +87,9 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("addGameToLibrary", objectId, title, shop),
   createGameShortcut: (id: number) =>
     ipcRenderer.invoke("createGameShortcut", id),
-  updateExecutablePath: (id: number, executablePath: string) =>
+  updateExecutablePath: (id: number, executablePath: string | null) =>
     ipcRenderer.invoke("updateExecutablePath", id, executablePath),
-  selectGameWinePrefix: (id: number, winePrefixPath: string) =>
+  selectGameWinePrefix: (id: number, winePrefixPath: string | null) =>
     ipcRenderer.invoke("selectGameWinePrefix", id, winePrefixPath),
   verifyExecutablePathInUse: (executablePath: string) =>
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),

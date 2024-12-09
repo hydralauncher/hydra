@@ -167,7 +167,8 @@
     "manage_files_description": "Manage which files will be backed up and restored",
     "select_folder": "Select folder",
     "backup_from": "Backup from {{date}}",
-    "custom_backup_location_set": "Custom backup location set"
+    "custom_backup_location_set": "Custom backup location set",
+    "no_directory_selected": "No directory selected"
   },
   "activation": {
     "title": "Activate Hydra",
