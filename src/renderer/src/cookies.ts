@@ -1,15 +1,17 @@
-export function addCookieInterceptor() {
+export function addCookieInterceptor(isStaging: boolean) {
+  const cookieKey = isStaging ? "cookies-staging" : "cookies";
+
   Object.defineProperty(document, "cookie", {
     enumerable: true,
     configurable: true,
     get() {
-      return localStorage.getItem("cookies") || "";
+      return localStorage.getItem(cookieKey) || "";
     },
     set(cookieString) {
       try {
         const [cookieName, cookieValue] = cookieString.split(";")[0].split("=");
 
-        const currentCookies = localStorage.getItem("cookies") || "";
+        const currentCookies = localStorage.getItem(cookieKey) || "";
 
         const cookiesObject = parseCookieStringsToObjects(currentCookies);
         cookiesObject[cookieName] = cookieValue;
@@ -20,7 +22,7 @@ export function addCookieInterceptor() {
           })
           .join("; ");
 
-        localStorage.setItem("cookies", newString);
+        localStorage.setItem(cookieKey, newString);
       } catch (err) {
         console.error(err);
       }
