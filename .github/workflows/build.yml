@@ -23,6 +23,7 @@ jobs:
         run: yarn
 
       - name: Test Upload build
+        if: ${{ secrets.BUILD_WEBHOOK_URL }}
         env:
           BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
           S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
