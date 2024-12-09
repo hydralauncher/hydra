@@ -95,6 +95,11 @@ export function GameOptionsModal({
     await window.electron.openGameExecutablePath(game.id);
   };
 
+  const handleClearExecutablePath = async () => {
+    await window.electron.updateExecutablePath(game.id, "");
+    updateGame();
+  };
+
   const handleChangeWinePrefixPath = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
       properties: ["openDirectory"],
@@ -104,6 +109,11 @@ export function GameOptionsModal({
       await window.electron.selectGameWinePrefix(game.id, filePaths[0]);
       await updateGame();
     }
+  };
+
+  const handleClearWinePrefixPath = async () => {
+    await window.electron.selectGameWinePrefix(game.id, "");
+    updateGame();
   };
 
   const shouldShowWinePrefixConfiguration =
@@ -168,6 +178,9 @@ export function GameOptionsModal({
               <Button onClick={handleCreateShortcut} theme="outline">
                 {t("create_shortcut")}
               </Button>
+              <Button onClick={handleClearExecutablePath} theme="outline">
+                {t("clear")}
+              </Button>
             </div>
           )}
 
@@ -196,6 +209,13 @@ export function GameOptionsModal({
                   </Button>
                 }
               />
+              {game.winePrefixPath && (
+                <div className={styles.gameOptionRow}>
+                  <Button onClick={handleClearWinePrefixPath} theme="outline">
+                    {t("clear")}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
