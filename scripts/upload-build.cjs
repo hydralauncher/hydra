@@ -55,7 +55,7 @@ fs.readdir(dist, async (err, files) => {
       uploads,
       branchName: process.env.BRANCH_NAME,
       version: packageJson.version,
-      actor: process.env.GITHUB_ACTOR,
+      githubActor: process.env.GITHUB_ACTOR,
     }),
   });
 });
