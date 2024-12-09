@@ -105,6 +105,7 @@
     "open_folder": "Open folder",
     "open_download_location": "See downloaded files",
     "create_shortcut": "Create desktop shortcut",
+    "clear": "Clear",
     "remove_files": "Remove files",
     "remove_from_library_title": "Are you sure?",
     "remove_from_library_description": "This will remove {{game}} from your library",
