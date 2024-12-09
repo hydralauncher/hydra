@@ -3,6 +3,11 @@ const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const path = require("node:path");
 const packageJson = require("../package.json");
 
+if (!process.env.BUILD_WEBHOOK_URL) {
+  console.log("No BUILD_WEBHOOK_URL provided, skipping upload");
+  process.exit(0);
+}
+
 const s3 = new S3Client({
   region: "auto",
   endpoint: process.env.S3_ENDPOINT,
@@ -20,7 +25,7 @@ const extensionsToUpload = [".deb", ".exe", ".png"];
 fs.readdir(dist, async (err, files) => {
   if (err) throw err;
 
-  const results = await Promise.all(
+  const uploads = await Promise.all(
     files.map(async (file) => {
       if (extensionsToUpload.includes(path.extname(file))) {
         const fileName = `${new Date().getTime()}-${file}`;
@@ -47,9 +52,10 @@ fs.readdir(dist, async (err, files) => {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      results,
+      uploads,
       branchName: process.env.BRANCH_NAME,
       version: packageJson.version,
+      actor: process.env.GITHUB_ACTOR,
     }),
   });
 });
