@@ -14,6 +14,14 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v4
 
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.18.0
+
+      - name: Install dependencies
+        run: yarn
+
       - name: Test Upload build
         env:
           BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
@@ -23,14 +31,6 @@ jobs:
           S3_BUILDS_BUCKET_NAME: ${{ secrets.S3_BUILDS_BUCKET_NAME }}
           BUILD_WEBHOOK_URL: ${{ secrets.BUILD_WEBHOOK_URL }}
         run: node scripts/upload-build.cjs
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.18.0
-
-      - name: Install dependencies
-        run: yarn
 
       - name: Install Python
         uses: actions/setup-python@v5
