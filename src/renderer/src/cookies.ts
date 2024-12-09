@@ -3,21 +3,16 @@ export function addCookieInterceptor() {
     enumerable: true,
     configurable: true,
     get() {
-      const cookies = localStorage.getItem("cookies") || "";
-      console.log("get cookie", cookies);
-      return cookies;
+      return localStorage.getItem("cookies") || "";
     },
     set(cookieString) {
       try {
-        console.log("setting cookie", cookieString);
         const [cookieName, cookieValue] = cookieString.split(";")[0].split("=");
 
         const currentCookies = localStorage.getItem("cookies") || "";
 
-        console.log("pre cookies obj", currentCookies);
         const cookiesObject = parseCookieStringsToObjects(currentCookies);
         cookiesObject[cookieName] = cookieValue;
-        console.log("cookiesObject", cookiesObject);
 
         const newString = Object.entries(cookiesObject)
           .map(([key, value]) => {
@@ -25,7 +20,6 @@ export function addCookieInterceptor() {
           })
           .join("; ");
 
-        console.log("set cookie", newString);
         localStorage.setItem("cookies", newString);
       } catch (err) {
         console.error(err);
@@ -41,9 +35,7 @@ const parseCookieStringsToObjects = (
 
   if (cookieStrings === "") return result;
 
-  console.log(cookieStrings);
   cookieStrings.split(";").forEach((cookieString) => {
-    console.log("forEach", cookieString);
     const [name, value] = cookieString.split("=");
     result[name.trim()] = value.trim();
   });
