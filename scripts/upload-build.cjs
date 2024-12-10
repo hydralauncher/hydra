@@ -26,8 +26,9 @@ fs.readdir(dist, async (err, files) => {
   if (err) throw err;
 
   const uploads = await Promise.all(
-    files.map(async (file) => {
-      if (extensionsToUpload.includes(path.extname(file))) {
+    files
+      .filter((file) => extensionsToUpload.includes(path.extname(file)))
+      .map(async (file) => {
         const fileName = `${new Date().getTime()}-${file}`;
 
         const command = new PutObjectCommand({
@@ -42,20 +43,21 @@ fs.readdir(dist, async (err, files) => {
           url: `${process.env.S3_ENDPOINT}/${process.env.S3_BUILDS_BUCKET_NAME}/${fileName}`,
           name: fileName,
         };
-      }
-    })
+      })
   );
 
-  await fetch(process.env.BUILD_WEBHOOK_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      uploads,
-      branchName: process.env.BRANCH_NAME,
-      version: packageJson.version,
-      githubActor: process.env.GITHUB_ACTOR,
-    }),
-  });
+  if (uploads.length > 0) {
+    await fetch(process.env.BUILD_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        uploads,
+        branchName: process.env.BRANCH_NAME,
+        version: packageJson.version,
+        githubActor: process.env.GITHUB_ACTOR,
+      }),
+    });
+  }
 });
