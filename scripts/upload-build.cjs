@@ -29,6 +29,7 @@ fs.readdir(dist, async (err, files) => {
     files
       .filter((file) => extensionsToUpload.includes(path.extname(file)))
       .map(async (file) => {
+        console.log(`⌛️ Uploading ${file}...`);
         const fileName = `${new Date().getTime()}-${file}`;
 
         const command = new PutObjectCommand({
@@ -40,7 +41,7 @@ fs.readdir(dist, async (err, files) => {
         await s3.send(command);
 
         return {
-          url: `${process.env.S3_ENDPOINT}/${process.env.S3_BUILDS_BUCKET_NAME}/${fileName}`,
+          url: `${process.env.BUILDS_URL}/${fileName}`,
           name: fileName,
         };
       })
