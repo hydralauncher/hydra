@@ -18,9 +18,9 @@ const s3 = new S3Client({
   },
 });
 
-const dist = path.resolve(__dirname, "..", "resources");
+const dist = path.resolve(__dirname, "..", "dist");
 
-const extensionsToUpload = [".deb", ".exe", ".png"];
+const extensionsToUpload = [".deb", ".exe"];
 
 fs.readdir(dist, async (err, files) => {
   if (err) throw err;
