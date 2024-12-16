@@ -63,19 +63,19 @@ const findGamePathByProcess = (
 
         if (!exe) continue;
 
-        const hasProcess = processMap.get(exe);
+        const pathSet = processMap.get(exe);
 
-        if (hasProcess) {
+        if (pathSet) {
           const executableName = executable.name.replace(/\//g, "\\");
 
-          for (const path of [...hasProcess]) {
+          pathSet.forEach((path) => {
             if (path.toLowerCase().endsWith(executableName)) {
               gameRepository.update(
                 { objectID: id, shop: "steam" },
                 { executablePath: path }
               );
             }
-          }
+          });
         }
       }
     }
