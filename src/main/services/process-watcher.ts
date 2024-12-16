@@ -67,12 +67,9 @@ const findGamePathByProcess = (
 
         if (hasProcess) {
           for (const path of [...hasProcess]) {
-            const executableName =
-              process.platform === "win32"
-                ? executable.name.replace("/", "\\")
-                : executable.name;
-
-            if (path.toLowerCase().endsWith(executableName)) {
+            if (
+              path.toLowerCase().endsWith(executable.name.replace(/\//g, "\\"))
+            ) {
               gameRepository.update(
                 { objectID: id, shop: "steam" },
                 { executablePath: path }
