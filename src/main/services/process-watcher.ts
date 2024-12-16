@@ -59,7 +59,7 @@ const findGamePathByProcess = (
       );
 
       for (const executable of executables) {
-        const exe = executable.name.slice(executable.name.lastIndexOf("/"));
+        const exe = executable.name.slice(executable.name.lastIndexOf("/") + 1);
 
         if (!exe) continue;
 
