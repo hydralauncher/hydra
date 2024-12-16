@@ -7,6 +7,11 @@ import { Game } from "@main/entity";
 import axios from "axios";
 import { exec } from "child_process";
 
+const commands = {
+  findGameExecutableWithWineProcess: (executable: string) =>
+    `lsof -c wine 2>/dev/null | grep -i ${executable} | awk \'{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}\'`,
+};
+
 export const gamesPlaytime = new Map<
   number,
   { lastTick: number; firstTick: number; lastSyncTick: number }
@@ -135,7 +140,7 @@ export const watchProcesses = async () => {
     if (process.platform === "linux") {
       if (executable.endsWith(".exe")) {
         exec(
-          `lsof -c wine 2>/dev/null | grep -i ${executable} | awk \'{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}\'`,
+          commands.findGameExecutableWithWineProcess(executable),
           (err, out) => {
             if (err) return;
 
