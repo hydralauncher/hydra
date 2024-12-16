@@ -66,10 +66,10 @@ const findGamePathByProcess = (
         const hasProcess = processMap.get(exe);
 
         if (hasProcess) {
+          const executableName = executable.name.replace(/\//g, "\\");
+
           for (const path of [...hasProcess]) {
-            if (
-              path.toLowerCase().endsWith(executable.name.replace(/\//g, "\\"))
-            ) {
+            if (path.toLowerCase().endsWith(executableName)) {
               gameRepository.update(
                 { objectID: id, shop: "steam" },
                 { executablePath: path }
