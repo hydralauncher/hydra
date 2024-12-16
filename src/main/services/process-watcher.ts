@@ -10,6 +10,8 @@ import { exec } from "child_process";
 const commands = {
   findGameExecutableWithWineProcess: (executable: string) =>
     `lsof -c wine 2>/dev/null | grep -i ${executable} | awk \'{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}\'`,
+  findWineDir: () =>
+    `lsof -c wine 2>/dev/null | grep -i drive_c/windows | head -n 1 | awk \'{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}\'`,
 };
 
 export const gamesPlaytime = new Map<
@@ -64,6 +66,75 @@ const findGamePathByProcess = (
             );
           }
         });
+      }
+    }
+  }
+
+  if (process.platform === "linux") {
+    const executables = gameExecutables[gameId].filter((info) => {
+      if (info.os === "win32") return true;
+      if (info.os === "linux") return true;
+      return false;
+    });
+
+    for (const executable of executables) {
+      if (executable.os === "win32") {
+        const exe = executable.name.slice(executable.name.lastIndexOf("/") + 1);
+
+        if (!exe) return;
+
+        const hasProcess = processMap.get(exe);
+
+        if (hasProcess) {
+          new Promise((res) => {
+            exec(
+              commands.findGameExecutableWithWineProcess(exe),
+              (err, out) => {
+                if (err) {
+                  res(false);
+                  return;
+                }
+
+                const paths = [
+                  ...new Set(
+                    out
+                      .trim()
+                      .split("\n")
+                      .map((path) => path.trim())
+                  ),
+                ];
+
+                for (const path of paths) {
+                  if (path.toLocaleLowerCase().endsWith(executable.name)) {
+                    gameRepository.update(
+                      { objectID: gameId, shop: "steam" },
+                      { executablePath: path }
+                    );
+
+                    res(true);
+                    return;
+                  }
+                }
+                res(false);
+              }
+            );
+          }).then((res) => {
+            if (res) {
+              exec(commands.findWineDir(), (err, out) => {
+                if (err) return;
+
+                gameRepository.update(
+                  { objectID: gameId, shop: "steam" },
+                  {
+                    winePrefixPath: out.trim().replace("/drive_c/windows", ""),
+                  }
+                );
+              });
+            }
+          });
+        }
+      } else {
+        //TODO: linux case
       }
     }
   }
