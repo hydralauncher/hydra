@@ -43,17 +43,9 @@ const gamesIdWithoutPath = async () => {
     },
   });
 
-  const gameExecutableIds: string[] = [];
-
-  for (const game of games) {
-    const has = gameExecutables[game.objectID];
-
-    if (has) {
-      gameExecutableIds.push(game.objectID);
-    }
-  }
-
-  return gameExecutableIds;
+  return games
+    .filter((game) => gameExecutables[game.objectID])
+    .map((game) => game.objectID);
 };
 
 const findGamePathByProcess = (
