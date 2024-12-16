@@ -254,7 +254,8 @@
     "user_unblocked": "Usuário desbloqueado",
     "enable_achievement_notifications": "Quando uma conquista é desbloqueada",
     "launch_minimized": "Iniciar o Hydra minimizado",
-    "disable_nsfw_alert": "Desativar alerta de conteúdo inapropriado"
+    "disable_nsfw_alert": "Desativar alerta de conteúdo inapropriado",
+    "show_hidden_achievement_description": "Mostrar descrição de conquistas ocultas antes de debloqueá-las"
   },
   "notifications": {
     "download_complete": "Download concluído",

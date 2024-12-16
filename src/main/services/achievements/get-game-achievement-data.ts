@@ -6,20 +6,15 @@ import { HydraApi } from "../hydra-api";
 import type { AchievementData, GameShop } from "@types";
 import { UserNotLoggedInError } from "@shared";
 import { logger } from "../logger";
+import { GameAchievement } from "@main/entity";
 
 export const getGameAchievementData = async (
   objectId: string,
   shop: GameShop,
-  useCachedData: boolean
+  cachedAchievements: GameAchievement | null
 ) => {
-  if (useCachedData) {
-    const cachedAchievements = await gameAchievementRepository.findOne({
-      where: { objectId, shop },
-    });
-
-    if (cachedAchievements && cachedAchievements.achievements) {
-      return JSON.parse(cachedAchievements.achievements) as AchievementData[];
-    }
+  if (cachedAchievements && cachedAchievements.achievements) {
+    return JSON.parse(cachedAchievements.achievements) as AchievementData[];
   }
 
   const userPreferences = await userPreferencesRepository.findOne({
