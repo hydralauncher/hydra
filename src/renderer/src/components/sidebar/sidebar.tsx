@@ -24,8 +24,6 @@ import { sortBy } from "lodash-es";
 import cn from "classnames";
 import { CommentDiscussionIcon } from "@primer/octicons-react";
 
-import { show, update } from "@intercom/messenger-js-sdk";
-
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
 const SIDEBAR_MAX_WIDTH = 450;
@@ -52,19 +50,7 @@ export function Sidebar() {
     return sortBy(library, (game) => game.title);
   }, [library]);
 
-  const { userDetails, hasActiveSubscription } = useUserDetails();
-
-  useEffect(() => {
-    if (userDetails) {
-      update({
-        name: userDetails.displayName,
-        Username: userDetails.username,
-        Email: userDetails.email,
-        "Subscription expiration date": userDetails?.subscription?.expiresAt,
-        "Payment status": userDetails?.subscription?.status,
-      });
-    }
-  }, [userDetails, hasActiveSubscription]);
+  const { hasActiveSubscription } = useUserDetails();
 
   const { lastPacket, progress } = useDownload();
 
@@ -267,7 +253,11 @@ export function Sidebar() {
       </div>
 
       {hasActiveSubscription && (
-        <button type="button" className="sidebar__help-button" onClick={show}>
+        <button
+          type="button"
+          className="sidebar__help-button"
+          data-open-support-chat
+        >
           <div className="sidebar__help-button-icon">
             <CommentDiscussionIcon size={14} />
           </div>

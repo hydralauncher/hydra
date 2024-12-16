@@ -2,9 +2,6 @@ import { useCallback, useContext, useEffect, useRef } from "react";
 
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
-import "./app.scss";
-import Intercom from "@intercom/messenger-js-sdk";
-
 import {
   useAppDispatch,
   useAppSelector,
@@ -30,18 +27,12 @@ import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { downloadSourcesWorker } from "./workers";
 import { repacksContext } from "./context";
 import { logger } from "./logger";
-import { insertCustomStyles } from "./helpers";
+
+import "./app.scss";
 
 export interface AppProps {
   children: React.ReactNode;
 }
-
-Intercom({
-  app_id: import.meta.env.RENDERER_VITE_INTERCOM_APP_ID,
-});
-
-const customStyles = window.localStorage.getItem("customStyles");
-insertCustomStyles(customStyles || "");
 
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -123,12 +114,21 @@ export function App() {
       dispatch(setProfileBackground(profileBackground));
     }
 
-    fetchUserDetails().then((response) => {
-      if (response) {
-        updateUserDetails(response);
-        syncFriendRequests();
-      }
-    });
+    fetchUserDetails()
+      .then((response) => {
+        if (response) {
+          updateUserDetails(response);
+          syncFriendRequests();
+        }
+      })
+      .finally(() => {
+        if (document.getElementById("external-resources")) return;
+
+        const $script = document.createElement("script");
+        $script.id = "external-resources";
+        $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}?t=${Date.now()}`;
+        document.head.appendChild($script);
+      });
   }, [fetchUserDetails, syncFriendRequests, updateUserDetails, dispatch]);
 
   const onSignIn = useCallback(() => {
@@ -218,9 +218,7 @@ export function App() {
 
   useEffect(() => {
     new MutationObserver(() => {
-      const modal = document.body.querySelector(
-        "[role=dialog]:not([data-intercom-frame='true'])"
-      );
+      const modal = document.body.querySelector("[data-hydra-dialog]");
 
       dispatch(toggleDraggingDisabled(Boolean(modal)));
     }).observe(document.body, {

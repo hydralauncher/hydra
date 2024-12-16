@@ -50,16 +50,3 @@ export const buildGameAchievementPath = (
 
 export const darkenColor = (color: string, amount: number, alpha: number = 1) =>
   new Color(color).darken(amount).alpha(alpha).toString();
-
-export const insertCustomStyles = (styles: string) => {
-  const existingStyles = document.getElementById("custom-styles");
-
-  if (existingStyles) {
-    existingStyles.innerHTML = styles;
-  } else {
-    const style = document.createElement("style");
-    style.id = "custom-styles";
-    style.innerHTML = styles;
-    document.head.appendChild(style);
-  }
-};

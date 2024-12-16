@@ -241,6 +241,7 @@ export interface Subscription {
   status: SubscriptionStatus;
   plan: { id: string; name: string };
   expiresAt: string | null;
+  paymentMethod: "pix" | "paypal";
 }
 
 export interface UserDetails {
