@@ -75,7 +75,12 @@ const findGamePathByProcess = (
 
         if (hasProcess) {
           for (const path of [...hasProcess]) {
-            if (path.toLowerCase().endsWith(executable.name)) {
+            const executableName =
+              process.platform === "win32"
+                ? executable.name.replace("/", "\\")
+                : executable.name;
+
+            if (path.toLowerCase().endsWith(executableName)) {
               gameRepository.update(
                 { objectID: id, shop: "steam" },
                 { executablePath: path }
@@ -105,7 +110,9 @@ const getSystemProcessMap = async () => {
 };
 
 const getExecutable = (path: string) => {
-  return path.slice(path.lastIndexOf("/") + 1);
+  return path.slice(
+    path.lastIndexOf(process.platform === "win32" ? "\\" : "/") + 1
+  );
 };
 
 export const watchProcesses = async () => {
