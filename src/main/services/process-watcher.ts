@@ -88,11 +88,13 @@ const getSystemProcessMap = async () => {
   const map = new Map<string, Set<string>>();
 
   processes.forEach((process) => {
-    const [key, value] = [process.name?.toLowerCase(), process.exe];
+    const key = process.name.toLowerCase();
+    const value = process.exe;
 
     if (!key || !value) return;
 
-    map.set(key, (map.get(key) ?? new Set()).add(value));
+    const currentSet = map.get(key) ?? new Set();
+    map.set(key, currentSet.add(value));
   });
 
   return map;
