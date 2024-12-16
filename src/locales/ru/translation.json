@@ -130,7 +130,6 @@
     "refuse_nsfw_content": "Назад",
     "stats": "Статистика",
     "player_count": "Активные игроки",
-    "executable_path_in_use": "Исполняемый файл уже используется \"{{game}}\"",
     "warning": "Внимание:",
     "hydra_needs_to_remain_open": "Для этой загрузки Hydra должна оставаться открытой до завершения. Если Hydra закроется до завершения, вы потеряете прогресс.",
     "achievements": "Достижения",
@@ -168,7 +167,6 @@
     "select_folder": "Выбрать папку",
     "backup_from": "Резервная копия от {{date}}",
     "custom_backup_location_set": "Установлено настраиваемое местоположение резервной копии"
-
   },
   "activation": {
     "title": "Активировать Hydra",
@@ -365,7 +363,6 @@
     "new_achievements_unlocked": "Разблокировано {{achievementCount}} новых достижений из {{gameCount}} игр",
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} достижений",
     "achievements_unlocked_for_game": "Разблокировано {{achievementCount}} новых достижений для {{gameTitle}}"
-
   },
   "tour": {
     "subscription_tour_title": "Подписка Hydra Cloud",
