@@ -38,6 +38,9 @@ const gamesIdWithoutPath = async () => {
       executablePath: IsNull(),
       isDeleted: false,
     },
+    select: {
+      objectID: true,
+    },
   });
 
   const gameExecutableIds: string[] = [];
