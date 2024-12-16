@@ -105,6 +105,7 @@
     "open_folder": "Open folder",
     "open_download_location": "See downloaded files",
     "create_shortcut": "Create desktop shortcut",
+    "clear": "Clear",
     "remove_files": "Remove files",
     "remove_from_library_title": "Are you sure?",
     "remove_from_library_description": "This will remove {{game}} from your library",
@@ -166,7 +167,8 @@
     "manage_files_description": "Manage which files will be backed up and restored",
     "select_folder": "Select folder",
     "backup_from": "Backup from {{date}}",
-    "custom_backup_location_set": "Custom backup location set"
+    "custom_backup_location_set": "Custom backup location set",
+    "no_directory_selected": "No directory selected"
   },
   "activation": {
     "title": "Activate Hydra",

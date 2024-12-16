@@ -85,7 +85,11 @@ export class WindowManager {
           return callback(details);
         }
 
-        if (details.url.includes("intercom.io")) {
+        if (details.url.includes("featurebase")) {
+          return callback(details);
+        }
+
+        if (details.url.includes("chatwoot")) {
           return callback(details);
         }
 
@@ -191,7 +195,7 @@ export class WindowManager {
     this.mainWindow?.focus();
   }
 
-  public static createSystemTray(language: string) {
+  public static async createSystemTray(language: string) {
     let tray: Tray;
 
     if (process.platform === "darwin") {
@@ -259,6 +263,7 @@ export class WindowManager {
         },
       ]);
 
+      tray.setContextMenu(contextMenu);
       return contextMenu;
     };
 
@@ -270,6 +275,8 @@ export class WindowManager {
     tray.setToolTip("Hydra");
 
     if (process.platform !== "darwin") {
+      await updateSystemTray();
+
       tray.addListener("click", () => {
         if (this.mainWindow) {
           if (

@@ -12,6 +12,7 @@ import { UserNotLoggedInError, SubscriptionRequiredError } from "@shared";
 import { omit } from "lodash-es";
 import { appVersion } from "@main/constants";
 import { getUserData } from "./user/get-user-data";
+import { isFuture, isToday } from "date-fns";
 
 interface HydraApiOptions {
   needsAuth?: boolean;
@@ -45,10 +46,8 @@ export class HydraApi {
   }
 
   private static hasActiveSubscription() {
-    return (
-      this.userAuth.subscription?.expiresAt &&
-      this.userAuth.subscription.expiresAt > new Date()
-    );
+    const expiresAt = this.userAuth.subscription?.expiresAt;
+    return expiresAt && (isFuture(expiresAt) || isToday(expiresAt));
   }
 
   static async handleExternalAuth(uri: string) {
@@ -112,6 +111,8 @@ export class HydraApi {
       expirationTimestamp: 0,
       subscription: null,
     };
+
+    this.post("/auth/logout", {}, { needsAuth: false }).catch(() => {});
   }
 
   static async setupApi() {
@@ -152,21 +153,26 @@ export class HydraApi {
         (error) => {
           logger.error(" ---- RESPONSE ERROR -----");
           const { config } = error;
+          const data = JSON.parse(config.data);
+
           logger.error(
             config.method,
             config.baseURL,
             config.url,
-            config.headers,
-            config.data
+            omit(config.headers, ["accessToken", "refreshToken"]),
+            Array.isArray(data)
+              ? data
+              : omit(data, ["accessToken", "refreshToken"])
           );
           if (error.response) {
             logger.error(
-              "Response",
+              "Response error:",
               error.response.status,
               error.response.data
             );
           } else if (error.request) {
-            logger.error("Request", error.request);
+            const errorData = error.toJSON();
+            logger.error("Request error:", errorData.message);
           } else {
             logger.error("Error", error.message);
           }

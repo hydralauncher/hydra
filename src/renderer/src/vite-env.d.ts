@@ -2,7 +2,7 @@
 /// <reference types="vite-plugin-svgr/client" />
 
 interface ImportMetaEnv {
-  readonly RENDERER_VITE_INTERCOM_APP_ID: string;
+  readonly RENDERER_VITE_EXTERNAL_RESOURCES_URL: string;
 }
 
 interface ImportMeta {
