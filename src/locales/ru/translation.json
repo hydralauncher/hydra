@@ -237,7 +237,7 @@
     "add_download_source_description": "Вставьте ссылку на .json-файл",
     "download_source_up_to_date": "Обновлён",
     "download_source_errored": "Ошибка",
-    "sync_download_sources": "Синхронизировать источники",
+    "sync_download_sources": "Обновить источники",
     "removed_download_source": "Источник загрузок удален",
     "added_download_source": "Источник загрузок добавлен",
     "download_sources_synced": "Все источники загрузок синхронизированы",
