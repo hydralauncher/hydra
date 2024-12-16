@@ -1,7 +1,6 @@
 export * from "./logger";
 export * from "./steam";
 export * from "./steam-250";
-export * from "./steam-grid";
 export * from "./window-manager";
 export * from "./download";
 export * from "./process-watcher";
