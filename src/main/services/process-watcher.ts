@@ -5,6 +5,7 @@ import type { GameRunning } from "@types";
 import { PythonInstance } from "./download";
 import { Game } from "@main/entity";
 import axios from "axios";
+import { exec } from "child_process";
 
 export const gamesPlaytime = new Map<
   number,
@@ -81,6 +82,18 @@ const getSystemProcessMap = async () => {
   return map;
 };
 
+const observeGameProcess = (hasProcess: boolean, game: Game) => {
+  if (hasProcess) {
+    if (gamesPlaytime.has(game.id)) {
+      onTickGame(game);
+    } else {
+      onOpenGame(game);
+    }
+  } else if (gamesPlaytime.has(game.id)) {
+    onCloseGame(game);
+  }
+};
+
 export const watchProcesses = async () => {
   const games = await gameRepository.find({
     where: {
@@ -102,20 +115,45 @@ export const watchProcesses = async () => {
       continue;
     }
 
-    const executable = executablePath.slice(
-      executablePath.lastIndexOf(process.platform === "win32" ? "\\" : "/") + 1
-    );
+    const executable = executablePath
+      .slice(
+        executablePath.lastIndexOf(process.platform === "win32" ? "\\" : "/") +
+          1
+      )
+      .toLowerCase();
 
-    const gameProcess = processMap.get(executable)?.has(executablePath);
+    const processSet = processMap.get(executable);
 
-    if (gameProcess) {
-      if (gamesPlaytime.has(game.id)) {
-        onTickGame(game);
+    if (!processSet) continue;
+
+    if (process.platform === "win32") {
+      const hasProcess = processSet.has(executablePath);
+
+      observeGameProcess(hasProcess, game);
+    }
+
+    if (process.platform === "linux") {
+      if (executable.endsWith(".exe")) {
+        exec(
+          `lsof -c wine 2>/dev/null | grep -i ${executable} | awk \'{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}\'`,
+          (err, out) => {
+            if (err) return;
+
+            const pathSet = new Set(
+              out
+                .trim()
+                .split("\n")
+                .map((path) => path.trim())
+            );
+
+            const hasProcess = pathSet.has(executablePath!);
+
+            observeGameProcess(hasProcess, game);
+          }
+        );
       } else {
-        onOpenGame(game);
+        //TODO: linux case
       }
-    } else if (gamesPlaytime.has(game.id)) {
-      onCloseGame(game);
     }
   }
 
