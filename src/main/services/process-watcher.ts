@@ -5,14 +5,85 @@ import { createGame, updateGamePlaytime } from "./library-sync";
 import type { GameRunning } from "@types";
 import { PythonInstance } from "./download";
 import { Game } from "@main/entity";
+import axios from "axios";
 
 export const gamesPlaytime = new Map<
   number,
   { lastTick: number; firstTick: number; lastSyncTick: number }
 >();
 
+interface ExecutableInfo {
+  name: string;
+  os: string;
+}
+
+interface GameExecutables {
+  [key: string]: ExecutableInfo[];
+}
+
 const TICKS_TO_UPDATE_API = 120;
 let currentTick = 1;
+
+const gameExecutables = (
+  await axios
+    .get("https://assets.hydralauncher.gg/game-executables.json")
+    .catch(() => {
+      return { data: {} };
+    })
+).data as GameExecutables;
+
+const gamesIdWithoutPath = async () => {
+  const games = await gameRepository.find({
+    where: {
+      executablePath: IsNull(),
+      isDeleted: false,
+    },
+  });
+
+  const gameExecutableIds: string[] = [];
+
+  for (const game of games) {
+    const has = gameExecutables[game.objectID];
+
+    if (has) {
+      gameExecutableIds.push(game.objectID);
+    }
+  }
+
+  return gameExecutableIds;
+};
+
+const findGamePathByProcess = (
+  processMap: Map<string, Set<string>>,
+  gameIds: string[]
+) => {
+  for (const id of gameIds) {
+    if (process.platform === "win32") {
+      const executables = gameExecutables[id].filter(
+        (info) => info.os === "win32"
+      );
+
+      for (const executable of executables) {
+        const exe = getExecutable(executable.name);
+
+        if (!exe) continue;
+
+        const hasProcess = processMap.get(exe);
+
+        if (hasProcess) {
+          for (const path of [...hasProcess]) {
+            if (path.toLowerCase().endsWith(executable.name)) {
+              gameRepository.update(
+                { objectID: id, shop: "steam" },
+                { executablePath: path }
+              );
+            }
+          }
+        }
+      }
+    }
+  }
+};
 
 const getSystemProcessMap = async () => {
   const processes = await PythonInstance.getProcessList();
@@ -35,6 +106,8 @@ const getExecutable = (path: string) => {
 };
 
 export const watchProcesses = async () => {
+  const gameIds = await gamesIdWithoutPath();
+
   const games = await gameRepository.find({
     where: {
       executablePath: Not(IsNull()),
@@ -42,9 +115,13 @@ export const watchProcesses = async () => {
     },
   });
 
-  if (games.length === 0) return;
+  if (!games.length && !gameIds.length) return;
 
   const processMap = await getSystemProcessMap();
+
+  findGamePathByProcess(processMap, gameIds);
+
+  if (!games.length) return;
 
   for (const game of games) {
     if (!game.executablePath) continue;
