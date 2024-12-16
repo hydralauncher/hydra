@@ -59,7 +59,7 @@ const findGamePathByProcess = (
       );
 
       for (const executable of executables) {
-        const exe = getExecutable(executable.name);
+        const exe = executable.name.slice(executable.name.lastIndexOf("/"));
 
         if (!exe) continue;
 
@@ -98,12 +98,6 @@ const getSystemProcessMap = async () => {
   return map;
 };
 
-const getExecutable = (path: string) => {
-  return path.slice(
-    path.lastIndexOf(process.platform === "win32" ? "\\" : "/") + 1
-  );
-};
-
 export const watchProcesses = async () => {
   const gameIds = await gamesIdWithoutPath();
 
@@ -123,11 +117,15 @@ export const watchProcesses = async () => {
   if (!games.length) return;
 
   for (const game of games) {
-    if (!game.executablePath) continue;
+    const executablePath = game.executablePath;
 
-    const executable = getExecutable(game.executablePath);
+    if (!executablePath) continue;
 
-    const gameProcess = processMap.get(executable)?.has(game.executablePath);
+    const executable = executablePath.slice(
+      executablePath.lastIndexOf(process.platform === "win32" ? "\\" : "/") + 1
+    );
+
+    const gameProcess = processMap.get(executable)?.has(executablePath);
 
     if (gameProcess) {
       if (gamesPlaytime.has(game.id)) {
