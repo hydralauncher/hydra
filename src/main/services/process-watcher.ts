@@ -1,4 +1,3 @@
-import { IsNull, Not } from "typeorm";
 import { gameRepository } from "@main/repository";
 import { WindowManager } from "./window-manager";
 import { createGame, updateGamePlaytime } from "./library-sync";
@@ -32,51 +31,33 @@ const gameExecutables = (
     })
 ).data as GameExecutables;
 
-const gamesIdWithoutPath = async () => {
-  const games = await gameRepository.find({
-    where: {
-      executablePath: IsNull(),
-      isDeleted: false,
-    },
-    select: {
-      objectID: true,
-    },
-  });
-
-  return games
-    .filter((game) => gameExecutables[game.objectID])
-    .map((game) => game.objectID);
-};
-
 const findGamePathByProcess = (
   processMap: Map<string, Set<string>>,
-  gameIds: string[]
+  gameId: string
 ) => {
-  for (const id of gameIds) {
-    if (process.platform === "win32") {
-      const executables = gameExecutables[id].filter(
-        (info) => info.os === "win32"
-      );
+  if (process.platform === "win32") {
+    const executables = gameExecutables[gameId].filter(
+      (info) => info.os === "win32"
+    );
 
-      for (const executable of executables) {
-        const exe = executable.name.slice(executable.name.lastIndexOf("/") + 1);
+    for (const executable of executables) {
+      const exe = executable.name.slice(executable.name.lastIndexOf("/") + 1);
 
-        if (!exe) continue;
+      if (!exe) continue;
 
-        const pathSet = processMap.get(exe);
+      const pathSet = processMap.get(exe);
 
-        if (pathSet) {
-          const executableName = executable.name.replace(/\//g, "\\");
+      if (pathSet) {
+        const executableName = executable.name.replace(/\//g, "\\");
 
-          pathSet.forEach((path) => {
-            if (path.toLowerCase().endsWith(executableName)) {
-              gameRepository.update(
-                { objectID: id, shop: "steam" },
-                { executablePath: path }
-              );
-            }
-          });
-        }
+        pathSet.forEach((path) => {
+          if (path.toLowerCase().endsWith(executableName)) {
+            gameRepository.update(
+              { objectID: gameId, shop: "steam" },
+              { executablePath: path }
+            );
+          }
+        });
       }
     }
   }
@@ -101,27 +82,25 @@ const getSystemProcessMap = async () => {
 };
 
 export const watchProcesses = async () => {
-  const gameIds = await gamesIdWithoutPath();
-
   const games = await gameRepository.find({
     where: {
-      executablePath: Not(IsNull()),
       isDeleted: false,
     },
   });
 
-  if (!games.length && !gameIds.length) return;
+  if (!games.length) return;
 
   const processMap = await getSystemProcessMap();
-
-  findGamePathByProcess(processMap, gameIds);
-
-  if (!games.length) return;
 
   for (const game of games) {
     const executablePath = game.executablePath;
 
-    if (!executablePath) continue;
+    if (!executablePath) {
+      if (gameExecutables[game.objectID]) {
+        findGamePathByProcess(processMap, game.objectID);
+      }
+      continue;
+    }
 
     const executable = executablePath.slice(
       executablePath.lastIndexOf(process.platform === "win32" ? "\\" : "/") + 1
