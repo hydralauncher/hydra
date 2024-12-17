@@ -7,19 +7,19 @@ interface ResetAchievementsModalProps {
   visible: boolean;
   game: Game;
   onClose: () => void;
-//   resetAchievements: () => Promise<void>;
+  resetAchievements: () => Promise<void>;
 }
 
 export function ResetAchievementsModal({
   onClose,
   game,
   visible,
-//   resetAchievements,
+  resetAchievements,
 }: ResetAchievementsModalProps) {
   const { t } = useTranslation("game_details");
 
   const handleResetAchievements = async () => {
-    // await resetAchievements();
+    await resetAchievements();
     onClose();
   };
 

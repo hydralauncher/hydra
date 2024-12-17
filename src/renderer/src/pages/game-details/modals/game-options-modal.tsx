@@ -122,6 +122,11 @@ export function GameOptionsModal({
   const shouldShowWinePrefixConfiguration =
     window.electron.platform === "linux";
 
+  const handleResetAchievements = async () => {
+    await window.electron.resetGameAchievements(game.id);
+    updateGame();
+  };
+
   return (
     <>
       <DeleteGameModal
@@ -140,7 +145,7 @@ export function GameOptionsModal({
       <ResetAchievementsModal
         visible={showResetAchievementsModal}
         onClose={() => setShowResetAchievementsModal(false)}
-        // resetAchievements={handleResetAchievements}
+        resetAchievements={handleResetAchievements}
         game={game}
       />
 
