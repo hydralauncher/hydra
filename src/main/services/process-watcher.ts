@@ -33,7 +33,7 @@ let currentTick = 1;
 
 const gameExecutables = (
   await axios
-    .get("https://assets.hydralauncher.gg/game-executables.json")
+    .get(import.meta.env.MAIN_VITE_RPC_GAME_EXECUTABLES_URL)
     .catch(() => {
       return { data: {} };
     })
