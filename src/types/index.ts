@@ -41,6 +41,7 @@ export interface UserAchievement {
   name: string;
   hidden: boolean;
   displayName: string;
+  points?: number;
   description?: string;
   unlocked: boolean;
   unlockTime: number | null;
@@ -322,6 +323,7 @@ export interface TrendingGame {
 export interface UserStats {
   libraryCount: number;
   friendsCount: number;
+  achievementsPointsEarnedSum?: number;
 }
 
 export interface UnlockedAchievement {
