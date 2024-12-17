@@ -104,7 +104,10 @@ const getSystemProcessMap = async () => {
   if (process.platform === "linux") {
     await new Promise((res) => {
       exec(commands.findWineExecutables(), (err, out) => {
-        if (err) res(null);
+        if (err) {
+          res(null);
+          return;
+        }
 
         const pathSet = new Set(
           out
