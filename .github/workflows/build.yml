@@ -50,6 +50,7 @@ jobs:
           RENDERER_VITE_INTERCOM_APP_ID: ${{ vars.RENDERER_VITE_INTERCOM_APP_ID }}
           RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.RENDERER_VITE_EXTERNAL_RESOURCES_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAIN_VITE_RPC_GAME_EXECUTABLES_URL: ${{ vars.MAIN_VITE_RPC_GAME_EXECUTABLES_URL }}
 
       - name: Build Windows
         if: matrix.os == 'windows-latest'
@@ -62,6 +63,7 @@ jobs:
           RENDERER_VITE_INTERCOM_APP_ID: ${{ vars.RENDERER_VITE_INTERCOM_APP_ID }}
           RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.RENDERER_VITE_EXTERNAL_RESOURCES_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAIN_VITE_RPC_GAME_EXECUTABLES_URL: ${{ vars.MAIN_VITE_RPC_GAME_EXECUTABLES_URL }}
 
       - name: Create artifact
         uses: actions/upload-artifact@v4
