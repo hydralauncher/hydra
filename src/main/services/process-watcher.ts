@@ -8,10 +8,10 @@ import axios from "axios";
 import { exec } from "child_process";
 
 const commands = {
-  findGameExecutableWithWineProcess: (executable: string) =>
-    `lsof -c wine 2>/dev/null | grep -i ${executable} | awk \'{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}\'`,
   findWineDir: () =>
-    `lsof -c wine 2>/dev/null | grep -i drive_c/windows | head -n 1 | awk \'{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}\'`,
+    `lsof -c wine 2>/dev/null | grep '/drive_c/windows$' | head -n 1 | awk '{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}'`,
+  findWineExecutables: () =>
+    `lsof -c wine 2>/dev/null | grep '\.exe$' | awk '{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}'`,
 };
 
 export const gamesPlaytime = new Map<
@@ -43,99 +43,45 @@ const findGamePathByProcess = (
   processMap: Map<string, Set<string>>,
   gameId: string
 ) => {
-  if (process.platform === "win32") {
-    const executables = gameExecutables[gameId].filter(
-      (info) => info.os === "win32"
-    );
+  const executables = gameExecutables[gameId].filter((info) => {
+    if (process.platform === "linux" && info.os === "linux") return true;
+    return info.os === "win32";
+  });
 
-    for (const executable of executables) {
-      const exe = executable.name.slice(executable.name.lastIndexOf("/") + 1);
+  for (const executable of executables) {
+    const exe = executable.name.slice(executable.name.lastIndexOf("/") + 1);
 
-      if (!exe) continue;
+    if (!exe) continue;
 
-      const pathSet = processMap.get(exe);
+    const pathSet = processMap.get(exe);
 
-      if (pathSet) {
-        const executableName = executable.name.replace(/\//g, "\\");
+    if (pathSet) {
+      const executableName =
+        process.platform === "win32"
+          ? executable.name.replace(/\//g, "\\")
+          : executable.name;
 
-        pathSet.forEach((path) => {
-          if (path.toLowerCase().endsWith(executableName)) {
-            gameRepository.update(
-              { objectID: gameId, shop: "steam" },
-              { executablePath: path }
-            );
+      pathSet.forEach((path) => {
+        if (path.toLowerCase().endsWith(executableName)) {
+          gameRepository.update(
+            { objectID: gameId, shop: "steam" },
+            { executablePath: path }
+          );
+
+          if (process.platform === "linux") {
+            exec(commands.findWineDir(), (err, out) => {
+              if (err) return;
+
+              gameRepository.update(
+                { objectID: gameId, shop: "steam" },
+                {
+                  winePrefixPath: out.trim().replace("/drive_c/windows", ""),
+                }
+              );
+            });
           }
-        });
-      }
-    }
-  }
-
-  if (process.platform === "linux") {
-    const executables = gameExecutables[gameId].filter((info) => {
-      if (info.os === "win32") return true;
-      if (info.os === "linux") return true;
-      return false;
-    });
-
-    for (const executable of executables) {
-      if (executable.os === "win32") {
-        const exe = executable.name.slice(executable.name.lastIndexOf("/") + 1);
-
-        if (!exe) return;
-
-        const hasProcess = processMap.get(exe);
-
-        if (hasProcess) {
-          new Promise((res) => {
-            exec(
-              commands.findGameExecutableWithWineProcess(exe),
-              (err, out) => {
-                if (err) {
-                  res(false);
-                  return;
-                }
-
-                const paths = [
-                  ...new Set(
-                    out
-                      .trim()
-                      .split("\n")
-                      .map((path) => path.trim())
-                  ),
-                ];
-
-                for (const path of paths) {
-                  if (path.toLocaleLowerCase().endsWith(executable.name)) {
-                    gameRepository.update(
-                      { objectID: gameId, shop: "steam" },
-                      { executablePath: path }
-                    );
-
-                    res(true);
-                    return;
-                  }
-                }
-                res(false);
-              }
-            );
-          }).then((res) => {
-            if (res) {
-              exec(commands.findWineDir(), (err, out) => {
-                if (err) return;
-
-                gameRepository.update(
-                  { objectID: gameId, shop: "steam" },
-                  {
-                    winePrefixPath: out.trim().replace("/drive_c/windows", ""),
-                  }
-                );
-              });
-            }
-          });
         }
-      } else {
-        //TODO: linux case
-      }
+      });
     }
   }
 };
@@ -155,19 +101,35 @@ const getSystemProcessMap = async () => {
     map.set(key, currentSet.add(value));
   });
 
-  return map;
-};
+  if (process.platform === "linux") {
+    await new Promise((res) => {
+      exec(commands.findWineExecutables(), (err, out) => {
+        if (err) res(null);
 
-const observeGameProcess = (hasProcess: boolean, game: Game) => {
-  if (hasProcess) {
-    if (gamesPlaytime.has(game.id)) {
-      onTickGame(game);
-    } else {
-      onOpenGame(game);
-    }
-  } else if (gamesPlaytime.has(game.id)) {
-    onCloseGame(game);
+        const pathSet = new Set(
+          out
+            .trim()
+            .split("\n")
+            .map((path) => path.trim())
+        );
+
+        pathSet.forEach((path) => {
+          if (path.startsWith("/usr")) return;
+
+          const key = path.slice(path.lastIndexOf("/") + 1).toLowerCase();
+
+          if (!key || !path) return;
+
+          const currentSet = map.get(key) ?? new Set();
+          map.set(key, currentSet.add(path));
+        });
+
+        res(null);
+      });
+    });
   }
+
+  return map;
 };
 
 export const watchProcesses = async () => {
@@ -202,34 +164,16 @@ export const watchProcesses = async () => {
 
     if (!processSet) continue;
 
-    if (process.platform === "win32") {
-      const hasProcess = processSet.has(executablePath);
+    const hasProcess = processSet.has(executablePath);
 
-      observeGameProcess(hasProcess, game);
-    }
-
-    if (process.platform === "linux") {
-      if (executable.endsWith(".exe")) {
-        exec(
-          commands.findGameExecutableWithWineProcess(executable),
-          (err, out) => {
-            if (err) return;
-
-            const pathSet = new Set(
-              out
-                .trim()
-                .split("\n")
-                .map((path) => path.trim())
-            );
-
-            const hasProcess = pathSet.has(executablePath!);
-
-            observeGameProcess(hasProcess, game);
-          }
-        );
+    if (hasProcess) {
+      if (gamesPlaytime.has(game.id)) {
+        onTickGame(game);
       } else {
-        //TODO: linux case
+        onOpenGame(game);
       }
+    } else if (gamesPlaytime.has(game.id)) {
+      onCloseGame(game);
     }
   }
 
