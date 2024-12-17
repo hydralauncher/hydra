@@ -11,7 +11,7 @@ const commands = {
   findWineDir: () =>
     `lsof -c wine 2>/dev/null | grep '/drive_c/windows$' | head -n 1 | awk '{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}'`,
   findWineExecutables: () =>
-    `lsof -c wine 2>/dev/null | grep '\.exe$' | awk '{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}'`,
+    `lsof -c wine 2>/dev/null | grep '\\.exe$' | awk '{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}'`,
 };
 
 export const gamesPlaytime = new Map<
