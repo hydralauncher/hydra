@@ -31,7 +31,6 @@ const resetGameAchievements = async (
     { objectId: game.objectID },
     {
       unlockedAchievements: null,
-      achievements: null,
     }
   );
 
@@ -40,7 +39,7 @@ const resetGameAchievements = async (
   const gameAchievements = await getUnlockedAchievements(
     game.objectID,
     game.shop,
-    false
+    true
   );
 
   WindowManager.mainWindow?.webContents.send(
