@@ -168,7 +168,10 @@
     "select_folder": "Select folder",
     "backup_from": "Backup from {{date}}",
     "custom_backup_location_set": "Custom backup location set",
-    "no_directory_selected": "No directory selected"
+    "no_directory_selected": "No directory selected",
+    "reset_achievements": "Reset achievements",
+    "reset_achievements_description": "This will reset all achievements for {{game}}",
+    "reset_achievements_title": "Are you sure?"
   },
   "activation": {
     "title": "Activate Hydra",

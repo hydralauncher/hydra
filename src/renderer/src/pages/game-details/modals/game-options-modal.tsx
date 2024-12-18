@@ -7,6 +7,7 @@ import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import { useDownload, useToast } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
+import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { FileDirectoryIcon, FileIcon } from "@primer/octicons-react";
 
 export interface GameOptionsModalProps {
@@ -29,6 +30,8 @@ export function GameOptionsModal({
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRemoveGameModal, setShowRemoveGameModal] = useState(false);
+  const [showResetAchievementsModal, setShowResetAchievementsModal] =
+    useState(false);
 
   const {
     removeGameInstaller,
@@ -119,6 +122,11 @@ export function GameOptionsModal({
   const shouldShowWinePrefixConfiguration =
     window.electron.platform === "linux";
 
+  const handleResetAchievements = async () => {
+    await window.electron.resetGameAchievements(game.id);
+    updateGame();
+  };
+
   return (
     <>
       <DeleteGameModal
@@ -131,6 +139,13 @@ export function GameOptionsModal({
         visible={showRemoveGameModal}
         onClose={() => setShowRemoveGameModal(false)}
         removeGameFromLibrary={handleRemoveGameFromLibrary}
+        game={game}
+      />
+
+      <ResetAchievementsModal
+        visible={showResetAchievementsModal}
+        onClose={() => setShowResetAchievementsModal(false)}
+        resetAchievements={handleResetAchievements}
         game={game}
       />
 
@@ -267,6 +282,15 @@ export function GameOptionsModal({
             >
               {t("remove_from_library")}
             </Button>
+
+            <Button
+              onClick={() => setShowResetAchievementsModal(true)}
+              theme="danger"
+              disabled={isGameDownloading || deleting}
+            >
+              {t("reset_achievements")}
+            </Button>
+
             <Button
               onClick={() => {
                 setShowDeleteModal(true);
