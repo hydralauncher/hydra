@@ -236,24 +236,28 @@ export class AchievementWatcherManager {
   };
 
   public static preSearchAchievements = async () => {
-    const newAchievementsCount =
-      process.platform === "win32"
-        ? await this.preSearchAchievementsWindows()
-        : await this.preSearchAchievementsWithWine();
+    try {
+      const newAchievementsCount =
+        process.platform === "win32"
+          ? await this.preSearchAchievementsWindows()
+          : await this.preSearchAchievementsWithWine();
 
-    const totalNewGamesWithAchievements = newAchievementsCount.filter(
-      (achievements) => achievements
-    ).length;
-    const totalNewAchievements = newAchievementsCount.reduce(
-      (acc, val) => acc + val,
-      0
-    );
-
-    if (totalNewAchievements > 0) {
-      publishCombinedNewAchievementNotification(
-        totalNewAchievements,
-        totalNewGamesWithAchievements
+      const totalNewGamesWithAchievements = newAchievementsCount.filter(
+        (achievements) => achievements
+      ).length;
+      const totalNewAchievements = newAchievementsCount.reduce(
+        (acc, val) => acc + val,
+        0
       );
+
+      if (totalNewAchievements > 0) {
+        publishCombinedNewAchievementNotification(
+          totalNewAchievements,
+          totalNewGamesWithAchievements
+        );
+      }
+    } catch (err) {
+      achievementsLogger.error("Error on preSearchAchievements", err);
     }
 
     this.hasFinishedMergingWithRemote = true;
