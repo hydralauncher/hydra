@@ -126,7 +126,7 @@ export function App() {
 
         const $script = document.createElement("script");
         $script.id = "external-resources";
-        $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL + "/bundle.js"}?t=${Date.now()}`;
+        $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
         document.head.appendChild($script);
       });
   }, [fetchUserDetails, syncFriendRequests, updateUserDetails, dispatch]);
