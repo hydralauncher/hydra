@@ -1,12 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { PeopleIcon } from "@primer/octicons-react";
-import * as styles from "./sidebar-profile.css";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { Avatar } from "../avatar/avatar";
+import "./sidebar-profile.scss";
 
 const LONG_POLLING_INTERVAL = 120_000;
 
@@ -49,14 +49,14 @@ export function SidebarProfile() {
     return (
       <button
         type="button"
-        className={styles.friendsButton}
+        className="sidebar-profile__friends-button"
         onClick={() =>
           showFriendsModal(UserFriendModalTab.AddFriend, userDetails.id)
         }
         title={t("friends")}
       >
         {friendRequestCount > 0 && (
-          <small className={styles.friendsButtonBadge}>
+          <small className="sidebar-profile__friends-button-badge">
             {friendRequestCount > 99 ? "99+" : friendRequestCount}
           </small>
         )}
@@ -84,21 +84,21 @@ export function SidebarProfile() {
   };
 
   return (
-    <div className={styles.profileContainer}>
+    <div className="sidebar-profile">
       <button
         type="button"
-        className={styles.profileButton}
+        className="sidebar-profile__button"
         onClick={handleProfileClick}
       >
-        <div className={styles.profileButtonContent}>
+        <div className="sidebar-profile__button-content">
           <Avatar
             size={35}
             src={userDetails?.profileImageUrl}
             alt={userDetails?.displayName}
           />
 
-          <div className={styles.profileButtonInformation}>
-            <p className={styles.profileButtonTitle}>
+          <div className="sidebar-profile__button-information">
+            <p className="sidebar-profile__button-title">
               {userDetails ? userDetails.displayName : t("sign_in")}
             </p>
 

@@ -14,12 +14,14 @@ import {
 
 import { routes } from "./routes";
 
-import * as styles from "./sidebar.css";
+import "./sidebar.scss";
+
 import { buildGameDetailsPath } from "@renderer/helpers";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { SidebarProfile } from "./sidebar-profile";
 import { sortBy } from "lodash-es";
+import cn from "classnames";
 import { CommentDiscussionIcon } from "@primer/octicons-react";
 
 const SIDEBAR_MIN_WIDTH = 200;
@@ -164,9 +166,9 @@ export function Sidebar() {
   return (
     <aside
       ref={sidebarRef}
-      className={styles.sidebar({
-        resizing: isResizing,
-        darwin: window.electron.platform === "darwin",
+      className={cn("sidebar", {
+        "sidebar--resizing": isResizing,
+        "sidebar--darwin": window.electron.platform === "darwin",
       })}
       style={{
         width: sidebarWidth,
@@ -179,19 +181,19 @@ export function Sidebar() {
       >
         <SidebarProfile />
 
-        <div className={styles.content}>
-          <section className={styles.section}>
-            <ul className={styles.menu}>
+        <div className="sidebar__content">
+          <section className="sidebar__section">
+            <ul className="sidebar__menu">
               {routes.map(({ nameKey, path, render }) => (
                 <li
                   key={nameKey}
-                  className={styles.menuItem({
-                    active: location.pathname === path,
+                  className={cn("sidebar__menu-item", {
+                    "sidebar__menu-item--active": location.pathname === path,
                   })}
                 >
                   <button
                     type="button"
-                    className={styles.menuItemButton}
+                    className="sidebar__menu-item-button"
                     onClick={() => handleSidebarItemClick(path)}
                   >
                     {render()}
@@ -202,8 +204,8 @@ export function Sidebar() {
             </ul>
           </section>
 
-          <section className={styles.section}>
-            <small className={styles.sectionTitle}>{t("my_library")}</small>
+          <section className="sidebar__section">
+            <small className="sidebar__section-title">{t("my_library")}</small>
 
             <TextField
               ref={filterRef}
@@ -212,34 +214,34 @@ export function Sidebar() {
               theme="dark"
             />
 
-            <ul className={styles.menu}>
+            <ul className="sidebar__menu">
               {filteredLibrary.map((game) => (
                 <li
                   key={game.id}
-                  className={styles.menuItem({
-                    active:
+                  className={cn("sidebar__menu-item", {
+                    "sidebar__menu-item--active":
                       location.pathname ===
                       `/game/${game.shop}/${game.objectID}`,
-                    muted: game.status === "removed",
+                    "sidebar__menu-item--muted": game.status === "removed",
                   })}
                 >
                   <button
                     type="button"
-                    className={styles.menuItemButton}
+                    className="sidebar__menu-item-button"
                     onClick={(event) => handleSidebarGameClick(event, game)}
                   >
                     {game.iconUrl ? (
                       <img
-                        className={styles.gameIcon}
+                        className="sidebar__game-icon"
                         src={game.iconUrl}
                         alt={game.title}
                         loading="lazy"
                       />
                     ) : (
-                      <SteamLogo className={styles.gameIcon} />
+                      <SteamLogo className="sidebar__game-icon" />
                     )}
 
-                    <span className={styles.menuItemButtonLabel}>
+                    <span className="sidebar__menu-item-button-label">
                       {getGameTitle(game)}
                     </span>
                   </button>
@@ -253,10 +255,10 @@ export function Sidebar() {
       {hasActiveSubscription && (
         <button
           type="button"
-          className={styles.helpButton}
+          className="sidebar__help-button"
           data-open-support-chat
         >
-          <div className={styles.helpButtonIcon}>
+          <div className="sidebar__help-button-icon">
             <CommentDiscussionIcon size={14} />
           </div>
           <span>{t("need_help")}</span>
@@ -265,7 +267,7 @@ export function Sidebar() {
 
       <button
         type="button"
-        className={styles.handle}
+        className="sidebar__handle"
         onMouseDown={handleMouseDown}
       />
     </aside>
