@@ -79,7 +79,7 @@
     "add_to_library": "Agregar a la biblioteca",
     "remove_from_library": "Eliminar de la biblioteca",
     "no_downloads": "No hay descargas disponibles",
-    "play_time": "Jugado por {{amount}}",
+    "play_time": "Has jugado {{amount}}",
     "last_time_played": "Jugado por última vez: {{period}}",
     "not_played_yet": "Aún no has jugado a {{title}}",
     "next_suggestion": "Siguiente sugerencia",
