@@ -41,6 +41,9 @@ export class UserPreferences {
   @Column("boolean", { default: false })
   disableNsfwAlert: boolean;
 
+  @Column("boolean", { default: false })
+  showHiddenAchievementsDescription: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
