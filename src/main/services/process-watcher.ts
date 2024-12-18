@@ -164,11 +164,7 @@ export const watchProcesses = async () => {
       )
       .toLowerCase();
 
-    const processSet = processMap.get(executable);
-
-    if (!processSet) continue;
-
-    const hasProcess = processSet.has(executablePath);
+    const hasProcess = processMap.get(executable)?.has(executablePath);
 
     if (hasProcess) {
       if (gamesPlaytime.has(game.id)) {
