@@ -8,10 +8,8 @@ import axios from "axios";
 import { exec } from "child_process";
 
 const commands = {
-  findWineDir: () =>
-    `lsof -c wine 2>/dev/null | grep '/drive_c/windows$' | head -n 1 | awk '{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}'`,
-  findWineExecutables: () =>
-    `lsof -c wine 2>/dev/null | grep '\\.exe$' | awk '{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}'`,
+  findWineDir: `lsof -c wine 2>/dev/null | grep '/drive_c/windows$' | head -n 1 | awk '{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}'`,
+  findWineExecutables: `lsof -c wine 2>/dev/null | grep '\\.exe$' | awk '{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}'`,
 };
 
 export const gamesPlaytime = new Map<
@@ -72,7 +70,7 @@ const findGamePathByProcess = (
           );
 
           if (process.platform === "linux") {
-            exec(commands.findWineDir(), (err, out) => {
+            exec(commands.findWineDir, (err, out) => {
               if (err) return;
 
               gameRepository.update(
@@ -106,7 +104,7 @@ const getSystemProcessMap = async () => {
 
   if (process.platform === "linux") {
     await new Promise((res) => {
-      exec(commands.findWineExecutables(), (err, out) => {
+      exec(commands.findWineExecutables, (err, out) => {
         if (err) {
           res(null);
           return;
