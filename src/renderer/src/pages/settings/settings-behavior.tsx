@@ -19,6 +19,7 @@ export function SettingsBehavior() {
     runAtStartup: false,
     startMinimized: false,
     disableNsfwAlert: false,
+    showHiddenAchievementsDescription: false,
   });
 
   const { t } = useTranslation("settings");
@@ -30,6 +31,8 @@ export function SettingsBehavior() {
         runAtStartup: userPreferences.runAtStartup,
         startMinimized: userPreferences.startMinimized,
         disableNsfwAlert: userPreferences.disableNsfwAlert,
+        showHiddenAchievementsDescription:
+          userPreferences.showHiddenAchievementsDescription,
       });
     }
   }, [userPreferences]);
@@ -94,6 +97,17 @@ export function SettingsBehavior() {
         checked={form.disableNsfwAlert}
         onChange={() =>
           handleChange({ disableNsfwAlert: !form.disableNsfwAlert })
+        }
+      />
+
+      <CheckboxField
+        label={t("show_hidden_achievement_description")}
+        checked={form.showHiddenAchievementsDescription}
+        onChange={() =>
+          handleChange({
+            showHiddenAchievementsDescription:
+              !form.showHiddenAchievementsDescription,
+          })
         }
       />
     </>
