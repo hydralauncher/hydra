@@ -34,7 +34,8 @@ let currentTick = 1;
 const gameExecutables = (
   await axios
     .get(
-      import.meta.env.MAIN_VITE_EXTERNAL_RESOURCES + "/game-executables.json"
+      import.meta.env.MAIN_VITE_EXTERNAL_RESOURCES_URL +
+        "/game-executables.json"
     )
     .catch(() => {
       return { data: {} };
