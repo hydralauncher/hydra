@@ -135,6 +135,7 @@ export function ProfileContent() {
                       position: "relative",
                       display: "flex",
                     }}
+                    title={game.title}
                     className={styles.game}
                   >
                     <button

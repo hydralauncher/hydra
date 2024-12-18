@@ -324,6 +324,7 @@ export interface UserStats {
   libraryCount: number;
   friendsCount: number;
   achievementsPointsEarnedSum?: number;
+  totalPlaytimeInSeconds: number;
 }
 
 export interface UnlockedAchievement {
