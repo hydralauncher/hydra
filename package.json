@@ -23,7 +23,7 @@
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
-    "postinstall": "electron-builder install-app-deps && node ./postinstall.cjs",
+    "postinstall": "electron-builder install-app-deps && node ./scripts/postinstall.cjs",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "electron-vite build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
@@ -78,6 +78,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.705.0",
     "@commitlint/cli": "^19.6.0",
     "@commitlint/config-conventional": "^19.6.0",
     "@electron-toolkit/eslint-config-prettier": "^2.0.0",
