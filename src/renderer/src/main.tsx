@@ -38,7 +38,8 @@ const Achievements = React.lazy(
 
 console.log = logger.log;
 
-addCookieInterceptor();
+const isStaging = await window.electron.isStaging();
+addCookieInterceptor(isStaging);
 
 i18n
   .use(LanguageDetector)

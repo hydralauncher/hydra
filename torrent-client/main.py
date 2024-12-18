@@ -60,7 +60,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 return
             
-            process_list = [proc.info for proc in psutil.process_iter(['exe', 'pid', 'username'])]
+            process_list = [proc.info for proc in psutil.process_iter(['exe', 'pid', 'name'])]
 
             self.send_response(200)
             self.send_header("Content-type", "application/json")
