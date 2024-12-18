@@ -2,9 +2,6 @@ name: Build
 
 on: pull_request
 
-env:
-  AWS_REGION: us-east-1
-
 jobs:
   build:
     strategy:
@@ -64,6 +61,18 @@ jobs:
           RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.RENDERER_VITE_EXTERNAL_RESOURCES_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAIN_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.MAIN_VITE_EXTERNAL_RESOURCES_URL }}
+
+      - name: Test Upload build
+        env:
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          S3_BUILDS_BUCKET_NAME: ${{ secrets.S3_BUILDS_BUCKET_NAME }}
+          BUILDS_URL: ${{ secrets.BUILDS_URL }}
+          BUILD_WEBHOOK_URL: ${{ secrets.BUILD_WEBHOOK_URL }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: node scripts/upload-build.cjs
 
       - name: Create artifact
         uses: actions/upload-artifact@v4
