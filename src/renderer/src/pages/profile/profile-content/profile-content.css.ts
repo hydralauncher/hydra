@@ -1,4 +1,3 @@
-import { appContainer } from "../../../app.css";
 import { vars, SPACING_UNIT } from "../../../theme.css";
 import { globalStyle, style } from "@vanilla-extract/css";
 
@@ -113,19 +112,19 @@ export const gamesGrid = style({
   gap: `${SPACING_UNIT * 2}px`,
   gridTemplateColumns: "repeat(2, 1fr)",
   "@container": {
-    [`${appContainer}  (min-width: 900px)`]: {
+    [`app-container (min-width: 900px)`]: {
       gridTemplateColumns: "repeat(4, 1fr)",
     },
-    [`${appContainer}  (min-width: 1300px)`]: {
+    [`app-container (min-width: 1300px)`]: {
       gridTemplateColumns: "repeat(5, 1fr)",
     },
-    [`${appContainer}  (min-width: 2000px)`]: {
+    [`app-container (min-width: 2000px)`]: {
       gridTemplateColumns: "repeat(6, 1fr)",
     },
-    [`${appContainer}  (min-width: 2600px)`]: {
+    [`app-container (min-width: 2600px)`]: {
       gridTemplateColumns: "repeat(8, 1fr)",
     },
-    [`${appContainer}  (min-width: 3000px)`]: {
+    [`app-container (min-width: 3000px)`]: {
       gridTemplateColumns: "repeat(12, 1fr)",
     },
   },

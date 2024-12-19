@@ -32,6 +32,8 @@ export function SettingsGeneral() {
     repackUpdatesNotificationsEnabled: false,
     achievementNotificationsEnabled: false,
     language: "",
+
+    customStyles: window.localStorage.getItem("customStyles") || "",
   });
 
   const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([]);
