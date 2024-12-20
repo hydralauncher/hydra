@@ -159,7 +159,11 @@ export class HydraApi {
             config.method,
             config.baseURL,
             config.url,
-            omit(config.headers, ["accessToken", "refreshToken"]),
+            omit(config.headers, [
+              "accessToken",
+              "refreshToken",
+              "Authorization",
+            ]),
             Array.isArray(data)
               ? data
               : omit(data, ["accessToken", "refreshToken"])
