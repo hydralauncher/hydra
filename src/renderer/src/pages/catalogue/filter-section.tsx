@@ -18,23 +18,16 @@ export function FilterSection<T extends string | number>({
   onSelect,
 }: FilterSectionProps<T>) {
   const [search, setSearch] = useState("");
-  const [showMore, setShowMore] = useState(false);
 
   const filteredItems = useMemo(() => {
     if (search.length > 0) {
-      return items
-        .filter((item) =>
-          item.label.toLowerCase().includes(search.toLowerCase())
-        )
-        .slice(0, 10);
+      return items.filter((item) =>
+        item.label.toLowerCase().includes(search.toLowerCase())
+      );
     }
 
-    if (showMore) {
-      return items;
-    }
-
-    return items.slice(0, 10);
-  }, [items, search, showMore]);
+    return items;
+  }, [items, search]);
 
   const onSearch = useCallback((value: string) => {
     setSearch(value);
@@ -66,7 +59,15 @@ export function FilterSection<T extends string | number>({
         theme="dark"
       />
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          overflowY: "auto",
+          maxHeight: 28 * 10,
+        }}
+      >
         {filteredItems.map((item) => (
           <div key={item.value}>
             <CheckboxField
@@ -76,23 +77,6 @@ export function FilterSection<T extends string | number>({
             />
           </div>
         ))}
-
-        {!search && items.length > 10 && (
-          <button
-            type="button"
-            style={{
-              color: "#fff",
-              fontSize: 14,
-              textAlign: "left",
-              marginTop: 8,
-              textDecoration: "underline",
-              cursor: "pointer",
-            }}
-            onClick={() => setShowMore(!showMore)}
-          >
-            {showMore ? "Show less" : `Show more (${items.length - 10})`}
-          </button>
-        )}
       </div>
     </div>
   );
