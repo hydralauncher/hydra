@@ -320,11 +320,17 @@ export interface TrendingGame {
   logo: string | null;
 }
 
+export interface UserStatsPercentile {
+  value: number;
+  topPercentile: number;
+}
+
 export interface UserStats {
   libraryCount: number;
   friendsCount: number;
-  achievementsPointsEarnedSum?: number;
-  totalPlaytimeInSeconds: number;
+  totalPlayTimeInSeconds: UserStatsPercentile;
+  achievementsPointsEarnedSum?: UserStatsPercentile;
+  unlockedAchievementSum?: number;
 }
 
 export interface UnlockedAchievement {

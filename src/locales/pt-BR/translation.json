@@ -357,7 +357,10 @@
     "your_friend_code": "Seu código de amigo:",
     "upload_banner": "Carregar banner",
     "uploading_banner": "Carregando banner…",
-    "background_image_updated": "Imagem de fundo salva"
+    "background_image_updated": "Imagem de fundo salva",
+    "stats": "Estatísticas",
+    "achievements": "Conquistas",
+    "games": "Jogos"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",

@@ -21,6 +21,7 @@ import {
   formatDownloadProgress,
 } from "@renderer/helpers";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
+import { UserStatsBox } from "./user-stats-box";
 
 export function ProfileContent() {
   const { userProfile, isMe, userStats } = useContext(userProfileContext);
@@ -248,6 +249,7 @@ export function ProfileContent() {
 
         {shouldShowRightContent && (
           <div className={styles.rightContent}>
+            <UserStatsBox />
             <RecentGamesBox />
             <FriendsBox />
 
