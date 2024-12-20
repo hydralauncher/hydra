@@ -23,6 +23,8 @@ import { steamUserTags } from "./steam-user-tags";
 export default function Catalogue() {
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const [focused, setFocused] = useState(false);
 
   const [searchParams] = useSearchParams();
@@ -43,8 +45,16 @@ export default function Catalogue() {
 
   useEffect(() => {
     setGames([]);
+    abortControllerRef.current?.abort();
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
     window.electron.searchGames(filters).then((games) => {
+      if (abortController.signal.aborted) {
+        return;
+      }
+
       setGames(games);
     });
   }, [filters]);
