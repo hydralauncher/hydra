@@ -3,7 +3,6 @@ import { ipcMain } from "electron";
 
 import "./catalogue/get-catalogue";
 import "./catalogue/get-game-shop-details";
-import "./catalogue/get-games";
 import "./catalogue/get-how-long-to-beat";
 import "./catalogue/get-random-game";
 import "./catalogue/search-games";
@@ -38,8 +37,7 @@ import "./user-preferences/auto-launch";
 import "./autoupdater/check-for-updates";
 import "./autoupdater/restart-and-install-update";
 import "./user-preferences/authenticate-real-debrid";
-import "./download-sources/delete-download-source";
-import "./download-sources/get-download-sources";
+import "./download-sources/put-download-source";
 import "./auth/sign-out";
 import "./auth/open-auth-window";
 import "./auth/get-session-hash";

@@ -16,13 +16,10 @@ export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
 export interface GameRepack {
   id: number;
   title: string;
-  /**
-   * @deprecated Use uris instead
-   */
-  magnet: string;
   uris: string[];
   repacker: string;
   fileSize: string | null;
+  objectIds: string[];
   uploadDate: Date | string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -75,15 +72,6 @@ export type ShopDetails = SteamAppDetails & {
 export interface TorrentFile {
   path: string;
   length: number;
-}
-
-/* Used by the catalogue */
-export interface CatalogueEntry {
-  objectId: string;
-  shop: GameShop;
-  title: string;
-  /* Epic Games covers cannot be guessed with objectID */
-  cover: string;
 }
 
 export interface UserGame {
@@ -301,6 +289,7 @@ export interface DownloadSource {
   repackCount: number;
   status: DownloadSourceStatus;
   downloadCount: number;
+  fingerprint: string;
   etag: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -372,6 +361,15 @@ export interface ComparedAchievements {
       unlockTime: number;
     };
   }[];
+}
+
+export interface CatalogueSearchPayload {
+  title: string;
+  downloadSourceFingerprints: string[];
+  tags: number[];
+  publishers: string[];
+  genres: string[];
+  developers: string[];
 }
 
 export * from "./steam.types";

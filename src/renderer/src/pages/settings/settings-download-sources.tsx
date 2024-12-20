@@ -7,10 +7,10 @@ import * as styles from "./settings-download-sources.css";
 import type { DownloadSource } from "@types";
 import { NoEntryIcon, PlusCircleIcon, SyncIcon } from "@primer/octicons-react";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
-import { useToast } from "@renderer/hooks";
+import { useRepacks, useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
 import { SPACING_UNIT } from "@renderer/theme.css";
-import { repacksContext, settingsContext } from "@renderer/context";
+import { settingsContext } from "@renderer/context";
 import { downloadSourcesTable } from "@renderer/dexie";
 import { downloadSourcesWorker } from "@renderer/workers";
 
@@ -28,7 +28,7 @@ export function SettingsDownloadSources() {
   const { t } = useTranslation("settings");
   const { showSuccessToast } = useToast();
 
-  const { indexRepacks } = useContext(repacksContext);
+  const { updateRepacks } = useRepacks();
 
   const getDownloadSources = async () => {
     await downloadSourcesTable
@@ -57,16 +57,16 @@ export function SettingsDownloadSources() {
       showSuccessToast(t("removed_download_source"));
 
       getDownloadSources();
-      indexRepacks();
       setIsRemovingDownloadSource(false);
       channel.close();
+      updateRepacks();
     };
   };
 
   const handleAddDownloadSource = async () => {
-    indexRepacks();
     await getDownloadSources();
     showSuccessToast(t("added_download_source"));
+    updateRepacks();
   };
 
   const syncDownloadSources = async () => {
@@ -82,6 +82,7 @@ export function SettingsDownloadSources() {
       getDownloadSources();
       setIsSyncingDownloadSources(false);
       channel.close();
+      updateRepacks();
     };
   };
 

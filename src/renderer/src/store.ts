@@ -3,16 +3,16 @@ import {
   downloadSlice,
   windowSlice,
   librarySlice,
-  searchSlice,
   userPreferencesSlice,
   toastSlice,
   userDetailsSlice,
   gameRunningSlice,
+  repacksSlice,
+  catalogueSearchSlice,
 } from "@renderer/features";
 
 export const store = configureStore({
   reducer: {
-    search: searchSlice.reducer,
     window: windowSlice.reducer,
     library: librarySlice.reducer,
     userPreferences: userPreferencesSlice.reducer,
@@ -20,6 +20,8 @@ export const store = configureStore({
     toast: toastSlice.reducer,
     userDetails: userDetailsSlice.reducer,
     gameRunning: gameRunningSlice.reducer,
+    repacks: repacksSlice.reducer,
+    catalogueSearch: catalogueSearchSlice.reducer,
   },
 });
 

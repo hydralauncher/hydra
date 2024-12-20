@@ -1,6 +1,7 @@
 import { style } from "@vanilla-extract/css";
 
 import { SPACING_UNIT, vars } from "../../theme.css";
+import { recipe } from "@vanilla-extract/recipes";
 
 export const checkboxField = style({
   display: "flex",
@@ -10,19 +11,30 @@ export const checkboxField = style({
   cursor: "pointer",
 });
 
-export const checkbox = style({
-  width: "20px",
-  height: "20px",
-  borderRadius: "4px",
-  backgroundColor: vars.color.darkBackground,
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  position: "relative",
-  transition: "all ease 0.2s",
-  border: `solid 1px ${vars.color.border}`,
-  ":hover": {
-    borderColor: "rgba(255, 255, 255, 0.5)",
+export const checkbox = recipe({
+  base: {
+    width: "20px",
+    height: "20px",
+    borderRadius: "4px",
+    backgroundColor: vars.color.darkBackground,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+    transition: "all ease 0.2s",
+    border: `solid 1px ${vars.color.border}`,
+    minWidth: "20px",
+    minHeight: "20px",
+    ":hover": {
+      borderColor: "rgba(255, 255, 255, 0.5)",
+    },
+  },
+  variants: {
+    checked: {
+      true: {
+        backgroundColor: vars.color.muted,
+      },
+    },
   },
 });
 

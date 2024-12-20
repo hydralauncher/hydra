@@ -74,30 +74,9 @@ export const search = recipe({
   },
 });
 
-export const searchInput = style({
-  backgroundColor: "transparent",
-  border: "none",
-  width: "100%",
-  height: "100%",
-  outline: "none",
-  color: "#DADBE1",
-  cursor: "default",
-  fontFamily: "inherit",
-  textOverflow: "ellipsis",
-  ":focus": {
-    cursor: "text",
-  },
-});
-
-export const actionButton = style({
-  color: "inherit",
-  cursor: "pointer",
-  transition: "all ease 0.2s",
-  padding: `${SPACING_UNIT}px`,
-  ":hover": {
-    color: "#DADBE1",
-  },
-});
+export const searchButton = style({
+  WebkitAppRegion: "no-drag",
+} as ComplexStyleRule);
 
 export const section = style({
   display: "flex",

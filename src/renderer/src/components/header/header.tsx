@@ -1,19 +1,13 @@
 import { useTranslation } from "react-i18next";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeftIcon, SearchIcon, XIcon } from "@primer/octicons-react";
+import { ArrowLeftIcon, SearchIcon } from "@primer/octicons-react";
 
-import { useAppDispatch, useAppSelector } from "@renderer/hooks";
+import { useAppSelector } from "@renderer/hooks";
 
 import * as styles from "./header.css";
-import { clearSearch } from "@renderer/features";
 import { AutoUpdateSubHeader } from "./auto-update-sub-header";
-
-export interface HeaderProps {
-  onSearch: (query: string) => void;
-  onClear: () => void;
-  search?: string;
-}
+import { Button } from "../button/button";
 
 const pathTitle: Record<string, string> = {
   "/": "home",
@@ -22,18 +16,13 @@ const pathTitle: Record<string, string> = {
   "/settings": "settings",
 };
 
-export function Header({ onSearch, onClear, search }: HeaderProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
+export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const { headerTitle, draggingDisabled } = useAppSelector(
     (state) => state.window
   );
-  const dispatch = useAppDispatch();
-
-  const [isFocused, setIsFocused] = useState(false);
 
   const { t } = useTranslation("header");
 
@@ -45,21 +34,6 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
 
     return t(pathTitle[location.pathname]);
   }, [location.pathname, headerTitle, t]);
-
-  useEffect(() => {
-    if (search && !location.pathname.startsWith("/search")) {
-      dispatch(clearSearch());
-    }
-  }, [location.pathname, search, dispatch]);
-
-  const focusInput = () => {
-    setIsFocused(true);
-    inputRef.current?.focus();
-  };
-
-  const handleBlur = () => {
-    setIsFocused(false);
-  };
 
   const handleBackButtonClick = () => {
     navigate(-1);
@@ -95,37 +69,14 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
         </section>
 
         <section className={styles.section}>
-          <div className={styles.search({ focused: isFocused })}>
-            <button
-              type="button"
-              className={styles.actionButton}
-              onClick={focusInput}
-            >
-              <SearchIcon />
-            </button>
-
-            <input
-              ref={inputRef}
-              type="text"
-              name="search"
-              placeholder={t("search")}
-              value={search}
-              className={styles.searchInput}
-              onChange={(event) => onSearch(event.target.value)}
-              onFocus={() => setIsFocused(true)}
-              onBlur={handleBlur}
-            />
-
-            {search && (
-              <button
-                type="button"
-                onClick={onClear}
-                className={styles.actionButton}
-              >
-                <XIcon />
-              </button>
-            )}
-          </div>
+          <Button
+            theme="outline"
+            className={styles.searchButton}
+            onClick={() => navigate("/catalogue?search=true")}
+          >
+            <SearchIcon />
+            {t("search")}
+          </Button>
         </section>
       </header>
       <AutoUpdateSubHeader />
