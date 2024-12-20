@@ -2,7 +2,10 @@ import { db, downloadSourcesTable, repacksTable } from "@renderer/dexie";
 
 import { z } from "zod";
 import axios, { AxiosError, AxiosHeaders } from "axios";
-import { DownloadSourceStatus } from "@shared";
+import { DownloadSourceStatus, formatName, pipe } from "@shared";
+import { GameRepack } from "@types";
+
+const formatRepackName = pipe((name) => name.replace("[DL]", ""), formatName);
 
 export const downloadSourceSchema = z.object({
   name: z.string().max(255),
@@ -21,6 +24,64 @@ type Payload =
   | ["DELETE_DOWNLOAD_SOURCE", number]
   | ["VALIDATE_DOWNLOAD_SOURCE", string]
   | ["SYNC_DOWNLOAD_SOURCES", string];
+
+export type SteamGamesByLetter = Record<string, { id: string; name: string }[]>;
+
+const addNewDownloads = async (
+  downloadSource: { id: number; name: string },
+  downloads: z.infer<typeof downloadSourceSchema>["downloads"],
+  steamGames: SteamGamesByLetter
+) => {
+  const now = new Date();
+
+  const results = [] as (Omit<GameRepack, "id"> & {
+    downloadSourceId: number;
+  })[];
+
+  const objectIdsOnSource = new Set<string>();
+
+  for (const download of downloads) {
+    const formattedTitle = formatRepackName(download.title);
+    const [firstLetter] = formattedTitle;
+    const games = steamGames[firstLetter] || [];
+
+    const gamesInSteam = games.filter((game) =>
+      formattedTitle.startsWith(game.name)
+    );
+
+    if (gamesInSteam.length === 0) continue;
+
+    for (const game of gamesInSteam) {
+      objectIdsOnSource.add(String(game.id));
+    }
+
+    results.push({
+      objectIds: gamesInSteam.map((game) => String(game.id)),
+      title: download.title,
+      uris: download.uris,
+      fileSize: download.fileSize,
+      repacker: downloadSource.name,
+      uploadDate: download.uploadDate,
+      downloadSourceId: downloadSource.id,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  await repacksTable.bulkAdd(results);
+
+  await downloadSourcesTable.update(downloadSource.id, {
+    objectIds: Array.from(objectIdsOnSource),
+  });
+};
+
+const getSteamGames = async () => {
+  const response = await axios.get<SteamGamesByLetter>(
+    "https://assets.hydralauncher.gg/steam-games-by-letter.json"
+  );
+
+  return response.data;
+};
 
 self.onmessage = async (event: MessageEvent<Payload>) => {
   const [type, data] = event.data;
@@ -55,6 +116,8 @@ self.onmessage = async (event: MessageEvent<Payload>) => {
     const response =
       await axios.get<z.infer<typeof downloadSourceSchema>>(data);
 
+    const steamGames = await getSteamGames();
+
     await db.transaction("rw", repacksTable, downloadSourcesTable, async () => {
       const now = new Date();
 
@@ -70,18 +133,11 @@ self.onmessage = async (event: MessageEvent<Payload>) => {
 
       const downloadSource = await downloadSourcesTable.get(id);
 
-      const repacks = response.data.downloads.map((download) => ({
-        title: download.title,
-        uris: download.uris,
-        fileSize: download.fileSize,
-        repacker: response.data.name,
-        uploadDate: download.uploadDate,
-        downloadSourceId: downloadSource!.id,
-        createdAt: now,
-        updatedAt: now,
-      }));
-
-      await repacksTable.bulkAdd(repacks);
+      await addNewDownloads(
+        downloadSource,
+        response.data.downloads,
+        steamGames
+      );
     });
 
     const channel = new BroadcastChannel(`download_sources:import:${data}`);
@@ -110,6 +166,8 @@ self.onmessage = async (event: MessageEvent<Payload>) => {
 
           const source = downloadSourceSchema.parse(response.data);
 
+          const steamGames = await getSteamGames();
+
           await db.transaction(
             "rw",
             repacksTable,
@@ -121,29 +179,16 @@ self.onmessage = async (event: MessageEvent<Payload>) => {
                 status: DownloadSourceStatus.UpToDate,
               });
 
-              const now = new Date();
+              const repacks = source.downloads.filter(
+                (download) =>
+                  !existingRepacks.some(
+                    (repack) => repack.title === download.title
+                  )
+              );
 
-              const repacks = source.downloads
-                .filter(
-                  (download) =>
-                    !existingRepacks.some(
-                      (repack) => repack.title === download.title
-                    )
-                )
-                .map((download) => ({
-                  title: download.title,
-                  uris: download.uris,
-                  fileSize: download.fileSize,
-                  repacker: source.name,
-                  uploadDate: download.uploadDate,
-                  downloadSourceId: downloadSource.id,
-                  createdAt: now,
-                  updatedAt: now,
-                }));
+              await addNewDownloads(downloadSource, repacks, steamGames);
 
               newRepacksCount += repacks.length;
-
-              await repacksTable.bulkAdd(repacks);
             }
           );
         } catch (err: unknown) {

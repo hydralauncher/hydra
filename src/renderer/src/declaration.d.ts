@@ -1,10 +1,8 @@
 import type { CatalogueCategory } from "@shared";
 import type {
   AppUpdaterEvent,
-  CatalogueEntry,
   Game,
   LibraryGame,
-  GameRepack,
   GameShop,
   HowLongToBeatCategory,
   ShopDetails,
@@ -13,7 +11,6 @@ import type {
   UserPreferences,
   StartGameDownloadPayload,
   RealDebridUser,
-  DownloadSource,
   UserProfile,
   FriendRequest,
   FriendRequestAction,
@@ -30,6 +27,7 @@ import type {
   LudusaviBackup,
   UserAchievement,
   ComparedAchievements,
+  CatalogueSearchPayload,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type { DiskSpace } from "check-disk-space";
@@ -51,8 +49,8 @@ declare global {
     ) => () => Electron.IpcRenderer;
 
     /* Catalogue */
-    searchGames: (query: string) => Promise<CatalogueEntry[]>;
-    getCatalogue: (category: CatalogueCategory) => Promise<CatalogueEntry[]>;
+    searchGames: (payload: CatalogueSearchPayload) => Promise<any[]>;
+    getCatalogue: (category: CatalogueCategory) => Promise<any[]>;
     getGameShopDetails: (
       objectId: string,
       shop: GameShop,
@@ -63,8 +61,6 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<HowLongToBeatCategory[] | null>;
-    getGames: (take?: number, skip?: number) => Promise<CatalogueEntry[]>;
-    searchGameRepacks: (query: string) => Promise<GameRepack[]>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getTrendingGames: () => Promise<TrendingGame[]>;
     onUpdateAchievements: (
@@ -118,8 +114,9 @@ declare global {
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
 
     /* Download sources */
-    getDownloadSources: () => Promise<DownloadSource[]>;
-    deleteDownloadSource: (id: number) => Promise<void>;
+    putDownloadSource: (
+      objectIds: string[]
+    ) => Promise<{ fingerprint: string }>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
