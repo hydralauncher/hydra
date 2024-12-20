@@ -359,7 +359,10 @@
     "your_friend_code": "Your friend code:",
     "upload_banner": "Upload banner",
     "uploading_banner": "Uploading banner…",
-    "background_image_updated": "Background image updated"
+    "background_image_updated": "Background image updated",
+    "stats": "Stats",
+    "achievements": "Achievements",
+    "games": "Games"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",
