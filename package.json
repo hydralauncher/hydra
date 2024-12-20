@@ -54,7 +54,6 @@
     "electron-log": "^5.2.4",
     "electron-updater": "^6.3.9",
     "file-type": "^19.6.0",
-    "flexsearch": "^0.7.43",
     "i18next": "^23.11.2",
     "i18next-browser-languagedetector": "^7.2.1",
     "jsdom": "^24.0.0",
