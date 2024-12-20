@@ -13,6 +13,7 @@ export interface FilterSectionProps<T extends string | number> {
   }[];
   onSelect: (value: T) => void;
   color: string;
+  onClear: () => void;
 }
 
 export function FilterSection<T extends string | number>({
@@ -20,6 +21,7 @@ export function FilterSection<T extends string | number>({
   items,
   color,
   onSelect,
+  onClear,
 }: FilterSectionProps<T>) {
   const [search, setSearch] = useState("");
 
@@ -32,6 +34,10 @@ export function FilterSection<T extends string | number>({
 
     return items;
   }, [items, search]);
+
+  const selectedItemsCount = useMemo(() => {
+    return items.filter((item) => item.checked).length;
+  }, [items]);
 
   const onSearch = useCallback((value: string) => {
     setSearch(value);
@@ -61,9 +67,26 @@ export function FilterSection<T extends string | number>({
         </h3>
       </div>
 
-      <span style={{ fontSize: 12, marginBottom: 12, display: "block" }}>
-        {formatNumber(items.length)} disponíveis
-      </span>
+      {selectedItemsCount > 0 ? (
+        <button
+          type="button"
+          style={{
+            fontSize: 12,
+            marginBottom: 12,
+            display: "block",
+            color: "#fff",
+            cursor: "pointer",
+            textDecoration: "underline",
+          }}
+          onClick={onClear}
+        >
+          Limpar {formatNumber(selectedItemsCount)} selecionados
+        </button>
+      ) : (
+        <span style={{ fontSize: 12, marginBottom: 12, display: "block" }}>
+          {formatNumber(items.length)} disponíveis
+        </span>
+      )}
 
       <TextField
         placeholder="Search..."

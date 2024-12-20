@@ -305,6 +305,7 @@ export default function Catalogue() {
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <FilterSection
               title="Genres"
+              onClear={() => dispatch(setSearch({ genres: [] }))}
               color={filterCategoryColors.genres}
               onSelect={(value) => {
                 if (filters.genres.includes(value)) {
@@ -359,6 +360,7 @@ export default function Catalogue() {
             <FilterSection
               title="User tags"
               color={filterCategoryColors.tags}
+              onClear={() => dispatch(setSearch({ tags: [] }))}
               onSelect={(value) => {
                 if (filters.tags.includes(value)) {
                   dispatch(
@@ -382,6 +384,9 @@ export default function Catalogue() {
             <FilterSection
               title="Download sources"
               color={filterCategoryColors.downloadSourceFingerprints}
+              onClear={() =>
+                dispatch(setSearch({ downloadSourceFingerprints: [] }))
+              }
               onSelect={(value) => {
                 if (filters.downloadSourceFingerprints.includes(value)) {
                   dispatch(
@@ -415,6 +420,7 @@ export default function Catalogue() {
             <FilterSection
               title="Developers"
               color={filterCategoryColors.developers}
+              onClear={() => dispatch(setSearch({ developers: [] }))}
               onSelect={(value) => {
                 if (filters.developers.includes(value)) {
                   dispatch(
@@ -440,6 +446,7 @@ export default function Catalogue() {
             <FilterSection
               title="Publishers"
               color={filterCategoryColors.publishers}
+              onClear={() => dispatch(setSearch({ publishers: [] }))}
               onSelect={(value) => {
                 if (filters.publishers.includes(value)) {
                   dispatch(
