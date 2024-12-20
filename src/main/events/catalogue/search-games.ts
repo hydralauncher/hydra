@@ -8,7 +8,7 @@ const searchGames = async (
 ) => {
   return HydraApi.post(
     "/catalogue/search",
-    { ...payload, take: 12, skip: 0 },
+    { ...payload, take: 24, skip: 0 },
     { needsAuth: false }
   );
 };

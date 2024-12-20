@@ -51,4 +51,7 @@ export const checkboxInput = style({
 
 export const checkboxLabel = style({
   cursor: "pointer",
+  textOverflow: "ellipsis",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
 });

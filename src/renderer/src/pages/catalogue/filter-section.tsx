@@ -75,7 +75,7 @@ export function FilterSection<T extends string | number>({
 
       <List
         data={filteredItems}
-        height={28 * 10}
+        height={28 * (filteredItems.length > 10 ? 10 : filteredItems.length)}
         itemHeight={28}
         itemKey="value"
         styles={{
