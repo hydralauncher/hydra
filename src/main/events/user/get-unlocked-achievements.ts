@@ -1,6 +1,9 @@
 import type { GameShop, UnlockedAchievement, UserAchievement } from "@types";
 import { registerEvent } from "../register-event";
-import { gameAchievementRepository } from "@main/repository";
+import {
+  gameAchievementRepository,
+  userPreferencesRepository,
+} from "@main/repository";
 import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
 
 export const getUnlockedAchievements = async (
@@ -12,10 +15,17 @@ export const getUnlockedAchievements = async (
     where: { objectId, shop },
   });
 
+  const userPreferences = await userPreferencesRepository.findOne({
+    where: { id: 1 },
+  });
+
+  const showHiddenAchievementsDescription =
+    userPreferences?.showHiddenAchievementsDescription || false;
+
   const achievementsData = await getGameAchievementData(
     objectId,
     shop,
-    useCachedData
+    useCachedData ? cachedAchievements : null
   );
 
   const unlockedAchievements = JSON.parse(
@@ -50,6 +60,10 @@ export const getUnlockedAchievements = async (
         unlocked: false,
         unlockTime: null,
         icongray: icongray,
+        description:
+          !achievementData.hidden || showHiddenAchievementsDescription
+            ? achievementData.description
+            : undefined,
       } as UserAchievement;
     })
     .sort((a, b) => {

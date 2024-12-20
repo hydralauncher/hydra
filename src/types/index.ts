@@ -150,6 +150,7 @@ export interface UserPreferences {
   runAtStartup: boolean;
   startMinimized: boolean;
   disableNsfwAlert: boolean;
+  showHiddenAchievementsDescription: boolean;
 }
 
 export interface Steam250Game {

@@ -12,10 +12,10 @@ import type {
   FriendRequestAction,
   UpdateProfileRequest,
   CatalogueSearchPayload,
+  GameAchievement,
 } from "@types";
 import type { CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
-import { GameAchievement } from "@main/entity";
 
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
