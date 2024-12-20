@@ -18,16 +18,23 @@ export function FilterSection<T extends string | number>({
   onSelect,
 }: FilterSectionProps<T>) {
   const [search, setSearch] = useState("");
+  const [showMore, setShowMore] = useState(false);
 
   const filteredItems = useMemo(() => {
-    if (items.length > 10 && search.length > 0) {
-      return items.filter((item) =>
-        item.label.toLowerCase().includes(search.toLowerCase())
-      );
+    if (search.length > 0) {
+      return items
+        .filter((item) =>
+          item.label.toLowerCase().includes(search.toLowerCase())
+        )
+        .slice(0, 10);
+    }
+
+    if (showMore) {
+      return items;
     }
 
     return items.slice(0, 10);
-  }, [items, search]);
+  }, [items, search, showMore]);
 
   const onSearch = useCallback((value: string) => {
     setSearch(value);
@@ -70,19 +77,22 @@ export function FilterSection<T extends string | number>({
           </div>
         ))}
 
-        <button
-          type="button"
-          style={{
-            color: "#fff",
-            fontSize: 14,
-            textAlign: "left",
-            marginTop: 8,
-            textDecoration: "underline",
-            cursor: "pointer",
-          }}
-        >
-          View more ({items.length - filteredItems.length})
-        </button>
+        {!search && items.length > 10 && (
+          <button
+            type="button"
+            style={{
+              color: "#fff",
+              fontSize: 14,
+              textAlign: "left",
+              marginTop: 8,
+              textDecoration: "underline",
+              cursor: "pointer",
+            }}
+            onClick={() => setShowMore(!showMore)}
+          >
+            {showMore ? "Show less" : `Show more (${items.length - 10})`}
+          </button>
+        )}
       </div>
     </div>
   );
