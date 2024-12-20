@@ -35,6 +35,7 @@ export interface AchievementData {
   icon: string;
   icongray: string;
   hidden: boolean;
+  points?: number;
 }
 
 export interface UserAchievement {
