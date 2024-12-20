@@ -25,6 +25,7 @@ export const checkbox = recipe({
     border: `solid 1px ${vars.color.border}`,
     minWidth: "20px",
     minHeight: "20px",
+    color: vars.color.darkBackground,
     ":hover": {
       borderColor: "rgba(255, 255, 255, 0.5)",
     },

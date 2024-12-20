@@ -68,6 +68,8 @@ declare global {
       shop: GameShop,
       cb: (achievements: GameAchievement[]) => void
     ) => () => Electron.IpcRenderer;
+    getPublishers: () => Promise<string[]>;
+    getDevelopers: () => Promise<string[]>;
 
     /* Library */
     addGameToLibrary: (
