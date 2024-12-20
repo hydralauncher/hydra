@@ -404,7 +404,7 @@ export default function Catalogue() {
                 }
               }}
               items={downloadSources.map((downloadSource) => ({
-                label: `${downloadSource.name} (${downloadSource.objectIds.length})`,
+                label: downloadSource.name,
                 value: downloadSource.fingerprint,
                 checked: filters.downloadSourceFingerprints.includes(
                   downloadSource.fingerprint
