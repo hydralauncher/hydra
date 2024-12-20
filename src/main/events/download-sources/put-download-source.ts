@@ -5,9 +5,13 @@ const putDownloadSource = async (
   _event: Electron.IpcMainInvokeEvent,
   objectIds: string[]
 ) => {
-  return HydraApi.put<{ fingerprint: string }>("/download-sources", {
-    objectIds,
-  });
+  return HydraApi.put<{ fingerprint: string }>(
+    "/download-sources",
+    {
+      objectIds,
+    },
+    { needsAuth: false }
+  );
 };
 
 registerEvent("putDownloadSource", putDownloadSource);
