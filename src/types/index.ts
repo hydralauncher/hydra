@@ -288,6 +288,7 @@ export interface DownloadSource {
   url: string;
   repackCount: number;
   status: DownloadSourceStatus;
+  objectIds: string[];
   downloadCount: number;
   fingerprint: string;
   etag: string | null;
