@@ -18,6 +18,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { FilterSection } from "./filter-section";
 import { setSearch } from "@renderer/features";
 import { useTranslation } from "react-i18next";
+import { steamUserTags } from "./steam-user-tags";
 
 export default function Catalogue() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -142,7 +143,7 @@ export default function Catalogue() {
               {
                 downloadSources.find(
                   (source) => source.fingerprint === fingerprint
-                )!.name
+                )?.name
               }
             </Badge>
           ))}
@@ -204,7 +205,7 @@ export default function Catalogue() {
                     fontSize: 12,
                   }}
                 >
-                  {game.genres.join(", ")}
+                  {game.genres?.join(", ")}
                 </span>
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -278,11 +279,13 @@ export default function Catalogue() {
                 "Gore",
                 "Documentary",
                 "Tutorial",
-              ].map((genre) => ({
-                label: genre,
-                value: genre,
-                checked: filters.genres.includes(genre),
-              }))}
+              ]
+                .sort()
+                .map((genre) => ({
+                  label: genre,
+                  value: genre,
+                  checked: filters.genres.includes(genre),
+                }))}
             />
 
             <FilterSection
@@ -298,11 +301,13 @@ export default function Catalogue() {
                   dispatch(setSearch({ tags: [...filters.tags, value] }));
                 }
               }}
-              items={[1, 2, 3, 4, 5].map((genre) => ({
-                label: genre.toString(),
-                value: genre,
-                checked: filters.tags.includes(genre),
-              }))}
+              items={Object.entries(steamUserTags)
+                .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+                .map(([key, value]) => ({
+                  label: key,
+                  value: value,
+                  checked: filters.tags.includes(value),
+                }))}
             />
 
             <FilterSection

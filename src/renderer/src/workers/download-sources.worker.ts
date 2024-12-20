@@ -77,7 +77,7 @@ const addNewDownloads = async (
 
 const getSteamGames = async () => {
   const response = await axios.get<SteamGamesByLetter>(
-    "https://assets.hydralauncher.gg/steam-games-by-letter.json"
+    `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/steam-games-by-letter.json`
   );
 
   return response.data;
