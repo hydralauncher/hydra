@@ -298,38 +298,8 @@ export default function Catalogue() {
                   dispatch(setSearch({ tags: [...filters.tags, value] }));
                 }
               }}
-              items={[
-                "Action",
-                "Strategy",
-                "RPG",
-                "Casual",
-                "Racing",
-                "Sports",
-                "Indie",
-                "Adventure",
-                "Simulation",
-                "Massively Multiplayer",
-                "Free to Play",
-                "Accounting",
-                "Animation & Modeling",
-                "Audio Production",
-                "Design & Illustration",
-                "Education",
-                "Photo Editing",
-                "Software Training",
-                "Utilities",
-                "Video Production",
-                "Web Publishing",
-                "Game Development",
-                "Early Access",
-                "Sexual Content",
-                "Nudity",
-                "Violent",
-                "Gore",
-                "Documentary",
-                "Tutorial",
-              ].map((genre) => ({
-                label: genre,
+              items={[1, 2, 3, 4, 5].map((genre) => ({
+                label: genre.toString(),
                 value: genre,
                 checked: filters.tags.includes(genre),
               }))}

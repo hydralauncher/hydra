@@ -2,17 +2,21 @@ import { CheckboxField, TextField } from "@renderer/components";
 import { useFormat } from "@renderer/hooks";
 import { useCallback, useMemo, useState } from "react";
 
-export interface FilterSectionProps {
+export interface FilterSectionProps<T extends string | number> {
   title: string;
   items: {
     label: string;
-    value: string;
+    value: T;
     checked: boolean;
   }[];
-  onSelect: (value: string) => void;
+  onSelect: (value: T) => void;
 }
 
-export function FilterSection({ title, items, onSelect }: FilterSectionProps) {
+export function FilterSection<T extends string | number>({
+  title,
+  items,
+  onSelect,
+}: FilterSectionProps<T>) {
   const [search, setSearch] = useState("");
 
   const filteredItems = useMemo(() => {
