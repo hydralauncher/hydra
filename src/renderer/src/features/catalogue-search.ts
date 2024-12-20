@@ -34,4 +34,4 @@ export const catalogueSearchSlice = createSlice({
   },
 });
 
-export const { setSearch } = catalogueSearchSlice.actions;
+export const { setSearch, clearSearch } = catalogueSearchSlice.actions;

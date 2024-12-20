@@ -7,12 +7,14 @@ import * as styles from "./settings-download-sources.css";
 import type { DownloadSource } from "@types";
 import { NoEntryIcon, PlusCircleIcon, SyncIcon } from "@primer/octicons-react";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
-import { useRepacks, useToast } from "@renderer/hooks";
+import { useAppDispatch, useRepacks, useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
-import { SPACING_UNIT } from "@renderer/theme.css";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { settingsContext } from "@renderer/context";
 import { downloadSourcesTable } from "@renderer/dexie";
 import { downloadSourcesWorker } from "@renderer/workers";
+import { clearSearch, setSearch } from "@renderer/features";
+import { useNavigate } from "react-router-dom";
 
 export function SettingsDownloadSources() {
   const [showAddDownloadSourceModal, setShowAddDownloadSourceModal] =
@@ -27,6 +29,10 @@ export function SettingsDownloadSources() {
 
   const { t } = useTranslation("settings");
   const { showSuccessToast } = useToast();
+
+  const dispatch = useAppDispatch();
+
+  const navigate = useNavigate();
 
   const { updateRepacks } = useRepacks();
 
@@ -96,6 +102,13 @@ export function SettingsDownloadSources() {
     setShowAddDownloadSourceModal(false);
   };
 
+  const navigateToCatalogue = (fingerprint: string) => {
+    dispatch(clearSearch());
+    dispatch(setSearch({ downloadSourceFingerprints: [fingerprint] }));
+
+    navigate("/catalogue");
+  };
+
   return (
     <>
       <AddDownloadSourceModal
@@ -147,12 +160,17 @@ export function SettingsDownloadSources() {
                 <Badge>{statusTitle[downloadSource.status]}</Badge>
               </div>
 
-              <div
+              <button
+                type="button"
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: `${SPACING_UNIT}px`,
+                  color: vars.color.muted,
+                  textDecoration: "underline",
+                  cursor: "pointer",
                 }}
+                onClick={() => navigateToCatalogue(downloadSource.fingerprint)}
               >
                 <small>
                   {t("download_count", {
@@ -161,7 +179,7 @@ export function SettingsDownloadSources() {
                       downloadSource.downloadCount.toLocaleString(),
                   })}
                 </small>
-              </div>
+              </button>
             </div>
 
             <TextField

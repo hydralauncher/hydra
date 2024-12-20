@@ -65,6 +65,8 @@ contextBridge.exposeInMainWorld("electron", {
         listener
       );
   },
+  getPublishers: () => ipcRenderer.invoke("getPublishers"),
+  getDevelopers: () => ipcRenderer.invoke("getDevelopers"),
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),

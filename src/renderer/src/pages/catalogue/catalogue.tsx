@@ -20,6 +20,14 @@ import { setSearch } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { steamUserTags } from "./steam-user-tags";
 
+const filterCategoryColors = {
+  genres: "hsl(262deg 50% 47%)",
+  tags: "hsl(95deg 50% 20%)",
+  downloadSourceFingerprints: "hsl(27deg 50% 40%)",
+  developers: "hsl(340deg 50% 46%)",
+  publishers: "hsl(200deg 50% 30%)",
+};
+
 export default function Catalogue() {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -34,6 +42,8 @@ export default function Catalogue() {
 
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [games, setGames] = useState<any[]>([]);
+  const [publishers, setPublishers] = useState<string[]>([]);
+  const [developers, setDevelopers] = useState<string[]>([]);
 
   const filters = useAppSelector((state) => state.catalogueSearch.value);
 
@@ -58,6 +68,16 @@ export default function Catalogue() {
       setGames(games);
     });
   }, [filters]);
+
+  useEffect(() => {
+    window.electron.getDevelopers().then((developers) => {
+      setDevelopers(developers);
+    });
+
+    window.electron.getPublishers().then((publishers) => {
+      setPublishers(publishers);
+    });
+  }, []);
 
   const gamesWithRepacks = useMemo(() => {
     return games.map((game) => {
@@ -148,13 +168,50 @@ export default function Catalogue() {
         }}
       >
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {filters.genres.map((genre) => (
+            <Badge key={genre}>
+              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                <div
+                  style={{
+                    width: 10,
+                    height: 10,
+                    backgroundColor: filterCategoryColors.genres,
+                    borderRadius: "50%",
+                  }}
+                />
+
+                {genre}
+              </div>
+            </Badge>
+          ))}
+
+          {filters.tags.map((tag) => (
+            <Badge key={tag}>
+              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                {tag}
+              </div>
+            </Badge>
+          ))}
+
           {filters.downloadSourceFingerprints.map((fingerprint) => (
             <Badge key={fingerprint}>
-              {
-                downloadSources.find(
-                  (source) => source.fingerprint === fingerprint
-                )?.name
-              }
+              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                <div
+                  style={{
+                    width: 10,
+                    height: 10,
+                    backgroundColor:
+                      filterCategoryColors.downloadSourceFingerprints,
+                    borderRadius: "50%",
+                  }}
+                />
+
+                {
+                  downloadSources.find(
+                    (source) => source.fingerprint === fingerprint
+                  )?.name
+                }
+              </div>
             </Badge>
           ))}
         </div>
@@ -248,6 +305,7 @@ export default function Catalogue() {
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <FilterSection
               title="Genres"
+              color={filterCategoryColors.genres}
               onSelect={(value) => {
                 if (filters.genres.includes(value)) {
                   dispatch(
@@ -300,6 +358,7 @@ export default function Catalogue() {
 
             <FilterSection
               title="User tags"
+              color={filterCategoryColors.tags}
               onSelect={(value) => {
                 if (filters.tags.includes(value)) {
                   dispatch(
@@ -322,6 +381,7 @@ export default function Catalogue() {
 
             <FilterSection
               title="Download sources"
+              color={filterCategoryColors.downloadSourceFingerprints}
               onSelect={(value) => {
                 if (filters.downloadSourceFingerprints.includes(value)) {
                   dispatch(
@@ -349,6 +409,56 @@ export default function Catalogue() {
                 checked: filters.downloadSourceFingerprints.includes(
                   downloadSource.fingerprint
                 ),
+              }))}
+            />
+
+            <FilterSection
+              title="Developers"
+              color={filterCategoryColors.developers}
+              onSelect={(value) => {
+                if (filters.developers.includes(value)) {
+                  dispatch(
+                    setSearch({
+                      developers: filters.developers.filter(
+                        (developer) => developer !== value
+                      ),
+                    })
+                  );
+                } else {
+                  dispatch(
+                    setSearch({ developers: [...filters.developers, value] })
+                  );
+                }
+              }}
+              items={developers.map((developer) => ({
+                label: developer,
+                value: developer,
+                checked: filters.developers.includes(developer),
+              }))}
+            />
+
+            <FilterSection
+              title="Publishers"
+              color={filterCategoryColors.publishers}
+              onSelect={(value) => {
+                if (filters.publishers.includes(value)) {
+                  dispatch(
+                    setSearch({
+                      publishers: filters.publishers.filter(
+                        (publisher) => publisher !== value
+                      ),
+                    })
+                  );
+                } else {
+                  dispatch(
+                    setSearch({ publishers: [...filters.publishers, value] })
+                  );
+                }
+              }}
+              items={publishers.map((publisher) => ({
+                label: publisher,
+                value: publisher,
+                checked: filters.publishers.includes(publisher),
               }))}
             />
           </div>
