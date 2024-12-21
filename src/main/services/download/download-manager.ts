@@ -65,28 +65,6 @@ export class DownloadManager {
         );
       }
 
-      if (progress === 1 && !isCheckingFiles) {
-        const userPreferences = await userPreferencesRepository.findOneBy({
-          id: 1,
-        });
-
-        if (userPreferences?.seedAfterDownloadComplete) {
-          gameRepository.update(
-            { id: gameId },
-            { status: "seeding", shouldSeed: true }
-          );
-        } else {
-          gameRepository.update(
-            { id: gameId },
-            { status: "complete", shouldSeed: false }
-          );
-
-          this.pauseSeeding(gameId);
-        }
-
-        this.downloadingGameId = -1;
-      }
-
       return {
         numPeers,
         numSeeds,
@@ -112,6 +90,9 @@ export class DownloadManager {
       const game = await gameRepository.findOne({
         where: { id: gameId, isDeleted: false },
       });
+      const userPreferences = await userPreferencesRepository.findOneBy({
+        id: 1,
+      });
 
       if (WindowManager.mainWindow && game) {
         WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
@@ -127,6 +108,24 @@ export class DownloadManager {
       }
       if (progress === 1 && game) {
         publishDownloadCompleteNotification(game);
+
+        if (
+          userPreferences?.seedAfterDownloadComplete &&
+          game.downloader === Downloader.Torrent
+        ) {
+          gameRepository.update(
+            { id: gameId },
+            { status: "seeding", shouldSeed: true }
+          );
+        } else {
+          gameRepository.update(
+            { id: gameId },
+            { status: "complete", shouldSeed: false }
+          );
+
+          this.pauseSeeding(gameId);
+        }
+
         await downloadQueueRepository.delete({ game });
         const [nextQueueItem] = await downloadQueueRepository.find({
           order: {
@@ -138,20 +137,24 @@ export class DownloadManager {
         });
         if (nextQueueItem) {
           this.resumeDownload(nextQueueItem.game);
+        } else {
+          this.downloadingGameId = -1;
         }
       }
     }
   }
 
   public static async getSeedStatus() {
-    const seedStatus = await PythonRPC.rpc
-      .get<LibtorrentPayload[] | null>("/seed-status")
-      .then((results) => {
-        if (results === null) return [];
-        return results.data;
-      });
+    const seedStatus = await PythonRPC.rpc.get<LibtorrentPayload[] | []>(
+      "/seed-status"
+    );
 
-    console.log(seedStatus);
+    if (!seedStatus.data.length) return;
+
+    WindowManager.mainWindow?.webContents.send(
+      "on-seeding-status",
+      JSON.parse(JSON.stringify(seedStatus.data))
+    );
 
     // const gamesToSeed = await gameRepository.find({
     //   where: { shouldSeed: true, isDeleted: false },
@@ -209,8 +212,13 @@ export class DownloadManager {
     // );
   }
 
-  static async pauseSeeding(_gameId: number) {
-    // await TorrentDownloader.pauseSeeding(gameId);
+  static async pauseSeeding(gameId: number) {
+    await PythonRPC.rpc
+      .post("/action", {
+        action: "pause",
+        game_id: gameId,
+      } as PauseDownloadPayload)
+      .catch(() => { });
   }
 
   static async resumeSeeding(
@@ -227,7 +235,7 @@ export class DownloadManager {
         action: "pause",
         game_id: this.downloadingGameId,
       } as PauseDownloadPayload)
-      .catch(() => {});
+      .catch(() => { });
 
     WindowManager.mainWindow?.setProgressBar(-1);
 
