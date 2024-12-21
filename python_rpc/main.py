@@ -44,14 +44,17 @@ def seed_status():
         return auth_error
     
     seed_status = []
-    for _, downloader in downloads.items():
+    for game_id, downloader in downloads.items():
         if not downloader:
             continue
 
         response = downloader.get_download_status()
 
         if response.get('status') == 5:
-            seed_status.append(response)
+            seed_status.append({
+                'gameId': game_id,
+                **response,
+            })
 
     return jsonify(seed_status), 200
 
