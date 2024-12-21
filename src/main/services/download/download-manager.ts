@@ -144,6 +144,15 @@ export class DownloadManager {
   }
 
   public static async getSeedStatus() {
+    const seedStatus = await PythonRPC.rpc
+      .get<LibtorrentPayload[] | null>("/seed-status")
+      .then((results) => {
+        if (results === null) return [];
+        return results.data;
+      });
+
+    console.log(seedStatus);
+
     // const gamesToSeed = await gameRepository.find({
     //   where: { shouldSeed: true, isDeleted: false },
     // });

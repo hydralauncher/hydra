@@ -42,9 +42,18 @@ def seed_status():
     auth_error = validate_rpc_password()
     if auth_error:
         return auth_error
+    
+    seed_status = []
+    for _, downloader in downloads.items():
+        if not downloader:
+            continue
 
-    status = torrent_downloader.get_seed_status()
-    return jsonify(status), 200
+        response = downloader.get_download_status()
+
+        if response.get('status') == 5:
+            seed_status.append(response)
+
+    return jsonify(seed_status), 200
 
 @app.route("/healthcheck", methods=["GET"])
 def healthcheck():

@@ -139,6 +139,7 @@ class TorrentDownloader:
             'fileSize': info.total_size() if info else 0,
             'progress': status.progress,
             'downloadSpeed': status.download_rate,
+            'uploadSpeed': status.upload_rate,
             'numPeers': status.num_peers,
             'numSeeds': status.num_seeds,
             'status': status.state,
