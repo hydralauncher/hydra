@@ -24,7 +24,7 @@ const resumeGameSeed = async (
       .update({ id: gameId }, { status: "seeding", shouldSeed: true });
   });
 
-  await DownloadManager.resumeSeeding(gameId, game.uri!, game.downloadPath!);
+  await DownloadManager.resumeDownload(game);
 };
 
 registerEvent("resumeGameSeed", resumeGameSeed);
