@@ -221,14 +221,6 @@ export class DownloadManager {
       .catch(() => {});
   }
 
-  static async resumeSeeding(
-    _gameId: number,
-    _magnet: string,
-    _savePath: string
-  ) {
-    // await TorrentDownloader.resumeSeeding(gameId, magnet, savePath);
-  }
-
   static async pauseDownload() {
     await PythonRPC.rpc
       .post("/action", {
