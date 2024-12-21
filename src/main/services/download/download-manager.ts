@@ -218,7 +218,7 @@ export class DownloadManager {
         action: "pause",
         game_id: gameId,
       } as PauseDownloadPayload)
-      .catch(() => { });
+      .catch(() => {});
   }
 
   static async resumeSeeding(
@@ -235,7 +235,7 @@ export class DownloadManager {
         action: "pause",
         game_id: this.downloadingGameId,
       } as PauseDownloadPayload)
-      .catch(() => { });
+      .catch(() => {});
 
     WindowManager.mainWindow?.setProgressBar(-1);
 
