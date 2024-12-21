@@ -18,7 +18,6 @@ import { store } from "./store";
 
 import resources from "@locales";
 
-import { RepacksContextProvider } from "./context";
 import { SuspenseWrapper } from "./components";
 import { logger } from "./logger";
 import { addCookieInterceptor } from "./cookies";
@@ -28,7 +27,6 @@ const GameDetails = React.lazy(
   () => import("./pages/game-details/game-details")
 );
 const Downloads = React.lazy(() => import("./pages/downloads/downloads"));
-const SearchResults = React.lazy(() => import("./pages/home/search-results"));
 const Settings = React.lazy(() => import("./pages/settings/settings"));
 const Catalogue = React.lazy(() => import("./pages/catalogue/catalogue"));
 const Profile = React.lazy(() => import("./pages/profile/profile"));
@@ -64,43 +62,37 @@ i18n
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Provider store={store}>
-      <RepacksContextProvider>
-        <HashRouter>
-          <Routes>
-            <Route element={<App />}>
-              <Route path="/" element={<SuspenseWrapper Component={Home} />} />
-              <Route
-                path="/catalogue"
-                element={<SuspenseWrapper Component={Catalogue} />}
-              />
-              <Route
-                path="/downloads"
-                element={<SuspenseWrapper Component={Downloads} />}
-              />
-              <Route
-                path="/game/:shop/:objectId"
-                element={<SuspenseWrapper Component={GameDetails} />}
-              />
-              <Route
-                path="/search"
-                element={<SuspenseWrapper Component={SearchResults} />}
-              />
-              <Route
-                path="/settings"
-                element={<SuspenseWrapper Component={Settings} />}
-              />
-              <Route
-                path="/profile/:userId"
-                element={<SuspenseWrapper Component={Profile} />}
-              />
-              <Route
-                path="/achievements"
-                element={<SuspenseWrapper Component={Achievements} />}
-              />
-            </Route>
-          </Routes>
-        </HashRouter>
-      </RepacksContextProvider>
+      <HashRouter>
+        <Routes>
+          <Route element={<App />}>
+            <Route path="/" element={<SuspenseWrapper Component={Home} />} />
+            <Route
+              path="/catalogue"
+              element={<SuspenseWrapper Component={Catalogue} />}
+            />
+            <Route
+              path="/downloads"
+              element={<SuspenseWrapper Component={Downloads} />}
+            />
+            <Route
+              path="/game/:shop/:objectId"
+              element={<SuspenseWrapper Component={GameDetails} />}
+            />
+            <Route
+              path="/settings"
+              element={<SuspenseWrapper Component={Settings} />}
+            />
+            <Route
+              path="/profile/:userId"
+              element={<SuspenseWrapper Component={Profile} />}
+            />
+            <Route
+              path="/achievements"
+              element={<SuspenseWrapper Component={Achievements} />}
+            />
+          </Route>
+        </Routes>
+      </HashRouter>
     </Provider>
   </React.StrictMode>
 );

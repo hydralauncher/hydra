@@ -21,11 +21,10 @@ export interface CatalogueCache {
 
 export const db = new Dexie("Hydra");
 
-db.version(5).stores({
-  repacks: `++id, title, uris, fileSize, uploadDate, downloadSourceId, repacker, createdAt, updatedAt`,
-  downloadSources: `++id, url, name, etag, downloadCount, status, createdAt, updatedAt`,
+db.version(8).stores({
+  repacks: `++id, title, uris, fileSize, uploadDate, downloadSourceId, repacker, objectIds, createdAt, updatedAt`,
+  downloadSources: `++id, url, name, etag, objectIds, downloadCount, status, fingerprint, createdAt, updatedAt`,
   howLongToBeatEntries: `++id, categories, [shop+objectId], createdAt, updatedAt`,
-  catalogueCache: `++id, category, games, createdAt, updatedAt, expiresAt`,
 });
 
 export const downloadSourcesTable = db.table("downloadSources");
@@ -33,7 +32,5 @@ export const repacksTable = db.table("repacks");
 export const howLongToBeatEntriesTable = db.table<HowLongToBeatEntry>(
   "howLongToBeatEntries"
 );
-
-export const catalogueCacheTable = db.table<CatalogueCache>("catalogueCache");
 
 db.open();

@@ -1,7 +1,6 @@
 import {
   createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -14,12 +13,12 @@ import {
   useAppDispatch,
   useAppSelector,
   useDownload,
+  useRepacks,
   useUserDetails,
 } from "@renderer/hooks";
 
 import type {
   Game,
-  GameRepack,
   GameShop,
   GameStats,
   ShopDetails,
@@ -29,7 +28,6 @@ import type {
 import { useTranslation } from "react-i18next";
 import { GameDetailsContext } from "./game-details.context.types";
 import { SteamContentDescriptor } from "@shared";
-import { repacksContext } from "../repacks/repacks.context";
 
 export const gameDetailsContext = createContext<GameDetailsContext>({
   game: null,
@@ -88,17 +86,8 @@ export function GameDetailsContextProvider({
   const [showRepacksModal, setShowRepacksModal] = useState(false);
   const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
 
-  const [repacks, setRepacks] = useState<GameRepack[]>([]);
-
-  const { searchRepacks, isIndexingRepacks } = useContext(repacksContext);
-
-  useEffect(() => {
-    if (!isIndexingRepacks) {
-      searchRepacks(gameTitle).then((repacks) => {
-        setRepacks(repacks);
-      });
-    }
-  }, [game, gameTitle, isIndexingRepacks, searchRepacks]);
+  const { getRepacksForObjectId } = useRepacks();
+  const repacks = getRepacksForObjectId(objectId);
 
   const { i18n } = useTranslation("game_details");
 

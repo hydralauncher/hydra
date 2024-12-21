@@ -11,6 +11,7 @@ import type {
   GameRunning,
   FriendRequestAction,
   UpdateProfileRequest,
+  CatalogueSearchPayload,
   GameAchievement,
 } from "@types";
 import type { CatalogueCategory } from "@shared";
@@ -36,7 +37,8 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   /* Catalogue */
-  searchGames: (query: string) => ipcRenderer.invoke("searchGames", query),
+  searchGames: (payload: CatalogueSearchPayload) =>
+    ipcRenderer.invoke("searchGames", payload),
   getCatalogue: (category: CatalogueCategory) =>
     ipcRenderer.invoke("getCatalogue", category),
   getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
@@ -44,10 +46,6 @@ contextBridge.exposeInMainWorld("electron", {
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
   getHowLongToBeat: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getHowLongToBeat", objectId, shop),
-  getGames: (take?: number, skip?: number) =>
-    ipcRenderer.invoke("getGames", take, skip),
-  searchGameRepacks: (query: string) =>
-    ipcRenderer.invoke("searchGameRepacks", query),
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
   getTrendingGames: () => ipcRenderer.invoke("getTrendingGames"),
@@ -67,6 +65,8 @@ contextBridge.exposeInMainWorld("electron", {
         listener
       );
   },
+  getPublishers: () => ipcRenderer.invoke("getPublishers"),
+  getDevelopers: () => ipcRenderer.invoke("getDevelopers"),
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
@@ -78,9 +78,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("authenticateRealDebrid", apiToken),
 
   /* Download sources */
-  getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
-  deleteDownloadSource: (id: number) =>
-    ipcRenderer.invoke("deleteDownloadSource", id),
+  putDownloadSource: (objectIds: string[]) =>
+    ipcRenderer.invoke("putDownloadSource", objectIds),
 
   /* Library */
   addGameToLibrary: (objectId: string, title: string, shop: GameShop) =>
