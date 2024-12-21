@@ -17,6 +17,7 @@ import { Link } from "@renderer/components";
 import { ComparedAchievementList } from "./compared-achievement-list";
 import * as styles from "./achievements.css";
 import { AchievementList } from "./achievement-list";
+import { AchievementPanel } from "./achievement-panel";
 
 interface UserInfo {
   id: string;
@@ -320,9 +321,15 @@ export function AchievementsContent({
         )}
 
         {otherUser ? (
-          <ComparedAchievementList achievements={comparedAchievements!} />
+          <>
+            <AchievementPanel isHeaderStuck={false} />
+            <ComparedAchievementList achievements={comparedAchievements!} />
+          </>
         ) : (
-          <AchievementList achievements={achievements!} />
+          <>
+            <AchievementPanel isHeaderStuck={false} />
+            <AchievementList achievements={achievements!} />
+          </>
         )}
       </section>
     </div>
