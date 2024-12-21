@@ -366,11 +366,12 @@
     "achievement_unlocked": "Conquista desbloqueada",
     "your_achievements": "Suas Conquistas",
     "user_achievements": "Conquistas de {{displayName}}",
-    "unlocked_at": "Desbloqueado em:",
+    "unlocked_at": "Desbloqueada em: {{date}}",
     "subscription_needed": "Você precisa de uma assinatura Hydra Cloud para visualizar este conteúdo",
     "new_achievements_unlocked": "{{achievementCount}} novas conquistas de {{gameCount}} jogos",
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} conquistas",
-    "achievements_unlocked_for_game": "Desbloqueadas {{achievementCount}} novas conquistas em {{gameTitle}}"
+    "achievements_unlocked_for_game": "Desbloqueadas {{achievementCount}} novas conquistas em {{gameTitle}}",
+    "hidden_achievement_tooltip": "Está é uma conquista oculta"
   },
   "tour": {
     "subscription_tour_title": "Assinatura Hydra Cloud",

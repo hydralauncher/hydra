@@ -359,7 +359,7 @@
     "achievement_unlocked": "Saavutus avatud",
     "user_achievements": "{{displayName}} saavutused",
     "your_achievements": "Sinu saavutused",
-    "unlocked_at": "Avatud:",
+    "unlocked_at": "Avatud: {{date}}",
     "subscription_needed": "Selle sisu nägemiseks on vaja Hydra Cloud tellimust",
     "new_achievements_unlocked": "Avatud {{achievementCount}} uut saavutust {{gameCount}} mängust"
   },

@@ -356,7 +356,7 @@
     "achievement_unlocked": "Conquista desbloqueada",
     "your_achievements": "As tuas Conquistas",
     "user_achievements": "Conquistas de {{displayName}}",
-    "unlocked_at": "Desbloqueada em:",
+    "unlocked_at": "Desbloqueada em: {{date}}",
     "subscription_needed": "Precisas de uma subscrição Hydra Cloud para visualizar este conteúdo",
     "new_achievements_unlocked": "{{achievementCount}} novas conquistas de {{gameCount}} jogos"
   },

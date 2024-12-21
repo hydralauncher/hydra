@@ -364,7 +364,7 @@
     "achievement_unlocked": "Logro desbloqueado",
     "user_achievements": "Logros de {{displayName}}",
     "your_achievements": "Tus Logros",
-    "unlocked_at": "Desbloqueado el:",
+    "unlocked_at": "Desbloqueado el: {{date}}",
     "subscription_needed": "Se necesita una suscripción a Hydra Cloud necesita para ver este contenido",
     "new_achievements_unlocked": "Desbloqueados {{achievementCount}} nuevos logros de {{gameCount}} juegos",
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} logros",

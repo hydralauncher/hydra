@@ -362,12 +362,14 @@ export interface ComparedAchievements {
   owner: {
     totalAchievementCount: number;
     unlockedAchievementCount: number;
+    achievementsPointsEarnedSum?: number;
   };
   target: {
     displayName: string;
     profileImageUrl: string;
     totalAchievementCount: number;
     unlockedAchievementCount: number;
+    achievementsPointsEarnedSum: number;
   };
   achievements: {
     hidden: boolean;
