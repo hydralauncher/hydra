@@ -25,6 +25,7 @@ import "./library/verify-executable-path";
 import "./library/remove-game";
 import "./library/remove-game-from-library";
 import "./library/select-game-wine-prefix";
+import "./library/reset-game-achievements";
 import "./misc/open-checkout";
 import "./misc/open-external";
 import "./misc/show-open-dialog";

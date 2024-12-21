@@ -164,7 +164,10 @@
     "select_folder": "Selecione a pasta",
     "manage_files_description": "Gerencie quais arquivos serão feitos backup",
     "clear": "Limpar",
-    "no_directory_selected": "Nenhum diretório selecionado"
+    "no_directory_selected": "Nenhum diretório selecionado",
+    "reset_achievements": "Resetar conquistas",
+    "reset_achievements_description": "Isso irá resetar todas as conquistas de {{game}}",
+    "reset_achievements_title": "Tem certeza?"
   },
   "activation": {
     "title": "Ativação",
