@@ -41,6 +41,7 @@ export interface UserAchievement {
   name: string;
   hidden: boolean;
   displayName: string;
+  points?: number;
   description?: string;
   unlocked: boolean;
   unlockTime: number | null;
@@ -319,9 +320,17 @@ export interface TrendingGame {
   logo: string | null;
 }
 
+export interface UserStatsPercentile {
+  value: number;
+  topPercentile: number;
+}
+
 export interface UserStats {
   libraryCount: number;
   friendsCount: number;
+  totalPlayTimeInSeconds: UserStatsPercentile;
+  achievementsPointsEarnedSum?: UserStatsPercentile;
+  unlockedAchievementSum?: number;
 }
 
 export interface UnlockedAchievement {
