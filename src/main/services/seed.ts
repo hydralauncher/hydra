@@ -1,7 +1,7 @@
 import { gameRepository } from "@main/repository";
 import { DownloadManager } from "./download/download-manager";
 import { sleep } from "@main/helpers";
-    
+
 export const startSeedProcess = async () => {
     const seedList = await gameRepository.find({
         where: {
@@ -21,4 +21,3 @@ export const startSeedProcess = async () => {
         await sleep(100);
     });
 };
-
