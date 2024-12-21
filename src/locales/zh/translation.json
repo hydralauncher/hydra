@@ -359,7 +359,7 @@
     "achievement_unlocked": "成就已解锁",
     "user_achievements": "{{displayName}}的成就",
     "your_achievements": "你的成就",
-    "unlocked_at": "解锁于:",
+    "unlocked_at": "解锁于: {{date}}",
     "subscription_needed": "需要订阅 Hydra Cloud 才能看到此内容",
     "new_achievements_unlocked": "从 {{gameCount}} 游戏中解锁 {{achievementCount}} 新成就"
   },

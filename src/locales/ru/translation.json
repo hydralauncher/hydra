@@ -358,7 +358,7 @@
     "achievement_unlocked": "Достижение разблокировано",
     "user_achievements": "Достижения {{displayName}}",
     "your_achievements": "Ваши достижения",
-    "unlocked_at": "Разблокировано:",
+    "unlocked_at": "Разблокировано: {{date}}",
     "subscription_needed": "Для просмотра этого содержимого необходима подписка на Hydra Cloud",
     "new_achievements_unlocked": "Разблокировано {{achievementCount}} новых достижений из {{gameCount}} игр",
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} достижений",

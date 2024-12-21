@@ -383,7 +383,7 @@
     "achievement_unlocked": "تم فتح الإنجاز",
     "user_achievements": "{{displayName}}إنجازات",
     "your_achievements": "إنجازاتك",
-    "unlocked_at": "مقفلة في:",
+    "unlocked_at": "مقفلة في: {{date}}",
     "subscription_needed": "مطلوب اشتراك Hydra Cloud لرؤية هذا المحتوى",
     "new_achievements_unlocked": "مفتوح {{achievementCount}} انجازات جديدة من {{gameCount}} ألعاب",
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} الإنجازات",

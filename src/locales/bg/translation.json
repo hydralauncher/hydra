@@ -362,7 +362,7 @@
     "achievement_unlocked": "Постижението е отключено",
     "user_achievements": "Постиженията на {{displayName}} ",
     "your_achievements": "Вашите Постижения",
-    "unlocked_at": "Отключено на:",
+    "unlocked_at": "Отключено на: {{date}}",
     "subscription_needed": "Необходим е абонамент за Hydra Cloud, за да видите това съдържание",
     "new_achievements_unlocked": "Отключени {{achievementCount}} нови постижения от {{gameCount}} игра",
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} постижения",

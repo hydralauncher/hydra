@@ -362,7 +362,7 @@
     "achievement_unlocked": "Achievement odemčen",
     "user_achievements": "Achievementy uživatele {{displayName}}",
     "your_achievements": "Vaše achievementy",
-    "unlocked_at": "Odemčeno:",
+    "unlocked_at": "Odemčeno: {{date}}",
     "subscription_needed": "Je vyžadováno předplatné Hydra Cloud pro zobrazení tohoto obsahu",
     "new_achievements_unlocked": "Odemčeno {{achievementCount}} nových achievementů z {{gameCount}} her",
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} achievementů",
