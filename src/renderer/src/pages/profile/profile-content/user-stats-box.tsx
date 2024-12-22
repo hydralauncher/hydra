@@ -5,8 +5,11 @@ import { useTranslation } from "react-i18next";
 import { useFormat } from "@renderer/hooks";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
+import { useSubscription } from "@renderer/hooks/use-subscription";
 
 export function UserStatsBox() {
+  const { showHydraCloudModal } = useSubscription();
+
   const { userStats } = useContext(userProfileContext);
 
   const { t } = useTranslation("user_profile");
@@ -40,37 +43,49 @@ export function UserStatsBox() {
 
       <div className={styles.box}>
         <ul className={styles.list}>
-          {userStats.achievementsPointsEarnedSum && (
-            <li>
-              <h3 className={styles.listItemTitle}>{t("achievements")}</h3>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <p
-                  style={{ display: "flex", alignItems: "center", gap: "4px" }}
+          <li>
+            <h3 className={styles.listItemTitle}>{t("achievements")}</h3>
+            {userStats.achievementsPointsEarnedSum !== undefined ? (
+              <>
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
                 >
-                  <HydraIcon width={20} height={20} />
-                  {userStats.achievementsPointsEarnedSum.value}
-                </p>
-                <p title={t("ranking_updated_weekly")}>
-                  {t("top_percentile", {
-                    percentile:
-                      userStats.achievementsPointsEarnedSum.topPercentile,
-                  })}
-                </p>
-              </div>
-              <p>Unlock count: {userStats.unlockedAchievementSum}</p>
-            </li>
-          )}
+                  <p
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <HydraIcon width={20} height={20} />
+                    {userStats.achievementsPointsEarnedSum.value}
+                  </p>
+                  <p title={t("ranking_updated_weekly")}>
+                    {t("top_percentile", {
+                      percentile:
+                        userStats.achievementsPointsEarnedSum.topPercentile,
+                    })}
+                  </p>
+                </div>
+                <p>Unlock count: {userStats.unlockedAchievementSum}</p>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={showHydraCloudModal}
+                className={styles.link}
+              >
+                <small>
+                  Saiba como exibir suas conquistas e pontos no perfil
+                </small>
+              </button>
+            )}
+          </li>
 
           <li>
-            <h3 className={styles.listItemTitle}>{t("games")}</h3>
+            <h3 className={styles.listItemTitle}>{t("total_play_time")}</h3>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <p>
-                {t("total_play_time", {
-                  amount: formatPlayTime(
-                    userStats.totalPlayTimeInSeconds.value
-                  ),
-                })}
-              </p>
+              <p>{formatPlayTime(userStats.totalPlayTimeInSeconds.value)}</p>
               <p title={t("ranking_updated_weekly")}>
                 {t("top_percentile", {
                   percentile: userStats.totalPlayTimeInSeconds.topPercentile,

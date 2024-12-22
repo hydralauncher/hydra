@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import * as styles from "./achievements.css";
 import { EyeClosedIcon } from "@primer/octicons-react";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
+import { useSubscription } from "@renderer/hooks/use-subscription";
+import { vars } from "@renderer/theme.css";
 
 interface AchievementListProps {
   achievements: UserAchievement[];
@@ -11,6 +13,7 @@ interface AchievementListProps {
 
 export function AchievementList({ achievements }: AchievementListProps) {
   const { t } = useTranslation("achievement");
+  const { showHydraCloudModal } = useSubscription();
   const { formatDateTime } = useDate();
 
   return (
@@ -41,7 +44,7 @@ export function AchievementList({ achievements }: AchievementListProps) {
             <p>{achievement.description}</p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {achievement.points && (
+            {achievement.points != undefined ? (
               <div
                 style={{ display: "flex", alignItems: "center", gap: "4px" }}
                 title={t("achievement_earn_points", {
@@ -51,6 +54,23 @@ export function AchievementList({ achievements }: AchievementListProps) {
                 <HydraIcon width={20} height={20} />
                 <p style={{ fontSize: "1.1em" }}>{achievement.points}</p>
               </div>
+            ) : (
+              <button
+                onClick={showHydraCloudModal}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  cursor: "pointer",
+                  color: vars.color.warning,
+                }}
+                title={t("achievement_earn_points", {
+                  points: "???",
+                })}
+              >
+                <HydraIcon width={20} height={20} />
+                <p style={{ fontSize: "1.1em" }}>???</p>
+              </button>
             )}
             {achievement.unlockTime && (
               <div

@@ -293,7 +293,7 @@
     "last_time_played": "Последно играно {{period}}",
     "activity": "Скорошна активност",
     "library": "Библиотека",
-    "total_play_time": "Общо време за игра: {{amount}}",
+    "total_play_time": "Общо време за игра",
     "no_recent_activity_title": "Хмм… няма нищо тук",
     "no_recent_activity_description": "Не сте играли игри напоследък. Време е да промените това.!",
     "display_name": "Показване на името",
@@ -368,7 +368,7 @@
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} постижения",
     "achievements_unlocked_for_game": "Отключени {{achievementCount}} нови постижения за {{gameTitle}}"
   },
-  "tour": {
+  "hydra_cloud": {
     "subscription_tour_title": "Hydra Cloud Абонамент",
     "subscribe_now": "Абонирай се сега",
     "cloud_saving": "Запазване в облака",

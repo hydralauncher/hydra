@@ -14,6 +14,7 @@ import { steamUrlBuilder } from "@shared";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import { useUserDetails } from "@renderer/hooks";
+import { useSubscription } from "@renderer/hooks/use-subscription";
 
 const HERO_ANIMATION_THRESHOLD = 25;
 
@@ -31,8 +32,9 @@ export function GameDetailsContent() {
     gameColor,
     setGameColor,
     hasNSFWContentBlocked,
-    handleClickOpenCheckout,
   } = useContext(gameDetailsContext);
+
+  const { showHydraCloudModal } = useSubscription();
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
 
@@ -104,7 +106,7 @@ export function GameDetailsContent() {
     }
 
     if (!hasActiveSubscription) {
-      handleClickOpenCheckout();
+      showHydraCloudModal();
       return;
     }
 

@@ -294,7 +294,7 @@
     "last_time_played": "Последняя игра {{period}}",
     "activity": "Недавняя активность",
     "library": "Библиотека",
-    "total_play_time": "Всего сыграно: {{amount}}",
+    "total_play_time": "Всего сыграно",
     "no_recent_activity_title": "Хммм... Тут ничего нет",
     "no_recent_activity_description": "Вы давно ни во что не играли. Пора это изменить!",
     "display_name": "Отображаемое имя",
@@ -365,7 +365,7 @@
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} достижений",
     "achievements_unlocked_for_game": "Разблокировано {{achievementCount}} новых достижений для {{gameTitle}}"
   },
-  "tour": {
+  "hydra_cloud": {
     "subscription_tour_title": "Подписка Hydra Cloud",
     "subscribe_now": "Подпишитесь прямо сейчас",
     "cloud_saving": "Сохранение в облаке",

@@ -309,7 +309,7 @@
     "last_time_played": "لعبت آخر مرة {{period}}",
     "activity": "النشاط الأخير",
     "library": "مكتبة",
-    "total_play_time": "إجمالي وقت اللعب: {{amount}}",
+    "total_play_time": "إجمالي وقت اللعب",
     "no_recent_activity_title": "هممم... لا شيء هنا",
     "no_recent_activity_description": "لم تلعب أي مباراة مؤخرًا. ",
     "display_name": "اسم العرض",
@@ -389,7 +389,7 @@
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} الإنجازات",
     "achievements_unlocked_for_game": "مفتوح {{achievementCount}} انجازات جديدة ل {{gameTitle}}"
   },
-  "tour": {
+  "hydra_cloud": {
     "subscription_tour_title": "اشتراك Hydra كلاود",
     "subscribe_now": "اشترك الآن",
     "cloud_saving": "الحفظ السحابي",

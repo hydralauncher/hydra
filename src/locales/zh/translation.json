@@ -290,7 +290,7 @@
     "last_time_played": "上次游玩时间 {{period}}",
     "activity": "近期活动",
     "library": "库",
-    "total_play_time": "总游戏时长: {{amount}}",
+    "total_play_time": "总游戏时长",
     "no_recent_activity_title": "Emmm… 这里暂时啥都没有",
     "no_recent_activity_description": "你最近没玩过任何游戏。是时候做出改变了!",
     "display_name": "昵称",
@@ -363,7 +363,7 @@
     "subscription_needed": "需要订阅 Hydra Cloud 才能看到此内容",
     "new_achievements_unlocked": "从 {{gameCount}} 游戏中解锁 {{achievementCount}} 新成就"
   },
-  "tour": {
+  "hydra_cloud": {
     "subscription_tour_title": "Hydra 云订阅",
     "subscribe_now": "现在订购",
     "cloud_saving": "云存档",

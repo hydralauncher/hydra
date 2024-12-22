@@ -295,7 +295,7 @@
     "last_time_played": "Última vez jugado: {{period}}",
     "activity": "Actividad reciente",
     "library": "Biblioteca",
-    "total_play_time": "Total de tiempo jugado: {{amount}}",
+    "total_play_time": "Has jugado",
     "no_recent_activity_title": "Que raro, no hay nada por acá...",
     "no_recent_activity_description": "No has jugado ningún juego recientemente, ¡vamos a cambiar eso ahora!",
     "display_name": "Nombre en pantalla",
@@ -358,7 +358,8 @@
     "your_friend_code": "Tu código de amigo:",
     "upload_banner": "Subir un banner",
     "uploading_banner": "Subiendo banner…",
-    "background_image_updated": "Imagen de fondo actualizada"
+    "background_image_updated": "Imagen de fondo actualizada",
+    "playing": "Jugando {{game}}"
   },
   "achievement": {
     "achievement_unlocked": "Logro desbloqueado",
@@ -370,7 +371,7 @@
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} logros",
     "achievements_unlocked_for_game": "Se han desbloqueado {{achievementCount}} nuevos logros de {{gameTitle}}"
   },
-  "tour": {
+  "hydra_cloud": {
     "subscription_tour_title": "Suscripción Hydra Cloud",
     "subscribe_now": "Suscribirse ahora",
     "cloud_saving": "Guardado en la nube",
