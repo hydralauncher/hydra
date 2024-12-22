@@ -4,25 +4,25 @@ import { useCallback, useMemo, useState } from "react";
 
 import List from "rc-virtual-list";
 
-export interface FilterSectionProps<T extends string | number> {
+export interface FilterSectionProps {
   title: string;
   items: {
     label: string;
-    value: T;
+    value: string;
     checked: boolean;
   }[];
-  onSelect: (value: T) => void;
+  onSelect: (value: string) => void;
   color: string;
   onClear: () => void;
 }
 
-export function FilterSection<T extends string | number>({
+export function FilterSection({
   title,
   items,
   color,
   onSelect,
   onClear,
-}: FilterSectionProps<T>) {
+}: FilterSectionProps) {
   const [search, setSearch] = useState("");
 
   const filteredItems = useMemo(() => {
