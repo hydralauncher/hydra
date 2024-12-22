@@ -83,6 +83,37 @@ const getSteamGames = async () => {
   return response.data;
 };
 
+const importDownloadSource = async (url: string) => {
+  const response = await axios.get<z.infer<typeof downloadSourceSchema>>(url);
+
+  const steamGames = await getSteamGames();
+
+  await db.transaction("rw", repacksTable, downloadSourcesTable, async () => {
+    const now = new Date();
+
+    const id = await downloadSourcesTable.add({
+      url,
+      name: response.data.name,
+      etag: response.headers["etag"],
+      status: DownloadSourceStatus.UpToDate,
+      downloadCount: response.data.downloads.length,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const downloadSource = await downloadSourcesTable.get(id);
+
+    await addNewDownloads(downloadSource, response.data.downloads, steamGames);
+  });
+};
+
+const deleteDownloadSource = async (id: number) => {
+  await db.transaction("rw", repacksTable, downloadSourcesTable, async () => {
+    await repacksTable.where({ downloadSourceId: id }).delete();
+    await downloadSourcesTable.where({ id }).delete();
+  });
+};
+
 self.onmessage = async (event: MessageEvent<Payload>) => {
   const [type, data] = event.data;
 
@@ -102,10 +133,7 @@ self.onmessage = async (event: MessageEvent<Payload>) => {
   }
 
   if (type === "DELETE_DOWNLOAD_SOURCE") {
-    await db.transaction("rw", repacksTable, downloadSourcesTable, async () => {
-      await repacksTable.where({ downloadSourceId: data }).delete();
-      await downloadSourcesTable.where({ id: data }).delete();
-    });
+    await deleteDownloadSource(data);
 
     const channel = new BroadcastChannel(`download_sources:delete:${data}`);
 
@@ -113,32 +141,7 @@ self.onmessage = async (event: MessageEvent<Payload>) => {
   }
 
   if (type === "IMPORT_DOWNLOAD_SOURCE") {
-    const response =
-      await axios.get<z.infer<typeof downloadSourceSchema>>(data);
-
-    const steamGames = await getSteamGames();
-
-    await db.transaction("rw", repacksTable, downloadSourcesTable, async () => {
-      const now = new Date();
-
-      const id = await downloadSourcesTable.add({
-        url: data,
-        name: response.data.name,
-        etag: response.headers["etag"],
-        status: DownloadSourceStatus.UpToDate,
-        downloadCount: response.data.downloads.length,
-        createdAt: now,
-        updatedAt: now,
-      });
-
-      const downloadSource = await downloadSourcesTable.get(id);
-
-      await addNewDownloads(
-        downloadSource,
-        response.data.downloads,
-        steamGames
-      );
-    });
+    await importDownloadSource(data);
 
     const channel = new BroadcastChannel(`download_sources:import:${data}`);
     channel.postMessage(true);
@@ -153,6 +156,12 @@ self.onmessage = async (event: MessageEvent<Payload>) => {
       const existingRepacks = await repacksTable.toArray();
 
       for (const downloadSource of downloadSources) {
+        if (!downloadSource.fingerprint) {
+          await deleteDownloadSource(downloadSource.id);
+          await importDownloadSource(downloadSource.url);
+          continue;
+        }
+
         const headers = new AxiosHeaders();
 
         if (downloadSource.etag) {

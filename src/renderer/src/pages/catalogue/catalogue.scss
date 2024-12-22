@@ -93,23 +93,13 @@
   }
 
   &__filters-container {
-    width: 250px;
-    min-width: 250px;
-    max-width: 250px;
+    width: 270px;
+    min-width: 270px;
+    max-width: 270px;
     background-color: globals.$dark-background-color;
     border-radius: 4px;
     padding: 16px;
     border: 1px solid globals.$border-color;
     align-self: flex-start;
-  }
-
-  &__ai-recommendations-button-text {
-    font-weight: 400;
-    color: #fff;
-    background: linear-gradient(0deg, #16b195 50%, #3e62c0 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-weight: bold;
   }
 }
