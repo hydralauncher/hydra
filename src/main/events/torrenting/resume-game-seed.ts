@@ -1,9 +1,6 @@
 import { registerEvent } from "../register-event";
 import { gameRepository } from "../../repository";
-
 import { DownloadManager } from "@main/services";
-import { dataSource } from "@main/data-source";
-import { Game } from "@main/entity";
 
 const resumeGameSeed = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -20,9 +17,10 @@ const resumeGameSeed = async (
 
   if (!game) return;
 
-  await dataSource
-    .getRepository(Game)
-    .update({ id: gameId }, { status: "seeding", shouldSeed: true });
+  await gameRepository.update(gameId, {
+    status: "seeding",
+    shouldSeed: true,
+  });
 
   await DownloadManager.startDownload(game);
 };
