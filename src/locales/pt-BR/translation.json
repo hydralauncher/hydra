@@ -300,7 +300,7 @@
     "last_time_played": "Última sessão {{period}}",
     "activity": "Atividades recentes",
     "library": "Biblioteca",
-    "total_play_time": "Tempo total de jogo: {{amount}}",
+    "total_play_time": "Tempo de jogo: {{amount}}",
     "no_recent_activity_title": "Hmmm… nada por aqui",
     "no_recent_activity_description": "Parece que você não jogou nada recentemente. Que tal começar agora?",
     "display_name": "Nome de exibição",
@@ -366,7 +366,8 @@
     "background_image_updated": "Imagem de fundo salva",
     "stats": "Estatísticas",
     "achievements": "Conquistas",
-    "games": "Jogos"
+    "games": "Jogos",
+    "ranking_updated_weekly": "Ranking é atualizado semanalmente"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",

@@ -42,16 +42,19 @@ export function UserStatsBox() {
         <ul className={styles.list}>
           {userStats.achievementsPointsEarnedSum && (
             <li>
-              <p className={styles.listItemTitle}>{t("achievements")}</p>
+              <h3 className={styles.listItemTitle}>{t("achievements")}</h3>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <p
                   style={{ display: "flex", alignItems: "center", gap: "4px" }}
                 >
                   <HydraIcon width={20} height={20} />
-                  {userStats.achievementsPointsEarnedSum.value} points
+                  {userStats.achievementsPointsEarnedSum.value}
                 </p>
-                <p>
-                  Top {userStats.achievementsPointsEarnedSum.topPercentile}%{" "}
+                <p title={t("ranking_updated_weekly")}>
+                  {t("top_percentile", {
+                    percentile:
+                      userStats.achievementsPointsEarnedSum.topPercentile,
+                  })}
                 </p>
               </div>
               <p>Unlock count: {userStats.unlockedAchievementSum}</p>
@@ -59,13 +62,20 @@ export function UserStatsBox() {
           )}
 
           <li>
-            <p className={styles.listItemTitle}>{t("games")}</p>
+            <h3 className={styles.listItemTitle}>{t("games")}</h3>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <p>
-                Total playtime:{" "}
-                {formatPlayTime(userStats.totalPlayTimeInSeconds.value)}
+                {t("total_play_time", {
+                  amount: formatPlayTime(
+                    userStats.totalPlayTimeInSeconds.value
+                  ),
+                })}
               </p>
-              <p> Top {userStats.totalPlayTimeInSeconds.topPercentile}%</p>
+              <p title={t("ranking_updated_weekly")}>
+                {t("top_percentile", {
+                  percentile: userStats.totalPlayTimeInSeconds.topPercentile,
+                })}
+              </p>
             </div>
           </li>
         </ul>
