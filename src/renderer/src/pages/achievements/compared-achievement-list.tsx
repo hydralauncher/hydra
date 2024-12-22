@@ -58,11 +58,9 @@ export function ComparedAchievementList({
                   gap: `${SPACING_UNIT}px`,
                   justifyContent: "center",
                 }}
+                title={formatDateTime(achievement.ownerStat.unlockTime!)}
               >
                 <CheckCircleIcon />
-                <small>
-                  {formatDateTime(achievement.ownerStat.unlockTime!)}
-                </small>
               </div>
             ) : (
               <div
@@ -86,11 +84,9 @@ export function ComparedAchievementList({
                 gap: `${SPACING_UNIT}px`,
                 justifyContent: "center",
               }}
+              title={formatDateTime(achievement.targetStat.unlockTime!)}
             >
               <CheckCircleIcon />
-              <small>
-                {formatDateTime(achievement.targetStat.unlockTime!)}
-              </small>
             </div>
           ) : (
             <div

@@ -18,6 +18,7 @@ import { ComparedAchievementList } from "./compared-achievement-list";
 import * as styles from "./achievements.css";
 import { AchievementList } from "./achievement-list";
 import { AchievementPanel } from "./achievement-panel";
+import { ComparedAchievementPanel } from "./compared-achievement-panel";
 
 interface UserInfo {
   id: string;
@@ -322,7 +323,7 @@ export function AchievementsContent({
 
         {otherUser ? (
           <>
-            <AchievementPanel isHeaderStuck={false} />
+            <ComparedAchievementPanel achievements={comparedAchievements!} />
             <ComparedAchievementList achievements={comparedAchievements!} />
           </>
         ) : (
