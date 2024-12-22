@@ -368,6 +368,7 @@ export interface GameArtifact {
 }
 
 export interface ComparedAchievements {
+  achievementsPointsTotal: number;
   owner: {
     totalAchievementCount: number;
     unlockedAchievementCount: number;

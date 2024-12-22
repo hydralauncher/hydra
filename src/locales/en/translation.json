@@ -168,7 +168,8 @@
     "select_folder": "Select folder",
     "backup_from": "Backup from {{date}}",
     "custom_backup_location_set": "Custom backup location set",
-    "no_directory_selected": "No directory selected"
+    "no_directory_selected": "No directory selected",
+    "available_points": "Available points:"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -378,7 +379,8 @@
     "new_achievements_unlocked": "Unlocked {{achievementCount}} new achievements from {{gameCount}} games",
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} achievements",
     "achievements_unlocked_for_game": "Unlocked {{achievementCount}} new achievements for {{gameTitle}}",
-    "hidden_achievement_tooltip": "This is a hidden achievement"
+    "hidden_achievement_tooltip": "This is a hidden achievement",
+    "achievement_earn_points": "Earn {{points}} with this achievement"
   },
   "tour": {
     "subscription_tour_title": "Hydra Cloud Subscription",
