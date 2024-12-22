@@ -14,7 +14,7 @@ export interface ComparedAchievementPanelProps {
 export function ComparedAchievementPanel({
   achievements,
 }: ComparedAchievementPanelProps) {
-  const { t } = useTranslation("game_details");
+  const { t } = useTranslation("achievement");
 
   const {} = useContext(gameDetailsContext);
 

@@ -41,9 +41,7 @@ export function FriendsBox() {
                     {friend.displayName}
                   </span>
                   {friend.currentGame && (
-                    <Link to={buildGameDetailsPath({ ...friend.currentGame })}>
-                      <p>{t("playing", { game: friend.currentGame.title })}</p>
-                    </Link>
+                    <p>{t("playing", { game: friend.currentGame.title })}</p>
                   )}
                 </div>
               </Link>
