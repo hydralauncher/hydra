@@ -74,9 +74,18 @@ export const search = recipe({
   },
 });
 
-export const searchButton = style({
-  WebkitAppRegion: "no-drag",
-} as ComplexStyleRule);
+export const searchButton = recipe({
+  base: {
+    WebkitAppRegion: "no-drag",
+  } as ComplexStyleRule,
+  variants: {
+    hidden: {
+      true: {
+        visibility: "hidden",
+      },
+    },
+  },
+});
 
 export const section = style({
   display: "flex",

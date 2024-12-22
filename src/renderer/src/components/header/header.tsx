@@ -35,6 +35,10 @@ export function Header() {
     return t(pathTitle[location.pathname]);
   }, [location.pathname, headerTitle, t]);
 
+  const showSearchButton = useMemo(() => {
+    return location.pathname.startsWith("/catalogue");
+  }, [location.pathname]);
+
   const handleBackButtonClick = () => {
     navigate(-1);
   };
@@ -71,7 +75,7 @@ export function Header() {
         <section className={styles.section}>
           <Button
             theme="outline"
-            className={styles.searchButton}
+            className={styles.searchButton({ hidden: showSearchButton })}
             onClick={() => navigate("/catalogue?search=true")}
           >
             <SearchIcon />

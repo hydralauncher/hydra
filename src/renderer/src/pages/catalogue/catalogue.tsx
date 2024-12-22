@@ -1,4 +1,4 @@
-import { Badge, Button } from "@renderer/components";
+import { Badge } from "@renderer/components";
 
 import type { DownloadSource } from "@types";
 
@@ -6,7 +6,7 @@ import cn from "classnames";
 
 import { useAppDispatch, useAppSelector, useRepacks } from "@renderer/hooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LightBulbIcon, SearchIcon, XIcon } from "@primer/octicons-react";
+import { SearchIcon, XIcon } from "@primer/octicons-react";
 
 import "./catalogue.scss";
 
@@ -18,7 +18,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { FilterSection } from "./filter-section";
 import { setSearch } from "@renderer/features";
 import { useTranslation } from "react-i18next";
-import { steamUserTags } from "./steam-user-tags";
+import axios from "axios";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
 const filterCategoryColors = {
   genres: "hsl(262deg 50% 47%)",
@@ -35,6 +36,8 @@ export default function Catalogue() {
 
   const [focused, setFocused] = useState(false);
 
+  const [steamUserTags, setSteamUserTags] = useState<any>({});
+
   const [searchParams] = useSearchParams();
   const search = searchParams.get("search");
 
@@ -42,6 +45,7 @@ export default function Catalogue() {
 
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [games, setGames] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [publishers, setPublishers] = useState<string[]>([]);
   const [developers, setDevelopers] = useState<string[]>([]);
 
@@ -49,24 +53,30 @@ export default function Catalogue() {
 
   const dispatch = useAppDispatch();
 
-  const { t } = useTranslation("catalogue");
+  const { t, i18n } = useTranslation("catalogue");
 
   const { getRepacksForObjectId } = useRepacks();
 
   useEffect(() => {
     setGames([]);
+    setIsLoading(true);
     abortControllerRef.current?.abort();
 
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 
-    window.electron.searchGames(filters).then((games) => {
-      if (abortController.signal.aborted) {
-        return;
-      }
+    window.electron
+      .searchGames(filters)
+      .then((games) => {
+        if (abortController.signal.aborted) {
+          return;
+        }
 
-      setGames(games);
-    });
+        setGames(games);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, [filters]);
 
   useEffect(() => {
@@ -91,7 +101,7 @@ export default function Catalogue() {
 
   useEffect(() => {
     downloadSourcesTable.toArray().then((sources) => {
-      setDownloadSources(sources);
+      setDownloadSources(sources.filter((source) => !!source.fingerprint));
     });
   }, [getRepacksForObjectId]);
 
@@ -106,6 +116,22 @@ export default function Catalogue() {
     },
     [dispatch]
   );
+
+  useEffect(() => {
+    axios
+      .get(
+        `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/steam-user-tags.json`
+      )
+      .then((response) => {
+        const language = i18n.language.split("-")[0];
+
+        if (response.data[language]) {
+          setSteamUserTags(response.data[language]);
+        } else {
+          setSteamUserTags(response.data["en"]);
+        }
+      });
+  }, [i18n.language]);
 
   useEffect(() => {
     if (search) {
@@ -124,7 +150,8 @@ export default function Catalogue() {
       >
         <div
           className={cn("catalogue__search-container", {
-            ["catalogue__search-container--focused"]: focused,
+            ["catalogue__search-container--focused"]:
+              focused || !!filters.title,
           })}
         >
           <button
@@ -185,35 +212,42 @@ export default function Catalogue() {
             </Badge>
           ))}
 
-          {filters.tags.map((tag) => (
-            <Badge key={tag}>
-              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                {tag}
-              </div>
-            </Badge>
-          ))}
-
-          {filters.downloadSourceFingerprints.map((fingerprint) => (
-            <Badge key={fingerprint}>
-              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                <div
-                  style={{
-                    width: 10,
-                    height: 10,
-                    backgroundColor:
-                      filterCategoryColors.downloadSourceFingerprints,
-                    borderRadius: "50%",
-                  }}
-                />
-
-                {
-                  downloadSources.find(
-                    (source) => source.fingerprint === fingerprint
-                  )?.name
-                }
-              </div>
-            </Badge>
-          ))}
+          <li
+            style={{
+              display: "flex",
+              alignItems: "center",
+              color: vars.color.body,
+              backgroundColor: vars.color.darkBackground,
+              padding: "6px 12px",
+              borderRadius: 4,
+              border: `solid 1px ${vars.color.border}`,
+              fontSize: 12,
+            }}
+          >
+            <div
+              style={{
+                width: 10,
+                height: 10,
+                backgroundColor: filterCategoryColors.genres,
+                borderRadius: "50%",
+                marginRight: 8,
+              }}
+            />
+            Action
+            <button
+              type="button"
+              style={{
+                color: vars.color.body,
+                marginLeft: 4,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <XIcon size={13} />
+            </button>
+          </li>
         </div>
 
         {/* <Button theme="outline">
@@ -237,74 +271,81 @@ export default function Catalogue() {
             gap: 8,
           }}
         >
-          {gamesWithRepacks.map((game, i) => (
-            <button
-              type="button"
-              key={i}
-              className="catalogue__game-item"
-              onClick={() => navigate(buildGameDetailsPath(game))}
+          {isLoading ? (
+            <SkeletonTheme
+              baseColor={vars.color.darkBackground}
+              highlightColor={vars.color.background}
             >
-              <img
-                style={{
-                  width: 200,
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-                src={steamUrlBuilder.library(game.objectId)}
-                alt={game.title}
-                loading="lazy"
-              />
-
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "flex-start",
-                  gap: 4,
-                  padding: "16px 0",
-                }}
-              >
-                <span>{game.title}</span>
-                <span
+              {Array.from({ length: 24 }).map((_, i) => (
+                <Skeleton
+                  key={i}
                   style={{
-                    color: vars.color.body,
-                    marginBottom: 4,
-                    fontSize: 12,
+                    height: 105,
+                    borderRadius: 4,
+                    border: `solid 1px ${vars.color.border}`,
+                  }}
+                />
+              ))}
+            </SkeletonTheme>
+          ) : (
+            gamesWithRepacks.map((game, i) => (
+              <button
+                type="button"
+                key={i}
+                className="catalogue__game-item"
+                onClick={() => navigate(buildGameDetailsPath(game))}
+              >
+                <img
+                  style={{
+                    width: 200,
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                  src={steamUrlBuilder.library(game.objectId)}
+                  alt={game.title}
+                  loading="lazy"
+                />
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    gap: 4,
+                    padding: "16px 0",
                   }}
                 >
-                  {game.genres?.join(", ")}
-                </span>
+                  <span>{game.title}</span>
+                  <span
+                    style={{
+                      color: vars.color.body,
+                      marginBottom: 4,
+                      fontSize: 12,
+                    }}
+                  >
+                    {game.genres?.join(", ")}
+                  </span>
 
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {game.repacks.map((repack) => (
-                    <Badge key={repack}>{repack}</Badge>
-                  ))}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {game.repacks.map((repack) => (
+                      <Badge key={repack}>{repack}</Badge>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            ))
+          )}
 
-          <div style={{ display: "flex", gap: 8 }}>
+          {/* <div style={{ display: "flex", gap: 8 }}>
             <Button theme="outline">1</Button>
             <Button theme="outline">2</Button>
-          </div>
+          </div> */}
         </div>
 
         <div className="catalogue__filters-container">
-          <Button
-            style={{ width: "100%", marginBottom: 16 }}
-            theme="outline"
-            className="catalogue__ai-recommendations-button"
-          >
-            <span className="catalogue__ai-recommendations-button-text">
-              <LightBulbIcon size={14} />
-              Recomendações por AI
-            </span>
-          </Button>
-
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <FilterSection
-              title="Genres"
+              title={t("genres")}
               onClear={() => dispatch(setSearch({ genres: [] }))}
               color={filterCategoryColors.genres}
               onSelect={(value) => {
@@ -358,7 +399,7 @@ export default function Catalogue() {
             />
 
             <FilterSection
-              title="User tags"
+              title={t("tags")}
               color={filterCategoryColors.tags}
               onClear={() => dispatch(setSearch({ tags: [] }))}
               onSelect={(value) => {
@@ -382,7 +423,7 @@ export default function Catalogue() {
             />
 
             <FilterSection
-              title="Download sources"
+              title={t("download_sources")}
               color={filterCategoryColors.downloadSourceFingerprints}
               onClear={() =>
                 dispatch(setSearch({ downloadSourceFingerprints: [] }))
@@ -418,7 +459,7 @@ export default function Catalogue() {
             />
 
             <FilterSection
-              title="Developers"
+              title={t("developers")}
               color={filterCategoryColors.developers}
               onClear={() => dispatch(setSearch({ developers: [] }))}
               onSelect={(value) => {
@@ -444,7 +485,7 @@ export default function Catalogue() {
             />
 
             <FilterSection
-              title="Publishers"
+              title={t("publishers")}
               color={filterCategoryColors.publishers}
               onClear={() => dispatch(setSearch({ publishers: [] }))}
               onSelect={(value) => {
