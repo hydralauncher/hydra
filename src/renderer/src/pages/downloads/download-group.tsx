@@ -122,7 +122,8 @@ export function DownloadGroup({
     if (game.progress === 1) {
       const uploadSpeed = formatBytes(seedingStatus?.uploadSpeed ?? 0);
 
-      return game.status === "seeding" ? (
+      return game.status === "seeding" &&
+        game.downloader === Downloader.Torrent ? (
         <>
           <p>{t("seeding")}</p>
           {uploadSpeed && <p>{uploadSpeed}/s</p>}
@@ -171,13 +172,15 @@ export function DownloadGroup({
         {
           label: t("stop_seeding"),
           disabled: deleting,
-          show: game.status === "seeding",
+          show:
+            game.status === "seeding" && game.downloader === Downloader.Torrent,
           onClick: () => pauseSeeding(game.id),
         },
         {
           label: t("resume_seeding"),
           disabled: deleting,
-          show: game.status !== "seeding",
+          show:
+            game.status !== "seeding" && game.downloader === Downloader.Torrent,
           onClick: () => resumeSeeding(game.id),
         },
         {
