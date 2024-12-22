@@ -7,7 +7,7 @@ const processProfileImage = async (
 ) => {
   return PythonRPC.rpc.post<{ imagePath: string; mimeType: string }>(
     "/profile_image_processor/process_image",
-    { path },
+    { path }
   );
 };
 
