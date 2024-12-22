@@ -287,7 +287,7 @@
     "last_time_played": "Última sessão {{period}}",
     "activity": "Atividade recente",
     "library": "Biblioteca",
-    "total_play_time": "Tempo total de jogo: {{amount}}",
+    "total_play_time": "Tempo total de jogo",
     "no_recent_activity_title": "Hmmm… não há nada por aqui",
     "no_recent_activity_description": "Parece que não jogaste nada recentemente. Que tal começar agora?",
     "display_name": "Nome de apresentação",
@@ -360,7 +360,7 @@
     "subscription_needed": "Precisas de uma subscrição Hydra Cloud para visualizar este conteúdo",
     "new_achievements_unlocked": "{{achievementCount}} novas conquistas de {{gameCount}} jogos"
   },
-  "tour": {
+  "hydra_cloud": {
     "subscription_tour_title": "Subscrição Hydra Cloud",
     "subscribe_now": "Subscreve agora",
     "cloud_achievements": "Gravação de conquistas na nuvem",

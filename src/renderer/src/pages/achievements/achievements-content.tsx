@@ -19,6 +19,7 @@ import * as styles from "./achievements.css";
 import { AchievementList } from "./achievement-list";
 import { AchievementPanel } from "./achievement-panel";
 import { ComparedAchievementPanel } from "./compared-achievement-panel";
+import { useSubscription } from "@renderer/hooks/use-subscription";
 
 interface UserInfo {
   id: string;
@@ -41,7 +42,7 @@ interface AchievementSummaryProps {
 function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
   const { t } = useTranslation("achievement");
   const { userDetails, hasActiveSubscription } = useUserDetails();
-  const { handleClickOpenCheckout } = useContext(gameDetailsContext);
+  const { showHydraCloudModal } = useSubscription();
 
   const getProfileImage = (
     user: Pick<UserInfo, "profileImageUrl" | "displayName">
@@ -92,7 +93,7 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
           <h3>
             <button
               className={styles.subscriptionRequiredButton}
-              onClick={handleClickOpenCheckout}
+              onClick={showHydraCloudModal}
             >
               {t("subscription_needed")}
             </button>

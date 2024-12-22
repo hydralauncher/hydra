@@ -163,7 +163,7 @@
     "no_download_option_info": "No information available",
     "backup_deletion_failed": "Failed to delete backup",
     "max_number_of_artifacts_reached": "Maximum number of backups reached for this game",
-    "achievements_not_sync": "Your achievements are not synchronized",
+    "achievements_not_sync": "See how to synchronize your achievements",
     "manage_files_description": "Manage which files will be backed up and restored",
     "select_folder": "Select folder",
     "backup_from": "Backup from {{date}}",
@@ -302,7 +302,7 @@
     "last_time_played": "Last played {{period}}",
     "activity": "Recent Activity",
     "library": "Library",
-    "total_play_time": "Total playtime: {{amount}}",
+    "total_play_time": "Total playtime",
     "no_recent_activity_title": "Hmmm… nothing here",
     "no_recent_activity_description": "You haven't played any games recently. It's time to change that!",
     "display_name": "Display name",
@@ -383,9 +383,9 @@
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} achievements",
     "achievements_unlocked_for_game": "Unlocked {{achievementCount}} new achievements for {{gameTitle}}",
     "hidden_achievement_tooltip": "This is a hidden achievement",
-    "achievement_earn_points": "Earn {{points}} with this achievement"
+    "achievement_earn_points": "Earn {{points}} points with this achievement"
   },
-  "tour": {
+  "hydra_cloud": {
     "subscription_tour_title": "Hydra Cloud Subscription",
     "subscribe_now": "Subscribe now",
     "cloud_saving": "Cloud saving",

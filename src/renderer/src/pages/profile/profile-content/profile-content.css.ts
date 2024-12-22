@@ -203,3 +203,12 @@ export const achievementsProgressBar = style({
     borderRadius: "4px",
   },
 });
+
+export const link = style({
+  textAlign: "start",
+  color: vars.color.body,
+  ":hover": {
+    textDecoration: "underline",
+    cursor: "pointer",
+  },
+});

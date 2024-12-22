@@ -29,6 +29,8 @@ import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { downloadSourcesWorker } from "./workers";
 import { repacksContext } from "./context";
 import { logger } from "./logger";
+import { useSubscription } from "./hooks/use-subscription";
+import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -47,20 +49,20 @@ export function App() {
   const { indexRepacks } = useContext(repacksContext);
 
   const {
+    userDetails,
+    hasActiveSubscription,
     isFriendsModalVisible,
     friendRequetsModalTab,
     friendModalUserId,
     syncFriendRequests,
     hideFriendsModal,
-  } = useUserDetails();
-
-  const {
-    userDetails,
-    hasActiveSubscription,
     fetchUserDetails,
     updateUserDetails,
     clearUserDetails,
   } = useUserDetails();
+
+  const { hideHydraCloudModal, showHydraCloudModal, isHydraCloudModalVisible } =
+    useSubscription();
 
   const dispatch = useAppDispatch();
 
@@ -306,6 +308,11 @@ export function App() {
         message={toast.message}
         type={toast.type}
         onClose={handleToastClose}
+      />
+
+      <HydraCloudModal
+        visible={isHydraCloudModalVisible}
+        onClose={hideHydraCloudModal}
       />
 
       {userDetails && (

@@ -293,7 +293,7 @@
     "last_time_played": "Naposledy hráno {{period}}",
     "activity": "Nedávná aktivita",
     "library": "Knihovna",
-    "total_play_time": "Celkový odehraný čas: {{amount}}",
+    "total_play_time": "Celkový odehraný čas",
     "no_recent_activity_title": "Hmmm… nic tu není",
     "no_recent_activity_description": "V poslední době si nehrál žádnout hru, můžeš to ale napravit!",
     "display_name": "Zobrazované jméno",
@@ -368,7 +368,7 @@
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} achievementů",
     "achievements_unlocked_for_game": "Odemčeno {{achievementCount}} nových achievementů pro {{gameTitle}}"
   },
-  "tour": {
+  "hydra_cloud": {
     "subscription_tour_title": "Předplatné Hydra Cloud",
     "subscribe_now": "Připojit se",
     "cloud_saving": "Ukládání v cloudu",

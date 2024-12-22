@@ -290,7 +290,7 @@
     "last_time_played": "Viimati mängitud {{period}}",
     "activity": "Hiljutine aktiivsus",
     "library": "Kogu",
-    "total_play_time": "Kogu mängitud aeg: {{amount}}",
+    "total_play_time": "Kogu mängitud aeg",
     "no_recent_activity_title": "Hmmm… siin pole midagi",
     "no_recent_activity_description": "Sa pole hiljuti ühtegi mängu mänginud. On aeg seda muuta!",
     "display_name": "Kuvatav nimi",
@@ -363,7 +363,7 @@
     "subscription_needed": "Selle sisu nägemiseks on vaja Hydra Cloud tellimust",
     "new_achievements_unlocked": "Avatud {{achievementCount}} uut saavutust {{gameCount}} mängust"
   },
-  "tour": {
+  "hydra_cloud": {
     "subscription_tour_title": "Hydra Cloud Tellimus",
     "subscribe_now": "Telli kohe",
     "cloud_saving": "Pilvesalvestus",
