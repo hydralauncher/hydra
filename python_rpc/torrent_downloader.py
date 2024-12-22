@@ -128,7 +128,7 @@ class TorrentDownloader:
         self.torrent_handle = None
 
     def get_download_status(self):
-        if self.torrent_handle == None:
+        if self.torrent_handle is None:
             return None
 
         status = self.torrent_handle.status()

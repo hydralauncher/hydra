@@ -20,7 +20,7 @@ export class Aria2 {
         "--file-allocation=none",
         "--allow-overwrite=true",
       ],
-      { stdio: "inherit" }
+      { stdio: "inherit", windowsHide: true }
     );
 
     console.log(this.process);
