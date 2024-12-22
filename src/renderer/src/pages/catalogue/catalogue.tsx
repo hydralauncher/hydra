@@ -403,23 +403,27 @@ export default function Catalogue() {
               color={filterCategoryColors.tags}
               onClear={() => dispatch(setSearch({ tags: [] }))}
               onSelect={(value) => {
-                if (filters.tags.includes(value)) {
+                if (filters.tags.includes(Number(value))) {
                   dispatch(
                     setSearch({
-                      tags: filters.tags.filter((tag) => tag !== value),
+                      tags: filters.tags.filter((tag) => tag !== Number(value)),
                     })
                   );
                 } else {
-                  dispatch(setSearch({ tags: [...filters.tags, value] }));
+                  dispatch(
+                    setSearch({ tags: [...filters.tags, Number(value)] })
+                  );
                 }
               }}
-              items={Object.entries(steamUserTags)
-                .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-                .map(([key, value]) => ({
-                  label: key,
-                  value: value,
-                  checked: filters.tags.includes(value),
-                }))}
+              items={
+                Object.entries(steamUserTags)
+                  .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+                  .map(([key, value]) => ({
+                    label: key,
+                    value: value,
+                    checked: filters.tags.includes(value as number),
+                  })) as any
+              }
             />
 
             <FilterSection
