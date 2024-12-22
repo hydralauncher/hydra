@@ -1,6 +1,5 @@
 .vscode/
 node_modules/
-fastlist.exe
 __pycache__
 dist
 out

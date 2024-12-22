@@ -20,7 +20,16 @@ import {
   DropdownMenu,
   DropdownMenuItem,
 } from "@renderer/components/dropdown-menu/dropdown-menu";
-import { ThreeBarsIcon } from "@primer/octicons-react";
+import {
+  ColumnsIcon,
+  DownloadIcon,
+  LinkIcon,
+  PlayIcon,
+  ThreeBarsIcon,
+  TrashIcon,
+  UnlinkIcon,
+  XCircleIcon,
+} from "@primer/octicons-react";
 
 export interface DownloadGroupProps {
   library: LibraryGame[];
@@ -168,10 +177,12 @@ export function DownloadGroup({
           label: t("install"),
           disabled: deleting,
           onClick: () => openGameInstaller(game.id),
+          icon: <DownloadIcon />,
         },
         {
           label: t("stop_seeding"),
           disabled: deleting,
+          icon: <UnlinkIcon />,
           show:
             game.status === "seeding" && game.downloader === Downloader.Torrent,
           onClick: () => pauseSeeding(game.id),
@@ -179,6 +190,7 @@ export function DownloadGroup({
         {
           label: t("resume_seeding"),
           disabled: deleting,
+          icon: <LinkIcon />,
           show:
             game.status !== "seeding" && game.downloader === Downloader.Torrent,
           onClick: () => resumeSeeding(game.id),
@@ -186,6 +198,7 @@ export function DownloadGroup({
         {
           label: t("delete"),
           disabled: deleting,
+          icon: <TrashIcon />,
           onClick: () => openDeleteGameModal(game.id),
         },
       ];
@@ -196,10 +209,12 @@ export function DownloadGroup({
         {
           label: t("pause"),
           onClick: () => pauseDownload(game.id),
+          icon: <ColumnsIcon />,
         },
         {
           label: t("cancel"),
           onClick: () => cancelDownload(game.id),
+          icon: <XCircleIcon />,
         },
       ];
     }
@@ -211,10 +226,12 @@ export function DownloadGroup({
           game.downloader === Downloader.RealDebrid &&
           !userPreferences?.realDebridApiToken,
         onClick: () => resumeDownload(game.id),
+        icon: <PlayIcon />,
       },
       {
         label: t("cancel"),
         onClick: () => cancelDownload(game.id),
+        icon: <XCircleIcon />,
       },
     ];
   };
@@ -290,7 +307,7 @@ export function DownloadGroup({
                   <DropdownMenu
                     align="end"
                     items={getGameActions(game)}
-                    sideOffset={-70}
+                    sideOffset={-75}
                   >
                     <Button
                       style={{
