@@ -76,7 +76,12 @@ const downloadAria2WindowsAndLinux = async () => {
       await exec(`npx extract-zip ${file}`);
       console.log("Extracted. Renaming folder...");
 
-      fs.renameSync(file.replace(".zip", ""), "aria2");
+      fs.mkdirSync("aria2");
+      fs.copyFileSync(
+        path.join(file.replace(".zip", ""), "aria2c.exe"),
+        "aria2/aria2c.exe"
+      );
+      fs.rmSync(file.replace(".zip", ""), { recursive: true });
     } else {
       await exec(`tar --zstd -xvf ${file} usr/bin/aria2c`);
       console.log("Extracted. Copying binary file...");
@@ -105,13 +110,6 @@ const copyAria2Macos = async () => {
   fs.mkdirSync("aria2");
   await exec(`cp $(which aria2c) aria2/aria2c`);
 };
-
-if (process.platform === "win32") {
-  fs.copyFileSync(
-    "node_modules/ps-list/vendor/fastlist-0.3.0-x64.exe",
-    "fastlist.exe"
-  );
-}
 
 if (process.platform == "darwin") {
   copyAria2Macos();

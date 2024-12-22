@@ -68,7 +68,7 @@ def process_list():
     if auth_error:
         return auth_error
 
-    process_list = [proc.info for proc in psutil.process_iter(['exe', 'pid', 'username'])]
+    process_list = [proc.info for proc in psutil.process_iter(['exe', 'pid', 'name'])]
     return jsonify(process_list), 200
 
 @app.route("/profile-image", methods=["POST"])

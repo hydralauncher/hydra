@@ -3,6 +3,8 @@ import { registerEvent } from "../register-event";
 import { logger } from "@main/services";
 import sudo from "sudo-prompt";
 import { app } from "electron";
+import { PythonRPC } from "@main/services/python-rpc";
+import { ProcessPayload } from "@main/services/download/types";
 
 const getKillCommand = (pid: number) => {
   if (process.platform == "win32") {
@@ -16,8 +18,10 @@ const closeGame = async (
   _event: Electron.IpcMainInvokeEvent,
   gameId: number
 ) => {
-  // const processes = await PythonInstance.getProcessList();
-  const processes = [];
+  const processes =
+    (await PythonRPC.rpc.get<ProcessPayload[] | null>("/process-list")).data ||
+    [];
+
   const game = await gameRepository.findOne({
     where: { id: gameId, isDeleted: false },
   });

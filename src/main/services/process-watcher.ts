@@ -2,10 +2,11 @@ import { gameRepository } from "@main/repository";
 import { WindowManager } from "./window-manager";
 import { createGame, updateGamePlaytime } from "./library-sync";
 import type { GameRunning } from "@types";
-// import { PythonInstance } from "./download";
+import { PythonRPC } from "./python-rpc";
 import { Game } from "@main/entity";
 import axios from "axios";
 import { exec } from "child_process";
+import { ProcessPayload } from "./download/types";
 
 const commands = {
   findWineDir: `lsof -c wine 2>/dev/null | grep '/drive_c/windows$' | head -n 1 | awk '{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}'`,
@@ -88,12 +89,14 @@ const findGamePathByProcess = (
 };
 
 const getSystemProcessMap = async () => {
-  const processes = await PythonInstance.getProcessList();
+  const processes =
+    (await PythonRPC.rpc.get<ProcessPayload[] | null>("/process-list")).data ||
+    [];
 
   const map = new Map<string, Set<string>>();
 
   processes.forEach((process) => {
-    const key = process.name.toLowerCase();
+    const key = process.name?.toLowerCase();
     const value = process.exe;
 
     if (!key || !value) return;
@@ -244,23 +247,7 @@ function onTickGame(game: Game) {
       })
       .catch(() => {});
   }
-};
-
-const onOpenGame = (game: Game) => {
-  const now = performance.now();
-
-  gamesPlaytime.set(game.id, {
-    lastTick: now,
-    firstTick: now,
-    lastSyncTick: now,
-  });
-
-  if (game.remoteId) {
-    updateGamePlaytime(game, 0, new Date()).catch(() => {});
-  } else {
-    createGame({ ...game, lastTimePlayed: new Date() }).catch(() => {});
-  }
-};
+}
 
 const onCloseGame = (game: Game) => {
   const gamePlaytime = gamesPlaytime.get(game.id)!;
@@ -274,52 +261,5 @@ const onCloseGame = (game: Game) => {
     ).catch(() => {});
   } else {
     createGame(game).catch(() => {});
-  }
-};
-
-export const watchProcesses = async () => {
-  const games = await gameRepository.find({
-    where: {
-      executablePath: Not(IsNull()),
-      isDeleted: false,
-    },
-  });
-
-  if (games.length === 0) return;
-  // const processes = await PythonInstance.getProcessList();
-  const processes = [];
-
-  const processSet = new Set(processes.map((process) => process.exe));
-
-  for (const game of games) {
-    const executablePath = game.executablePath!;
-
-    const gameProcess = processSet.has(executablePath);
-
-    if (gameProcess) {
-      if (gamesPlaytime.has(game.id)) {
-        onGameTick(game);
-      } else {
-        onOpenGame(game);
-      }
-    } else if (gamesPlaytime.has(game.id)) {
-      onCloseGame(game);
-    }
-  }
-
-  currentTick++;
-
-  if (WindowManager.mainWindow) {
-    const gamesRunning = Array.from(gamesPlaytime.entries()).map((entry) => {
-      return {
-        id: entry[0],
-        sessionDurationInMillis: performance.now() - entry[1].firstTick,
-      };
-    });
-
-    WindowManager.mainWindow.webContents.send(
-      "on-games-running",
-      gamesRunning as Pick<GameRunning, "id" | "sessionDurationInMillis">[]
-    );
   }
 };
