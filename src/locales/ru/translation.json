@@ -256,7 +256,8 @@
     "public": "Публичный",
     "required_field": "Это поле обязательно к заполнению",
     "source_already_exists": "Этот источник уже добавлен",
-    "user_unblocked": "Пользователь разблокирован"
+    "user_unblocked": "Пользователь разблокирован",
+    "show_hidden_achievement_description": "Показывать описание скрытых достижений перед их получением"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",

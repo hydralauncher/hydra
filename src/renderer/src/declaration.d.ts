@@ -10,6 +10,7 @@ import type {
   ShopDetails,
   Steam250Game,
   DownloadProgress,
+  SeedingStatus,
   UserPreferences,
   StartGameDownloadPayload,
   RealDebridUser,
@@ -46,9 +47,15 @@ declare global {
     cancelGameDownload: (gameId: number) => Promise<void>;
     pauseGameDownload: (gameId: number) => Promise<void>;
     resumeGameDownload: (gameId: number) => Promise<void>;
+    pauseGameSeed: (gameId: number) => Promise<void>;
+    resumeGameSeed: (gameId: number) => Promise<void>;
     onDownloadProgress: (
       cb: (value: DownloadProgress) => void
     ) => () => Electron.IpcRenderer;
+    onSeedingStatus: (
+      cb: (value: SeedingStatus[]) => void
+    ) => () => Electron.IpcRenderer;
+    onHardDelete: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* Catalogue */
     searchGames: (query: string) => Promise<CatalogueEntry[]>;

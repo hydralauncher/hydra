@@ -7,6 +7,7 @@ export type GameStatus =
   | "paused"
   | "error"
   | "complete"
+  | "seeding"
   | "removed";
 
 export type GameShop = "steam" | "epic";
@@ -126,6 +127,7 @@ export interface Game {
   objectID: string;
   shop: GameShop;
   downloadQueue: DownloadQueue | null;
+  shouldSeed: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -153,6 +155,12 @@ export interface DownloadProgress {
   game: LibraryGame;
 }
 
+export interface SeedingStatus {
+  gameId: number;
+  status: GameStatus;
+  uploadSpeed: number;
+}
+
 export interface UserPreferences {
   downloadsPath: string | null;
   language: string;
@@ -164,6 +172,7 @@ export interface UserPreferences {
   runAtStartup: boolean;
   startMinimized: boolean;
   disableNsfwAlert: boolean;
+  seedAfterDownloadComplete: boolean;
   showHiddenAchievementsDescription: boolean;
 }
 
@@ -391,3 +400,4 @@ export * from "./steam.types";
 export * from "./real-debrid.types";
 export * from "./ludusavi.types";
 export * from "./how-long-to-beat.types";
+export * from "./torbox.types";

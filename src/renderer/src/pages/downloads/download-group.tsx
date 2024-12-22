@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
-import type { LibraryGame } from "@types";
+import type { LibraryGame, SeedingStatus } from "@types";
 
 import { Badge, Button } from "@renderer/components";
 import {
@@ -15,12 +15,19 @@ import { useAppSelector, useDownload } from "@renderer/hooks";
 import * as styles from "./download-group.css";
 import { useTranslation } from "react-i18next";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
+import { useMemo } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuItem,
+} from "@renderer/components/dropdown-menu/dropdown-menu";
+import { ThreeBarsIcon } from "@primer/octicons-react";
 
 export interface DownloadGroupProps {
   library: LibraryGame[];
   title: string;
   openDeleteGameModal: (gameId: number) => void;
   openGameInstaller: (gameId: number) => void;
+  seedingStatus: SeedingStatus[];
 }
 
 export function DownloadGroup({
@@ -28,6 +35,7 @@ export function DownloadGroup({
   title,
   openDeleteGameModal,
   openGameInstaller,
+  seedingStatus,
 }: DownloadGroupProps) {
   const navigate = useNavigate();
 
@@ -44,6 +52,8 @@ export function DownloadGroup({
     resumeDownload,
     cancelDownload,
     isGameDeleting,
+    pauseSeeding,
+    resumeSeeding,
   } = useDownload();
 
   const getFinalDownloadSize = (game: LibraryGame) => {
@@ -57,9 +67,21 @@ export function DownloadGroup({
     return "N/A";
   };
 
+  const seedingMap = useMemo(() => {
+    if (!Array.isArray(seedingStatus) || seedingStatus.length === 0) {
+      return new Map<number, SeedingStatus>();
+    }
+    const map = new Map<number, SeedingStatus>();
+    seedingStatus.forEach((seed) => {
+      map.set(seed.gameId, seed);
+    });
+    return map;
+  }, [seedingStatus]);
+
   const getGameInfo = (game: LibraryGame) => {
     const isGameDownloading = lastPacket?.game.id === game.id;
     const finalDownloadSize = getFinalDownloadSize(game);
+    const seedingStatus = seedingMap.get(game.id);
 
     if (isGameDeleting(game.id)) {
       return <p>{t("deleting")}</p>;
@@ -98,7 +120,17 @@ export function DownloadGroup({
     }
 
     if (game.progress === 1) {
-      return <p>{t("completed")}</p>;
+      const uploadSpeed = formatBytes(seedingStatus?.uploadSpeed ?? 0);
+
+      return game.status === "seeding" &&
+        game.downloader === Downloader.Torrent ? (
+        <>
+          <p>{t("seeding")}</p>
+          {uploadSpeed && <p>{uploadSpeed}/s</p>}
+        </>
+      ) : (
+        <p>{t("completed")}</p>
+      );
     }
 
     if (game.status === "paused") {
@@ -125,59 +157,66 @@ export function DownloadGroup({
     return <p>{t(game.status as string)}</p>;
   };
 
-  const getGameActions = (game: LibraryGame) => {
+  const getGameActions = (game: LibraryGame): DropdownMenuItem[] => {
     const isGameDownloading = lastPacket?.game.id === game.id;
 
     const deleting = isGameDeleting(game.id);
 
     if (game.progress === 1) {
-      return (
-        <>
-          <Button
-            onClick={() => openGameInstaller(game.id)}
-            theme="outline"
-            disabled={deleting}
-          >
-            {t("install")}
-          </Button>
-
-          <Button onClick={() => openDeleteGameModal(game.id)} theme="outline">
-            {t("delete")}
-          </Button>
-        </>
-      );
+      return [
+        {
+          label: t("install"),
+          disabled: deleting,
+          onClick: () => openGameInstaller(game.id),
+        },
+        {
+          label: t("stop_seeding"),
+          disabled: deleting,
+          show:
+            game.status === "seeding" && game.downloader === Downloader.Torrent,
+          onClick: () => pauseSeeding(game.id),
+        },
+        {
+          label: t("resume_seeding"),
+          disabled: deleting,
+          show:
+            game.status !== "seeding" && game.downloader === Downloader.Torrent,
+          onClick: () => resumeSeeding(game.id),
+        },
+        {
+          label: t("delete"),
+          disabled: deleting,
+          onClick: () => openDeleteGameModal(game.id),
+        },
+      ];
     }
 
     if (isGameDownloading || game.status === "active") {
-      return (
-        <>
-          <Button onClick={() => pauseDownload(game.id)} theme="outline">
-            {t("pause")}
-          </Button>
-          <Button onClick={() => cancelDownload(game.id)} theme="outline">
-            {t("cancel")}
-          </Button>
-        </>
-      );
+      return [
+        {
+          label: t("pause"),
+          onClick: () => pauseDownload(game.id),
+        },
+        {
+          label: t("cancel"),
+          onClick: () => cancelDownload(game.id),
+        },
+      ];
     }
 
-    return (
-      <>
-        <Button
-          onClick={() => resumeDownload(game.id)}
-          theme="outline"
-          disabled={
-            game.downloader === Downloader.RealDebrid &&
-            !userPreferences?.realDebridApiToken
-          }
-        >
-          {t("resume")}
-        </Button>
-        <Button onClick={() => cancelDownload(game.id)} theme="outline">
-          {t("cancel")}
-        </Button>
-      </>
-    );
+    return [
+      {
+        label: t("resume"),
+        disabled:
+          game.downloader === Downloader.RealDebrid &&
+          !userPreferences?.realDebridApiToken,
+        onClick: () => resumeDownload(game.id),
+      },
+      {
+        label: t("cancel"),
+        onClick: () => cancelDownload(game.id),
+      },
+    ];
   };
 
   if (!library.length) return null;
@@ -207,7 +246,11 @@ export function DownloadGroup({
       <ul className={styles.downloads}>
         {library.map((game) => {
           return (
-            <li key={game.id} className={styles.download}>
+            <li
+              key={game.id}
+              className={styles.download}
+              style={{ position: "relative" }}
+            >
               <div className={styles.downloadCover}>
                 <div className={styles.downloadCoverBackdrop}>
                   <img
@@ -243,9 +286,28 @@ export function DownloadGroup({
                   {getGameInfo(game)}
                 </div>
 
-                <div className={styles.downloadActions}>
-                  {getGameActions(game)}
-                </div>
+                {getGameActions(game) !== null && (
+                  <DropdownMenu
+                    align="end"
+                    items={getGameActions(game)}
+                    sideOffset={-70}
+                  >
+                    <Button
+                      style={{
+                        position: "absolute",
+                        top: "12px",
+                        right: "12px",
+                        borderRadius: "50%",
+                        border: "none",
+                        padding: "8px",
+                        minHeight: "unset",
+                      }}
+                      theme="outline"
+                    >
+                      <ThreeBarsIcon />
+                    </Button>
+                  </DropdownMenu>
+                )}
               </div>
             </li>
           );

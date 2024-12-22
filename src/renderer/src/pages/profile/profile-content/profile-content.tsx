@@ -181,7 +181,7 @@ export function ProfileContent() {
                           game.achievementCount > 0 && (
                             <div
                               style={{
-                                color: "white",
+                                color: "#fff",
                                 width: "100%",
                                 display: "flex",
                                 flexDirection: "column",
@@ -237,6 +237,8 @@ export function ProfileContent() {
                           borderRadius: 4,
                           width: "100%",
                           height: "100%",
+                          minWidth: "100%",
+                          minHeight: "100%",
                         }}
                       />
                     </button>
