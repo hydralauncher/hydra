@@ -5,22 +5,18 @@ import { SPACING_UNIT, vars } from "../../theme.css";
 
 export const panel = style({
   width: "100%",
-  height: "72px",
-  minHeight: "72px",
-  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 3}px`,
+  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
   backgroundColor: vars.color.background,
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  transition: "all ease 0.2s",
   borderBottom: `solid 1px ${vars.color.border}`,
-  overflow: "hidden",
 });
 
 export const content = style({
   display: "flex",
-  flexDirection: "column",
   gap: `${SPACING_UNIT}px`,
+  justifyContent: "center",
 });
 
 export const actions = style({
