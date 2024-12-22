@@ -15,9 +15,10 @@ import {
   LibtorrentStatus,
   PauseDownloadPayload,
 } from "./types";
-import { calculateETA } from "./helpers";
+import { calculateETA, getDirSize } from "./helpers";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { RealDebridClient } from "./real-debrid";
+import path from "path";
 
 export class DownloadManager {
   private static downloadingGameId: number | null = null;
@@ -123,7 +124,7 @@ export class DownloadManager {
             { status: "complete", shouldSeed: false }
           );
 
-          this.pauseSeeding(gameId);
+          this.cancelDownload(gameId);
         }
 
         await downloadQueueRepository.delete({ game });
@@ -150,6 +151,30 @@ export class DownloadManager {
     );
 
     if (!seedStatus.data.length) return;
+
+    seedStatus.data.forEach(async (status) => {
+      const game = await gameRepository.findOne({
+        where: { id: status.gameId },
+      });
+
+      if (!game) return;
+
+      const totalSize = await getDirSize(
+        path.join(game.downloadPath!, status.folderName!)
+      );
+
+      if (totalSize < status.fileSize) {
+        await this.cancelDownload(game.id);
+
+        await gameRepository.update(game.id, {
+          status: "paused",
+          shouldSeed: false,
+          progress: totalSize / status.fileSize,
+        });
+
+        WindowManager.mainWindow?.webContents.send("on-hard-delete");
+      }
+    });
 
     WindowManager.mainWindow?.webContents.send(
       "on-seeding-status",
@@ -210,15 +235,6 @@ export class DownloadManager {
     //   "on-seeding-status",
     //   JSON.parse(JSON.stringify(seedStatus))
     // );
-  }
-
-  static async pauseSeeding(gameId: number) {
-    await PythonRPC.rpc
-      .post("/action", {
-        action: "pause",
-        game_id: gameId,
-      } as PauseDownloadPayload)
-      .catch(() => {});
   }
 
   static async pauseDownload() {
