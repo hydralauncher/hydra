@@ -25,7 +25,11 @@ const closeGame = async (
   if (!game) return;
 
   const gameProcess = processes.find((runningProcess) => {
-    return runningProcess.exe === game.executablePath;
+    if (process.platform === "linux") {
+      return runningProcess.name === game.executablePath?.split("/").at(-1);
+    } else {
+      return runningProcess.exe === game.executablePath;
+    }
   });
 
   if (gameProcess) {

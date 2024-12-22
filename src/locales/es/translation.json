@@ -79,7 +79,7 @@
     "add_to_library": "Agregar a la biblioteca",
     "remove_from_library": "Eliminar de la biblioteca",
     "no_downloads": "No hay descargas disponibles",
-    "play_time": "Jugado por {{amount}}",
+    "play_time": "Has jugado {{amount}}",
     "last_time_played": "Jugado por última vez: {{period}}",
     "not_played_yet": "Aún no has jugado a {{title}}",
     "next_suggestion": "Siguiente sugerencia",
@@ -100,7 +100,7 @@
     "open_screenshot": "Abrir captura {{number}}",
     "download_settings": "Ajustes de descarga",
     "downloader": "Método de descarga",
-    "select_executable": "Seleccionar ejecutable",
+    "select_executable": "Seleccionar",
     "no_executable_selected": "No se seleccionó un ejecutable",
     "open_folder": "Abrir carpeta",
     "open_download_location": "Ver archivos descargados",
@@ -166,7 +166,9 @@
     "manage_files_description": "Gestiona los archivos que serán respaldados y restaurados",
     "select_folder": "Seleccionar carpeta",
     "backup_from": "Copia de seguridad de {{date}}",
-    "custom_backup_location_set": "Se configuró la carpeta de copia de seguridad"
+    "custom_backup_location_set": "Se configuró la carpeta de copia de seguridad",
+    "clear": "Limpiar",
+    "no_directory_selected": "No se seleccionó un directório"
   },
   "activation": {
     "title": "Activar Hydra",
@@ -254,7 +256,9 @@
     "must_be_valid_url": "La fuente debe ser una URL válida.",
     "blocked_users": "Usuarios bloqueados",
     "user_unblocked": "El usuario ha sido desbloqueado",
-    "enable_achievement_notifications": "Cuando un logro se desbloquea"
+    "enable_achievement_notifications": "Cuando un logro se desbloquea",
+    "launch_minimized": "Iniciar Hydra minimizado",
+    "disable_nsfw_alert": "Desactivar alerta NSFW"
   },
   "notifications": {
     "download_complete": "Descarga completada",
@@ -304,7 +308,7 @@
     "cancel": "Cancelar",
     "successfully_signed_out": "Sesión cerrada exitosamente",
     "sign_out": "Cerrar sesión",
-    "playing_for": "Jugando por {{amount}}",
+    "playing_for": "Llevas jugando {{amount}}",
     "sign_out_modal_text": "Tu biblioteca se ha vinculado con tu cuenta. Cuando cierres sesión, tú biblioteca ya no será visible y cualquier progreso no se guardará. ¿Continuar con el cierre de sesión?",
     "add_friends": "Añadir amigos",
     "add": "Añadir",
@@ -361,8 +365,10 @@
     "user_achievements": "Logros de {{displayName}}",
     "your_achievements": "Tus Logros",
     "unlocked_at": "Desbloqueado el:",
-    "subscription_needed": "Se necesita una suscripción a Hydra Cloud se necesita para ver este contenido",
-    "new_achievements_unlocked": "Desbloqueados {{achievementCount}} nuevos logros de {{gameCount}} juegos"
+    "subscription_needed": "Se necesita una suscripción a Hydra Cloud necesita para ver este contenido",
+    "new_achievements_unlocked": "Desbloqueados {{achievementCount}} nuevos logros de {{gameCount}} juegos",
+    "achievement_progress": "{{unlockedCount}}/{{totalCount}} logros",
+    "achievements_unlocked_for_game": "Se han desbloqueado {{achievementCount}} nuevos logros de {{gameTitle}}"
   },
   "tour": {
     "subscription_tour_title": "Suscripción Hydra Cloud",

@@ -1,16 +1,16 @@
 import type { GameShop, HowLongToBeatCategory } from "@types";
-import { HydraApi } from "@main/services";
 
 import { registerEvent } from "../register-event";
+import { HydraApi } from "@main/services";
 
 const getHowLongToBeat = async (
   _event: Electron.IpcMainInvokeEvent,
-  shop: GameShop,
-  objectId: string
+  objectId: string,
+  shop: GameShop
 ): Promise<HowLongToBeatCategory[] | null> => {
   const params = new URLSearchParams({
+    objectId,
     shop,
-    objectId: objectId.toString(),
   });
 
   return HydraApi.get(`/games/how-long-to-beat?${params.toString()}`, null, {

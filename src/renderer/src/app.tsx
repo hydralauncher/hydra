@@ -2,8 +2,6 @@ import { useCallback, useContext, useEffect, useRef } from "react";
 
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
-import Intercom from "@intercom/messenger-js-sdk";
-
 import {
   useAppDispatch,
   useAppSelector,
@@ -35,10 +33,6 @@ import { logger } from "./logger";
 export interface AppProps {
   children: React.ReactNode;
 }
-
-Intercom({
-  app_id: import.meta.env.RENDERER_VITE_INTERCOM_APP_ID,
-});
 
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -128,12 +122,21 @@ export function App() {
       dispatch(setProfileBackground(profileBackground));
     }
 
-    fetchUserDetails().then((response) => {
-      if (response) {
-        updateUserDetails(response);
-        syncFriendRequests();
-      }
-    });
+    fetchUserDetails()
+      .then((response) => {
+        if (response) {
+          updateUserDetails(response);
+          syncFriendRequests();
+        }
+      })
+      .finally(() => {
+        if (document.getElementById("external-resources")) return;
+
+        const $script = document.createElement("script");
+        $script.id = "external-resources";
+        $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
+        document.head.appendChild($script);
+      });
   }, [fetchUserDetails, syncFriendRequests, updateUserDetails, dispatch]);
 
   const onSignIn = useCallback(() => {
@@ -223,9 +226,7 @@ export function App() {
 
   useEffect(() => {
     new MutationObserver(() => {
-      const modal = document.body.querySelector(
-        "[role=dialog]:not([data-intercom-frame='true'])"
-      );
+      const modal = document.body.querySelector("[data-hydra-dialog]");
 
       dispatch(toggleDraggingDisabled(Boolean(modal)));
     }).observe(document.body, {

@@ -98,8 +98,8 @@ export function Sidebar() {
           } else {
             try {
               const howLongToBeat = await window.electron.getHowLongToBeat(
-                shop,
-                objectId
+                objectId,
+                shop
               );
 
               if (howLongToBeat) {

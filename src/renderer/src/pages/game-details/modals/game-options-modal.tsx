@@ -95,6 +95,11 @@ export function GameOptionsModal({
     await window.electron.openGameExecutablePath(game.id);
   };
 
+  const handleClearExecutablePath = async () => {
+    await window.electron.updateExecutablePath(game.id, null);
+    updateGame();
+  };
+
   const handleChangeWinePrefixPath = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
       properties: ["openDirectory"],
@@ -104,6 +109,11 @@ export function GameOptionsModal({
       await window.electron.selectGameWinePrefix(game.id, filePaths[0]);
       await updateGame();
     }
+  };
+
+  const handleClearWinePrefixPath = async () => {
+    await window.electron.selectGameWinePrefix(game.id, null);
+    updateGame();
   };
 
   const shouldShowWinePrefixConfiguration =
@@ -145,14 +155,21 @@ export function GameOptionsModal({
             disabled
             placeholder={t("no_executable_selected")}
             rightContent={
-              <Button
-                type="button"
-                theme="outline"
-                onClick={handleChangeExecutableLocation}
-              >
-                <FileIcon />
-                {t("select_executable")}
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  theme="outline"
+                  onClick={handleChangeExecutableLocation}
+                >
+                  <FileIcon />
+                  {t("select_executable")}
+                </Button>
+                {game.executablePath && (
+                  <Button onClick={handleClearExecutablePath} theme="outline">
+                    {t("clear")}
+                  </Button>
+                )}
+              </>
             }
           />
 
@@ -186,14 +203,24 @@ export function GameOptionsModal({
                 disabled
                 placeholder={t("no_directory_selected")}
                 rightContent={
-                  <Button
-                    type="button"
-                    theme="outline"
-                    onClick={handleChangeWinePrefixPath}
-                  >
-                    <FileDirectoryIcon />
-                    {t("select_executable")}
-                  </Button>
+                  <>
+                    <Button
+                      type="button"
+                      theme="outline"
+                      onClick={handleChangeWinePrefixPath}
+                    >
+                      <FileDirectoryIcon />
+                      {t("select_executable")}
+                    </Button>
+                    {game.winePrefixPath && (
+                      <Button
+                        onClick={handleClearWinePrefixPath}
+                        theme="outline"
+                      >
+                        {t("clear")}
+                      </Button>
+                    )}
+                  </>
                 }
               />
             </div>

@@ -171,6 +171,7 @@ export interface UserPreferences {
   startMinimized: boolean;
   disableNsfwAlert: boolean;
   seedAfterDownloadComplete: boolean;
+  showHiddenAchievementsDescription: boolean;
 }
 
 export interface Steam250Game {
@@ -250,6 +251,7 @@ export interface Subscription {
   status: SubscriptionStatus;
   plan: { id: string; name: string };
   expiresAt: string | null;
+  paymentMethod: "pix" | "paypal";
 }
 
 export interface UserDetails {
