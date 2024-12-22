@@ -107,6 +107,7 @@ export function Modal({
         aria-labelledby={title}
         aria-describedby={description}
         ref={modalContentRef}
+        data-hydra-dialog
       >
         <div className={styles.modalHeader}>
           <div style={{ display: "flex", gap: 4, flexDirection: "column" }}>

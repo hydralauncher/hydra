@@ -1,4 +1,4 @@
-import { appVersion, defaultDownloadsPath } from "@main/constants";
+import { appVersion, defaultDownloadsPath, isStaging } from "@main/constants";
 import { ipcMain } from "electron";
 
 import "./catalogue/get-catalogue";
@@ -74,5 +74,6 @@ import "./misc/show-item-in-folder";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => appVersion);
+ipcMain.handle("isStaging", () => isStaging);
 ipcMain.handle("isPortableVersion", () => isPortableVersion());
 ipcMain.handle("getDefaultDownloadsPath", () => defaultDownloadsPath);

@@ -12,10 +12,10 @@ import type {
   FriendRequestAction,
   UpdateProfileRequest,
   SeedingStatus,
+  GameAchievement,
 } from "@types";
 import type { CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
-import { GameAchievement } from "@main/entity";
 
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
@@ -60,8 +60,8 @@ contextBridge.exposeInMainWorld("electron", {
   getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
     ipcRenderer.invoke("getGameShopDetails", objectId, shop, language),
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
-  getHowLongToBeat: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("getHowLongToBeat", shop, objectId),
+  getHowLongToBeat: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("getHowLongToBeat", objectId, shop),
   getGames: (take?: number, skip?: number) =>
     ipcRenderer.invoke("getGames", take, skip),
   searchGameRepacks: (query: string) =>
@@ -105,9 +105,9 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("addGameToLibrary", objectId, title, shop),
   createGameShortcut: (id: number) =>
     ipcRenderer.invoke("createGameShortcut", id),
-  updateExecutablePath: (id: number, executablePath: string) =>
+  updateExecutablePath: (id: number, executablePath: string | null) =>
     ipcRenderer.invoke("updateExecutablePath", id, executablePath),
-  selectGameWinePrefix: (id: number, winePrefixPath: string) =>
+  selectGameWinePrefix: (id: number, winePrefixPath: string | null) =>
     ipcRenderer.invoke("selectGameWinePrefix", id, winePrefixPath),
   verifyExecutablePathInUse: (executablePath: string) =>
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
@@ -216,6 +216,7 @@ contextBridge.exposeInMainWorld("electron", {
   ping: () => ipcRenderer.invoke("ping"),
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
+  isStaging: () => ipcRenderer.invoke("isStaging"),
   isPortableVersion: () => ipcRenderer.invoke("isPortableVersion"),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
   openCheckout: () => ipcRenderer.invoke("openCheckout"),

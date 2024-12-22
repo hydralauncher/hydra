@@ -44,6 +44,9 @@ export class UserPreferences {
   @Column("boolean", { default: true })
   seedAfterDownloadComplete: boolean;
 
+  @Column("boolean", { default: false })
+  showHiddenAchievementsDescription: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
