@@ -8,11 +8,9 @@ const pauseGameSeed = async (
   _event: Electron.IpcMainInvokeEvent,
   gameId: number
 ) => {
-  await dataSource.transaction(async (transactionalEntityManager) => {
-    await transactionalEntityManager
-      .getRepository(Game)
-      .update({ id: gameId }, { status: "complete", shouldSeed: false });
-  });
+  await dataSource
+    .getRepository(Game)
+    .update({ id: gameId }, { status: "complete", shouldSeed: false });
 
   await DownloadManager.cancelDownload(gameId);
 };

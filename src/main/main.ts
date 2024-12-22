@@ -1,8 +1,5 @@
 import { Ludusavi, startMainLoop } from "./services";
-import {
-  // downloadQueueRepository,
-  userPreferencesRepository,
-} from "./repository";
+import { userPreferencesRepository } from "./repository";
 import { UserPreferences } from "./entity";
 import { RealDebridClient } from "./services/download/real-debrid";
 import { HydraApi } from "./services/hydra-api";
@@ -25,24 +22,7 @@ const loadState = async (userPreferences: UserPreferences | null) => {
     uploadGamesBatch();
   });
 
-  // const [nextQueueItem] = await downloadQueueRepository.find({
-  //   order: {
-  //     id: "DESC",
-  //   },
-  //   relations: {
-  //     game: true,
-  //   },
-  // });
-
   PythonRPC.spawn();
-  // start download
-
-  // if (nextQueueItem?.game.status === "active") {
-  //   DownloadManager.startDownload(nextQueueItem.game);
-  // } else {
-  //   PythonInstance.spawn();
-  // }
-
   startMainLoop();
 };
 
