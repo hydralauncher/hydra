@@ -201,7 +201,11 @@
     "queued": "Queued",
     "no_downloads_title": "Such empty",
     "no_downloads_description": "You haven't downloaded anything with Hydra yet, but it's never too late to start.",
-    "checking_files": "Checking files…"
+    "checking_files": "Checking files…",
+    "seeding": "Seeding",
+    "stop_seeding": "Stop seeding",
+    "resume_seeding": "Resume seeding",
+    "options": "Manage"
   },
   "settings": {
     "downloads_path": "Downloads path",
@@ -259,6 +263,7 @@
     "enable_achievement_notifications": "When an achievement is unlocked",
     "launch_minimized": "Launch Hydra minimized",
     "disable_nsfw_alert": "Disable NSFW alert",
+    "seed_after_download_complete": "Seed after download complete",
     "show_hidden_achievement_description": "Show hidden achievements description before unlocking them"
   },
   "notifications": {

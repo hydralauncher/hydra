@@ -2,10 +2,11 @@ import { gameRepository } from "@main/repository";
 import { WindowManager } from "./window-manager";
 import { createGame, updateGamePlaytime } from "./library-sync";
 import type { GameRunning } from "@types";
-import { PythonInstance } from "./download";
+import { PythonRPC } from "./python-rpc";
 import { Game } from "@main/entity";
 import axios from "axios";
 import { exec } from "child_process";
+import { ProcessPayload } from "./download/types";
 
 const commands = {
   findWineDir: `lsof -c wine 2>/dev/null | grep '/drive_c/windows$' | head -n 1 | awk '{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}'`,
@@ -88,12 +89,14 @@ const findGamePathByProcess = (
 };
 
 const getSystemProcessMap = async () => {
-  const processes = await PythonInstance.getProcessList();
+  const processes =
+    (await PythonRPC.rpc.get<ProcessPayload[] | null>("/process-list")).data ||
+    [];
 
   const map = new Map<string, Set<string>>();
 
   processes.forEach((process) => {
-    const key = process.name.toLowerCase();
+    const key = process.name?.toLowerCase();
     const value = process.exe;
 
     if (!key || !value) return;
