@@ -208,6 +208,13 @@ export interface UserFriend {
   profileImageUrl: string | null;
   createdAt: string;
   updatedAt: string;
+  currentGame: {
+    title: string;
+    iconUrl: string;
+    objectId: string;
+    shop: GameShop;
+    sessionDurationInSeconds: number;
+  } | null;
 }
 
 export interface UserFriends {

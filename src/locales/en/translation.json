@@ -368,7 +368,10 @@
     "background_image_updated": "Background image updated",
     "stats": "Stats",
     "achievements": "Achievements",
-    "games": "Games"
+    "games": "Games",
+    "top_percentile": "Top {{percentile}}%",
+    "ranking_updated_weekly": "Ranking is updated weekly",
+    "playing": "Playing {{game}}"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",

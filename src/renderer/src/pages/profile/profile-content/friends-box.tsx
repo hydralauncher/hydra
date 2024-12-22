@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import * as styles from "./profile-content.css";
 import { Avatar, Link } from "@renderer/components";
+import { buildGameDetailsPath } from "@renderer/helpers";
 
 export function FriendsBox() {
   const { userProfile, userStats } = useContext(userProfileContext);
@@ -35,7 +36,16 @@ export function FriendsBox() {
                   alt={friend.displayName}
                 />
 
-                <span className={styles.friendName}>{friend.displayName}</span>
+                <div>
+                  <span className={styles.friendName}>
+                    {friend.displayName}
+                  </span>
+                  {friend.currentGame && (
+                    <Link to={buildGameDetailsPath({ ...friend.currentGame })}>
+                      <p>{t("playing", { game: friend.currentGame.title })}</p>
+                    </Link>
+                  )}
+                </div>
               </Link>
             </li>
           ))}
