@@ -84,7 +84,7 @@ export class DownloadManager {
   public static async watchDownloads() {
     const status = await this.getDownloadStatus();
 
-    //   // status = await RealDebridDownloader.getStatus();
+    // status = await RealDebridDownloader.getStatus();
 
     if (status) {
       const { gameId, progress } = status;
@@ -180,61 +180,6 @@ export class DownloadManager {
       "on-seeding-status",
       JSON.parse(JSON.stringify(seedStatus.data))
     );
-
-    // const gamesToSeed = await gameRepository.find({
-    //   where: { shouldSeed: true, isDeleted: false },
-    // });
-    // if (gamesToSeed.length === 0) return;
-    // const seedStatus = await PythonRPC.rpc
-    //   .get<LibtorrentPayload[] | null>("/seed-status")
-    //   .then((results) => {
-    //     if (results === null) return [];
-    //     return results.data;
-    //   });
-    // if (!seedStatus.length === 0) {
-    //   for (const game of gamesToSeed) {
-    //     if (game.uri && game.downloadPath) {
-    //       await this.resumeSeeding(game.id, game.uri, game.downloadPath);
-    //     }
-    //   }
-    // }
-    // const gameIds = seedStatus.map((status) => status.gameId);
-    // for (const gameId of gameIds) {
-    //   const game = await gameRepository.findOne({
-    //     where: { id: gameId },
-    //   });
-    //   if (game) {
-    //     const isNotDeleted = fs.existsSync(
-    //       path.join(game.downloadPath!, game.folderName!)
-    //     );
-    //     if (!isNotDeleted) {
-    //       await this.pauseSeeding(game.id);
-    //       await gameRepository.update(game.id, {
-    //         status: "complete",
-    //         shouldSeed: false,
-    //       });
-    //       WindowManager.mainWindow?.webContents.send("on-hard-delete");
-    //     }
-    //   }
-    // }
-    // const updateList = await gameRepository.find({
-    //   where: {
-    //     id: In(gameIds),
-    //     status: Not(In(["complete", "seeding"])),
-    //     shouldSeed: true,
-    //     isDeleted: false,
-    //   },
-    // });
-    // if (updateList.length > 0) {
-    //   await gameRepository.update(
-    //     { id: In(updateList.map((game) => game.id)) },
-    //     { status: "seeding" }
-    //   );
-    // }
-    // WindowManager.mainWindow?.webContents.send(
-    //   "on-seeding-status",
-    //   JSON.parse(JSON.stringify(seedStatus))
-    // );
   }
 
   static async pauseDownload() {
