@@ -168,8 +168,7 @@
     "select_folder": "Select folder",
     "backup_from": "Backup from {{date}}",
     "custom_backup_location_set": "Custom backup location set",
-    "no_directory_selected": "No directory selected",
-    "available_points": "Available points:"
+    "no_directory_selected": "No directory selected"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -367,11 +366,14 @@
     "uploading_banner": "Uploading banner…",
     "background_image_updated": "Background image updated",
     "stats": "Stats",
-    "achievements": "Achievements",
+    "achievements": "achievements",
     "games": "Games",
     "top_percentile": "Top {{percentile}}%",
     "ranking_updated_weekly": "Ranking is updated weekly",
-    "playing": "Playing {{game}}"
+    "playing": "Playing {{game}}",
+    "achievements_unlocked": "Achievements Unlocked",
+    "earned_points": "Earned points",
+    "show_achievements_on_profile": "Show your achievements and earned points on your profile"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",
@@ -383,7 +385,9 @@
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} achievements",
     "achievements_unlocked_for_game": "Unlocked {{achievementCount}} new achievements for {{gameTitle}}",
     "hidden_achievement_tooltip": "This is a hidden achievement",
-    "achievement_earn_points": "Earn {{points}} points with this achievement"
+    "achievement_earn_points": "Earn {{points}} points with this achievement",
+    "earned_points": "Earned points:",
+    "available_points": "Available points:"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Hydra Cloud Subscription",

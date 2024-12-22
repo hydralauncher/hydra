@@ -99,6 +99,7 @@ export interface UserGame {
   lastTimePlayed: Date | null;
   unlockedAchievementCount: number;
   achievementCount: number;
+  achievementsPointsEarnedSum: number;
 }
 
 export interface DownloadQueue {

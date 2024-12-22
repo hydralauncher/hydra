@@ -164,8 +164,7 @@
     "select_folder": "Selecione a pasta",
     "manage_files_description": "Gerencie quais arquivos serão feitos backup",
     "clear": "Limpar",
-    "no_directory_selected": "Nenhum diretório selecionado",
-    "available_points": "Pontos disponíveis:"
+    "no_directory_selected": "Nenhum diretório selecionado"
   },
   "activation": {
     "title": "Ativação",
@@ -365,10 +364,13 @@
     "uploading_banner": "Carregando banner…",
     "background_image_updated": "Imagem de fundo salva",
     "stats": "Estatísticas",
-    "achievements": "Conquistas",
+    "achievements": "conquistas",
     "games": "Jogos",
-    "ranking_updated_weekly": "Ranking é atualizado semanalmente",
-    "playing": "Jogando {{game}}"
+    "ranking_updated_weekly": "O ranking é atualizado semanalmente",
+    "playing": "Jogando {{game}}",
+    "achievements_unlocked": "Conquistas desbloqueadas",
+    "earned_points": "Pontos ganhos",
+    "show_achievements_on_profile": "Exiba suas conquistas e pontos no perfil"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",
@@ -380,7 +382,9 @@
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} conquistas",
     "achievements_unlocked_for_game": "Desbloqueadas {{achievementCount}} novas conquistas em {{gameTitle}}",
     "hidden_achievement_tooltip": "Está é uma conquista oculta",
-    "achievement_earn_points": "Ganhe {{points}} pontos com essa conquista"
+    "achievement_earn_points": "Ganhe {{points}} pontos com essa conquista",
+    "earned_points": "Pontos ganhos:",
+    "available_points": "Pontos disponíveis:"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Assinatura Hydra Cloud",

@@ -329,7 +329,7 @@ export function AchievementsContent({
           </>
         ) : (
           <>
-            <AchievementPanel isHeaderStuck={false} />
+            <AchievementPanel achievements={achievements!} />
             <AchievementList achievements={achievements!} />
           </>
         )}

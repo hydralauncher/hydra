@@ -22,6 +22,7 @@ import {
 } from "@renderer/helpers";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { UserStatsBox } from "./user-stats-box";
+import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 
 export function ProfileContent() {
   const { userProfile, isMe, userStats } = useContext(userProfileContext);
@@ -157,7 +158,7 @@ export function ProfileContent() {
                           height: "100%",
                           width: "100%",
                           background:
-                            "linear-gradient(0deg, rgba(0, 0, 0, 0.7) 20%, transparent 100%)",
+                            "linear-gradient(0deg, rgba(0, 0, 0, 0.75) 25%, transparent 100%)",
                           padding: 8,
                         }}
                       >
@@ -187,6 +188,22 @@ export function ProfileContent() {
                                 flexDirection: "column",
                               }}
                             >
+                              {game.achievementsPointsEarnedSum > 0 && (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "start",
+                                    gap: 8,
+                                    marginBottom: 4,
+                                    color: vars.color.muted,
+                                  }}
+                                >
+                                  <HydraIcon width={16} height={16} />
+                                  {numberFormatter.format(
+                                    game.achievementsPointsEarnedSum
+                                  )}
+                                </div>
+                              )}
                               <div
                                 style={{
                                   display: "flex",
