@@ -23,10 +23,7 @@ const resumeGameSeed = async (
   await dataSource.transaction(async (transactionalEntityManager) => {
     await transactionalEntityManager
       .getRepository(Game)
-      .update(
-        { id: gameId },
-        { status: "seeding", shouldSeed: true }
-      );
+      .update({ id: gameId }, { status: "seeding", shouldSeed: true });
   });
 
   await DownloadManager.startDownload(game);
