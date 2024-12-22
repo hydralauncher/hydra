@@ -164,7 +164,8 @@
     "select_folder": "Selecione a pasta",
     "manage_files_description": "Gerencie quais arquivos serão feitos backup",
     "clear": "Limpar",
-    "no_directory_selected": "Nenhum diretório selecionado"
+    "no_directory_selected": "Nenhum diretório selecionado",
+    "available_points": "Pontos disponíveis:"
   },
   "activation": {
     "title": "Ativação",
@@ -376,7 +377,8 @@
     "new_achievements_unlocked": "{{achievementCount}} novas conquistas de {{gameCount}} jogos",
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} conquistas",
     "achievements_unlocked_for_game": "Desbloqueadas {{achievementCount}} novas conquistas em {{gameTitle}}",
-    "hidden_achievement_tooltip": "Está é uma conquista oculta"
+    "hidden_achievement_tooltip": "Está é uma conquista oculta",
+    "achievement_earn_points": "Ganhe {{points}} com essa conquista"
   },
   "tour": {
     "subscription_tour_title": "Assinatura Hydra Cloud",

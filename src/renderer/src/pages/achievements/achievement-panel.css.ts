@@ -5,7 +5,7 @@ import { SPACING_UNIT, vars } from "../../theme.css";
 
 export const panel = style({
   width: "100%",
-  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
+  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 3}px`,
   backgroundColor: vars.color.background,
   display: "flex",
   alignItems: "center",

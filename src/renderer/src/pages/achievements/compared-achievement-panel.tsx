@@ -19,31 +19,31 @@ export function ComparedAchievementPanel({
   const {} = useContext(gameDetailsContext);
 
   return (
-    <>
-      <div
-        className={styles.panel}
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            achievements.owner.achievementsPointsEarnedSum !== undefined
-              ? "3fr 1fr 1fr"
-              : "3fr 2fr",
-        }}
-      >
-        <div style={{ display: "flex", gap: `${SPACING_UNIT}px` }}>
-          Total de pontos: <HydraIcon width={20} height={20} /> 4200
-        </div>
-        {achievements.owner.achievementsPointsEarnedSum !== undefined && (
-          <div className={styles.content}>
-            <HydraIcon width={20} height={20} />
-            {achievements.owner.achievementsPointsEarnedSum}
-          </div>
-        )}
+    <div
+      className={styles.panel}
+      style={{
+        display: "grid",
+        gridTemplateColumns:
+          achievements.owner.achievementsPointsEarnedSum !== undefined
+            ? "3fr 1fr 1fr"
+            : "3fr 2fr",
+        gap: `${SPACING_UNIT * 2}px`,
+      }}
+    >
+      <div style={{ display: "flex", gap: `${SPACING_UNIT}px` }}>
+        {t("available_points")} <HydraIcon width={20} height={20} />{" "}
+        {achievements.achievementsPointsTotal}
+      </div>
+      {achievements.owner.achievementsPointsEarnedSum !== undefined && (
         <div className={styles.content}>
           <HydraIcon width={20} height={20} />
-          {achievements.target.achievementsPointsEarnedSum}
+          {achievements.owner.achievementsPointsEarnedSum}
         </div>
+      )}
+      <div className={styles.content}>
+        <HydraIcon width={20} height={20} />
+        {achievements.target.achievementsPointsEarnedSum}
       </div>
-    </>
+    </div>
   );
 }

@@ -44,7 +44,9 @@ export function AchievementList({ achievements }: AchievementListProps) {
             {achievement.points && (
               <div
                 style={{ display: "flex", alignItems: "center", gap: "4px" }}
-                title="This achievement is worth 69 H-points"
+                title={t("achievement_earn_points", {
+                  points: achievement.points,
+                })}
               >
                 <HydraIcon width={20} height={20} />
                 <p style={{ fontSize: "1.1em" }}>{achievement.points}</p>
