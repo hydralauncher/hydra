@@ -120,7 +120,7 @@ export function Header() {
             {searchValue && (
               <button
                 type="button"
-                onClick={() => dispatch(setSearch({ title: "" }))}
+                onClick={() => dispatch(setFilters({ title: "" }))}
                 className={styles.actionButton}
               >
                 <XIcon />
