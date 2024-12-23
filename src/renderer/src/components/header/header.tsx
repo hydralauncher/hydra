@@ -1,13 +1,13 @@
 import { useTranslation } from "react-i18next";
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeftIcon, SearchIcon } from "@primer/octicons-react";
+import { ArrowLeftIcon, SearchIcon, XIcon } from "@primer/octicons-react";
 
-import { useAppSelector } from "@renderer/hooks";
+import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 
 import * as styles from "./header.css";
 import { AutoUpdateSubHeader } from "./auto-update-sub-header";
-import { Button } from "../button/button";
+import { setSearch } from "@renderer/features";
 
 const pathTitle: Record<string, string> = {
   "/": "home",
@@ -17,12 +17,22 @@ const pathTitle: Record<string, string> = {
 };
 
 export function Header() {
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const navigate = useNavigate();
   const location = useLocation();
 
   const { headerTitle, draggingDisabled } = useAppSelector(
     (state) => state.window
   );
+
+  const searchValue = useAppSelector(
+    (state) => state.catalogueSearch.value.title
+  );
+
+  const dispatch = useAppDispatch();
+
+  const [isFocused, setIsFocused] = useState(false);
 
   const { t } = useTranslation("header");
 
@@ -35,12 +45,25 @@ export function Header() {
     return t(pathTitle[location.pathname]);
   }, [location.pathname, headerTitle, t]);
 
-  const showSearchButton = useMemo(() => {
-    return location.pathname.startsWith("/catalogue");
-  }, [location.pathname]);
+  const focusInput = () => {
+    setIsFocused(true);
+    inputRef.current?.focus();
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+  };
 
   const handleBackButtonClick = () => {
     navigate(-1);
+  };
+
+  const handleSearch = (value: string) => {
+    dispatch(setSearch({ title: value }));
+
+    if (!location.pathname.startsWith("/catalogue")) {
+      navigate("/catalogue");
+    }
   };
 
   return (
@@ -73,14 +96,37 @@ export function Header() {
         </section>
 
         <section className={styles.section}>
-          <Button
-            theme="outline"
-            className={styles.searchButton({ hidden: showSearchButton })}
-            onClick={() => navigate("/catalogue?search=true")}
-          >
-            <SearchIcon />
-            {t("search")}
-          </Button>
+          <div className={styles.search({ focused: isFocused })}>
+            <button
+              type="button"
+              className={styles.actionButton}
+              onClick={focusInput}
+            >
+              <SearchIcon />
+            </button>
+
+            <input
+              ref={inputRef}
+              type="text"
+              name="search"
+              placeholder={t("search")}
+              value={searchValue}
+              className={styles.searchInput}
+              onChange={(event) => handleSearch(event.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={handleBlur}
+            />
+
+            {searchValue && (
+              <button
+                type="button"
+                onClick={() => dispatch(setSearch({ title: "" }))}
+                className={styles.actionButton}
+              >
+                <XIcon />
+              </button>
+            )}
+          </div>
         </section>
       </header>
       <AutoUpdateSubHeader />

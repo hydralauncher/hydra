@@ -144,51 +144,6 @@ export default function Catalogue() {
       <div
         style={{
           display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-start",
-        }}
-      >
-        <div
-          className={cn("catalogue__search-container", {
-            ["catalogue__search-container--focused"]:
-              focused || !!filters.title,
-          })}
-        >
-          <button
-            type="button"
-            className="catalogue__search-icon-button"
-            onClick={focusInput}
-          >
-            <SearchIcon />
-          </button>
-
-          <input
-            ref={inputRef}
-            type="text"
-            name="search"
-            placeholder={t("search")}
-            value={filters.title}
-            className="catalogue__search-input"
-            onChange={(event) => onSearch(event.target.value)}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-          />
-
-          {filters.title && (
-            <button
-              type="button"
-              onClick={() => dispatch(setSearch({ title: "" }))}
-              className="catalogue__search-clear-button"
-            >
-              <XIcon />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div
-        style={{
-          display: "flex",
           gap: 8,
           alignItems: "center",
           justifyContent: "space-between",
