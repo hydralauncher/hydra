@@ -3,7 +3,7 @@ import { Badge } from "@renderer/components";
 import type { DownloadSource } from "@types";
 
 import { useAppDispatch, useAppSelector, useRepacks } from "@renderer/hooks";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { XIcon } from "@primer/octicons-react";
 
 import "./catalogue.scss";
@@ -28,14 +28,9 @@ const filterCategoryColors = {
 };
 
 export default function Catalogue() {
-  const inputRef = useRef<HTMLInputElement>(null);
-
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const [steamUserTags, setSteamUserTags] = useState<any>({});
-
-  const [searchParams] = useSearchParams();
-  const search = searchParams.get("search");
 
   const navigate = useNavigate();
 
