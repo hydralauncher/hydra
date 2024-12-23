@@ -162,7 +162,6 @@ export class DownloadManager {
       .get<LibtorrentPayload[] | []>("/seed-status")
       .then((res) => res.data);
 
-    console.log(seedStatus);
     if (!seedStatus.length) return;
 
     seedStatus.forEach(async (status) => {
