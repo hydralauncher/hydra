@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeftIcon, SearchIcon, XIcon } from "@primer/octicons-react";
 
@@ -65,6 +65,12 @@ export function Header() {
       navigate("/catalogue");
     }
   };
+
+  useEffect(() => {
+    if (!location.pathname.startsWith("/catalogue")) {
+      dispatch(setFilters({ title: "" }));
+    }
+  }, [location.pathname, dispatch]);
 
   return (
     <>

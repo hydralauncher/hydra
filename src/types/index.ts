@@ -243,6 +243,9 @@ export interface UserDetails {
   profileVisibility: ProfileVisibility;
   bio: string;
   subscription: Subscription | null;
+  quirks: {
+    backupsPerGameLimit: number;
+  };
 }
 
 export interface UserProfile {
@@ -260,6 +263,9 @@ export interface UserProfile {
   currentGame: UserProfileCurrentGame | null;
   bio: string;
   hasActiveSubscription: boolean;
+  quirks: {
+    backupsPerGameLimit: number;
+  };
 }
 
 export interface UpdateProfileRequest {
