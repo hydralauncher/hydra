@@ -5,9 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToOne,
-  JoinColumn,
 } from "typeorm";
-import { Repack } from "./repack.entity";
 
 import type { GameShop, GameStatus } from "@types";
 import { Downloader } from "@shared";
@@ -71,13 +69,6 @@ export class Game {
 
   @Column("text", { nullable: true })
   uri: string | null;
-
-  /**
-   * @deprecated
-   */
-  @OneToOne("Repack", "game", { nullable: true })
-  @JoinColumn()
-  repack: Repack;
 
   @OneToOne("DownloadQueue", "game")
   downloadQueue: DownloadQueue;

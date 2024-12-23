@@ -1,9 +1,6 @@
-import type { GameShop } from "@types";
-
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
-import { CatalogueCategory, steamUrlBuilder } from "@shared";
-import { steamGamesWorker } from "@main/workers";
+import { CatalogueCategory } from "@shared";
 
 const getCatalogue = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -14,25 +11,10 @@ const getCatalogue = async (
     skip: "0",
   });
 
-  const response = await HydraApi.get<{ objectId: string; shop: GameShop }[]>(
+  return HydraApi.get(
     `/catalogue/${category}?${params.toString()}`,
     {},
     { needsAuth: false }
-  );
-
-  return Promise.all(
-    response.map(async (game) => {
-      const steamGame = await steamGamesWorker.run(Number(game.objectId), {
-        name: "getById",
-      });
-
-      return {
-        title: steamGame.name,
-        shop: game.shop,
-        cover: steamUrlBuilder.library(game.objectId),
-        objectId: game.objectId,
-      };
-    })
   );
 };
 
