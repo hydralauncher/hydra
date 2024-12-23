@@ -12,6 +12,7 @@ export const startSeedProcess = async () => {
   });
 
   if (seedList.length === 0) return;
+  await sleep(1000);
 
   seedList.map(async (game) => {
     await DownloadManager.startDownload(game);
