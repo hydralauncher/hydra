@@ -13,8 +13,7 @@ import { settingsContext } from "@renderer/context";
 import { downloadSourcesTable } from "@renderer/dexie";
 import { downloadSourcesWorker } from "@renderer/workers";
 import { useNavigate } from "react-router-dom";
-import { clearFilters } from "@renderer/features";
-import { setFilters } from "@renderer/features";
+import { setFilters, clearFilters } from "@renderer/features";
 
 export function SettingsDownloadSources() {
   const [showAddDownloadSourceModal, setShowAddDownloadSourceModal] =
