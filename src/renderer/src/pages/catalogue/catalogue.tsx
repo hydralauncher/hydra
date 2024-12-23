@@ -114,7 +114,7 @@ export default function Catalogue() {
       .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
       .map(([key, value]) => ({
         label: key,
-        value: value.toString(),
+        value: value,
         checked: filters.tags.includes(value),
       }));
   }, [steamUserTags, filters.tags, language]);
