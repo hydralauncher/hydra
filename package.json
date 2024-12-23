@@ -68,7 +68,6 @@
     "react-loading-skeleton": "^3.4.0",
     "react-redux": "^9.1.1",
     "react-router-dom": "^6.22.3",
-    "react-virtualized": "^9.22.5",
     "sound-play": "^1.1.0",
     "sudo-prompt": "^9.2.1",
     "tar": "^7.4.3",
