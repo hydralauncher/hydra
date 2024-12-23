@@ -1,0 +1,51 @@
+@use "../../scss/globals.scss";
+
+@keyframes gradientBorder {
+  0% {
+    border-image-source: linear-gradient(0deg, #16b195 50%, #3e62c0 100%);
+  }
+  50% {
+    border-image-source: linear-gradient(90deg, #3e62c0 50%, #16b195 100%);
+  }
+  100% {
+    border-image-source: linear-gradient(180deg, #16b195 50%, #3e62c0 100%);
+  }
+}
+
+.catalogue {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+  width: 100%;
+  padding: 16px;
+
+  &__game-item {
+    background-color: globals.$dark-background-color;
+    width: 100%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+    border-radius: 4px;
+    border: 1px solid globals.$border-color;
+    cursor: pointer;
+    gap: 12px;
+    transition: all ease 0.2s;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  &__filters-container {
+    width: 270px;
+    min-width: 270px;
+    max-width: 270px;
+    background-color: globals.$dark-background-color;
+    border-radius: 4px;
+    padding: 16px;
+    border: 1px solid globals.$border-color;
+    align-self: flex-start;
+  }
+}
