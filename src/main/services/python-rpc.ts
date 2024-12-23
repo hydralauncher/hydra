@@ -43,8 +43,6 @@ export class PythonRPC {
   }
 
   public static spawn(initialDownload?: StartDownloadPayload) {
-    console.log([this.BITTORRENT_PORT, this.RPC_PORT, this.RPC_PASSWORD]);
-
     const commonArgs = [
       this.BITTORRENT_PORT,
       this.RPC_PORT,
@@ -85,8 +83,6 @@ export class PythonRPC {
         "python_rpc",
         "main.py"
       );
-
-      console.log(scriptPath);
 
       const childProcess = cp.spawn("python3", [scriptPath, ...commonArgs], {
         stdio: ["inherit", "inherit"],

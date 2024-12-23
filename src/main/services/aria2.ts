@@ -22,8 +22,6 @@ export class Aria2 {
       ],
       { stdio: "inherit", windowsHide: true }
     );
-
-    console.log(this.process);
   }
 
   public static kill() {
