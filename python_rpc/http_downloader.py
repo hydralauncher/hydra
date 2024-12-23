@@ -34,7 +34,7 @@ class HttpDownloader:
         download = self.aria2.get_download(self.download.gid)
 
         response = {
-            'folderName': str(download.dir) + "/" + download.name,
+            'folderName': download.name,
             'fileSize': download.total_length,
             'progress': download.completed_length / download.total_length if download.total_length else 0,
             'downloadSpeed': download.download_speed,

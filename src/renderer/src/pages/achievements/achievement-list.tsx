@@ -18,8 +18,12 @@ export function AchievementList({ achievements }: AchievementListProps) {
 
   return (
     <ul className={styles.list}>
-      {achievements.map((achievement, index) => (
-        <li key={index} className={styles.listItem} style={{ display: "flex" }}>
+      {achievements.map((achievement) => (
+        <li
+          key={achievement.name}
+          className={styles.listItem}
+          style={{ display: "flex" }}
+        >
           <img
             className={styles.listItemImage({
               unlocked: achievement.unlocked,
@@ -72,7 +76,7 @@ export function AchievementList({ achievements }: AchievementListProps) {
                 <p style={{ fontSize: "1.1em" }}>???</p>
               </button>
             )}
-            {achievement.unlockTime && (
+            {achievement.unlockTime != null && (
               <div
                 title={t("unlocked_at", {
                   date: formatDateTime(achievement.unlockTime),
