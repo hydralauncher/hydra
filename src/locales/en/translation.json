@@ -163,7 +163,7 @@
     "no_download_option_info": "No information available",
     "backup_deletion_failed": "Failed to delete backup",
     "max_number_of_artifacts_reached": "Maximum number of backups reached for this game",
-    "achievements_not_sync": "Your achievements are not synchronized",
+    "achievements_not_sync": "See how to synchronize your achievements",
     "manage_files_description": "Manage which files will be backed up and restored",
     "select_folder": "Select folder",
     "backup_from": "Backup from {{date}}",
@@ -301,7 +301,7 @@
     "last_time_played": "Last played {{period}}",
     "activity": "Recent Activity",
     "library": "Library",
-    "total_play_time": "Total playtime: {{amount}}",
+    "total_play_time": "Total playtime",
     "no_recent_activity_title": "Hmmm… nothing here",
     "no_recent_activity_description": "You haven't played any games recently. It's time to change that!",
     "display_name": "Display name",
@@ -364,19 +364,34 @@
     "your_friend_code": "Your friend code:",
     "upload_banner": "Upload banner",
     "uploading_banner": "Uploading banner…",
-    "background_image_updated": "Background image updated"
+    "background_image_updated": "Background image updated",
+    "stats": "Stats",
+    "achievements": "achievements",
+    "games": "Games",
+    "top_percentile": "Top {{percentile}}%",
+    "ranking_updated_weekly": "Ranking is updated weekly",
+    "playing": "Playing {{game}}",
+    "achievements_unlocked": "Achievements Unlocked",
+    "earned_points": "Earned points",
+    "show_achievements_on_profile": "Show your achievements on your profile",
+    "show_points_on_profile": "Show your earned points on your profile"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",
     "user_achievements": "{{displayName}}'s Achievements",
     "your_achievements": "Your Achievements",
-    "unlocked_at": "Unlocked at:",
+    "unlocked_at": "Unlocked at: {{date}}",
     "subscription_needed": "A Hydra Cloud subscription is required to see this content",
     "new_achievements_unlocked": "Unlocked {{achievementCount}} new achievements from {{gameCount}} games",
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} achievements",
-    "achievements_unlocked_for_game": "Unlocked {{achievementCount}} new achievements for {{gameTitle}}"
+    "achievements_unlocked_for_game": "Unlocked {{achievementCount}} new achievements for {{gameTitle}}",
+    "hidden_achievement_tooltip": "This is a hidden achievement",
+    "achievement_earn_points": "Earn {{points}} points with this achievement",
+    "earned_points": "Earned points:",
+    "available_points": "Available points:",
+    "how_to_earn_achievements_points": "How to earn achievements points?"
   },
-  "tour": {
+  "hydra_cloud": {
     "subscription_tour_title": "Hydra Cloud Subscription",
     "subscribe_now": "Subscribe now",
     "cloud_saving": "Cloud saving",
@@ -384,6 +399,9 @@
     "animated_profile_picture": "Animated profile pictures",
     "premium_support": "Premium Support",
     "show_and_compare_achievements": "Show and compare your achievements to other users",
-    "animated_profile_banner": "Animated profile banner"
+    "animated_profile_banner": "Animated profile banner",
+    "hydra_cloud": "Hydra Cloud",
+    "hydra_cloud_feature_found": "You've just discovered a Hydra Cloud feature!",
+    "learn_more": "Learn More"
   }
 }

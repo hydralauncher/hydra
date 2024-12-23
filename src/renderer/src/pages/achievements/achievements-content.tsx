@@ -1,9 +1,8 @@
 import { setHeaderTitle } from "@renderer/features";
-import { useAppDispatch, useDate, useUserDetails } from "@renderer/hooks";
+import { useAppDispatch, useUserDetails } from "@renderer/hooks";
 import { steamUrlBuilder } from "@shared";
 import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import * as styles from "./achievements.css";
 import {
   buildGameDetailsPath,
   formatDownloadProgress,
@@ -11,11 +10,16 @@ import {
 import { LockIcon, PersonIcon, TrophyIcon } from "@primer/octicons-react";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { gameDetailsContext } from "@renderer/context";
-import type { ComparedAchievements, UserAchievement } from "@types";
+import type { ComparedAchievements } from "@types";
 import { average } from "color.js";
 import Color from "color";
 import { Link } from "@renderer/components";
 import { ComparedAchievementList } from "./compared-achievement-list";
+import * as styles from "./achievements.css";
+import { AchievementList } from "./achievement-list";
+import { AchievementPanel } from "./achievement-panel";
+import { ComparedAchievementPanel } from "./compared-achievement-panel";
+import { useSubscription } from "@renderer/hooks/use-subscription";
 
 interface UserInfo {
   id: string;
@@ -30,10 +34,6 @@ interface AchievementsContentProps {
   comparedAchievements: ComparedAchievements | null;
 }
 
-interface AchievementListProps {
-  achievements: UserAchievement[];
-}
-
 interface AchievementSummaryProps {
   user: UserInfo;
   isComparison?: boolean;
@@ -42,7 +42,7 @@ interface AchievementSummaryProps {
 function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
   const { t } = useTranslation("achievement");
   const { userDetails, hasActiveSubscription } = useUserDetails();
-  const { handleClickOpenCheckout } = useContext(gameDetailsContext);
+  const { showHydraCloudModal } = useSubscription();
 
   const getProfileImage = (
     user: Pick<UserInfo, "profileImageUrl" | "displayName">
@@ -93,7 +93,7 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
           <h3>
             <button
               className={styles.subscriptionRequiredButton}
-              onClick={handleClickOpenCheckout}
+              onClick={() => showHydraCloudModal("achievements")}
             >
               {t("subscription_needed")}
             </button>
@@ -168,38 +168,6 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
         />
       </div>
     </div>
-  );
-}
-
-function AchievementList({ achievements }: AchievementListProps) {
-  const { t } = useTranslation("achievement");
-  const { formatDateTime } = useDate();
-
-  return (
-    <ul className={styles.list}>
-      {achievements.map((achievement, index) => (
-        <li key={index} className={styles.listItem} style={{ display: "flex" }}>
-          <img
-            className={styles.listItemImage({
-              unlocked: achievement.unlocked,
-            })}
-            src={achievement.icon}
-            alt={achievement.displayName}
-            loading="lazy"
-          />
-          <div style={{ flex: 1 }}>
-            <h4>{achievement.displayName}</h4>
-            <p>{achievement.description}</p>
-          </div>
-          {achievement.unlockTime && (
-            <div style={{ whiteSpace: "nowrap" }}>
-              <small>{t("unlocked_at")}</small>
-              <p>{formatDateTime(achievement.unlockTime)}</p>
-            </div>
-          )}
-        </li>
-      ))}
-    </ul>
   );
 }
 
@@ -355,9 +323,15 @@ export function AchievementsContent({
         )}
 
         {otherUser ? (
-          <ComparedAchievementList achievements={comparedAchievements!} />
+          <>
+            <ComparedAchievementPanel achievements={comparedAchievements!} />
+            <ComparedAchievementList achievements={comparedAchievements!} />
+          </>
         ) : (
-          <AchievementList achievements={achievements!} />
+          <>
+            <AchievementPanel achievements={achievements!} />
+            <AchievementList achievements={achievements!} />
+          </>
         )}
       </section>
     </div>
