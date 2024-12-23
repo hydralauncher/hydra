@@ -23,6 +23,18 @@ import path from "path";
 export class DownloadManager {
   private static downloadingGameId: number | null = null;
 
+  public static startRPC(game: Game) {
+    if (game && game.status === "active") {
+      PythonRPC.spawn({
+        game_id: game.id,
+        url: game.uri!,
+        save_path: game.downloadPath!,
+      });
+
+      this.downloadingGameId = game.id;
+    }
+  }
+
   private static async getDownloadStatus() {
     const response = await PythonRPC.rpc.get<LibtorrentPayload | null>(
       "/status"
@@ -188,7 +200,7 @@ export class DownloadManager {
         action: "pause",
         game_id: this.downloadingGameId,
       } as PauseDownloadPayload)
-      .catch(() => {});
+      .catch(() => { });
 
     WindowManager.mainWindow?.setProgressBar(-1);
 
