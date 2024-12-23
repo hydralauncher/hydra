@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 
 import * as styles from "./profile-content.css";
 import { Avatar, Link } from "@renderer/components";
-import { buildGameDetailsPath } from "@renderer/helpers";
 
 export function FriendsBox() {
   const { userProfile, userStats } = useContext(userProfileContext);

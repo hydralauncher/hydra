@@ -26,8 +26,6 @@ import {
 import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { downloadSourcesWorker } from "./workers";
-import { repacksContext } from "./context";
-import { logger } from "./logger";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 
@@ -60,8 +58,7 @@ export function App() {
     clearUserDetails,
   } = useUserDetails();
 
-  const { hideHydraCloudModal, showHydraCloudModal, isHydraCloudModalVisible } =
-    useSubscription();
+  const { hideHydraCloudModal, isHydraCloudModalVisible } = useSubscription();
 
   const dispatch = useAppDispatch();
 

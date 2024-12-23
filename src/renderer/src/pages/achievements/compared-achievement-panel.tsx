@@ -1,6 +1,4 @@
-import { useContext } from "react";
 import { useTranslation } from "react-i18next";
-import { gameDetailsContext } from "@renderer/context";
 import * as styles from "./achievement-panel.css";
 
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
@@ -15,8 +13,6 @@ export function ComparedAchievementPanel({
   achievements,
 }: ComparedAchievementPanelProps) {
   const { t } = useTranslation("achievement");
-
-  const {} = useContext(gameDetailsContext);
 
   return (
     <div
