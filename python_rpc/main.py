@@ -12,6 +12,7 @@ torrent_port = sys.argv[1]
 http_port = sys.argv[2]
 rpc_password = sys.argv[3]
 start_download_payload = sys.argv[4]
+start_seeding_payload = sys.argv[5]
 
 downloads = {}
 # This can be streamed down from Node
@@ -32,6 +33,12 @@ if start_download_payload:
         downloads[initial_download['game_id']] = http_downloader
         http_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'))
 
+if start_seeding_payload:
+    initial_seeding = json.loads(urllib.parse.unquote(start_seeding_payload))
+    for seed in initial_seeding:
+        torrent_downloader = TorrentDownloader(torrent_session)
+        downloads[seed['game_id']] = torrent_downloader
+        torrent_downloader.start_download(seed['url'], seed['save_path'], "")
 
 def validate_rpc_password():
     """Middleware to validate RPC password."""

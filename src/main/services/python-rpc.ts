@@ -9,7 +9,7 @@ import { logger } from "./logger";
 import { Readable } from "node:stream";
 import { app, dialog } from "electron";
 
-interface StartDownloadPayload {
+interface GamePayload {
   game_id: number;
   url: string;
   save_path: string;
@@ -42,12 +42,16 @@ export class PythonRPC {
     readable.on("data", logger.log);
   }
 
-  public static spawn(initialDownload?: StartDownloadPayload) {
+  public static spawn(
+    initialDownload?: GamePayload,
+    initialSeeding?: GamePayload[]
+  ) {
     const commonArgs = [
       this.BITTORRENT_PORT,
       this.RPC_PORT,
       this.RPC_PASSWORD,
       initialDownload ? JSON.stringify(initialDownload) : "",
+      initialSeeding ? JSON.stringify(initialSeeding) : "",
     ];
 
     if (app.isPackaged) {
