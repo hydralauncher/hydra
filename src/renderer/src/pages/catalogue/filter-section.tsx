@@ -8,10 +8,10 @@ export interface FilterSectionProps {
   title: string;
   items: {
     label: string;
-    value: string;
+    value: string | number;
     checked: boolean;
   }[];
-  onSelect: (value: string) => void;
+  onSelect: (value: string | number) => void;
   color: string;
   onClear: () => void;
 }

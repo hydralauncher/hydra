@@ -76,6 +76,9 @@ export class Game {
   @Column("boolean", { default: false })
   isDeleted: boolean;
 
+  @Column("boolean", { default: false })
+  shouldSeed: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

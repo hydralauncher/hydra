@@ -12,6 +12,7 @@ import type {
   FriendRequestAction,
   UpdateProfileRequest,
   CatalogueSearchPayload,
+  SeedingStatus,
   GameAchievement,
 } from "@types";
 import type { CatalogueCategory } from "@shared";
@@ -27,6 +28,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("pauseGameDownload", gameId),
   resumeGameDownload: (gameId: number) =>
     ipcRenderer.invoke("resumeGameDownload", gameId),
+  pauseGameSeed: (gameId: number) =>
+    ipcRenderer.invoke("pauseGameSeed", gameId),
+  resumeGameSeed: (gameId: number) =>
+    ipcRenderer.invoke("resumeGameSeed", gameId),
   onDownloadProgress: (cb: (value: DownloadProgress) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
@@ -34,6 +39,19 @@ contextBridge.exposeInMainWorld("electron", {
     ) => cb(value);
     ipcRenderer.on("on-download-progress", listener);
     return () => ipcRenderer.removeListener("on-download-progress", listener);
+  },
+  onHardDelete: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-hard-delete", listener);
+    return () => ipcRenderer.removeListener("on-hard-delete", listener);
+  },
+  onSeedingStatus: (cb: (value: SeedingStatus[]) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      value: SeedingStatus[]
+    ) => cb(value);
+    ipcRenderer.on("on-seeding-status", listener);
+    return () => ipcRenderer.removeListener("on-seeding-status", listener);
   },
 
   /* Catalogue */

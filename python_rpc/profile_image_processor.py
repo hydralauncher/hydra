@@ -15,8 +15,8 @@ class ProfileImageProcessor:
             mime_type = image.get_format_mimetype()
             return image_path, mime_type
         else:
-            newUUID = str(uuid.uuid4())
-            new_image_path = os.path.join(tempfile.gettempdir(), newUUID) + ".webp"
+            new_uuid = str(uuid.uuid4())
+            new_image_path = os.path.join(tempfile.gettempdir(), new_uuid) + ".webp"
             image.save(new_image_path)
             
             new_image = Image.open(new_image_path)
