@@ -309,7 +309,7 @@
     "last_time_played": "لعبت آخر مرة {{period}}",
     "activity": "النشاط الأخير",
     "library": "مكتبة",
-    "total_play_time": "إجمالي وقت اللعب: {{amount}}",
+    "total_play_time": "إجمالي وقت اللعب",
     "no_recent_activity_title": "هممم... لا شيء هنا",
     "no_recent_activity_description": "لم تلعب أي مباراة مؤخرًا. ",
     "display_name": "اسم العرض",
@@ -383,13 +383,13 @@
     "achievement_unlocked": "تم فتح الإنجاز",
     "user_achievements": "{{displayName}}إنجازات",
     "your_achievements": "إنجازاتك",
-    "unlocked_at": "مقفلة في:",
+    "unlocked_at": "مقفلة في: {{date}}",
     "subscription_needed": "مطلوب اشتراك Hydra Cloud لرؤية هذا المحتوى",
     "new_achievements_unlocked": "مفتوح {{achievementCount}} انجازات جديدة من {{gameCount}} ألعاب",
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} الإنجازات",
     "achievements_unlocked_for_game": "مفتوح {{achievementCount}} انجازات جديدة ل {{gameTitle}}"
   },
-  "tour": {
+  "hydra_cloud": {
     "subscription_tour_title": "اشتراك Hydra كلاود",
     "subscribe_now": "اشترك الآن",
     "cloud_saving": "الحفظ السحابي",

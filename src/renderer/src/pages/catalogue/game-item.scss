@@ -1,0 +1,48 @@
+@use "../../scss/globals.scss";
+
+.game-item {
+  background-color: globals.$dark-background-color;
+  width: 100%;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+  border-radius: 4px;
+  border: 1px solid globals.$border-color;
+  cursor: pointer;
+  gap: calc(globals.$spacing-unit * 2);
+  transition: all ease 0.2s;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  &__cover {
+    width: 200px;
+    height: 100%;
+    object-fit: cover;
+    border-right: 1px solid globals.$border-color;
+  }
+
+  &__details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: calc(globals.$spacing-unit * 2) 0;
+  }
+
+  &__genres {
+    color: globals.$body-color;
+    font-size: 12px;
+    text-align: left;
+    margin-bottom: 4px;
+  }
+
+  &__repackers {
+    display: flex;
+    gap: globals.$spacing-unit;
+    flex-wrap: wrap;
+  }
+}

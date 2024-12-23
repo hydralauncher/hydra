@@ -8,7 +8,7 @@ export const vars = createGlobalTheme(":root", {
     darkBackground: "#151515",
     muted: "#c0c1c7",
     body: "#8e919b",
-    border: "#424244",
+    border: "rgba(255, 255, 255, 0.15)",
     success: "#1c9749",
     danger: "#e11d48",
     warning: "#ffc107",
