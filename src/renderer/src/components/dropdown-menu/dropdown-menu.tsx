@@ -33,7 +33,7 @@ export function DropdownMenu({
   return (
     <DropdownMenuPrimitive.Root>
       <DropdownMenuPrimitive.Trigger asChild>
-        <button aria-label={title}>{children}</button>
+        <div aria-label={title}>{children}</div>
       </DropdownMenuPrimitive.Trigger>
 
       <DropdownMenuPrimitive.Portal>
