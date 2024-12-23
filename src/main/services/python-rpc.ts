@@ -42,7 +42,10 @@ export class PythonRPC {
     readable.on("data", logger.log);
   }
 
-  public static spawn(initialDownload?: GamePayload, initialSeeding?: GamePayload[]) {
+  public static spawn(
+    initialDownload?: GamePayload,
+    initialSeeding?: GamePayload[]
+  ) {
     const commonArgs = [
       this.BITTORRENT_PORT,
       this.RPC_PORT,

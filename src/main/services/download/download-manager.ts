@@ -26,15 +26,18 @@ export class DownloadManager {
 
   public static startRPC(game: Game, initialSeeding?: Game[]) {
     if (game && game.status === "active") {
-      PythonRPC.spawn({
-        game_id: game.id,
-        url: game.uri!,
-        save_path: game.downloadPath!,
-      }, initialSeeding?.map((game) => ({
-        game_id: game.id,
-        url: game.uri!,
-        save_path: game.downloadPath!,
-      })));
+      PythonRPC.spawn(
+        {
+          game_id: game.id,
+          url: game.uri!,
+          save_path: game.downloadPath!,
+        },
+        initialSeeding?.map((game) => ({
+          game_id: game.id,
+          url: game.uri!,
+          save_path: game.downloadPath!,
+        }))
+      );
 
       this.downloadingGameId = game.id;
     }
