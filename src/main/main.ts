@@ -9,7 +9,6 @@ import { RealDebridClient } from "./services/download/real-debrid";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
 import { Aria2 } from "./services/aria2";
-import { startSeedProcess } from "./services/seed";
 import { PythonRPC } from "./services/python-rpc";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
