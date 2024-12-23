@@ -13,7 +13,7 @@ import "./catalogue.scss";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { downloadSourcesTable } from "@renderer/dexie";
 import { FilterSection } from "./filter-section";
-import { setFilters } from "@renderer/features";
+import { setFilters, setPage } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import { Pagination } from "./pagination";
@@ -42,12 +42,11 @@ export default function Catalogue() {
 
   const [results, setResults] = useState<any[]>([]);
 
-  const [page, setPage] = useState(1);
   const [itemsCount, setItemsCount] = useState(0);
 
   const { formatNumber } = useFormat();
 
-  const { filters } = useAppSelector((state) => state.catalogueSearch);
+  const { filters, page } = useAppSelector((state) => state.catalogueSearch);
 
   const dispatch = useAppDispatch();
 
@@ -102,10 +101,6 @@ export default function Catalogue() {
         checked: filters.genres.includes(value),
       }));
   }, [steamGenresMapping, filters.genres]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [filters]);
 
   const steamUserTagsFilterItems = useMemo(() => {
     if (!steamUserTags[language]) return [];
@@ -240,7 +235,7 @@ export default function Catalogue() {
             }}
           >
             {groupedFilters.map((filter) => (
-              <li key={filter.label}>
+              <li key={`${filter.key}-${filter.value}`}>
                 <FilterItem
                   filter={filter.label}
                   orbColor={filter.orbColor}
@@ -308,7 +303,7 @@ export default function Catalogue() {
             <Pagination
               page={page}
               totalPages={Math.ceil(itemsCount / PAGE_SIZE)}
-              onPageChange={setPage}
+              onPageChange={(page) => dispatch(setPage(page))}
             />
           </div>
         </div>
