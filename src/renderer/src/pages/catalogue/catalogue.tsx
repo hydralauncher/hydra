@@ -12,7 +12,7 @@ import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { downloadSourcesTable } from "@renderer/dexie";
 import { steamUrlBuilder } from "@shared";
 import { buildGameDetailsPath } from "@renderer/helpers";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { FilterSection } from "./filter-section";
 import { setSearch } from "@renderer/features";
 import { useTranslation } from "react-i18next";
