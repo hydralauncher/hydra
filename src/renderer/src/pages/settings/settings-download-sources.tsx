@@ -9,7 +9,6 @@ import { NoEntryIcon, PlusCircleIcon, SyncIcon } from "@primer/octicons-react";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
 import { useAppDispatch, useRepacks, useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { settingsContext } from "@renderer/context";
 import { downloadSourcesTable } from "@renderer/dexie";
 import { downloadSourcesWorker } from "@renderer/workers";
