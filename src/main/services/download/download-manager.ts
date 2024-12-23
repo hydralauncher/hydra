@@ -222,7 +222,9 @@ export class DownloadManager {
 
     WindowManager.mainWindow?.setProgressBar(-1);
 
-    this.downloadingGameId = null;
+    if (gameId === this.downloadingGameId) {
+      this.downloadingGameId = null;
+    }
   }
 
   static async resumeSeeding(game: Game) {
