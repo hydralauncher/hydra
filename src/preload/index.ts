@@ -55,8 +55,8 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   /* Catalogue */
-  searchGames: (payload: CatalogueSearchPayload, page: number) =>
-    ipcRenderer.invoke("searchGames", payload, page),
+  searchGames: (payload: CatalogueSearchPayload, take: number, skip: number) =>
+    ipcRenderer.invoke("searchGames", payload, take, skip),
   getCatalogue: (category: CatalogueCategory) =>
     ipcRenderer.invoke("getCatalogue", category),
   getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
@@ -83,8 +83,6 @@ contextBridge.exposeInMainWorld("electron", {
         listener
       );
   },
-  getPublishers: () => ipcRenderer.invoke("getPublishers"),
-  getDevelopers: () => ipcRenderer.invoke("getDevelopers"),
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),

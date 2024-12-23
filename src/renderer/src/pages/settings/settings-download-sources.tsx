@@ -9,7 +9,6 @@ import { NoEntryIcon, PlusCircleIcon, SyncIcon } from "@primer/octicons-react";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
 import { useAppDispatch, useRepacks, useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { settingsContext } from "@renderer/context";
 import { downloadSourcesTable } from "@renderer/dexie";
 import { downloadSourcesWorker } from "@renderer/workers";
@@ -163,14 +162,8 @@ export function SettingsDownloadSources() {
 
               <button
                 type="button"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: `${SPACING_UNIT}px`,
-                  color: vars.color.muted,
-                  textDecoration: "underline",
-                  cursor: "pointer",
-                }}
+                className={styles.navigateToCatalogueButton}
+                disabled={!downloadSource.fingerprint}
                 onClick={() => navigateToCatalogue(downloadSource.fingerprint)}
               >
                 <small>
