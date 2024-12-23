@@ -12,12 +12,10 @@ export const startSeedProcess = async () => {
   });
 
   if (seedList.length === 0) return;
-
   await sleep(1000);
-  // wait for python process to start
 
   seedList.map(async (game) => {
     await DownloadManager.startDownload(game);
-    await sleep(100);
+    await sleep(300);
   });
 };
