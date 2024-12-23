@@ -5,10 +5,12 @@ const processProfileImage = async (
   _event: Electron.IpcMainInvokeEvent,
   path: string
 ) => {
-  return PythonRPC.rpc.post<{ imagePath: string; mimeType: string }>(
-    "/profile_image_processor/process_image",
-    { path }
-  );
+  return PythonRPC.rpc
+    .post<{
+      imagePath: string;
+      mimeType: string;
+    }>("/profile-image", { image_path: path })
+    .then((response) => response.data);
 };
 
 registerEvent("processProfileImage", processProfileImage);
