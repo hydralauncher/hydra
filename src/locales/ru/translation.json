@@ -46,8 +46,15 @@
     "checking_files": "Проверка файлов {{title}}… ({{percentage}} завершено)"
   },
   "catalogue": {
-    "next_page": "Следующая страница",
-    "previous_page": "Предыдущая страница"
+    "search": "Фильтр…",
+    "developers": "Разработчики",
+    "genres": "Жанры",
+    "tags": "Маркеры",
+    "publishers": "Издательства",
+    "download_sources": "Источники загрузки",
+    "result_count": "{{count}} результатов",
+    "filter_count": "{{count}} доступных",
+    "clear_filters": "Очистить {{count}} выбранных"
   },
   "game_details": {
     "open_download_options": "Открыть источники",

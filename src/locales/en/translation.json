@@ -46,8 +46,15 @@
     "checking_files": "Checking {{title}} files… ({{percentage}} complete)"
   },
   "catalogue": {
-    "next_page": "Next page",
-    "previous_page": "Previous page"
+    "search": "Filter…",
+    "developers": "Developers",
+    "genres": "Genres",
+    "tags": "Tags",
+    "publishers": "Publishers",
+    "download_sources": "Download sources",
+    "result_count": "{{count}} results",
+    "filter_count": "{{count}} available",
+    "clear_filters": "Clear {{count}} selected"
   },
   "game_details": {
     "open_download_options": "Open download options",
