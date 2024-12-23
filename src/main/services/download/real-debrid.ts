@@ -9,7 +9,7 @@ import type {
 
 export class RealDebridClient {
   private static instance: AxiosInstance;
-  private static baseURL = "https://api.real-debrid.com/rest/1.0";
+  private static readonly baseURL = "https://api.real-debrid.com/rest/1.0";
 
   static authorize(apiToken: string) {
     this.instance = axios.create({

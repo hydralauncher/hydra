@@ -28,7 +28,7 @@ export class PythonRPC {
 
   private static pythonProcess: cp.ChildProcess | null = null;
 
-  public static rpc = axios.create({
+  public static readonly rpc = axios.create({
     baseURL: `http://localhost:${this.RPC_PORT}`,
     headers: {
       "x-hydra-rpc-password": this.RPC_PASSWORD,
