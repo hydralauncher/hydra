@@ -58,7 +58,8 @@ declare global {
     /* Catalogue */
     searchGames: (
       payload: CatalogueSearchPayload,
-      page: number
+      take: number,
+      skip: number
     ) => Promise<{ edges: any[]; count: number }>;
     getCatalogue: (category: CatalogueCategory) => Promise<any[]>;
     getGameShopDetails: (

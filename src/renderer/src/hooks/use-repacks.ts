@@ -19,7 +19,13 @@ export function useRepacks() {
   const updateRepacks = useCallback(() => {
     repacksTable.toArray().then((repacks) => {
       dispatch(
-        setRepacks(repacks.filter((repack) => Array.isArray(repack.objectIds)))
+        setRepacks(
+          JSON.parse(
+            JSON.stringify(
+              repacks.filter((repack) => Array.isArray(repack.objectIds))
+            )
+          )
+        )
       );
     });
   }, [dispatch]);
