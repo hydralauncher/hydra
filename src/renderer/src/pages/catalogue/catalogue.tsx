@@ -35,8 +35,11 @@ export default function Catalogue() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const cataloguePageRef = useRef<HTMLDivElement>(null);
 
-  const { steamGenres, steamUserTags, steamDevelopers, steamPublishers } =
-    useCatalogue();
+  const { steamDevelopers, steamPublishers } = useCatalogue();
+
+  const { steamGenres, steamUserTags } = useAppSelector(
+    (state) => state.catalogueSearch
+  );
 
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -129,7 +132,7 @@ export default function Catalogue() {
       ...filters.tags.map((tag) => ({
         label: Object.keys(steamUserTags[language]).find(
           (key) => steamUserTags[language][key] === tag
-        ) as string,
+        ),
         orbColor: filterCategoryColors.tags,
         key: "tags",
         value: tag,
@@ -238,7 +241,7 @@ export default function Catalogue() {
             {groupedFilters.map((filter) => (
               <li key={`${filter.key}-${filter.value}`}>
                 <FilterItem
-                  filter={filter.label}
+                  filter={filter.label ?? ""}
                   orbColor={filter.orbColor}
                   onRemove={() => {
                     dispatch(
