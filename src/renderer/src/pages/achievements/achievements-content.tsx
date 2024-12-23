@@ -93,7 +93,7 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
           <h3>
             <button
               className={styles.subscriptionRequiredButton}
-              onClick={showHydraCloudModal}
+              onClick={() => showHydraCloudModal("achievements")}
             >
               {t("subscription_needed")}
             </button>

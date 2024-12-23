@@ -39,8 +39,6 @@ export function App() {
 
   const { t } = useTranslation("app");
 
-  const downloadSourceMigrationLock = useRef(false);
-
   const { updateRepacks } = useRepacks();
 
   const { clearDownload, setLastPacket } = useDownload();
@@ -208,10 +206,6 @@ export function App() {
   }, [dispatch, draggingDisabled]);
 
   useEffect(() => {
-    if (downloadSourceMigrationLock.current) return;
-
-    downloadSourceMigrationLock.current = true;
-
     updateRepacks();
 
     const id = crypto.randomUUID();
