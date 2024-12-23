@@ -1,23 +1,25 @@
-import { Badge, Button } from "@renderer/components";
-
 import type { DownloadSource } from "@types";
 
-import { useAppDispatch, useAppSelector, useRepacks } from "@renderer/hooks";
+import {
+  useAppDispatch,
+  useAppSelector,
+  useFormat,
+  useRepacks,
+} from "@renderer/hooks";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { XIcon } from "@primer/octicons-react";
 
 import "./catalogue.scss";
 
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { downloadSourcesTable } from "@renderer/dexie";
-import { steamUrlBuilder } from "@shared";
-import { buildGameDetailsPath } from "@renderer/helpers";
-import { useNavigate } from "react-router-dom";
 import { FilterSection } from "./filter-section";
 import { setFilters } from "@renderer/features";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import { Pagination } from "./pagination";
+import { useCatalogue } from "@renderer/hooks/use-catalogue";
+import { GameItem } from "./game-item";
+import { FilterItem } from "./filter-item";
 
 const filterCategoryColors = {
   genres: "hsl(262deg 50% 47%)",
@@ -27,21 +29,23 @@ const filterCategoryColors = {
   publishers: "hsl(200deg 50% 30%)",
 };
 
+const PAGE_SIZE = 20;
+
 export default function Catalogue() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const [steamUserTags, setSteamUserTags] = useState<any>({});
-
-  const navigate = useNavigate();
+  const { steamGenres, steamUserTags, steamDevelopers, steamPublishers } =
+    useCatalogue();
 
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [publishers, setPublishers] = useState<string[]>([]);
-  const [developers, setDevelopers] = useState<string[]>([]);
 
   const [results, setResults] = useState<any[]>([]);
+
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [itemsCount, setItemsCount] = useState(0);
+
+  const { formatNumber } = useFormat();
 
   const { filters } = useAppSelector((state) => state.catalogueSearch);
 
@@ -60,39 +64,17 @@ export default function Catalogue() {
     abortControllerRef.current = abortController;
 
     window.electron
-      .searchGames(filters, page)
+      .searchGames(filters, PAGE_SIZE, (page - 1) * PAGE_SIZE)
       .then((response) => {
         if (abortController.signal.aborted) {
           return;
         }
 
         setResults(response.edges);
-        setTotalPages(Math.ceil(response.count / 12));
-      })
-      .finally(() => {
+        setItemsCount(response.count);
         setIsLoading(false);
       });
   }, [filters, page, dispatch]);
-
-  useEffect(() => {
-    window.electron.getDevelopers().then((developers) => {
-      setDevelopers(developers);
-    });
-
-    window.electron.getPublishers().then((publishers) => {
-      setPublishers(publishers);
-    });
-  }, []);
-
-  const gamesWithRepacks = useMemo(() => {
-    return results.map((game) => {
-      const repacks = getRepacksForObjectId(game.objectId);
-      const uniqueRepackers = Array.from(
-        new Set(repacks.map((repack) => repack.repacker))
-      );
-      return { ...game, repacks: uniqueRepackers };
-    });
-  }, [results, getRepacksForObjectId]);
 
   useEffect(() => {
     downloadSourcesTable.toArray().then((sources) => {
@@ -100,21 +82,137 @@ export default function Catalogue() {
     });
   }, [getRepacksForObjectId]);
 
-  useEffect(() => {
-    axios
-      .get(
-        `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/steam-user-tags.json`
-      )
-      .then((response) => {
-        const language = i18n.language.split("-")[0];
+  const language = i18n.language.split("-")[0];
 
-        if (response.data[language]) {
-          setSteamUserTags(response.data[language]);
-        } else {
-          setSteamUserTags(response.data["en"]);
-        }
-      });
-  }, [i18n.language]);
+  const steamGenresMapping = useMemo<Record<string, string>>(() => {
+    if (!steamGenres[language]) return {};
+
+    return steamGenres[language].reduce((prev, genre, index) => {
+      prev[genre] = steamGenres["en"][index];
+      return prev;
+    }, {});
+  }, [steamGenres, language]);
+
+  const steamGenresFilterItems = useMemo(() => {
+    return Object.entries(steamGenresMapping)
+      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+      .map(([key, value]) => ({
+        label: key,
+        value: value,
+        checked: filters.genres.includes(value),
+      }));
+  }, [steamGenresMapping, filters.genres]);
+
+  const steamUserTagsFilterItems = useMemo(() => {
+    if (!steamUserTags[language]) return [];
+
+    return Object.entries(steamUserTags[language])
+      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+      .map(([key, value]) => ({
+        label: key,
+        value: value.toString(),
+        checked: filters.tags.includes(value),
+      }));
+  }, [steamUserTags, filters.tags, language]);
+
+  const groupedFilters = useMemo(() => {
+    return [
+      ...filters.genres.map((genre) => ({
+        label: Object.keys(steamGenresMapping).find(
+          (key) => steamGenresMapping[key] === genre
+        ) as string,
+        orbColor: filterCategoryColors.genres,
+        key: "genres",
+        value: genre,
+      })),
+
+      ...filters.tags.map((tag) => ({
+        label: Object.keys(steamUserTags[language]).find(
+          (key) => steamUserTags[language][key] === tag
+        ) as string,
+        orbColor: filterCategoryColors.tags,
+        key: "tags",
+        value: tag,
+      })),
+
+      ...filters.downloadSourceFingerprints.map((fingerprint) => ({
+        label: downloadSources.find(
+          (source) => source.fingerprint === fingerprint
+        )?.name as string,
+        orbColor: filterCategoryColors.downloadSourceFingerprints,
+        key: "downloadSourceFingerprints",
+        value: fingerprint,
+      })),
+
+      ...filters.developers.map((developer) => ({
+        label: developer,
+        orbColor: filterCategoryColors.developers,
+        key: "developers",
+        value: developer,
+      })),
+
+      ...filters.publishers.map((publisher) => ({
+        label: publisher,
+        orbColor: filterCategoryColors.publishers,
+        key: "publishers",
+        value: publisher,
+      })),
+    ];
+  }, [filters, steamUserTags, steamGenresMapping, language, downloadSources]);
+
+  const filterSections = useMemo(() => {
+    return [
+      {
+        title: t("genres"),
+        items: steamGenresFilterItems,
+        key: "genres",
+      },
+      {
+        title: t("tags"),
+        items: steamUserTagsFilterItems,
+        key: "tags",
+      },
+      {
+        title: t("download_sources"),
+        items: downloadSources.map((source) => ({
+          label: source.name,
+          value: source.fingerprint,
+          checked: filters.downloadSourceFingerprints.includes(
+            source.fingerprint
+          ),
+        })),
+        key: "downloadSourceFingerprints",
+      },
+      {
+        title: t("developers"),
+        items: steamDevelopers.map((developer) => ({
+          label: developer,
+          value: developer,
+          checked: filters.developers.includes(developer),
+        })),
+        key: "developers",
+      },
+      {
+        title: t("publishers"),
+        items: steamPublishers.map((publisher) => ({
+          label: publisher,
+          value: publisher,
+          checked: filters.publishers.includes(publisher),
+        })),
+        key: "publishers",
+      },
+    ];
+  }, [
+    downloadSources,
+    filters.developers,
+    filters.downloadSourceFingerprints,
+    filters.publishers,
+    steamDevelopers,
+    steamGenresFilterItems,
+    steamPublishers,
+    steamUserTagsFilterItems,
+    t,
+  ]);
 
   return (
     <div className="catalogue">
@@ -127,65 +225,35 @@ export default function Catalogue() {
         }}
       >
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {filters.genres.map((genre) => (
-            <Badge key={genre}>
-              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                <div
-                  style={{
-                    width: 10,
-                    height: 10,
-                    backgroundColor: filterCategoryColors.genres,
-                    borderRadius: "50%",
-                  }}
-                />
-
-                {genre}
-              </div>
-            </Badge>
-          ))}
-
-          <li
+          <ul
             style={{
               display: "flex",
-              alignItems: "center",
-              color: vars.color.body,
-              backgroundColor: vars.color.darkBackground,
-              padding: "6px 12px",
-              borderRadius: 4,
-              border: `solid 1px ${vars.color.border}`,
-              fontSize: 12,
+              gap: 8,
+              flexWrap: "wrap",
+              listStyle: "none",
+              margin: 0,
+              padding: 0,
             }}
           >
-            <div
-              style={{
-                width: 10,
-                height: 10,
-                backgroundColor: filterCategoryColors.genres,
-                borderRadius: "50%",
-                marginRight: 8,
-              }}
-            />
-            Action
-            <button
-              type="button"
-              style={{
-                color: vars.color.body,
-                marginLeft: 4,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-              }}
-            >
-              <XIcon size={13} />
-            </button>
-          </li>
+            {groupedFilters.map((filter) => (
+              <li key={filter.label}>
+                <FilterItem
+                  filter={filter.label}
+                  orbColor={filter.orbColor}
+                  onRemove={() => {
+                    dispatch(
+                      setFilters({
+                        [filter.key]: filters[filter.key].filter(
+                          (item) => item !== filter.value
+                        ),
+                      })
+                    );
+                  }}
+                />
+              </li>
+            ))}
+          </ul>
         </div>
-
-        {/* <Button theme="outline">
-          <XIcon />
-          Clear filters
-        </Button> */}
       </div>
 
       <div
@@ -220,236 +288,60 @@ export default function Catalogue() {
               ))}
             </SkeletonTheme>
           ) : (
-            gamesWithRepacks.map((game, i) => (
-              <button
-                type="button"
-                key={i}
-                className="catalogue__game-item"
-                onClick={() => navigate(buildGameDetailsPath(game))}
-              >
-                <img
-                  style={{
-                    width: 200,
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                  src={steamUrlBuilder.library(game.objectId)}
-                  alt={game.title}
-                  loading="lazy"
-                />
-
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "flex-start",
-                    gap: 4,
-                    padding: "16px 0",
-                  }}
-                >
-                  <span>{game.title}</span>
-                  <span
-                    style={{
-                      color: vars.color.body,
-                      marginBottom: 4,
-                      fontSize: 12,
-                    }}
-                  >
-                    {game.genres?.join(", ")}
-                  </span>
-
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {game.repacks.map((repack) => (
-                      <Badge key={repack}>{repack}</Badge>
-                    ))}
-                  </div>
-                </div>
-              </button>
-            ))
+            results.map((game) => <GameItem key={game.id} game={game} />)
           )}
 
-          {totalPages > 1 && (
-            <div style={{ display: "flex", gap: 8 }}>
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Button theme="outline" key={i} onClick={() => setPage(i + 1)}>
-                  {i + 1}
-                </Button>
-              ))}
-            </div>
-          )}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: 16,
+            }}
+          >
+            <span>{formatNumber(itemsCount)} resultados</span>
+
+            <Pagination
+              page={page}
+              totalPages={Math.ceil(itemsCount / PAGE_SIZE)}
+              onPageChange={setPage}
+            />
+          </div>
         </div>
 
         <div className="catalogue__filters-container">
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <FilterSection
-              title={t("genres")}
-              onClear={() => dispatch(setFilters({ genres: [] }))}
-              color={filterCategoryColors.genres}
-              onSelect={(value) => {
-                if (filters.genres.includes(value)) {
-                  dispatch(
-                    setFilters({
-                      genres: filters.genres.filter((genre) => genre !== value),
-                    })
-                  );
-                } else {
-                  dispatch(setFilters({ genres: [...filters.genres, value] }));
-                }
-              }}
-              items={[
-                "Action",
-                "Strategy",
-                "RPG",
-                "Casual",
-                "Racing",
-                "Sports",
-                "Indie",
-                "Adventure",
-                "Simulation",
-                "Massively Multiplayer",
-                "Free to Play",
-                "Accounting",
-                "Animation & Modeling",
-                "Audio Production",
-                "Design & Illustration",
-                "Education",
-                "Photo Editing",
-                "Software Training",
-                "Utilities",
-                "Video Production",
-                "Web Publishing",
-                "Game Development",
-                "Early Access",
-                "Sexual Content",
-                "Nudity",
-                "Violent",
-                "Gore",
-                "Documentary",
-                "Tutorial",
-              ]
-                .sort()
-                .map((genre) => ({
-                  label: genre,
-                  value: genre,
-                  checked: filters.genres.includes(genre),
-                }))}
-            />
-
-            <FilterSection
-              title={t("tags")}
-              color={filterCategoryColors.tags}
-              onClear={() => dispatch(setFilters({ tags: [] }))}
-              onSelect={(value) => {
-                if (filters.tags.includes(Number(value))) {
-                  dispatch(
-                    setFilters({
-                      tags: filters.tags.filter((tag) => tag !== Number(value)),
-                    })
-                  );
-                } else {
-                  dispatch(
-                    setFilters({ tags: [...filters.tags, Number(value)] })
-                  );
-                }
-              }}
-              items={
-                Object.entries(steamUserTags)
-                  .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-                  .map(([key, value]) => ({
-                    label: key,
-                    value: value,
-                    checked: filters.tags.includes(value as number),
-                  })) as any
-              }
-            />
-
-            <FilterSection
-              title={t("download_sources")}
-              color={filterCategoryColors.downloadSourceFingerprints}
-              onClear={() =>
-                dispatch(setFilters({ downloadSourceFingerprints: [] }))
-              }
-              onSelect={(value) => {
-                if (filters.downloadSourceFingerprints.includes(value)) {
-                  dispatch(
-                    setFilters({
-                      downloadSourceFingerprints:
-                        filters.downloadSourceFingerprints.filter(
-                          (fingerprint) => fingerprint !== value
-                        ),
-                    })
-                  );
-                } else {
-                  dispatch(
-                    setFilters({
-                      downloadSourceFingerprints: [
-                        ...filters.downloadSourceFingerprints,
-                        value,
-                      ],
-                    })
-                  );
-                }
-              }}
-              items={downloadSources.map((downloadSource) => ({
-                label: downloadSource.name,
-                value: downloadSource.fingerprint,
-                checked: filters.downloadSourceFingerprints.includes(
-                  downloadSource.fingerprint
-                ),
-              }))}
-            />
-
-            <FilterSection
-              title={t("developers")}
-              color={filterCategoryColors.developers}
-              onClear={() => dispatch(setFilters({ developers: [] }))}
-              onSelect={(value) => {
-                if (filters.developers.includes(value)) {
-                  dispatch(
-                    setFilters({
-                      developers: filters.developers.filter(
-                        (developer) => developer !== value
-                      ),
-                    })
-                  );
-                } else {
-                  dispatch(
-                    setFilters({ developers: [...filters.developers, value] })
-                  );
-                }
-              }}
-              items={developers.map((developer) => ({
-                label: developer,
-                value: developer,
-                checked: filters.developers.includes(developer),
-              }))}
-            />
-
-            <FilterSection
-              title={t("publishers")}
-              color={filterCategoryColors.publishers}
-              onClear={() => dispatch(setFilters({ publishers: [] }))}
-              onSelect={(value) => {
-                if (filters.publishers.includes(value)) {
-                  dispatch(
-                    setFilters({
-                      publishers: filters.publishers.filter(
-                        (publisher) => publisher !== value
-                      ),
-                    })
-                  );
-                } else {
-                  dispatch(
-                    setFilters({ publishers: [...filters.publishers, value] })
-                  );
-                }
-              }}
-              items={publishers.map((publisher) => ({
-                label: publisher,
-                value: publisher,
-                checked: filters.publishers.includes(publisher),
-              }))}
-            />
+            {filterSections.map((section) => (
+              <FilterSection
+                key={section.key}
+                title={section.title}
+                onClear={() => dispatch(setFilters({ [section.key]: [] }))}
+                color={filterCategoryColors[section.key]}
+                onSelect={(value) => {
+                  if (filters[section.key].includes(value)) {
+                    dispatch(
+                      setFilters({
+                        [section.key]: filters[
+                          section.key as
+                            | "genres"
+                            | "tags"
+                            | "downloadSourceFingerprints"
+                            | "developers"
+                            | "publishers"
+                        ].filter((item) => item !== value),
+                      })
+                    );
+                  } else {
+                    dispatch(
+                      setFilters({
+                        [section.key]: [...filters[section.key], value],
+                      })
+                    );
+                  }
+                }}
+                items={section.items}
+              />
+            ))}
           </div>
         </div>
       </div>

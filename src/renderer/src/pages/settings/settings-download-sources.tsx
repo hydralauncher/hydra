@@ -163,14 +163,8 @@ export function SettingsDownloadSources() {
 
               <button
                 type="button"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: `${SPACING_UNIT}px`,
-                  color: vars.color.muted,
-                  textDecoration: "underline",
-                  cursor: "pointer",
-                }}
+                className={styles.navigateToCatalogueButton}
+                disabled={!downloadSource.fingerprint}
                 onClick={() => navigateToCatalogue(downloadSource.fingerprint)}
               >
                 <small>
