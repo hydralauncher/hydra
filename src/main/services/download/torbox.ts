@@ -10,7 +10,7 @@ import { logger } from "../logger";
 
 export class TorBoxClient {
   private static instance: AxiosInstance;
-  private static baseURL = "https://api.torbox.app/v1/api";
+  private static readonly baseURL = "https://api.torbox.app/v1/api";
   public static apiToken: string;
 
   static authorize(apiToken: string) {

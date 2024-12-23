@@ -19,6 +19,7 @@ import { calculateETA, getDirSize } from "./helpers";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { RealDebridClient } from "./real-debrid";
 import path from "path";
+import { logger } from "../logger";
 
 export class DownloadManager {
   private static downloadingGameId: number | null = null;
@@ -164,6 +165,8 @@ export class DownloadManager {
 
     if (!seedStatus.length) return;
 
+    logger.log(seedStatus);
+
     seedStatus.forEach(async (status) => {
       const game = await gameRepository.findOne({
         where: { id: status.gameId },
@@ -172,7 +175,7 @@ export class DownloadManager {
       if (!game) return;
 
       const totalSize = await getDirSize(
-        path.join(game.downloadPath!, status.folderName!)
+        path.join(game.downloadPath!, status.folderName)
       );
 
       if (totalSize < status.fileSize) {
@@ -217,6 +220,22 @@ export class DownloadManager {
     WindowManager.mainWindow?.setProgressBar(-1);
 
     this.downloadingGameId = null;
+  }
+
+  static async resumeSeeding(game: Game) {
+    await PythonRPC.rpc.post("/action", {
+      action: "resume_seeding",
+      game_id: game.id,
+      url: game.uri,
+      save_path: game.downloadPath,
+    });
+  }
+
+  static async pauseSeeding(gameId: number) {
+    await PythonRPC.rpc.post("/action", {
+      action: "pause_seeding",
+      game_id: gameId,
+    });
   }
 
   static async startDownload(game: Game) {

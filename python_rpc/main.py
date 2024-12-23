@@ -148,6 +148,14 @@ def action():
         downloader = downloads.get(game_id)
         if downloader:
             downloader.cancel_download()
+    elif action == 'resume_seeding':
+        torrent_downloader = TorrentDownloader(torrent_session)
+        downloads[game_id] = torrent_downloader
+        torrent_downloader.start_download(data['url'], data['save_path'], "")
+    elif action == 'pause_seeding':
+        downloader = downloads.get(game_id)
+        if downloader:
+            downloader.cancel_download()
 
     else:
         return jsonify({"error": "Invalid action"}), 400
