@@ -105,6 +105,7 @@
     "open_folder": "Открыть папку",
     "open_download_location": "Просмотреть папку загрузок",
     "create_shortcut": "Создать ярлык на рабочем столе",
+    "clear": "Очистить",
     "remove_files": "Удалить файлы",
     "remove_from_library_title": "Вы уверены?",
     "remove_from_library_description": "{{game}} будет удалена из вашей библиотеки.",
@@ -114,7 +115,7 @@
     "downloads_secion_title": "Загрузки",
     "downloads_section_description": "Проверить наличие обновлений или других версий игры",
     "danger_zone_section_title": "Опасная зона",
-    "danger_zone_section_description": "Удалить эту игру из вашей библиотеки или файлы скачанные Hydra",
+    "danger_zone_section_description": "Вы можете удалить эту игру из вашей библиотеки или файлы скачанные из Hydra",
     "download_in_progress": "Идёт загрузка",
     "download_paused": "Загрузка приостановлена",
     "last_downloaded_option": "Последний вариант загрузки",
@@ -166,7 +167,8 @@
     "manage_files_description": "Управляйте файлами, которые будут сохраняться и восстанавливаться",
     "select_folder": "Выбрать папку",
     "backup_from": "Резервная копия от {{date}}",
-    "custom_backup_location_set": "Установлено настраиваемое местоположение резервной копии"
+    "custom_backup_location_set": "Установлено настраиваемое местоположение резервной копии",
+    "no_directory_selected": "Не выбран каталог"
   },
   "activation": {
     "title": "Активировать Hydra",
@@ -199,7 +201,11 @@
     "queued": "В очереди",
     "no_downloads_title": "Здесь так пусто...",
     "no_downloads_description": "Вы ещё ничего не скачали через Hydra, но никогда не поздно начать.",
-    "checking_files": "Проверка файлов…"
+    "checking_files": "Проверка файлов…",
+    "seeding": "Раздача",
+    "stop_seeding": "Остановить раздачу",
+    "resume_seeding": "Продолжить раздачу",
+    "options": "Управлять"
   },
   "settings": {
     "downloads_path": "Путь загрузок",
@@ -257,6 +263,7 @@
     "required_field": "Это поле обязательно к заполнению",
     "source_already_exists": "Этот источник уже добавлен",
     "user_unblocked": "Пользователь разблокирован",
+    "seed_after_download_complete": "Раздавать после завершения загрузки",
     "show_hidden_achievement_description": "Показывать описание скрытых достижений перед их получением"
   },
   "notifications": {
@@ -294,7 +301,7 @@
     "last_time_played": "Последняя игра {{period}}",
     "activity": "Недавняя активность",
     "library": "Библиотека",
-    "total_play_time": "Всего сыграно: {{amount}}",
+    "total_play_time": "Всего сыграно",
     "no_recent_activity_title": "Хммм... Тут ничего нет",
     "no_recent_activity_description": "Вы давно ни во что не играли. Пора это изменить!",
     "display_name": "Отображаемое имя",
@@ -353,19 +360,36 @@
     "report_reason_spam": "Спам",
     "report_reason_violence": "Насилие",
     "required_field": "Это поле обязательно к заполнению",
-    "undo_friendship_modal_text": "Это отменит вашу дружбу с {{displayName}}."
+    "undo_friendship_modal_text": "Это отменит вашу дружбу с {{displayName}}.",
+    "your_friend_code": "Код вашего друга:",
+    "upload_banner": "Загрузить баннер",
+    "uploading_banner": "Загрузка баннера...",
+    "background_image_updated": "Фоновое изображение обновлено",
+    "stats": "Статистика",
+    "games": "Игры",
+    "top_percentile": "Топ {{percentile}}%",
+    "ranking_updated_weekly": "Рейтинг обновляется еженедельно",
+    "playing": "Играет в {{game}}",
+    "achievements_unlocked": "Достижения разблокированы",
+    "show_achievements_on_profile": "Покажите свои достижения в профиле",
+    "show_points_on_profile": "Показывать заработанные очки в своем профиле"
   },
   "achievement": {
     "achievement_unlocked": "Достижение разблокировано",
     "user_achievements": "Достижения {{displayName}}",
     "your_achievements": "Ваши достижения",
-    "unlocked_at": "Разблокировано:",
+    "unlocked_at": "Разблокировано: {{date}}",
     "subscription_needed": "Для просмотра этого содержимого необходима подписка на Hydra Cloud",
     "new_achievements_unlocked": "Разблокировано {{achievementCount}} новых достижений из {{gameCount}} игр",
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} достижений",
-    "achievements_unlocked_for_game": "Разблокировано {{achievementCount}} новых достижений для {{gameTitle}}"
+    "achievements_unlocked_for_game": "Разблокировано {{achievementCount}} новых достижений для {{gameTitle}}",
+    "hidden_achievement_tooltip": "Это скрытое достижение",
+    "achievement_earn_points": "Заработайте {{points}} очков с этим достижением",
+    "earned_points": "Заработано очков:",
+    "available_points": "Доступные очки:",
+    "how_to_earn_achievements_points": "Как заработать очки достижений?"
   },
-  "tour": {
+  "hydra_cloud": {
     "subscription_tour_title": "Подписка Hydra Cloud",
     "subscribe_now": "Подпишитесь прямо сейчас",
     "cloud_saving": "Сохранение в облаке",
@@ -373,6 +397,9 @@
     "animated_profile_picture": "Анимированные фотографии профиля",
     "premium_support": "Премиальная поддержка",
     "show_and_compare_achievements": "Показывайте и сравнивайте свои достижения с достижениями других пользователей",
-    "animated_profile_banner": "Анимированный баннер профиля"
+    "animated_profile_banner": "Анимированный баннер профиля",
+    "hydra_cloud": "Hydra Cloud",
+    "hydra_cloud_feature_found": "Вы только что открыли для себя функцию Hydra Cloud!",
+    "learn_more": "Подробнее"
   }
 }
