@@ -22,7 +22,7 @@ const resumeGameSeed = async (
     shouldSeed: true,
   });
 
-  await DownloadManager.startDownload(game);
+  await DownloadManager.resumeSeeding(game);
 };
 
 registerEvent("resumeGameSeed", resumeGameSeed);
