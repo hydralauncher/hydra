@@ -1,11 +1,13 @@
 @use "../../scss/globals.scss";
 
 .catalogue {
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: calc(globals.$spacing-unit * 2);
   width: 100%;
   padding: 16px;
+  scroll-behavior: smooth;
 
   &__filters-container {
     width: 270px;
