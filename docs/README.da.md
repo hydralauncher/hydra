@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[<img src="./resources/icon.png" width="144"/>](https://hydralauncher.site)
+[<img src="../resources/icon.png" width="144"/>](https://hydralauncher.site)
 
   <h1 align="center">Hydra Launcher</h1>
 
@@ -14,7 +14,7 @@
 [![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
 
 [![pt-BR](https://img.shields.io/badge/lang-pt--BR-green.svg)](README.pt-BR.md)
-[![en](https://img.shields.io/badge/lang-en-red.svg)](README.md)
+[![en](https://img.shields.io/badge/lang-en-red.svg)](../README.md)
 [![ru](https://img.shields.io/badge/lang-ru-yellow.svg)](README.ru.md)
 [![uk-UA](https://img.shields.io/badge/lang-uk--UA-blue)](README.uk-UA.md)
 [![be](https://img.shields.io/badge/lang-be-orange)](README.be.md)
@@ -26,7 +26,7 @@
 [![da](https://img.shields.io/badge/lang-da-red)](README.da.md)
 [![et](https://img.shields.io/badge/lang-et-blue.svg)](README.et.md)
 
-![Hydra Catalogue](./screenshot.png)
+![Hydra Catalogue](screenshot.png)
 
 </div>
 
