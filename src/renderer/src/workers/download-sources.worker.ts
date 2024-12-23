@@ -155,60 +155,62 @@ self.onmessage = async (event: MessageEvent<Payload>) => {
       const downloadSources = await downloadSourcesTable.toArray();
       const existingRepacks = await repacksTable.toArray();
 
-      for (const downloadSource of downloadSources) {
-        console.log(downloadSource);
-        if (!downloadSource.fingerprint) {
-          await deleteDownloadSource(downloadSource.id);
-          await importDownloadSource(downloadSource.url);
-          continue;
-        }
+      if (downloadSources.some((source) => !source.fingerprint)) {
+        await Promise.all(
+          downloadSources.map(async (source) => {
+            await deleteDownloadSource(source.id);
+            await importDownloadSource(source.url);
+          })
+        );
+      } else {
+        for (const downloadSource of downloadSources) {
+          const headers = new AxiosHeaders();
 
-        const headers = new AxiosHeaders();
+          if (downloadSource.etag) {
+            headers.set("If-None-Match", downloadSource.etag);
+          }
 
-        if (downloadSource.etag) {
-          headers.set("If-None-Match", downloadSource.etag);
-        }
+          try {
+            const response = await axios.get(downloadSource.url, {
+              headers,
+            });
 
-        try {
-          const response = await axios.get(downloadSource.url, {
-            headers,
-          });
+            const source = downloadSourceSchema.parse(response.data);
 
-          const source = downloadSourceSchema.parse(response.data);
+            const steamGames = await getSteamGames();
 
-          const steamGames = await getSteamGames();
+            await db.transaction(
+              "rw",
+              repacksTable,
+              downloadSourcesTable,
+              async () => {
+                await downloadSourcesTable.update(downloadSource.id, {
+                  etag: response.headers["etag"],
+                  downloadCount: source.downloads.length,
+                  status: DownloadSourceStatus.UpToDate,
+                });
 
-          await db.transaction(
-            "rw",
-            repacksTable,
-            downloadSourcesTable,
-            async () => {
-              await downloadSourcesTable.update(downloadSource.id, {
-                etag: response.headers["etag"],
-                downloadCount: source.downloads.length,
-                status: DownloadSourceStatus.UpToDate,
-              });
+                const repacks = source.downloads.filter(
+                  (download) =>
+                    !existingRepacks.some(
+                      (repack) => repack.title === download.title
+                    )
+                );
 
-              const repacks = source.downloads.filter(
-                (download) =>
-                  !existingRepacks.some(
-                    (repack) => repack.title === download.title
-                  )
-              );
+                await addNewDownloads(downloadSource, repacks, steamGames);
 
-              await addNewDownloads(downloadSource, repacks, steamGames);
+                newRepacksCount += repacks.length;
+              }
+            );
+          } catch (err: unknown) {
+            const isNotModified = (err as AxiosError).response?.status === 304;
 
-              newRepacksCount += repacks.length;
-            }
-          );
-        } catch (err: unknown) {
-          const isNotModified = (err as AxiosError).response?.status === 304;
-
-          await downloadSourcesTable.update(downloadSource.id, {
-            status: isNotModified
-              ? DownloadSourceStatus.UpToDate
-              : DownloadSourceStatus.Errored,
-          });
+            await downloadSourcesTable.update(downloadSource.id, {
+              status: isNotModified
+                ? DownloadSourceStatus.UpToDate
+                : DownloadSourceStatus.Errored,
+            });
+          }
         }
       }
 
