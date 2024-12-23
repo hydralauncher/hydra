@@ -1,20 +1,20 @@
-import {
-  DownloadManager,
-  Ludusavi,
-  PythonInstance,
-  startMainLoop,
-} from "./services";
+import { DownloadManager, Ludusavi, startMainLoop } from "./services";
 import {
   downloadQueueRepository,
+  gameRepository,
   userPreferencesRepository,
 } from "./repository";
 import { UserPreferences } from "./entity";
-import { RealDebridClient } from "./services/real-debrid";
+import { RealDebridClient } from "./services/download/real-debrid";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
+import { Aria2 } from "./services/aria2";
+import { PythonRPC } from "./services/python-rpc";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
   import("./events");
+
+  Aria2.spawn();
 
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences?.realDebridApiToken);
@@ -35,10 +35,18 @@ const loadState = async (userPreferences: UserPreferences | null) => {
     },
   });
 
+  const seedList = await gameRepository.find({
+    where: {
+      shouldSeed: true,
+      downloader: 1,
+      progress: 1,
+    },
+  });
+
   if (nextQueueItem?.game.status === "active") {
-    DownloadManager.startDownload(nextQueueItem.game);
+    DownloadManager.startRPC(nextQueueItem.game, seedList);
   } else {
-    PythonInstance.spawn();
+    PythonRPC.spawn();
   }
 
   startMainLoop();

@@ -19,6 +19,7 @@ export function SettingsBehavior() {
     runAtStartup: false,
     startMinimized: false,
     disableNsfwAlert: false,
+    seedAfterDownloadComplete: false,
     showHiddenAchievementsDescription: false,
   });
 
@@ -31,6 +32,7 @@ export function SettingsBehavior() {
         runAtStartup: userPreferences.runAtStartup,
         startMinimized: userPreferences.startMinimized,
         disableNsfwAlert: userPreferences.disableNsfwAlert,
+        seedAfterDownloadComplete: userPreferences.seedAfterDownloadComplete,
         showHiddenAchievementsDescription:
           userPreferences.showHiddenAchievementsDescription,
       });
@@ -97,6 +99,16 @@ export function SettingsBehavior() {
         checked={form.disableNsfwAlert}
         onChange={() =>
           handleChange({ disableNsfwAlert: !form.disableNsfwAlert })
+        }
+      />
+
+      <CheckboxField
+        label={t("seed_after_download_complete")}
+        checked={form.seedAfterDownloadComplete}
+        onChange={() =>
+          handleChange({
+            seedAfterDownloadComplete: !form.seedAfterDownloadComplete,
+          })
         }
       />
 

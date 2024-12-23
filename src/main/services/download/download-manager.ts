@@ -1,39 +1,122 @@
 import { Game } from "@main/entity";
 import { Downloader } from "@shared";
-import { PythonInstance } from "./python-instance";
 import { WindowManager } from "../window-manager";
-import { downloadQueueRepository, gameRepository } from "@main/repository";
+import {
+  downloadQueueRepository,
+  gameRepository,
+  userPreferencesRepository,
+} from "@main/repository";
 import { publishDownloadCompleteNotification } from "../notifications";
-import { RealDebridDownloader } from "./real-debrid-downloader";
 import type { DownloadProgress } from "@types";
 import { GofileApi, QiwiApi } from "../hosters";
-import { GenericHttpDownloader } from "./generic-http-downloader";
+import { PythonRPC } from "../python-rpc";
+import {
+  LibtorrentPayload,
+  LibtorrentStatus,
+  PauseDownloadPayload,
+} from "./types";
+import { calculateETA, getDirSize } from "./helpers";
+import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+import { RealDebridClient } from "./real-debrid";
+import path from "path";
+import { logger } from "../logger";
 
 export class DownloadManager {
-  private static currentDownloader: Downloader | null = null;
   private static downloadingGameId: number | null = null;
 
-  public static async watchDownloads() {
-    let status: DownloadProgress | null = null;
+  public static startRPC(game: Game, initialSeeding?: Game[]) {
+    if (game && game.status === "active") {
+      PythonRPC.spawn(
+        {
+          game_id: game.id,
+          url: game.uri!,
+          save_path: game.downloadPath!,
+        },
+        initialSeeding?.map((game) => ({
+          game_id: game.id,
+          url: game.uri!,
+          save_path: game.downloadPath!,
+        }))
+      );
 
-    if (this.currentDownloader === Downloader.Torrent) {
-      status = await PythonInstance.getStatus();
-    } else if (this.currentDownloader === Downloader.RealDebrid) {
-      status = await RealDebridDownloader.getStatus();
-    } else {
-      status = await GenericHttpDownloader.getStatus();
+      this.downloadingGameId = game.id;
     }
+  }
+
+  private static async getDownloadStatus() {
+    const response = await PythonRPC.rpc.get<LibtorrentPayload | null>(
+      "/status"
+    );
+
+    if (response.data === null || !this.downloadingGameId) return null;
+
+    const gameId = this.downloadingGameId;
+
+    try {
+      const {
+        progress,
+        numPeers,
+        numSeeds,
+        downloadSpeed,
+        bytesDownloaded,
+        fileSize,
+        folderName,
+        status,
+      } = response.data;
+
+      const isDownloadingMetadata =
+        status === LibtorrentStatus.DownloadingMetadata;
+
+      const isCheckingFiles = status === LibtorrentStatus.CheckingFiles;
+
+      if (!isDownloadingMetadata && !isCheckingFiles) {
+        const update: QueryDeepPartialEntity<Game> = {
+          bytesDownloaded,
+          fileSize,
+          progress,
+          status: "active",
+        };
+
+        await gameRepository.update(
+          { id: gameId },
+          {
+            ...update,
+            folderName,
+          }
+        );
+      }
+
+      return {
+        numPeers,
+        numSeeds,
+        downloadSpeed,
+        timeRemaining: calculateETA(fileSize, bytesDownloaded, downloadSpeed),
+        isDownloadingMetadata,
+        isCheckingFiles,
+        progress,
+        gameId,
+      } as DownloadProgress;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  public static async watchDownloads() {
+    const status = await this.getDownloadStatus();
+
+    // status = await RealDebridDownloader.getStatus();
 
     if (status) {
       const { gameId, progress } = status;
-
       const game = await gameRepository.findOne({
         where: { id: gameId, isDeleted: false },
+      });
+      const userPreferences = await userPreferencesRepository.findOneBy({
+        id: 1,
       });
 
       if (WindowManager.mainWindow && game) {
         WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
-
         WindowManager.mainWindow.webContents.send(
           "on-download-progress",
           JSON.parse(
@@ -44,12 +127,27 @@ export class DownloadManager {
           )
         );
       }
-
       if (progress === 1 && game) {
         publishDownloadCompleteNotification(game);
 
-        await downloadQueueRepository.delete({ game });
+        if (
+          userPreferences?.seedAfterDownloadComplete &&
+          game.downloader === Downloader.Torrent
+        ) {
+          gameRepository.update(
+            { id: gameId },
+            { status: "seeding", shouldSeed: true }
+          );
+        } else {
+          gameRepository.update(
+            { id: gameId },
+            { status: "complete", shouldSeed: false }
+          );
 
+          this.cancelDownload(gameId);
+        }
+
+        await downloadQueueRepository.delete({ game });
         const [nextQueueItem] = await downloadQueueRepository.find({
           order: {
             id: "DESC",
@@ -58,25 +156,61 @@ export class DownloadManager {
             game: true,
           },
         });
-
         if (nextQueueItem) {
           this.resumeDownload(nextQueueItem.game);
+        } else {
+          this.downloadingGameId = -1;
         }
       }
     }
   }
 
+  public static async getSeedStatus() {
+    const seedStatus = await PythonRPC.rpc
+      .get<LibtorrentPayload[] | []>("/seed-status")
+      .then((res) => res.data);
+
+    if (!seedStatus.length) return;
+
+    logger.log(seedStatus);
+
+    seedStatus.forEach(async (status) => {
+      const game = await gameRepository.findOne({
+        where: { id: status.gameId },
+      });
+
+      if (!game) return;
+
+      const totalSize = await getDirSize(
+        path.join(game.downloadPath!, status.folderName)
+      );
+
+      if (totalSize < status.fileSize) {
+        await this.cancelDownload(game.id);
+
+        await gameRepository.update(game.id, {
+          status: "paused",
+          shouldSeed: false,
+          progress: totalSize / status.fileSize,
+        });
+
+        WindowManager.mainWindow?.webContents.send("on-hard-delete");
+      }
+    });
+
+    WindowManager.mainWindow?.webContents.send("on-seeding-status", seedStatus);
+  }
+
   static async pauseDownload() {
-    if (this.currentDownloader === Downloader.Torrent) {
-      await PythonInstance.pauseDownload();
-    } else if (this.currentDownloader === Downloader.RealDebrid) {
-      await RealDebridDownloader.pauseDownload();
-    } else {
-      await GenericHttpDownloader.pauseDownload();
-    }
+    await PythonRPC.rpc
+      .post("/action", {
+        action: "pause",
+        game_id: this.downloadingGameId,
+      } as PauseDownloadPayload)
+      .catch(() => {});
 
     WindowManager.mainWindow?.setProgressBar(-1);
-    this.currentDownloader = null;
+
     this.downloadingGameId = null;
   }
 
@@ -85,17 +219,30 @@ export class DownloadManager {
   }
 
   static async cancelDownload(gameId = this.downloadingGameId!) {
-    if (this.currentDownloader === Downloader.Torrent) {
-      PythonInstance.cancelDownload(gameId);
-    } else if (this.currentDownloader === Downloader.RealDebrid) {
-      RealDebridDownloader.cancelDownload(gameId);
-    } else {
-      GenericHttpDownloader.cancelDownload(gameId);
-    }
+    await PythonRPC.rpc.post("/action", {
+      action: "cancel",
+      game_id: gameId,
+    });
 
     WindowManager.mainWindow?.setProgressBar(-1);
-    this.currentDownloader = null;
+
     this.downloadingGameId = null;
+  }
+
+  static async resumeSeeding(game: Game) {
+    await PythonRPC.rpc.post("/action", {
+      action: "resume_seeding",
+      game_id: game.id,
+      url: game.uri,
+      save_path: game.downloadPath,
+    });
+  }
+
+  static async pauseSeeding(gameId: number) {
+    await PythonRPC.rpc.post("/action", {
+      action: "pause_seeding",
+      game_id: gameId,
+    });
   }
 
   static async startDownload(game: Game) {
@@ -106,34 +253,57 @@ export class DownloadManager {
         const token = await GofileApi.authorize();
         const downloadLink = await GofileApi.getDownloadLink(id!);
 
-        GenericHttpDownloader.startDownload(game, downloadLink, {
-          Cookie: `accountToken=${token}`,
+        await PythonRPC.rpc.post("/action", {
+          action: "start",
+          game_id: game.id,
+          url: downloadLink,
+          save_path: game.downloadPath,
+          header: `Cookie: accountToken=${token}`,
         });
         break;
       }
       case Downloader.PixelDrain: {
         const id = game!.uri!.split("/").pop();
 
-        await GenericHttpDownloader.startDownload(
-          game,
-          `https://pixeldrain.com/api/file/${id}?download`
-        );
+        await PythonRPC.rpc.post("/action", {
+          action: "start",
+          game_id: game.id,
+          url: `https://pixeldrain.com/api/file/${id}?download`,
+          save_path: game.downloadPath,
+        });
         break;
       }
       case Downloader.Qiwi: {
         const downloadUrl = await QiwiApi.getDownloadUrl(game.uri!);
 
-        await GenericHttpDownloader.startDownload(game, downloadUrl);
+        await PythonRPC.rpc.post("/action", {
+          action: "start",
+          game_id: game.id,
+          url: downloadUrl,
+          save_path: game.downloadPath,
+        });
         break;
       }
       case Downloader.Torrent:
-        PythonInstance.startDownload(game);
+        await PythonRPC.rpc.post("/action", {
+          action: "start",
+          game_id: game.id,
+          url: game.uri,
+          save_path: game.downloadPath,
+        });
         break;
-      case Downloader.RealDebrid:
-        RealDebridDownloader.startDownload(game);
+      case Downloader.RealDebrid: {
+        const downloadUrl = await RealDebridClient.getDownloadUrl(game.uri!);
+
+        await PythonRPC.rpc.post("/action", {
+          action: "start",
+          game_id: game.id,
+          url: downloadUrl,
+          save_path: game.downloadPath,
+        });
+      }
     }
 
-    this.currentDownloader = game.downloader;
     this.downloadingGameId = game.id;
   }
 }
