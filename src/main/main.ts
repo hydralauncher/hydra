@@ -9,7 +9,6 @@ import { RealDebridClient } from "./services/download/real-debrid";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
 import { Aria2 } from "./services/aria2";
-import { PythonRPC } from "./services/python-rpc";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
   import("./events");
@@ -43,11 +42,7 @@ const loadState = async (userPreferences: UserPreferences | null) => {
     },
   });
 
-  if (nextQueueItem?.game.status === "active") {
-    DownloadManager.startRPC(nextQueueItem.game, seedList);
-  } else {
-    PythonRPC.spawn();
-  }
+  await DownloadManager.startRPC(nextQueueItem?.game, seedList);
 
   startMainLoop();
 };

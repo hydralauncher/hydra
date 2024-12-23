@@ -154,7 +154,7 @@ export function Sidebar() {
                   <div>
                     <p>{achievement.displayName}</p>
                     <small>
-                      {achievement.unlockTime &&
+                      {achievement.unlockTime != null &&
                         formatDateTime(achievement.unlockTime)}
                     </small>
                   </div>
@@ -203,7 +203,7 @@ export function Sidebar() {
                   <div>
                     <p>{achievement.displayName}</p>
                     <small>
-                      {achievement.unlockTime &&
+                      {achievement.unlockTime != null &&
                         formatDateTime(achievement.unlockTime)}
                     </small>
                   </div>
