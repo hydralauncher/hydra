@@ -172,7 +172,7 @@ export class DownloadManager {
       if (!game) return;
 
       const totalSize = await getDirSize(
-        path.join(game.downloadPath!, status.folderName!)
+        path.join(game.downloadPath!, status.folderName)
       );
 
       if (totalSize < status.fileSize) {
