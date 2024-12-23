@@ -175,7 +175,7 @@ export function Sidebar() {
             {!hasActiveSubscription && (
               <button
                 className={styles.subscriptionRequiredButton}
-                onClick={showHydraCloudModal}
+                onClick={() => showHydraCloudModal("achievements")}
               >
                 <CloudOfflineIcon size={16} />
                 <span>{t("achievements_not_sync")}</span>

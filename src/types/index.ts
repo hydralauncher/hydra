@@ -14,6 +14,11 @@ export type GameShop = "steam" | "epic";
 
 export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
 
+export type HydraCloudFeature =
+  | "achievements"
+  | "backup"
+  | "achievements-points";
+
 export interface GameRepack {
   id: number;
   title: string;

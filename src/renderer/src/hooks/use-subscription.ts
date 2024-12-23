@@ -4,17 +4,21 @@ import {
   setHydraCloudModalVisible,
   setHydraCloudModalHidden,
 } from "@renderer/features";
+import { HydraCloudFeature } from "@types";
 
 export function useSubscription() {
   const dispatch = useAppDispatch();
 
-  const { isHydraCloudModalVisible } = useAppSelector(
+  const { isHydraCloudModalVisible, feature } = useAppSelector(
     (state) => state.subscription
   );
 
-  const showHydraCloudModal = useCallback(() => {
-    dispatch(setHydraCloudModalVisible());
-  }, [dispatch]);
+  const showHydraCloudModal = useCallback(
+    (feature: HydraCloudFeature) => {
+      dispatch(setHydraCloudModalVisible(feature));
+    },
+    [dispatch]
+  );
 
   const hideHydraCloudModal = useCallback(() => {
     dispatch(setHydraCloudModalHidden());
@@ -22,6 +26,7 @@ export function useSubscription() {
 
   return {
     isHydraCloudModalVisible,
+    hydraCloudFeature: feature,
     showHydraCloudModal,
     hideHydraCloudModal,
   };

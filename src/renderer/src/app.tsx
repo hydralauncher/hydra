@@ -58,7 +58,8 @@ export function App() {
     clearUserDetails,
   } = useUserDetails();
 
-  const { hideHydraCloudModal, isHydraCloudModalVisible } = useSubscription();
+  const { hideHydraCloudModal, isHydraCloudModalVisible, hydraCloudFeature } =
+    useSubscription();
 
   const dispatch = useAppDispatch();
 
@@ -252,6 +253,7 @@ export function App() {
       <HydraCloudModal
         visible={isHydraCloudModalVisible}
         onClose={hideHydraCloudModal}
+        feature={hydraCloudFeature}
       />
 
       {userDetails && (

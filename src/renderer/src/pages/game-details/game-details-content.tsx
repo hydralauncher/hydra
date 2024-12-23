@@ -106,7 +106,7 @@ export function GameDetailsContent() {
     }
 
     if (!hasActiveSubscription) {
-      showHydraCloudModal();
+      showHydraCloudModal("backup");
       return;
     }
 

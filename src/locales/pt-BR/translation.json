@@ -373,7 +373,8 @@
     "playing": "Jogando {{game}}",
     "achievements_unlocked": "Conquistas desbloqueadas",
     "earned_points": "Pontos ganhos",
-    "show_achievements_on_profile": "Exiba suas conquistas e pontos no perfil"
+    "show_achievements_on_profile": "Exiba suas conquistas no perfil",
+    "show_points_on_profile": "Exiba seus pontos ganhos no perfil"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",
@@ -400,6 +401,7 @@
     "show_and_compare_achievements": "Exiba e compare suas conquistas com outros usuários",
     "animated_profile_banner": "Banner animado no perfil",
     "cloud_saving": "Saves de jogos em nuvem",
-    "hydra_cloud_feature_found": "Você descobriu uma funcionalidade Hydra Cloud!"
+    "hydra_cloud_feature_found": "Você descobriu uma funcionalidade Hydra Cloud!",
+    "learn_more": "Saiba mais"
   }
 }
