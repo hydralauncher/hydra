@@ -4,11 +4,11 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 import type { CatalogueSearchPayload } from "@types";
 
 export interface CatalogueSearchState {
-  value: CatalogueSearchPayload;
+  filters: CatalogueSearchPayload;
 }
 
 const initialState: CatalogueSearchState = {
-  value: {
+  filters: {
     title: "",
     downloadSourceFingerprints: [],
     tags: [],
@@ -22,16 +22,16 @@ export const catalogueSearchSlice = createSlice({
   name: "catalogueSearch",
   initialState,
   reducers: {
-    setSearch: (
+    setFilters: (
       state,
       action: PayloadAction<Partial<CatalogueSearchPayload>>
     ) => {
-      state.value = { ...state.value, ...action.payload };
+      state.filters = { ...state.filters, ...action.payload };
     },
-    clearSearch: (state) => {
-      state.value = initialState.value;
+    clearFilters: (state) => {
+      state.filters = initialState.filters;
     },
   },
 });
 
-export const { setSearch, clearSearch } = catalogueSearchSlice.actions;
+export const { setFilters, clearFilters } = catalogueSearchSlice.actions;
