@@ -42,3 +42,17 @@ export const downloadSourcesHeader = style({
   justifyContent: "space-between",
   alignItems: "center",
 });
+
+export const navigateToCatalogueButton = style({
+  display: "flex",
+  alignItems: "center",
+  gap: `${SPACING_UNIT}px`,
+  color: vars.color.muted,
+  textDecoration: "underline",
+  cursor: "pointer",
+
+  ":disabled": {
+    cursor: "default",
+    textDecoration: "none",
+  },
+});

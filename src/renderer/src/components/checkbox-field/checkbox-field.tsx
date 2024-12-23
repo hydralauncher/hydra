@@ -15,7 +15,7 @@ export function CheckboxField({ label, ...props }: CheckboxFieldProps) {
 
   return (
     <div className={styles.checkboxField}>
-      <div className={styles.checkbox}>
+      <div className={styles.checkbox({ checked: props.checked })}>
         <input
           id={id}
           type="checkbox"
