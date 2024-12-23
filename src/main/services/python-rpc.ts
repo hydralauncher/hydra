@@ -9,6 +9,12 @@ import { logger } from "./logger";
 import { Readable } from "node:stream";
 import { app, dialog } from "electron";
 
+interface StartDownloadPayload {
+  game_id: number;
+  url: string;
+  save_path: string;
+}
+
 const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
   darwin: "hydra-python-rpc",
   linux: "hydra-python-rpc",
@@ -36,9 +42,15 @@ export class PythonRPC {
     readable.on("data", logger.log);
   }
 
-  public static spawn() {
+  public static spawn(initialDownload?: StartDownloadPayload) {
     console.log([this.BITTORRENT_PORT, this.RPC_PORT, this.RPC_PASSWORD]);
-    const commonArgs = [this.BITTORRENT_PORT, this.RPC_PORT, this.RPC_PASSWORD];
+
+    const commonArgs = [
+      this.BITTORRENT_PORT,
+      this.RPC_PORT,
+      this.RPC_PASSWORD,
+      initialDownload ? JSON.stringify(initialDownload) : "",
+    ];
 
     if (app.isPackaged) {
       const binaryName = binaryNameByPlatform[process.platform]!;

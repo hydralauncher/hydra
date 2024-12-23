@@ -11,12 +11,27 @@ app = Flask(__name__)
 torrent_port = sys.argv[1]
 http_port = sys.argv[2]
 rpc_password = sys.argv[3]
+start_download_payload = sys.argv[4]
 
 downloads = {}
 # This can be streamed down from Node
 downloading_game_id = -1
 
 torrent_session = lt.session({'listen_interfaces': '0.0.0.0:{port}'.format(port=torrent_port)})
+
+if start_download_payload:
+    initial_download = json.loads(urllib.parse.unquote(start_download_payload))
+    downloading_game_id = initial_download['game_id']
+    
+    if initial_download['url'].startswith('magnet'):
+        torrent_downloader = TorrentDownloader(torrent_session)
+        downloads[initial_download['game_id']] = torrent_downloader
+        torrent_downloader.start_download(initial_download['url'], initial_download['save_path'], "")
+    else:
+        http_downloader = HttpDownloader()
+        downloads[initial_download['game_id']] = http_downloader
+        http_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'))
+
 
 def validate_rpc_password():
     """Middleware to validate RPC password."""
