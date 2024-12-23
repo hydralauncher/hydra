@@ -24,23 +24,19 @@ import { logger } from "../logger";
 export class DownloadManager {
   private static downloadingGameId: number | null = null;
 
-  public static startRPC(game: Game, initialSeeding?: Game[]) {
-    if (game && game.status === "active") {
-      PythonRPC.spawn(
-        {
-          game_id: game.id,
-          url: game.uri!,
-          save_path: game.downloadPath!,
-        },
-        initialSeeding?.map((game) => ({
-          game_id: game.id,
-          url: game.uri!,
-          save_path: game.downloadPath!,
-        }))
-      );
+  public static async startRPC(game?: Game, initialSeeding?: Game[]) {
+    PythonRPC.spawn(
+      game?.status === "active"
+        ? await this.getDownloadPayload(game).catch(() => undefined)
+        : undefined,
+      initialSeeding?.map((game) => ({
+        game_id: game.id,
+        url: game.uri!,
+        save_path: game.downloadPath!,
+      }))
+    );
 
-      this.downloadingGameId = game.id;
-    }
+    this.downloadingGameId = game?.id ?? null;
   }
 
   private static async getDownloadStatus() {
@@ -245,7 +241,7 @@ export class DownloadManager {
     });
   }
 
-  static async startDownload(game: Game) {
+  private static async getDownloadPayload(game: Game) {
     switch (game.downloader) {
       case Downloader.Gofile: {
         const id = game!.uri!.split("/").pop();
@@ -253,56 +249,58 @@ export class DownloadManager {
         const token = await GofileApi.authorize();
         const downloadLink = await GofileApi.getDownloadLink(id!);
 
-        await PythonRPC.rpc.post("/action", {
+        return {
           action: "start",
           game_id: game.id,
           url: downloadLink,
-          save_path: game.downloadPath,
+          save_path: game.downloadPath!,
           header: `Cookie: accountToken=${token}`,
-        });
-        break;
+        };
       }
       case Downloader.PixelDrain: {
         const id = game!.uri!.split("/").pop();
 
-        await PythonRPC.rpc.post("/action", {
+        return {
           action: "start",
           game_id: game.id,
           url: `https://pixeldrain.com/api/file/${id}?download`,
-          save_path: game.downloadPath,
-        });
-        break;
+          save_path: game.downloadPath!,
+        };
       }
       case Downloader.Qiwi: {
         const downloadUrl = await QiwiApi.getDownloadUrl(game.uri!);
 
-        await PythonRPC.rpc.post("/action", {
+        return {
           action: "start",
           game_id: game.id,
           url: downloadUrl,
-          save_path: game.downloadPath,
-        });
-        break;
+          save_path: game.downloadPath!,
+        };
       }
       case Downloader.Torrent:
-        await PythonRPC.rpc.post("/action", {
+        return {
           action: "start",
           game_id: game.id,
-          url: game.uri,
-          save_path: game.downloadPath,
-        });
-        break;
+          url: game.uri!,
+          save_path: game.downloadPath!,
+        };
       case Downloader.RealDebrid: {
         const downloadUrl = await RealDebridClient.getDownloadUrl(game.uri!);
 
-        await PythonRPC.rpc.post("/action", {
+        return {
           action: "start",
           game_id: game.id,
-          url: downloadUrl,
-          save_path: game.downloadPath,
-        });
+          url: downloadUrl!,
+          save_path: game.downloadPath!,
+        };
       }
     }
+  }
+
+  static async startDownload(game: Game) {
+    const payload = await this.getDownloadPayload(game);
+
+    await PythonRPC.rpc.post("/action", payload);
 
     this.downloadingGameId = game.id;
   }

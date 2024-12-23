@@ -124,8 +124,6 @@ def action():
     action = data.get('action')
     game_id = data.get('game_id')
 
-    print(data)
-
     if action == 'start':
         url = data.get('url')
 
