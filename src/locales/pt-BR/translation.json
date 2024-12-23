@@ -290,9 +290,9 @@
     "tags": "Marcadores",
     "publishers": "Distribuidoras",
     "download_sources": "Fontes de download",
-    "result_count": "{{count}} resultados",
-    "filter_count": "{{count}} disponíveis",
-    "clear_filters": "Limpar {{count}} selecionados"
+    "result_count": "{{resultCount}} resultados",
+    "filter_count": "{{filterCount}} disponíveis",
+    "clear_filters": "Limpar {{filterCount}} selecionados"
   },
   "modal": {
     "close": "Botão de fechar"
