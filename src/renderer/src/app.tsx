@@ -27,6 +27,8 @@ import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { downloadSourcesWorker } from "./workers";
 import { downloadSourcesTable } from "./dexie";
+import { useSubscription } from "./hooks/use-subscription";
+import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -43,20 +45,20 @@ export function App() {
   const { clearDownload, setLastPacket } = useDownload();
 
   const {
+    userDetails,
+    hasActiveSubscription,
     isFriendsModalVisible,
     friendRequetsModalTab,
     friendModalUserId,
     syncFriendRequests,
     hideFriendsModal,
-  } = useUserDetails();
-
-  const {
-    userDetails,
-    hasActiveSubscription,
     fetchUserDetails,
     updateUserDetails,
     clearUserDetails,
   } = useUserDetails();
+
+  const { hideHydraCloudModal, isHydraCloudModalVisible, hydraCloudFeature } =
+    useSubscription();
 
   const dispatch = useAppDispatch();
 
@@ -253,6 +255,12 @@ export function App() {
         message={toast.message}
         type={toast.type}
         onClose={handleToastClose}
+      />
+
+      <HydraCloudModal
+        visible={isHydraCloudModalVisible}
+        onClose={hideHydraCloudModal}
+        feature={hydraCloudFeature}
       />
 
       {userDetails && (

@@ -23,7 +23,7 @@ interface HydraApiUserAuth {
   authToken: string;
   refreshToken: string;
   expirationTimestamp: number;
-  subscription: { expiresAt: Date | null } | null;
+  subscription: { expiresAt: Date | string | null } | null;
 }
 
 export class HydraApi {
@@ -159,7 +159,11 @@ export class HydraApi {
             config.method,
             config.baseURL,
             config.url,
-            omit(config.headers, ["accessToken", "refreshToken"]),
+            omit(config.headers, [
+              "accessToken",
+              "refreshToken",
+              "Authorization",
+            ]),
             Array.isArray(data)
               ? data
               : omit(data, ["accessToken", "refreshToken"])
@@ -182,8 +186,6 @@ export class HydraApi {
       );
     }
 
-    await getUserData();
-
     const userAuth = await userAuthRepository.findOne({
       where: { id: 1 },
       relations: { subscription: true },
@@ -197,6 +199,14 @@ export class HydraApi {
         ? { expiresAt: userAuth.subscription?.expiresAt }
         : null,
     };
+
+    const updatedUserData = await getUserData();
+
+    this.userAuth.subscription = updatedUserData?.subscription
+      ? {
+          expiresAt: updatedUserData.subscription.expiresAt,
+        }
+      : null;
   }
 
   private static sendSignOutEvent() {
@@ -284,10 +294,8 @@ export class HydraApi {
       await this.revalidateAccessTokenIfExpired();
     }
 
-    if (needsSubscription) {
-      if (!(await this.hasActiveSubscription())) {
-        throw new SubscriptionRequiredError();
-      }
+    if (needsSubscription && !this.hasActiveSubscription()) {
+      throw new SubscriptionRequiredError();
     }
   }
 

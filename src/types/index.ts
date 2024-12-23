@@ -14,6 +14,11 @@ export type GameShop = "steam" | "epic";
 
 export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
 
+export type HydraCloudFeature =
+  | "achievements"
+  | "backup"
+  | "achievements-points";
+
 export interface GameRepack {
   id: number;
   title: string;
@@ -33,12 +38,14 @@ export interface AchievementData {
   icon: string;
   icongray: string;
   hidden: boolean;
+  points?: number;
 }
 
 export interface UserAchievement {
   name: string;
   hidden: boolean;
   displayName: string;
+  points?: number;
   description?: string;
   unlocked: boolean;
   unlockTime: number | null;
@@ -85,6 +92,7 @@ export interface UserGame {
   lastTimePlayed: Date | null;
   unlockedAchievementCount: number;
   achievementCount: number;
+  achievementsPointsEarnedSum: number;
 }
 
 export interface DownloadQueue {
@@ -194,6 +202,13 @@ export interface UserFriend {
   profileImageUrl: string | null;
   createdAt: string;
   updatedAt: string;
+  currentGame: {
+    title: string;
+    iconUrl: string;
+    objectId: string;
+    shop: GameShop;
+    sessionDurationInSeconds: number;
+  } | null;
 }
 
 export interface UserFriends {
@@ -324,9 +339,17 @@ export interface TrendingGame {
   logo: string | null;
 }
 
+export interface UserStatsPercentile {
+  value: number;
+  topPercentile: number;
+}
+
 export interface UserStats {
   libraryCount: number;
   friendsCount: number;
+  totalPlayTimeInSeconds: UserStatsPercentile;
+  achievementsPointsEarnedSum?: UserStatsPercentile;
+  unlockedAchievementSum?: number;
 }
 
 export interface UnlockedAchievement {
@@ -354,15 +377,18 @@ export interface GameArtifact {
 }
 
 export interface ComparedAchievements {
+  achievementsPointsTotal: number;
   owner: {
     totalAchievementCount: number;
     unlockedAchievementCount: number;
+    achievementsPointsEarnedSum?: number;
   };
   target: {
     displayName: string;
     profileImageUrl: string;
     totalAchievementCount: number;
     unlockedAchievementCount: number;
+    achievementsPointsEarnedSum: number;
   };
   achievements: {
     hidden: boolean;
