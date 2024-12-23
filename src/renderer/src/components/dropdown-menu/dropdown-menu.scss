@@ -1,0 +1,68 @@
+@use "../../scss/globals.scss";
+
+.dropdown-menu {
+  &__content {
+    background-color: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+    min-width: 200px;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  &__group {
+    width: 100%;
+    padding: 4px;
+  }
+
+  &__title-bar {
+    width: 100%;
+    padding: 4px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: globals.$muted-color;
+  }
+
+  &__separator {
+    width: 100%;
+    height: 1px;
+    background-color: globals.$border-color;
+  }
+
+  &__item {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    border-radius: 4px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: background-color 0.1s ease-in-out;
+    font-size: 14px;
+  }
+
+  &__item--disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  &:not(&__item--disabled) &__item:hover {
+    background-color: globals.$background-color;
+    color: globals.$muted-color;
+  }
+
+  &__item:focus {
+    background-color: globals.$background-color;
+    outline: none;
+  }
+
+  &__item-icon {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

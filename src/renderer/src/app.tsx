@@ -104,6 +104,14 @@ export function App() {
   }, [clearDownload, setLastPacket, updateLibrary]);
 
   useEffect(() => {
+    const unsubscribe = window.electron.onHardDelete(() => {
+      updateLibrary();
+    });
+
+    return () => unsubscribe();
+  }, [updateLibrary]);
+
+  useEffect(() => {
     const cachedUserDetails = window.localStorage.getItem("userDetails");
 
     if (cachedUserDetails) {

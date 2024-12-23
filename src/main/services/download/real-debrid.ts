@@ -9,7 +9,7 @@ import type {
 
 export class RealDebridClient {
   private static instance: AxiosInstance;
-  private static baseURL = "https://api.real-debrid.com/rest/1.0";
+  private static readonly baseURL = "https://api.real-debrid.com/rest/1.0";
 
   static authorize(apiToken: string) {
     this.instance = axios.create({
@@ -82,5 +82,38 @@ export class RealDebridClient {
 
     const torrent = await RealDebridClient.addMagnet(magnetUri);
     return torrent.id;
+  }
+
+  public static async getDownloadUrl(uri: string) {
+    let realDebridTorrentId: string | null = null;
+
+    if (uri.startsWith("magnet:")) {
+      realDebridTorrentId = await this.getTorrentId(uri);
+    }
+
+    if (realDebridTorrentId) {
+      let torrentInfo = await this.getTorrentInfo(realDebridTorrentId);
+
+      if (torrentInfo.status === "waiting_files_selection") {
+        await this.selectAllFiles(realDebridTorrentId);
+
+        torrentInfo = await this.getTorrentInfo(realDebridTorrentId);
+      }
+
+      const { links, status } = torrentInfo;
+
+      if (status === "downloaded") {
+        const [link] = links;
+
+        const { download } = await this.unrestrictLink(link);
+        return decodeURIComponent(download);
+      }
+
+      return null;
+    }
+
+    const { download } = await this.unrestrictLink(uri);
+
+    return decodeURIComponent(download);
   }
 }
