@@ -6,6 +6,7 @@ import type {
   TorBoxAddTorrentRequest,
   TorBoxRequestLinkRequest,
 } from "@types";
+import { logger } from "../logger";
 
 export class TorBoxClient {
   private static instance: AxiosInstance;
@@ -65,8 +66,8 @@ export class TorBoxClient {
     );
 
     if (response.status !== 200) {
-      console.error(response.data.error);
-      console.error(response.data.detail);
+      logger.error(response.data.error);
+      logger.error(response.data.detail);
       return null;
     }
 
