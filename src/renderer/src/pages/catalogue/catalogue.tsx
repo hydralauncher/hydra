@@ -33,6 +33,7 @@ const PAGE_SIZE = 20;
 
 export default function Catalogue() {
   const abortControllerRef = useRef<AbortController | null>(null);
+  const cataloguePageRef = useRef<HTMLDivElement>(null);
 
   const { steamGenres, steamUserTags, steamDevelopers, steamPublishers } =
     useCatalogue();
@@ -214,7 +215,7 @@ export default function Catalogue() {
   ]);
 
   return (
-    <div className="catalogue">
+    <div className="catalogue" ref={cataloguePageRef}>
       <div
         style={{
           display: "flex",
@@ -303,7 +304,12 @@ export default function Catalogue() {
             <Pagination
               page={page}
               totalPages={Math.ceil(itemsCount / PAGE_SIZE)}
-              onPageChange={(page) => dispatch(setPage(page))}
+              onPageChange={(page) => {
+                dispatch(setPage(page));
+                if (cataloguePageRef.current) {
+                  cataloguePageRef.current.scrollTop = 0;
+                }
+              }}
             />
           </div>
         </div>
