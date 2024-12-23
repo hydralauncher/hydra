@@ -1,4 +1,4 @@
-import { DownloadManager, Ludusavi, startMainLoop } from "./services";
+import { Ludusavi, startMainLoop } from "./services";
 import {
   downloadQueueRepository,
   userPreferencesRepository,
@@ -10,7 +10,6 @@ import { uploadGamesBatch } from "./services/library-sync";
 import { PythonRPC } from "./services/python-rpc";
 import { Aria2 } from "./services/aria2";
 import { startSeedProcess } from "./services/seed";
-import { sleep } from "./helpers";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
   import("./events");
@@ -36,12 +35,19 @@ const loadState = async (userPreferences: UserPreferences | null) => {
     },
   });
 
-  PythonRPC.spawn();
-  await sleep(1000);
-  // wait for python process to start
-
-  if (nextQueueItem?.game.status === "active") {
-    DownloadManager.startDownload(nextQueueItem.game);
+  if (
+    nextQueueItem?.game.status === "active" &&
+    nextQueueItem?.game.id &&
+    nextQueueItem?.game.uri &&
+    nextQueueItem?.game.downloadPath
+  ) {
+    PythonRPC.spawn({
+      game_id: nextQueueItem.game.id,
+      url: nextQueueItem.game.uri,
+      save_path: nextQueueItem.game.downloadPath,
+    });
+  } else {
+    PythonRPC.spawn();
   }
 
   await startSeedProcess();
