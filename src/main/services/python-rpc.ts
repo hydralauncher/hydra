@@ -8,7 +8,6 @@ import crypto from "node:crypto";
 import { logger } from "./logger";
 import { Readable } from "node:stream";
 import { app, dialog } from "electron";
-import { startSeedProcess } from "./seed";
 
 const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
   darwin: "hydra-python-rpc",
@@ -84,8 +83,6 @@ export class PythonRPC {
       this.logStderr(childProcess.stderr);
 
       this.pythonProcess = childProcess;
-
-      startSeedProcess();
     }
   }
 
