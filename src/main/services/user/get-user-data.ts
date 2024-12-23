@@ -58,6 +58,9 @@ export const getUserData = () => {
           bio: "",
           email: null,
           profileVisibility: "PUBLIC" as ProfileVisibility,
+          quirks: {
+            backupsPerGameLimit: 0,
+          },
           subscription: loggedUser.subscription
             ? {
                 id: loggedUser.subscription.subscriptionId,
