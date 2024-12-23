@@ -5,5 +5,6 @@ export * from "./window-slice";
 export * from "./toast-slice";
 export * from "./user-details-slice";
 export * from "./running-game-slice";
+export * from "./subscription-slice";
 export * from "./repacks-slice";
 export * from "./catalogue-search";

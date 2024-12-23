@@ -1,8 +1,13 @@
 import type { ComparedAchievements } from "@types";
 import * as styles from "./achievements.css";
-import { CheckCircleIcon, LockIcon } from "@primer/octicons-react";
+import {
+  CheckCircleIcon,
+  EyeClosedIcon,
+  LockIcon,
+} from "@primer/octicons-react";
 import { useDate } from "@renderer/hooks";
 import { SPACING_UNIT } from "@renderer/theme.css";
+import { useTranslation } from "react-i18next";
 
 export interface ComparedAchievementListProps {
   achievements: ComparedAchievements;
@@ -11,6 +16,7 @@ export interface ComparedAchievementListProps {
 export function ComparedAchievementList({
   achievements,
 }: ComparedAchievementListProps) {
+  const { t } = useTranslation("achievement");
   const { formatDateTime } = useDate();
 
   return (
@@ -43,7 +49,17 @@ export function ComparedAchievementList({
               loading="lazy"
             />
             <div>
-              <h4>{achievement.displayName}</h4>
+              <h4 style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                {achievement.hidden && (
+                  <span
+                    style={{ display: "flex" }}
+                    title={t("hidden_achievement_tooltip")}
+                  >
+                    <EyeClosedIcon size={12} />
+                  </span>
+                )}
+                {achievement.displayName}
+              </h4>
               <p>{achievement.description}</p>
             </div>
           </div>
@@ -58,11 +74,9 @@ export function ComparedAchievementList({
                   gap: `${SPACING_UNIT}px`,
                   justifyContent: "center",
                 }}
+                title={formatDateTime(achievement.ownerStat.unlockTime!)}
               >
                 <CheckCircleIcon />
-                <small>
-                  {formatDateTime(achievement.ownerStat.unlockTime!)}
-                </small>
               </div>
             ) : (
               <div
@@ -86,11 +100,9 @@ export function ComparedAchievementList({
                 gap: `${SPACING_UNIT}px`,
                 justifyContent: "center",
               }}
+              title={formatDateTime(achievement.targetStat.unlockTime!)}
             >
               <CheckCircleIcon />
-              <small>
-                {formatDateTime(achievement.targetStat.unlockTime!)}
-              </small>
             </div>
           ) : (
             <div

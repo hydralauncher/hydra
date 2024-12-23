@@ -67,10 +67,10 @@ export function Header() {
   };
 
   useEffect(() => {
-    if (!location.pathname.startsWith("/catalogue")) {
+    if (!location.pathname.startsWith("/catalogue") && searchValue) {
       dispatch(setFilters({ title: "" }));
     }
-  }, [location.pathname, dispatch]);
+  }, [location.pathname, searchValue, dispatch]);
 
   return (
     <>

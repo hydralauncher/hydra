@@ -220,7 +220,7 @@
     "last_time_played": "Соңғы ойын {{period}}",
     "activity": "Соңғы әрекет",
     "library": "Кітапхана",
-    "total_play_time": "Барлығы ойнаған: {{amount}}",
+    "total_play_time": "Барлығы ойнаған",
     "no_recent_activity_title": "Хммм... Мұнда ештеңе жоқ",
     "no_recent_activity_description": "Сіз ұзақ уақыт бойы ештеңе ойнаған жоқсыз. Мұны өзгерту керек!",
     "display_name": "Көрсету аты",
