@@ -43,8 +43,6 @@ export function GameItem({ game }: GameItemProps) {
     });
   }, [game.genres, language, steamGenres]);
 
-  console.log(game.genres);
-
   return (
     <button
       type="button"
