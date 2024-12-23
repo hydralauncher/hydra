@@ -46,8 +46,15 @@
     "checking_files": "Verificando archivos de {{title}}… ({{percentage}} completado)"
   },
   "catalogue": {
-    "next_page": "Siguiente página",
-    "previous_page": "Pagina anterior"
+    "search": "Filtrar…",
+    "developers": "Desarrolladores",
+    "genres": "Géneros",
+    "tags": "Marcadores",
+    "publishers": "Distribuidoras",
+    "download_sources": "Fuentes de descarga",
+    "result_count": "{{resultCount}} resultados",
+    "filter_count": "{{filterCount}} disponibles",
+    "clear_filters": "Limpiar {{filterCount}} seleccionados"
   },
   "game_details": {
     "open_download_options": "Ver opciones de descargas",
