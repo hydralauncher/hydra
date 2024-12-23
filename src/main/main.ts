@@ -1,6 +1,7 @@
 import { DownloadManager, Ludusavi, startMainLoop } from "./services";
 import {
   downloadQueueRepository,
+  gameRepository,
   userPreferencesRepository,
 } from "./repository";
 import { UserPreferences } from "./entity";
@@ -35,13 +36,19 @@ const loadState = async (userPreferences: UserPreferences | null) => {
     },
   });
 
+  const seedList = await gameRepository.find({
+    where: {
+      shouldSeed: true,
+      downloader: 1,
+      progress: 1,
+    },
+  });
+
   if (nextQueueItem?.game.status === "active") {
-    DownloadManager.startRPC(nextQueueItem.game);
+    DownloadManager.startRPC(nextQueueItem.game, seedList);
   } else {
     PythonRPC.spawn();
   }
-
-  await startSeedProcess();
 
   startMainLoop();
 };
