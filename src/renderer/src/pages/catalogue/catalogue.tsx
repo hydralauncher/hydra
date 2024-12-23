@@ -240,7 +240,7 @@ export default function Catalogue() {
             {groupedFilters.map((filter) => (
               <li key={`${filter.key}-${filter.value}`}>
                 <FilterItem
-                  filter={filter.label}
+                  filter={filter.label ?? ""}
                   orbColor={filter.orbColor}
                   onRemove={() => {
                     dispatch(
