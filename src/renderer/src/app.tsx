@@ -26,6 +26,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { downloadSourcesWorker } from "./workers";
+import { downloadSourcesTable } from "./dexie";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 
@@ -215,6 +216,18 @@ export function App() {
       const newRepacksCount = event.data;
       window.electron.publishNewRepacksNotification(newRepacksCount);
       updateRepacks();
+
+      downloadSourcesTable.toArray().then((downloadSources) => {
+        downloadSources
+          .filter((source) => !source.fingerprint)
+          .forEach((downloadSource) => {
+            window.electron
+              .putDownloadSource(downloadSource.objectIds)
+              .then(({ fingerprint }) => {
+                downloadSourcesTable.update(downloadSource.id, { fingerprint });
+              });
+          });
+      });
     };
 
     downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
