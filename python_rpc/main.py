@@ -131,14 +131,16 @@ def action():
 
         existing_downloader = downloads.get(game_id)
 
-        if existing_downloader:
-            # This will resume the download
-            existing_downloader.start_download(url, data['save_path'], data.get('header'))
-        else:
-            if url.startswith('magnet'):
+        if url.startswith('magnet'):
+            if existing_downloader and isinstance(existing_downloader, TorrentDownloader):
+                existing_downloader.start_download(url, data['save_path'], "")
+            else:
                 torrent_downloader = TorrentDownloader(torrent_session)
                 downloads[game_id] = torrent_downloader
                 torrent_downloader.start_download(url, data['save_path'], "")
+        else:
+            if existing_downloader and isinstance(existing_downloader, HttpDownloader):
+                existing_downloader.start_download(url, data['save_path'], data.get('header'))
             else:
                 http_downloader = HttpDownloader()
                 downloads[game_id] = http_downloader
