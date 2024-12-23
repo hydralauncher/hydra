@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 
 import * as styles from "./header.css";
 import { AutoUpdateSubHeader } from "./auto-update-sub-header";
-import { setSearch } from "@renderer/features";
+import { setFilters } from "@renderer/features";
 
 const pathTitle: Record<string, string> = {
   "/": "home",
@@ -27,7 +27,7 @@ export function Header() {
   );
 
   const searchValue = useAppSelector(
-    (state) => state.catalogueSearch.value.title
+    (state) => state.catalogueSearch.filters.title
   );
 
   const dispatch = useAppDispatch();
@@ -59,7 +59,7 @@ export function Header() {
   };
 
   const handleSearch = (value: string) => {
-    dispatch(setSearch({ title: value }));
+    dispatch(setFilters({ title: value }));
 
     if (!location.pathname.startsWith("/catalogue")) {
       navigate("/catalogue");
@@ -120,7 +120,7 @@ export function Header() {
             {searchValue && (
               <button
                 type="button"
-                onClick={() => dispatch(setSearch({ title: "" }))}
+                onClick={() => dispatch(setFilters({ title: "" }))}
                 className={styles.actionButton}
               >
                 <XIcon />

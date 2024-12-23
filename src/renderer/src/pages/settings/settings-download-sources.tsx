@@ -13,8 +13,9 @@ import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { settingsContext } from "@renderer/context";
 import { downloadSourcesTable } from "@renderer/dexie";
 import { downloadSourcesWorker } from "@renderer/workers";
-import { clearSearch, setSearch } from "@renderer/features";
 import { useNavigate } from "react-router-dom";
+import { clearFilters } from "@renderer/features";
+import { setFilters } from "@renderer/features";
 
 export function SettingsDownloadSources() {
   const [showAddDownloadSourceModal, setShowAddDownloadSourceModal] =
@@ -103,8 +104,8 @@ export function SettingsDownloadSources() {
   };
 
   const navigateToCatalogue = (fingerprint: string) => {
-    dispatch(clearSearch());
-    dispatch(setSearch({ downloadSourceFingerprints: [fingerprint] }));
+    dispatch(clearFilters());
+    dispatch(setFilters({ downloadSourceFingerprints: [fingerprint] }));
 
     navigate("/catalogue");
   };
