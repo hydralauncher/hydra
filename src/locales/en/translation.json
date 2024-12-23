@@ -52,9 +52,9 @@
     "tags": "Tags",
     "publishers": "Publishers",
     "download_sources": "Download sources",
-    "result_count": "{{count}} results",
-    "filter_count": "{{count}} available",
-    "clear_filters": "Clear {{count}} selected"
+    "result_count": "{{resultCount}} results",
+    "filter_count": "{{filterCount}} available",
+    "clear_filters": "Clear {{filterCount}} selected"
   },
   "game_details": {
     "open_download_options": "Open download options",

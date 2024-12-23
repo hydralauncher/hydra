@@ -52,9 +52,9 @@
     "tags": "Marcadores",
     "publishers": "Distribuidoras",
     "download_sources": "Fuentes de descarga",
-    "result_count": "{{count}} resultados",
-    "filter_count": "{{count}} disponibles",
-    "clear_filters": "Limpiar {{count}} seleccionados"
+    "result_count": "{{resultCount}} resultados",
+    "filter_count": "{{filterCount}} disponibles",
+    "clear_filters": "Limpiar {{filterCount}} seleccionados"
   },
   "game_details": {
     "open_download_options": "Ver opciones de descargas",

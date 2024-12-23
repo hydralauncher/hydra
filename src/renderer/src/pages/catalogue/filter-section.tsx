@@ -86,11 +86,15 @@ export function FilterSection({
           }}
           onClick={onClear}
         >
-          {t("clear_filters", { count: formatNumber(selectedItemsCount) })}
+          {t("clear_filters", {
+            filterCount: formatNumber(selectedItemsCount),
+          })}
         </button>
       ) : (
         <span style={{ fontSize: 12, marginBottom: 12, display: "block" }}>
-          {t("filter_count", { count: formatNumber(items.length) })}
+          {t("filter_count", {
+            filterCount: formatNumber(items.length),
+          })}
         </span>
       )}
 

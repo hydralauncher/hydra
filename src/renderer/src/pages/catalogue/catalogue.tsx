@@ -302,7 +302,9 @@ export default function Catalogue() {
             }}
           >
             <span style={{ fontSize: 12 }}>
-              {t("result_count", { count: formatNumber(itemsCount) })}
+              {t("result_count", {
+                resultCount: formatNumber(itemsCount),
+              })}
             </span>
 
             <Pagination
