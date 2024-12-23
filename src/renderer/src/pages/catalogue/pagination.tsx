@@ -13,6 +13,8 @@ export function Pagination({
   totalPages,
   onPageChange,
 }: PaginationProps) {
+  const { formatNumber } = useFormat();
+
   if (totalPages <= 1) return null;
 
   // Number of visible pages
@@ -27,8 +29,6 @@ export function Pagination({
     endPage = totalPages;
     startPage = Math.max(1, endPage - visiblePages + 1);
   }
-
-  const { formatNumber } = useFormat();
 
   return (
     <div
