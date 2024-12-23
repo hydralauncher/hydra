@@ -1,4 +1,4 @@
-import { Badge } from "@renderer/components";
+import { Badge, Button } from "@renderer/components";
 
 import type { DownloadSource } from "@types";
 
@@ -14,7 +14,7 @@ import { steamUrlBuilder } from "@shared";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { useNavigate } from "react-router-dom";
 import { FilterSection } from "./filter-section";
-import { setSearch } from "@renderer/features";
+import { setFilters } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
@@ -35,12 +35,15 @@ export default function Catalogue() {
   const navigate = useNavigate();
 
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
-  const [games, setGames] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [publishers, setPublishers] = useState<string[]>([]);
   const [developers, setDevelopers] = useState<string[]>([]);
 
-  const filters = useAppSelector((state) => state.catalogueSearch.value);
+  const [results, setResults] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const { filters } = useAppSelector((state) => state.catalogueSearch);
 
   const dispatch = useAppDispatch();
 
@@ -49,7 +52,7 @@ export default function Catalogue() {
   const { getRepacksForObjectId } = useRepacks();
 
   useEffect(() => {
-    setGames([]);
+    setResults([]);
     setIsLoading(true);
     abortControllerRef.current?.abort();
 
@@ -57,18 +60,19 @@ export default function Catalogue() {
     abortControllerRef.current = abortController;
 
     window.electron
-      .searchGames(filters)
-      .then((games) => {
+      .searchGames(filters, page)
+      .then((response) => {
         if (abortController.signal.aborted) {
           return;
         }
 
-        setGames(games);
+        setResults(response.edges);
+        setTotalPages(Math.ceil(response.count / 12));
       })
       .finally(() => {
         setIsLoading(false);
       });
-  }, [filters]);
+  }, [filters, page, dispatch]);
 
   useEffect(() => {
     window.electron.getDevelopers().then((developers) => {
@@ -81,14 +85,14 @@ export default function Catalogue() {
   }, []);
 
   const gamesWithRepacks = useMemo(() => {
-    return games.map((game) => {
+    return results.map((game) => {
       const repacks = getRepacksForObjectId(game.objectId);
       const uniqueRepackers = Array.from(
         new Set(repacks.map((repack) => repack.repacker))
       );
       return { ...game, repacks: uniqueRepackers };
     });
-  }, [games, getRepacksForObjectId]);
+  }, [results, getRepacksForObjectId]);
 
   useEffect(() => {
     downloadSourcesTable.toArray().then((sources) => {
@@ -264,27 +268,32 @@ export default function Catalogue() {
             ))
           )}
 
-          {/* <div style={{ display: "flex", gap: 8 }}>
-            <Button theme="outline">1</Button>
-            <Button theme="outline">2</Button>
-          </div> */}
+          {totalPages > 1 && (
+            <div style={{ display: "flex", gap: 8 }}>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Button theme="outline" key={i} onClick={() => setPage(i + 1)}>
+                  {i + 1}
+                </Button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="catalogue__filters-container">
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <FilterSection
               title={t("genres")}
-              onClear={() => dispatch(setSearch({ genres: [] }))}
+              onClear={() => dispatch(setFilters({ genres: [] }))}
               color={filterCategoryColors.genres}
               onSelect={(value) => {
                 if (filters.genres.includes(value)) {
                   dispatch(
-                    setSearch({
+                    setFilters({
                       genres: filters.genres.filter((genre) => genre !== value),
                     })
                   );
                 } else {
-                  dispatch(setSearch({ genres: [...filters.genres, value] }));
+                  dispatch(setFilters({ genres: [...filters.genres, value] }));
                 }
               }}
               items={[
@@ -329,17 +338,17 @@ export default function Catalogue() {
             <FilterSection
               title={t("tags")}
               color={filterCategoryColors.tags}
-              onClear={() => dispatch(setSearch({ tags: [] }))}
+              onClear={() => dispatch(setFilters({ tags: [] }))}
               onSelect={(value) => {
                 if (filters.tags.includes(Number(value))) {
                   dispatch(
-                    setSearch({
+                    setFilters({
                       tags: filters.tags.filter((tag) => tag !== Number(value)),
                     })
                   );
                 } else {
                   dispatch(
-                    setSearch({ tags: [...filters.tags, Number(value)] })
+                    setFilters({ tags: [...filters.tags, Number(value)] })
                   );
                 }
               }}
@@ -358,12 +367,12 @@ export default function Catalogue() {
               title={t("download_sources")}
               color={filterCategoryColors.downloadSourceFingerprints}
               onClear={() =>
-                dispatch(setSearch({ downloadSourceFingerprints: [] }))
+                dispatch(setFilters({ downloadSourceFingerprints: [] }))
               }
               onSelect={(value) => {
                 if (filters.downloadSourceFingerprints.includes(value)) {
                   dispatch(
-                    setSearch({
+                    setFilters({
                       downloadSourceFingerprints:
                         filters.downloadSourceFingerprints.filter(
                           (fingerprint) => fingerprint !== value
@@ -372,7 +381,7 @@ export default function Catalogue() {
                   );
                 } else {
                   dispatch(
-                    setSearch({
+                    setFilters({
                       downloadSourceFingerprints: [
                         ...filters.downloadSourceFingerprints,
                         value,
@@ -393,11 +402,11 @@ export default function Catalogue() {
             <FilterSection
               title={t("developers")}
               color={filterCategoryColors.developers}
-              onClear={() => dispatch(setSearch({ developers: [] }))}
+              onClear={() => dispatch(setFilters({ developers: [] }))}
               onSelect={(value) => {
                 if (filters.developers.includes(value)) {
                   dispatch(
-                    setSearch({
+                    setFilters({
                       developers: filters.developers.filter(
                         (developer) => developer !== value
                       ),
@@ -405,7 +414,7 @@ export default function Catalogue() {
                   );
                 } else {
                   dispatch(
-                    setSearch({ developers: [...filters.developers, value] })
+                    setFilters({ developers: [...filters.developers, value] })
                   );
                 }
               }}
@@ -419,11 +428,11 @@ export default function Catalogue() {
             <FilterSection
               title={t("publishers")}
               color={filterCategoryColors.publishers}
-              onClear={() => dispatch(setSearch({ publishers: [] }))}
+              onClear={() => dispatch(setFilters({ publishers: [] }))}
               onSelect={(value) => {
                 if (filters.publishers.includes(value)) {
                   dispatch(
-                    setSearch({
+                    setFilters({
                       publishers: filters.publishers.filter(
                         (publisher) => publisher !== value
                       ),
@@ -431,7 +440,7 @@ export default function Catalogue() {
                   );
                 } else {
                   dispatch(
-                    setSearch({ publishers: [...filters.publishers, value] })
+                    setFilters({ publishers: [...filters.publishers, value] })
                   );
                 }
               }}

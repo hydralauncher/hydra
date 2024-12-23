@@ -56,7 +56,10 @@ declare global {
     onHardDelete: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* Catalogue */
-    searchGames: (payload: CatalogueSearchPayload) => Promise<any[]>;
+    searchGames: (
+      payload: CatalogueSearchPayload,
+      page: number
+    ) => Promise<{ edges: any[]; count: number }>;
     getCatalogue: (category: CatalogueCategory) => Promise<any[]>;
     getGameShopDetails: (
       objectId: string,

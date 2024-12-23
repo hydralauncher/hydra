@@ -45,6 +45,10 @@ export function FilterSection({
 
   const { formatNumber } = useFormat();
 
+  if (!items.length) {
+    return null;
+  }
+
   return (
     <div>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>

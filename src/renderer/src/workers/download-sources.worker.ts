@@ -156,6 +156,7 @@ self.onmessage = async (event: MessageEvent<Payload>) => {
       const existingRepacks = await repacksTable.toArray();
 
       for (const downloadSource of downloadSources) {
+        console.log(downloadSource);
         if (!downloadSource.fingerprint) {
           await deleteDownloadSource(downloadSource.id);
           await importDownloadSource(downloadSource.url);
