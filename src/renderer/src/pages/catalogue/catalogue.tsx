@@ -103,6 +103,10 @@ export default function Catalogue() {
       }));
   }, [steamGenresMapping, filters.genres]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [filters]);
+
   const steamUserTagsFilterItems = useMemo(() => {
     if (!steamUserTags[language]) return [];
 
@@ -276,7 +280,7 @@ export default function Catalogue() {
               baseColor={vars.color.darkBackground}
               highlightColor={vars.color.background}
             >
-              {Array.from({ length: 24 }).map((_, i) => (
+              {Array.from({ length: PAGE_SIZE }).map((_, i) => (
                 <Skeleton
                   key={i}
                   style={{
