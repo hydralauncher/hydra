@@ -284,11 +284,15 @@
     "instructions": "Verifique a forma correta de instalar algum deles no seu distro Linux, garantindo assim a execução normal do jogo"
   },
   "catalogue": {
-    "search": "Pesquisar…",
+    "search": "Filtrar…",
     "developers": "Desenvolvedores",
     "genres": "Gêneros",
-    "tags": "Tags",
-    "download_sources": "Fontes de download"
+    "tags": "Marcadores",
+    "publishers": "Distribuidoras",
+    "download_sources": "Fontes de download",
+    "result_count": "{{resultCount}} resultados",
+    "filter_count": "{{filterCount}} disponíveis",
+    "clear_filters": "Limpar {{filterCount}} selecionados"
   },
   "modal": {
     "close": "Botão de fechar"

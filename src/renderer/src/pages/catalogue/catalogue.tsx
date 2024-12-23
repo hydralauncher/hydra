@@ -33,9 +33,13 @@ const PAGE_SIZE = 20;
 
 export default function Catalogue() {
   const abortControllerRef = useRef<AbortController | null>(null);
+  const cataloguePageRef = useRef<HTMLDivElement>(null);
 
-  const { steamGenres, steamUserTags, steamDevelopers, steamPublishers } =
-    useCatalogue();
+  const { steamDevelopers, steamPublishers } = useCatalogue();
+
+  const { steamGenres, steamUserTags } = useAppSelector(
+    (state) => state.catalogueSearch
+  );
 
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -128,7 +132,7 @@ export default function Catalogue() {
       ...filters.tags.map((tag) => ({
         label: Object.keys(steamUserTags[language]).find(
           (key) => steamUserTags[language][key] === tag
-        ) as string,
+        ),
         orbColor: filterCategoryColors.tags,
         key: "tags",
         value: tag,
@@ -214,7 +218,7 @@ export default function Catalogue() {
   ]);
 
   return (
-    <div className="catalogue">
+    <div className="catalogue" ref={cataloguePageRef}>
       <div
         style={{
           display: "flex",
@@ -237,7 +241,7 @@ export default function Catalogue() {
             {groupedFilters.map((filter) => (
               <li key={`${filter.key}-${filter.value}`}>
                 <FilterItem
-                  filter={filter.label}
+                  filter={filter.label ?? ""}
                   orbColor={filter.orbColor}
                   onRemove={() => {
                     dispatch(
@@ -298,12 +302,21 @@ export default function Catalogue() {
               marginTop: 16,
             }}
           >
-            <span>{formatNumber(itemsCount)} resultados</span>
+            <span style={{ fontSize: 12 }}>
+              {t("result_count", {
+                resultCount: formatNumber(itemsCount),
+              })}
+            </span>
 
             <Pagination
               page={page}
               totalPages={Math.ceil(itemsCount / PAGE_SIZE)}
-              onPageChange={(page) => dispatch(setPage(page))}
+              onPageChange={(page) => {
+                dispatch(setPage(page));
+                if (cataloguePageRef.current) {
+                  cataloguePageRef.current.scrollTop = 0;
+                }
+              }}
             />
           </div>
         </div>

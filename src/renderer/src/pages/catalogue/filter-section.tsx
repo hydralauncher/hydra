@@ -3,6 +3,8 @@ import { useFormat } from "@renderer/hooks";
 import { useCallback, useMemo, useState } from "react";
 
 import List from "rc-virtual-list";
+import { vars } from "@renderer/theme.css";
+import { useTranslation } from "react-i18next";
 
 export interface FilterSectionProps {
   title: string;
@@ -24,6 +26,7 @@ export function FilterSection({
   onClear,
 }: FilterSectionProps) {
   const [search, setSearch] = useState("");
+  const { t } = useTranslation("catalogue");
 
   const filteredItems = useMemo(() => {
     if (search.length > 0) {
@@ -64,7 +67,6 @@ export function FilterSection({
           style={{
             fontSize: 16,
             fontWeight: 500,
-            color: "#fff",
           }}
         >
           {title}
@@ -78,22 +80,26 @@ export function FilterSection({
             fontSize: 12,
             marginBottom: 12,
             display: "block",
-            color: "#fff",
+            color: vars.color.body,
             cursor: "pointer",
             textDecoration: "underline",
           }}
           onClick={onClear}
         >
-          Limpar {formatNumber(selectedItemsCount)} selecionados
+          {t("clear_filters", {
+            filterCount: formatNumber(selectedItemsCount),
+          })}
         </button>
       ) : (
         <span style={{ fontSize: 12, marginBottom: 12, display: "block" }}>
-          {formatNumber(items.length)} disponíveis
+          {t("filter_count", {
+            filterCount: formatNumber(items.length),
+          })}
         </span>
       )}
 
       <TextField
-        placeholder="Search..."
+        placeholder={t("search")}
         onChange={(e) => onSearch(e.target.value)}
         value={search}
         containerProps={{ style: { marginBottom: 16 } }}
