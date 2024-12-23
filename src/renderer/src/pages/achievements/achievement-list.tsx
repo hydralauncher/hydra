@@ -56,7 +56,7 @@ export function AchievementList({ achievements }: AchievementListProps) {
               </div>
             ) : (
               <button
-                onClick={showHydraCloudModal}
+                onClick={() => showHydraCloudModal("achievements")}
                 style={{
                   display: "flex",
                   alignItems: "center",

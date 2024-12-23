@@ -373,7 +373,8 @@
     "playing": "Playing {{game}}",
     "achievements_unlocked": "Achievements Unlocked",
     "earned_points": "Earned points",
-    "show_achievements_on_profile": "Show your achievements and earned points on your profile"
+    "show_achievements_on_profile": "Show your achievements on your profile",
+    "show_points_on_profile": "Show your earned points on your profile"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",
@@ -400,6 +401,7 @@
     "show_and_compare_achievements": "Show and compare your achievements to other users",
     "animated_profile_banner": "Animated profile banner",
     "hydra_cloud": "Hydra Cloud",
-    "hydra_cloud_feature_found": "You've just discovered a Hydra Cloud feature!"
+    "hydra_cloud_feature_found": "You've just discovered a Hydra Cloud feature!",
+    "learn_more": "Learn More"
   }
 }

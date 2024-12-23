@@ -35,7 +35,7 @@ export function AchievementPanel({ achievements }: AchievementPanelProps) {
         </div>
         <button
           type="button"
-          onClick={showHydraCloudModal}
+          onClick={() => showHydraCloudModal("achievements-points")}
           className={styles.link}
         >
           <small style={{ color: vars.color.warning }}>

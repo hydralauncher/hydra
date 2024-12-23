@@ -59,7 +59,7 @@ export function UserStatsBox() {
               ) : (
                 <button
                   type="button"
-                  onClick={showHydraCloudModal}
+                  onClick={() => showHydraCloudModal("achievements")}
                   className={styles.link}
                 >
                   <small style={{ color: vars.color.warning }}>
@@ -93,11 +93,11 @@ export function UserStatsBox() {
               ) : (
                 <button
                   type="button"
-                  onClick={showHydraCloudModal}
+                  onClick={() => showHydraCloudModal("achievements-points")}
                   className={styles.link}
                 >
                   <small style={{ color: vars.color.warning }}>
-                    {t("show_achievements_on_profile")}
+                    {t("show_points_on_profile")}
                   </small>
                 </button>
               )}
