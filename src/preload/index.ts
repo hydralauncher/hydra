@@ -37,8 +37,8 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   /* Catalogue */
-  searchGames: (payload: CatalogueSearchPayload) =>
-    ipcRenderer.invoke("searchGames", payload),
+  searchGames: (payload: CatalogueSearchPayload, page: number) =>
+    ipcRenderer.invoke("searchGames", payload, page),
   getCatalogue: (category: CatalogueCategory) =>
     ipcRenderer.invoke("getCatalogue", category),
   getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
