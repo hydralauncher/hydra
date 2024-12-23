@@ -2,11 +2,9 @@ import { Badge } from "@renderer/components";
 
 import type { DownloadSource } from "@types";
 
-import cn from "classnames";
-
 import { useAppDispatch, useAppSelector, useRepacks } from "@renderer/hooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { SearchIcon, XIcon } from "@primer/octicons-react";
+import { XIcon } from "@primer/octicons-react";
 
 import "./catalogue.scss";
 
@@ -33,8 +31,6 @@ export default function Catalogue() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
-
-  const [focused, setFocused] = useState(false);
 
   const [steamUserTags, setSteamUserTags] = useState<any>({});
 
@@ -105,18 +101,6 @@ export default function Catalogue() {
     });
   }, [getRepacksForObjectId]);
 
-  const focusInput = useCallback(() => {
-    setFocused(true);
-    inputRef.current?.focus();
-  }, []);
-
-  const onSearch = useCallback(
-    (value: string) => {
-      dispatch(setSearch({ title: value }));
-    },
-    [dispatch]
-  );
-
   useEffect(() => {
     axios
       .get(
@@ -132,12 +116,6 @@ export default function Catalogue() {
         }
       });
   }, [i18n.language]);
-
-  useEffect(() => {
-    if (search) {
-      focusInput();
-    }
-  }, [search, focusInput]);
 
   return (
     <div className="catalogue">
