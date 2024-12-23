@@ -158,13 +158,14 @@ export class DownloadManager {
   }
 
   public static async getSeedStatus() {
-    const seedStatus = await PythonRPC.rpc.get<LibtorrentPayload[] | []>(
-      "/seed-status"
-    );
+    const seedStatus = await PythonRPC.rpc
+      .get<LibtorrentPayload[] | []>("/seed-status")
+      .then((res) => res.data);
 
-    if (!seedStatus.data.length) return;
+    console.log(seedStatus);
+    if (!seedStatus.length) return;
 
-    seedStatus.data.forEach(async (status) => {
+    seedStatus.forEach(async (status) => {
       const game = await gameRepository.findOne({
         where: { id: status.gameId },
       });
@@ -188,10 +189,7 @@ export class DownloadManager {
       }
     });
 
-    WindowManager.mainWindow?.webContents.send(
-      "on-seeding-status",
-      JSON.parse(JSON.stringify(seedStatus.data))
-    );
+    WindowManager.mainWindow?.webContents.send("on-seeding-status", seedStatus);
   }
 
   static async pauseDownload() {

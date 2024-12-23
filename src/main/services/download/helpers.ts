@@ -1,5 +1,6 @@
 import path from "node:path";
 import fs from "node:fs";
+import { logger } from "../logger";
 
 export const calculateETA = (
   totalLength: number,
@@ -33,7 +34,7 @@ export const getDirSize = async (dir: string): Promise<number> => {
 
     return sizes.reduce((total, size) => total + size, 0);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     return 0;
   }
 };
