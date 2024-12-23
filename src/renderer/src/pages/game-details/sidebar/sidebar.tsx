@@ -21,7 +21,6 @@ import { howLongToBeatEntriesTable } from "@renderer/dexie";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
 import { SPACING_UNIT } from "@renderer/theme.css";
-import { useSubmit } from "react-router-dom";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 
 const fakeAchievements: UserAchievement[] = [
