@@ -77,13 +77,12 @@ export function DownloadGroup({
   };
 
   const seedingMap = useMemo(() => {
-    if (!Array.isArray(seedingStatus) || seedingStatus.length === 0) {
-      return new Map<number, SeedingStatus>();
-    }
     const map = new Map<number, SeedingStatus>();
+
     seedingStatus.forEach((seed) => {
       map.set(seed.gameId, seed);
     });
+
     return map;
   }, [seedingStatus]);
 

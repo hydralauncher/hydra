@@ -59,12 +59,15 @@ def seed_status():
         return auth_error
     
     seed_status = []
+
     for game_id, downloader in downloads.items():
         if not downloader:
             continue
-
+        
         response = downloader.get_download_status()
-
+        if response is None:
+            continue
+        
         if response.get('status') == 5:
             seed_status.append({
                 'gameId': game_id,
