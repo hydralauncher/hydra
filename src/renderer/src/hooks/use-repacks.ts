@@ -18,7 +18,9 @@ export function useRepacks() {
 
   const updateRepacks = useCallback(() => {
     repacksTable.toArray().then((repacks) => {
-      dispatch(setRepacks(repacks));
+      dispatch(
+        setRepacks(repacks.filter((repack) => Array.isArray(repack.objectIds)))
+      );
     });
   }, [dispatch]);
 

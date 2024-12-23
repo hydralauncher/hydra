@@ -74,16 +74,28 @@ export const search = recipe({
   },
 });
 
-export const searchButton = recipe({
-  base: {
-    WebkitAppRegion: "no-drag",
-  } as ComplexStyleRule,
-  variants: {
-    hidden: {
-      true: {
-        visibility: "hidden",
-      },
-    },
+export const searchInput = style({
+  backgroundColor: "transparent",
+  border: "none",
+  width: "100%",
+  height: "100%",
+  outline: "none",
+  color: "#DADBE1",
+  cursor: "default",
+  fontFamily: "inherit",
+  textOverflow: "ellipsis",
+  ":focus": {
+    cursor: "text",
+  },
+});
+
+export const actionButton = style({
+  color: "inherit",
+  cursor: "pointer",
+  transition: "all ease 0.2s",
+  padding: `${SPACING_UNIT}px`,
+  ":hover": {
+    color: "#DADBE1",
   },
 });
 
