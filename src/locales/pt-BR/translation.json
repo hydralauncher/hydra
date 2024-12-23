@@ -384,16 +384,19 @@
     "hidden_achievement_tooltip": "Está é uma conquista oculta",
     "achievement_earn_points": "Ganhe {{points}} pontos com essa conquista",
     "earned_points": "Pontos ganhos:",
-    "available_points": "Pontos disponíveis:"
+    "available_points": "Pontos disponíveis:",
+    "how_to_earn_achievements_points": "Como desbloquear pontos nas conquistas?"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Assinatura Hydra Cloud",
+    "hydra_cloud": "Hydra Cloud",
     "subscribe_now": "Inscreva-se agora",
     "cloud_achievements": "Salvamento de conquistas em nuvem",
     "animated_profile_picture": "Fotos de perfil animadas",
     "premium_support": "Suporte Premium",
     "show_and_compare_achievements": "Exiba e compare suas conquistas com outros usuários",
     "animated_profile_banner": "Banner animado no perfil",
-    "cloud_saving": "Saves de jogos em nuvem"
+    "cloud_saving": "Saves de jogos em nuvem",
+    "hydra_cloud_feature_found": "Você descobriu uma funcionalidade Hydra Cloud!"
   }
 }

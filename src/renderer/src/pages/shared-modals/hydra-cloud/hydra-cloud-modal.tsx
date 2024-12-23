@@ -15,11 +15,7 @@ export const HydraCloudModal = ({ visible, onClose }: HydraCloudModalProps) => {
   };
 
   return (
-    <Modal
-      visible={visible}
-      title={t("subscription_tour_title")}
-      onClose={onClose}
-    >
+    <Modal visible={visible} title={t("hydra_cloud")} onClose={onClose}>
       <div
         style={{
           display: "flex",
@@ -28,7 +24,7 @@ export const HydraCloudModal = ({ visible, onClose }: HydraCloudModalProps) => {
           gap: `${SPACING_UNIT * 2}px`,
         }}
       >
-        Você descobriu uma funcionalidade Hydra Cloud!
+        {t("hydra_cloud_feature_found")}
         <Button onClick={handleClickOpenCheckout}>Saiba mais</Button>
       </div>
     </Modal>

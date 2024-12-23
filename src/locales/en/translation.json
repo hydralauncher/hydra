@@ -387,7 +387,8 @@
     "hidden_achievement_tooltip": "This is a hidden achievement",
     "achievement_earn_points": "Earn {{points}} points with this achievement",
     "earned_points": "Earned points:",
-    "available_points": "Available points:"
+    "available_points": "Available points:",
+    "how_to_earn_achievements_points": "How to earn achievements points?"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Hydra Cloud Subscription",
@@ -397,6 +398,8 @@
     "animated_profile_picture": "Animated profile pictures",
     "premium_support": "Premium Support",
     "show_and_compare_achievements": "Show and compare your achievements to other users",
-    "animated_profile_banner": "Animated profile banner"
+    "animated_profile_banner": "Animated profile banner",
+    "hydra_cloud": "Hydra Cloud",
+    "hydra_cloud_feature_found": "You've just discovered a Hydra Cloud feature!"
   }
 }

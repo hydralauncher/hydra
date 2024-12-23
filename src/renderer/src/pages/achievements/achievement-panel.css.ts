@@ -8,7 +8,8 @@ export const panel = style({
   padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 3}px`,
   backgroundColor: vars.color.background,
   display: "flex",
-  alignItems: "center",
+  flexDirection: "column",
+  alignItems: "start",
   justifyContent: "space-between",
   borderBottom: `solid 1px ${vars.color.border}`,
 });
@@ -57,5 +58,14 @@ export const progressBar = recipe({
         opacity: vars.opacity.disabled,
       },
     },
+  },
+});
+
+export const link = style({
+  textAlign: "start",
+  color: vars.color.body,
+  ":hover": {
+    textDecoration: "underline",
+    cursor: "pointer",
   },
 });
