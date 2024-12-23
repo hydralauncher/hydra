@@ -1,11 +1,16 @@
 import { registerEvent } from "../register-event";
-import { PythonInstance } from "@main/services";
+import { PythonRPC } from "@main/services/python-rpc";
 
 const processProfileImage = async (
   _event: Electron.IpcMainInvokeEvent,
   path: string
 ) => {
-  return PythonInstance.processProfileImage(path);
+  return PythonRPC.rpc
+    .post<{
+      imagePath: string;
+      mimeType: string;
+    }>("/profile-image", { image_path: path })
+    .then((response) => response.data);
 };
 
 registerEvent("processProfileImage", processProfileImage);

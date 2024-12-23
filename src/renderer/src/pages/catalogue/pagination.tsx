@@ -38,22 +38,24 @@ export function Pagination({
       <Button
         theme="outline"
         onClick={() => onPageChange(page - 1)}
-        style={{ width: 40 }}
+        style={{ width: 40, maxWidth: 40, maxHeight: 40 }}
         disabled={page === 1}
       >
         <ChevronLeftIcon />
       </Button>
 
-      <div
-        style={{
-          width: 40,
-          justifyContent: "center",
-          display: "flex",
-          alignItems: "center",
-        }}
-      >
-        <span style={{ fontSize: 16 }}>...</span>
-      </div>
+      {page > 2 && (
+        <div
+          style={{
+            width: 40,
+            justifyContent: "center",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ fontSize: 16 }}>...</span>
+        </div>
+      )}
 
       {/* Page Buttons */}
       {Array.from(
@@ -63,17 +65,31 @@ export function Pagination({
         <Button
           theme={page === pageNumber ? "primary" : "outline"}
           key={pageNumber}
+          style={{ width: 40, maxWidth: 40, maxHeight: 40 }}
           onClick={() => onPageChange(pageNumber)}
         >
           {pageNumber}
         </Button>
       ))}
 
+      {page < totalPages - 1 && (
+        <div
+          style={{
+            width: 40,
+            justifyContent: "center",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ fontSize: 16 }}>...</span>
+        </div>
+      )}
+
       {/* Next Button */}
       <Button
         theme="outline"
         onClick={() => onPageChange(page + 1)}
-        style={{ width: 40 }}
+        style={{ width: 40, maxWidth: 40, maxHeight: 40 }}
         disabled={page === totalPages}
       >
         <ChevronRightIcon />

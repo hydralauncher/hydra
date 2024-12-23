@@ -197,7 +197,11 @@
     "queued": "Na fila",
     "no_downloads_title": "Nada por aqui…",
     "no_downloads_description": "Você ainda não baixou nada pelo Hydra, mas nunca é tarde para começar.",
-    "checking_files": "Verificando arquivos…"
+    "checking_files": "Verificando arquivos…",
+    "seeding": "Semeando",
+    "stop_seeding": "Parar de semear",
+    "resume_seeding": "Semear",
+    "options": "Gerenciar"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",
@@ -255,6 +259,7 @@
     "enable_achievement_notifications": "Quando uma conquista é desbloqueada",
     "launch_minimized": "Iniciar o Hydra minimizado",
     "disable_nsfw_alert": "Desativar alerta de conteúdo inapropriado",
+    "seed_after_download_complete": "Semear após a conclusão do download",
     "show_hidden_achievement_description": "Mostrar descrição de conquistas ocultas antes de debloqueá-las"
   },
   "notifications": {
