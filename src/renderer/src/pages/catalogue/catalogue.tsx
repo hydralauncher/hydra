@@ -20,6 +20,7 @@ import { Pagination } from "./pagination";
 import { useCatalogue } from "@renderer/hooks/use-catalogue";
 import { GameItem } from "./game-item";
 import { FilterItem } from "./filter-item";
+import { debounce } from "lodash-es";
 
 const filterCategoryColors = {
   genres: "hsl(262deg 50% 47%)",
@@ -58,26 +59,36 @@ export default function Catalogue() {
 
   const { getRepacksForObjectId } = useRepacks();
 
+  const debouncedSearch = useRef(
+    debounce(async (filters, pageSize, offset) => {
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      const response = await window.electron.searchGames(
+        filters,
+        pageSize,
+        offset
+      );
+
+      if (abortController.signal.aborted) return;
+
+      setResults(response.edges);
+      setItemsCount(response.count);
+      setIsLoading(false);
+    }, 500)
+  ).current;
+
   useEffect(() => {
     setResults([]);
     setIsLoading(true);
     abortControllerRef.current?.abort();
 
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
+    debouncedSearch(filters, PAGE_SIZE, (page - 1) * PAGE_SIZE);
 
-    window.electron
-      .searchGames(filters, PAGE_SIZE, (page - 1) * PAGE_SIZE)
-      .then((response) => {
-        if (abortController.signal.aborted) {
-          return;
-        }
-
-        setResults(response.edges);
-        setItemsCount(response.count);
-        setIsLoading(false);
-      });
-  }, [filters, page, dispatch]);
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [filters, page, debouncedSearch]);
 
   useEffect(() => {
     downloadSourcesTable.toArray().then((sources) => {
