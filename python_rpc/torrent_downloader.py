@@ -1,9 +1,10 @@
 import libtorrent as lt
 
 class TorrentDownloader:
-    def __init__(self, torrent_session):
+    def __init__(self, torrent_session, flags = lt.torrent_flags.auto_managed):
         self.torrent_handle = None
         self.session = torrent_session
+        self.flags = flags
         self.trackers = [
             "udp://tracker.opentrackr.org:1337/announce",
             "http://tracker.opentrackr.org:1337/announce",
@@ -102,9 +103,8 @@ class TorrentDownloader:
         ]
 
     def start_download(self, magnet: str, save_path: str, header: str):
-        params = {'url': magnet, 'save_path': save_path, 'trackers': self.trackers}
+        params = {'url': magnet, 'save_path': save_path, 'trackers': self.trackers, 'flags': self.flags}
         self.torrent_handle = self.session.add_torrent(params)
-        self.torrent_handle.set_flags(lt.torrent_flags.auto_managed)
         self.torrent_handle.resume()
 
     def pause_download(self):
