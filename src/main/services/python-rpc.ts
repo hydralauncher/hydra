@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 
-import { logger } from "./logger";
+import { pythonRpcLogger } from "./logger";
 import { Readable } from "node:stream";
 import { app, dialog } from "electron";
 
@@ -39,7 +39,7 @@ export class PythonRPC {
     if (!readable) return;
 
     readable.setEncoding("utf-8");
-    readable.on("data", logger.log);
+    readable.on("data", pythonRpcLogger.log);
   }
 
   public static spawn(
@@ -100,7 +100,7 @@ export class PythonRPC {
 
   public static kill() {
     if (this.pythonProcess) {
-      logger.log("Killing python process");
+      pythonRpcLogger.log("Killing python process");
       this.pythonProcess.kill();
       this.pythonProcess = null;
     }
