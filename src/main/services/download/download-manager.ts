@@ -100,8 +100,6 @@ export class DownloadManager {
   public static async watchDownloads() {
     const status = await this.getDownloadStatus();
 
-    // status = await RealDebridDownloader.getStatus();
-
     if (status) {
       const { gameId, progress } = status;
       const game = await gameRepository.findOne({
