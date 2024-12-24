@@ -27,18 +27,27 @@ if start_download_payload:
     if initial_download['url'].startswith('magnet'):
         torrent_downloader = TorrentDownloader(torrent_session)
         downloads[initial_download['game_id']] = torrent_downloader
-        torrent_downloader.start_download(initial_download['url'], initial_download['save_path'], "")
+        try:
+            torrent_downloader.start_download(initial_download['url'], initial_download['save_path'], "")
+        except Exception as e:
+            print("Error starting torrent download", e)
     else:
         http_downloader = HttpDownloader()
         downloads[initial_download['game_id']] = http_downloader
-        http_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'))
+        try:
+            http_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'))
+        except Exception as e:
+            print("Error starting http download", e)
 
 if start_seeding_payload:
     initial_seeding = json.loads(urllib.parse.unquote(start_seeding_payload))
     for seed in initial_seeding:
         torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
         downloads[seed['game_id']] = torrent_downloader
-        torrent_downloader.start_download(seed['url'], seed['save_path'], "")
+        try:
+            torrent_downloader.start_download(seed['url'], seed['save_path'], "")
+        except Exception as e:
+            print("Error starting seeding", e)
 
 def validate_rpc_password():
     """Middleware to validate RPC password."""

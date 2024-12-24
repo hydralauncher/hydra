@@ -10,6 +10,7 @@ import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
 import { Aria2 } from "./services/aria2";
 import { Downloader } from "@shared";
+import { IsNull, Not } from "typeorm";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
   import("./events");
@@ -40,6 +41,7 @@ const loadState = async (userPreferences: UserPreferences | null) => {
       shouldSeed: true,
       downloader: Downloader.Torrent,
       progress: 1,
+      uri: Not(IsNull()),
     },
   });
 
