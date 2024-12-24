@@ -39,6 +39,7 @@ const loadState = async (userPreferences: UserPreferences | null) => {
       shouldSeed: true,
       downloader: 1,
       progress: 1,
+      status: "seeding",
     },
   });
 
