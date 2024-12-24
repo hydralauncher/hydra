@@ -36,6 +36,8 @@ fs.readdir(dist, async (err, files) => {
           Bucket: process.env.S3_BUILDS_BUCKET_NAME,
           Key: fileName,
           Body: fs.createReadStream(path.resolve(dist, file)),
+          // 3 days
+          Expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3),
         });
 
         await s3.send(command);
