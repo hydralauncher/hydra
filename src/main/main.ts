@@ -9,6 +9,7 @@ import { RealDebridClient } from "./services/download/real-debrid";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
 import { Aria2 } from "./services/aria2";
+import { Downloader } from "@shared";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
   import("./events");
@@ -37,7 +38,7 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   const seedList = await gameRepository.find({
     where: {
       shouldSeed: true,
-      downloader: 1,
+      downloader: Downloader.Torrent,
       progress: 1,
       status: "seeding",
     },
