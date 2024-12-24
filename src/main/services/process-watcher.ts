@@ -21,6 +21,7 @@ export const gamesPlaytime = new Map<
 interface ExecutableInfo {
   name: string;
   os: string;
+  exe: string;
 }
 
 interface GameExecutables {
@@ -30,47 +31,65 @@ interface GameExecutables {
 const TICKS_TO_UPDATE_API = 120;
 let currentTick = 1;
 
-const gameExecutables = (
-  await axios
-    .get(
-      import.meta.env.MAIN_VITE_EXTERNAL_RESOURCES_URL +
-        "/game-executables.json"
-    )
-    .catch(() => {
-      return { data: {} };
-    })
-).data as GameExecutables;
+const isWindowsPlatform = process.platform === "win32";
+const isLinuxPlatform = process.platform === "linux";
+
+const getGameExecutables = async () => {
+  const gameExecutables = (
+    await axios
+      .get(
+        import.meta.env.MAIN_VITE_EXTERNAL_RESOURCES_URL +
+          "/game-executables.json"
+      )
+      .catch(() => {
+        return { data: {} };
+      })
+  ).data as GameExecutables;
+
+  Object.keys(gameExecutables).forEach((key) => {
+    gameExecutables[key] = gameExecutables[key]
+      .filter((executable) => {
+        if (isWindowsPlatform) {
+          return executable.os === "win32";
+        } else if (isLinuxPlatform) {
+          return executable.os === "linux" || executable.os === "win32";
+        }
+        return false;
+      })
+      .map((executable) => {
+        return {
+          name: isWindowsPlatform
+            ? executable.name.replace(/\//g, "\\")
+            : executable.name,
+          os: executable.os,
+          exe: executable.name.slice(executable.name.lastIndexOf("/") + 1),
+        };
+      });
+  });
+
+  return gameExecutables;
+};
+
+const gameExecutables = await getGameExecutables();
 
 const findGamePathByProcess = (
   processMap: Map<string, Set<string>>,
   gameId: string
 ) => {
-  const executables = gameExecutables[gameId].filter((info) => {
-    if (process.platform === "linux" && info.os === "linux") return true;
-    return info.os === "win32";
-  });
+  const executables = gameExecutables[gameId];
 
   for (const executable of executables) {
-    const exe = executable.name.slice(executable.name.lastIndexOf("/") + 1);
-
-    if (!exe) continue;
-
-    const pathSet = processMap.get(exe);
+    const pathSet = processMap.get(executable.exe);
 
     if (pathSet) {
-      const executableName =
-        process.platform === "win32"
-          ? executable.name.replace(/\//g, "\\")
-          : executable.name;
-
       pathSet.forEach((path) => {
-        if (path.toLowerCase().endsWith(executableName)) {
+        if (path.toLowerCase().endsWith(executable.name)) {
           gameRepository.update(
             { objectID: gameId, shop: "steam" },
             { executablePath: path }
           );
 
-          if (process.platform === "linux") {
+          if (isLinuxPlatform) {
             exec(commands.findWineDir, (err, out) => {
               if (err) return;
 
@@ -105,7 +124,7 @@ const getSystemProcessMap = async () => {
     map.set(key, currentSet.add(value));
   });
 
-  if (process.platform === "linux") {
+  if (isLinuxPlatform) {
     await new Promise((res) => {
       exec(commands.findWineExecutables, (err, out) => {
         if (err) {
@@ -152,7 +171,6 @@ export const watchProcesses = async () => {
 
   for (const game of games) {
     const executablePath = game.executablePath;
-
     if (!executablePath) {
       if (gameExecutables[game.objectID]) {
         findGamePathByProcess(processMap, game.objectID);
@@ -161,10 +179,7 @@ export const watchProcesses = async () => {
     }
 
     const executable = executablePath
-      .slice(
-        executablePath.lastIndexOf(process.platform === "win32" ? "\\" : "/") +
-          1
-      )
+      .slice(executablePath.lastIndexOf(isWindowsPlatform ? "\\" : "/") + 1)
       .toLowerCase();
 
     const hasProcess = processMap.get(executable)?.has(executablePath);
