@@ -40,7 +40,6 @@ const loadState = async (userPreferences: UserPreferences | null) => {
       shouldSeed: true,
       downloader: Downloader.Torrent,
       progress: 1,
-      status: "seeding",
     },
   });
 
