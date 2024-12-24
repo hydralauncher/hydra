@@ -1,6 +1,7 @@
 import { registerEvent } from "../register-event";
 import { gameRepository } from "../../repository";
 import { DownloadManager } from "@main/services";
+import { Downloader } from "@shared";
 
 const resumeGameSeed = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -10,7 +11,7 @@ const resumeGameSeed = async (
     where: {
       id: gameId,
       isDeleted: false,
-      downloader: 1,
+      downloader: Downloader.Torrent,
       progress: 1,
     },
   });

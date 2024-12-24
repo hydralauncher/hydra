@@ -36,7 +36,7 @@ if start_download_payload:
 if start_seeding_payload:
     initial_seeding = json.loads(urllib.parse.unquote(start_seeding_payload))
     for seed in initial_seeding:
-        torrent_downloader = TorrentDownloader(torrent_session)
+        torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
         downloads[seed['game_id']] = torrent_downloader
         torrent_downloader.start_download(seed['url'], seed['save_path'], "")
 
@@ -156,7 +156,7 @@ def action():
         if downloader:
             downloader.cancel_download()
     elif action == 'resume_seeding':
-        torrent_downloader = TorrentDownloader(torrent_session)
+        torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
         downloads[game_id] = torrent_downloader
         torrent_downloader.start_download(data['url'], data['save_path'], "")
     elif action == 'pause_seeding':
