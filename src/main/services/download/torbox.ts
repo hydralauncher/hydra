@@ -6,7 +6,6 @@ import type {
   TorBoxAddTorrentRequest,
   TorBoxRequestLinkRequest,
 } from "@types";
-import { logger } from "../logger";
 
 export class TorBoxClient {
   private static instance: AxiosInstance;
