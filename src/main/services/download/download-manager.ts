@@ -20,6 +20,7 @@ import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity
 import { RealDebridClient } from "./real-debrid";
 import path from "path";
 import { logger } from "../logger";
+import { TorBoxClient } from "./torbox";
 
 export class DownloadManager {
   private static downloadingGameId: number | null = null;
@@ -29,6 +30,7 @@ export class DownloadManager {
       game?.status === "active"
         ? await this.getDownloadPayload(game).catch(() => undefined)
         : undefined,
+
       initialSeeding?.map((game) => ({
         game_id: game.id,
         url: game.uri!,
@@ -291,6 +293,18 @@ export class DownloadManager {
           action: "start",
           game_id: game.id,
           url: downloadUrl!,
+          save_path: game.downloadPath!,
+        };
+      }
+      case Downloader.TorBox: {
+        const downloadUrl = await TorBoxClient.getDownloadUrl(game.uri!);
+        console.log(downloadUrl);
+
+        if (!downloadUrl) return;
+        return {
+          action: "start",
+          game_id: game.id,
+          url: downloadUrl,
           save_path: game.downloadPath!,
         };
       }

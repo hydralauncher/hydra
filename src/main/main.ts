@@ -11,6 +11,7 @@ import { uploadGamesBatch } from "./services/library-sync";
 import { Aria2 } from "./services/aria2";
 import { Downloader } from "@shared";
 import { IsNull, Not } from "typeorm";
+import { TorBoxClient } from "./services/download/torbox";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
   import("./events");
@@ -20,6 +21,8 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences?.realDebridApiToken);
   }
+
+  TorBoxClient.authorize("7371d5ec-52fa-4b87-9052-0c8c96d947cc");
 
   Ludusavi.addManifestToLudusaviConfig();
 
