@@ -20,7 +20,7 @@ export class TorBoxClient {
         Authorization: `Bearer ${apiToken}`,
       },
     });
-    this.apiToken = apiToken;
+    this.apiToken = "7371d5ec-52fa-4b87-9052-0c8c96d947cc";
   }
 
   static async addMagnet(magnet: string) {
@@ -55,21 +55,15 @@ export class TorBoxClient {
   }
 
   static async requestLink(id: number) {
-    const searchParams = new URLSearchParams({});
-
-    searchParams.set("token", this.apiToken);
-    searchParams.set("torrent_id", id.toString());
-    searchParams.set("zip_link", "true");
+    const searchParams = new URLSearchParams({
+      token: this.apiToken,
+      torrent_id: id.toString(),
+      zip_link: "true",
+    });
 
     const response = await this.instance.get<TorBoxRequestLinkRequest>(
       "/torrents/requestdl?" + searchParams.toString()
     );
-
-    if (response.status !== 200) {
-      logger.error(response.data.error);
-      logger.error(response.data.detail);
-      return null;
-    }
 
     return response.data.data;
   }
@@ -93,5 +87,10 @@ export class TorBoxClient {
 
     const torrent = await this.addMagnet(magnetUri);
     return torrent.torrent_id;
+  }
+
+  static async getDownloadUrl(uri: string) {
+    const id = await this.getTorrentId(uri);
+    return this.requestLink(id);
   }
 }

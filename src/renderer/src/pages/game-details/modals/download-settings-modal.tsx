@@ -68,11 +68,9 @@ export function DownloadSettingsModal({
       return true;
     });
 
-    /* Gives preference to Real Debrid */
-    const selectedDownloader = filteredDownloaders.includes(
-      Downloader.RealDebrid
-    )
-      ? Downloader.RealDebrid
+    /* Gives preference to TorBox */
+    const selectedDownloader = filteredDownloaders.includes(Downloader.TorBox)
+      ? Downloader.TorBox
       : filteredDownloaders[0];
 
     setSelectedDownloader(

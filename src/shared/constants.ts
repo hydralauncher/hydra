@@ -4,6 +4,7 @@ export enum Downloader {
   Gofile,
   PixelDrain,
   Qiwi,
+  TorBox,
 }
 
 export enum DownloadSourceStatus {
