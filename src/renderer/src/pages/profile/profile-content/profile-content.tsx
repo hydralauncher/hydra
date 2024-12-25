@@ -3,26 +3,18 @@ import { useCallback, useContext, useEffect, useMemo } from "react";
 import { ProfileHero } from "../profile-hero/profile-hero";
 import { useAppDispatch, useFormat } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
-import { steamUrlBuilder } from "@shared";
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
-
+import { SPACING_UNIT } from "@renderer/theme.css";
 import * as styles from "./profile-content.css";
-import { ClockIcon, TelescopeIcon, TrophyIcon } from "@primer/octicons-react";
+import { TelescopeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
 import { FriendsBox } from "./friends-box";
 import { RecentGamesBox } from "./recent-games-box";
-import type { UserGame } from "@types";
-import {
-  buildGameAchievementPath,
-  buildGameDetailsPath,
-  formatDownloadProgress,
-} from "@renderer/helpers";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { UserStatsBox } from "./user-stats-box";
-import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
+import { UserLibraryGameCard } from "./user-library-game-card";
 
 export function ProfileContent() {
   const { userProfile, isMe, userStats } = useContext(userProfileContext);
@@ -46,26 +38,6 @@ export function ProfileContent() {
   const usersAreFriends = useMemo(() => {
     return userProfile?.relation?.status === "ACCEPTED";
   }, [userProfile]);
-
-  const buildUserGameDetailsPath = useCallback(
-    (game: UserGame) => {
-      if (!userProfile?.hasActiveSubscription || game.achievementCount === 0) {
-        return buildGameDetailsPath({
-          ...game,
-          objectId: game.objectId,
-        });
-      }
-
-      const userParams = userProfile
-        ? {
-            userId: userProfile.id,
-          }
-        : undefined;
-
-      return buildGameAchievementPath({ ...game }, userParams);
-    },
-    [userProfile]
-  );
 
   const formatPlayTime = useCallback(
     (playTimeInSeconds = 0) => {
@@ -129,137 +101,7 @@ export function ProfileContent() {
 
               <ul className={styles.gamesGrid}>
                 {userProfile?.libraryGames?.map((game) => (
-                  <li
-                    key={game.objectId}
-                    style={{
-                      borderRadius: 4,
-                      overflow: "hidden",
-                      position: "relative",
-                      display: "flex",
-                    }}
-                    title={game.title}
-                    className={styles.game}
-                  >
-                    <button
-                      type="button"
-                      style={{
-                        cursor: "pointer",
-                      }}
-                      className={styles.gameCover}
-                      onClick={() => navigate(buildUserGameDetailsPath(game))}
-                    >
-                      <div
-                        style={{
-                          position: "absolute",
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "flex-start",
-                          justifyContent: "space-between",
-                          height: "100%",
-                          width: "100%",
-                          background:
-                            "linear-gradient(0deg, rgba(0, 0, 0, 0.75) 25%, transparent 100%)",
-                          padding: 8,
-                        }}
-                      >
-                        <small
-                          style={{
-                            backgroundColor: vars.color.background,
-                            color: vars.color.muted,
-                            border: `solid 1px ${vars.color.border}`,
-                            borderRadius: 4,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
-                            padding: "4px",
-                          }}
-                        >
-                          <ClockIcon size={11} />
-                          {formatPlayTime(game.playTimeInSeconds)}
-                        </small>
-
-                        {userProfile.hasActiveSubscription &&
-                          game.achievementCount > 0 && (
-                            <div
-                              style={{
-                                color: "#fff",
-                                width: "100%",
-                                display: "flex",
-                                flexDirection: "column",
-                              }}
-                            >
-                              {game.achievementsPointsEarnedSum > 0 && (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    justifyContent: "start",
-                                    gap: 8,
-                                    marginBottom: 4,
-                                    color: vars.color.muted,
-                                  }}
-                                >
-                                  <HydraIcon width={16} height={16} />
-                                  {numberFormatter.format(
-                                    game.achievementsPointsEarnedSum
-                                  )}
-                                </div>
-                              )}
-                              <div
-                                style={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  marginBottom: 8,
-                                  color: vars.color.muted,
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 8,
-                                  }}
-                                >
-                                  <TrophyIcon size={13} />
-                                  <span>
-                                    {game.unlockedAchievementCount} /{" "}
-                                    {game.achievementCount}
-                                  </span>
-                                </div>
-
-                                <span>
-                                  {formatDownloadProgress(
-                                    game.unlockedAchievementCount /
-                                      game.achievementCount
-                                  )}
-                                </span>
-                              </div>
-
-                              <progress
-                                max={1}
-                                value={
-                                  game.unlockedAchievementCount /
-                                  game.achievementCount
-                                }
-                                className={styles.achievementsProgressBar}
-                              />
-                            </div>
-                          )}
-                      </div>
-
-                      <img
-                        src={steamUrlBuilder.cover(game.objectId)}
-                        alt={game.title}
-                        style={{
-                          objectFit: "cover",
-                          borderRadius: 4,
-                          width: "100%",
-                          height: "100%",
-                          minWidth: "100%",
-                          minHeight: "100%",
-                        }}
-                      />
-                    </button>
-                  </li>
+                  <UserLibraryGameCard game={game} key={game.objectId} />
                 ))}
               </ul>
             </>
@@ -271,7 +113,6 @@ export function ProfileContent() {
             <UserStatsBox />
             <RecentGamesBox />
             <FriendsBox />
-
             <ReportProfile />
           </div>
         )}
@@ -284,7 +125,6 @@ export function ProfileContent() {
     userStats,
     numberFormatter,
     t,
-    buildUserGameDetailsPath,
     formatPlayTime,
     navigate,
   ]);

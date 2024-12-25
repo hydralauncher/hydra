@@ -244,7 +244,7 @@ export class DownloadManager {
   private static async getDownloadPayload(game: Game) {
     switch (game.downloader) {
       case Downloader.Gofile: {
-        const id = game!.uri!.split("/").pop();
+        const id = game.uri!.split("/").pop();
 
         const token = await GofileApi.authorize();
         const downloadLink = await GofileApi.getDownloadLink(id!);
@@ -258,7 +258,7 @@ export class DownloadManager {
         };
       }
       case Downloader.PixelDrain: {
-        const id = game!.uri!.split("/").pop();
+        const id = game.uri!.split("/").pop();
 
         return {
           action: "start",
