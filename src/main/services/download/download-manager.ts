@@ -21,6 +21,7 @@ import { RealDebridClient } from "./real-debrid";
 import path from "path";
 import { logger } from "../logger";
 import { TorBoxClient } from "./torbox";
+import axios from "axios";
 
 export class DownloadManager {
   private static downloadingGameId: number | null = null;
@@ -262,11 +263,16 @@ export class DownloadManager {
       case Downloader.PixelDrain: {
         const id = game!.uri!.split("/").pop();
 
+        const name = await axios
+          .get(`https://pixeldrain.com/api/file/${id}/info`)
+          .then((res) => res.data.name as string);
+
         return {
           action: "start",
           game_id: game.id,
           url: `https://pixeldrain.com/api/file/${id}?download`,
           save_path: game.downloadPath!,
+          out: name,
         };
       }
       case Downloader.Qiwi: {
@@ -297,15 +303,16 @@ export class DownloadManager {
         };
       }
       case Downloader.TorBox: {
-        const downloadUrl = await TorBoxClient.getDownloadUrl(game.uri!);
-        console.log(downloadUrl);
+        const { name, url } = await TorBoxClient.getDownloadInfo(game.uri!);
+        console.log(url, name);
 
-        if (!downloadUrl) return;
+        if (!url) return;
         return {
           action: "start",
           game_id: game.id,
-          url: downloadUrl,
+          url,
           save_path: game.downloadPath!,
+          out: name,
         };
       }
     }
