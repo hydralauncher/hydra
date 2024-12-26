@@ -7,6 +7,7 @@ import { Game } from "@main/entity";
 import axios from "axios";
 import { exec } from "child_process";
 import { ProcessPayload } from "./download/types";
+import { createBackup } from "@main/events/cloud-save/upload-save-game";
 
 const commands = {
   findWineDir: `lsof -c wine 2>/dev/null | grep '/drive_c/windows$' | head -n 1 | awk '{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}'`,
@@ -269,6 +270,10 @@ const onCloseGame = (game: Game) => {
   gamesPlaytime.delete(game.id);
 
   if (game.remoteId) {
+    // create backup
+    // todo: check for hydra cloud?
+    createBackup(game.objectID, game.shop, "");
+
     updateGamePlaytime(
       game,
       performance.now() - gamePlaytime.lastSyncTick,
