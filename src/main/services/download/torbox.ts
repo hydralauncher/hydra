@@ -74,7 +74,7 @@ export class TorBoxClient {
     return response.data.data;
   }
 
-  static async getTorrentId(magnetUri: string) {
+  static async getTorrentIdAndName(magnetUri: string) {
     const userTorrents = await this.getAllTorrentsFromUser();
 
     const { infoHash } = await parseTorrent(magnetUri);
@@ -82,14 +82,15 @@ export class TorBoxClient {
       (userTorrent) => userTorrent.hash === infoHash
     );
 
-    if (userTorrent) return userTorrent.id;
+    if (userTorrent) return { id: userTorrent.id, name: userTorrent.name };
 
     const torrent = await this.addMagnet(magnetUri);
-    return torrent.torrent_id;
+    return { id: torrent.torrent_id, name: torrent.name };
   }
 
-  static async getDownloadUrl(uri: string) {
-    const id = await this.getTorrentId(uri);
-    return this.requestLink(id);
+  static async getDownloadInfo(uri: string) {
+    const { id, name } = await this.getTorrentIdAndName(uri);
+    const url = await this.requestLink(id);
+    return { url, name: `${name}.zip` };
   }
 }

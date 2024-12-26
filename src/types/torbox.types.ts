@@ -66,6 +66,7 @@ export interface TorBoxAddTorrentRequest {
     torrent_id: number;
     name: string;
     hash: string;
+    size: number;
   };
 }
 
