@@ -3,7 +3,7 @@ import * as styles from "./profile-content.css";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useFormat } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
-import { useCallback, useContext } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import {
   buildGameAchievementPath,
   buildGameDetailsPath,
@@ -26,19 +26,35 @@ export function UserLibraryGameCard({ game }: UserLibraryGameCardProps) {
   const { numberFormatter } = useFormat();
   const navigate = useNavigate();
 
-  // const handleCloseClick = useCallback(() => {
-  //   setIsClosing(true);
-  //   const zero = performance.now();
+  const [mediaIndex, setMediaIndex] = useState(0);
 
-  //   requestAnimationFrame(function animateClosing(time) {
-  //     if (time - zero <= 400) {
-  //       requestAnimationFrame(animateClosing);
-  //     } else {
-  //       onClose();
-  //       setIsClosing(false);
-  //     }
-  //   });
-  // }, [onClose]);
+  const statsItemCount =
+    Number(Boolean(game.achievementsPointsEarnedSum)) +
+    Number(Boolean(game.unlockedAchievementCount));
+
+  console.log(game.title, statsItemCount);
+
+  useEffect(() => {
+    if (statsItemCount <= 1) return;
+
+    let zero = performance.now();
+    const animation = requestAnimationFrame(function animateClosing(time) {
+      if (time - zero <= 4000) {
+        requestAnimationFrame(animateClosing);
+      } else {
+        setMediaIndex((index) => {
+          if (index === statsItemCount - 1) return 0;
+          return index + 1;
+        });
+        zero = performance.now();
+        requestAnimationFrame(animateClosing);
+      }
+    });
+
+    return () => {
+      cancelAnimationFrame(animation);
+    };
+  }, [setMediaIndex, statsItemCount]);
 
   const buildUserGameDetailsPath = useCallback(
     (game: UserGame) => {
@@ -129,59 +145,76 @@ export function UserLibraryGameCard({ game }: UserLibraryGameCardProps) {
           {userProfile?.hasActiveSubscription && game.achievementCount > 0 && (
             <div
               style={{
-                color: "#fff",
                 width: "100%",
                 display: "flex",
-                flexDirection: "column",
+                overflow: "hidden",
               }}
             >
+              <div
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  transition: "translate 0.5s ease-in-out",
+                  flexShrink: "0",
+                  flexGrow: "0",
+                  translate: `${-100 * mediaIndex}%`,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: 8,
+                    color: vars.color.muted,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <TrophyIcon size={13} />
+                    <span>
+                      {game.unlockedAchievementCount} / {game.achievementCount}
+                    </span>
+                  </div>
+
+                  <span>
+                    {formatDownloadProgress(
+                      game.unlockedAchievementCount / game.achievementCount
+                    )}
+                  </span>
+                </div>
+
+                <progress
+                  max={1}
+                  value={game.unlockedAchievementCount / game.achievementCount}
+                  className={styles.achievementsProgressBar}
+                />
+              </div>
+
               {game.achievementsPointsEarnedSum > 0 && (
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "start",
                     gap: 8,
-                    marginBottom: 4,
+                    width: "100%",
+                    translate: `${-100 * mediaIndex}%`,
+                    transition: "translate 0.5s ease-in-out",
+                    alignItems: "center",
                     color: vars.color.muted,
+                    flexShrink: "0",
+                    flexGrow: "0",
                   }}
                 >
                   <HydraIcon width={16} height={16} />
                   {numberFormatter.format(game.achievementsPointsEarnedSum)}
                 </div>
               )}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: 8,
-                  color: vars.color.muted,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <TrophyIcon size={13} />
-                  <span>
-                    {game.unlockedAchievementCount} / {game.achievementCount}
-                  </span>
-                </div>
-
-                <span>
-                  {formatDownloadProgress(
-                    game.unlockedAchievementCount / game.achievementCount
-                  )}
-                </span>
-              </div>
-
-              <progress
-                max={1}
-                value={game.unlockedAchievementCount / game.achievementCount}
-                className={styles.achievementsProgressBar}
-              />
             </div>
           )}
         </div>
