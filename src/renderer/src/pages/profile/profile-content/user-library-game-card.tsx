@@ -3,7 +3,7 @@ import * as styles from "./profile-content.css";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useFormat } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext } from "react";
 import {
   buildGameAchievementPath,
   buildGameDetailsPath,
@@ -18,43 +18,27 @@ import { steamUrlBuilder } from "@shared";
 
 interface UserLibraryGameCardProps {
   game: UserGame;
+  statIndex: number;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
 }
 
-export function UserLibraryGameCard({ game }: UserLibraryGameCardProps) {
+export function UserLibraryGameCard({
+  game,
+  statIndex,
+  onMouseEnter,
+  onMouseLeave,
+}: UserLibraryGameCardProps) {
   const { userProfile } = useContext(userProfileContext);
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
   const navigate = useNavigate();
 
-  const [mediaIndex, setMediaIndex] = useState(0);
-
-  const statsItemCount =
-    Number(Boolean(game.achievementsPointsEarnedSum)) +
-    Number(Boolean(game.unlockedAchievementCount));
-
-  console.log(game.title, statsItemCount);
-
-  useEffect(() => {
-    if (statsItemCount <= 1) return;
-
-    let zero = performance.now();
-    const animation = requestAnimationFrame(function animateClosing(time) {
-      if (time - zero <= 4000) {
-        requestAnimationFrame(animateClosing);
-      } else {
-        setMediaIndex((index) => {
-          if (index === statsItemCount - 1) return 0;
-          return index + 1;
-        });
-        zero = performance.now();
-        requestAnimationFrame(animateClosing);
-      }
-    });
-
-    return () => {
-      cancelAnimationFrame(animation);
-    };
-  }, [setMediaIndex, statsItemCount]);
+  const getStatsItemCount = useCallback(() => {
+    let statsCount = 1;
+    if (game.achievementsPointsEarnedSum > 0) statsCount++;
+    return statsCount;
+  }, [game]);
 
   const buildUserGameDetailsPath = useCallback(
     (game: UserGame) => {
@@ -76,6 +60,14 @@ export function UserLibraryGameCard({ game }: UserLibraryGameCardProps) {
     [userProfile]
   );
 
+  const formatAchievementPoints = (number: number) => {
+    if (number < 100_000) return numberFormatter.format(number);
+
+    if (number < 1_000_000) return `${(number / 1000).toFixed(1)}K`;
+
+    return `${(number / 1_000_000).toFixed(1)}M`;
+  };
+
   const formatPlayTime = useCallback(
     (playTimeInSeconds = 0) => {
       const minutes = playTimeInSeconds / 60;
@@ -94,7 +86,8 @@ export function UserLibraryGameCard({ game }: UserLibraryGameCardProps) {
 
   return (
     <li
-      key={game.objectId}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       style={{
         borderRadius: 4,
         overflow: "hidden",
@@ -122,7 +115,7 @@ export function UserLibraryGameCard({ game }: UserLibraryGameCardProps) {
             height: "100%",
             width: "100%",
             background:
-              "linear-gradient(0deg, rgba(0, 0, 0, 0.75) 25%, transparent 100%)",
+              "linear-gradient(0deg, rgba(0, 0, 0, 0.70) 20%, transparent 100%)",
             padding: 8,
           }}
         >
@@ -147,33 +140,32 @@ export function UserLibraryGameCard({ game }: UserLibraryGameCardProps) {
               style={{
                 width: "100%",
                 display: "flex",
-                overflow: "hidden",
+                flexDirection: "column",
               }}
             >
               <div
                 style={{
-                  width: "100%",
                   display: "flex",
-                  flexDirection: "column",
-                  transition: "translate 0.5s ease-in-out",
-                  flexShrink: "0",
-                  flexGrow: "0",
-                  translate: `${-100 * mediaIndex}%`,
+                  justifyContent: "space-between",
+                  marginBottom: 8,
+                  color: vars.color.muted,
+                  overflow: "hidden",
+                  height: 18,
                 }}
               >
                 <div
                   style={{
                     display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: 8,
-                    color: vars.color.muted,
+                    flexDirection: "column",
                   }}
                 >
                   <div
+                    className={styles.gameCardStats}
                     style={{
                       display: "flex",
                       alignItems: "center",
                       gap: 8,
+                      transform: `translateY(${-100 * (statIndex % getStatsItemCount())}%)`,
                     }}
                   >
                     <TrophyIcon size={13} />
@@ -182,39 +174,37 @@ export function UserLibraryGameCard({ game }: UserLibraryGameCardProps) {
                     </span>
                   </div>
 
-                  <span>
-                    {formatDownloadProgress(
-                      game.unlockedAchievementCount / game.achievementCount
-                    )}
-                  </span>
+                  {game.achievementsPointsEarnedSum > 0 && (
+                    <div
+                      className={styles.gameCardStats}
+                      style={{
+                        display: "flex",
+                        gap: 5,
+                        transform: `translateY(${-100 * (statIndex % getStatsItemCount())}%)`,
+                        alignItems: "center",
+                      }}
+                    >
+                      <HydraIcon width={16} height={16} />
+                      {formatAchievementPoints(
+                        game.achievementsPointsEarnedSum
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                <progress
-                  max={1}
-                  value={game.unlockedAchievementCount / game.achievementCount}
-                  className={styles.achievementsProgressBar}
-                />
+                <span>
+                  {formatDownloadProgress(
+                    game.unlockedAchievementCount / game.achievementCount,
+                    1
+                  )}
+                </span>
               </div>
 
-              {game.achievementsPointsEarnedSum > 0 && (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "start",
-                    gap: 8,
-                    width: "100%",
-                    translate: `${-100 * mediaIndex}%`,
-                    transition: "translate 0.5s ease-in-out",
-                    alignItems: "center",
-                    color: vars.color.muted,
-                    flexShrink: "0",
-                    flexGrow: "0",
-                  }}
-                >
-                  <HydraIcon width={16} height={16} />
-                  {numberFormatter.format(game.achievementsPointsEarnedSum)}
-                </div>
-              )}
+              <progress
+                max={1}
+                value={game.unlockedAchievementCount / game.achievementCount}
+                className={styles.achievementsProgressBar}
+              />
             </div>
           )}
         </div>
