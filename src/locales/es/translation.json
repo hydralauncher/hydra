@@ -50,7 +50,7 @@
     "developers": "Desarrolladores",
     "genres": "Géneros",
     "tags": "Marcadores",
-    "publishers": "Distribuidoras",
+    "publishers": "Editores",
     "download_sources": "Fuentes de descarga",
     "result_count": "{{resultCount}} resultados",
     "filter_count": "{{filterCount}} disponibles",
@@ -175,7 +175,7 @@
     "backup_from": "Copia de seguridad de {{date}}",
     "custom_backup_location_set": "Se configuró la carpeta de copia de seguridad",
     "clear": "Limpiar",
-    "no_directory_selected": "No se seleccionó un directório"
+    "no_directory_selected": "No se seleccionó un directorio"
   },
   "activation": {
     "title": "Activar Hydra",
@@ -208,7 +208,11 @@
     "queued": "En cola",
     "no_downloads_title": "Esto está tan... vacío",
     "no_downloads_description": "No has descargado nada con Hydra... aún, ¡pero nunca es tarde para comenzar!.",
-    "checking_files": "Verificando archivos…"
+    "checking_files": "Verificando archivos…",
+    "seeding": "Seeding",
+    "stop_seeding": "Detener seeding",
+    "resume_seeding": "Continuar seeding",
+    "options": "Gestionar"
   },
   "settings": {
     "downloads_path": "Ruta de descarga",
@@ -376,7 +380,12 @@
     "subscription_needed": "Se necesita una suscripción a Hydra Cloud necesita para ver este contenido",
     "new_achievements_unlocked": "Desbloqueados {{achievementCount}} nuevos logros de {{gameCount}} juegos",
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} logros",
-    "achievements_unlocked_for_game": "Se han desbloqueado {{achievementCount}} nuevos logros de {{gameTitle}}"
+    "achievements_unlocked_for_game": "Se han desbloqueado {{achievementCount}} nuevos logros de {{gameTitle}}",
+    "hidden_achievement_tooltip": "Este es un logro oculto",
+    "achievement_earn_points": "Obtén {{points}} puntos con este logro",
+    "earned_points": "Puntos obtenidos:",
+    "available_points": "Puntos disponibles:",
+    "how_to_earn_achievements_points": "¿Cómo obtener puntos de logros?"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Suscripción Hydra Cloud",
@@ -386,6 +395,9 @@
     "animated_profile_picture": "Fotos de perfil animadas",
     "premium_support": "Soporte Premium",
     "show_and_compare_achievements": "Muestra y compara tus logros con otros usuarios",
-    "animated_profile_banner": "Fondo de perfil animado"
+    "animated_profile_banner": "Fondo de perfil animado",
+    "hydra_cloud": "Hydra Cloud",
+    "hydra_cloud_feature_found": "¡Has descubierto una característica de Hydra Cloud!",
+    "learn_more": "Aprender más"
   }
 }
