@@ -29,6 +29,7 @@ export function GameOptionsModal({
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRemoveGameModal, setShowRemoveGameModal] = useState(false);
+  const [launchOptions, setLaunchOptions] = useState("");
 
   const {
     removeGameInstaller,
@@ -116,8 +117,25 @@ export function GameOptionsModal({
     updateGame();
   };
 
+  const handleChangeLaunchOptions = async (event) => {
+    const value = event.target.value;
+
+    setLaunchOptions(value);
+
+    window.electron.updateLaunchOptions(game.id, value).then(updateGame);
+  };
+
+  const handleClearLaunchOptions = async () => {
+    setLaunchOptions("");
+
+    window.electron.updateLaunchOptions(game.id, null).then(updateGame);
+  };
+
   const shouldShowWinePrefixConfiguration =
     window.electron.platform === "linux";
+
+  const shouldShowLaunchOptionsConfiguration =
+    window.electron.platform === "win32";
 
   return (
     <>
@@ -215,6 +233,33 @@ export function GameOptionsModal({
                     {game.winePrefixPath && (
                       <Button
                         onClick={handleClearWinePrefixPath}
+                        theme="outline"
+                      >
+                        {t("clear")}
+                      </Button>
+                    )}
+                  </>
+                }
+              />
+            </div>
+          )}
+
+          {shouldShowLaunchOptionsConfiguration && (
+            <div className={styles.gameOptionHeader}>
+              <h2>{t("launch_options")}</h2>
+              <h4 className={styles.gameOptionHeaderDescription}>
+                {t("launch_options_description")}
+              </h4>
+              <TextField
+                value={launchOptions}
+                theme="dark"
+                placeholder={t("launch_options_placeholder")}
+                onChange={handleChangeLaunchOptions}
+                rightContent={
+                  <>
+                    {game.launchOptions && (
+                      <Button
+                        onClick={handleClearLaunchOptions}
                         theme="outline"
                       >
                         {t("clear")}
