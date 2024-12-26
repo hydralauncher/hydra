@@ -40,8 +40,7 @@ const bundleBackup = async (
   return tarLocation;
 };
 
-const uploadSaveGame = async (
-  _event: Electron.IpcMainInvokeEvent,
+export const createBackup = async (
   objectId: string,
   shop: GameShop,
   downloadOptionTitle: string | null
@@ -106,6 +105,15 @@ const uploadSaveGame = async (
       });
     });
   });
+};
+
+const uploadSaveGame = async (
+  _event: Electron.IpcMainInvokeEvent,
+  objectId: string,
+  shop: GameShop,
+  downloadOptionTitle: string | null
+) => {
+  return createBackup(objectId, shop, downloadOptionTitle);
 };
 
 registerEvent("uploadSaveGame", uploadSaveGame);
