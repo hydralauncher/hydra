@@ -269,7 +269,9 @@
     "user_unblocked": "El usuario ha sido desbloqueado",
     "enable_achievement_notifications": "Cuando un logro se desbloquea",
     "launch_minimized": "Iniciar Hydra minimizado",
-    "disable_nsfw_alert": "Desactivar alerta NSFW"
+    "disable_nsfw_alert": "Desactivar alerta NSFW",
+    "seed_after_download_complete": "Realizar seeding después de que se completa la descarga",
+    "show_hidden_achievement_description": "Ocultar descripción de logros ocultos antes de desbloquearlos"
   },
   "notifications": {
     "download_complete": "Descarga completada",
@@ -370,7 +372,16 @@
     "upload_banner": "Subir un banner",
     "uploading_banner": "Subiendo banner…",
     "background_image_updated": "Imagen de fondo actualizada",
-    "playing": "Jugando {{game}}"
+    "playing": "Jugando {{game}}",
+    "achievements": "logros",
+    "achievements_unlocked": "Logros desbloqueados",
+    "earned_points": "Puntos Obtenidos",
+    "show_achievements_on_profile": "Mostrar tus logros en tu perfil",
+    "show_points_on_profile": "Mostrar tus puntos obtenidos en tu perfil",
+    "games": "Juegos",
+    "ranking_updated_weekly": "El Ranking se actualiza semanalmente",
+    "stats": "Estadísticas",
+    "top_percentile": "Top {{percentile}}%"
   },
   "achievement": {
     "achievement_unlocked": "Logro desbloqueado",
