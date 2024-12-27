@@ -29,7 +29,7 @@ export function GameOptionsModal({
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRemoveGameModal, setShowRemoveGameModal] = useState(false);
-  const [launchOptions, setLaunchOptions] = useState("");
+  const [launchOptions, setLaunchOptions] = useState(game.launchOptions ?? "");
 
   const {
     removeGameInstaller,
