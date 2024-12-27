@@ -15,14 +15,17 @@ const openGame = async (
   const parsedPath = parseExecutablePath(executablePath);
   const parsedParams = parseLaunchOptions(launchOptions);
 
-  await gameRepository.update({ id: gameId }, { executablePath: parsedPath, launchOptions });
+  await gameRepository.update(
+    { id: gameId },
+    { executablePath: parsedPath, launchOptions }
+  );
 
   if (process.platform === "linux" || process.platform === "darwin") {
     shell.openPath(parsedPath);
   }
 
   if (process.platform === "win32") {
-    spawn(parsedPath, parsedParams, { shell: false });
+    spawn(parsedPath, parsedParams, { shell: false, detached: true });
   }
 };
 
