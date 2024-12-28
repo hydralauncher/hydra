@@ -4,7 +4,6 @@ import {
   userAuthRepository,
   userSubscriptionRepository,
 } from "@main/repository";
-import * as Sentry from "@sentry/electron/main";
 import { UserNotLoggedInError } from "@shared";
 import { logger } from "../logger";
 
@@ -39,15 +38,14 @@ export const getUserData = () => {
         await userSubscriptionRepository.delete({ id: 1 });
       }
 
-      Sentry.setUser({ id: me.id, username: me.username });
-
       return me;
     })
     .catch(async (err) => {
       if (err instanceof UserNotLoggedInError) {
+        logger.info("User is not logged in", err);
         return null;
       }
-      logger.error("Failed to get logged user", err);
+      logger.error("Failed to get logged user");
       const loggedUser = await userAuthRepository.findOne({
         where: { id: 1 },
         relations: { subscription: true },
@@ -59,7 +57,11 @@ export const getUserData = () => {
           id: loggedUser.userId,
           username: "",
           bio: "",
+          email: null,
           profileVisibility: "PUBLIC" as ProfileVisibility,
+          quirks: {
+            backupsPerGameLimit: 0,
+          },
           subscription: loggedUser.subscription
             ? {
                 id: loggedUser.subscription.subscriptionId,

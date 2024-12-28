@@ -1,7 +1,5 @@
 .vscode/
 node_modules/
-hydra-download-manager/
-fastlist.exe
 __pycache__
 dist
 out
@@ -9,5 +7,7 @@ out
 *.log*
 .env
 .vite
-sentry.properties
 ludusavi/
+hydra-python-rpc/
+aria2/
+.python-version

@@ -10,11 +10,20 @@ export interface HowLongToBeatEntry {
   updatedAt: Date;
 }
 
+export interface CatalogueCache {
+  id?: number;
+  category: string;
+  games: { objectId: string; shop: GameShop }[];
+  createdAt: Date;
+  updatedAt: Date;
+  expiresAt: Date;
+}
+
 export const db = new Dexie("Hydra");
 
-db.version(4).stores({
-  repacks: `++id, title, uris, fileSize, uploadDate, downloadSourceId, repacker, createdAt, updatedAt`,
-  downloadSources: `++id, url, name, etag, downloadCount, status, createdAt, updatedAt`,
+db.version(8).stores({
+  repacks: `++id, title, uris, fileSize, uploadDate, downloadSourceId, repacker, objectIds, createdAt, updatedAt`,
+  downloadSources: `++id, url, name, etag, objectIds, downloadCount, status, fingerprint, createdAt, updatedAt`,
   howLongToBeatEntries: `++id, categories, [shop+objectId], createdAt, updatedAt`,
 });
 

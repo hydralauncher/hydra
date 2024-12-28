@@ -11,10 +11,10 @@ import * as styles from "./game-details.css";
 import { useTranslation } from "react-i18next";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import { steamUrlBuilder } from "@shared";
-import Lottie from "lottie-react";
 
-import cloudAnimation from "@renderer/assets/lottie/cloud.json";
+import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import { useUserDetails } from "@renderer/hooks";
+import { useSubscription } from "@renderer/hooks/use-subscription";
 
 const HERO_ANIMATION_THRESHOLD = 25;
 
@@ -32,8 +32,9 @@ export function GameDetailsContent() {
     gameColor,
     setGameColor,
     hasNSFWContentBlocked,
-    handleClickOpenCheckout,
   } = useContext(gameDetailsContext);
+
+  const { showHydraCloudModal } = useSubscription();
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
 
@@ -105,7 +106,7 @@ export function GameDetailsContent() {
     }
 
     if (!hasActiveSubscription) {
-      handleClickOpenCheckout();
+      showHydraCloudModal("backup");
       return;
     }
 
@@ -165,10 +166,9 @@ export function GameDetailsContent() {
                     position: "relative",
                   }}
                 >
-                  <Lottie
-                    animationData={cloudAnimation}
-                    loop={false}
-                    autoplay
+                  <img
+                    src={cloudIconAnimated}
+                    alt="Cloud icon"
                     style={{ width: 26, position: "absolute", top: -3 }}
                   />
                 </div>

@@ -1,14 +1,11 @@
 import React from "react";
-import * as styles from "./badge.css";
+
+import "./badge.scss";
 
 export interface BadgeProps {
   children: React.ReactNode;
 }
 
 export function Badge({ children }: BadgeProps) {
-  return (
-    <div className={styles.badge}>
-      <span>{children}</span>
-    </div>
-  );
+  return <div className="badge">{children}</div>;
 }

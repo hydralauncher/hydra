@@ -5,7 +5,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import type { LibraryGame } from "@types";
 
 import { TextField } from "@renderer/components";
-import { useDownload, useLibrary, useToast } from "@renderer/hooks";
+import {
+  useDownload,
+  useLibrary,
+  useToast,
+  useUserDetails,
+} from "@renderer/hooks";
 
 import { routes } from "./routes";
 
@@ -15,6 +20,7 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { SidebarProfile } from "./sidebar-profile";
 import { sortBy } from "lodash-es";
+import { CommentDiscussionIcon } from "@primer/octicons-react";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -42,6 +48,8 @@ export function Sidebar() {
     return sortBy(library, (game) => game.title);
   }, [library]);
 
+  const { hasActiveSubscription } = useUserDetails();
+
   const { lastPacket, progress } = useDownload();
 
   const { showWarningToast } = useToast();
@@ -49,10 +57,6 @@ export function Sidebar() {
   useEffect(() => {
     updateLibrary();
   }, [lastPacket?.game.id, updateLibrary]);
-
-  const isDownloading = sortedLibrary.some(
-    (game) => game.status === "active" && game.progress !== 1
-  );
 
   const sidebarRef = useRef<HTMLElement>(null);
 
@@ -170,7 +174,11 @@ export function Sidebar() {
 
     if (event.detail === 2) {
       if (game.executablePath) {
-        window.electron.openGame(game.id, game.executablePath);
+        window.electron.openGame(
+          game.id,
+          game.executablePath,
+          game.launchOptions
+        );
       } else {
         showWarningToast(t("game_has_no_executable"));
       }
@@ -190,77 +198,95 @@ export function Sidebar() {
         maxWidth: sidebarWidth,
       }}
     >
-      <SidebarProfile />
+      <div
+        style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}
+      >
+        <SidebarProfile />
 
-      <div className={styles.content}>
-        <section className={styles.section}>
-          <ul className={styles.menu}>
-            {routes.map(({ nameKey, path, render }) => (
-              <li
-                key={nameKey}
-                className={styles.menuItem({
-                  active: location.pathname === path,
-                })}
-              >
-                <button
-                  type="button"
-                  className={styles.menuItemButton}
-                  onClick={() => handleSidebarItemClick(path)}
+        <div className={styles.content}>
+          <section className={styles.section}>
+            <ul className={styles.menu}>
+              {routes.map(({ nameKey, path, render }) => (
+                <li
+                  key={nameKey}
+                  className={styles.menuItem({
+                    active: location.pathname === path,
+                  })}
                 >
-                  {render(isDownloading)}
-                  <span>{t(nameKey)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+                  <button
+                    type="button"
+                    className={styles.menuItemButton}
+                    onClick={() => handleSidebarItemClick(path)}
+                  >
+                    {render()}
+                    <span>{t(nameKey)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
 
-        <section className={styles.section}>
-          <small className={styles.sectionTitle}>{t("my_library")}</small>
+          <section className={styles.section}>
+            <small className={styles.sectionTitle}>{t("my_library")}</small>
 
-          <TextField
-            ref={filterRef}
-            placeholder={t("filter")}
-            onChange={handleFilter}
-            theme="dark"
-          />
+            <TextField
+              ref={filterRef}
+              placeholder={t("filter")}
+              onChange={handleFilter}
+              theme="dark"
+            />
 
-          <ul className={styles.menu}>
-            {filteredLibrary.map((game) => (
-              <li
-                key={game.id}
-                className={styles.menuItem({
-                  active:
-                    location.pathname === `/game/${game.shop}/${game.objectID}`,
-                  muted: game.status === "removed",
-                })}
-              >
-                <button
-                  type="button"
-                  className={styles.menuItemButton}
-                  onClick={(event) => handleSidebarGameClick(event, game)}
-                  aria-label={game.title}
+            <ul className={styles.menu}>
+              {filteredLibrary.map((game) => (
+                <li
+                  key={game.id}
+                  className={styles.menuItem({
+                    active:
+                      location.pathname ===
+                      `/game/${game.shop}/${game.objectID}`,
+                    muted: game.status === "removed",
+                  })}
                 >
-                  {game.iconUrl ? (
-                    <img
-                      className={styles.gameIcon}
-                      src={game.iconUrl}
-                      alt={game.title}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <SteamLogo className={styles.gameIcon} />
-                  )}
+                  <button
+                    type="button"
+                    className={styles.menuItemButton}
+                    onClick={(event) => handleSidebarGameClick(event, game)}
+                    aria-label={game.title}
+                  >
+                    {game.iconUrl ? (
+                      <img
+                        className={styles.gameIcon}
+                        src={game.iconUrl}
+                        alt={game.title}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <SteamLogo className={styles.gameIcon} />
+                    )}
 
-                  <span className={styles.menuItemButtonLabel}>
-                    {getGameTitle(game)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+                    <span className={styles.menuItemButtonLabel}>
+                      {getGameTitle(game)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
       </div>
+
+      {hasActiveSubscription && (
+        <button
+          type="button"
+          className={styles.helpButton}
+          data-open-support-chat
+        >
+          <div className={styles.helpButtonIcon}>
+            <CommentDiscussionIcon size={14} />
+          </div>
+          <span>{t("need_help")}</span>
+        </button>
+      )}
 
       <button
         type="button"

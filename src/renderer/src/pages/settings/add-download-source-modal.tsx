@@ -100,16 +100,29 @@ export function AddDownloadSourceModal({
     }
   }, [visible, clearErrors, handleSubmit, onSubmit, setValue, sourceUrl]);
 
-  const handleAddDownloadSource = async () => {
-    setIsLoading(true);
+  const putDownloadSource = async () => {
+    const downloadSource = await downloadSourcesTable.where({ url }).first();
+    if (!downloadSource) return;
 
+    window.electron
+      .putDownloadSource(downloadSource.objectIds)
+      .then(({ fingerprint }) => {
+        downloadSourcesTable.update(downloadSource.id, { fingerprint });
+      });
+  };
+
+  const handleAddDownloadSource = async () => {
     if (validationResult) {
+      setIsLoading(true);
+
       const channel = new BroadcastChannel(`download_sources:import:${url}`);
 
       downloadSourcesWorker.postMessage(["IMPORT_DOWNLOAD_SOURCE", url]);
 
-      channel.onmessage = () => {
+      channel.onmessage = async () => {
         setIsLoading(false);
+
+        putDownloadSource();
 
         onClose();
         onAddDownloadSource();

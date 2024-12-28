@@ -2,14 +2,17 @@ import type { GameShop } from "@types";
 
 import Color from "color";
 
-export const formatDownloadProgress = (progress?: number) => {
+export const formatDownloadProgress = (
+  progress?: number,
+  fractionDigits?: number
+) => {
   if (!progress) return "0%";
   const progressPercentage = progress * 100;
 
-  if (Number(progressPercentage.toFixed(2)) % 1 === 0)
+  if (Number(progressPercentage.toFixed(fractionDigits ?? 2)) % 1 === 0)
     return `${Math.floor(progressPercentage)}%`;
 
-  return `${progressPercentage.toFixed(2)}%`;
+  return `${progressPercentage.toFixed(fractionDigits ?? 2)}%`;
 };
 
 export const getSteamLanguage = (language: string) => {

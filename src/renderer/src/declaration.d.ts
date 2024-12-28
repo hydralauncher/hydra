@@ -1,19 +1,17 @@
 import type { CatalogueCategory } from "@shared";
 import type {
   AppUpdaterEvent,
-  CatalogueEntry,
   Game,
   LibraryGame,
-  GameRepack,
   GameShop,
   HowLongToBeatCategory,
   ShopDetails,
   Steam250Game,
   DownloadProgress,
+  SeedingStatus,
   UserPreferences,
   StartGameDownloadPayload,
   RealDebridUser,
-  DownloadSource,
   UserProfile,
   FriendRequest,
   FriendRequestAction,
@@ -30,6 +28,7 @@ import type {
   LudusaviBackup,
   UserAchievement,
   ComparedAchievements,
+  CatalogueSearchPayload,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type { DiskSpace } from "check-disk-space";
@@ -46,13 +45,23 @@ declare global {
     cancelGameDownload: (gameId: number) => Promise<void>;
     pauseGameDownload: (gameId: number) => Promise<void>;
     resumeGameDownload: (gameId: number) => Promise<void>;
+    pauseGameSeed: (gameId: number) => Promise<void>;
+    resumeGameSeed: (gameId: number) => Promise<void>;
     onDownloadProgress: (
       cb: (value: DownloadProgress) => void
     ) => () => Electron.IpcRenderer;
+    onSeedingStatus: (
+      cb: (value: SeedingStatus[]) => void
+    ) => () => Electron.IpcRenderer;
+    onHardDelete: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* Catalogue */
-    searchGames: (query: string) => Promise<CatalogueEntry[]>;
-    getCatalogue: (category: CatalogueCategory) => Promise<CatalogueEntry[]>;
+    searchGames: (
+      payload: CatalogueSearchPayload,
+      take: number,
+      skip: number
+    ) => Promise<{ edges: any[]; count: number }>;
+    getCatalogue: (category: CatalogueCategory) => Promise<any[]>;
     getGameShopDetails: (
       objectId: string,
       shop: GameShop,
@@ -60,27 +69,18 @@ declare global {
     ) => Promise<ShopDetails | null>;
     getRandomGame: () => Promise<Steam250Game>;
     getHowLongToBeat: (
-      title: string
+      objectId: string,
+      shop: GameShop
     ) => Promise<HowLongToBeatCategory[] | null>;
-    getGames: (take?: number, skip?: number) => Promise<CatalogueEntry[]>;
-    searchGameRepacks: (query: string) => Promise<GameRepack[]>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getTrendingGames: () => Promise<TrendingGame[]>;
-    onAchievementUnlocked: (
-      cb: (
-        objectId: string,
-        shop: GameShop,
-        achievements?: { displayName: string; iconUrl: string }[]
-      ) => void
-    ) => () => Electron.IpcRenderer;
-    onCombinedAchievementsUnlocked: (
-      cb: (gameCount: number, achievementCount: number) => void
-    ) => () => Electron.IpcRenderer;
     onUpdateAchievements: (
       objectId: string,
       shop: GameShop,
       cb: (achievements: GameAchievement[]) => void
     ) => () => Electron.IpcRenderer;
+    getPublishers: () => Promise<string[]>;
+    getDevelopers: () => Promise<string[]>;
 
     /* Library */
     addGameToLibrary: (
@@ -89,14 +89,28 @@ declare global {
       shop: GameShop
     ) => Promise<void>;
     createGameShortcut: (id: number) => Promise<boolean>;
-    updateExecutablePath: (id: number, executablePath: string) => Promise<void>;
-    selectGameWinePrefix: (id: number, winePrefixPath: string) => Promise<void>;
+    updateExecutablePath: (
+      id: number,
+      executablePath: string | null
+    ) => Promise<void>;
+    updateLaunchOptions: (
+      id: number,
+      launchOptions: string | null
+    ) => Promise<void>;
+    selectGameWinePrefix: (
+      id: number,
+      winePrefixPath: string | null
+    ) => Promise<void>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
     getLibrary: () => Promise<LibraryGame[]>;
     openGameInstaller: (gameId: number) => Promise<boolean>;
     openGameInstallerPath: (gameId: number) => Promise<boolean>;
     openGameExecutablePath: (gameId: number) => Promise<void>;
-    openGame: (gameId: number, executablePath: string) => Promise<void>;
+    openGame: (
+      gameId: number,
+      executablePath: string,
+      launchOptions: string | null
+    ) => Promise<void>;
     closeGame: (gameId: number) => Promise<boolean>;
     removeGameFromLibrary: (gameId: number) => Promise<void>;
     removeGame: (gameId: number) => Promise<void>;
@@ -121,8 +135,9 @@ declare global {
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
 
     /* Download sources */
-    getDownloadSources: () => Promise<DownloadSource[]>;
-    deleteDownloadSource: (id: number) => Promise<void>;
+    putDownloadSource: (
+      objectIds: string[]
+    ) => Promise<{ fingerprint: string }>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
@@ -172,6 +187,7 @@ declare global {
     openExternal: (src: string) => Promise<void>;
     openCheckout: () => Promise<void>;
     getVersion: () => Promise<string>;
+    isStaging: () => Promise<boolean>;
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
     isPortableVersion: () => Promise<boolean>;

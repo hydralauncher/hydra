@@ -224,7 +224,7 @@
     "last_time_played": "Zuletzt gespielt {{period}}",
     "activity": "Letzte Aktivität",
     "library": "Bibliothek",
-    "total_play_time": "Gesamtspielzeit: {{amount}}",
+    "total_play_time": "Gesamtspielzeit",
     "no_recent_activity_title": "Hmmm… hier ist nichts",
     "no_recent_activity_description": "Du hast in letzter Zeit keine Spiele gespielt. Es wird Zeit das zu ändern!",
     "display_name": "Anzeigename",

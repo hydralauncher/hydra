@@ -1,18 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
 import { Button, GameCard, Hero } from "@renderer/components";
-import type { Steam250Game, CatalogueEntry } from "@types";
+import type { Steam250Game } from "@types";
 
-import starsAnimation from "@renderer/assets/lottie/stars.json";
-import flameAnimation from "@renderer/assets/lottie/flame.json";
+import flameIconStatic from "@renderer/assets/icons/flame-static.png";
+import flameIconAnimated from "@renderer/assets/icons/flame-animated.gif";
+import starsIconAnimated from "@renderer/assets/icons/stars-animated.gif";
 
 import * as styles from "./home.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
-import Lottie, { type LottieRefCurrentProps } from "lottie-react";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { CatalogueCategory } from "@shared";
 
@@ -20,8 +20,7 @@ export default function Home() {
   const { t } = useTranslation("home");
   const navigate = useNavigate();
 
-  const flameAnimationRef = useRef<LottieRefCurrentProps>(null);
-
+  const [animateFlame, setAnimateFlame] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [randomGame, setRandomGame] = useState<Steam250Game | null>(null);
 
@@ -29,27 +28,23 @@ export default function Home() {
     CatalogueCategory.Hot
   );
 
-  const [catalogue, setCatalogue] = useState<
-    Record<CatalogueCategory, CatalogueEntry[]>
-  >({
+  const [catalogue, setCatalogue] = useState<Record<CatalogueCategory, any[]>>({
     [CatalogueCategory.Hot]: [],
     [CatalogueCategory.Weekly]: [],
     [CatalogueCategory.Achievements]: [],
   });
 
-  const getCatalogue = useCallback((category: CatalogueCategory) => {
-    setCurrentCatalogueCategory(category);
-    setIsLoading(true);
+  const getCatalogue = useCallback(async (category: CatalogueCategory) => {
+    try {
+      setCurrentCatalogueCategory(category);
+      setIsLoading(true);
 
-    window.electron
-      .getCatalogue(category)
-      .then((catalogue) => {
-        setCatalogue((prev) => ({ ...prev, [category]: catalogue }));
-      })
-      .catch(() => {})
-      .finally(() => {
-        setIsLoading(false);
-      });
+      const catalogue = await window.electron.getCatalogue(category);
+
+      setCatalogue((prev) => ({ ...prev, [category]: catalogue }));
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   const getRandomGame = useCallback(() => {
@@ -88,13 +83,13 @@ export default function Home() {
 
   const handleMouseEnterCategory = (category: CatalogueCategory) => {
     if (category === CatalogueCategory.Hot) {
-      flameAnimationRef?.current?.play();
+      setAnimateFlame(true);
     }
   };
 
   const handleMouseLeaveCategory = (category: CatalogueCategory) => {
     if (category === CatalogueCategory.Hot) {
-      flameAnimationRef?.current?.stop();
+      setAnimateFlame(false);
     }
   };
 
@@ -123,17 +118,17 @@ export default function Home() {
                     <div
                       style={{ width: 16, height: 16, position: "relative" }}
                     >
-                      <Lottie
-                        lottieRef={flameAnimationRef}
-                        animationData={flameAnimation}
-                        loop={false}
-                        autoplay={false}
-                        style={{
-                          width: 30,
-                          top: -10,
-                          left: -5,
-                          position: "absolute",
-                        }}
+                      <img
+                        src={flameIconStatic}
+                        alt="Flame icon"
+                        className={styles.flameIcon}
+                        style={{ display: animateFlame ? "none" : "block" }}
+                      />
+                      <img
+                        src={flameIconAnimated}
+                        alt="Flame animation"
+                        className={styles.flameIcon}
+                        style={{ display: animateFlame ? "block" : "none" }}
                       />
                     </div>
                   )}
@@ -150,10 +145,10 @@ export default function Home() {
             disabled={!randomGame}
           >
             <div style={{ width: 16, height: 16, position: "relative" }}>
-              <Lottie
-                animationData={starsAnimation}
+              <img
+                src={starsIconAnimated}
+                alt="Stars animation"
                 style={{ width: 70, position: "absolute", top: -28, left: -27 }}
-                loop={false}
               />
             </div>
             {t("surprise_me")}
@@ -163,10 +158,9 @@ export default function Home() {
         <h2 style={{ display: "flex", gap: SPACING_UNIT }}>
           {currentCatalogueCategory === CatalogueCategory.Hot && (
             <div style={{ width: 24, height: 24, position: "relative" }}>
-              <Lottie
-                animationData={flameAnimation}
-                loop={false}
-                autoplay
+              <img
+                src={flameIconAnimated}
+                alt="Flame animation"
                 style={{
                   width: 40,
                   top: -10,

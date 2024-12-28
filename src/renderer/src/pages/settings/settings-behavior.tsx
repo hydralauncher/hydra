@@ -18,6 +18,9 @@ export function SettingsBehavior() {
     preferQuitInsteadOfHiding: false,
     runAtStartup: false,
     startMinimized: false,
+    disableNsfwAlert: false,
+    seedAfterDownloadComplete: false,
+    showHiddenAchievementsDescription: false,
   });
 
   const { t } = useTranslation("settings");
@@ -28,6 +31,10 @@ export function SettingsBehavior() {
         preferQuitInsteadOfHiding: userPreferences.preferQuitInsteadOfHiding,
         runAtStartup: userPreferences.runAtStartup,
         startMinimized: userPreferences.startMinimized,
+        disableNsfwAlert: userPreferences.disableNsfwAlert,
+        seedAfterDownloadComplete: userPreferences.seedAfterDownloadComplete,
+        showHiddenAchievementsDescription:
+          userPreferences.showHiddenAchievementsDescription,
       });
     }
   }, [userPreferences]);
@@ -86,6 +93,35 @@ export function SettingsBehavior() {
           />
         </div>
       )}
+
+      <CheckboxField
+        label={t("disable_nsfw_alert")}
+        checked={form.disableNsfwAlert}
+        onChange={() =>
+          handleChange({ disableNsfwAlert: !form.disableNsfwAlert })
+        }
+      />
+
+      <CheckboxField
+        label={t("seed_after_download_complete")}
+        checked={form.seedAfterDownloadComplete}
+        onChange={() =>
+          handleChange({
+            seedAfterDownloadComplete: !form.seedAfterDownloadComplete,
+          })
+        }
+      />
+
+      <CheckboxField
+        label={t("show_hidden_achievement_description")}
+        checked={form.showHiddenAchievementsDescription}
+        onChange={() =>
+          handleChange({
+            showHiddenAchievementsDescription:
+              !form.showHiddenAchievementsDescription,
+          })
+        }
+      />
     </>
   );
 }

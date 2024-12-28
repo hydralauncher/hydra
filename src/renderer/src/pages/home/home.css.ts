@@ -68,3 +68,10 @@ export const buttonsList = style({
   padding: "0",
   gap: `${SPACING_UNIT}px`,
 });
+
+export const flameIcon = style({
+  width: "30px",
+  top: "-10px",
+  left: "-5px",
+  position: "absolute",
+});

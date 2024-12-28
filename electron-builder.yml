@@ -3,10 +3,12 @@ productName: Hydra
 directories:
   buildResources: build
 extraResources:
+  - aria2
   - ludusavi
-  - hydra-download-manager
+  - hydra-python-rpc
   - seeds
   - from: node_modules/create-desktop-shortcuts/src/windows.vbs
+  - from: resources/achievement.wav
 files:
   - "!**/.vscode/*"
   - "!src/*"

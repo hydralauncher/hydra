@@ -13,7 +13,7 @@ export class UserNotLoggedInError extends Error {
 export class SubscriptionRequiredError extends Error {
   constructor() {
     super("user does not have hydra cloud subscription");
-    this.name = "UserWithoutCloudSubscriptionError";
+    this.name = "SubscriptionRequiredError";
   }
 }
 
@@ -46,7 +46,7 @@ export const removeSymbolsFromName = (name: string) =>
 
 export const removeSpecialEditionFromName = (name: string) =>
   name.replace(
-    /(The |Digital )?(GOTY|Deluxe|Standard|Ultimate|Definitive|Enhanced|Collector's|Premium|Digital|Limited|Game of the Year|Reloaded|[0-9]{4}) Edition/g,
+    /(The |Digital )?(GOTY|Deluxe|Standard|Ultimate|Definitive|Enhanced|Collector's|Premium|Digital|Limited|Game of the Year|Reloaded|[0-9]{4}) Edition/gi,
     ""
   );
 
@@ -54,6 +54,9 @@ export const removeDuplicateSpaces = (name: string) =>
   name.replace(/\s{2,}/g, " ");
 
 export const replaceDotsWithSpace = (name: string) => name.replace(/\./g, " ");
+
+export const replaceNbspWithSpace = (name: string) =>
+  name.replace(new RegExp(String.fromCharCode(160), "g"), " ");
 
 export const replaceUnderscoreWithSpace = (name: string) =>
   name.replace(/_/g, " ");
@@ -69,7 +72,9 @@ export const formatName = pipe<string>(
   removeSpecialEditionFromName,
   replaceUnderscoreWithSpace,
   replaceDotsWithSpace,
-  (str) => str.replace(/DIRECTOR'S CUT/g, ""),
+  replaceNbspWithSpace,
+  (str) => str.replace(/DIRECTOR'S CUT/gi, ""),
+  (str) => str.replace(/Friend's Pass/gi, ""),
   removeSymbolsFromName,
   removeDuplicateSpaces,
   (str) => str.trim()

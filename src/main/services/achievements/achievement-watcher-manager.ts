@@ -13,7 +13,7 @@ import type { AchievementFile, UnlockedAchievement } from "@types";
 import { achievementsLogger } from "../logger";
 import { Cracker } from "@shared";
 import { IsNull, Not } from "typeorm";
-import { WindowManager } from "../window-manager";
+import { publishCombinedNewAchievementNotification } from "../notifications";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
@@ -236,24 +236,29 @@ export class AchievementWatcherManager {
   };
 
   public static preSearchAchievements = async () => {
-    const newAchievementsCount =
-      process.platform === "win32"
-        ? await this.preSearchAchievementsWindows()
-        : await this.preSearchAchievementsWithWine();
+    try {
+      const newAchievementsCount =
+        process.platform === "win32"
+          ? await this.preSearchAchievementsWindows()
+          : await this.preSearchAchievementsWithWine();
 
-    const totalNewGamesWithAchievements = newAchievementsCount.filter(
-      (achievements) => achievements
-    ).length;
-    const totalNewAchievements = newAchievementsCount.reduce(
-      (acc, val) => acc + val,
-      0
-    );
+      const totalNewGamesWithAchievements = newAchievementsCount.filter(
+        (achievements) => achievements
+      ).length;
+      const totalNewAchievements = newAchievementsCount.reduce(
+        (acc, val) => acc + val,
+        0
+      );
 
-    WindowManager.notificationWindow?.webContents.send(
-      "on-combined-achievements-unlocked",
-      totalNewGamesWithAchievements,
-      totalNewAchievements
-    );
+      if (totalNewAchievements > 0) {
+        publishCombinedNewAchievementNotification(
+          totalNewAchievements,
+          totalNewGamesWithAchievements
+        );
+      }
+    } catch (err) {
+      achievementsLogger.error("Error on preSearchAchievements", err);
+    }
 
     this.hasFinishedMergingWithRemote = true;
   };

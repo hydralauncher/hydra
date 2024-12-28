@@ -224,7 +224,7 @@
     "last_time_played": "Terakhir dimainkan {{period}}",
     "activity": "Aktivitas terbaru",
     "library": "Perpustakaan",
-    "total_play_time": "Total waktu bermain: {{amount}}",
+    "total_play_time": "Total waktu bermain",
     "no_recent_activity_title": "Hmm… kosong di sini",
     "no_recent_activity_description": "Kamu belum main game baru-baru ini. Yuk, mulai main!",
     "display_name": "Nama tampilan",

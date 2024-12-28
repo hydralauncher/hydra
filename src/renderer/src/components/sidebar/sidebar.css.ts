@@ -13,6 +13,7 @@ export const sidebar = recipe({
     borderRight: `solid 1px ${vars.color.border}`,
     position: "relative",
     overflow: "hidden",
+    justifyContent: "space-between",
   },
   variants: {
     resizing: {
@@ -123,4 +124,29 @@ export const section = style({
   display: "flex",
   flexDirection: "column",
   paddingBottom: `${SPACING_UNIT}px`,
+});
+
+export const helpButton = style({
+  color: vars.color.muted,
+  padding: `${SPACING_UNIT}px ${SPACING_UNIT * 2}px`,
+  gap: "9px",
+  display: "flex",
+  alignItems: "center",
+  cursor: "pointer",
+  borderTop: `solid 1px ${vars.color.border}`,
+  transition: "background-color ease 0.1s",
+  ":hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
+});
+
+export const helpButtonIcon = style({
+  background: "linear-gradient(0deg, #16B195 50%, #3E62C0 100%)",
+  width: "24px",
+  height: "24px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "#fff",
+  borderRadius: "50%",
 });

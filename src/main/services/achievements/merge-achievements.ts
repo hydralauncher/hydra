@@ -7,12 +7,14 @@ import { WindowManager } from "../window-manager";
 import { HydraApi } from "../hydra-api";
 import { getUnlockedAchievements } from "@main/events/user/get-unlocked-achievements";
 import { Game } from "@main/entity";
+import { publishNewAchievementNotification } from "../notifications";
+import { SubscriptionRequiredError } from "@shared";
 import { achievementsLogger } from "../logger";
 
 const saveAchievementsOnLocal = async (
   objectId: string,
   shop: GameShop,
-  achievements: any[],
+  achievements: UnlockedAchievement[],
   sendUpdateEvent: boolean
 ) => {
   return gameAchievementRepository
@@ -82,6 +84,8 @@ export const mergeAchievements = async (
       };
     });
 
+  const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);
+
   if (
     newAchievements.length &&
     publishNotification &&
@@ -99,7 +103,7 @@ export const mergeAchievements = async (
           );
         });
       })
-      .filter((achievement) => achievement)
+      .filter((achievement) => Boolean(achievement))
       .map((achievement) => {
         return {
           displayName: achievement!.displayName,
@@ -107,21 +111,24 @@ export const mergeAchievements = async (
         };
       });
 
-    WindowManager.notificationWindow?.webContents.send(
-      "on-achievement-unlocked",
-      game.objectID,
-      game.shop,
-      achievementsInfo
-    );
+    publishNewAchievementNotification({
+      achievements: achievementsInfo,
+      unlockedAchievementCount: mergedLocalAchievements.length,
+      totalAchievementCount: achievementsData.length,
+      gameTitle: game.title,
+      gameIcon: game.iconUrl,
+    });
   }
 
-  const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);
-
   if (game.remoteId) {
-    await HydraApi.put("/profile/games/achievements", {
-      id: game.remoteId,
-      achievements: mergedLocalAchievements,
-    })
+    await HydraApi.put(
+      "/profile/games/achievements",
+      {
+        id: game.remoteId,
+        achievements: mergedLocalAchievements,
+      },
+      { needsSubscription: !newAchievements.length }
+    )
       .then((response) => {
         return saveAchievementsOnLocal(
           response.objectId,
@@ -131,7 +138,13 @@ export const mergeAchievements = async (
         );
       })
       .catch((err) => {
-        achievementsLogger.error(err);
+        if (err! instanceof SubscriptionRequiredError) {
+          achievementsLogger.log(
+            "Achievements not synchronized on API due to lack of subscription",
+            game.objectID,
+            game.title
+          );
+        }
 
         return saveAchievementsOnLocal(
           game.objectID,

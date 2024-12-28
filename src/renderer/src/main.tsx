@@ -6,8 +6,6 @@ import { Provider } from "react-redux";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { HashRouter, Route, Routes } from "react-router-dom";
 
-import * as Sentry from "@sentry/electron/renderer";
-
 import "@fontsource/noto-sans/400.css";
 import "@fontsource/noto-sans/500.css";
 import "@fontsource/noto-sans/700.css";
@@ -19,18 +17,16 @@ import { App } from "./app";
 import { store } from "./store";
 
 import resources from "@locales";
-import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
 
-import "./workers";
-import { RepacksContextProvider } from "./context";
 import { SuspenseWrapper } from "./components";
+import { logger } from "./logger";
+import { addCookieInterceptor } from "./cookies";
 
 const Home = React.lazy(() => import("./pages/home/home"));
 const GameDetails = React.lazy(
   () => import("./pages/game-details/game-details")
 );
 const Downloads = React.lazy(() => import("./pages/downloads/downloads"));
-const SearchResults = React.lazy(() => import("./pages/home/search-results"));
 const Settings = React.lazy(() => import("./pages/settings/settings"));
 const Catalogue = React.lazy(() => import("./pages/catalogue/catalogue"));
 const Profile = React.lazy(() => import("./pages/profile/profile"));
@@ -38,7 +34,10 @@ const Achievements = React.lazy(
   () => import("./pages/achievements/achievements")
 );
 
-Sentry.init({});
+console.log = logger.log;
+
+const isStaging = await window.electron.isStaging();
+addCookieInterceptor(isStaging);
 
 i18n
   .use(LanguageDetector)
@@ -63,47 +62,37 @@ i18n
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Provider store={store}>
-      <RepacksContextProvider>
-        <HashRouter>
-          <Routes>
-            <Route element={<App />}>
-              <Route path="/" element={<SuspenseWrapper Component={Home} />} />
-              <Route
-                path="/catalogue"
-                element={<SuspenseWrapper Component={Catalogue} />}
-              />
-              <Route
-                path="/downloads"
-                element={<SuspenseWrapper Component={Downloads} />}
-              />
-              <Route
-                path="/game/:shop/:objectId"
-                element={<SuspenseWrapper Component={GameDetails} />}
-              />
-              <Route
-                path="/search"
-                element={<SuspenseWrapper Component={SearchResults} />}
-              />
-              <Route
-                path="/settings"
-                element={<SuspenseWrapper Component={Settings} />}
-              />
-              <Route
-                path="/profile/:userId"
-                element={<SuspenseWrapper Component={Profile} />}
-              />
-              <Route
-                path="/achievements"
-                element={<SuspenseWrapper Component={Achievements} />}
-              />
-            </Route>
+      <HashRouter>
+        <Routes>
+          <Route element={<App />}>
+            <Route path="/" element={<SuspenseWrapper Component={Home} />} />
             <Route
-              path="/achievement-notification"
-              Component={AchievementNotification}
+              path="/catalogue"
+              element={<SuspenseWrapper Component={Catalogue} />}
             />
-          </Routes>
-        </HashRouter>
-      </RepacksContextProvider>
+            <Route
+              path="/downloads"
+              element={<SuspenseWrapper Component={Downloads} />}
+            />
+            <Route
+              path="/game/:shop/:objectId"
+              element={<SuspenseWrapper Component={GameDetails} />}
+            />
+            <Route
+              path="/settings"
+              element={<SuspenseWrapper Component={Settings} />}
+            />
+            <Route
+              path="/profile/:userId"
+              element={<SuspenseWrapper Component={Profile} />}
+            />
+            <Route
+              path="/achievements"
+              element={<SuspenseWrapper Component={Achievements} />}
+            />
+          </Route>
+        </Routes>
+      </HashRouter>
     </Provider>
   </React.StrictMode>
 );

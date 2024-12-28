@@ -14,7 +14,7 @@ import {
   TrashIcon,
   UploadIcon,
 } from "@primer/octicons-react";
-import { useToast } from "@renderer/hooks";
+import { useAppSelector, useToast } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
 import { AxiosProgressEvent } from "axios";
 import { formatDownloadProgress } from "@renderer/helpers";
@@ -83,8 +83,10 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
   };
 
   useEffect(() => {
-    getGameBackupPreview();
-  }, [getGameBackupPreview]);
+    if (visible) {
+      getGameBackupPreview();
+    }
+  }, [getGameBackupPreview, visible]);
 
   const backupStateLabel = useMemo(() => {
     if (uploadingBackup) {
@@ -143,6 +145,9 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
 
   const disableActions = uploadingBackup || restoringBackup || deletingArtifact;
 
+  const userDetails = useAppSelector((state) => state.userDetails.userDetails);
+  const backupsPerGameLimit = userDetails?.quirks.backupsPerGameLimit ?? 0;
+
   return (
     <Modal
       visible={visible}
@@ -179,7 +184,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
           disabled={
             disableActions ||
             !backupPreview?.overall.totalGames ||
-            artifacts.length >= 2
+            artifacts.length >= backupsPerGameLimit
           }
         >
           <UploadIcon />
@@ -197,7 +202,9 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
           }}
         >
           <h2>{t("backups")}</h2>
-          <small>{artifacts.length} / 2</small>
+          <small>
+            {artifacts.length} / {backupsPerGameLimit}
+          </small>
         </div>
       </div>
 

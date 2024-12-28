@@ -6,14 +6,8 @@ import { ArrowLeftIcon, SearchIcon, XIcon } from "@primer/octicons-react";
 import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 
 import * as styles from "./header.css";
-import { clearSearch } from "@renderer/features";
 import { AutoUpdateSubHeader } from "./auto-update-sub-header";
-
-export interface HeaderProps {
-  onSearch: (query: string) => void;
-  onClear: () => void;
-  search?: string;
-}
+import { setFilters } from "@renderer/features";
 
 const pathTitle: Record<string, string> = {
   "/": "home",
@@ -22,7 +16,7 @@ const pathTitle: Record<string, string> = {
   "/settings": "settings",
 };
 
-export function Header({ onSearch, onClear, search }: HeaderProps) {
+export function Header() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const navigate = useNavigate();
@@ -31,6 +25,11 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
   const { headerTitle, draggingDisabled } = useAppSelector(
     (state) => state.window
   );
+
+  const searchValue = useAppSelector(
+    (state) => state.catalogueSearch.filters.title
+  );
+
   const dispatch = useAppDispatch();
 
   const [isFocused, setIsFocused] = useState(false);
@@ -45,12 +44,6 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
 
     return t(pathTitle[location.pathname]);
   }, [location.pathname, headerTitle, t]);
-
-  useEffect(() => {
-    if (search && !location.pathname.startsWith("/search")) {
-      dispatch(clearSearch());
-    }
-  }, [location.pathname, search, dispatch]);
 
   const focusInput = () => {
     setIsFocused(true);
@@ -82,6 +75,20 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
       window.onkeydown = null;
     };
   }, [isFocused]);
+
+  const handleSearch = (value: string) => {
+    dispatch(setFilters({ title: value }));
+
+    if (!location.pathname.startsWith("/catalogue")) {
+      navigate("/catalogue");
+    }
+  };
+
+  useEffect(() => {
+    if (!location.pathname.startsWith("/catalogue") && searchValue) {
+      dispatch(setFilters({ title: "" }));
+    }
+  }, [location.pathname, searchValue, dispatch]);
 
   return (
     <>
@@ -130,17 +137,17 @@ export function Header({ onSearch, onClear, search }: HeaderProps) {
               type="text"
               name="search"
               placeholder={t("search")}
-              value={search}
+              value={searchValue}
               className={styles.searchInput}
-              onChange={(event) => onSearch(event.target.value)}
+              onChange={(event) => handleSearch(event.target.value)}
               onFocus={() => setIsFocused(true)}
               onBlur={handleBlur}
             />
 
-            {search && (
+            {searchValue && (
               <button
                 type="button"
-                onClick={onClear}
+                onClick={() => dispatch(setFilters({ title: "" }))}
                 className={styles.actionButton}
                 title={t("clear_search")}
               >

@@ -10,5 +10,5 @@ export function useFormat() {
     });
   }, [i18n.language]);
 
-  return { numberFormatter };
+  return { numberFormatter, formatNumber: numberFormatter.format };
 }
