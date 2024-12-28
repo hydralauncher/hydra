@@ -93,6 +93,10 @@ declare global {
       id: number,
       executablePath: string | null
     ) => Promise<void>;
+    updateLaunchOptions: (
+      id: number,
+      launchOptions: string | null
+    ) => Promise<void>;
     selectGameWinePrefix: (
       id: number,
       winePrefixPath: string | null
@@ -102,7 +106,11 @@ declare global {
     openGameInstaller: (gameId: number) => Promise<boolean>;
     openGameInstallerPath: (gameId: number) => Promise<boolean>;
     openGameExecutablePath: (gameId: number) => Promise<void>;
-    openGame: (gameId: number, executablePath: string) => Promise<void>;
+    openGame: (
+      gameId: number,
+      executablePath: string,
+      launchOptions: string | null
+    ) => Promise<void>;
     closeGame: (gameId: number) => Promise<boolean>;
     removeGameFromLibrary: (gameId: number) => Promise<void>;
     removeGame: (gameId: number) => Promise<void>;
