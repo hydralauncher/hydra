@@ -15,7 +15,7 @@ import { RecentGamesBox } from "./recent-games-box";
 import { UserStatsBox } from "./user-stats-box";
 import { UserLibraryGameCard } from "./user-library-game-card";
 
-const GAME_STAT_ANIMATION_DURATION_IN_MS = 3500;
+const GAME_STATS_ANIMATION_DURATION_IN_MS = 3500;
 
 export function ProfileContent() {
   const { userProfile, isMe, userStats } = useContext(userProfileContext);
@@ -48,13 +48,13 @@ export function ProfileContent() {
     if (!isAnimationRunning) return;
 
     statsAnimation.current = requestAnimationFrame(
-      function animateClosing(time) {
-        if (time - zero <= GAME_STAT_ANIMATION_DURATION_IN_MS) {
-          statsAnimation.current = requestAnimationFrame(animateClosing);
+      function animateGameStats(time) {
+        if (time - zero <= GAME_STATS_ANIMATION_DURATION_IN_MS) {
+          statsAnimation.current = requestAnimationFrame(animateGameStats);
         } else {
           setStatsIndex((index) => index + 1);
           zero = performance.now();
-          statsAnimation.current = requestAnimationFrame(animateClosing);
+          statsAnimation.current = requestAnimationFrame(animateGameStats);
         }
       }
     );
