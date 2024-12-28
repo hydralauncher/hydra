@@ -55,13 +55,21 @@ export function HeroPanelActions() {
   const openGame = async () => {
     if (game) {
       if (game.executablePath) {
-        window.electron.openGame(game.id, game.executablePath);
+        window.electron.openGame(
+          game.id,
+          game.executablePath,
+          game.launchOptions
+        );
         return;
       }
 
       const gameExecutablePath = await selectGameExecutable();
       if (gameExecutablePath)
-        window.electron.openGame(game.id, gameExecutablePath);
+        window.electron.openGame(
+          game.id,
+          gameExecutablePath,
+          game.launchOptions
+        );
     }
   };
 

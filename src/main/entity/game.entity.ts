@@ -38,6 +38,9 @@ export class Game {
   executablePath: string | null;
 
   @Column("text", { nullable: true })
+  launchOptions: string | null;
+
+  @Column("text", { nullable: true })
   winePrefixPath: string | null;
 
   @Column("int", { default: 0 })

@@ -115,6 +115,7 @@ export interface Game {
   downloader: Downloader;
   winePrefixPath: string | null;
   executablePath: string | null;
+  launchOptions: string | null;
   lastTimePlayed: Date | null;
   uri: string | null;
   fileSize: number;
