@@ -226,7 +226,7 @@
     "real_debrid_api_token_label": "Real-Debrid API токен",
     "quit_app_instead_hiding": "Не скривайте Hydra при затваряне",
     "launch_with_system": "Стартиране на Hydra при стартиране на системата",
-    "general": "Общ",
+    "general": "Общи",
     "behavior": "Поведение",
     "download_sources": "Източници за изтегляне",
     "language": "Език",
@@ -309,7 +309,7 @@
     "games": "Игри",
     "top_percentile": "Топ {{percentile}}%",
     "ranking_updated_weekly": "Класацията се актуализира седмично",
-    "playing": "Играйки {{game}}",
+    "playing": "Играе {{game}}",
     "achievements_unlocked": "Отключени постижения",
     "earned_points": "Спечелени точки",
     "show_achievements_on_profile": "Показвай своите постижения в профила",
@@ -402,7 +402,7 @@
   "hydra_cloud": {
     "hydra_cloud": "Hydra Cloud",
     "hydra_cloud_feature_found": "Открихте функция на Hydra Cloud!",
-    "learn_more": "Научете повече
+    "learn_more": "Научете повече"
     "subscription_tour_title": "Hydra Cloud Абонамент",
     "subscribe_now": "Абонирай се сега",
     "cloud_saving": "Запазване в облака",
