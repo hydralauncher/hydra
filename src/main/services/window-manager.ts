@@ -277,14 +277,9 @@ export class WindowManager {
     if (process.platform !== "darwin") {
       await updateSystemTray();
 
-      tray.addListener("click", () => {
+      tray.addListener("double-click", () => {
         if (this.mainWindow) {
-          if (
-            WindowManager.mainWindow?.isMinimized() ||
-            !WindowManager.mainWindow?.isVisible()
-          ) {
-            WindowManager.mainWindow?.show();
-          }
+          this.mainWindow.show();
         } else {
           this.createMainWindow();
         }
