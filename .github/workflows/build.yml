@@ -43,11 +43,12 @@ jobs:
           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
           MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
           MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_STAGING_CHECKOUT_URL }}
-          MAIN_VITE_ANALYTICS_API_URL: ${{ vars.MAIN_VITE_ANALYTICS_API_URL }}
           RENDERER_VITE_INTERCOM_APP_ID: ${{ vars.RENDERER_VITE_INTERCOM_APP_ID }}
-          RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.RENDERER_VITE_EXTERNAL_RESOURCES_URL }}
+          RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
+          MAIN_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MAIN_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.MAIN_VITE_EXTERNAL_RESOURCES_URL }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          RENDERER_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
 
       - name: Build Windows
         if: matrix.os == 'windows-latest'
@@ -56,11 +57,12 @@ jobs:
           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
           MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
           MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_STAGING_CHECKOUT_URL }}
-          MAIN_VITE_ANALYTICS_API_URL: ${{ vars.MAIN_VITE_ANALYTICS_API_URL }}
           RENDERER_VITE_INTERCOM_APP_ID: ${{ vars.RENDERER_VITE_INTERCOM_APP_ID }}
-          RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.RENDERER_VITE_EXTERNAL_RESOURCES_URL }}
+          RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
+          MAIN_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MAIN_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.MAIN_VITE_EXTERNAL_RESOURCES_URL }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          RENDERER_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
 
       - name: Test Upload build
         env:
@@ -72,6 +74,7 @@ jobs:
           BUILDS_URL: ${{ secrets.BUILDS_URL }}
           BUILD_WEBHOOK_URL: ${{ secrets.BUILD_WEBHOOK_URL }}
           GITHUB_ACTOR: ${{ github.actor }}
+
         run: node scripts/upload-build.cjs
 
       - name: Create artifact

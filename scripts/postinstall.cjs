@@ -48,11 +48,6 @@ const downloadLudusavi = async () => {
 };
 
 const downloadAria2WindowsAndLinux = async () => {
-  if (fs.existsSync("aria2")) {
-    console.log("Aria2 already exists, skipping download...");
-    return;
-  }
-
   const file =
     process.platform === "win32"
       ? "aria2-1.37.0-win-64bit-build1.zip"
@@ -111,10 +106,17 @@ const copyAria2Macos = async () => {
   await exec(`cp $(which aria2c) aria2/aria2c`);
 };
 
-if (process.platform == "darwin") {
-  copyAria2Macos();
-} else {
-  downloadAria2WindowsAndLinux();
-}
+const copyAria2 = () => {
+  if (fs.existsSync("aria2")) {
+    console.log("Aria2 already exists, skipping download...");
+    return;
+  }
+  if (process.platform == "darwin") {
+    copyAria2Macos();
+  } else {
+    downloadAria2WindowsAndLinux();
+  }
+};
 
+copyAria2();
 downloadLudusavi();
