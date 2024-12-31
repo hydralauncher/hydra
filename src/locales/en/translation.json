@@ -168,7 +168,7 @@
     "wine_prefix": "Wine Prefix",
     "wine_prefix_description": "The Wine prefix used to run this game",
     "launch_options": "Launch Options",
-    "launch_options_description": "Advanced users may choose to enter modifications to their launch options",
+    "launch_options_description": "Advanced users may choose to enter modifications to their launch options (experimental feature)",
     "launch_options_placeholder": "No parameter specified",
     "no_download_option_info": "No information available",
     "backup_deletion_failed": "Failed to delete backup",

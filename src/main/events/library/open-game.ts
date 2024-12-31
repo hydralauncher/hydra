@@ -20,13 +20,16 @@ const openGame = async (
     { executablePath: parsedPath, launchOptions }
   );
 
-  if (process.platform === "linux" || process.platform === "darwin") {
+  if (
+    process.platform === "linux" ||
+    process.platform === "darwin" ||
+    parsedParams.length === 0
+  ) {
     shell.openPath(parsedPath);
+    return;
   }
 
-  if (process.platform === "win32") {
-    spawn(parsedPath, parsedParams, { shell: false, detached: true });
-  }
+  spawn(parsedPath, parsedParams, { shell: false, detached: true });
 };
 
 registerEvent("openGame", openGame);
