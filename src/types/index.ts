@@ -268,7 +268,7 @@ export interface UserDetails {
   profileVisibility: ProfileVisibility;
   bio: string;
   subscription: Subscription | null;
-  quirks: {
+  quirks?: {
     backupsPerGameLimit: number;
   };
 }

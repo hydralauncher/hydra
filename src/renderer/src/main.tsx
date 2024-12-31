@@ -34,6 +34,19 @@ const Achievements = React.lazy(
   () => import("./pages/achievements/achievements")
 );
 
+import * as Sentry from "@sentry/react";
+
+Sentry.init({
+  dsn: import.meta.env.RENDERER_VITE_SENTRY_DSN,
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration(),
+  ],
+  tracesSampleRate: 1.0,
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+});
+
 console.log = logger.log;
 
 const isStaging = await window.electron.isStaging();
