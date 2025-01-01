@@ -1,7 +1,7 @@
 import { HydraApi } from "@main/services";
 import { registerEvent } from "../register-event";
 import type { GameArtifact, GameShop } from "@types";
-import { SubscriptionRequiredError } from "@shared";
+import { SubscriptionRequiredError, UserNotLoggedInError } from "@shared";
 
 const getGameArtifacts = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -19,6 +19,10 @@ const getGameArtifacts = async (
     { needsSubscription: true }
   ).catch((err) => {
     if (err instanceof SubscriptionRequiredError) {
+      return [];
+    }
+
+    if (err instanceof UserNotLoggedInError) {
       return [];
     }
 

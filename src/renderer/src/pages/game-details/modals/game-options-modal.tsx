@@ -141,8 +141,7 @@ export function GameOptionsModal({
   const shouldShowWinePrefixConfiguration =
     window.electron.platform === "linux";
 
-  const shouldShowLaunchOptionsConfiguration =
-    window.electron.platform === "win32";
+  const shouldShowLaunchOptionsConfiguration = false;
 
   return (
     <>
