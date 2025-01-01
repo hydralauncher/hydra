@@ -31,6 +31,8 @@ export function useUserDetails() {
   } = useAppSelector((state) => state.userDetails);
 
   const clearUserDetails = useCallback(async () => {
+    Sentry.setUser(null);
+
     dispatch(setUserDetails(null));
     dispatch(setProfileBackground(null));
 
