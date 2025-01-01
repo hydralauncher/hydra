@@ -150,6 +150,8 @@ contextBridge.exposeInMainWorld("electron", {
   /* Hardware */
   getDiskFreeSpace: (path: string) =>
     ipcRenderer.invoke("getDiskFreeSpace", path),
+  checkFolderWritePermission: (path: string) =>
+    ipcRenderer.invoke("checkFolderWritePermission", path),
 
   /* Cloud save */
   uploadSaveGame: (
@@ -226,6 +228,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("showOpenDialog", options),
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
+  getFeatures: () => ipcRenderer.invoke("getFeatures"),
   platform: process.platform,
 
   /* Auto update */

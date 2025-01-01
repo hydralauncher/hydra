@@ -1,6 +1,5 @@
 import React, { useId, useMemo, useState } from "react";
 import type { RecipeVariants } from "@vanilla-extract/recipes";
-import type { FieldError, FieldErrorsImpl, Merge } from "react-hook-form";
 import { EyeClosedIcon, EyeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 
@@ -23,7 +22,7 @@ export interface TextFieldProps
     HTMLDivElement
   >;
   rightContent?: React.ReactNode | null;
-  error?: FieldError | Merge<FieldError, FieldErrorsImpl<any>> | undefined;
+  error?: string | React.ReactNode;
 }
 
 export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
@@ -55,10 +54,7 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
     }, [props.type, isPasswordVisible]);
 
     const hintContent = useMemo(() => {
-      if (error && error.message)
-        return (
-          <small className={styles.errorLabel}>{error.message as string}</small>
-        );
+      if (error) return <small className={styles.errorLabel}>{error}</small>;
 
       if (hint) return <small>{hint}</small>;
       return null;

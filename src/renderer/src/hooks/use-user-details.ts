@@ -13,6 +13,7 @@ import type {
   UpdateProfileRequest,
   UserDetails,
 } from "@types";
+import * as Sentry from "@sentry/react";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 import { isFuture, isToday } from "date-fns";
 
@@ -44,6 +45,12 @@ export function useUserDetails() {
 
   const updateUserDetails = useCallback(
     async (userDetails: UserDetails) => {
+      Sentry.setUser({
+        id: userDetails.id,
+        username: userDetails.username,
+        email: userDetails.email ?? undefined,
+      });
+
       dispatch(setUserDetails(userDetails));
       window.localStorage.setItem("userDetails", JSON.stringify(userDetails));
     },

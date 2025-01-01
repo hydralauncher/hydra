@@ -64,7 +64,10 @@ export class WindowManager {
 
     this.mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
       (details, callback) => {
-        if (details.webContentsId !== this.mainWindow?.webContents.id) {
+        if (
+          details.webContentsId !== this.mainWindow?.webContents.id ||
+          details.url.includes("chatwoot")
+        ) {
           return callback(details);
         }
 
@@ -81,15 +84,11 @@ export class WindowManager {
 
     this.mainWindow.webContents.session.webRequest.onHeadersReceived(
       (details, callback) => {
-        if (details.webContentsId !== this.mainWindow?.webContents.id) {
-          return callback(details);
-        }
-
-        if (details.url.includes("featurebase")) {
-          return callback(details);
-        }
-
-        if (details.url.includes("chatwoot")) {
+        if (
+          details.webContentsId !== this.mainWindow?.webContents.id ||
+          details.url.includes("featurebase") ||
+          details.url.includes("chatwoot")
+        ) {
           return callback(details);
         }
 
