@@ -31,7 +31,7 @@ import type {
   CatalogueSearchPayload,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
-import type { DiskSpace } from "check-disk-space";
+import type disk from "diskusage";
 
 declare global {
   declare module "*.svg" {
@@ -140,7 +140,8 @@ declare global {
     ) => Promise<{ fingerprint: string }>;
 
     /* Hardware */
-    getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
+    getDiskFreeSpace: (path: string) => Promise<disk.DiskUsage>;
+    checkFolderWritePermission: (path: string) => Promise<boolean>;
 
     /* Cloud save */
     uploadSaveGame: (
@@ -195,6 +196,7 @@ declare global {
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
     showItemInFolder: (path: string) => Promise<void>;
+    getFeatures: () => Promise<string[]>;
     platform: NodeJS.Platform;
 
     /* Auto update */

@@ -105,7 +105,7 @@ export function ReportProfile() {
             {...register("description")}
             label={t("report_description")}
             placeholder={t("report_description_placeholder")}
-            error={errors.description}
+            error={errors.description?.message}
           />
 
           <Button

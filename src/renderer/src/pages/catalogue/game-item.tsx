@@ -31,11 +31,11 @@ export function GameItem({ game }: GameItemProps) {
 
   const genres = useMemo(() => {
     return game.genres?.map((genre) => {
-      const index = steamGenres["en"].findIndex(
+      const index = steamGenres["en"]?.findIndex(
         (steamGenre) => steamGenre === genre
       );
 
-      if (steamGenres[language] && steamGenres[language][index]) {
+      if (index && steamGenres[language] && steamGenres[language][index]) {
         return steamGenres[language][index];
       }
 

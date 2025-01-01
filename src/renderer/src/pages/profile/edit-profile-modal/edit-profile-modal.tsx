@@ -163,7 +163,7 @@ export function EditProfileModal(
             minLength={3}
             maxLength={50}
             containerProps={{ style: { width: "100%" } }}
-            error={errors.displayName}
+            error={errors.displayName?.message}
           />
         </div>
 
