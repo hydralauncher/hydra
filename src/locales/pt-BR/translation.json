@@ -167,7 +167,8 @@
     "select_folder": "Selecione a pasta",
     "manage_files_description": "Gerencie quais arquivos serão feitos backup",
     "clear": "Limpar",
-    "no_directory_selected": "Nenhum diretório selecionado"
+    "no_directory_selected": "Nenhum diretório selecionado",
+    "no_write_permission": "Его нельзя загрузить из этого каталога. Нажмите здесь, чтобы узнать больше."
   },
   "activation": {
     "title": "Ativação",
