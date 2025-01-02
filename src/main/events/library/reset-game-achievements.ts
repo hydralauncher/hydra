@@ -10,47 +10,44 @@ const resetGameAchievements = async (
   _event: Electron.IpcMainInvokeEvent,
   gameId: number
 ) => {
-  const game = await gameRepository.findOne({ where: { id: gameId } });
+  try {
+    const game = await gameRepository.findOne({ where: { id: gameId } });
 
-  if (!game) return;
+    if (!game) return;
 
-  const achievementFiles = findAchievementFiles(game);
+    const achievementFiles = findAchievementFiles(game);
 
-  if (achievementFiles.length) {
-    try {
+    if (achievementFiles.length) {
       await Promise.all(
         achievementFiles.map(async (achievementFile) => {
           await fs.promises.rm(achievementFile.filePath, { recursive: true });
         })
       );
-    } catch (error) {
-      console.error(error);
     }
-  }
 
-  await gameAchievementRepository.update(
-    { objectId: game.objectID },
-    {
-      unlockedAchievements: null,
-    }
-  );
+    await gameAchievementRepository.update(
+      { objectId: game.objectID },
+      {
+        unlockedAchievements: null,
+      }
+    );
 
-  try {
     await HydraApi.delete(`/profile/games/${game.remoteId}/achievements`);
+
+    const gameAchievements = await getUnlockedAchievements(
+      game.objectID,
+      game.shop,
+      true
+    );
+
+    WindowManager.mainWindow?.webContents.send(
+      `on-update-achievements-${game.objectID}-${game.shop}`,
+      gameAchievements
+    );
+
   } catch (error) {
     console.error(error);
   }
-
-  const gameAchievements = await getUnlockedAchievements(
-    game.objectID,
-    game.shop,
-    true
-  );
-
-  WindowManager.mainWindow?.webContents.send(
-    `on-update-achievements-${game.objectID}-${game.shop}`,
-    gameAchievements
-  );
 };
 
 registerEvent("resetGameAchievements", resetGameAchievements);
