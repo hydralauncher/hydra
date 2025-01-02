@@ -2,7 +2,7 @@ import { gameAchievementRepository, gameRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
 import { findAchievementFiles } from "@main/services/achievements/find-achivement-files";
 import fs from "fs";
-import { WindowManager } from "@main/services";
+import { achievementsLogger, WindowManager } from "@main/services";
 import { getUnlockedAchievements } from "../user/get-unlocked-achievements";
 import { HydraApi } from "@main/services/hydra-api";
 
@@ -45,7 +45,7 @@ const resetGameAchievements = async (
       gameAchievements
     );
   } catch (error) {
-    console.error(error);
+    achievementsLogger.error(error);
   }
 };
 
