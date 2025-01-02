@@ -18,6 +18,11 @@ const resetGameAchievements = async (
     const achievementFiles = findAchievementFiles(game);
 
     if (achievementFiles.length) {
+      achievementsLogger.info(
+        `deleting achievement files: ${achievementFiles
+          .map((file) => file.filePath)
+          .join(", ")}`
+      );
       for (const achievementFile of achievementFiles) {
         await fs.promises.rm(achievementFile.filePath);
       }
