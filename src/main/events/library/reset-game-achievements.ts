@@ -36,7 +36,8 @@ const resetGameAchievements = async (
     );
 
     await HydraApi.delete(`/profile/games/${game.remoteId}/achievements`).then(
-      (res) => console.info(res));
+      (res) => console.log(res)
+    );
 
     const gameAchievements = await getUnlockedAchievements(
       game.objectID,
