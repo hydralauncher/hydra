@@ -4,6 +4,7 @@ import { findAchievementFiles } from "@main/services/achievements/find-achivemen
 import fs from "fs";
 import { WindowManager } from "@main/services";
 import { getUnlockedAchievements } from "../user/get-unlocked-achievements";
+import { HydraApi } from "@main/services/hydra-api";
 
 const resetGameAchievements = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -34,7 +35,11 @@ const resetGameAchievements = async (
     }
   );
 
-  // TODO: remove from db
+  try {
+    await HydraApi.delete(`/profile/games/${game.remoteId}/achievements`);
+  } catch (error) {
+    console.error(error);
+  }
 
   const gameAchievements = await getUnlockedAchievements(
     game.objectID,
