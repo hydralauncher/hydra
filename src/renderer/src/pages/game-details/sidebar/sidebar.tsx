@@ -192,6 +192,10 @@ export function Sidebar() {
                   })}
                   className={styles.listItem}
                   title={achievement.description}
+                  aria-label={`
+                    ${t("achievement")} ${index + 1},
+                    ${achievement.displayName}
+                  `}
                 >
                   <img
                     className={styles.listItemImage({
