@@ -21,6 +21,7 @@ import { howLongToBeatEntriesTable } from "@renderer/dexie";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
 import { SPACING_UNIT } from "@renderer/theme.css";
+import { useSubscription } from "@renderer/hooks/use-subscription";
 
 const fakeAchievements: UserAchievement[] = [
   {
@@ -67,15 +68,10 @@ export function Sidebar() {
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
-  const {
-    gameTitle,
-    shopDetails,
-    objectId,
-    shop,
-    stats,
-    achievements,
-    handleClickOpenCheckout,
-  } = useContext(gameDetailsContext);
+  const { gameTitle, shopDetails, objectId, shop, stats, achievements } =
+    useContext(gameDetailsContext);
+
+  const { showHydraCloudModal } = useSubscription();
 
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
@@ -158,7 +154,7 @@ export function Sidebar() {
                   <div>
                     <p>{achievement.displayName}</p>
                     <small>
-                      {achievement.unlockTime &&
+                      {achievement.unlockTime != null &&
                         formatDateTime(achievement.unlockTime)}
                     </small>
                   </div>
@@ -179,7 +175,7 @@ export function Sidebar() {
             {!hasActiveSubscription && (
               <button
                 className={styles.subscriptionRequiredButton}
-                onClick={handleClickOpenCheckout}
+                onClick={() => showHydraCloudModal("achievements")}
               >
                 <CloudOfflineIcon size={16} />
                 <span>{t("achievements_not_sync")}</span>
@@ -207,7 +203,7 @@ export function Sidebar() {
                   <div>
                     <p>{achievement.displayName}</p>
                     <small>
-                      {achievement.unlockTime &&
+                      {achievement.unlockTime != null &&
                         formatDateTime(achievement.unlockTime)}
                     </small>
                   </div>

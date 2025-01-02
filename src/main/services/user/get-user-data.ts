@@ -42,6 +42,7 @@ export const getUserData = () => {
     })
     .catch(async (err) => {
       if (err instanceof UserNotLoggedInError) {
+        logger.info("User is not logged in", err);
         return null;
       }
       logger.error("Failed to get logged user");
@@ -58,6 +59,9 @@ export const getUserData = () => {
           bio: "",
           email: null,
           profileVisibility: "PUBLIC" as ProfileVisibility,
+          quirks: {
+            backupsPerGameLimit: 0,
+          },
           subscription: loggedUser.subscription
             ? {
                 id: loggedUser.subscription.subscriptionId,

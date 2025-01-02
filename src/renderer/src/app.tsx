@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
@@ -7,6 +7,7 @@ import {
   useAppSelector,
   useDownload,
   useLibrary,
+  useRepacks,
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
@@ -15,8 +16,6 @@ import * as styles from "./app.css";
 
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-  setSearch,
-  clearSearch,
   setUserPreferences,
   toggleDraggingDisabled,
   closeToast,
@@ -27,8 +26,9 @@ import {
 import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { downloadSourcesWorker } from "./workers";
-import { repacksContext } from "./context";
-import { logger } from "./logger";
+import { downloadSourcesTable } from "./dexie";
+import { useSubscription } from "./hooks/use-subscription";
+import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -40,34 +40,30 @@ export function App() {
 
   const { t } = useTranslation("app");
 
-  const downloadSourceMigrationLock = useRef(false);
+  const { updateRepacks } = useRepacks();
 
   const { clearDownload, setLastPacket } = useDownload();
 
-  const { indexRepacks } = useContext(repacksContext);
-
   const {
+    userDetails,
+    hasActiveSubscription,
     isFriendsModalVisible,
     friendRequetsModalTab,
     friendModalUserId,
     syncFriendRequests,
     hideFriendsModal,
-  } = useUserDetails();
-
-  const {
-    userDetails,
-    hasActiveSubscription,
     fetchUserDetails,
     updateUserDetails,
     clearUserDetails,
   } = useUserDetails();
 
+  const { hideHydraCloudModal, isHydraCloudModalVisible, hydraCloudFeature } =
+    useSubscription();
+
   const dispatch = useAppDispatch();
 
   const navigate = useNavigate();
   const location = useLocation();
-
-  const search = useAppSelector((state) => state.search.value);
 
   const draggingDisabled = useAppSelector(
     (state) => state.window.draggingDisabled
@@ -104,6 +100,14 @@ export function App() {
   }, [clearDownload, setLastPacket, updateLibrary]);
 
   useEffect(() => {
+    const unsubscribe = window.electron.onHardDelete(() => {
+      updateLibrary();
+    });
+
+    return () => unsubscribe();
+  }, [updateLibrary]);
+
+  useEffect(() => {
     const cachedUserDetails = window.localStorage.getItem("userDetails");
 
     if (cachedUserDetails) {
@@ -126,7 +130,7 @@ export function App() {
 
         const $script = document.createElement("script");
         $script.id = "external-resources";
-        $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}?t=${Date.now()}`;
+        $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
         document.head.appendChild($script);
       });
   }, [fetchUserDetails, syncFriendRequests, updateUserDetails, dispatch]);
@@ -187,31 +191,6 @@ export function App() {
     };
   }, [onSignIn, updateLibrary, clearUserDetails]);
 
-  const handleSearch = useCallback(
-    (query: string) => {
-      dispatch(setSearch(query));
-
-      if (query === "") {
-        navigate(-1);
-        return;
-      }
-
-      const searchParams = new URLSearchParams({
-        query,
-      });
-
-      navigate(`/search?${searchParams.toString()}`, {
-        replace: location.pathname.startsWith("/search"),
-      });
-    },
-    [dispatch, location.pathname, navigate]
-  );
-
-  const handleClear = useCallback(() => {
-    dispatch(clearSearch());
-    navigate(-1);
-  }, [dispatch, navigate]);
-
   useEffect(() => {
     if (contentRef.current) contentRef.current.scrollTop = 0;
   }, [location.pathname, location.search]);
@@ -228,53 +207,31 @@ export function App() {
   }, [dispatch, draggingDisabled]);
 
   useEffect(() => {
-    if (downloadSourceMigrationLock.current) return;
+    updateRepacks();
 
-    downloadSourceMigrationLock.current = true;
+    const id = crypto.randomUUID();
+    const channel = new BroadcastChannel(`download_sources:sync:${id}`);
 
-    window.electron.getDownloadSources().then(async (downloadSources) => {
-      if (!downloadSources.length) {
-        const id = crypto.randomUUID();
-        const channel = new BroadcastChannel(`download_sources:sync:${id}`);
+    channel.onmessage = (event: MessageEvent<number>) => {
+      const newRepacksCount = event.data;
+      window.electron.publishNewRepacksNotification(newRepacksCount);
+      updateRepacks();
 
-        channel.onmessage = (event: MessageEvent<number>) => {
-          const newRepacksCount = event.data;
-          window.electron.publishNewRepacksNotification(newRepacksCount);
-        };
+      downloadSourcesTable.toArray().then((downloadSources) => {
+        downloadSources
+          .filter((source) => !source.fingerprint)
+          .forEach((downloadSource) => {
+            window.electron
+              .putDownloadSource(downloadSource.objectIds)
+              .then(({ fingerprint }) => {
+                downloadSourcesTable.update(downloadSource.id, { fingerprint });
+              });
+          });
+      });
+    };
 
-        downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
-      }
-
-      for (const downloadSource of downloadSources) {
-        logger.info("Migrating download source", downloadSource.url);
-
-        const channel = new BroadcastChannel(
-          `download_sources:import:${downloadSource.url}`
-        );
-        await new Promise((resolve) => {
-          downloadSourcesWorker.postMessage([
-            "IMPORT_DOWNLOAD_SOURCE",
-            downloadSource.url,
-          ]);
-
-          channel.onmessage = () => {
-            window.electron.deleteDownloadSource(downloadSource.id).then(() => {
-              resolve(true);
-              logger.info(
-                "Deleted download source from SQLite",
-                downloadSource.url
-              );
-            });
-
-            indexRepacks();
-            channel.close();
-          };
-        }).catch(() => channel.close());
-      }
-
-      downloadSourceMigrationLock.current = false;
-    });
-  }, [indexRepacks]);
+    downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
+  }, [updateRepacks]);
 
   const handleToastClose = useCallback(() => {
     dispatch(closeToast());
@@ -300,6 +257,12 @@ export function App() {
         onClose={handleToastClose}
       />
 
+      <HydraCloudModal
+        visible={isHydraCloudModalVisible}
+        onClose={hideHydraCloudModal}
+        feature={hydraCloudFeature}
+      />
+
       {userDetails && (
         <UserFriendModal
           visible={isFriendsModalVisible}
@@ -313,11 +276,7 @@ export function App() {
         <Sidebar />
 
         <article className={styles.container}>
-          <Header
-            onSearch={handleSearch}
-            search={search}
-            onClear={handleClear}
-          />
+          <Header />
 
           <section ref={contentRef} className={styles.content}>
             <Outlet />
