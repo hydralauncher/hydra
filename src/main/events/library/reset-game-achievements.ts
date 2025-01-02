@@ -44,7 +44,6 @@ const resetGameAchievements = async (
       `on-update-achievements-${game.objectID}-${game.shop}`,
       gameAchievements
     );
-
   } catch (error) {
     console.error(error);
   }
