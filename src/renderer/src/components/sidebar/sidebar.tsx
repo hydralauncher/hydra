@@ -154,7 +154,11 @@ export function Sidebar() {
 
     if (event.detail === 2) {
       if (game.executablePath) {
-        window.electron.openGame(game.id, game.executablePath);
+        window.electron.openGame(
+          game.id,
+          game.executablePath,
+          game.launchOptions
+        );
       } else {
         showWarningToast(t("game_has_no_executable"));
       }

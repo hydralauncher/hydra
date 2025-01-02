@@ -89,7 +89,7 @@ const uploadSaveGame = async (
           "Content-Type": "application/tar",
         },
         onUploadProgress: (progressEvent) => {
-          console.log(progressEvent);
+          logger.log(progressEvent);
         },
       });
 

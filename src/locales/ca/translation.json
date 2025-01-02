@@ -224,7 +224,7 @@
     "last_time_played": "Última partida {{period}}",
     "activity": "Activitat recent",
     "library": "Biblioteca",
-    "total_play_time": "Temps total de joc:{{amount}}",
+    "total_play_time": "Temps total de joc",
     "no_recent_activity_title": "Hmmm… encara no res",
     "no_recent_activity_description": "No has jugat a cap joc recentment. És el moment de canviar-ho!",
     "display_name": "Nom de visualització",

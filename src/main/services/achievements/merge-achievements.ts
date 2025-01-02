@@ -7,8 +7,9 @@ import { WindowManager } from "../window-manager";
 import { HydraApi } from "../hydra-api";
 import { getUnlockedAchievements } from "@main/events/user/get-unlocked-achievements";
 import { Game } from "@main/entity";
-import { achievementsLogger } from "../logger";
 import { publishNewAchievementNotification } from "../notifications";
+import { SubscriptionRequiredError } from "@shared";
+import { achievementsLogger } from "../logger";
 
 const saveAchievementsOnLocal = async (
   objectId: string,
@@ -120,10 +121,14 @@ export const mergeAchievements = async (
   }
 
   if (game.remoteId) {
-    await HydraApi.put("/profile/games/achievements", {
-      id: game.remoteId,
-      achievements: mergedLocalAchievements,
-    })
+    await HydraApi.put(
+      "/profile/games/achievements",
+      {
+        id: game.remoteId,
+        achievements: mergedLocalAchievements,
+      },
+      { needsSubscription: !newAchievements.length }
+    )
       .then((response) => {
         return saveAchievementsOnLocal(
           response.objectId,
@@ -133,7 +138,13 @@ export const mergeAchievements = async (
         );
       })
       .catch((err) => {
-        achievementsLogger.error(err);
+        if (err! instanceof SubscriptionRequiredError) {
+          achievementsLogger.log(
+            "Achievements not synchronized on API due to lack of subscription",
+            game.objectID,
+            game.title
+          );
+        }
 
         return saveAchievementsOnLocal(
           game.objectID,

@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Modal, TextField } from "@renderer/components";
 import type { Game } from "@types";
@@ -9,6 +9,7 @@ import { useDownload, useToast } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { FileDirectoryIcon, FileIcon } from "@primer/octicons-react";
+import { debounce } from "lodash-es";
 
 export interface GameOptionsModalProps {
   visible: boolean;
@@ -33,6 +34,8 @@ export function GameOptionsModal({
   const [showResetAchievementsModal, setShowResetAchievementsModal] =
     useState(false);
 
+  const [launchOptions, setLaunchOptions] = useState(game.launchOptions ?? "");
+
   const {
     removeGameInstaller,
     removeGameFromLibrary,
@@ -46,6 +49,13 @@ export function GameOptionsModal({
 
   const isGameDownloading =
     game.status === "active" && lastPacket?.game.id === game.id;
+
+  const debounceUpdateLaunchOptions = useRef(
+    debounce(async (value: string) => {
+      await window.electron.updateLaunchOptions(game.id, value);
+      updateGame();
+    }, 1000)
+  ).current;
 
   const handleRemoveGameFromLibrary = async () => {
     if (isGameDownloading) {
@@ -119,6 +129,19 @@ export function GameOptionsModal({
     updateGame();
   };
 
+  const handleChangeLaunchOptions = async (event) => {
+    const value = event.target.value;
+
+    setLaunchOptions(value);
+    debounceUpdateLaunchOptions(value);
+  };
+
+  const handleClearLaunchOptions = async () => {
+    setLaunchOptions("");
+
+    window.electron.updateLaunchOptions(game.id, null).then(updateGame);
+  };
+
   const shouldShowWinePrefixConfiguration =
     window.electron.platform === "linux";
 
@@ -126,6 +149,8 @@ export function GameOptionsModal({
     await window.electron.resetGameAchievements(game.id);
     updateGame();
   };
+
+  const shouldShowLaunchOptionsConfiguration = false;
 
   return (
     <>
@@ -236,6 +261,28 @@ export function GameOptionsModal({
                       </Button>
                     )}
                   </>
+                }
+              />
+            </div>
+          )}
+
+          {shouldShowLaunchOptionsConfiguration && (
+            <div className={styles.gameOptionHeader}>
+              <h2>{t("launch_options")}</h2>
+              <h4 className={styles.gameOptionHeaderDescription}>
+                {t("launch_options_description")}
+              </h4>
+              <TextField
+                value={launchOptions}
+                theme="dark"
+                placeholder={t("launch_options_placeholder")}
+                onChange={handleChangeLaunchOptions}
+                rightContent={
+                  game.launchOptions && (
+                    <Button onClick={handleClearLaunchOptions} theme="outline">
+                      {t("clear")}
+                    </Button>
+                  )
                 }
               />
             </div>

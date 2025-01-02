@@ -1,10 +1,10 @@
-import checkDiskSpace from "check-disk-space";
+import disk from "diskusage";
 
 import { registerEvent } from "../register-event";
 
 const getDiskFreeSpace = async (
   _event: Electron.IpcMainInvokeEvent,
   path: string
-) => checkDiskSpace(path);
+) => disk.check(path);
 
 registerEvent("getDiskFreeSpace", getDiskFreeSpace);

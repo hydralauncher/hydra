@@ -11,7 +11,7 @@ const getSteamGame = async (objectId: string) => {
     });
 
     return {
-      title: steamGame.name,
+      title: steamGame.name as string,
       iconUrl: steamUrlBuilder.icon(objectId, steamGame.clientIcon),
     };
   } catch (err) {
@@ -67,8 +67,25 @@ const getUser = async (
       }
     }
 
+    const friends = await Promise.all(
+      profile.friends.map(async (friend) => {
+        if (!friend.currentGame) return friend;
+
+        const currentGame = await getSteamGame(friend.currentGame.objectId);
+
+        return {
+          ...friend,
+          currentGame: {
+            ...friend.currentGame,
+            ...currentGame,
+          },
+        };
+      })
+    );
+
     return {
       ...profile,
+      friends,
       libraryGames,
       recentGames,
     };
