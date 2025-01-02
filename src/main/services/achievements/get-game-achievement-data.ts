@@ -42,7 +42,7 @@ export const getGameAchievementData = async (
       if (err instanceof UserNotLoggedInError) {
         throw err;
       }
-      logger.error("Failed to get game achievements", err);
+      logger.error("Failed to get game achievements for", objectId, err);
       return gameAchievementRepository
         .findOne({
           where: { objectId, shop },

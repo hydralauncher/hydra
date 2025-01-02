@@ -13,7 +13,7 @@ import { Downloader } from "@shared";
 import { IsNull, Not } from "typeorm";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
-  import("./events");
+  await import("./events");
 
   Aria2.spawn();
 
