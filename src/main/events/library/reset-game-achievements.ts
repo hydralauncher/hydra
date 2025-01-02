@@ -18,11 +18,9 @@ const resetGameAchievements = async (
     const achievementFiles = findAchievementFiles(game);
 
     if (achievementFiles.length) {
-      await Promise.all(
-        achievementFiles.map(async (achievementFile) => {
-          await fs.promises.rm(achievementFile.filePath, { recursive: true });
-        })
-      );
+      for (const achievementFile of achievementFiles) {
+        await fs.promises.rm(achievementFile.filePath);
+      }
     }
 
     await gameAchievementRepository.update(
