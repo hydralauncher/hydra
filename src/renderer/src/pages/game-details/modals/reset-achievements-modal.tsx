@@ -3,12 +3,12 @@ import { Button, Modal } from "@renderer/components";
 import * as styles from "./remove-from-library-modal.css";
 import type { Game } from "@types";
 
-interface ResetAchievementsModalProps {
+type ResetAchievementsModalProps = Readonly<{
   visible: boolean;
   game: Game;
   onClose: () => void;
   resetAchievements: () => Promise<void>;
-}
+}>;
 
 export function ResetAchievementsModal({
   onClose,
