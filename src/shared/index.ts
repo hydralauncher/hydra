@@ -87,6 +87,7 @@ export const getDownloadersForUri = (uri: string) => {
 
   if (uri.startsWith("https://pixeldrain.com")) return [Downloader.PixelDrain];
   if (uri.startsWith("https://qiwi.gg")) return [Downloader.Qiwi];
+  if (uri.startsWith("https://datanodes.to")) return [Downloader.Datanodes];
 
   if (realDebridHosts.some((host) => uri.startsWith(host)))
     return [Downloader.RealDebrid];

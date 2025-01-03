@@ -8,7 +8,7 @@ import {
 } from "@main/repository";
 import { publishDownloadCompleteNotification } from "../notifications";
 import type { DownloadProgress } from "@types";
-import { GofileApi, QiwiApi } from "../hosters";
+import { GofileApi, QiwiApi, DatanodesApi } from "../hosters";
 import { PythonRPC } from "../python-rpc";
 import {
   LibtorrentPayload,
@@ -269,6 +269,16 @@ export class DownloadManager {
       }
       case Downloader.Qiwi: {
         const downloadUrl = await QiwiApi.getDownloadUrl(game.uri!);
+
+        return {
+          action: "start",
+          game_id: game.id,
+          url: downloadUrl,
+          save_path: game.downloadPath!,
+        };
+      }
+      case Downloader.Datanodes: {
+        const downloadUrl = await DatanodesApi.getDownloadUrl(game.uri!);
 
         return {
           action: "start",
