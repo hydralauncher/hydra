@@ -5,7 +5,7 @@ import type { Game } from "@types";
 import * as styles from "./game-options-modal.css";
 import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
-import { useDownload, useToast } from "@renderer/hooks";
+import { useDownload, useToast, useUserDetails } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { FileDirectoryIcon, FileIcon } from "@primer/octicons-react";
@@ -47,6 +47,8 @@ export function GameOptionsModal({
     isGameDeleting,
     cancelDownload,
   } = useDownload();
+
+  const { userDetails } = useUserDetails();
 
   const hasAchievements =
     (achievements?.filter((achievement) => achievement.unlocked).length ?? 0) >
@@ -350,7 +352,12 @@ export function GameOptionsModal({
             <Button
               onClick={() => setShowResetAchievementsModal(true)}
               theme="danger"
-              disabled={deleting || isDeletingAchievements || !hasAchievements}
+              disabled={
+                deleting ||
+                isDeletingAchievements ||
+                !hasAchievements ||
+                !userDetails
+              }
             >
               {t("reset_achievements")}
             </Button>
