@@ -170,7 +170,9 @@
     "no_directory_selected": "Nenhum diretório selecionado",
     "reset_achievements": "Resetar conquistas",
     "reset_achievements_description": "Isso irá resetar todas as conquistas de {{game}}",
-    "reset_achievements_title": "Tem certeza?"
+    "reset_achievements_title": "Tem certeza?",
+    "reset_achievements_success": "Conquistas resetadas com sucesso",
+    "reset_achievements_error": "Falha ao resetar conquistas"
   },
   "activation": {
     "title": "Ativação",

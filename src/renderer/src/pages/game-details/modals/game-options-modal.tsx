@@ -149,8 +149,11 @@ export function GameOptionsModal({
     setIsDeletingAchievements(true);
     try {
       await window.electron.resetGameAchievements(game.id);
-    } finally {
       await updateGame();
+      showSuccessToast(t("reset_achievements_success"));
+    } catch (error) {
+      showErrorToast(t("reset_achievements_error"));
+    } finally {
       setIsDeletingAchievements(false);
     }
   };
