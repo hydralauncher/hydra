@@ -2,7 +2,6 @@ import { useTranslation } from "react-i18next";
 import { Button, Modal } from "@renderer/components";
 import * as styles from "./remove-from-library-modal.css";
 import type { Game } from "@types";
-
 type ResetAchievementsModalProps = Readonly<{
   visible: boolean;
   game: Game;
@@ -19,18 +18,21 @@ export function ResetAchievementsModal({
   const { t } = useTranslation("game_details");
 
   const handleResetAchievements = async () => {
-    await resetAchievements();
-    onClose();
+    try {
+      await resetAchievements();
+    } finally {
+      onClose();
+    }
   };
 
   return (
     <Modal
       visible={visible}
+      onClose={onClose}
       title={t("reset_achievements_title")}
       description={t("reset_achievements_description", {
         game: game.title,
       })}
-      onClose={onClose}
     >
       <div className={styles.deleteActionsButtonsCtn}>
         <Button onClick={handleResetAchievements} theme="outline">
