@@ -6,7 +6,6 @@ import type {
   TorBoxAddTorrentRequest,
   TorBoxRequestLinkRequest,
 } from "@types";
-import { logger } from "../logger";
 
 export class TorBoxClient {
   private static instance: AxiosInstance;
@@ -20,7 +19,7 @@ export class TorBoxClient {
         Authorization: `Bearer ${apiToken}`,
       },
     });
-    this.apiToken = apiToken;
+    this.apiToken = "7371d5ec-52fa-4b87-9052-0c8c96d947cc";
   }
 
   static async addMagnet(magnet: string) {
@@ -55,21 +54,15 @@ export class TorBoxClient {
   }
 
   static async requestLink(id: number) {
-    const searchParams = new URLSearchParams({});
-
-    searchParams.set("token", this.apiToken);
-    searchParams.set("torrent_id", id.toString());
-    searchParams.set("zip_link", "true");
+    const searchParams = new URLSearchParams({
+      token: this.apiToken,
+      torrent_id: id.toString(),
+      zip_link: "true",
+    });
 
     const response = await this.instance.get<TorBoxRequestLinkRequest>(
       "/torrents/requestdl?" + searchParams.toString()
     );
-
-    if (response.status !== 200) {
-      logger.error(response.data.error);
-      logger.error(response.data.detail);
-      return null;
-    }
 
     return response.data.data;
   }
@@ -81,7 +74,7 @@ export class TorBoxClient {
     return response.data.data;
   }
 
-  static async getTorrentId(magnetUri: string) {
+  static async getTorrentIdAndName(magnetUri: string) {
     const userTorrents = await this.getAllTorrentsFromUser();
 
     const { infoHash } = await parseTorrent(magnetUri);
@@ -89,9 +82,15 @@ export class TorBoxClient {
       (userTorrent) => userTorrent.hash === infoHash
     );
 
-    if (userTorrent) return userTorrent.id;
+    if (userTorrent) return { id: userTorrent.id, name: userTorrent.name };
 
     const torrent = await this.addMagnet(magnetUri);
-    return torrent.torrent_id;
+    return { id: torrent.torrent_id, name: torrent.name };
+  }
+
+  static async getDownloadInfo(uri: string) {
+    const { id, name } = await this.getTorrentIdAndName(uri);
+    const url = await this.requestLink(id);
+    return { url, name: `${name}.zip` };
   }
 }
