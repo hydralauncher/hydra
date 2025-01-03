@@ -182,7 +182,9 @@
     "no_write_permission": "Cannot download into this directory. Click here to learn more.",
     "reset_achievements": "Reset achievements",
     "reset_achievements_description": "This will reset all achievements for {{game}}",
-    "reset_achievements_title": "Are you sure?"
+    "reset_achievements_title": "Are you sure?",
+    "reset_achievements_success": "Achievements successfully reset",
+    "reset_achievements_error": "Failed to reset achievements"
   },
   "activation": {
     "title": "Activate Hydra",
