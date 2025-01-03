@@ -26,8 +26,13 @@ export function GameOptionsModal({
 
   const { showSuccessToast, showErrorToast } = useToast();
 
-  const { updateGame, setShowRepacksModal, repacks, selectGameExecutable, achievements } =
-    useContext(gameDetailsContext);
+  const {
+    updateGame,
+    setShowRepacksModal,
+    repacks,
+    selectGameExecutable,
+    achievements,
+  } = useContext(gameDetailsContext);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRemoveGameModal, setShowRemoveGameModal] = useState(false);
