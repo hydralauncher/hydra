@@ -168,7 +168,11 @@
     "manage_files_description": "Gerencie quais arquivos serão feitos backup",
     "clear": "Limpar",
     "no_directory_selected": "Nenhum diretório selecionado",
-    "no_write_permission": "O download não pode ser feito neste diretório. Clique aqui para saber mais."
+    "reset_achievements": "Resetar conquistas",
+    "reset_achievements_description": "Isso irá resetar todas as conquistas de {{game}}",
+    "reset_achievements_title": "Tem certeza?",
+    "reset_achievements_success": "Conquistas resetadas com sucesso",
+    "reset_achievements_error": "Falha ao resetar conquistas"
   },
   "activation": {
     "title": "Ativação",
