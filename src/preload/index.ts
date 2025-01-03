@@ -130,6 +130,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("deleteGameFolder", gameId),
   getGameByObjectId: (objectId: string) =>
     ipcRenderer.invoke("getGameByObjectId", objectId),
+  resetGameAchievements: (gameId: number) =>
+    ipcRenderer.invoke("resetGameAchievements", gameId),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
