@@ -34,7 +34,7 @@ export function GameOptionsModal({
   const [launchOptions, setLaunchOptions] = useState(game.launchOptions ?? "");
   const [showResetAchievementsModal, setShowResetAchievementsModal] =
     useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeletingAchievements, setIsDeletingAchievements] = useState(false);
 
   const {
     removeGameInstaller,
@@ -146,12 +146,12 @@ export function GameOptionsModal({
     window.electron.platform === "linux";
 
   const handleResetAchievements = async () => {
-    setIsDeleting(true);
+    setIsDeletingAchievements(true);
     try {
       await window.electron.resetGameAchievements(game.id);
     } finally {
       await updateGame();
-      setIsDeleting(false);
+      setIsDeletingAchievements(false);
     }
   };
 
@@ -338,7 +338,7 @@ export function GameOptionsModal({
             <Button
               onClick={() => setShowResetAchievementsModal(true)}
               theme="danger"
-              disabled={deleting || isDeleting}
+              disabled={deleting || isDeletingAchievements}
             >
               {t("reset_achievements")}
             </Button>
