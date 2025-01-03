@@ -26,7 +26,7 @@ export function GameOptionsModal({
 
   const { showSuccessToast, showErrorToast } = useToast();
 
-  const { updateGame, setShowRepacksModal, repacks, selectGameExecutable } =
+  const { updateGame, setShowRepacksModal, repacks, selectGameExecutable, achievements } =
     useContext(gameDetailsContext);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -42,6 +42,10 @@ export function GameOptionsModal({
     isGameDeleting,
     cancelDownload,
   } = useDownload();
+
+  const hasAchievements =
+    (achievements?.filter((achievement) => achievement.unlocked).length ?? 0) >
+    0;
 
   const deleting = isGameDeleting(game.id);
 
@@ -341,7 +345,7 @@ export function GameOptionsModal({
             <Button
               onClick={() => setShowResetAchievementsModal(true)}
               theme="danger"
-              disabled={deleting || isDeletingAchievements}
+              disabled={deleting || isDeletingAchievements || !hasAchievements}
             >
               {t("reset_achievements")}
             </Button>
