@@ -81,10 +81,15 @@ export function BottomPanel() {
         <small>{status}</small>
       </button>
 
-      <small>
-        {sessionHash ? `${sessionHash} -` : ""} v{version} &quot;
-        {VERSION_CODENAME}&quot;
-      </small>
+      <button
+        data-featurebase-changelog
+        className="bottom-panel__version-button"
+      >
+        <small data-featurebase-changelog>
+          {sessionHash ? `${sessionHash} -` : ""} v{version} &quot;
+          {VERSION_CODENAME}&quot;
+        </small>
+      </button>
     </footer>
   );
 }
