@@ -338,7 +338,7 @@ export function GameOptionsModal({
             <Button
               onClick={() => setShowResetAchievementsModal(true)}
               theme="danger"
-              disabled={isGameDownloading || deleting || isDeleting}
+              disabled={deleting || isDeleting}
             >
               {t("reset_achievements")}
             </Button>
