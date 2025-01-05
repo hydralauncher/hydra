@@ -1,9 +1,5 @@
 import { DownloadManager, Ludusavi, startMainLoop } from "./services";
-import {
-  downloadQueueRepository,
-  gameRepository,
-  userPreferencesRepository,
-} from "./repository";
+import { downloadQueueRepository, gameRepository } from "./repository";
 import { UserPreferences } from "./entity";
 import { RealDebridClient } from "./services/download/real-debrid";
 import { HydraApi } from "./services/hydra-api";
