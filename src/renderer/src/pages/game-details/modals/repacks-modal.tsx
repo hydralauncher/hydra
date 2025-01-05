@@ -1,6 +1,5 @@
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import parseTorrent from "parse-torrent";
 
 import { Badge, Button, Modal, TextField } from "@renderer/components";
 import type { GameRepack } from "@types";
@@ -8,10 +7,11 @@ import type { GameRepack } from "@types";
 import * as styles from "./repacks-modal.css";
 
 import { SPACING_UNIT } from "@renderer/theme.css";
-import { format } from "date-fns";
 import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "@renderer/context";
 import { Downloader } from "@shared";
+import { orderBy } from "lodash-es";
+import { useDate } from "@renderer/hooks";
 
 export interface RepacksModalProps {
   visible: boolean;
@@ -32,22 +32,19 @@ export function RepacksModal({
   const [repack, setRepack] = useState<GameRepack | null>(null);
   const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
 
-  const [infoHash, setInfoHash] = useState<string | null>(null);
-
   const { repacks, game } = useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
 
-  const getInfoHash = useCallback(async () => {
-    const torrent = await parseTorrent(game?.uri ?? "");
-    if (torrent.infoHash) setInfoHash(torrent.infoHash);
-  }, [game]);
+  const { formatDate } = useDate();
+
+  const sortedRepacks = useMemo(() => {
+    return orderBy(repacks, (repack) => repack.uploadDate, "desc");
+  }, [repacks]);
 
   useEffect(() => {
-    setFilteredRepacks(repacks);
-
-    if (game?.uri) getInfoHash();
-  }, [repacks, visible, game, getInfoHash]);
+    setFilteredRepacks(sortedRepacks);
+  }, [sortedRepacks, visible, game]);
 
   const handleRepackClick = (repack: GameRepack) => {
     setRepack(repack);
@@ -58,7 +55,7 @@ export function RepacksModal({
     const term = event.target.value.toLocaleLowerCase();
 
     setFilteredRepacks(
-      repacks.filter((repack) => {
+      sortedRepacks.filter((repack) => {
         const lowerCaseTitle = repack.title.toLowerCase();
         const lowerCaseRepacker = repack.repacker.toLowerCase();
 
@@ -67,6 +64,11 @@ export function RepacksModal({
         );
       })
     );
+  };
+
+  const checkIfLastDownloadedOption = (repack: GameRepack) => {
+    if (!game) return false;
+    return repack.uris.some((uri) => uri.includes(game.uri!));
   };
 
   return (
@@ -90,9 +92,7 @@ export function RepacksModal({
 
         <div className={styles.repacks}>
           {filteredRepacks.map((repack) => {
-            const isLastDownloadedOption =
-              infoHash !== null &&
-              repack.magnet.toLowerCase().includes(infoHash);
+            const isLastDownloadedOption = checkIfLastDownloadedOption(repack);
 
             return (
               <Button
@@ -111,9 +111,7 @@ export function RepacksModal({
 
                 <p style={{ fontSize: "12px" }}>
                   {repack.fileSize} - {repack.repacker} -{" "}
-                  {repack.uploadDate
-                    ? format(repack.uploadDate, "dd/MM/yyyy")
-                    : ""}
+                  {repack.uploadDate ? formatDate(repack.uploadDate!) : ""}
                 </p>
               </Button>
             );

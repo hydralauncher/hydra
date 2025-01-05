@@ -1,7 +1,5 @@
-.vscode
-node_modules
-aria2/
-fastlist.exe
+.vscode/
+node_modules/
 __pycache__
 dist
 out
@@ -9,3 +7,10 @@ out
 *.log*
 .env
 .vite
+ludusavi/
+hydra-python-rpc/
+aria2/
+.python-version
+
+# Sentry Config File
+.env.sentry-build-plugin

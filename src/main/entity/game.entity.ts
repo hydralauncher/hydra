@@ -5,13 +5,10 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToOne,
-  JoinColumn,
 } from "typeorm";
-import { Repack } from "./repack.entity";
 
-import type { GameShop } from "@types";
+import type { GameShop, GameStatus } from "@types";
 import { Downloader } from "@shared";
-import type { Aria2Status } from "aria2";
 import type { DownloadQueue } from "./download-queue.entity";
 
 @Entity("game")
@@ -21,6 +18,9 @@ export class Game {
 
   @Column("text", { unique: true })
   objectID: string;
+
+  @Column("text", { unique: true, nullable: true })
+  remoteId: string | null;
 
   @Column("text")
   title: string;
@@ -37,6 +37,12 @@ export class Game {
   @Column("text", { nullable: true })
   executablePath: string | null;
 
+  @Column("text", { nullable: true })
+  launchOptions: string | null;
+
+  @Column("text", { nullable: true })
+  winePrefixPath: string | null;
+
   @Column("int", { default: 0 })
   playTimeInMilliseconds: number;
 
@@ -44,7 +50,7 @@ export class Game {
   shop: GameShop;
 
   @Column("text", { nullable: true })
-  status: Aria2Status | null;
+  status: GameStatus | null;
 
   @Column("int", { default: Downloader.Torrent })
   downloader: Downloader;
@@ -67,18 +73,14 @@ export class Game {
   @Column("text", { nullable: true })
   uri: string | null;
 
-  /**
-   * @deprecated
-   */
-  @OneToOne("Repack", "game", { nullable: true })
-  @JoinColumn()
-  repack: Repack;
-
   @OneToOne("DownloadQueue", "game")
   downloadQueue: DownloadQueue;
 
   @Column("boolean", { default: false })
   isDeleted: boolean;
+
+  @Column("boolean", { default: false })
+  shouldSeed: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

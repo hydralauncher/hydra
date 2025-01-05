@@ -13,6 +13,7 @@ export const sidebar = recipe({
     borderRight: `solid 1px ${vars.color.border}`,
     position: "relative",
     overflow: "hidden",
+    justifyContent: "space-between",
   },
   variants: {
     resizing: {
@@ -21,25 +22,24 @@ export const sidebar = recipe({
         pointerEvents: "none",
       },
     },
-  },
-});
-
-export const content = recipe({
-  base: {
-    display: "flex",
-    flexDirection: "column",
-    padding: `${SPACING_UNIT * 2}px`,
-    gap: `${SPACING_UNIT * 2}px`,
-    width: "100%",
-    overflow: "auto",
-  },
-  variants: {
-    macos: {
+    darwin: {
       true: {
         paddingTop: `${SPACING_UNIT * 6}px`,
       },
+      false: {
+        paddingTop: `${SPACING_UNIT}px`,
+      },
     },
   },
+});
+
+export const content = style({
+  display: "flex",
+  flexDirection: "column",
+  padding: `${SPACING_UNIT * 2}px`,
+  gap: `${SPACING_UNIT * 2}px`,
+  width: "100%",
+  overflow: "auto",
 });
 
 export const handle = style({
@@ -126,45 +126,27 @@ export const section = style({
   paddingBottom: `${SPACING_UNIT}px`,
 });
 
-export const profileButton = style({
-  display: "flex",
-  cursor: "pointer",
-  transition: "all ease 0.1s",
-  gap: `${SPACING_UNIT + SPACING_UNIT / 2}px`,
-  alignItems: "center",
-  padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2}px`,
+export const helpButton = style({
   color: vars.color.muted,
-  borderBottom: `solid 1px ${vars.color.border}`,
-  boxShadow: "0px 0px 15px 0px #000000",
+  padding: `${SPACING_UNIT}px ${SPACING_UNIT * 2}px`,
+  gap: "9px",
+  display: "flex",
+  alignItems: "center",
+  cursor: "pointer",
+  borderTop: `solid 1px ${vars.color.border}`,
+  transition: "background-color ease 0.1s",
   ":hover": {
     backgroundColor: "rgba(255, 255, 255, 0.15)",
   },
 });
 
-export const profileAvatar = style({
-  width: "30px",
-  height: "30px",
-  borderRadius: "50%",
+export const helpButtonIcon = style({
+  background: "linear-gradient(0deg, #16B195 50%, #3E62C0 100%)",
+  width: "24px",
+  height: "24px",
   display: "flex",
-  justifyContent: "center",
   alignItems: "center",
-  backgroundColor: vars.color.background,
-  position: "relative",
-});
-
-export const profileButtonInformation = style({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-});
-
-export const statusBadge = style({
-  width: "9px",
-  height: "9px",
+  justifyContent: "center",
+  color: "#fff",
   borderRadius: "50%",
-  backgroundColor: vars.color.danger,
-  position: "absolute",
-  bottom: "-2px",
-  right: "-3px",
-  zIndex: "1",
 });

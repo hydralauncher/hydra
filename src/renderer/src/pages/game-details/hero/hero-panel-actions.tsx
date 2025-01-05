@@ -1,4 +1,9 @@
-import { GearIcon, PlayIcon, PlusCircleIcon } from "@primer/octicons-react";
+import {
+  DownloadIcon,
+  GearIcon,
+  PlayIcon,
+  PlusCircleIcon,
+} from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
 import { useContext, useState } from "react";
@@ -21,13 +26,18 @@ export function HeroPanelActions() {
     game,
     repacks,
     isGameRunning,
-    objectID,
+    objectId,
     gameTitle,
     setShowGameOptionsModal,
     setShowRepacksModal,
     updateGame,
     selectGameExecutable,
   } = useContext(gameDetailsContext);
+
+  const { lastPacket } = useDownload();
+
+  const isGameDownloading =
+    game?.status === "active" && lastPacket?.game.id === game?.id;
 
   const { updateLibrary } = useLibrary();
 
@@ -37,7 +47,7 @@ export function HeroPanelActions() {
     setToggleLibraryGameDisabled(true);
 
     try {
-      await window.electron.addGameToLibrary(objectID!, gameTitle, "steam");
+      await window.electron.addGameToLibrary(objectId!, gameTitle, "steam");
 
       updateLibrary();
       updateGame();
@@ -49,7 +59,11 @@ export function HeroPanelActions() {
   const openGame = async () => {
     if (game) {
       if (game.executablePath) {
-        window.electron.openGame(game.id, game.executablePath);
+        window.electron.openGame(
+          game.id,
+          game.executablePath,
+          game.launchOptions
+        );
         return;
       }
 
@@ -73,7 +87,11 @@ export function HeroPanelActions() {
         gameInstallerFolderIfExists
       );
       if (gameExecutablePath)
-        window.electron.openGame(game.id, gameExecutablePath);
+        window.electron.openGame(
+          game.id,
+          gameExecutablePath,
+          game.launchOptions
+        );
     }
   };
 
@@ -106,6 +124,47 @@ export function HeroPanelActions() {
     </Button>
   );
 
+  const gameActionButton = () => {
+    if (isGameRunning) {
+      return (
+        <Button
+          onClick={closeGame}
+          theme="outline"
+          disabled={deleting}
+          className={styles.heroPanelAction}
+        >
+          {t("close")}
+        </Button>
+      );
+    }
+
+    if (game?.executablePath) {
+      return (
+        <Button
+          onClick={openGame}
+          theme="outline"
+          disabled={deleting || isGameRunning}
+          className={styles.heroPanelAction}
+        >
+          <PlayIcon />
+          {t("play")}
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        onClick={() => setShowRepacksModal(true)}
+        theme="outline"
+        disabled={isGameDownloading || !repacks.length}
+        className={styles.heroPanelAction}
+      >
+        <DownloadIcon />
+        {t("download")}
+      </Button>
+    );
+  };
+
   if (repacks.length && !game) {
     return (
       <>
@@ -118,33 +177,14 @@ export function HeroPanelActions() {
   if (game) {
     return (
       <div className={styles.actions}>
-        {isGameRunning ? (
-          <Button
-            onClick={closeGame}
-            theme="outline"
-            disabled={deleting}
-            className={styles.heroPanelAction}
-          >
-            {t("close")}
-          </Button>
-        ) : (
-          <Button
-            onClick={openGame}
-            theme="outline"
-            disabled={deleting || isGameRunning}
-            className={styles.heroPanelAction}
-          >
-            <PlayIcon />
-            {t("play")}
-          </Button>
-        )}
+        {gameActionButton()}
 
         <div className={styles.separator} />
 
         <Button
           onClick={() => setShowGameOptionsModal(true)}
           theme="outline"
-          disabled={deleting || isGameRunning}
+          disabled={deleting}
           className={styles.heroPanelAction}
         >
           <GearIcon />

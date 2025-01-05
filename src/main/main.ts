@@ -1,27 +1,31 @@
-import { DownloadManager, RepacksManager, startMainLoop } from "./services";
+import { DownloadManager, Ludusavi, startMainLoop } from "./services";
 import {
   downloadQueueRepository,
-  repackRepository,
+  gameRepository,
   userPreferencesRepository,
 } from "./repository";
 import { UserPreferences } from "./entity";
-import { RealDebridClient } from "./services/real-debrid";
-import { fetchDownloadSourcesAndUpdate } from "./helpers";
-import { publishNewRepacksNotifications } from "./services/notifications";
-import { MoreThan } from "typeorm";
+import { RealDebridClient } from "./services/download/real-debrid";
 import { HydraApi } from "./services/hydra-api";
-
-startMainLoop();
+import { uploadGamesBatch } from "./services/library-sync";
+import { Aria2 } from "./services/aria2";
+import { Downloader } from "@shared";
+import { IsNull, Not } from "typeorm";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
-  await RepacksManager.updateRepacks();
-
   import("./events");
 
-  if (userPreferences?.realDebridApiToken)
-    RealDebridClient.authorize(userPreferences?.realDebridApiToken);
+  Aria2.spawn();
 
-  HydraApi.setupApi();
+  if (userPreferences?.realDebridApiToken) {
+    RealDebridClient.authorize(userPreferences?.realDebridApiToken);
+  }
+
+  Ludusavi.addManifestToLudusaviConfig();
+
+  HydraApi.setupApi().then(() => {
+    uploadGamesBatch();
+  });
 
   const [nextQueueItem] = await downloadQueueRepository.find({
     order: {
@@ -32,20 +36,18 @@ const loadState = async (userPreferences: UserPreferences | null) => {
     },
   });
 
-  if (nextQueueItem?.game.status === "active")
-    DownloadManager.startDownload(nextQueueItem.game);
-
-  const now = new Date();
-
-  fetchDownloadSourcesAndUpdate().then(async () => {
-    const newRepacksCount = await repackRepository.count({
-      where: {
-        createdAt: MoreThan(now),
-      },
-    });
-
-    if (newRepacksCount > 0) publishNewRepacksNotifications(newRepacksCount);
+  const seedList = await gameRepository.find({
+    where: {
+      shouldSeed: true,
+      downloader: Downloader.Torrent,
+      progress: 1,
+      uri: Not(IsNull()),
+    },
   });
+
+  await DownloadManager.startRPC(nextQueueItem?.game, seedList);
+
+  startMainLoop();
 };
 
 userPreferencesRepository

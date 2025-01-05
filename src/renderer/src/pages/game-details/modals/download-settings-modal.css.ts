@@ -20,16 +20,26 @@ export const hintText = style({
 });
 
 export const downloaders = style({
-  display: "flex",
+  display: "grid",
   gap: `${SPACING_UNIT}px`,
+  gridTemplateColumns: "repeat(2, 1fr)",
 });
 
 export const downloaderOption = style({
-  flex: "1",
   position: "relative",
+  ":only-child": {
+    gridColumn: "1 / -1",
+  },
 });
 
 export const downloaderIcon = style({
   position: "absolute",
   left: `${SPACING_UNIT * 2}px`,
+});
+
+export const pathError = style({
+  cursor: "pointer",
+  ":hover": {
+    textDecoration: "underline",
+  },
 });

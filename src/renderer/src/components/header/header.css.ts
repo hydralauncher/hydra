@@ -104,6 +104,7 @@ export const section = style({
   alignItems: "center",
   gap: `${SPACING_UNIT * 2}px`,
   height: "100%",
+  overflow: "hidden",
 });
 
 export const backButton = recipe({
@@ -136,11 +137,15 @@ export const backButton = recipe({
 export const title = recipe({
   base: {
     transition: "all ease 0.2s",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    width: "100%",
   },
   variants: {
     hasBackButton: {
       true: {
         transform: "translateX(28px)",
+        width: "calc(100% - 28px)",
       },
     },
   },
@@ -157,7 +162,7 @@ export const newVersionButton = style({
   justifyContent: "center",
   gap: `${SPACING_UNIT}px`,
   color: vars.color.body,
-  fontSize: "13px",
+  fontSize: "12px",
   ":hover": {
     textDecoration: "underline",
     cursor: "pointer",
@@ -169,5 +174,9 @@ export const newVersionLink = style({
   alignItems: "center",
   gap: `${SPACING_UNIT}px`,
   color: "#8e919b",
-  fontSize: "13px",
+  fontSize: "12px",
+});
+
+export const newVersionIcon = style({
+  color: vars.color.success,
 });

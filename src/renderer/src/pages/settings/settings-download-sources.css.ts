@@ -43,9 +43,16 @@ export const downloadSourcesHeader = style({
   alignItems: "center",
 });
 
-export const separator = style({
-  height: "100%",
-  width: "1px",
-  backgroundColor: vars.color.border,
-  margin: `${SPACING_UNIT}px 0`,
+export const navigateToCatalogueButton = style({
+  display: "flex",
+  alignItems: "center",
+  gap: `${SPACING_UNIT}px`,
+  color: vars.color.muted,
+  textDecoration: "underline",
+  cursor: "pointer",
+
+  ":disabled": {
+    cursor: "default",
+    textDecoration: "none",
+  },
 });

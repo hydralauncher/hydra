@@ -9,17 +9,19 @@ import {
   shell,
 } from "electron";
 import { is } from "@electron-toolkit/utils";
-import { t } from "i18next";
+import i18next, { t } from "i18next";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
 import { gameRepository, userPreferencesRepository } from "@main/repository";
 import { IsNull, Not } from "typeorm";
+import { HydraApi } from "./hydra-api";
+import UserAgent from "user-agents";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
 
-  private static loadURL(hash = "") {
+  private static loadMainWindowURL(hash = "") {
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
     if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
@@ -45,7 +47,7 @@ export class WindowManager {
       minWidth: 1024,
       minHeight: 540,
       backgroundColor: "#1c1c1c",
-      titleBarStyle: "hidden",
+      titleBarStyle: process.platform === "linux" ? "default" : "hidden",
       ...(process.platform === "linux" ? { icon } : {}),
       trafficLightPosition: { x: 16, y: 16 },
       titleBarOverlay: {
@@ -60,7 +62,66 @@ export class WindowManager {
       show: false,
     });
 
-    this.loadURL();
+    this.mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
+      (details, callback) => {
+        if (
+          details.webContentsId !== this.mainWindow?.webContents.id ||
+          details.url.includes("chatwoot")
+        ) {
+          return callback(details);
+        }
+
+        const userAgent = new UserAgent();
+
+        callback({
+          requestHeaders: {
+            ...details.requestHeaders,
+            "user-agent": userAgent.toString(),
+          },
+        });
+      }
+    );
+
+    this.mainWindow.webContents.session.webRequest.onHeadersReceived(
+      (details, callback) => {
+        if (
+          details.webContentsId !== this.mainWindow?.webContents.id ||
+          details.url.includes("featurebase") ||
+          details.url.includes("chatwoot")
+        ) {
+          return callback(details);
+        }
+
+        const headers = {
+          "access-control-allow-origin": ["*"],
+          "access-control-allow-methods": ["GET, POST, PUT, DELETE, OPTIONS"],
+          "access-control-expose-headers": ["ETag"],
+          "access-control-allow-headers": [
+            "Content-Type, Authorization, X-Requested-With, If-None-Match",
+          ],
+        };
+
+        if (details.method === "OPTIONS") {
+          return callback({
+            cancel: false,
+            responseHeaders: {
+              ...details.responseHeaders,
+              ...headers,
+            },
+            statusLine: "HTTP/1.1 200 OK",
+          });
+        }
+
+        return callback({
+          responseHeaders: {
+            ...details.responseHeaders,
+            ...headers,
+          },
+        });
+      }
+    );
+
+    this.loadMainWindowURL();
     this.mainWindow.removeMenu();
 
     this.mainWindow.on("ready-to-show", () => {
@@ -77,19 +138,64 @@ export class WindowManager {
         app.quit();
       }
       WindowManager.mainWindow?.setProgressBar(-1);
+      WindowManager.mainWindow = null;
     });
+  }
+
+  public static openAuthWindow() {
+    if (this.mainWindow) {
+      const authWindow = new BrowserWindow({
+        width: 600,
+        height: 640,
+        backgroundColor: "#1c1c1c",
+        parent: this.mainWindow,
+        modal: true,
+        show: false,
+        maximizable: false,
+        resizable: false,
+        minimizable: false,
+        webPreferences: {
+          sandbox: false,
+          nodeIntegrationInSubFrames: true,
+        },
+      });
+
+      authWindow.removeMenu();
+
+      if (!app.isPackaged) authWindow.webContents.openDevTools();
+
+      const searchParams = new URLSearchParams({
+        lng: i18next.language,
+      });
+
+      authWindow.loadURL(
+        `${import.meta.env.MAIN_VITE_AUTH_URL}/?${searchParams.toString()}`
+      );
+
+      authWindow.once("ready-to-show", () => {
+        authWindow.show();
+      });
+
+      authWindow.webContents.on("will-navigate", (_event, url) => {
+        if (url.startsWith("hydralauncher://auth")) {
+          authWindow.close();
+
+          HydraApi.handleExternalAuth(url);
+        }
+      });
+    }
   }
 
   public static redirect(hash: string) {
     if (!this.mainWindow) this.createMainWindow();
-    this.loadURL(hash);
+    this.loadMainWindowURL(hash);
 
     if (this.mainWindow?.isMinimized()) this.mainWindow.restore();
     this.mainWindow?.focus();
   }
 
-  public static createSystemTray(language: string) {
-    let tray;
+  public static async createSystemTray(language: string) {
+    let tray: Tray;
 
     if (process.platform === "darwin") {
       const macIcon = nativeImage
@@ -115,7 +221,7 @@ export class WindowManager {
 
       const recentlyPlayedGames: Array<MenuItemConstructorOptions | MenuItem> =
         games.map(({ title, executablePath }) => ({
-          label: title,
+          label: title.length > 15 ? `${title.slice(0, 15)}…` : title,
           type: "normal",
           click: async () => {
             if (!executablePath) return;
@@ -156,6 +262,7 @@ export class WindowManager {
         },
       ]);
 
+      tray.setContextMenu(contextMenu);
       return contextMenu;
     };
 
@@ -167,16 +274,14 @@ export class WindowManager {
     tray.setToolTip("Hydra");
 
     if (process.platform !== "darwin") {
-      tray.addListener("click", () => {
+      await updateSystemTray();
+
+      tray.addListener("double-click", () => {
         if (this.mainWindow) {
-          if (WindowManager.mainWindow?.isMinimized())
-            WindowManager.mainWindow.restore();
-
-          WindowManager.mainWindow?.focus();
-          return;
+          this.mainWindow.show();
+        } else {
+          this.createMainWindow();
         }
-
-        this.createMainWindow();
       });
 
       tray.addListener("right-click", showContextMenu);

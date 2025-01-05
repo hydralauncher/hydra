@@ -1,18 +1,21 @@
-import { DownloadIcon, FileDirectoryIcon } from "@primer/octicons-react";
-import type { CatalogueEntry } from "@types";
+import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
+import type { GameStats } from "@types";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 
 import * as styles from "./game-card.css";
 import { useTranslation } from "react-i18next";
 import { Badge } from "../badge/badge";
+import { useCallback, useState } from "react";
+import { useFormat, useRepacks } from "@renderer/hooks";
+import { steamUrlBuilder } from "@shared";
 
 export interface GameCardProps
   extends React.DetailedHTMLProps<
     React.ButtonHTMLAttributes<HTMLButtonElement>,
     HTMLButtonElement
   > {
-  game: CatalogueEntry;
+  game: any;
 }
 
 const shopIcon = {
@@ -22,14 +25,39 @@ const shopIcon = {
 export function GameCard({ game, ...props }: GameCardProps) {
   const { t } = useTranslation("game_card");
 
+  const [stats, setStats] = useState<GameStats | null>(null);
+
+  const { getRepacksForObjectId } = useRepacks();
+  const repacks = getRepacksForObjectId(game.objectId);
+
   const uniqueRepackers = Array.from(
-    new Set(game.repacks.map(({ repacker }) => repacker))
+    new Set(repacks.map((repack) => repack.repacker))
   );
 
+  const handleHover = useCallback(() => {
+    if (!stats) {
+      window.electron.getGameStats(game.objectId, game.shop).then((stats) => {
+        setStats(stats);
+      });
+    }
+  }, [game, stats]);
+
+  const { numberFormatter } = useFormat();
+
   return (
-    <button {...props} type="button" className={styles.card}>
+    <button
+      {...props}
+      type="button"
+      className={styles.card}
+      onMouseEnter={handleHover}
+    >
       <div className={styles.backdrop}>
-        <img src={game.cover} alt={game.title} className={styles.cover} />
+        <img
+          src={steamUrlBuilder.library(game.objectId)}
+          alt={game.title}
+          className={styles.cover}
+          loading="lazy"
+        />
 
         <div className={styles.content}>
           <div className={styles.titleContainer}>
@@ -48,19 +76,20 @@ export function GameCard({ game, ...props }: GameCardProps) {
           ) : (
             <p className={styles.noDownloadsLabel}>{t("no_downloads")}</p>
           )}
-
           <div className={styles.specifics}>
             <div className={styles.specificsItem}>
               <DownloadIcon />
-              <span>{game.repacks.length}</span>
+              <span>
+                {stats ? numberFormatter.format(stats.downloadCount) : "…"}
+              </span>
             </div>
 
-            {game.repacks.length > 0 && (
-              <div className={styles.specificsItem}>
-                <FileDirectoryIcon />
-                <span>{game.repacks.at(0)?.fileSize}</span>
-              </div>
-            )}
+            <div className={styles.specificsItem}>
+              <PeopleIcon />
+              <span>
+                {stats ? numberFormatter.format(stats?.playerCount) : "…"}
+              </span>
+            </div>
           </div>
         </div>
       </div>

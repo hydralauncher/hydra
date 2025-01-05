@@ -1,22 +1,18 @@
 import type { GameShop } from "@types";
 
-export const steamUrlBuilder = {
-  library: (objectID: string) =>
-    `https://steamcdn-a.akamaihd.net/steam/apps/${objectID}/header.jpg`,
-  libraryHero: (objectID: string) =>
-    `https://steamcdn-a.akamaihd.net/steam/apps/${objectID}/library_hero.jpg`,
-  logo: (objectID: string) =>
-    `https://cdn.cloudflare.steamstatic.com/steam/apps/${objectID}/logo.png`,
-};
+import Color from "color";
 
-export const formatDownloadProgress = (progress?: number) => {
+export const formatDownloadProgress = (
+  progress?: number,
+  fractionDigits?: number
+) => {
   if (!progress) return "0%";
   const progressPercentage = progress * 100;
 
-  if (Number(progressPercentage.toFixed(2)) % 1 === 0)
+  if (Number(progressPercentage.toFixed(fractionDigits ?? 2)) % 1 === 0)
     return `${Math.floor(progressPercentage)}%`;
 
-  return `${progressPercentage.toFixed(2)}%`;
+  return `${progressPercentage.toFixed(fractionDigits ?? 2)}%`;
 };
 
 export const getSteamLanguage = (language: string) => {
@@ -34,9 +30,26 @@ export const getSteamLanguage = (language: string) => {
 };
 
 export const buildGameDetailsPath = (
-  game: { shop: GameShop; objectID: string; title: string },
+  game: { shop: GameShop; objectId: string; title: string },
   params: Record<string, string> = {}
 ) => {
   const searchParams = new URLSearchParams({ title: game.title, ...params });
-  return `/game/${game.shop}/${game.objectID}?${searchParams.toString()}`;
+  return `/game/${game.shop}/${game.objectId}?${searchParams.toString()}`;
 };
+
+export const buildGameAchievementPath = (
+  game: { shop: GameShop; objectId: string; title: string },
+  user?: { userId: string }
+) => {
+  const searchParams = new URLSearchParams({
+    title: game.title,
+    shop: game.shop,
+    objectId: game.objectId,
+    userId: user?.userId || "",
+  });
+
+  return `/achievements/?${searchParams.toString()}`;
+};
+
+export const darkenColor = (color: string, amount: number, alpha: number = 1) =>
+  new Color(color).darken(amount).alpha(alpha).toString();

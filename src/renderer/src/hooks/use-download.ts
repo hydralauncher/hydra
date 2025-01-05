@@ -22,13 +22,14 @@ export function useDownload() {
   );
   const dispatch = useAppDispatch();
 
-  const startDownload = (payload: StartGameDownloadPayload) =>
-    window.electron.startGameDownload(payload).then((game) => {
-      dispatch(clearDownload());
-      updateLibrary();
+  const startDownload = async (payload: StartGameDownloadPayload) => {
+    dispatch(clearDownload());
 
-      return game;
-    });
+    const game = await window.electron.startGameDownload(payload);
+
+    await updateLibrary();
+    return game;
+  };
 
   const pauseDownload = async (gameId: number) => {
     await window.electron.pauseGameDownload(gameId);
@@ -65,7 +66,17 @@ export function useDownload() {
       updateLibrary();
     });
 
-  const getETA = () => {
+  const pauseSeeding = async (gameId: number) => {
+    await window.electron.pauseGameSeed(gameId);
+    await updateLibrary();
+  };
+
+  const resumeSeeding = async (gameId: number) => {
+    await window.electron.resumeGameSeed(gameId);
+    await updateLibrary();
+  };
+
+  const calculateETA = () => {
     if (!lastPacket || lastPacket.timeRemaining < 0) return "";
 
     try {
@@ -85,9 +96,9 @@ export function useDownload() {
 
   return {
     downloadSpeed: `${formatBytes(lastPacket?.downloadSpeed ?? 0)}/s`,
-    progress: formatDownloadProgress(lastPacket?.game.progress),
+    progress: formatDownloadProgress(lastPacket?.progress ?? 0),
     lastPacket,
-    eta: getETA(),
+    eta: calculateETA(),
     startDownload,
     pauseDownload,
     resumeDownload,
@@ -95,6 +106,8 @@ export function useDownload() {
     removeGameFromLibrary,
     removeGameInstaller,
     isGameDeleting,
+    pauseSeeding,
+    resumeSeeding,
     clearDownload: () => dispatch(clearDownload()),
     setLastPacket: (packet: DownloadProgress) =>
       dispatch(setLastPacket(packet)),

@@ -1,10 +1,18 @@
+import type { CatalogueSearchPayload } from "@types";
 import { registerEvent } from "../register-event";
-import { searchSteamGames } from "../helpers/search-games";
-import { CatalogueEntry } from "@types";
+import { HydraApi } from "@main/services";
 
-const searchGamesEvent = async (
+const searchGames = async (
   _event: Electron.IpcMainInvokeEvent,
-  query: string
-): Promise<CatalogueEntry[]> => searchSteamGames({ query, limit: 12 });
+  payload: CatalogueSearchPayload,
+  take: number,
+  skip: number
+) => {
+  return HydraApi.post(
+    "/catalogue/search",
+    { ...payload, take, skip },
+    { needsAuth: false }
+  );
+};
 
-registerEvent("searchGames", searchGamesEvent);
+registerEvent("searchGames", searchGames);

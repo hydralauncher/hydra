@@ -1,39 +1,54 @@
-import path from "node:path";
-
 import { gameRepository } from "@main/repository";
-import { getProcesses } from "@main/helpers";
-
 import { registerEvent } from "../register-event";
+import { logger } from "@main/services";
+import sudo from "sudo-prompt";
+import { app } from "electron";
+import { PythonRPC } from "@main/services/python-rpc";
+import { ProcessPayload } from "@main/services/download/types";
+
+const getKillCommand = (pid: number) => {
+  if (process.platform == "win32") {
+    return `taskkill /PID ${pid}`;
+  }
+
+  return `kill -9 ${pid}`;
+};
 
 const closeGame = async (
   _event: Electron.IpcMainInvokeEvent,
   gameId: number
 ) => {
-  const processes = await getProcesses();
+  const processes =
+    (await PythonRPC.rpc.get<ProcessPayload[] | null>("/process-list")).data ||
+    [];
+
   const game = await gameRepository.findOne({
     where: { id: gameId, isDeleted: false },
   });
 
-  if (!game) return false;
-
-  const executablePath = game.executablePath!;
-
-  const basename = path.win32.basename(executablePath);
-  const basenameWithoutExtension = path.win32.basename(
-    executablePath,
-    path.extname(executablePath)
-  );
+  if (!game) return;
 
   const gameProcess = processes.find((runningProcess) => {
-    if (process.platform === "win32") {
-      return runningProcess.name === basename;
+    if (process.platform === "linux") {
+      return runningProcess.name === game.executablePath?.split("/").at(-1);
+    } else {
+      return runningProcess.exe === game.executablePath;
     }
-
-    return [basename, basenameWithoutExtension].includes(runningProcess.name);
   });
 
-  if (gameProcess) return process.kill(gameProcess.pid);
-  return false;
+  if (gameProcess) {
+    try {
+      process.kill(gameProcess.pid);
+    } catch (err) {
+      sudo.exec(
+        getKillCommand(gameProcess.pid),
+        { name: app.getName() },
+        (error, _stdout, _stderr) => {
+          logger.error(error);
+        }
+      );
+    }
+  }
 };
 
 registerEvent("closeGame", closeGame);

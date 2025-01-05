@@ -1,8 +1,6 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { average } from "color.js";
 import Color from "color";
-
-import { steamUrlBuilder } from "@renderer/helpers";
 
 import { HeroPanel } from "./hero";
 import { DescriptionHeader } from "./description-header/description-header";
@@ -11,7 +9,12 @@ import { Sidebar } from "./sidebar/sidebar";
 
 import * as styles from "./game-details.css";
 import { useTranslation } from "react-i18next";
-import { gameDetailsContext } from "@renderer/context";
+import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
+import { steamUrlBuilder } from "@shared";
+
+import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
+import { useUserDetails } from "@renderer/hooks";
+import { useSubscription } from "@renderer/hooks/use-subscription";
 
 const HERO_ANIMATION_THRESHOLD = 25;
 
@@ -22,13 +25,45 @@ export function GameDetailsContent() {
 
   const { t } = useTranslation("game_details");
 
-  const { objectID, shopDetails, game, gameColor, setGameColor } =
-    useContext(gameDetailsContext);
+  const {
+    objectId,
+    shopDetails,
+    game,
+    gameColor,
+    setGameColor,
+    hasNSFWContentBlocked,
+  } = useContext(gameDetailsContext);
+
+  const { showHydraCloudModal } = useSubscription();
+
+  const { userDetails, hasActiveSubscription } = useUserDetails();
+
+  const { setShowCloudSyncModal, getGameArtifacts } =
+    useContext(cloudSyncContext);
+
+  const aboutTheGame = useMemo(() => {
+    const aboutTheGame = shopDetails?.about_the_game;
+    if (aboutTheGame) {
+      const document = new DOMParser().parseFromString(
+        aboutTheGame,
+        "text/html"
+      );
+
+      const $images = Array.from(document.querySelectorAll("img"));
+      $images.forEach(($image) => {
+        $image.loading = "lazy";
+      });
+
+      return document.body.outerHTML;
+    }
+
+    return t("no_shop_details");
+  }, [shopDetails, t]);
 
   const [backdropOpactiy, setBackdropOpacity] = useState(1);
 
   const handleHeroLoad = async () => {
-    const output = await average(steamUrlBuilder.libraryHero(objectID!), {
+    const output = await average(steamUrlBuilder.libraryHero(objectId!), {
       amount: 1,
       format: "hex",
     });
@@ -42,7 +77,7 @@ export function GameDetailsContent() {
 
   useEffect(() => {
     setBackdropOpacity(1);
-  }, [objectID]);
+  }, [objectId]);
 
   const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
     const heroHeight = heroRef.current?.clientHeight ?? styles.HERO_HEIGHT;
@@ -64,10 +99,28 @@ export function GameDetailsContent() {
     setBackdropOpacity(opacity);
   };
 
+  const handleCloudSaveButtonClick = () => {
+    if (!userDetails) {
+      window.electron.openAuthWindow();
+      return;
+    }
+
+    if (!hasActiveSubscription) {
+      showHydraCloudModal("backup");
+      return;
+    }
+
+    setShowCloudSyncModal(true);
+  };
+
+  useEffect(() => {
+    getGameArtifacts();
+  }, [getGameArtifacts]);
+
   return (
-    <div className={styles.wrapper}>
+    <div className={styles.wrapper({ blurredContent: hasNSFWContentBlocked })}>
       <img
-        src={steamUrlBuilder.libraryHero(objectID!)}
+        src={steamUrlBuilder.libraryHero(objectId!)}
         className={styles.heroImage}
         alt={game?.title}
         onLoad={handleHeroLoad}
@@ -93,10 +146,34 @@ export function GameDetailsContent() {
           >
             <div className={styles.heroContent}>
               <img
-                src={steamUrlBuilder.logo(objectID!)}
-                style={{ width: 300, alignSelf: "flex-end" }}
+                src={steamUrlBuilder.logo(objectId!)}
+                className={styles.gameLogo}
                 alt={game?.title}
               />
+
+              <button
+                type="button"
+                className={styles.cloudSyncButton}
+                onClick={handleCloudSaveButtonClick}
+              >
+                <div
+                  style={{
+                    width: 16 + 4,
+                    height: 16,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    position: "relative",
+                  }}
+                >
+                  <img
+                    src={cloudIconAnimated}
+                    alt="Cloud icon"
+                    style={{ width: 26, position: "absolute", top: -3 }}
+                  />
+                </div>
+                {t("cloud_save")}
+              </button>
             </div>
           </div>
         </div>
@@ -110,7 +187,7 @@ export function GameDetailsContent() {
 
             <div
               dangerouslySetInnerHTML={{
-                __html: shopDetails?.about_the_game ?? t("no_shop_details"),
+                __html: aboutTheGame,
               }}
               className={styles.description}
             />

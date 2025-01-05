@@ -60,3 +60,18 @@ export const noResults = style({
   gap: "16px",
   gridColumn: "1 / -1",
 });
+
+export const buttonsList = style({
+  display: "flex",
+  listStyle: "none",
+  margin: "0",
+  padding: "0",
+  gap: `${SPACING_UNIT}px`,
+});
+
+export const flameIcon = style({
+  width: "30px",
+  top: "-10px",
+  left: "-5px",
+  position: "absolute",
+});

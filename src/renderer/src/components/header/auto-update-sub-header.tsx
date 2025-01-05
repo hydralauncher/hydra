@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { SyncIcon } from "@primer/octicons-react";
 import { Link } from "../link/link";
 import * as styles from "./header.css";
-import { AppUpdaterEvent } from "@types";
+import type { AppUpdaterEvent } from "@types";
 
 export const releasesPageUrl =
   "https://github.com/hydralauncher/hydra/releases/latest";
@@ -47,10 +47,8 @@ export function AutoUpdateSubHeader() {
     return (
       <header className={styles.subheader}>
         <Link to={releasesPageUrl} className={styles.newVersionLink}>
-          <SyncIcon size={12} />
-          <small>
-            {t("version_available_download", { version: newVersion })}
-          </small>
+          <SyncIcon className={styles.newVersionIcon} size={12} />
+          {t("version_available_download", { version: newVersion })}
         </Link>
       </header>
     );
@@ -64,10 +62,8 @@ export function AutoUpdateSubHeader() {
           className={styles.newVersionButton}
           onClick={handleClickInstallUpdate}
         >
-          <SyncIcon size={12} />
-          <small>
-            {t("version_available_install", { version: newVersion })}
-          </small>
+          <SyncIcon className={styles.newVersionIcon} size={12} />
+          {t("version_available_install", { version: newVersion })}
         </button>
       </header>
     );

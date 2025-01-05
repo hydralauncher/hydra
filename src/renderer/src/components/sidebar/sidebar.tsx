@@ -1,11 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import type { LibraryGame } from "@types";
 
 import { TextField } from "@renderer/components";
-import { useDownload, useLibrary, useToast } from "@renderer/hooks";
+import {
+  useDownload,
+  useLibrary,
+  useToast,
+  useUserDetails,
+} from "@renderer/hooks";
 
 import { routes } from "./routes";
 
@@ -13,7 +18,9 @@ import * as styles from "./sidebar.css";
 import { buildGameDetailsPath } from "@renderer/helpers";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import { PersonIcon } from "@primer/octicons-react";
+import { SidebarProfile } from "./sidebar-profile";
+import { sortBy } from "lodash-es";
+import { CommentDiscussionIcon } from "@primer/octicons-react";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -22,6 +29,8 @@ const SIDEBAR_MAX_WIDTH = 450;
 const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 
 export function Sidebar() {
+  const filterRef = useRef<HTMLInputElement>(null);
+
   const { t } = useTranslation("sidebar");
   const { library, updateLibrary } = useLibrary();
   const navigate = useNavigate();
@@ -35,6 +44,12 @@ export function Sidebar() {
 
   const location = useLocation();
 
+  const sortedLibrary = useMemo(() => {
+    return sortBy(library, (game) => game.title);
+  }, [library]);
+
+  const { hasActiveSubscription } = useUserDetails();
+
   const { lastPacket, progress } = useDownload();
 
   const { showWarningToast } = useToast();
@@ -42,10 +57,6 @@ export function Sidebar() {
   useEffect(() => {
     updateLibrary();
   }, [lastPacket?.game.id, updateLibrary]);
-
-  const isDownloading = library.some(
-    (game) => game.status === "active" && game.progress !== 1
-  );
 
   const sidebarRef = useRef<HTMLElement>(null);
 
@@ -63,7 +74,7 @@ export function Sidebar() {
 
   const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
     setFilteredLibrary(
-      library.filter((game) =>
+      sortedLibrary.filter((game) =>
         game.title
           .toLowerCase()
           .includes(event.target.value.toLocaleLowerCase())
@@ -72,8 +83,12 @@ export function Sidebar() {
   };
 
   useEffect(() => {
-    setFilteredLibrary(library);
-  }, [library]);
+    setFilteredLibrary(sortedLibrary);
+
+    if (filterRef.current) {
+      filterRef.current.value = "";
+    }
+  }, [sortedLibrary]);
 
   useEffect(() => {
     window.onmousemove = (event: MouseEvent) => {
@@ -129,14 +144,21 @@ export function Sidebar() {
     event: React.MouseEvent,
     game: LibraryGame
   ) => {
-    const path = buildGameDetailsPath(game);
+    const path = buildGameDetailsPath({
+      ...game,
+      objectId: game.objectID,
+    });
     if (path !== location.pathname) {
       navigate(path);
     }
 
-    if (event.detail == 2) {
+    if (event.detail === 2) {
       if (game.executablePath) {
-        window.electron.openGame(game.id, game.executablePath);
+        window.electron.openGame(
+          game.id,
+          game.executablePath,
+          game.launchOptions
+        );
       } else {
         showWarningToast(t("game_has_no_executable"));
       }
@@ -144,36 +166,24 @@ export function Sidebar() {
   };
 
   return (
-    <>
-      <aside
-        ref={sidebarRef}
-        className={styles.sidebar({ resizing: isResizing })}
-        style={{
-          width: sidebarWidth,
-          minWidth: sidebarWidth,
-          maxWidth: sidebarWidth,
-        }}
+    <aside
+      ref={sidebarRef}
+      className={styles.sidebar({
+        resizing: isResizing,
+        darwin: window.electron.platform === "darwin",
+      })}
+      style={{
+        width: sidebarWidth,
+        minWidth: sidebarWidth,
+        maxWidth: sidebarWidth,
+      }}
+    >
+      <div
+        style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}
       >
-        <button type="button" className={styles.profileButton}>
-          <div className={styles.profileAvatar}>
-            <PersonIcon />
+        <SidebarProfile />
 
-            <div className={styles.statusBadge} />
-          </div>
-
-          <div className={styles.profileButtonInformation}>
-            <p style={{ fontWeight: "bold" }}>hydra</p>
-            <p style={{ fontSize: 12 }}>Jogando ABC</p>
-          </div>
-        </button>
-
-        <div
-          className={styles.content({
-            macos: window.electron.platform === "darwin",
-          })}
-        >
-          {window.electron.platform === "darwin" && <h2>Hydra</h2>}
-
+        <div className={styles.content}>
           <section className={styles.section}>
             <ul className={styles.menu}>
               {routes.map(({ nameKey, path, render }) => (
@@ -188,7 +198,7 @@ export function Sidebar() {
                     className={styles.menuItemButton}
                     onClick={() => handleSidebarItemClick(path)}
                   >
-                    {render(isDownloading)}
+                    {render()}
                     <span>{t(nameKey)}</span>
                   </button>
                 </li>
@@ -200,6 +210,7 @@ export function Sidebar() {
             <small className={styles.sectionTitle}>{t("my_library")}</small>
 
             <TextField
+              ref={filterRef}
               placeholder={t("filter")}
               onChange={handleFilter}
               theme="dark"
@@ -226,6 +237,7 @@ export function Sidebar() {
                         className={styles.gameIcon}
                         src={game.iconUrl}
                         alt={game.title}
+                        loading="lazy"
                       />
                     ) : (
                       <SteamLogo className={styles.gameIcon} />
@@ -240,13 +252,26 @@ export function Sidebar() {
             </ul>
           </section>
         </div>
+      </div>
 
+      {hasActiveSubscription && (
         <button
           type="button"
-          className={styles.handle}
-          onMouseDown={handleMouseDown}
-        />
-      </aside>
-    </>
+          className={styles.helpButton}
+          data-open-support-chat
+        >
+          <div className={styles.helpButtonIcon}>
+            <CommentDiscussionIcon size={14} />
+          </div>
+          <span>{t("need_help")}</span>
+        </button>
+      )}
+
+      <button
+        type="button"
+        className={styles.handle}
+        onMouseDown={handleMouseDown}
+      />
+    </aside>
   );
 }

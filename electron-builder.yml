@@ -1,11 +1,14 @@
-appId: site.hydralauncher.hydra
+appId: gg.hydralauncher.hydra
 productName: Hydra
 directories:
   buildResources: build
 extraResources:
   - aria2
+  - ludusavi
+  - hydra-python-rpc
   - seeds
-  - fastlist.exe
+  - from: node_modules/create-desktop-shortcuts/src/windows.vbs
+  - from: resources/achievement.wav
 files:
   - "!**/.vscode/*"
   - "!src/*"
@@ -17,7 +20,6 @@ asarUnpack:
   - resources/**
 win:
   executableName: Hydra
-  requestedExecutionLevel: requireAdministrator
   target:
     - nsis
     - portable
@@ -28,9 +30,9 @@ nsis:
   createDesktopShortcut: always
   oneClick: false
   allowToChangeInstallationDirectory: true
+  include: installer.nsh
 portable:
   artifactName: ${name}-${version}-portable.${ext}
-  requestExecutionLevel: admin
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
@@ -46,6 +48,7 @@ linux:
     - AppImage
     - snap
     - deb
+    - pacman
     - rpm
   maintainer: electronjs.org
   category: Game

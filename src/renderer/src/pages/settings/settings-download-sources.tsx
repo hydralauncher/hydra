@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
 import { TextField, Button, Badge } from "@renderer/components";
 import { useTranslation } from "react-i18next";
@@ -7,9 +7,13 @@ import * as styles from "./settings-download-sources.css";
 import type { DownloadSource } from "@types";
 import { NoEntryIcon, PlusCircleIcon, SyncIcon } from "@primer/octicons-react";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
-import { useToast } from "@renderer/hooks";
+import { useAppDispatch, useRepacks, useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
-import { SPACING_UNIT } from "@renderer/theme.css";
+import { settingsContext } from "@renderer/context";
+import { downloadSourcesTable } from "@renderer/dexie";
+import { downloadSourcesWorker } from "@renderer/workers";
+import { useNavigate } from "react-router-dom";
+import { setFilters, clearFilters } from "@renderer/features";
 
 export function SettingsDownloadSources() {
   const [showAddDownloadSourceModal, setShowAddDownloadSourceModal] =
@@ -17,45 +21,74 @@ export function SettingsDownloadSources() {
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [isSyncingDownloadSources, setIsSyncingDownloadSources] =
     useState(false);
+  const [isRemovingDownloadSource, setIsRemovingDownloadSource] =
+    useState(false);
+
+  const { sourceUrl, clearSourceUrl } = useContext(settingsContext);
 
   const { t } = useTranslation("settings");
-
   const { showSuccessToast } = useToast();
 
+  const dispatch = useAppDispatch();
+
+  const navigate = useNavigate();
+
+  const { updateRepacks } = useRepacks();
+
   const getDownloadSources = async () => {
-    return window.electron.getDownloadSources().then((sources) => {
-      setDownloadSources(sources);
-    });
+    await downloadSourcesTable
+      .toCollection()
+      .sortBy("createdAt")
+      .then((sources) => {
+        setDownloadSources(sources.reverse());
+      });
   };
 
   useEffect(() => {
     getDownloadSources();
   }, []);
 
-  const handleRemoveSource = async (id: number) => {
-    await window.electron.removeDownloadSource(id);
-    showSuccessToast(t("removed_download_source"));
+  useEffect(() => {
+    if (sourceUrl) setShowAddDownloadSourceModal(true);
+  }, [sourceUrl]);
 
-    getDownloadSources();
+  const handleRemoveSource = (id: number) => {
+    setIsRemovingDownloadSource(true);
+    const channel = new BroadcastChannel(`download_sources:delete:${id}`);
+
+    downloadSourcesWorker.postMessage(["DELETE_DOWNLOAD_SOURCE", id]);
+
+    channel.onmessage = () => {
+      showSuccessToast(t("removed_download_source"));
+
+      getDownloadSources();
+      setIsRemovingDownloadSource(false);
+      channel.close();
+      updateRepacks();
+    };
   };
 
   const handleAddDownloadSource = async () => {
     await getDownloadSources();
     showSuccessToast(t("added_download_source"));
+    updateRepacks();
   };
 
   const syncDownloadSources = async () => {
     setIsSyncingDownloadSources(true);
 
-    window.electron
-      .syncDownloadSources()
-      .then(() => {
-        showSuccessToast(t("download_sources_synced"));
-        getDownloadSources();
-      })
-      .finally(() => {
-        setIsSyncingDownloadSources(false);
-      });
+    const id = crypto.randomUUID();
+    const channel = new BroadcastChannel(`download_sources:sync:${id}`);
+
+    downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
+
+    channel.onmessage = () => {
+      showSuccessToast(t("download_sources_synced"));
+      getDownloadSources();
+      setIsSyncingDownloadSources(false);
+      channel.close();
+      updateRepacks();
+    };
   };
 
   const statusTitle = {
@@ -63,23 +96,37 @@ export function SettingsDownloadSources() {
     [DownloadSourceStatus.Errored]: t("download_source_errored"),
   };
 
+  const handleModalClose = () => {
+    clearSourceUrl();
+    setShowAddDownloadSourceModal(false);
+  };
+
+  const navigateToCatalogue = (fingerprint: string) => {
+    dispatch(clearFilters());
+    dispatch(setFilters({ downloadSourceFingerprints: [fingerprint] }));
+
+    navigate("/catalogue");
+  };
+
   return (
     <>
       <AddDownloadSourceModal
         visible={showAddDownloadSourceModal}
-        onClose={() => setShowAddDownloadSourceModal(false)}
+        onClose={handleModalClose}
         onAddDownloadSource={handleAddDownloadSource}
       />
 
-      <p style={{ fontFamily: '"Fira Sans"' }}>
-        {t("download_sources_description")}
-      </p>
+      <p>{t("download_sources_description")}</p>
 
       <div className={styles.downloadSourcesHeader}>
         <Button
           type="button"
           theme="outline"
-          disabled={!downloadSources.length || isSyncingDownloadSources}
+          disabled={
+            !downloadSources.length ||
+            isSyncingDownloadSources ||
+            isRemovingDownloadSource
+          }
           onClick={syncDownloadSources}
         >
           <SyncIcon />
@@ -90,6 +137,7 @@ export function SettingsDownloadSources() {
           type="button"
           theme="outline"
           onClick={() => setShowAddDownloadSourceModal(true)}
+          disabled={isSyncingDownloadSources}
         >
           <PlusCircleIcon />
           {t("add_download_source")}
@@ -111,12 +159,11 @@ export function SettingsDownloadSources() {
                 <Badge>{statusTitle[downloadSource.status]}</Badge>
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: `${SPACING_UNIT}px`,
-                }}
+              <button
+                type="button"
+                className={styles.navigateToCatalogueButton}
+                disabled={!downloadSource.fingerprint}
+                onClick={() => navigateToCatalogue(downloadSource.fingerprint)}
               >
                 <small>
                   {t("download_count", {
@@ -125,16 +172,7 @@ export function SettingsDownloadSources() {
                       downloadSource.downloadCount.toLocaleString(),
                   })}
                 </small>
-
-                <div className={styles.separator} />
-
-                <small>
-                  {t("download_options", {
-                    count: downloadSource.repackCount,
-                    countFormatted: downloadSource.repackCount.toLocaleString(),
-                  })}
-                </small>
-              </div>
+              </button>
             </div>
 
             <TextField
@@ -148,6 +186,7 @@ export function SettingsDownloadSources() {
                   type="button"
                   theme="outline"
                   onClick={() => handleRemoveSource(downloadSource.id)}
+                  disabled={isRemovingDownloadSource}
                 >
                   <NoEntryIcon />
                   {t("remove_download_source")}
