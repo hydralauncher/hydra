@@ -141,6 +141,11 @@ export class WindowManager {
       WindowManager.mainWindow?.setProgressBar(-1);
       WindowManager.mainWindow = null;
     });
+
+    this.mainWindow.webContents.setWindowOpenHandler((handler) => {
+      shell.openExternal(handler.url);
+      return { action: "deny" };
+    });
   }
 
   public static openAuthWindow(page: AuthPage, searchParams: URLSearchParams) {
