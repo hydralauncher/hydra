@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from "axios";
 
 export class DatanodesApi {
-  private static session = axios.create({});
+  private static readonly session = axios.create({});
 
   public static async getDownloadUrl(downloadUrl: string): Promise<string> {
     const parsedUrl = new URL(downloadUrl);
@@ -9,16 +9,6 @@ export class DatanodesApi {
 
     const fileCode = decodeURIComponent(pathSegments[1]);
     const fileName = decodeURIComponent(pathSegments[pathSegments.length - 1]);
-
-    const headers: Record<string, string> = {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: `lang=english; file_name=${fileName}; file_code=${fileCode};`,
-      Host: "datanodes.to",
-      Origin: "https://datanodes.to",
-      Referer: "https://datanodes.to/download",
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-    };
 
     const payload = new URLSearchParams({
       op: "download2",
@@ -30,16 +20,21 @@ export class DatanodesApi {
       adblock_detected: "",
     });
 
-    const config = {
-      headers,
-      maxRedirects: 0,
-      validateStatus: (status: number) => status === 302 || status < 400,
-    };
-
-    const response: AxiosResponse = await DatanodesApi.session.post(
+    const response: AxiosResponse = await this.session.post(
       "https://datanodes.to/download",
       payload,
-      config
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Cookie: `lang=english; file_name=${fileName}; file_code=${fileCode};`,
+          Host: "datanodes.to",
+          Origin: "https://datanodes.to",
+          Referer: "https://datanodes.to/download",
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        },
+        maxRedirects: 0,        validateStatus: (status: number) => status === 302 || status < 400,
+      }
     );
 
     if (response.status === 302) {
