@@ -72,6 +72,7 @@ export const getUserData = () => {
                 expiresAt: loggedUser.subscription.expiresAt,
               }
             : null,
+          featurebaseJwt: "",
         } as UserDetails;
       }
 

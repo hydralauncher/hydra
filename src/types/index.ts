@@ -267,6 +267,7 @@ export interface UserDetails {
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
   bio: string;
+  featurebaseJwt: string;
   subscription: Subscription | null;
   quirks?: {
     backupsPerGameLimit: number;
