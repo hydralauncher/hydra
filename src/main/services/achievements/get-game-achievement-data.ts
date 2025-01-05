@@ -13,7 +13,7 @@ export const getGameAchievementData = async (
   shop: GameShop,
   cachedAchievements: GameAchievement | null
 ) => {
-  if (cachedAchievements && cachedAchievements.achievements) {
+  if (cachedAchievements?.achievements) {
     return JSON.parse(cachedAchievements.achievements) as AchievementData[];
   }
 

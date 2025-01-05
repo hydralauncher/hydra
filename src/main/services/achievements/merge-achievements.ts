@@ -64,7 +64,7 @@ export const mergeAchievements = async (
   ).filter((achievement) => achievement.name) as UnlockedAchievement[];
 
   const newAchievementsMap = new Map(
-    achievements.reverse().map((achievement) => {
+    achievements.toReversed().map((achievement) => {
       return [achievement.name.toUpperCase(), achievement];
     })
   );
@@ -92,7 +92,7 @@ export const mergeAchievements = async (
     userPreferences?.achievementNotificationsEnabled
   ) {
     const achievementsInfo = newAchievements
-      .sort((a, b) => {
+      .toSorted((a, b) => {
         return a.unlockTime - b.unlockTime;
       })
       .map((achievement) => {
