@@ -148,6 +148,11 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-library-batch-complete", listener);
   },
+  onAchievementUnlocked: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-achievement-unlocked", listener);
+    return () => ipcRenderer.removeListener("on-achievement-unlocked", listener);
+  },
 
   /* Hardware */
   getDiskFreeSpace: (path: string) =>

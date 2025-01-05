@@ -144,7 +144,7 @@ const processAchievementFileDiff = async (
 export class AchievementWatcherManager {
   private static hasFinishedMergingWithRemote = false;
 
-  public static watchAchievements = () => {
+  public static watchAchievements() {
     if (!this.hasFinishedMergingWithRemote) return;
 
     if (process.platform === "win32") {
@@ -152,12 +152,12 @@ export class AchievementWatcherManager {
     }
 
     return watchAchievementsWithWine();
-  };
+  }
 
-  private static preProcessGameAchievementFiles = (
+  private static preProcessGameAchievementFiles(
     game: Game,
     gameAchievementFiles: AchievementFile[]
-  ) => {
+  ) {
     const unlockedAchievements: UnlockedAchievement[] = [];
     for (const achievementFile of gameAchievementFiles) {
       const parsedAchievements = parseAchievementFile(
@@ -185,9 +185,9 @@ export class AchievementWatcherManager {
     }
 
     return mergeAchievements(game, unlockedAchievements, false);
-  };
+  }
 
-  private static preSearchAchievementsWindows = async () => {
+  private static async preSearchAchievementsWindows() {
     const games = await gameRepository.find({
       where: {
         isDeleted: false,
@@ -213,9 +213,9 @@ export class AchievementWatcherManager {
         return this.preProcessGameAchievementFiles(game, gameAchievementFiles);
       })
     );
-  };
+  }
 
-  private static preSearchAchievementsWithWine = async () => {
+  private static async preSearchAchievementsWithWine() {
     const games = await gameRepository.find({
       where: {
         isDeleted: false,
@@ -233,9 +233,9 @@ export class AchievementWatcherManager {
         return this.preProcessGameAchievementFiles(game, gameAchievementFiles);
       })
     );
-  };
+  }
 
-  public static preSearchAchievements = async () => {
+  public static async preSearchAchievements() {
     try {
       const newAchievementsCount =
         process.platform === "win32"
@@ -261,5 +261,5 @@ export class AchievementWatcherManager {
     }
 
     this.hasFinishedMergingWithRemote = true;
-  };
+  }
 }
