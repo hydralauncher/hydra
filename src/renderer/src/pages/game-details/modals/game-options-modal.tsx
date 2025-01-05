@@ -169,8 +169,6 @@ export function GameOptionsModal({
     }
   };
 
-  const shouldShowLaunchOptionsConfiguration = false;
-
   return (
     <>
       <DeleteGameModal
@@ -285,27 +283,28 @@ export function GameOptionsModal({
             </div>
           )}
 
-          {shouldShowLaunchOptionsConfiguration && (
+          <div className={styles.optionsContainer}>
             <div className={styles.gameOptionHeader}>
               <h2>{t("launch_options")}</h2>
               <h4 className={styles.gameOptionHeaderDescription}>
                 {t("launch_options_description")}
               </h4>
-              <TextField
-                value={launchOptions}
-                theme="dark"
-                placeholder={t("launch_options_placeholder")}
-                onChange={handleChangeLaunchOptions}
-                rightContent={
-                  game.launchOptions && (
-                    <Button onClick={handleClearLaunchOptions} theme="outline">
-                      {t("clear")}
-                    </Button>
-                  )
-                }
-              />
             </div>
-          )}
+
+            <TextField
+              value={launchOptions}
+              theme="dark"
+              placeholder={t("launch_options_placeholder")}
+              onChange={handleChangeLaunchOptions}
+              rightContent={
+                game.launchOptions && (
+                  <Button onClick={handleClearLaunchOptions} theme="outline">
+                    {t("clear")}
+                  </Button>
+                )
+              }
+            />
+          </div>
 
           <div className={styles.gameOptionHeader}>
             <h2>{t("downloads_secion_title")}</h2>
