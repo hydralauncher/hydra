@@ -12,7 +12,7 @@ import { Aria2 } from "./services/aria2";
 import { Downloader } from "@shared";
 import { IsNull, Not } from "typeorm";
 
-const loadState = async (userPreferences: UserPreferences | null) => {
+export const loadState = async (userPreferences: UserPreferences | null) => {
   await import("./events");
 
   Aria2.spawn();
@@ -49,11 +49,3 @@ const loadState = async (userPreferences: UserPreferences | null) => {
 
   startMainLoop();
 };
-
-userPreferencesRepository
-  .findOne({
-    where: { id: 1 },
-  })
-  .then((userPreferences) => {
-    loadState(userPreferences);
-  });
