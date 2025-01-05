@@ -151,7 +151,8 @@ contextBridge.exposeInMainWorld("electron", {
   onAchievementUnlocked: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-achievement-unlocked", listener);
-    return () => ipcRenderer.removeListener("on-achievement-unlocked", listener);
+    return () =>
+      ipcRenderer.removeListener("on-achievement-unlocked", listener);
   },
 
   /* Hardware */

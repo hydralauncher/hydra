@@ -32,7 +32,8 @@ export class HydraApi {
   private static readonly EXPIRATION_OFFSET_IN_MS = 1000 * 60 * 5; // 5 minutes
   private static readonly ADD_LOG_INTERCEPTOR = true;
 
-  private static secondsToMilliseconds = (seconds: number) => seconds * 1000;
+  private static readonly secondsToMilliseconds = (seconds: number) =>
+    seconds * 1000;
 
   private static userAuth: HydraApiUserAuth = {
     authToken: "",
