@@ -161,7 +161,7 @@
     "wine_prefix": "Prefixo Wine",
     "wine_prefix_description": "O prefixo Wine que foi utilizado para instalar o jogo",
     "launch_options": "Opções de Inicialização",
-    "launch_options_description": "Usuários avançados podem adicionar opções de inicialização no jogo",
+    "launch_options_description": "Usuários avançados podem adicionar opções de inicialização no jogo (experimental)",
     "launch_options_placeholder": "Nenhum parâmetro informado",
     "no_download_option_info": "Sem informações disponíveis",
     "backup_deletion_failed": "Falha ao apagar backup",
@@ -172,7 +172,12 @@
     "select_folder": "Selecione a pasta",
     "manage_files_description": "Gerencie quais arquivos serão feitos backup",
     "clear": "Limpar",
-    "no_directory_selected": "Nenhum diretório selecionado"
+    "no_directory_selected": "Nenhum diretório selecionado",
+    "reset_achievements": "Resetar conquistas",
+    "reset_achievements_description": "Isso irá resetar todas as conquistas de {{game}}",
+    "reset_achievements_title": "Tem certeza?",
+    "reset_achievements_success": "Conquistas resetadas com sucesso",
+    "reset_achievements_error": "Falha ao resetar conquistas"
   },
   "activation": {
     "title": "Ativação",

@@ -8,6 +8,7 @@ import {
 import react from "@vitejs/plugin-react";
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 import svgr from "vite-plugin-svgr";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 
 export default defineConfig(({ mode }) => {
   loadEnv(mode);
@@ -44,7 +45,16 @@ export default defineConfig(({ mode }) => {
           "@shared": resolve("src/shared"),
         },
       },
-      plugins: [svgr(), react(), vanillaExtractPlugin()],
+      plugins: [
+        svgr(),
+        react(),
+        vanillaExtractPlugin(),
+        sentryVitePlugin({
+          authToken: process.env.SENTRY_AUTH_TOKEN,
+          org: "hydra-launcher",
+          project: "hydra-renderer",
+        }),
+      ],
     },
   };
 });
