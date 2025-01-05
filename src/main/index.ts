@@ -13,6 +13,7 @@ import { knexClient, migrationConfig } from "./knex-client";
 import { databaseDirectory } from "./constants";
 import { PythonRPC } from "./services/python-rpc";
 import { Aria2 } from "./services/aria2";
+import { loadState } from "./main";
 
 const { autoUpdater } = updater;
 
@@ -86,11 +87,11 @@ app.whenReady().then(async () => {
 
   await dataSource.initialize();
 
-  await import("./main");
-
   const userPreferences = await userPreferencesRepository.findOne({
     where: { id: 1 },
   });
+
+  await loadState(userPreferences);
 
   if (userPreferences?.language) {
     i18n.changeLanguage(userPreferences.language);

@@ -299,6 +299,7 @@ export interface UpdateProfileRequest {
   profileImageUrl?: string | null;
   backgroundImageUrl?: string | null;
   bio?: string;
+  language?: string;
 }
 
 export interface DownloadSourceDownload {
