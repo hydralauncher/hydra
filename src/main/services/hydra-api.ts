@@ -154,7 +154,8 @@ export class HydraApi {
         (error) => {
           logger.error(" ---- RESPONSE ERROR -----");
           const { config } = error;
-          const data = JSON.parse(config.data);
+
+          const data = JSON.parse(config.data ?? null);
 
           logger.error(
             config.method,
@@ -175,14 +176,22 @@ export class HydraApi {
               error.response.status,
               error.response.data
             );
-          } else if (error.request) {
-            const errorData = error.toJSON();
-            logger.error("Request error:", errorData.message);
-          } else {
-            logger.error("Error", error.message);
+
+            return Promise.reject(error as Error);
           }
-          logger.error(" ----- END RESPONSE ERROR -------");
-          return Promise.reject(error);
+
+          if (error.request) {
+            const errorData = error.toJSON();
+            logger.error("Request error:", errorData.code, errorData.message);
+            return Promise.reject(
+              new Error(
+                `Request failed with ${errorData.code} ${errorData.message}`
+              )
+            );
+          }
+
+          logger.error("Error", error.message);
+          return Promise.reject(error as Error);
         }
       );
     }
