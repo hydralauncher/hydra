@@ -239,7 +239,7 @@ export function App() {
 
   return (
     <>
-      {window.electron.platform === "win32" && (
+      {/* {window.electron.platform === "win32" && (
         <div className={styles.titleBar}>
           <h4>
             Hydra
@@ -248,7 +248,15 @@ export function App() {
             )}
           </h4>
         </div>
-      )}
+      )} */}
+      <div className={styles.titleBar}>
+        <h4>
+          Hydra
+          {hasActiveSubscription && (
+            <span className={styles.cloudText}> Cloud</span>
+          )}
+        </h4>
+      </div>
 
       <Toast
         visible={toast.visible}
