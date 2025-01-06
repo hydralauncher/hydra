@@ -122,7 +122,7 @@ declare global {
       ) => void
     ) => () => Electron.IpcRenderer;
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
-
+    resetGameAchievements: (gameId: number) => Promise<void>;
     /* User preferences */
     getUserPreferences: () => Promise<UserPreferences | null>;
     updateUserPreferences: (
