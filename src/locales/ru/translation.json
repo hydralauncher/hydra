@@ -179,7 +179,7 @@
     "backup_from": "Резервная копия от {{date}}",
     "custom_backup_location_set": "Установлено настраиваемое местоположение резервной копии",
     "no_directory_selected": "Не выбран каталог",
-    "no_write_permission": "Невозможно загрузить в эту директорию. Нажмите здесь, чтобы узнать больше."
+    "no_write_permission": "Невозможно загрузить в эту директорию. Нажмите здесь, чтобы узнать больше.",
     "reset_achievements_title": "Вы уверены?",
     "reset_achievements_success": "Достижения успешно сброшены",
     "reset_achievements_error": "Не удалось сбросить достижения"
