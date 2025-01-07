@@ -6,8 +6,8 @@ log.transports.file.resolvePathFn = (
   _: log.PathVariables,
   message?: log.LogMessage | undefined
 ) => {
-  if (message?.scope === "python-instance") {
-    return path.join(logsPath, "pythoninstance.txt");
+  if (message?.scope === "python-rpc") {
+    return path.join(logsPath, "pythonrpc.txt");
   }
 
   if (message?.scope == "achievements") {
