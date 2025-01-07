@@ -167,6 +167,9 @@
     "loading_save_preview": "Поиск сохранений…",
     "wine_prefix": "Префикс Wine",
     "wine_prefix_description": "Префикс Wine, используемый для запуска этой игры",
+    "launch_options": "Параметры запуска", 
+    "launch_options_description": "Опытные пользователи могут внести изменения в параметры запуска",  
+    "launch_options_placeholder": "Параметр не указан ",
     "no_download_option_info": "Информация недоступна",
     "backup_deletion_failed": "Не удалось удалить резервную копию",
     "max_number_of_artifacts_reached": "Достигнуто максимальное количество резервных копий для этой игры",
@@ -175,7 +178,11 @@
     "select_folder": "Выбрать папку",
     "backup_from": "Резервная копия от {{date}}",
     "custom_backup_location_set": "Установлено настраиваемое местоположение резервной копии",
-    "no_directory_selected": "Не выбран каталог"
+    "no_directory_selected": "Не выбран каталог",
+    "no_write_permission": "Невозможно загрузить в эту директорию. Нажмите здесь, чтобы узнать больше."
+    "reset_achievements_title": "Вы уверены?",
+    "reset_achievements_success": "Достижения успешно сброшены",
+    "reset_achievements_error": "Не удалось сбросить достижения".
   },
   "activation": {
     "title": "Активировать Hydra",
