@@ -125,7 +125,7 @@ cd hydra
 yarn
 ```
 
-### Install OpenSSL 1.1
+### Instale OpenSSL 1.1
 
 [OpenSSL 1.1](https://slproweb.com/download/Win64OpenSSL-1_1_1w.exe) é exigido pelo libtorrent em ambientes Windows.
 
