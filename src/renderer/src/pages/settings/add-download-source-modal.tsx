@@ -150,7 +150,7 @@ export function AddDownloadSourceModal({
           {...register("url")}
           label={t("download_source_url")}
           placeholder={t("insert_valid_json_url")}
-          error={errors.url}
+          error={errors.url?.message}
           rightContent={
             <Button
               type="button"

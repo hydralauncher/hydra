@@ -9,6 +9,8 @@ const getSessionHash = async (_event: Electron.IpcMainInvokeEvent) => {
   if (!auth) return null;
   const payload = jwt.decode(auth.accessToken) as jwt.JwtPayload;
 
+  if (!payload) return null;
+
   return payload.sessionId;
 };
 
