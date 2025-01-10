@@ -88,6 +88,9 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     }
   }, [getGameBackupPreview, visible]);
 
+  const userDetails = useAppSelector((state) => state.userDetails.userDetails);
+  const backupsPerGameLimit = userDetails?.quirks?.backupsPerGameLimit ?? 0;
+
   const backupStateLabel = useMemo(() => {
     if (uploadingBackup) {
       return (
@@ -120,7 +123,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
       );
     }
 
-    if (artifacts.length >= 2) {
+    if (artifacts.length >= backupsPerGameLimit) {
       return t("max_number_of_artifacts_reached");
     }
 
@@ -140,13 +143,11 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     restoringBackup,
     loadingPreview,
     artifacts,
+    backupsPerGameLimit,
     t,
   ]);
 
   const disableActions = uploadingBackup || restoringBackup || deletingArtifact;
-
-  const userDetails = useAppSelector((state) => state.userDetails.userDetails);
-  const backupsPerGameLimit = userDetails?.quirks.backupsPerGameLimit ?? 0;
 
   return (
     <Modal

@@ -117,11 +117,7 @@ export function GameDetailsContextProvider({
     abortControllerRef.current = abortController;
 
     window.electron
-      .getGameShopDetails(
-        objectId!,
-        shop as GameShop,
-        getSteamLanguage(i18n.language)
-      )
+      .getGameShopDetails(objectId, shop, getSteamLanguage(i18n.language))
       .then((result) => {
         if (abortController.signal.aborted) return;
 
@@ -140,14 +136,14 @@ export function GameDetailsContextProvider({
         setIsLoading(false);
       });
 
-    window.electron.getGameStats(objectId, shop as GameShop).then((result) => {
+    window.electron.getGameStats(objectId, shop).then((result) => {
       if (abortController.signal.aborted) return;
       setStats(result);
     });
 
     if (userDetails) {
       window.electron
-        .getUnlockedAchievements(objectId, shop as GameShop)
+        .getUnlockedAchievements(objectId, shop)
         .then((achievements) => {
           if (abortController.signal.aborted) return;
           setAchievements(achievements);
