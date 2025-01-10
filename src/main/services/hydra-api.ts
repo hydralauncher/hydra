@@ -7,7 +7,7 @@ import { WindowManager } from "./window-manager";
 import url from "url";
 import { uploadGamesBatch } from "./library-sync";
 import { clearGamesRemoteIds } from "./library-sync/clear-games-remote-id";
-import { logger } from "./logger";
+import { networkLogger as logger } from "./logger";
 import { UserNotLoggedInError, SubscriptionRequiredError } from "@shared";
 import { omit } from "lodash-es";
 import { appVersion } from "@main/constants";
