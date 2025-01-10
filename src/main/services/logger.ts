@@ -10,6 +10,10 @@ log.transports.file.resolvePathFn = (
     return path.join(logsPath, "pythonrpc.txt");
   }
 
+  if (message?.scope === "network") {
+    return path.join(logsPath, "network.txt");
+  }
+
   if (message?.scope == "achievements") {
     return path.join(logsPath, "achievements.txt");
   }
@@ -34,3 +38,4 @@ log.initialize();
 export const pythonRpcLogger = log.scope("python-rpc");
 export const logger = log.scope("main");
 export const achievementsLogger = log.scope("achievements");
+export const networkLogger = log.scope("network");
