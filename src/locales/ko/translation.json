@@ -31,7 +31,8 @@
   },
   "catalogue": {
     "next_page": "다음 페이지",
-    "previous_page": "이전 페이지"
+    "previous_page": "이전 페이지",
+    "go_up_buttom": "상단으로 돌아갑니다"
   },
   "game_details": {
     "open_download_options": "다운로드 선택지 열기",

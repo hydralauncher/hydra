@@ -32,9 +32,11 @@ const filterCategoryColors = {
   publishers: "hsl(200deg 50% 30%)",
 };
 
+
+
 const PAGE_SIZE = 20;
 const TOTAL_ITEMS_TO_SHOW_GO_UP_BUTTOM = 10;
-// const LIMIT_SCROLL_TO_DISAPEAR_GO_UP_BUTTOM = 225;
+const LIMIT_SCROLL_TO_DISAPEAR_GO_UP_BUTTOM = 500;
 
 export default function Catalogue() {
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -84,29 +86,33 @@ export default function Catalogue() {
     }, 500)
   ).current;
 
-  useEffect(() => {
-    results.length > 0 && results.length <= TOTAL_ITEMS_TO_SHOW_GO_UP_BUTTOM
-      ? setWantGoUpButtonIsVisible(true)
-      : setWantGoUpButtonIsVisible(false);
-    console.log(cataloguePageRef.current?.scrollTop);
-  }, [results]);
+  const isGoUpButtonVisible = (results: any[], scrollTop: number) => {
+    const withinLimit = results.length > 0 && results.length <= TOTAL_ITEMS_TO_SHOW_GO_UP_BUTTOM;
+    return withinLimit && scrollTop >= LIMIT_SCROLL_TO_DISAPEAR_GO_UP_BUTTOM;
+  };
 
   useEffect(() => {
-    const handleScroll = () => {
+    const withinLimit = results.length > 0 && results.length <= TOTAL_ITEMS_TO_SHOW_GO_UP_BUTTOM;
+    setWantGoUpButtonIsVisible(withinLimit);
+  }, [results])
+
+  useEffect(() => {
+    const handleScroll = debounce(() => {
       if (cataloguePageRef.current) {
-        console.log(cataloguePageRef.current.scrollTop);
-        // setScrollPosition(cataloguePageRef.current.scrollTop);
+        const scrollTop = cataloguePageRef.current.scrollTop
+        setWantGoUpButtonIsVisible(isGoUpButtonVisible(results, scrollTop))
       }
-    };
-
-    if (cataloguePageRef.current) {
-      cataloguePageRef.current.addEventListener("scroll", handleScroll);
+    }, 100)
+    
+    const ref = cataloguePageRef.current
+    if (ref) {
+      ref.addEventListener("scroll", handleScroll);
     }
 
     return () => {
-      cataloguePageRef.current?.removeEventListener("scroll", handleScroll);
+      ref?.removeEventListener("scroll", handleScroll);
     };
-  }, []);
+  }, [results]);
 
   useEffect(() => {
     setResults([]);
@@ -264,7 +270,6 @@ export default function Catalogue() {
         top: 0,
         behavior: "smooth",
       });
-      setWantGoUpButtonIsVisible(false);
     }
   };
 
@@ -372,14 +377,12 @@ export default function Catalogue() {
           </div>
 
           {wantGoUpButtonIsVisible && (
-            <div style={{ position: "fixed", bottom: 16, left: 16 }}>
-              <Button onClick={handleWantGoUpButtonClick} theme="outline">
+              <Button onClick={handleWantGoUpButtonClick} theme="outline" style={{ position: "fixed", bottom: 16, left: 16 }}>
                 {t("result_count", {
                   resultCount: formatNumber(itemsCount),
                 })}
-                , voltar ao topo <ArrowUpIcon />
+                , {t('go_up_buttom')} <ArrowUpIcon />
               </Button>
-            </div>
           )}
         </div>
 

@@ -273,7 +273,8 @@
   },
   "catalogue": {
     "next_page": "Página seguinte",
-    "previous_page": "Página anterior"
+    "previous_page": "Página anterior",
+    "go_up_buttom": "Voltar ao topo"
   },
   "modal": {
     "close": "Botão de fechar"

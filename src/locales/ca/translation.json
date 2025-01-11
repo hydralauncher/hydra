@@ -41,7 +41,8 @@
   },
   "catalogue": {
     "next_page": "Pàgina següent",
-    "previous_page": "Pàgina anterior"
+    "previous_page": "Pàgina anterior",
+    "go_up_buttom": "Torneu a la part superior"
   },
   "game_details": {
     "open_download_options": "Obre les opcions de baixada",

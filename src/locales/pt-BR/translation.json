@@ -295,7 +295,8 @@
     "download_sources": "Fontes de download",
     "result_count": "{{resultCount}} resultados",
     "filter_count": "{{filterCount}} disponíveis",
-    "clear_filters": "Limpar {{filterCount}} selecionados"
+    "clear_filters": "Limpar {{filterCount}} selecionados",
+    "go_up_buttom": "Voltar ao topo"
   },
   "modal": {
     "close": "Botão de fechar"

@@ -54,7 +54,8 @@
     "download_sources": "Download sources",
     "result_count": "{{resultCount}} results",
     "filter_count": "{{filterCount}} available",
-    "clear_filters": "Clear {{filterCount}} selected"
+    "clear_filters": "Clear {{filterCount}} selected",
+    "go_up_buttom": "Back to top"
   },
   "game_details": {
     "open_download_options": "Open download options",

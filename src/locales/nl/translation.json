@@ -31,7 +31,8 @@
   },
   "catalogue": {
     "next_page": "Volgende Pagina",
-    "previous_page": "Vorige Pagina"
+    "previous_page": "Vorige Pagina",
+    "go_up_buttom": "Ga terug naar de top"
   },
   "game_details": {
     "open_download_options": "Open download Instellingen",

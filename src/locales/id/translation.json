@@ -41,7 +41,8 @@
   },
   "catalogue": {
     "next_page": "Halaman Berikutnya",
-    "previous_page": "Halaman Sebelumnya"
+    "previous_page": "Halaman Sebelumnya",
+    "go_up_buttom": "Kembali ke atas"
   },
   "game_details": {
     "open_download_options": "Buka opsi unduhan",

@@ -31,7 +31,8 @@
   },
   "catalogue": {
     "next_page": "Sonraki sayfa",
-    "previous_page": "Önceki sayfa"
+    "previous_page": "Önceki sayfa",
+    "go_up_buttom": "Tepeye dön"
   },
   "game_details": {
     "open_download_options": "İndirme seçeneklerini aç",

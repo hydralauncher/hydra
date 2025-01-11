@@ -47,7 +47,8 @@
   },
   "catalogue": {
     "next_page": "الصفحة التالية",
-    "previous_page": "الصفحة السابقة"
+    "previous_page": "الصفحة السابقة",
+    "go_up_buttom": "العودة إلى الأعلى"
   },
   "game_details": {
     "open_download_options": "افتح خيارات التنزيل",

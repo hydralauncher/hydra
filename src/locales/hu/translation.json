@@ -31,7 +31,8 @@
   },
   "catalogue": {
     "next_page": "Következő olda",
-    "previous_page": "Előző olda"
+    "previous_page": "Előző olda",
+    "go_up_buttom": "Menj vissza a tetejére"
   },
   "game_details": {
     "open_download_options": "Letöltési lehetőségek",

@@ -47,7 +47,8 @@
   },
   "catalogue": {
     "next_page": "Další strana",
-    "previous_page": "Předchozí strana"
+    "previous_page": "Předchozí strana",
+    "go_up_buttom": "Vraťte se na vrchol"
   },
   "game_details": {
     "open_download_options": "Otevřít možnosti stahování",

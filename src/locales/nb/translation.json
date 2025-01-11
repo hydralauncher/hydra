@@ -45,7 +45,8 @@
   },
   "catalogue": {
     "next_page": "Neste side",
-    "previous_page": "Forrige side"
+    "previous_page": "Forrige side",
+    "go_up_buttom": "Gå tilbake til toppen"
   },
   "game_details": {
     "open_download_options": "Åpne nedlastingsmuligheter",

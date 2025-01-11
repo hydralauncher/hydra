@@ -40,7 +40,8 @@
   },
   "catalogue": {
     "next_page": "Келесі бет",
-    "previous_page": "Алдыңғы бет"
+    "previous_page": "Алдыңғы бет",
+    "go_up_buttom": "Жоғарыға оралу"
   },
   "game_details": {
     "open_download_options": "Жүктеу нұсқаларын ашу",

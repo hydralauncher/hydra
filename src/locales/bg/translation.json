@@ -47,7 +47,8 @@
   },
   "catalogue": {
     "next_page": "Следваща страница",
-    "previous_page": "Предишна страница"
+    "previous_page": "Предишна страница",
+    "go_up_buttom": "Обратно към върха"
   },
   "game_details": {
     "open_download_options": "Варианти за изтегляне",

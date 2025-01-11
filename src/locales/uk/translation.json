@@ -40,7 +40,8 @@
   },
   "catalogue": {
     "next_page": "Наступна сторінка",
-    "previous_page": "Попередня сторінка"
+    "previous_page": "Попередня сторінка",
+    "go_up_buttom": "Назад до вершини"
   },
   "game_details": {
     "open_download_options": "Відкрити варіанти завантаження",

@@ -46,7 +46,8 @@
   },
   "catalogue": {
     "next_page": "Järgmine leht",
-    "previous_page": "Eelmine leht"
+    "previous_page": "Eelmine leht",
+    "go_up_buttom": "Minge tippu"
   },
   "game_details": {
     "open_download_options": "Ava allalaadimise valikud",
