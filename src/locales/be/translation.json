@@ -32,7 +32,7 @@
   "catalogue": {
     "next_page": "Наступная старонка",
     "previous_page": "Папярэдняя старонка",
-    "go_up_buttom": "Вярнуцца да пачатку"
+    "go_up_button": "Вярнуцца да пачатку"
   },
   "game_details": {
     "open_download_options": "Адкрыць варыянты сцягвання",

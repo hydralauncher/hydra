@@ -36,7 +36,7 @@ const filterCategoryColors = {
 
 const PAGE_SIZE = 20;
 const TOTAL_ITEMS_TO_SHOW_GO_UP_BUTTOM = 10;
-const LIMIT_SCROLL_TO_DISAPEAR_GO_UP_BUTTOM = 500;
+const LIMIT_SCROLL_TO_DISAPEAR_GO_UP_BUTTON = 500;
 
 export default function Catalogue() {
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -88,7 +88,7 @@ export default function Catalogue() {
 
   const isGoUpButtonVisible = (results: any[], scrollTop: number) => {
     const withinLimit = results.length > 0 && results.length <= TOTAL_ITEMS_TO_SHOW_GO_UP_BUTTOM;
-    return withinLimit && scrollTop >= LIMIT_SCROLL_TO_DISAPEAR_GO_UP_BUTTOM;
+    return withinLimit && scrollTop >= LIMIT_SCROLL_TO_DISAPEAR_GO_UP_BUTTON;
   };
 
   useEffect(() => {
@@ -111,6 +111,7 @@ export default function Catalogue() {
 
     return () => {
       ref?.removeEventListener("scroll", handleScroll);
+      handleScroll.cancel();
     };
   }, [results]);
 
@@ -381,7 +382,7 @@ export default function Catalogue() {
                 {t("result_count", {
                   resultCount: formatNumber(itemsCount),
                 })}
-                , {t('go_up_buttom')} <ArrowUpIcon />
+                , {t('go_up_button')} <ArrowUpIcon />
               </Button>
           )}
         </div>

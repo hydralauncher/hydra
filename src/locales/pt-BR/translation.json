@@ -296,7 +296,7 @@
     "result_count": "{{resultCount}} resultados",
     "filter_count": "{{filterCount}} disponíveis",
     "clear_filters": "Limpar {{filterCount}} selecionados",
-    "go_up_buttom": "Voltar ao topo"
+    "go_up_button": "Voltar ao topo"
   },
   "modal": {
     "close": "Botão de fechar"

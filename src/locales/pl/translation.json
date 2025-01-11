@@ -32,7 +32,7 @@
   "catalogue": {
     "next_page": "Następna strona",
     "previous_page": "Poprzednia strona",
-    "go_up_buttom": "Wróć na szczyt"
+    "go_up_button": "Wróć na szczyt"
   },
   "game_details": {
     "open_download_options": "Otwórz opcje pobierania",

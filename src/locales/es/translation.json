@@ -55,7 +55,7 @@
     "result_count": "{{resultCount}} resultados",
     "filter_count": "{{filterCount}} disponibles",
     "clear_filters": "Limpiar {{filterCount}} seleccionados",
-    "go_up_buttom": "Vuelve a la cima"
+    "go_up_button": "Vuelve a la cima"
   },
   "game_details": {
     "open_download_options": "Ver opciones de descargas",

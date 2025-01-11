@@ -47,7 +47,7 @@
   "catalogue": {
     "next_page": "下一页",
     "previous_page": "上一页",
-    "go_up_buttom": "回到顶部"
+    "go_up_button": "回到顶部"
   },
   "game_details": {
     "open_download_options": "打开下载菜单",

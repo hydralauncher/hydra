@@ -55,7 +55,7 @@
     "result_count": "{{resultCount}} результатов",
     "filter_count": "{{filterCount}} доступных",
     "clear_filters": "Очистить {{filterCount}} выбранных",
-    "go_up_buttom": "Вернуться на вершину"
+    "go_up_button": "Вернуться на вершину"
   },
   "game_details": {
     "open_download_options": "Открыть источники",

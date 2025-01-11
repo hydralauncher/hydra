@@ -32,7 +32,7 @@
   "catalogue": {
     "next_page": "صفحه‌ی بعدی",
     "previous_page": "صفحه‌ی قبلی",
-    "go_up_buttom": "به بالا برگردید"
+    "go_up_button": "به بالا برگردید"
   },
   "game_details": {
     "open_download_options": "بازکردن آپشن‌های دانلود",

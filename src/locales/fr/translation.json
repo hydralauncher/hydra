@@ -121,6 +121,6 @@
   "catalogue": {
     "next_page": "Page suivante",
     "previous_page": "Page précédente",
-    "go_up_buttom": "Retourner au sommet"
+    "go_up_button": "Retourner au sommet"
   }
 }
