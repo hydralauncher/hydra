@@ -6,10 +6,9 @@ import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import * as styles from "./game-card.css";
 import { useTranslation } from "react-i18next";
 import { Badge } from "../badge/badge";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useMemo } from "react";
 import { useFormat, useRepacks } from "@renderer/hooks";
 import { steamUrlBuilder } from "@shared";
-import { useMemo } from "react";
 
 export interface GameCardProps
   extends React.DetailedHTMLProps<
@@ -45,8 +44,14 @@ export function GameCard({ game, ...props }: GameCardProps) {
 
   const { numberFormatter } = useFormat();
 
-  const firstThreeRepackers = useMemo(() => uniqueRepackers.slice(0, 3), [uniqueRepackers]);
-  const remainingCount = useMemo(() => uniqueRepackers.length - 3, [uniqueRepackers]);
+  const firstThreeRepackers = useMemo(
+    () => uniqueRepackers.slice(0, 3),
+    [uniqueRepackers]
+  );
+  const remainingCount = useMemo(
+    () => uniqueRepackers.length - 3,
+    [uniqueRepackers]
+  );
 
   return (
     <button
@@ -76,7 +81,9 @@ export function GameCard({ game, ...props }: GameCardProps) {
                   <Badge key={repacker}>{repacker}</Badge>
                 ))}
                 {remainingCount > 0 && (
-                  <Badge>+{remainingCount} {t("available")}</Badge>
+                  <Badge>
+                    +{remainingCount} {t("available")}
+                  </Badge>
                 )}
               </>
             ) : (
