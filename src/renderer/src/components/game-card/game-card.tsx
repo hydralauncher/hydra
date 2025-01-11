@@ -44,6 +44,9 @@ export function GameCard({ game, ...props }: GameCardProps) {
 
   const { numberFormatter } = useFormat();
 
+  const firstThreeRepackers = uniqueRepackers.slice(0, 3);
+  const remainingCount = uniqueRepackers.length - 3;
+
   return (
     <button
       {...props}
@@ -65,17 +68,21 @@ export function GameCard({ game, ...props }: GameCardProps) {
             <p className={styles.title}>{game.title}</p>
           </div>
 
-          {uniqueRepackers.length > 0 ? (
-            <ul className={styles.downloadOptions}>
-              {uniqueRepackers.map((repacker) => (
-                <li key={repacker}>
-                  <Badge>{repacker}</Badge>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className={styles.noDownloadsLabel}>{t("no_downloads")}</p>
-          )}
+          <div className={styles.downloadOptions}>
+            {uniqueRepackers.length > 0 ? (
+              <>
+                {firstThreeRepackers.map((repacker) => (
+                  <Badge key={repacker}>{repacker}</Badge>
+                ))}
+                {remainingCount > 0 && (
+                  <Badge>+{remainingCount} {t("available")}</Badge>
+                )}
+              </>
+            ) : (
+              <p className={styles.noDownloadsLabel}>{t("no_downloads")}</p>
+            )}
+          </div>
+
           <div className={styles.specifics}>
             <div className={styles.specificsItem}>
               <DownloadIcon />
