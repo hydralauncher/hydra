@@ -5,8 +5,9 @@ import type { Game } from "@types";
 import * as styles from "./game-options-modal.css";
 import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
-import { useDownload, useToast } from "@renderer/hooks";
+import { useDownload, useToast, useUserDetails } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
+import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { FileDirectoryIcon, FileIcon } from "@primer/octicons-react";
 import { debounce } from "lodash-es";
 
@@ -25,12 +26,20 @@ export function GameOptionsModal({
 
   const { showSuccessToast, showErrorToast } = useToast();
 
-  const { updateGame, setShowRepacksModal, repacks, selectGameExecutable } =
-    useContext(gameDetailsContext);
+  const {
+    updateGame,
+    setShowRepacksModal,
+    repacks,
+    selectGameExecutable,
+    achievements,
+  } = useContext(gameDetailsContext);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRemoveGameModal, setShowRemoveGameModal] = useState(false);
   const [launchOptions, setLaunchOptions] = useState(game.launchOptions ?? "");
+  const [showResetAchievementsModal, setShowResetAchievementsModal] =
+    useState(false);
+  const [isDeletingAchievements, setIsDeletingAchievements] = useState(false);
 
   const {
     removeGameInstaller,
@@ -38,6 +47,12 @@ export function GameOptionsModal({
     isGameDeleting,
     cancelDownload,
   } = useDownload();
+
+  const { userDetails } = useUserDetails();
+
+  const hasAchievements =
+    (achievements?.filter((achievement) => achievement.unlocked).length ?? 0) >
+    0;
 
   const deleting = isGameDeleting(game.id);
 
@@ -141,6 +156,19 @@ export function GameOptionsModal({
   const shouldShowWinePrefixConfiguration =
     window.electron.platform === "linux";
 
+  const handleResetAchievements = async () => {
+    setIsDeletingAchievements(true);
+    try {
+      await window.electron.resetGameAchievements(game.id);
+      await updateGame();
+      showSuccessToast(t("reset_achievements_success"));
+    } catch (error) {
+      showErrorToast(t("reset_achievements_error"));
+    } finally {
+      setIsDeletingAchievements(false);
+    }
+  };
+
   const shouldShowLaunchOptionsConfiguration = false;
 
   return (
@@ -155,6 +183,13 @@ export function GameOptionsModal({
         visible={showRemoveGameModal}
         onClose={() => setShowRemoveGameModal(false)}
         removeGameFromLibrary={handleRemoveGameFromLibrary}
+        game={game}
+      />
+
+      <ResetAchievementsModal
+        visible={showResetAchievementsModal}
+        onClose={() => setShowResetAchievementsModal(false)}
+        resetAchievements={handleResetAchievements}
         game={game}
       />
 
@@ -313,6 +348,20 @@ export function GameOptionsModal({
             >
               {t("remove_from_library")}
             </Button>
+
+            <Button
+              onClick={() => setShowResetAchievementsModal(true)}
+              theme="danger"
+              disabled={
+                deleting ||
+                isDeletingAchievements ||
+                !hasAchievements ||
+                !userDetails
+              }
+            >
+              {t("reset_achievements")}
+            </Button>
+
             <Button
               onClick={() => {
                 setShowDeleteModal(true);
