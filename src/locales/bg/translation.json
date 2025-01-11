@@ -46,11 +46,21 @@
     "checking_files": "Проверка на {{title}} файловете… ({{percentage}} готово)"
   },
   "catalogue": {
-    "next_page": "Следваща страница",
-    "previous_page": "Предишна страница",
+    "search": "Филтър…",
+    "developers": "Разработчици",
+    "genres": "Жанрове",
+    "tags": "Тагове",
+    "publishers": "Издатели",
+    "download_sources": "Източници за изтегляне",
+    "result_count": "{{resultCount}} резултати",
+    "filter_count": "{{filterCount}} налични",
+    "clear_filters": "Изчисти {{filterCount}} избрани",
     "go_up_button": "Обратно към върха"
   },
   "game_details": {
+    "launch_options": "Опции за стартиране",
+    "launch_options_description": "Напредналите потребители могат да въведат модификации на своите опции за стартиране (экспериментальный)",
+    "launch_options_placeholder": "Няма зададен параметър",
     "open_download_options": "Варианти за изтегляне",
     "download_options_zero": "Няма варианти за изтегляне",
     "download_options_one": "{{count}} варианти за изтегляне",
@@ -178,6 +188,10 @@
     "loading": "Зареждане…"
   },
   "downloads": {
+    "seeding": "Сийдване",
+    "stop_seeding": "Спри сийдването",
+    "resume_seeding": "Продължи сийдването",
+    "options": "Управление",
     "resume": "Продължи",
     "pause": "Пауза",
     "eta": "Conclusion {{eta}}",
@@ -203,6 +217,8 @@
     "checking_files": "Проверка на файлове…"
   },
   "settings": {
+    "seed_after_download_complete": "Сийд след завършване на изтеглянето",
+    "show_hidden_achievement_description": "Показвай описанието на скритите постижения преди отключването им",
     "downloads_path": "Инсталационен път",
     "change": "Актуализиране",
     "notifications": "Известия",
@@ -211,7 +227,7 @@
     "real_debrid_api_token_label": "Real-Debrid API токен",
     "quit_app_instead_hiding": "Не скривайте Hydra при затваряне",
     "launch_with_system": "Стартиране на Hydra при стартиране на системата",
-    "general": "Общ",
+    "general": "Общи",
     "behavior": "Поведение",
     "download_sources": "Източници за изтегляне",
     "language": "Език",
@@ -289,6 +305,16 @@
     "toggle_password_visibility": "Превключване на видимостта на паролата"
   },
   "user_profile": {
+    "stats": "Статистики",
+    "achievements": "Постижения",
+    "games": "Игри",
+    "top_percentile": "Топ {{percentile}}%",
+    "ranking_updated_weekly": "Класацията се актуализира седмично",
+    "playing": "Играе {{game}}",
+    "achievements_unlocked": "Отключени постижения",
+    "earned_points": "Спечелени точки",
+    "show_achievements_on_profile": "Показвай своите постижения в профила",
+    "show_points_on_profile": "Показвай спечелените точки в профила",
     "amount_hours": "{{amount}} часове",
     "amount_minutes": "{{amount}} минути",
     "last_time_played": "Последно играно {{period}}",
@@ -360,6 +386,11 @@
     "background_image_updated": "Обновено фоново изображение"
   },
   "achievement": {
+    "hidden_achievement_tooltip": "Това е скрито постижение",
+    "achievement_earn_points": "Спечели {{points}} точки с това постижение",
+    "earned_points": "Спечелени точки:",
+    "available_points": "Налични точки:",
+    "how_to_earn_achievements_points": "Как да спечелиш точки за постижения?",
     "achievement_unlocked": "Постижението е отключено",
     "user_achievements": "Постиженията на {{displayName}} ",
     "your_achievements": "Вашите Постижения",
@@ -370,6 +401,9 @@
     "achievements_unlocked_for_game": "Отключени {{achievementCount}} нови постижения за {{gameTitle}}"
   },
   "hydra_cloud": {
+    "hydra_cloud": "Hydra Cloud",
+    "hydra_cloud_feature_found": "Открихте функция на Hydra Cloud!",
+    "learn_more": "Научете повече",
     "subscription_tour_title": "Hydra Cloud Абонамент",
     "subscribe_now": "Абонирай се сега",
     "cloud_saving": "Запазване в облака",
