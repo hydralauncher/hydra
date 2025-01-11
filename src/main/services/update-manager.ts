@@ -24,7 +24,7 @@ export class UpdateManager {
     WindowManager.mainWindow?.webContents.send("autoUpdaterEvent", event);
   }
 
-  public static async checkForUpdates() {
+  public static checkForUpdates() {
     autoUpdater
       .once("update-available", (info: UpdateInfo) => {
         this.sendEvent({ type: "update-available", info });
@@ -51,7 +51,7 @@ export class UpdateManager {
     return isAutoInstallAvailable;
   }
 
-  public static async checkForUpdatePeriodically() {
+  public static checkForUpdatePeriodically() {
     if (this.checkTick % 2000 == 0) {
       this.checkForUpdates();
     }
