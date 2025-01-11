@@ -19,7 +19,7 @@ export class TorBoxClient {
         Authorization: `Bearer ${apiToken}`,
       },
     });
-    this.apiToken = "7371d5ec-52fa-4b87-9052-0c8c96d947cc";
+    this.apiToken = apiToken;
   }
 
   static async addMagnet(magnet: string) {
