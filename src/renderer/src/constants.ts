@@ -8,6 +8,7 @@ export const DOWNLOADER_NAME = {
   [Downloader.Gofile]: "Gofile",
   [Downloader.PixelDrain]: "PixelDrain",
   [Downloader.Qiwi]: "Qiwi",
+  [Downloader.Datanodes]: "Datanodes",
 };
 
 export const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
