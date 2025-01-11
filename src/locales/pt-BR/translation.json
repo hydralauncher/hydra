@@ -280,6 +280,7 @@
     "quit": "Fechar"
   },
   "game_card": {
+    "available": "Disponível",
     "no_downloads": "Sem downloads disponíveis"
   },
   "binary_not_found_modal": {
