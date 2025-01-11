@@ -81,7 +81,12 @@ export function useUserDetails() {
         featurebaseJwt: userDetails?.featurebaseJwt || "",
       });
     },
-    [updateUserDetails, userDetails?.username, userDetails?.subscription]
+    [
+      updateUserDetails,
+      userDetails?.username,
+      userDetails?.subscription,
+      userDetails?.featurebaseJwt,
+    ]
   );
 
   const syncFriendRequests = useCallback(async () => {
