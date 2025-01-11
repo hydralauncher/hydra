@@ -167,6 +167,9 @@
     "loading_save_preview": "Searching for save games…",
     "wine_prefix": "Wine Prefix",
     "wine_prefix_description": "The Wine prefix used to run this game",
+    "launch_options": "Launch Options",
+    "launch_options_description": "Advanced users may choose to enter modifications to their launch options (experimental feature)",
+    "launch_options_placeholder": "No parameter specified",
     "no_download_option_info": "No information available",
     "backup_deletion_failed": "Failed to delete backup",
     "max_number_of_artifacts_reached": "Maximum number of backups reached for this game",
@@ -175,7 +178,13 @@
     "select_folder": "Select folder",
     "backup_from": "Backup from {{date}}",
     "custom_backup_location_set": "Custom backup location set",
-    "no_directory_selected": "No directory selected"
+    "no_directory_selected": "No directory selected",
+    "no_write_permission": "Cannot download into this directory. Click here to learn more.",
+    "reset_achievements": "Reset achievements",
+    "reset_achievements_description": "This will reset all achievements for {{game}}",
+    "reset_achievements_title": "Are you sure?",
+    "reset_achievements_success": "Achievements successfully reset",
+    "reset_achievements_error": "Failed to reset achievements"
   },
   "activation": {
     "title": "Activate Hydra",

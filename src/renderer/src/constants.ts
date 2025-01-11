@@ -8,6 +8,7 @@ export const DOWNLOADER_NAME = {
   [Downloader.Gofile]: "Gofile",
   [Downloader.PixelDrain]: "PixelDrain",
   [Downloader.Qiwi]: "Qiwi",
+  [Downloader.Datanodes]: "Datanodes",
   [Downloader.TorBox]: "TorBox",
 };
 

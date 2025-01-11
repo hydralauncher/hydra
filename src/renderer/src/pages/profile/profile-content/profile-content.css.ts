@@ -228,3 +228,11 @@ export const link = style({
     cursor: "pointer",
   },
 });
+
+export const gameCardStats = style({
+  width: "100%",
+  height: "100%",
+  transition: "transform 0.5s ease-in-out",
+  flexShrink: "0",
+  flexGrow: "0",
+});
