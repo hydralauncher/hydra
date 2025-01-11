@@ -104,6 +104,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("createGameShortcut", id),
   updateExecutablePath: (id: number, executablePath: string | null) =>
     ipcRenderer.invoke("updateExecutablePath", id, executablePath),
+  updateLaunchOptions: (id: number, launchOptions: string | null) =>
+    ipcRenderer.invoke("updateLaunchOptions", id, launchOptions),
   selectGameWinePrefix: (id: number, winePrefixPath: string | null) =>
     ipcRenderer.invoke("selectGameWinePrefix", id, winePrefixPath),
   verifyExecutablePathInUse: (executablePath: string) =>
@@ -115,8 +117,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("openGameInstallerPath", gameId),
   openGameExecutablePath: (gameId: number) =>
     ipcRenderer.invoke("openGameExecutablePath", gameId),
-  openGame: (gameId: number, executablePath: string) =>
-    ipcRenderer.invoke("openGame", gameId, executablePath),
+  openGame: (
+    gameId: number,
+    executablePath: string,
+    launchOptions: string | null
+  ) => ipcRenderer.invoke("openGame", gameId, executablePath, launchOptions),
   closeGame: (gameId: number) => ipcRenderer.invoke("closeGame", gameId),
   removeGameFromLibrary: (gameId: number) =>
     ipcRenderer.invoke("removeGameFromLibrary", gameId),
@@ -125,6 +130,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("deleteGameFolder", gameId),
   getGameByObjectId: (objectId: string) =>
     ipcRenderer.invoke("getGameByObjectId", objectId),
+  resetGameAchievements: (gameId: number) =>
+    ipcRenderer.invoke("resetGameAchievements", gameId),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
@@ -145,6 +152,8 @@ contextBridge.exposeInMainWorld("electron", {
   /* Hardware */
   getDiskFreeSpace: (path: string) =>
     ipcRenderer.invoke("getDiskFreeSpace", path),
+  checkFolderWritePermission: (path: string) =>
+    ipcRenderer.invoke("checkFolderWritePermission", path),
 
   /* Cloud save */
   uploadSaveGame: (
@@ -221,6 +230,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("showOpenDialog", options),
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
+  getFeatures: () => ipcRenderer.invoke("getFeatures"),
   platform: process.platform,
 
   /* Auto update */

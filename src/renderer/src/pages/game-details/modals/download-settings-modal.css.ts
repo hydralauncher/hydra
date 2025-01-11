@@ -36,3 +36,10 @@ export const downloaderIcon = style({
   position: "absolute",
   left: `${SPACING_UNIT * 2}px`,
 });
+
+export const pathError = style({
+  cursor: "pointer",
+  ":hover": {
+    textDecoration: "underline",
+  },
+});
