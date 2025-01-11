@@ -17,6 +17,7 @@ import { AddShouldSeedColumn } from "./migrations/20241108200154_add_should_seed
 import { AddSeedAfterDownloadColumn } from "./migrations/20241108201806_add_seed_after_download";
 import { AddHiddenAchievementDescriptionColumn } from "./migrations/20241216140633_add_hidden_achievement_description_column ";
 import { AddLaunchOptionsColumnToGame } from "./migrations/20241226044022_add_launch_options_column_to_game";
+import { AddTorBoxApiToken } from "./migrations/20250111182229_add_torbox_api_token_column";
 
 export type HydraMigration = Knex.Migration & { name: string };
 
@@ -39,6 +40,7 @@ class MigrationSource implements Knex.MigrationSource<HydraMigration> {
       AddSeedAfterDownloadColumn,
       AddHiddenAchievementDescriptionColumn,
       AddLaunchOptionsColumnToGame,
+      AddTorBoxApiToken,
     ]);
   }
   getMigrationName(migration: HydraMigration): string {

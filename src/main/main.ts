@@ -19,10 +19,12 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   Aria2.spawn();
 
   if (userPreferences?.realDebridApiToken) {
-    RealDebridClient.authorize(userPreferences?.realDebridApiToken);
+    RealDebridClient.authorize(userPreferences.realDebridApiToken);
   }
 
-  TorBoxClient.authorize("7371d5ec-52fa-4b87-9052-0c8c96d947cc");
+  if (userPreferences?.torBoxApiToken) {
+    TorBoxClient.authorize(userPreferences?.torBoxApiToken);
+  }
 
   Ludusavi.addManifestToLudusaviConfig();
 
