@@ -163,7 +163,7 @@ export interface UserPreferences {
   repackUpdatesNotificationsEnabled: boolean;
   achievementNotificationsEnabled: boolean;
   realDebridApiToken: string | null;
-  torboxApiToken: string | null;
+  torBoxApiToken: string | null;
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;
   startMinimized: boolean;
