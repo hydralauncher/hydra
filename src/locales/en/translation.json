@@ -280,7 +280,8 @@
     "launch_minimized": "Launch Hydra minimized",
     "disable_nsfw_alert": "Disable NSFW alert",
     "seed_after_download_complete": "Seed after download complete",
-    "show_hidden_achievement_description": "Show hidden achievements description before unlocking them"
+    "show_hidden_achievement_description": "Show hidden achievements description before unlocking them",
+    "debrid_services": "Debrid Services"
   },
   "notifications": {
     "download_complete": "Download complete",

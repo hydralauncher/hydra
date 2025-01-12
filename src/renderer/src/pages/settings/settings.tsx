@@ -2,7 +2,7 @@ import { Button } from "@renderer/components";
 
 import * as styles from "./settings.css";
 import { useTranslation } from "react-i18next";
-import { SettingsRealDebrid } from "./settings-real-debrid";
+import { SettingsDebrid } from "./settings-debrid";
 import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
 
@@ -25,7 +25,7 @@ export default function Settings() {
       t("general"),
       t("behavior"),
       t("download_sources"),
-      "Real-Debrid",
+      t("debrid_services"),
     ];
 
     if (userDetails) return [...categories, t("privacy")];
@@ -50,7 +50,7 @@ export default function Settings() {
             }
 
             if (currentCategoryIndex === 3) {
-              return <SettingsRealDebrid />;
+              return <SettingsDebrid />;
             }
 
             return <SettingsPrivacy />;
