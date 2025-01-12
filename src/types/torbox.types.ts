@@ -54,14 +54,14 @@ export interface TorBoxTorrentInfo {
 export interface TorBoxTorrentInfoRequest {
   success: boolean;
   detail: string;
-  error: string;
+  error: string | null;
   data: TorBoxTorrentInfo[];
 }
 
 export interface TorBoxAddTorrentRequest {
   success: boolean;
   detail: string;
-  error: string;
+  error: string | null;
   data: {
     torrent_id: number;
     name: string;

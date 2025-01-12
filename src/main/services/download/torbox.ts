@@ -10,19 +10,19 @@ import type {
 export class TorBoxClient {
   private static instance: AxiosInstance;
   private static readonly baseURL = "https://api.torbox.app/v1/api";
-  public static apiToken: string;
+  private static apiToken: string;
 
   static authorize(apiToken: string) {
+    this.apiToken = apiToken;
     this.instance = axios.create({
       baseURL: this.baseURL,
       headers: {
         Authorization: `Bearer ${apiToken}`,
       },
     });
-    this.apiToken = apiToken;
   }
 
-  static async addMagnet(magnet: string) {
+  private static async addMagnet(magnet: string) {
     const form = new FormData();
     form.append("magnet", magnet);
 
@@ -30,6 +30,10 @@ export class TorBoxClient {
       "/torrents/createtorrent",
       form
     );
+
+    if (!response.data.success) {
+      throw new Error(response.data.detail);
+    }
 
     return response.data.data;
   }
@@ -74,7 +78,7 @@ export class TorBoxClient {
     return response.data.data;
   }
 
-  static async getTorrentIdAndName(magnetUri: string) {
+  private static async getTorrentIdAndName(magnetUri: string) {
     const userTorrents = await this.getAllTorrentsFromUser();
 
     const { infoHash } = await parseTorrent(magnetUri);
