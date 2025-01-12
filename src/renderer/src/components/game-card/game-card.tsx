@@ -82,7 +82,7 @@ export function GameCard({ game, ...props }: GameCardProps) {
                 ))}
                 {remainingCount > 0 && (
                   <Badge>
-                    +{remainingCount} {t("available")}
+                    +{remainingCount} {t("game_card:available", { count: remainingCount })}
                   </Badge>
                 )}
               </>
