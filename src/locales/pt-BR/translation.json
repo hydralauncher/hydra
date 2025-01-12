@@ -284,7 +284,8 @@
     "quit": "Fechar"
   },
   "game_card": {
-    "available": "Disponível",
+    "available_one": "Disponível",
+    "available_other": "Disponíveis",
     "no_downloads": "Sem downloads disponíveis"
   },
   "binary_not_found_modal": {
