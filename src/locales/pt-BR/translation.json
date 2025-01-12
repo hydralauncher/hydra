@@ -268,7 +268,8 @@
     "launch_minimized": "Iniciar o Hydra minimizado",
     "disable_nsfw_alert": "Desativar alerta de conteúdo inapropriado",
     "seed_after_download_complete": "Semear após a conclusão do download",
-    "show_hidden_achievement_description": "Mostrar descrição de conquistas ocultas antes de debloqueá-las"
+    "show_hidden_achievement_description": "Mostrar descrição de conquistas ocultas antes de debloqueá-las",
+    "debrid_services": "Serviços Debrid"
   },
   "notifications": {
     "download_complete": "Download concluído",

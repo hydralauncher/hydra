@@ -19,6 +19,8 @@ export type HydraCloudFeature =
   | "backup"
   | "achievements-points";
 
+export type DebridServices = "RealDebrid" | "TorBox";
+
 export interface GameRepack {
   id: number;
   title: string;
