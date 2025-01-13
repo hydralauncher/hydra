@@ -56,3 +56,8 @@ export const navigateToCatalogueButton = style({
     textDecoration: "none",
   },
 });
+
+export const removeAllSourcesButton = style({
+  display: 'flex',
+  justifyContent: 'flex-end'
+})

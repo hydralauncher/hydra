@@ -258,6 +258,7 @@
     "download_source_errored": "Errored",
     "sync_download_sources": "Sync sources",
     "removed_download_source": "Download source removed",
+    "removed_download_sources": "Download sources removed",
     "added_download_source": "Added download source",
     "download_sources_synced": "All download sources are synced",
     "insert_valid_json_url": "Insert a valid JSON url",
