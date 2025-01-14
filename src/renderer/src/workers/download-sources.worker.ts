@@ -21,7 +21,7 @@ export const downloadSourceSchema = z.object({
 
 type Payload =
   | ["IMPORT_DOWNLOAD_SOURCE", string]
-  | ["DELETE_DOWNLOAD_SOURCE", number]  
+  | ["DELETE_DOWNLOAD_SOURCE", number]
   | ["VALIDATE_DOWNLOAD_SOURCE", string]
   | ["SYNC_DOWNLOAD_SOURCES", string]
   | ["DELETE_ALL_DOWNLOAD_SOURCES", string];
@@ -117,7 +117,7 @@ const deleteDownloadSource = async (id: number) => {
 
 const deleteAllDowloadsSources = async () => {
   await db.transaction("rw", repacksTable, downloadSourcesTable, async () => {
-    await repacksTable.clear()
+    await repacksTable.clear();
     await downloadSourcesTable.clear();
   });
 };
@@ -140,12 +140,12 @@ self.onmessage = async (event: MessageEvent<Payload>) => {
     });
   }
 
-  if (type === 'DELETE_ALL_DOWNLOAD_SOURCES') {
-    await deleteAllDowloadsSources()
+  if (type === "DELETE_ALL_DOWNLOAD_SOURCES") {
+    await deleteAllDowloadsSources();
 
     const channel = new BroadcastChannel(`download_sources:delete_all:${data}`);
-    
-    channel.postMessage(true)
+
+    channel.postMessage(true);
   }
 
   if (type === "DELETE_DOWNLOAD_SOURCE") {
