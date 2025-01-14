@@ -250,7 +250,7 @@
     "sync_download_sources": "Sincronizar fuentes",
     "removed_download_source": "Fuente de descarga eliminada",
     "cancel_button_confirmation_delete_all_sources": "No",
-    "confirm_button_confirmation_delete_all_sources": "Sí, borra todo",
+    "confirm_button_confirmation_delete_all_sources": "Sí, eliminar todo",
     "description_confirmation_delete_all_sources": "Eliminarás todas las fuentes de descarga",
     "title_confirmation_delete_all_sources": "Eliminar todas las fuentes de descarga",
     "removed_download_sources": "Fuentes de descarga eliminadas",

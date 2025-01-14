@@ -203,7 +203,7 @@
     "confirm_button_confirmation_delete_all_sources": "Ja, slet alt",
     "description_confirmation_delete_all_sources": "Du vil slette alle downloadkilder",
     "title_confirmation_delete_all_sources": "Slet alle downloadkilder",
-    "removed_download_sources": "Skrifttyper fjernet",
+    "removed_download_sources": "Download kilder fjernet",
     "button_delete_all_sources": "Fjern alle downloadkilder",
     "added_download_source": "Tilføjede download kilde",
     "download_sources_synced": "Alle download kilder er synkroniserede",

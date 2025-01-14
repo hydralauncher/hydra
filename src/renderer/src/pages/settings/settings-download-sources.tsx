@@ -86,7 +86,7 @@ export function SettingsDownloadSources() {
     };
   };
 
-  const handleRemoveAllDowloadSources = () => {
+  const handleRemoveAllDownloadSources = () => {
     setIsRemovingDownloadSource(true);
 
     const id = crypto.randomUUID();
@@ -157,7 +157,7 @@ export function SettingsDownloadSources() {
         confirmButtonLabel={t("confirm_button_confirmation_delete_all_sources")}
         descriptionText={t("description_confirmation_delete_all_sources")}
         clickOutsideToClose={false}
-        onConfirm={handleRemoveAllDowloadSources}
+        onConfirm={handleRemoveAllDownloadSources}
         visible={showConfirmationDeleteAllSourcesModal}
         title={t("title_confirmation_delete_all_sources")}
         onClose={() => setShowConfirmationDeleteAllSourcesModal(false)}
