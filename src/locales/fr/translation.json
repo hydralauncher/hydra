@@ -99,7 +99,7 @@
     "enable_repack_list_notifications": "Quand un nouveau repack est ajouté",
     "language": "Langue",
     "cancel_button_confirmation_delete_all_sources": "Non",
-    "confirm_button_confirmation_delete_all_sources": "Oui, supprime tout",
+    "confirm_button_confirmation_delete_all_sources": "Oui, tout supprimer",
     "description_confirmation_delete_all_sources": "Vous supprimerez toutes les sources de téléchargement",
     "title_confirmation_delete_all_sources": "Supprimer toutes les sources de téléchargement",
     "removed_download_sources": "Sources de téléchargement supprimées",

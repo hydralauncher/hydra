@@ -177,7 +177,7 @@
     "confirm_button_confirmation_delete_all_sources": "Sí, esborra-ho tot",
     "description_confirmation_delete_all_sources": "Eliminareu totes les fonts de descàrrega",
     "title_confirmation_delete_all_sources": "Suprimeix totes les fonts de baixada",
-    "removed_download_sources": "S'han eliminat els tipus de lletra",
+    "removed_download_sources": "S'han eliminat les fonts de descàrrega",
     "button_delete_all_sources": "Elimina totes les fonts de baixada",
     "add_download_source": "Afegeix font",
     "download_count_zero": "No hi ha baixades a la llista",
