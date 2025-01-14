@@ -109,6 +109,12 @@
     "launch_with_system": "زمانی که سیستم روشن می‌شود، هایدرا را باز کن",
     "general": "کلی",
     "behavior": "رفتار",
+    "cancel_button_confirmation_delete_all_sources": "خیر",
+    "confirm_button_confirmation_delete_all_sources": "ہاں، سب کچھ حذف کر دیں۔",
+    "description_confirmation_delete_all_sources": "آپ ڈاؤن لوڈ کے تمام ذرائع کو حذف کر دیں گے۔",
+    "title_confirmation_delete_all_sources": "تمام منابع دانلود را حذف کنید",
+    "removed_download_sources": "منابع دانلود حذف شد",
+    "button_delete_all_sources": "تمام منابع دانلود را حذف کنید",
     "enable_real_debrid": "فعال‌سازی Real-Debrid",
     "real_debrid_api_token_hint": "کلید API خود را از <ب0>اینجا</0> بگیرید.",
     "save_changes": "ذخیره تغییرات"

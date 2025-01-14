@@ -115,7 +115,7 @@ const deleteDownloadSource = async (id: number) => {
   });
 };
 
-const deleteAllDowloadsSources = async () => {
+const deleteAllDowloadSources = async () => {
   await db.transaction("rw", repacksTable, downloadSourcesTable, async () => {
     await repacksTable.clear();
     await downloadSourcesTable.clear();
@@ -141,7 +141,7 @@ self.onmessage = async (event: MessageEvent<Payload>) => {
   }
 
   if (type === "DELETE_ALL_DOWNLOAD_SOURCES") {
-    await deleteAllDowloadsSources();
+    await deleteAllDowloadSources();
 
     const channel = new BroadcastChannel(`download_sources:delete_all:${data}`);
 
