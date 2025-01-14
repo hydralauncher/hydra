@@ -98,6 +98,7 @@ export function SettingsDownloadSources() {
       showSuccessToast(t("removed_download_sources"));
 
       getDownloadSources();
+      setIsRemovingDownloadSource(false);
       setShowConfirmationDeleteAllSourcesModal(false);
       channel.close();
       updateRepacks();
@@ -151,15 +152,14 @@ export function SettingsDownloadSources() {
         onClose={handleModalClose}
         onAddDownloadSource={handleAddDownloadSource}
       />
-
       <ConfirmationModal
-        cancelButtonLabel="Não"
-        confirmButtonLabel="Sim, excluir"
-        descriptionText="Você ira excluir todas as fontes de dowload"
+        cancelButtonLabel={t("cancel_button_confirmation_delete_all_sources")}
+        confirmButtonLabel={t("confirm_button_confirmation_delete_all_sources")}
+        descriptionText={t("description_confirmation_delete_all_sources")}
         clickOutsideToClose={false}
         onConfirm={handleRemoveAllDowloadSources}
         visible={showConfirmationDeleteAllSourcesModal}
-        title={"Excluir todas as fontes de dowload"}
+        title={t("title_confirmation_delete_all_sources")}
         onClose={() => setShowConfirmationDeleteAllSourcesModal(false)}
         buttonsIsDisabled={isRemovingDownloadSource}
       />
@@ -254,7 +254,7 @@ export function SettingsDownloadSources() {
             disabled={isRemovingDownloadSource}
           >
             <XIcon />
-            Remover todas as fontes de dowload
+            {t("button_delete_all_sources")}
           </Button>
         </div>
       )}

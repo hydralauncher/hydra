@@ -118,6 +118,11 @@
     "general": "Ogólne",
     "behavior": "Zachowania",
     "language": "Język",
+    "cancel_button_confirmation_delete_all_sources": "NIE",
+    "confirm_button_confirmation_delete_all_sources": "Tak, usuń wszystko",
+    "description_confirmation_delete_all_sources": "Usuniesz wszystkie źródła pobierania",
+    "title_confirmation_delete_all_sources": "Usuń wszystkie źródła pobierania",
+    "button_delete_all_sources": "Usuń wszystkie źródła pobierania",
     "enable_real_debrid": "Włącz Real-Debrid",
     "real_debrid_api_token_hint": "Możesz uzyskać swój klucz API <0>tutaj</0>",
     "save_changes": "Zapisz zmiany"
