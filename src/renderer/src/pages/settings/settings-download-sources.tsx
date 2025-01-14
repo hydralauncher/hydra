@@ -1,11 +1,21 @@
 import { useContext, useEffect, useState } from "react";
 
-import { TextField, Button, Badge, ConfirmationModal } from "@renderer/components";
+import {
+  TextField,
+  Button,
+  Badge,
+  ConfirmationModal,
+} from "@renderer/components";
 import { useTranslation } from "react-i18next";
 
 import * as styles from "./settings-download-sources.css";
 import type { DownloadSource } from "@types";
-import { NoEntryIcon, PlusCircleIcon, SyncIcon, XIcon } from "@primer/octicons-react";
+import {
+  NoEntryIcon,
+  PlusCircleIcon,
+  SyncIcon,
+  XIcon,
+} from "@primer/octicons-react";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
 import { useAppDispatch, useRepacks, useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
@@ -16,8 +26,10 @@ import { useNavigate } from "react-router-dom";
 import { setFilters, clearFilters } from "@renderer/features";
 
 export function SettingsDownloadSources() {
-  const [showConfirmationDeleteAllSourcesModal, setShowConfirmationDeleteAllSourcesModal] =
-    useState(false);
+  const [
+    showConfirmationDeleteAllSourcesModal,
+    setShowConfirmationDeleteAllSourcesModal,
+  ] = useState(false);
   const [showAddDownloadSourceModal, setShowAddDownloadSourceModal] =
     useState(false);
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
@@ -25,8 +37,7 @@ export function SettingsDownloadSources() {
     useState(false);
   const [isRemovingDownloadSource, setIsRemovingDownloadSource] =
     useState(false);
-  const [isFetchingSources, setIsFetchingSources] =
-    useState(true);
+  const [isFetchingSources, setIsFetchingSources] = useState(true);
 
   const { sourceUrl, clearSourceUrl } = useContext(settingsContext);
 
@@ -45,9 +56,10 @@ export function SettingsDownloadSources() {
       .sortBy("createdAt")
       .then((sources) => {
         setDownloadSources(sources.reverse());
-      }).finally(() => {
-        setIsFetchingSources(false)
       })
+      .finally(() => {
+        setIsFetchingSources(false);
+      });
   };
 
   useEffect(() => {
@@ -86,11 +98,11 @@ export function SettingsDownloadSources() {
       showSuccessToast(t("removed_download_sources"));
 
       getDownloadSources();
-      setShowConfirmationDeleteAllSourcesModal(false)
+      setShowConfirmationDeleteAllSourcesModal(false);
       channel.close();
       updateRepacks();
-    }
-  }
+    };
+  };
 
   const handleAddDownloadSource = async () => {
     await getDownloadSources();
@@ -144,13 +156,13 @@ export function SettingsDownloadSources() {
         cancelButtonLabel="Não"
         confirmButtonLabel="Sim, excluir"
         descriptionText="Você ira excluir todas as fontes de dowload"
-        clickOutsideToClose={false} 
+        clickOutsideToClose={false}
         onConfirm={handleRemoveAllDowloadSources}
-        visible={showConfirmationDeleteAllSourcesModal} 
-        title={"Excluir todas as fontes de dowload"} 
+        visible={showConfirmationDeleteAllSourcesModal}
+        title={"Excluir todas as fontes de dowload"}
         onClose={() => setShowConfirmationDeleteAllSourcesModal(false)}
-        buttonsIsDisabled={isRemovingDownloadSource}      
-        />
+        buttonsIsDisabled={isRemovingDownloadSource}
+      />
 
       <p>{t("download_sources_description")}</p>
 
@@ -233,7 +245,6 @@ export function SettingsDownloadSources() {
         ))}
       </ul>
 
-
       {!isFetchingSources && downloadSources.length >= 2 && (
         <div className={styles.removeAllSourcesButton}>
           <Button
@@ -244,7 +255,7 @@ export function SettingsDownloadSources() {
           >
             <XIcon />
             Remover todas as fontes de dowload
-        </Button>
+          </Button>
         </div>
       )}
     </>
