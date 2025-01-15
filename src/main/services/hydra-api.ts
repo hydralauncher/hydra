@@ -215,16 +215,20 @@ export class HydraApi {
     }
   }
 
+  public static async refreshToken() {
+    return this.instance
+      .post<{ accessToken: string; expiresIn: number }>(`/auth/refresh`, {
+        refreshToken: this.userAuth.refreshToken,
+      })
+      .then((response) => response.data);
+  }
+
   private static async revalidateAccessTokenIfExpired() {
     const now = new Date();
 
     if (this.userAuth.expirationTimestamp < now.getTime()) {
       try {
-        const response = await this.instance.post(`/auth/refresh`, {
-          refreshToken: this.userAuth.refreshToken,
-        });
-
-        const { accessToken, expiresIn } = response.data;
+        const { accessToken, expiresIn } = await this.refreshToken();
 
         const tokenExpirationTimestamp =
           now.getTime() +

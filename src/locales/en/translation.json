@@ -280,7 +280,18 @@
     "launch_minimized": "Launch Hydra minimized",
     "disable_nsfw_alert": "Disable NSFW alert",
     "seed_after_download_complete": "Seed after download complete",
-    "show_hidden_achievement_description": "Show hidden achievements description before unlocking them"
+    "show_hidden_achievement_description": "Show hidden achievements description before unlocking them",
+    "account": "Account",
+    "no_users_blocked": "You have no blocked users",
+    "subscription": "Hydra Cloud subscription",
+    "subscription_active_until": "Your Hydra Cloud is active until {{date}}",
+    "subscription_not_active": "You don't have an active Hydra Cloud subscription",
+    "manage_account": "Manage account",
+    "manage_subscription": "Manage subscription",
+    "update_email": "Update email",
+    "update_password": "Update password",
+    "current_email": "Current email:",
+    "no_associated_email": "You don't have an associated email yet"
   },
   "notifications": {
     "download_complete": "Download complete",

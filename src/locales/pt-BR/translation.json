@@ -268,7 +268,18 @@
     "launch_minimized": "Iniciar o Hydra minimizado",
     "disable_nsfw_alert": "Desativar alerta de conteúdo inapropriado",
     "seed_after_download_complete": "Semear após a conclusão do download",
-    "show_hidden_achievement_description": "Mostrar descrição de conquistas ocultas antes de debloqueá-las"
+    "show_hidden_achievement_description": "Mostrar descrição de conquistas ocultas antes de debloqueá-las",
+    "account": "Conta",
+    "no_users_blocked": "Você não bloqueou nenhum usuário",
+    "subscription": "Assinatura Hydra Cloud",
+    "subscription_active_until": "Seu Hydra Cloud ficará ativo até {{date}}",
+    "subscription_not_active": "Você não possui uma assinatura Hydra Cloud ativa",
+    "manage_account": "Gerenciar conta",
+    "manage_subscription": "Gerenciar assinatura",
+    "update_email": "Atualizar email",
+    "update_password": "Atualizar senha",
+    "current_email": "Email atual:",
+    "no_associated_email": "Você ainda não associou nenhum email a sua conta"
   },
   "notifications": {
     "download_complete": "Download concluído",
