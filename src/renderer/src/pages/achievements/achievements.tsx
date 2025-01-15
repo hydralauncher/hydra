@@ -44,7 +44,7 @@ export default function Achievements() {
         .getComparedUnlockedAchievements(objectId, shop as GameShop, userId)
         .then(setComparedAchievements);
     }
-  }, [objectId, shop, userId]);
+  }, [objectId, shop, userDetails?.id, userId]);
 
   const otherUserId = userDetails?.id === userId ? null : userId;
 
