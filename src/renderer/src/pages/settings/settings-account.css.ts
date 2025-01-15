@@ -8,13 +8,6 @@ export const form = style({
   gap: `${SPACING_UNIT}px`,
 });
 
-export const blockedUserAvatar = style({
-  width: "32px",
-  height: "32px",
-  borderRadius: "4px",
-  filter: "grayscale(100%)",
-});
-
 export const blockedUser = style({
   display: "flex",
   minWidth: "240px",

@@ -1,4 +1,4 @@
-import { Button, SelectField } from "@renderer/components";
+import { Avatar, Button, SelectField } from "@renderer/components";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -201,10 +201,11 @@ export function SettingsAccount() {
                     alignItems: "center",
                   }}
                 >
-                  <img
-                    src={user.profileImageUrl!}
+                  <Avatar
+                    style={{ filter: "grayscale(100%)" }}
+                    size={32}
+                    src={user.profileImageUrl}
                     alt={user.displayName}
-                    className={styles.blockedUserAvatar}
                   />
                   <span>{user.displayName}</span>
                 </div>
