@@ -56,7 +56,7 @@ export function SettingsAccount() {
         updateUserDetails(response);
       }
     });
-  }, []);
+  }, [fetchUserDetails, updateUserDetails]);
 
   const visibilityOptions = [
     { value: "PUBLIC", label: t("public") },
