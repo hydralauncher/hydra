@@ -1,5 +1,6 @@
 import type { Cracker, DownloadSourceStatus, Downloader } from "@shared";
 import type { SteamAppDetails } from "./steam.types";
+import type { Subscription } from "./level.types";
 
 export type GameStatus =
   | "active"
