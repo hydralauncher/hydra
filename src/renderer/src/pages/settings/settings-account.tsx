@@ -1,5 +1,5 @@
 import { Button, SelectField } from "@renderer/components";
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
+import { SPACING_UNIT } from "@renderer/theme.css";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
@@ -36,15 +36,27 @@ export function SettingsAccount() {
     handleSubmit,
   } = useForm<FormValues>();
 
-  const { patchUser, userDetails } = useUserDetails();
-
-  const { unblockUser } = useUserDetails();
+  const {
+    userDetails,
+    patchUser,
+    fetchUserDetails,
+    updateUserDetails,
+    unblockUser,
+  } = useUserDetails();
 
   useEffect(() => {
     if (userDetails?.profileVisibility) {
       setValue("profileVisibility", userDetails.profileVisibility);
     }
   }, [userDetails, setValue]);
+
+  useEffect(() => {
+    fetchUserDetails().then((response) => {
+      if (response) {
+        updateUserDetails(response);
+      }
+    });
+  }, []);
 
   const visibilityOptions = [
     { value: "PUBLIC", label: t("public") },
