@@ -1,17 +1,21 @@
 import { shell } from "electron";
 import { registerEvent } from "../register-event";
-import { userAuthRepository } from "@main/repository";
-import { HydraApi } from "@main/services";
+import { Crypto, HydraApi } from "@main/services";
+import { db } from "@main/level";
+import type { Auth } from "@types";
+import { levelKeys } from "@main/level/sublevels/keys";
 
 const openCheckout = async (_event: Electron.IpcMainInvokeEvent) => {
-  const userAuth = await userAuthRepository.findOne({ where: { id: 1 } });
+  const auth = await db.get<string, Auth>(levelKeys.auth, {
+    valueEncoding: "json",
+  });
 
-  if (!userAuth) {
+  if (!auth) {
     return;
   }
 
   const paymentToken = await HydraApi.post("/auth/payment", {
-    refreshToken: userAuth.refreshToken,
+    refreshToken: Crypto.decrypt(auth.refreshToken),
   }).then((response) => response.accessToken);
 
   const params = new URLSearchParams({

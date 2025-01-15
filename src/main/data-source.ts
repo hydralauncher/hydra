@@ -4,9 +4,7 @@ import {
   Game,
   GameShopCache,
   UserPreferences,
-  UserAuth,
   GameAchievement,
-  UserSubscription,
 } from "@main/entity";
 
 import { databasePath } from "./constants";
@@ -15,9 +13,7 @@ export const dataSource = new DataSource({
   type: "better-sqlite3",
   entities: [
     Game,
-    UserAuth,
     UserPreferences,
-    UserSubscription,
     GameShopCache,
     DownloadQueue,
     GameAchievement,
