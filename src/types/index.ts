@@ -248,16 +248,6 @@ export interface UserProfileCurrentGame extends Omit<GameRunning, "objectId"> {
 
 export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
 
-export type SubscriptionStatus = "active" | "pending" | "cancelled";
-
-export interface Subscription {
-  id: string;
-  status: SubscriptionStatus;
-  plan: { id: string; name: string };
-  expiresAt: string | null;
-  paymentMethod: "pix" | "paypal";
-}
-
 export interface UserDetails {
   id: string;
   username: string;
@@ -421,3 +411,4 @@ export * from "./real-debrid.types";
 export * from "./ludusavi.types";
 export * from "./how-long-to-beat.types";
 export * from "./torbox.types";
+export * from "./level.types";

@@ -1,7 +1,3 @@
-import {
-  userAuthRepository,
-  userSubscriptionRepository,
-} from "@main/repository";
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { WindowManager } from "./window-manager";
 import url from "url";
@@ -13,6 +9,10 @@ import { omit } from "lodash-es";
 import { appVersion } from "@main/constants";
 import { getUserData } from "./user/get-user-data";
 import { isFuture, isToday } from "date-fns";
+import { db } from "@main/level";
+import { levelKeys } from "@main/level/sublevels/keys";
+import type { Auth, User } from "@types";
+import { Crypto } from "./crypto";
 
 interface HydraApiOptions {
   needsAuth?: boolean;
@@ -77,14 +77,14 @@ export class HydraApi {
       tokenExpirationTimestamp
     );
 
-    await userAuthRepository.upsert(
+    db.put<string, Auth>(
+      levelKeys.auth,
       {
-        id: 1,
-        accessToken,
+        accessToken: Crypto.encrypt(accessToken),
+        refreshToken: Crypto.encrypt(refreshToken),
         tokenExpirationTimestamp,
-        refreshToken,
       },
-      ["id"]
+      { valueEncoding: "json" }
     );
 
     await getUserData().then((userDetails) => {
@@ -186,17 +186,23 @@ export class HydraApi {
       );
     }
 
-    const userAuth = await userAuthRepository.findOne({
-      where: { id: 1 },
-      relations: { subscription: true },
+    const result = await db.getMany<string>([levelKeys.auth, levelKeys.user], {
+      valueEncoding: "json",
     });
 
+    const userAuth = result.at(0) as Auth | undefined;
+    const user = result.at(1) as User | undefined;
+
     this.userAuth = {
-      authToken: userAuth?.accessToken ?? "",
-      refreshToken: userAuth?.refreshToken ?? "",
+      authToken: userAuth?.accessToken
+        ? Crypto.decrypt(userAuth.accessToken)
+        : "",
+      refreshToken: userAuth?.refreshToken
+        ? Crypto.decrypt(userAuth.refreshToken)
+        : "",
       expirationTimestamp: userAuth?.tokenExpirationTimestamp ?? 0,
-      subscription: userAuth?.subscription
-        ? { expiresAt: userAuth.subscription?.expiresAt }
+      subscription: user?.subscription
+        ? { expiresAt: user.subscription?.expiresAt }
         : null,
     };
 
@@ -239,14 +245,19 @@ export class HydraApi {
           this.userAuth.expirationTimestamp
         );
 
-        userAuthRepository.upsert(
-          {
-            id: 1,
-            accessToken,
-            tokenExpirationTimestamp,
-          },
-          ["id"]
-        );
+        await db
+          .get<string, Auth>(levelKeys.auth, { valueEncoding: "json" })
+          .then((auth) => {
+            return db.put<string, Auth>(
+              levelKeys.auth,
+              {
+                ...auth,
+                accessToken: Crypto.encrypt(accessToken),
+                tokenExpirationTimestamp,
+              },
+              { valueEncoding: "json" }
+            );
+          });
       } catch (err) {
         this.handleUnauthorizedError(err);
       }
@@ -276,8 +287,16 @@ export class HydraApi {
         subscription: null,
       };
 
-      userAuthRepository.delete({ id: 1 });
-      userSubscriptionRepository.delete({ id: 1 });
+      db.batch([
+        {
+          type: "del",
+          key: levelKeys.auth,
+        },
+        {
+          type: "del",
+          key: levelKeys.user,
+        },
+      ]);
 
       this.sendSignOutEvent();
     }

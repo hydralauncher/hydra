@@ -3699,6 +3699,18 @@ abort-controller@^3.0.0:
   dependencies:
     event-target-shim "^5.0.0"
 
+abstract-level@^2.0.0, abstract-level@^2.0.1:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/abstract-level/-/abstract-level-2.0.2.tgz#8d965e731afb42a72f163874410c1687fb2e4bdb"
+  integrity sha512-pPJixmXk/kTKLB2sSue7o4Uj6TlLD2XfaP2gWZomHVCC6cuUGX/VslQqKG1yZHfXwBb/3lS6oSTMPGzh1P1iig==
+  dependencies:
+    buffer "^6.0.3"
+    is-buffer "^2.0.5"
+    level-supports "^6.0.0"
+    level-transcoder "^1.0.1"
+    maybe-combine-errors "^1.0.0"
+    module-error "^1.0.1"
+
 acorn-jsx@^5.3.2:
   version "5.3.2"
   resolved "https://registry.npmjs.org/acorn-jsx/-/acorn-jsx-5.3.2.tgz"
@@ -4169,6 +4181,13 @@ braces@^3.0.3, braces@~3.0.2:
   dependencies:
     fill-range "^7.1.1"
 
+browser-level@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/browser-level/-/browser-level-2.0.0.tgz#cc63eb1322e67c44489d7fbdda5c30a2db7b59da"
+  integrity sha512-RuYSCHG/jwFCrK+KWA3dLSUNLKHEgIYhO5ORPjJMjCt7T3e+RzpIDmYKWRHxq2pfKGXjlRuEff7y7RESAAgzew==
+  dependencies:
+    abstract-level "^2.0.1"
+
 browserslist@^4.22.2, browserslist@^4.23.1:
   version "4.24.0"
   resolved "https://registry.yarnpkg.com/browserslist/-/browserslist-4.24.0.tgz#a1325fe4bc80b64fda169629fc01b3d6cecd38d4"
@@ -4420,6 +4439,16 @@ ci-info@^3.2.0:
   version "3.9.0"
   resolved "https://registry.yarnpkg.com/ci-info/-/ci-info-3.9.0.tgz#4279a62028a7b1f262f3473fc9605f5e218c59b4"
   integrity sha512-NIxF55hv4nSqQswkAeiOi1r83xy8JldOFDTWiug55KBu9Jnblncd2U6ViHmYgHf01TPZS77NJBhBMKdWj9HQMQ==
+
+classic-level@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/classic-level/-/classic-level-2.0.0.tgz#6fd9ca686bbcd645e35caaf403c3f3a56495d11b"
+  integrity sha512-ftiMvKgCQK+OppXcvMieDoYlYLYWhScK6yZRFBrrlHQRbm4k6Gr+yDgu/wt3V0k1/jtNbuiXAsRmuAFcD0Tx5Q==
+  dependencies:
+    abstract-level "^2.0.0"
+    module-error "^1.0.1"
+    napi-macros "^2.2.2"
+    node-gyp-build "^4.3.0"
 
 classnames@^2.2.1, classnames@^2.2.6, classnames@^2.5.1:
   version "2.5.1"
@@ -6459,6 +6488,11 @@ is-boolean-object@^1.2.0:
     call-bound "^1.0.2"
     has-tostringtag "^1.0.2"
 
+is-buffer@^2.0.5:
+  version "2.0.5"
+  resolved "https://registry.yarnpkg.com/is-buffer/-/is-buffer-2.0.5.tgz#ebc252e400d22ff8d77fa09888821a24a658c191"
+  integrity sha512-i2R6zNFDwgEHJyQUtJEk0XFi1i0dPFn/oqjK3/vPCcDeJvW5NQ83V8QbicfF1SupOaB0h8ntgBC2YiE7dfyctQ==
+
 is-callable@^1.1.3, is-callable@^1.1.4, is-callable@^1.2.7:
   version "1.2.7"
   resolved "https://registry.yarnpkg.com/is-callable/-/is-callable-1.2.7.tgz#3bc2a85ea742d9e36205dcacdd72ca1fdc51b055"
@@ -6958,6 +6992,28 @@ lazy-val@^1.0.5:
   resolved "https://registry.yarnpkg.com/lazy-val/-/lazy-val-1.0.5.tgz#6cf3b9f5bc31cee7ee3e369c0832b7583dcd923d"
   integrity sha512-0/BnGCCfyUMkBpeDgWihanIAF9JmZhHBgUhEqzvf+adhNGLoP6TaiI5oF8oyb3I45P+PcnrqihSf01M0l0G5+Q==
 
+level-supports@^6.0.0:
+  version "6.2.0"
+  resolved "https://registry.yarnpkg.com/level-supports/-/level-supports-6.2.0.tgz#e78b228973a24acdc5199c5f51e244e70f26c611"
+  integrity sha512-QNxVXP0IRnBmMsJIh+sb2kwNCYcKciQZJEt+L1hPCHrKNELllXhvrlClVHXBYZVT+a7aTSM6StgNXdAldoab3w==
+
+level-transcoder@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/level-transcoder/-/level-transcoder-1.0.1.tgz#f8cef5990c4f1283d4c86d949e73631b0bc8ba9c"
+  integrity sha512-t7bFwFtsQeD8cl8NIoQ2iwxA0CL/9IFw7/9gAjOonH0PWTTiRfY7Hq+Ejbsxh86tXobDQ6IOiddjNYIfOBs06w==
+  dependencies:
+    buffer "^6.0.3"
+    module-error "^1.0.1"
+
+level@^9.0.0:
+  version "9.0.0"
+  resolved "https://registry.yarnpkg.com/level/-/level-9.0.0.tgz#880aa9d341a5411e36bed77f4fa233f425b492a8"
+  integrity sha512-n+mVuf63mUEkd8NUx7gwxY+QF5vtkibv6fXTGUgtHWLPDaA5/XZjLcI/Q1nQ8k6OttHT6Ezt+7nSEXsRUfHtOQ==
+  dependencies:
+    abstract-level "^2.0.1"
+    browser-level "^2.0.0"
+    classic-level "^2.0.0"
+
 levn@^0.4.1:
   version "0.4.1"
   resolved "https://registry.yarnpkg.com/levn/-/levn-0.4.1.tgz#ae4562c007473b932a6200d403268dd2fffc6ade"
@@ -7198,6 +7254,11 @@ math-intrinsics@^1.0.0:
   resolved "https://registry.yarnpkg.com/math-intrinsics/-/math-intrinsics-1.0.0.tgz#4e04bf87c85aa51e90d078dac2252b4eb5260817"
   integrity sha512-4MqMiKP90ybymYvsut0CH2g4XWbfLtmlCkXmtmdcDCxNB+mQcu1w/1+L/VD7vi/PSv7X2JYV7SCcR+jiPXnQtA==
 
+maybe-combine-errors@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/maybe-combine-errors/-/maybe-combine-errors-1.0.0.tgz#e9592832e61fc47643a92cff3c1f33e27211e5be"
+  integrity sha512-eefp6IduNPT6fVdwPp+1NgD0PML1NU5P6j1Mj5nz1nidX8/sWY7119WL8vTAHgqfsY74TzW0w1XPgdYEKkGZ5A==
+
 media-query-parser@^2.0.2:
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/media-query-parser/-/media-query-parser-2.0.2.tgz#ff79e56cee92615a304a1c2fa4f2bd056c0a1d29"
@@ -7414,6 +7475,11 @@ modern-ahocorasick@^1.0.0:
   resolved "https://registry.yarnpkg.com/modern-ahocorasick/-/modern-ahocorasick-1.0.1.tgz#dec373444f51b5458ac05216a8ec376e126dd283"
   integrity sha512-yoe+JbhTClckZ67b2itRtistFKf8yPYelHLc7e5xAwtNAXxM6wJTUx2C7QeVSJFDzKT7bCIFyBVybPMKvmB9AA==
 
+module-error@^1.0.1:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/module-error/-/module-error-1.0.2.tgz#8d1a48897ca883f47a45816d4fb3e3c6ba404d86"
+  integrity sha512-0yuvsqSCv8LbaOKhnsQ/T5JhyFlCYLPXK3U2sgV10zoKQwzs/MyfuQUOZQ1V/6OCOJsK/TRgNVrPuPDqtdMFtA==
+
 ms@2.1.2:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/ms/-/ms-2.1.2.tgz#d09d1f357b443f493382a8eb3ccd183872ae6009"
@@ -7447,6 +7513,11 @@ napi-build-utils@^1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/napi-build-utils/-/napi-build-utils-1.0.2.tgz#b1fddc0b2c46e380a0b7a76f984dd47c41a13806"
   integrity sha512-ONmRUqK7zj7DWX0D9ADe03wbwOBZxNAfF20PlGfCWQcD3+/MakShIHrMqx9YwPTfxDdF1zLeL+RGZiR9kGMLdg==
+
+napi-macros@^2.2.2:
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/napi-macros/-/napi-macros-2.2.2.tgz#817fef20c3e0e40a963fbf7b37d1600bd0201044"
+  integrity sha512-hmEVtAGYzVQpCKdbQea4skABsdXW4RUh5t5mJ2zzqowJS2OyXZTU1KhDVFhx+NlWZ4ap9mqR9TcDO3LTTttd+g==
 
 natural-compare@^1.4.0:
   version "1.4.0"
@@ -7505,6 +7576,11 @@ node-fetch@^3.3.0:
     data-uri-to-buffer "^4.0.0"
     fetch-blob "^3.1.4"
     formdata-polyfill "^4.0.10"
+
+node-gyp-build@^4.3.0:
+  version "4.8.4"
+  resolved "https://registry.yarnpkg.com/node-gyp-build/-/node-gyp-build-4.8.4.tgz#8a70ee85464ae52327772a90d66c6077a900cfc8"
+  integrity sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==
 
 node-gyp@^9.0.0:
   version "9.4.1"

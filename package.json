@@ -62,6 +62,7 @@
     "jsdom": "^24.0.0",
     "jsonwebtoken": "^9.0.2",
     "knex": "^3.1.0",
+    "level": "^9.0.0",
     "lodash-es": "^4.17.21",
     "parse-torrent": "^11.0.17",
     "piscina": "^4.7.0",

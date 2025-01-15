@@ -1,8 +1,10 @@
 import { registerEvent } from "../register-event";
 import { DownloadManager, HydraApi, gamesPlaytime } from "@main/services";
 import { dataSource } from "@main/data-source";
-import { DownloadQueue, Game, UserAuth, UserSubscription } from "@main/entity";
+import { DownloadQueue, Game } from "@main/entity";
 import { PythonRPC } from "@main/services/python-rpc";
+import { db } from "@main/level";
+import { levelKeys } from "@main/level/sublevels/keys";
 
 const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
   const databaseOperations = dataSource
@@ -11,13 +13,16 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
 
       await transactionalEntityManager.getRepository(Game).delete({});
 
-      await transactionalEntityManager
-        .getRepository(UserAuth)
-        .delete({ id: 1 });
-
-      await transactionalEntityManager
-        .getRepository(UserSubscription)
-        .delete({ id: 1 });
+      await db.batch([
+        {
+          type: "del",
+          key: levelKeys.auth,
+        },
+        {
+          type: "del",
+          key: levelKeys.user,
+        },
+      ]);
     })
     .then(() => {
       /* Removes all games being played */
