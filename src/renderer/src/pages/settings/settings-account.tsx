@@ -163,7 +163,7 @@ export function SettingsAccount() {
       {userDetails?.subscription?.expiresAt ? (
         <p>
           {t("subscription_active_until", {
-            date: formatDate(userDetails?.subscription?.expiresAt),
+            date: formatDate(userDetails.subscription.expiresAt),
           })}
         </p>
       ) : (
