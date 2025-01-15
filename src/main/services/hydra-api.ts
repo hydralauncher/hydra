@@ -216,41 +216,41 @@ export class HydraApi {
   }
 
   public static async refreshToken() {
-    return this.instance
+    const { accessToken, expiresIn } = await this.instance
       .post<{ accessToken: string; expiresIn: number }>(`/auth/refresh`, {
         refreshToken: this.userAuth.refreshToken,
       })
       .then((response) => response.data);
+
+    const tokenExpirationTimestamp =
+      Date.now() +
+      this.secondsToMilliseconds(expiresIn) -
+      this.EXPIRATION_OFFSET_IN_MS;
+
+    this.userAuth.authToken = accessToken;
+    this.userAuth.expirationTimestamp = tokenExpirationTimestamp;
+
+    logger.log(
+      "Token refreshed. New expiration:",
+      this.userAuth.expirationTimestamp
+    );
+
+    userAuthRepository.upsert(
+      {
+        id: 1,
+        accessToken,
+        tokenExpirationTimestamp,
+      },
+      ["id"]
+    );
+
+    return { accessToken, expiresIn };
   }
 
   private static async revalidateAccessTokenIfExpired() {
-    const now = new Date();
-
-    if (this.userAuth.expirationTimestamp < now.getTime()) {
+    if (this.userAuth.expirationTimestamp < Date.now()) {
       try {
-        const { accessToken, expiresIn } = await this.refreshToken();
-
-        const tokenExpirationTimestamp =
-          now.getTime() +
-          this.secondsToMilliseconds(expiresIn) -
-          this.EXPIRATION_OFFSET_IN_MS;
-
-        this.userAuth.authToken = accessToken;
-        this.userAuth.expirationTimestamp = tokenExpirationTimestamp;
-
-        logger.log(
-          "Token refreshed. New expiration:",
-          this.userAuth.expirationTimestamp
-        );
-
-        userAuthRepository.upsert(
-          {
-            id: 1,
-            accessToken,
-            tokenExpirationTimestamp,
-          },
-          ["id"]
-        );
+        await this.refreshToken();
       } catch (err) {
         this.handleUnauthorizedError(err);
       }
@@ -265,7 +265,7 @@ export class HydraApi {
     };
   }
 
-  private static handleUnauthorizedError = (err) => {
+  private static readonly handleUnauthorizedError = (err) => {
     if (err instanceof AxiosError && err.response?.status === 401) {
       logger.error(
         "401 - Current credentials:",
