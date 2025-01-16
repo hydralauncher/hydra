@@ -1,9 +1,8 @@
 import { shell } from "electron";
 import { registerEvent } from "../register-event";
 import { Crypto, HydraApi } from "@main/services";
-import { db } from "@main/level";
+import { db, levelKeys } from "@main/level";
 import type { Auth } from "@types";
-import { levelKeys } from "@main/level";
 
 const openCheckout = async (_event: Electron.IpcMainInvokeEvent) => {
   const auth = await db.get<string, Auth>(levelKeys.auth, {

@@ -3,8 +3,7 @@ import { DownloadManager, HydraApi, gamesPlaytime } from "@main/services";
 import { dataSource } from "@main/data-source";
 import { DownloadQueue, Game } from "@main/entity";
 import { PythonRPC } from "@main/services/python-rpc";
-import { db } from "@main/level";
-import { levelKeys } from "@main/level";
+import { db, levelKeys } from "@main/level";
 
 const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
   const databaseOperations = dataSource
