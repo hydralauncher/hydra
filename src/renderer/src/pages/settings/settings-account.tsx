@@ -210,8 +210,15 @@ export function SettingsAccount() {
         </Button>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        <h3 style={{ marginTop: `${SPACING_UNIT * 2}px` }}>Hydra Cloud</h3>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          marginTop: `${SPACING_UNIT * 2}px`,
+          gap: `${SPACING_UNIT / 2}px`,
+        }}
+      >
+        <h3>Hydra Cloud</h3>
         {getHydraCloudSectionContent().description}
       </div>
 
