@@ -15,7 +15,9 @@ export function CheckboxField({ label, ...props }: CheckboxFieldProps) {
 
   return (
     <div className="checkbox-field">
-      <div className={`checkbox-field__checkbox ${props.checked ? 'checked' : ''}`}>
+      <div
+        className={`checkbox-field__checkbox ${props.checked ? "checked" : ""}`}
+      >
         <input
           id={id}
           type="checkbox"
