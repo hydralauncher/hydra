@@ -293,7 +293,10 @@
     "renew_subscription": "Renew Hydra Cloud",
     "subscription_expired_at": "Your subscription expired at {{date}}",
     "no_subscription": "Enjoy Hydra in the best possible way",
-    "become_subscriber": "Be Hydra Cloud"
+    "become_subscriber": "Be Hydra Cloud",
+    "subscription_renew_cancelled": "Automatic renewal is not active",
+    "subscription_renews_on": "Your subscription renews on {{date}}",
+    "bill_sent_until": "You next bill will be sent until this day"
   },
   "notifications": {
     "download_complete": "Download complete",
