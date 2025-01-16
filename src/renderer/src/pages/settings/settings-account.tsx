@@ -39,6 +39,7 @@ export function SettingsAccount() {
 
   const {
     userDetails,
+    hasActiveSubscription,
     patchUser,
     fetchUserDetails,
     updateUserDetails,
@@ -93,6 +94,35 @@ export function SettingsAccount() {
     [unblockUser, fetchBlockedUsers, t, showSuccessToast]
   );
 
+  const getHydraCloudSectionContent = () => {
+    const hasSubscribedBefore = Boolean(userDetails?.subscription?.expiresAt);
+
+    if (!hasSubscribedBefore) {
+      return {
+        description: t("no_subscription"),
+        callToAction: t("become_subscriber"),
+      };
+    }
+
+    if (hasActiveSubscription) {
+      return {
+        description: t("subscription_active_until", {
+          date: formatDate(userDetails!.subscription!.expiresAt!),
+        }),
+        callToAction: t("manage_subscription"),
+      };
+    }
+
+    return {
+      description: t("subscription_expired_at", {
+        date: formatDate(userDetails!.subscription!.expiresAt!),
+      }),
+      callToAction: t("renew_subscription"),
+    };
+  };
+
+  if (!userDetails) return null;
+
   return (
     <form className={styles.form} onSubmit={handleSubmit(onSubmit)}>
       <Controller
@@ -126,18 +156,10 @@ export function SettingsAccount() {
         }}
       />
 
-      <h3 style={{ marginTop: `${SPACING_UNIT * 2}px` }}>
-        {t("manage_account")}
-      </h3>
-
-      {userDetails?.email ? (
-        <div>
-          <h4>{t("current_email")}</h4>
-          <p>{userDetails.email}</p>
-        </div>
-      ) : (
-        <p>{t("no_email_account")}</p>
-      )}
+      <div style={{ marginTop: `${SPACING_UNIT * 2}px` }}>
+        <h4>{t("current_email")}</h4>
+        <p>{userDetails?.email ?? t("no_email_account")}</p>
+      </div>
 
       <div
         style={{
@@ -167,33 +189,19 @@ export function SettingsAccount() {
         </Button>
       </div>
 
-      <h3 style={{ marginTop: `${SPACING_UNIT * 2}px` }}>
-        {t("subscription")}
-      </h3>
-      {userDetails?.subscription?.expiresAt ? (
-        <p>
-          {t("subscription_active_until", {
-            date: formatDate(userDetails.subscription.expiresAt),
-          })}
-        </p>
-      ) : (
-        <p>{t("subscription_not_active")}</p>
-      )}
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "start",
-          alignItems: "center",
-          gap: `${SPACING_UNIT}px`,
-          marginTop: 8,
-        }}
-      >
-        <Button theme="outline" onClick={() => window.electron.openCheckout()}>
-          {t("manage_subscription")}
-          <CloudIcon />
-        </Button>
+      <div>
+        <h3 style={{ marginTop: `${SPACING_UNIT * 2}px` }}>Hydra Cloud</h3>
+        <small>{getHydraCloudSectionContent().description}</small>
       </div>
+
+      <Button
+        style={{ placeSelf: "flex-start", marginTop: 8 }}
+        theme="outline"
+        onClick={() => window.electron.openCheckout()}
+      >
+        {getHydraCloudSectionContent().callToAction}
+        <CloudIcon />
+      </Button>
 
       <h3 style={{ marginTop: `${SPACING_UNIT * 2}px` }}>
         {t("blocked_users")}

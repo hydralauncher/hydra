@@ -283,16 +283,18 @@
     "show_hidden_achievement_description": "Show hidden achievements description before unlocking them",
     "account": "Account",
     "no_users_blocked": "You have no blocked users",
-    "subscription": "Hydra Cloud subscription",
-    "subscription_active_until": "Your Hydra Cloud is active until {{date}}",
+    "subscription_active_until": "Enjoy your Hydra Cloud until {{date}}",
     "subscription_not_active": "You don't have an active Hydra Cloud subscription",
-    "manage_account": "Manage account",
     "manage_subscription": "Manage subscription",
     "update_email": "Update email",
     "update_password": "Update password",
     "current_email": "Current email:",
     "no_email_account": "You have not set an email yet",
-    "account_data_updated_successfully": "Account data updated successfully"
+    "account_data_updated_successfully": "Account data updated successfully",
+    "renew_subscription": "Renew Hydra Cloud",
+    "subscription_expired_at": "Your subscription expired at {{date}}",
+    "no_subscription": "Enjoy Hydra in the best possible way",
+    "become_subscriber": "Be Hydra Cloud"
   },
   "notifications": {
     "download_complete": "Download complete",

@@ -271,16 +271,18 @@
     "show_hidden_achievement_description": "Mostrar descrição de conquistas ocultas antes de debloqueá-las",
     "account": "Conta",
     "no_users_blocked": "Você não bloqueou nenhum usuário",
-    "subscription": "Assinatura Hydra Cloud",
-    "subscription_active_until": "Seu Hydra Cloud ficará ativo até {{date}}",
+    "subscription_active_until": "Aproveite seu Hydra Cloud até {{date}}",
     "subscription_not_active": "Você não possui uma assinatura Hydra Cloud ativa",
-    "manage_account": "Gerenciar conta",
     "manage_subscription": "Gerenciar assinatura",
     "update_email": "Atualizar email",
     "update_password": "Atualizar senha",
     "current_email": "Email atual:",
     "no_email_account": "Você ainda não adicionou um email a sua conta",
-    "account_data_updated_successfully": "Dados da conta atualizados com sucesso"
+    "account_data_updated_successfully": "Dados da conta atualizados com sucesso",
+    "renew_subscription": "Renovar Hydra Cloud",
+    "subscription_expired_at": "Sua assinatura expirou em {{date}}",
+    "no_subscription": "Aproveite o Hydra ao seu máximo",
+    "become_subscriber": "Seja Hydra Cloud"
   },
   "notifications": {
     "download_complete": "Download concluído",
