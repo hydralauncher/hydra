@@ -16,7 +16,7 @@ const openAuthWindow = async (
     searchParams.set("token", accessToken);
   }
 
-  return WindowManager.openAuthWindow(page, searchParams);
+  WindowManager.openAuthWindow(page, searchParams);
 };
 
 registerEvent("openAuthWindow", openAuthWindow);
