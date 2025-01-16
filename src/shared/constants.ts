@@ -44,7 +44,7 @@ export enum Cracker {
 }
 
 export enum AuthPage {
-  SignIn = "",
-  UpdateEmail = "update-email",
-  UpdatePassword = "update-password",
+  SignIn = "/",
+  UpdateEmail = "/update-email",
+  UpdatePassword = "/update-password",
 }
