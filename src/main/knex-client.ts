@@ -13,6 +13,11 @@ import { AddBackgroundImageUrl } from "./migrations/20241016100249_add_backgroun
 import { AddWinePrefixToGame } from "./migrations/20241019081648_add_wine_prefix_to_game";
 import { AddStartMinimizedColumn } from "./migrations/20241030171454_add_start_minimized_column";
 import { AddDisableNsfwAlertColumn } from "./migrations/20241106053733_add_disable_nsfw_alert_column";
+import { AddShouldSeedColumn } from "./migrations/20241108200154_add_should_seed_colum";
+import { AddSeedAfterDownloadColumn } from "./migrations/20241108201806_add_seed_after_download";
+import { AddHiddenAchievementDescriptionColumn } from "./migrations/20241216140633_add_hidden_achievement_description_column ";
+import { AddLaunchOptionsColumnToGame } from "./migrations/20241226044022_add_launch_options_column_to_game";
+
 export type HydraMigration = Knex.Migration & { name: string };
 
 class MigrationSource implements Knex.MigrationSource<HydraMigration> {
@@ -30,6 +35,10 @@ class MigrationSource implements Knex.MigrationSource<HydraMigration> {
       AddWinePrefixToGame,
       AddStartMinimizedColumn,
       AddDisableNsfwAlertColumn,
+      AddShouldSeedColumn,
+      AddSeedAfterDownloadColumn,
+      AddHiddenAchievementDescriptionColumn,
+      AddLaunchOptionsColumnToGame,
     ]);
   }
   getMigrationName(migration: HydraMigration): string {

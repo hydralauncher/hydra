@@ -1,19 +1,17 @@
 import type { CatalogueCategory } from "@shared";
 import type {
   AppUpdaterEvent,
-  CatalogueEntry,
   Game,
   LibraryGame,
-  GameRepack,
   GameShop,
   HowLongToBeatCategory,
   ShopDetails,
   Steam250Game,
   DownloadProgress,
+  SeedingStatus,
   UserPreferences,
   StartGameDownloadPayload,
   RealDebridUser,
-  DownloadSource,
   UserProfile,
   FriendRequest,
   FriendRequestAction,
@@ -30,9 +28,10 @@ import type {
   LudusaviBackup,
   UserAchievement,
   ComparedAchievements,
+  CatalogueSearchPayload,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
-import type { DiskSpace } from "check-disk-space";
+import type disk from "diskusage";
 
 declare global {
   declare module "*.svg" {
@@ -46,13 +45,23 @@ declare global {
     cancelGameDownload: (gameId: number) => Promise<void>;
     pauseGameDownload: (gameId: number) => Promise<void>;
     resumeGameDownload: (gameId: number) => Promise<void>;
+    pauseGameSeed: (gameId: number) => Promise<void>;
+    resumeGameSeed: (gameId: number) => Promise<void>;
     onDownloadProgress: (
       cb: (value: DownloadProgress) => void
     ) => () => Electron.IpcRenderer;
+    onSeedingStatus: (
+      cb: (value: SeedingStatus[]) => void
+    ) => () => Electron.IpcRenderer;
+    onHardDelete: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* Catalogue */
-    searchGames: (query: string) => Promise<CatalogueEntry[]>;
-    getCatalogue: (category: CatalogueCategory) => Promise<CatalogueEntry[]>;
+    searchGames: (
+      payload: CatalogueSearchPayload,
+      take: number,
+      skip: number
+    ) => Promise<{ edges: any[]; count: number }>;
+    getCatalogue: (category: CatalogueCategory) => Promise<any[]>;
     getGameShopDetails: (
       objectId: string,
       shop: GameShop,
@@ -63,8 +72,6 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<HowLongToBeatCategory[] | null>;
-    getGames: (take?: number, skip?: number) => Promise<CatalogueEntry[]>;
-    searchGameRepacks: (query: string) => Promise<GameRepack[]>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getTrendingGames: () => Promise<TrendingGame[]>;
     onUpdateAchievements: (
@@ -72,6 +79,8 @@ declare global {
       shop: GameShop,
       cb: (achievements: GameAchievement[]) => void
     ) => () => Electron.IpcRenderer;
+    getPublishers: () => Promise<string[]>;
+    getDevelopers: () => Promise<string[]>;
 
     /* Library */
     addGameToLibrary: (
@@ -84,6 +93,10 @@ declare global {
       id: number,
       executablePath: string | null
     ) => Promise<void>;
+    updateLaunchOptions: (
+      id: number,
+      launchOptions: string | null
+    ) => Promise<void>;
     selectGameWinePrefix: (
       id: number,
       winePrefixPath: string | null
@@ -93,7 +106,11 @@ declare global {
     openGameInstaller: (gameId: number) => Promise<boolean>;
     openGameInstallerPath: (gameId: number) => Promise<boolean>;
     openGameExecutablePath: (gameId: number) => Promise<void>;
-    openGame: (gameId: number, executablePath: string) => Promise<void>;
+    openGame: (
+      gameId: number,
+      executablePath: string,
+      launchOptions: string | null
+    ) => Promise<void>;
     closeGame: (gameId: number) => Promise<boolean>;
     removeGameFromLibrary: (gameId: number) => Promise<void>;
     removeGame: (gameId: number) => Promise<void>;
@@ -105,7 +122,7 @@ declare global {
       ) => void
     ) => () => Electron.IpcRenderer;
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
-
+    resetGameAchievements: (gameId: number) => Promise<void>;
     /* User preferences */
     getUserPreferences: () => Promise<UserPreferences | null>;
     updateUserPreferences: (
@@ -118,11 +135,13 @@ declare global {
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
 
     /* Download sources */
-    getDownloadSources: () => Promise<DownloadSource[]>;
-    deleteDownloadSource: (id: number) => Promise<void>;
+    putDownloadSource: (
+      objectIds: string[]
+    ) => Promise<{ fingerprint: string }>;
 
     /* Hardware */
-    getDiskFreeSpace: (path: string) => Promise<DiskSpace>;
+    getDiskFreeSpace: (path: string) => Promise<disk.DiskUsage>;
+    checkFolderWritePermission: (path: string) => Promise<boolean>;
 
     /* Cloud save */
     uploadSaveGame: (
@@ -177,6 +196,7 @@ declare global {
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
     showItemInFolder: (path: string) => Promise<void>;
+    getFeatures: () => Promise<string[]>;
     platform: NodeJS.Platform;
 
     /* Auto update */

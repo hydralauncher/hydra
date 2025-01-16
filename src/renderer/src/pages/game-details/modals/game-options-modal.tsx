@@ -1,13 +1,15 @@
-import { useContext, useState } from "react";
+import { useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Modal, TextField } from "@renderer/components";
 import type { Game } from "@types";
 import * as styles from "./game-options-modal.css";
 import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
-import { useDownload, useToast } from "@renderer/hooks";
+import { useDownload, useToast, useUserDetails } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
+import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { FileDirectoryIcon, FileIcon } from "@primer/octicons-react";
+import { debounce } from "lodash-es";
 
 export interface GameOptionsModalProps {
   visible: boolean;
@@ -24,11 +26,20 @@ export function GameOptionsModal({
 
   const { showSuccessToast, showErrorToast } = useToast();
 
-  const { updateGame, setShowRepacksModal, repacks, selectGameExecutable } =
-    useContext(gameDetailsContext);
+  const {
+    updateGame,
+    setShowRepacksModal,
+    repacks,
+    selectGameExecutable,
+    achievements,
+  } = useContext(gameDetailsContext);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRemoveGameModal, setShowRemoveGameModal] = useState(false);
+  const [launchOptions, setLaunchOptions] = useState(game.launchOptions ?? "");
+  const [showResetAchievementsModal, setShowResetAchievementsModal] =
+    useState(false);
+  const [isDeletingAchievements, setIsDeletingAchievements] = useState(false);
 
   const {
     removeGameInstaller,
@@ -37,12 +48,25 @@ export function GameOptionsModal({
     cancelDownload,
   } = useDownload();
 
+  const { userDetails } = useUserDetails();
+
+  const hasAchievements =
+    (achievements?.filter((achievement) => achievement.unlocked).length ?? 0) >
+    0;
+
   const deleting = isGameDeleting(game.id);
 
   const { lastPacket } = useDownload();
 
   const isGameDownloading =
     game.status === "active" && lastPacket?.game.id === game.id;
+
+  const debounceUpdateLaunchOptions = useRef(
+    debounce(async (value: string) => {
+      await window.electron.updateLaunchOptions(game.id, value);
+      updateGame();
+    }, 1000)
+  ).current;
 
   const handleRemoveGameFromLibrary = async () => {
     if (isGameDownloading) {
@@ -116,8 +140,36 @@ export function GameOptionsModal({
     updateGame();
   };
 
+  const handleChangeLaunchOptions = async (event) => {
+    const value = event.target.value;
+
+    setLaunchOptions(value);
+    debounceUpdateLaunchOptions(value);
+  };
+
+  const handleClearLaunchOptions = async () => {
+    setLaunchOptions("");
+
+    window.electron.updateLaunchOptions(game.id, null).then(updateGame);
+  };
+
   const shouldShowWinePrefixConfiguration =
     window.electron.platform === "linux";
+
+  const handleResetAchievements = async () => {
+    setIsDeletingAchievements(true);
+    try {
+      await window.electron.resetGameAchievements(game.id);
+      await updateGame();
+      showSuccessToast(t("reset_achievements_success"));
+    } catch (error) {
+      showErrorToast(t("reset_achievements_error"));
+    } finally {
+      setIsDeletingAchievements(false);
+    }
+  };
+
+  const shouldShowLaunchOptionsConfiguration = false;
 
   return (
     <>
@@ -131,6 +183,13 @@ export function GameOptionsModal({
         visible={showRemoveGameModal}
         onClose={() => setShowRemoveGameModal(false)}
         removeGameFromLibrary={handleRemoveGameFromLibrary}
+        game={game}
+      />
+
+      <ResetAchievementsModal
+        visible={showResetAchievementsModal}
+        onClose={() => setShowResetAchievementsModal(false)}
+        resetAchievements={handleResetAchievements}
         game={game}
       />
 
@@ -226,6 +285,28 @@ export function GameOptionsModal({
             </div>
           )}
 
+          {shouldShowLaunchOptionsConfiguration && (
+            <div className={styles.gameOptionHeader}>
+              <h2>{t("launch_options")}</h2>
+              <h4 className={styles.gameOptionHeaderDescription}>
+                {t("launch_options_description")}
+              </h4>
+              <TextField
+                value={launchOptions}
+                theme="dark"
+                placeholder={t("launch_options_placeholder")}
+                onChange={handleChangeLaunchOptions}
+                rightContent={
+                  game.launchOptions && (
+                    <Button onClick={handleClearLaunchOptions} theme="outline">
+                      {t("clear")}
+                    </Button>
+                  )
+                }
+              />
+            </div>
+          )}
+
           <div className={styles.gameOptionHeader}>
             <h2>{t("downloads_secion_title")}</h2>
             <h4 className={styles.gameOptionHeaderDescription}>
@@ -267,6 +348,20 @@ export function GameOptionsModal({
             >
               {t("remove_from_library")}
             </Button>
+
+            <Button
+              onClick={() => setShowResetAchievementsModal(true)}
+              theme="danger"
+              disabled={
+                deleting ||
+                isDeletingAchievements ||
+                !hasAchievements ||
+                !userDetails
+              }
+            >
+              {t("reset_achievements")}
+            </Button>
+
             <Button
               onClick={() => {
                 setShowDeleteModal(true);

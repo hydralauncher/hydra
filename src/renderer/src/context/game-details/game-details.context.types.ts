@@ -29,5 +29,4 @@ export interface GameDetailsContext {
   setShowRepacksModal: React.Dispatch<React.SetStateAction<boolean>>;
   setShowGameOptionsModal: React.Dispatch<React.SetStateAction<boolean>>;
   setHasNSFWContentBlocked: React.Dispatch<React.SetStateAction<boolean>>;
-  handleClickOpenCheckout: () => void;
 }
