@@ -166,7 +166,7 @@ export class WindowManager {
       if (!app.isPackaged) authWindow.webContents.openDevTools();
 
       authWindow.loadURL(
-        `${import.meta.env.MAIN_VITE_AUTH_URL}/${page}?${searchParams.toString()}`
+        `${import.meta.env.MAIN_VITE_AUTH_URL}${page}?${searchParams.toString()}`
       );
 
       authWindow.once("ready-to-show", () => {
