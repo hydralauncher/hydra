@@ -12,7 +12,9 @@ const openAuthWindow = async (
   });
 
   if ([AuthPage.UpdateEmail, AuthPage.UpdatePassword].includes(page)) {
-    const { accessToken } = await HydraApi.refreshToken();
+    const { accessToken } = await HydraApi.refreshToken().catch(() => {
+      return { accessToken: "" };
+    });
     searchParams.set("token", accessToken);
   }
 
