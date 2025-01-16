@@ -174,8 +174,8 @@ export function SettingsAccount() {
           theme="outline"
           onClick={() => window.electron.openAuthWindow(AuthPage.UpdateEmail)}
         >
-          {t("update_email")}
           <MailIcon />
+          {t("update_email")}
         </Button>
 
         <Button
@@ -184,8 +184,8 @@ export function SettingsAccount() {
             window.electron.openAuthWindow(AuthPage.UpdatePassword)
           }
         >
-          {t("update_password")}
           <KeyIcon />
+          {t("update_password")}
         </Button>
       </div>
 
@@ -199,8 +199,8 @@ export function SettingsAccount() {
         theme="outline"
         onClick={() => window.electron.openCheckout()}
       >
-        {getHydraCloudSectionContent().callToAction}
         <CloudIcon />
+        {getHydraCloudSectionContent().callToAction}
       </Button>
 
       <h3 style={{ marginTop: `${SPACING_UNIT * 2}px` }}>
