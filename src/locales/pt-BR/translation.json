@@ -280,8 +280,11 @@
     "account_data_updated_successfully": "Dados da conta atualizados com sucesso",
     "renew_subscription": "Renovar Hydra Cloud",
     "subscription_expired_at": "Sua assinatura expirou em {{date}}",
-    "no_subscription": "Aproveite o Hydra ao seu máximo",
-    "become_subscriber": "Seja Hydra Cloud"
+    "no_subscription": "Aproveite o Hydra da melhor forma possível",
+    "become_subscriber": "Seja Hydra Cloud",
+    "subscription_renew_cancelled": "A renovação automática está desativada",
+    "subscription_renews_on": "Sua assinatura renova dia {{date}}",
+    "bill_sent_until": "Sua próxima cobrança será enviada até esse dia"
   },
   "notifications": {
     "download_complete": "Download concluído",

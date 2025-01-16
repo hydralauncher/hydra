@@ -96,27 +96,48 @@ export function SettingsAccount() {
 
   const getHydraCloudSectionContent = () => {
     const hasSubscribedBefore = Boolean(userDetails?.subscription?.expiresAt);
+    const isRenewalActive = userDetails?.subscription?.status === "active";
 
     if (!hasSubscribedBefore) {
       return {
-        description: t("no_subscription"),
+        description: <small>{t("no_subscription")}</small>,
         callToAction: t("become_subscriber"),
       };
     }
 
     if (hasActiveSubscription) {
       return {
-        description: t("subscription_active_until", {
-          date: formatDate(userDetails!.subscription!.expiresAt!),
-        }),
+        description: isRenewalActive ? (
+          <>
+            <small>
+              {t("subscription_renews_on", {
+                date: formatDate(userDetails.subscription!.expiresAt!),
+              })}
+            </small>
+            <small>{t("bill_sent_until")}</small>
+          </>
+        ) : (
+          <>
+            <small>{t("subscription_renew_cancelled")}</small>
+            <small>
+              {t("subscription_active_until", {
+                date: formatDate(userDetails!.subscription!.expiresAt!),
+              })}
+            </small>
+          </>
+        ),
         callToAction: t("manage_subscription"),
       };
     }
 
     return {
-      description: t("subscription_expired_at", {
-        date: formatDate(userDetails!.subscription!.expiresAt!),
-      }),
+      description: (
+        <small>
+          {t("subscription_expired_at", {
+            date: formatDate(userDetails!.subscription!.expiresAt!),
+          })}
+        </small>
+      ),
       callToAction: t("renew_subscription"),
     };
   };
@@ -189,9 +210,9 @@ export function SettingsAccount() {
         </Button>
       </div>
 
-      <div>
+      <div style={{ display: "flex", flexDirection: "column" }}>
         <h3 style={{ marginTop: `${SPACING_UNIT * 2}px` }}>Hydra Cloud</h3>
-        <small>{getHydraCloudSectionContent().description}</small>
+        {getHydraCloudSectionContent().description}
       </div>
 
       <Button
