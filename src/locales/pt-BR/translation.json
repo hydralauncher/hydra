@@ -272,7 +272,6 @@
     "account": "Conta",
     "no_users_blocked": "Você não bloqueou nenhum usuário",
     "subscription_active_until": "Aproveite seu Hydra Cloud até {{date}}",
-    "subscription_not_active": "Você não possui uma assinatura Hydra Cloud ativa",
     "manage_subscription": "Gerenciar assinatura",
     "update_email": "Atualizar email",
     "update_password": "Atualizar senha",
