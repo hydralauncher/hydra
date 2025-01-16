@@ -211,6 +211,7 @@ declare global {
     openAuthWindow: (page: AuthPage) => Promise<void>;
     getSessionHash: () => Promise<string | null>;
     onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
+    onAccountUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* User */

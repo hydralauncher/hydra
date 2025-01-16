@@ -299,6 +299,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-signin", listener);
     return () => ipcRenderer.removeListener("on-signin", listener);
   },
+  onAccountUpdated: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-account-updated", listener);
+    return () => ipcRenderer.removeListener("on-account-updated", listener);
+  },
   onSignOut: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-signout", listener);

@@ -178,6 +178,13 @@ export class WindowManager {
           authWindow.close();
 
           HydraApi.handleExternalAuth(url);
+          return;
+        }
+
+        if (url.startsWith("hydralauncher://update-account")) {
+          authWindow.close();
+
+          WindowManager.mainWindow?.webContents.send("on-account-updated");
         }
       });
     }
