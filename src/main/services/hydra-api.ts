@@ -10,7 +10,7 @@ import { appVersion } from "@main/constants";
 import { getUserData } from "./user/get-user-data";
 import { isFuture, isToday } from "date-fns";
 import { db } from "@main/level";
-import { levelKeys } from "@main/level/sublevels/keys";
+import { levelKeys } from "@main/level/sublevels";
 import type { Auth, User } from "@types";
 import { Crypto } from "./crypto";
 

@@ -1,40 +1,36 @@
-import {
-  gameAchievementRepository,
-  userPreferencesRepository,
-} from "@main/repository";
+import { userPreferencesRepository } from "@main/repository";
 import { HydraApi } from "../hydra-api";
-import type { AchievementData, GameShop } from "@types";
+import type { GameShop, SteamAchievement } from "@types";
 import { UserNotLoggedInError } from "@shared";
 import { logger } from "../logger";
-import { GameAchievement } from "@main/entity";
+import { gameAchievementsSublevel, levelKeys } from "@main/level";
 
 export const getGameAchievementData = async (
   objectId: string,
   shop: GameShop,
-  cachedAchievements: GameAchievement | null
+  useCachedData: boolean
 ) => {
-  if (cachedAchievements && cachedAchievements.achievements) {
-    return JSON.parse(cachedAchievements.achievements) as AchievementData[];
-  }
+  const cachedAchievements = await gameAchievementsSublevel.get(
+    levelKeys.game(shop, objectId)
+  );
+
+  if (cachedAchievements && useCachedData)
+    return cachedAchievements.achievements;
 
   const userPreferences = await userPreferencesRepository.findOne({
     where: { id: 1 },
   });
 
-  return HydraApi.get<AchievementData[]>("/games/achievements", {
+  return HydraApi.get<SteamAchievement[]>("/games/achievements", {
     shop,
     objectId,
     language: userPreferences?.language || "en",
   })
-    .then((achievements) => {
-      gameAchievementRepository.upsert(
-        {
-          objectId,
-          shop,
-          achievements: JSON.stringify(achievements),
-        },
-        ["objectId", "shop"]
-      );
+    .then(async (achievements) => {
+      await gameAchievementsSublevel.put(levelKeys.game(shop, objectId), {
+        unlockedAchievements: cachedAchievements?.unlockedAchievements ?? [],
+        achievements,
+      });
 
       return achievements;
     })
@@ -42,15 +38,9 @@ export const getGameAchievementData = async (
       if (err instanceof UserNotLoggedInError) {
         throw err;
       }
+
       logger.error("Failed to get game achievements", err);
-      return gameAchievementRepository
-        .findOne({
-          where: { objectId, shop },
-        })
-        .then((gameAchievements) => {
-          return JSON.parse(
-            gameAchievements?.achievements || "[]"
-          ) as AchievementData[];
-        });
+
+      return [];
     });
 };

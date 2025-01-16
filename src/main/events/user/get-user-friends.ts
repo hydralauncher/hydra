@@ -2,7 +2,7 @@ import { db } from "@main/level";
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
 import type { User, UserFriends } from "@types";
-import { levelKeys } from "@main/level/sublevels/keys";
+import { levelKeys } from "@main/level/sublevels";
 
 export const getUserFriends = async (
   userId: string,

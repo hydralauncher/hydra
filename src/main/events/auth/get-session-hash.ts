@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { registerEvent } from "../register-event";
 import { db } from "@main/level";
 import type { Auth } from "@types";
-import { levelKeys } from "@main/level/sublevels/keys";
+import { levelKeys } from "@main/level";
 import { Crypto } from "@main/services";
 
 const getSessionHash = async (_event: Electron.IpcMainInvokeEvent) => {

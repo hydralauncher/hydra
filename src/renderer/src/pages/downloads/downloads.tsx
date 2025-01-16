@@ -7,7 +7,7 @@ import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import * as styles from "./downloads.css";
 import { DeleteGameModal } from "./delete-game-modal";
 import { DownloadGroup } from "./download-group";
-import type { LibraryGame, SeedingStatus } from "@types";
+import type { Game, SeedingStatus } from "@types";
 import { orderBy } from "lodash-es";
 import { ArrowDownIcon } from "@primer/octicons-react";
 
@@ -49,8 +49,8 @@ export default function Downloads() {
     setShowDeleteModal(true);
   };
 
-  const libraryGroup: Record<string, LibraryGame[]> = useMemo(() => {
-    const initialValue: Record<string, LibraryGame[]> = {
+  const libraryGroup: Record<string, Game[]> = useMemo(() => {
+    const initialValue: Record<string, Game[]> = {
       downloading: [],
       queued: [],
       complete: [],

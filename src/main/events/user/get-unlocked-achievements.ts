@@ -1,19 +1,17 @@
-import type { GameShop, UnlockedAchievement, UserAchievement } from "@types";
+import type { GameShop, UserAchievement } from "@types";
 import { registerEvent } from "../register-event";
-import {
-  gameAchievementRepository,
-  userPreferencesRepository,
-} from "@main/repository";
+import { userPreferencesRepository } from "@main/repository";
 import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
+import { gameAchievementsSublevel, levelKeys } from "@main/level";
 
 export const getUnlockedAchievements = async (
   objectId: string,
   shop: GameShop,
   useCachedData: boolean
 ): Promise<UserAchievement[]> => {
-  const cachedAchievements = await gameAchievementRepository.findOne({
-    where: { objectId, shop },
-  });
+  const cachedAchievements = await gameAchievementsSublevel.get(
+    levelKeys.game(shop, objectId)
+  );
 
   const userPreferences = await userPreferencesRepository.findOne({
     where: { id: 1 },
@@ -25,12 +23,10 @@ export const getUnlockedAchievements = async (
   const achievementsData = await getGameAchievementData(
     objectId,
     shop,
-    useCachedData ? cachedAchievements : null
+    useCachedData
   );
 
-  const unlockedAchievements = JSON.parse(
-    cachedAchievements?.unlockedAchievements || "[]"
-  ) as UnlockedAchievement[];
+  const unlockedAchievements = cachedAchievements?.unlockedAchievements ?? [];
 
   return achievementsData
     .map((achievementData) => {

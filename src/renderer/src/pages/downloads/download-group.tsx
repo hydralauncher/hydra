@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
-import type { LibraryGame, SeedingStatus } from "@types";
+import type { Game, SeedingStatus } from "@types";
 
 import { Badge, Button } from "@renderer/components";
 import {
@@ -32,7 +32,7 @@ import {
 } from "@primer/octicons-react";
 
 export interface DownloadGroupProps {
-  library: LibraryGame[];
+  library: Game[];
   title: string;
   openDeleteGameModal: (gameId: number) => void;
   openGameInstaller: (gameId: number) => void;
@@ -65,7 +65,7 @@ export function DownloadGroup({
     resumeSeeding,
   } = useDownload();
 
-  const getFinalDownloadSize = (game: LibraryGame) => {
+  const getFinalDownloadSize = (game: Game) => {
     const isGameDownloading = lastPacket?.game.id === game.id;
 
     if (game.fileSize) return formatBytes(game.fileSize);
@@ -86,7 +86,7 @@ export function DownloadGroup({
     return map;
   }, [seedingStatus]);
 
-  const getGameInfo = (game: LibraryGame) => {
+  const getGameInfo = (game: Game) => {
     const isGameDownloading = lastPacket?.game.id === game.id;
     const finalDownloadSize = getFinalDownloadSize(game);
     const seedingStatus = seedingMap.get(game.id);
@@ -165,7 +165,7 @@ export function DownloadGroup({
     return <p>{t(game.status as string)}</p>;
   };
 
-  const getGameActions = (game: LibraryGame): DropdownMenuItem[] => {
+  const getGameActions = (game: Game): DropdownMenuItem[] => {
     const isGameDownloading = lastPacket?.game.id === game.id;
 
     const deleting = isGameDeleting(game.id);
