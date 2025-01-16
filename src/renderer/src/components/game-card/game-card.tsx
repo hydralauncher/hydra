@@ -1,5 +1,5 @@
 import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
-import type { CatalogueEntry, GameRepack, GameStats } from "@types";
+import type { GameStats } from "@types";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 
@@ -7,16 +7,16 @@ import "./game-card.scss";
 
 import { useTranslation } from "react-i18next";
 import { Badge } from "../badge/badge";
-import { useCallback, useContext, useEffect, useState } from "react";
-import { useFormat } from "@renderer/hooks";
-import { repacksContext } from "@renderer/context";
+import { useCallback, useState } from "react";
+import { useFormat, useRepacks } from "@renderer/hooks";
+import { steamUrlBuilder } from "@shared";
 
 export interface GameCardProps
   extends React.DetailedHTMLProps<
     React.ButtonHTMLAttributes<HTMLButtonElement>,
     HTMLButtonElement
   > {
-  game: CatalogueEntry;
+  game: any;
 }
 
 const shopIcon = {
@@ -27,20 +27,12 @@ export function GameCard({ game, ...props }: GameCardProps) {
   const { t } = useTranslation("game_card");
 
   const [stats, setStats] = useState<GameStats | null>(null);
-  const [repacks, setRepacks] = useState<GameRepack[]>([]);
 
-  const { searchRepacks, isIndexingRepacks } = useContext(repacksContext);
-
-  useEffect(() => {
-    if (!isIndexingRepacks) {
-      searchRepacks(game.title).then((repacks) => {
-        setRepacks(repacks);
-      });
-    }
-  }, [game, isIndexingRepacks, searchRepacks]);
+  const { getRepacksForObjectId } = useRepacks();
+  const repacks = getRepacksForObjectId(game.objectId);
 
   const uniqueRepackers = Array.from(
-    new Set(repacks.map(({ repacker }) => repacker))
+    new Set(repacks.map((repack) => repack.repacker))
   );
 
   const handleHover = useCallback(() => {
@@ -62,7 +54,7 @@ export function GameCard({ game, ...props }: GameCardProps) {
     >
       <div className="game-card__backdrop">
         <img
-          src={game.cover}
+          src={steamUrlBuilder.library(game.objectId)}
           alt={game.title}
           className="game-card__cover"
           loading="lazy"

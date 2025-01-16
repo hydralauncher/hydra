@@ -104,6 +104,22 @@ export const listItem = style({
   },
 });
 
+export const statsListItem = style({
+  display: "flex",
+  flexDirection: "column",
+  transition: "all ease 0.1s",
+  color: vars.color.muted,
+  width: "100%",
+  overflow: "hidden",
+  borderRadius: "4px",
+  padding: `${SPACING_UNIT}px ${SPACING_UNIT}px`,
+  gap: `${SPACING_UNIT}px`,
+  ":hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    textDecoration: "none",
+  },
+});
+
 export const gamesGrid = style({
   listStyle: "none",
   margin: "0",
@@ -201,4 +217,21 @@ export const achievementsProgressBar = style({
     backgroundColor: vars.color.muted,
     borderRadius: "4px",
   },
+});
+
+export const link = style({
+  textAlign: "start",
+  color: vars.color.body,
+  ":hover": {
+    textDecoration: "underline",
+    cursor: "pointer",
+  },
+});
+
+export const gameCardStats = style({
+  width: "100%",
+  height: "100%",
+  transition: "transform 0.5s ease-in-out",
+  flexShrink: "0",
+  flexGrow: "0",
 });

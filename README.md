@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[<img src="./resources/icon.png" width="144"/>](https://hydralauncher.site)
+[<img src="./resources/icon.png" width="144"/>](https://help.hydralauncher.gg)
 
   <h1 align="center">Hydra Launcher</h1>
 
@@ -124,6 +124,10 @@ Navigate to the project directory and install the Node dependencies using Yarn:
 cd hydra
 yarn
 ```
+
+### Install OpenSSL 1.1
+
+[OpenSSL 1.1](https://slproweb.com/download/Win64OpenSSL-1_1_1w.exe) is required by libtorrent in Windows environments.
 
 ### Install Python 3.9
 

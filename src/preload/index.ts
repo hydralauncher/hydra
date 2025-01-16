@@ -11,10 +11,12 @@ import type {
   GameRunning,
   FriendRequestAction,
   UpdateProfileRequest,
+  CatalogueSearchPayload,
+  SeedingStatus,
+  GameAchievement,
 } from "@types";
 import type { CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
-import { GameAchievement } from "@main/entity";
 
 contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
@@ -26,6 +28,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("pauseGameDownload", gameId),
   resumeGameDownload: (gameId: number) =>
     ipcRenderer.invoke("resumeGameDownload", gameId),
+  pauseGameSeed: (gameId: number) =>
+    ipcRenderer.invoke("pauseGameSeed", gameId),
+  resumeGameSeed: (gameId: number) =>
+    ipcRenderer.invoke("resumeGameSeed", gameId),
   onDownloadProgress: (cb: (value: DownloadProgress) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
@@ -34,9 +40,23 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-download-progress", listener);
     return () => ipcRenderer.removeListener("on-download-progress", listener);
   },
+  onHardDelete: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-hard-delete", listener);
+    return () => ipcRenderer.removeListener("on-hard-delete", listener);
+  },
+  onSeedingStatus: (cb: (value: SeedingStatus[]) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      value: SeedingStatus[]
+    ) => cb(value);
+    ipcRenderer.on("on-seeding-status", listener);
+    return () => ipcRenderer.removeListener("on-seeding-status", listener);
+  },
 
   /* Catalogue */
-  searchGames: (query: string) => ipcRenderer.invoke("searchGames", query),
+  searchGames: (payload: CatalogueSearchPayload, take: number, skip: number) =>
+    ipcRenderer.invoke("searchGames", payload, take, skip),
   getCatalogue: (category: CatalogueCategory) =>
     ipcRenderer.invoke("getCatalogue", category),
   getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
@@ -44,10 +64,6 @@ contextBridge.exposeInMainWorld("electron", {
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
   getHowLongToBeat: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getHowLongToBeat", objectId, shop),
-  getGames: (take?: number, skip?: number) =>
-    ipcRenderer.invoke("getGames", take, skip),
-  searchGameRepacks: (query: string) =>
-    ipcRenderer.invoke("searchGameRepacks", query),
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
   getTrendingGames: () => ipcRenderer.invoke("getTrendingGames"),
@@ -78,9 +94,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("authenticateRealDebrid", apiToken),
 
   /* Download sources */
-  getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
-  deleteDownloadSource: (id: number) =>
-    ipcRenderer.invoke("deleteDownloadSource", id),
+  putDownloadSource: (objectIds: string[]) =>
+    ipcRenderer.invoke("putDownloadSource", objectIds),
 
   /* Library */
   addGameToLibrary: (objectId: string, title: string, shop: GameShop) =>
@@ -89,6 +104,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("createGameShortcut", id),
   updateExecutablePath: (id: number, executablePath: string | null) =>
     ipcRenderer.invoke("updateExecutablePath", id, executablePath),
+  updateLaunchOptions: (id: number, launchOptions: string | null) =>
+    ipcRenderer.invoke("updateLaunchOptions", id, launchOptions),
   selectGameWinePrefix: (id: number, winePrefixPath: string | null) =>
     ipcRenderer.invoke("selectGameWinePrefix", id, winePrefixPath),
   verifyExecutablePathInUse: (executablePath: string) =>
@@ -100,8 +117,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("openGameInstallerPath", gameId),
   openGameExecutablePath: (gameId: number) =>
     ipcRenderer.invoke("openGameExecutablePath", gameId),
-  openGame: (gameId: number, executablePath: string) =>
-    ipcRenderer.invoke("openGame", gameId, executablePath),
+  openGame: (
+    gameId: number,
+    executablePath: string,
+    launchOptions: string | null
+  ) => ipcRenderer.invoke("openGame", gameId, executablePath, launchOptions),
   closeGame: (gameId: number) => ipcRenderer.invoke("closeGame", gameId),
   removeGameFromLibrary: (gameId: number) =>
     ipcRenderer.invoke("removeGameFromLibrary", gameId),
@@ -110,6 +130,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("deleteGameFolder", gameId),
   getGameByObjectId: (objectId: string) =>
     ipcRenderer.invoke("getGameByObjectId", objectId),
+  resetGameAchievements: (gameId: number) =>
+    ipcRenderer.invoke("resetGameAchievements", gameId),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
@@ -130,6 +152,8 @@ contextBridge.exposeInMainWorld("electron", {
   /* Hardware */
   getDiskFreeSpace: (path: string) =>
     ipcRenderer.invoke("getDiskFreeSpace", path),
+  checkFolderWritePermission: (path: string) =>
+    ipcRenderer.invoke("checkFolderWritePermission", path),
 
   /* Cloud save */
   uploadSaveGame: (
@@ -206,6 +230,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("showOpenDialog", options),
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
+  getFeatures: () => ipcRenderer.invoke("getFeatures"),
   platform: process.platform,
 
   /* Auto update */
