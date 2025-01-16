@@ -10,7 +10,7 @@ import { Sidebar } from "./sidebar/sidebar";
 import * as styles from "./game-details.css";
 import { useTranslation } from "react-i18next";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
-import { steamUrlBuilder } from "@shared";
+import { AuthPage, steamUrlBuilder } from "@shared";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import { useUserDetails } from "@renderer/hooks";
@@ -69,7 +69,7 @@ export function GameDetailsContent() {
     });
 
     const backgroundColor = output
-      ? (new Color(output).darken(0.7).toString() as string)
+      ? new Color(output).darken(0.7).toString()
       : "";
 
     setGameColor(backgroundColor);
@@ -101,7 +101,7 @@ export function GameDetailsContent() {
 
   const handleCloudSaveButtonClick = () => {
     if (!userDetails) {
-      window.electron.openAuthWindow();
+      window.electron.openAuthWindow(AuthPage.SignIn);
       return;
     }
 
