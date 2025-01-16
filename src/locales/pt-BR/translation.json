@@ -271,7 +271,7 @@
     "show_hidden_achievement_description": "Mostrar descrição de conquistas ocultas antes de debloqueá-las",
     "account": "Conta",
     "no_users_blocked": "Você não bloqueou nenhum usuário",
-    "subscription_active_until": "Sua assinatura Hydra Cloud estará ativa até {{date}}",
+    "subscription_active_until": "Sua assinatura Hydra Cloud ficará ativa até {{date}}",
     "manage_subscription": "Gerenciar assinatura",
     "update_email": "Atualizar email",
     "update_password": "Atualizar senha",

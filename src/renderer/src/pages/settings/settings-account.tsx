@@ -158,7 +158,7 @@ export function SettingsAccount() {
           };
 
           return (
-            <>
+            <section>
               <SelectField
                 label={t("profile_visibility")}
                 value={field.value}
@@ -172,105 +172,120 @@ export function SettingsAccount() {
               />
 
               <small>{t("profile_visibility_description")}</small>
-            </>
+            </section>
           );
         }}
       />
 
-      <div style={{ marginTop: `${SPACING_UNIT * 2}px` }}>
+      <section>
         <h4>{t("current_email")}</h4>
         <p>{userDetails?.email ?? t("no_email_account")}</p>
-      </div>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "start",
-          alignItems: "center",
-          gap: `${SPACING_UNIT}px`,
-          marginTop: 8,
-        }}
-      >
-        <Button
-          theme="outline"
-          onClick={() => window.electron.openAuthWindow(AuthPage.UpdateEmail)}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "start",
+            alignItems: "center",
+            gap: `${SPACING_UNIT}px`,
+            marginTop: `${SPACING_UNIT * 2}px`,
+          }}
         >
-          <MailIcon />
-          {t("update_email")}
-        </Button>
+          <Button
+            theme="outline"
+            onClick={() => window.electron.openAuthWindow(AuthPage.UpdateEmail)}
+          >
+            <MailIcon />
+            {t("update_email")}
+          </Button>
 
-        <Button
-          theme="outline"
-          onClick={() =>
-            window.electron.openAuthWindow(AuthPage.UpdatePassword)
-          }
-        >
-          <KeyIcon />
-          {t("update_password")}
-        </Button>
-      </div>
+          <Button
+            theme="outline"
+            onClick={() =>
+              window.electron.openAuthWindow(AuthPage.UpdatePassword)
+            }
+          >
+            <KeyIcon />
+            {t("update_password")}
+          </Button>
+        </div>
+      </section>
 
-      <div
+      <section
         style={{
           display: "flex",
           flexDirection: "column",
-          marginTop: `${SPACING_UNIT * 2}px`,
-          gap: `${SPACING_UNIT / 2}px`,
+          gap: `${SPACING_UNIT * 2}px`,
         }}
       >
         <h3>Hydra Cloud</h3>
-        {getHydraCloudSectionContent().description}
-      </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: `${SPACING_UNIT}px`,
+          }}
+        >
+          {getHydraCloudSectionContent().description}
+        </div>
 
-      <Button
-        style={{ placeSelf: "flex-start", marginTop: 8 }}
-        theme="outline"
-        onClick={() => window.electron.openCheckout()}
+        <Button
+          style={{
+            placeSelf: "flex-start",
+          }}
+          theme="outline"
+          onClick={() => window.electron.openCheckout()}
+        >
+          <CloudIcon />
+          {getHydraCloudSectionContent().callToAction}
+        </Button>
+      </section>
+
+      <section
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: `${SPACING_UNIT * 2}px`,
+        }}
       >
-        <CloudIcon />
-        {getHydraCloudSectionContent().callToAction}
-      </Button>
+        <h3>{t("blocked_users")}</h3>
 
-      <h3 style={{ marginTop: `${SPACING_UNIT * 2}px` }}>
-        {t("blocked_users")}
-      </h3>
-
-      <ul className={styles.blockedUsersList}>
         {blockedUsers.length > 0 ? (
-          blockedUsers.map((user) => {
-            return (
-              <li key={user.id} className={styles.blockedUser}>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: `${SPACING_UNIT}px`,
-                    alignItems: "center",
-                  }}
-                >
-                  <Avatar
-                    style={{ filter: "grayscale(100%)" }}
-                    size={32}
-                    src={user.profileImageUrl}
-                    alt={user.displayName}
-                  />
-                  <span>{user.displayName}</span>
-                </div>
+          <ul className={styles.blockedUsersList}>
+            {blockedUsers.map((user) => {
+              return (
+                <li key={user.id} className={styles.blockedUser}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: `${SPACING_UNIT}px`,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Avatar
+                      style={{ filter: "grayscale(100%)" }}
+                      size={32}
+                      src={user.profileImageUrl}
+                      alt={user.displayName}
+                    />
+                    <span>{user.displayName}</span>
+                  </div>
 
-                <button
-                  type="button"
-                  className={styles.unblockButton}
-                  onClick={() => handleUnblockClick(user.id)}
-                  disabled={isUnblocking}
-                >
-                  <XCircleFillIcon />
-                </button>
-              </li>
-            );
-          })
+                  <button
+                    type="button"
+                    className={styles.unblockButton}
+                    onClick={() => handleUnblockClick(user.id)}
+                    disabled={isUnblocking}
+                  >
+                    <XCircleFillIcon />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         ) : (
           <small>{t("no_users_blocked")}</small>
         )}
-      </ul>
+      </section>
     </form>
   );
 }
