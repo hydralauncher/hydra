@@ -47,7 +47,14 @@ export function AchievementList({ achievements }: AchievementListProps) {
             </h4>
             <p>{achievement.description}</p>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+              alignItems: "flex-end",
+            }}
+          >
             {achievement.points != undefined ? (
               <div
                 style={{ display: "flex", alignItems: "center", gap: "4px" }}

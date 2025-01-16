@@ -2,7 +2,6 @@ import type { CatalogueCategory } from "@shared";
 import type {
   AppUpdaterEvent,
   Game,
-  LibraryGame,
   GameShop,
   HowLongToBeatCategory,
   ShopDetails,
@@ -23,7 +22,6 @@ import type {
   UserStats,
   UserDetails,
   FriendRequestSync,
-  GameAchievement,
   GameArtifact,
   LudusaviBackup,
   UserAchievement,
@@ -77,7 +75,7 @@ declare global {
     onUpdateAchievements: (
       objectId: string,
       shop: GameShop,
-      cb: (achievements: GameAchievement[]) => void
+      cb: (achievements: UserAchievement[]) => void
     ) => () => Electron.IpcRenderer;
     getPublishers: () => Promise<string[]>;
     getDevelopers: () => Promise<string[]>;
@@ -102,7 +100,7 @@ declare global {
       winePrefixPath: string | null
     ) => Promise<void>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
-    getLibrary: () => Promise<LibraryGame[]>;
+    getLibrary: () => Promise<Game[]>;
     openGameInstaller: (gameId: number) => Promise<boolean>;
     openGameInstallerPath: (gameId: number) => Promise<boolean>;
     openGameExecutablePath: (gameId: number) => Promise<void>;

@@ -3,7 +3,7 @@ import { HydraApi } from "../hydra-api";
 import { UserNotLoggedInError } from "@shared";
 import { logger } from "../logger";
 import { db } from "@main/level";
-import { levelKeys } from "@main/level/sublevels/keys";
+import { levelKeys } from "@main/level/sublevels";
 
 export const getUserData = async () => {
   return HydraApi.get<UserDetails>(`/profile/me`)

@@ -1,9 +1,10 @@
-import { gameAchievementRepository, gameRepository } from "@main/repository";
+import { gameRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
 import { findAchievementFiles } from "@main/services/achievements/find-achivement-files";
 import fs from "fs";
 import { achievementsLogger, HydraApi, WindowManager } from "@main/services";
 import { getUnlockedAchievements } from "../user/get-unlocked-achievements";
+import { gameAchievementsSublevel, levelKeys } from "@main/level";
 
 const resetGameAchievements = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -23,12 +24,21 @@ const resetGameAchievements = async (
       }
     }
 
-    await gameAchievementRepository.update(
-      { objectId: game.objectID },
-      {
-        unlockedAchievements: null,
-      }
-    );
+    const levelKey = levelKeys.game(game.shop, game.objectID);
+
+    await gameAchievementsSublevel
+      .get(levelKey)
+      .then(async (gameAchievements) => {
+        if (gameAchievements) {
+          await gameAchievementsSublevel.put(
+            levelKeys.game(game.shop, game.objectID),
+            {
+              ...gameAchievements,
+              unlockedAchievements: [],
+            }
+          );
+        }
+      });
 
     await HydraApi.delete(`/profile/games/achievements/${game.remoteId}`).then(
       () =>

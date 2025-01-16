@@ -1,3 +1,5 @@
+import type { SteamAchievement, UnlockedAchievement } from "./game.types";
+
 export type SubscriptionStatus = "active" | "pending" | "cancelled";
 
 export interface Subscription {
@@ -20,4 +22,9 @@ export interface User {
   profileImageUrl: string | null;
   backgroundImageUrl: string | null;
   subscription: Subscription | null;
+}
+
+export interface GameAchievement {
+  achievements: SteamAchievement[];
+  unlockedAchievements: UnlockedAchievement[];
 }

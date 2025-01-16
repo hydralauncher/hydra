@@ -1,23 +1,11 @@
 import { DataSource } from "typeorm";
-import {
-  DownloadQueue,
-  Game,
-  GameShopCache,
-  UserPreferences,
-  GameAchievement,
-} from "@main/entity";
+import { DownloadQueue, Game, UserPreferences } from "@main/entity";
 
 import { databasePath } from "./constants";
 
 export const dataSource = new DataSource({
   type: "better-sqlite3",
-  entities: [
-    Game,
-    UserPreferences,
-    GameShopCache,
-    DownloadQueue,
-    GameAchievement,
-  ],
+  entities: [Game, UserPreferences, DownloadQueue],
   synchronize: false,
   database: databasePath,
 });

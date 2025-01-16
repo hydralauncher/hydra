@@ -23,7 +23,7 @@ import { buildGameAchievementPath } from "@renderer/helpers";
 import { SPACING_UNIT } from "@renderer/theme.css";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 
-const fakeAchievements: UserAchievement[] = [
+const achievementsPlaceholder: UserAchievement[] = [
   {
     displayName: "Timber!!",
     name: "",
@@ -140,7 +140,7 @@ export function Sidebar() {
             <h3>{t("sign_in_to_see_achievements")}</h3>
           </div>
           <ul className={styles.list} style={{ filter: "blur(4px)" }}>
-            {fakeAchievements.map((achievement, index) => (
+            {achievementsPlaceholder.map((achievement, index) => (
               <li key={index}>
                 <div className={styles.listItem}>
                   <img
