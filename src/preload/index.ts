@@ -14,9 +14,8 @@ import type {
   CatalogueSearchPayload,
   SeedingStatus,
   GameAchievement,
-  ManageAccountPage,
 } from "@types";
-import type { CatalogueCategory } from "@shared";
+import type { AuthPage, CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
 
 contextBridge.exposeInMainWorld("electron", {
@@ -227,8 +226,6 @@ contextBridge.exposeInMainWorld("electron", {
   isPortableVersion: () => ipcRenderer.invoke("isPortableVersion"),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
   openCheckout: () => ipcRenderer.invoke("openCheckout"),
-  openManageAccount: (page: ManageAccountPage) =>
-    ipcRenderer.invoke("openManageAccount", page),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
   showItemInFolder: (path: string) =>
@@ -294,7 +291,8 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Auth */
   signOut: () => ipcRenderer.invoke("signOut"),
-  openAuthWindow: () => ipcRenderer.invoke("openAuthWindow"),
+  openAuthWindow: (page: AuthPage) =>
+    ipcRenderer.invoke("openAuthWindow", page),
   getSessionHash: () => ipcRenderer.invoke("getSessionHash"),
   onSignIn: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();

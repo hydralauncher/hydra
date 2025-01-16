@@ -13,6 +13,7 @@ import {
   XCircleFillIcon,
 } from "@primer/octicons-react";
 import { settingsContext } from "@renderer/context";
+import { AuthPage } from "@shared";
 
 interface FormValues {
   profileVisibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
@@ -128,7 +129,7 @@ export function SettingsAccount() {
           <p>{userDetails.email}</p>
         </div>
       ) : (
-        <p>{t("no_associated_email")}</p>
+        <p>{t("no_email_account")}</p>
       )}
 
       <div
@@ -142,7 +143,7 @@ export function SettingsAccount() {
       >
         <Button
           theme="outline"
-          onClick={() => window.electron.openManageAccount("update-email")}
+          onClick={() => window.electron.openAuthWindow(AuthPage.UpdateEmail)}
         >
           {t("update_email")}
           <MailIcon />
@@ -150,7 +151,9 @@ export function SettingsAccount() {
 
         <Button
           theme="outline"
-          onClick={() => window.electron.openManageAccount("update-password")}
+          onClick={() =>
+            window.electron.openAuthWindow(AuthPage.UpdatePassword)
+          }
         >
           {t("update_password")}
           <KeyIcon />

@@ -279,7 +279,7 @@
     "update_email": "Atualizar email",
     "update_password": "Atualizar senha",
     "current_email": "Email atual:",
-    "no_associated_email": "Você ainda não associou nenhum email a sua conta"
+    "no_email_account": "Você ainda não adicionou um email a sua conta"
   },
   "notifications": {
     "download_complete": "Download concluído",
