@@ -291,7 +291,7 @@
     "update_email": "Update email",
     "update_password": "Update password",
     "current_email": "Current email:",
-    "no_associated_email": "You don't have an associated email yet"
+    "no_email_account": "You have not set an email yet"
   },
   "notifications": {
     "download_complete": "Download complete",

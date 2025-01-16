@@ -416,8 +416,6 @@ export interface CatalogueSearchPayload {
   developers: string[];
 }
 
-export type ManageAccountPage = "update-email" | "update-password";
-
 export * from "./steam.types";
 export * from "./real-debrid.types";
 export * from "./ludusavi.types";

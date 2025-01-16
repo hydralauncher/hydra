@@ -1,4 +1,4 @@
-import type { CatalogueCategory } from "@shared";
+import type { AuthPage, CatalogueCategory } from "@shared";
 import type {
   AppUpdaterEvent,
   Game,
@@ -29,7 +29,6 @@ import type {
   UserAchievement,
   ComparedAchievements,
   CatalogueSearchPayload,
-  ManageAccountPage,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -188,7 +187,6 @@ declare global {
     /* Misc */
     openExternal: (src: string) => Promise<void>;
     openCheckout: () => Promise<void>;
-    openManageAccount: (page: ManageAccountPage) => Promise<void>;
     getVersion: () => Promise<string>;
     isStaging: () => Promise<boolean>;
     ping: () => string;
@@ -210,7 +208,7 @@ declare global {
 
     /* Auth */
     signOut: () => Promise<void>;
-    openAuthWindow: () => Promise<void>;
+    openAuthWindow: (page: AuthPage) => Promise<void>;
     getSessionHash: () => Promise<string | null>;
     onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
     onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
