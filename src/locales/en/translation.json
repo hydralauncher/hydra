@@ -291,7 +291,8 @@
     "update_email": "Update email",
     "update_password": "Update password",
     "current_email": "Current email:",
-    "no_email_account": "You have not set an email yet"
+    "no_email_account": "You have not set an email yet",
+    "account_data_updated_successfully": "Account data updated successfully"
   },
   "notifications": {
     "download_complete": "Download complete",

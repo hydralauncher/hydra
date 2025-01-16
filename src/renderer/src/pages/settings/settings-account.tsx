@@ -52,11 +52,18 @@ export function SettingsAccount() {
   }, [userDetails, setValue]);
 
   useEffect(() => {
-    fetchUserDetails().then((response) => {
-      if (response) {
-        updateUserDetails(response);
-      }
+    const unsubscribe = window.electron.onAccountUpdated(() => {
+      fetchUserDetails().then((response) => {
+        if (response) {
+          updateUserDetails(response);
+        }
+      });
+      showSuccessToast(t("account_data_updated_successfully"));
     });
+
+    return () => {
+      unsubscribe();
+    };
   }, [fetchUserDetails, updateUserDetails]);
 
   const visibilityOptions = [
