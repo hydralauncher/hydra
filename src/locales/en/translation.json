@@ -284,7 +284,6 @@
     "account": "Account",
     "no_users_blocked": "You have no blocked users",
     "subscription_active_until": "Enjoy your Hydra Cloud until {{date}}",
-    "subscription_not_active": "You don't have an active Hydra Cloud subscription",
     "manage_subscription": "Manage subscription",
     "update_email": "Update email",
     "update_password": "Update password",
