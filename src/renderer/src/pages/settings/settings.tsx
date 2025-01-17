@@ -12,7 +12,7 @@ import {
   SettingsContextConsumer,
   SettingsContextProvider,
 } from "@renderer/context";
-import { SettingsPrivacy } from "./settings-privacy";
+import { SettingsAccount } from "./settings-account";
 import { useUserDetails } from "@renderer/hooks";
 import { useMemo } from "react";
 
@@ -30,7 +30,7 @@ export default function Settings() {
       t("appearance"),
     ];
 
-    if (userDetails) return [...categories, t("privacy")];
+    if (userDetails) return [...categories, t("account")];
     return categories;
   }, [userDetails, t]);
 
@@ -59,7 +59,11 @@ export default function Settings() {
               return <SettingsAppearance />;
             }
 
-            return <SettingsPrivacy />;
+            if (currentCategoryIndex === 4) {
+              return <SettingsAppearance />;
+            }
+
+            return <SettingsAccount />;
           };
 
           return (

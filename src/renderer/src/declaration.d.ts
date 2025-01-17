@@ -1,4 +1,4 @@
-import type { CatalogueCategory } from "@shared";
+import type { AuthPage, CatalogueCategory } from "@shared";
 import type {
   AppUpdaterEvent,
   Game,
@@ -208,9 +208,10 @@ declare global {
 
     /* Auth */
     signOut: () => Promise<void>;
-    openAuthWindow: () => Promise<void>;
+    openAuthWindow: (page: AuthPage) => Promise<void>;
     getSessionHash: () => Promise<string | null>;
     onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
+    onAccountUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* User */
