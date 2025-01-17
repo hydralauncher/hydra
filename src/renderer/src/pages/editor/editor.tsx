@@ -19,14 +19,14 @@ export default function Editor() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === 's') {
+      if (e.ctrlKey && e.key === "s") {
         e.preventDefault();
         setCode(currentCode);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [currentCode]);
 
   const handleEditorChange = (value: string | undefined) => {
@@ -38,7 +38,7 @@ export default function Editor() {
       <div className="editor-header">
         <div className="editor-header-title">
           <h1>CSS Editor</h1>
-          {!updated && <div className="editor-header-status"/>}
+          {!updated && <div className="editor-header-status" />}
         </div>
       </div>
 
