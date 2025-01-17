@@ -46,7 +46,7 @@
   }
 }
 
-.toast__content {
+&__content {
   display: flex;
   gap: $spacing-unit * 2;
   padding: $spacing-unit * 2;
@@ -54,7 +54,7 @@
   align-items: center;
 }
 
-.toast__progress {
+&__progress {
   width: 100%;
   height: 5px;
 
@@ -67,21 +67,26 @@
   }
 }
 
-.toast__close-button {
+&__close-button {
   color: $body-color;
   cursor: pointer;
   padding: 0;
   margin: 0;
 }
 
-.toast__success-icon {
+&__icon-container {
+  display: flex;
+  gap: var(--spacing-unit);
+}
+
+&__success-icon {
   color: $success-color;
 }
 
-.toast__error-icon {
+&__error-icon {
   color: $danger-color;
 }
 
-.toast__warning-icon {
+&__warning-icon {
   color: $warning-color;
 }

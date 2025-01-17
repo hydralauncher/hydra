@@ -83,7 +83,7 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
       })}
     >
       <div className="toast__content">
-        <div style={{ display: "flex", gap: `${SPACING_UNIT}px` }}>
+        <div className="toast__icon-container">
           {type === "success" && (
             <CheckCircleFillIcon className="toast__success-icon" />
           )}

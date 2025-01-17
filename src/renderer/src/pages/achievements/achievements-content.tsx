@@ -142,20 +142,20 @@ export function AchievementsContent({
 
     setGameColor(backgroundColor);
   };
-const HERO_HEIGHT = 150;
+  const HERO_HEIGHT = 150;
 
-const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
-  const heroHeight = heroRef.current?.clientHeight ?? HERO_HEIGHT;
+  const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
+    const heroHeight = heroRef.current?.clientHeight ?? HERO_HEIGHT;
 
-  const scrollY = (event.target as HTMLDivElement).scrollTop;
-  if (scrollY >= heroHeight && !isHeaderStuck) {
-    setIsHeaderStuck(true);
-  }
+    const scrollY = (event.target as HTMLDivElement).scrollTop;
+    if (scrollY >= heroHeight && !isHeaderStuck) {
+      setIsHeaderStuck(true);
+    }
 
-  if (scrollY <= heroHeight && isHeaderStuck) {
-    setIsHeaderStuck(false);
-  }
-};
+    if (scrollY <= heroHeight && isHeaderStuck) {
+      setIsHeaderStuck(false);
+    }
+  };
 
   const getProfileImage = (
     user: Pick<UserInfo, "profileImageUrl" | "displayName">
