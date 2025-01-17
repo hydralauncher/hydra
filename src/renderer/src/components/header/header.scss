@@ -1,16 +1,16 @@
-@use "../../scss/globals.scss";
+@import "../../scss/variables";
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: calc(globals.$spacing-unit * 2);
+  gap: calc($spacing-unit * 2);
   -webkit-app-region: drag;
   width: 100%;
-  padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 3);
-  color: globals.$muted-color;
-  border-bottom: solid 1px globals.$border-color;
-  background-color: globals.$dark-background-color;
+  padding: calc($spacing-unit * 2) calc($spacing-unit * 3);
+  color: $muted-color;
+  border-bottom: solid 1px $border-color;
+  background-color: $dark-background-color;
 
   &--dragging-disabled {
     -webkit-app-region: no-drag;
@@ -21,13 +21,13 @@
   }
 
   &__search {
-    background-color: globals.$background-color;
+    background-color: $background-color;
     display: inline-flex;
     transition: all ease 0.2s;
     width: 200px;
     align-items: center;
     border-radius: 8px;
-    border: solid 1px globals.$border-color;
+    border: solid 1px $border-color;
     height: 40px;
     -webkit-app-region: no-drag;
     &:hover {
@@ -60,7 +60,7 @@
     color: inherit;
     cursor: pointer;
     transition: all ease 0.2s;
-    padding: globals.$spacing-unit;
+    padding: $spacing-unit;
 
     &:hover {
       color: #dadbe1;
@@ -70,13 +70,13 @@
   &__section {
     display: flex;
     align-items: center;
-    gap: calc(globals.$spacing-unit * 2);
+    gap: calc($spacing-unit * 2);
     height: 100%;
     overflow: hidden;
   }
 
   &__back-button {
-    color: globals.$body-color;
+    color: $body-color;
     cursor: pointer;
     -webkit-app-region: no-drag;
     position: absolute;
@@ -107,6 +107,18 @@
       transform: translateX(28px);
       width: calc(100% - 28px);
     }
+  }
+
+  &__new-version-link {
+    display: flex;
+    align-items: center;
+    gap: $spacing-unit;
+    color: $body-color;
+    font-size: $new-version-font-size;
+  }
+
+  &__new-version-icon {
+    color: $success-color;
   }
 }
 

@@ -1,0 +1,66 @@
+@import "../../scss/variables";
+
+.achievement-panel {
+  width: 100%;
+  padding: #{$spacing-unit * 2} #{$spacing-unit * 3};
+  background-color: $color-background;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: solid 1px $color-border;
+
+  &__content {
+    display: flex;
+    gap: $spacing-unit;
+    justify-content: center;
+  }
+
+  &__actions {
+    display: flex;
+    gap: $spacing-unit;
+  }
+
+  &__download-details-row {
+    gap: $spacing-unit;
+    display: flex;
+    color: $color-body;
+    align-items: center;
+  }
+
+  &__downloads-link {
+    color: $color-body;
+    text-decoration: underline;
+  }
+
+  &__progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    transition: all ease 0.2s;
+
+    &::-webkit-progress-bar {
+      background-color: transparent;
+    }
+
+    &::-webkit-progress-value {
+      background-color: $color-muted;
+    }
+
+    &--disabled {
+      opacity: $opacity-disabled;
+    }
+  }
+
+  &__link {
+    text-align: start;
+    color: $color-body;
+
+    &:hover {
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  }
+}

@@ -1,4 +1,4 @@
-@use "./scss/globals.scss";
+@import "../../scss/variables";
 
 * {
   box-sizing: border-box;
@@ -6,7 +6,7 @@
 
 ::-webkit-scrollbar {
   width: 9px;
-  background-color: globals.$dark-background-color;
+  background-color: $dark-background-color;
 }
 
 ::-webkit-scrollbar-track {
@@ -32,11 +32,9 @@ main {
 body {
   overflow: hidden;
   user-select: none;
-  font-family:
-    Noto Sans,
-    sans-serif;
-  font-size: globals.$body-font-size;
-  color: globals.$body-color;
+  font-family: "Noto Sans, sans-serif";
+  font-size: 14px; // Assuming vars.size.body is 14px
+  color: $body-color;
   margin: 0;
 }
 
@@ -81,7 +79,11 @@ input::-webkit-inner-spin-button {
 }
 
 label {
-  font-size: globals.$body-font-size;
+  font-size: 14px; // Assuming vars.size.body is 14px
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 img {
@@ -92,45 +94,43 @@ progress[value] {
   -webkit-appearance: none;
 }
 
-.container {
+.app-container {
   width: 100%;
   height: 100%;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  container-name: globals.$app-container;
-  container-type: inline-size;
-
-  &__content {
-    overflow-y: auto;
-    align-items: center;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    height: 100%;
-    background: linear-gradient(
-      0deg,
-      globals.$dark-background-color 50%,
-      globals.$background-color 100%
-    );
-  }
 }
 
-.title-bar {
+.app-container__content {
+  overflow-y: auto;
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 100%;
+  background: linear-gradient(
+    0deg,
+    $dark-background-color 50%,
+    $background-color 100%
+  );
+}
+
+.app-container__title-bar {
   display: flex;
   width: 100%;
   height: 35px;
   min-height: 35px;
-  background-color: globals.$dark-background-color;
+  background-color: $dark-background-color;
   align-items: center;
-  padding: 0 calc(globals.$spacing-unit * 2);
+  padding: 0 $spacing-unit * 2;
   -webkit-app-region: drag;
-  z-index: 4;
-  border-bottom: 1px solid globals.$border-color;
+  z-index: $title-bar-z-index;
+  border-bottom: 1px solid $border-color;
+}
 
-  &__cloud-text {
-    background: linear-gradient(270deg, #16b195 50%, #3e62c0 100%);
-    background-clip: text;
-    color: transparent;
-  }
+.app-container__cloud-text {
+  background: linear-gradient(270deg, #16b195 50%, #3e62c0 100%);
+  background-clip: text;
+  color: transparent;
 }

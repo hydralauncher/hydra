@@ -1,0 +1,24 @@
+@import "../../scss/variables";
+
+.catalogue-home {
+  &__categories {
+    display: flex;
+    gap: $spacing-unit;
+  }
+
+  &__content {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: #{$spacing-unit * 3};
+    padding: #{$spacing-unit * 3};
+    flex: 1;
+  }
+
+  &__cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: #{$spacing-unit * 2};
+    transition: all ease 0.2s;
+  }
+}

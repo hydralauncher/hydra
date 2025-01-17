@@ -1,9 +1,9 @@
-@use "../../scss/globals.scss";
+@import "../../scss/variables";
 
 .dropdown-menu {
   &__content {
-    background-color: globals.$dark-background-color;
-    border: 1px solid globals.$border-color;
+    background-color: $dark-background-color;
+    border: 1px solid $border-color;
     border-radius: 6px;
     min-width: 200px;
     flex-direction: column;
@@ -20,13 +20,13 @@
     padding: 4px 12px;
     font-size: 14px;
     font-weight: 500;
-    color: globals.$muted-color;
+    color: $muted-color;
   }
 
   &__separator {
     width: 100%;
     height: 1px;
-    background-color: globals.$border-color;
+    background-color: $border-color;
   }
 
   &__item {
@@ -49,12 +49,12 @@
   }
 
   &:not(&__item--disabled) &__item:hover {
-    background-color: globals.$background-color;
-    color: globals.$muted-color;
+    background-color: $background-color;
+    color: $muted-color;
   }
 
   &__item:focus {
-    background-color: globals.$background-color;
+    background-color: $background-color;
     outline: none;
   }
 

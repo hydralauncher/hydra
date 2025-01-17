@@ -1,87 +1,87 @@
-@use "../../scss/globals.scss";
+@import "../../scss/variables";
 
-$toast-height: 80px;
+@keyframes slideIn {
+  0% {
+    transform: translateY(96px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideOut {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(96px);
+  }
+}
 
 .toast {
   animation-duration: 0.2s;
   animation-timing-function: ease-in-out;
-  max-height: $toast-height;
+  max-height: 80px;
   position: fixed;
-  background-color: globals.$background-color;
+  background-color: $background-color;
   border-radius: 4px;
-  border: solid 1px globals.$border-color;
-  right: calc(globals.$spacing-unit * 2);
-  //bottom panel height + 16px
-  bottom: calc(26px + #{globals.$spacing-unit * 2});
+  border: solid 1px $border-color;
+  right: $spacing-unit * 2;
+  bottom: 42px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  z-index: globals.$toast-z-index;
+  z-index: $toast-z-index;
   max-width: 500px;
-  animation-name: slide-in;
-  transform: translateY(0);
 
   &--closing {
-    animation-name: slide-out;
-    transform: translateY(calc($toast-height + #{globals.$spacing-unit * 2}));
+    animation-name: slideOut;
+    transform: translateY(96px);
   }
 
-  &__content {
-    display: flex;
-    gap: calc(globals.$spacing-unit * 2);
-    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2);
-    justify-content: center;
-    align-items: center;
-  }
-
-  &__progress {
-    width: 100%;
-    height: 5px;
-    &::-webkit-progress-bar {
-      background-color: globals.$dark-background-color;
-    }
-    &::-webkit-progress-value {
-      background-color: globals.$muted-color;
-    }
-  }
-
-  &__close-button {
-    color: globals.$body-color;
-    cursor: pointer;
-    padding: 0;
-    margin: 0;
-  }
-
-  &__success-icon {
-    color: globals.$success-color;
-  }
-
-  &__error-icon {
-    color: globals.$danger-color;
-  }
-
-  &__warning-icon {
-    color: globals.$warning-color;
-  }
-}
-
-@keyframes slide-in {
-  0% {
-    transform: translateY(calc($toast-height + #{globals.$spacing-unit * 2}));
-  }
-
-  100% {
+  &--opening {
+    animation-name: slideIn;
     transform: translateY(0);
   }
 }
 
-@keyframes slide-out {
-  0% {
-    transform: translateY(0);
+.toast__content {
+  display: flex;
+  gap: $spacing-unit * 2;
+  padding: $spacing-unit * 2;
+  justify-content: center;
+  align-items: center;
+}
+
+.toast__progress {
+  width: 100%;
+  height: 5px;
+
+  &::-webkit-progress-bar {
+    background-color: $dark-background-color;
   }
 
-  100% {
-    transform: translateY(calc($toast-height + #{globals.$spacing-unit * 2}));
+  &::-webkit-progress-value {
+    background-color: $muted-color;
   }
+}
+
+.toast__close-button {
+  color: $body-color;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+}
+
+.toast__success-icon {
+  color: $success-color;
+}
+
+.toast__error-icon {
+  color: $danger-color;
+}
+
+.toast__warning-icon {
+  color: $warning-color;
 }

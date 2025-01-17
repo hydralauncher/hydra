@@ -1,4 +1,4 @@
-@use "../../scss/globals.scss";
+@import "../../scss/variables";
 
 .game-card {
   width: 100%;
@@ -7,12 +7,12 @@
   overflow: hidden;
   border-radius: 4px;
   transition: all ease 0.2s;
-  border: solid 1px globals.$border-color;
+  border: solid 1px $border-color;
   cursor: pointer;
   z-index: 1;
 
   &:active {
-    opacity: globals.$active-opacity;
+    opacity: $active-opacity;
   }
 
   &__backdrop {
@@ -37,10 +37,10 @@
 
   &__content {
     color: #dadbe1;
-    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    padding: $spacing-unit calc($spacing-unit * 2);
     display: flex;
     align-items: flex-start;
-    gap: globals.$spacing-unit;
+    gap: $spacing-unit;
     flex-direction: column;
     transition: all ease 0.2s;
     transform: translateY(24px);
@@ -56,21 +56,21 @@
     display: flex;
     margin: 0;
     padding: 0;
-    gap: globals.$spacing-unit;
+    gap: $spacing-unit;
     flex-wrap: wrap;
     list-style: none;
   }
 
   &__specifics {
     display: flex;
-    gap: calc(globals.$spacing-unit * 2);
+    gap: calc($spacing-unit * 2);
     justify-content: center;
   }
 
   &__specifics-item {
-    gap: globals.$spacing-unit;
+    gap: $spacing-unit;
     display: flex;
-    color: globals.$muted-color;
+    color: $muted-color;
     font-size: 12px;
     align-items: flex-end;
   }
@@ -78,8 +78,8 @@
   &__title-container {
     display: flex;
     align-items: center;
-    gap: globals.$spacing-unit;
-    color: globals.$muted-color;
+    gap: $spacing-unit;
+    color: $muted-color;
   }
 
   &__shop-icon {
@@ -89,7 +89,7 @@
   }
 
   &__no-download-label {
-    color: globals.$body-color;
+    color: $body-color;
     font-weight: bold;
   }
 

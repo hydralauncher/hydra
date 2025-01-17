@@ -1,0 +1,34 @@
+@import "../../scss/variables";
+
+.sidebar-section {
+  &__button {
+    height: 72px;
+    padding: #{$spacing-unit * 2};
+    display: flex;
+    align-items: center;
+    background-color: $background-color;
+    color: $muted-color;
+    width: 100%;
+    cursor: pointer;
+    transition: all ease 0.2s;
+    gap: $spacing-unit;
+    font-size: 14px;
+    font-weight: bold;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    &:active {
+      opacity: $active-opacity;
+    }
+  }
+
+  &__chevron {
+    transition: transform ease 0.2s;
+
+    &--open {
+      transform: rotate(180deg);
+    }
+  }
+}

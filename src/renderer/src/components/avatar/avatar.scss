@@ -1,14 +1,14 @@
-@use "../../scss/globals.scss";
+@import "../../scss/variables";
 
 .profile-avatar {
   border-radius: 4px;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: globals.$background-color;
-  border: solid 1px globals.$border-color;
+  background-color: $background-color;
+  border: solid 1px $border-color;
   cursor: pointer;
-  color: globals.$muted-color;
+  color: $muted-color;
   position: relative;
 
   &__image {

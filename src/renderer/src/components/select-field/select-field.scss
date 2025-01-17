@@ -1,4 +1,4 @@
-@use "../../scss/globals.scss";
+@import "../../scss/variables";
 
 .select-field {
   display: inline-flex;
@@ -6,7 +6,7 @@
   width: fit-content;
   align-items: center;
   border-radius: 8px;
-  border: 1px solid globals.$border-color;
+  border: 1px solid $border-color;
   height: 40px;
   min-height: 40px;
   &:hover {
@@ -18,15 +18,15 @@
   }
 
   &--primary {
-    background-color: globals.$dark-background-color;
+    background-color: $dark-background-color;
   }
 
   &--dark {
-    background-color: globals.$background-color;
+    background-color: $background-color;
   }
 
   &__option {
-    background-color: globals.$dark-background-color;
+    background-color: $dark-background-color;
     border-right: 4px solid;
     border-color: transparent;
     border-radius: 8px;
@@ -36,14 +36,14 @@
     color: #dadbe1;
     cursor: default;
     font-family: inherit;
-    font-size: globals.$body-font-size;
+    font-size: $body-font-size;
     text-overflow: ellipsis;
-    padding: globals.$spacing-unit;
+    padding: $spacing-unit;
   }
 
   &__label {
-    margin-bottom: globals.$spacing-unit;
+    margin-bottom: $spacing-unit;
     display: block;
-    color: globals.$body-color;
+    color: $body-color;
   }
 }

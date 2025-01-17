@@ -1,0 +1,19 @@
+@import "../../scss/variables";
+
+.repacks-modal {
+  &__repacks {
+    display: flex;
+    gap: $spacing-unit;
+    flex-direction: column;
+  }
+
+  &__repack-button {
+    display: flex;
+    text-align: left;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-unit;
+    color: $body-color;
+    padding: #{$spacing-unit * 2};
+  }
+}

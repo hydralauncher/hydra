@@ -1,0 +1,13 @@
+@import "../../scss/variables";
+
+.report-profile {
+  &__report-button {
+    align-self: flex-end;
+    color: $muted-color;
+    gap: $spacing-unit;
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    font-size: 12px;
+  }
+}

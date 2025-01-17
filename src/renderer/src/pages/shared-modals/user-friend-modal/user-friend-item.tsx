@@ -1,8 +1,8 @@
 import { CheckCircleIcon, XCircleIcon } from "@primer/octicons-react";
-import * as styles from "./user-friend-modal.css";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@renderer/components";
+import "./user-friend-modal.scss";
+import "@renderer/theme.scss";
 
 export type UserFriendItemProps = {
   userId: string;
@@ -45,7 +45,7 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
     if (type === "SENT") {
       return (
         <button
-          className={styles.cancelRequestButton}
+          className="cancel-request-button"
           onClick={() => props.onClickCancelRequest(userId)}
           title={t("cancel_request")}
         >

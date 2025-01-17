@@ -1,0 +1,70 @@
+@import "../../scss/variables";
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.cloud-sync-modal {
+  &__artifacts {
+    display: flex;
+    gap: $spacing-unit;
+    flex-direction: column;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  &__artifact-button {
+    display: flex;
+    text-align: left;
+    flex-direction: row;
+    align-items: center;
+    gap: $spacing-unit;
+    color: $body-color;
+    padding: #{$spacing-unit * 2};
+    background-color: $dark-background-color;
+    border: 1px solid $border-color;
+    border-radius: 4px;
+    justify-content: space-between;
+  }
+
+  &__sync-icon {
+    animation-name: rotate;
+    animation-duration: 1s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+  }
+
+  &__progress {
+    width: 100%;
+    height: 5px;
+
+    &::-webkit-progress-bar {
+      background-color: $dark-background-color;
+    }
+
+    &::-webkit-progress-value {
+      background-color: $muted-color;
+    }
+  }
+
+  &__manage-files-button {
+    margin: 0;
+    padding: 0;
+    align-self: flex-start;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: underline;
+    color: $body-color;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: $disabled-opacity;
+    }
+  }
+}

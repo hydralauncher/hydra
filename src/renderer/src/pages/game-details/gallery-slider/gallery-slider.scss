@@ -1,0 +1,126 @@
+@import "../../scss/variables";
+
+.gallery-slider {
+  &__container {
+    padding: #{$spacing-unit * 3} #{$spacing-unit * 2};
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  &__media {
+    width: 100%;
+    height: 100%;
+    display: block;
+    flex-shrink: 0;
+    flex-grow: 0;
+    transition: translate 0.3s ease-in-out;
+    border-radius: 4px;
+    align-self: center;
+  }
+
+  &__animation-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    position: relative;
+    overflow: hidden;
+
+    @media (min-width: 1280px) {
+      width: 60%;
+    }
+  }
+
+  &__preview {
+    width: 100%;
+    padding: $spacing-unit 0;
+    height: 100%;
+    display: flex;
+    position: relative;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: #{$spacing-unit / 2};
+
+    @media (min-width: 1280px) {
+      width: 60%;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      width: 20%;
+    }
+
+    &::-webkit-scrollbar {
+      height: 10px;
+    }
+  }
+
+  &__media-preview-button {
+    cursor: pointer;
+    width: 20%;
+    display: block;
+    flex-shrink: 0;
+    flex-grow: 0;
+    opacity: 0.3;
+    transition:
+      translate 0.3s ease-in-out,
+      opacity 0.2s ease;
+    border-radius: 4px;
+    border: solid 1px $border-color;
+    overflow: hidden;
+
+    &:hover {
+      opacity: 0.8;
+    }
+
+    &--active {
+      opacity: 1;
+    }
+  }
+
+  &__media-preview {
+    width: 100%;
+    display: flex;
+  }
+
+  &__button {
+    position: absolute;
+    align-self: center;
+    cursor: pointer;
+    background-color: rgba(0, 0, 0, 0.4);
+    transition: all 0.2s ease-in-out;
+    border-radius: 50%;
+    color: $muted-color;
+    width: 48px;
+    height: 48px;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.6);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+
+    &--left {
+      left: 0;
+      margin-left: $spacing-unit;
+      transform: translateX(-#{48 + $spacing-unit}px);
+    }
+
+    &--right {
+      right: 0;
+      margin-right: $spacing-unit;
+      transform: translateX(#{48 + $spacing-unit}px);
+    }
+
+    &--visible {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    &--hidden {
+      opacity: 0;
+    }
+  }
+}
