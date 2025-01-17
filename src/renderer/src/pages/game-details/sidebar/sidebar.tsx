@@ -6,6 +6,7 @@ import type {
 } from "@types";
 import { useTranslation } from "react-i18next";
 import { Button, Link } from "@renderer/components";
+import classNames from "classnames";
 
 import { gameDetailsContext } from "@renderer/context";
 import { useDate, useFormat, useUserDetails } from "@renderer/hooks";

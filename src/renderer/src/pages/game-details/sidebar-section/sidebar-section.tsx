@@ -1,5 +1,6 @@
 import { ChevronDownIcon } from "@primer/octicons-react";
 import { useRef, useState } from "react";
+import classNames from "classnames";
 
 import "./sidebar-section.scss";
 

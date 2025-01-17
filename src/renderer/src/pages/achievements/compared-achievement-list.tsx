@@ -6,6 +6,7 @@ import {
 } from "@primer/octicons-react";
 import { useDate } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
+import classNames from "classnames";
 import "./achievements.scss";
 import "../../scss/_variables.scss";
 

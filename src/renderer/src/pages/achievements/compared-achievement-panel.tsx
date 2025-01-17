@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { ComparedAchievements } from "@types";
 import { useUserDetails } from "@renderer/hooks";
+import classNames from "classnames";
 
 import "./achievement-panel.scss";
 import "../../scss/_variables.scss";

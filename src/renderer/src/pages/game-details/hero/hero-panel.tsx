@@ -8,6 +8,7 @@ import "./hero-panel.scss";
 import { HeroPanelPlaytime } from "./hero-panel-playtime";
 
 import { gameDetailsContext } from "@renderer/context";
+import classNames from "classnames";
 
 export interface HeroPanelProps {
   isHeaderStuck: boolean;
