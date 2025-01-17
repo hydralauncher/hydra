@@ -1,7 +1,7 @@
 import { ProfileContent } from "./profile-content/profile-content";
 import { SkeletonTheme } from "react-loading-skeleton";
 
-import "../../_theme.scss"
+import "../../_theme.scss";
 import "./profile.scss";
 
 import { UserProfileContextProvider } from "@renderer/context";

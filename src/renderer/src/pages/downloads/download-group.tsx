@@ -12,7 +12,6 @@ import { Downloader, formatBytes, steamUrlBuilder } from "@shared";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import { useAppSelector, useDownload } from "@renderer/hooks";
 
-
 import "./download-group.scss";
 
 import { useTranslation } from "react-i18next";

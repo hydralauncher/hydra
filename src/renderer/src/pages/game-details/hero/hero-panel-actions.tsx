@@ -8,7 +8,7 @@ import { Button } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
-import "./hero-panel-actions.scss"
+import "./hero-panel-actions.scss";
 
 import { gameDetailsContext } from "@renderer/context";
 

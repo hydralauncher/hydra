@@ -21,10 +21,7 @@ export const HydraCloudModal = ({
 
   return (
     <Modal visible={visible} title={t("hydra_cloud")} onClose={onClose}>
-      <div
-        data-hydra-cloud-feature={feature}
-        className="hydra-cloud__on-close"
-      >
+      <div data-hydra-cloud-feature={feature} className="hydra-cloud__on-close">
         {t("hydra_cloud_feature_found")}
         <Button onClick={handleClickOpenCheckout}>{t("learn_more")}</Button>
       </div>

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useDate, useDownload } from "@renderer/hooks";
 
 import { HeroPanelActions } from "./hero-panel-actions";
-import "./hero-panel.scss"
+import "./hero-panel.scss";
 import { HeroPanelPlaytime } from "./hero-panel-playtime";
 
 import { gameDetailsContext } from "@renderer/context";

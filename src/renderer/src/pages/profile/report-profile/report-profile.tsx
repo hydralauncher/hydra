@@ -75,9 +75,7 @@ export function ReportProfile() {
         title={t("report_profile")}
         clickOutsideToClose={false}
       >
-        <form
-          className="report-profile__report-modal"
-        >
+        <form className="report-profile__report-modal">
           <Controller
             control={control}
             name="reason"

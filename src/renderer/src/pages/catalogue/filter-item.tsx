@@ -1,5 +1,5 @@
-import { vars } from "@renderer/theme.css";
 import { XIcon } from "@primer/octicons-react";
+import "../../scss/_variables.scss";
 
 interface FilterItemProps {
   filter: string;
@@ -13,11 +13,11 @@ export function FilterItem({ filter, orbColor, onRemove }: FilterItemProps) {
       style={{
         display: "flex",
         alignItems: "center",
-        color: vars.color.body,
-        backgroundColor: vars.color.darkBackground,
+        color: "var(--body-color)",
+        backgroundColor: "var(--dark-background-color",
         padding: "6px 12px",
         borderRadius: 4,
-        border: `solid 1px ${vars.color.border}`,
+        border: `solid 1px var(--border-color)`,
         fontSize: 12,
       }}
     >
@@ -35,7 +35,7 @@ export function FilterItem({ filter, orbColor, onRemove }: FilterItemProps) {
         type="button"
         onClick={onRemove}
         style={{
-          color: vars.color.body,
+          color: "var(--body-color)",
           marginLeft: 4,
           display: "flex",
           alignItems: "center",

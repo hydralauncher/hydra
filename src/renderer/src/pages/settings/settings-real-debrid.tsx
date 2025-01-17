@@ -6,7 +6,7 @@ import { Button, CheckboxField, Link, TextField } from "@renderer/components";
 import { useAppSelector, useToast } from "@renderer/hooks";
 
 import { settingsContext } from "@renderer/context";
-import "./settings-real-debrid.scss"
+import "./settings-real-debrid.scss";
 
 const REAL_DEBRID_API_TOKEN_URL = "https://real-debrid.com/apitoken";
 
@@ -78,7 +78,9 @@ export function SettingsRealDebrid() {
 
   return (
     <form className="settings-real-debrid__form" onSubmit={handleFormSubmit}>
-      <p className="settings-real-debrid__description">{t("real_debrid_description")}</p>
+      <p className="settings-real-debrid__description">
+        {t("real_debrid_description")}
+      </p>
 
       <CheckboxField
         label={t("enable_real_debrid")}

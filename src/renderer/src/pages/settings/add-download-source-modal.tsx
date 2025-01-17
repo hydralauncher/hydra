@@ -137,9 +137,7 @@ export function AddDownloadSourceModal({
       description={t("add_download_source_description")}
       onClose={onClose}
     >
-      <div
-        className="download-source__add-source"
-      >
+      <div className="download-source__add-source">
         <TextField
           {...register("url")}
           label={t("download_source_url")}
@@ -159,12 +157,8 @@ export function AddDownloadSourceModal({
         />
 
         {validationResult && (
-          <div
-            className="download-source__validation-result"
-          >
-            <div
-              className="download-source__input"
-            >
+          <div className="download-source__validation-result">
+            <div className="download-source__input">
               <h4>{validationResult?.name}</h4>
               <small>
                 {t("found_download_option", {

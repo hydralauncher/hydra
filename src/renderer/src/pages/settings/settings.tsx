@@ -1,6 +1,6 @@
 import { Button } from "@renderer/components";
 
-import "./settings.scss"; 
+import "./settings.scss";
 import { useTranslation } from "react-i18next";
 import { SettingsRealDebrid } from "./settings-real-debrid";
 import { SettingsGeneral } from "./settings-general";

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Button, Modal } from "@renderer/components";
 import type { Game } from "@types";
-import "./remove-from-library-modal.scss"
+import "./remove-from-library-modal.scss";
 type ResetAchievementsModalProps = Readonly<{
   visible: boolean;
   game: Game;

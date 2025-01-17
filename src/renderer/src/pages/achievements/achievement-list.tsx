@@ -5,7 +5,7 @@ import { EyeClosedIcon } from "@primer/octicons-react";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./achievements.scss";
-import "../../scss/_variables.scss"
+import "../../scss/_variables.scss";
 
 interface AchievementListProps {
   achievements: UserAchievement[];

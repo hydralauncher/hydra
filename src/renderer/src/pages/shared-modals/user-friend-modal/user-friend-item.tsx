@@ -105,7 +105,10 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
   if (type === "BLOCKED") {
     return (
       <div className="user-friend-modal__friend-list-container">
-        <div className="user-friend-modal__friend-list-button" style={{ cursor: "inherit" }}>
+        <div
+          className="user-friend-modal__friend-list-button"
+          style={{ cursor: "inherit" }}
+        >
           <Avatar size={35} src={profileImageUrl} alt={displayName} />
 
           <div

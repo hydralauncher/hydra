@@ -18,8 +18,8 @@ import { useTranslation } from "react-i18next";
 import { AxiosProgressEvent } from "axios";
 import { formatDownloadProgress } from "@renderer/helpers";
 
-import "./cloud-sync-modal.scss"
-import "../../../scss/_variables.scss"
+import "./cloud-sync-modal.scss";
+import "../../../scss/_variables.scss";
 
 export interface CloudSyncModalProps
   extends Omit<ModalProps, "children" | "title"> {}

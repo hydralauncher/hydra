@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Button, Modal } from "@renderer/components";
-import * as styles from "./remove-from-library-modal.css";
 import type { Game } from "@types";
+import "./remove-from-library-modal.scss";
 
 interface RemoveGameFromLibraryModalProps {
   visible: boolean;

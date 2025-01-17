@@ -1,4 +1,4 @@
-import "./profile-hero.scss"
+import "./profile-hero.scss";
 
 import { useCallback, useContext, useMemo, useState } from "react";
 import { userProfileContext } from "@renderer/context";
@@ -362,11 +362,7 @@ export function ProfileHero() {
             background: backgroundImage ? backgroundImageLayer : heroBackground,
           }}
         >
-          <div
-            className="profile-hero__actions"
-          >
-            {profileActions}
-          </div>
+          <div className="profile-hero__actions">{profileActions}</div>
         </div>
       </section>
     </>

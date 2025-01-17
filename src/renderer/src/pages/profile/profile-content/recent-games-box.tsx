@@ -63,7 +63,9 @@ export function RecentGamesBox() {
                 />
 
                 <div className="profile-content__list-item-details">
-                  <span className="profile-content__list-item-title">{game.title}</span>
+                  <span className="profile-content__list-item-title">
+                    {game.title}
+                  </span>
 
                   <div className="profile-content__list-item-description">
                     <ClockIcon />

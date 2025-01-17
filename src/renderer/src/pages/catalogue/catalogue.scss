@@ -19,4 +19,10 @@
     border: 1px solid $border-color;
     align-self: flex-start;
   }
+
+    &__header {
+    display: flex;
+    gap: calc(var(--spacing-unit) * 2);
+    justify-content: space-between;
+  }
 }

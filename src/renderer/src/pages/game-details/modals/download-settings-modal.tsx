@@ -9,7 +9,7 @@ import type { GameRepack } from "@types";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import { useAppSelector, useFeature, useToast } from "@renderer/hooks";
 import "./download-settings-modal.scss";
-import "../../../scss/_variables.scss"
+import "../../../scss/_variables.scss";
 
 export interface DownloadSettingsModalProps {
   visible: boolean;

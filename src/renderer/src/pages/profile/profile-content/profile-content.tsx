@@ -87,9 +87,7 @@ export function ProfileContent() {
     const shouldShowRightContent = hasGames || userProfile.friends.length > 0;
 
     return (
-      <section
-        className="profile-content__container"
-      >
+      <section className="profile-content__container">
         <div style={{ flex: 1 }}>
           {!hasGames && (
             <div className="profile-content__no-games">

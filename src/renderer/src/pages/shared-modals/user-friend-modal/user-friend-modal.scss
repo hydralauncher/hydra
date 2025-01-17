@@ -44,7 +44,7 @@
     position: "absolute";
     right: "8px";
     display: "flex";
-    gap: #{$spacing-unit}
+    gap: #{$spacing-unit};
   }
 
   &__friend-request-item {
@@ -89,7 +89,7 @@
       color: $muted-color;
     }
   }
-    &__add-friend-controls {
+  &__add-friend-controls {
     display: flex;
     flex-direction: row;
     justify-content: center;

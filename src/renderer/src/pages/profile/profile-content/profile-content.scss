@@ -259,8 +259,7 @@
     justify-content: flex-end;
     height: 100%;
     width: 100%;
-    background:
-      linear-gradient(0deg, rgba(0,0,0 0.70) 20%, transparent 100%);
+    background: linear-gradient(0deg, rgba(0, 0, 0 0.7) 20%, transparent 100%);
     padding: 8;
   }
 
@@ -272,12 +271,12 @@
     display: flex;
     align-items: center;
     gap: 4;
-    padding: 4px,
+    padding: 4px;
   }
 
   &__game-card-stats-container {
     display: flex;
-    justify-content: space-between; 
+    justify-content: space-between;
     margin-bottom: 8;
     color: $muted-color;
     overflow: hidden;
