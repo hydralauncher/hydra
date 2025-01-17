@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 
-import * as styles from "./description-header.css";
 import { useContext } from "react";
 import { gameDetailsContext } from "@renderer/context";
 
