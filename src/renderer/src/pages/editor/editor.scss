@@ -15,4 +15,17 @@
   font-size: 7px;
   font-weight: 500;
   color: globals.$body-color;
+  display: flex;
+  align-items: center;
+  gap: globals.$spacing-unit;
+  height: 100%;
+}
+
+.editor-header-status {
+  width: globals.$spacing-unit;
+  height: globals.$spacing-unit;
+  background-color: globals.$body-color;
+  border-radius: 50%;
+  display: inline-flex;
+  align-self: center;
 }
