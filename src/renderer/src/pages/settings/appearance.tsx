@@ -3,11 +3,7 @@ import { Button } from "@renderer/components";
 import { useTranslation } from "react-i18next";
 import { AddThemeModal } from "./add-theme-modal";
 import { settingsContext } from "@renderer/context";
-import {
-  PlusCircleIcon,
-  GlobeIcon,
-  PencilIcon,
-} from "@primer/octicons-react";
+import { PlusCircleIcon, GlobeIcon, PencilIcon } from "@primer/octicons-react";
 
 import * as styles from "./settings-download-sources.css";
 
