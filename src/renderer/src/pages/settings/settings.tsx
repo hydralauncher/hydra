@@ -59,10 +59,6 @@ export default function Settings() {
               return <SettingsAppearance />;
             }
 
-            if (currentCategoryIndex === 4) {
-              return <SettingsAppearance />;
-            }
-
             return <SettingsAccount />;
           };
 
