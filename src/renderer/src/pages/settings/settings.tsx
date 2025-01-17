@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { SettingsRealDebrid } from "./settings-real-debrid";
 import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
+import { SettingsAppearance } from "./appearance";
 
 import { SettingsDownloadSources } from "./settings-download-sources";
 import {
@@ -26,6 +27,7 @@ export default function Settings() {
       t("behavior"),
       t("download_sources"),
       "Real-Debrid",
+      t("appearance"),
     ];
 
     if (userDetails) return [...categories, t("privacy")];
@@ -51,6 +53,10 @@ export default function Settings() {
 
             if (currentCategoryIndex === 3) {
               return <SettingsRealDebrid />;
+            }
+
+            if (currentCategoryIndex === 4) {
+              return <SettingsAppearance />;
             }
 
             return <SettingsPrivacy />;
