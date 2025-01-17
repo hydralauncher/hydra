@@ -13,6 +13,9 @@ const getComparedUnlockedAchievements = async (
     where: { id: 1 },
   });
 
+  const showHiddenAchievementsDescription =
+    userPreferences?.showHiddenAchievementsDescription || false;
+
   return HydraApi.get<ComparedAchievements>(
     `/users/${userId}/games/achievements/compare`,
     {
@@ -21,15 +24,35 @@ const getComparedUnlockedAchievements = async (
       language: userPreferences?.language || "en",
     }
   ).then((achievements) => {
-    const sortedAchievements = achievements.achievements.sort((a, b) => {
-      if (a.targetStat.unlocked && !b.targetStat.unlocked) return -1;
-      if (!a.targetStat.unlocked && b.targetStat.unlocked) return 1;
-      if (a.targetStat.unlocked && b.targetStat.unlocked) {
-        return b.targetStat.unlockTime! - a.targetStat.unlockTime!;
-      }
+    const sortedAchievements = achievements.achievements
+      .sort((a, b) => {
+        if (a.targetStat.unlocked && !b.targetStat.unlocked) return -1;
+        if (!a.targetStat.unlocked && b.targetStat.unlocked) return 1;
+        if (a.targetStat.unlocked && b.targetStat.unlocked) {
+          return b.targetStat.unlockTime! - a.targetStat.unlockTime!;
+        }
 
-      return Number(a.hidden) - Number(b.hidden);
-    });
+        return Number(a.hidden) - Number(b.hidden);
+      })
+      .map((achievement) => {
+        if (!achievement.hidden) return achievement;
+
+        if (!achievement.ownerStat) {
+          return {
+            ...achievement,
+            description: "",
+          };
+        }
+
+        if (!showHiddenAchievementsDescription && achievement.hidden) {
+          return {
+            ...achievement,
+            description: "",
+          };
+        }
+
+        return achievement;
+      });
 
     return {
       ...achievements,

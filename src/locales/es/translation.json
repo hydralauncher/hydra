@@ -46,8 +46,15 @@
     "checking_files": "Verificando archivos de {{title}}… ({{percentage}} completado)"
   },
   "catalogue": {
-    "next_page": "Siguiente página",
-    "previous_page": "Pagina anterior"
+    "search": "Filtrar…",
+    "developers": "Desarrolladores",
+    "genres": "Géneros",
+    "tags": "Marcadores",
+    "publishers": "Editores",
+    "download_sources": "Fuentes de descarga",
+    "result_count": "{{resultCount}} resultados",
+    "filter_count": "{{filterCount}} disponibles",
+    "clear_filters": "Limpiar {{filterCount}} seleccionados"
   },
   "game_details": {
     "open_download_options": "Ver opciones de descargas",
@@ -79,7 +86,7 @@
     "add_to_library": "Agregar a la biblioteca",
     "remove_from_library": "Eliminar de la biblioteca",
     "no_downloads": "No hay descargas disponibles",
-    "play_time": "Jugado por {{amount}}",
+    "play_time": "Has jugado {{amount}}",
     "last_time_played": "Jugado por última vez: {{period}}",
     "not_played_yet": "Aún no has jugado a {{title}}",
     "next_suggestion": "Siguiente sugerencia",
@@ -100,7 +107,7 @@
     "open_screenshot": "Abrir captura {{number}}",
     "download_settings": "Ajustes de descarga",
     "downloader": "Método de descarga",
-    "select_executable": "Seleccionar ejecutable",
+    "select_executable": "Seleccionar",
     "no_executable_selected": "No se seleccionó un ejecutable",
     "open_folder": "Abrir carpeta",
     "open_download_location": "Ver archivos descargados",
@@ -166,7 +173,9 @@
     "manage_files_description": "Gestiona los archivos que serán respaldados y restaurados",
     "select_folder": "Seleccionar carpeta",
     "backup_from": "Copia de seguridad de {{date}}",
-    "custom_backup_location_set": "Se configuró la carpeta de copia de seguridad"
+    "custom_backup_location_set": "Se configuró la carpeta de copia de seguridad",
+    "clear": "Limpiar",
+    "no_directory_selected": "No se seleccionó un directorio"
   },
   "activation": {
     "title": "Activar Hydra",
@@ -199,7 +208,11 @@
     "queued": "En cola",
     "no_downloads_title": "Esto está tan... vacío",
     "no_downloads_description": "No has descargado nada con Hydra... aún, ¡pero nunca es tarde para comenzar!.",
-    "checking_files": "Verificando archivos…"
+    "checking_files": "Verificando archivos…",
+    "seeding": "Seeding",
+    "stop_seeding": "Detener seeding",
+    "resume_seeding": "Continuar seeding",
+    "options": "Gestionar"
   },
   "settings": {
     "downloads_path": "Ruta de descarga",
@@ -256,7 +269,9 @@
     "user_unblocked": "El usuario ha sido desbloqueado",
     "enable_achievement_notifications": "Cuando un logro se desbloquea",
     "launch_minimized": "Iniciar Hydra minimizado",
-    "disable_nsfw_alert": "Desactivar alerta NSFW"
+    "disable_nsfw_alert": "Desactivar alerta NSFW",
+    "seed_after_download_complete": "Realizar seeding después de que se completa la descarga",
+    "show_hidden_achievement_description": "Ocultar descripción de logros ocultos antes de desbloquearlos"
   },
   "notifications": {
     "download_complete": "Descarga completada",
@@ -293,7 +308,7 @@
     "last_time_played": "Última vez jugado: {{period}}",
     "activity": "Actividad reciente",
     "library": "Biblioteca",
-    "total_play_time": "Total de tiempo jugado: {{amount}}",
+    "total_play_time": "Has jugado",
     "no_recent_activity_title": "Que raro, no hay nada por acá...",
     "no_recent_activity_description": "No has jugado ningún juego recientemente, ¡vamos a cambiar eso ahora!",
     "display_name": "Nombre en pantalla",
@@ -306,7 +321,7 @@
     "cancel": "Cancelar",
     "successfully_signed_out": "Sesión cerrada exitosamente",
     "sign_out": "Cerrar sesión",
-    "playing_for": "Jugando por {{amount}}",
+    "playing_for": "Llevas jugando {{amount}}",
     "sign_out_modal_text": "Tu biblioteca se ha vinculado con tu cuenta. Cuando cierres sesión, tú biblioteca ya no será visible y cualquier progreso no se guardará. ¿Continuar con el cierre de sesión?",
     "add_friends": "Añadir amigos",
     "add": "Añadir",
@@ -356,19 +371,34 @@
     "your_friend_code": "Tu código de amigo:",
     "upload_banner": "Subir un banner",
     "uploading_banner": "Subiendo banner…",
-    "background_image_updated": "Imagen de fondo actualizada"
+    "background_image_updated": "Imagen de fondo actualizada",
+    "playing": "Jugando {{game}}",
+    "achievements": "logros",
+    "achievements_unlocked": "Logros desbloqueados",
+    "earned_points": "Puntos Obtenidos",
+    "show_achievements_on_profile": "Mostrar tus logros en tu perfil",
+    "show_points_on_profile": "Mostrar tus puntos obtenidos en tu perfil",
+    "games": "Juegos",
+    "ranking_updated_weekly": "El Ranking se actualiza semanalmente",
+    "stats": "Estadísticas",
+    "top_percentile": "Top {{percentile}}%"
   },
   "achievement": {
     "achievement_unlocked": "Logro desbloqueado",
     "user_achievements": "Logros de {{displayName}}",
     "your_achievements": "Tus Logros",
-    "unlocked_at": "Desbloqueado el:",
+    "unlocked_at": "Desbloqueado el: {{date}}",
     "subscription_needed": "Se necesita una suscripción a Hydra Cloud necesita para ver este contenido",
     "new_achievements_unlocked": "Desbloqueados {{achievementCount}} nuevos logros de {{gameCount}} juegos",
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} logros",
-    "achievements_unlocked_for_game": "Se han desbloqueado {{achievementCount}} nuevos logros de {{gameTitle}}"
+    "achievements_unlocked_for_game": "Se han desbloqueado {{achievementCount}} nuevos logros de {{gameTitle}}",
+    "hidden_achievement_tooltip": "Este es un logro oculto",
+    "achievement_earn_points": "Obtén {{points}} puntos con este logro",
+    "earned_points": "Puntos obtenidos:",
+    "available_points": "Puntos disponibles:",
+    "how_to_earn_achievements_points": "¿Cómo obtener puntos de logros?"
   },
-  "tour": {
+  "hydra_cloud": {
     "subscription_tour_title": "Suscripción Hydra Cloud",
     "subscribe_now": "Suscribirse ahora",
     "cloud_saving": "Guardado en la nube",
@@ -376,6 +406,9 @@
     "animated_profile_picture": "Fotos de perfil animadas",
     "premium_support": "Soporte Premium",
     "show_and_compare_achievements": "Muestra y compara tus logros con otros usuarios",
-    "animated_profile_banner": "Fondo de perfil animado"
+    "animated_profile_banner": "Fondo de perfil animado",
+    "hydra_cloud": "Hydra Cloud",
+    "hydra_cloud_feature_found": "¡Has descubierto una característica de Hydra Cloud!",
+    "learn_more": "Aprender más"
   }
 }

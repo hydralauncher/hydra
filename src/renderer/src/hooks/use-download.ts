@@ -66,6 +66,16 @@ export function useDownload() {
       updateLibrary();
     });
 
+  const pauseSeeding = async (gameId: number) => {
+    await window.electron.pauseGameSeed(gameId);
+    await updateLibrary();
+  };
+
+  const resumeSeeding = async (gameId: number) => {
+    await window.electron.resumeGameSeed(gameId);
+    await updateLibrary();
+  };
+
   const calculateETA = () => {
     if (!lastPacket || lastPacket.timeRemaining < 0) return "";
 
@@ -96,6 +106,8 @@ export function useDownload() {
     removeGameFromLibrary,
     removeGameInstaller,
     isGameDeleting,
+    pauseSeeding,
+    resumeSeeding,
     clearDownload: () => dispatch(clearDownload()),
     setLastPacket: (packet: DownloadProgress) =>
       dispatch(setLastPacket(packet)),

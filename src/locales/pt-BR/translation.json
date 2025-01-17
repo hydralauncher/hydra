@@ -155,14 +155,24 @@
     "loading_save_preview": "Buscando por arquivos de salvamento…",
     "wine_prefix": "Prefixo Wine",
     "wine_prefix_description": "O prefixo Wine que foi utilizado para instalar o jogo",
+    "launch_options": "Opções de Inicialização",
+    "launch_options_description": "Usuários avançados podem adicionar opções de inicialização no jogo (experimental)",
+    "launch_options_placeholder": "Nenhum parâmetro informado",
     "no_download_option_info": "Sem informações disponíveis",
     "backup_deletion_failed": "Falha ao apagar backup",
     "max_number_of_artifacts_reached": "Número máximo de backups atingido para este jogo",
-    "achievements_not_sync": "Suas conquistas não estão sincronizadas",
+    "achievements_not_sync": "Veja como exibir suas conquistas no perfil",
     "backup_from": "Backup de {{date}}",
     "custom_backup_location_set": "Localização customizada selecionada",
     "select_folder": "Selecione a pasta",
-    "manage_files_description": "Gerencie quais arquivos serão feitos backup"
+    "manage_files_description": "Gerencie quais arquivos serão feitos backup",
+    "clear": "Limpar",
+    "no_directory_selected": "Nenhum diretório selecionado",
+    "reset_achievements": "Resetar conquistas",
+    "reset_achievements_description": "Isso irá resetar todas as conquistas de {{game}}",
+    "reset_achievements_title": "Tem certeza?",
+    "reset_achievements_success": "Conquistas resetadas com sucesso",
+    "reset_achievements_error": "Falha ao resetar conquistas"
   },
   "activation": {
     "title": "Ativação",
@@ -195,7 +205,11 @@
     "queued": "Na fila",
     "no_downloads_title": "Nada por aqui…",
     "no_downloads_description": "Você ainda não baixou nada pelo Hydra, mas nunca é tarde para começar.",
-    "checking_files": "Verificando arquivos…"
+    "checking_files": "Verificando arquivos…",
+    "seeding": "Semeando",
+    "stop_seeding": "Parar de semear",
+    "resume_seeding": "Semear",
+    "options": "Gerenciar"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",
@@ -252,7 +266,25 @@
     "user_unblocked": "Usuário desbloqueado",
     "enable_achievement_notifications": "Quando uma conquista é desbloqueada",
     "launch_minimized": "Iniciar o Hydra minimizado",
-    "disable_nsfw_alert": "Desativar alerta de conteúdo inapropriado"
+    "disable_nsfw_alert": "Desativar alerta de conteúdo inapropriado",
+    "seed_after_download_complete": "Semear após a conclusão do download",
+    "show_hidden_achievement_description": "Mostrar descrição de conquistas ocultas antes de debloqueá-las",
+    "account": "Conta",
+    "no_users_blocked": "Você não bloqueou nenhum usuário",
+    "subscription_active_until": "Sua assinatura Hydra Cloud ficará ativa até {{date}}",
+    "manage_subscription": "Gerenciar assinatura",
+    "update_email": "Atualizar email",
+    "update_password": "Atualizar senha",
+    "current_email": "Email atual:",
+    "no_email_account": "Você ainda não adicionou um email a sua conta",
+    "account_data_updated_successfully": "Dados da conta atualizados com sucesso",
+    "renew_subscription": "Renovar Hydra Cloud",
+    "subscription_expired_at": "Sua assinatura expirou em {{date}}",
+    "no_subscription": "Aproveite o Hydra da melhor forma possível",
+    "become_subscriber": "Seja Hydra Cloud",
+    "subscription_renew_cancelled": "A renovação automática está desativada",
+    "subscription_renews_on": "Sua assinatura renova dia {{date}}",
+    "bill_sent_until": "Sua próxima cobrança será enviada até esse dia"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -276,8 +308,15 @@
     "instructions": "Verifique a forma correta de instalar algum deles no seu distro Linux, garantindo assim a execução normal do jogo"
   },
   "catalogue": {
-    "next_page": "Próxima página",
-    "previous_page": "Página anterior"
+    "search": "Filtrar…",
+    "developers": "Desenvolvedores",
+    "genres": "Gêneros",
+    "tags": "Marcadores",
+    "publishers": "Distribuidoras",
+    "download_sources": "Fontes de download",
+    "result_count": "{{resultCount}} resultados",
+    "filter_count": "{{filterCount}} disponíveis",
+    "clear_filters": "Limpar {{filterCount}} selecionados"
   },
   "modal": {
     "close": "Botão de fechar"
@@ -291,7 +330,7 @@
     "last_time_played": "Última sessão {{period}}",
     "activity": "Atividades recentes",
     "library": "Biblioteca",
-    "total_play_time": "Tempo total de jogo: {{amount}}",
+    "total_play_time": "Tempo total de jogo",
     "no_recent_activity_title": "Hmmm… nada por aqui",
     "no_recent_activity_description": "Parece que você não jogou nada recentemente. Que tal começar agora?",
     "display_name": "Nome de exibição",
@@ -354,26 +393,43 @@
     "your_friend_code": "Seu código de amigo:",
     "upload_banner": "Carregar banner",
     "uploading_banner": "Carregando banner…",
-    "background_image_updated": "Imagem de fundo salva"
+    "background_image_updated": "Imagem de fundo salva",
+    "stats": "Estatísticas",
+    "achievements": "conquistas",
+    "games": "Jogos",
+    "ranking_updated_weekly": "O ranking é atualizado semanalmente",
+    "playing": "Jogando {{game}}",
+    "achievements_unlocked": "Conquistas desbloqueadas",
+    "earned_points": "Pontos ganhos",
+    "show_achievements_on_profile": "Exiba suas conquistas no perfil",
+    "show_points_on_profile": "Exiba seus pontos ganhos no perfil"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",
     "your_achievements": "Suas Conquistas",
     "user_achievements": "Conquistas de {{displayName}}",
-    "unlocked_at": "Desbloqueado em:",
+    "unlocked_at": "Desbloqueada em: {{date}}",
     "subscription_needed": "Você precisa de uma assinatura Hydra Cloud para visualizar este conteúdo",
     "new_achievements_unlocked": "{{achievementCount}} novas conquistas de {{gameCount}} jogos",
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} conquistas",
-    "achievements_unlocked_for_game": "Desbloqueadas {{achievementCount}} novas conquistas em {{gameTitle}}"
+    "achievements_unlocked_for_game": "Desbloqueadas {{achievementCount}} novas conquistas em {{gameTitle}}",
+    "hidden_achievement_tooltip": "Esta é uma conquista oculta",
+    "achievement_earn_points": "Ganhe {{points}} pontos com essa conquista",
+    "earned_points": "Pontos ganhos:",
+    "available_points": "Pontos disponíveis:",
+    "how_to_earn_achievements_points": "Como desbloquear pontos nas conquistas?"
   },
-  "tour": {
+  "hydra_cloud": {
     "subscription_tour_title": "Assinatura Hydra Cloud",
+    "hydra_cloud": "Hydra Cloud",
     "subscribe_now": "Inscreva-se agora",
     "cloud_achievements": "Salvamento de conquistas em nuvem",
     "animated_profile_picture": "Fotos de perfil animadas",
     "premium_support": "Suporte Premium",
     "show_and_compare_achievements": "Exiba e compare suas conquistas com outros usuários",
     "animated_profile_banner": "Banner animado no perfil",
-    "cloud_saving": "Saves de jogos em nuvem"
+    "cloud_saving": "Saves de jogos em nuvem",
+    "hydra_cloud_feature_found": "Você descobriu uma funcionalidade Hydra Cloud!",
+    "learn_more": "Saiba mais"
   }
 }

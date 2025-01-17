@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
 import { Button, GameCard, Hero } from "@renderer/components";
-import type { Steam250Game, CatalogueEntry } from "@types";
+import type { Steam250Game } from "@types";
 
 import flameIconStatic from "@renderer/assets/icons/flame-static.png";
 import flameIconAnimated from "@renderer/assets/icons/flame-animated.gif";
@@ -15,14 +15,6 @@ import * as styles from "./home.css";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { CatalogueCategory } from "@shared";
-import { catalogueCacheTable, db } from "@renderer/dexie";
-import { add } from "date-fns";
-
-const categoryCacheDurationInSeconds = {
-  [CatalogueCategory.Hot]: 60 * 60 * 2,
-  [CatalogueCategory.Weekly]: 60 * 60 * 24,
-  [CatalogueCategory.Achievements]: 60 * 60 * 24,
-};
 
 export default function Home() {
   const { t } = useTranslation("home");
@@ -36,9 +28,7 @@ export default function Home() {
     CatalogueCategory.Hot
   );
 
-  const [catalogue, setCatalogue] = useState<
-    Record<CatalogueCategory, CatalogueEntry[]>
-  >({
+  const [catalogue, setCatalogue] = useState<Record<CatalogueCategory, any[]>>({
     [CatalogueCategory.Hot]: [],
     [CatalogueCategory.Weekly]: [],
     [CatalogueCategory.Achievements]: [],
@@ -46,36 +36,10 @@ export default function Home() {
 
   const getCatalogue = useCallback(async (category: CatalogueCategory) => {
     try {
-      const catalogueCache = await catalogueCacheTable
-        .where("expiresAt")
-        .above(new Date())
-        .and((cache) => cache.category === category)
-        .first();
-
       setCurrentCatalogueCategory(category);
       setIsLoading(true);
 
-      if (catalogueCache)
-        return setCatalogue((prev) => ({
-          ...prev,
-          [category]: catalogueCache.games,
-        }));
-
       const catalogue = await window.electron.getCatalogue(category);
-
-      db.transaction("rw", catalogueCacheTable, async () => {
-        await catalogueCacheTable.where("category").equals(category).delete();
-
-        await catalogueCacheTable.add({
-          category,
-          games: catalogue,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          expiresAt: add(new Date(), {
-            seconds: categoryCacheDurationInSeconds[category],
-          }),
-        });
-      });
 
       setCatalogue((prev) => ({ ...prev, [category]: catalogue }));
     } finally {

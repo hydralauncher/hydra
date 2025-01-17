@@ -46,8 +46,15 @@
     "checking_files": "Checking {{title}} files… ({{percentage}} complete)"
   },
   "catalogue": {
-    "next_page": "Next page",
-    "previous_page": "Previous page"
+    "search": "Filter…",
+    "developers": "Developers",
+    "genres": "Genres",
+    "tags": "Tags",
+    "publishers": "Publishers",
+    "download_sources": "Download sources",
+    "result_count": "{{resultCount}} results",
+    "filter_count": "{{filterCount}} available",
+    "clear_filters": "Clear {{filterCount}} selected"
   },
   "game_details": {
     "open_download_options": "Open download options",
@@ -105,6 +112,7 @@
     "open_folder": "Open folder",
     "open_download_location": "See downloaded files",
     "create_shortcut": "Create desktop shortcut",
+    "clear": "Clear",
     "remove_files": "Remove files",
     "remove_from_library_title": "Are you sure?",
     "remove_from_library_description": "This will remove {{game}} from your library",
@@ -159,14 +167,24 @@
     "loading_save_preview": "Searching for save games…",
     "wine_prefix": "Wine Prefix",
     "wine_prefix_description": "The Wine prefix used to run this game",
+    "launch_options": "Launch Options",
+    "launch_options_description": "Advanced users may choose to enter modifications to their launch options (experimental feature)",
+    "launch_options_placeholder": "No parameter specified",
     "no_download_option_info": "No information available",
     "backup_deletion_failed": "Failed to delete backup",
     "max_number_of_artifacts_reached": "Maximum number of backups reached for this game",
-    "achievements_not_sync": "Your achievements are not synchronized",
+    "achievements_not_sync": "See how to synchronize your achievements",
     "manage_files_description": "Manage which files will be backed up and restored",
     "select_folder": "Select folder",
     "backup_from": "Backup from {{date}}",
-    "custom_backup_location_set": "Custom backup location set"
+    "custom_backup_location_set": "Custom backup location set",
+    "no_directory_selected": "No directory selected",
+    "no_write_permission": "Cannot download into this directory. Click here to learn more.",
+    "reset_achievements": "Reset achievements",
+    "reset_achievements_description": "This will reset all achievements for {{game}}",
+    "reset_achievements_title": "Are you sure?",
+    "reset_achievements_success": "Achievements successfully reset",
+    "reset_achievements_error": "Failed to reset achievements"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -199,7 +217,11 @@
     "queued": "Queued",
     "no_downloads_title": "Such empty",
     "no_downloads_description": "You haven't downloaded anything with Hydra yet, but it's never too late to start.",
-    "checking_files": "Checking files…"
+    "checking_files": "Checking files…",
+    "seeding": "Seeding",
+    "stop_seeding": "Stop seeding",
+    "resume_seeding": "Resume seeding",
+    "options": "Manage"
   },
   "settings": {
     "downloads_path": "Downloads path",
@@ -256,7 +278,25 @@
     "user_unblocked": "User has been unblocked",
     "enable_achievement_notifications": "When an achievement is unlocked",
     "launch_minimized": "Launch Hydra minimized",
-    "disable_nsfw_alert": "Disable NSFW alert"
+    "disable_nsfw_alert": "Disable NSFW alert",
+    "seed_after_download_complete": "Seed after download complete",
+    "show_hidden_achievement_description": "Show hidden achievements description before unlocking them",
+    "account": "Account",
+    "no_users_blocked": "You have no blocked users",
+    "subscription_active_until": "Your Hydra Cloud is active until {{date}}",
+    "manage_subscription": "Manage subscription",
+    "update_email": "Update email",
+    "update_password": "Update password",
+    "current_email": "Current email:",
+    "no_email_account": "You have not set an email yet",
+    "account_data_updated_successfully": "Account data updated successfully",
+    "renew_subscription": "Renew Hydra Cloud",
+    "subscription_expired_at": "Your subscription expired at {{date}}",
+    "no_subscription": "Enjoy Hydra in the best possible way",
+    "become_subscriber": "Be Hydra Cloud",
+    "subscription_renew_cancelled": "Automatic renewal is disabled",
+    "subscription_renews_on": "Your subscription renews on {{date}}",
+    "bill_sent_until": "Your next bill will be sent until this day"
   },
   "notifications": {
     "download_complete": "Download complete",
@@ -293,7 +333,7 @@
     "last_time_played": "Last played {{period}}",
     "activity": "Recent Activity",
     "library": "Library",
-    "total_play_time": "Total playtime: {{amount}}",
+    "total_play_time": "Total playtime",
     "no_recent_activity_title": "Hmmm… nothing here",
     "no_recent_activity_description": "You haven't played any games recently. It's time to change that!",
     "display_name": "Display name",
@@ -356,19 +396,34 @@
     "your_friend_code": "Your friend code:",
     "upload_banner": "Upload banner",
     "uploading_banner": "Uploading banner…",
-    "background_image_updated": "Background image updated"
+    "background_image_updated": "Background image updated",
+    "stats": "Stats",
+    "achievements": "achievements",
+    "games": "Games",
+    "top_percentile": "Top {{percentile}}%",
+    "ranking_updated_weekly": "Ranking is updated weekly",
+    "playing": "Playing {{game}}",
+    "achievements_unlocked": "Achievements Unlocked",
+    "earned_points": "Earned points",
+    "show_achievements_on_profile": "Show your achievements on your profile",
+    "show_points_on_profile": "Show your earned points on your profile"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",
     "user_achievements": "{{displayName}}'s Achievements",
     "your_achievements": "Your Achievements",
-    "unlocked_at": "Unlocked at:",
+    "unlocked_at": "Unlocked at: {{date}}",
     "subscription_needed": "A Hydra Cloud subscription is required to see this content",
     "new_achievements_unlocked": "Unlocked {{achievementCount}} new achievements from {{gameCount}} games",
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} achievements",
-    "achievements_unlocked_for_game": "Unlocked {{achievementCount}} new achievements for {{gameTitle}}"
+    "achievements_unlocked_for_game": "Unlocked {{achievementCount}} new achievements for {{gameTitle}}",
+    "hidden_achievement_tooltip": "This is a hidden achievement",
+    "achievement_earn_points": "Earn {{points}} points with this achievement",
+    "earned_points": "Earned points:",
+    "available_points": "Available points:",
+    "how_to_earn_achievements_points": "How to earn achievements points?"
   },
-  "tour": {
+  "hydra_cloud": {
     "subscription_tour_title": "Hydra Cloud Subscription",
     "subscribe_now": "Subscribe now",
     "cloud_saving": "Cloud saving",
@@ -376,6 +431,9 @@
     "animated_profile_picture": "Animated profile pictures",
     "premium_support": "Premium Support",
     "show_and_compare_achievements": "Show and compare your achievements to other users",
-    "animated_profile_banner": "Animated profile banner"
+    "animated_profile_banner": "Animated profile banner",
+    "hydra_cloud": "Hydra Cloud",
+    "hydra_cloud_feature_found": "You've just discovered a Hydra Cloud feature!",
+    "learn_more": "Learn More"
   }
 }
