@@ -1,5 +1,5 @@
 import { ChevronDownIcon } from "@primer/octicons-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import * as styles from "./sidebar-section.css";
 
@@ -11,6 +11,13 @@ export interface SidebarSectionProps {
 export function SidebarSection({ title, children }: SidebarSectionProps) {
   const content = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(true);
+  const [height, setHeight] = useState(0);
+
+  useEffect(() => {
+    if (content.current) {
+      setHeight(isOpen ? content.current.scrollHeight : 0);
+    }
+  }, [isOpen, children]);
 
   return (
     <div>
@@ -26,6 +33,7 @@ export function SidebarSection({ title, children }: SidebarSectionProps) {
       <div
         ref={content}
         style={{
+          maxHeight: `${height}px`,
           overflow: "hidden",
           transition: "max-height 0.4s cubic-bezier(0, 1, 0, 1)",
           position: "relative",
