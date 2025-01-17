@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { SkeletonTheme } from "react-loading-skeleton";
-import { vars } from "@renderer/theme.css";
 import "./editor.scss";
+import "../../scss/_variables.scss";
 
 export default function Editor() {
   useEffect(() => {
@@ -9,7 +9,7 @@ export default function Editor() {
   }, []);
 
   return (
-    <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
+    <SkeletonTheme baseColor="var(--background-color)" highlightColor="#444">
       <div className="editor-header">
         <div className="editor-header-title">
           <h1>CSS Editor</h1>
