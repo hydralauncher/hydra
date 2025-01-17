@@ -1,15 +1,15 @@
 import { ReportIcon } from "@primer/octicons-react";
 
-import * as styles from "./report-profile.css";
 import { Button, Modal, SelectField, TextField } from "@renderer/components";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import * as yup from "yup";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { userProfileContext } from "@renderer/context";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useToast } from "@renderer/hooks";
+
+import "./report-profile.scss";
 
 const reportReasons = ["hate", "sexual_content", "violence", "spam", "other"];
 
@@ -76,11 +76,7 @@ export function ReportProfile() {
         clickOutsideToClose={false}
       >
         <form
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: `${SPACING_UNIT * 2}px`,
-          }}
+          className="report-profile__report-modal"
         >
           <Controller
             control={control}
@@ -109,7 +105,7 @@ export function ReportProfile() {
           />
 
           <Button
-            style={{ marginTop: `${SPACING_UNIT}px`, alignSelf: "flex-end" }}
+            className="report-profile__button"
             onClick={handleSubmit(onSubmit)}
           >
             {t("report")}
@@ -119,7 +115,7 @@ export function ReportProfile() {
 
       <button
         type="button"
-        className={styles.reportButton}
+        className="report-profile__report-button"
         onClick={() => setShowReportProfileModal(true)}
         disabled={isSubmitting}
       >

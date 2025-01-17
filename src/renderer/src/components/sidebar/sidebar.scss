@@ -11,12 +11,12 @@
   overflow: hidden;
   padding-top: globals.$spacing-unit;
 
-  &--resizing {
+  &__resizing {
     opacity: globals.$active-opacity;
     pointer-events: none;
   }
 
-  &--darwin {
+  &__darwin {
     padding-top: calc(globals.$spacing-unit * 6);
   }
 

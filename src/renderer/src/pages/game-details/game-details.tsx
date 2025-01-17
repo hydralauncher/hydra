@@ -11,9 +11,10 @@ import starsIconAnimated from "@renderer/assets/icons/stars-animated.gif";
 import { useTranslation } from "react-i18next";
 import { SkeletonTheme } from "react-loading-skeleton";
 import { GameDetailsSkeleton } from "./game-details-skeleton";
-import * as styles from "./game-details.css";
 
-import { vars } from "@renderer/theme.css";
+
+import "./game-details.scss";
+
 
 import { GameDetailsContent } from "./game-details-content";
 import {
@@ -149,7 +150,7 @@ export default function GameDetails() {
               </CloudSyncContextConsumer>
 
               <SkeletonTheme
-                baseColor={vars.color.background}
+                baseColor="#1c1c1c"
                 highlightColor="#444"
               >
                 {isLoading ? <GameDetailsSkeleton /> : <GameDetailsContent />}
@@ -185,7 +186,7 @@ export default function GameDetails() {
 
                 {fromRandomizer && (
                   <Button
-                    className={styles.randomizerButton}
+                    className="game-details__randomizer-button"
                     onClick={handleRandomizerClick}
                     theme="outline"
                     disabled={!randomGame || randomizerLocked}

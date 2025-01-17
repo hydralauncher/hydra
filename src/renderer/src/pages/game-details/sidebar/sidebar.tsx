@@ -7,7 +7,6 @@ import type {
 import { useTranslation } from "react-i18next";
 import { Button, Link } from "@renderer/components";
 
-import * as styles from "./sidebar.css";
 import { gameDetailsContext } from "@renderer/context";
 import { useDate, useFormat, useUserDetails } from "@renderer/hooks";
 import {
@@ -20,8 +19,9 @@ import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { howLongToBeatEntriesTable } from "@renderer/dexie";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import "./sidebar.scss";
+import "../../../scss/_variables.scss";
 
 const fakeAchievements: UserAchievement[] = [
   {
@@ -117,171 +117,158 @@ export function Sidebar() {
     }
   }, [objectId, shop, gameTitle]);
 
-  return (
-    <aside className={styles.contentSidebar}>
-      {userDetails === null && (
-        <SidebarSection title={t("achievements")}>
-          <div
-            style={{
-              position: "absolute",
-              zIndex: 1,
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              background: "rgba(0, 0, 0, 0.7)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              flexDirection: "column",
-              gap: `${SPACING_UNIT}px`,
-            }}
-          >
-            <LockIcon size={36} />
-            <h3>{t("sign_in_to_see_achievements")}</h3>
-          </div>
-          <ul className={styles.list} style={{ filter: "blur(4px)" }}>
-            {fakeAchievements.map((achievement, index) => (
-              <li key={index}>
-                <div className={styles.listItem}>
-                  <img
-                    style={{ filter: "blur(8px)" }}
-                    className={styles.listItemImage({
-                      unlocked: achievement.unlocked,
-                    })}
-                    src={achievement.icon}
-                    alt={achievement.displayName}
-                  />
-                  <div>
-                    <p>{achievement.displayName}</p>
-                    <small>
-                      {achievement.unlockTime != null &&
-                        formatDateTime(achievement.unlockTime)}
-                    </small>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </SidebarSection>
-      )}
-      {userDetails && achievements && achievements.length > 0 && (
-        <SidebarSection
-          title={t("achievements_count", {
-            unlockedCount: achievements.filter((a) => a.unlocked).length,
-            achievementsCount: achievements.length,
-          })}
-        >
-          <ul className={styles.list}>
-            {!hasActiveSubscription && (
-              <button
-                className={styles.subscriptionRequiredButton}
-                onClick={() => showHydraCloudModal("achievements")}
-              >
-                <CloudOfflineIcon size={16} />
-                <span>{t("achievements_not_sync")}</span>
-              </button>
-            )}
-
-            {achievements.slice(0, 4).map((achievement, index) => (
-              <li key={index}>
-                <Link
-                  to={buildGameAchievementPath({
-                    shop: shop,
-                    objectId: objectId!,
-                    title: gameTitle,
-                  })}
-                  className={styles.listItem}
-                  title={achievement.description}
-                >
-                  <img
-                    className={styles.listItemImage({
-                      unlocked: achievement.unlocked,
-                    })}
-                    src={achievement.icon}
-                    alt={achievement.displayName}
-                  />
-                  <div>
-                    <p>{achievement.displayName}</p>
-                    <small>
-                      {achievement.unlockTime != null &&
-                        formatDateTime(achievement.unlockTime)}
-                    </small>
-                  </div>
-                </Link>
-              </li>
-            ))}
-
-            <Link
-              style={{ textAlign: "center" }}
-              to={buildGameAchievementPath({
-                shop: shop,
-                objectId: objectId!,
-                title: gameTitle,
-              })}
-            >
-              {t("see_all_achievements")}
-            </Link>
-          </ul>
-        </SidebarSection>
-      )}
-
-      {stats && (
-        <SidebarSection title={t("stats")}>
-          <div className={styles.statsSection}>
-            <div className={styles.statsCategory}>
-              <p className={styles.statsCategoryTitle}>
-                <DownloadIcon size={18} />
-                {t("download_count")}
-              </p>
-              <p>{numberFormatter.format(stats?.downloadCount)}</p>
-            </div>
-
-            <div className={styles.statsCategory}>
-              <p className={styles.statsCategoryTitle}>
-                <PeopleIcon size={18} />
-                {t("player_count")}
-              </p>
-              <p>{numberFormatter.format(stats?.playerCount)}</p>
-            </div>
-          </div>
-        </SidebarSection>
-      )}
-
-      <HowLongToBeatSection
-        howLongToBeatData={howLongToBeat.data}
-        isLoading={howLongToBeat.isLoading}
-      />
-
-      <SidebarSection title={t("requirements")}>
-        <div className={styles.requirementButtonContainer}>
-          <Button
-            className={styles.requirementButton}
-            onClick={() => setActiveRequirement("minimum")}
-            theme={activeRequirement === "minimum" ? "primary" : "outline"}
-          >
-            {t("minimum")}
-          </Button>
-
-          <Button
-            className={styles.requirementButton}
-            onClick={() => setActiveRequirement("recommended")}
-            theme={activeRequirement === "recommended" ? "primary" : "outline"}
-          >
-            {t("recommended")}
-          </Button>
+return (
+  <aside className="sidebar__content">
+    {userDetails === null && (
+      <SidebarSection title={t("achievements")}>
+        <div className="sidebar__overlay">
+          <LockIcon size={36} />
+          <h3>{t("sign_in_to_see_achievements")}</h3>
         </div>
-
-        <div
-          className={styles.requirementsDetails}
-          dangerouslySetInnerHTML={{
-            __html:
-              shopDetails?.pc_requirements?.[activeRequirement] ??
-              t(`no_${activeRequirement}_requirements`, {
-                gameTitle,
-              }),
-          }}
-        />
+        <ul className="sidebar__list sidebar__list--blurred">
+          {fakeAchievements.map((achievement, index) => (
+            <li key={index}>
+              <div className="sidebar__list-item">
+                <img
+                  className={classNames("sidebar__list-item-image", {
+                    "sidebar__list-item-image--unlocked": achievement.unlocked,
+                    "sidebar__list-item-image--blurred": true,
+                  })}
+                  src={achievement.icon}
+                  alt={achievement.displayName}
+                />
+                <div>
+                  <p>{achievement.displayName}</p>
+                  <small>
+                    {achievement.unlockTime != null &&
+                      formatDateTime(achievement.unlockTime)}
+                  </small>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
       </SidebarSection>
-    </aside>
-  );
+    )}
+    {userDetails && achievements && achievements.length > 0 && (
+      <SidebarSection
+        title={t("achievements_count", {
+          unlockedCount: achievements.filter((a) => a.unlocked).length,
+          achievementsCount: achievements.length,
+        })}
+      >
+        <ul className="sidebar__list">
+          {!hasActiveSubscription && (
+            <button
+              className="sidebar__subscription-required-button"
+              onClick={() => showHydraCloudModal("achievements")}
+            >
+              <CloudOfflineIcon size={16} />
+              <span>{t("achievements_not_sync")}</span>
+            </button>
+          )}
+
+          {achievements.slice(0, 4).map((achievement, index) => (
+            <li key={index}>
+              <Link
+                to={buildGameAchievementPath({
+                  shop: shop,
+                  objectId: objectId!,
+                  title: gameTitle,
+                })}
+                className="sidebar__list-item"
+                title={achievement.description}
+              >
+                <img
+                  className={classNames("achievements__list-item-image", {
+                    "achievements__list-item-image--unlocked":
+                      achievement.unlocked,
+                  })}
+                  src={achievement.icon}
+                  alt={achievement.displayName}
+                />
+                <div>
+                  <p>{achievement.displayName}</p>
+                  <small>
+                    {achievement.unlockTime != null &&
+                      formatDateTime(achievement.unlockTime)}
+                  </small>
+                </div>
+              </Link>
+            </li>
+          ))}
+
+          <Link
+            style={{ textAlign: "center" }}
+            to={buildGameAchievementPath({
+              shop: shop,
+              objectId: objectId!,
+              title: gameTitle,
+            })}
+          >
+            {t("see_all_achievements")}
+          </Link>
+        </ul>
+      </SidebarSection>
+    )}
+
+    {stats && (
+      <SidebarSection title={t("stats")}>
+        <div className="sidebar__stats-section">
+          <div className="sidebar__stats-category">
+            <p className="sidebar__stats-category-title">
+              <DownloadIcon size={18} />
+              {t("download_count")}
+            </p>
+            <p>{numberFormatter.format(stats?.downloadCount)}</p>
+          </div>
+
+          <div className="sidebar__stats-category">
+            <p className="sidebar__stats-category-title">
+              <PeopleIcon size={18} />
+              {t("player_count")}
+            </p>
+            <p>{numberFormatter.format(stats?.playerCount)}</p>
+          </div>
+        </div>
+      </SidebarSection>
+    )}
+
+    <HowLongToBeatSection
+      howLongToBeatData={howLongToBeat.data}
+      isLoading={howLongToBeat.isLoading}
+    />
+
+    <SidebarSection title={t("requirements")}>
+      <div className="sidebar__requirement-button-container">
+        <Button
+          className="sidebar__requirement-button"
+          onClick={() => setActiveRequirement("minimum")}
+          theme={activeRequirement === "minimum" ? "primary" : "outline"}
+        >
+          {t("minimum")}
+        </Button>
+
+        <Button
+          className="sidebar__requirement-button"
+          onClick={() => setActiveRequirement("recommended")}
+          theme={activeRequirement === "recommended" ? "primary" : "outline"}
+        >
+          {t("recommended")}
+        </Button>
+      </div>
+
+      <div
+        className="sidebar__requirements-details"
+        dangerouslySetInnerHTML={{
+          __html:
+            shopDetails?.pc_requirements?.[activeRequirement] ??
+            t(`no_${activeRequirement}_requirements`, {
+              gameTitle,
+            }),
+        }}
+      />
+    </SidebarSection>
+  </aside>
+);
 }

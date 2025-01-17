@@ -1,6 +1,6 @@
 import { buildGameDetailsPath } from "@renderer/helpers";
 
-import * as styles from "./profile-content.css";
+import "./profile-content.scss";
 import { Link } from "@renderer/components";
 import { useCallback, useContext } from "react";
 import { userProfileContext } from "@renderer/context";
@@ -44,28 +44,28 @@ export function RecentGamesBox() {
 
   return (
     <div>
-      <div className={styles.sectionHeader}>
+      <div className="profile-content__section-header">
         <h2>{t("activity")}</h2>
       </div>
 
-      <div className={styles.box}>
-        <ul className={styles.list}>
+      <div className="profile-content__box">
+        <ul className="profile-content__list">
           {userProfile?.recentGames.map((game) => (
             <li key={`${game.shop}-${game.objectId}`}>
               <Link
                 to={buildUserGameDetailsPath(game)}
-                className={styles.listItem}
+                className="profile-content__list-item"
               >
                 <img
                   src={game.iconUrl!}
                   alt={game.title}
-                  className={styles.listItemImage}
+                  className="profile-content__list-item-image"
                 />
 
-                <div className={styles.listItemDetails}>
-                  <span className={styles.listItemTitle}>{game.title}</span>
+                <div className="profile-content__list-item-details">
+                  <span className="profile-content__list-item-title">{game.title}</span>
 
-                  <div className={styles.listItemDescription}>
+                  <div className="profile-content__list-item-description">
                     <ClockIcon />
                     <small>{formatPlayTime(game)}</small>
                   </div>

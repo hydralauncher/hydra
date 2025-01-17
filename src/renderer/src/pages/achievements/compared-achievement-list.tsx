@@ -1,13 +1,13 @@
 import type { ComparedAchievements } from "@types";
-import * as styles from "./achievements.css";
 import {
   CheckCircleIcon,
   EyeClosedIcon,
   LockIcon,
 } from "@primer/octicons-react";
 import { useDate } from "@renderer/hooks";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { useTranslation } from "react-i18next";
+import "./achievements.scss";
+import "../../scss/_variables.scss";
 
 export interface ComparedAchievementListProps {
   achievements: ComparedAchievements;
@@ -20,11 +20,11 @@ export function ComparedAchievementList({
   const { formatDateTime } = useDate();
 
   return (
-    <ul className={styles.list}>
+    <ul className="achievements__list">
       {achievements.achievements.map((achievement, index) => (
         <li
           key={index}
-          className={styles.listItem}
+          className="achievements__list-item"
           style={{
             display: "grid",
             gridTemplateColumns: achievement.ownerStat
@@ -37,12 +37,14 @@ export function ComparedAchievementList({
               display: "flex",
               flexDirection: "row",
               alignItems: "center",
-              gap: `${SPACING_UNIT}px`,
+              gap: `var(--spacing-unit)`,
             }}
           >
             <img
-              className={styles.listItemImage({
-                unlocked: true,
+              className={classNames("achievements__list-item-image", {
+                "achievements__list-item-image--unlocked":
+                  achievement.ownerStat?.unlocked ||
+                  achievement.targetStat.unlocked,
               })}
               src={achievement.icon}
               alt={achievement.displayName}
@@ -71,7 +73,7 @@ export function ComparedAchievementList({
                   whiteSpace: "nowrap",
                   display: "flex",
                   flexDirection: "row",
-                  gap: `${SPACING_UNIT}px`,
+                  gap: `var(--spacing-unit)`,
                   justifyContent: "center",
                 }}
                 title={formatDateTime(achievement.ownerStat.unlockTime!)}
@@ -82,7 +84,7 @@ export function ComparedAchievementList({
               <div
                 style={{
                   display: "flex",
-                  padding: `${SPACING_UNIT}px`,
+                  padding: `var(--spacing-unit)`,
                   justifyContent: "center",
                 }}
               >
@@ -97,7 +99,7 @@ export function ComparedAchievementList({
                 whiteSpace: "nowrap",
                 display: "flex",
                 flexDirection: "row",
-                gap: `${SPACING_UNIT}px`,
+                gap: `var(--spacing-unit)`,
                 justifyContent: "center",
               }}
               title={formatDateTime(achievement.targetStat.unlockTime!)}
@@ -108,7 +110,7 @@ export function ComparedAchievementList({
             <div
               style={{
                 display: "flex",
-                padding: `${SPACING_UNIT}px`,
+                padding: `var(--spacing-unit)`,
                 justifyContent: "center",
               }}
             >

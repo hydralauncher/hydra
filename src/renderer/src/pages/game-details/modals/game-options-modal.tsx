@@ -2,7 +2,6 @@ import { useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Modal, TextField } from "@renderer/components";
 import type { Game } from "@types";
-import * as styles from "./game-options-modal.css";
 import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import { useDownload, useToast, useUserDetails } from "@renderer/hooks";
@@ -10,6 +9,7 @@ import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { FileDirectoryIcon, FileIcon } from "@primer/octicons-react";
 import { debounce } from "lodash-es";
+import "./game-options-modal.scss";
 
 export interface GameOptionsModalProps {
   visible: boolean;
@@ -199,10 +199,10 @@ export function GameOptionsModal({
         onClose={onClose}
         large={true}
       >
-        <div className={styles.optionsContainer}>
-          <div className={styles.gameOptionHeader}>
+        <div className="game-options-modal__options-container">
+          <div className="game-options-modal__game-option-header">
             <h2>{t("executable_section_title")}</h2>
-            <h4 className={styles.gameOptionHeaderDescription}>
+            <h4 className="game-options-modal__game-option-header-description">
               {t("executable_section_description")}
             </h4>
           </div>
@@ -233,7 +233,7 @@ export function GameOptionsModal({
           />
 
           {game.executablePath && (
-            <div className={styles.gameOptionRow}>
+            <div className="game-options-modal__game-option-row">
               <Button
                 type="button"
                 theme="outline"
@@ -248,10 +248,10 @@ export function GameOptionsModal({
           )}
 
           {shouldShowWinePrefixConfiguration && (
-            <div className={styles.optionsContainer}>
-              <div className={styles.gameOptionHeader}>
+            <div className="game-options-modal__options-container">
+              <div className="game-options-modal__game-option-header">
                 <h2>{t("wine_prefix")}</h2>
-                <h4 className={styles.gameOptionHeaderDescription}>
+                <h4 className="game-options-modal__game-option-header-description">
                   {t("wine_prefix_description")}
                 </h4>
               </div>
@@ -286,9 +286,9 @@ export function GameOptionsModal({
           )}
 
           {shouldShowLaunchOptionsConfiguration && (
-            <div className={styles.gameOptionHeader}>
+            <div className="game-options-modal__game-option-header">
               <h2>{t("launch_options")}</h2>
-              <h4 className={styles.gameOptionHeaderDescription}>
+              <h4 className="game-options-modal__game-option-description">
                 {t("launch_options_description")}
               </h4>
               <TextField
@@ -307,14 +307,14 @@ export function GameOptionsModal({
             </div>
           )}
 
-          <div className={styles.gameOptionHeader}>
+          <div className="game-options-modal__game-option-header">
             <h2>{t("downloads_secion_title")}</h2>
-            <h4 className={styles.gameOptionHeaderDescription}>
+            <h4 className="game-options-modal__game-option-description">
               {t("downloads_section_description")}
             </h4>
           </div>
 
-          <div className={styles.gameOptionRow}>
+          <div className="game-options-modal__game-option-row">
             <Button
               onClick={() => setShowRepacksModal(true)}
               theme="outline"
@@ -333,14 +333,14 @@ export function GameOptionsModal({
             )}
           </div>
 
-          <div className={styles.gameOptionHeader}>
+          <div className="game-options-modal__game-option-header">
             <h2>{t("danger_zone_section_title")}</h2>
-            <h4 className={styles.gameOptionHeaderDescription}>
+            <h4 className="game-options-modal__game-option-description">
               {t("danger_zone_section_description")}
             </h4>
           </div>
 
-          <div className={styles.gameOptionRow}>
+          <div className="game-options-modal__game-option-row">
             <Button
               onClick={() => setShowRemoveGameModal(true)}
               theme="danger"

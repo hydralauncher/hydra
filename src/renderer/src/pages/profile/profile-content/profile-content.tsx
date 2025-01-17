@@ -3,8 +3,6 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ProfileHero } from "../profile-hero/profile-hero";
 import { useAppDispatch, useFormat } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
-import { SPACING_UNIT } from "@renderer/theme.css";
-import * as styles from "./profile-content.css";
 import { TelescopeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +12,7 @@ import { FriendsBox } from "./friends-box";
 import { RecentGamesBox } from "./recent-games-box";
 import { UserStatsBox } from "./user-stats-box";
 import { UserLibraryGameCard } from "./user-library-game-card";
+import "./profile-content.scss";
 
 const GAME_STATS_ANIMATION_DURATION_IN_MS = 3500;
 
@@ -89,16 +88,12 @@ export function ProfileContent() {
 
     return (
       <section
-        style={{
-          display: "flex",
-          gap: `${SPACING_UNIT * 3}px`,
-          padding: `${SPACING_UNIT * 3}px`,
-        }}
+        className="profile-content__container"
       >
         <div style={{ flex: 1 }}>
           {!hasGames && (
-            <div className={styles.noGames}>
-              <div className={styles.telescopeIcon}>
+            <div className="profile-content__no-games">
+              <div className="profile-content__telescope-icon">
                 <TelescopeIcon size={24} />
               </div>
               <h2>{t("no_recent_activity_title")}</h2>
@@ -108,7 +103,7 @@ export function ProfileContent() {
 
           {hasGames && (
             <>
-              <div className={styles.sectionHeader}>
+              <div className="profile-content__section-header">
                 <h2>{t("library")}</h2>
 
                 {userStats && (
@@ -116,7 +111,7 @@ export function ProfileContent() {
                 )}
               </div>
 
-              <ul className={styles.gamesGrid}>
+              <ul className="profile-content__games-grid">
                 {userProfile?.libraryGames?.map((game) => (
                   <UserLibraryGameCard
                     game={game}
@@ -132,7 +127,7 @@ export function ProfileContent() {
         </div>
 
         {shouldShowRightContent && (
-          <div className={styles.rightContent}>
+          <div className="profile-content__right-content">
             <UserStatsBox />
             <RecentGamesBox />
             <FriendsBox />

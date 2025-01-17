@@ -13,15 +13,15 @@
     border-color: rgba(255, 255, 255, 0.5);
   }
 
-  &--focused {
+  &__focused {
     border-color: #dadbe1;
   }
 
-  &--primary {
+  &__primary {
     background-color: $dark-background-color;
   }
 
-  &--dark {
+  &__dark {
     background-color: $background-color;
   }
 

@@ -1,4 +1,3 @@
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import type { UserFriend } from "@types";
 import { useEffect, useRef, useState } from "react";
 import { UserFriendItem } from "./user-friend-item";
@@ -6,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import "./user-friend-modal.scss";
 
 export interface UserFriendModalListProps {
   userId: string;
@@ -94,18 +94,17 @@ export const UserFriendModalList = ({
   };
 
   return (
-    <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
+    <SkeletonTheme baseColor="var(--color-background)" highlightColor="#444">
       <div
         ref={listContainer}
+        className="user-friend-modal__friend-list-container"
         style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: `${SPACING_UNIT * 2}px`,
           maxHeight: "400px",
           overflowY: "scroll",
         }}
       >
-        {!isLoading && friends.length === 0 && <p>{t("no_friends_added")}</p>}
+        {!isLoading && friends.length === 0 &&
+          <p className="user-friend-modal__friend-list-display-name">{t("no_friends_added")}</p>}
         {friends.map((friend) => {
           return (
             <UserFriendItem

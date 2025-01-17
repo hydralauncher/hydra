@@ -10,4 +10,13 @@
   &__description {
     margin-bottom: #{$spacing-unit * 2};
   }
+
+  &__field-spacing {
+    margin-top: #{$spacing-unit}; 
+  }
+
+  &__submit-button {
+    align-self: flex-end;
+    margin-top: #{$spacing-unit * 2};
+  }
 }

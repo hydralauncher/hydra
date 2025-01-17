@@ -1,4 +1,4 @@
-@import "../../scss/variables";
+@import "../../../scss/variables";
 
 .profile-content {
   &__game-cover {
@@ -249,5 +249,44 @@
     transition: transform 0.5s ease-in-out;
     flex-shrink: 0;
     flex-grow: 0;
+  }
+
+  &__game-card-style {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-end;
+    height: 100%;
+    width: 100%;
+    background:
+      linear-gradient(0deg, rgba(0,0,0 0.70) 20%, transparent 100%);
+    padding: 8;
+  }
+
+  &__game-playtime {
+    background-color: $background-color;
+    color: $muted-color;
+    border: solid 1px $border-color;
+    border-radius: 4;
+    display: flex;
+    align-items: center;
+    gap: 4;
+    padding: 4px,
+  }
+
+  &__game-card-stats-container {
+    display: flex;
+    justify-content: space-between; 
+    margin-bottom: 8;
+    color: $muted-color;
+    overflow: hidden;
+    height: 18;
+  }
+
+  &__container {
+    display: flex;
+    gap: #{$spacing-unit * 3};
+    padding: #{$spacing-unit * 3};
   }
 }

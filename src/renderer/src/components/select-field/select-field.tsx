@@ -32,7 +32,7 @@ export function SelectField({
 
       <div
         className={cn("select-field", `select-field--${theme}`, {
-          "select-field--focused": isFocused,
+          "select-field__focused": isFocused,
         })}
       >
         <select

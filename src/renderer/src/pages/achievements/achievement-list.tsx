@@ -1,11 +1,11 @@
 import { useDate } from "@renderer/hooks";
 import type { UserAchievement } from "@types";
 import { useTranslation } from "react-i18next";
-import * as styles from "./achievements.css";
 import { EyeClosedIcon } from "@primer/octicons-react";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
-import { vars } from "@renderer/theme.css";
+import "./achievements.scss";
+import "../../scss/_variables.scss"
 
 interface AchievementListProps {
   achievements: UserAchievement[];
@@ -17,16 +17,16 @@ export function AchievementList({ achievements }: AchievementListProps) {
   const { formatDateTime } = useDate();
 
   return (
-    <ul className={styles.list}>
+    <ul className="achievements__list">
       {achievements.map((achievement) => (
         <li
           key={achievement.name}
-          className={styles.listItem}
+          className="achievements__list-item"
           style={{ display: "flex" }}
         >
           <img
-            className={styles.listItemImage({
-              unlocked: achievement.unlocked,
+            className={classNames("achievements__list-item-image", {
+              "achievements__list-item-image--unlocked": achievement.unlocked,
             })}
             src={achievement.icon}
             alt={achievement.displayName}
@@ -66,7 +66,7 @@ export function AchievementList({ achievements }: AchievementListProps) {
                   alignItems: "center",
                   gap: "4px",
                   cursor: "pointer",
-                  color: vars.color.warning,
+                  color: "var(--warning-color)",
                 }}
                 title={t("achievement_earn_points", {
                   points: "???",

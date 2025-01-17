@@ -1,10 +1,10 @@
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
 import type { HowLongToBeatCategory } from "@types";
-import { vars } from "@renderer/theme.css";
-
-import * as styles from "./sidebar.css";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
+
+import "./sidebar.scss"
+import "../../../scss/_variables.scss"
 
 const durationTranslation: Record<string, string> = {
   Hours: "hours",
@@ -30,17 +30,17 @@ export function HowLongToBeatSection({
   if (!howLongToBeatData && !isLoading) return null;
 
   return (
-    <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
+    <SkeletonTheme baseColor="var(--background-color)" highlightColor="#444">
       <SidebarSection title="HowLongToBeat">
-        <ul className={styles.howLongToBeatCategoriesList}>
+        <ul className="sidebar__how-long-to-beat-categories-list">
           {howLongToBeatData
             ? howLongToBeatData.map((category) => (
                 <li
                   key={category.title}
-                  className={styles.howLongToBeatCategory}
+                  className="sidebar__how-long-to-beat-category"
                 >
                   <p
-                    className={styles.howLongToBeatCategoryLabel}
+                    className="sidebar__how-long-to-beat-category"
                     style={{
                       fontWeight: "bold",
                     }}
@@ -48,7 +48,7 @@ export function HowLongToBeatSection({
                     {category.title}
                   </p>
 
-                  <p className={styles.howLongToBeatCategoryLabel}>
+                  <p className="sidebar__how-long-to-beat-category">
                     {getDuration(category.duration)}
                   </p>
 
@@ -62,7 +62,7 @@ export function HowLongToBeatSection({
             : Array.from({ length: 4 }).map((_, index) => (
                 <Skeleton
                   key={index}
-                  className={styles.howLongToBeatCategorySkeleton}
+                  className="sidebar__how-long-to-beat-category-skeleton"
                 />
               ))}
         </ul>

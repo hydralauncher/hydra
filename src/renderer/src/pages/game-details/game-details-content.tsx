@@ -7,7 +7,7 @@ import { DescriptionHeader } from "./description-header/description-header";
 import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
 
-import * as styles from "./game-details.css";
+import "./game-details.scss";
 import { useTranslation } from "react-i18next";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import { AuthPage, steamUrlBuilder } from "@shared";
@@ -118,10 +118,10 @@ export function GameDetailsContent() {
   }, [getGameArtifacts]);
 
   return (
-    <div className={styles.wrapper({ blurredContent: hasNSFWContentBlocked })}>
+    <div className="game-details__blurred-content">
       <img
         src={steamUrlBuilder.libraryHero(objectId!)}
-        className={styles.heroImage}
+        className="game-details__hero-image"
         alt={game?.title}
         onLoad={handleHeroLoad}
       />
@@ -129,9 +129,9 @@ export function GameDetailsContent() {
       <section
         ref={containerRef}
         onScroll={onScroll}
-        className={styles.container}
+        className="game-details__container"
       >
-        <div ref={heroRef} className={styles.hero}>
+        <div ref={heroRef} className="game-details__hero">
           <div
             style={{
               backgroundColor: gameColor,
@@ -141,19 +141,19 @@ export function GameDetailsContent() {
           />
 
           <div
-            className={styles.heroLogoBackdrop}
+            className="game-details__hero-logo-backdrop"
             style={{ opacity: backdropOpactiy }}
           >
-            <div className={styles.heroContent}>
+            <div className="game-details__hero-content">
               <img
                 src={steamUrlBuilder.logo(objectId!)}
-                className={styles.gameLogo}
+                className="game-details__game-logo"
                 alt={game?.title}
               />
 
               <button
                 type="button"
-                className={styles.cloudSyncButton}
+                className="game-details__cloud-sync-button"
                 onClick={handleCloudSaveButtonClick}
               >
                 <div
@@ -180,8 +180,8 @@ export function GameDetailsContent() {
 
         <HeroPanel isHeaderStuck={isHeaderStuck} />
 
-        <div className={styles.descriptionContainer}>
-          <div className={styles.descriptionContent}>
+        <div className="game-details__description-container">
+          <div className="game-details__description-content">
             <DescriptionHeader />
             <GallerySlider />
 
@@ -189,7 +189,7 @@ export function GameDetailsContent() {
               dangerouslySetInnerHTML={{
                 __html: aboutTheGame,
               }}
-              className={styles.description}
+              className="game-details__description"
             />
           </div>
 

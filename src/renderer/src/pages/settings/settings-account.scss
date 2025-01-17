@@ -37,4 +37,24 @@
     align-items: flex-start;
     gap: $spacing-unit;
   }
+
+  &__actions {
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    gap: #{$spacing-unit};
+    margin-top: #{$spacing-unit * 2};
+  }
+
+  &__subscription-description {
+    display: flex;
+    flex-direction: column;
+    gap: #{$spacing-unit};
+  }
+
+  &__subscription {
+    display: flex;
+    flex-direction: column;
+    gap: #{$spacing-unit * 2};
+  }
 }

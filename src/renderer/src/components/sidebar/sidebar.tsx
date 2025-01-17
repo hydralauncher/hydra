@@ -171,8 +171,8 @@ export function Sidebar() {
     <aside
       ref={sidebarRef}
       className={cn("sidebar", {
-        "sidebar--resizing": isResizing,
-        "sidebar--darwin": window.electron.platform === "darwin",
+        "sidebar__resizing": isResizing,
+        "sidebar__darwin": window.electron.platform === "darwin",
       })}
       style={{
         width: sidebarWidth,

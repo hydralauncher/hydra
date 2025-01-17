@@ -1,4 +1,4 @@
-@import "../../scss/variables";
+@import "../../../scss/variables";
 
 .edit-profile-modal {
   &__profile-avatar-edit-container {
@@ -30,5 +30,11 @@
 
   &__profile-avatar-edit-container:hover &__profile-avatar-edit-overlay {
     opacity: 1;
+  }
+
+  &__profile-avatar-container {
+    gap: #{$spacing-unit * 3};
+    display: flex;
+    flex-direction: column;
   }
 }

@@ -1,4 +1,4 @@
-@import "../../scss/variables";
+@import "../../../scss/variables";
 
 .user-friend-modal {
   &__friend-list-display-name {
@@ -38,6 +38,13 @@
     color: $body-color;
     gap: #{$spacing-unit + $spacing-unit / 2};
     padding: 0 $spacing-unit;
+  }
+
+  &__friend-list-actions {
+    position: "absolute";
+    right: "8px";
+    display: "flex";
+    gap: #{$spacing-unit}
   }
 
   &__friend-request-item {
@@ -81,5 +88,26 @@
     &:hover {
       color: $muted-color;
     }
+  }
+    &__add-friend-controls {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: #{$spacing-unit};
+  }
+
+  &__text-field-container {
+    width: 100%;
+  }
+
+  &__button-align {
+    align-self: end;
+  }
+
+  &__pending-container {
+    display: flex;
+    flex-direction: column;
+    gap: #{$spacing-unit * 2};
   }
 }

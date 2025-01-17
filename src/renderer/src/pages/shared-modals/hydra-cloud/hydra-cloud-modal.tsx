@@ -1,6 +1,6 @@
 import { Button, Modal } from "@renderer/components";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { useTranslation } from "react-i18next";
+import "./hydra-cloud.scss";
 
 export interface HydraCloudModalProps {
   feature: string;
@@ -23,12 +23,7 @@ export const HydraCloudModal = ({
     <Modal visible={visible} title={t("hydra_cloud")} onClose={onClose}>
       <div
         data-hydra-cloud-feature={feature}
-        style={{
-          display: "flex",
-          width: "500px",
-          flexDirection: "column",
-          gap: `${SPACING_UNIT * 2}px`,
-        }}
+        className="hydra-cloud__on-close"
       >
         {t("hydra_cloud_feature_found")}
         <Button onClick={handleClickOpenCheckout}>{t("learn_more")}</Button>

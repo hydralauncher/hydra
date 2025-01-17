@@ -1,4 +1,4 @@
-@import "../../scss/variables";
+@import "../../../scss/variables";
 
 .report-profile {
   &__report-button {
@@ -9,5 +9,15 @@
     cursor: pointer;
     align-items: center;
     font-size: 12px;
+  }
+  &__button {
+    margin-top: $spacing-unit;
+    align-self: flex-end;
+  }
+
+  &__report-modal {
+    display: flex;
+    flex-direction: column;
+    gap: #{$spacing-unit * 2};
   }
 }

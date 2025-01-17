@@ -139,7 +139,7 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
             display: "flex",
             justifyContent: "space-between",
             marginBottom: 8,
-            color: vars.color.muted,
+            color: "#c0c1c7",
           }}
         >
           <div
@@ -253,7 +253,7 @@ export function AchievementsContent({
           style={{
             display: "flex",
             flexDirection: "column",
-            background: `linear-gradient(0deg, ${vars.color.darkBackground} 0%, ${gameColor} 100%)`,
+            background: `linear-gradient(0deg, #1c1c1c 0%, ${gameColor} 100%)`,
           }}
         >
           <div ref={heroRef} className={styles.hero}>

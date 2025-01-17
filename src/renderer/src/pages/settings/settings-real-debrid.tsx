@@ -2,12 +2,11 @@ import { useContext, useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
 import { Button, CheckboxField, Link, TextField } from "@renderer/components";
-import * as styles from "./settings-real-debrid.css";
 
 import { useAppSelector, useToast } from "@renderer/hooks";
 
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { settingsContext } from "@renderer/context";
+import "./settings-real-debrid.scss"
 
 const REAL_DEBRID_API_TOKEN_URL = "https://real-debrid.com/apitoken";
 
@@ -78,8 +77,8 @@ export function SettingsRealDebrid() {
     (form.useRealDebrid && !form.realDebridApiToken) || isLoading;
 
   return (
-    <form className={styles.form} onSubmit={handleFormSubmit}>
-      <p className={styles.description}>{t("real_debrid_description")}</p>
+    <form className="settings-real-debrid__form" onSubmit={handleFormSubmit}>
+      <p className="settings-real-debrid__description">{t("real_debrid_description")}</p>
 
       <CheckboxField
         label={t("enable_real_debrid")}
@@ -101,7 +100,7 @@ export function SettingsRealDebrid() {
             setForm({ ...form, realDebridApiToken: event.target.value })
           }
           placeholder="API Token"
-          containerProps={{ style: { marginTop: `${SPACING_UNIT}px` } }}
+          containerProps={{ className: "settings-real-debrid__field-spacing" }}
           hint={
             <Trans i18nKey="real_debrid_api_token_hint" ns="settings">
               <Link to={REAL_DEBRID_API_TOKEN_URL} />
@@ -112,7 +111,7 @@ export function SettingsRealDebrid() {
 
       <Button
         type="submit"
-        style={{ alignSelf: "flex-end", marginTop: `${SPACING_UNIT * 2}px` }}
+        className="settings-real-debrid__submit-button"
         disabled={isButtonDisabled}
       >
         {t("save_changes")}

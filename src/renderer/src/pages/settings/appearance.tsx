@@ -5,7 +5,7 @@ import { AddThemeModal } from "./add-theme-modal";
 import { settingsContext } from "@renderer/context";
 import { PlusCircleIcon, GlobeIcon, PencilIcon } from "@primer/octicons-react";
 
-import * as styles from "./settings-download-sources.css";
+import "./settings-download-sources";
 
 export function SettingsAppearance() {
   const { t } = useTranslation("settings");
@@ -32,7 +32,7 @@ export function SettingsAppearance() {
 
       <p>{t("themes_description")}</p>
 
-      <div className={styles.downloadSourcesHeader}>
+      <div className="settings-download-sources__download-source-item-header">
         <div style={{ display: "flex", gap: "8px" }}>
           <Button type="button" theme="outline">
             <GlobeIcon />

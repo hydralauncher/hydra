@@ -14,12 +14,12 @@
   display: flex;
   flex-direction: column;
 
-  &--closing {
+  &__closing {
     animation-name: scale-fade-out;
     opacity: 0;
   }
 
-  &--large {
+  &__large {
     width: 800px;
     max-width: 800px;
   }

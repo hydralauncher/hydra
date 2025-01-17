@@ -1,6 +1,5 @@
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
+import "./profile-hero.scss"
 
-import * as styles from "./profile-hero.css";
 import { useCallback, useContext, useMemo, useState } from "react";
 import { userProfileContext } from "@renderer/context";
 import {
@@ -127,7 +126,7 @@ export function ProfileHero() {
             theme="outline"
             onClick={() => setShowEditProfileModal(true)}
             disabled={isPerformingAction}
-            style={{ borderColor: vars.color.body }}
+            style={{ borderColor: "#8e919b" }}
           >
             <PencilIcon />
             {t("edit_profile")}
@@ -152,7 +151,7 @@ export function ProfileHero() {
             theme="outline"
             onClick={() => handleFriendAction(userProfile.id, "SEND")}
             disabled={isPerformingAction}
-            style={{ borderColor: vars.color.body }}
+            style={{ borderColor: "#8e919b" }}
           >
             <PersonAddIcon />
             {t("add_friend")}
@@ -187,7 +186,7 @@ export function ProfileHero() {
               handleFriendAction(userProfile.id, "UNDO_FRIENDSHIP")
             }
             disabled={isPerformingAction}
-            style={{ borderColor: vars.color.body }}
+            style={{ borderColor: "#8e919b" }}
           >
             <XCircleFillIcon />
             {t("undo_friendship")}
@@ -204,7 +203,7 @@ export function ProfileHero() {
             handleFriendAction(userProfile.relation!.BId, "CANCEL")
           }
           disabled={isPerformingAction}
-          style={{ borderColor: vars.color.body }}
+          style={{ borderColor: "#8e919b" }}
         >
           <XCircleFillIcon /> {t("cancel_request")}
         </Button>
@@ -219,7 +218,7 @@ export function ProfileHero() {
             handleFriendAction(userProfile.relation!.AId, "ACCEPTED")
           }
           disabled={isPerformingAction}
-          style={{ borderColor: vars.color.body }}
+          style={{ borderColor: "#8e919b" }}
         >
           <CheckCircleFillIcon /> {t("accept_request")}
         </Button>
@@ -279,7 +278,7 @@ export function ProfileHero() {
       />
 
       <section
-        className={styles.profileContentBox}
+        className="profile-hero__content-box"
         style={{ background: heroBackground }}
       >
         {backgroundImage && (
@@ -303,10 +302,10 @@ export function ProfileHero() {
             zIndex: 1,
           }}
         >
-          <div className={styles.userInformation}>
+          <div className="profile-hero__user-information">
             <button
               type="button"
-              className={styles.profileAvatarButton}
+              className="profile-hero__avatar-button"
               onClick={handleAvatarClick}
             >
               <Avatar
@@ -316,9 +315,9 @@ export function ProfileHero() {
               />
             </button>
 
-            <div className={styles.profileInformation}>
+            <div className="profile-hero__information">
               {userProfile ? (
-                <h2 className={styles.profileDisplayName}>
+                <h2 className="profile-hero__display-name">
                   {userProfile?.displayName}
                 </h2>
               ) : (
@@ -326,8 +325,8 @@ export function ProfileHero() {
               )}
 
               {currentGame && (
-                <div className={styles.currentGameWrapper}>
-                  <div className={styles.currentGameDetails}>
+                <div className="profile-hero__current-game-wrapper">
+                  <div className="profile-hero__current-game-details">
                     <Link
                       to={buildGameDetailsPath({
                         ...currentGame,
@@ -358,18 +357,13 @@ export function ProfileHero() {
         </div>
 
         <div
-          className={styles.heroPanel}
+          className="profile-hero__hero-panel"
           style={{
             background: backgroundImage ? backgroundImageLayer : heroBackground,
           }}
         >
           <div
-            style={{
-              display: "flex",
-              gap: `${SPACING_UNIT}px`,
-              justifyContent: "flex-end",
-              flex: 1,
-            }}
+            className="profile-hero__actions"
           >
             {profileActions}
           </div>
