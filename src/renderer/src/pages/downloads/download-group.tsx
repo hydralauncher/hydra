@@ -240,8 +240,7 @@ export function DownloadGroup({
 
   return (
     <div className="download-group">
-      <div className="download-group__downloads-group"
-      >
+      <div className="download-group__downloads-group">
         <h2>{title}</h2>
 
         <div
