@@ -1,6 +1,6 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import "./hero-panel.scss"
+import "./hero-panel.scss";
 import { formatDownloadProgress } from "@renderer/helpers";
 import { useDate, useDownload, useFormat } from "@renderer/hooks";
 import { Link } from "@renderer/components";

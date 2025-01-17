@@ -3,8 +3,8 @@ import { useFormat } from "@renderer/hooks";
 import { useCallback, useMemo, useState } from "react";
 
 import List from "rc-virtual-list";
-import { vars } from "@renderer/theme.css";
 import { useTranslation } from "react-i18next";
+import "../../scss/_variables.scss";
 
 export interface FilterSectionProps {
   title: string;
@@ -80,7 +80,7 @@ export function FilterSection({
             fontSize: 12,
             marginBottom: 12,
             display: "block",
-            color: vars.color.body,
+            color: "var(--body-color)",
             cursor: "pointer",
             textDecoration: "underline",
           }}

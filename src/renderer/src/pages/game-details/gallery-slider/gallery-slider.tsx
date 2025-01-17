@@ -2,7 +2,7 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRightIcon, ChevronLeftIcon } from "@primer/octicons-react";
 
-import "./gallery-slider.scss"
+import "./gallery-slider.scss";
 import { gameDetailsContext } from "@renderer/context";
 
 const getButtonClasses = (visible: boolean, direction: "left" | "right") => {

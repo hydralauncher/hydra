@@ -1,7 +1,7 @@
 import { LockIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 
-import "./locked-profile.scss"
+import "./locked-profile.scss";
 
 export function LockedProfile() {
   const { t } = useTranslation("user_profile");

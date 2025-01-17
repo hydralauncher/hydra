@@ -103,8 +103,11 @@ export const UserFriendModalList = ({
           overflowY: "scroll",
         }}
       >
-        {!isLoading && friends.length === 0 &&
-          <p className="user-friend-modal__friend-list-display-name">{t("no_friends_added")}</p>}
+        {!isLoading && friends.length === 0 && (
+          <p className="user-friend-modal__friend-list-display-name">
+            {t("no_friends_added")}
+          </p>
+        )}
         {friends.map((friend) => {
           return (
             <UserFriendItem

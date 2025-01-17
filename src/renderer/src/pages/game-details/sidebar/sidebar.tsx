@@ -117,158 +117,159 @@ export function Sidebar() {
     }
   }, [objectId, shop, gameTitle]);
 
-return (
-  <aside className="sidebar__content">
-    {userDetails === null && (
-      <SidebarSection title={t("achievements")}>
-        <div className="sidebar__overlay">
-          <LockIcon size={36} />
-          <h3>{t("sign_in_to_see_achievements")}</h3>
-        </div>
-        <ul className="sidebar__list sidebar__list--blurred">
-          {fakeAchievements.map((achievement, index) => (
-            <li key={index}>
-              <div className="sidebar__list-item">
-                <img
-                  className={classNames("sidebar__list-item-image", {
-                    "sidebar__list-item-image--unlocked": achievement.unlocked,
-                    "sidebar__list-item-image--blurred": true,
-                  })}
-                  src={achievement.icon}
-                  alt={achievement.displayName}
-                />
-                <div>
-                  <p>{achievement.displayName}</p>
-                  <small>
-                    {achievement.unlockTime != null &&
-                      formatDateTime(achievement.unlockTime)}
-                  </small>
+  return (
+    <aside className="sidebar__content">
+      {userDetails === null && (
+        <SidebarSection title={t("achievements")}>
+          <div className="sidebar__overlay">
+            <LockIcon size={36} />
+            <h3>{t("sign_in_to_see_achievements")}</h3>
+          </div>
+          <ul className="sidebar__list sidebar__list--blurred">
+            {fakeAchievements.map((achievement, index) => (
+              <li key={index}>
+                <div className="sidebar__list-item">
+                  <img
+                    className={classNames("sidebar__list-item-image", {
+                      "sidebar__list-item-image--unlocked":
+                        achievement.unlocked,
+                      "sidebar__list-item-image--blurred": true,
+                    })}
+                    src={achievement.icon}
+                    alt={achievement.displayName}
+                  />
+                  <div>
+                    <p>{achievement.displayName}</p>
+                    <small>
+                      {achievement.unlockTime != null &&
+                        formatDateTime(achievement.unlockTime)}
+                    </small>
+                  </div>
                 </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </SidebarSection>
-    )}
-    {userDetails && achievements && achievements.length > 0 && (
-      <SidebarSection
-        title={t("achievements_count", {
-          unlockedCount: achievements.filter((a) => a.unlocked).length,
-          achievementsCount: achievements.length,
-        })}
-      >
-        <ul className="sidebar__list">
-          {!hasActiveSubscription && (
-            <button
-              className="sidebar__subscription-required-button"
-              onClick={() => showHydraCloudModal("achievements")}
-            >
-              <CloudOfflineIcon size={16} />
-              <span>{t("achievements_not_sync")}</span>
-            </button>
-          )}
-
-          {achievements.slice(0, 4).map((achievement, index) => (
-            <li key={index}>
-              <Link
-                to={buildGameAchievementPath({
-                  shop: shop,
-                  objectId: objectId!,
-                  title: gameTitle,
-                })}
-                className="sidebar__list-item"
-                title={achievement.description}
+              </li>
+            ))}
+          </ul>
+        </SidebarSection>
+      )}
+      {userDetails && achievements && achievements.length > 0 && (
+        <SidebarSection
+          title={t("achievements_count", {
+            unlockedCount: achievements.filter((a) => a.unlocked).length,
+            achievementsCount: achievements.length,
+          })}
+        >
+          <ul className="sidebar__list">
+            {!hasActiveSubscription && (
+              <button
+                className="sidebar__subscription-required-button"
+                onClick={() => showHydraCloudModal("achievements")}
               >
-                <img
-                  className={classNames("achievements__list-item-image", {
-                    "achievements__list-item-image--unlocked":
-                      achievement.unlocked,
+                <CloudOfflineIcon size={16} />
+                <span>{t("achievements_not_sync")}</span>
+              </button>
+            )}
+
+            {achievements.slice(0, 4).map((achievement, index) => (
+              <li key={index}>
+                <Link
+                  to={buildGameAchievementPath({
+                    shop: shop,
+                    objectId: objectId!,
+                    title: gameTitle,
                   })}
-                  src={achievement.icon}
-                  alt={achievement.displayName}
-                />
-                <div>
-                  <p>{achievement.displayName}</p>
-                  <small>
-                    {achievement.unlockTime != null &&
-                      formatDateTime(achievement.unlockTime)}
-                  </small>
-                </div>
-              </Link>
-            </li>
-          ))}
+                  className="sidebar__list-item"
+                  title={achievement.description}
+                >
+                  <img
+                    className={classNames("achievements__list-item-image", {
+                      "achievements__list-item-image--unlocked":
+                        achievement.unlocked,
+                    })}
+                    src={achievement.icon}
+                    alt={achievement.displayName}
+                  />
+                  <div>
+                    <p>{achievement.displayName}</p>
+                    <small>
+                      {achievement.unlockTime != null &&
+                        formatDateTime(achievement.unlockTime)}
+                    </small>
+                  </div>
+                </Link>
+              </li>
+            ))}
 
-          <Link
-            style={{ textAlign: "center" }}
-            to={buildGameAchievementPath({
-              shop: shop,
-              objectId: objectId!,
-              title: gameTitle,
-            })}
-          >
-            {t("see_all_achievements")}
-          </Link>
-        </ul>
-      </SidebarSection>
-    )}
+            <Link
+              style={{ textAlign: "center" }}
+              to={buildGameAchievementPath({
+                shop: shop,
+                objectId: objectId!,
+                title: gameTitle,
+              })}
+            >
+              {t("see_all_achievements")}
+            </Link>
+          </ul>
+        </SidebarSection>
+      )}
 
-    {stats && (
-      <SidebarSection title={t("stats")}>
-        <div className="sidebar__stats-section">
-          <div className="sidebar__stats-category">
-            <p className="sidebar__stats-category-title">
-              <DownloadIcon size={18} />
-              {t("download_count")}
-            </p>
-            <p>{numberFormatter.format(stats?.downloadCount)}</p>
+      {stats && (
+        <SidebarSection title={t("stats")}>
+          <div className="sidebar__stats-section">
+            <div className="sidebar__stats-category">
+              <p className="sidebar__stats-category-title">
+                <DownloadIcon size={18} />
+                {t("download_count")}
+              </p>
+              <p>{numberFormatter.format(stats?.downloadCount)}</p>
+            </div>
+
+            <div className="sidebar__stats-category">
+              <p className="sidebar__stats-category-title">
+                <PeopleIcon size={18} />
+                {t("player_count")}
+              </p>
+              <p>{numberFormatter.format(stats?.playerCount)}</p>
+            </div>
           </div>
+        </SidebarSection>
+      )}
 
-          <div className="sidebar__stats-category">
-            <p className="sidebar__stats-category-title">
-              <PeopleIcon size={18} />
-              {t("player_count")}
-            </p>
-            <p>{numberFormatter.format(stats?.playerCount)}</p>
-          </div>
-        </div>
-      </SidebarSection>
-    )}
-
-    <HowLongToBeatSection
-      howLongToBeatData={howLongToBeat.data}
-      isLoading={howLongToBeat.isLoading}
-    />
-
-    <SidebarSection title={t("requirements")}>
-      <div className="sidebar__requirement-button-container">
-        <Button
-          className="sidebar__requirement-button"
-          onClick={() => setActiveRequirement("minimum")}
-          theme={activeRequirement === "minimum" ? "primary" : "outline"}
-        >
-          {t("minimum")}
-        </Button>
-
-        <Button
-          className="sidebar__requirement-button"
-          onClick={() => setActiveRequirement("recommended")}
-          theme={activeRequirement === "recommended" ? "primary" : "outline"}
-        >
-          {t("recommended")}
-        </Button>
-      </div>
-
-      <div
-        className="sidebar__requirements-details"
-        dangerouslySetInnerHTML={{
-          __html:
-            shopDetails?.pc_requirements?.[activeRequirement] ??
-            t(`no_${activeRequirement}_requirements`, {
-              gameTitle,
-            }),
-        }}
+      <HowLongToBeatSection
+        howLongToBeatData={howLongToBeat.data}
+        isLoading={howLongToBeat.isLoading}
       />
-    </SidebarSection>
-  </aside>
-);
+
+      <SidebarSection title={t("requirements")}>
+        <div className="sidebar__requirement-button-container">
+          <Button
+            className="sidebar__requirement-button"
+            onClick={() => setActiveRequirement("minimum")}
+            theme={activeRequirement === "minimum" ? "primary" : "outline"}
+          >
+            {t("minimum")}
+          </Button>
+
+          <Button
+            className="sidebar__requirement-button"
+            onClick={() => setActiveRequirement("recommended")}
+            theme={activeRequirement === "recommended" ? "primary" : "outline"}
+          >
+            {t("recommended")}
+          </Button>
+        </div>
+
+        <div
+          className="sidebar__requirements-details"
+          dangerouslySetInnerHTML={{
+            __html:
+              shopDetails?.pc_requirements?.[activeRequirement] ??
+              t(`no_${activeRequirement}_requirements`, {
+                gameTitle,
+              }),
+          }}
+        />
+      </SidebarSection>
+    </aside>
+  );
 }

@@ -79,7 +79,7 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
   return (
     <div
       className={cn("toast", {
-        "toast__closing": isClosing,
+        toast__closing: isClosing,
       })}
     >
       <div className="toast__content">

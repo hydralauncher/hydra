@@ -30,7 +30,6 @@ export function DeleteGameModal({
       onClose={onClose}
     >
       <div className="delete-game-modal__actions-buttons-ctn">
-  
         <Button onClick={handleDeleteGame} theme="outline">
           {t("delete")}
         </Button>

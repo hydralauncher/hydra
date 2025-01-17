@@ -1,10 +1,10 @@
 @import "../../../scss/variables";
 
 .hydra-cloud {
-    &__on-close {
-        display: flex;
-        width: 500px;
-        flex-direction: "column";
-        gap: #{$spacing-unit * 2};
-    }
+  &__on-close {
+    display: flex;
+    width: 500px;
+    flex-direction: "column";
+    gap: #{$spacing-unit * 2};
+  }
 }

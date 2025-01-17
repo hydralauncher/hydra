@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next";
 import type { HowLongToBeatCategory } from "@types";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 
-import "./sidebar.scss"
-import "../../../scss/_variables.scss"
+import "./sidebar.scss";
+import "../../../scss/_variables.scss";
 
 const durationTranslation: Record<string, string> = {
   Hours: "hours",

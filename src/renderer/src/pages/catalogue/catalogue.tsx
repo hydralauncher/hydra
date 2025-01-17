@@ -9,8 +9,8 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import "./catalogue.scss";
+import "../../scss/_variables.scss";
 
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { downloadSourcesTable } from "@renderer/dexie";
 import { FilterSection } from "./filter-section";
 import { setFilters, setPage } from "@renderer/features";
@@ -270,13 +270,7 @@ export default function Catalogue() {
         </div>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          gap: SPACING_UNIT * 2,
-          justifyContent: "space-between",
-        }}
-      >
+      <div className="catalogue__header">
         <div
           style={{
             display: "flex",
@@ -287,8 +281,8 @@ export default function Catalogue() {
         >
           {isLoading ? (
             <SkeletonTheme
-              baseColor={vars.color.darkBackground}
-              highlightColor={vars.color.background}
+              baseColor="var(--dark-background-color)"
+              highlightColor="var(--background-color)"
             >
               {Array.from({ length: PAGE_SIZE }).map((_, i) => (
                 <Skeleton
@@ -296,7 +290,7 @@ export default function Catalogue() {
                   style={{
                     height: 105,
                     borderRadius: 4,
-                    border: `solid 1px ${vars.color.border}`,
+                    border: `solid 1px var(--border-color)`,
                   }}
                 />
               ))}
