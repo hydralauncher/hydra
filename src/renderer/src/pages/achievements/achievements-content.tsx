@@ -18,6 +18,7 @@ import { AchievementList } from "./achievement-list";
 import { AchievementPanel } from "./achievement-panel";
 import { ComparedAchievementPanel } from "./compared-achievement-panel";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import classNames from "classnames";
 import "./achievements.scss";
 import "../../scss/_variables.scss";
 
