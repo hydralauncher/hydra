@@ -259,6 +259,9 @@ declare global {
 
     /* Notifications */
     publishNewRepacksNotification: (newRepacksCount: number) => Promise<void>;
+
+    /* Editor */
+    openEditorWindow: () => Promise<void>;
   }
 
   interface Window {

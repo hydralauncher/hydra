@@ -30,6 +30,7 @@ const Downloads = React.lazy(() => import("./pages/downloads/downloads"));
 const Settings = React.lazy(() => import("./pages/settings/settings"));
 const Catalogue = React.lazy(() => import("./pages/catalogue/catalogue"));
 const Profile = React.lazy(() => import("./pages/profile/profile"));
+const Editor = React.lazy(() => import("./pages/editor/editor"));
 const Achievements = React.lazy(
   () => import("./pages/achievements/achievements")
 );
@@ -104,6 +105,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               element={<SuspenseWrapper Component={Achievements} />}
             />
           </Route>
+
+          <Route
+            path="/editor"
+            element={<SuspenseWrapper Component={Editor} />}
+          />
         </Routes>
       </HashRouter>
     </Provider>
