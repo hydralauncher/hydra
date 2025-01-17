@@ -1,6 +1,9 @@
+@import "../../scss/variables";
+
 .link {
   text-decoration: none;
-  color: #c0c1c7;
+  color: $muted-color;
+
   &:hover {
     text-decoration: underline;
   }

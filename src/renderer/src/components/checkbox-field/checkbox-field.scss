@@ -1,23 +1,23 @@
-@use "../../scss/globals.scss";
+@import "../../scss/variables";
 
 .checkbox-field {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: globals.$spacing-unit;
+  gap: $spacing-unit;
   cursor: pointer;
 
   &__checkbox {
     width: 20px;
     height: 20px;
     border-radius: 4px;
-    background-color: globals.$dark-background-color;
+    background-color: $dark-background-color;
     display: flex;
     justify-content: center;
     align-items: center;
     position: relative;
     transition: all ease 0.2s;
-    border: solid 1px globals.$border-color;
+    border: solid 1px $border-color;
     &:hover {
       border-color: rgba(255, 255, 255, 0.5);
     }

@@ -1,0 +1,53 @@
+@import "../../scss/variables";
+
+.settings-download-sources {
+  &__download-sources {
+    padding: 0;
+    margin: 0;
+    gap: #{$spacing-unit * 2};
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__download-source-item {
+    display: flex;
+    flex-direction: column;
+    background-color: $dark-background-color;
+    border-radius: 8px;
+    padding: #{$spacing-unit * 2};
+    gap: $spacing-unit;
+    border: solid 1px $border-color;
+    transition: all ease 0.2s;
+
+    &--is-syncing {
+      opacity: $disabled-opacity;
+    }
+  }
+
+  &__download-source-item-header {
+    margin-bottom: $spacing-unit;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-unit;
+  }
+
+  &__download-sources-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__navigate-to-catalogue-button {
+    display: flex;
+    align-items: center;
+    gap: $spacing-unit;
+    color: $muted-color;
+    text-decoration: underline;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: default;
+      text-decoration: none;
+    }
+  }
+}

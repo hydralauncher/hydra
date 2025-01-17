@@ -1,0 +1,10 @@
+@import "../../scss/variables";
+
+.profile {
+  &__wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: #{$spacing-unit * 3};
+  }
+}

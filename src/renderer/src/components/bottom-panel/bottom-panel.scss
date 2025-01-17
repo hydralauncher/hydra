@@ -1,23 +1,23 @@
-@use "../../scss/globals.scss";
+@import "../../scss/variables";
 
 .bottom-panel {
   width: 100%;
-  border-top: solid 1px globals.$border-color;
-  background-color: globals.$background-color;
-  padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 2);
+  border-top: solid 1px $border-color;
+  background-color: $background-color;
+  padding: calc($spacing-unit / 2) calc($spacing-unit * 2);
   display: flex;
   align-items: center;
   transition: all ease 0.2s;
   justify-content: space-between;
   position: relative;
-  z-index: globals.$bottom-panel-z-index;
+  z-index: $bottom-panel-z-index;
 
   &__downloads-button {
-    color: globals.$body-color;
+    color: $body-color;
     border-bottom: solid 1px transparent;
 
     &:hover {
-      border-bottom: solid 1px globals.$body-color;
+      border-bottom: solid 1px $body-color;
       cursor: pointer;
     }
   }

@@ -1,0 +1,66 @@
+@import "../../scss/variables";
+
+.hero-panel {
+  width: 100%;
+  height: 72px;
+  min-height: 72px;
+  padding: #{$spacing-unit * 2} #{$spacing-unit * 3};
+  background-color: $dark-background-color;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all ease 0.2s;
+  border-bottom: solid 1px $border-color;
+  position: sticky;
+  overflow: hidden;
+  top: 0;
+  z-index: 2;
+
+  &--stuck {
+    box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.8);
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-unit;
+  }
+
+  &__actions {
+    display: flex;
+    gap: $spacing-unit;
+  }
+
+  &__download-details-row {
+    gap: $spacing-unit;
+    display: flex;
+    color: $body-color;
+    align-items: center;
+  }
+
+  &__downloads-link {
+    color: $body-color;
+    text-decoration: underline;
+  }
+
+  &__progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    transition: all ease 0.2s;
+
+    &::-webkit-progress-bar {
+      background-color: transparent;
+    }
+
+    &::-webkit-progress-value {
+      background-color: $muted-color;
+    }
+
+    &--disabled {
+      opacity: $disabled-opacity;
+    }
+  }
+}

@@ -1,15 +1,15 @@
-@use "../../scss/globals.scss";
+@import "../../scss/variables";
 
 .modal {
   animation: scale-fade-in 0.2s cubic-bezier(0.33, 1, 0.68, 1) 0s 1 normal none
     running;
-  background-color: globals.$background-color;
+  background-color: $background-color;
   border-radius: 4px;
   min-width: 400px;
   max-width: 600px;
-  color: globals.$body-color;
+  color: $body-color;
   max-height: 100%;
-  border: solid 1px globals.$border-color;
+  border: solid 1px $border-color;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -27,14 +27,14 @@
   &__content {
     height: 100%;
     overflow: auto;
-    padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
+    padding: calc($spacing-unit * 3) calc($spacing-unit * 2);
   }
 
   &__header {
     display: flex;
-    gap: globals.$spacing-unit;
-    padding: calc(globals.$spacing-unit * 2);
-    border-bottom: solid 1px globals.$border-color;
+    gap: $spacing-unit;
+    padding: calc($spacing-unit * 2);
+    border-bottom: solid 1px $border-color;
     justify-content: space-between;
     align-items: center;
   }
@@ -50,7 +50,7 @@
   }
 
   &__close-button-icon {
-    color: globals.$body-color;
+    color: $body-color;
   }
 }
 

@@ -1,21 +1,22 @@
-@use "../../scss/globals.scss";
+@import "../../scss/variables";
 
 .sidebar-profile {
   position: relative;
   display: flex;
   align-items: center;
-  gap: globals.$spacing-unit;
-  padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+  gap: $spacing-unit;
+  padding: $spacing-unit $spacing-unit * 2;
 
   &__button {
     display: flex;
     cursor: pointer;
     transition: all ease 0.1s;
-    color: globals.$muted-color;
+    color: $muted-color;
     width: 100%;
     overflow: hidden;
     border-radius: 4px;
-    padding: globals.$spacing-unit globals.$spacing-unit;
+    padding: $spacing-unit $spacing-unit;
+
     &:hover {
       background-color: rgba(255, 255, 255, 0.15);
     }
@@ -24,7 +25,7 @@
   &__button-content {
     display: flex;
     align-items: center;
-    gap: calc(globals.$spacing-unit + globals.$spacing-unit / 2);
+    gap: $spacing-unit + $spacing-unit / 2;
     width: 100%;
   }
 
@@ -38,7 +39,7 @@
 
   &__button-title {
     font-weight: bold;
-    font-size: globals.$body-font-size;
+    font-size: 14px;
     width: 100%;
     text-align: left;
     overflow: hidden;
@@ -47,23 +48,24 @@
   }
 
   &__friends-button {
-    color: globals.$muted-color;
+    color: $muted-color;
     cursor: pointer;
     border-radius: 50%;
     width: 40px;
     min-width: 40px;
     min-height: 40px;
     height: 40px;
-    background-color: globals.$background-color;
+    background-color: $background-color;
     position: relative;
     transition: all ease 0.3s;
+
     &:hover {
       background-color: rgba(255, 255, 255, 0.15);
     }
   }
 
   &__friends-button-badge {
-    background-color: globals.$success-color;
+    background-color: $success-color;
     display: flex;
     justify-content: center;
     align-items: center;

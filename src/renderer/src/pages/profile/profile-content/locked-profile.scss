@@ -1,0 +1,24 @@
+@import "../../scss/variables";
+
+.locked-profile {
+  &__container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: $spacing-unit;
+  }
+
+  &__lock-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: $spacing-unit * 2;
+  }
+}

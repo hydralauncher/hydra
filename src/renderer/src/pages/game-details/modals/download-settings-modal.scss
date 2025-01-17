@@ -1,0 +1,47 @@
+@import "../../scss/variables";
+
+.download-settings-modal {
+  &__container {
+    display: flex;
+    flex-direction: column;
+    gap: #{$spacing-unit * 3};
+    width: 100%;
+  }
+
+  &__downloads-path-field {
+    display: flex;
+    gap: $spacing-unit;
+  }
+
+  &__hint-text {
+    font-size: 12px;
+    color: $body-color;
+  }
+
+  &__downloaders {
+    display: grid;
+    gap: $spacing-unit;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  &__downloader-option {
+    position: relative;
+
+    &:only-child {
+      grid-column: 1 / -1;
+    }
+  }
+
+  &__downloader-icon {
+    position: absolute;
+    left: #{$spacing-unit * 2};
+  }
+
+  &__path-error {
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

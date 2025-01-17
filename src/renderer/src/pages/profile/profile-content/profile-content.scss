@@ -1,0 +1,253 @@
+@import "../../scss/variables";
+
+.profile-content {
+  &__game-cover {
+    transition: all ease 0.2s;
+    box-shadow: 0 8px 10px -2px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    position: relative;
+
+    &:before {
+      content: "";
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 172%;
+      position: absolute;
+      background: linear-gradient(
+        35deg,
+        rgba(0, 0, 0, 0.1) 0%,
+        rgba(0, 0, 0, 0.07) 51.5%,
+        rgba(255, 255, 255, 0.15) 54%,
+        rgba(255, 255, 255, 0.15) 100%
+      );
+      transition: all ease 0.3s;
+      transform: translateY(-36%);
+      opacity: 0.5;
+    }
+
+    &:hover::before {
+      opacity: 1;
+      transform: translateY(-20%);
+    }
+  }
+
+  &__game {
+    transition: all ease 0.2s;
+
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+
+  &__box {
+    background-color: $background-color;
+    border-radius: 4px;
+    border: solid 1px $border-color;
+    padding: #{$spacing-unit * 2};
+  }
+
+  &__section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: #{$spacing-unit * 2};
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: #{$spacing-unit * 2};
+  }
+
+  &__friend {
+    display: flex;
+    gap: $spacing-unit;
+    align-items: center;
+  }
+
+  &__friend-name {
+    color: $muted-color;
+    font-weight: bold;
+    font-size: $body-size;
+  }
+
+  &__right-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    gap: #{$spacing-unit * 2};
+    flex-direction: column;
+    transition: all ease 0.2s;
+
+    @media (min-width: 1024px) {
+      max-width: 300px;
+      width: 100%;
+    }
+
+    @media (min-width: 1280px) {
+      width: 100%;
+      max-width: 400px;
+    }
+  }
+
+  &__list-item {
+    display: flex;
+    cursor: pointer;
+    transition: all ease 0.1s;
+    color: $muted-color;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 4px;
+    padding: $spacing-unit;
+    gap: #{$spacing-unit * 2};
+    align-items: center;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+      text-decoration: none;
+    }
+  }
+
+  &__stats-list-item {
+    display: flex;
+    flex-direction: column;
+    transition: all ease 0.1s;
+    color: $muted-color;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 4px;
+    padding: $spacing-unit;
+    gap: $spacing-unit;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+      text-decoration: none;
+    }
+  }
+
+  &__games-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: #{$spacing-unit * 2};
+    grid-template-columns: repeat(2, 1fr);
+
+    @container (min-width: 900px) {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    @container (min-width: 1300px) {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    @container (min-width: 2000px) {
+      grid-template-columns: repeat(6, 1fr);
+    }
+
+    @container (min-width: 2600px) {
+      grid-template-columns: repeat(8, 1fr);
+    }
+
+    @container (min-width: 3000px) {
+      grid-template-columns: repeat(12, 1fr);
+    }
+  }
+
+  &__telescope-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: #{$spacing-unit * 2};
+  }
+
+  &__no-games {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: $spacing-unit;
+  }
+
+  &__list-item-image {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    object-fit: cover;
+  }
+
+  &__list-item-details {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-unit / 2;
+    overflow: hidden;
+  }
+
+  &__list-item-title {
+    font-weight: bold;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  &__list-item-description {
+    display: flex;
+    align-items: center;
+    gap: $spacing-unit;
+  }
+
+  &__default-avatar-wrapper {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: $background-color;
+    border: solid 1px $border-color;
+    border-radius: 4px;
+  }
+
+  &__achievements-progress-bar {
+    width: 100%;
+    height: 4px;
+    transition: all ease 0.2s;
+
+    &::-webkit-progress-bar {
+      background-color: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+
+    &::-webkit-progress-value {
+      background-color: $muted-color;
+      border-radius: 4px;
+    }
+  }
+
+  &__link {
+    text-align: start;
+    color: $body-color;
+
+    &:hover {
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  }
+
+  &__game-card-stats {
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s ease-in-out;
+    flex-shrink: 0;
+    flex-grow: 0;
+  }
+}

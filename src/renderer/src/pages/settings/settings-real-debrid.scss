@@ -1,0 +1,13 @@
+@import "../../scss/variables";
+
+.settings-real-debrid {
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-unit;
+  }
+
+  &__description {
+    margin-bottom: #{$spacing-unit * 2};
+  }
+}

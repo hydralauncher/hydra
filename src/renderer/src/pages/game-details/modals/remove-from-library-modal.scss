@@ -1,0 +1,11 @@
+@import "../../scss/variables";
+
+.remove-from-library-modal {
+  &__delete-actions-buttons-ctn {
+    display: flex;
+    width: 100%;
+    justify-content: end;
+    align-items: center;
+    gap: $spacing-unit;
+  }
+}

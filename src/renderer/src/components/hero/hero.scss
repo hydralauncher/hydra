@@ -1,4 +1,4 @@
-@use "../../scss/globals.scss";
+@import "../../scss/variables";
 
 .hero {
   width: 100%;
@@ -10,7 +10,7 @@
   overflow: hidden;
   box-shadow: 0px 0px 15px 0px #000000;
   cursor: pointer;
-  border: solid 1px globals.$border-color;
+  border: solid 1px $border-color;
   z-index: 1;
 
   &__media {
@@ -22,9 +22,10 @@
     height: 100%;
     transition: all ease 0.2s;
     image-rendering: revert;
-  }
-  &:hover &__media {
-    transform: scale(1.02);
+
+    &:hover {
+      transform: scale(1.02);
+    }
   }
 
   &__backdrop {
@@ -38,17 +39,17 @@
 
   &__description {
     max-width: 700px;
-    color: globals.$muted-color;
+    color: $muted-color;
     text-align: left;
     line-height: 20px;
-    margin-top: calc(globals.$spacing-unit * 2);
+    margin-top: $spacing-unit * 2;
   }
 
   &__content {
     width: 100%;
     height: 100%;
-    padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 3);
-    gap: calc(globals.$spacing-unit * 2);
+    padding: $spacing-unit * 4 $spacing-unit * 3;
+    gap: $spacing-unit * 2;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;

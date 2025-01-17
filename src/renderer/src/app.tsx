@@ -275,10 +275,10 @@ export function App() {
       <main>
         <Sidebar />
 
-        <article className="container">
+        <article className="app-container">
           <Header />
 
-          <section ref={contentRef} className="container__content">
+          <section ref={contentRef} className="app-container__content">
             <Outlet />
           </section>
         </article>
