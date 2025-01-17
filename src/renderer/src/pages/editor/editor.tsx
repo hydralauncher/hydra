@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { SkeletonTheme } from "react-loading-skeleton";
-import { vars } from "@renderer/theme.css";
+import "../../scss/_variables.scss";
 import "./editor.scss";
 import { Editor as Monaco } from "@monaco-editor/react";
 
@@ -34,7 +34,7 @@ export default function Editor() {
   };
 
   return (
-    <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
+    <SkeletonTheme baseColor="var(--background-color)" highlightColor="#444">
       <div className="editor-header">
         <div className="editor-header-title">
           <h1>CSS Editor</h1>
