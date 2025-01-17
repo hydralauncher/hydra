@@ -3,8 +3,8 @@ import { useFormat } from "@renderer/hooks";
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import * as styles from "./profile-content.css";
 import { Avatar, Link } from "@renderer/components";
+import "./profile-content.scss";
 
 export function FriendsBox() {
   const { userProfile, userStats } = useContext(userProfileContext);
@@ -32,15 +32,15 @@ export function FriendsBox() {
 
   return (
     <div>
-      <div className={styles.sectionHeader}>
+      <div className="profile-content__section-header">
         <h2>{t("friends")}</h2>
         {userStats && (
           <span>{numberFormatter.format(userStats.friendsCount)}</span>
         )}
       </div>
 
-      <div className={styles.box}>
-        <ul className={styles.list}>
+      <div className="profile-content__box">
+        <ul className="profile-content__list">
           {userProfile?.friends.map((friend) => (
             <li
               key={friend.id}
@@ -50,7 +50,10 @@ export function FriendsBox() {
                   : undefined
               }
             >
-              <Link to={`/profile/${friend.id}`} className={styles.listItem}>
+              <Link
+                to={`/profile/${friend.id}`}
+                className="profile-content__list-item"
+              >
                 <Avatar
                   size={32}
                   src={friend.profileImageUrl}
@@ -60,7 +63,7 @@ export function FriendsBox() {
                 <div
                   style={{ display: "flex", flexDirection: "column", gap: 4 }}
                 >
-                  <span className={styles.friendName}>
+                  <span className="profile-content__friend-name">
                     {friend.displayName}
                   </span>
                   {friend.currentGame && (

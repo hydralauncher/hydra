@@ -2,7 +2,6 @@ import { useCallback, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, Modal, TextField } from "@renderer/components";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { settingsContext } from "@renderer/context";
 import { useForm } from "react-hook-form";
 
@@ -139,12 +138,7 @@ export function AddDownloadSourceModal({
       onClose={onClose}
     >
       <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: `${SPACING_UNIT}px`,
-          minWidth: "500px",
-        }}
+        className="download-source__add-source"
       >
         <TextField
           {...register("url")}
@@ -166,19 +160,10 @@ export function AddDownloadSourceModal({
 
         {validationResult && (
           <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginTop: `${SPACING_UNIT * 3}px`,
-            }}
+            className="download-source__validation-result"
           >
             <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: `${SPACING_UNIT / 2}px`,
-              }}
+              className="download-source__input"
             >
               <h4>{validationResult?.name}</h4>
               <small>

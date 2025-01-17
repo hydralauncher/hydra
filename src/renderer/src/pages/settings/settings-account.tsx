@@ -1,9 +1,7 @@
 import { Avatar, Button, SelectField } from "@renderer/components";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
-import * as styles from "./settings-account.css";
 import { useDate, useToast, useUserDetails } from "@renderer/hooks";
 import { useCallback, useContext, useEffect, useState } from "react";
 import {
@@ -14,6 +12,8 @@ import {
 } from "@primer/octicons-react";
 import { settingsContext } from "@renderer/context";
 import { AuthPage } from "@shared";
+
+import "./settings-account.scss";
 
 interface FormValues {
   profileVisibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
@@ -145,7 +145,7 @@ export function SettingsAccount() {
   if (!userDetails) return null;
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit(onSubmit)}>
+    <form className="settings-account__form" onSubmit={handleSubmit(onSubmit)}>
       <Controller
         control={control}
         name="profileVisibility"
@@ -181,15 +181,7 @@ export function SettingsAccount() {
         <h4>{t("current_email")}</h4>
         <p>{userDetails?.email ?? t("no_email_account")}</p>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "start",
-            alignItems: "center",
-            gap: `${SPACING_UNIT}px`,
-            marginTop: `${SPACING_UNIT * 2}px`,
-          }}
-        >
+        <div className="settings-account__actions">
           <Button
             theme="outline"
             onClick={() => window.electron.openAuthWindow(AuthPage.UpdateEmail)}
@@ -210,21 +202,9 @@ export function SettingsAccount() {
         </div>
       </section>
 
-      <section
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: `${SPACING_UNIT * 2}px`,
-        }}
-      >
+      <section className="settings-account__subscription">
         <h3>Hydra Cloud</h3>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: `${SPACING_UNIT}px`,
-          }}
-        >
+        <div className="settings-account__subscription-description">
           {getHydraCloudSectionContent().description}
         </div>
 
@@ -240,27 +220,15 @@ export function SettingsAccount() {
         </Button>
       </section>
 
-      <section
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: `${SPACING_UNIT * 2}px`,
-        }}
-      >
+      <section className="settings-account__subscription-description">
         <h3>{t("blocked_users")}</h3>
 
         {blockedUsers.length > 0 ? (
-          <ul className={styles.blockedUsersList}>
+          <ul className="settings-account__blocked-users-list">
             {blockedUsers.map((user) => {
               return (
-                <li key={user.id} className={styles.blockedUser}>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: `${SPACING_UNIT}px`,
-                      alignItems: "center",
-                    }}
-                  >
+                <li key={user.id} className="settings-account__blocked-user">
+                  <div className="settings-account__subscription">
                     <Avatar
                       style={{ filter: "grayscale(100%)" }}
                       size={32}
@@ -272,7 +240,7 @@ export function SettingsAccount() {
 
                   <button
                     type="button"
-                    className={styles.unblockButton}
+                    className="settings-account__unblock-button"
                     onClick={() => handleUnblockClick(user.id)}
                     disabled={isUnblocking}
                   >

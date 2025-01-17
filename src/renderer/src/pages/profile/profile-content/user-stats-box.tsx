@@ -1,4 +1,3 @@
-import * as styles from "./profile-content.css";
 import { useCallback, useContext } from "react";
 import { userProfileContext } from "@renderer/context";
 import { useTranslation } from "react-i18next";
@@ -7,7 +6,8 @@ import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { ClockIcon, TrophyIcon } from "@primer/octicons-react";
-import { vars } from "@renderer/theme.css";
+
+import "./profile-content.scss";
 
 export function UserStatsBox() {
   const { showHydraCloudModal } = useSubscription();
@@ -36,22 +36,22 @@ export function UserStatsBox() {
 
   return (
     <div>
-      <div className={styles.sectionHeader}>
+      <div className="profile-content__section-header">
         <h2>{t("stats")}</h2>
       </div>
 
-      <div className={styles.box}>
-        <ul className={styles.list}>
+      <div className="profile-content__box">
+        <ul className="profile-content__list">
           {(isMe || userStats.unlockedAchievementSum !== undefined) && (
-            <li className={styles.statsListItem}>
-              <h3 className={styles.listItemTitle}>
+            <li className="profile-content__list-item">
+              <h3 className="profile-content__list-item-title">
                 {t("achievements_unlocked")}
               </h3>
               {userStats.unlockedAchievementSum !== undefined ? (
                 <div
                   style={{ display: "flex", justifyContent: "space-between" }}
                 >
-                  <p className={styles.listItemDescription}>
+                  <p className="profile-content__list-item-description">
                     <TrophyIcon /> {userStats.unlockedAchievementSum}{" "}
                     {t("achievements")}
                   </p>
@@ -60,9 +60,9 @@ export function UserStatsBox() {
                 <button
                   type="button"
                   onClick={() => showHydraCloudModal("achievements")}
-                  className={styles.link}
+                  className="profile-content__link"
                 >
-                  <small style={{ color: vars.color.warning }}>
+                  <small style={{ color: "#ffc107" }}>
                     {t("show_achievements_on_profile")}
                   </small>
                 </button>
@@ -71,13 +71,15 @@ export function UserStatsBox() {
           )}
 
           {(isMe || userStats.achievementsPointsEarnedSum !== undefined) && (
-            <li className={styles.statsListItem}>
-              <h3 className={styles.listItemTitle}>{t("earned_points")}</h3>
+            <li className="profile-content__stats-list-item">
+              <h3 className="profile-content__list-item-title">
+                {t("earned_points")}
+              </h3>
               {userStats.achievementsPointsEarnedSum !== undefined ? (
                 <div
                   style={{ display: "flex", justifyContent: "space-between" }}
                 >
-                  <p className={styles.listItemDescription}>
+                  <p className="profile-content__list-item-description">
                     <HydraIcon width={20} height={20} />
                     {numberFormatter.format(
                       userStats.achievementsPointsEarnedSum.value
@@ -94,9 +96,9 @@ export function UserStatsBox() {
                 <button
                   type="button"
                   onClick={() => showHydraCloudModal("achievements-points")}
-                  className={styles.link}
+                  className="profile-content__link"
                 >
-                  <small style={{ color: vars.color.warning }}>
+                  <small style={{ color: "#ffc107" }}>
                     {t("show_points_on_profile")}
                   </small>
                 </button>
@@ -104,10 +106,12 @@ export function UserStatsBox() {
             </li>
           )}
 
-          <li className={styles.statsListItem}>
-            <h3 className={styles.listItemTitle}>{t("total_play_time")}</h3>
+          <li className="profile-content__list-item">
+            <h3 className="profile-content__list-item-title">
+              {t("total_play_time")}
+            </h3>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <p className={styles.listItemDescription}>
+              <p className="profile-content__list-item-description">
                 <ClockIcon />
                 {formatPlayTime(userStats.totalPlayTimeInSeconds.value)}
               </p>

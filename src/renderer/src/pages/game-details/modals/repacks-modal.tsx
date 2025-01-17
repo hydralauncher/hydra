@@ -4,14 +4,14 @@ import { useTranslation } from "react-i18next";
 import { Badge, Button, Modal, TextField } from "@renderer/components";
 import type { GameRepack } from "@types";
 
-import * as styles from "./repacks-modal.css";
-
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "@renderer/context";
 import { Downloader } from "@shared";
 import { orderBy } from "lodash-es";
 import { useDate } from "@renderer/hooks";
+
+import "./repacks-modal.scss";
+import "../../../scss/_variables.scss";
 
 export interface RepacksModalProps {
   visible: boolean;
@@ -86,11 +86,11 @@ export function RepacksModal({
         description={t("repacks_modal_description")}
         onClose={onClose}
       >
-        <div style={{ marginBottom: `${SPACING_UNIT * 2}px` }}>
+        <div className="repacks-modal__filter">
           <TextField placeholder={t("filter")} onChange={handleFilter} />
         </div>
 
-        <div className={styles.repacks}>
+        <div className="repacks-modal__repacks">
           {filteredRepacks.map((repack) => {
             const isLastDownloadedOption = checkIfLastDownloadedOption(repack);
 
@@ -99,7 +99,7 @@ export function RepacksModal({
                 key={repack.id}
                 theme="dark"
                 onClick={() => handleRepackClick(repack)}
-                className={styles.repackButton}
+                className="repacks-modal__button"
               >
                 <p style={{ color: "#DADBE1", wordBreak: "break-word" }}>
                   {repack.title}

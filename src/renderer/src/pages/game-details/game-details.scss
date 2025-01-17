@@ -22,8 +22,9 @@ $hero-height: 300px;
     height: 100%;
     transition: all ease 0.3s;
 
-    &--blurred-content {
+    &__blurred-content {
       filter: blur(20px);
+      
     }
   }
 

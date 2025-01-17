@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import * as styles from "./download-settings-modal.css";
 import { Button, Link, Modal, TextField } from "@renderer/components";
 import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
 import { Downloader, formatBytes, getDownloadersForUris } from "@shared";
 
 import type { GameRepack } from "@types";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import { useAppSelector, useFeature, useToast } from "@renderer/hooks";
+import "./download-settings-modal.scss";
+import "../../../scss/_variables.scss"
 
 export interface DownloadSettingsModalProps {
   visible: boolean;
@@ -145,21 +145,21 @@ export function DownloadSettingsModal({
       })}
       onClose={onClose}
     >
-      <div className={styles.container}>
+      <div className="download-settings-modal__container">
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: `${SPACING_UNIT}px`,
+            gap: "var(--spacing-unit)",
           }}
         >
           <span>{t("downloader")}</span>
 
-          <div className={styles.downloaders}>
+          <div className="download-settings-modal__downloaders">
             {downloaders.map((downloader) => (
               <Button
                 key={downloader}
-                className={styles.downloaderOption}
+                className="download-settings-modal__downloader-option"
                 theme={
                   selectedDownloader === downloader ? "primary" : "outline"
                 }
@@ -170,7 +170,7 @@ export function DownloadSettingsModal({
                 onClick={() => setSelectedDownloader(downloader)}
               >
                 {selectedDownloader === downloader && (
-                  <CheckCircleFillIcon className={styles.downloaderIcon} />
+                  <CheckCircleFillIcon className="download-settings-modal__downloader-icon" />
                 )}
                 {DOWNLOADER_NAME[downloader]}
               </Button>
@@ -182,7 +182,7 @@ export function DownloadSettingsModal({
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: `${SPACING_UNIT}px`,
+            gap: "var(--spacing-unit)",
           }}
         >
           <TextField
@@ -193,7 +193,7 @@ export function DownloadSettingsModal({
             error={
               hasWritePermission === false ? (
                 <span
-                  className={styles.pathError}
+                  className="download-settings-modal__path-error"
                   data-open-article="cannot-write-directory"
                 >
                   {t("no_write_permission")}
@@ -212,7 +212,7 @@ export function DownloadSettingsModal({
             }
           />
 
-          <p className={styles.hintText}>
+          <p className="download-settings-modal__hint-text">
             <Trans i18nKey="select_folder_hint" ns="game_details">
               <Link to="/settings" />
             </Trans>

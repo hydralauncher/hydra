@@ -93,6 +93,7 @@
     color: $muted-color;
     width: 48px;
     height: 48px;
+    opacity: 0;
 
     &:hover {
       background-color: rgba(0, 0, 0, 0.6);
@@ -117,10 +118,6 @@
     &--visible {
       transform: translateX(0);
       opacity: 1;
-    }
-
-    &--hidden {
-      opacity: 0;
     }
   }
 }

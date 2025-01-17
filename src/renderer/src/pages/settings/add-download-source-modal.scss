@@ -1,0 +1,23 @@
+@import "../../scss/variables";
+
+.download-source {
+    &__add-source {
+        display: flex;
+        flex-direction: column;
+        gap: #{$spacing-unit};
+        min-width: 500px,
+    }
+
+    &__validation-result {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: #{$spacing-unit * 3};
+    }
+
+    &__input {
+        display: flex;
+        flex-direction: column;
+        gap: #{$spacing-unit / 2};
+    }
+}

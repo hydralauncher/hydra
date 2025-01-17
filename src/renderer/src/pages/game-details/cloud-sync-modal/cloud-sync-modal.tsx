@@ -2,7 +2,6 @@ import { Button, Modal, ModalProps } from "@renderer/components";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
-import * as styles from "./cloud-sync-modal.css";
 import { formatBytes } from "@shared";
 import { format } from "date-fns";
 import {
@@ -18,7 +17,9 @@ import { useAppSelector, useToast } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
 import { AxiosProgressEvent } from "axios";
 import { formatDownloadProgress } from "@renderer/helpers";
-import { SPACING_UNIT } from "@renderer/theme.css";
+
+import "./cloud-sync-modal.scss"
+import "../../../scss/_variables.scss"
 
 export interface CloudSyncModalProps
   extends Omit<ModalProps, "children" | "title"> {}
@@ -95,7 +96,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     if (uploadingBackup) {
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <SyncIcon className={styles.syncIcon} />
+          <SyncIcon className="clound-sync-modal__sync-icon" />
           {t("uploading_backup")}
         </span>
       );
@@ -104,7 +105,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     if (restoringBackup) {
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <SyncIcon className={styles.syncIcon} />
+          <SyncIcon className="clound-sync-modal__sync-icon" />
           {t("restoring_backup", {
             progress: formatDownloadProgress(
               backupDownloadProgress?.progress ?? 0
@@ -117,7 +118,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     if (loadingPreview) {
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <SyncIcon className={styles.syncIcon} />
+          <SyncIcon className="clound-sync-modal__sync-icon" />
           {t("loading_save_preview")}
         </span>
       );
@@ -171,7 +172,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
 
           <button
             type="button"
-            className={styles.manageFilesButton}
+            className="clound-sync-modal__manage-files-button"
             onClick={() => setShowCloudSyncFilesModal(true)}
             disabled={disableActions}
           >
@@ -199,7 +200,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
             marginBottom: 16,
             display: "flex",
             alignItems: "center",
-            gap: SPACING_UNIT,
+            gap: "var(--spacing-unit)",
           }}
         >
           <h2>{t("backups")}</h2>
@@ -210,9 +211,9 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
       </div>
 
       {artifacts.length > 0 ? (
-        <ul className={styles.artifacts}>
+        <ul className="clound-sync-modal__artifacts">
           {artifacts.map((artifact) => (
-            <li key={artifact.id} className={styles.artifactButton}>
+            <li key={artifact.id} className="cloud-sync-modal__artifact-button">
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <div
                   style={{

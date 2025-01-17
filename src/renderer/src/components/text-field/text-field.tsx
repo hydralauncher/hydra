@@ -88,8 +88,8 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
               "text-field-container__text-field",
               `text-field-container__text-field--${theme}`,
               {
-                "text-field-container__text-field--has-error": hasError,
-                "text-field-container__text-field--focused": isFocused,
+                "text-field-container__text-field__has-error": hasError,
+                "text-field-container__text-field__focused": isFocused,
               }
             )}
             {...textFieldProps}
@@ -98,7 +98,7 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
               ref={ref}
               id={id}
               className={cn("text-field-container__text-field-input", {
-                "text-field-container__text-field-input--read-only":
+                "text-field-container__text-field-input__read-only":
                   props.readOnly,
               })}
               {...props}

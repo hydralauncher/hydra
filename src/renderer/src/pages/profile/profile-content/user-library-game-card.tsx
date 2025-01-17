@@ -1,5 +1,4 @@
 import { UserGame } from "@types";
-import * as styles from "./profile-content.css";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useFormat } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
@@ -10,11 +9,12 @@ import {
   formatDownloadProgress,
 } from "@renderer/helpers";
 import { userProfileContext } from "@renderer/context";
-import { vars } from "@renderer/theme.css";
 import { ClockIcon, TrophyIcon } from "@primer/octicons-react";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { useTranslation } from "react-i18next";
 import { steamUrlBuilder } from "@shared";
+
+import "./profile-content.scss";
 
 interface UserLibraryGameCardProps {
   game: UserGame;
@@ -95,42 +95,18 @@ export function UserLibraryGameCard({
         display: "flex",
       }}
       title={game.title}
-      className={styles.game}
+      className="profile-content__game"
     >
       <button
         type="button"
         style={{
           cursor: "pointer",
         }}
-        className={styles.gameCover}
+        className="profile-content__game-cover"
         onClick={() => navigate(buildUserGameDetailsPath(game))}
       >
-        <div
-          style={{
-            position: "absolute",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            height: "100%",
-            width: "100%",
-            background:
-              "linear-gradient(0deg, rgba(0, 0, 0, 0.70) 20%, transparent 100%)",
-            padding: 8,
-          }}
-        >
-          <small
-            style={{
-              backgroundColor: vars.color.background,
-              color: vars.color.muted,
-              border: `solid 1px ${vars.color.border}`,
-              borderRadius: 4,
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              padding: "4px",
-            }}
-          >
+        <div className="profile-content__game-card-style">
+          <small className="profile-content__game-playtime">
             <ClockIcon size={11} />
             {formatPlayTime(game.playTimeInSeconds)}
           </small>
@@ -143,16 +119,7 @@ export function UserLibraryGameCard({
                 flexDirection: "column",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: 8,
-                  color: vars.color.muted,
-                  overflow: "hidden",
-                  height: 18,
-                }}
-              >
+              <div className="profile-content__game-card-stats-container">
                 <div
                   style={{
                     display: "flex",
@@ -160,7 +127,7 @@ export function UserLibraryGameCard({
                   }}
                 >
                   <div
-                    className={styles.gameCardStats}
+                    className="profile-content__game-card-stats"
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -176,7 +143,7 @@ export function UserLibraryGameCard({
 
                   {game.achievementsPointsEarnedSum > 0 && (
                     <div
-                      className={styles.gameCardStats}
+                      className="profile-content__game-card-stats"
                       style={{
                         display: "flex",
                         gap: 5,
@@ -203,7 +170,7 @@ export function UserLibraryGameCard({
               <progress
                 max={1}
                 value={game.unlockedAchievementCount / game.achievementCount}
-                className={styles.achievementsProgressBar}
+                className="profile-content__achievements-progress-bar"
               />
             </div>
           )}

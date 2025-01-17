@@ -4,7 +4,6 @@ import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import { useTranslation } from "react-i18next";
 import { CheckCircleFillIcon, FileDirectoryIcon } from "@primer/octicons-react";
 
-import * as styles from "./cloud-sync-files-modal.css";
 import { formatBytes } from "@shared";
 import { useToast } from "@renderer/hooks";
 import { useForm } from "react-hook-form";
@@ -99,7 +98,7 @@ export function CloudSyncFilesModal({
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <span style={{ marginBottom: 8 }}>{t("mapping_method_label")}</span>
 
-        <div className={styles.mappingMethods}>
+        <div className="clound-sync-files-modal__mapping-methods">
           {Object.values(FileMappingMethod).map((mappingMethod) => (
             <Button
               key={mappingMethod}
@@ -142,11 +141,11 @@ export function CloudSyncFilesModal({
           />
         )}
 
-        <ul className={styles.fileList}>
+        <ul className="cloud-sync-files-modal__files-list">
           {files.map((file) => (
             <li key={file.path} style={{ display: "flex" }}>
               <button
-                className={styles.fileItem}
+                className="cloud-sync-files-modal__file-item"
                 onClick={() => window.electron.showItemInFolder(file.path)}
               >
                 {file.path.split("/").at(-1)}

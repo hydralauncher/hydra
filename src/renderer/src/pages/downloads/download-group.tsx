@@ -12,7 +12,9 @@ import { Downloader, formatBytes, steamUrlBuilder } from "@shared";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import { useAppSelector, useDownload } from "@renderer/hooks";
 
-import * as styles from "./download-group.css";
+
+import "./download-group.scss";
+
 import { useTranslation } from "react-i18next";
 import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { useMemo } from "react";
@@ -238,7 +240,7 @@ export function DownloadGroup({
   if (!library.length) return null;
 
   return (
-    <div className={styles.downloadGroup}>
+    <div className="download-group">
       <div
         style={{
           display: "flex",
@@ -259,33 +261,33 @@ export function DownloadGroup({
         <h3 style={{ fontWeight: "400" }}>{library.length}</h3>
       </div>
 
-      <ul className={styles.downloads}>
+      <ul className="download-group__downloads">
         {library.map((game) => {
           return (
             <li
               key={game.id}
-              className={styles.download}
+              className="download-group__download"
               style={{ position: "relative" }}
             >
-              <div className={styles.downloadCover}>
-                <div className={styles.downloadCoverBackdrop}>
+              <div className="download-group__cover">
+                <div className="download-group__cover-backdrop">
                   <img
                     src={steamUrlBuilder.library(game.objectID)}
                     className={styles.downloadCoverImage}
                     alt={game.title}
                   />
 
-                  <div className={styles.downloadCoverContent}>
+                  <div className="download-group__cover-content">
                     <Badge>{DOWNLOADER_NAME[game.downloader]}</Badge>
                   </div>
                 </div>
               </div>
-              <div className={styles.downloadRightContent}>
-                <div className={styles.downloadDetails}>
-                  <div className={styles.downloadTitleWrapper}>
+              <div className="download-group__right-content">
+                <div className="download-group__details">
+                  <div className="download-group__title-wrapper">
                     <button
                       type="button"
-                      className={styles.downloadTitle}
+                      className="download-group__title"
                       onClick={() =>
                         navigate(
                           buildGameDetailsPath({

@@ -7,7 +7,6 @@ import {
 } from "@primer/octicons-react";
 
 import "./toast.scss";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import cn from "classnames";
 
 export interface ToastProps {
@@ -80,7 +79,7 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
   return (
     <div
       className={cn("toast", {
-        "toast--closing": isClosing,
+        "toast__closing": isClosing,
       })}
     >
       <div className="toast__content">

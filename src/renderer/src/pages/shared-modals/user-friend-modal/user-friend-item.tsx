@@ -58,14 +58,14 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
       return (
         <>
           <button
-            className={styles.acceptRequestButton}
+            className="user-friend-modal__accept-request-button"
             onClick={() => props.onClickAcceptRequest(userId)}
             title={t("accept_request")}
           >
             <CheckCircleIcon size={28} />
           </button>
           <button
-            className={styles.cancelRequestButton}
+            className="user-friend-modal__cancel-request-button"
             onClick={() => props.onClickRefuseRequest(userId)}
             title={t("ignore_request")}
           >
@@ -78,7 +78,7 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
     if (type === "ACCEPTED") {
       return (
         <button
-          className={styles.cancelRequestButton}
+          className="user-friend-modal__cancel-request-button"
           onClick={() => props.onClickUndoFriendship(userId)}
           title={t("undo_friendship")}
         >
@@ -90,7 +90,7 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
     if (type === "BLOCKED") {
       return (
         <button
-          className={styles.cancelRequestButton}
+          className="user-friend-modal__cancel-request-button"
           onClick={() => props.onClickUnblock(userId)}
           title={t("unblock")}
         >
@@ -104,8 +104,8 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
 
   if (type === "BLOCKED") {
     return (
-      <div className={styles.friendListContainer}>
-        <div className={styles.friendListButton} style={{ cursor: "inherit" }}>
+      <div className="user-friend-modal__friend-list-container">
+        <div className="user-friend-modal__friend-list-button" style={{ cursor: "inherit" }}>
           <Avatar size={35} src={profileImageUrl} alt={displayName} />
 
           <div
@@ -117,18 +117,13 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
               minWidth: 0,
             }}
           >
-            <p className={styles.friendListDisplayName}>{displayName}</p>
+            <p className="user-friend-modal__friend-list-display-name">
+              {displayName}
+            </p>
           </div>
         </div>
 
-        <div
-          style={{
-            position: "absolute",
-            right: "8px",
-            display: "flex",
-            gap: `${SPACING_UNIT}px`,
-          }}
-        >
+        <div className="user-friend-modal__friend-list-actions">
           {getRequestActions()}
         </div>
       </div>
@@ -136,10 +131,10 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
   }
 
   return (
-    <div className={styles.friendListContainer}>
+    <div className="user-friend-modal__friend-list-container">
       <button
         type="button"
-        className={styles.friendListButton}
+        className="user-friend-modal__friend-list-button"
         onClick={() => props.onClickItem(userId)}
       >
         <Avatar size={35} src={profileImageUrl} alt={displayName} />
@@ -152,19 +147,14 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
             minWidth: 0,
           }}
         >
-          <p className={styles.friendListDisplayName}>{displayName}</p>
+          <p className="user-friend-modal__friend-list-display-name">
+            {displayName}
+          </p>
           {getRequestDescription()}
         </div>
       </button>
 
-      <div
-        style={{
-          position: "absolute",
-          right: "8px",
-          display: "flex",
-          gap: `${SPACING_UNIT}px`,
-        }}
-      >
+      <div className="user-friend-modal__friend-list-actions">
         {getRequestActions()}
       </div>
     </div>

@@ -1,4 +1,4 @@
-@import "../../scss/variables";
+@import "../../../scss/variables";
 
 .profile-hero {
   &__content-box {
@@ -88,5 +88,12 @@
     flex-direction: row;
     gap: $spacing-unit;
     align-items: center;
+  }
+
+  &__actions {
+    display: flex;
+    gap: #{$spacing-unit};
+    justify-content: flex-end;
+    flex: 1;
   }
 }

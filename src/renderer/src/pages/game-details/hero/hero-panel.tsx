@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useDate, useDownload } from "@renderer/hooks";
 
 import { HeroPanelActions } from "./hero-panel-actions";
-import * as styles from "./hero-panel.css";
+import "./hero-panel.scss"
 import { HeroPanelPlaytime } from "./hero-panel-playtime";
 
 import { gameDetailsContext } from "@renderer/context";
@@ -12,6 +12,18 @@ import { gameDetailsContext } from "@renderer/context";
 export interface HeroPanelProps {
   isHeaderStuck: boolean;
 }
+
+const getPanelClasses = (stuck: boolean) => {
+  return classNames("hero-panel", {
+    "hero-panel--stuck": stuck,
+  });
+};
+
+const getProgressBarClasses = (disabled: boolean) => {
+  return classNames("hero-panel__progress-bar", {
+    "hero-panel__progress-bar--disabled": disabled,
+  });
+};
 
 export function HeroPanel({ isHeaderStuck }: HeroPanelProps) {
   const { t } = useTranslation("game_details");
@@ -57,10 +69,10 @@ export function HeroPanel({ isHeaderStuck }: HeroPanelProps) {
     <>
       <div
         style={{ backgroundColor: gameColor }}
-        className={styles.panel({ stuck: isHeaderStuck })}
+        className={getPanelClasses(isHeaderStuck)}
       >
-        <div className={styles.content}>{getInfo()}</div>
-        <div className={styles.actions}>
+        <div className="hero-panel__content">{getInfo()}</div>
+        <div className="hero-panel__actions">
           <HeroPanelActions />
         </div>
 
@@ -70,9 +82,7 @@ export function HeroPanel({ isHeaderStuck }: HeroPanelProps) {
             value={
               isGameDownloading ? lastPacket?.game.progress : game?.progress
             }
-            className={styles.progressBar({
-              disabled: game?.status === "paused",
-            })}
+            className={getProgressBarClasses(game?.status === "paused")}
           />
         )}
       </div>

@@ -30,7 +30,7 @@ export function RemoveGameFromLibraryModal({
       description={t("remove_from_library_description", { game: game.title })}
       onClose={onClose}
     >
-      <div className={styles.deleteActionsButtonsCtn}>
+      <div className="remove-from-library-modal__delete-actions-buttons-ctn">
         <Button onClick={handleRemoveGame} theme="outline">
           {t("remove")}
         </Button>

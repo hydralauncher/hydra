@@ -1,6 +1,6 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import * as styles from "./hero-panel.css";
+import "./hero-panel.scss"
 import { formatDownloadProgress } from "@renderer/helpers";
 import { useDate, useDownload, useFormat } from "@renderer/hooks";
 import { Link } from "@renderer/components";
@@ -55,8 +55,8 @@ export function HeroPanelPlaytime() {
     game.status === "active" && lastPacket?.game.id === game.id;
 
   const downloadInProgressInfo = (
-    <div className={styles.downloadDetailsRow}>
-      <Link to="/downloads" className={styles.downloadsLink}>
+    <div className="hero-panel__download-details-row">
+      <Link to="/downloads" className="hero-panel__downloads-link">
         {game.status === "active"
           ? t("download_in_progress")
           : t("download_paused")}

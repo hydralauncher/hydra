@@ -17,19 +17,19 @@
   height: 40px;
   min-height: 40px;
 
-  &--primary {
+  &__primary {
     background-color: $dark-background-color;
   }
 
-  &--dark {
+  &__dark {
     background-color: $background-color;
   }
 
-  &--has-error {
+  &__has-error {
     border-color: $danger-color;
   }
 
-  &--focused {
+  &__focused {
     border-color: $search-border-color-focused;
   }
 
@@ -54,7 +54,7 @@
     cursor: text;
   }
 
-  &--read-only {
+  &__read-only {
     text-overflow: inherit;
   }
 }

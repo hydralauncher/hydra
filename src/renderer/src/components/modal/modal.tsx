@@ -110,8 +110,8 @@ export function Modal({
     <Backdrop isClosing={isClosing}>
       <div
         className={cn("modal", {
-          "modal--closing": isClosing,
-          "modal--large": large,
+          "modal__closing": isClosing,
+          "modal__large": large,
         })}
         role="dialog"
         aria-labelledby={title}

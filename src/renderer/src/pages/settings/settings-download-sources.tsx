@@ -3,7 +3,6 @@ import { useContext, useEffect, useState } from "react";
 import { TextField, Button, Badge } from "@renderer/components";
 import { useTranslation } from "react-i18next";
 
-import * as styles from "./settings-download-sources.css";
 import type { DownloadSource } from "@types";
 import { NoEntryIcon, PlusCircleIcon, SyncIcon } from "@primer/octicons-react";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
@@ -14,6 +13,7 @@ import { downloadSourcesTable } from "@renderer/dexie";
 import { downloadSourcesWorker } from "@renderer/workers";
 import { useNavigate } from "react-router-dom";
 import { setFilters, clearFilters } from "@renderer/features";
+import "./settings-download-sources.scss";
 
 export function SettingsDownloadSources() {
   const [showAddDownloadSourceModal, setShowAddDownloadSourceModal] =
@@ -118,7 +118,7 @@ export function SettingsDownloadSources() {
 
       <p>{t("download_sources_description")}</p>
 
-      <div className={styles.downloadSourcesHeader}>
+      <div className="settings-download-sources__download-sources-header">
         <Button
           type="button"
           theme="outline"
@@ -144,15 +144,13 @@ export function SettingsDownloadSources() {
         </Button>
       </div>
 
-      <ul className={styles.downloadSources}>
+      <ul className="settings-download-sources__download-sources">
         {downloadSources.map((downloadSource) => (
           <li
             key={downloadSource.id}
-            className={styles.downloadSourceItem({
-              isSyncing: isSyncingDownloadSources,
-            })}
+            className="settings-download-sources__download-source-item"
           >
-            <div className={styles.downloadSourceItemHeader}>
+            <div className="settings-download-sources__download-source-item-header">
               <h2>{downloadSource.name}</h2>
 
               <div style={{ display: "flex" }}>
@@ -161,7 +159,7 @@ export function SettingsDownloadSources() {
 
               <button
                 type="button"
-                className={styles.navigateToCatalogueButton}
+                className="settings-download-sources__navigate-to-catalogue-button"
                 disabled={!downloadSource.fingerprint}
                 onClick={() => navigateToCatalogue(downloadSource.fingerprint)}
               >
