@@ -34,7 +34,6 @@ export const requirementButton = style({
 });
 
 export const requirementsDetails = style({
-  minHeight: "500px",
   padding: `${SPACING_UNIT * 2}px`,
   lineHeight: "22px",
   fontSize: "16px",
