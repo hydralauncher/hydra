@@ -232,7 +232,7 @@ export class WindowManager {
         editorWindow.show();
       });
 
-      // if (!app.isPackaged) editorWindow.webContents.openDevTools();
+      if (!app.isPackaged) editorWindow.webContents.openDevTools();
     }
   }
 
