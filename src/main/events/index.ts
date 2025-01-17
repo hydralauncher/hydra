@@ -49,6 +49,7 @@ import "./user-preferences/authenticate-real-debrid";
 import "./download-sources/put-download-source";
 import "./auth/sign-out";
 import "./auth/open-auth-window";
+import "./aparence/open-editor-window";
 import "./auth/get-session-hash";
 import "./user/get-user";
 import "./user/get-blocked-users";

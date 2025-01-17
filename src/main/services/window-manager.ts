@@ -186,6 +186,52 @@ export class WindowManager {
     }
   }
 
+  public static openEditorWindow() {
+    if (this.mainWindow) {
+      const editorWindow = new BrowserWindow({
+        width: 600,
+        height: 720,
+        minWidth: 600,
+        minHeight: 720,
+        backgroundColor: "#1c1c1c",
+        titleBarStyle: process.platform === "linux" ? "default" : "hidden",
+        ...(process.platform === "linux" ? { icon } : {}),
+        trafficLightPosition: { x: 16, y: 16 },
+        titleBarOverlay: {
+          symbolColor: "#DADBE1",
+          color: "#151515",
+          height: 34,
+        },
+        parent: this.mainWindow,
+        modal: true,
+        show: false,
+        maximizable: true,
+        resizable: true,
+        minimizable: true,
+        webPreferences: {
+          sandbox: false,
+          preload: path.join(__dirname, "../preload/index.mjs"),
+        },
+      });
+
+      editorWindow.removeMenu();
+
+      if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+        editorWindow.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}#/editor`);
+      } else {
+        editorWindow.loadFile(path.join(__dirname, "../renderer/index.html"), {
+          hash: "editor",
+        });
+      }
+
+      editorWindow.once("ready-to-show", () => {
+        editorWindow.show();
+      });
+
+      // if (!app.isPackaged) editorWindow.webContents.openDevTools();
+    }
+  }
+
   public static redirect(hash: string) {
     if (!this.mainWindow) this.createMainWindow();
     this.loadMainWindowURL(hash);

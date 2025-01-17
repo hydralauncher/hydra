@@ -39,7 +39,11 @@ export function SettingsAppearance() {
             {t("open_store")}
           </Button>
 
-          <Button type="button" theme="outline">
+          <Button
+            type="button"
+            theme="outline"
+            onClick={() => window.electron.openEditorWindow()}
+          >
             <PencilIcon />
             {t("editor_mode")}
           </Button>

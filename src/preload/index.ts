@@ -307,4 +307,7 @@ contextBridge.exposeInMainWorld("electron", {
   /* Notifications */
   publishNewRepacksNotification: (newRepacksCount: number) =>
     ipcRenderer.invoke("publishNewRepacksNotification", newRepacksCount),
+
+  /* Editor */
+  openEditorWindow: () => ipcRenderer.invoke("openEditorWindow"),
 });
