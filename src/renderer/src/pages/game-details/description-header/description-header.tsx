@@ -12,8 +12,8 @@ export function DescriptionHeader() {
   if (!shopDetails) return null;
 
   return (
-    <div className={styles.descriptionHeader}>
-      <section className={styles.descriptionHeaderInfo}>
+    <div className="description-header">
+      <section className="description-header__info">
         <p>
           {t("release_date", {
             date: shopDetails?.release_date.date,

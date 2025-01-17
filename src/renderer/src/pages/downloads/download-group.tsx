@@ -13,9 +13,9 @@ import { DOWNLOADER_NAME } from "@renderer/constants";
 import { useAppSelector, useDownload } from "@renderer/hooks";
 
 import "./download-group.scss";
+import "../../scss/_variables.scss";
 
 import { useTranslation } from "react-i18next";
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { useMemo } from "react";
 import {
   DropdownMenu,
@@ -240,20 +240,14 @@ export function DownloadGroup({
 
   return (
     <div className="download-group">
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: `${SPACING_UNIT * 2}px`,
-        }}
+      <div className="download-group__downloads-group"
       >
         <h2>{title}</h2>
 
         <div
           style={{
             flex: 1,
-            backgroundColor: vars.color.border,
+            backgroundColor: "var(--border-color)",
             height: "1px",
           }}
         />
@@ -272,7 +266,7 @@ export function DownloadGroup({
                 <div className="download-group__cover-backdrop">
                   <img
                     src={steamUrlBuilder.library(game.objectID)}
-                    className={styles.downloadCoverImage}
+                    className="download-group__cover-image"
                     alt={game.title}
                   />
 

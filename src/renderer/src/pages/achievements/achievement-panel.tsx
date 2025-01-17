@@ -36,7 +36,7 @@ export function AchievementPanel({ achievements }: AchievementPanelProps) {
         <button
           type="button"
           onClick={() => showHydraCloudModal("achievements-points")}
-          className={styles.link}
+          className="achievement-panel__link"
         >
           <small style={{ color: "#ffc107" }}>
             {t("how_to_earn_achievements_points")}

@@ -25,13 +25,8 @@ export function GameDetailsContent() {
 
   const { t } = useTranslation("game_details");
 
-  const {
-    objectId,
-    shopDetails,
-    game,
-    gameColor,
-    setGameColor,
-  } = useContext(gameDetailsContext);
+  const { objectId, shopDetails, game, gameColor, setGameColor } =
+    useContext(gameDetailsContext);
 
   const { showHydraCloudModal } = useSubscription();
 
@@ -77,27 +72,27 @@ export function GameDetailsContent() {
   useEffect(() => {
     setBackdropOpacity(1);
   }, [objectId]);
-  const HERO_HEIGHT = 150; 
+  const HERO_HEIGHT = 150;
 
   const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
-  const heroHeight = heroRef.current?.clientHeight ?? HERO_HEIGHT;
+    const heroHeight = heroRef.current?.clientHeight ?? HERO_HEIGHT;
 
-  const scrollY = (event.target as HTMLDivElement).scrollTop;
-  const opacity = Math.max(
-    0,
-    1 - scrollY / (heroHeight - HERO_ANIMATION_THRESHOLD)
-  );
+    const scrollY = (event.target as HTMLDivElement).scrollTop;
+    const opacity = Math.max(
+      0,
+      1 - scrollY / (heroHeight - HERO_ANIMATION_THRESHOLD)
+    );
 
-  if (scrollY >= heroHeight && !isHeaderStuck) {
-    setIsHeaderStuck(true);
-  }
+    if (scrollY >= heroHeight && !isHeaderStuck) {
+      setIsHeaderStuck(true);
+    }
 
-  if (scrollY <= heroHeight && isHeaderStuck) {
-    setIsHeaderStuck(false);
-  }
+    if (scrollY <= heroHeight && isHeaderStuck) {
+      setIsHeaderStuck(false);
+    }
 
-  setBackdropOpacity(opacity);
-};
+    setBackdropOpacity(opacity);
+  };
 
   const handleCloudSaveButtonClick = () => {
     if (!userDetails) {

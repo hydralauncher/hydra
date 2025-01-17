@@ -20,7 +20,7 @@
     align-self: flex-start;
   }
 
-    &__header {
+  &__header {
     display: flex;
     gap: calc(var(--spacing-unit) * 2);
     justify-content: space-between;

@@ -21,6 +21,13 @@
     }
   }
 
+  &__downloads-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-unit * 2;
+  }
+
   &__downloads {
     width: 100%;
     gap: #{$spacing-unit * 2};
