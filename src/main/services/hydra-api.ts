@@ -23,7 +23,7 @@ interface HydraApiUserAuth {
   authToken: string;
   refreshToken: string;
   expirationTimestamp: number;
-  subscription: { expiresAt: Date | null } | null;
+  subscription: { expiresAt: Date | string | null } | null;
 }
 
 export class HydraApi {
@@ -153,21 +153,30 @@ export class HydraApi {
         (error) => {
           logger.error(" ---- RESPONSE ERROR -----");
           const { config } = error;
+          const data = JSON.parse(config.data);
+
           logger.error(
             config.method,
             config.baseURL,
             config.url,
-            config.headers,
-            config.data
+            omit(config.headers, [
+              "accessToken",
+              "refreshToken",
+              "Authorization",
+            ]),
+            Array.isArray(data)
+              ? data
+              : omit(data, ["accessToken", "refreshToken"])
           );
           if (error.response) {
             logger.error(
-              "Response",
+              "Response error:",
               error.response.status,
               error.response.data
             );
           } else if (error.request) {
-            logger.error("Request", error.request);
+            const errorData = error.toJSON();
+            logger.error("Request error:", errorData.message);
           } else {
             logger.error("Error", error.message);
           }
@@ -176,8 +185,6 @@ export class HydraApi {
         }
       );
     }
-
-    await getUserData();
 
     const userAuth = await userAuthRepository.findOne({
       where: { id: 1 },
@@ -192,6 +199,14 @@ export class HydraApi {
         ? { expiresAt: userAuth.subscription?.expiresAt }
         : null,
     };
+
+    const updatedUserData = await getUserData();
+
+    this.userAuth.subscription = updatedUserData?.subscription
+      ? {
+          expiresAt: updatedUserData.subscription.expiresAt,
+        }
+      : null;
   }
 
   private static sendSignOutEvent() {
@@ -200,38 +215,42 @@ export class HydraApi {
     }
   }
 
+  public static async refreshToken() {
+    const { accessToken, expiresIn } = await this.instance
+      .post<{ accessToken: string; expiresIn: number }>(`/auth/refresh`, {
+        refreshToken: this.userAuth.refreshToken,
+      })
+      .then((response) => response.data);
+
+    const tokenExpirationTimestamp =
+      Date.now() +
+      this.secondsToMilliseconds(expiresIn) -
+      this.EXPIRATION_OFFSET_IN_MS;
+
+    this.userAuth.authToken = accessToken;
+    this.userAuth.expirationTimestamp = tokenExpirationTimestamp;
+
+    logger.log(
+      "Token refreshed. New expiration:",
+      this.userAuth.expirationTimestamp
+    );
+
+    userAuthRepository.upsert(
+      {
+        id: 1,
+        accessToken,
+        tokenExpirationTimestamp,
+      },
+      ["id"]
+    );
+
+    return { accessToken, expiresIn };
+  }
+
   private static async revalidateAccessTokenIfExpired() {
-    const now = new Date();
-
-    if (this.userAuth.expirationTimestamp < now.getTime()) {
+    if (this.userAuth.expirationTimestamp < Date.now()) {
       try {
-        const response = await this.instance.post(`/auth/refresh`, {
-          refreshToken: this.userAuth.refreshToken,
-        });
-
-        const { accessToken, expiresIn } = response.data;
-
-        const tokenExpirationTimestamp =
-          now.getTime() +
-          this.secondsToMilliseconds(expiresIn) -
-          this.EXPIRATION_OFFSET_IN_MS;
-
-        this.userAuth.authToken = accessToken;
-        this.userAuth.expirationTimestamp = tokenExpirationTimestamp;
-
-        logger.log(
-          "Token refreshed. New expiration:",
-          this.userAuth.expirationTimestamp
-        );
-
-        userAuthRepository.upsert(
-          {
-            id: 1,
-            accessToken,
-            tokenExpirationTimestamp,
-          },
-          ["id"]
-        );
+        await this.refreshToken();
       } catch (err) {
         this.handleUnauthorizedError(err);
       }
@@ -246,7 +265,7 @@ export class HydraApi {
     };
   }
 
-  private static handleUnauthorizedError = (err) => {
+  private static readonly handleUnauthorizedError = (err) => {
     if (err instanceof AxiosError && err.response?.status === 401) {
       logger.error(
         "401 - Current credentials:",
@@ -279,10 +298,8 @@ export class HydraApi {
       await this.revalidateAccessTokenIfExpired();
     }
 
-    if (needsSubscription) {
-      if (!(await this.hasActiveSubscription())) {
-        throw new SubscriptionRequiredError();
-      }
+    if (needsSubscription && !this.hasActiveSubscription()) {
+      throw new SubscriptionRequiredError();
     }
   }
 

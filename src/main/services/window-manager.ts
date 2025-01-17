@@ -9,7 +9,7 @@ import {
   shell,
 } from "electron";
 import { is } from "@electron-toolkit/utils";
-import i18next, { t } from "i18next";
+import { t } from "i18next";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
@@ -17,6 +17,7 @@ import { gameRepository, userPreferencesRepository } from "@main/repository";
 import { IsNull, Not } from "typeorm";
 import { HydraApi } from "./hydra-api";
 import UserAgent from "user-agents";
+import { AuthPage } from "@shared";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -64,7 +65,10 @@ export class WindowManager {
 
     this.mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
       (details, callback) => {
-        if (details.webContentsId !== this.mainWindow?.webContents.id) {
+        if (
+          details.webContentsId !== this.mainWindow?.webContents.id ||
+          details.url.includes("chatwoot")
+        ) {
           return callback(details);
         }
 
@@ -81,11 +85,11 @@ export class WindowManager {
 
     this.mainWindow.webContents.session.webRequest.onHeadersReceived(
       (details, callback) => {
-        if (details.webContentsId !== this.mainWindow?.webContents.id) {
-          return callback(details);
-        }
-
-        if (details.url.includes("intercom.io")) {
+        if (
+          details.webContentsId !== this.mainWindow?.webContents.id ||
+          details.url.includes("featurebase") ||
+          details.url.includes("chatwoot")
+        ) {
           return callback(details);
         }
 
@@ -139,7 +143,7 @@ export class WindowManager {
     });
   }
 
-  public static openAuthWindow() {
+  public static openAuthWindow(page: AuthPage, searchParams: URLSearchParams) {
     if (this.mainWindow) {
       const authWindow = new BrowserWindow({
         width: 600,
@@ -161,12 +165,8 @@ export class WindowManager {
 
       if (!app.isPackaged) authWindow.webContents.openDevTools();
 
-      const searchParams = new URLSearchParams({
-        lng: i18next.language,
-      });
-
       authWindow.loadURL(
-        `${import.meta.env.MAIN_VITE_AUTH_URL}/?${searchParams.toString()}`
+        `${import.meta.env.MAIN_VITE_AUTH_URL}${page}?${searchParams.toString()}`
       );
 
       authWindow.once("ready-to-show", () => {
@@ -178,6 +178,13 @@ export class WindowManager {
           authWindow.close();
 
           HydraApi.handleExternalAuth(url);
+          return;
+        }
+
+        if (url.startsWith("hydralauncher://update-account")) {
+          authWindow.close();
+
+          WindowManager.mainWindow?.webContents.send("on-account-updated");
         }
       });
     }
@@ -191,7 +198,7 @@ export class WindowManager {
     this.mainWindow?.focus();
   }
 
-  public static createSystemTray(language: string) {
+  public static async createSystemTray(language: string) {
     let tray: Tray;
 
     if (process.platform === "darwin") {
@@ -259,6 +266,7 @@ export class WindowManager {
         },
       ]);
 
+      tray.setContextMenu(contextMenu);
       return contextMenu;
     };
 
@@ -270,14 +278,11 @@ export class WindowManager {
     tray.setToolTip("Hydra");
 
     if (process.platform !== "darwin") {
-      tray.addListener("click", () => {
+      await updateSystemTray();
+
+      tray.addListener("double-click", () => {
         if (this.mainWindow) {
-          if (
-            WindowManager.mainWindow?.isMinimized() ||
-            !WindowManager.mainWindow?.isVisible()
-          ) {
-            WindowManager.mainWindow?.show();
-          }
+          this.mainWindow.show();
         } else {
           this.createMainWindow();
         }

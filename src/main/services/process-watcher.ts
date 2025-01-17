@@ -1,38 +1,190 @@
-import { IsNull, Not } from "typeorm";
 import { gameRepository } from "@main/repository";
 import { WindowManager } from "./window-manager";
 import { createGame, updateGamePlaytime } from "./library-sync";
 import type { GameRunning } from "@types";
-import { PythonInstance } from "./download";
+import { PythonRPC } from "./python-rpc";
 import { Game } from "@main/entity";
+import axios from "axios";
+import { exec } from "child_process";
+import { ProcessPayload } from "./download/types";
+
+const commands = {
+  findWineDir: `lsof -c wine 2>/dev/null | grep '/drive_c/windows$' | head -n 1 | awk '{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}'`,
+  findWineExecutables: `lsof -c wine 2>/dev/null | grep '\\.exe$' | awk '{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}'`,
+};
 
 export const gamesPlaytime = new Map<
   number,
   { lastTick: number; firstTick: number; lastSyncTick: number }
 >();
 
+interface ExecutableInfo {
+  name: string;
+  os: string;
+  exe: string;
+}
+
+interface GameExecutables {
+  [key: string]: ExecutableInfo[];
+}
+
 const TICKS_TO_UPDATE_API = 120;
 let currentTick = 1;
+
+const isWindowsPlatform = process.platform === "win32";
+const isLinuxPlatform = process.platform === "linux";
+
+const getGameExecutables = async () => {
+  const gameExecutables = (
+    await axios
+      .get(
+        import.meta.env.MAIN_VITE_EXTERNAL_RESOURCES_URL +
+          "/game-executables.json"
+      )
+      .catch(() => {
+        return { data: {} };
+      })
+  ).data as GameExecutables;
+
+  Object.keys(gameExecutables).forEach((key) => {
+    gameExecutables[key] = gameExecutables[key]
+      .filter((executable) => {
+        if (isWindowsPlatform) {
+          return executable.os === "win32";
+        } else if (isLinuxPlatform) {
+          return executable.os === "linux" || executable.os === "win32";
+        }
+        return false;
+      })
+      .map((executable) => {
+        return {
+          name: isWindowsPlatform
+            ? executable.name.replace(/\//g, "\\")
+            : executable.name,
+          os: executable.os,
+          exe: executable.name.slice(executable.name.lastIndexOf("/") + 1),
+        };
+      });
+  });
+
+  return gameExecutables;
+};
+
+const gameExecutables = await getGameExecutables();
+
+const findGamePathByProcess = (
+  processMap: Map<string, Set<string>>,
+  gameId: string
+) => {
+  const executables = gameExecutables[gameId];
+
+  for (const executable of executables) {
+    const pathSet = processMap.get(executable.exe);
+
+    if (pathSet) {
+      pathSet.forEach((path) => {
+        if (path.toLowerCase().endsWith(executable.name)) {
+          gameRepository.update(
+            { objectID: gameId, shop: "steam" },
+            { executablePath: path }
+          );
+
+          if (isLinuxPlatform) {
+            exec(commands.findWineDir, (err, out) => {
+              if (err) return;
+
+              gameRepository.update(
+                { objectID: gameId, shop: "steam" },
+                {
+                  winePrefixPath: out.trim().replace("/drive_c/windows", ""),
+                }
+              );
+            });
+          }
+        }
+      });
+    }
+  }
+};
+
+const getSystemProcessMap = async () => {
+  const processes =
+    (await PythonRPC.rpc.get<ProcessPayload[] | null>("/process-list")).data ||
+    [];
+
+  const map = new Map<string, Set<string>>();
+
+  processes.forEach((process) => {
+    const key = process.name?.toLowerCase();
+    const value = process.exe;
+
+    if (!key || !value) return;
+
+    const currentSet = map.get(key) ?? new Set();
+    map.set(key, currentSet.add(value));
+  });
+
+  if (isLinuxPlatform) {
+    await new Promise((res) => {
+      exec(commands.findWineExecutables, (err, out) => {
+        if (err) {
+          res(null);
+          return;
+        }
+
+        const pathSet = new Set(
+          out
+            .trim()
+            .split("\n")
+            .map((path) => path.trim())
+        );
+
+        pathSet.forEach((path) => {
+          if (path.startsWith("/usr")) return;
+
+          const key = path.slice(path.lastIndexOf("/") + 1).toLowerCase();
+
+          if (!key || !path) return;
+
+          const currentSet = map.get(key) ?? new Set();
+          map.set(key, currentSet.add(path));
+        });
+
+        res(null);
+      });
+    });
+  }
+
+  return map;
+};
 
 export const watchProcesses = async () => {
   const games = await gameRepository.find({
     where: {
-      executablePath: Not(IsNull()),
       isDeleted: false,
     },
   });
 
-  if (games.length === 0) return;
-  const processes = await PythonInstance.getProcessList();
+  if (!games.length) return;
 
-  const processSet = new Set(processes.map((process) => process.exe));
+  const processMap = await getSystemProcessMap();
 
   for (const game of games) {
-    const executablePath = game.executablePath!;
+    const executablePath = game.executablePath;
+    if (!executablePath) {
+      if (gameExecutables[game.objectID]) {
+        findGamePathByProcess(processMap, game.objectID);
+      }
+      continue;
+    }
 
-    const gameProcess = processSet.has(executablePath);
+    const executable = executablePath
+      .slice(executablePath.lastIndexOf(isWindowsPlatform ? "\\" : "/") + 1)
+      .toLowerCase();
 
-    if (gameProcess) {
+    const hasProcess = processMap.get(executable)?.has(executablePath);
+
+    if (hasProcess) {
       if (gamesPlaytime.has(game.id)) {
         onTickGame(game);
       } else {

@@ -251,7 +251,7 @@
     "last_time_played": "Sist spilt {{period}}",
     "activity": "Seneste aktivitet",
     "library": "Bibliotek",
-    "total_play_time": "Samlet spilltid: {{amount}}",
+    "total_play_time": "Samlet spilltid",
     "no_recent_activity_title": "Hmmm… ikke noe her",
     "no_recent_activity_description": "Du har ikke spilt noen spill for på det seneste. Det er det på tide at endre på!",
     "display_name": "Brukernavn",

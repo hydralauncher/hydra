@@ -1,0 +1,22 @@
+@use "../../scss/globals.scss";
+
+.catalogue {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+  width: 100%;
+  padding: 16px;
+  scroll-behavior: smooth;
+
+  &__filters-container {
+    width: 270px;
+    min-width: 270px;
+    max-width: 270px;
+    background-color: globals.$dark-background-color;
+    border-radius: 4px;
+    padding: 16px;
+    border: 1px solid globals.$border-color;
+    align-self: flex-start;
+  }
+}

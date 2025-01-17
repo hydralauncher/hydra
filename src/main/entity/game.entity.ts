@@ -5,9 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToOne,
-  JoinColumn,
 } from "typeorm";
-import { Repack } from "./repack.entity";
 
 import type { GameShop, GameStatus } from "@types";
 import { Downloader } from "@shared";
@@ -38,6 +36,9 @@ export class Game {
 
   @Column("text", { nullable: true })
   executablePath: string | null;
+
+  @Column("text", { nullable: true })
+  launchOptions: string | null;
 
   @Column("text", { nullable: true })
   winePrefixPath: string | null;
@@ -72,18 +73,14 @@ export class Game {
   @Column("text", { nullable: true })
   uri: string | null;
 
-  /**
-   * @deprecated
-   */
-  @OneToOne("Repack", "game", { nullable: true })
-  @JoinColumn()
-  repack: Repack;
-
   @OneToOne("DownloadQueue", "game")
   downloadQueue: DownloadQueue;
 
   @Column("boolean", { default: false })
   isDeleted: boolean;
+
+  @Column("boolean", { default: false })
+  shouldSeed: boolean;
 
   @CreateDateColumn()
   createdAt: Date;
