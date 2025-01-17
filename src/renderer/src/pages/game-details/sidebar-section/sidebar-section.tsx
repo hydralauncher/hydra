@@ -14,10 +14,12 @@ export function SidebarSection({ title, children }: SidebarSectionProps) {
   const [height, setHeight] = useState(0);
 
   useEffect(() => {
-    if (content.current) {
+    if (content.current && content.current.scrollHeight !== height) {
       setHeight(isOpen ? content.current.scrollHeight : 0);
+    } else if (!isOpen) {
+      setHeight(0);
     }
-  }, [isOpen, children]);
+  }, [isOpen, children, height]);
 
   return (
     <div>
