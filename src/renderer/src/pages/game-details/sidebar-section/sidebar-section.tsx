@@ -26,8 +26,6 @@ export function SidebarSection({ title, children }: SidebarSectionProps) {
       <div
         ref={content}
         style={{
-          maxHeight: isOpen ? `${content.current?.scrollHeight}px` : "0",
-          overflow: "hidden",
           transition: "max-height 0.4s cubic-bezier(0, 1, 0, 1)",
           position: "relative",
         }}
