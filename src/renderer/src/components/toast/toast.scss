@@ -44,49 +44,49 @@
     animation-name: slideIn;
     transform: translateY(0);
   }
-}
 
-&__content {
-  display: flex;
-  gap: vars.$spacing-unit * 2;
-  padding: vars.$spacing-unit * 2;
-  justify-content: center;
-  align-items: center;
-}
-
-&__progress {
-  width: 100%;
-  height: 5px;
-
-  &::-webkit-progress-bar {
-    background-color: vars.$dark-background-color;
+  &__content {
+    display: flex;
+    gap: vars.$spacing-unit * 2;
+    padding: vars.$spacing-unit * 2;
+    justify-content: center;
+    align-items: center;
   }
 
-  &::-webkit-progress-value {
-    background-color: vars.$muted-color;
+  &__progress {
+    width: 100%;
+    height: 5px;
+
+    &::-webkit-progress-bar {
+      background-color: vars.$dark-background-color;
+    }
+
+    &::-webkit-progress-value {
+      background-color: vars.$muted-color;
+    }
   }
-}
 
-&__close-button {
-  color: vars.$body-color;
-  cursor: pointer;
-  padding: 0;
-  margin: 0;
-}
+  &__close-button {
+    color: vars.$body-color;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+  }
 
-&__icon-container {
-  display: flex;
-  gap: var(--spacing-unit);
-}
+  &__icon-container {
+    display: flex;
+    gap: var(--spacing-unit);
+  }
 
-&__success-icon {
-  color: vars.$success-color;
-}
+  &__success-icon {
+    color: vars.$success-color;
+  }
 
-&__error-icon {
-  color: vars.$danger-color;
-}
+  &__error-icon {
+    color: vars.$danger-color;
+  }
 
-&__warning-icon {
-  color: vars.$warning-color;
+  &__warning-icon {
+    color: vars.$warning-color;
+  }
 }

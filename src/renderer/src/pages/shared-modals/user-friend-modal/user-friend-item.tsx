@@ -2,7 +2,7 @@ import { CheckCircleIcon, XCircleIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@renderer/components";
 import "./user-friend-modal.scss";
-import "@renderer/theme.scss";
+import "../../../_theme.scss";
 
 export type UserFriendItemProps = {
   userId: string;

@@ -1,4 +1,4 @@
-@use "../../scss/variables" as vars;
+@use "../../../scss/variables" as vars;
 
 .gallery-slider {
   &__container {
@@ -40,7 +40,7 @@
     position: relative;
     overflow-x: auto;
     overflow-y: hidden;
-    gap: #{vars.$spacing-unit / 2};
+    gap: calc(vars.$spacing-unit / 2);
 
     @media (min-width: 1280px) {
       width: 60%;

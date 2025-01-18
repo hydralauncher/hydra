@@ -3,12 +3,12 @@
 .achievement-panel {
   width: 100%;
   padding: #{vars.$spacing-unit * 2} #{vars.$spacing-unit * 3};
-  background-color: vars.$color-background;
+  background-color: vars.$background-color;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
-  border-bottom: solid 1px vars.$color-border;
+  border-bottom: solid 1px vars.$border-color;
 
   &__content {
     display: flex;
@@ -24,12 +24,12 @@
   &__download-details-row {
     gap: vars.$spacing-unit;
     display: flex;
-    color: vars.$color-body;
+    color: vars.$body-color;
     align-items: center;
   }
 
   &__downloads-link {
-    color: vars.$color-body;
+    color: vars.$body-color;
     text-decoration: underline;
   }
 
@@ -46,17 +46,17 @@
     }
 
     &::-webkit-progress-value {
-      background-color: vars.$color-muted;
+      background-color: vars.$muted-color;
     }
 
     &--disabled {
-      opacity: vars.$opacity-disabled;
+      opacity: vars.$disabled-opacity;
     }
   }
 
   &__link {
     text-align: start;
-    color: vars.$color-body;
+    color: vars.$body-color;
 
     &:hover {
       text-decoration: underline;

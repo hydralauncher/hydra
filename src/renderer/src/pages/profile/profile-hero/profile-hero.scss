@@ -80,7 +80,7 @@
   &__current-game-wrapper {
     display: flex;
     flex-direction: column;
-    gap: #{vars.$spacing-unit / 2};
+    gap: calc(vars.$spacing-unit / 2);
   }
 
   &__current-game-details {

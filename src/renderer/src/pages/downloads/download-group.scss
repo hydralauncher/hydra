@@ -91,7 +91,7 @@
     flex-direction: column;
     flex: 1;
     justify-content: center;
-    gap: #{vars.$spacing-unit / 2};
+    gap: calc(vars.$spacing-unit / 2);
     font-size: 14px;
   }
 

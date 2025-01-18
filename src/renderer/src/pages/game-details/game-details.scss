@@ -1,7 +1,5 @@
 @use "../../scss/variables" as vars;
 
-$hero-height: 300px;
-
 @keyframes slide-in {
   0% {
     transform: translateY(#{40 + vars.$spacing-unit * 2}px);

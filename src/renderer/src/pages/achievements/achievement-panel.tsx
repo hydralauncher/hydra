@@ -4,7 +4,7 @@ import { UserAchievement } from "@types";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { useUserDetails } from "@renderer/hooks";
 
-import "./achievement-panel.sccs";
+import "./achievement-panel.scss";
 
 export interface AchievementPanelProps {
   achievements: UserAchievement[];

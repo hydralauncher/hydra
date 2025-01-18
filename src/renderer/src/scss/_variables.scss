@@ -37,6 +37,11 @@ $small-font-size: 12px;
 
 $app-container: app-container;
 
+$hero-height: 300px;
+$hero-sub-height: 150px;
+$logo-height: 100px;
+$logo-max-width: 200px;
+
 :root {
   --warning-color: #{$warning-color};
   --dark-background-color: #{$dark-background-color};
