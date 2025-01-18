@@ -1,7 +1,6 @@
 import React, { useId, useMemo, useState } from "react";
 import { EyeClosedIcon, EyeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
-
 import cn from "classnames";
 
 import "./text-field.scss";
@@ -42,9 +41,7 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
   ) => {
     const id = useId();
     const [isFocused, setIsFocused] = useState(false);
-
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-
     const { t } = useTranslation("forms");
 
     const showPasswordToggleButton = props.type === "password";
@@ -57,7 +54,7 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
     const hintContent = useMemo(() => {
       if (error && typeof error === "object" && "message" in error)
         return (
-          <small className="text-field-container__error-label">
+          <small className="text-field__error-label">
             {error.message as string}
           </small>
         );
@@ -82,24 +79,19 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
       <div className="text-field-container" {...containerProps}>
         {label && <label htmlFor={id}>{label}</label>}
 
-        <div className="text-field-container__text-field-wrapper">
+        <div className="text-field__wrapper">
           <div
-            className={cn(
-              "text-field-container__text-field",
-              `text-field-container__text-field--${theme}`,
-              {
-                "text-field-container__text-field__has-error": hasError,
-                "text-field-container__text-field__focused": isFocused,
-              }
-            )}
+            className={cn("text-field", `text-field__${theme}`, {
+              "text-field__has-error": hasError,
+              "text-field--focused": isFocused,
+            })}
             {...textFieldProps}
           >
             <input
               ref={ref}
               id={id}
-              className={cn("text-field-container__text-field-input", {
-                "text-field-container__text-field-input__read-only":
-                  props.readOnly,
+              className={cn("text-field__input", {
+                "text-field__input__read-only": props.readOnly,
               })}
               {...props}
               onFocus={handleFocus}
@@ -110,7 +102,7 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
             {showPasswordToggleButton && (
               <button
                 type="button"
-                className="text-field-container__toggle-password-button"
+                className="text-field__toggle-password-button"
                 onClick={() => setIsPasswordVisible(!isPasswordVisible)}
                 aria-label={t("toggle_password_visibility")}
               >

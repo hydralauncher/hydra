@@ -31,7 +31,7 @@ export function SidebarSection({ title, children }: SidebarSectionProps) {
       >
         <ChevronDownIcon
           className={classNames("chevron", {
-            "chevron--open": isOpen,
+            "sidebar-section__chevron--open": isOpen,
           })}
         />
         <span>{title}</span>
