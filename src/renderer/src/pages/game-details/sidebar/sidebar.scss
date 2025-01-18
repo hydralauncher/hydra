@@ -1,4 +1,4 @@
-@use "../../scss/variables" as vars;
+@use "../../../scss/variables" as vars;
 
 .sidebar {
   &__content {
@@ -110,7 +110,7 @@
   &__stats-category {
     display: flex;
     flex-direction: column;
-    gap: #{vars.$spacing-unit / 2};
+    gap: calc(vars.$spacing-unit / 2);
   }
 
   &__list {
@@ -157,7 +157,7 @@
     display: flex;
     justify-content: center;
     width: 100%;
-    gap: #{vars.$spacing-unit / 2};
+    gap: calc(vars.$spacing-unit / 2);
     color: vars.$warning-color;
     cursor: pointer;
 

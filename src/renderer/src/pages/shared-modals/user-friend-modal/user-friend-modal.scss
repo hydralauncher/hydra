@@ -3,7 +3,7 @@
 .user-friend-modal {
   &__friend-list-display-name {
     font-weight: bold;
-    font-size: vars.$body-size;
+    font-size: vars.$body-font-size;
     text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -36,7 +36,7 @@
     width: 100%;
     flex-direction: row;
     color: vars.$body-color;
-    gap: #{vars.$spacing-unit + vars.$spacing-unit / 2};
+    gap: calc(vars.$spacing-unit + vars.$spacing-unit / 2);
     padding: 0 vars.$spacing-unit;
   }
 
@@ -81,7 +81,7 @@
     color: vars.$body-color;
     cursor: pointer;
     display: flex;
-    gap: vars.$spacing-unit / 2;
+    gap: calc(vars.$spacing-unit / 2);
     align-items: center;
     transition: all ease 0.2s;
 

@@ -1,4 +1,4 @@
-@use "./scss/variables";
+@use "./scss/variables" as vars;
 
 * {
   box-sizing: border-box;
@@ -6,7 +6,7 @@
 
 ::-webkit-scrollbar {
   width: 9px;
-  background-color: $dark-background-color;
+  background-color: vars.$dark-background-color;
 }
 
 ::-webkit-scrollbar-track {
@@ -33,8 +33,8 @@ body {
   overflow: hidden;
   user-select: none;
   font-family: "Noto Sans", sans-serif;
-  font-size: $body-font-size;
-  color: $body-color;
+  font-size: vars.$body-font-size;
+  color: vars.$body-color;
   margin: 0;
 }
 
@@ -79,7 +79,7 @@ input::-webkit-inner-spin-button {
 }
 
 label {
-  font-size: $body-font-size;
+  font-size: vars.$body-font-size;
 }
 
 input[type="number"] {
@@ -111,8 +111,8 @@ progress[value] {
   height: 100%;
   background: linear-gradient(
     0deg,
-    $dark-background-color 50%,
-    $background-color 100%
+    vars.$dark-background-color 50%,
+    vars.$background-color 100%
   );
 }
 
@@ -121,12 +121,12 @@ progress[value] {
   width: 100%;
   height: 35px;
   min-height: 35px;
-  background-color: $dark-background-color;
+  background-color: vars.$dark-background-color;
   align-items: center;
-  padding: 0 $spacing-unit * 2;
+  padding: 0 vars.$spacing-unit * 2;
   -webkit-app-region: drag;
-  z-index: $title-bar-z-index;
-  border-bottom: 1px solid $border-color;
+  z-index: vars.$title-bar-z-index;
+  border-bottom: 1px solid vars.$border-color;
 }
 
 .app-container__cloud-text {

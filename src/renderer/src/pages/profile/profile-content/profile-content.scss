@@ -72,7 +72,7 @@
   &__friend-name {
     color: vars.$muted-color;
     font-weight: bold;
-    font-size: vars.$body-size;
+    font-size: vars.$body-font-size;
   }
 
   &__right-content {
@@ -189,7 +189,7 @@
   &__list-item-details {
     display: flex;
     flex-direction: column;
-    gap: vars.$spacing-unit / 2;
+    gap: calc(vars.$spacing-unit / 2);
     overflow: hidden;
   }
 
@@ -259,7 +259,7 @@
     justify-content: flex-end;
     height: 100%;
     width: 100%;
-    background: linear-gradient(0deg, rgba(0, 0, 0 0.7) 20%, transparent 100%);
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.7) 20%, transparent 100%);
     padding: 8;
   }
 
