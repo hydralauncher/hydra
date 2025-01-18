@@ -1,18 +1,18 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .editor-header {
   width: 100%;
   height: 36px;
-  background-color: $dark-background-color;
+  background-color: vars.$dark-background-color;
   display: flex;
   align-items: center;
   justify-content: start;
-  padding: 0 calc($spacing-unit * 2);
+  padding: 0 calc(vars.$spacing-unit * 2);
   -webkit-app-region: drag;
 }
 
 .editor-header-title {
   font-size: 7px;
   font-weight: 500;
-  color: $body-color;
+  color: vars.$body-color;
 }

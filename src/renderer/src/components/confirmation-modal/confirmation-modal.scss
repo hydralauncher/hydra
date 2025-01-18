@@ -1,14 +1,14 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .confirmation-modal {
   display: flex;
   flex-direction: column;
-  gap: calc($spacing-unit * 2);
+  gap: calc(vars.$spacing-unit * 2);
 
   &__actions {
     display: flex;
     align-self: flex-end;
-    gap: calc($spacing-unit * 2);
+    gap: calc(vars.$spacing-unit * 2);
   }
   &__description {
     font-size: 16px;

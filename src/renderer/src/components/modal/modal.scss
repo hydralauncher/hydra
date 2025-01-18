@@ -1,15 +1,15 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .modal {
   animation: scale-fade-in 0.2s cubic-bezier(0.33, 1, 0.68, 1) 0s 1 normal none
     running;
-  background-color: $background-color;
+  background-color: vars.$background-color;
   border-radius: 4px;
   min-width: 400px;
   max-width: 600px;
-  color: $body-color;
+  color: vars.$body-color;
   max-height: 100%;
-  border: solid 1px $border-color;
+  border: solid 1px vars.$border-color;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -27,14 +27,14 @@
   &__content {
     height: 100%;
     overflow: auto;
-    padding: calc($spacing-unit * 3) calc($spacing-unit * 2);
+    padding: calc(vars.$spacing-unit * 3) calc(vars.$spacing-unit * 2);
   }
 
   &__header {
     display: flex;
-    gap: $spacing-unit;
-    padding: calc($spacing-unit * 2);
-    border-bottom: solid 1px $border-color;
+    gap: vars.$spacing-unit;
+    padding: calc(vars.$spacing-unit * 2);
+    border-bottom: solid 1px vars.$border-color;
     justify-content: space-between;
     align-items: center;
   }
@@ -50,7 +50,7 @@
   }
 
   &__close-button-icon {
-    color: $body-color;
+    color: vars.$body-color;
   }
 }
 

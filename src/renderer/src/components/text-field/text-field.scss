@@ -1,8 +1,8 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .text-field-container {
   flex: 1;
-  gap: $spacing-unit;
+  gap: vars.$spacing-unit;
   display: flex;
   flex-direction: column;
 }
@@ -13,28 +13,28 @@
   width: 100%;
   align-items: center;
   border-radius: 8px;
-  border: solid 1px $border-color;
+  border: solid 1px vars.$border-color;
   height: 40px;
   min-height: 40px;
 
   &__primary {
-    background-color: $dark-background-color;
+    background-color: vars.$dark-background-color;
   }
 
   &__dark {
-    background-color: $background-color;
+    background-color: vars.$background-color;
   }
 
   &__has-error {
-    border-color: $danger-color;
+    border-color: vars.$danger-color;
   }
 
   &__focused {
-    border-color: $search-border-color-focused;
+    border-color: vars.$search-border-color-focused;
   }
 
   &:not(&--focused):hover {
-    border-color: $search-border-color-hover;
+    border-color: vars.$search-border-color-hover;
   }
 }
 
@@ -44,11 +44,11 @@
   width: 100%;
   height: 100%;
   outline: none;
-  color: $search-input-color;
+  color: vars.$search-input-color;
   cursor: default;
   font-family: inherit;
   text-overflow: ellipsis;
-  padding: $spacing-unit;
+  padding: vars.$spacing-unit;
 
   &:focus {
     cursor: text;
@@ -61,15 +61,15 @@
 
 .text-field__toggle-password-button {
   cursor: pointer;
-  color: $muted-color;
-  padding: $spacing-unit;
+  color: vars.$muted-color;
+  padding: vars.$spacing-unit;
 }
 
 .text-field__wrapper {
   display: flex;
-  gap: $spacing-unit;
+  gap: vars.$spacing-unit;
 }
 
 .text-field__error-label {
-  color: $danger-color;
+  color: vars.$danger-color;
 }

@@ -1,10 +1,10 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .badge {
-  color: $muted-color;
+  color: vars.$muted-color;
   font-size: 10px;
-  padding: calc($spacing-unit / 2) $spacing-unit;
-  border: solid 1px $muted-color;
+  padding: calc(vars.$spacing-unit / 2) vars.$spacing-unit;
+  border: solid 1px vars.$muted-color;
   border-radius: 4px;
   display: flex;
   align-items: center;

@@ -1,10 +1,10 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .download-source {
   &__add-source {
     display: flex;
     flex-direction: column;
-    gap: #{$spacing-unit};
+    gap: #{vars.$spacing-unit};
     min-width: 500px;
   }
 
@@ -12,12 +12,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: #{$spacing-unit * 3};
+    margin-top: #{vars.$spacing-unit * 3};
   }
 
   &__input {
     display: flex;
     flex-direction: column;
-    gap: #{$spacing-unit / 2};
+    gap: #{vars.$spacing-unit / 2};
   }
 }

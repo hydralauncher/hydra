@@ -1,4 +1,4 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .backdrop {
   animation-name: backdrop-fade-in;
@@ -10,9 +10,9 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: $backdrop-z-index;
+  z-index: vars.$backdrop-z-index;
   top: 0;
-  padding: calc($spacing-unit * 3);
+  padding: calc(vars.$spacing-unit * 3);
   backdrop-filter: blur(2px);
   transition: all ease 0.2s;
 
@@ -23,7 +23,7 @@
   }
 
   &--windows {
-    padding-top: calc(#{$spacing-unit * 3} + 35);
+    padding-top: calc(#{vars.$spacing-unit * 3} + 35);
   }
 }
 

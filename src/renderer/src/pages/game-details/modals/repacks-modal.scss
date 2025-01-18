@@ -1,9 +1,9 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .repacks-modal {
   &__repacks {
     display: flex;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
     flex-direction: column;
   }
 
@@ -12,8 +12,8 @@
     text-align: left;
     flex-direction: column;
     align-items: flex-start;
-    gap: $spacing-unit;
-    color: $body-color;
-    padding: #{$spacing-unit * 2};
+    gap: vars.$spacing-unit;
+    color: vars.$body-color;
+    padding: #{vars.$spacing-unit * 2};
   }
 }

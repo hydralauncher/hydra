@@ -1,10 +1,10 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .settings-download-sources {
   &__download-sources {
     padding: 0;
     margin: 0;
-    gap: #{$spacing-unit * 2};
+    gap: #{vars.$spacing-unit * 2};
     display: flex;
     flex-direction: column;
   }
@@ -12,23 +12,23 @@
   &__download-source-item {
     display: flex;
     flex-direction: column;
-    background-color: $dark-background-color;
+    background-color: vars.$dark-background-color;
     border-radius: 8px;
-    padding: #{$spacing-unit * 2};
-    gap: $spacing-unit;
-    border: solid 1px $border-color;
+    padding: #{vars.$spacing-unit * 2};
+    gap: vars.$spacing-unit;
+    border: solid 1px vars.$border-color;
     transition: all ease 0.2s;
 
     &--is-syncing {
-      opacity: $disabled-opacity;
+      opacity: vars.$disabled-opacity;
     }
   }
 
   &__download-source-item-header {
-    margin-bottom: $spacing-unit;
+    margin-bottom: vars.$spacing-unit;
     display: flex;
     flex-direction: column;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
   }
 
   &__download-sources-header {
@@ -40,8 +40,8 @@
   &__navigate-to-catalogue-button {
     display: flex;
     align-items: center;
-    gap: $spacing-unit;
-    color: $muted-color;
+    gap: vars.$spacing-unit;
+    color: vars.$muted-color;
     text-decoration: underline;
     cursor: pointer;
 

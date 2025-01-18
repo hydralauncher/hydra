@@ -1,9 +1,9 @@
-@use "../../../scss/variables";
+@use "../../../scss/variables" as vars;
 
 .user-friend-modal {
   &__friend-list-display-name {
     font-weight: bold;
-    font-size: $body-size;
+    font-size: vars.$body-size;
     text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -12,10 +12,10 @@
 
   &__friend-list-container {
     display: flex;
-    gap: #{$spacing-unit * 3};
+    gap: #{vars.$spacing-unit * 3};
     align-items: center;
     border-radius: 4px;
-    border: solid 1px $border-color;
+    border: solid 1px vars.$border-color;
     width: 100%;
     height: 54px;
     min-height: 54px;
@@ -35,20 +35,20 @@
     height: 100%;
     width: 100%;
     flex-direction: row;
-    color: $body-color;
-    gap: #{$spacing-unit + $spacing-unit / 2};
-    padding: 0 $spacing-unit;
+    color: vars.$body-color;
+    gap: #{vars.$spacing-unit + vars.$spacing-unit / 2};
+    padding: 0 vars.$spacing-unit;
   }
 
   &__friend-list-actions {
-    position: "absolute";
-    right: "8px";
-    display: "flex";
-    gap: #{$spacing-unit};
+    position: absolute;
+    right: 8px;
+    display: flex;
+    gap: #{vars.$spacing-unit};
   }
 
   &__friend-request-item {
-    color: $body-color;
+    color: vars.$body-color;
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.15);
@@ -57,36 +57,36 @@
 
   &__accept-request-button {
     cursor: pointer;
-    color: $body-color;
+    color: vars.$body-color;
     width: 28px;
     height: 28px;
 
     &:hover {
-      color: $success-color;
+      color: vars.$success-color;
     }
   }
 
   &__cancel-request-button {
     cursor: pointer;
-    color: $body-color;
+    color: vars.$body-color;
     width: 28px;
     height: 28px;
 
     &:hover {
-      color: $danger-color;
+      color: vars.$danger-color;
     }
   }
 
   &__friend-code-button {
-    color: $body-color;
+    color: vars.$body-color;
     cursor: pointer;
     display: flex;
-    gap: $spacing-unit / 2;
+    gap: vars.$spacing-unit / 2;
     align-items: center;
     transition: all ease 0.2s;
 
     &:hover {
-      color: $muted-color;
+      color: vars.$muted-color;
     }
   }
   &__add-friend-controls {
@@ -94,7 +94,7 @@
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    gap: #{$spacing-unit};
+    gap: #{vars.$spacing-unit};
   }
 
   &__text-field-container {
@@ -108,6 +108,6 @@
   &__pending-container {
     display: flex;
     flex-direction: column;
-    gap: #{$spacing-unit * 2};
+    gap: #{vars.$spacing-unit * 2};
   }
 }

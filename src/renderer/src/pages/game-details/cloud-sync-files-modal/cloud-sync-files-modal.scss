@@ -1,9 +1,9 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .cloud-sync-files-modal {
   &__mapping-methods {
     display: grid;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
     grid-template-columns: repeat(2, 1fr);
   }
 
@@ -13,13 +13,13 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: $spacing-unit;
-    margin-top: #{$spacing-unit * 2};
+    gap: vars.$spacing-unit;
+    margin-top: #{vars.$spacing-unit * 2};
   }
 
   &__file-item {
     flex: 1;
-    color: $muted-color;
+    color: vars.$muted-color;
     text-decoration: underline;
     display: flex;
     cursor: pointer;

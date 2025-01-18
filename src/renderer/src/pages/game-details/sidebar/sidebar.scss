@@ -1,9 +1,9 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .sidebar {
   &__content {
-    border-left: solid 1px $border-color;
-    background-color: $dark-background-color;
+    border-left: solid 1px vars.$border-color;
+    background-color: vars.$dark-background-color;
     width: 100%;
     height: 100%;
 
@@ -24,7 +24,7 @@
   }
 
   &__requirement-button {
-    border: solid 1px $border-color;
+    border: solid 1px vars.$border-color;
     border-left: none;
     border-right: none;
     border-radius: 0;
@@ -32,13 +32,13 @@
   }
 
   &__requirements-details {
-    padding: #{$spacing-unit * 2};
+    padding: #{vars.$spacing-unit * 2};
     line-height: 22px;
     font-size: 16px;
 
     a {
       display: flex;
-      color: $body-color;
+      color: vars.$body-color;
     }
   }
 
@@ -46,13 +46,13 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: #{$spacing-unit * 2};
+    padding: #{vars.$spacing-unit * 2};
     font-size: 16px;
   }
 
   &__how-long-to-beat-categories-list {
     margin: 0;
-    padding: #{$spacing-unit * 2};
+    padding: #{vars.$spacing-unit * 2};
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -69,23 +69,23 @@
     );
     border-radius: 4px;
     padding: 8px 16px;
-    border: solid 1px $border-color;
+    border: solid 1px vars.$border-color;
   }
 
   &__how-long-to-beat-category-label {
-    color: $muted-color;
+    color: vars.$muted-color;
   }
 
   &__how-long-to-beat-category-skeleton {
-    border: solid 1px $border-color;
+    border: solid 1px vars.$border-color;
     border-radius: 4px;
     height: 76px;
   }
 
   &__stats-section {
     display: flex;
-    gap: #{$spacing-unit * 2};
-    padding: #{$spacing-unit * 2};
+    gap: #{vars.$spacing-unit * 2};
+    padding: #{vars.$spacing-unit * 2};
     justify-content: space-between;
     transition: max-height ease 0.5s;
     overflow: hidden;
@@ -104,13 +104,13 @@
     font-weight: bold;
     display: flex;
     align-items: center;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
   }
 
   &__stats-category {
     display: flex;
     flex-direction: column;
-    gap: #{$spacing-unit / 2};
+    gap: #{vars.$spacing-unit / 2};
   }
 
   &__list {
@@ -118,20 +118,20 @@
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: #{$spacing-unit * 2};
-    padding: #{$spacing-unit * 2};
+    gap: #{vars.$spacing-unit * 2};
+    padding: #{vars.$spacing-unit * 2};
   }
 
   &__list-item {
     display: flex;
     cursor: pointer;
     transition: all ease 0.1s;
-    color: $muted-color;
+    color: vars.$muted-color;
     width: 100%;
     overflow: hidden;
     border-radius: 4px;
-    padding: $spacing-unit;
-    gap: #{$spacing-unit * 2};
+    padding: vars.$spacing-unit;
+    gap: #{vars.$spacing-unit * 2};
     align-items: center;
     text-align: left;
 
@@ -157,8 +157,8 @@
     display: flex;
     justify-content: center;
     width: 100%;
-    gap: #{$spacing-unit / 2};
-    color: $warning-color;
+    gap: #{vars.$spacing-unit / 2};
+    color: vars.$warning-color;
     cursor: pointer;
 
     &:hover {

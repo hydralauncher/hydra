@@ -1,4 +1,4 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 $hero-height: 150px;
 $logo-height: 100px;
@@ -16,8 +16,8 @@ $logo-max-width: 200px;
 
   &__hero {
     width: 100%;
-    height: $hero-height;
-    min-height: $hero-height;
+    height: vars.$hero-height;
+    min-height: vars.$hero-height;
     display: flex;
     flex-direction: column;
     position: relative;
@@ -25,7 +25,7 @@ $logo-max-width: 200px;
   }
 
   &__hero-content {
-    padding: #{$spacing-unit * 2};
+    padding: #{vars.$spacing-unit * 2};
     width: 100%;
     display: flex;
     justify-content: space-between;
@@ -33,8 +33,8 @@ $logo-max-width: 200px;
   }
 
   &__game-logo {
-    width: $logo-max-width;
-    height: $logo-height;
+    width: vars.$logo-max-width;
+    height: vars.$logo-height;
     object-fit: contain;
     transition: all ease 0.2s;
 
@@ -54,9 +54,9 @@ $logo-max-width: 200px;
 
   &__table-header {
     width: 100%;
-    background-color: $dark-background-color;
+    background-color: vars.$dark-background-color;
     transition: all ease 0.2s;
-    border-bottom: solid 1px $border-color;
+    border-bottom: solid 1px vars.$border-color;
     position: sticky;
     top: 0;
     z-index: 1;
@@ -71,20 +71,20 @@ $logo-max-width: 200px;
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: #{$spacing-unit * 2};
-    padding: #{$spacing-unit * 2};
+    gap: #{vars.$spacing-unit * 2};
+    padding: #{vars.$spacing-unit * 2};
     width: 100%;
-    background-color: $background-color;
+    background-color: vars.$background-color;
   }
 
   &__list-item {
     transition: all ease 0.1s;
-    color: $muted-color;
+    color: vars.$muted-color;
     width: 100%;
     overflow: hidden;
     border-radius: 4px;
-    padding: $spacing-unit;
-    gap: #{$spacing-unit * 2};
+    padding: vars.$spacing-unit;
+    gap: #{vars.$spacing-unit * 2};
     align-items: center;
     text-align: left;
 
@@ -116,7 +116,7 @@ $logo-max-width: 200px;
     }
 
     &::-webkit-progress-value {
-      background-color: $muted-color;
+      background-color: vars.$muted-color;
       border-radius: 4px;
     }
   }
@@ -136,20 +136,20 @@ $logo-max-width: 200px;
 
   &__hero-panel-skeleton {
     width: 100%;
-    padding: #{$spacing-unit * 2};
+    padding: #{vars.$spacing-unit * 2};
     display: flex;
     align-items: center;
-    background-color: $background-color;
+    background-color: vars.$background-color;
     height: 72px;
-    border-bottom: solid 1px $border-color;
+    border-bottom: solid 1px vars.$border-color;
   }
 
   &__list-item-skeleton {
     width: 100%;
     overflow: hidden;
     border-radius: 4px;
-    padding: $spacing-unit;
-    gap: #{$spacing-unit * 2};
+    padding: vars.$spacing-unit;
+    gap: #{vars.$spacing-unit * 2};
   }
 
   &__profile-avatar {
@@ -159,7 +159,7 @@ $logo-max-width: 200px;
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: $background-color;
+    background-color: vars.$background-color;
     position: relative;
     object-fit: cover;
   }
@@ -171,7 +171,7 @@ $logo-max-width: 200px;
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: $background-color;
+    background-color: vars.$background-color;
     position: relative;
     object-fit: cover;
   }
@@ -181,8 +181,8 @@ $logo-max-width: 200px;
     display: flex;
     justify-content: center;
     width: 100%;
-    gap: #{$spacing-unit / 2};
-    color: $body-color;
+    gap: #{vars.$spacing-unit / 2};
+    color: vars.$body-color;
     cursor: pointer;
 
     &:hover {

@@ -1,23 +1,23 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .bottom-panel {
   width: 100%;
-  border-top: solid 1px $border-color;
-  background-color: $background-color;
-  padding: calc($spacing-unit / 2) calc($spacing-unit * 2);
+  border-top: solid 1px vars.$border-color;
+  background-color: vars.$background-color;
+  padding: calc(vars.$spacing-unit / 2) calc(vars.$spacing-unit * 2);
   display: flex;
   align-items: center;
   transition: all ease 0.2s;
   justify-content: space-between;
   position: relative;
-  z-index: $bottom-panel-z-index;
+  z-index: vars.$bottom-panel-z-index;
 
   &__downloads-button {
-    color: $body-color;
+    color: vars.$body-color;
     border-bottom: solid 1px transparent;
 
     &:hover {
-      border-bottom: solid 1px $body-color;
+      border-bottom: solid 1px vars.$body-color;
       cursor: pointer;
     }
   }

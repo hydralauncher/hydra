@@ -1,18 +1,18 @@
-@use "../../../scss/variables";
+@use "../../../scss/variables" as vars;
 
 .hero-panel-actions {
   &__action {
-    border: solid 1px $muted-color;
+    border: solid 1px vars.$muted-color;
   }
 
   &__actions {
     display: flex;
-    gap: #{$spacing-unit * 2};
+    gap: #{vars.$spacing-unit * 2};
   }
 
   &__separator {
     width: 1px;
-    background-color: $muted-color;
+    background-color: vars.$muted-color;
     opacity: 0.2;
   }
 }

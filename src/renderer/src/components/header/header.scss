@@ -1,16 +1,16 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: calc($spacing-unit * 2);
+  gap: calc(vars.$spacing-unit * 2);
   -webkit-app-region: drag;
   width: 100%;
-  padding: calc($spacing-unit * 2) calc($spacing-unit * 3);
-  color: $muted-color;
-  border-bottom: solid 1px $border-color;
-  background-color: $dark-background-color;
+  padding: calc(vars.$spacing-unit * 2) calc(vars.$spacing-unit * 3);
+  color: vars.$muted-color;
+  border-bottom: solid 1px vars.$border-color;
+  background-color: vars.$dark-background-color;
 
   &--dragging-disabled {
     -webkit-app-region: no-drag;
@@ -21,13 +21,13 @@
   }
 
   &__search {
-    background-color: $background-color;
+    background-color: vars.$background-color;
     display: inline-flex;
     transition: all ease 0.2s;
     width: 200px;
     align-items: center;
     border-radius: 8px;
-    border: solid 1px $border-color;
+    border: solid 1px vars.$border-color;
     height: 40px;
     -webkit-app-region: no-drag;
     &:hover {
@@ -60,7 +60,7 @@
     color: inherit;
     cursor: pointer;
     transition: all ease 0.2s;
-    padding: $spacing-unit;
+    padding: vars.$spacing-unit;
 
     &:hover {
       color: #dadbe1;
@@ -70,13 +70,13 @@
   &__section {
     display: flex;
     align-items: center;
-    gap: calc($spacing-unit * 2);
+    gap: calc(vars.$spacing-unit * 2);
     height: 100%;
     overflow: hidden;
   }
 
   &__back-button {
-    color: $body-color;
+    color: vars.$body-color;
     cursor: pointer;
     -webkit-app-region: no-drag;
     position: absolute;
@@ -112,13 +112,13 @@
   &__new-version-link {
     display: flex;
     align-items: center;
-    gap: $spacing-unit;
-    color: $body-color;
-    font-size: $new-version-font-size;
+    gap: vars.$spacing-unit;
+    color: vars.$body-color;
+    font-size: vars.$new-version-font-size;
   }
 
   &__new-version-icon {
-    color: $success-color;
+    color: vars.$success-color;
   }
 }
 

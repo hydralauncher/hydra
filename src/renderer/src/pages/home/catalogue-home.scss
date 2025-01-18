@@ -1,24 +1,24 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .catalogue-home {
   &__categories {
     display: flex;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
   }
 
   &__content {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: #{$spacing-unit * 3};
-    padding: #{$spacing-unit * 3};
+    gap: #{vars.$spacing-unit * 3};
+    padding: #{vars.$spacing-unit * 3};
     flex: 1;
   }
 
   &__cards {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: #{$spacing-unit * 2};
+    gap: #{vars.$spacing-unit * 2};
     transition: all ease 0.2s;
   }
 }

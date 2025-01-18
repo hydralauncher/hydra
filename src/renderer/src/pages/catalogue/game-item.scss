@@ -1,7 +1,7 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .game-item {
-  background-color: $dark-background-color;
+  background-color: vars.$dark-background-color;
   width: 100%;
   color: #fff;
   display: flex;
@@ -9,9 +9,9 @@
   overflow: hidden;
   position: relative;
   border-radius: 4px;
-  border: 1px solid $border-color;
+  border: 1px solid vars.$border-color;
   cursor: pointer;
-  gap: calc($spacing-unit * 2);
+  gap: calc(vars.$spacing-unit * 2);
   transition: all ease 0.2s;
 
   &:hover {
@@ -22,7 +22,7 @@
     width: 200px;
     height: 100%;
     object-fit: cover;
-    border-right: 1px solid $border-color;
+    border-right: 1px solid vars.$border-color;
   }
 
   &__details {
@@ -30,11 +30,11 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
-    padding: calc($spacing-unit * 2) 0;
+    padding: calc(vars.$spacing-unit * 2) 0;
   }
 
   &__genres {
-    color: $body-color;
+    color: vars.$body-color;
     font-size: 12px;
     text-align: left;
     margin-bottom: 4px;
@@ -42,7 +42,7 @@
 
   &__repackers {
     display: flex;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
     flex-wrap: wrap;
   }
 }
