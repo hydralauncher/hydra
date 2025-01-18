@@ -1,9 +1,9 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .dropdown-menu {
   &__content {
-    background-color: $dark-background-color;
-    border: 1px solid $border-color;
+    background-color: vars.$dark-background-color;
+    border: 1px solid vars.$border-color;
     border-radius: 6px;
     min-width: 200px;
     flex-direction: column;
@@ -20,13 +20,13 @@
     padding: 4px 12px;
     font-size: 14px;
     font-weight: 500;
-    color: $muted-color;
+    color: vars.$muted-color;
   }
 
   &__separator {
     width: 100%;
     height: 1px;
-    background-color: $border-color;
+    background-color: vars.$border-color;
   }
 
   &__item {
@@ -49,12 +49,12 @@
   }
 
   &:not(&__item--disabled) &__item:hover {
-    background-color: $background-color;
-    color: $muted-color;
+    background-color: vars.$background-color;
+    color: vars.$muted-color;
   }
 
   &__item:focus {
-    background-color: $background-color;
+    background-color: vars.$background-color;
     outline: none;
   }
 

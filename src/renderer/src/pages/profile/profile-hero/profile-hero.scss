@@ -1,4 +1,4 @@
-@use "../../../scss/variables";
+@use "../../../scss/variables" as vars;
 
 .profile-hero {
   &__content-box {
@@ -15,12 +15,12 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: $background-color;
-    border: solid 1px $border-color;
+    background-color: vars.$background-color;
+    border: solid 1px vars.$border-color;
     box-shadow: 0px 0px 5px 0px rgba(0, 0, 0, 0.7);
     cursor: pointer;
     transition: all ease 0.3s;
-    color: $muted-color;
+    color: vars.$muted-color;
     position: relative;
 
     &:hover {
@@ -38,9 +38,9 @@
   &__information {
     display: flex;
     flex-direction: column;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
     align-items: flex-start;
-    color: $muted-color;
+    color: vars.$muted-color;
     z-index: 1;
     overflow: hidden;
   }
@@ -60,9 +60,9 @@
     width: 100%;
     height: 72px;
     min-height: 72px;
-    padding: #{$spacing-unit * 2} #{$spacing-unit * 3};
+    padding: #{vars.$spacing-unit * 2} #{vars.$spacing-unit * 3};
     display: flex;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
     justify-content: space-between;
     backdrop-filter: blur(15px);
     border-top: solid 1px rgba(255, 255, 255, 0.1);
@@ -72,27 +72,27 @@
 
   &__user-information {
     display: flex;
-    padding: #{$spacing-unit * 7} #{$spacing-unit * 3};
+    padding: #{vars.$spacing-unit * 7} #{vars.$spacing-unit * 3};
     align-items: center;
-    gap: #{$spacing-unit * 2};
+    gap: #{vars.$spacing-unit * 2};
   }
 
   &__current-game-wrapper {
     display: flex;
     flex-direction: column;
-    gap: #{$spacing-unit / 2};
+    gap: #{vars.$spacing-unit / 2};
   }
 
   &__current-game-details {
     display: flex;
     flex-direction: row;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
     align-items: center;
   }
 
   &__actions {
     display: flex;
-    gap: #{$spacing-unit};
+    gap: #{vars.$spacing-unit};
     justify-content: flex-end;
     flex: 1;
   }

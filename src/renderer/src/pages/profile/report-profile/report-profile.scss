@@ -1,23 +1,23 @@
-@use "../../../scss/variables";
+@use "../../../scss/variables" as vars;
 
 .report-profile {
   &__report-button {
     align-self: flex-end;
-    color: $muted-color;
-    gap: $spacing-unit;
+    color: vars.$muted-color;
+    gap: vars.$spacing-unit;
     display: flex;
     cursor: pointer;
     align-items: center;
     font-size: 12px;
   }
   &__button {
-    margin-top: $spacing-unit;
+    margin-top: vars.$spacing-unit;
     align-self: flex-end;
   }
 
   &__report-modal {
     display: flex;
     flex-direction: column;
-    gap: #{$spacing-unit * 2};
+    gap: #{vars.$spacing-unit * 2};
   }
 }

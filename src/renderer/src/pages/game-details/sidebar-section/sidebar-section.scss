@@ -1,17 +1,17 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .sidebar-section {
   &__button {
     height: 72px;
-    padding: #{$spacing-unit * 2};
+    padding: #{vars.$spacing-unit * 2};
     display: flex;
     align-items: center;
-    background-color: $background-color;
-    color: $muted-color;
+    background-color: vars.$background-color;
+    color: vars.$muted-color;
     width: 100%;
     cursor: pointer;
     transition: all ease 0.2s;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
     font-size: 14px;
     font-weight: bold;
 
@@ -20,7 +20,7 @@
     }
 
     &:active {
-      opacity: $active-opacity;
+      opacity: vars.$active-opacity;
     }
   }
 

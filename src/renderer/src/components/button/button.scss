@@ -1,8 +1,8 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .button {
-  padding: $spacing-unit $spacing-unit * 2;
-  background-color: $muted-color;
+  padding: vars.$spacing-unit vars.$spacing-unit * 2;
+  background-color: vars.$muted-color;
   border-radius: 8px;
   border: solid 1px transparent;
   transition: all ease 0.2s;
@@ -11,14 +11,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: $spacing-unit;
+  gap: vars.$spacing-unit;
 
   &:active {
-    opacity: $active-opacity;
+    opacity: vars.$active-opacity;
   }
 
   &:disabled {
-    opacity: $disabled-opacity;
+    opacity: vars.$disabled-opacity;
     cursor: not-allowed;
   }
 
@@ -28,14 +28,14 @@
     }
 
     &:disabled {
-      background-color: $muted-color;
+      background-color: vars.$muted-color;
     }
   }
 
   &--outline {
     background-color: transparent;
-    border: solid 1px $border-color;
-    color: $muted-color;
+    border: solid 1px vars.$border-color;
+    color: vars.$muted-color;
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.1);
@@ -47,14 +47,14 @@
   }
 
   &--dark {
-    background-color: $dark-background-color;
-    color: $muted-color;
+    background-color: vars.$dark-background-color;
+    color: vars.$muted-color;
   }
 
   &--danger {
     border-color: transparent;
-    background-color: $danger-color;
-    color: $muted-color;
+    background-color: vars.$danger-color;
+    color: vars.$muted-color;
 
     &:hover {
       background-color: #b3203f;

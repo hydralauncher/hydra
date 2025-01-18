@@ -1,4 +1,4 @@
-@use "../../../scss/variables";
+@use "../../../scss/variables" as vars;
 
 .profile-content {
   &__game-cover {
@@ -41,17 +41,17 @@
   }
 
   &__box {
-    background-color: $background-color;
+    background-color: vars.$background-color;
     border-radius: 4px;
-    border: solid 1px $border-color;
-    padding: #{$spacing-unit * 2};
+    border: solid 1px vars.$border-color;
+    padding: #{vars.$spacing-unit * 2};
   }
 
   &__section-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: #{$spacing-unit * 2};
+    margin-bottom: #{vars.$spacing-unit * 2};
   }
 
   &__list {
@@ -60,26 +60,26 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: #{$spacing-unit * 2};
+    gap: #{vars.$spacing-unit * 2};
   }
 
   &__friend {
     display: flex;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
     align-items: center;
   }
 
   &__friend-name {
-    color: $muted-color;
+    color: vars.$muted-color;
     font-weight: bold;
-    font-size: $body-size;
+    font-size: vars.$body-size;
   }
 
   &__right-content {
     width: 100%;
     height: 100%;
     display: flex;
-    gap: #{$spacing-unit * 2};
+    gap: #{vars.$spacing-unit * 2};
     flex-direction: column;
     transition: all ease 0.2s;
 
@@ -98,12 +98,12 @@
     display: flex;
     cursor: pointer;
     transition: all ease 0.1s;
-    color: $muted-color;
+    color: vars.$muted-color;
     width: 100%;
     overflow: hidden;
     border-radius: 4px;
-    padding: $spacing-unit;
-    gap: #{$spacing-unit * 2};
+    padding: vars.$spacing-unit;
+    gap: #{vars.$spacing-unit * 2};
     align-items: center;
 
     &:hover {
@@ -116,12 +116,12 @@
     display: flex;
     flex-direction: column;
     transition: all ease 0.1s;
-    color: $muted-color;
+    color: vars.$muted-color;
     width: 100%;
     overflow: hidden;
     border-radius: 4px;
-    padding: $spacing-unit;
-    gap: $spacing-unit;
+    padding: vars.$spacing-unit;
+    gap: vars.$spacing-unit;
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.15);
@@ -134,7 +134,7 @@
     margin: 0;
     padding: 0;
     display: grid;
-    gap: #{$spacing-unit * 2};
+    gap: #{vars.$spacing-unit * 2};
     grid-template-columns: repeat(2, 1fr);
 
     @container (min-width: 900px) {
@@ -166,7 +166,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: #{$spacing-unit * 2};
+    margin-bottom: #{vars.$spacing-unit * 2};
   }
 
   &__no-games {
@@ -176,7 +176,7 @@
     justify-content: center;
     align-items: center;
     flex-direction: column;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
   }
 
   &__list-item-image {
@@ -189,7 +189,7 @@
   &__list-item-details {
     display: flex;
     flex-direction: column;
-    gap: $spacing-unit / 2;
+    gap: vars.$spacing-unit / 2;
     overflow: hidden;
   }
 
@@ -203,7 +203,7 @@
   &__list-item-description {
     display: flex;
     align-items: center;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
   }
 
   &__default-avatar-wrapper {
@@ -212,8 +212,8 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: $background-color;
-    border: solid 1px $border-color;
+    background-color: vars.$background-color;
+    border: solid 1px vars.$border-color;
     border-radius: 4px;
   }
 
@@ -228,14 +228,14 @@
     }
 
     &::-webkit-progress-value {
-      background-color: $muted-color;
+      background-color: vars.$muted-color;
       border-radius: 4px;
     }
   }
 
   &__link {
     text-align: start;
-    color: $body-color;
+    color: vars.$body-color;
 
     &:hover {
       text-decoration: underline;
@@ -264,9 +264,9 @@
   }
 
   &__game-playtime {
-    background-color: $background-color;
-    color: $muted-color;
-    border: solid 1px $border-color;
+    background-color: vars.$background-color;
+    color: vars.$muted-color;
+    border: solid 1px vars.$border-color;
     border-radius: 4;
     display: flex;
     align-items: center;
@@ -278,14 +278,14 @@
     display: flex;
     justify-content: space-between;
     margin-bottom: 8;
-    color: $muted-color;
+    color: vars.$muted-color;
     overflow: hidden;
     height: 18;
   }
 
   &__container {
     display: flex;
-    gap: #{$spacing-unit * 3};
-    padding: #{$spacing-unit * 3};
+    gap: #{vars.$spacing-unit * 3};
+    padding: #{vars.$spacing-unit * 3};
   }
 }

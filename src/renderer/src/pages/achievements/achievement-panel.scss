@@ -1,35 +1,35 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .achievement-panel {
   width: 100%;
-  padding: #{$spacing-unit * 2} #{$spacing-unit * 3};
-  background-color: $color-background;
+  padding: #{vars.$spacing-unit * 2} #{vars.$spacing-unit * 3};
+  background-color: vars.$color-background;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
-  border-bottom: solid 1px $color-border;
+  border-bottom: solid 1px vars.$color-border;
 
   &__content {
     display: flex;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
     justify-content: center;
   }
 
   &__actions {
     display: flex;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
   }
 
   &__download-details-row {
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
     display: flex;
-    color: $color-body;
+    color: vars.$color-body;
     align-items: center;
   }
 
   &__downloads-link {
-    color: $color-body;
+    color: vars.$color-body;
     text-decoration: underline;
   }
 
@@ -46,17 +46,17 @@
     }
 
     &::-webkit-progress-value {
-      background-color: $color-muted;
+      background-color: vars.$color-muted;
     }
 
     &--disabled {
-      opacity: $opacity-disabled;
+      opacity: vars.$opacity-disabled;
     }
   }
 
   &__link {
     text-align: start;
-    color: $color-body;
+    color: vars.$color-body;
 
     &:hover {
       text-decoration: underline;

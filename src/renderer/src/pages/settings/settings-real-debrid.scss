@@ -1,22 +1,22 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .settings-real-debrid {
   &__form {
     display: flex;
     flex-direction: column;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
   }
 
   &__description {
-    margin-bottom: #{$spacing-unit * 2};
+    margin-bottom: #{vars.$spacing-unit * 2};
   }
 
   &__field-spacing {
-    margin-top: #{$spacing-unit};
+    margin-top: #{vars.$spacing-unit};
   }
 
   &__submit-button {
     align-self: flex-end;
-    margin-top: #{$spacing-unit * 2};
+    margin-top: #{vars.$spacing-unit * 2};
   }
 }

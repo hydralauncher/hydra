@@ -1,17 +1,17 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .description-header {
   width: 100%;
-  padding: #{$spacing-unit * 2};
+  padding: #{vars.$spacing-unit * 2};
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: $background-color;
+  background-color: vars.$background-color;
   height: 72px;
 
   &__info {
     display: flex;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
     flex-direction: column;
   }
 }

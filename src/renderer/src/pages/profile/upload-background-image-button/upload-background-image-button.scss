@@ -1,10 +1,10 @@
-@use "../../../scss/variables";
+@use "../../../scss/variables" as vars;
 
 .upload-background-image-button {
   position: absolute;
   top: 16px;
   right: 16px;
-  border-color: $body-color;
+  border-color: vars.$body-color;
   box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.8);
   background-color: rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(20px);

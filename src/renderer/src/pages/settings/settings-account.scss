@@ -1,10 +1,10 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .settings-account {
   &__form {
     display: flex;
     flex-direction: column;
-    gap: #{$spacing-unit * 3};
+    gap: #{vars.$spacing-unit * 3};
   }
 
   &__blocked-user {
@@ -12,14 +12,14 @@
     min-width: 240px;
     justify-content: space-between;
     align-items: center;
-    background-color: $dark-background-color;
-    border: 1px solid $border-color;
+    background-color: vars.$dark-background-color;
+    border: 1px solid vars.$border-color;
     border-radius: 4px;
-    padding: $spacing-unit;
+    padding: vars.$spacing-unit;
   }
 
   &__unblock-button {
-    color: $muted-color;
+    color: vars.$muted-color;
     cursor: pointer;
     transition: all ease 0.2s;
 
@@ -35,26 +35,26 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
   }
 
   &__actions {
     display: flex;
     justify-content: start;
     align-items: center;
-    gap: #{$spacing-unit};
-    margin-top: #{$spacing-unit * 2};
+    gap: #{vars.$spacing-unit};
+    margin-top: #{vars.$spacing-unit * 2};
   }
 
   &__subscription-description {
     display: flex;
     flex-direction: column;
-    gap: #{$spacing-unit};
+    gap: #{vars.$spacing-unit};
   }
 
   &__subscription {
     display: flex;
     flex-direction: column;
-    gap: #{$spacing-unit * 2};
+    gap: #{vars.$spacing-unit * 2};
   }
 }

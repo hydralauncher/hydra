@@ -1,4 +1,4 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 @keyframes rotate {
   0% {
@@ -12,7 +12,7 @@
 .cloud-sync-modal {
   &__artifacts {
     display: flex;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
     flex-direction: column;
     list-style: none;
     margin: 0;
@@ -24,11 +24,11 @@
     text-align: left;
     flex-direction: row;
     align-items: center;
-    gap: $spacing-unit;
-    color: $body-color;
-    padding: #{$spacing-unit * 2};
-    background-color: $dark-background-color;
-    border: 1px solid $border-color;
+    gap: vars.$spacing-unit;
+    color: vars.$body-color;
+    padding: #{vars.$spacing-unit * 2};
+    background-color: vars.$dark-background-color;
+    border: 1px solid vars.$border-color;
     border-radius: 4px;
     justify-content: space-between;
   }
@@ -45,11 +45,11 @@
     height: 5px;
 
     &::-webkit-progress-bar {
-      background-color: $dark-background-color;
+      background-color: vars.$dark-background-color;
     }
 
     &::-webkit-progress-value {
-      background-color: $muted-color;
+      background-color: vars.$muted-color;
     }
   }
 
@@ -60,11 +60,11 @@
     font-size: 14px;
     cursor: pointer;
     text-decoration: underline;
-    color: $body-color;
+    color: vars.$body-color;
 
     &:disabled {
       cursor: not-allowed;
-      opacity: $disabled-opacity;
+      opacity: vars.$disabled-opacity;
     }
   }
 }

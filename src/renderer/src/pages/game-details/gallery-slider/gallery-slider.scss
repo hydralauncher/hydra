@@ -1,8 +1,8 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .gallery-slider {
   &__container {
-    padding: #{$spacing-unit * 3} #{$spacing-unit * 2};
+    padding: #{vars.$spacing-unit * 3} #{vars.$spacing-unit * 2};
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -34,13 +34,13 @@
 
   &__preview {
     width: 100%;
-    padding: $spacing-unit 0;
+    padding: vars.$spacing-unit 0;
     height: 100%;
     display: flex;
     position: relative;
     overflow-x: auto;
     overflow-y: hidden;
-    gap: #{$spacing-unit / 2};
+    gap: #{vars.$spacing-unit / 2};
 
     @media (min-width: 1280px) {
       width: 60%;
@@ -66,7 +66,7 @@
       translate 0.3s ease-in-out,
       opacity 0.2s ease;
     border-radius: 4px;
-    border: solid 1px $border-color;
+    border: solid 1px vars.$border-color;
     overflow: hidden;
 
     &:hover {
@@ -90,7 +90,7 @@
     background-color: rgba(0, 0, 0, 0.4);
     transition: all 0.2s ease-in-out;
     border-radius: 50%;
-    color: $muted-color;
+    color: vars.$muted-color;
     width: 48px;
     height: 48px;
     opacity: 0;
@@ -105,14 +105,14 @@
 
     &--left {
       left: 0;
-      margin-left: $spacing-unit;
-      transform: translateX(-#{48 + $spacing-unit}px);
+      margin-left: vars.$spacing-unit;
+      transform: translateX(-#{48 + vars.$spacing-unit}px);
     }
 
     &--right {
       right: 0;
-      margin-right: $spacing-unit;
-      transform: translateX(#{48 + $spacing-unit}px);
+      margin-right: vars.$spacing-unit;
+      transform: translateX(#{48 + vars.$spacing-unit}px);
     }
 
     &--visible {

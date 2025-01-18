@@ -1,10 +1,10 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .catalogue {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: calc($spacing-unit * 2);
+  gap: calc(vars.$spacing-unit * 2);
   width: 100%;
   padding: 16px;
   scroll-behavior: smooth;
@@ -13,10 +13,10 @@
     width: 270px;
     min-width: 270px;
     max-width: 270px;
-    background-color: $dark-background-color;
+    background-color: vars.$dark-background-color;
     border-radius: 4px;
     padding: 16px;
-    border: 1px solid $border-color;
+    border: 1px solid vars.$border-color;
     align-self: flex-start;
   }
 

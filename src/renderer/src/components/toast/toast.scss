@@ -1,4 +1,4 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 @keyframes slideIn {
   0% {
@@ -23,16 +23,16 @@
   animation-timing-function: ease-in-out;
   max-height: 80px;
   position: fixed;
-  background-color: $background-color;
+  background-color: vars.$background-color;
   border-radius: 4px;
-  border: solid 1px $border-color;
-  right: $spacing-unit * 2;
+  border: solid 1px vars.$border-color;
+  right: vars.$spacing-unit * 2;
   bottom: 42px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  z-index: $toast-z-index;
+  z-index: vars.$toast-z-index;
   max-width: 500px;
 
   &--closing {
@@ -48,8 +48,8 @@
 
 &__content {
   display: flex;
-  gap: $spacing-unit * 2;
-  padding: $spacing-unit * 2;
+  gap: vars.$spacing-unit * 2;
+  padding: vars.$spacing-unit * 2;
   justify-content: center;
   align-items: center;
 }
@@ -59,16 +59,16 @@
   height: 5px;
 
   &::-webkit-progress-bar {
-    background-color: $dark-background-color;
+    background-color: vars.$dark-background-color;
   }
 
   &::-webkit-progress-value {
-    background-color: $muted-color;
+    background-color: vars.$muted-color;
   }
 }
 
 &__close-button {
-  color: $body-color;
+  color: vars.$body-color;
   cursor: pointer;
   padding: 0;
   margin: 0;
@@ -80,13 +80,13 @@
 }
 
 &__success-icon {
-  color: $success-color;
+  color: vars.$success-color;
 }
 
 &__error-icon {
-  color: $danger-color;
+  color: vars.$danger-color;
 }
 
 &__warning-icon {
-  color: $warning-color;
+  color: vars.$warning-color;
 }

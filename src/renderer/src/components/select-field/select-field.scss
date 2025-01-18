@@ -1,4 +1,4 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .select-field {
   display: inline-flex;
@@ -6,7 +6,7 @@
   width: fit-content;
   align-items: center;
   border-radius: 8px;
-  border: 1px solid $border-color;
+  border: 1px solid vars.$border-color;
   height: 40px;
   min-height: 40px;
   &:hover {
@@ -18,15 +18,15 @@
   }
 
   &__primary {
-    background-color: $dark-background-color;
+    background-color: vars.$dark-background-color;
   }
 
   &__dark {
-    background-color: $background-color;
+    background-color: vars.$background-color;
   }
 
   &__option {
-    background-color: $dark-background-color;
+    background-color: vars.$dark-background-color;
     border-right: 4px solid;
     border-color: transparent;
     border-radius: 8px;
@@ -36,14 +36,14 @@
     color: #dadbe1;
     cursor: default;
     font-family: inherit;
-    font-size: $body-font-size;
+    font-size: vars.$body-font-size;
     text-overflow: ellipsis;
-    padding: $spacing-unit;
+    padding: vars.$spacing-unit;
   }
 
   &__label {
-    margin-bottom: $spacing-unit;
+    margin-bottom: vars.$spacing-unit;
     display: block;
-    color: $body-color;
+    color: vars.$body-color;
   }
 }

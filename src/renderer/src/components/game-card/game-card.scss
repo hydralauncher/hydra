@@ -1,4 +1,4 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .game-card {
   width: 100%;
@@ -7,12 +7,12 @@
   overflow: hidden;
   border-radius: 4px;
   transition: all ease 0.2s;
-  border: solid 1px $border-color;
+  border: solid 1px vars.$border-color;
   cursor: pointer;
   z-index: 1;
 
   &:active {
-    opacity: $active-opacity;
+    opacity: vars.$active-opacity;
   }
 
   &__backdrop {
@@ -37,10 +37,10 @@
 
   &__content {
     color: #dadbe1;
-    padding: $spacing-unit calc($spacing-unit * 2);
+    padding: vars.$spacing-unit calc(vars.$spacing-unit * 2);
     display: flex;
     align-items: flex-start;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
     flex-direction: column;
     transition: all ease 0.2s;
     transform: translateY(24px);
@@ -56,21 +56,21 @@
     display: flex;
     margin: 0;
     padding: 0;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
     flex-wrap: wrap;
     list-style: none;
   }
 
   &__specifics {
     display: flex;
-    gap: calc($spacing-unit * 2);
+    gap: calc(vars.$spacing-unit * 2);
     justify-content: center;
   }
 
   &__specifics-item {
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
     display: flex;
-    color: $muted-color;
+    color: vars.$muted-color;
     font-size: 12px;
     align-items: flex-end;
   }
@@ -78,8 +78,8 @@
   &__title-container {
     display: flex;
     align-items: center;
-    gap: $spacing-unit;
-    color: $muted-color;
+    gap: vars.$spacing-unit;
+    color: vars.$muted-color;
   }
 
   &__shop-icon {
@@ -89,7 +89,7 @@
   }
 
   &__no-download-label {
-    color: $body-color;
+    color: vars.$body-color;
     font-weight: bold;
   }
 

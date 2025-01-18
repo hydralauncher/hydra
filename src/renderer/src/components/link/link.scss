@@ -1,8 +1,8 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .link {
   text-decoration: none;
-  color: $muted-color;
+  color: vars.$muted-color;
 
   &:hover {
     text-decoration: underline;

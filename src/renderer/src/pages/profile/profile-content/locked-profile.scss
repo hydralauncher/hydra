@@ -1,4 +1,4 @@
-@use "../../../scss/variables";
+@use "../../../scss/variables" as vars;
 
 .locked-profile {
   &__container {
@@ -8,7 +8,7 @@
     justify-content: center;
     align-items: center;
     flex-direction: column;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
   }
 
   &__lock-icon {
@@ -19,6 +19,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: $spacing-unit * 2;
+    margin-bottom: vars.$spacing-unit * 2;
   }
 }

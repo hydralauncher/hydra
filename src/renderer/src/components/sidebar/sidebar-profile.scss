@@ -1,21 +1,21 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .sidebar-profile {
   position: relative;
   display: flex;
   align-items: center;
-  gap: $spacing-unit;
-  padding: $spacing-unit $spacing-unit * 2;
+  gap: vars.$spacing-unit;
+  padding: vars.$spacing-unit vars.$spacing-unit * 2;
 
   &__button {
     display: flex;
     cursor: pointer;
     transition: all ease 0.1s;
-    color: $muted-color;
+    color: vars.$muted-color;
     width: 100%;
     overflow: hidden;
     border-radius: 4px;
-    padding: $spacing-unit $spacing-unit;
+    padding: vars.$spacing-unit vars.$spacing-unit;
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.15);
@@ -25,7 +25,7 @@
   &__button-content {
     display: flex;
     align-items: center;
-    gap: $spacing-unit + $spacing-unit / 2;
+    gap: vars.$spacing-unit + vars.$spacing-unit / 2;
     width: 100%;
   }
 
@@ -48,14 +48,14 @@
   }
 
   &__friends-button {
-    color: $muted-color;
+    color: vars.$muted-color;
     cursor: pointer;
     border-radius: 50%;
     width: 40px;
     min-width: 40px;
     min-height: 40px;
     height: 40px;
-    background-color: $background-color;
+    background-color: vars.$background-color;
     position: relative;
     transition: all ease 0.3s;
 
@@ -65,7 +65,7 @@
   }
 
   &__friends-button-badge {
-    background-color: $success-color;
+    background-color: vars.$success-color;
     display: flex;
     justify-content: center;
     align-items: center;

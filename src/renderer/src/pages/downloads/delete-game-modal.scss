@@ -1,4 +1,4 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .delete-game-modal {
   &__actions-buttons-ctn {
@@ -6,6 +6,6 @@
     width: 100%;
     justify-content: end;
     align-items: center;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
   }
 }

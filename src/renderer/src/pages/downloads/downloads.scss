@@ -1,16 +1,16 @@
-@use "../../scss/variables";
+@use "../../scss/variables" as vars;
 
 .downloads {
   &__container {
     display: flex;
-    padding: #{$spacing-unit * 3};
+    padding: #{vars.$spacing-unit * 3};
     flex-direction: column;
     width: 100%;
   }
 
   &__groups {
     display: flex;
-    gap: #{$spacing-unit * 3};
+    gap: #{vars.$spacing-unit * 3};
     flex-direction: column;
   }
 
@@ -22,7 +22,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: #{$spacing-unit * 2};
+    margin-bottom: #{vars.$spacing-unit * 2};
   }
 
   &__no-downloads {
@@ -32,6 +32,6 @@
     justify-content: center;
     align-items: center;
     flex-direction: column;
-    gap: $spacing-unit;
+    gap: vars.$spacing-unit;
   }
 }
