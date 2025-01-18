@@ -29,47 +29,47 @@
     border-color: vars.$danger-color;
   }
 
-  &__focused {
+  &--focused {
     border-color: vars.$search-border-color-focused;
   }
 
   &:not(&--focused):hover {
     border-color: vars.$search-border-color-hover;
   }
-}
 
-.text-field__input {
-  background-color: transparent;
-  border: none;
-  width: 100%;
-  height: 100%;
-  outline: none;
-  color: vars.$search-input-color;
-  cursor: default;
-  font-family: inherit;
-  text-overflow: ellipsis;
-  padding: vars.$spacing-unit;
+  &__input {
+    background-color: transparent;
+    border: none;
+    width: 100%;
+    height: 100%;
+    outline: none;
+    color: vars.$search-input-color;
+    cursor: default;
+    font-family: inherit;
+    text-overflow: ellipsis;
+    padding: vars.$spacing-unit;
 
-  &:focus {
-    cursor: text;
+    &:focus {
+      cursor: text;
+    }
+
+    &__read-only {
+      text-overflow: inherit;
+    }
   }
 
-  &__read-only {
-    text-overflow: inherit;
+  &__toggle-password-button {
+    cursor: pointer;
+    color: vars.$muted-color;
+    padding: vars.$spacing-unit;
   }
-}
 
-.text-field__toggle-password-button {
-  cursor: pointer;
-  color: vars.$muted-color;
-  padding: vars.$spacing-unit;
-}
+  &__wrapper {
+    display: flex;
+    gap: vars.$spacing-unit;
+  }
 
-.text-field__wrapper {
-  display: flex;
-  gap: vars.$spacing-unit;
-}
-
-.text-field__error-label {
-  color: vars.$danger-color;
+  &__error-label {
+    color: vars.$danger-color;
+  }
 }

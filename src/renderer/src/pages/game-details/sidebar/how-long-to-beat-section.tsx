@@ -40,7 +40,7 @@ export function HowLongToBeatSection({
                   className="sidebar__how-long-to-beat-category"
                 >
                   <p
-                    className="sidebar__how-long-to-beat-category"
+                    className="sidebar__how-long-to-beat-category-label"
                     style={{
                       fontWeight: "bold",
                     }}
@@ -48,7 +48,7 @@ export function HowLongToBeatSection({
                     {category.title}
                   </p>
 
-                  <p className="sidebar__how-long-to-beat-category">
+                  <p className="sidebar__how-long-to-beat-category-label">
                     {getDuration(category.duration)}
                   </p>
 

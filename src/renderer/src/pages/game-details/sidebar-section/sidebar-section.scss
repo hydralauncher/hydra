@@ -3,7 +3,7 @@
 .sidebar-section {
   &__button {
     height: 72px;
-    padding: #{vars.$spacing-unit * 2};
+    padding: #{vars.$spacing-unit * 2} #{vars.$spacing-unit * 2};
     display: flex;
     align-items: center;
     background-color: vars.$background-color;

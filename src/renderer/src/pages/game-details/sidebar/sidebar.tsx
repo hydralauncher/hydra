@@ -119,7 +119,7 @@ export function Sidebar() {
   }, [objectId, shop, gameTitle]);
 
   return (
-    <aside className="sidebar__content">
+    <aside className="sidebar__achievements-content">
       {userDetails === null && (
         <SidebarSection title={t("achievements")}>
           <div className="sidebar__overlay">
@@ -182,8 +182,8 @@ export function Sidebar() {
                   title={achievement.description}
                 >
                   <img
-                    className={classNames("achievements__list-item-image", {
-                      "achievements__list-item-image--unlocked":
+                    className={classNames("sidebar__list-item-image", {
+                      "sidebar__list-item-image--unlocked":
                         achievement.unlocked,
                     })}
                     src={achievement.icon}
@@ -261,7 +261,7 @@ export function Sidebar() {
         </div>
 
         <div
-          className="sidebar__requirements-details"
+          className="sidebar__requirement-details"
           dangerouslySetInnerHTML={{
             __html:
               shopDetails?.pc_requirements?.[activeRequirement] ??
