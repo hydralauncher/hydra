@@ -1,30 +1,30 @@
-@import "../../scss/variables";
+@use "../../scss/variables";
 
 .sidebar {
-  background-color: globals.$dark-background-color;
-  color: globals.$muted-color;
+  background-color: $dark-background-color;
+  color: $muted-color;
   flex-direction: column;
   display: flex;
   transition: opacity ease 0.2s;
-  border-right: solid 1px globals.$border-color;
+  border-right: solid 1px $border-color;
   position: relative;
   overflow: hidden;
-  padding-top: globals.$spacing-unit;
+  padding-top: $spacing-unit;
 
   &__resizing {
-    opacity: globals.$active-opacity;
+    opacity: $active-opacity;
     pointer-events: none;
   }
 
   &__darwin {
-    padding-top: calc(globals.$spacing-unit * 6);
+    padding-top: calc($spacing-unit * 6);
   }
 
   &__content {
     display: flex;
     flex-direction: column;
-    padding: calc(globals.$spacing-unit * 2);
-    gap: calc(globals.$spacing-unit * 2);
+    padding: calc($spacing-unit * 2);
+    gap: calc($spacing-unit * 2);
     width: 100%;
     overflow: auto;
   }
@@ -41,7 +41,7 @@
     list-style: none;
     padding: 0;
     margin: 0;
-    gap: calc(globals.$spacing-unit / 2);
+    gap: calc($spacing-unit / 2);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -52,7 +52,7 @@
     cursor: pointer;
     text-wrap: nowrap;
     display: flex;
-    color: globals.$muted-color;
+    color: $muted-color;
     border-radius: 4px;
     &:hover {
       background-color: rgba(255, 255, 255, 0.15);
@@ -63,7 +63,7 @@
     }
 
     &--muted {
-      opacity: globals.$disabled-opacity;
+      opacity: $disabled-opacity;
 
       &:hover {
         opacity: 1;
@@ -75,11 +75,11 @@
     color: inherit;
     display: flex;
     align-items: center;
-    gap: globals.$spacing-unit;
+    gap: $spacing-unit;
     cursor: pointer;
     overflow: hidden;
     width: 100%;
-    padding: 9px globals.$spacing-unit;
+    padding: 9px $spacing-unit;
   }
 
   &__menu-item-button-label {
@@ -102,20 +102,20 @@
   }
 
   &__section {
-    gap: calc(globals.$spacing-unit * 2);
+    gap: calc($spacing-unit * 2);
     display: flex;
     flex-direction: column;
-    padding-bottom: globals.$spacing-unit;
+    padding-bottom: $spacing-unit;
   }
 
   &__help-button {
-    color: globals.$muted-color;
-    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    color: $muted-color;
+    padding: $spacing-unit calc($spacing-unit * 2);
     gap: 9px;
     display: flex;
     align-items: center;
     cursor: pointer;
-    border-top: solid 1px globals.$border-color;
+    border-top: solid 1px $border-color;
     transition: background-color ease 0.1s;
 
     &:hover {
