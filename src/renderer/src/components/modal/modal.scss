@@ -1,4 +1,4 @@
-@import "../../scss/variables";
+@use "../../scss/variables";
 
 .modal {
   animation: scale-fade-in 0.2s cubic-bezier(0.33, 1, 0.68, 1) 0s 1 normal none
