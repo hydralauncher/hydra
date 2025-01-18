@@ -35,12 +35,12 @@
   z-index: $toast-z-index;
   max-width: 500px;
 
-  &__closing {
+  &--closing {
     animation-name: slideOut;
     transform: translateY(96px);
   }
 
-  &__opening {
+  &--opening {
     animation-name: slideIn;
     transform: translateY(0);
   }
