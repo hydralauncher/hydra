@@ -45,7 +45,7 @@
     text-decoration: underline;
     cursor: pointer;
 
-    &:disabled {
+    &--disabled {
       cursor: default;
       text-decoration: none;
     }

@@ -33,7 +33,7 @@ body {
   overflow: hidden;
   user-select: none;
   font-family: "Noto Sans, sans-serif";
-  font-size: 14px; // Assuming vars.size.body is 14px
+  font-size: $body-font-size;
   color: $body-color;
   margin: 0;
 }
@@ -79,7 +79,7 @@ input::-webkit-inner-spin-button {
 }
 
 label {
-  font-size: 14px; // Assuming vars.size.body is 14px
+  font-size: $body-font-size;
 }
 
 input[type="number"] {
