@@ -3,12 +3,12 @@
 .achievement-panel {
   width: 100%;
   padding: globals.$spacing-unit * 2 globals.$spacing-unit * 3;
-  background-color: var(--color-background);
+  background-color: globals.$dark-background-color;
   display: flex;
   flex-direction: column;
   align-items: start;
   justify-content: space-between;
-  border-bottom: solid 1px var(--color-border);
+  border-bottom: solid 1px globals.$border-color;
 
   &__content {
     display: flex;
@@ -25,12 +25,12 @@
   &__download-details-row {
     gap: globals.$spacing-unit;
     display: flex;
-    color: var(--color-body);
+    color: globals.$body-color;
     align-items: center;
   }
 
   &__downloads-link {
-    color: var(--color-body);
+    color: globals.$body-color;
     text-decoration: underline;
   }
 
@@ -47,17 +47,17 @@
     }
 
     &::-webkit-progress-value {
-      background-color: var(--color-muted);
+      background-color: globals.$muted-color;
     }
 
     &--disabled {
-      opacity: var(--opacity-disabled);
+      opacity: globals.$disabled-opacity;
     }
   }
 
   &__link {
     text-align: start;
-    color: var(--color-body);
+    color: globals.$body-color;
     background: none;
     border: none;
     padding: 0;
@@ -66,5 +66,32 @@
       text-decoration: underline;
       cursor: pointer;
     }
+
+    &--warning {
+      color: globals.$warning-color;
+    }
+  }
+
+  &__grid {
+    display: grid;
+    gap: globals.$spacing-unit * 2;
+  }
+
+  &__grid--with-subscription {
+    grid-template-columns: 3fr 1fr 1fr;
+  }
+
+  &__grid--without-subscription {
+    grid-template-columns: 3fr 2fr;
+  }
+
+  &__points-container {
+    display: flex;
+    gap: globals.$spacing-unit;
+  }
+
+  &__content-icon {
+    width: 18px;
+    height: 18px;
   }
 }
