@@ -1,0 +1,24 @@
+@use "../../../scss/globals.scss";
+
+.game-options-modal {
+  &__container {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 2);
+    flex-direction: column;
+  }
+
+  &__header {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__header-description {
+    font-weight: 400;
+  }
+
+  &__row {
+    display: flex;
+    gap: globals.$spacing-unit;
+  }
+}
