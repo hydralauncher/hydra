@@ -1,0 +1,70 @@
+@use "../../scss/globals.scss";
+
+.achievement-panel {
+  width: 100%;
+  padding: globals.$spacing-unit * 2 globals.$spacing-unit * 3;
+  background-color: var(--color-background);
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  justify-content: space-between;
+  border-bottom: solid 1px var(--color-border);
+
+  &__content {
+    display: flex;
+    gap: globals.$spacing-unit;
+    justify-content: center;
+    align-items: center;
+  }
+
+  &__actions {
+    display: flex;
+    gap: globals.$spacing-unit;
+  }
+
+  &__download-details-row {
+    gap: globals.$spacing-unit;
+    display: flex;
+    color: var(--color-body);
+    align-items: center;
+  }
+
+  &__downloads-link {
+    color: var(--color-body);
+    text-decoration: underline;
+  }
+
+  &__progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    transition: all ease 0.2s;
+
+    &::-webkit-progress-bar {
+      background-color: transparent;
+    }
+
+    &::-webkit-progress-value {
+      background-color: var(--color-muted);
+    }
+
+    &--disabled {
+      opacity: var(--opacity-disabled);
+    }
+  }
+
+  &__link {
+    text-align: start;
+    color: var(--color-body);
+    background: none;
+    border: none;
+    padding: 0;
+
+    &:hover {
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  }
+}
