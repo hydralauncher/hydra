@@ -5,14 +5,7 @@ import { SPACING_UNIT, vars } from "../../theme.css";
 export const form = style({
   display: "flex",
   flexDirection: "column",
-  gap: `${SPACING_UNIT}px`,
-});
-
-export const blockedUserAvatar = style({
-  width: "32px",
-  height: "32px",
-  borderRadius: "4px",
-  filter: "grayscale(100%)",
+  gap: `${SPACING_UNIT * 3}px`,
 });
 
 export const blockedUser = style({
@@ -43,5 +36,4 @@ export const blockedUsersList = style({
   flexDirection: "column",
   alignItems: "flex-start",
   gap: `${SPACING_UNIT}px`,
-  marginTop: `${SPACING_UNIT}px`,
 });

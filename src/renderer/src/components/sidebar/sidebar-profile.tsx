@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { Avatar } from "../avatar/avatar";
+import { AuthPage } from "@shared";
 import "./sidebar-profile.scss";
 
 const LONG_POLLING_INTERVAL = 120_000;
@@ -26,11 +27,11 @@ export function SidebarProfile() {
 
   const handleProfileClick = () => {
     if (userDetails === null) {
-      window.electron.openAuthWindow();
+      window.electron.openAuthWindow(AuthPage.SignIn);
       return;
     }
 
-    navigate(`/profile/${userDetails!.id}`);
+    navigate(`/profile/${userDetails.id}`);
   };
 
   useEffect(() => {
