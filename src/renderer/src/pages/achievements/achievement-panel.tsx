@@ -4,7 +4,7 @@ import { UserAchievement } from "@types";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { useUserDetails } from "@renderer/hooks";
 import { vars } from "@renderer/theme.css";
-import * as styles from "./achievement-panel.css";
+import "./achievement-panel.scss";
 
 export interface AchievementPanelProps {
   achievements: UserAchievement[];
@@ -28,15 +28,15 @@ export function AchievementPanel({ achievements }: AchievementPanelProps) {
 
   if (!hasActiveSubscription) {
     return (
-      <div className={styles.panel}>
-        <div className={styles.content}>
+      <div className="achievement-panel">
+        <div className="achievement-panel__content">
           {t("earned_points")} <HydraIcon width={20} height={20} />
           ??? / ???
         </div>
         <button
           type="button"
           onClick={() => showHydraCloudModal("achievements-points")}
-          className={styles.link}
+          className="achievement-panel__link"
         >
           <small style={{ color: vars.color.warning }}>
             {t("how_to_earn_achievements_points")}
@@ -47,8 +47,8 @@ export function AchievementPanel({ achievements }: AchievementPanelProps) {
   }
 
   return (
-    <div className={styles.panel}>
-      <div className={styles.content}>
+    <div className="achievement-panel">
+      <div className="achievement-panel__content">
         {t("earned_points")} <HydraIcon width={20} height={20} />
         {achievementsPointsEarnedSum} / {achievementsPointsTotal}
       </div>

@@ -1,6 +1,4 @@
 import { useTranslation } from "react-i18next";
-import * as styles from "./achievement-panel.css";
-
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { ComparedAchievements } from "@types";
 import { SPACING_UNIT } from "@renderer/theme.css";
@@ -18,7 +16,7 @@ export function ComparedAchievementPanel({
 
   return (
     <div
-      className={styles.panel}
+      className="achievement-panel"
       style={{
         display: "grid",
         gridTemplateColumns: hasActiveSubscription ? "3fr 1fr 1fr" : "3fr 2fr",
@@ -30,12 +28,12 @@ export function ComparedAchievementPanel({
         {achievements.achievementsPointsTotal}
       </div>
       {hasActiveSubscription && (
-        <div className={styles.content}>
+        <div className="achievement-panel__content">
           <HydraIcon width={20} height={20} />
           {achievements.owner.achievementsPointsEarnedSum ?? 0}
         </div>
       )}
-      <div className={styles.content}>
+      <div className="achievement-panel__content">
         <HydraIcon width={20} height={20} />
         {achievements.target.achievementsPointsEarnedSum}
       </div>
