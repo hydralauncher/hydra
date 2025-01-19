@@ -4,7 +4,7 @@ import { useDownload, useLibrary } from "@renderer/hooks";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
-import * as styles from "./downloads.css";
+import "./downloads.scss";
 import { DeleteGameModal } from "./delete-game-modal";
 import { DownloadGroup } from "./download-group";
 import type { LibraryGame, SeedingStatus } from "@types";
@@ -121,8 +121,8 @@ export default function Downloads() {
       />
 
       {hasItemsInLibrary ? (
-        <section className={styles.downloadsContainer}>
-          <div className={styles.downloadGroups}>
+        <section className="downloads__container">
+          <div className="downloads__groups">
             {downloadGroups.map((group) => (
               <DownloadGroup
                 key={group.title}
@@ -136,8 +136,8 @@ export default function Downloads() {
           </div>
         </section>
       ) : (
-        <div className={styles.noDownloads}>
-          <div className={styles.arrowIcon}>
+        <div className="downloads__no-downloads">
+          <div className="downloads__arrow-icon">
             <ArrowDownIcon size={24} />
           </div>
           <h2>{t("no_downloads_title")}</h2>
