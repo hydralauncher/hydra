@@ -32,7 +32,7 @@
   &__title {
     font-weight: bold;
     cursor: pointer;
-    color: var(--color-body);
+    color: globals.$body-color;
     text-align: left;
     font-size: 16px;
     display: block;
