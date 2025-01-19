@@ -13,7 +13,7 @@
 
     &-divider {
       flex: 1;
-      background-color: globals.$color-border;
+      background-color: globals.$border-color;
       height: 1px;
     }
 
@@ -57,7 +57,7 @@
     background-color: globals.$color-background;
     display: flex;
     border-radius: 8px;
-    border: solid 1px globals.$color-border;
+    border: solid 1px globals.$border-color;
     overflow: hidden;
     box-shadow: 0px 0px 5px 0px #000000;
     transition: all ease 0.2s;
@@ -71,7 +71,7 @@
     width: 280px;
     min-width: 280px;
     height: auto;
-    border-right: solid 1px globals.$color-border;
+    border-right: solid 1px globals.$border-color;
     position: relative;
     z-index: 1;
 
