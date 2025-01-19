@@ -14,16 +14,16 @@ import { achievementsLogger } from "../logger";
 import { Cracker } from "@shared";
 import { IsNull, Not } from "typeorm";
 import { publishCombinedNewAchievementNotification } from "../notifications";
+import { gamesSublevel } from "@main/level";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
 
 const watchAchievementsWindows = async () => {
-  const games = await gameRepository.find({
-    where: {
-      isDeleted: false,
-    },
-  });
+  const games = await gamesSublevel
+    .values()
+    .all()
+    .then((games) => games.filter((game) => !game.isDeleted));
 
   if (games.length === 0) return;
 
@@ -32,7 +32,7 @@ const watchAchievementsWindows = async () => {
   for (const game of games) {
     const gameAchievementFiles: AchievementFile[] = [];
 
-    for (const objectId of getAlternativeObjectIds(game.objectID)) {
+    for (const objectId of getAlternativeObjectIds(game.objectId)) {
       gameAchievementFiles.push(...(achievementFiles.get(objectId) || []));
 
       gameAchievementFiles.push(

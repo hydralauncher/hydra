@@ -1,4 +1,5 @@
-import type { Game, GameStatus } from "./game.types";
+import type { GameStatus } from "./game.types";
+import { Game } from "./level.types";
 
 export interface DownloadProgress {
   downloadSpeed: number;

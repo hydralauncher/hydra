@@ -1,16 +1,16 @@
 import { shell } from "electron";
 import path from "node:path";
-import { gameRepository } from "@main/repository";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { registerEvent } from "../register-event";
+import { GameShop } from "@types";
+import { gamesSublevel, levelKeys } from "@main/level";
 
 const openGameInstallerPath = async (
   _event: Electron.IpcMainInvokeEvent,
-  gameId: number
+  shop: GameShop,
+  objectId: string
 ) => {
-  const game = await gameRepository.findOne({
-    where: { id: gameId, isDeleted: false },
-  });
+  const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
 
   if (!game || !game.folderName || !game.downloadPath) return true;
 
