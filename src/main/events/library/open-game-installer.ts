@@ -4,11 +4,11 @@ import fs from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { spawnSync, exec } from "node:child_process";
 
-import { gameRepository } from "@main/repository";
-
 import { generateYML } from "../helpers/generate-lutris-yaml";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { registerEvent } from "../register-event";
+import { gamesSublevel, levelKeys } from "@main/level";
+import { GameShop } from "@types";
 
 const executeGameInstaller = (filePath: string) => {
   if (process.platform === "win32") {
@@ -26,13 +26,12 @@ const executeGameInstaller = (filePath: string) => {
 
 const openGameInstaller = async (
   _event: Electron.IpcMainInvokeEvent,
-  gameId: number
+  shop: GameShop,
+  objectId: string
 ) => {
-  const game = await gameRepository.findOne({
-    where: { id: gameId, isDeleted: false },
-  });
+  const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
 
-  if (!game || !game.folderName) return true;
+  if (!game || game.isDeleted || !game.folderName) return true;
 
   const gamePath = path.join(
     game.downloadPath ?? (await getDownloadsPath()),
@@ -40,7 +39,8 @@ const openGameInstaller = async (
   );
 
   if (!fs.existsSync(gamePath)) {
-    await gameRepository.update({ id: gameId }, { status: null });
+    // TODO: LEVELDB Remove download?
+    // await gameRepository.update({ id: gameId }, { status: null });
     return true;
   }
 

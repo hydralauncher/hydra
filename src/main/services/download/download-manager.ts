@@ -7,7 +7,7 @@ import {
   userPreferencesRepository,
 } from "@main/repository";
 import { publishDownloadCompleteNotification } from "../notifications";
-import type { DownloadProgress } from "@types";
+import type { Download, DownloadProgress } from "@types";
 import { GofileApi, QiwiApi, DatanodesApi } from "../hosters";
 import { PythonRPC } from "../python-rpc";
 import {
@@ -20,16 +20,20 @@ import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity
 import { RealDebridClient } from "./real-debrid";
 import path from "path";
 import { logger } from "../logger";
+import { downloadsSublevel, levelKeys } from "@main/level";
 
 export class DownloadManager {
   private static downloadingGameId: number | null = null;
 
-  public static async startRPC(game?: Game, initialSeeding?: Game[]) {
+  public static async startRPC(
+    download?: Download,
+    downloadsToSeed?: Download[]
+  ) {
     PythonRPC.spawn(
-      game?.status === "active"
-        ? await this.getDownloadPayload(game).catch(() => undefined)
+      download?.status === "active"
+        ? await this.getDownloadPayload(download).catch(() => undefined)
         : undefined,
-      initialSeeding?.map((game) => ({
+      downloadsToSeed?.map((download) => ({
         game_id: game.id,
         url: game.uri!,
         save_path: game.downloadPath!,
@@ -105,6 +109,7 @@ export class DownloadManager {
       const game = await gameRepository.findOne({
         where: { id: gameId, isDeleted: false },
       });
+
       const userPreferences = await userPreferencesRepository.findOneBy({
         id: 1,
       });
@@ -141,7 +146,8 @@ export class DownloadManager {
           this.cancelDownload(gameId);
         }
 
-        await downloadQueueRepository.delete({ game });
+        await downloadsSublevel.del(levelKeys.game(game.shop, game.objectId));
+
         const [nextQueueItem] = await downloadQueueRepository.find({
           order: {
             id: "DESC",

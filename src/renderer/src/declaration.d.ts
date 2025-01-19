@@ -40,11 +40,11 @@ declare global {
   interface Electron {
     /* Torrenting */
     startGameDownload: (payload: StartGameDownloadPayload) => Promise<void>;
-    cancelGameDownload: (gameId: number) => Promise<void>;
-    pauseGameDownload: (gameId: number) => Promise<void>;
-    resumeGameDownload: (gameId: number) => Promise<void>;
-    pauseGameSeed: (gameId: number) => Promise<void>;
-    resumeGameSeed: (gameId: number) => Promise<void>;
+    cancelGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
+    pauseGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
+    resumeGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
+    pauseGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
+    resumeGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     onDownloadProgress: (
       cb: (value: DownloadProgress) => void
     ) => () => Electron.IpcRenderer;
@@ -82,45 +82,55 @@ declare global {
 
     /* Library */
     addGameToLibrary: (
+      shop: GameShop,
       objectId: string,
-      title: string,
-      shop: GameShop
+      title: string
     ) => Promise<void>;
-    createGameShortcut: (id: number) => Promise<boolean>;
+    createGameShortcut: (shop: GameShop, objectId: string) => Promise<boolean>;
     updateExecutablePath: (
-      id: number,
+      shop: GameShop,
+      objectId: string,
       executablePath: string | null
     ) => Promise<void>;
     updateLaunchOptions: (
-      id: number,
+      shop: GameShop,
+      objectId: string,
       launchOptions: string | null
     ) => Promise<void>;
     selectGameWinePrefix: (
-      id: number,
+      shop: GameShop,
+      objectId: string,
       winePrefixPath: string | null
     ) => Promise<void>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
     getLibrary: () => Promise<Game[]>;
-    openGameInstaller: (gameId: number) => Promise<boolean>;
-    openGameInstallerPath: (gameId: number) => Promise<boolean>;
-    openGameExecutablePath: (gameId: number) => Promise<void>;
+    openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
+    openGameInstallerPath: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<boolean>;
+    openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
     openGame: (
-      gameId: number,
+      shop: GameShop,
+      objectId: string,
       executablePath: string,
       launchOptions: string | null
     ) => Promise<void>;
-    closeGame: (gameId: number) => Promise<boolean>;
-    removeGameFromLibrary: (gameId: number) => Promise<void>;
-    removeGame: (gameId: number) => Promise<void>;
-    deleteGameFolder: (gameId: number) => Promise<unknown>;
-    getGameByObjectId: (objectId: string) => Promise<Game | null>;
+    closeGame: (shop: GameShop, objectId: string) => Promise<boolean>;
+    removeGameFromLibrary: (shop: GameShop, objectId: string) => Promise<void>;
+    removeGame: (shop: GameShop, objectId: string) => Promise<void>;
+    deleteGameFolder: (shop: GameShop, objectId: string) => Promise<unknown>;
+    getGameByObjectId: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<Game | null>;
     onGamesRunning: (
       cb: (
         gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
       ) => void
     ) => () => Electron.IpcRenderer;
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
-    resetGameAchievements: (gameId: number) => Promise<void>;
+    resetGameAchievements: (shop: GameShop, objectId: string) => Promise<void>;
     /* User preferences */
     getUserPreferences: () => Promise<UserPreferences | null>;
     updateUserPreferences: (

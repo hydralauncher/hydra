@@ -1,21 +1,15 @@
 import { registerEvent } from "../register-event";
-import { gameRepository } from "../../repository";
+import { downloadsSublevel } from "@main/level";
+import { GameShop } from "@types";
+import { levelKeys } from "@main/level";
 
 const removeGame = async (
   _event: Electron.IpcMainInvokeEvent,
-  gameId: number
+  shop: GameShop,
+  objectId: string
 ) => {
-  await gameRepository.update(
-    {
-      id: gameId,
-    },
-    {
-      status: "removed",
-      downloadPath: null,
-      bytesDownloaded: 0,
-      progress: 0,
-    }
-  );
+  const downloadKey = levelKeys.game(shop, objectId);
+  await downloadsSublevel.del(downloadKey);
 };
 
 registerEvent("removeGame", removeGame);

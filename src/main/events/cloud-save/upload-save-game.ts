@@ -10,7 +10,8 @@ import os from "node:os";
 import { backupsPath } from "@main/constants";
 import { app } from "electron";
 import { normalizePath } from "@main/helpers";
-import { gameRepository } from "@main/repository";
+import { gamesSublevel } from "@main/level";
+import { levelKeys } from "@main/level";
 
 const bundleBackup = async (
   shop: GameShop,
@@ -46,12 +47,7 @@ const uploadSaveGame = async (
   shop: GameShop,
   downloadOptionTitle: string | null
 ) => {
-  const game = await gameRepository.findOne({
-    where: {
-      objectID: objectId,
-      shop,
-    },
-  });
+  const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
 
   const bundleLocation = await bundleBackup(
     shop,

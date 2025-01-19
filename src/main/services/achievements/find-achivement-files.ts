@@ -3,8 +3,8 @@ import fs from "node:fs";
 import { app } from "electron";
 import type { AchievementFile } from "@types";
 import { Cracker } from "@shared";
-import { Game } from "@main/entity";
 import { achievementsLogger } from "../logger";
+import type { Game } from "@types";
 
 const getAppDataPath = () => {
   if (process.platform === "win32") {

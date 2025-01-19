@@ -1,16 +1,13 @@
 import { DownloadManager, Ludusavi, startMainLoop } from "./services";
-import {
-  downloadQueueRepository,
-  gameRepository,
-  userPreferencesRepository,
-} from "./repository";
+import { userPreferencesRepository } from "./repository";
 import { UserPreferences } from "./entity";
 import { RealDebridClient } from "./services/download/real-debrid";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
 import { Aria2 } from "./services/aria2";
+import { downloadsSublevel } from "./level/sublevels/downloads";
+import { sortBy } from "lodash-es";
 import { Downloader } from "@shared";
-import { IsNull, Not } from "typeorm";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
   import("./events");
@@ -27,25 +24,24 @@ const loadState = async (userPreferences: UserPreferences | null) => {
     uploadGamesBatch();
   });
 
-  const [nextQueueItem] = await downloadQueueRepository.find({
-    order: {
-      id: "DESC",
-    },
-    relations: {
-      game: true,
-    },
-  });
+  const downloads = await downloadsSublevel
+    .values()
+    .all()
+    .then((games) => {
+      return sortBy(games, "timestamp", "DESC");
+    });
 
-  const seedList = await gameRepository.find({
-    where: {
-      shouldSeed: true,
-      downloader: Downloader.Torrent,
-      progress: 1,
-      uri: Not(IsNull()),
-    },
-  });
+  const [nextItemOnQueue] = downloads;
 
-  await DownloadManager.startRPC(nextQueueItem?.game, seedList);
+  const downloadsToSeed = downloads.filter(
+    (download) =>
+      download.shouldSeed &&
+      download.downloader === Downloader.Torrent &&
+      download.progress === 1 &&
+      download.uri !== null
+  );
+
+  await DownloadManager.startRPC(nextItemOnQueue, downloadsToSeed);
 
   startMainLoop();
 };
