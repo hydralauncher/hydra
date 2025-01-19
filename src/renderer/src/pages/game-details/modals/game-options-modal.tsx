@@ -10,6 +10,7 @@ import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { FileDirectoryIcon, FileIcon } from "@primer/octicons-react";
 import { debounce } from "lodash-es";
+import "./game-options-modal.scss";
 
 export interface GameOptionsModalProps {
   visible: boolean;
@@ -199,10 +200,10 @@ export function GameOptionsModal({
         onClose={onClose}
         large={true}
       >
-        <div className={styles.optionsContainer}>
-          <div className={styles.gameOptionHeader}>
+        <div className="game-options-modal__container">
+          <div className="game-options-modal__header">
             <h2>{t("executable_section_title")}</h2>
-            <h4 className={styles.gameOptionHeaderDescription}>
+            <h4 className="game-options-modal__header-description">
               {t("executable_section_description")}
             </h4>
           </div>
