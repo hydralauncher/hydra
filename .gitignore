@@ -1,5 +1,4 @@
 .vscode/
-.vs/
 node_modules/
 __pycache__
 dist
