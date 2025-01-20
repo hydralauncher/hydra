@@ -13,10 +13,11 @@ import i18next, { t } from "i18next";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
-import { gameRepository, userPreferencesRepository } from "@main/repository";
-import { IsNull, Not } from "typeorm";
+import { userPreferencesRepository } from "@main/repository";
 import { HydraApi } from "./hydra-api";
 import UserAgent from "user-agents";
+import { gamesSublevel } from "@main/level";
+import { slice, sortBy } from "lodash-es";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -207,17 +208,22 @@ export class WindowManager {
     }
 
     const updateSystemTray = async () => {
-      const games = await gameRepository.find({
-        where: {
-          isDeleted: false,
-          executablePath: Not(IsNull()),
-          lastTimePlayed: Not(IsNull()),
-        },
-        take: 5,
-        order: {
-          lastTimePlayed: "DESC",
-        },
-      });
+      const games = await gamesSublevel
+        .values()
+        .all()
+        .then((games) =>
+          slice(
+            sortBy(
+              games.filter(
+                (game) =>
+                  !game.isDeleted && game.executablePath && game.lastTimePlayed
+              ),
+              "lastTimePlayed",
+              "DESC"
+            ),
+            5
+          )
+        );
 
       const recentlyPlayedGames: Array<MenuItemConstructorOptions | MenuItem> =
         games.map(({ title, executablePath }) => ({

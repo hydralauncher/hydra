@@ -1,9 +1,9 @@
 export interface PauseDownloadPayload {
-  game_id: number;
+  game_id: string;
 }
 
 export interface CancelDownloadPayload {
-  game_id: number;
+  game_id: string;
 }
 
 export enum LibtorrentStatus {

@@ -3,14 +3,11 @@ import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
 import url from "node:url";
-import fs from "node:fs";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { logger, WindowManager } from "@main/services";
 import { dataSource } from "@main/data-source";
 import resources from "@locales";
 import { userPreferencesRepository } from "@main/repository";
-import { knexClient, migrationConfig } from "./knex-client";
-import { databaseDirectory } from "./constants";
 import { PythonRPC } from "./services/python-rpc";
 import { Aria2 } from "./services/aria2";
 
@@ -50,21 +47,6 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient(PROTOCOL);
 }
 
-const runMigrations = async () => {
-  if (!fs.existsSync(databaseDirectory)) {
-    fs.mkdirSync(databaseDirectory, { recursive: true });
-  }
-
-  await knexClient.migrate.list(migrationConfig).then((result) => {
-    logger.log(
-      "Migrations to run:",
-      result[1].map((migration) => migration.name)
-    );
-  });
-
-  await knexClient.migrate.latest(migrationConfig);
-};
-
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -75,14 +57,6 @@ app.whenReady().then(async () => {
     const filePath = request.url.slice("local:".length);
     return net.fetch(url.pathToFileURL(decodeURI(filePath)).toString());
   });
-
-  await runMigrations()
-    .then(() => {
-      logger.log("Migrations executed successfully");
-    })
-    .catch((err) => {
-      logger.log("Migrations failed to run:", err);
-    });
 
   await dataSource.initialize();
 

@@ -1,7 +1,6 @@
 import { Notification, app } from "electron";
 import { t } from "i18next";
 import trayIcon from "@resources/tray-icon.png?asset";
-import { Game } from "@main/entity";
 import { userPreferencesRepository } from "@main/repository";
 import fs from "node:fs";
 import axios from "axios";
@@ -11,6 +10,7 @@ import { achievementSoundPath } from "@main/constants";
 import icon from "@resources/icon.png?asset";
 import { NotificationOptions, toXmlString } from "./xml";
 import { logger } from "../logger";
+import type { Game } from "@types";
 
 async function downloadImage(url: string | null) {
   if (!url) return undefined;
