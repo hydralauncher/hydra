@@ -9,7 +9,11 @@ import {
   setGameDeleting,
   removeGameFromDeleting,
 } from "@renderer/features";
-import type { DownloadProgress, StartGameDownloadPayload } from "@types";
+import type {
+  DownloadProgress,
+  GameShop,
+  StartGameDownloadPayload,
+} from "@types";
 import { useDate } from "./use-date";
 import { formatBytes } from "@shared";
 
@@ -31,48 +35,48 @@ export function useDownload() {
     return game;
   };
 
-  const pauseDownload = async (gameId: number) => {
-    await window.electron.pauseGameDownload(gameId);
+  const pauseDownload = async (shop: GameShop, objectId: string) => {
+    await window.electron.pauseGameDownload(shop, objectId);
     await updateLibrary();
     dispatch(clearDownload());
   };
 
-  const resumeDownload = async (gameId: number) => {
-    await window.electron.resumeGameDownload(gameId);
+  const resumeDownload = async (shop: GameShop, objectId: string) => {
+    await window.electron.resumeGameDownload(shop, objectId);
     return updateLibrary();
   };
 
-  const removeGameInstaller = async (gameId: number) => {
-    dispatch(setGameDeleting(gameId));
+  const removeGameInstaller = async (shop: GameShop, objectId: string) => {
+    dispatch(setGameDeleting(objectId));
 
     try {
-      await window.electron.deleteGameFolder(gameId);
+      await window.electron.deleteGameFolder(shop, objectId);
       updateLibrary();
     } finally {
-      dispatch(removeGameFromDeleting(gameId));
+      dispatch(removeGameFromDeleting(objectId));
     }
   };
 
-  const cancelDownload = async (gameId: number) => {
-    await window.electron.cancelGameDownload(gameId);
+  const cancelDownload = async (shop: GameShop, objectId: string) => {
+    await window.electron.cancelGameDownload(shop, objectId);
     dispatch(clearDownload());
     updateLibrary();
 
-    removeGameInstaller(gameId);
+    removeGameInstaller(shop, objectId);
   };
 
-  const removeGameFromLibrary = (gameId: number) =>
-    window.electron.removeGameFromLibrary(gameId).then(() => {
+  const removeGameFromLibrary = (shop: GameShop, objectId: string) =>
+    window.electron.removeGameFromLibrary(shop, objectId).then(() => {
       updateLibrary();
     });
 
-  const pauseSeeding = async (gameId: number) => {
-    await window.electron.pauseGameSeed(gameId);
+  const pauseSeeding = async (shop: GameShop, objectId: string) => {
+    await window.electron.pauseGameSeed(shop, objectId);
     await updateLibrary();
   };
 
-  const resumeSeeding = async (gameId: number) => {
-    await window.electron.resumeGameSeed(gameId);
+  const resumeSeeding = async (shop: GameShop, objectId: string) => {
+    await window.electron.resumeGameSeed(shop, objectId);
     await updateLibrary();
   };
 
@@ -90,8 +94,8 @@ export function useDownload() {
     }
   };
 
-  const isGameDeleting = (gameId: number) => {
-    return gamesWithDeletionInProgress.includes(gameId);
+  const isGameDeleting = (objectId: string) => {
+    return gamesWithDeletionInProgress.includes(objectId);
   };
 
   return {

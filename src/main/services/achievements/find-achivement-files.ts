@@ -254,7 +254,7 @@ export const findAchievementFiles = (game: Game) => {
 
   for (const cracker of crackers) {
     for (const { folderPath, fileLocation } of getPathFromCracker(cracker)) {
-      for (const objectId of getAlternativeObjectIds(game.objectID)) {
+      for (const objectId of getAlternativeObjectIds(game.objectId)) {
         const filePath = path.join(
           game.winePrefixPath ?? "",
           folderPath,

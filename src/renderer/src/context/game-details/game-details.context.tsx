@@ -101,9 +101,9 @@ export function GameDetailsContextProvider({
 
   const updateGame = useCallback(async () => {
     return window.electron
-      .getGameByObjectId(objectId!)
+      .getGameByObjectId(shop, objectId!)
       .then((result) => setGame(result));
-  }, [setGame, objectId]);
+  }, [setGame, shop, objectId]);
 
   const isGameDownloading = lastPacket?.game.id === game?.id;
 

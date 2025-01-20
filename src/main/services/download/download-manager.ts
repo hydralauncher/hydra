@@ -1,11 +1,6 @@
-import { Game } from "@main/entity";
 import { Downloader } from "@shared";
 import { WindowManager } from "../window-manager";
-import {
-  downloadQueueRepository,
-  gameRepository,
-  userPreferencesRepository,
-} from "@main/repository";
+import { userPreferencesRepository } from "@main/repository";
 import { publishDownloadCompleteNotification } from "../notifications";
 import type { Download, DownloadProgress } from "@types";
 import { GofileApi, QiwiApi, DatanodesApi } from "../hosters";
@@ -23,7 +18,7 @@ import { logger } from "../logger";
 import { downloadsSublevel, levelKeys } from "@main/level";
 
 export class DownloadManager {
-  private static downloadingGameId: number | null = null;
+  private static downloadingGameId: string | null = null;
 
   public static async startRPC(
     download?: Download,
@@ -34,13 +29,15 @@ export class DownloadManager {
         ? await this.getDownloadPayload(download).catch(() => undefined)
         : undefined,
       downloadsToSeed?.map((download) => ({
-        game_id: game.id,
-        url: game.uri!,
-        save_path: game.downloadPath!,
+        game_id: `${download.shop}-${download.objectId}`,
+        url: download.uri!,
+        save_path: download.downloadPath!,
       }))
     );
 
-    this.downloadingGameId = game?.id ?? null;
+    if (download) {
+      this.downloadingGameId = `${download.shop}-${download.objectId}`;
+    }
   }
 
   private static async getDownloadStatus() {

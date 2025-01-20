@@ -1,13 +1,11 @@
 import { shell } from "electron";
 import path from "node:path";
 import fs from "node:fs";
-import { writeFile } from "node:fs/promises";
 import { spawnSync, exec } from "node:child_process";
 
-import { generateYML } from "../helpers/generate-lutris-yaml";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { registerEvent } from "../register-event";
-import { gamesSublevel, levelKeys } from "@main/level";
+import { downloadsSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
 
 const executeGameInstaller = (filePath: string) => {
@@ -29,18 +27,18 @@ const openGameInstaller = async (
   shop: GameShop,
   objectId: string
 ) => {
-  const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
+  const downloadKey = levelKeys.game(shop, objectId);
+  const download = await downloadsSublevel.get(downloadKey);
 
-  if (!game || game.isDeleted || !game.folderName) return true;
+  if (!download || !download.folderName) return true;
 
   const gamePath = path.join(
-    game.downloadPath ?? (await getDownloadsPath()),
-    game.folderName!
+    download.downloadPath ?? (await getDownloadsPath()),
+    download.folderName!
   );
 
   if (!fs.existsSync(gamePath)) {
-    // TODO: LEVELDB Remove download?
-    // await gameRepository.update({ id: gameId }, { status: null });
+    await downloadsSublevel.del(downloadKey);
     return true;
   }
 
@@ -68,13 +66,6 @@ const openGameInstaller = async (
     return executeGameInstaller(
       path.join(gamePath, gamePathExecutableFiles[0])
     );
-  }
-
-  if (spawnSync("which", ["lutris"]).status === 0) {
-    const ymlPath = path.join(gamePath, "setup.yml");
-    await writeFile(ymlPath, generateYML(game));
-    exec(`lutris --install "${ymlPath}"`);
-    return true;
   }
 
   shell.openPath(gamePath);

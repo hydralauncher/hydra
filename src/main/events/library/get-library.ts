@@ -1,13 +1,23 @@
 import { registerEvent } from "../register-event";
-import { gamesSublevel } from "@main/level";
+import { downloadsSublevel, gamesSublevel } from "@main/level";
 
 const getLibrary = async () => {
-  // TODO: Add sorting
   return gamesSublevel
-    .values()
+    .iterator()
     .all()
     .then((results) => {
-      return results.filter((game) => game.isDeleted === false);
+      return Promise.all(
+        results
+          .filter(([_key, game]) => game.isDeleted === false)
+          .map(async ([key, game]) => {
+            const download = await downloadsSublevel.get(key);
+
+            return {
+              ...game,
+              download,
+            };
+          })
+      );
     });
 };
 

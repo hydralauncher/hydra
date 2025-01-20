@@ -33,7 +33,6 @@ export interface User {
 export interface Game {
   title: string;
   iconUrl: string | null;
-  status: GameStatus | null;
   playTimeInMilliseconds: number;
   lastTimePlayed: Date | null;
   objectId: string;
@@ -58,6 +57,8 @@ export interface Download {
   lastTimePlayed: Date | null;
   fileSize: number;
   shouldSeed: boolean;
+  // TODO: Rename to DownloadStatus
+  status: GameStatus | null;
   timestamp: number;
 }
 

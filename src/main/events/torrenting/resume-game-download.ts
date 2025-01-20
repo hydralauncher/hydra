@@ -1,11 +1,9 @@
 import { Not } from "typeorm";
 
 import { registerEvent } from "../register-event";
-import { gameRepository } from "../../repository";
 
 import { DownloadManager } from "@main/services";
 import { dataSource } from "@main/data-source";
-import { DownloadQueue, Game } from "@main/entity";
 
 const resumeGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,

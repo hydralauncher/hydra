@@ -1,17 +1,25 @@
+import { downloadsSublevel } from "@main/level";
+import { levelKeys } from "@main/level";
 import { registerEvent } from "../register-event";
 import { DownloadManager } from "@main/services";
-import { gameRepository } from "@main/repository";
+import type { GameShop } from "@types";
 
 const pauseGameSeed = async (
   _event: Electron.IpcMainInvokeEvent,
-  gameId: number
+  shop: GameShop,
+  objectId: string
 ) => {
-  await gameRepository.update(gameId, {
-    status: "complete",
+  const downloadKey = levelKeys.game(shop, objectId);
+  const download = await downloadsSublevel.get(downloadKey);
+
+  if (!download) return;
+
+  await downloadsSublevel.put(downloadKey, {
+    ...download,
     shouldSeed: false,
   });
 
-  await DownloadManager.pauseSeeding(gameId);
+  await DownloadManager.pauseSeeding(download);
 };
 
 registerEvent("pauseGameSeed", pauseGameSeed);
