@@ -225,6 +225,7 @@ export const link = style({
   color: vars.color.body,
   ":hover": {
     textDecoration: "underline",
+    cursor: "pointer",
   },
 });
 
