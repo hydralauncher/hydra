@@ -7,6 +7,11 @@
   gap: globals.$spacing-unit;
   cursor: pointer;
 
+  &:has(input:disabled) {
+    cursor: not-allowed;
+    opacity: globals.$disabled-opacity;
+  }
+
   &__checkbox {
     width: 20px;
     height: 20px;
@@ -18,7 +23,8 @@
     position: relative;
     transition: all ease 0.2s;
     border: solid 1px globals.$border-color;
-    &:hover {
+
+    &:hover:not(:has(input:disabled)) {
       border-color: rgba(255, 255, 255, 0.5);
     }
   }
@@ -31,9 +37,17 @@
     padding: 0;
     opacity: 0;
     cursor: pointer;
+
+    &:disabled {
+      cursor: not-allowed;
+    }
   }
 
   &__label {
     cursor: pointer;
+
+    &:has(+ input:disabled) {
+      cursor: not-allowed;
+    }
   }
 }
