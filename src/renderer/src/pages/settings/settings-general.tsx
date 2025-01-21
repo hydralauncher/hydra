@@ -11,6 +11,7 @@ import { changeLanguage } from "i18next";
 import languageResources from "@locales";
 import { orderBy } from "lodash-es";
 import { settingsContext } from "@renderer/context";
+import "./settings-general.scss";
 
 interface LanguageOption {
   option: string;
@@ -114,7 +115,7 @@ export function SettingsGeneral() {
   }
 
   return (
-    <>
+    <div className="settings-general">
       <TextField
         label={t("downloads_path")}
         value={form.downloadsPath}
@@ -138,7 +139,9 @@ export function SettingsGeneral() {
         }))}
       />
 
-      <p>{t("notifications")}</p>
+      <p className="settings-general__notifications-title">
+        {t("notifications")}
+      </p>
 
       <CheckboxField
         label={t("enable_download_notifications")}
@@ -171,6 +174,6 @@ export function SettingsGeneral() {
           })
         }
       />
-    </>
+    </div>
   );
 }
