@@ -1,12 +1,11 @@
 import type { ComparedAchievements } from "@types";
-import * as styles from "./achievements.css";
+import "./achievements.scss";
 import {
   CheckCircleIcon,
   EyeClosedIcon,
   LockIcon,
 } from "@primer/octicons-react";
 import { useDate } from "@renderer/hooks";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { useTranslation } from "react-i18next";
 
 export interface ComparedAchievementListProps {
@@ -20,39 +19,26 @@ export function ComparedAchievementList({
   const { formatDateTime } = useDate();
 
   return (
-    <ul className={styles.list}>
+    <ul className="achievements__list">
       {achievements.achievements.map((achievement, index) => (
         <li
           key={index}
-          className={styles.listItem}
-          style={{
-            display: "grid",
-            gridTemplateColumns: achievement.ownerStat
-              ? "3fr 1fr 1fr"
-              : "3fr 2fr",
-          }}
+          className={`achievements__item achievements__item-compared ${
+            !achievement.ownerStat && "achievements__item-compared--no-owner"
+          }`}
         >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              gap: `${SPACING_UNIT}px`,
-            }}
-          >
+          <div className="achievements__item-main">
             <img
-              className={styles.listItemImage({
-                unlocked: true,
-              })}
+              className="achievements__item-image"
               src={achievement.icon}
               alt={achievement.displayName}
               loading="lazy"
             />
-            <div>
-              <h4 style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <div className="achievements__item-content">
+              <h4 className="achievements__item-title">
                 {achievement.hidden && (
                   <span
-                    style={{ display: "flex" }}
+                    className="achievements__item-hidden-icon"
                     title={t("hidden_achievement_tooltip")}
                   >
                     <EyeClosedIcon size={12} />
@@ -67,25 +53,13 @@ export function ComparedAchievementList({
           {achievement.ownerStat ? (
             achievement.ownerStat.unlocked ? (
               <div
-                style={{
-                  whiteSpace: "nowrap",
-                  display: "flex",
-                  flexDirection: "row",
-                  gap: `${SPACING_UNIT}px`,
-                  justifyContent: "center",
-                }}
+                className="achievements__item-status achievements__item-status--unlocked"
                 title={formatDateTime(achievement.ownerStat.unlockTime!)}
               >
                 <CheckCircleIcon />
               </div>
             ) : (
-              <div
-                style={{
-                  display: "flex",
-                  padding: `${SPACING_UNIT}px`,
-                  justifyContent: "center",
-                }}
-              >
+              <div className="achievements__item-status">
                 <LockIcon />
               </div>
             )
@@ -93,25 +67,13 @@ export function ComparedAchievementList({
 
           {achievement.targetStat.unlocked ? (
             <div
-              style={{
-                whiteSpace: "nowrap",
-                display: "flex",
-                flexDirection: "row",
-                gap: `${SPACING_UNIT}px`,
-                justifyContent: "center",
-              }}
+              className="achievements__item-status achievements__item-status--unlocked"
               title={formatDateTime(achievement.targetStat.unlockTime!)}
             >
               <CheckCircleIcon />
             </div>
           ) : (
-            <div
-              style={{
-                display: "flex",
-                padding: `${SPACING_UNIT}px`,
-                justifyContent: "center",
-              }}
-            >
+            <div className="achievements__item-status">
               <LockIcon />
             </div>
           )}

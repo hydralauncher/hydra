@@ -1,6 +1,7 @@
 import { Button } from "@renderer/components/button/button";
 import { ChevronLeftIcon, ChevronRightIcon } from "@primer/octicons-react";
 import { useFormat } from "@renderer/hooks/use-format";
+import "./pagination.scss";
 
 interface PaginationProps {
   page: number;
@@ -31,17 +32,12 @@ export function Pagination({
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: 4,
-      }}
-    >
+    <div className="pagination">
       {/* Previous Button */}
       <Button
         theme="outline"
         onClick={() => onPageChange(page - 1)}
-        style={{ width: 40, maxWidth: 40, maxHeight: 40 }}
+        className="pagination__button"
         disabled={page === 1}
       >
         <ChevronLeftIcon />
@@ -53,22 +49,15 @@ export function Pagination({
           <Button
             theme="outline"
             onClick={() => onPageChange(1)}
-            style={{ width: 40, maxWidth: 40, maxHeight: 40 }}
+            className="pagination__button"
             disabled={page === 1}
           >
             {1}
           </Button>
 
           {/* ellipsis */}
-          <div
-            style={{
-              width: 40,
-              justifyContent: "center",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <span style={{ fontSize: 16 }}>...</span>
+          <div className="pagination__ellipsis">
+            <span className="pagination__ellipsis-text">...</span>
           </div>
         </>
       )}
@@ -81,7 +70,7 @@ export function Pagination({
         <Button
           theme={page === pageNumber ? "primary" : "outline"}
           key={pageNumber}
-          style={{ width: 40, maxWidth: 40, maxHeight: 40 }}
+          className="pagination__button"
           onClick={() => onPageChange(pageNumber)}
         >
           {formatNumber(pageNumber)}
@@ -91,22 +80,15 @@ export function Pagination({
       {page < totalPages - 1 && (
         <>
           {/* ellipsis */}
-          <div
-            style={{
-              width: 40,
-              justifyContent: "center",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <span style={{ fontSize: 16 }}>...</span>
+          <div className="pagination__ellipsis">
+            <span className="pagination__ellipsis-text">...</span>
           </div>
 
           {/* last page */}
           <Button
             theme="outline"
             onClick={() => onPageChange(totalPages)}
-            style={{ width: 40, maxWidth: 40, maxHeight: 40 }}
+            className="pagination__button"
             disabled={page === totalPages}
           >
             {formatNumber(totalPages)}
@@ -118,7 +100,7 @@ export function Pagination({
       <Button
         theme="outline"
         onClick={() => onPageChange(page + 1)}
-        style={{ width: 40, maxWidth: 40, maxHeight: 40 }}
+        className="pagination__button"
         disabled={page === totalPages}
       >
         <ChevronRightIcon />

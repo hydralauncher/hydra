@@ -12,9 +12,8 @@ import { Downloader, formatBytes, steamUrlBuilder } from "@shared";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import { useAppSelector, useDownload } from "@renderer/hooks";
 
-import * as styles from "./download-group.css";
+import "./download-group.scss";
 import { useTranslation } from "react-i18next";
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { useMemo } from "react";
 import {
   DropdownMenu,
@@ -246,44 +245,26 @@ export function DownloadGroup({
   if (!library.length) return null;
 
   return (
-    <div className={styles.downloadGroup}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: `${SPACING_UNIT * 2}px`,
-        }}
-      >
+    <div className="download-group">
+      <div className="download-group__header">
         <h2>{title}</h2>
-
-        <div
-          style={{
-            flex: 1,
-            backgroundColor: vars.color.border,
-            height: "1px",
-          }}
-        />
-        <h3 style={{ fontWeight: "400" }}>{library.length}</h3>
+        <div className="download-group__header-divider" />
+        <h3 className="download-group__header-count">{library.length}</h3>
       </div>
 
-      <ul className={styles.downloads}>
+      <ul className="download-group__downloads">
         {library.map((game) => {
           return (
-            <li
-              key={game.id}
-              className={styles.download}
-              style={{ position: "relative" }}
-            >
-              <div className={styles.downloadCover}>
-                <div className={styles.downloadCoverBackdrop}>
+            <li key={game.id} className="download-group__item">
+              <div className="download-group__cover">
+                <div className="download-group__cover-backdrop">
                   <img
                     src={steamUrlBuilder.library(game.objectId)}
-                    className={styles.downloadCoverImage}
+                    className="download-group__cover-image"
                     alt={game.title}
                   />
 
-                  <div className={styles.downloadCoverContent}>
+                  <div className="download-group__cover-content">
                     <Badge>
                       {
                         DOWNLOADER_NAME[
@@ -294,12 +275,12 @@ export function DownloadGroup({
                   </div>
                 </div>
               </div>
-              <div className={styles.downloadRightContent}>
-                <div className={styles.downloadDetails}>
-                  <div className={styles.downloadTitleWrapper}>
+              <div className="download-group__right-content">
+                <div className="download-group__details">
+                  <div className="download-group__title-wrapper">
                     <button
                       type="button"
-                      className={styles.downloadTitle}
+                      className="download-group__title"
                       onClick={() =>
                         navigate(
                           buildGameDetailsPath({
@@ -323,15 +304,7 @@ export function DownloadGroup({
                     sideOffset={-75}
                   >
                     <Button
-                      style={{
-                        position: "absolute",
-                        top: "12px",
-                        right: "12px",
-                        borderRadius: "50%",
-                        border: "none",
-                        padding: "8px",
-                        minHeight: "unset",
-                      }}
+                      className="download-group__menu-button"
                       theme="outline"
                     >
                       <ThreeBarsIcon />

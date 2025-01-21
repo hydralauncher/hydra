@@ -1,0 +1,133 @@
+@use "../../scss/globals.scss";
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: calc(globals.$spacing-unit * 2);
+  -webkit-app-region: drag;
+  width: 100%;
+  padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 3);
+  color: globals.$muted-color;
+  border-bottom: solid 1px globals.$border-color;
+  background-color: globals.$dark-background-color;
+
+  &--dragging-disabled {
+    -webkit-app-region: no-drag;
+  }
+
+  &--is-windows {
+    -webkit-app-region: no-drag;
+  }
+
+  &__search {
+    background-color: globals.$background-color;
+    display: inline-flex;
+    transition: all ease 0.2s;
+    width: 200px;
+    align-items: center;
+    border-radius: 8px;
+    border: solid 1px globals.$border-color;
+    height: 40px;
+    -webkit-app-region: no-drag;
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    &--focused {
+      width: 250px;
+      border-color: #dadbe1;
+    }
+  }
+
+  &__search-input {
+    background-color: transparent;
+    border: none;
+    width: 100%;
+    height: 100%;
+    outline: none;
+    color: #dadbe1;
+    cursor: default;
+    font-family: inherit;
+    text-overflow: ellipsis;
+
+    &:focus {
+      cursor: text;
+    }
+  }
+
+  &__action-button {
+    color: inherit;
+    cursor: pointer;
+    transition: all ease 0.2s;
+    padding: globals.$spacing-unit;
+
+    &:hover {
+      color: #dadbe1;
+    }
+  }
+
+  &__section {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 2);
+    height: 100%;
+    overflow: hidden;
+  }
+
+  &__back-button {
+    color: globals.$body-color;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+    position: absolute;
+    transition: transform ease 0.2s;
+    animation-duration: 0.2s;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    animation-name: slide-out;
+
+    &--enabled {
+      animation: slide-in;
+      opacity: 1;
+      pointer-events: all;
+    }
+  }
+
+  &__title {
+    transition: all ease 0.2s;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+
+    &--has-back-button {
+      transform: translateX(28px);
+      width: calc(100% - 28px);
+    }
+  }
+}
+
+@keyframes slide-in {
+  0% {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out {
+  0% {
+    transform: translateX(0px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+}

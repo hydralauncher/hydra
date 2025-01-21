@@ -1,11 +1,10 @@
 import { useDate } from "@renderer/hooks";
 import type { UserAchievement } from "@types";
 import { useTranslation } from "react-i18next";
-import * as styles from "./achievements.css";
+import "./achievements.scss";
 import { EyeClosedIcon } from "@primer/octicons-react";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
-import { vars } from "@renderer/theme.css";
 
 interface AchievementListProps {
   achievements: UserAchievement[];
@@ -17,27 +16,21 @@ export function AchievementList({ achievements }: AchievementListProps) {
   const { formatDateTime } = useDate();
 
   return (
-    <ul className={styles.list}>
+    <ul className="achievements__list">
       {achievements.map((achievement) => (
-        <li
-          key={achievement.name}
-          className={styles.listItem}
-          style={{ display: "flex" }}
-        >
+        <li key={achievement.name} className="achievements__item">
           <img
-            className={styles.listItemImage({
-              unlocked: achievement.unlocked,
-            })}
+            className={`achievements__item-image ${!achievement.unlocked ? "achievements__item-image--locked" : ""}`}
             src={achievement.icon}
             alt={achievement.displayName}
             loading="lazy"
           />
 
-          <div style={{ flex: 1 }}>
-            <h4 style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <div className="achievements__item-content">
+            <h4 className="achievements__item-title">
               {achievement.hidden && (
                 <span
-                  style={{ display: "flex" }}
+                  className="achievements__item-hidden-icon"
                   title={t("hidden_achievement_tooltip")}
                 >
                   <EyeClosedIcon size={12} />
@@ -47,48 +40,36 @@ export function AchievementList({ achievements }: AchievementListProps) {
             </h4>
             <p>{achievement.description}</p>
           </div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "8px",
-              alignItems: "flex-end",
-            }}
-          >
+
+          <div className="achievements__item-meta">
             {achievement.points != undefined ? (
               <div
-                style={{ display: "flex", alignItems: "center", gap: "4px" }}
+                className="achievements__item-points"
                 title={t("achievement_earn_points", {
                   points: achievement.points,
                 })}
               >
-                <HydraIcon width={20} height={20} />
-                <p style={{ fontSize: "1.1em" }}>{achievement.points}</p>
+                <HydraIcon className="achievements__item-points-icon" />
+                <p className="achievements__item-points-value">
+                  {achievement.points}
+                </p>
               </div>
             ) : (
               <button
                 onClick={() => showHydraCloudModal("achievements")}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  cursor: "pointer",
-                  color: vars.color.warning,
-                }}
-                title={t("achievement_earn_points", {
-                  points: "???",
-                })}
+                className="achievements__item-points achievements__item-points--locked"
+                title={t("achievement_earn_points", { points: "???" })}
               >
-                <HydraIcon width={20} height={20} />
-                <p style={{ fontSize: "1.1em" }}>???</p>
+                <HydraIcon className="achievements__item-points-icon" />
+                <p className="achievements__item-points-value">???</p>
               </button>
             )}
             {achievement.unlockTime != null && (
               <div
+                className="achievements__item-unlock-time"
                 title={t("unlocked_at", {
                   date: formatDateTime(achievement.unlockTime),
                 })}
-                style={{ whiteSpace: "nowrap", gap: "4px", display: "flex" }}
               >
                 <small>{formatDateTime(achievement.unlockTime)}</small>
               </div>
