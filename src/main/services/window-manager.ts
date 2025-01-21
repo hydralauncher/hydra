@@ -9,7 +9,7 @@ import {
   shell,
 } from "electron";
 import { is } from "@electron-toolkit/utils";
-import i18next, { t } from "i18next";
+import { t } from "i18next";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
@@ -18,6 +18,7 @@ import UserAgent from "user-agents";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { slice, sortBy } from "lodash-es";
 import type { UserPreferences } from "@types";
+import { AuthPage } from "@shared";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -146,7 +147,7 @@ export class WindowManager {
     });
   }
 
-  public static openAuthWindow() {
+  public static openAuthWindow(page: AuthPage, searchParams: URLSearchParams) {
     if (this.mainWindow) {
       const authWindow = new BrowserWindow({
         width: 600,
@@ -168,12 +169,8 @@ export class WindowManager {
 
       if (!app.isPackaged) authWindow.webContents.openDevTools();
 
-      const searchParams = new URLSearchParams({
-        lng: i18next.language,
-      });
-
       authWindow.loadURL(
-        `${import.meta.env.MAIN_VITE_AUTH_URL}/?${searchParams.toString()}`
+        `${import.meta.env.MAIN_VITE_AUTH_URL}${page}?${searchParams.toString()}`
       );
 
       authWindow.once("ready-to-show", () => {
@@ -185,6 +182,13 @@ export class WindowManager {
           authWindow.close();
 
           HydraApi.handleExternalAuth(url);
+          return;
+        }
+
+        if (url.startsWith("hydralauncher://update-account")) {
+          authWindow.close();
+
+          WindowManager.mainWindow?.webContents.send("on-account-updated");
         }
       });
     }
