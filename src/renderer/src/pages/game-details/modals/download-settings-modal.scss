@@ -10,11 +10,12 @@
 
   &__downloads-path-field {
     display: flex;
+    flex-direction: column;
     gap: globals.$spacing-unit;
   }
 
   &__hint-text {
-    font-size: globals.$small-font-size;
+    font-size: 12px;
     color: globals.$body-color;
   }
 
