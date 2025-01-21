@@ -15,6 +15,8 @@
     border: solid 1px globals.$border-color;
     height: 40px;
     min-height: 40px;
+    flex: 1;
+    min-width: 0;
 
     &:hover {
       border-color: rgba(255, 255, 255, 0.5);
@@ -67,6 +69,8 @@
   &__text-field-wrapper {
     display: flex;
     gap: globals.$spacing-unit;
+    width: 100%;
+    align-items: center;
   }
 
   &__error-label {
