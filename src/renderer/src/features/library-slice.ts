@@ -1,10 +1,10 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
-import type { Game } from "@types";
+import type { LibraryGame } from "@types";
 
 export interface LibraryState {
-  value: Game[];
+  value: LibraryGame[];
 }
 
 const initialState: LibraryState = {

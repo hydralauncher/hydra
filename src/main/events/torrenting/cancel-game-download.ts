@@ -9,9 +9,11 @@ const cancelGameDownload = async (
   shop: GameShop,
   objectId: string
 ) => {
-  await DownloadManager.cancelDownload(shop, objectId);
+  const downloadKey = levelKeys.game(shop, objectId);
 
-  await downloadsSublevel.del(levelKeys.game(shop, objectId));
+  await DownloadManager.cancelDownload(downloadKey);
+
+  await downloadsSublevel.del(downloadKey);
 };
 
 registerEvent("cancelGameDownload", cancelGameDownload);

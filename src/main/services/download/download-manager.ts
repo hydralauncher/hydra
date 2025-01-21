@@ -1,8 +1,7 @@
 import { Downloader } from "@shared";
 import { WindowManager } from "../window-manager";
-import { userPreferencesRepository } from "@main/repository";
 import { publishDownloadCompleteNotification } from "../notifications";
-import type { Download, DownloadProgress } from "@types";
+import type { Download, DownloadProgress, UserPreferences } from "@types";
 import { GofileApi, QiwiApi, DatanodesApi } from "../hosters";
 import { PythonRPC } from "../python-rpc";
 import {
@@ -11,11 +10,11 @@ import {
   PauseDownloadPayload,
 } from "./types";
 import { calculateETA, getDirSize } from "./helpers";
-import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { RealDebridClient } from "./real-debrid";
 import path from "path";
 import { logger } from "../logger";
-import { downloadsSublevel, levelKeys } from "@main/level";
+import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import { sortBy } from "lodash-es";
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
@@ -44,10 +43,8 @@ export class DownloadManager {
     const response = await PythonRPC.rpc.get<LibtorrentPayload | null>(
       "/status"
     );
-
     if (response.data === null || !this.downloadingGameId) return null;
-
-    const gameId = this.downloadingGameId;
+    const downloadId = this.downloadingGameId;
 
     try {
       const {
@@ -63,24 +60,21 @@ export class DownloadManager {
 
       const isDownloadingMetadata =
         status === LibtorrentStatus.DownloadingMetadata;
-
       const isCheckingFiles = status === LibtorrentStatus.CheckingFiles;
 
+      const download = await downloadsSublevel.get(downloadId);
+
       if (!isDownloadingMetadata && !isCheckingFiles) {
-        const update: QueryDeepPartialEntity<Game> = {
+        if (!download) return null;
+
+        await downloadsSublevel.put(downloadId, {
+          ...download,
           bytesDownloaded,
           fileSize,
           progress,
+          folderName,
           status: "active",
-        };
-
-        await gameRepository.update(
-          { id: gameId },
-          {
-            ...update,
-            folderName,
-          }
-        );
+        });
       }
 
       return {
@@ -91,7 +85,8 @@ export class DownloadManager {
         isDownloadingMetadata,
         isCheckingFiles,
         progress,
-        gameId,
+        gameId: downloadId,
+        download,
       } as DownloadProgress;
     } catch (err) {
       return null;
@@ -103,15 +98,22 @@ export class DownloadManager {
 
     if (status) {
       const { gameId, progress } = status;
-      const game = await gameRepository.findOne({
-        where: { id: gameId, isDeleted: false },
-      });
 
-      const userPreferences = await userPreferencesRepository.findOneBy({
-        id: 1,
-      });
+      const [download, game] = await Promise.all([
+        downloadsSublevel.get(gameId),
+        gamesSublevel.get(gameId),
+      ]);
 
-      if (WindowManager.mainWindow && game) {
+      if (!download || !game) return;
+
+      const userPreferences = await db.get<string, UserPreferences>(
+        levelKeys.userPreferences,
+        {
+          valueEncoding: "json",
+        }
+      );
+
+      if (WindowManager.mainWindow && download) {
         WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
         WindowManager.mainWindow.webContents.send(
           "on-download-progress",
@@ -123,40 +125,42 @@ export class DownloadManager {
           )
         );
       }
-      if (progress === 1 && game) {
+
+      if (progress === 1 && download) {
         publishDownloadCompleteNotification(game);
 
         if (
           userPreferences?.seedAfterDownloadComplete &&
-          game.downloader === Downloader.Torrent
+          download.downloader === Downloader.Torrent
         ) {
-          gameRepository.update(
-            { id: gameId },
-            { status: "seeding", shouldSeed: true }
-          );
+          downloadsSublevel.put(gameId, {
+            ...download,
+            status: "seeding",
+            shouldSeed: true,
+          });
         } else {
-          gameRepository.update(
-            { id: gameId },
-            { status: "complete", shouldSeed: false }
-          );
+          downloadsSublevel.put(gameId, {
+            ...download,
+            status: "complete",
+            shouldSeed: false,
+          });
 
           this.cancelDownload(gameId);
         }
 
-        await downloadsSublevel.del(levelKeys.game(game.shop, game.objectId));
+        const downloads = await downloadsSublevel
+          .values()
+          .all()
+          .then((games) => {
+            return sortBy(games, "timestamp", "DESC");
+          });
 
-        const [nextQueueItem] = await downloadQueueRepository.find({
-          order: {
-            id: "DESC",
-          },
-          relations: {
-            game: true,
-          },
-        });
-        if (nextQueueItem) {
-          this.resumeDownload(nextQueueItem.game);
+        const [nextItemOnQueue] = downloads;
+
+        if (nextItemOnQueue) {
+          this.resumeDownload(nextItemOnQueue);
         } else {
-          this.downloadingGameId = -1;
+          this.downloadingGameId = null;
         }
       }
     }
@@ -172,20 +176,19 @@ export class DownloadManager {
     logger.log(seedStatus);
 
     seedStatus.forEach(async (status) => {
-      const game = await gameRepository.findOne({
-        where: { id: status.gameId },
-      });
+      const download = await downloadsSublevel.get(status.gameId);
 
-      if (!game) return;
+      if (!download) return;
 
       const totalSize = await getDirSize(
-        path.join(game.downloadPath!, status.folderName)
+        path.join(download.downloadPath!, status.folderName)
       );
 
       if (totalSize < status.fileSize) {
-        await this.cancelDownload(game.id);
+        await this.cancelDownload(status.gameId);
 
-        await gameRepository.update(game.id, {
+        await downloadsSublevel.put(status.gameId, {
+          ...download,
           status: "paused",
           shouldSeed: false,
           progress: totalSize / status.fileSize,
@@ -207,114 +210,109 @@ export class DownloadManager {
       .catch(() => {});
 
     WindowManager.mainWindow?.setProgressBar(-1);
-
     this.downloadingGameId = null;
   }
 
-  static async resumeDownload(game: Game) {
-    return this.startDownload(game);
+  static async resumeDownload(download: Download) {
+    return this.startDownload(download);
   }
 
-  static async cancelDownload(gameId = this.downloadingGameId!) {
+  static async cancelDownload(downloadKey = this.downloadingGameId!) {
     await PythonRPC.rpc.post("/action", {
       action: "cancel",
-      game_id: gameId,
+      game_id: downloadKey,
     });
 
     WindowManager.mainWindow?.setProgressBar(-1);
-
-    if (gameId === this.downloadingGameId) {
+    if (downloadKey === this.downloadingGameId) {
       this.downloadingGameId = null;
     }
   }
 
-  static async resumeSeeding(game: Game) {
+  static async resumeSeeding(download: Download) {
     await PythonRPC.rpc.post("/action", {
       action: "resume_seeding",
-      game_id: game.id,
-      url: game.uri,
-      save_path: game.downloadPath,
+      game_id: levelKeys.game(download.shop, download.objectId),
+      url: download.uri,
+      save_path: download.downloadPath,
     });
   }
 
-  static async pauseSeeding(gameId: number) {
+  static async pauseSeeding(downloadKey: string) {
     await PythonRPC.rpc.post("/action", {
       action: "pause_seeding",
-      game_id: gameId,
+      game_id: downloadKey,
     });
   }
 
-  private static async getDownloadPayload(game: Game) {
-    switch (game.downloader) {
-      case Downloader.Gofile: {
-        const id = game.uri!.split("/").pop();
+  private static async getDownloadPayload(download: Download) {
+    const downloadId = levelKeys.game(download.shop, download.objectId);
 
+    switch (download.downloader) {
+      case Downloader.Gofile: {
+        const id = download.uri!.split("/").pop();
         const token = await GofileApi.authorize();
         const downloadLink = await GofileApi.getDownloadLink(id!);
 
         return {
           action: "start",
-          game_id: game.id,
+          game_id: downloadId,
           url: downloadLink,
-          save_path: game.downloadPath!,
+          save_path: download.downloadPath!,
           header: `Cookie: accountToken=${token}`,
         };
       }
       case Downloader.PixelDrain: {
-        const id = game.uri!.split("/").pop();
-
+        const id = download.uri!.split("/").pop();
         return {
           action: "start",
-          game_id: game.id,
+          game_id: downloadId,
           url: `https://pixeldrain.com/api/file/${id}?download`,
-          save_path: game.downloadPath!,
+          save_path: download.downloadPath!,
         };
       }
       case Downloader.Qiwi: {
-        const downloadUrl = await QiwiApi.getDownloadUrl(game.uri!);
-
+        const downloadUrl = await QiwiApi.getDownloadUrl(download.uri!);
         return {
           action: "start",
-          game_id: game.id,
+          game_id: downloadId,
           url: downloadUrl,
-          save_path: game.downloadPath!,
+          save_path: download.downloadPath!,
         };
       }
       case Downloader.Datanodes: {
-        const downloadUrl = await DatanodesApi.getDownloadUrl(game.uri!);
-
+        const downloadUrl = await DatanodesApi.getDownloadUrl(download.uri!);
         return {
           action: "start",
-          game_id: game.id,
+          game_id: downloadId,
           url: downloadUrl,
-          save_path: game.downloadPath!,
+          save_path: download.downloadPath!,
         };
       }
       case Downloader.Torrent:
         return {
           action: "start",
-          game_id: game.id,
-          url: game.uri!,
-          save_path: game.downloadPath!,
+          game_id: downloadId,
+          url: download.uri!,
+          save_path: download.downloadPath!,
         };
       case Downloader.RealDebrid: {
-        const downloadUrl = await RealDebridClient.getDownloadUrl(game.uri!);
-
+        const downloadUrl = await RealDebridClient.getDownloadUrl(
+          download.uri!
+        );
         return {
           action: "start",
-          game_id: game.id,
+          game_id: downloadId,
           url: downloadUrl!,
-          save_path: game.downloadPath!,
+          save_path: download.downloadPath!,
         };
       }
     }
   }
 
-  static async startDownload(game: Game) {
-    const payload = await this.getDownloadPayload(game);
-
+  static async startDownload(download: Download) {
+    const payload = await this.getDownloadPayload(download);
     await PythonRPC.rpc.post("/action", payload);
-
-    this.downloadingGameId = game.id;
+    this.downloadingGameId = levelKeys.game(download.shop, download.objectId);
   }
 }

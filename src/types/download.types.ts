@@ -1,5 +1,13 @@
-import type { GameStatus } from "./game.types";
-import { Game } from "./level.types";
+import type { Download } from "./level.types";
+
+export type DownloadStatus =
+  | "active"
+  | "waiting"
+  | "paused"
+  | "error"
+  | "complete"
+  | "seeding"
+  | "removed";
 
 export interface DownloadProgress {
   downloadSpeed: number;
@@ -9,8 +17,8 @@ export interface DownloadProgress {
   isDownloadingMetadata: boolean;
   isCheckingFiles: boolean;
   progress: number;
-  gameId: number;
-  game: Game;
+  gameId: string;
+  download: Download;
 }
 
 /* Torbox */
@@ -162,7 +170,7 @@ export interface RealDebridUser {
 
 /* Torrent */
 export interface SeedingStatus {
-  gameId: number;
-  status: GameStatus;
+  gameId: string;
+  status: DownloadStatus;
   uploadSpeed: number;
 }

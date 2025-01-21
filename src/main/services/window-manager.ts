@@ -13,11 +13,11 @@ import i18next, { t } from "i18next";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
-import { userPreferencesRepository } from "@main/repository";
 import { HydraApi } from "./hydra-api";
 import UserAgent from "user-agents";
-import { gamesSublevel } from "@main/level";
+import { db, gamesSublevel, levelKeys } from "@main/level";
 import { slice, sortBy } from "lodash-es";
+import type { UserPreferences } from "@types";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -131,9 +131,12 @@ export class WindowManager {
     });
 
     this.mainWindow.on("close", async () => {
-      const userPreferences = await userPreferencesRepository.findOne({
-        where: { id: 1 },
-      });
+      const userPreferences = await db.get<string, UserPreferences>(
+        levelKeys.userPreferences,
+        {
+          valueEncoding: "json",
+        }
+      );
 
       if (userPreferences?.preferQuitInsteadOfHiding) {
         app.quit();
@@ -211,19 +214,16 @@ export class WindowManager {
       const games = await gamesSublevel
         .values()
         .all()
-        .then((games) =>
-          slice(
-            sortBy(
-              games.filter(
-                (game) =>
-                  !game.isDeleted && game.executablePath && game.lastTimePlayed
-              ),
-              "lastTimePlayed",
-              "DESC"
-            ),
-            5
-          )
-        );
+        .then((games) => {
+          const filteredGames = games.filter(
+            (game) =>
+              !game.isDeleted && game.executablePath && game.lastTimePlayed
+          );
+
+          const sortedGames = sortBy(filteredGames, "lastTimePlayed", "DESC");
+
+          return slice(sortedGames, 5);
+        });
 
       const recentlyPlayedGames: Array<MenuItemConstructorOptions | MenuItem> =
         games.map(({ title, executablePath }) => ({

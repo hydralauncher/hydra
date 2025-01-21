@@ -1,9 +1,8 @@
-import { userPreferencesRepository } from "@main/repository";
 import { HydraApi } from "../hydra-api";
 import type { GameShop, SteamAchievement } from "@types";
 import { UserNotLoggedInError } from "@shared";
 import { logger } from "../logger";
-import { gameAchievementsSublevel, levelKeys } from "@main/level";
+import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
 
 export const getGameAchievementData = async (
   objectId: string,
@@ -17,14 +16,16 @@ export const getGameAchievementData = async (
   if (cachedAchievements && useCachedData)
     return cachedAchievements.achievements;
 
-  const userPreferences = await userPreferencesRepository.findOne({
-    where: { id: 1 },
-  });
+  const language = await db
+    .get<string, string>(levelKeys.language, {
+      valueEncoding: "utf-8",
+    })
+    .then((language) => language || "en");
 
   return HydraApi.get<SteamAchievement[]>("/games/achievements", {
     shop,
     objectId,
-    language: userPreferences?.language || "en",
+    language,
   })
     .then(async (achievements) => {
       await gameAchievementsSublevel.put(levelKeys.game(shop, objectId), {

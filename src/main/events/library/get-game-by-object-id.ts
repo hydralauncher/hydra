@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import { levelKeys } from "@main/level";
+import { downloadsSublevel, levelKeys } from "@main/level";
 import { gamesSublevel } from "@main/level";
 import type { GameShop } from "@types";
 
@@ -9,9 +9,14 @@ const getGameByObjectId = async (
   objectId: string
 ) => {
   const gameKey = levelKeys.game(shop, objectId);
-  const game = await gamesSublevel.get(gameKey);
+  const [game, download] = await Promise.all([
+    gamesSublevel.get(gameKey),
+    downloadsSublevel.get(gameKey),
+  ]);
 
-  return game;
+  if (!game) return null;
+
+  return { id: gameKey, ...game, download };
 };
 
 registerEvent("getGameByObjectId", getGameByObjectId);

@@ -24,7 +24,7 @@ export interface LibtorrentPayload {
   fileSize: number;
   folderName: string;
   status: LibtorrentStatus;
-  gameId: number;
+  gameId: string;
 }
 
 export interface ProcessPayload {

@@ -5,11 +5,10 @@ import path from "node:path";
 import url from "node:url";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { logger, WindowManager } from "@main/services";
-import { dataSource } from "@main/data-source";
 import resources from "@locales";
-import { userPreferencesRepository } from "@main/repository";
 import { PythonRPC } from "./services/python-rpc";
 import { Aria2 } from "./services/aria2";
+import { db, levelKeys } from "./level";
 
 const { autoUpdater } = updater;
 
@@ -58,23 +57,19 @@ app.whenReady().then(async () => {
     return net.fetch(url.pathToFileURL(decodeURI(filePath)).toString());
   });
 
-  await dataSource.initialize();
-
   await import("./main");
 
-  const userPreferences = await userPreferencesRepository.findOne({
-    where: { id: 1 },
+  const language = await db.get<string, string>(levelKeys.language, {
+    valueEncoding: "utf-8",
   });
 
-  if (userPreferences?.language) {
-    i18n.changeLanguage(userPreferences.language);
-  }
+  if (language) i18n.changeLanguage(language);
 
   if (!process.argv.includes("--hidden")) {
     WindowManager.createMainWindow();
   }
 
-  WindowManager.createSystemTray(userPreferences?.language || "en");
+  WindowManager.createSystemTray(language || "en");
 });
 
 app.on("browser-window-created", (_, window) => {

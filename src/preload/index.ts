@@ -132,7 +132,7 @@ contextBridge.exposeInMainWorld("electron", {
     shop: GameShop,
     objectId: string,
     executablePath: string,
-    launchOptions: string | null
+    launchOptions?: string | null
   ) =>
     ipcRenderer.invoke(
       "openGame",
@@ -149,8 +149,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("removeGame", shop, objectId),
   deleteGameFolder: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("deleteGameFolder", shop, objectId),
-  getGameByObjectId: (objectId: string) =>
-    ipcRenderer.invoke("getGameByObjectId", objectId),
+  getGameByObjectId: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getGameByObjectId", shop, objectId),
   resetGameAchievements: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("resetGameAchievements", shop, objectId),
   onGamesRunning: (

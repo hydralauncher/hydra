@@ -10,4 +10,7 @@ export const levelKeys = {
     `${shop}:${objectId}:${language}`,
   gameAchievements: "gameAchievements",
   downloads: "downloads",
+  userPreferences: "userPreferences",
+  language: "language",
+  sqliteMigrationDone: "sqliteMigrationDone",
 };

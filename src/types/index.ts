@@ -1,6 +1,6 @@
 import type { Cracker, DownloadSourceStatus, Downloader } from "@shared";
 import type { SteamAppDetails } from "./steam.types";
-import type { Subscription } from "./level.types";
+import type { Download, Game, Subscription } from "./level.types";
 import type { GameShop } from "./game.types";
 
 export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
@@ -45,27 +45,11 @@ export interface UserGame {
 }
 
 export interface GameRunning {
-  id?: number;
   title: string;
   iconUrl: string | null;
-  objectID: string;
+  objectId: string;
   shop: GameShop;
   sessionDurationInMillis: number;
-}
-
-export interface UserPreferences {
-  downloadsPath: string | null;
-  language: string;
-  downloadNotificationsEnabled: boolean;
-  repackUpdatesNotificationsEnabled: boolean;
-  achievementNotificationsEnabled: boolean;
-  realDebridApiToken: string | null;
-  preferQuitInsteadOfHiding: boolean;
-  runAtStartup: boolean;
-  startMinimized: boolean;
-  disableNsfwAlert: boolean;
-  seedAfterDownloadComplete: boolean;
-  showHiddenAchievementsDescription: boolean;
 }
 
 export interface Steam250Game {
@@ -296,6 +280,11 @@ export interface CatalogueSearchPayload {
   publishers: string[];
   genres: string[];
   developers: string[];
+}
+
+export interface LibraryGame extends Game {
+  id: string;
+  download: Download | null;
 }
 
 export * from "./game.types";

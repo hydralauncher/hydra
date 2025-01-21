@@ -1,8 +1,7 @@
-import type { GameShop, UserAchievement } from "@types";
+import type { GameShop, UserAchievement, UserPreferences } from "@types";
 import { registerEvent } from "../register-event";
-import { userPreferencesRepository } from "@main/repository";
 import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
-import { gameAchievementsSublevel, levelKeys } from "@main/level";
+import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
 
 export const getUnlockedAchievements = async (
   objectId: string,
@@ -13,9 +12,12 @@ export const getUnlockedAchievements = async (
     levelKeys.game(shop, objectId)
   );
 
-  const userPreferences = await userPreferencesRepository.findOne({
-    where: { id: 1 },
-  });
+  const userPreferences = await db.get<string, UserPreferences>(
+    levelKeys.userPreferences,
+    {
+      valueEncoding: "json",
+    }
+  );
 
   const showHiddenAchievementsDescription =
     userPreferences?.showHiddenAchievementsDescription || false;

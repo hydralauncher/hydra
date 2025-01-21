@@ -1,10 +1,10 @@
 import type { Downloader } from "@shared";
 import type {
   GameShop,
-  GameStatus,
   SteamAchievement,
   UnlockedAchievement,
 } from "./game.types";
+import type { DownloadStatus } from "./download.types";
 
 export type SubscriptionStatus = "active" | "pending" | "cancelled";
 
@@ -48,21 +48,33 @@ export interface Download {
   shop: GameShop;
   objectId: string;
   uri: string;
-  folderName: string;
+  folderName: string | null;
   downloadPath: string;
   progress: number;
   downloader: Downloader;
   bytesDownloaded: number;
-  playTimeInMilliseconds: number;
-  lastTimePlayed: Date | null;
-  fileSize: number;
+  fileSize: number | null;
   shouldSeed: boolean;
-  // TODO: Rename to DownloadStatus
-  status: GameStatus | null;
+  status: DownloadStatus | null;
   timestamp: number;
 }
 
 export interface GameAchievement {
   achievements: SteamAchievement[];
   unlockedAchievements: UnlockedAchievement[];
+}
+
+export interface UserPreferences {
+  downloadsPath: string | null;
+  language: string;
+  downloadNotificationsEnabled: boolean;
+  repackUpdatesNotificationsEnabled: boolean;
+  achievementNotificationsEnabled: boolean;
+  realDebridApiToken: string | null;
+  preferQuitInsteadOfHiding: boolean;
+  runAtStartup: boolean;
+  startMinimized: boolean;
+  disableNsfwAlert: boolean;
+  seedAfterDownloadComplete: boolean;
+  showHiddenAchievementsDescription: boolean;
 }

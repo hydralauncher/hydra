@@ -1,7 +1,9 @@
-import type { ComparedAchievements, GameShop } from "@types";
+import type { ComparedAchievements, GameShop, UserPreferences } from "@types";
 import { registerEvent } from "../register-event";
-import { userPreferencesRepository } from "@main/repository";
+
 import { HydraApi } from "@main/services";
+import { db } from "@main/level";
+import { levelKeys } from "@main/level";
 
 const getComparedUnlockedAchievements = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -9,9 +11,12 @@ const getComparedUnlockedAchievements = async (
   shop: GameShop,
   userId: string
 ) => {
-  const userPreferences = await userPreferencesRepository.findOne({
-    where: { id: 1 },
-  });
+  const userPreferences = await db.get<string, UserPreferences>(
+    levelKeys.userPreferences,
+    {
+      valueEncoding: "json",
+    }
+  );
 
   const showHiddenAchievementsDescription =
     userPreferences?.showHiddenAchievementsDescription || false;

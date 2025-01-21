@@ -19,7 +19,7 @@ const pauseGameSeed = async (
     shouldSeed: false,
   });
 
-  await DownloadManager.pauseSeeding(download);
+  await DownloadManager.pauseSeeding(downloadKey);
 };
 
 registerEvent("pauseGameSeed", pauseGameSeed);

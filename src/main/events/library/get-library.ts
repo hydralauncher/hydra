@@ -1,7 +1,8 @@
+import type { LibraryGame } from "@types";
 import { registerEvent } from "../register-event";
 import { downloadsSublevel, gamesSublevel } from "@main/level";
 
-const getLibrary = async () => {
+const getLibrary = async (): Promise<LibraryGame[]> => {
   return gamesSublevel
     .iterator()
     .all()
@@ -13,8 +14,9 @@ const getLibrary = async () => {
             const download = await downloadsSublevel.get(key);
 
             return {
+              id: key,
               ...game,
-              download,
+              download: download ?? null,
             };
           })
       );
