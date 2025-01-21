@@ -1,0 +1,124 @@
+@use "../../../scss/globals.scss";
+
+.profile-hero {
+  &__content-box {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  &__background {
+    &-image {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    &-overlay {
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      background: linear-gradient(135deg, rgb(0 0 0 / 40%), rgb(0 0 0 / 30%));
+
+      &--transparent {
+        background: transparent;
+      }
+    }
+  }
+
+  &__user-information {
+    display: flex;
+    padding: calc(globals.$spacing-unit * 7) calc(globals.$spacing-unit * 3);
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__avatar-button {
+    width: 96px;
+    min-width: 96px;
+    height: 96px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: globals.$background-color;
+    border: solid 1px globals.$border-color;
+    box-shadow: 0px 0px 5px 0px rgba(0, 0, 0, 0.7);
+    cursor: pointer;
+    transition: all ease 0.3s;
+    color: globals.$muted-color;
+    position: relative;
+
+    &:hover {
+      box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.7);
+    }
+  }
+
+  &__information {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    align-items: flex-start;
+    color: globals.$muted-color;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  &__display-name {
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    position: relative;
+    text-shadow: 0 0 5px rgb(0 0 0 / 40%);
+  }
+
+  &__current-game {
+    &-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: calc(globals.$spacing-unit / 2);
+    }
+
+    &-details {
+      display: flex;
+      flex-direction: row;
+      gap: globals.$spacing-unit;
+      align-items: center;
+    }
+  }
+
+  &__hero-panel {
+    width: 100%;
+    height: 72px;
+    min-height: 72px;
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 3);
+    display: flex;
+    gap: globals.$spacing-unit;
+    justify-content: space-between;
+    backdrop-filter: blur(15px);
+    border-top: solid 1px rgba(255, 255, 255, 0.1);
+    box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.3);
+
+    &--transparent {
+      background: transparent;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: globals.$spacing-unit;
+    justify-content: flex-end;
+    flex: 1;
+  }
+
+  &__button {
+    &--outline {
+      border-color: globals.$body-color;
+    }
+  }
+}

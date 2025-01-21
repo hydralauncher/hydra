@@ -12,8 +12,6 @@ import {
   useUserDetails,
 } from "@renderer/hooks";
 
-import * as styles from "./app.css";
-
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   setUserPreferences,
@@ -29,6 +27,8 @@ import { downloadSourcesWorker } from "./workers";
 import { downloadSourcesTable } from "./dexie";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
+
+import "./app.scss";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -240,11 +240,11 @@ export function App() {
   return (
     <>
       {window.electron.platform === "win32" && (
-        <div className={styles.titleBar}>
+        <div className="title-bar">
           <h4>
             Hydra
             {hasActiveSubscription && (
-              <span className={styles.cloudText}> Cloud</span>
+              <span className="title-bar__cloud-text"> Cloud</span>
             )}
           </h4>
         </div>
@@ -275,10 +275,10 @@ export function App() {
       <main>
         <Sidebar />
 
-        <article className={styles.container}>
+        <article className="container">
           <Header />
 
-          <section ref={contentRef} className={styles.content}>
+          <section ref={contentRef} className="container__content">
             <Outlet />
           </section>
         </article>

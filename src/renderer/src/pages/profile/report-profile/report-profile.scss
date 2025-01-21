@@ -1,0 +1,24 @@
+@use "../../../scss/globals.scss";
+
+.report-profile {
+  &__button {
+    align-self: flex-end;
+    color: globals.$muted-color;
+    gap: globals.$spacing-unit;
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    font-size: globals.$small-font-size;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__submit {
+    margin-top: globals.$spacing-unit;
+    align-self: flex-end;
+  }
+}

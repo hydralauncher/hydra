@@ -1,0 +1,10 @@
+@use "../../scss/globals.scss";
+
+.profile {
+  &__wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 3);
+  }
+}

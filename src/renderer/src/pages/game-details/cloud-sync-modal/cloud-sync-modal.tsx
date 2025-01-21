@@ -2,7 +2,7 @@ import { Button, Modal, ModalProps } from "@renderer/components";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
-import * as styles from "./cloud-sync-modal.css";
+import "./cloud-sync-modal.scss";
 import { formatBytes } from "@shared";
 import { format } from "date-fns";
 import {
@@ -18,7 +18,6 @@ import { useAppSelector, useToast } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
 import { AxiosProgressEvent } from "axios";
 import { formatDownloadProgress } from "@renderer/helpers";
-import { SPACING_UNIT } from "@renderer/theme.css";
 
 export interface CloudSyncModalProps
   extends Omit<ModalProps, "children" | "title"> {}
@@ -95,7 +94,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     if (uploadingBackup) {
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <SyncIcon className={styles.syncIcon} />
+          <SyncIcon className="cloud-sync-modal__sync-icon" />
           {t("uploading_backup")}
         </span>
       );
@@ -104,7 +103,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     if (restoringBackup) {
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <SyncIcon className={styles.syncIcon} />
+          <SyncIcon className="cloud-sync-modal__sync-icon" />
           {t("restoring_backup", {
             progress: formatDownloadProgress(
               backupDownloadProgress?.progress ?? 0
@@ -117,7 +116,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     if (loadingPreview) {
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <SyncIcon className={styles.syncIcon} />
+          <SyncIcon className="cloud-sync-modal__sync-icon" />
           {t("loading_save_preview")}
         </span>
       );
@@ -157,21 +156,14 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
       onClose={onClose}
       large
     >
-      <div
-        style={{
-          marginBottom: 24,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ display: "flex", gap: 4, flexDirection: "column" }}>
+      <div className="cloud-sync-modal__header">
+        <div className="cloud-sync-modal__title-container">
           <h2>{gameTitle}</h2>
           <p>{backupStateLabel}</p>
 
           <button
             type="button"
-            className={styles.manageFilesButton}
+            className="cloud-sync-modal__manage-files-button"
             onClick={() => setShowCloudSyncFilesModal(true)}
             disabled={disableActions}
           >
@@ -188,40 +180,36 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
             artifacts.length >= backupsPerGameLimit
           }
         >
-          <UploadIcon />
+          {uploadingBackup ? (
+            <SyncIcon className="cloud-sync-modal__sync-icon" />
+          ) : (
+            <UploadIcon />
+          )}
           {t("create_backup")}
         </Button>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <div
-          style={{
-            marginBottom: 16,
-            display: "flex",
-            alignItems: "center",
-            gap: SPACING_UNIT,
-          }}
-        >
-          <h2>{t("backups")}</h2>
-          <small>
-            {artifacts.length} / {backupsPerGameLimit}
-          </small>
-        </div>
+      {uploadingBackup && (
+        <progress
+          className="cloud-sync-modal__progress"
+          value={backupDownloadProgress?.progress ?? 0}
+          max={100}
+        />
+      )}
+
+      <div className="cloud-sync-modal__backups-header">
+        <h2>{t("backups")}</h2>
+        <small>
+          {artifacts.length} / {backupsPerGameLimit}
+        </small>
       </div>
 
       {artifacts.length > 0 ? (
-        <ul className={styles.artifacts}>
+        <ul className="cloud-sync-modal__artifacts">
           {artifacts.map((artifact) => (
-            <li key={artifact.id} className={styles.artifactButton}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 4,
-                  }}
-                >
+            <li key={artifact.id} className="cloud-sync-modal__artifact">
+              <div className="cloud-sync-modal__artifact-info">
+                <div className="cloud-sync-modal__artifact-header">
                   <h3>
                     {t("backup_from", {
                       date: format(artifact.createdAt, "dd/MM/yyyy"),
@@ -230,29 +218,33 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
                   <small>{formatBytes(artifact.artifactLengthInBytes)}</small>
                 </div>
 
-                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="cloud-sync-modal__artifact-meta">
                   <DeviceDesktopIcon size={14} />
                   {artifact.hostname}
                 </span>
 
-                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="cloud-sync-modal__artifact-meta">
                   <InfoIcon size={14} />
                   {artifact.downloadOptionTitle ?? t("no_download_option_info")}
                 </span>
 
-                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="cloud-sync-modal__artifact-meta">
                   <ClockIcon size={14} />
                   {format(artifact.createdAt, "dd/MM/yyyy HH:mm:ss")}
                 </span>
               </div>
 
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div className="cloud-sync-modal__artifact-actions">
                 <Button
                   type="button"
                   onClick={() => handleBackupInstallClick(artifact.id)}
                   disabled={disableActions}
                 >
-                  <HistoryIcon />
+                  {restoringBackup ? (
+                    <SyncIcon className="cloud-sync-modal__sync-icon" />
+                  ) : (
+                    <HistoryIcon />
+                  )}
                   {t("install_backup")}
                 </Button>
                 <Button
