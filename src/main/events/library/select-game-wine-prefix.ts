@@ -1,6 +1,5 @@
 import { registerEvent } from "../register-event";
-import { gamesSublevel } from "@main/level";
-import { levelKeys } from "@main/level";
+import { levelKeys, gamesSublevel } from "@main/level";
 import type { GameShop } from "@types";
 
 const selectGameWinePrefix = async (

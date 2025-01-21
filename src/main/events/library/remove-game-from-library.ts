@@ -1,7 +1,6 @@
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
-import { levelKeys } from "@main/level";
-import { gamesSublevel } from "@main/level";
+import { gamesSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
 
 const removeGameFromLibrary = async (

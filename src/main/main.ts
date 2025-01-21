@@ -6,9 +6,13 @@ import { Aria2 } from "./services/aria2";
 import { downloadsSublevel } from "./level/sublevels/downloads";
 import { sortBy } from "lodash-es";
 import { Downloader } from "@shared";
-import { gameAchievementsSublevel, gamesSublevel, levelKeys } from "./level";
+import {
+  gameAchievementsSublevel,
+  gamesSublevel,
+  levelKeys,
+  db,
+} from "./level";
 import { Auth, User, type UserPreferences } from "@types";
-import { db } from "./level";
 import { knexClient } from "./knex-client";
 
 const loadState = async (userPreferences: UserPreferences | null) => {
