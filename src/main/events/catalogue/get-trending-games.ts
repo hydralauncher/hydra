@@ -1,8 +1,7 @@
-import { levelKeys } from "@main/level";
+import { db, levelKeys } from "@main/level";
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
 import type { TrendingGame } from "@types";
-import { db } from "@main/level";
 
 const getTrendingGames = async (_event: Electron.IpcMainInvokeEvent) => {
   const language = await db

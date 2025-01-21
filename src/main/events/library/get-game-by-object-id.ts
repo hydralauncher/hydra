@@ -1,6 +1,5 @@
 import { registerEvent } from "../register-event";
-import { downloadsSublevel, levelKeys } from "@main/level";
-import { gamesSublevel } from "@main/level";
+import { gamesSublevel, downloadsSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
 
 const getGameByObjectId = async (
