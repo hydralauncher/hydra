@@ -10,7 +10,7 @@ const openGame = async (
   shop: GameShop,
   objectId: string,
   executablePath: string,
-  launchOptions: string | null
+  launchOptions?: string | null
 ) => {
   // TODO: revisit this for launchOptions
   const parsedPath = parseExecutablePath(executablePath);

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
-import type { Game, SeedingStatus } from "@types";
+import type { GameShop, LibraryGame, SeedingStatus } from "@types";
 
 import { Badge, Button } from "@renderer/components";
 import {
@@ -32,10 +32,10 @@ import {
 } from "@primer/octicons-react";
 
 export interface DownloadGroupProps {
-  library: Game[];
+  library: LibraryGame[];
   title: string;
-  openDeleteGameModal: (gameId: number) => void;
-  openGameInstaller: (gameId: number) => void;
+  openDeleteGameModal: (shop: GameShop, objectId: string) => void;
+  openGameInstaller: (shop: GameShop, objectId: string) => void;
   seedingStatus: SeedingStatus[];
 }
 
@@ -65,19 +65,20 @@ export function DownloadGroup({
     resumeSeeding,
   } = useDownload();
 
-  const getFinalDownloadSize = (game: Game) => {
-    const isGameDownloading = lastPacket?.game.id === game.id;
+  const getFinalDownloadSize = (game: LibraryGame) => {
+    const download = game.download!;
+    const isGameDownloading = lastPacket?.gameId === game.id;
 
-    if (game.fileSize) return formatBytes(game.fileSize);
+    if (download.fileSize) return formatBytes(download.fileSize);
 
-    if (lastPacket?.game.fileSize && isGameDownloading)
-      return formatBytes(lastPacket?.game.fileSize);
+    if (download.fileSize && isGameDownloading)
+      return formatBytes(download?.fileSize);
 
     return "N/A";
   };
 
   const seedingMap = useMemo(() => {
-    const map = new Map<number, SeedingStatus>();
+    const map = new Map<string, SeedingStatus>();
 
     seedingStatus.forEach((seed) => {
       map.set(seed.gameId, seed);
@@ -86,8 +87,12 @@ export function DownloadGroup({
     return map;
   }, [seedingStatus]);
 
-  const getGameInfo = (game: Game) => {
-    const isGameDownloading = lastPacket?.game.id === game.id;
+  const getGameInfo = (game: LibraryGame) => {
+    const download = game.download!;
+
+    console.log(game);
+
+    const isGameDownloading = lastPacket?.gameId === game.id;
     const finalDownloadSize = getFinalDownloadSize(game);
     const seedingStatus = seedingMap.get(game.id);
 
@@ -114,11 +119,11 @@ export function DownloadGroup({
           <p>{progress}</p>
 
           <p>
-            {formatBytes(lastPacket?.game.bytesDownloaded)} /{" "}
+            {formatBytes(lastPacket.download.bytesDownloaded)} /{" "}
             {finalDownloadSize}
           </p>
 
-          {game.downloader === Downloader.Torrent && (
+          {download.downloader === Downloader.Torrent && (
             <small>
               {lastPacket?.numPeers} peers / {lastPacket?.numSeeds} seeds
             </small>
@@ -127,11 +132,11 @@ export function DownloadGroup({
       );
     }
 
-    if (game.progress === 1) {
+    if (download.progress === 1) {
       const uploadSpeed = formatBytes(seedingStatus?.uploadSpeed ?? 0);
 
-      return game.status === "seeding" &&
-        game.downloader === Downloader.Torrent ? (
+      return download.status === "seeding" &&
+        download.downloader === Downloader.Torrent ? (
         <>
           <p>{t("seeding")}</p>
           {uploadSpeed && <p>{uploadSpeed}/s</p>}
@@ -141,41 +146,42 @@ export function DownloadGroup({
       );
     }
 
-    if (game.status === "paused") {
+    if (download.status === "paused") {
       return (
         <>
-          <p>{formatDownloadProgress(game.progress)}</p>
-          <p>{t(game.downloadQueue && lastPacket ? "queued" : "paused")}</p>
+          <p>{formatDownloadProgress(download.progress)}</p>
+          {/* <p>{t(game.downloadQueue && lastPacket ? "queued" : "paused")}</p> */}
         </>
       );
     }
 
-    if (game.status === "active") {
+    if (download.status === "active") {
       return (
         <>
-          <p>{formatDownloadProgress(game.progress)}</p>
+          <p>{formatDownloadProgress(download.progress)}</p>
 
           <p>
-            {formatBytes(game.bytesDownloaded)} / {finalDownloadSize}
+            {formatBytes(download.bytesDownloaded)} / {finalDownloadSize}
           </p>
         </>
       );
     }
 
-    return <p>{t(game.status as string)}</p>;
+    return <p>{t(download.status as string)}</p>;
   };
 
-  const getGameActions = (game: Game): DropdownMenuItem[] => {
-    const isGameDownloading = lastPacket?.game.id === game.id;
+  const getGameActions = (game: LibraryGame): DropdownMenuItem[] => {
+    const download = lastPacket?.download;
+    const isGameDownloading = lastPacket?.gameId === game.id;
 
     const deleting = isGameDeleting(game.id);
 
-    if (game.progress === 1) {
+    if (download?.progress === 1) {
       return [
         {
           label: t("install"),
           disabled: deleting,
-          onClick: () => openGameInstaller(game.id),
+          onClick: () => openGameInstaller(game.shop, game.objectId),
           icon: <DownloadIcon />,
         },
         {
@@ -183,36 +189,38 @@ export function DownloadGroup({
           disabled: deleting,
           icon: <UnlinkIcon />,
           show:
-            game.status === "seeding" && game.downloader === Downloader.Torrent,
-          onClick: () => pauseSeeding(game.id),
+            download.status === "seeding" &&
+            download.downloader === Downloader.Torrent,
+          onClick: () => pauseSeeding(game.shop, game.objectId),
         },
         {
           label: t("resume_seeding"),
           disabled: deleting,
           icon: <LinkIcon />,
           show:
-            game.status !== "seeding" && game.downloader === Downloader.Torrent,
-          onClick: () => resumeSeeding(game.id),
+            download.status !== "seeding" &&
+            download.downloader === Downloader.Torrent,
+          onClick: () => resumeSeeding(game.shop, game.objectId),
         },
         {
           label: t("delete"),
           disabled: deleting,
           icon: <TrashIcon />,
-          onClick: () => openDeleteGameModal(game.id),
+          onClick: () => openDeleteGameModal(game.shop, game.objectId),
         },
       ];
     }
 
-    if (isGameDownloading || game.status === "active") {
+    if (isGameDownloading || download?.status === "active") {
       return [
         {
           label: t("pause"),
-          onClick: () => pauseDownload(game.id),
+          onClick: () => pauseDownload(game.shop, game.objectId),
           icon: <ColumnsIcon />,
         },
         {
           label: t("cancel"),
-          onClick: () => cancelDownload(game.id),
+          onClick: () => cancelDownload(game.shop, game.objectId),
           icon: <XCircleIcon />,
         },
       ];
@@ -222,14 +230,14 @@ export function DownloadGroup({
       {
         label: t("resume"),
         disabled:
-          game.downloader === Downloader.RealDebrid &&
+          download?.downloader === Downloader.RealDebrid &&
           !userPreferences?.realDebridApiToken,
-        onClick: () => resumeDownload(game.id),
+        onClick: () => resumeDownload(game.shop, game.objectId),
         icon: <PlayIcon />,
       },
       {
         label: t("cancel"),
-        onClick: () => cancelDownload(game.id),
+        onClick: () => cancelDownload(game.shop, game.objectId),
         icon: <XCircleIcon />,
       },
     ];
@@ -270,13 +278,19 @@ export function DownloadGroup({
               <div className={styles.downloadCover}>
                 <div className={styles.downloadCoverBackdrop}>
                   <img
-                    src={steamUrlBuilder.library(game.objectID)}
+                    src={steamUrlBuilder.library(game.objectId)}
                     className={styles.downloadCoverImage}
                     alt={game.title}
                   />
 
                   <div className={styles.downloadCoverContent}>
-                    <Badge>{DOWNLOADER_NAME[game.downloader]}</Badge>
+                    <Badge>
+                      {
+                        DOWNLOADER_NAME[
+                          game?.download?.downloader as Downloader
+                        ]
+                      }
+                    </Badge>
                   </div>
                 </div>
               </div>
@@ -290,7 +304,7 @@ export function DownloadGroup({
                         navigate(
                           buildGameDetailsPath({
                             ...game,
-                            objectId: game.objectID,
+                            objectId: game.objectId,
                           })
                         )
                       }

@@ -1,7 +1,9 @@
 import { Notification } from "electron";
 import { registerEvent } from "../register-event";
-import { userPreferencesRepository } from "@main/repository";
 import { t } from "i18next";
+import { db } from "@main/level";
+import { levelKeys } from "@main/level";
+import type { UserPreferences } from "@types";
 
 const publishNewRepacksNotification = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -9,9 +11,12 @@ const publishNewRepacksNotification = async (
 ) => {
   if (newRepacksCount < 1) return;
 
-  const userPreferences = await userPreferencesRepository.findOne({
-    where: { id: 1 },
-  });
+  const userPreferences = await db.get<string, UserPreferences>(
+    levelKeys.userPreferences,
+    {
+      valueEncoding: "json",
+    }
+  );
 
   if (userPreferences?.repackUpdatesNotificationsEnabled) {
     new Notification({

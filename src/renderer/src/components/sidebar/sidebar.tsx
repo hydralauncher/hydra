@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import type { Game } from "@types";
+import type { LibraryGame } from "@types";
 
 import { TextField } from "@renderer/components";
 import {
@@ -35,7 +35,7 @@ export function Sidebar() {
   const { library, updateLibrary } = useLibrary();
   const navigate = useNavigate();
 
-  const [filteredLibrary, setFilteredLibrary] = useState<Game[]>([]);
+  const [filteredLibrary, setFilteredLibrary] = useState<LibraryGame[]>([]);
 
   const [isResizing, setIsResizing] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(
@@ -56,7 +56,7 @@ export function Sidebar() {
 
   useEffect(() => {
     updateLibrary();
-  }, [lastPacket?.game.id, updateLibrary]);
+  }, [lastPacket?.gameId, updateLibrary]);
 
   const sidebarRef = useRef<HTMLElement>(null);
 
@@ -117,19 +117,20 @@ export function Sidebar() {
     };
   }, [isResizing]);
 
-  const getGameTitle = (game: Game) => {
-    if (lastPacket?.game.id === game.id) {
+  const getGameTitle = (game: LibraryGame) => {
+    if (lastPacket?.gameId === game.id) {
       return t("downloading", {
         title: game.title,
         percentage: progress,
       });
     }
 
-    if (game.downloadQueue !== null) {
+    if (game.download?.status === "paused")
+      return t("paused", { title: game.title });
+
+    if (game.download) {
       return t("queued", { title: game.title });
     }
-
-    if (game.status === "paused") return t("paused", { title: game.title });
 
     return game.title;
   };
@@ -140,10 +141,13 @@ export function Sidebar() {
     }
   };
 
-  const handleSidebarGameClick = (event: React.MouseEvent, game: Game) => {
+  const handleSidebarGameClick = (
+    event: React.MouseEvent,
+    game: LibraryGame
+  ) => {
     const path = buildGameDetailsPath({
       ...game,
-      objectId: game.objectID,
+      objectId: game.objectId,
     });
     if (path !== location.pathname) {
       navigate(path);
@@ -152,7 +156,8 @@ export function Sidebar() {
     if (event.detail === 2) {
       if (game.executablePath) {
         window.electron.openGame(
-          game.id,
+          game.shop,
+          game.objectId,
           game.executablePath,
           game.launchOptions
         );
@@ -216,12 +221,12 @@ export function Sidebar() {
             <ul className={styles.menu}>
               {filteredLibrary.map((game) => (
                 <li
-                  key={game.id}
+                  key={`${game.shop}-${game.objectId}`}
                   className={styles.menuItem({
                     active:
                       location.pathname ===
-                      `/game/${game.shop}/${game.objectID}`,
-                    muted: game.status === "removed",
+                      `/game/${game.shop}/${game.objectId}`,
+                    muted: game.download?.status === "removed",
                   })}
                 >
                   <button

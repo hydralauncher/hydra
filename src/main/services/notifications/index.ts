@@ -1,7 +1,6 @@
 import { Notification, app } from "electron";
 import { t } from "i18next";
 import trayIcon from "@resources/tray-icon.png?asset";
-import { userPreferencesRepository } from "@main/repository";
 import fs from "node:fs";
 import axios from "axios";
 import path from "node:path";
@@ -10,7 +9,9 @@ import { achievementSoundPath } from "@main/constants";
 import icon from "@resources/icon.png?asset";
 import { NotificationOptions, toXmlString } from "./xml";
 import { logger } from "../logger";
-import type { Game } from "@types";
+import type { Game, UserPreferences } from "@types";
+import { levelKeys } from "@main/level";
+import { db } from "@main/level";
 
 async function downloadImage(url: string | null) {
   if (!url) return undefined;
@@ -38,9 +39,12 @@ async function downloadImage(url: string | null) {
 }
 
 export const publishDownloadCompleteNotification = async (game: Game) => {
-  const userPreferences = await userPreferencesRepository.findOne({
-    where: { id: 1 },
-  });
+  const userPreferences = await db.get<string, UserPreferences>(
+    levelKeys.userPreferences,
+    {
+      valueEncoding: "json",
+    }
+  );
 
   if (userPreferences?.downloadNotificationsEnabled) {
     new Notification({

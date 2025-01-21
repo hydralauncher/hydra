@@ -1,7 +1,6 @@
 import type { CatalogueCategory } from "@shared";
 import type {
   AppUpdaterEvent,
-  Game,
   GameShop,
   HowLongToBeatCategory,
   ShopDetails,
@@ -27,6 +26,7 @@ import type {
   UserAchievement,
   ComparedAchievements,
   CatalogueSearchPayload,
+  LibraryGame,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -103,7 +103,7 @@ declare global {
       winePrefixPath: string | null
     ) => Promise<void>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
-    getLibrary: () => Promise<Game[]>;
+    getLibrary: () => Promise<LibraryGame[]>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
     openGameInstallerPath: (
       shop: GameShop,
@@ -114,7 +114,7 @@ declare global {
       shop: GameShop,
       objectId: string,
       executablePath: string,
-      launchOptions: string | null
+      launchOptions?: string | null
     ) => Promise<void>;
     closeGame: (shop: GameShop, objectId: string) => Promise<boolean>;
     removeGameFromLibrary: (shop: GameShop, objectId: string) => Promise<void>;
@@ -123,7 +123,7 @@ declare global {
     getGameByObjectId: (
       shop: GameShop,
       objectId: string
-    ) => Promise<Game | null>;
+    ) => Promise<LibraryGame | null>;
     onGamesRunning: (
       cb: (
         gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]

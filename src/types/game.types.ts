@@ -1,12 +1,3 @@
-export type GameStatus =
-  | "active"
-  | "waiting"
-  | "paused"
-  | "error"
-  | "complete"
-  | "seeding"
-  | "removed";
-
 export type GameShop = "steam" | "epic";
 
 export interface UnlockedAchievement {

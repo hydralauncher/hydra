@@ -18,9 +18,9 @@ import {
 } from "@renderer/hooks";
 
 import type {
-  Game,
   GameShop,
   GameStats,
+  LibraryGame,
   ShopDetails,
   UserAchievement,
 } from "@types";
@@ -73,7 +73,7 @@ export function GameDetailsContextProvider({
   const [achievements, setAchievements] = useState<UserAchievement[] | null>(
     null
   );
-  const [game, setGame] = useState<Game | null>(null);
+  const [game, setGame] = useState<LibraryGame | null>(null);
   const [hasNSFWContentBlocked, setHasNSFWContentBlocked] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -105,11 +105,12 @@ export function GameDetailsContextProvider({
       .then((result) => setGame(result));
   }, [setGame, shop, objectId]);
 
-  const isGameDownloading = lastPacket?.game.id === game?.id;
+  const isGameDownloading =
+    lastPacket?.gameId === game?.id && game?.download?.status === "active";
 
   useEffect(() => {
     updateGame();
-  }, [updateGame, isGameDownloading, lastPacket?.game.status]);
+  }, [updateGame, isGameDownloading, lastPacket?.gameId]);
 
   useEffect(() => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
@@ -190,9 +191,9 @@ export function GameDetailsContextProvider({
   }, [game?.id, isGameRunning, updateGame]);
 
   const lastDownloadedOption = useMemo(() => {
-    if (game?.uri) {
+    if (game?.download) {
       const repack = repacks.find((repack) =>
-        repack.uris.some((uri) => uri.includes(game.uri!))
+        repack.uris.some((uri) => uri.includes(game.download!.uri!))
       );
 
       if (!repack) return null;
@@ -200,7 +201,7 @@ export function GameDetailsContextProvider({
     }
 
     return null;
-  }, [game?.uri, repacks]);
+  }, [game?.download, repacks]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onUpdateAchievements(

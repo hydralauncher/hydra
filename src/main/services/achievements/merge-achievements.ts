@@ -1,13 +1,16 @@
-import { userPreferencesRepository } from "@main/repository";
-import type { GameShop, UnlockedAchievement } from "@types";
+import type {
+  Game,
+  GameShop,
+  UnlockedAchievement,
+  UserPreferences,
+} from "@types";
 import { WindowManager } from "../window-manager";
 import { HydraApi } from "../hydra-api";
 import { getUnlockedAchievements } from "@main/events/user/get-unlocked-achievements";
-import { Game } from "@main/entity";
 import { publishNewAchievementNotification } from "../notifications";
 import { SubscriptionRequiredError } from "@shared";
 import { achievementsLogger } from "../logger";
-import { gameAchievementsSublevel, levelKeys } from "@main/level";
+import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
 
 const saveAchievementsOnLocal = async (
   objectId: string,
@@ -46,8 +49,10 @@ export const mergeAchievements = async (
   publishNotification: boolean
 ) => {
   const [localGameAchievement, userPreferences] = await Promise.all([
-    gameAchievementsSublevel.get(levelKeys.game(game.shop, game.objectID)),
-    userPreferencesRepository.findOne({ where: { id: 1 } }),
+    gameAchievementsSublevel.get(levelKeys.game(game.shop, game.objectId)),
+    db.get<string, UserPreferences>(levelKeys.userPreferences, {
+      valueEncoding: "json",
+    }),
   ]);
 
   const achievementsData = localGameAchievement?.achievements ?? [];
@@ -131,13 +136,13 @@ export const mergeAchievements = async (
         if (err! instanceof SubscriptionRequiredError) {
           achievementsLogger.log(
             "Achievements not synchronized on API due to lack of subscription",
-            game.objectID,
+            game.objectId,
             game.title
           );
         }
 
         return saveAchievementsOnLocal(
-          game.objectID,
+          game.objectId,
           game.shop,
           mergedLocalAchievements,
           publishNotification
@@ -145,7 +150,7 @@ export const mergeAchievements = async (
       });
   } else {
     await saveAchievementsOnLocal(
-      game.objectID,
+      game.objectId,
       game.shop,
       mergedLocalAchievements,
       publishNotification
