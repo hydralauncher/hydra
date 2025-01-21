@@ -1,6 +1,5 @@
 import { registerEvent } from "../register-event";
-import { levelKeys } from "@main/level";
-import { gamesSublevel } from "@main/level";
+import { gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
 
 const updateLaunchOptions = async (

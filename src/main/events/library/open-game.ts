@@ -1,8 +1,7 @@
 import { registerEvent } from "../register-event";
 import { shell } from "electron";
 import { parseExecutablePath } from "../helpers/parse-executable-path";
-import { levelKeys } from "@main/level";
-import { gamesSublevel } from "@main/level";
+import { gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
 
 const openGame = async (

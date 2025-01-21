@@ -1,5 +1,4 @@
-import { downloadsSublevel } from "@main/level";
-import { levelKeys } from "@main/level";
+import { downloadsSublevel, levelKeys } from "@main/level";
 import { registerEvent } from "../register-event";
 import { DownloadManager } from "@main/services";
 import type { GameShop } from "@types";

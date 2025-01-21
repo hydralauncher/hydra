@@ -1,8 +1,7 @@
 import { Notification } from "electron";
 import { registerEvent } from "../register-event";
 import { t } from "i18next";
-import { db } from "@main/level";
-import { levelKeys } from "@main/level";
+import { db, levelKeys } from "@main/level";
 import type { UserPreferences } from "@types";
 
 const publishNewRepacksNotification = async (

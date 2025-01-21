@@ -2,8 +2,7 @@ import type { ComparedAchievements, GameShop, UserPreferences } from "@types";
 import { registerEvent } from "../register-event";
 
 import { HydraApi } from "@main/services";
-import { db } from "@main/level";
-import { levelKeys } from "@main/level";
+import { db, levelKeys } from "@main/level";
 
 const getComparedUnlockedAchievements = async (
   _event: Electron.IpcMainInvokeEvent,
