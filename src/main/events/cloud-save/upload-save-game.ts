@@ -10,8 +10,7 @@ import os from "node:os";
 import { backupsPath } from "@main/constants";
 import { app } from "electron";
 import { normalizePath } from "@main/helpers";
-import { gamesSublevel } from "@main/level";
-import { levelKeys } from "@main/level";
+import { gamesSublevel, levelKeys } from "@main/level";
 
 const bundleBackup = async (
   shop: GameShop,
