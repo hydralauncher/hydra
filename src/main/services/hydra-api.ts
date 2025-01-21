@@ -221,43 +221,47 @@ export class HydraApi {
     }
   }
 
-  private static async revalidateAccessTokenIfExpired() {
-    const now = new Date();
+  public static async refreshToken() {
+    const response = await this.instance.post(`/auth/refresh`, {
+      refreshToken: this.userAuth.refreshToken,
+    });
 
-    if (this.userAuth.expirationTimestamp < now.getTime()) {
-      try {
-        const response = await this.instance.post(`/auth/refresh`, {
-          refreshToken: this.userAuth.refreshToken,
-        });
+    const { accessToken, expiresIn } = response.data;
 
-        const { accessToken, expiresIn } = response.data;
+    const tokenExpirationTimestamp =
+      Date.now() +
+      this.secondsToMilliseconds(expiresIn) -
+      this.EXPIRATION_OFFSET_IN_MS;
 
-        const tokenExpirationTimestamp =
-          now.getTime() +
-          this.secondsToMilliseconds(expiresIn) -
-          this.EXPIRATION_OFFSET_IN_MS;
+    this.userAuth.authToken = accessToken;
+    this.userAuth.expirationTimestamp = tokenExpirationTimestamp;
 
-        this.userAuth.authToken = accessToken;
-        this.userAuth.expirationTimestamp = tokenExpirationTimestamp;
+    logger.log(
+      "Token refreshed. New expiration:",
+      this.userAuth.expirationTimestamp
+    );
 
-        logger.log(
-          "Token refreshed. New expiration:",
-          this.userAuth.expirationTimestamp
+    await db
+      .get<string, Auth>(levelKeys.auth, { valueEncoding: "json" })
+      .then((auth) => {
+        return db.put<string, Auth>(
+          levelKeys.auth,
+          {
+            ...auth,
+            accessToken: Crypto.encrypt(accessToken),
+            tokenExpirationTimestamp,
+          },
+          { valueEncoding: "json" }
         );
+      });
 
-        await db
-          .get<string, Auth>(levelKeys.auth, { valueEncoding: "json" })
-          .then((auth) => {
-            return db.put<string, Auth>(
-              levelKeys.auth,
-              {
-                ...auth,
-                accessToken: Crypto.encrypt(accessToken),
-                tokenExpirationTimestamp,
-              },
-              { valueEncoding: "json" }
-            );
-          });
+    return { accessToken, expiresIn };
+  }
+
+  private static async revalidateAccessTokenIfExpired() {
+    if (this.userAuth.expirationTimestamp < Date.now()) {
+      try {
+        await this.refreshToken();
       } catch (err) {
         this.handleUnauthorizedError(err);
       }
@@ -272,7 +276,7 @@ export class HydraApi {
     };
   }
 
-  private static handleUnauthorizedError = (err) => {
+  private static readonly handleUnauthorizedError = (err) => {
     if (err instanceof AxiosError && err.response?.status === 401) {
       logger.error(
         "401 - Current credentials:",

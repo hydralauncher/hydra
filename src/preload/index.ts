@@ -15,7 +15,7 @@ import type {
   SeedingStatus,
   GameAchievement,
 } from "@types";
-import type { CatalogueCategory } from "@shared";
+import type { AuthPage, CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
 
 contextBridge.exposeInMainWorld("electron", {
@@ -312,12 +312,18 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Auth */
   signOut: () => ipcRenderer.invoke("signOut"),
-  openAuthWindow: () => ipcRenderer.invoke("openAuthWindow"),
+  openAuthWindow: (page: AuthPage) =>
+    ipcRenderer.invoke("openAuthWindow", page),
   getSessionHash: () => ipcRenderer.invoke("getSessionHash"),
   onSignIn: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-signin", listener);
     return () => ipcRenderer.removeListener("on-signin", listener);
+  },
+  onAccountUpdated: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-account-updated", listener);
+    return () => ipcRenderer.removeListener("on-account-updated", listener);
   },
   onSignOut: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
