@@ -68,9 +68,6 @@ export interface GameAchievement {
 export interface UserPreferences {
   downloadsPath: string | null;
   language: string;
-  downloadNotificationsEnabled: boolean;
-  repackUpdatesNotificationsEnabled: boolean;
-  achievementNotificationsEnabled: boolean;
   realDebridApiToken: string | null;
   preferQuitInsteadOfHiding: boolean;
   runAtStartup: boolean;
@@ -78,4 +75,7 @@ export interface UserPreferences {
   disableNsfwAlert: boolean;
   seedAfterDownloadComplete: boolean;
   showHiddenAchievementsDescription: boolean;
+  downloadNotificationsEnabled: boolean;
+  repackUpdatesNotificationsEnabled: boolean;
+  achievementNotificationsEnabled: boolean;
 }
