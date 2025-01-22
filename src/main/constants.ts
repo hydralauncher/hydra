@@ -18,7 +18,7 @@ export const databasePath = path.join(
   isStaging ? "hydra_test.db" : "hydra.db"
 );
 
-export const logsPath = path.join(app.getPath("userData"), "hydra", "logs");
+export const logsPath = path.join(app.getPath("userData"), "logs");
 
 export const seedsPath = app.isPackaged
   ? path.join(process.resourcesPath, "seeds")

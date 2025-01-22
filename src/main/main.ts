@@ -86,6 +86,9 @@ const migrateFromSqlite = async () => {
             playTimeInMilliseconds: game.playTimeInMilliseconds,
             lastTimePlayed: game.lastTimePlayed,
             remoteId: game.remoteId,
+            winePrefixPath: game.winePrefixPath,
+            launchOptions: game.launchOptions,
+            executablePath: game.executablePath,
             isDeleted: game.isDeleted === 1,
           },
         }))
@@ -182,7 +185,7 @@ const migrateFromSqlite = async () => {
       logger.info("User data migrated successfully");
     });
 
-  return Promise.all([
+  return Promise.allSettled([
     migrateGames,
     migrateUserPreferences,
     migrateAchievements,
