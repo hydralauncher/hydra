@@ -6,7 +6,7 @@ export interface DropdownMenuItem {
   label: string;
   disabled?: boolean;
   show?: boolean;
-  onClick?: () => void;
+  onClick?: () => void | Promise<void>;
 }
 
 interface DropdownMenuProps {
