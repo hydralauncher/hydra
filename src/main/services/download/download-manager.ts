@@ -256,7 +256,7 @@ export class DownloadManager {
 
     switch (download.downloader) {
       case Downloader.Gofile: {
-        const id = download.uri!.split("/").pop();
+        const id = download.uri.split("/").pop();
         const token = await GofileApi.authorize();
         const downloadLink = await GofileApi.getDownloadLink(id!);
 
@@ -264,53 +264,51 @@ export class DownloadManager {
           action: "start",
           game_id: downloadId,
           url: downloadLink,
-          save_path: download.downloadPath!,
+          save_path: download.downloadPath,
           header: `Cookie: accountToken=${token}`,
         };
       }
       case Downloader.PixelDrain: {
-        const id = download.uri!.split("/").pop();
+        const id = download.uri.split("/").pop();
         return {
           action: "start",
           game_id: downloadId,
           url: `https://pixeldrain.com/api/file/${id}?download`,
-          save_path: download.downloadPath!,
+          save_path: download.downloadPath,
         };
       }
       case Downloader.Qiwi: {
-        const downloadUrl = await QiwiApi.getDownloadUrl(download.uri!);
+        const downloadUrl = await QiwiApi.getDownloadUrl(download.uri);
         return {
           action: "start",
           game_id: downloadId,
           url: downloadUrl,
-          save_path: download.downloadPath!,
+          save_path: download.downloadPath,
         };
       }
       case Downloader.Datanodes: {
-        const downloadUrl = await DatanodesApi.getDownloadUrl(download.uri!);
+        const downloadUrl = await DatanodesApi.getDownloadUrl(download.uri);
         return {
           action: "start",
           game_id: downloadId,
           url: downloadUrl,
-          save_path: download.downloadPath!,
+          save_path: download.downloadPath,
         };
       }
       case Downloader.Torrent:
         return {
           action: "start",
           game_id: downloadId,
-          url: download.uri!,
-          save_path: download.downloadPath!,
+          url: download.uri,
+          save_path: download.downloadPath,
         };
       case Downloader.RealDebrid: {
-        const downloadUrl = await RealDebridClient.getDownloadUrl(
-          download.uri!
-        );
+        const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
         return {
           action: "start",
           game_id: downloadId,
-          url: downloadUrl!,
-          save_path: download.downloadPath!,
+          url: downloadUrl,
+          save_path: download.downloadPath,
         };
       }
     }

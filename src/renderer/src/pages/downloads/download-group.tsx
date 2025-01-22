@@ -45,7 +45,7 @@ export function DownloadGroup({
   openDeleteGameModal,
   openGameInstaller,
   seedingStatus,
-}: DownloadGroupProps) {
+}: Readonly<DownloadGroupProps>) {
   const navigate = useNavigate();
 
   const { t } = useTranslation("downloads");

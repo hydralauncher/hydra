@@ -68,7 +68,7 @@ export function GameDetailsContextProvider({
   objectId,
   gameTitle,
   shop,
-}: GameDetailsContextProps) {
+}: Readonly<GameDetailsContextProps>) {
   const [shopDetails, setShopDetails] = useState<ShopDetails | null>(null);
   const [achievements, setAchievements] = useState<UserAchievement[] | null>(
     null
@@ -101,7 +101,7 @@ export function GameDetailsContextProvider({
 
   const updateGame = useCallback(async () => {
     return window.electron
-      .getGameByObjectId(shop, objectId!)
+      .getGameByObjectId(shop, objectId)
       .then((result) => setGame(result));
   }, [setGame, shop, objectId]);
 
@@ -194,7 +194,7 @@ export function GameDetailsContextProvider({
   const lastDownloadedOption = useMemo(() => {
     if (game?.download) {
       const repack = repacks.find((repack) =>
-        repack.uris.some((uri) => uri.includes(game.download!.uri!))
+        repack.uris.some((uri) => uri.includes(game.download!.uri))
       );
 
       if (!repack) return null;
@@ -252,7 +252,7 @@ export function GameDetailsContextProvider({
       value={{
         game,
         shopDetails,
-        shop: shop as GameShop,
+        shop,
         repacks,
         gameTitle,
         isGameRunning,
