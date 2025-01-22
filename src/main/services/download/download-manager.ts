@@ -29,8 +29,8 @@ export class DownloadManager {
         : undefined,
       downloadsToSeed?.map((download) => ({
         game_id: `${download.shop}-${download.objectId}`,
-        url: download.uri!,
-        save_path: download.downloadPath!,
+        url: download.uri,
+        save_path: download.downloadPath,
       }))
     );
 
@@ -187,7 +187,7 @@ export class DownloadManager {
       if (!download) return;
 
       const totalSize = await getDirSize(
-        path.join(download.downloadPath!, status.folderName)
+        path.join(download.downloadPath, status.folderName)
       );
 
       if (totalSize < status.fileSize) {
@@ -223,7 +223,7 @@ export class DownloadManager {
     return this.startDownload(download);
   }
 
-  static async cancelDownload(downloadKey = this.downloadingGameId!) {
+  static async cancelDownload(downloadKey = this.downloadingGameId) {
     await PythonRPC.rpc.post("/action", {
       action: "cancel",
       game_id: downloadKey,
