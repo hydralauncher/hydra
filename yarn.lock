@@ -3694,7 +3694,7 @@ abort-controller@^3.0.0:
   dependencies:
     event-target-shim "^5.0.0"
 
-abstract-level@^2.0.0, abstract-level@^2.0.1:
+abstract-level@^2.0.0:
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/abstract-level/-/abstract-level-2.0.2.tgz#8d965e731afb42a72f163874410c1687fb2e4bdb"
   integrity sha512-pPJixmXk/kTKLB2sSue7o4Uj6TlLD2XfaP2gWZomHVCC6cuUGX/VslQqKG1yZHfXwBb/3lS6oSTMPGzh1P1iig==
@@ -4165,13 +4165,6 @@ braces@^3.0.3, braces@~3.0.2:
   integrity sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==
   dependencies:
     fill-range "^7.1.1"
-
-browser-level@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/browser-level/-/browser-level-2.0.0.tgz#cc63eb1322e67c44489d7fbdda5c30a2db7b59da"
-  integrity sha512-RuYSCHG/jwFCrK+KWA3dLSUNLKHEgIYhO5ORPjJMjCt7T3e+RzpIDmYKWRHxq2pfKGXjlRuEff7y7RESAAgzew==
-  dependencies:
-    abstract-level "^2.0.1"
 
 browserslist@^4.22.2, browserslist@^4.23.1:
   version "4.24.0"
@@ -6938,15 +6931,6 @@ level-transcoder@^1.0.1:
   dependencies:
     buffer "^6.0.3"
     module-error "^1.0.1"
-
-level@^9.0.0:
-  version "9.0.0"
-  resolved "https://registry.yarnpkg.com/level/-/level-9.0.0.tgz#880aa9d341a5411e36bed77f4fa233f425b492a8"
-  integrity sha512-n+mVuf63mUEkd8NUx7gwxY+QF5vtkibv6fXTGUgtHWLPDaA5/XZjLcI/Q1nQ8k6OttHT6Ezt+7nSEXsRUfHtOQ==
-  dependencies:
-    abstract-level "^2.0.1"
-    browser-level "^2.0.0"
-    classic-level "^2.0.0"
 
 levn@^0.4.1:
   version "0.4.1"
