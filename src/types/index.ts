@@ -45,6 +45,7 @@ export interface UserGame {
 }
 
 export interface GameRunning {
+  id: string;
   title: string;
   iconUrl: string | null;
   objectId: string;

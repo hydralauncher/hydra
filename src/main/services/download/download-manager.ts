@@ -207,11 +207,11 @@ export class DownloadManager {
     WindowManager.mainWindow?.webContents.send("on-seeding-status", seedStatus);
   }
 
-  static async pauseDownload() {
+  static async pauseDownload(downloadKey = this.downloadingGameId) {
     await PythonRPC.rpc
       .post("/action", {
         action: "pause",
-        game_id: this.downloadingGameId,
+        game_id: downloadKey,
       } as PauseDownloadPayload)
       .catch(() => {});
 
