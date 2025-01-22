@@ -56,6 +56,7 @@ export interface Download {
   fileSize: number | null;
   shouldSeed: boolean;
   status: DownloadStatus | null;
+  queued: boolean;
   timestamp: number;
 }
 

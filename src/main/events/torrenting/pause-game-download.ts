@@ -19,6 +19,7 @@ const pauseGameDownload = async (
     await downloadsSublevel.put(gameKey, {
       ...download,
       status: "paused",
+      queued: false,
     });
   }
 };

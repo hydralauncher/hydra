@@ -68,7 +68,7 @@ export default function Downloads() {
         return { ...prev, downloading: [...prev.downloading, next] };
 
       /* Is either queued or paused */
-      if (next.download?.status === "paused")
+      if (next.download.queued || next.download?.status === "paused")
         return { ...prev, queued: [...prev.queued, next] };
 
       return { ...prev, complete: [...prev.complete, next] };

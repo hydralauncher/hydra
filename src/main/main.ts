@@ -1,4 +1,10 @@
-import { DownloadManager, logger, Ludusavi, startMainLoop } from "./services";
+import {
+  Crypto,
+  DownloadManager,
+  logger,
+  Ludusavi,
+  startMainLoop,
+} from "./services";
 import { RealDebridClient } from "./services/download/real-debrid";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
@@ -34,7 +40,11 @@ const loadState = async (userPreferences: UserPreferences | null) => {
     .values()
     .all()
     .then((games) => {
-      return sortBy(games, "timestamp", "DESC");
+      return sortBy(
+        games.filter((game) => game.queued),
+        "timestamp",
+        "DESC"
+      );
     });
 
   const [nextItemOnQueue] = downloads;
@@ -137,8 +147,8 @@ const migrateFromSqlite = async () => {
         await db.put<string, Auth>(
           levelKeys.auth,
           {
-            accessToken: users[0].accessToken,
-            refreshToken: users[0].refreshToken,
+            accessToken: Crypto.encrypt(users[0].accessToken),
+            refreshToken: Crypto.encrypt(users[0].refreshToken),
             tokenExpirationTimestamp: users[0].tokenExpirationTimestamp,
           },
           {

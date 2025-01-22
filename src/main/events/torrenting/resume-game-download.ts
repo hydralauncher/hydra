@@ -31,6 +31,7 @@ const resumeGameDownload = async (
       ...download,
       status: "active",
       timestamp: Date.now(),
+      queued: true,
     });
   }
 };
