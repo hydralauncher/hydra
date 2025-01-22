@@ -106,6 +106,18 @@ const migrateFromSqlite = async () => {
           realDebridApiToken: realDebridApiToken
             ? Crypto.encrypt(realDebridApiToken)
             : null,
+          preferQuitInsteadOfHiding: rest.preferQuitInsteadOfHiding === 1,
+          runAtStartup: rest.runAtStartup === 1,
+          startMinimized: rest.startMinimized === 1,
+          disableNsfwAlert: rest.disableNsfwAlert === 1,
+          seedAfterDownloadComplete: rest.seedAfterDownloadComplete === 1,
+          showHiddenAchievementsDescription:
+            rest.showHiddenAchievementsDescription === 1,
+          downloadNotificationsEnabled: rest.downloadNotificationsEnabled === 1,
+          repackUpdatesNotificationsEnabled:
+            rest.repackUpdatesNotificationsEnabled === 1,
+          achievementNotificationsEnabled:
+            rest.achievementNotificationsEnabled === 1,
         });
 
         if (rest.language) {
