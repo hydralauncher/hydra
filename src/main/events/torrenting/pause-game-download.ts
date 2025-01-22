@@ -14,7 +14,7 @@ const pauseGameDownload = async (
   const download = await downloadsSublevel.get(gameKey);
 
   if (download) {
-    await DownloadManager.pauseDownload();
+    await DownloadManager.pauseDownload(gameKey);
 
     await downloadsSublevel.put(gameKey, {
       ...download,

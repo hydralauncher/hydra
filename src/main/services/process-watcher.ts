@@ -190,12 +190,12 @@ export const watchProcesses = async () => {
     const hasProcess = processMap.get(executable)?.has(executablePath);
 
     if (hasProcess) {
-      if (gamesPlaytime.has(`${game.shop}-${game.objectId}`)) {
+      if (gamesPlaytime.has(levelKeys.game(game.shop, game.objectId))) {
         onTickGame(game);
       } else {
         onOpenGame(game);
       }
-    } else if (gamesPlaytime.has(`${game.shop}-${game.objectId}`)) {
+    } else if (gamesPlaytime.has(levelKeys.game(game.shop, game.objectId))) {
       onCloseGame(game);
     }
   }
@@ -207,20 +207,17 @@ export const watchProcesses = async () => {
       return {
         id: entry[0],
         sessionDurationInMillis: performance.now() - entry[1].firstTick,
-      };
+      } as Pick<GameRunning, "id" | "sessionDurationInMillis">;
     });
 
-    WindowManager.mainWindow.webContents.send(
-      "on-games-running",
-      gamesRunning as Pick<GameRunning, "id" | "sessionDurationInMillis">[]
-    );
+    WindowManager.mainWindow.webContents.send("on-games-running", gamesRunning);
   }
 };
 
 function onOpenGame(game: Game) {
   const now = performance.now();
 
-  gamesPlaytime.set(`${game.shop}-${game.objectId}`, {
+  gamesPlaytime.set(levelKeys.game(game.shop, game.objectId), {
     lastTick: now,
     firstTick: now,
     lastSyncTick: now,
@@ -235,7 +232,9 @@ function onOpenGame(game: Game) {
 
 function onTickGame(game: Game) {
   const now = performance.now();
-  const gamePlaytime = gamesPlaytime.get(`${game.shop}-${game.objectId}`)!;
+  const gamePlaytime = gamesPlaytime.get(
+    levelKeys.game(game.shop, game.objectId)
+  )!;
 
   const delta = now - gamePlaytime.lastTick;
 
@@ -251,7 +250,7 @@ function onTickGame(game: Game) {
     lastTimePlayed: new Date(),
   });
 
-  gamesPlaytime.set(`${game.shop}-${game.objectId}`, {
+  gamesPlaytime.set(levelKeys.game(game.shop, game.objectId), {
     ...gamePlaytime,
     lastTick: now,
   });
@@ -267,7 +266,7 @@ function onTickGame(game: Game) {
 
     gamePromise
       .then(() => {
-        gamesPlaytime.set(`${game.shop}-${game.objectId}`, {
+        gamesPlaytime.set(levelKeys.game(game.shop, game.objectId), {
           ...gamePlaytime,
           lastSyncTick: now,
         });
@@ -277,8 +276,10 @@ function onTickGame(game: Game) {
 }
 
 const onCloseGame = (game: Game) => {
-  const gamePlaytime = gamesPlaytime.get(`${game.shop}-${game.objectId}`)!;
-  gamesPlaytime.delete(`${game.shop}-${game.objectId}`);
+  const gamePlaytime = gamesPlaytime.get(
+    levelKeys.game(game.shop, game.objectId)
+  )!;
+  gamesPlaytime.delete(levelKeys.game(game.shop, game.objectId));
 
   if (game.remoteId) {
     updateGamePlaytime(

@@ -71,8 +71,8 @@ export function DownloadGroup({
 
     if (download.fileSize) return formatBytes(download.fileSize);
 
-    if (download.fileSize && isGameDownloading)
-      return formatBytes(download?.fileSize);
+    if (lastPacket?.download.fileSize && isGameDownloading)
+      return formatBytes(lastPacket.download.fileSize);
 
     return "N/A";
   };
@@ -89,8 +89,6 @@ export function DownloadGroup({
 
   const getGameInfo = (game: LibraryGame) => {
     const download = game.download!;
-
-    console.log(game);
 
     const isGameDownloading = lastPacket?.gameId === game.id;
     const finalDownloadSize = getFinalDownloadSize(game);

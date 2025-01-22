@@ -86,7 +86,7 @@ const migrateFromSqlite = async () => {
             playTimeInMilliseconds: game.playTimeInMilliseconds,
             lastTimePlayed: game.lastTimePlayed,
             remoteId: game.remoteId,
-            isDeleted: game.isDeleted,
+            isDeleted: game.isDeleted === 1,
           },
         }))
       );
