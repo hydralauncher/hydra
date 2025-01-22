@@ -152,7 +152,13 @@ export class DownloadManager {
           .values()
           .all()
           .then((games) => {
-            return sortBy(games, "timestamp", "DESC");
+            return sortBy(
+              games.filter(
+                (game) => !["complete", "seeding"].includes(game.status!)
+              ),
+              "timestamp",
+              "DESC"
+            );
           });
 
         const [nextItemOnQueue] = downloads;

@@ -27,6 +27,7 @@ import type {
   ComparedAchievements,
   CatalogueSearchPayload,
   LibraryGame,
+  GameRunning,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";

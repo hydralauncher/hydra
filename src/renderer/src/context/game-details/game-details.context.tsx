@@ -81,7 +81,7 @@ export function GameDetailsContextProvider({
 
   const [isLoading, setIsLoading] = useState(false);
   const [gameColor, setGameColor] = useState("");
-  const [isGameRunning, setisGameRunning] = useState(false);
+  const [isGameRunning, setIsGameRunning] = useState(false);
   const [showRepacksModal, setShowRepacksModal] = useState(false);
   const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
 
@@ -168,7 +168,7 @@ export function GameDetailsContextProvider({
     setShopDetails(null);
     setGame(null);
     setIsLoading(true);
-    setisGameRunning(false);
+    setIsGameRunning(false);
     setAchievements(null);
     dispatch(setHeaderTitle(gameTitle));
   }, [objectId, gameTitle, dispatch]);
@@ -183,8 +183,9 @@ export function GameDetailsContextProvider({
         updateGame();
       }
 
-      setisGameRunning(updatedIsGameRunning);
+      setIsGameRunning(updatedIsGameRunning);
     });
+
     return () => {
       unsubscribe();
     };

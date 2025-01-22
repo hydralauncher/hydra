@@ -212,7 +212,6 @@ export function Sidebar() {
             ))}
 
             <Link
-              style={{ textAlign: "center" }}
               to={buildGameAchievementPath({
                 shop: shop,
                 objectId: objectId!,
