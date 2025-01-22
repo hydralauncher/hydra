@@ -13,7 +13,7 @@ const getGameByObjectId = async (
     downloadsSublevel.get(gameKey),
   ]);
 
-  if (!game) return null;
+  if (!game || game.isDeleted) return null;
 
   return { id: gameKey, ...game, download };
 };

@@ -128,9 +128,8 @@ export function Sidebar() {
     if (game.download?.status === "paused")
       return t("paused", { title: game.title });
 
-    if (game.download) {
+    if (game.download?.status === "active")
       return t("queued", { title: game.title });
-    }
 
     return game.title;
   };
