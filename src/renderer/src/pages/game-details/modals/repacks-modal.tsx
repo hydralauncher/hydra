@@ -67,7 +67,7 @@ export function RepacksModal({
   };
 
   const checkIfLastDownloadedOption = (repack: GameRepack) => {
-    if (!game || !game.download) return false;
+    if (!game?.download) return false;
     return repack.uris.some((uri) => uri.includes(game.download!.uri));
   };
 

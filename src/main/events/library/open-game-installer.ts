@@ -30,7 +30,7 @@ const openGameInstaller = async (
   const downloadKey = levelKeys.game(shop, objectId);
   const download = await downloadsSublevel.get(downloadKey);
 
-  if (!download || !download.folderName) return true;
+  if (!download?.folderName) return true;
 
   const gamePath = path.join(
     download.downloadPath ?? (await getDownloadsPath()),

@@ -10,8 +10,7 @@ import icon from "@resources/icon.png?asset";
 import { NotificationOptions, toXmlString } from "./xml";
 import { logger } from "../logger";
 import type { Game, UserPreferences } from "@types";
-import { levelKeys } from "@main/level";
-import { db } from "@main/level";
+import { db, levelKeys } from "@main/level";
 
 async function downloadImage(url: string | null) {
   if (!url) return undefined;
