@@ -137,12 +137,14 @@ export class DownloadManager {
             ...download,
             status: "seeding",
             shouldSeed: true,
+            queued: false,
           });
         } else {
           downloadsSublevel.put(gameId, {
             ...download,
             status: "complete",
             shouldSeed: false,
+            queued: false,
           });
 
           this.cancelDownload(gameId);
@@ -153,9 +155,7 @@ export class DownloadManager {
           .all()
           .then((games) => {
             return sortBy(
-              games.filter(
-                (game) => !["complete", "seeding"].includes(game.status!)
-              ),
+              games.filter((game) => game.status === "paused" && game.queued),
               "timestamp",
               "DESC"
             );

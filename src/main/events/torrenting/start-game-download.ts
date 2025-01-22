@@ -72,6 +72,7 @@ const startGameDownload = async (
     fileSize: null,
     shouldSeed: false,
     timestamp: Date.now(),
+    queued: true,
   };
 
   await downloadsSublevel.put(gameKey, download);

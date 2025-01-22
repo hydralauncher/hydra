@@ -150,7 +150,7 @@ export function DownloadGroup({
       return (
         <>
           <p>{formatDownloadProgress(download.progress)}</p>
-          {/* <p>{t(game.downloadQueue && lastPacket ? "queued" : "paused")}</p> */}
+          <p>{t(download.queued ? "queued" : "paused")}</p>
         </>
       );
     }
