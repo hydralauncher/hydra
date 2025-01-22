@@ -6,7 +6,7 @@ export interface DropdownMenuItem {
   label: string;
   disabled?: boolean;
   show?: boolean;
-  onClick?: () => void | Promise<void>;
+  onClick?: () => void;
 }
 
 interface DropdownMenuProps {
@@ -29,7 +29,7 @@ export function DropdownMenu({
   loop = true,
   align = "center",
   alignOffset = 0,
-}: DropdownMenuProps) {
+}: Readonly<DropdownMenuProps>) {
   return (
     <DropdownMenuPrimitive.Root>
       <DropdownMenuPrimitive.Trigger asChild>
