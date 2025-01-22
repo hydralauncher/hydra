@@ -304,6 +304,12 @@ export class DownloadManager {
         };
       case Downloader.RealDebrid: {
         const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
+
+        if (!downloadUrl)
+          throw new Error(
+            "This download is not available on Real-Debrid and polling download status from Real-Debrid is not yet available."
+          );
+
         return {
           action: "start",
           game_id: downloadId,
