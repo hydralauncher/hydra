@@ -179,7 +179,9 @@ export function DownloadGroup({
         {
           label: t("install"),
           disabled: deleting,
-          onClick: () => openGameInstaller(game.shop, game.objectId),
+          onClick: () => {
+            openGameInstaller(game.shop, game.objectId);
+          },
           icon: <DownloadIcon />,
         },
         {
@@ -189,7 +191,9 @@ export function DownloadGroup({
           show:
             download.status === "seeding" &&
             download.downloader === Downloader.Torrent,
-          onClick: () => pauseSeeding(game.shop, game.objectId),
+          onClick: () => {
+            pauseSeeding(game.shop, game.objectId);
+          },
         },
         {
           label: t("resume_seeding"),
@@ -198,13 +202,17 @@ export function DownloadGroup({
           show:
             download.status !== "seeding" &&
             download.downloader === Downloader.Torrent,
-          onClick: () => resumeSeeding(game.shop, game.objectId),
+          onClick: () => {
+            resumeSeeding(game.shop, game.objectId);
+          },
         },
         {
           label: t("delete"),
           disabled: deleting,
           icon: <TrashIcon />,
-          onClick: () => openDeleteGameModal(game.shop, game.objectId),
+          onClick: () => {
+            openDeleteGameModal(game.shop, game.objectId);
+          },
         },
       ];
     }
@@ -213,12 +221,16 @@ export function DownloadGroup({
       return [
         {
           label: t("pause"),
-          onClick: () => pauseDownload(game.shop, game.objectId),
+          onClick: () => {
+            pauseDownload(game.shop, game.objectId);
+          },
           icon: <ColumnsIcon />,
         },
         {
           label: t("cancel"),
-          onClick: () => cancelDownload(game.shop, game.objectId),
+          onClick: () => {
+            cancelDownload(game.shop, game.objectId);
+          },
           icon: <XCircleIcon />,
         },
       ];
@@ -230,12 +242,16 @@ export function DownloadGroup({
         disabled:
           download?.downloader === Downloader.RealDebrid &&
           !userPreferences?.realDebridApiToken,
-        onClick: () => resumeDownload(game.shop, game.objectId),
+        onClick: () => {
+          resumeDownload(game.shop, game.objectId);
+        },
         icon: <PlayIcon />,
       },
       {
         label: t("cancel"),
-        onClick: () => cancelDownload(game.shop, game.objectId),
+        onClick: () => {
+          cancelDownload(game.shop, game.objectId);
+        },
         icon: <XCircleIcon />,
       },
     ];
