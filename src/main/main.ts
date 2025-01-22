@@ -27,7 +27,9 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   Aria2.spawn();
 
   if (userPreferences?.realDebridApiToken) {
-    RealDebridClient.authorize(userPreferences?.realDebridApiToken);
+    RealDebridClient.authorize(
+      Crypto.decrypt(userPreferences.realDebridApiToken)
+    );
   }
 
   Ludusavi.addManifestToLudusaviConfig();
@@ -97,10 +99,17 @@ const migrateFromSqlite = async () => {
     .select("*")
     .then(async (userPreferences) => {
       if (userPreferences.length > 0) {
-        await db.put(levelKeys.userPreferences, userPreferences[0]);
+        const { realDebridApiToken, ...rest } = userPreferences[0];
 
-        if (userPreferences[0].language) {
-          await db.put(levelKeys.language, userPreferences[0].language);
+        await db.put(levelKeys.userPreferences, {
+          ...rest,
+          realDebridApiToken: realDebridApiToken
+            ? Crypto.encrypt(realDebridApiToken)
+            : null,
+        });
+
+        if (rest.language) {
+          await db.put(levelKeys.language, rest.language);
         }
       }
     })
