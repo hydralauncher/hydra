@@ -3,6 +3,7 @@ import { registerEvent } from "../register-event";
 import type { UserPreferences } from "@types";
 import i18next from "i18next";
 import { db, levelKeys } from "@main/level";
+import { Crypto } from "@main/services";
 
 const updateUserPreferences = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -19,6 +20,12 @@ const updateUserPreferences = async (
     });
 
     i18next.changeLanguage(preferences.language);
+  }
+
+  if (preferences.realDebridApiToken) {
+    preferences.realDebridApiToken = Crypto.encrypt(
+      preferences.realDebridApiToken
+    );
   }
 
   await db.put<string, UserPreferences>(

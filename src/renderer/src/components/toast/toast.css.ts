@@ -3,46 +3,54 @@ import { keyframes, style } from "@vanilla-extract/css";
 import { SPACING_UNIT, vars } from "../../theme.css";
 import { recipe } from "@vanilla-extract/recipes";
 
-const TOAST_HEIGHT = 80;
-
-export const slideIn = keyframes({
-  "0%": { transform: `translateY(${TOAST_HEIGHT + SPACING_UNIT * 2}px)` },
-  "100%": { transform: "translateY(0)" },
+export const enter = keyframes({
+  "0%": {
+    opacity: 0,
+    transform: "translateY(100%)",
+  },
+  "100%": {
+    opacity: 1,
+    transform: "translateY(0)",
+  },
 });
 
-export const slideOut = keyframes({
-  "0%": { transform: `translateY(0)` },
-  "100%": { transform: `translateY(${TOAST_HEIGHT + SPACING_UNIT * 2}px)` },
+export const exit = keyframes({
+  "0%": {
+    opacity: 1,
+    transform: "translateY(0)",
+  },
+  "100%": {
+    opacity: 0,
+    transform: "translateY(100%)",
+  },
 });
 
 export const toast = recipe({
   base: {
-    animationDuration: "0.2s",
+    animationDuration: "0.15s",
     animationTimingFunction: "ease-in-out",
-    maxHeight: TOAST_HEIGHT,
-    position: "fixed",
+    maxWidth: "420px",
+    position: "absolute",
     backgroundColor: vars.color.background,
     borderRadius: "4px",
     border: `solid 1px ${vars.color.border}`,
-    right: `${SPACING_UNIT * 2}px`,
-    /* Bottom panel height + 16px */
-    bottom: `${26 + SPACING_UNIT * 2}px`,
+    right: "0",
+    bottom: "0",
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
     zIndex: vars.zIndex.toast,
-    maxWidth: "500px",
   },
   variants: {
     closing: {
       true: {
-        animationName: slideOut,
-        transform: `translateY(${TOAST_HEIGHT + SPACING_UNIT * 2}px)`,
+        animationName: exit,
+        transform: "translateY(100%)",
       },
       false: {
-        animationName: slideIn,
-        transform: `translateY(0)`,
+        animationName: enter,
+        transform: "translateY(0)",
       },
     },
   },
@@ -58,7 +66,7 @@ export const toastContent = style({
 
 export const progress = style({
   width: "100%",
-  height: "5px",
+  height: "3px",
   "::-webkit-progress-bar": {
     backgroundColor: vars.color.darkBackground,
   },
@@ -70,8 +78,10 @@ export const progress = style({
 export const closeButton = style({
   color: vars.color.body,
   cursor: "pointer",
-  padding: "0",
-  margin: "0",
+  transition: "all ease 0.15s",
+  ":hover": {
+    color: vars.color.muted,
+  },
 });
 
 export const successIcon = style({
