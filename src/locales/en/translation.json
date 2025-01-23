@@ -296,7 +296,8 @@
     "become_subscriber": "Be Hydra Cloud",
     "subscription_renew_cancelled": "Automatic renewal is disabled",
     "subscription_renews_on": "Your subscription renews on {{date}}",
-    "bill_sent_until": "Your next bill will be sent until this day"
+    "bill_sent_until": "Your next bill will be sent until this day",
+    "no_themes": "Seems like you don't have any themes yet, but no worries, click here to create your first masterpiece."
   },
   "notifications": {
     "download_complete": "Download complete",
