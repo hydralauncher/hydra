@@ -25,17 +25,20 @@ export class DownloadManager {
   ) {
     PythonRPC.spawn(
       download?.status === "active"
-        ? await this.getDownloadPayload(download).catch(() => undefined)
+        ? await this.getDownloadPayload(download).catch((err) => {
+            logger.error("Error getting download payload", err);
+            return undefined;
+          })
         : undefined,
       downloadsToSeed?.map((download) => ({
-        game_id: `${download.shop}-${download.objectId}`,
+        game_id: levelKeys.game(download.shop, download.objectId),
         url: download.uri,
         save_path: download.downloadPath,
       }))
     );
 
     if (download) {
-      this.downloadingGameId = `${download.shop}-${download.objectId}`;
+      this.downloadingGameId = levelKeys.game(download.shop, download.objectId);
     }
   }
 
