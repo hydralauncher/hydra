@@ -12,6 +12,7 @@ import { SettingsAccount } from "./settings-account";
 import { useUserDetails } from "@renderer/hooks";
 import { useMemo } from "react";
 import "./settings.scss";
+import { SettingsAppearance } from "./aparence/settings-appearance";
 
 export default function Settings() {
   const { t } = useTranslation("settings");
@@ -22,6 +23,7 @@ export default function Settings() {
       t("general"),
       t("behavior"),
       t("download_sources"),
+      t("appearance"),
       "Real-Debrid",
     ];
 
@@ -47,6 +49,10 @@ export default function Settings() {
             }
 
             if (currentCategoryIndex === 3) {
+              return <SettingsAppearance />;
+            }
+
+            if (currentCategoryIndex === 4) {
               return <SettingsRealDebrid />;
             }
 
