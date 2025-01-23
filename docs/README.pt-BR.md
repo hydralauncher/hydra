@@ -125,6 +125,10 @@ cd hydra
 yarn
 ```
 
+### <a name="install-openssl-11"></a> Instale OpenSSL 1.1
+
+[OpenSSL 1.1](https://slproweb.com/download/Win64OpenSSL-1_1_1w.exe) é exigido pelo libtorrent em ambientes Windows.
+
 ### <a name="install-python-39"></a> Instale Python 3.9
 
 Certifique-se de ter o Python 3.9 instalado em sua máquina. Você pode baixá-lo e instalá-lo em [python.org](https://www.python.org/downloads/release/python-3913/).
