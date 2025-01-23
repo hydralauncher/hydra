@@ -22,16 +22,16 @@ contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
   startGameDownload: (payload: StartGameDownloadPayload) =>
     ipcRenderer.invoke("startGameDownload", payload),
-  cancelGameDownload: (gameId: number) =>
-    ipcRenderer.invoke("cancelGameDownload", gameId),
-  pauseGameDownload: (gameId: number) =>
-    ipcRenderer.invoke("pauseGameDownload", gameId),
-  resumeGameDownload: (gameId: number) =>
-    ipcRenderer.invoke("resumeGameDownload", gameId),
-  pauseGameSeed: (gameId: number) =>
-    ipcRenderer.invoke("pauseGameSeed", gameId),
-  resumeGameSeed: (gameId: number) =>
-    ipcRenderer.invoke("resumeGameSeed", gameId),
+  cancelGameDownload: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("cancelGameDownload", shop, objectId),
+  pauseGameDownload: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("pauseGameDownload", shop, objectId),
+  resumeGameDownload: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("resumeGameDownload", shop, objectId),
+  pauseGameSeed: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("pauseGameSeed", shop, objectId),
+  resumeGameSeed: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("resumeGameSeed", shop, objectId),
   onDownloadProgress: (cb: (value: DownloadProgress) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
@@ -98,40 +98,61 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("putDownloadSource", objectIds),
 
   /* Library */
-  addGameToLibrary: (objectId: string, title: string, shop: GameShop) =>
-    ipcRenderer.invoke("addGameToLibrary", objectId, title, shop),
-  createGameShortcut: (id: number) =>
-    ipcRenderer.invoke("createGameShortcut", id),
-  updateExecutablePath: (id: number, executablePath: string | null) =>
-    ipcRenderer.invoke("updateExecutablePath", id, executablePath),
-  updateLaunchOptions: (id: number, launchOptions: string | null) =>
-    ipcRenderer.invoke("updateLaunchOptions", id, launchOptions),
-  selectGameWinePrefix: (id: number, winePrefixPath: string | null) =>
-    ipcRenderer.invoke("selectGameWinePrefix", id, winePrefixPath),
+  addGameToLibrary: (shop: GameShop, objectId: string, title: string) =>
+    ipcRenderer.invoke("addGameToLibrary", shop, objectId, title),
+  createGameShortcut: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("createGameShortcut", shop, objectId),
+  updateExecutablePath: (
+    shop: GameShop,
+    objectId: string,
+    executablePath: string | null
+  ) =>
+    ipcRenderer.invoke("updateExecutablePath", shop, objectId, executablePath),
+  updateLaunchOptions: (
+    shop: GameShop,
+    objectId: string,
+    launchOptions: string | null
+  ) => ipcRenderer.invoke("updateLaunchOptions", shop, objectId, launchOptions),
+  selectGameWinePrefix: (
+    shop: GameShop,
+    objectId: string,
+    winePrefixPath: string | null
+  ) =>
+    ipcRenderer.invoke("selectGameWinePrefix", shop, objectId, winePrefixPath),
   verifyExecutablePathInUse: (executablePath: string) =>
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
-  openGameInstaller: (gameId: number) =>
-    ipcRenderer.invoke("openGameInstaller", gameId),
-  openGameInstallerPath: (gameId: number) =>
-    ipcRenderer.invoke("openGameInstallerPath", gameId),
-  openGameExecutablePath: (gameId: number) =>
-    ipcRenderer.invoke("openGameExecutablePath", gameId),
+  openGameInstaller: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("openGameInstaller", shop, objectId),
+  openGameInstallerPath: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("openGameInstallerPath", shop, objectId),
+  openGameExecutablePath: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("openGameExecutablePath", shop, objectId),
   openGame: (
-    gameId: number,
+    shop: GameShop,
+    objectId: string,
     executablePath: string,
-    launchOptions: string | null
-  ) => ipcRenderer.invoke("openGame", gameId, executablePath, launchOptions),
-  closeGame: (gameId: number) => ipcRenderer.invoke("closeGame", gameId),
-  removeGameFromLibrary: (gameId: number) =>
-    ipcRenderer.invoke("removeGameFromLibrary", gameId),
-  removeGame: (gameId: number) => ipcRenderer.invoke("removeGame", gameId),
-  deleteGameFolder: (gameId: number) =>
-    ipcRenderer.invoke("deleteGameFolder", gameId),
-  getGameByObjectId: (objectId: string) =>
-    ipcRenderer.invoke("getGameByObjectId", objectId),
-  resetGameAchievements: (gameId: number) =>
-    ipcRenderer.invoke("resetGameAchievements", gameId),
+    launchOptions?: string | null
+  ) =>
+    ipcRenderer.invoke(
+      "openGame",
+      shop,
+      objectId,
+      executablePath,
+      launchOptions
+    ),
+  closeGame: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("closeGame", shop, objectId),
+  removeGameFromLibrary: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("removeGameFromLibrary", shop, objectId),
+  removeGame: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("removeGame", shop, objectId),
+  deleteGameFolder: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("deleteGameFolder", shop, objectId),
+  getGameByObjectId: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getGameByObjectId", shop, objectId),
+  resetGameAchievements: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("resetGameAchievements", shop, objectId),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]

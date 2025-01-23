@@ -7,7 +7,7 @@ import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import "./downloads.scss";
 import { DeleteGameModal } from "./delete-game-modal";
 import { DownloadGroup } from "./download-group";
-import type { LibraryGame, SeedingStatus } from "@types";
+import type { GameShop, LibraryGame, SeedingStatus } from "@types";
 import { orderBy } from "lodash-es";
 import { ArrowDownIcon } from "@primer/octicons-react";
 
@@ -16,7 +16,7 @@ export default function Downloads() {
 
   const { t } = useTranslation("downloads");
 
-  const gameToBeDeleted = useRef<number | null>(null);
+  const gameToBeDeleted = useRef<[GameShop, string] | null>(null);
 
   const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -25,8 +25,10 @@ export default function Downloads() {
 
   const handleDeleteGame = async () => {
     if (gameToBeDeleted.current) {
-      await pauseSeeding(gameToBeDeleted.current);
-      await removeGameInstaller(gameToBeDeleted.current);
+      const [shop, objectId] = gameToBeDeleted.current;
+
+      await pauseSeeding(shop, objectId);
+      await removeGameInstaller(shop, objectId);
     }
   };
 
@@ -38,14 +40,14 @@ export default function Downloads() {
     window.electron.onSeedingStatus((value) => setSeedingStatus(value));
   }, []);
 
-  const handleOpenGameInstaller = (gameId: number) =>
-    window.electron.openGameInstaller(gameId).then((isBinaryInPath) => {
+  const handleOpenGameInstaller = (shop: GameShop, objectId: string) =>
+    window.electron.openGameInstaller(shop, objectId).then((isBinaryInPath) => {
       if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
       updateLibrary();
     });
 
-  const handleOpenDeleteGameModal = (gameId: number) => {
-    gameToBeDeleted.current = gameId;
+  const handleOpenDeleteGameModal = (shop: GameShop, objectId: string) => {
+    gameToBeDeleted.current = [shop, objectId];
     setShowDeleteModal(true);
   };
 
@@ -58,27 +60,26 @@ export default function Downloads() {
 
     const result = library.reduce((prev, next) => {
       /* Game has been manually added to the library or has been canceled */
-      if (!next.status || next.status === "removed") return prev;
+      if (!next.download?.status || next.download?.status === "removed")
+        return prev;
 
       /* Is downloading */
-      if (lastPacket?.game.id === next.id)
+      if (lastPacket?.gameId === next.id)
         return { ...prev, downloading: [...prev.downloading, next] };
 
       /* Is either queued or paused */
-      if (next.downloadQueue || next.status === "paused")
+      if (next.download.queued || next.download?.status === "paused")
         return { ...prev, queued: [...prev.queued, next] };
 
       return { ...prev, complete: [...prev.complete, next] };
     }, initialValue);
 
-    const queued = orderBy(
-      result.queued,
-      (game) => game.downloadQueue?.id ?? -1,
-      ["desc"]
-    );
+    const queued = orderBy(result.queued, (game) => game.download?.timestamp, [
+      "desc",
+    ]);
 
     const complete = orderBy(result.complete, (game) =>
-      game.progress === 1 ? 0 : 1
+      game.download?.progress === 1 ? 0 : 1
     );
 
     return {
@@ -86,7 +87,7 @@ export default function Downloads() {
       queued,
       complete,
     };
-  }, [library, lastPacket?.game.id]);
+  }, [library, lastPacket?.gameId]);
 
   const downloadGroups = [
     {

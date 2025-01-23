@@ -1,13 +1,19 @@
 import jwt from "jsonwebtoken";
 
-import { userAuthRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
+import { db, levelKeys } from "@main/level";
+import type { Auth } from "@types";
+import { Crypto } from "@main/services";
 
 const getSessionHash = async (_event: Electron.IpcMainInvokeEvent) => {
-  const auth = await userAuthRepository.findOne({ where: { id: 1 } });
+  const auth = await db.get<string, Auth>(levelKeys.auth, {
+    valueEncoding: "json",
+  });
 
   if (!auth) return null;
-  const payload = jwt.decode(auth.accessToken) as jwt.JwtPayload;
+  const payload = jwt.decode(
+    Crypto.decrypt(auth.accessToken)
+  ) as jwt.JwtPayload;
 
   if (!payload) return null;
 

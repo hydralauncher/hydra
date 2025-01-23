@@ -84,7 +84,7 @@ export function App() {
   useEffect(() => {
     const unsubscribe = window.electron.onDownloadProgress(
       (downloadProgress) => {
-        if (downloadProgress.game.progress === 1) {
+        if (downloadProgress.progress === 1) {
           clearDownload();
           updateLibrary();
           return;

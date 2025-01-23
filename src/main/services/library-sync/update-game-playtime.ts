@@ -1,4 +1,4 @@
-import { Game } from "@main/entity";
+import type { Game } from "@types";
 import { HydraApi } from "../hydra-api";
 
 export const updateGamePlaytime = async (

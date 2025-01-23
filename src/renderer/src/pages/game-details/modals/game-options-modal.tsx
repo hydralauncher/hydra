@@ -1,7 +1,7 @@
 import { useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Modal, TextField } from "@renderer/components";
-import type { Game } from "@types";
+import type { LibraryGame } from "@types";
 import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import { useDownload, useToast, useUserDetails } from "@renderer/hooks";
@@ -13,7 +13,7 @@ import "./game-options-modal.scss";
 
 export interface GameOptionsModalProps {
   visible: boolean;
-  game: Game;
+  game: LibraryGame;
   onClose: () => void;
 }
 
@@ -59,21 +59,25 @@ export function GameOptionsModal({
   const { lastPacket } = useDownload();
 
   const isGameDownloading =
-    game.status === "active" && lastPacket?.game.id === game.id;
+    game.download?.status === "active" && lastPacket?.gameId === game.id;
 
   const debounceUpdateLaunchOptions = useRef(
     debounce(async (value: string) => {
-      await window.electron.updateLaunchOptions(game.id, value);
+      await window.electron.updateLaunchOptions(
+        game.shop,
+        game.objectId,
+        value
+      );
       updateGame();
     }, 1000)
   ).current;
 
   const handleRemoveGameFromLibrary = async () => {
     if (isGameDownloading) {
-      await cancelDownload(game.id);
+      await cancelDownload(game.shop, game.objectId);
     }
 
-    await removeGameFromLibrary(game.id);
+    await removeGameFromLibrary(game.shop, game.objectId);
     updateGame();
     onClose();
   };
@@ -92,35 +96,39 @@ export function GameOptionsModal({
         return;
       }
 
-      window.electron.updateExecutablePath(game.id, path).then(updateGame);
+      window.electron
+        .updateExecutablePath(game.shop, game.objectId, path)
+        .then(updateGame);
     }
   };
 
   const handleCreateShortcut = async () => {
-    window.electron.createGameShortcut(game.id).then((success) => {
-      if (success) {
-        showSuccessToast(t("create_shortcut_success"));
-      } else {
-        showErrorToast(t("create_shortcut_error"));
-      }
-    });
+    window.electron
+      .createGameShortcut(game.shop, game.objectId)
+      .then((success) => {
+        if (success) {
+          showSuccessToast(t("create_shortcut_success"));
+        } else {
+          showErrorToast(t("create_shortcut_error"));
+        }
+      });
   };
 
   const handleOpenDownloadFolder = async () => {
-    await window.electron.openGameInstallerPath(game.id);
+    await window.electron.openGameInstallerPath(game.shop, game.objectId);
   };
 
   const handleDeleteGame = async () => {
-    await removeGameInstaller(game.id);
+    await removeGameInstaller(game.shop, game.objectId);
     updateGame();
   };
 
   const handleOpenGameExecutablePath = async () => {
-    await window.electron.openGameExecutablePath(game.id);
+    await window.electron.openGameExecutablePath(game.shop, game.objectId);
   };
 
   const handleClearExecutablePath = async () => {
-    await window.electron.updateExecutablePath(game.id, null);
+    await window.electron.updateExecutablePath(game.shop, game.objectId, null);
     updateGame();
   };
 
@@ -130,13 +138,17 @@ export function GameOptionsModal({
     });
 
     if (filePaths && filePaths.length > 0) {
-      await window.electron.selectGameWinePrefix(game.id, filePaths[0]);
+      await window.electron.selectGameWinePrefix(
+        game.shop,
+        game.objectId,
+        filePaths[0]
+      );
       await updateGame();
     }
   };
 
   const handleClearWinePrefixPath = async () => {
-    await window.electron.selectGameWinePrefix(game.id, null);
+    await window.electron.selectGameWinePrefix(game.shop, game.objectId, null);
     updateGame();
   };
 
@@ -150,7 +162,9 @@ export function GameOptionsModal({
   const handleClearLaunchOptions = async () => {
     setLaunchOptions("");
 
-    window.electron.updateLaunchOptions(game.id, null).then(updateGame);
+    window.electron
+      .updateLaunchOptions(game.shop, game.objectId, null)
+      .then(updateGame);
   };
 
   const shouldShowWinePrefixConfiguration =
@@ -159,7 +173,7 @@ export function GameOptionsModal({
   const handleResetAchievements = async () => {
     setIsDeletingAchievements(true);
     try {
-      await window.electron.resetGameAchievements(game.id);
+      await window.electron.resetGameAchievements(game.shop, game.objectId);
       await updateGame();
       showSuccessToast(t("reset_achievements_success"));
     } catch (error) {
@@ -330,7 +344,7 @@ export function GameOptionsModal({
               >
                 {t("open_download_options")}
               </Button>
-              {game.downloadPath && (
+              {game.download?.downloadPath && (
                 <Button
                   onClick={handleOpenDownloadFolder}
                   theme="outline"
@@ -377,7 +391,9 @@ export function GameOptionsModal({
                   setShowDeleteModal(true);
                 }}
                 theme="danger"
-                disabled={isGameDownloading || deleting || !game.downloadPath}
+                disabled={
+                  isGameDownloading || deleting || !game.download?.downloadPath
+                }
               >
                 {t("remove_files")}
               </Button>

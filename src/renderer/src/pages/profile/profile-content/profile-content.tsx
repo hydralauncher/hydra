@@ -5,7 +5,6 @@ import { useAppDispatch, useFormat } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { TelescopeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
 import { FriendsBox } from "./friends-box";
@@ -64,8 +63,6 @@ export function ProfileContent() {
   }, [setStatsIndex, isAnimationRunning]);
 
   const { numberFormatter } = useFormat();
-
-  const navigate = useNavigate();
 
   const usersAreFriends = useMemo(() => {
     return userProfile?.relation?.status === "ACCEPTED";
@@ -139,7 +136,6 @@ export function ProfileContent() {
     userStats,
     numberFormatter,
     t,
-    navigate,
     statsIndex,
   ]);
 

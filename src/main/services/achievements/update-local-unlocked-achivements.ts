@@ -4,8 +4,7 @@ import {
 } from "./find-achivement-files";
 import { parseAchievementFile } from "./parse-achievement-file";
 import { mergeAchievements } from "./merge-achievements";
-import type { UnlockedAchievement } from "@types";
-import { Game } from "@main/entity";
+import type { Game, UnlockedAchievement } from "@types";
 
 export const updateLocalUnlockedAchivements = async (game: Game) => {
   const gameAchievementFiles = findAchievementFiles(game);
