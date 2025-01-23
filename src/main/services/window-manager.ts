@@ -13,10 +13,11 @@ import { t } from "i18next";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
-import { gameRepository, userPreferencesRepository } from "@main/repository";
-import { IsNull, Not } from "typeorm";
 import { HydraApi } from "./hydra-api";
 import UserAgent from "user-agents";
+import { db, gamesSublevel, levelKeys } from "@main/level";
+import { slice, sortBy } from "lodash-es";
+import type { UserPreferences } from "@types";
 import { AuthPage } from "@shared";
 
 export class WindowManager {
@@ -131,9 +132,12 @@ export class WindowManager {
     });
 
     this.mainWindow.on("close", async () => {
-      const userPreferences = await userPreferencesRepository.findOne({
-        where: { id: 1 },
-      });
+      const userPreferences = await db.get<string, UserPreferences>(
+        levelKeys.userPreferences,
+        {
+          valueEncoding: "json",
+        }
+      );
 
       if (userPreferences?.preferQuitInsteadOfHiding) {
         app.quit();
@@ -211,17 +215,19 @@ export class WindowManager {
     }
 
     const updateSystemTray = async () => {
-      const games = await gameRepository.find({
-        where: {
-          isDeleted: false,
-          executablePath: Not(IsNull()),
-          lastTimePlayed: Not(IsNull()),
-        },
-        take: 5,
-        order: {
-          lastTimePlayed: "DESC",
-        },
-      });
+      const games = await gamesSublevel
+        .values()
+        .all()
+        .then((games) => {
+          const filteredGames = games.filter(
+            (game) =>
+              !game.isDeleted && game.executablePath && game.lastTimePlayed
+          );
+
+          const sortedGames = sortBy(filteredGames, "lastTimePlayed", "DESC");
+
+          return slice(sortedGames, 5);
+        });
 
       const recentlyPlayedGames: Array<MenuItemConstructorOptions | MenuItem> =
         games.map(({ title, executablePath }) => ({

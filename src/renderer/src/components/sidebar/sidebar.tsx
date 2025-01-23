@@ -58,7 +58,7 @@ export function Sidebar() {
 
   useEffect(() => {
     updateLibrary();
-  }, [lastPacket?.game.id, updateLibrary]);
+  }, [lastPacket?.gameId, updateLibrary]);
 
   const sidebarRef = useRef<HTMLElement>(null);
 
@@ -120,18 +120,17 @@ export function Sidebar() {
   }, [isResizing]);
 
   const getGameTitle = (game: LibraryGame) => {
-    if (lastPacket?.game.id === game.id) {
+    if (lastPacket?.gameId === game.id) {
       return t("downloading", {
         title: game.title,
         percentage: progress,
       });
     }
 
-    if (game.downloadQueue !== null) {
-      return t("queued", { title: game.title });
-    }
+    if (game.download?.queued) return t("queued", { title: game.title });
 
-    if (game.status === "paused") return t("paused", { title: game.title });
+    if (game.download?.status === "paused")
+      return t("paused", { title: game.title });
 
     return game.title;
   };
@@ -148,7 +147,7 @@ export function Sidebar() {
   ) => {
     const path = buildGameDetailsPath({
       ...game,
-      objectId: game.objectID,
+      objectId: game.objectId,
     });
     if (path !== location.pathname) {
       navigate(path);
@@ -157,7 +156,8 @@ export function Sidebar() {
     if (event.detail === 2) {
       if (game.executablePath) {
         window.electron.openGame(
-          game.id,
+          game.shop,
+          game.objectId,
           game.executablePath,
           game.launchOptions
         );
@@ -221,12 +221,13 @@ export function Sidebar() {
             <ul className="sidebar__menu">
               {filteredLibrary.map((game) => (
                 <li
-                  key={game.id}
+                  key={`${game.shop}-${game.objectId}`}
                   className={cn("sidebar__menu-item", {
                     "sidebar__menu-item--active":
                       location.pathname ===
-                      `/game/${game.shop}/${game.objectID}`,
-                    "sidebar__menu-item--muted": game.status === "removed",
+                      `/game/${game.shop}/${game.objectId}`,
+                    "sidebar__menu-item--muted":
+                      game.download?.status === "removed",
                   })}
                 >
                   <button

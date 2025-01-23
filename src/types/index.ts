@@ -1,16 +1,7 @@
 import type { Cracker, DownloadSourceStatus, Downloader } from "@shared";
 import type { SteamAppDetails } from "./steam.types";
-
-export type GameStatus =
-  | "active"
-  | "waiting"
-  | "paused"
-  | "error"
-  | "complete"
-  | "seeding"
-  | "removed";
-
-export type GameShop = "steam" | "epic";
+import type { Download, Game, Subscription } from "./level.types";
+import type { GameShop } from "./game.types";
 
 export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
 
@@ -29,48 +20,6 @@ export interface GameRepack {
   uploadDate: Date | string | null;
   createdAt: Date;
   updatedAt: Date;
-}
-
-export interface AchievementData {
-  name: string;
-  displayName: string;
-  description?: string;
-  icon: string;
-  icongray: string;
-  hidden: boolean;
-  points?: number;
-}
-
-export interface UserAchievement {
-  name: string;
-  hidden: boolean;
-  displayName: string;
-  points?: number;
-  description?: string;
-  unlocked: boolean;
-  unlockTime: number | null;
-  icon: string;
-  icongray: string;
-}
-
-export interface RemoteUnlockedAchievement {
-  name: string;
-  hidden: boolean;
-  icon: string;
-  displayName: string;
-  description?: string;
-  unlockTime: number;
-}
-
-export interface GameAchievement {
-  name: string;
-  hidden: boolean;
-  displayName: string;
-  description?: string;
-  unlocked: boolean;
-  unlockTime: number | null;
-  icon: string;
-  icongray: string;
 }
 
 export type ShopDetails = SteamAppDetails & {
@@ -95,80 +44,13 @@ export interface UserGame {
   achievementsPointsEarnedSum: number;
 }
 
-export interface DownloadQueue {
-  id: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-/* Used by the library */
-export interface Game {
-  id: number;
-  title: string;
-  iconUrl: string;
-  status: GameStatus | null;
-  folderName: string;
-  downloadPath: string | null;
-  progress: number;
-  bytesDownloaded: number;
-  playTimeInMilliseconds: number;
-  downloader: Downloader;
-  winePrefixPath: string | null;
-  executablePath: string | null;
-  launchOptions: string | null;
-  lastTimePlayed: Date | null;
-  uri: string | null;
-  fileSize: number;
-  objectID: string;
-  shop: GameShop;
-  downloadQueue: DownloadQueue | null;
-  shouldSeed: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export type LibraryGame = Omit<Game, "repacks">;
-
 export interface GameRunning {
-  id?: number;
+  id: string;
   title: string;
   iconUrl: string | null;
-  objectID: string;
+  objectId: string;
   shop: GameShop;
   sessionDurationInMillis: number;
-}
-
-export interface DownloadProgress {
-  downloadSpeed: number;
-  timeRemaining: number;
-  numPeers: number;
-  numSeeds: number;
-  isDownloadingMetadata: boolean;
-  isCheckingFiles: boolean;
-  progress: number;
-  gameId: number;
-  game: LibraryGame;
-}
-
-export interface SeedingStatus {
-  gameId: number;
-  status: GameStatus;
-  uploadSpeed: number;
-}
-
-export interface UserPreferences {
-  downloadsPath: string | null;
-  language: string;
-  downloadNotificationsEnabled: boolean;
-  repackUpdatesNotificationsEnabled: boolean;
-  achievementNotificationsEnabled: boolean;
-  realDebridApiToken: string | null;
-  preferQuitInsteadOfHiding: boolean;
-  runAtStartup: boolean;
-  startMinimized: boolean;
-  disableNsfwAlert: boolean;
-  seedAfterDownloadComplete: boolean;
-  showHiddenAchievementsDescription: boolean;
 }
 
 export interface Steam250Game {
@@ -247,16 +129,6 @@ export interface UserProfileCurrentGame extends Omit<GameRunning, "objectId"> {
 }
 
 export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
-
-export type SubscriptionStatus = "active" | "pending" | "cancelled";
-
-export interface Subscription {
-  id: string;
-  status: SubscriptionStatus;
-  plan: { id: string; name: string };
-  expiresAt: string | null;
-  paymentMethod: "pix" | "paypal";
-}
 
 export interface UserDetails {
   id: string;
@@ -353,11 +225,6 @@ export interface UserStats {
   unlockedAchievementSum?: number;
 }
 
-export interface UnlockedAchievement {
-  name: string;
-  unlockTime: number;
-}
-
 export interface AchievementFile {
   type: Cracker;
   filePath: string;
@@ -416,8 +283,14 @@ export interface CatalogueSearchPayload {
   developers: string[];
 }
 
+export interface LibraryGame extends Game {
+  id: string;
+  download: Download | null;
+}
+
+export * from "./game.types";
 export * from "./steam.types";
-export * from "./real-debrid.types";
+export * from "./download.types";
 export * from "./ludusavi.types";
 export * from "./how-long-to-beat.types";
-export * from "./torbox.types";
+export * from "./level.types";

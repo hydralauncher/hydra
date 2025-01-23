@@ -3,16 +3,12 @@ import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
 import url from "node:url";
-import fs from "node:fs";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { logger, WindowManager } from "@main/services";
-import { dataSource } from "@main/data-source";
 import resources from "@locales";
-import { userPreferencesRepository } from "@main/repository";
-import { knexClient, migrationConfig } from "./knex-client";
-import { databaseDirectory } from "./constants";
 import { PythonRPC } from "./services/python-rpc";
 import { Aria2 } from "./services/aria2";
+import { db, levelKeys } from "./level";
 
 const { autoUpdater } = updater;
 
@@ -50,21 +46,6 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient(PROTOCOL);
 }
 
-const runMigrations = async () => {
-  if (!fs.existsSync(databaseDirectory)) {
-    fs.mkdirSync(databaseDirectory, { recursive: true });
-  }
-
-  await knexClient.migrate.list(migrationConfig).then((result) => {
-    logger.log(
-      "Migrations to run:",
-      result[1].map((migration) => migration.name)
-    );
-  });
-
-  await knexClient.migrate.latest(migrationConfig);
-};
-
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -76,31 +57,19 @@ app.whenReady().then(async () => {
     return net.fetch(url.pathToFileURL(decodeURI(filePath)).toString());
   });
 
-  await runMigrations()
-    .then(() => {
-      logger.log("Migrations executed successfully");
-    })
-    .catch((err) => {
-      logger.log("Migrations failed to run:", err);
-    });
-
-  await dataSource.initialize();
-
   await import("./main");
 
-  const userPreferences = await userPreferencesRepository.findOne({
-    where: { id: 1 },
+  const language = await db.get<string, string>(levelKeys.language, {
+    valueEncoding: "utf-8",
   });
 
-  if (userPreferences?.language) {
-    i18n.changeLanguage(userPreferences.language);
-  }
+  if (language) i18n.changeLanguage(language);
 
   if (!process.argv.includes("--hidden")) {
     WindowManager.createMainWindow();
   }
 
-  WindowManager.createSystemTray(userPreferences?.language || "en");
+  WindowManager.createSystemTray(language || "en");
 });
 
 app.on("browser-window-created", (_, window) => {

@@ -18,9 +18,9 @@ import {
 } from "@renderer/hooks";
 
 import type {
-  Game,
   GameShop,
   GameStats,
+  LibraryGame,
   ShopDetails,
   UserAchievement,
 } from "@types";
@@ -68,12 +68,12 @@ export function GameDetailsContextProvider({
   objectId,
   gameTitle,
   shop,
-}: GameDetailsContextProps) {
+}: Readonly<GameDetailsContextProps>) {
   const [shopDetails, setShopDetails] = useState<ShopDetails | null>(null);
   const [achievements, setAchievements] = useState<UserAchievement[] | null>(
     null
   );
-  const [game, setGame] = useState<Game | null>(null);
+  const [game, setGame] = useState<LibraryGame | null>(null);
   const [hasNSFWContentBlocked, setHasNSFWContentBlocked] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -81,7 +81,7 @@ export function GameDetailsContextProvider({
 
   const [isLoading, setIsLoading] = useState(false);
   const [gameColor, setGameColor] = useState("");
-  const [isGameRunning, setisGameRunning] = useState(false);
+  const [isGameRunning, setIsGameRunning] = useState(false);
   const [showRepacksModal, setShowRepacksModal] = useState(false);
   const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
 
@@ -101,15 +101,16 @@ export function GameDetailsContextProvider({
 
   const updateGame = useCallback(async () => {
     return window.electron
-      .getGameByObjectId(objectId!)
+      .getGameByObjectId(shop, objectId)
       .then((result) => setGame(result));
-  }, [setGame, objectId]);
+  }, [setGame, shop, objectId]);
 
-  const isGameDownloading = lastPacket?.game.id === game?.id;
+  const isGameDownloading =
+    lastPacket?.gameId === game?.id && game?.download?.status === "active";
 
   useEffect(() => {
     updateGame();
-  }, [updateGame, isGameDownloading, lastPacket?.game.status]);
+  }, [updateGame, isGameDownloading, lastPacket?.gameId]);
 
   useEffect(() => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
@@ -167,7 +168,7 @@ export function GameDetailsContextProvider({
     setShopDetails(null);
     setGame(null);
     setIsLoading(true);
-    setisGameRunning(false);
+    setIsGameRunning(false);
     setAchievements(null);
     dispatch(setHeaderTitle(gameTitle));
   }, [objectId, gameTitle, dispatch]);
@@ -182,17 +183,18 @@ export function GameDetailsContextProvider({
         updateGame();
       }
 
-      setisGameRunning(updatedIsGameRunning);
+      setIsGameRunning(updatedIsGameRunning);
     });
+
     return () => {
       unsubscribe();
     };
   }, [game?.id, isGameRunning, updateGame]);
 
   const lastDownloadedOption = useMemo(() => {
-    if (game?.uri) {
+    if (game?.download) {
       const repack = repacks.find((repack) =>
-        repack.uris.some((uri) => uri.includes(game.uri!))
+        repack.uris.some((uri) => uri.includes(game.download!.uri))
       );
 
       if (!repack) return null;
@@ -200,7 +202,7 @@ export function GameDetailsContextProvider({
     }
 
     return null;
-  }, [game?.uri, repacks]);
+  }, [game?.download, repacks]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onUpdateAchievements(
@@ -250,7 +252,7 @@ export function GameDetailsContextProvider({
       value={{
         game,
         shopDetails,
-        shop: shop as GameShop,
+        shop,
         repacks,
         gameTitle,
         isGameRunning,
