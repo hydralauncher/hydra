@@ -14,6 +14,7 @@ import type {
   CatalogueSearchPayload,
   SeedingStatus,
   GameAchievement,
+  Theme,
 } from "@types";
 import type { AuthPage, CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -334,4 +335,11 @@ contextBridge.exposeInMainWorld("electron", {
   /* Notifications */
   publishNewRepacksNotification: (newRepacksCount: number) =>
     ipcRenderer.invoke("publishNewRepacksNotification", newRepacksCount),
+
+  /* Themes */
+  addCustomTheme: (theme: Theme) => ipcRenderer.invoke("addCustomTheme", theme),
+  getAllCustomThemes: () => ipcRenderer.invoke("getAllCustomThemes"),
+  deleteAllCustomThemes: () => ipcRenderer.invoke("deleteAllCustomThemes"),
+  deleteCustomTheme: (themeId: string) =>
+    ipcRenderer.invoke("deleteCustomTheme", themeId),
 });
