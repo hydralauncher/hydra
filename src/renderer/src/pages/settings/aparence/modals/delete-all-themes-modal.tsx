@@ -6,13 +6,21 @@ import "./modals.scss";
 interface DeleteAllThemesModalProps {
   visible: boolean;
   onClose: () => void;
+  onThemesDeleted: () => void;
 }
 
 export const DeleteAllThemesModal = ({
   visible,
   onClose,
+  onThemesDeleted,
 }: DeleteAllThemesModalProps) => {
   const { t } = useTranslation("settings");
+
+  const handleDeleteAllThemes = async () => {
+    await window.electron.deleteAllCustomThemes();
+    onClose();
+    onThemesDeleted();
+  };
 
   return (
     <Modal
@@ -22,7 +30,7 @@ export const DeleteAllThemesModal = ({
       onClose={onClose}
     >
       <div className="delete-all-themes-modal__container">
-        <Button theme="outline" onClick={onClose}>
+        <Button theme="outline" onClick={handleDeleteAllThemes}>
           {t("delete_all_themes")}
         </Button>
 
