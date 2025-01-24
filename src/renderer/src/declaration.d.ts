@@ -269,6 +269,12 @@ declare global {
 
     /* Notifications */
     publishNewRepacksNotification: (newRepacksCount: number) => Promise<void>;
+
+    /* Themes */
+    addCustomTheme: (theme: Theme) => Promise<void>;
+    getAllCustomThemes: () => Promise<Theme[]>;
+    deleteAllCustomThemes: () => Promise<void>;
+    deleteCustomTheme: (themeId: string) => Promise<void>;
   }
 
   interface Window {
