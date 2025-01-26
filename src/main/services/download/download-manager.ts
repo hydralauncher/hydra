@@ -263,6 +263,16 @@ export class DownloadManager {
         return {
           action: "start",
           game_id: game.id,
+          url: `https://pixeldrain.com/api/file/${id}?download`,
+          save_path: game.downloadPath!,
+        };
+      }
+      case Downloader.GameDrive: {
+        const id = game.uri!.split("/").pop();
+
+        return {
+          action: "start",
+          game_id: game.id,
           url: `https://cdn.pd5-gamedriveorg.workers.dev/api/file/${id}`,
           save_path: game.downloadPath!,
         };
