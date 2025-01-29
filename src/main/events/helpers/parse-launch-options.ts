@@ -1,4 +1,4 @@
-export const parseLaunchOptions = (params: string | null): string[] => {
+export const parseLaunchOptions = (params?: string | null): string[] => {
   if (!params) {
     return [];
   }
