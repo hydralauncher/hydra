@@ -11,7 +11,7 @@ interface ThemeActionsProps {
 }
 
 export const ThemeActions = ({ onListUpdated }: ThemeActionsProps) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation('settings');
 
   const [addThemeModalVisible, setAddThemeModalVisible] = useState(false);
   const [deleteAllThemesModalVisible, setDeleteAllThemesModalVisible] =

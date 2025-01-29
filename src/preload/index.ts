@@ -342,4 +342,19 @@ contextBridge.exposeInMainWorld("electron", {
   deleteAllCustomThemes: () => ipcRenderer.invoke("deleteAllCustomThemes"),
   deleteCustomTheme: (themeId: string) =>
     ipcRenderer.invoke("deleteCustomTheme", themeId),
+  updateCustomTheme: (themeId: string, theme: Theme) =>
+    ipcRenderer.invoke("updateCustomTheme", themeId, theme),
+  getCustomThemeById: (themeId: string) =>
+    ipcRenderer.invoke("getCustomThemeById", themeId),
+  getActiveCustomTheme: () => ipcRenderer.invoke("getActiveCustomTheme"),
+
+  /* Editor */
+  openEditorWindow: (themeId: string) => ipcRenderer.invoke("openEditorWindow", themeId),
+  injectCSS: (cssString: string) =>
+    ipcRenderer.invoke("injectCSS", cssString),
+  onCssInjected: (cb: (cssString: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, cssString: string) => cb(cssString);
+    ipcRenderer.on("css-injected", listener);
+    return () => ipcRenderer.removeListener("css-injected", listener);
+  },
 });

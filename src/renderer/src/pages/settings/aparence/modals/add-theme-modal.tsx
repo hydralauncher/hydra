@@ -4,6 +4,8 @@ import { Button } from "@renderer/components/button/button";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import "./modals.scss";
+import { useUserDetails } from "@renderer/hooks";
+import { Theme } from "@types";
 
 interface AddThemeModalProps {
   visible: boolean;
@@ -17,6 +19,7 @@ export const AddThemeModal = ({
   onThemeAdded,
 }: AddThemeModalProps) => {
   const { t } = useTranslation("settings");
+  const { userDetails } = useUserDetails();
   const [name, setName] = useState("");
   const [error, setError] = useState("");
 
@@ -32,15 +35,20 @@ export const AddThemeModal = ({
       return;
     }
 
-    const theme = {
+    const theme: Theme = {
       id: crypto.randomUUID(),
       name,
       isActive: false,
+      author: userDetails?.id || undefined,
+      authorName: userDetails?.username || undefined,
       colors: {
         accent: "#c0c1c7",
         background: "#1c1c1c",
         surface: "#151515",
       },
+      code: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     await window.electron.addCustomTheme(theme);
@@ -53,8 +61,8 @@ export const AddThemeModal = ({
   return (
     <Modal
       visible={visible}
-      title={t("add_theme")}
-      description={t("add_theme_description")}
+      title={t("add_theme_modal_title")}
+      description={t("add_theme_modal_description")}
       onClose={onClose}
     >
       <div className="add-theme-modal__container">

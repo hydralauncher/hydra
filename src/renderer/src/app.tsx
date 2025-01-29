@@ -28,7 +28,9 @@ import { downloadSourcesTable } from "./dexie";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 
+import { injectCustomCss } from "./helpers";
 import "./app.scss";
+import { Theme } from "@types";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -232,6 +234,29 @@ export function App() {
 
     downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
   }, [updateRepacks]);
+
+  useEffect(() => {
+    const loadAndApplyTheme = async () => {
+      const activeTheme: Theme = await window.electron.getActiveCustomTheme();
+
+      if (activeTheme.code) {
+        injectCustomCss(activeTheme.code);
+      }
+    };
+    loadAndApplyTheme();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onCssInjected((cssString) => {
+      if (cssString) {
+        injectCustomCss(cssString);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   const handleToastClose = useCallback(() => {
     dispatch(closeToast());

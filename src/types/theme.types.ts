@@ -15,7 +15,8 @@ export interface Theme {
     optional2?: HexColorType;
   };
   description?: string;
-  author: number;
+  author: string | undefined;
+  authorName: string | undefined;
   isActive: boolean;
   code: string;
   createdAt: Date;

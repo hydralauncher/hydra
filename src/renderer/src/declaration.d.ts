@@ -275,6 +275,14 @@ declare global {
     getAllCustomThemes: () => Promise<Theme[]>;
     deleteAllCustomThemes: () => Promise<void>;
     deleteCustomTheme: (themeId: string) => Promise<void>;
+    updateCustomTheme: (themeId: string, theme: Theme) => Promise<void>;
+    getCustomThemeById: (themeId: string) => Promise<Theme | null>;
+    getActiveCustomTheme: () => Promise<Theme | null>;
+
+    /* Editor */
+    openEditorWindow: (themeId: string) => Promise<void>;
+    injectCSS: (cssString: string) => Promise<void>;
+    onCssInjected: (cb: (cssString: string) => void) => () => Electron.IpcRenderer;
   }
 
   interface Window {

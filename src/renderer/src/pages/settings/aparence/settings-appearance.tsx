@@ -25,13 +25,15 @@ export const SettingsAppearance = () => {
         {!themes.length ? (
           <ThemePlaceholder onListUpdated={loadThemes} />
         ) : (
-          themes.map((theme) => (
-            <ThemeCard
-              key={theme.id}
-              theme={theme}
-              onListUpdated={loadThemes}
-            />
-          ))
+          [...themes]
+            .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+            .map((theme) => (
+              <ThemeCard
+                key={theme.id}
+                theme={theme}
+                onListUpdated={loadThemes}
+              />
+            ))
         )}
       </div>
     </div>

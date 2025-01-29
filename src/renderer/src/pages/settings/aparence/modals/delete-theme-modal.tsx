@@ -8,6 +8,7 @@ interface DeleteThemeModalProps {
   onClose: () => void;
   themeId: string;
   onThemeDeleted: () => void;
+  themeName: string;
 }
 
 export const DeleteThemeModal = ({
@@ -15,6 +16,7 @@ export const DeleteThemeModal = ({
   onClose,
   themeId,
   onThemeDeleted,
+  themeName,
 }: DeleteThemeModalProps) => {
   const { t } = useTranslation("settings");
 
@@ -27,7 +29,7 @@ export const DeleteThemeModal = ({
     <Modal
       visible={visible}
       title={t("delete_theme")}
-      description={t("delete_theme_description")}
+      description={t("delete_theme_description", { theme: themeName })}
       onClose={onClose}
     >
       <div className="delete-all-themes-modal__container">
