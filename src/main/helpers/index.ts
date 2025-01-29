@@ -32,8 +32,3 @@ export const isPortableVersion = () => {
 
 export const normalizePath = (str: string) =>
   path.posix.normalize(str).replace(/\\/g, "/");
-
-export const isValidHexColor = (color: string): boolean => {
-  const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
-  return hexColorRegex.test(color);
-};

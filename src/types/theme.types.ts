@@ -1,5 +1,9 @@
-import { isValidHexColor } from "@main/helpers";
 import { z } from "zod";
+
+const isValidHexColor = (color: string): boolean => {
+  const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+  return hexColorRegex.test(color);
+};
 
 const hexColorSchema = z.string().refine(isValidHexColor);
 type HexColorType = z.infer<typeof hexColorSchema>;
