@@ -1,42 +1,45 @@
-import {
-  gameAchievementRepository,
-  userPreferencesRepository,
-} from "@main/repository";
-import type { AchievementData, GameShop, UnlockedAchievement } from "@types";
+import type {
+  Game,
+  GameShop,
+  UnlockedAchievement,
+  UserPreferences,
+} from "@types";
 import { WindowManager } from "../window-manager";
 import { HydraApi } from "../hydra-api";
 import { getUnlockedAchievements } from "@main/events/user/get-unlocked-achievements";
-import { Game } from "@main/entity";
 import { publishNewAchievementNotification } from "../notifications";
 import { SubscriptionRequiredError } from "@shared";
 import { achievementsLogger } from "../logger";
+import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
 
 const saveAchievementsOnLocal = async (
   objectId: string,
   shop: GameShop,
-  achievements: UnlockedAchievement[],
+  unlockedAchievements: UnlockedAchievement[],
   sendUpdateEvent: boolean
 ) => {
-  return gameAchievementRepository
-    .upsert(
-      {
-        objectId,
-        shop,
-        unlockedAchievements: JSON.stringify(achievements),
-      },
-      ["objectId", "shop"]
-    )
-    .then(() => {
-      if (!sendUpdateEvent) return;
+  const levelKey = levelKeys.game(shop, objectId);
 
-      return getUnlockedAchievements(objectId, shop, true)
-        .then((achievements) => {
-          WindowManager.mainWindow?.webContents.send(
-            `on-update-achievements-${objectId}-${shop}`,
-            achievements
-          );
-        })
-        .catch(() => {});
+  return gameAchievementsSublevel
+    .get(levelKey)
+    .then(async (gameAchievement) => {
+      if (gameAchievement) {
+        await gameAchievementsSublevel.put(levelKey, {
+          ...gameAchievement,
+          unlockedAchievements: unlockedAchievements,
+        });
+
+        if (!sendUpdateEvent) return;
+
+        return getUnlockedAchievements(objectId, shop, true)
+          .then((achievements) => {
+            WindowManager.mainWindow?.webContents.send(
+              `on-update-achievements-${objectId}-${shop}`,
+              achievements
+            );
+          })
+          .catch(() => {});
+      }
     });
 };
 
@@ -46,22 +49,14 @@ export const mergeAchievements = async (
   publishNotification: boolean
 ) => {
   const [localGameAchievement, userPreferences] = await Promise.all([
-    gameAchievementRepository.findOne({
-      where: {
-        objectId: game.objectID,
-        shop: game.shop,
-      },
+    gameAchievementsSublevel.get(levelKeys.game(game.shop, game.objectId)),
+    db.get<string, UserPreferences>(levelKeys.userPreferences, {
+      valueEncoding: "json",
     }),
-    userPreferencesRepository.findOne({ where: { id: 1 } }),
   ]);
 
-  const achievementsData = JSON.parse(
-    localGameAchievement?.achievements || "[]"
-  ) as AchievementData[];
-
-  const unlockedAchievements = JSON.parse(
-    localGameAchievement?.unlockedAchievements || "[]"
-  ).filter((achievement) => achievement.name) as UnlockedAchievement[];
+  const achievementsData = localGameAchievement?.achievements ?? [];
+  const unlockedAchievements = localGameAchievement?.unlockedAchievements ?? [];
 
   const newAchievementsMap = new Map(
     achievements.toReversed().map((achievement) => {
@@ -141,13 +136,13 @@ export const mergeAchievements = async (
         if (err! instanceof SubscriptionRequiredError) {
           achievementsLogger.log(
             "Achievements not synchronized on API due to lack of subscription",
-            game.objectID,
+            game.objectId,
             game.title
           );
         }
 
         return saveAchievementsOnLocal(
-          game.objectID,
+          game.objectId,
           game.shop,
           mergedLocalAchievements,
           publishNotification
@@ -155,7 +150,7 @@ export const mergeAchievements = async (
       });
   } else {
     await saveAchievementsOnLocal(
-      game.objectID,
+      game.objectId,
       game.shop,
       mergedLocalAchievements,
       publishNotification
