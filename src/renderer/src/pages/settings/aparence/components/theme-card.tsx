@@ -85,8 +85,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
                 style={{ backgroundColor: color }}
                 className="theme-card__header__colors__color"
                 key={key}
-              >
-              </div>
+              ></div>
             ))}
           </div>
         </div>
