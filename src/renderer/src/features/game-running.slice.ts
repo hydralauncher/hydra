@@ -10,7 +10,7 @@ const initialState: GameRunningState = {
 };
 
 export const gameRunningSlice = createSlice({
-  name: "running-game",
+  name: "game-running",
   initialState,
   reducers: {
     setGameRunning: (state, action: PayloadAction<GameRunning | null>) => {

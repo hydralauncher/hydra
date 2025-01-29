@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useDownload, useUserDetails } from "@renderer/hooks";
+import { useDownload, useLibrary, useUserDetails } from "@renderer/hooks";
 
 import "./bottom-panel.scss";
 
@@ -15,9 +15,11 @@ export function BottomPanel() {
 
   const { userDetails } = useUserDetails();
 
+  const { library } = useLibrary();
+
   const { lastPacket, progress, downloadSpeed, eta } = useDownload();
 
-  const isGameDownloading = !!lastPacket?.game;
+  const isGameDownloading = !!lastPacket;
 
   const [version, setVersion] = useState("");
   const [sessionHash, setSessionHash] = useState<null | string>("");
@@ -32,27 +34,29 @@ export function BottomPanel() {
 
   const status = useMemo(() => {
     if (isGameDownloading) {
+      const game = library.find((game) => game.id === lastPacket?.gameId)!;
+
       if (lastPacket?.isCheckingFiles)
         return t("checking_files", {
-          title: lastPacket?.game.title,
+          title: game.title,
           percentage: progress,
         });
 
       if (lastPacket?.isDownloadingMetadata)
         return t("downloading_metadata", {
-          title: lastPacket?.game.title,
+          title: game.title,
           percentage: progress,
         });
 
       if (!eta) {
         return t("calculating_eta", {
-          title: lastPacket?.game.title,
+          title: game.title,
           percentage: progress,
         });
       }
 
       return t("downloading", {
-        title: lastPacket?.game.title,
+        title: game.title,
         percentage: progress,
         eta,
         speed: downloadSpeed,
@@ -60,16 +64,7 @@ export function BottomPanel() {
     }
 
     return t("no_downloads_in_progress");
-  }, [
-    t,
-    isGameDownloading,
-    lastPacket?.game,
-    lastPacket?.isDownloadingMetadata,
-    lastPacket?.isCheckingFiles,
-    progress,
-    eta,
-    downloadSpeed,
-  ]);
+  }, [t, isGameDownloading, library, lastPacket, progress, eta, downloadSpeed]);
 
   return (
     <footer className="bottom-panel">

@@ -1,42 +1,29 @@
-import type { ProfileVisibility, UserDetails } from "@types";
+import { User, type ProfileVisibility, type UserDetails } from "@types";
 import { HydraApi } from "../hydra-api";
-import {
-  userAuthRepository,
-  userSubscriptionRepository,
-} from "@main/repository";
 import { UserNotLoggedInError } from "@shared";
 import { logger } from "../logger";
+import { db } from "@main/level";
+import { levelKeys } from "@main/level/sublevels";
 
-export const getUserData = () => {
+export const getUserData = async () => {
   return HydraApi.get<UserDetails>(`/profile/me`)
     .then(async (me) => {
-      userAuthRepository.upsert(
-        {
-          id: 1,
-          displayName: me.displayName,
-          profileImageUrl: me.profileImageUrl,
-          backgroundImageUrl: me.backgroundImageUrl,
-          userId: me.id,
-        },
-        ["id"]
+      db.get<string, User>(levelKeys.user, { valueEncoding: "json" }).then(
+        (user) => {
+          return db.put<string, User>(
+            levelKeys.user,
+            {
+              ...user,
+              id: me.id,
+              displayName: me.displayName,
+              profileImageUrl: me.profileImageUrl,
+              backgroundImageUrl: me.backgroundImageUrl,
+              subscription: me.subscription,
+            },
+            { valueEncoding: "json" }
+          );
+        }
       );
-
-      if (me.subscription) {
-        await userSubscriptionRepository.upsert(
-          {
-            id: 1,
-            subscriptionId: me.subscription?.id || "",
-            status: me.subscription?.status || "",
-            planId: me.subscription?.plan.id || "",
-            planName: me.subscription?.plan.name || "",
-            expiresAt: me.subscription?.expiresAt || null,
-            user: { id: 1 },
-          },
-          ["id"]
-        );
-      } else {
-        await userSubscriptionRepository.delete({ id: 1 });
-      }
 
       return me;
     })
@@ -45,15 +32,14 @@ export const getUserData = () => {
         return null;
       }
       logger.error("Failed to get logged user");
-      const loggedUser = await userAuthRepository.findOne({
-        where: { id: 1 },
-        relations: { subscription: true },
+
+      const loggedUser = await db.get<string, User>(levelKeys.user, {
+        valueEncoding: "json",
       });
 
       if (loggedUser) {
         return {
           ...loggedUser,
-          id: loggedUser.userId,
           username: "",
           bio: "",
           email: null,
@@ -63,11 +49,11 @@ export const getUserData = () => {
           },
           subscription: loggedUser.subscription
             ? {
-                id: loggedUser.subscription.subscriptionId,
+                id: loggedUser.subscription.id,
                 status: loggedUser.subscription.status,
                 plan: {
-                  id: loggedUser.subscription.planId,
-                  name: loggedUser.subscription.planName,
+                  id: loggedUser.subscription.plan.id,
+                  name: loggedUser.subscription.plan.name,
                 },
                 expiresAt: loggedUser.subscription.expiresAt,
               }

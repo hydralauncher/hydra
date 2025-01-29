@@ -1,13 +1,11 @@
 import { registerEvent } from "../register-event";
-import type { StartGameDownloadPayload } from "@types";
+import type { Download, StartGameDownloadPayload } from "@types";
 import { DownloadManager, HydraApi } from "@main/services";
 
-import { Not } from "typeorm";
 import { steamGamesWorker } from "@main/workers";
 import { createGame } from "@main/services/library-sync";
 import { steamUrlBuilder } from "@shared";
-import { dataSource } from "@main/data-source";
-import { DownloadQueue, Game } from "@main/entity";
+import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -15,85 +13,85 @@ const startGameDownload = async (
 ) => {
   const { objectId, title, shop, downloadPath, downloader, uri } = payload;
 
-  return dataSource.transaction(async (transactionalEntityManager) => {
-    const gameRepository = transactionalEntityManager.getRepository(Game);
-    const downloadQueueRepository =
-      transactionalEntityManager.getRepository(DownloadQueue);
+  const gameKey = levelKeys.game(shop, objectId);
 
-    const game = await gameRepository.findOne({
-      where: {
-        objectID: objectId,
-        shop,
-      },
-    });
+  await DownloadManager.pauseDownload();
 
-    await DownloadManager.pauseDownload();
-
-    await gameRepository.update(
-      { status: "active", progress: Not(1) },
-      { status: "paused" }
-    );
-
-    if (game) {
-      await gameRepository.update(
-        {
-          id: game.id,
-        },
-        {
-          status: "active",
-          progress: 0,
-          bytesDownloaded: 0,
-          downloadPath,
-          downloader,
-          uri,
-          isDeleted: false,
-        }
-      );
-    } else {
-      const steamGame = await steamGamesWorker.run(Number(objectId), {
-        name: "getById",
-      });
-
-      const iconUrl = steamGame?.clientIcon
-        ? steamUrlBuilder.icon(objectId, steamGame.clientIcon)
-        : null;
-
-      await gameRepository.insert({
-        title,
-        iconUrl,
-        objectID: objectId,
-        downloader,
-        shop,
-        status: "active",
-        downloadPath,
-        uri,
+  for await (const [key, value] of downloadsSublevel.iterator()) {
+    if (value.status === "active" && value.progress !== 1) {
+      await downloadsSublevel.put(key, {
+        ...value,
+        status: "paused",
       });
     }
+  }
 
-    const updatedGame = await gameRepository.findOne({
-      where: {
-        objectID: objectId,
-      },
+  const game = await gamesSublevel.get(gameKey);
+
+  /* Delete any previous download */
+  await downloadsSublevel.del(gameKey);
+
+  if (game?.isDeleted) {
+    await gamesSublevel.put(gameKey, {
+      ...game,
+      isDeleted: false,
+    });
+  } else {
+    const steamGame = await steamGamesWorker.run(Number(objectId), {
+      name: "getById",
     });
 
-    await DownloadManager.cancelDownload(updatedGame!.id);
-    await DownloadManager.startDownload(updatedGame!);
+    const iconUrl = steamGame?.clientIcon
+      ? steamUrlBuilder.icon(objectId, steamGame.clientIcon)
+      : null;
 
-    await downloadQueueRepository.delete({ game: { id: updatedGame!.id } });
-    await downloadQueueRepository.insert({ game: { id: updatedGame!.id } });
+    await gamesSublevel.put(gameKey, {
+      title,
+      iconUrl,
+      objectId,
+      shop,
+      remoteId: null,
+      playTimeInMilliseconds: 0,
+      lastTimePlayed: null,
+      isDeleted: false,
+    });
+  }
 
-    await Promise.all([
-      createGame(updatedGame!).catch(() => {}),
-      HydraApi.post(
-        "/games/download",
-        {
-          objectId: updatedGame!.objectID,
-          shop: updatedGame!.shop,
-        },
-        { needsAuth: false }
-      ).catch(() => {}),
-    ]);
-  });
+  await DownloadManager.cancelDownload(gameKey);
+
+  const download: Download = {
+    shop,
+    objectId,
+    status: "active",
+    progress: 0,
+    bytesDownloaded: 0,
+    downloadPath,
+    downloader,
+    uri,
+    folderName: null,
+    fileSize: null,
+    shouldSeed: false,
+    timestamp: Date.now(),
+    queued: true,
+  };
+
+  await downloadsSublevel.put(gameKey, download);
+
+  await DownloadManager.startDownload(download);
+
+  const updatedGame = await gamesSublevel.get(gameKey);
+
+  await Promise.all([
+    createGame(updatedGame!).catch(() => {}),
+    HydraApi.post(
+      "/games/download",
+      {
+        objectId,
+        shop,
+      },
+      { needsAuth: false }
+    ).catch(() => {}),
+  ]);
 };
 
 registerEvent("startGameDownload", startGameDownload);

@@ -38,6 +38,13 @@ export default defineConfig(({ mode }) => {
       build: {
         sourcemap: true,
       },
+      css: {
+        preprocessorOptions: {
+          scss: {
+            api: "modern",
+          },
+        },
+      },
       resolve: {
         alias: {
           "@renderer": resolve("src/renderer/src"),
