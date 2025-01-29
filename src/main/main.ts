@@ -21,7 +21,17 @@ import {
 import { Auth, User, type UserPreferences } from "@types";
 import { knexClient } from "./knex-client";
 
-export const loadState = async (userPreferences: UserPreferences | null) => {
+export const loadState = async () => {
+  const userPreferences = await migrateFromSqlite().then(async () => {
+    await db.put<string, boolean>(levelKeys.sqliteMigrationDone, true, {
+      valueEncoding: "json",
+    });
+
+    return db.get<string, UserPreferences>(levelKeys.userPreferences, {
+      valueEncoding: "json",
+    });
+  });
+
   await import("./events");
 
   Aria2.spawn();
@@ -192,15 +202,3 @@ const migrateFromSqlite = async () => {
     migrateUser,
   ]);
 };
-
-migrateFromSqlite().then(async () => {
-  await db.put<string, boolean>(levelKeys.sqliteMigrationDone, true, {
-    valueEncoding: "json",
-  });
-
-  db.get<string, UserPreferences>(levelKeys.userPreferences, {
-    valueEncoding: "json",
-  }).then((userPreferences) => {
-    loadState(userPreferences);
-  });
-});
