@@ -96,12 +96,12 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
           <p className="theme-card__author">
             {t("by")}
 
-            <span
+            <button
               className="theme-card__author__name"
               onClick={() => navigate(`/profile/${theme.author}`)}
             >
               {theme.authorName}
-            </span>
+            </button>
           </p>
         )}
 
