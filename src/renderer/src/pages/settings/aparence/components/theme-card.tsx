@@ -86,7 +86,6 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
                 className="theme-card__header__colors__color"
                 key={key}
               >
-                {/* color circle */}
               </div>
             ))}
           </div>

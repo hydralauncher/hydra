@@ -238,6 +238,10 @@ export class WindowManager {
       editorWindow.once("ready-to-show", () => {
         editorWindow.show();
       });
+
+      editorWindow.on("close", () => {
+        this.mainWindow?.webContents.closeDevTools();
+      });
     }
   }
 
