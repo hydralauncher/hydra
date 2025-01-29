@@ -2,11 +2,11 @@ import { registerEvent } from "../register-event";
 import { WindowManager } from "@main/services";
 
 const injectCSS = async (
-    _event: Electron.IpcMainInvokeEvent,
-    cssString: string
+  _event: Electron.IpcMainInvokeEvent,
+  cssString: string
 ) => {
-    WindowManager.mainWindow?.webContents.send("css-injected", cssString);
-    return;
+  WindowManager.mainWindow?.webContents.send("css-injected", cssString);
+  return;
 };
 
-registerEvent("injectCSS", injectCSS); 
+registerEvent("injectCSS", injectCSS);

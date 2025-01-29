@@ -230,15 +230,10 @@ export class WindowManager {
           `${process.env["ELECTRON_RENDERER_URL"]}#/editor?themeId=${themeId}`
         );
       } else {
-        editorWindow.loadFile(
-          path.join(__dirname, "../renderer/index.html"),
-          {
-            hash: "editor",
-          }
-        );
+        editorWindow.loadFile(path.join(__dirname, "../renderer/index.html"), {
+          hash: "editor",
+        });
       }
-
-
 
       editorWindow.once("ready-to-show", () => {
         editorWindow.show();

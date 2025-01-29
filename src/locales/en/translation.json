@@ -315,7 +315,8 @@
     "delete_all_themes": "Delete all themes",
     "delete_all_themes_description": "This will delete all your custom themes",
     "delete_theme_description": "This will delete the theme {{theme}}",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "appearance": "Appearance"
   },
   "notifications": {
     "download_complete": "Download complete",
