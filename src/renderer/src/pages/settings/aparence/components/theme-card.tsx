@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import "./theme-card.scss";
 import { useState } from "react";
 import { DeleteThemeModal } from "../modals/delete-theme-modal";
+import { injectCustomCss, removeCustomCss } from "@renderer/helpers";
 
 interface ThemeCardProps {
   theme: Theme;
@@ -13,10 +14,52 @@ interface ThemeCardProps {
 }
 
 export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation('settings');
   const navigate = useNavigate();
 
   const [deleteThemeModalVisible, setDeleteThemeModalVisible] = useState(false);
+
+  const handleSetTheme = async () => {
+    try {
+      const currentTheme = await window.electron.getCustomThemeById(theme.id);
+
+      if (!currentTheme) return;
+
+      const activeTheme = await window.electron.getActiveCustomTheme();
+      
+      if (activeTheme) {
+        removeCustomCss();
+        await window.electron.updateCustomTheme(activeTheme.id, {
+          ...activeTheme,
+          isActive: false
+        });
+      }
+
+      injectCustomCss(currentTheme.code);
+      await window.electron.updateCustomTheme(currentTheme.id, {
+        ...currentTheme,
+        isActive: true
+      });
+
+      onListUpdated();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleUnsetTheme = async () => {
+    try {
+      removeCustomCss();
+      await window.electron.updateCustomTheme(theme.id, {
+        ...theme,
+        isActive: false
+      });
+
+      onListUpdated();
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <>
@@ -25,6 +68,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
         onClose={() => setDeleteThemeModalVisible(false)}
         onThemeDeleted={onListUpdated}
         themeId={theme.id}
+        themeName={theme.name}
       />
 
       <div
@@ -48,7 +92,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
           </div>
         </div>
 
-        {theme.author && theme.author && (
+        {theme.authorName && (
           <p className="theme-card__author">
             {t("by")}
 
@@ -56,7 +100,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
               className="theme-card__author__name"
               onClick={() => navigate(`/profile/${theme.author}`)}
             >
-              {theme.author}
+              {theme.authorName}
             </span>
           </p>
         )}
@@ -64,14 +108,22 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
         <div className="theme-card__actions">
           <div className="theme-card__actions__left">
             {theme.isActive ? (
-              <Button theme="dark">{t("unset_theme	")}</Button>
+              <Button onClick={handleUnsetTheme} theme="dark">
+                {t("unset_theme")}
+              </Button>
             ) : (
-              <Button theme="outline">{t("set_theme")}</Button>
+              <Button onClick={handleSetTheme} theme="outline">
+                {t("set_theme")}
+              </Button>
             )}
           </div>
 
           <div className="theme-card__actions__right">
-            <Button title={t("edit_theme")} theme="outline">
+            <Button
+              onClick={() => window.electron.openEditorWindow(theme.id)}
+              title={t("edit_theme")}
+              theme="outline"
+            >
               <PencilIcon />
             </Button>
 
