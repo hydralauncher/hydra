@@ -26,7 +26,11 @@ export const SettingsAppearance = () => {
           <ThemePlaceholder onListUpdated={loadThemes} />
         ) : (
           [...themes]
-            .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+            .sort(
+              (a, b) =>
+                new Date(b.updatedAt).getTime() -
+                new Date(a.updatedAt).getTime()
+            )
             .map((theme) => (
               <ThemeCard
                 key={theme.id}

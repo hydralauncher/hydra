@@ -14,7 +14,7 @@ interface ThemeCardProps {
 }
 
 export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
-  const { t } = useTranslation('settings');
+  const { t } = useTranslation("settings");
   const navigate = useNavigate();
 
   const [deleteThemeModalVisible, setDeleteThemeModalVisible] = useState(false);
@@ -26,19 +26,19 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
       if (!currentTheme) return;
 
       const activeTheme = await window.electron.getActiveCustomTheme();
-      
+
       if (activeTheme) {
         removeCustomCss();
         await window.electron.updateCustomTheme(activeTheme.id, {
           ...activeTheme,
-          isActive: false
+          isActive: false,
         });
       }
 
       injectCustomCss(currentTheme.code);
       await window.electron.updateCustomTheme(currentTheme.id, {
         ...currentTheme,
-        isActive: true
+        isActive: true,
       });
 
       onListUpdated();
@@ -52,7 +52,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
       removeCustomCss();
       await window.electron.updateCustomTheme(theme.id, {
         ...theme,
-        isActive: false
+        isActive: false,
       });
 
       onListUpdated();

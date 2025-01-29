@@ -1,22 +1,26 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import "./editor.scss";
-import Editor from '@monaco-editor/react';
-import { Theme } from '@types';
-import { useSearchParams } from 'react-router-dom';
-import { Button } from '@renderer/components';
-import { CheckIcon, CodeIcon, ProjectRoadmapIcon } from '@primer/octicons-react';
-import { useTranslation } from 'react-i18next';
+import Editor from "@monaco-editor/react";
+import { Theme } from "@types";
+import { useSearchParams } from "react-router-dom";
+import { Button } from "@renderer/components";
+import {
+  CheckIcon,
+  CodeIcon,
+  ProjectRoadmapIcon,
+} from "@primer/octicons-react";
+import { useTranslation } from "react-i18next";
 
 const EditorPage = () => {
   const [searchParams] = useSearchParams();
   const [theme, setTheme] = useState<Theme | null>(null);
-  const [code, setCode] = useState('');
-  const [activeTab, setActiveTab] = useState('code');
+  const [code, setCode] = useState("");
+  const [activeTab, setActiveTab] = useState("code");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  const themeId = searchParams.get('themeId');
+  const themeId = searchParams.get("themeId");
 
-  const { t } = useTranslation('settings');
+  const { t } = useTranslation("settings");
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -24,7 +28,7 @@ const EditorPage = () => {
 
   useEffect(() => {
     if (themeId) {
-      window.electron.getCustomThemeById(themeId).then(loadedTheme => {
+      window.electron.getCustomThemeById(themeId).then((loadedTheme) => {
         if (loadedTheme) {
           setTheme(loadedTheme);
           setCode(loadedTheme.code);
@@ -35,16 +39,16 @@ const EditorPage = () => {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+      if ((event.ctrlKey || event.metaKey) && event.key === "s") {
         event.preventDefault();
         handleSave();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [code, theme]);
 
@@ -60,7 +64,7 @@ const EditorPage = () => {
       const updatedTheme = {
         ...theme,
         code: code,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       await window.electron.updateCustomTheme(theme.id, updatedTheme);
@@ -76,13 +80,10 @@ const EditorPage = () => {
     <div className="editor">
       <div className="editor__header">
         <h1>{theme?.name}</h1>
-        {hasUnsavedChanges && (
-          <div className="editor__header__status">
-          </div>
-        )}
+        {hasUnsavedChanges && <div className="editor__header__status"></div>}
       </div>
 
-      {activeTab === 'code' && (
+      {activeTab === "code" && (
         <Editor
           theme="vs-dark"
           defaultLanguage="css"
@@ -91,37 +92,45 @@ const EditorPage = () => {
           options={{
             minimap: { enabled: false },
             fontSize: 14,
-            lineNumbers: 'on',
-            wordWrap: 'on',
+            lineNumbers: "on",
+            wordWrap: "on",
             automaticLayout: true,
           }}
         />
       )}
 
-      {activeTab === 'info' && (
+      {activeTab === "info" && (
         <div className="editor__info">
-          entao mano eu ate fiz isso aqui mas tava feio dms ai deu vergonha e removi kkkk
+          entao mano eu ate fiz isso aqui mas tava feio dms ai deu vergonha e
+          removi kkkk
         </div>
       )}
 
       <div className="editor__footer">
         <div className="editor__footer-actions">
           <div className="editor__footer-actions__tabs">
-            <Button onClick={() => handleTabChange('code')} theme='dark' className={activeTab === 'code' ? 'active' : ''}>
+            <Button
+              onClick={() => handleTabChange("code")}
+              theme="dark"
+              className={activeTab === "code" ? "active" : ""}
+            >
               <CodeIcon />
-              {t('editor_tab_code')}
+              {t("editor_tab_code")}
             </Button>
-            <Button onClick={() => handleTabChange('info')} theme='dark' className={activeTab === 'info' ? 'active' : ''}>
+            <Button
+              onClick={() => handleTabChange("info")}
+              theme="dark"
+              className={activeTab === "info" ? "active" : ""}
+            >
               <ProjectRoadmapIcon />
-              {t('editor_tab_info')}
+              {t("editor_tab_info")}
             </Button>
           </div>
 
           <Button onClick={handleSave}>
             <CheckIcon />
-            {t('editor_tab_save')}
+            {t("editor_tab_save")}
           </Button>
-
         </div>
       </div>
     </div>
