@@ -23,6 +23,8 @@ import { AuthPage } from "@shared";
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
 
+  private static editorWindows: Map<string, BrowserWindow> = new Map();
+
   private static loadMainWindowURL(hash = "") {
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
@@ -196,6 +198,15 @@ export class WindowManager {
 
   public static openEditorWindow(themeId: string) {
     if (this.mainWindow) {
+      const existingWindow = this.editorWindows.get(themeId);
+      if (existingWindow) {
+        if (existingWindow.isMinimized()) {
+          existingWindow.restore();
+        }
+        existingWindow.focus();
+        return;
+      }
+
       const editorWindow = new BrowserWindow({
         width: 600,
         height: 720,
@@ -217,6 +228,8 @@ export class WindowManager {
         show: false,
       });
 
+      this.editorWindows.set(themeId, editorWindow);
+
       editorWindow.removeMenu();
 
       if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
@@ -237,6 +250,7 @@ export class WindowManager {
 
       editorWindow.on("close", () => {
         WindowManager.mainWindow?.webContents.closeDevTools();
+        this.editorWindows.delete(themeId);
       });
     }
   }
