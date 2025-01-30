@@ -217,12 +217,6 @@ export class WindowManager {
         show: false,
       });
 
-      if (!app.isPackaged) {
-        editorWindow.webContents.openDevTools();
-      } else {
-        this.mainWindow?.webContents.openDevTools();
-      }
-
       editorWindow.removeMenu();
 
       if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
@@ -231,7 +225,7 @@ export class WindowManager {
         );
       } else {
         editorWindow.loadFile(path.join(__dirname, "../renderer/index.html"), {
-          hash: "editor",
+          hash: `editor?themeId=${themeId}`,
         });
       }
 
@@ -239,8 +233,10 @@ export class WindowManager {
         editorWindow.show();
       });
 
+      WindowManager.mainWindow?.webContents.openDevTools();
+
       editorWindow.on("close", () => {
-        this.mainWindow?.webContents.closeDevTools();
+        WindowManager.mainWindow?.webContents.closeDevTools();
       });
     }
   }
