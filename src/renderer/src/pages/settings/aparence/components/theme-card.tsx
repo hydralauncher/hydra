@@ -35,7 +35,10 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
         });
       }
 
-      injectCustomCss(currentTheme.code);
+      if (currentTheme.code) {
+        injectCustomCss(currentTheme.code);
+      }
+
       await window.electron.updateCustomTheme(currentTheme.id, {
         ...currentTheme,
         isActive: true,
