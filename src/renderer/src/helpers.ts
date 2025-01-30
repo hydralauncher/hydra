@@ -62,7 +62,7 @@ export const injectCustomCss = (css: string) => {
     }
 
     const style = document.createElement("style");
-    
+
     style.id = "custom-css";
     style.textContent = `
       ${css}
