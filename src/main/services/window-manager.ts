@@ -248,6 +248,13 @@ export class WindowManager {
 
       WindowManager.mainWindow?.webContents.openDevTools();
 
+      editorWindow.webContents.on("before-input-event", (event, input) => {
+        if (input.key === "F12") {
+          event.preventDefault();
+          this.mainWindow?.webContents.toggleDevTools();
+        }
+      });
+
       editorWindow.on("close", () => {
         WindowManager.mainWindow?.webContents.closeDevTools();
         this.editorWindows.delete(themeId);
