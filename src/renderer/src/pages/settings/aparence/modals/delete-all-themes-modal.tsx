@@ -2,6 +2,7 @@ import { Button } from "@renderer/components/button/button";
 import { Modal } from "@renderer/components/modal/modal";
 import { useTranslation } from "react-i18next";
 import "./modals.scss";
+import { removeCustomCss } from "@renderer/helpers";
 
 interface DeleteAllThemesModalProps {
   visible: boolean;
@@ -17,6 +18,12 @@ export const DeleteAllThemesModal = ({
   const { t } = useTranslation("settings");
 
   const handleDeleteAllThemes = async () => {
+    const activeTheme = await window.electron.getActiveCustomTheme();
+
+    if (activeTheme) {
+      removeCustomCss();
+    }
+
     await window.electron.deleteAllCustomThemes();
     onClose();
     onThemesDeleted();

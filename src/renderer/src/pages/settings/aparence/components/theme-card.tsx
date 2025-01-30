@@ -69,6 +69,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
         onThemeDeleted={onListUpdated}
         themeId={theme.id}
         themeName={theme.name}
+        isActive={theme.isActive}
       />
 
       <div
