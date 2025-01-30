@@ -26,7 +26,9 @@
     "game_has_no_executable": "Jogo não possui executável selecionado",
     "sign_in": "Login",
     "friends": "Amigos",
-    "need_help": "Precisa de ajuda?"
+    "need_help": "Precisa de ajuda?",
+    "aria_view_profile": "Ver perfil",
+    "resize_sidebar": "Redimensionar barra lateral"
   },
   "header": {
     "search": "Buscar jogos",
@@ -36,7 +38,9 @@
     "settings": "Ajustes",
     "home": "Início",
     "version_available_install": "Versão {{version}} disponível. Clique aqui para reiniciar e instalar.",
-    "version_available_download": "Versão {{version}} disponível. Clique aqui para fazer o download."
+    "version_available_download": "Versão {{version}} disponível. Clique aqui para fazer o download.",
+    "back": "Voltar",
+    "clear_search": "Limpar busca"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Sem downloads em andamento",
@@ -129,6 +133,7 @@
     "warning": "Aviso:",
     "hydra_needs_to_remain_open": "para este download, o Hydra precisa ficar aberto até a conclusão. Caso o Hydra encerre antes da conclusão, perderá seu progresso.",
     "achievements": "Conquistas",
+    "achievement": "Conquista",
     "achievements_count": "Conquistas ({{unlockedCount}}/{{achievementsCount}})",
     "cloud_save": "Salvamento em nuvem",
     "cloud_save_description": "Mantenha seu progresso na nuvem e continue de onde parou em qualquer dispositivo",
@@ -406,6 +411,7 @@
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",
+    "achievement_locked": "Conquista bloqueada",
     "your_achievements": "Suas Conquistas",
     "user_achievements": "Conquistas de {{displayName}}",
     "unlocked_at": "Desbloqueada em: {{date}}",
@@ -417,7 +423,8 @@
     "achievement_earn_points": "Ganhe {{points}} pontos com essa conquista",
     "earned_points": "Pontos ganhos:",
     "available_points": "Pontos disponíveis:",
-    "how_to_earn_achievements_points": "Como desbloquear pontos nas conquistas?"
+    "how_to_earn_achievements_points": "Como desbloquear pontos nas conquistas?",
+    "aria_achievement_summary": "Conquistas de {{userDisplayName}} em {{gameTitle}}, {{userAchievementCount}} desbloqueadas de {{userTotalAchievementCount}}, {{percentage}} concluídas"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Assinatura Hydra Cloud",

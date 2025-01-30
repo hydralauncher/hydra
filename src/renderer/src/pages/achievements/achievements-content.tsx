@@ -15,6 +15,7 @@ import { average } from "color.js";
 import Color from "color";
 import { Link } from "@renderer/components";
 import { ComparedAchievementList } from "./compared-achievement-list";
+import { TFunction } from "i18next/typescript/t";
 import * as styles from "./achievements.css";
 import { AchievementList } from "./achievement-list";
 import { AchievementPanel } from "./achievement-panel";
@@ -39,9 +40,35 @@ interface AchievementSummaryProps {
   isComparison?: boolean;
 }
 
+const ariaLabelSummary = (
+  t: TFunction,
+  gameTitle: string,
+  user: UserInfo
+): string => {
+  return t("aria_achievement_summary", {
+    userDisplayName: user.displayName,
+    gameTitle: gameTitle,
+    userAchievementCount: user.unlockedAchievementCount,
+    userTotalAchievementCount: user.totalAchievementCount,
+    percentage: formatDownloadProgress(
+      user.unlockedAchievementCount / user.totalAchievementCount
+    ),
+  });
+};
+
+const ariaLabelAchievement = (
+  t: TFunction,
+  achievement: UserAchievement
+): string => {
+  return `${
+    achievement.unlocked ? t("achievement_unlocked") : t("achievement_locked")
+  }, ${achievement.displayName}, ${achievement.description}`;
+};
+
 function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
   const { t } = useTranslation("achievement");
   const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { handleClickOpenCheckout, gameTitle } = useContext(gameDetailsContext);
   const { showHydraCloudModal } = useSubscription();
 
   const getProfileImage = (
@@ -124,6 +151,8 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
         alignItems: "center",
         padding: `${SPACING_UNIT}px`,
       }}
+      role="region"
+      aria-label={ariaLabelSummary(t, gameTitle, user)}
     >
       {getProfileImage(user)}
       <div

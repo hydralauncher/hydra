@@ -58,6 +58,24 @@ export function Header() {
     navigate(-1);
   };
 
+  useEffect(() => {
+    window.onkeydown = (event: KeyboardEvent) => {
+      const { key, ctrlKey } = event;
+      if (!isFocused && ctrlKey && key === "k") {
+        focusInput();
+      }
+
+      if (isFocused && key === "Escape" && inputRef.current) {
+        inputRef.current.blur();
+        handleBlur();
+      }
+    };
+
+    return () => {
+      window.onkeydown = null;
+    };
+  }, [isFocused]);
+
   const handleSearch = (value: string) => {
     dispatch(setFilters({ title: value }));
 
@@ -88,6 +106,7 @@ export function Header() {
             })}
             onClick={handleBackButtonClick}
             disabled={location.key === "default"}
+            title={t("back")}
           >
             <ArrowLeftIcon />
           </button>
@@ -107,6 +126,8 @@ export function Header() {
               type="button"
               className={styles.actionButton}
               onClick={focusInput}
+              tabIndex={-1}
+              title={t("search")}
             >
               <SearchIcon />
             </button>
@@ -128,6 +149,7 @@ export function Header() {
                 type="button"
                 onClick={() => dispatch(setFilters({ title: "" }))}
                 className={styles.actionButton}
+                title={t("clear_search")}
               >
                 <XIcon />
               </button>
