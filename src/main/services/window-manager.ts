@@ -244,9 +244,8 @@ export class WindowManager {
 
       editorWindow.once("ready-to-show", () => {
         editorWindow.show();
+        WindowManager.mainWindow?.webContents.openDevTools();
       });
-
-      WindowManager.mainWindow?.webContents.openDevTools();
 
       editorWindow.webContents.on("before-input-event", (event, input) => {
         if (input.key === "F12") {
