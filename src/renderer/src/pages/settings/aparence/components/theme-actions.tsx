@@ -1,5 +1,4 @@
-import { GlobeIcon, TrashIcon } from "@primer/octicons-react";
-import { PlusIcon } from "@primer/octicons-react";
+import { GlobeIcon, TrashIcon, PlusIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components/button/button";
 import { useTranslation } from "react-i18next";
 import { AddThemeModal, DeleteAllThemesModal } from "../index";

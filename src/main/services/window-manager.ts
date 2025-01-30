@@ -23,7 +23,7 @@ import { AuthPage } from "@shared";
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
 
-  private static editorWindows: Map<string, BrowserWindow> = new Map();
+  private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
 
   private static loadMainWindowURL(hash = "") {
     // HMR for renderer base on electron-vite cli.

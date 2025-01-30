@@ -6,7 +6,6 @@ const injectCSS = async (
   cssString: string
 ) => {
   WindowManager.mainWindow?.webContents.send("css-injected", cssString);
-  return;
 };
 
 registerEvent("injectCSS", injectCSS);
