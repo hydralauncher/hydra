@@ -285,6 +285,7 @@ declare global {
     onCssInjected: (
       cb: (cssString: string) => void
     ) => () => Electron.IpcRenderer;
+    closeEditorWindow: (themeId?: string) => Promise<void>;
   }
 
   interface Window {

@@ -358,4 +358,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("css-injected", listener);
     return () => ipcRenderer.removeListener("css-injected", listener);
   },
+  closeEditorWindow: (themeId?: string) =>
+    ipcRenderer.invoke("closeEditorWindow", themeId),
 });

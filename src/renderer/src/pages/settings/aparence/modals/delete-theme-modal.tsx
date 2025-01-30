@@ -29,6 +29,7 @@ export const DeleteThemeModal = ({
     }
 
     await window.electron.deleteCustomTheme(themeId);
+    await window.electron.closeEditorWindow(themeId);
     onThemeDeleted();
   };
 
