@@ -15,7 +15,7 @@ import {
   LibtorrentStatus,
   PauseDownloadPayload,
 } from "./types";
-import { calculateETA, getDirSize } from "./helpers";
+import { calculateETA, getDirSize, unzipFile } from "./helpers";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { RealDebridClient } from "./real-debrid";
 import path from "path";
@@ -139,6 +139,12 @@ export class DownloadManager {
           );
 
           this.cancelDownload(gameId);
+
+          if (game.uri?.endsWith(".zip")) {
+            const zipFilePath = path.join(game.downloadPath!, game.folderName!);
+            const outputDir = path.join(game.downloadPath!, game.folderName!);
+            await unzipFile(zipFilePath, outputDir);
+          }
         }
 
         await downloadQueueRepository.delete({ game });
