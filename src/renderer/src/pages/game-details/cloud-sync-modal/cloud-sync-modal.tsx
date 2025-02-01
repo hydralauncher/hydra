@@ -93,7 +93,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
   const backupStateLabel = useMemo(() => {
     if (uploadingBackup) {
       return (
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span className="cloud-sync-modal__backup-state-label">
           <SyncIcon className="cloud-sync-modal__sync-icon" />
           {t("uploading_backup")}
         </span>
@@ -102,7 +102,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
 
     if (restoringBackup) {
       return (
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span className="cloud-sync-modal__backup-state-label">
           <SyncIcon className="cloud-sync-modal__sync-icon" />
           {t("restoring_backup", {
             progress: formatDownloadProgress(
@@ -115,7 +115,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
 
     if (loadingPreview) {
       return (
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span className="cloud-sync-modal__backup-state-label">
           <SyncIcon className="cloud-sync-modal__sync-icon" />
           {t("loading_save_preview")}
         </span>

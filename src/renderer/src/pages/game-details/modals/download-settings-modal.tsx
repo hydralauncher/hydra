@@ -187,7 +187,7 @@ export function DownloadSettingsModal({
             }
             rightContent={
               <Button
-                style={{ alignSelf: "flex-end" }}
+                className="download-settings-modal__change-path-button"
                 theme="outline"
                 onClick={handleChooseDownloadsPath}
                 disabled={downloadStarting}

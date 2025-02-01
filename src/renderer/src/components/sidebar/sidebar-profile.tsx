@@ -73,9 +73,9 @@ export function SidebarProfile() {
     if (gameRunning.iconUrl) {
       return (
         <img
+          className="sidebar-profile__game-running-icon"
           alt={gameRunning.title}
           width={24}
-          style={{ borderRadius: 4 }}
           src={gameRunning.iconUrl}
         />
       );
@@ -104,15 +104,7 @@ export function SidebarProfile() {
             </p>
 
             {userDetails && gameRunning && (
-              <div
-                style={{
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  width: "100%",
-                  textAlign: "left",
-                }}
-              >
+              <div className="sidebar-profile__button-game-running-title">
                 <small>{gameRunning.title}</small>
               </div>
             )}

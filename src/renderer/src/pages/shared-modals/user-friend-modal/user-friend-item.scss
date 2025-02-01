@@ -29,6 +29,21 @@
     color: globals.$body-color;
     gap: calc(globals.$spacing-unit + globals.$spacing-unit / 2);
     padding: 0 globals.$spacing-unit;
+
+    &__content {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      flex: 1;
+      min-width: 0;
+    }
+
+    &__actions {
+      position: absolute;
+      right: 8px;
+      display: flex;
+      gap: 8px;
+    }
   }
 
   &__display-name {

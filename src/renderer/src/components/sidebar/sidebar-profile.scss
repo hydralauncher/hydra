@@ -74,4 +74,16 @@
     top: -5px;
     right: -5px;
   }
+
+  &__game-running-icon {
+    border-radius: 4px;
+  }
+
+  &__button-game-running-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+    text-align: left;
+  }
 }

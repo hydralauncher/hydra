@@ -2,11 +2,11 @@
 
 @keyframes rotate {
   0% {
-    transform: rotate(0deg);
+    transform: rotate(360deg);
   }
 
   100% {
-    transform: rotate(360deg);
+    transform: rotate(0deg);
   }
 }
 
@@ -109,5 +109,11 @@
       cursor: not-allowed;
       opacity: globals.$disabled-opacity;
     }
+  }
+
+  &__backup-state-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 }
