@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import { Badge, Button, Modal, TextField } from "@renderer/components";
 import type { GameRepack } from "@types";
 
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "@renderer/context";
 import { Downloader } from "@shared";
@@ -85,7 +84,7 @@ export function RepacksModal({
         description={t("repacks_modal_description")}
         onClose={onClose}
       >
-        <div style={{ marginBottom: `${SPACING_UNIT * 2}px` }}>
+        <div className="repacks-modal__filter-container">
           <TextField placeholder={t("filter")} onChange={handleFilter} />
         </div>
 

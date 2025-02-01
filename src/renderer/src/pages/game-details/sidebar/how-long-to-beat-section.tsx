@@ -1,7 +1,6 @@
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
 import type { HowLongToBeatCategory } from "@types";
-import { vars } from "@renderer/theme.css";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import "./sidebar.scss";
 
@@ -29,7 +28,7 @@ export function HowLongToBeatSection({
   if (!howLongToBeatData && !isLoading) return null;
 
   return (
-    <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
+    <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
       <SidebarSection title="HowLongToBeat">
         <ul className="how-long-to-beat__categories-list">
           {howLongToBeatData
