@@ -55,22 +55,6 @@ export interface GameRunning {
   sessionDurationInMillis: number;
 }
 
-export interface UserPreferences {
-  downloadsPath: string | null;
-  language: string;
-  downloadNotificationsEnabled: boolean;
-  repackUpdatesNotificationsEnabled: boolean;
-  achievementNotificationsEnabled: boolean;
-  realDebridApiToken: string | null;
-  torBoxApiToken: string | null;
-  preferQuitInsteadOfHiding: boolean;
-  runAtStartup: boolean;
-  startMinimized: boolean;
-  disableNsfwAlert: boolean;
-  seedAfterDownloadComplete: boolean;
-  showHiddenAchievementsDescription: boolean;
-}
-
 export interface Steam250Game {
   title: string;
   objectId: string;

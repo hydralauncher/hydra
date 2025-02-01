@@ -31,6 +31,7 @@ import {
 } from "@primer/octicons-react";
 
 import torBoxLogo from "@renderer/assets/icons/torbox.webp";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
 
 export interface DownloadGroupProps {
   library: LibraryGame[];
@@ -237,12 +238,16 @@ export function DownloadGroup({
       ];
     }
 
+    const isResumeDisabled =
+      (download?.downloader === Downloader.RealDebrid &&
+        !userPreferences?.realDebridApiToken) ||
+      (download?.downloader === Downloader.TorBox &&
+        !userPreferences?.torBoxApiToken);
+
     return [
       {
         label: t("resume"),
-        disabled:
-          download?.downloader === Downloader.RealDebrid &&
-          !userPreferences?.realDebridApiToken,
+        disabled: isResumeDisabled,
         onClick: () => {
           resumeDownload(game.shop, game.objectId);
         },
