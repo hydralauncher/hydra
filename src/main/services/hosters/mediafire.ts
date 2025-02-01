@@ -1,7 +1,6 @@
 import fetch from "node-fetch";
 
 export class MediafireApi {
-  private static readonly corsProxy = "https://corsproxy.io/?";
   private static readonly validMediafireIdentifierDL = /^[a-zA-Z0-9]+$/m;
   private static readonly validMediafirePreDL =
     /(?<=['"])(https?:)?(\/\/)?(www\.)?mediafire\.com\/(file|view|download)\/[^'"?]+\?dkey=[^'"]+(?=['"])/;
@@ -12,9 +11,7 @@ export class MediafireApi {
   public static async getDownloadUrl(mediafireUrl: string): Promise<string> {
     try {
       const processedUrl = this.processUrl(mediafireUrl);
-      const response = await fetch(
-        `${this.corsProxy}${encodeURIComponent(processedUrl)}`
-      );
+      const response = await fetch(processedUrl);
 
       if (!response.ok) throw new Error("Failed to fetch Mediafire page");
 
