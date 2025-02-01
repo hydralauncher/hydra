@@ -34,12 +34,7 @@ export function HowLongToBeatSection({
           {howLongToBeatData
             ? howLongToBeatData.map((category) => (
                 <li key={category.title} className="how-long-to-beat__category">
-                  <p
-                    className="how-long-to-beat__category-label"
-                    style={{
-                      fontWeight: "bold",
-                    }}
-                  >
+                  <p className="how-long-to-beat__category-label how-long-to-beat__category-label--bold">
                     {category.title}
                   </p>
 

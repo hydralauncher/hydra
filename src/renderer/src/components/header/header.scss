@@ -73,6 +73,10 @@
     gap: calc(globals.$spacing-unit * 2);
     height: 100%;
     overflow: hidden;
+
+    &--left {
+      flex: 1;
+    }
   }
 
   &__back-button {

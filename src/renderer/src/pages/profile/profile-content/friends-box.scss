@@ -59,4 +59,8 @@
     flex-direction: column;
     gap: calc(globals.$spacing-unit / 2);
   }
+
+  &__game-image {
+    border-radius: 4px;
+  }
 }

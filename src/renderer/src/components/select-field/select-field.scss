@@ -9,6 +9,11 @@
   border: 1px solid globals.$border-color;
   height: 40px;
   min-height: 40px;
+
+  &__container {
+    flex: 1;
+  }
+
   &:hover {
     border-color: rgba(255, 255, 255, 0.5);
   }
