@@ -103,28 +103,13 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
   if (type === "BLOCKED") {
     return (
       <div className="user-friend-item__container">
-        <div className="user-friend-item__button" style={{ cursor: "inherit" }}>
+        <div className="user-friend-item__button">
           <Avatar size={35} src={profileImageUrl} alt={displayName} />
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-start",
-              flex: "1",
-              minWidth: 0,
-            }}
-          >
+          <div className="user-friend-item__button__content">
             <p className="user-friend-item__display-name">{displayName}</p>
           </div>
         </div>
-        <div
-          style={{
-            position: "absolute",
-            right: "8px",
-            display: "flex",
-            gap: "8px",
-          }}
-        >
+        <div className="user-friend-item__button__actions">
           {getRequestActions()}
         </div>
       </div>
@@ -139,27 +124,13 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
         onClick={() => props.onClickItem(userId)}
       >
         <Avatar size={35} src={profileImageUrl} alt={displayName} />
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            flex: "1",
-            minWidth: 0,
-          }}
-        >
+        <div className="user-friend-item__button__content">
           <p className="user-friend-item__display-name">{displayName}</p>
+
           {getRequestDescription()}
         </div>
       </button>
-      <div
-        style={{
-          position: "absolute",
-          right: "8px",
-          display: "flex",
-          gap: "8px",
-        }}
-      >
+      <div className="user-friend-item__button__actions">
         {getRequestActions()}
       </div>
     </div>

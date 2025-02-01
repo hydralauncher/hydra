@@ -78,6 +78,10 @@
     color: globals.$muted-color;
   }
 
+  &__category-label--bold {
+    font-weight: bold;
+  }
+
   &__category-skeleton {
     border: solid 1px globals.$border-color;
     border-radius: 4px;
@@ -171,4 +175,22 @@
   &:hover {
     text-decoration: underline;
   }
+}
+
+.achievements-placeholder {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.achievements-placeholder__blur {
+  filter: blur(4px);
 }

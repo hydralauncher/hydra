@@ -15,9 +15,9 @@ export function FriendsBox() {
     if (game.iconUrl) {
       return (
         <img
+          className="friends-box__game-image"
           alt={game.title}
           width={16}
-          style={{ borderRadius: 4 }}
           src={game.iconUrl}
         />
       );
