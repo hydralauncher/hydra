@@ -6,12 +6,13 @@ import {
   XIcon,
 } from "@primer/octicons-react";
 
-import * as styles from "./toast.css";
-import { SPACING_UNIT } from "@renderer/theme.css";
+import "./toast.scss";
+import cn from "classnames";
 
 export interface ToastProps {
   visible: boolean;
-  message: string;
+  title: string;
+  message?: string;
   type: "success" | "error" | "warning";
   duration?: number;
   onClose: () => void;
@@ -21,9 +22,10 @@ const INITIAL_PROGRESS = 100;
 
 export function Toast({
   visible,
+  title,
   message,
   type,
-  duration = 5000,
+  duration = 2500,
   onClose,
 }: Readonly<ToastProps>) {
   const [isClosing, setIsClosing] = useState(false);
@@ -79,12 +81,16 @@ export function Toast({
   if (!visible) return null;
 
   return (
-    <div className={styles.toast({ closing: isClosing })}>
-      <div className={styles.toastContent}>
+    <div
+      className={cn("toast", {
+        "toast--closing": isClosing,
+      })}
+    >
+      <div className="toast__content">
         <div
           style={{
             display: "flex",
-            gap: `${SPACING_UNIT}px`,
+            gap: `8px`,
             flexDirection: "column",
           }}
         >
@@ -93,24 +99,26 @@ export function Toast({
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              gap: `${SPACING_UNIT}px`,
+              gap: `8px`,
             }}
           >
             {type === "success" && (
-              <CheckCircleFillIcon className={styles.successIcon} />
+              <CheckCircleFillIcon className="toast__icon--success" />
             )}
 
             {type === "error" && (
-              <XCircleFillIcon className={styles.errorIcon} />
+              <XCircleFillIcon className="toast__icon--error" />
             )}
 
-            {type === "warning" && <AlertIcon className={styles.warningIcon} />}
+            {type === "warning" && (
+              <AlertIcon className="toast__icon--warning" />
+            )}
 
-            <span style={{ fontWeight: "bold", flex: 1 }}>{message}</span>
+            <span style={{ fontWeight: "bold", flex: 1 }}>{title}</span>
 
             <button
               type="button"
-              className={styles.closeButton}
+              className="toast__close-button"
               onClick={startAnimateClosing}
               aria-label="Close toast"
             >
@@ -118,14 +126,11 @@ export function Toast({
             </button>
           </div>
 
-          <p>
-            This is a really really long message that should wrap to the next
-            line
-          </p>
+          {message && <p>{message}</p>}
         </div>
       </div>
 
-      <progress className={styles.progress} value={progress} max={100} />
+      <progress className="toast__progress" value={progress} max={100} />
     </div>
   );
 }
