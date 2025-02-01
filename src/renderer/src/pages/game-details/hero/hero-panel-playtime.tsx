@@ -49,21 +49,24 @@ export function HeroPanelPlaytime() {
   if (!game) return null;
 
   const hasDownload =
-    ["active", "paused"].includes(game.status as string) && game.progress !== 1;
+    ["active", "paused"].includes(game.download?.status as string) &&
+    game.download?.progress !== 1;
 
   const isGameDownloading =
-    game.status === "active" && lastPacket?.game.id === game.id;
+    game.download?.status === "active" && lastPacket?.gameId === game.id;
 
   const downloadInProgressInfo = (
     <div className={styles.downloadDetailsRow}>
       <Link to="/downloads" className={styles.downloadsLink}>
-        {game.status === "active"
+        {game.download?.status === "active"
           ? t("download_in_progress")
           : t("download_paused")}
       </Link>
 
       <small>
-        {isGameDownloading ? progress : formatDownloadProgress(game.progress)}
+        {isGameDownloading
+          ? progress
+          : formatDownloadProgress(game.download?.progress)}
       </small>
     </div>
   );

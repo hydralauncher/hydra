@@ -43,3 +43,9 @@ export enum Cracker {
   rle = "RLE",
   razor1911 = "RAZOR1911",
 }
+
+export enum AuthPage {
+  SignIn = "/",
+  UpdateEmail = "/update-email",
+  UpdatePassword = "/update-password",
+}
