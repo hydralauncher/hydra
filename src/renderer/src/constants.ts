@@ -9,7 +9,6 @@ export const DOWNLOADER_NAME = {
   [Downloader.PixelDrain]: "PixelDrain",
   [Downloader.Qiwi]: "Qiwi",
   [Downloader.Datanodes]: "Datanodes",
-  [Downloader.GameDrive]: "GameDrive",
 };
 
 export const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
