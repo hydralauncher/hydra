@@ -42,9 +42,9 @@ export const AddThemeModal = ({
       author: userDetails?.id || undefined,
       authorName: userDetails?.username || undefined,
       colors: {
-        accent: "#c0c1c7",
-        background: "#1c1c1c",
-        surface: "#151515",
+        accent: "",
+        background: "",
+        surface: "",
       },
       code: "",
       createdAt: new Date(),

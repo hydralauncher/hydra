@@ -10,7 +10,10 @@ interface ThemeActionsProps {
   themesCount: number;
 }
 
-export const ThemeActions = ({ onListUpdated, themesCount }: ThemeActionsProps) => {
+export const ThemeActions = ({
+  onListUpdated,
+  themesCount,
+}: ThemeActionsProps) => {
   const { t } = useTranslation("settings");
 
   const [addThemeModalVisible, setAddThemeModalVisible] = useState(false);
