@@ -2,7 +2,7 @@ import { Downloader } from "@shared";
 import { WindowManager } from "../window-manager";
 import { publishDownloadCompleteNotification } from "../notifications";
 import type { Download, DownloadProgress, UserPreferences } from "@types";
-import { GofileApi, QiwiApi, DatanodesApi } from "../hosters";
+import { GofileApi, QiwiApi, DatanodesApi, MediafireApi } from "../hosters";
 import { PythonRPC } from "../python-rpc";
 import {
   LibtorrentPayload,
@@ -111,7 +111,7 @@ export class DownloadManager {
 
       if (!download || !game) return;
 
-      const userPreferences = await db.get<string, UserPreferences>(
+      const userPreferences = await db.get<string, UserPreferences | null>(
         levelKeys.userPreferences,
         {
           valueEncoding: "json",
@@ -299,6 +299,16 @@ export class DownloadManager {
       }
       case Downloader.Datanodes: {
         const downloadUrl = await DatanodesApi.getDownloadUrl(download.uri);
+        return {
+          action: "start",
+          game_id: downloadId,
+          url: downloadUrl,
+          save_path: download.downloadPath,
+        };
+      }
+      case Downloader.Mediafire: {
+        const downloadUrl = await MediafireApi.getDownloadUrl(download.uri);
+
         return {
           action: "start",
           game_id: downloadId,

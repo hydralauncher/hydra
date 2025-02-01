@@ -5,6 +5,7 @@ export enum Downloader {
   PixelDrain,
   Qiwi,
   Datanodes,
+  Mediafire,
   TorBox,
 }
 
