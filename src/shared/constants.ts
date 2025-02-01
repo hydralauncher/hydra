@@ -5,7 +5,6 @@ export enum Downloader {
   PixelDrain,
   Qiwi,
   Datanodes,
-  GameDrive,
 }
 
 export enum DownloadSourceStatus {
