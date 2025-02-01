@@ -1,6 +1,7 @@
 import path from "node:path";
 import fs from "node:fs";
 import { logger } from "../logger";
+import unzipper from "unzipper";
 
 export const calculateETA = (
   totalLength: number,
@@ -36,5 +37,17 @@ export const getDirSize = async (dir: string): Promise<number> => {
   } catch (error) {
     logger.error(error);
     return 0;
+  }
+};
+
+export const unzipFile = async (zipFilePath: string, outputDir: string) => {
+  try {
+    await fs.createReadStream(zipFilePath)
+      .pipe(unzipper.Extract({ path: outputDir }))
+      .promise();
+    logger.info(`Unzipped ${zipFilePath} to ${outputDir}`);
+  } catch (error) {
+    logger.error(`Failed to unzip ${zipFilePath}`, error);
+    throw error;
   }
 };

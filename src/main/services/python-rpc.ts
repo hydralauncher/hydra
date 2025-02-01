@@ -8,6 +8,7 @@ import crypto from "node:crypto";
 import { pythonRpcLogger } from "./logger";
 import { Readable } from "node:stream";
 import { app, dialog } from "electron";
+import { unzipFile } from "./download/helpers"; // Import the unzip helper function
 
 interface GamePayload {
   game_id: number;
@@ -42,7 +43,7 @@ export class PythonRPC {
     readable.on("data", pythonRpcLogger.log);
   }
 
-  public static spawn(
+  public static async spawn(
     initialDownload?: GamePayload,
     initialSeeding?: GamePayload[]
   ) {
@@ -95,6 +96,13 @@ export class PythonRPC {
       this.logStderr(childProcess.stderr);
 
       this.pythonProcess = childProcess;
+    }
+
+    // Handle unzipping if initialDownload is a .zip file
+    if (initialDownload && initialDownload.url.endsWith(".zip")) {
+      const zipFilePath = path.join(initialDownload.save_path, initialDownload.url.split('/').pop()!);
+      const outputDir = initialDownload.save_path;
+      await unzipFile(zipFilePath, outputDir);
     }
   }
 
