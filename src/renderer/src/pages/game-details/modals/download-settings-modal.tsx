@@ -18,7 +18,7 @@ export interface DownloadSettingsModalProps {
     repack: GameRepack,
     downloader: Downloader,
     downloadPath: string
-  ) => Promise<void>;
+  ) => Promise<{ ok: boolean; error?: string }>;
   repack: GameRepack | null;
 }
 
@@ -27,7 +27,7 @@ export function DownloadSettingsModal({
   onClose,
   startDownload,
   repack,
-}: DownloadSettingsModalProps) {
+}: Readonly<DownloadSettingsModalProps>) {
   const { t } = useTranslation("game_details");
 
   const { showErrorToast } = useToast();
@@ -98,9 +98,7 @@ export function DownloadSettingsModal({
       ? Downloader.RealDebrid
       : filteredDownloaders[0];
 
-    setSelectedDownloader(
-      selectedDownloader === undefined ? null : selectedDownloader
-    );
+    setSelectedDownloader(selectedDownloader ?? null);
   }, [
     userPreferences?.downloadsPath,
     downloaders,
@@ -119,20 +117,30 @@ export function DownloadSettingsModal({
     }
   };
 
-  const handleStartClick = () => {
+  const handleStartClick = async () => {
     if (repack) {
       setDownloadStarting(true);
 
-      startDownload(repack, selectedDownloader!, selectedPath)
-        .then(() => {
+      try {
+        const response = await startDownload(
+          repack,
+          selectedDownloader!,
+          selectedPath
+        );
+
+        if (response.ok) {
           onClose();
-        })
-        .catch(() => {
-          showErrorToast(t("download_error"));
-        })
-        .finally(() => {
-          setDownloadStarting(false);
-        });
+          return;
+        } else if (response.error) {
+          showErrorToast(t("download_error"), t(response.error), 4_000);
+        }
+      } catch (error) {
+        if (error instanceof Error) {
+          showErrorToast(t("download_error"), error.message, 4_000);
+        }
+      } finally {
+        setDownloadStarting(false);
+      }
     }
   };
 

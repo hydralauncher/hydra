@@ -254,7 +254,7 @@ export function ProfileHero() {
       if (gameRunning)
         return {
           ...gameRunning,
-          objectId: gameRunning.objectID,
+          objectId: gameRunning.objectId,
           sessionDurationInSeconds: gameRunning.sessionDurationInMillis / 1000,
         };
 

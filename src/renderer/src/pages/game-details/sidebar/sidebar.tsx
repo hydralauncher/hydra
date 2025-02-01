@@ -7,7 +7,6 @@ import type {
 import { useTranslation } from "react-i18next";
 import { Button, Link } from "@renderer/components";
 
-import * as styles from "./sidebar.css";
 import { gameDetailsContext } from "@renderer/context";
 import { useDate, useFormat, useUserDetails } from "@renderer/hooks";
 import {
@@ -20,10 +19,10 @@ import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { howLongToBeatEntriesTable } from "@renderer/dexie";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import "./sidebar.scss";
 
-const fakeAchievements: UserAchievement[] = [
+const achievementsPlaceholder: UserAchievement[] = [
   {
     displayName: "Timber!!",
     name: "",
@@ -64,7 +63,6 @@ export function Sidebar() {
   }>({ isLoading: true, data: null });
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
-
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
@@ -72,10 +70,8 @@ export function Sidebar() {
     useContext(gameDetailsContext);
 
   const { showHydraCloudModal } = useSubscription();
-
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
-
   const { numberFormatter } = useFormat();
 
   useEffect(() => {
@@ -118,7 +114,7 @@ export function Sidebar() {
   }, [objectId, shop, gameTitle]);
 
   return (
-    <aside className={styles.contentSidebar}>
+    <aside className="content-sidebar">
       {userDetails === null && (
         <SidebarSection title={t("achievements")}>
           <div
@@ -133,21 +129,21 @@ export function Sidebar() {
               justifyContent: "center",
               alignItems: "center",
               flexDirection: "column",
-              gap: `${SPACING_UNIT}px`,
+              gap: "8px",
             }}
           >
             <LockIcon size={36} />
             <h3>{t("sign_in_to_see_achievements")}</h3>
           </div>
-          <ul className={styles.list} style={{ filter: "blur(4px)" }}>
-            {fakeAchievements.map((achievement, index) => (
-              <li key={index}>
-                <div className={styles.listItem}>
+          <ul className="list" style={{ filter: "blur(4px)" }}>
+            {achievementsPlaceholder.map((achievement) => (
+              <li key={achievement.displayName}>
+                <div className="list__item">
                   <img
                     style={{ filter: "blur(8px)" }}
-                    className={styles.listItemImage({
-                      unlocked: achievement.unlocked,
-                    })}
+                    className={`list__item-image ${
+                      achievement.unlocked ? "" : "list__item-image--locked"
+                    }`}
                     src={achievement.icon}
                     alt={achievement.displayName}
                   />
@@ -164,6 +160,7 @@ export function Sidebar() {
           </ul>
         </SidebarSection>
       )}
+
       {userDetails && achievements && achievements.length > 0 && (
         <SidebarSection
           title={t("achievements_count", {
@@ -171,10 +168,10 @@ export function Sidebar() {
             achievementsCount: achievements.length,
           })}
         >
-          <ul className={styles.list}>
+          <ul className="list">
             {!hasActiveSubscription && (
               <button
-                className={styles.subscriptionRequiredButton}
+                className="subscription-required-button"
                 onClick={() => showHydraCloudModal("achievements")}
               >
                 <CloudOfflineIcon size={16} />
@@ -182,21 +179,21 @@ export function Sidebar() {
               </button>
             )}
 
-            {achievements.slice(0, 4).map((achievement, index) => (
-              <li key={index}>
+            {achievements.slice(0, 4).map((achievement) => (
+              <li key={achievement.displayName}>
                 <Link
                   to={buildGameAchievementPath({
                     shop: shop,
                     objectId: objectId!,
                     title: gameTitle,
                   })}
-                  className={styles.listItem}
+                  className="list__item"
                   title={achievement.description}
                 >
                   <img
-                    className={styles.listItemImage({
-                      unlocked: achievement.unlocked,
-                    })}
+                    className={`list__item-image ${
+                      achievement.unlocked ? "" : "list__item-image--locked"
+                    }`}
                     src={achievement.icon}
                     alt={achievement.displayName}
                   />
@@ -212,7 +209,6 @@ export function Sidebar() {
             ))}
 
             <Link
-              style={{ textAlign: "center" }}
               to={buildGameAchievementPath({
                 shop: shop,
                 objectId: objectId!,
@@ -227,17 +223,17 @@ export function Sidebar() {
 
       {stats && (
         <SidebarSection title={t("stats")}>
-          <div className={styles.statsSection}>
-            <div className={styles.statsCategory}>
-              <p className={styles.statsCategoryTitle}>
+          <div className="stats__section">
+            <div className="stats__category">
+              <p className="stats__category-title">
                 <DownloadIcon size={18} />
                 {t("download_count")}
               </p>
               <p>{numberFormatter.format(stats?.downloadCount)}</p>
             </div>
 
-            <div className={styles.statsCategory}>
-              <p className={styles.statsCategoryTitle}>
+            <div className="stats__category">
+              <p className="stats__category-title">
                 <PeopleIcon size={18} />
                 {t("player_count")}
               </p>
@@ -253,9 +249,9 @@ export function Sidebar() {
       />
 
       <SidebarSection title={t("requirements")}>
-        <div className={styles.requirementButtonContainer}>
+        <div className="requirement__button-container">
           <Button
-            className={styles.requirementButton}
+            className="requirement__button"
             onClick={() => setActiveRequirement("minimum")}
             theme={activeRequirement === "minimum" ? "primary" : "outline"}
           >
@@ -263,7 +259,7 @@ export function Sidebar() {
           </Button>
 
           <Button
-            className={styles.requirementButton}
+            className="requirement__button"
             onClick={() => setActiveRequirement("recommended")}
             theme={activeRequirement === "recommended" ? "primary" : "outline"}
           >
@@ -272,7 +268,7 @@ export function Sidebar() {
         </div>
 
         <div
-          className={styles.requirementsDetails}
+          className="requirement__details"
           dangerouslySetInnerHTML={{
             __html:
               shopDetails?.pc_requirements?.[activeRequirement] ??
