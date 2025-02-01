@@ -16,7 +16,6 @@ import { logger } from "../logger";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { sortBy } from "lodash-es";
 import { TorBoxClient } from "./torbox";
-import axios from "axios";
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
@@ -276,16 +275,11 @@ export class DownloadManager {
       case Downloader.PixelDrain: {
         const id = download.uri.split("/").pop();
 
-        const name = await axios
-          .get(`https://pixeldrain.com/api/file/${id}/info`)
-          .then((res) => res.data.name as string);
-
         return {
           action: "start",
           game_id: downloadId,
           url: `https://cdn.pd5-gamedriveorg.workers.dev/api/file/${id}`,
           save_path: download.downloadPath,
-          out: name,
         };
       }
       case Downloader.Qiwi: {

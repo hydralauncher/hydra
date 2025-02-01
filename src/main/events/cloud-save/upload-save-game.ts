@@ -40,7 +40,7 @@ const bundleBackup = async (
   return tarLocation;
 };
 
-export const uploadSaveGame = async (
+const uploadSaveGame = async (
   _event: Electron.IpcMainInvokeEvent,
   objectId: string,
   shop: GameShop,
