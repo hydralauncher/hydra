@@ -330,7 +330,6 @@ export class DownloadManager {
       }
       case Downloader.TorBox: {
         const { name, url } = await TorBoxClient.getDownloadInfo(download.uri);
-        console.log(url, name);
 
         if (!url) return;
         return {
