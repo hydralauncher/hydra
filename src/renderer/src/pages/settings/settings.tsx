@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { SettingsRealDebrid } from "./settings-real-debrid";
 import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
-
+import torBoxLogo from "@renderer/assets/icons/torbox.webp";
 import { SettingsDownloadSources } from "./settings-download-sources";
 import {
   SettingsContextConsumer,
@@ -74,6 +74,13 @@ export default function Settings() {
                       }
                       onClick={() => setCurrentCategoryIndex(index)}
                     >
+                      {index === 3 && (
+                        <img
+                          src={torBoxLogo}
+                          alt="TorBox"
+                          style={{ width: 13 }}
+                        />
+                      )}
                       {category}
                     </Button>
                   ))}
