@@ -1,0 +1,103 @@
+@use "../../scss/globals.scss";
+
+.home {
+  &__content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 3);
+    padding: calc(globals.$spacing-unit * 3);
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  &__header {
+    display: flex;
+    gap: globals.$spacing-unit;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__buttons-list {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: globals.$spacing-unit;
+  }
+
+  &__cards {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: calc(globals.$spacing-unit * 2);
+    transition: all ease 0.2s;
+
+    @media (min-width: 768px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (min-width: 1250px) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    @media (min-width: 1600px) {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  &__card-skeleton {
+    width: 100%;
+    height: 180px;
+    box-shadow: 0px 0px 15px 0px #000000;
+    overflow: hidden;
+    border-radius: 4px;
+    transition: all ease 0.2s;
+    z-index: 1;
+
+    &:active {
+      opacity: globals.$active-opacity;
+    }
+  }
+
+  &__no-results {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    grid-column: 1 / -1;
+  }
+
+  &__flame-icon {
+    width: 30px;
+    top: -10px;
+    left: -5px;
+    position: absolute;
+  }
+
+  &__stars-icon {
+    width: 70px;
+    position: absolute;
+    top: -28px;
+    left: -27px;
+  }
+
+  &__icon-wrapper {
+    width: 16px;
+    height: 16px;
+    position: relative;
+  }
+
+  &__title-icon {
+    width: 24px;
+    height: 24px;
+    position: relative;
+  }
+
+  &__title {
+    display: flex;
+    gap: globals.$spacing-unit;
+  }
+}

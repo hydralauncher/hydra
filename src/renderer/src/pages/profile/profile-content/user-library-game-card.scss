@@ -1,0 +1,134 @@
+@use "../../../scss/globals.scss";
+
+.user-library-game {
+  &__wrapper {
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    transition: all ease 0.2s;
+
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+
+  &__cover {
+    cursor: pointer;
+    transition: all ease 0.2s;
+    box-shadow: 0 8px 10px -2px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    position: relative;
+
+    &:before {
+      content: "";
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 172%;
+      position: absolute;
+      background: linear-gradient(
+        35deg,
+        rgba(0, 0, 0, 0.1) 0%,
+        rgba(0, 0, 0, 0.07) 51.5%,
+        rgba(255, 255, 255, 0.15) 54%,
+        rgba(255, 255, 255, 0.15) 100%
+      );
+      transition: all ease 0.3s;
+      transform: translateY(-36%);
+      opacity: 0.5;
+    }
+
+    &:hover::before {
+      opacity: 1;
+      transform: translateY(-20%);
+    }
+  }
+
+  &__container {
+    transition: all ease 0.2s;
+
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+
+  &__overlay {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.7) 20%, transparent 100%);
+    padding: 8px;
+  }
+
+  &__playtime {
+    background-color: globals.$background-color;
+    color: globals.$muted-color;
+    border: solid 1px globals.$border-color;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+  }
+
+  &__stats {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__stats-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    color: globals.$muted-color;
+    overflow: hidden;
+    height: 18px;
+  }
+
+  &__stats-content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__stats-item {
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s ease-in-out;
+    flex-shrink: 0;
+    flex-grow: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__game-image {
+    object-fit: cover;
+    border-radius: 4px;
+    width: 100%;
+    height: 100%;
+    min-width: 100%;
+    min-height: 100%;
+  }
+
+  &__achievements-progress {
+    width: 100%;
+    height: 4px;
+    transition: all ease 0.2s;
+
+    &::-webkit-progress-bar {
+      background-color: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+
+    &::-webkit-progress-value {
+      background-color: globals.$muted-color;
+      border-radius: 4px;
+    }
+  }
+}

@@ -1,0 +1,12 @@
+@use "../../scss/globals.scss";
+
+.settings-general {
+  display: flex;
+  flex-direction: column;
+  gap: globals.$spacing-unit * 2;
+
+  &__notifications-title {
+    margin-top: calc(globals.$spacing-unit * 2);
+    margin-bottom: globals.$spacing-unit;
+  }
+}

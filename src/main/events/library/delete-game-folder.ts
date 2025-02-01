@@ -1,37 +1,27 @@
 import path from "node:path";
 import fs from "node:fs";
 
-import { gameRepository } from "@main/repository";
-
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { logger } from "@main/services";
 import { registerEvent } from "../register-event";
+import { GameShop } from "@types";
+import { downloadsSublevel, levelKeys } from "@main/level";
 
 const deleteGameFolder = async (
   _event: Electron.IpcMainInvokeEvent,
-  gameId: number
+  shop: GameShop,
+  objectId: string
 ): Promise<void> => {
-  const game = await gameRepository.findOne({
-    where: [
-      {
-        id: gameId,
-        isDeleted: false,
-        status: "removed",
-      },
-      {
-        id: gameId,
-        progress: 1,
-        isDeleted: false,
-      },
-    ],
-  });
+  const downloadKey = levelKeys.game(shop, objectId);
 
-  if (!game) return;
+  const download = await downloadsSublevel.get(downloadKey);
 
-  if (game.folderName) {
+  if (!download) return;
+
+  if (download.folderName) {
     const folderPath = path.join(
-      game.downloadPath ?? (await getDownloadsPath()),
-      game.folderName
+      download.downloadPath ?? (await getDownloadsPath()),
+      download.folderName
     );
 
     if (fs.existsSync(folderPath)) {
@@ -52,10 +42,7 @@ const deleteGameFolder = async (
     }
   }
 
-  await gameRepository.update(
-    { id: gameId },
-    { downloadPath: null, folderName: null, status: null, progress: 0 }
-  );
+  await downloadsSublevel.del(downloadKey);
 };
 
 registerEvent("deleteGameFolder", deleteGameFolder);

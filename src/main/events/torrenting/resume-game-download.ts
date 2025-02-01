@@ -1,46 +1,37 @@
-import { Not } from "typeorm";
-
 import { registerEvent } from "../register-event";
-import { gameRepository } from "../../repository";
 
 import { DownloadManager } from "@main/services";
-import { dataSource } from "@main/data-source";
-import { DownloadQueue, Game } from "@main/entity";
+import { downloadsSublevel, levelKeys } from "@main/level";
+import { GameShop } from "@types";
 
 const resumeGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
-  gameId: number
+  shop: GameShop,
+  objectId: string
 ) => {
-  const game = await gameRepository.findOne({
-    where: {
-      id: gameId,
-      isDeleted: false,
-    },
-  });
+  const gameKey = levelKeys.game(shop, objectId);
 
-  if (!game) return;
+  const download = await downloadsSublevel.get(gameKey);
 
-  if (game.status === "paused") {
-    await dataSource.transaction(async (transactionalEntityManager) => {
-      await DownloadManager.pauseDownload();
+  if (download?.status === "paused") {
+    await DownloadManager.pauseDownload();
 
-      await transactionalEntityManager
-        .getRepository(Game)
-        .update({ status: "active", progress: Not(1) }, { status: "paused" });
+    for await (const [key, value] of downloadsSublevel.iterator()) {
+      if (value.status === "active" && value.progress !== 1) {
+        await downloadsSublevel.put(key, {
+          ...value,
+          status: "paused",
+        });
+      }
+    }
 
-      await DownloadManager.resumeDownload(game);
+    await DownloadManager.resumeDownload(download);
 
-      await transactionalEntityManager
-        .getRepository(DownloadQueue)
-        .delete({ game: { id: gameId } });
-
-      await transactionalEntityManager
-        .getRepository(DownloadQueue)
-        .insert({ game: { id: gameId } });
-
-      await transactionalEntityManager
-        .getRepository(Game)
-        .update({ id: gameId }, { status: "active" });
+    await downloadsSublevel.put(gameKey, {
+      ...download,
+      status: "active",
+      timestamp: Date.now(),
+      queued: true,
     });
   }
 };

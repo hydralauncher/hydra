@@ -1,19 +1,21 @@
-import { Game } from "@main/entity";
+import type { Game } from "@types";
 import { HydraApi } from "../hydra-api";
-import { gameRepository } from "@main/repository";
+import { gamesSublevel, levelKeys } from "@main/level";
 
 export const createGame = async (game: Game) => {
   return HydraApi.post(`/profile/games`, {
-    objectId: game.objectID,
+    objectId: game.objectId,
     playTimeInMilliseconds: Math.trunc(game.playTimeInMilliseconds),
     shop: game.shop,
     lastTimePlayed: game.lastTimePlayed,
   }).then((response) => {
     const { id: remoteId, playTimeInMilliseconds, lastTimePlayed } = response;
 
-    gameRepository.update(
-      { objectID: game.objectID },
-      { remoteId, playTimeInMilliseconds, lastTimePlayed }
-    );
+    gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+      ...game,
+      remoteId,
+      playTimeInMilliseconds,
+      lastTimePlayed,
+    });
   });
 };

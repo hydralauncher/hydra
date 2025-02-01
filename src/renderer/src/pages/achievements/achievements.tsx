@@ -3,7 +3,6 @@ import { useAppDispatch, useUserDetails } from "@renderer/hooks";
 import type { ComparedAchievements, GameShop } from "@types";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { vars } from "@renderer/theme.css";
 import {
   GameDetailsContextConsumer,
   GameDetailsContextProvider,
@@ -44,7 +43,7 @@ export default function Achievements() {
         .getComparedUnlockedAchievements(objectId, shop as GameShop, userId)
         .then(setComparedAchievements);
     }
-  }, [objectId, shop, userId]);
+  }, [objectId, shop, userDetails?.id, userId]);
 
   const otherUserId = userDetails?.id === userId ? null : userId;
 
@@ -75,10 +74,7 @@ export default function Achievements() {
             (otherUserId && comparedAchievements === null);
 
           return (
-            <SkeletonTheme
-              baseColor={vars.color.background}
-              highlightColor="#444"
-            >
+            <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
               {showSkeleton ? (
                 <AchievementsSkeleton />
               ) : (

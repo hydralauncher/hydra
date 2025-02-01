@@ -1,6 +1,4 @@
-import { gameRepository } from "@main/repository";
 import { parseAchievementFile } from "./parse-achievement-file";
-import { Game } from "@main/entity";
 import { mergeAchievements } from "./merge-achievements";
 import fs, { readdirSync } from "node:fs";
 import {
@@ -9,21 +7,20 @@ import {
   findAllAchievementFiles,
   getAlternativeObjectIds,
 } from "./find-achivement-files";
-import type { AchievementFile, UnlockedAchievement } from "@types";
+import type { AchievementFile, Game, UnlockedAchievement } from "@types";
 import { achievementsLogger } from "../logger";
 import { Cracker } from "@shared";
-import { IsNull, Not } from "typeorm";
 import { publishCombinedNewAchievementNotification } from "../notifications";
+import { gamesSublevel } from "@main/level";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
 
 const watchAchievementsWindows = async () => {
-  const games = await gameRepository.find({
-    where: {
-      isDeleted: false,
-    },
-  });
+  const games = await gamesSublevel
+    .values()
+    .all()
+    .then((games) => games.filter((game) => !game.isDeleted));
 
   if (games.length === 0) return;
 
@@ -32,7 +29,7 @@ const watchAchievementsWindows = async () => {
   for (const game of games) {
     const gameAchievementFiles: AchievementFile[] = [];
 
-    for (const objectId of getAlternativeObjectIds(game.objectID)) {
+    for (const objectId of getAlternativeObjectIds(game.objectId)) {
       gameAchievementFiles.push(...(achievementFiles.get(objectId) || []));
 
       gameAchievementFiles.push(
@@ -47,12 +44,12 @@ const watchAchievementsWindows = async () => {
 };
 
 const watchAchievementsWithWine = async () => {
-  const games = await gameRepository.find({
-    where: {
-      isDeleted: false,
-      winePrefixPath: Not(IsNull()),
-    },
-  });
+  const games = await gamesSublevel
+    .values()
+    .all()
+    .then((games) =>
+      games.filter((game) => !game.isDeleted && game.winePrefixPath)
+    );
 
   for (const game of games) {
     const gameAchievementFiles = findAchievementFiles(game);
@@ -188,11 +185,10 @@ export class AchievementWatcherManager {
   };
 
   private static preSearchAchievementsWindows = async () => {
-    const games = await gameRepository.find({
-      where: {
-        isDeleted: false,
-      },
-    });
+    const games = await gamesSublevel
+      .values()
+      .all()
+      .then((games) => games.filter((game) => !game.isDeleted));
 
     const gameAchievementFilesMap = findAllAchievementFiles();
 
@@ -200,7 +196,7 @@ export class AchievementWatcherManager {
       games.map((game) => {
         const gameAchievementFiles: AchievementFile[] = [];
 
-        for (const objectId of getAlternativeObjectIds(game.objectID)) {
+        for (const objectId of getAlternativeObjectIds(game.objectId)) {
           gameAchievementFiles.push(
             ...(gameAchievementFilesMap.get(objectId) || [])
           );
@@ -216,11 +212,10 @@ export class AchievementWatcherManager {
   };
 
   private static preSearchAchievementsWithWine = async () => {
-    const games = await gameRepository.find({
-      where: {
-        isDeleted: false,
-      },
-    });
+    const games = await gamesSublevel
+      .values()
+      .all()
+      .then((games) => games.filter((game) => !game.isDeleted));
 
     return Promise.all(
       games.map((game) => {

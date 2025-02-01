@@ -1,10 +1,10 @@
-import { gameShopCacheRepository } from "@main/repository";
-import { getSteamAppDetails } from "@main/services";
+import { getSteamAppDetails, logger } from "@main/services";
 
-import type { ShopDetails, GameShop, SteamAppDetails } from "@types";
+import type { ShopDetails, GameShop } from "@types";
 
 import { registerEvent } from "../register-event";
 import { steamGamesWorker } from "@main/workers";
+import { gamesShopCacheSublevel, levelKeys } from "@main/level";
 
 const getLocalizedSteamAppDetails = async (
   objectId: string,
@@ -39,35 +39,27 @@ const getGameShopDetails = async (
   language: string
 ): Promise<ShopDetails | null> => {
   if (shop === "steam") {
-    const cachedData = await gameShopCacheRepository.findOne({
-      where: { objectID: objectId, language },
-    });
+    const cachedData = await gamesShopCacheSublevel.get(
+      levelKeys.gameShopCacheItem(shop, objectId, language)
+    );
 
     const appDetails = getLocalizedSteamAppDetails(objectId, language).then(
       (result) => {
         if (result) {
-          gameShopCacheRepository.upsert(
-            {
-              objectID: objectId,
-              shop: "steam",
-              language,
-              serializedData: JSON.stringify(result),
-            },
-            ["objectID"]
-          );
+          gamesShopCacheSublevel
+            .put(levelKeys.gameShopCacheItem(shop, objectId, language), result)
+            .catch((err) => {
+              logger.error("Could not cache game details", err);
+            });
         }
 
         return result;
       }
     );
 
-    const cachedGame = cachedData?.serializedData
-      ? (JSON.parse(cachedData?.serializedData) as SteamAppDetails)
-      : null;
-
-    if (cachedGame) {
+    if (cachedData) {
       return {
-        ...cachedGame,
+        ...cachedData,
         objectId,
       } as ShopDetails;
     }

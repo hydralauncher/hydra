@@ -11,10 +11,9 @@ import flameIconStatic from "@renderer/assets/icons/flame-static.png";
 import flameIconAnimated from "@renderer/assets/icons/flame-animated.gif";
 import starsIconAnimated from "@renderer/assets/icons/stars-animated.gif";
 
-import * as styles from "./home.css";
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { CatalogueCategory } from "@shared";
+import "./home.scss";
 
 export default function Home() {
   const { t } = useTranslation("home");
@@ -94,14 +93,14 @@ export default function Home() {
   };
 
   return (
-    <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
-      <section className={styles.content}>
+    <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
+      <section className="home__content">
         <h2>{t("featured")}</h2>
 
         <Hero />
 
-        <section className={styles.homeHeader}>
-          <ul className={styles.buttonsList}>
+        <section className="home__header">
+          <ul className="home__buttons-list">
             {categories.map((category) => (
               <li key={category}>
                 <Button
@@ -115,19 +114,17 @@ export default function Home() {
                   onMouseLeave={() => handleMouseLeaveCategory(category)}
                 >
                   {category === CatalogueCategory.Hot && (
-                    <div
-                      style={{ width: 16, height: 16, position: "relative" }}
-                    >
+                    <div className="home__icon-wrapper">
                       <img
                         src={flameIconStatic}
                         alt="Flame icon"
-                        className={styles.flameIcon}
+                        className="home__flame-icon"
                         style={{ display: animateFlame ? "none" : "block" }}
                       />
                       <img
                         src={flameIconAnimated}
                         alt="Flame animation"
-                        className={styles.flameIcon}
+                        className="home__flame-icon"
                         style={{ display: animateFlame ? "block" : "none" }}
                       />
                     </div>
@@ -144,29 +141,24 @@ export default function Home() {
             theme="outline"
             disabled={!randomGame}
           >
-            <div style={{ width: 16, height: 16, position: "relative" }}>
+            <div className="home__icon-wrapper">
               <img
                 src={starsIconAnimated}
                 alt="Stars animation"
-                style={{ width: 70, position: "absolute", top: -28, left: -27 }}
+                className="home__stars-icon"
               />
             </div>
             {t("surprise_me")}
           </Button>
         </section>
 
-        <h2 style={{ display: "flex", gap: SPACING_UNIT }}>
+        <h2 className="home__title">
           {currentCatalogueCategory === CatalogueCategory.Hot && (
-            <div style={{ width: 24, height: 24, position: "relative" }}>
+            <div className="home__title-icon">
               <img
                 src={flameIconAnimated}
                 alt="Flame animation"
-                style={{
-                  width: 40,
-                  top: -10,
-                  left: -5,
-                  position: "absolute",
-                }}
+                className="home__flame-icon"
               />
             </div>
           )}
@@ -174,10 +166,10 @@ export default function Home() {
           {t(currentCatalogueCategory)}
         </h2>
 
-        <section className={styles.cards}>
+        <section className="home__cards">
           {isLoading
             ? Array.from({ length: 12 }).map((_, index) => (
-                <Skeleton key={index} className={styles.cardSkeleton} />
+                <Skeleton key={index} className="home__card-skeleton" />
               ))
             : catalogue[currentCatalogueCategory].map((result) => (
                 <GameCard

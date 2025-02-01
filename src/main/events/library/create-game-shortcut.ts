@@ -1,18 +1,18 @@
-import { gameRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
-import { IsNull, Not } from "typeorm";
 import createDesktopShortcut from "create-desktop-shortcuts";
 import path from "node:path";
 import { app } from "electron";
 import { removeSymbolsFromName } from "@shared";
+import { GameShop } from "@types";
+import { gamesSublevel, levelKeys } from "@main/level";
 
 const createGameShortcut = async (
   _event: Electron.IpcMainInvokeEvent,
-  id: number
+  shop: GameShop,
+  objectId: string
 ): Promise<boolean> => {
-  const game = await gameRepository.findOne({
-    where: { id, executablePath: Not(IsNull()) },
-  });
+  const gameKey = levelKeys.game(shop, objectId);
+  const game = await gamesSublevel.get(gameKey);
 
   if (game) {
     const filePath = game.executablePath;

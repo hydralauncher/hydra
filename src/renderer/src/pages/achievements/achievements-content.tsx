@@ -8,18 +8,17 @@ import {
   formatDownloadProgress,
 } from "@renderer/helpers";
 import { LockIcon, PersonIcon, TrophyIcon } from "@primer/octicons-react";
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { gameDetailsContext } from "@renderer/context";
 import type { ComparedAchievements } from "@types";
 import { average } from "color.js";
 import Color from "color";
 import { Link } from "@renderer/components";
 import { ComparedAchievementList } from "./compared-achievement-list";
-import * as styles from "./achievements.css";
 import { AchievementList } from "./achievement-list";
 import { AchievementPanel } from "./achievement-panel";
 import { ComparedAchievementPanel } from "./compared-achievement-panel";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import "./achievements-content.scss";
 
 interface UserInfo {
   id: string;
@@ -48,10 +47,10 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
     user: Pick<UserInfo, "profileImageUrl" | "displayName">
   ) => {
     return (
-      <div className={styles.profileAvatar}>
+      <div className="achievements-content__profile-avatar">
         {user.profileImageUrl ? (
           <img
-            className={styles.profileAvatar}
+            className="achievements-content__profile-avatar"
             src={user.profileImageUrl}
             alt={user.displayName}
           />
@@ -64,91 +63,33 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
 
   if (isComparison && userDetails?.id == user.id && !hasActiveSubscription) {
     return (
-      <div
-        style={{
-          display: "flex",
-          gap: `${SPACING_UNIT * 2}px`,
-          alignItems: "center",
-          position: "relative",
-          padding: `${SPACING_UNIT}px`,
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            zIndex: 2,
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            background: "rgba(0, 0, 0, 0.7)",
-            display: "flex",
-            alignItems: "center",
-            flexDirection: "row",
-            gap: `${SPACING_UNIT}px`,
-            borderRadius: "4px",
-            justifyContent: "center",
-          }}
-        >
+      <div className="achievements-content__comparison">
+        <div className="achievements-content__comparison__container">
           <LockIcon size={24} />
           <h3>
             <button
-              className={styles.subscriptionRequiredButton}
+              className="achievements-content__comparison__container__subscription-required-button"
               onClick={() => showHydraCloudModal("achievements")}
             >
               {t("subscription_needed")}
             </button>
           </h3>
         </div>
-        <div
-          style={{
-            display: "flex",
-            gap: `${SPACING_UNIT * 2}px`,
-            alignItems: "center",
-            height: "62px",
-            position: "relative",
-            filter: "blur(4px)",
-          }}
-        >
+        <div className="achievements-content__comparison__blured-avatar">
           {getProfileImage(user)}
-          <h1 style={{ marginBottom: "8px" }}>{user.displayName}</h1>
+          <h1>{user.displayName}</h1>
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: `${SPACING_UNIT * 2}px`,
-        alignItems: "center",
-        padding: `${SPACING_UNIT}px`,
-      }}
-    >
+    <div className="achievements-content__user-summary">
       {getProfileImage(user)}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          width: "100%",
-        }}
-      >
-        <h1 style={{ marginBottom: "8px" }}>{user.displayName}</h1>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 8,
-            color: vars.color.muted,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
+      <div className="achievements-content__user-summary__container">
+        <h1>{user.displayName}</h1>
+        <div className="achievements-content__user-summary__container__stats">
+          <div className="achievements-content__user-summary__container__stats__trophy-count">
             <TrophyIcon size={13} />
             <span>
               {user.unlockedAchievementCount} / {user.totalAchievementCount}
@@ -164,7 +105,7 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
         <progress
           max={1}
           value={user.unlockedAchievementCount / user.totalAchievementCount}
-          className={styles.achievementsProgressBar}
+          className="achievements-content__user-summary__container__stats__progress-bar"
         />
       </div>
     </div>
@@ -203,7 +144,7 @@ export function AchievementsContent({
   };
 
   const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
-    const heroHeight = heroRef.current?.clientHeight ?? styles.HERO_HEIGHT;
+    const heroHeight = heroRef.current?.clientHeight ?? 150;
 
     const scrollY = (event.target as HTMLDivElement).scrollTop;
     if (scrollY >= heroHeight && !isHeaderStuck) {
@@ -219,10 +160,10 @@ export function AchievementsContent({
     user: Pick<UserInfo, "profileImageUrl" | "displayName">
   ) => {
     return (
-      <div className={styles.profileAvatarSmall}>
+      <div className="achievements-content__comparison__small-avatar">
         {user.profileImageUrl ? (
           <img
-            className={styles.profileAvatarSmall}
+            className="achievements-content__comparison__small-avatar"
             src={user.profileImageUrl}
             alt={user.displayName}
           />
@@ -236,10 +177,10 @@ export function AchievementsContent({
   if (!objectId || !shop || !gameTitle || !userDetails) return null;
 
   return (
-    <div className={styles.wrapper}>
+    <div className="achievements-content__achievements-list">
       <img
         src={steamUrlBuilder.libraryHero(objectId)}
-        style={{ display: "none" }}
+        className="achievements-content__achievements-list__image"
         alt={gameTitle}
         onLoad={handleHeroLoad}
       />
@@ -247,38 +188,32 @@ export function AchievementsContent({
       <section
         ref={containerRef}
         onScroll={onScroll}
-        className={styles.container}
+        className="achievements-content__achievements-list__section"
       >
         <div
+          className="achievements-content__achievements-list__section__container"
           style={{
-            display: "flex",
-            flexDirection: "column",
-            background: `linear-gradient(0deg, ${vars.color.darkBackground} 0%, ${gameColor} 100%)`,
+            background: `linear-gradient(0deg, #151515 0%, ${gameColor} 100%)`,
           }}
         >
-          <div ref={heroRef} className={styles.hero}>
-            <div className={styles.heroContent}>
+          <div
+            ref={heroRef}
+            className="achievements-content__achievements-list__section__container__hero"
+          >
+            <div className="achievements-content__achievements-list__section__container__hero__content">
               <Link
                 to={buildGameDetailsPath({ shop, objectId, title: gameTitle })}
               >
                 <img
                   src={steamUrlBuilder.logo(objectId)}
-                  className={styles.gameLogo}
+                  className="achievements-content__achievements-list__section__container__hero__content__game-logo"
                   alt={gameTitle}
                 />
               </Link>
             </div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              width: "100%",
-              gap: `${SPACING_UNIT}px`,
-              padding: `${SPACING_UNIT}px`,
-            }}
-          >
+          <div className="achievements-content__achievements-list__section__container__achievements-summary-wrapper">
             <AchievementSummary
               user={{
                 ...userDetails,
@@ -298,24 +233,19 @@ export function AchievementsContent({
         </div>
 
         {otherUser && (
-          <div className={styles.tableHeader({ stuck: isHeaderStuck })}>
+          <div
+            className={`achievements-content__achievements-list__section__table-header ${isHeaderStuck ? "achievements-content__achievements-list__section__table-header--stuck" : ""}`}
+          >
             <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: hasActiveSubscription
-                  ? "3fr 1fr 1fr"
-                  : "3fr 2fr",
-                gap: `${SPACING_UNIT * 2}px`,
-                padding: `${SPACING_UNIT}px ${SPACING_UNIT * 3}px`,
-              }}
+              className={`achievements-content__achievements-list__section__table-header__container ${hasActiveSubscription ? "achievements-content__achievements-list__section__table-header__container--has-active-subscription" : "achievements-content__achievements-list__section__table-header__container--has-no-active-subscription"}`}
             >
               <div></div>
               {hasActiveSubscription && (
-                <div style={{ display: "flex", justifyContent: "center" }}>
+                <div className="achievements-content__achievements-list__section__table-header__container__user-avatar">
                   {getProfileImage({ ...userDetails })}
                 </div>
               )}
-              <div style={{ display: "flex", justifyContent: "center" }}>
+              <div className="achievements-content__achievements-list__section__table-header__container__other-user-avatar">
                 {getProfileImage(otherUser)}
               </div>
             </div>

@@ -1,0 +1,56 @@
+@use "../../scss/globals.scss";
+
+.settings-download-sources {
+  &__list {
+    padding: 0;
+    margin: 0;
+    gap: calc(globals.$spacing-unit * 2);
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    background-color: globals.$dark-background-color;
+    border-radius: 8px;
+    padding: calc(globals.$spacing-unit * 2);
+    gap: globals.$spacing-unit;
+    border: solid 1px globals.$border-color;
+    transition: all ease 0.2s;
+
+    &--syncing {
+      opacity: globals.$disabled-opacity;
+    }
+  }
+
+  &__item-header {
+    margin-bottom: globals.$spacing-unit;
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__navigate-button {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    color: globals.$muted-color;
+    text-decoration: underline;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+
+    &:disabled {
+      cursor: default;
+      text-decoration: none;
+    }
+  }
+}

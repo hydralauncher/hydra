@@ -1,10 +1,10 @@
 import { Button, TextField } from "@renderer/components";
 import { useToast, useUserDetails } from "@renderer/hooks";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { UserFriendItem } from "./user-friend-item";
+import "./user-friend-modal-add-friend.scss";
 
 export interface UserFriendModalAddFriendProps {
   closeModal: () => void;
@@ -76,15 +76,7 @@ export const UserFriendModalAddFriend = ({
 
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: `${SPACING_UNIT}px`,
-        }}
-      >
+      <div className="user-friend-modal-add-friend__actions">
         <TextField
           label={t("friend_code")}
           value={friendCode}
@@ -95,7 +87,7 @@ export const UserFriendModalAddFriend = ({
         />
         <Button
           disabled={isAddingFriend}
-          style={{ alignSelf: "end" }}
+          className="user-friend-modal-add-friend__button"
           type="button"
           onClick={handleClickAddFriend}
         >
@@ -105,20 +97,14 @@ export const UserFriendModalAddFriend = ({
         <Button
           onClick={handleClickSeeProfile}
           disabled={isAddingFriend}
-          style={{ alignSelf: "end" }}
+          className="user-friend-modal-add-friend__button"
           type="button"
         >
           {t("see_profile")}
         </Button>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: `${SPACING_UNIT * 2}px`,
-        }}
-      >
+      <div className="user-friend-modal-add-friend__pending-container">
         <h3>{t("pending")}</h3>
         {friendRequests.length === 0 && <p>{t("no_pending_invites")}</p>}
         {friendRequests.map((request) => {

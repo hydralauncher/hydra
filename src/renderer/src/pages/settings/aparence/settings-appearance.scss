@@ -1,0 +1,154 @@
+@use "../../../scss/globals.scss";
+
+.settings-appearance {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    &-left {
+      display: flex;
+      gap: 8px;
+    }
+  }
+
+  &__themes {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    &__theme {
+      width: 100%;
+      min-height: 160px;
+      display: flex;
+      flex-direction: column;
+      background-color: rgba(globals.$border-color, 0.01);
+      border: 1px solid globals.$border-color;
+      border-radius: 12px;
+      gap: 4px;
+      transition: background-color 0.2s ease;
+      padding: 16px;
+      position: relative;
+
+      &--active {
+        background-color: rgba(globals.$border-color, 0.04);
+      }
+
+      &__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-direction: row;
+        gap: 16px;
+
+        &__title {
+          font-size: 18px;
+          font-weight: 600;
+          color: globals.$muted-color;
+          text-transform: capitalize;
+        }
+
+        &__colors {
+          display: flex;
+          flex-direction: row;
+          gap: 8px;
+
+          &__color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            border: 1px solid globals.$border-color;
+          }
+        }
+      }
+
+      &__author {
+        font-size: 12px;
+        color: globals.$body-color;
+        font-weight: 400;
+
+        &__name {
+          font-weight: 600;
+          color: rgba(globals.$muted-color, 0.8);
+          margin-left: 4px;
+
+          &:hover {
+            color: globals.$muted-color;
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+          }
+        }
+      }
+
+      &__actions {
+        display: flex;
+        flex-direction: row;
+        position: absolute;
+        bottom: 16px;
+        left: 16px;
+        right: 16px;
+        gap: 8px;
+        justify-content: space-between;
+
+        &__left {
+          display: flex;
+          flex-direction: row;
+          gap: 8px;
+        }
+
+        &__right {
+          display: flex;
+          flex-direction: row;
+          gap: 8px;
+
+          Button {
+            padding: 8px 11px;
+          }
+        }
+      }
+    }
+  }
+
+  &__no-themes {
+    width: 100%;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 24px;
+    background-color: rgba(globals.$border-color, 0.01);
+    cursor: pointer;
+    border: 1px dashed globals.$border-color;
+    border-radius: 12px;
+    gap: 12px;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: rgba(globals.$border-color, 0.03);
+    }
+
+    &__icon {
+      svg {
+        width: 32px;
+        height: 32px;
+        color: globals.$body-color;
+        opacity: 0.7;
+      }
+    }
+
+    &__text {
+      text-align: center;
+      max-width: 400px;
+      font-size: 14.5px;
+      line-height: 1.6;
+      font-weight: 400;
+      color: rgba(globals.$body-color, 0.85);
+    }
+  }
+}

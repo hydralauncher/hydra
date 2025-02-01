@@ -1,0 +1,21 @@
+@use "../../../scss/globals.scss";
+
+.user-friend-modal-add-friend {
+  &__actions {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: globals.$spacing-unit;
+  }
+
+  &__button {
+    align-self: end;
+  }
+
+  &__pending-container {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+}

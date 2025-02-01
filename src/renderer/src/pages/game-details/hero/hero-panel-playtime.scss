@@ -1,0 +1,15 @@
+@use "../../../scss/globals.scss";
+
+.hero-panel-playtime {
+  &__download-details {
+    gap: globals.$spacing-unit;
+    display: flex;
+    color: globals.$body-color;
+    align-items: center;
+  }
+
+  &__downloads-link {
+    color: globals.$body-color;
+    text-decoration: underline;
+  }
+}

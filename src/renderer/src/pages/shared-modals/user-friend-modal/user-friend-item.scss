@@ -1,0 +1,64 @@
+@use "../../../scss/globals.scss";
+
+.user-friend-item {
+  &__container {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 3);
+    align-items: center;
+    border-radius: 4px;
+    border: solid 1px globals.$border-color;
+    width: 100%;
+    height: 54px;
+    min-height: 54px;
+    transition: all ease 0.2s;
+    position: relative;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  &__button {
+    display: flex;
+    align-items: center;
+    position: absolute;
+    cursor: pointer;
+    height: 100%;
+    width: 100%;
+    flex-direction: row;
+    color: globals.$body-color;
+    gap: calc(globals.$spacing-unit + globals.$spacing-unit / 2);
+    padding: 0 globals.$spacing-unit;
+  }
+
+  &__display-name {
+    font-weight: bold;
+    font-size: globals.$body-font-size;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__accept-button {
+    cursor: pointer;
+    color: globals.$body-color;
+    width: 28px;
+    height: 28px;
+
+    &:hover {
+      color: globals.$success-color;
+    }
+  }
+
+  &__cancel-button {
+    cursor: pointer;
+    color: globals.$body-color;
+    width: 28px;
+    height: 28px;
+
+    &:hover {
+      color: globals.$danger-color;
+    }
+  }
+}

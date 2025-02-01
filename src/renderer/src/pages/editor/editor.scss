@@ -1,0 +1,74 @@
+@use "../../scss/globals.scss" as globals;
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+
+  &__header {
+    height: 35px;
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background-color: globals.$dark-background-color;
+    font-size: 8px;
+    z-index: 50;
+    -webkit-app-region: drag;
+    gap: 8px;
+
+    h1 {
+      margin: 0;
+      line-height: 1;
+    }
+
+    &__status {
+      display: flex;
+      width: 9px;
+      height: 9px;
+      background-color: globals.$muted-color;
+      border-radius: 50%;
+      margin-top: 3px;
+    }
+  }
+
+  &__footer {
+    background-color: globals.$dark-background-color;
+    padding: globals.$spacing-unit globals.$spacing-unit * 2;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+
+    &-actions {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+
+      &__tabs {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+
+        .active {
+          background-color: darken(globals.$dark-background-color, 2%);
+        }
+      }
+    }
+  }
+
+  &__info {
+    padding: 16px;
+
+    p {
+      font-size: 16px;
+      font-weight: 600;
+      color: globals.$muted-color;
+      margin-bottom: 8px;
+    }
+  }
+}

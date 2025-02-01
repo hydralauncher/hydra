@@ -1,16 +1,19 @@
-import { userAuthRepository } from "@main/repository";
+import { db } from "@main/level";
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
-import type { UserFriends } from "@types";
+import type { User, UserFriends } from "@types";
+import { levelKeys } from "@main/level/sublevels";
 
 export const getUserFriends = async (
   userId: string,
   take: number,
   skip: number
 ): Promise<UserFriends> => {
-  const loggedUser = await userAuthRepository.findOne({ where: { id: 1 } });
+  const user = await db.get<string, User>(levelKeys.user, {
+    valueEncoding: "json",
+  });
 
-  if (loggedUser?.userId === userId) {
+  if (user?.id === userId) {
     return HydraApi.get(`/profile/friends`, { take, skip });
   }
 

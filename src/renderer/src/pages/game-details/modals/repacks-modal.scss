@@ -1,0 +1,32 @@
+@use "../../../scss/globals.scss";
+
+.repacks-modal {
+  &__filter-container {
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
+  &__repacks {
+    display: flex;
+    gap: globals.$spacing-unit;
+    flex-direction: column;
+  }
+
+  &__repack-button {
+    display: flex;
+    text-align: left;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: globals.$spacing-unit;
+    color: globals.$body-color;
+    padding: calc(globals.$spacing-unit * 2);
+  }
+
+  &__repack-title {
+    color: globals.$muted-color;
+    word-break: break-word;
+  }
+
+  &__repack-info {
+    font-size: globals.$small-font-size;
+  }
+}

@@ -4,8 +4,8 @@ import type { DownloadProgress } from "@types";
 
 export interface DownloadState {
   lastPacket: DownloadProgress | null;
-  gameId: number | null;
-  gamesWithDeletionInProgress: number[];
+  gameId: string | null;
+  gamesWithDeletionInProgress: string[];
 }
 
 const initialState: DownloadState = {
@@ -20,13 +20,13 @@ export const downloadSlice = createSlice({
   reducers: {
     setLastPacket: (state, action: PayloadAction<DownloadProgress>) => {
       state.lastPacket = action.payload;
-      if (!state.gameId) state.gameId = action.payload.game.id;
+      if (!state.gameId) state.gameId = action.payload.gameId;
     },
     clearDownload: (state) => {
       state.lastPacket = null;
       state.gameId = null;
     },
-    setGameDeleting: (state, action: PayloadAction<number>) => {
+    setGameDeleting: (state, action: PayloadAction<string>) => {
       if (
         !state.gamesWithDeletionInProgress.includes(action.payload) &&
         action.payload
@@ -34,7 +34,7 @@ export const downloadSlice = createSlice({
         state.gamesWithDeletionInProgress.push(action.payload);
       }
     },
-    removeGameFromDeleting: (state, action: PayloadAction<number>) => {
+    removeGameFromDeleting: (state, action: PayloadAction<string>) => {
       const index = state.gamesWithDeletionInProgress.indexOf(action.payload);
       if (index >= 0) state.gamesWithDeletionInProgress.splice(index, 1);
     },

@@ -1,9 +1,8 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRightIcon, ChevronLeftIcon } from "@primer/octicons-react";
-
-import * as styles from "./gallery-slider.css";
 import { gameDetailsContext } from "@renderer/context";
+import "./gallery-slider.scss";
 
 export function GallerySlider() {
   const { shopDetails } = useContext(gameDetailsContext);
@@ -97,11 +96,11 @@ export function GallerySlider() {
   return (
     <>
       {hasScreenshots && (
-        <div className={styles.gallerySliderContainer}>
+        <div className="gallery-slider__container">
           <div
             onMouseEnter={() => setShowArrows(true)}
             onMouseLeave={() => setShowArrows(false)}
-            className={styles.gallerySliderAnimationContainer}
+            className="gallery-slider__animation-container"
             ref={mediaContainerRef}
           >
             {shopDetails.movies &&
@@ -109,7 +108,7 @@ export function GallerySlider() {
                 <video
                   key={video.id}
                   controls
-                  className={styles.gallerySliderMedia}
+                  className="gallery-slider__media"
                   poster={video.thumbnail}
                   style={{ translate: `${-100 * mediaIndex}%` }}
                   loop
@@ -124,7 +123,7 @@ export function GallerySlider() {
               shopDetails.screenshots?.map((image, i) => (
                 <img
                   key={image.id}
-                  className={styles.gallerySliderMedia}
+                  className="gallery-slider__media"
                   src={image.path_full}
                   style={{ translate: `${-100 * mediaIndex}%` }}
                   alt={t("screenshot", { number: i + 1 })}
@@ -135,10 +134,11 @@ export function GallerySlider() {
             <button
               onClick={showPrevImage}
               type="button"
-              className={styles.gallerySliderButton({
-                visible: showArrows,
-                direction: "left",
-              })}
+              className={`gallery-slider__button gallery-slider__button--left ${
+                showArrows
+                  ? "gallery-slider__button--visible"
+                  : "gallery-slider__button--hidden"
+              }`}
               aria-label={t("previous_screenshot")}
               tabIndex={0}
             >
@@ -148,10 +148,11 @@ export function GallerySlider() {
             <button
               onClick={showNextImage}
               type="button"
-              className={styles.gallerySliderButton({
-                visible: showArrows,
-                direction: "right",
-              })}
+              className={`gallery-slider__button gallery-slider__button--right ${
+                showArrows
+                  ? "gallery-slider__button--visible"
+                  : "gallery-slider__button--hidden"
+              }`}
               aria-label={t("next_screenshot")}
               tabIndex={0}
             >
@@ -159,20 +160,22 @@ export function GallerySlider() {
             </button>
           </div>
 
-          <div className={styles.gallerySliderPreview} ref={scrollContainerRef}>
+          <div className="gallery-slider__preview" ref={scrollContainerRef}>
             {previews.map((media, i) => (
               <button
                 key={media.id}
                 type="button"
-                className={styles.mediaPreviewButton({
-                  active: mediaIndex === i,
-                })}
+                className={`gallery-slider__preview-button ${
+                  mediaIndex === i
+                    ? "gallery-slider__preview-button--active"
+                    : ""
+                }`}
                 onClick={() => setMediaIndex(i)}
                 aria-label={t("open_screenshot", { number: i + 1 })}
               >
                 <img
                   src={media.thumbnail}
-                  className={styles.mediaPreview}
+                  className="gallery-slider__preview-image"
                   alt={t("screenshot", { number: i + 1 })}
                 />
               </button>

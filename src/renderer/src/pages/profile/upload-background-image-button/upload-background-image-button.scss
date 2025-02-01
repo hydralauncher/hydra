@@ -1,0 +1,11 @@
+@use "../../../scss/globals.scss";
+
+.upload-background-image-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  border-color: globals.$body-color;
+  box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.8);
+  background-color: rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(20px);
+}

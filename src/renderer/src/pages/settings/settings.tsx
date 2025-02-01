@@ -1,11 +1,8 @@
 import { Button } from "@renderer/components";
-
-import * as styles from "./settings.css";
 import { useTranslation } from "react-i18next";
 import { SettingsRealDebrid } from "./settings-real-debrid";
 import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
-
 import { SettingsDownloadSources } from "./settings-download-sources";
 import {
   SettingsContextConsumer,
@@ -14,10 +11,11 @@ import {
 import { SettingsAccount } from "./settings-account";
 import { useUserDetails } from "@renderer/hooks";
 import { useMemo } from "react";
+import "./settings.scss";
+import { SettingsAppearance } from "./aparence/settings-appearance";
 
 export default function Settings() {
   const { t } = useTranslation("settings");
-
   const { userDetails } = useUserDetails();
 
   const categories = useMemo(() => {
@@ -25,6 +23,7 @@ export default function Settings() {
       t("general"),
       t("behavior"),
       t("download_sources"),
+      t("appearance"),
       "Real-Debrid",
     ];
 
@@ -50,6 +49,10 @@ export default function Settings() {
             }
 
             if (currentCategoryIndex === 3) {
+              return <SettingsAppearance />;
+            }
+
+            if (currentCategoryIndex === 4) {
               return <SettingsRealDebrid />;
             }
 
@@ -57,9 +60,9 @@ export default function Settings() {
           };
 
           return (
-            <section className={styles.container}>
-              <div className={styles.content}>
-                <section className={styles.settingsCategories}>
+            <section className="settings__container">
+              <div className="settings__content">
+                <section className="settings__categories">
                   {categories.map((category, index) => (
                     <Button
                       key={category}

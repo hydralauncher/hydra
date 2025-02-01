@@ -1,0 +1,25 @@
+@use "../../../../scss/globals.scss";
+
+.settings-appearance {
+  &__actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    &-left {
+      display: flex;
+      gap: 8px;
+    }
+
+    &-right {
+      display: flex;
+      gap: 8px;
+    }
+  }
+
+  &__button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}

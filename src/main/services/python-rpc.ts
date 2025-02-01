@@ -10,7 +10,7 @@ import { Readable } from "node:stream";
 import { app, dialog } from "electron";
 
 interface GamePayload {
-  game_id: number;
+  game_id: string;
   url: string;
   save_path: string;
 }

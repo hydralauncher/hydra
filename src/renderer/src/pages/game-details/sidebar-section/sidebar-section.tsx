@@ -1,7 +1,6 @@
 import { ChevronDownIcon } from "@primer/octicons-react";
 import { useEffect, useRef, useState } from "react";
-
-import * as styles from "./sidebar-section.css";
+import "./sidebar-section.scss";
 
 export interface SidebarSectionProps {
   title: string;
@@ -22,23 +21,25 @@ export function SidebarSection({ title, children }: SidebarSectionProps) {
   }, [isOpen, children, height]);
 
   return (
-    <div>
+    <div className="sidebar-section">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={styles.sidebarSectionButton}
+        className="sidebar-section__button"
       >
-        <ChevronDownIcon className={styles.chevron({ open: isOpen })} />
+        <ChevronDownIcon
+          className={`sidebar-section__chevron ${
+            isOpen ? "sidebar-section__chevron--open" : ""
+          }`}
+        />
         <span>{title}</span>
       </button>
 
       <div
         ref={content}
+        className="sidebar-section__content"
         style={{
           maxHeight: `${height}px`,
-          overflow: "hidden",
-          transition: "max-height 0.4s cubic-bezier(0, 1, 0, 1)",
-          position: "relative",
         }}
       >
         {children}

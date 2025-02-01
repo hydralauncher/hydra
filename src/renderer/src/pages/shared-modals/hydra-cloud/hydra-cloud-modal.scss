@@ -1,0 +1,10 @@
+@use "../../../scss/globals.scss";
+
+.hydra-cloud-modal {
+  &__container {
+    display: flex;
+    width: 500px;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+}
