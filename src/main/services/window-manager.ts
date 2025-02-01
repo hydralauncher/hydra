@@ -19,6 +19,7 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import { slice, sortBy } from "lodash-es";
 import type { UserPreferences } from "@types";
 import { AuthPage } from "@shared";
+import { isStaging } from "@main/constants";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -172,7 +173,9 @@ export class WindowManager {
 
       authWindow.removeMenu();
 
-      if (!app.isPackaged) authWindow.webContents.openDevTools();
+      if (!app.isPackaged || isStaging) {
+        authWindow.webContents.openDevTools();
+      }
 
       authWindow.loadURL(
         `${import.meta.env.MAIN_VITE_AUTH_URL}${page}?${searchParams.toString()}`
