@@ -276,7 +276,7 @@ export class DownloadManager {
         return {
           action: "start",
           game_id: downloadId,
-          url: `https://pixeldrain.com/api/file/${id}?download`,
+          url: `https://cdn.pd5-gamedriveorg.workers.dev/api/file/${id}`,
           save_path: download.downloadPath,
         };
       }
