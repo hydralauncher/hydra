@@ -291,7 +291,7 @@
     "no_users_blocked": "No tienes usuarios bloqueados",
     "notifications": "Notificaciones",
     "renew_subscription": "Renovar Hydra Cloud",
-    "subscription_active_until": "Tú Hydra Cloud está activa hasta {{date}}",
+    "subscription_active_until": "Tu Hydra Cloud está activa hasta {{date}}",
     "subscription_expired_at": "Tú suscripción expiró el {{date}}",
     "subscription_renew_cancelled": "Está desactivada la renovación automática",
     "subscription_renews_on": "Tú suscripción se renueva el {{date}}",
