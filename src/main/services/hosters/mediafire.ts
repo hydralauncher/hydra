@@ -21,7 +21,7 @@ export class MediafireApi {
       const html = await response.text();
       return this.extractDirectUrl(html);
     } catch (error) {
-      throw new Error(`Failed to get download URL: ${error.message}`);
+      throw new Error(`Failed to get download URL`);
     }
   }
 
