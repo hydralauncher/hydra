@@ -55,24 +55,6 @@ export interface GameRunning {
   sessionDurationInMillis: number;
 }
 
-export interface DownloadProgress {
-  downloadSpeed: number;
-  timeRemaining: number;
-  numPeers: number;
-  numSeeds: number;
-  isDownloadingMetadata: boolean;
-  isCheckingFiles: boolean;
-  progress: number;
-  gameId: number;
-  game: LibraryGame;
-}
-
-export interface SeedingStatus {
-  gameId: number;
-  status: GameStatus;
-  uploadSpeed: number;
-}
-
 export interface UserPreferences {
   downloadsPath: string | null;
   language: string;

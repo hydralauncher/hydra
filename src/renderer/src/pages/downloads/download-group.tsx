@@ -300,7 +300,7 @@ export function DownloadGroup({
                   />
 
                   <div className={styles.downloadCoverContent}>
-                    {game.downloader === Downloader.TorBox ? (
+                    {game.download?.downloader === Downloader.TorBox ? (
                       <div
                         style={{
                           display: "flex",
@@ -320,7 +320,9 @@ export function DownloadGroup({
                         <span style={{ fontSize: 10 }}>TorBox</span>
                       </div>
                     ) : (
-                      <Badge>{DOWNLOADER_NAME[game.downloader]}</Badge>
+                      <Badge>
+                        {DOWNLOADER_NAME[game.download!.downloader]}
+                      </Badge>
                     )}
                   </div>
                 </div>
