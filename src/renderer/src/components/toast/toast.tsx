@@ -7,7 +7,6 @@ import {
 } from "@primer/octicons-react";
 
 import "./toast.scss";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import cn from "classnames";
 
 export interface ToastProps {
@@ -84,7 +83,7 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
       })}
     >
       <div className="toast__content">
-        <div style={{ display: "flex", gap: `${SPACING_UNIT}px` }}>
+        <div className="toast__message-container">
           {type === "success" && (
             <CheckCircleFillIcon className="toast__success-icon" />
           )}
@@ -94,7 +93,7 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
           )}
 
           {type === "warning" && <AlertIcon className="toast__warning-icon" />}
-          <span style={{ fontWeight: "bold" }}>{message}</span>
+          <span className="toast__message">{message}</span>
         </div>
 
         <button
