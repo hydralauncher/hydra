@@ -1,6 +1,5 @@
 import { registerEvent } from "../register-event";
 import { DownloadManager, HydraApi, gamesPlaytime } from "@main/services";
-import { PythonRPC } from "@main/services/python-rpc";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 
 const signOut = async (_event: Electron.IpcMainInvokeEvent) => {

@@ -271,7 +271,7 @@ export class DownloadManager {
         };
       }
       case Downloader.PixelDrain: {
-        const id = game.uri!.split("/").pop();
+        const id = download.uri.split("/").pop();
 
         const name = await axios
           .get(`https://pixeldrain.com/api/file/${id}/info`)
@@ -281,7 +281,7 @@ export class DownloadManager {
           action: "start",
           game_id: downloadId,
           url: `https://pixeldrain.com/api/file/${id}?download`,
-          save_path: game.downloadPath!,
+          save_path: download.downloadPath,
           out: name,
         };
       }
@@ -326,15 +326,15 @@ export class DownloadManager {
         };
       }
       case Downloader.TorBox: {
-        const { name, url } = await TorBoxClient.getDownloadInfo(game.uri!);
+        const { name, url } = await TorBoxClient.getDownloadInfo(download.uri);
         console.log(url, name);
 
         if (!url) return;
         return {
           action: "start",
-          game_id: game.id,
+          game_id: downloadId,
           url,
-          save_path: game.downloadPath!,
+          save_path: download.downloadPath,
           out: name,
         };
       }

@@ -285,7 +285,7 @@ const onCloseGame = (game: Game) => {
   if (game.remoteId) {
     // create backup
     // todo: check for hydra cloud?
-    createBackup(game.objectID, game.shop, "");
+    createBackup(game.objectId, game.shop, "");
 
     updateGamePlaytime(
       game,
