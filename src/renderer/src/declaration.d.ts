@@ -40,7 +40,9 @@ declare global {
 
   interface Electron {
     /* Torrenting */
-    startGameDownload: (payload: StartGameDownloadPayload) => Promise<void>;
+    startGameDownload: (
+      payload: StartGameDownloadPayload
+    ) => Promise<{ ok: boolean; error?: string }>;
     cancelGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
     pauseGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
     resumeGameDownload: (shop: GameShop, objectId: string) => Promise<void>;

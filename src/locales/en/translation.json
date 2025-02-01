@@ -184,7 +184,11 @@
     "reset_achievements_description": "This will reset all achievements for {{game}}",
     "reset_achievements_title": "Are you sure?",
     "reset_achievements_success": "Achievements successfully reset",
-    "reset_achievements_error": "Failed to reset achievements"
+    "reset_achievements_error": "Failed to reset achievements",
+    "download_error_gofile_quota_exceeded": "You have exceeded your Gofile monthly quota. Please await the quota to reset.",
+    "download_error_real_debrid_account_not_authorized": "Your Real-Debrid account is not authorized to make new downloads. Please check your account settings and try again.",
+    "download_error_not_cached_in_real_debrid": "This download is not available on Real-Debrid and polling download status from Real-Debrid is not yet available.",
+    "download_error_not_cached_in_torbox": "This download is not available on Torbox and polling download status from Torbox is not yet available."
   },
   "activation": {
     "title": "Activate Hydra",
