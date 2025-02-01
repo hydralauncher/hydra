@@ -29,6 +29,7 @@ import { downloadSourcesWorker } from "./workers";
 import { downloadSourcesTable } from "./dexie";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
+import { SPACING_UNIT } from "./theme.css";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -212,22 +213,22 @@ export function App() {
     const id = crypto.randomUUID();
     const channel = new BroadcastChannel(`download_sources:sync:${id}`);
 
-    channel.onmessage = (event: MessageEvent<number>) => {
+    channel.onmessage = async (event: MessageEvent<number>) => {
       const newRepacksCount = event.data;
       window.electron.publishNewRepacksNotification(newRepacksCount);
       updateRepacks();
 
-      downloadSourcesTable.toArray().then((downloadSources) => {
-        downloadSources
-          .filter((source) => !source.fingerprint)
-          .forEach((downloadSource) => {
-            window.electron
-              .putDownloadSource(downloadSource.objectIds)
-              .then(({ fingerprint }) => {
-                downloadSourcesTable.update(downloadSource.id, { fingerprint });
-              });
-          });
-      });
+      const downloadSources = await downloadSourcesTable.toArray();
+
+      downloadSources
+        .filter((source) => !source.fingerprint)
+        .forEach(async (downloadSource) => {
+          const { fingerprint } = await window.electron.putDownloadSource(
+            downloadSource.objectIds
+          );
+
+          downloadSourcesTable.update(downloadSource.id, { fingerprint });
+        });
     };
 
     downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
@@ -255,7 +256,7 @@ export function App() {
 
   return (
     <>
-      {/* {window.electron.platform === "win32" && (
+      {window.electron.platform === "win32" && (
         <div className={styles.titleBar}>
           <h4>
             Hydra
@@ -264,22 +265,25 @@ export function App() {
             )}
           </h4>
         </div>
-      )} */}
-      <div className={styles.titleBar}>
-        <h4>
-          Hydra
-          {hasActiveSubscription && (
-            <span className={styles.cloudText}> Cloud</span>
-          )}
-        </h4>
-      </div>
+      )}
 
-      <Toast
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type}
-        onClose={handleToastClose}
-      />
+      <div
+        style={{
+          position: "absolute",
+          bottom: `${26 + SPACING_UNIT * 2}px`,
+          right: "16px",
+          maxWidth: "420px",
+          width: "420px",
+        }}
+      >
+        <Toast
+          visible={toast.visible}
+          title={toast.title}
+          message={toast.message}
+          type={toast.type}
+          onClose={handleToastClose}
+        />
+      </div>
 
       <HydraCloudModal
         visible={isHydraCloudModalVisible}

@@ -21,7 +21,7 @@ export function GameOptionsModal({
   visible,
   game,
   onClose,
-}: GameOptionsModalProps) {
+}: Readonly<GameOptionsModalProps>) {
   const { t } = useTranslation("game_details");
 
   const { showSuccessToast, showErrorToast } = useToast();

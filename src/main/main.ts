@@ -27,7 +27,7 @@ export const loadState = async () => {
       valueEncoding: "json",
     });
 
-    return db.get<string, UserPreferences>(levelKeys.userPreferences, {
+    return db.get<string, UserPreferences | null>(levelKeys.userPreferences, {
       valueEncoding: "json",
     });
   });
@@ -114,24 +114,29 @@ const migrateFromSqlite = async () => {
       if (userPreferences.length > 0) {
         const { realDebridApiToken, ...rest } = userPreferences[0];
 
-        await db.put(levelKeys.userPreferences, {
-          ...rest,
-          realDebridApiToken: realDebridApiToken
-            ? Crypto.encrypt(realDebridApiToken)
-            : null,
-          preferQuitInsteadOfHiding: rest.preferQuitInsteadOfHiding === 1,
-          runAtStartup: rest.runAtStartup === 1,
-          startMinimized: rest.startMinimized === 1,
-          disableNsfwAlert: rest.disableNsfwAlert === 1,
-          seedAfterDownloadComplete: rest.seedAfterDownloadComplete === 1,
-          showHiddenAchievementsDescription:
-            rest.showHiddenAchievementsDescription === 1,
-          downloadNotificationsEnabled: rest.downloadNotificationsEnabled === 1,
-          repackUpdatesNotificationsEnabled:
-            rest.repackUpdatesNotificationsEnabled === 1,
-          achievementNotificationsEnabled:
-            rest.achievementNotificationsEnabled === 1,
-        });
+        await db.put<string, UserPreferences>(
+          levelKeys.userPreferences,
+          {
+            ...rest,
+            realDebridApiToken: realDebridApiToken
+              ? Crypto.encrypt(realDebridApiToken)
+              : null,
+            preferQuitInsteadOfHiding: rest.preferQuitInsteadOfHiding === 1,
+            runAtStartup: rest.runAtStartup === 1,
+            startMinimized: rest.startMinimized === 1,
+            disableNsfwAlert: rest.disableNsfwAlert === 1,
+            seedAfterDownloadComplete: rest.seedAfterDownloadComplete === 1,
+            showHiddenAchievementsDescription:
+              rest.showHiddenAchievementsDescription === 1,
+            downloadNotificationsEnabled:
+              rest.downloadNotificationsEnabled === 1,
+            repackUpdatesNotificationsEnabled:
+              rest.repackUpdatesNotificationsEnabled === 1,
+            achievementNotificationsEnabled:
+              rest.achievementNotificationsEnabled === 1,
+          },
+          { valueEncoding: "json" }
+        );
 
         if (rest.language) {
           await db.put(levelKeys.language, rest.language);
