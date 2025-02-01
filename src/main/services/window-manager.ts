@@ -50,7 +50,7 @@ export class WindowManager {
       minHeight: 540,
       backgroundColor: "#1c1c1c",
       titleBarStyle: process.platform === "linux" ? "default" : "hidden",
-      ...(process.platform === "linux" ? { icon } : {}),
+      icon,
       trafficLightPosition: { x: 16, y: 16 },
       titleBarOverlay: {
         symbolColor: "#DADBE1",
@@ -144,6 +144,11 @@ export class WindowManager {
       }
       WindowManager.mainWindow?.setProgressBar(-1);
       WindowManager.mainWindow = null;
+    });
+
+    this.mainWindow.webContents.setWindowOpenHandler((handler) => {
+      shell.openExternal(handler.url);
+      return { action: "deny" };
     });
   }
 
