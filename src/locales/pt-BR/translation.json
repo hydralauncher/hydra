@@ -286,7 +286,8 @@
     "become_subscriber": "Seja Hydra Cloud",
     "subscription_renew_cancelled": "A renovação automática está desativada",
     "subscription_renews_on": "Sua assinatura renova dia {{date}}",
-    "bill_sent_until": "Sua próxima cobrança será enviada até esse dia"
+    "bill_sent_until": "Sua próxima cobrança será enviada até esse dia",
+    "enable_torbox": "Habilitar Torbox"
   },
   "notifications": {
     "download_complete": "Download concluído",

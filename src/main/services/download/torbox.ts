@@ -93,8 +93,11 @@ export class TorBoxClient {
   }
 
   static async getDownloadInfo(uri: string) {
-    const { id, name } = await this.getTorrentIdAndName(uri);
-    const url = await this.requestLink(id);
-    return { url, name: `${name}.zip` };
+    const torrentData = await this.getTorrentIdAndName(uri);
+    const url = await this.requestLink(torrentData.id);
+
+    const name = torrentData.name ? `${torrentData.name}.zip` : undefined;
+
+    return { url, name };
   }
 }
