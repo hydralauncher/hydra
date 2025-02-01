@@ -6,7 +6,7 @@ export class MediafireApi {
   private static readonly validMediafirePreDL =
     /(?<=['"])(https?:)?(\/\/)?(www\.)?mediafire\.com\/(file|view|download)\/[^'"?]+\?dkey=[^'"]+(?=['"])/;
   private static readonly validDynamicDL =
-    /(?<=['"])https?:\/\/download[0-9]+\.mediafire\.com\/[^'"]+(?=['"])/;
+    /(?<=['"])https?:\/\/download\d+\.mediafire\.com\/[^'"]+(?=['"])/;
   private static readonly checkHTTP = /^https?:\/\//m;
 
   public static async getDownloadUrl(mediafireUrl: string): Promise<string> {
@@ -19,7 +19,7 @@ export class MediafireApi {
       if (!response.ok) throw new Error("Failed to fetch Mediafire page");
 
       const html = await response.text();
-      return this.extractDirectUrl(html, processedUrl);
+      return this.extractDirectUrl(html);
     } catch (error) {
       throw new Error(`Failed to get download URL: ${error.message}`);
     }
@@ -42,14 +42,14 @@ export class MediafireApi {
   }
 
   private static extractDirectUrl(html: string): string {
-    const preUrls = html.match(this.validMediafirePreDL);
-    if (preUrls && preUrls[0]) {
-      return preUrls[0];
+    const preMatch = this.validMediafirePreDL.exec(html);
+    if (preMatch?.[0]) {
+      return preMatch[0];
     }
 
-    const dlUrls = html.match(this.validDynamicDL);
-    if (dlUrls && dlUrls[0]) {
-      return dlUrls[0];
+    const dlMatch = this.validDynamicDL.exec(html);
+    if (dlMatch?.[0]) {
+      return dlMatch[0];
     }
 
     throw new Error("No valid download links found");
