@@ -114,7 +114,7 @@ export function SettingsRealDebrid() {
               }}
               disabled={isButtonDisabled}
             >
-              {t("save")}
+              {t("save_changes")}
             </Button>
           }
           hint={
