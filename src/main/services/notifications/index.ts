@@ -9,6 +9,7 @@ import { achievementSoundPath } from "@main/constants";
 import icon from "@resources/icon.png?asset";
 import { NotificationOptions, toXmlString } from "./xml";
 import { logger } from "../logger";
+import { WindowManager } from "../window-manager";
 import type { Game, UserPreferences } from "@types";
 import { db, levelKeys } from "@main/level";
 
@@ -96,7 +97,9 @@ export const publishCombinedNewAchievementNotification = async (
     toastXml: toXmlString(options),
   }).show();
 
-  if (process.platform !== "linux") {
+  if (WindowManager.mainWindow) {
+    WindowManager.mainWindow.webContents.send("on-achievement-unlocked");
+  } else if (process.platform !== "linux") {
     sound.play(achievementSoundPath);
   }
 };
@@ -143,7 +146,9 @@ export const publishNewAchievementNotification = async (info: {
     toastXml: toXmlString(options),
   }).show();
 
-  if (process.platform !== "linux") {
+  if (WindowManager.mainWindow) {
+    WindowManager.mainWindow.webContents.send("on-achievement-unlocked");
+  } else if (process.platform !== "linux") {
     sound.play(achievementSoundPath);
   }
 };
