@@ -6,9 +6,10 @@ export function useToast() {
   const dispatch = useAppDispatch();
 
   const showSuccessToast = useCallback(
-    (message: string) => {
+    (title: string, message?: string) => {
       dispatch(
         showToast({
+          title,
           message,
           type: "success",
         })
@@ -18,9 +19,10 @@ export function useToast() {
   );
 
   const showErrorToast = useCallback(
-    (message: string) => {
+    (title: string, message?: string) => {
       dispatch(
         showToast({
+          title,
           message,
           type: "error",
         })
@@ -30,9 +32,10 @@ export function useToast() {
   );
 
   const showWarningToast = useCallback(
-    (message: string) => {
+    (title: string, message?: string) => {
       dispatch(
         showToast({
+          title,
           message,
           type: "warning",
         })

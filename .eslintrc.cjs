@@ -7,7 +7,7 @@ module.exports = {
     "plugin:jsx-a11y/recommended",
     "@electron-toolkit/eslint-config-ts/recommended",
     "plugin:prettier/recommended",
-    "plugin:storybook/recommended"
+    "plugin:storybook/recommended",
   ],
   rules: {
     "@typescript-eslint/explicit-function-return-type": "off",

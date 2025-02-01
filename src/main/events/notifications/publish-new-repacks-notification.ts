@@ -10,7 +10,7 @@ const publishNewRepacksNotification = async (
 ) => {
   if (newRepacksCount < 1) return;
 
-  const userPreferences = await db.get<string, UserPreferences>(
+  const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {
       valueEncoding: "json",

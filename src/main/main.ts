@@ -21,8 +21,18 @@ import {
 import { Auth, User, type UserPreferences } from "@types";
 import { knexClient } from "./knex-client";
 
-const loadState = async (userPreferences: UserPreferences | null) => {
-  import("./events");
+export const loadState = async () => {
+  const userPreferences = await migrateFromSqlite().then(async () => {
+    await db.put<string, boolean>(levelKeys.sqliteMigrationDone, true, {
+      valueEncoding: "json",
+    });
+
+    return db.get<string, UserPreferences | null>(levelKeys.userPreferences, {
+      valueEncoding: "json",
+    });
+  });
+
+  await import("./events");
 
   Aria2.spawn();
 
@@ -104,24 +114,29 @@ const migrateFromSqlite = async () => {
       if (userPreferences.length > 0) {
         const { realDebridApiToken, ...rest } = userPreferences[0];
 
-        await db.put(levelKeys.userPreferences, {
-          ...rest,
-          realDebridApiToken: realDebridApiToken
-            ? Crypto.encrypt(realDebridApiToken)
-            : null,
-          preferQuitInsteadOfHiding: rest.preferQuitInsteadOfHiding === 1,
-          runAtStartup: rest.runAtStartup === 1,
-          startMinimized: rest.startMinimized === 1,
-          disableNsfwAlert: rest.disableNsfwAlert === 1,
-          seedAfterDownloadComplete: rest.seedAfterDownloadComplete === 1,
-          showHiddenAchievementsDescription:
-            rest.showHiddenAchievementsDescription === 1,
-          downloadNotificationsEnabled: rest.downloadNotificationsEnabled === 1,
-          repackUpdatesNotificationsEnabled:
-            rest.repackUpdatesNotificationsEnabled === 1,
-          achievementNotificationsEnabled:
-            rest.achievementNotificationsEnabled === 1,
-        });
+        await db.put<string, UserPreferences>(
+          levelKeys.userPreferences,
+          {
+            ...rest,
+            realDebridApiToken: realDebridApiToken
+              ? Crypto.encrypt(realDebridApiToken)
+              : null,
+            preferQuitInsteadOfHiding: rest.preferQuitInsteadOfHiding === 1,
+            runAtStartup: rest.runAtStartup === 1,
+            startMinimized: rest.startMinimized === 1,
+            disableNsfwAlert: rest.disableNsfwAlert === 1,
+            seedAfterDownloadComplete: rest.seedAfterDownloadComplete === 1,
+            showHiddenAchievementsDescription:
+              rest.showHiddenAchievementsDescription === 1,
+            downloadNotificationsEnabled:
+              rest.downloadNotificationsEnabled === 1,
+            repackUpdatesNotificationsEnabled:
+              rest.repackUpdatesNotificationsEnabled === 1,
+            achievementNotificationsEnabled:
+              rest.achievementNotificationsEnabled === 1,
+          },
+          { valueEncoding: "json" }
+        );
 
         if (rest.language) {
           await db.put(levelKeys.language, rest.language);
@@ -192,15 +207,3 @@ const migrateFromSqlite = async () => {
     migrateUser,
   ]);
 };
-
-migrateFromSqlite().then(async () => {
-  await db.put<string, boolean>(levelKeys.sqliteMigrationDone, true, {
-    valueEncoding: "json",
-  });
-
-  db.get<string, UserPreferences>(levelKeys.userPreferences, {
-    valueEncoding: "json",
-  }).then((userPreferences) => {
-    loadState(userPreferences);
-  });
-});

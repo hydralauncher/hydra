@@ -39,7 +39,7 @@ export const pipe =
     fns.reduce((prev, fn) => fn(prev), arg);
 
 export const removeReleaseYearFromName = (name: string) =>
-  name.replace(/\([0-9]{4}\)/g, "");
+  name.replace(/\(\d{4}\)/g, "");
 
 export const removeSymbolsFromName = (name: string) =>
   name.replace(/[^A-Za-z 0-9]/g, "");

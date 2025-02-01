@@ -181,7 +181,12 @@ export function Sidebar() {
       }}
     >
       <div
-        style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          flex: 1,
+        }}
       >
         <SidebarProfile />
 
