@@ -27,17 +27,20 @@ export class DownloadManager {
   ) {
     PythonRPC.spawn(
       download?.status === "active"
-        ? await this.getDownloadPayload(download).catch(() => undefined)
+        ? await this.getDownloadPayload(download).catch((err) => {
+            logger.error("Error getting download payload", err);
+            return undefined;
+          })
         : undefined,
       downloadsToSeed?.map((download) => ({
-        game_id: `${download.shop}-${download.objectId}`,
+        game_id: levelKeys.game(download.shop, download.objectId),
         url: download.uri,
         save_path: download.downloadPath,
       }))
     );
 
     if (download) {
-      this.downloadingGameId = `${download.shop}-${download.objectId}`;
+      this.downloadingGameId = levelKeys.game(download.shop, download.objectId);
     }
   }
 
@@ -280,7 +283,7 @@ export class DownloadManager {
         return {
           action: "start",
           game_id: downloadId,
-          url: `https://pixeldrain.com/api/file/${id}?download`,
+          url: `https://cdn.pd5-gamedriveorg.workers.dev/api/file/${id}`,
           save_path: download.downloadPath,
           out: name,
         };

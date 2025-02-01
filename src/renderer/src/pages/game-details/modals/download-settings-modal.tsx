@@ -123,8 +123,8 @@ export function DownloadSettingsModal({
         .then(() => {
           onClose();
         })
-        .catch(() => {
-          showErrorToast(t("download_error"));
+        .catch((error) => {
+          showErrorToast(t("download_error"), error.message);
         })
         .finally(() => {
           setDownloadStarting(false);
