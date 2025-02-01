@@ -22,7 +22,7 @@ import { buildGameAchievementPath } from "@renderer/helpers";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./sidebar.scss";
 
-const fakeAchievements: UserAchievement[] = [
+const achievementsPlaceholder: UserAchievement[] = [
   {
     displayName: "Timber!!",
     name: "",
