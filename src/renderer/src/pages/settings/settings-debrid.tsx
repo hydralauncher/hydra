@@ -71,6 +71,7 @@ export function SettingsDebrid() {
 
       updateUserPreferences({
         realDebridApiToken: form.useRealDebrid ? form.realDebridApiToken : null,
+        torBoxApiToken: form.useTorBox ? form.torBoxApiToken : null,
       });
     } catch (err) {
       showErrorToast(t("real_debrid_invalid_token"));
