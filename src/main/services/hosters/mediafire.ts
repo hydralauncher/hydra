@@ -1,39 +1,54 @@
-import axios, { AxiosResponse } from "axios";
-import { JSDOM } from "jsdom";
+import fetch from "node-fetch";
 
 export class MediafireApi {
-  private static readonly session = axios.create();
+  private static readonly validMediafireIdentifierDL = /^[a-zA-Z0-9]+$/m;
+  private static readonly validMediafirePreDL =
+    /(?<=['"])(https?:)?(\/\/)?(www\.)?mediafire\.com\/(file|view|download)\/[^'"?]+\?dkey=[^'"]+(?=['"])/;
+  private static readonly validDynamicDL =
+    /(?<=['"])https?:\/\/download\d+\.mediafire\.com\/[^'"]+(?=['"])/;
+  private static readonly checkHTTP = /^https?:\/\//m;
 
   public static async getDownloadUrl(mediafireUrl: string): Promise<string> {
-    const response: AxiosResponse<string> = await this.session.get(
-      mediafireUrl,
-      {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-        },
-        maxRedirects: 0,
-        validateStatus: (status: number) => status === 200 || status === 302,
-      }
-    );
+    try {
+      const processedUrl = this.processUrl(mediafireUrl);
+      const response = await fetch(processedUrl);
 
-    if (response.status === 302) {
-      const location = response.headers["location"];
-      if (!location) {
-        throw new Error("Missing location header in 302 redirect response");
-      }
-      return location;
+      if (!response.ok) throw new Error("Failed to fetch Mediafire page");
+
+      const html = await response.text();
+      return this.extractDirectUrl(html);
+    } catch (error) {
+      throw new Error(`Failed to get download URL`);
+    }
+  }
+
+  private static processUrl(url: string): string {
+    let processed = url.replace("http://", "https://");
+
+    if (this.validMediafireIdentifierDL.test(processed)) {
+      processed = `https://mediafire.com/?${processed}`;
     }
 
-    const dom = new JSDOM(response.data);
-    const downloadButton = dom.window.document.querySelector(
-      "a#downloadButton"
-    ) as HTMLAnchorElement;
-
-    if (!downloadButton?.href) {
-      throw new Error("Download button URL not found in page content");
+    if (!this.checkHTTP.test(processed)) {
+      processed = processed.startsWith("//")
+        ? `https:${processed}`
+        : `https://${processed}`;
     }
 
-    return downloadButton.href;
+    return processed;
+  }
+
+  private static extractDirectUrl(html: string): string {
+    const preMatch = this.validMediafirePreDL.exec(html);
+    if (preMatch?.[0]) {
+      return preMatch[0];
+    }
+
+    const dlMatch = this.validDynamicDL.exec(html);
+    if (dlMatch?.[0]) {
+      return dlMatch[0];
+    }
+
+    throw new Error("No valid download links found");
   }
 }
