@@ -1,8 +1,6 @@
 import { Notification, app } from "electron";
 import { t } from "i18next";
 import trayIcon from "@resources/tray-icon.png?asset";
-import { Game } from "@main/entity";
-import { userPreferencesRepository } from "@main/repository";
 import fs from "node:fs";
 import axios from "axios";
 import path from "node:path";
@@ -11,6 +9,9 @@ import { achievementSoundPath } from "@main/constants";
 import icon from "@resources/icon.png?asset";
 import { NotificationOptions, toXmlString } from "./xml";
 import { logger } from "../logger";
+import { WindowManager } from "../window-manager";
+import type { Game, UserPreferences } from "@types";
+import { db, levelKeys } from "@main/level";
 
 async function downloadImage(url: string | null) {
   if (!url) return undefined;
@@ -38,9 +39,12 @@ async function downloadImage(url: string | null) {
 }
 
 export const publishDownloadCompleteNotification = async (game: Game) => {
-  const userPreferences = await userPreferencesRepository.findOne({
-    where: { id: 1 },
-  });
+  const userPreferences = await db.get<string, UserPreferences>(
+    levelKeys.userPreferences,
+    {
+      valueEncoding: "json",
+    }
+  );
 
   if (userPreferences?.downloadNotificationsEnabled) {
     new Notification({
@@ -93,7 +97,9 @@ export const publishCombinedNewAchievementNotification = async (
     toastXml: toXmlString(options),
   }).show();
 
-  if (process.platform !== "linux") {
+  if (WindowManager.mainWindow) {
+    WindowManager.mainWindow.webContents.send("on-achievement-unlocked");
+  } else if (process.platform !== "linux") {
     sound.play(achievementSoundPath);
   }
 };
@@ -140,7 +146,9 @@ export const publishNewAchievementNotification = async (info: {
     toastXml: toXmlString(options),
   }).show();
 
-  if (process.platform !== "linux") {
+  if (WindowManager.mainWindow) {
+    WindowManager.mainWindow.webContents.send("on-achievement-unlocked");
+  } else if (process.platform !== "linux") {
     sound.play(achievementSoundPath);
   }
 };

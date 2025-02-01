@@ -78,9 +78,15 @@ export function useUserDetails() {
         ...response,
         username: userDetails?.username || "",
         subscription: userDetails?.subscription || null,
+        featurebaseJwt: userDetails?.featurebaseJwt || "",
       });
     },
-    [updateUserDetails, userDetails?.username, userDetails?.subscription]
+    [
+      updateUserDetails,
+      userDetails?.username,
+      userDetails?.subscription,
+      userDetails?.featurebaseJwt,
+    ]
   );
 
   const syncFriendRequests = useCallback(async () => {

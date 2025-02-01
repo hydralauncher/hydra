@@ -96,9 +96,7 @@ export function DownloadSettingsModal({
       ? Downloader.TorBox
       : filteredDownloaders[0];
 
-    setSelectedDownloader(
-      selectedDownloader === undefined ? null : selectedDownloader
-    );
+    setSelectedDownloader(selectedDownloader ?? null);
   }, [
     userPreferences?.downloadsPath,
     downloaders,

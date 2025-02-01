@@ -94,7 +94,7 @@ def seed_status():
 
 @app.route("/healthcheck", methods=["GET"])
 def healthcheck():
-    return "", 200
+    return "ok", 200
 
 @app.route("/process-list", methods=["GET"])
 def process_list():

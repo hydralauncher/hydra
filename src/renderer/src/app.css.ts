@@ -123,7 +123,7 @@ export const titleBar = style({
   alignItems: "center",
   padding: `0 ${SPACING_UNIT * 2}px`,
   WebkitAppRegion: "drag",
-  zIndex: "4",
+  zIndex: vars.zIndex.titleBar,
   borderBottom: `1px solid ${vars.color.border}`,
 } as ComplexStyleRule);
 

@@ -1,12 +1,11 @@
-import { gameRepository } from "@main/repository";
 import { WindowManager } from "./window-manager";
 import { createGame, updateGamePlaytime } from "./library-sync";
-import type { GameRunning } from "@types";
+import type { Game, GameRunning } from "@types";
 import { PythonRPC } from "./python-rpc";
-import { Game } from "@main/entity";
 import axios from "axios";
 import { exec } from "child_process";
 import { ProcessPayload } from "./download/types";
+import { gamesSublevel, levelKeys } from "@main/level";
 import { createBackup } from "@main/events/cloud-save/upload-save-game";
 
 const commands = {
@@ -15,7 +14,7 @@ const commands = {
 };
 
 export const gamesPlaytime = new Map<
-  number,
+  string,
   { lastTick: number; firstTick: number; lastSyncTick: number }
 >();
 
@@ -83,23 +82,28 @@ const findGamePathByProcess = (
     const pathSet = processMap.get(executable.exe);
 
     if (pathSet) {
-      pathSet.forEach((path) => {
+      pathSet.forEach(async (path) => {
         if (path.toLowerCase().endsWith(executable.name)) {
-          gameRepository.update(
-            { objectID: gameId, shop: "steam" },
-            { executablePath: path }
-          );
+          const gameKey = levelKeys.game("steam", gameId);
+          const game = await gamesSublevel.get(gameKey);
+
+          if (game) {
+            gamesSublevel.put(gameKey, {
+              ...game,
+              executablePath: path,
+            });
+          }
 
           if (isLinuxPlatform) {
             exec(commands.findWineDir, (err, out) => {
               if (err) return;
 
-              gameRepository.update(
-                { objectID: gameId, shop: "steam" },
-                {
+              if (game) {
+                gamesSublevel.put(gameKey, {
+                  ...game,
                   winePrefixPath: out.trim().replace("/drive_c/windows", ""),
-                }
-              );
+                });
+              }
             });
           }
         }
@@ -160,11 +164,12 @@ const getSystemProcessMap = async () => {
 };
 
 export const watchProcesses = async () => {
-  const games = await gameRepository.find({
-    where: {
-      isDeleted: false,
-    },
-  });
+  const games = await gamesSublevel
+    .values()
+    .all()
+    .then((results) => {
+      return results.filter((game) => game.isDeleted === false);
+    });
 
   if (!games.length) return;
 
@@ -173,8 +178,8 @@ export const watchProcesses = async () => {
   for (const game of games) {
     const executablePath = game.executablePath;
     if (!executablePath) {
-      if (gameExecutables[game.objectID]) {
-        findGamePathByProcess(processMap, game.objectID);
+      if (gameExecutables[game.objectId]) {
+        findGamePathByProcess(processMap, game.objectId);
       }
       continue;
     }
@@ -186,12 +191,12 @@ export const watchProcesses = async () => {
     const hasProcess = processMap.get(executable)?.has(executablePath);
 
     if (hasProcess) {
-      if (gamesPlaytime.has(game.id)) {
+      if (gamesPlaytime.has(levelKeys.game(game.shop, game.objectId))) {
         onTickGame(game);
       } else {
         onOpenGame(game);
       }
-    } else if (gamesPlaytime.has(game.id)) {
+    } else if (gamesPlaytime.has(levelKeys.game(game.shop, game.objectId))) {
       onCloseGame(game);
     }
   }
@@ -203,20 +208,17 @@ export const watchProcesses = async () => {
       return {
         id: entry[0],
         sessionDurationInMillis: performance.now() - entry[1].firstTick,
-      };
+      } as Pick<GameRunning, "id" | "sessionDurationInMillis">;
     });
 
-    WindowManager.mainWindow.webContents.send(
-      "on-games-running",
-      gamesRunning as Pick<GameRunning, "id" | "sessionDurationInMillis">[]
-    );
+    WindowManager.mainWindow.webContents.send("on-games-running", gamesRunning);
   }
 };
 
 function onOpenGame(game: Game) {
   const now = performance.now();
 
-  gamesPlaytime.set(game.id, {
+  gamesPlaytime.set(levelKeys.game(game.shop, game.objectId), {
     lastTick: now,
     firstTick: now,
     lastSyncTick: now,
@@ -231,16 +233,25 @@ function onOpenGame(game: Game) {
 
 function onTickGame(game: Game) {
   const now = performance.now();
-  const gamePlaytime = gamesPlaytime.get(game.id)!;
+  const gamePlaytime = gamesPlaytime.get(
+    levelKeys.game(game.shop, game.objectId)
+  )!;
 
   const delta = now - gamePlaytime.lastTick;
 
-  gameRepository.update(game.id, {
+  gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+    ...game,
     playTimeInMilliseconds: game.playTimeInMilliseconds + delta,
     lastTimePlayed: new Date(),
   });
 
-  gamesPlaytime.set(game.id, {
+  gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+    ...game,
+    playTimeInMilliseconds: game.playTimeInMilliseconds + delta,
+    lastTimePlayed: new Date(),
+  });
+
+  gamesPlaytime.set(levelKeys.game(game.shop, game.objectId), {
     ...gamePlaytime,
     lastTick: now,
   });
@@ -256,7 +267,7 @@ function onTickGame(game: Game) {
 
     gamePromise
       .then(() => {
-        gamesPlaytime.set(game.id, {
+        gamesPlaytime.set(levelKeys.game(game.shop, game.objectId), {
           ...gamePlaytime,
           lastSyncTick: now,
         });
@@ -266,8 +277,10 @@ function onTickGame(game: Game) {
 }
 
 const onCloseGame = (game: Game) => {
-  const gamePlaytime = gamesPlaytime.get(game.id)!;
-  gamesPlaytime.delete(game.id);
+  const gamePlaytime = gamesPlaytime.get(
+    levelKeys.game(game.shop, game.objectId)
+  )!;
+  gamesPlaytime.delete(levelKeys.game(game.shop, game.objectId));
 
   if (game.remoteId) {
     // create backup
