@@ -175,7 +175,16 @@
     "backup_from": "Copia de seguridad de {{date}}",
     "custom_backup_location_set": "Se configuró la carpeta de copia de seguridad",
     "clear": "Limpiar",
-    "no_directory_selected": "No se seleccionó un directorio"
+    "no_directory_selected": "No se seleccionó un directorio",
+    "launch_options": "Opciones de Inicio",
+    "launch_options_description": "Los usuarios avanzados pueden introducir sus propias modificaciones de opciones de inicio (característica experimental)",
+    "launch_options_placeholder": "Sin parámetro específicado",
+    "no_write_permission": "No se puede descargar en este directorio. Presiona aquí para aprender más.",
+    "reset_achievements": "Reiniciar logros",
+    "reset_achievements_description": "Esto reiniciará todos los logros de {{game}}",
+    "reset_achievements_title": "¿Estás seguro?",
+    "reset_achievements_success": "Logros reiniciados exitosamente",
+    "reset_achievements_error": "Se produjo un error al reiniciar los logros"
   },
   "activation": {
     "title": "Activar Hydra",
@@ -271,7 +280,23 @@
     "launch_minimized": "Iniciar Hydra minimizado",
     "disable_nsfw_alert": "Desactivar alerta NSFW",
     "seed_after_download_complete": "Realizar seeding después de que se completa la descarga",
-    "show_hidden_achievement_description": "Ocultar descripción de logros ocultos antes de desbloquearlos"
+    "show_hidden_achievement_description": "Ocultar descripción de logros ocultos antes de desbloquearlos",
+    "account": "Cuenta",
+    "account_data_updated_successfully": "Datos de la cuenta actualizados",
+    "bill_sent_until": "Tú próxima factura se enviará el {{date}}",
+    "current_email": "Correo actual:",
+    "manage_subscription": "Gestionar suscripción",
+    "no_email_account": "No has configurado un correo aún",
+    "no_subscription": "Disfruta Hydra de la mejor manera",
+    "no_users_blocked": "No tienes usuarios bloqueados",
+    "notifications": "Notificaciones",
+    "renew_subscription": "Renovar Hydra Cloud",
+    "subscription_active_until": "Tu Hydra Cloud está activa hasta {{date}}",
+    "subscription_expired_at": "Tú suscripción expiró el {{date}}",
+    "subscription_renew_cancelled": "Está desactivada la renovación automática",
+    "subscription_renews_on": "Tú suscripción se renueva el {{date}}",
+    "update_email": "Actualizar correo",
+    "update_password": "Actualizar contraseña"
   },
   "notifications": {
     "download_complete": "Descarga completada",
