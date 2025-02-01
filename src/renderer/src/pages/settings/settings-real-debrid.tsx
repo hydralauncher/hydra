@@ -57,6 +57,7 @@ export function SettingsRealDebrid() {
           return;
         } else {
           showSuccessToast(
+            t("real_debrid_account_linked"),
             t("debrid_linked_message", { username: user.username })
           );
         }

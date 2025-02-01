@@ -49,7 +49,10 @@ export function SettingsTorbox() {
           form.torBoxApiToken!
         );
 
-        showSuccessToast(t("debrid_linked_message", { username: user.email }));
+        showSuccessToast(
+          t("torbox_account_linked"),
+          t("debrid_linked_message", { username: user.email })
+        );
       } else {
         showSuccessToast(t("changes_saved"));
       }

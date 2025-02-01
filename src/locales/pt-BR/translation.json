@@ -287,7 +287,9 @@
     "subscription_renews_on": "Sua assinatura renova dia {{date}}",
     "bill_sent_until": "Sua próxima cobrança será enviada até esse dia",
     "enable_torbox": "Habilitar Torbox",
-    "torbox_description": "TorBox é o seu serviço de seedbox premium que rivaliza até com os melhores servidores do mercado."
+    "torbox_description": "TorBox é o seu serviço de seedbox premium que rivaliza até com os melhores servidores do mercado.",
+    "torbox_account_linked": "Conta do TorBox vinculada",
+    "real_debrid_account_linked": "Conta Real-Debrid associada"
   },
   "notifications": {
     "download_complete": "Download concluído",
