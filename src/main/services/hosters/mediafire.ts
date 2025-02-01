@@ -41,7 +41,7 @@ export class MediafireApi {
     return processed;
   }
 
-  private static extractDirectUrl(html: string, _originalUrl: string): string {
+  private static extractDirectUrl(html: string): string {
     const preUrls = html.match(this.validMediafirePreDL);
     if (preUrls && preUrls[0]) {
       return preUrls[0];
