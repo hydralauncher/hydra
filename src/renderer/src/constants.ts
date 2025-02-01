@@ -9,6 +9,7 @@ export const DOWNLOADER_NAME = {
   [Downloader.PixelDrain]: "PixelDrain",
   [Downloader.Qiwi]: "Qiwi",
   [Downloader.Datanodes]: "Datanodes",
+  [Downloader.Mediafire]: "Mediafire",
   [Downloader.TorBox]: "TorBox",
 };
 
