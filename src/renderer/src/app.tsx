@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-
+import achievementSound from "@renderer/assets/audio/achievement.wav";
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
 import {
@@ -234,6 +234,22 @@ export function App() {
     downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
   }, [updateRepacks]);
 
+  const playAudio = useCallback(() => {
+    const audio = new Audio(achievementSound);
+    audio.volume = 0.2;
+    audio.play();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onAchievementUnlocked(() => {
+      playAudio();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [playAudio]);
+
   const handleToastClose = useCallback(() => {
     dispatch(closeToast());
   }, [dispatch]);
@@ -262,6 +278,7 @@ export function App() {
       >
         <Toast
           visible={toast.visible}
+          title={toast.title}
           message={toast.message}
           type={toast.type}
           onClose={handleToastClose}

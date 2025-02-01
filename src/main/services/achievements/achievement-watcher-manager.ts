@@ -141,7 +141,7 @@ const processAchievementFileDiff = async (
 export class AchievementWatcherManager {
   private static hasFinishedMergingWithRemote = false;
 
-  public static watchAchievements = () => {
+  public static watchAchievements() {
     if (!this.hasFinishedMergingWithRemote) return;
 
     if (process.platform === "win32") {
@@ -149,12 +149,12 @@ export class AchievementWatcherManager {
     }
 
     return watchAchievementsWithWine();
-  };
+  }
 
-  private static preProcessGameAchievementFiles = (
+  private static preProcessGameAchievementFiles(
     game: Game,
     gameAchievementFiles: AchievementFile[]
-  ) => {
+  ) {
     const unlockedAchievements: UnlockedAchievement[] = [];
     for (const achievementFile of gameAchievementFiles) {
       const parsedAchievements = parseAchievementFile(
@@ -182,7 +182,7 @@ export class AchievementWatcherManager {
     }
 
     return mergeAchievements(game, unlockedAchievements, false);
-  };
+  }
 
   private static preSearchAchievementsWindows = async () => {
     const games = await gamesSublevel
@@ -230,7 +230,7 @@ export class AchievementWatcherManager {
     );
   };
 
-  public static preSearchAchievements = async () => {
+  public static async preSearchAchievements() {
     try {
       const newAchievementsCount =
         process.platform === "win32"
@@ -256,5 +256,5 @@ export class AchievementWatcherManager {
     }
 
     this.hasFinishedMergingWithRemote = true;
-  };
+  }
 }

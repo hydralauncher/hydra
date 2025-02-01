@@ -2,6 +2,7 @@ import { useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Modal, TextField } from "@renderer/components";
 import type { LibraryGame } from "@types";
+import * as styles from "./game-options-modal.css";
 import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import { useDownload, useToast, useUserDetails } from "@renderer/hooks";
@@ -9,7 +10,6 @@ import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { FileDirectoryIcon, FileIcon } from "@primer/octicons-react";
 import { debounce } from "lodash-es";
-import "./game-options-modal.scss";
 
 export interface GameOptionsModalProps {
   visible: boolean;
@@ -183,8 +183,6 @@ export function GameOptionsModal({
     }
   };
 
-  const shouldShowLaunchOptionsConfiguration = false;
-
   return (
     <>
       <DeleteGameModal
@@ -192,12 +190,14 @@ export function GameOptionsModal({
         onClose={() => setShowDeleteModal(false)}
         deleteGame={handleDeleteGame}
       />
+
       <RemoveGameFromLibraryModal
         visible={showRemoveGameModal}
         onClose={() => setShowRemoveGameModal(false)}
         removeGameFromLibrary={handleRemoveGameFromLibrary}
         game={game}
       />
+
       <ResetAchievementsModal
         visible={showResetAchievementsModal}
         onClose={() => setShowResetAchievementsModal(false)}
@@ -211,66 +211,59 @@ export function GameOptionsModal({
         onClose={onClose}
         large={true}
       >
-        <div className="game-options-modal__container">
-          <div className="game-options-modal__section">
-            <div className="game-options-modal__header">
-              <h2>{t("executable_section_title")}</h2>
-              <h4 className="game-options-modal__header-description">
-                {t("executable_section_description")}
-              </h4>
-            </div>
-
-            <div className="game-options-modal__executable-field">
-              <TextField
-                value={game.executablePath || ""}
-                readOnly
-                theme="dark"
-                disabled
-                placeholder={t("no_executable_selected")}
-                rightContent={
-                  <>
-                    <Button
-                      type="button"
-                      theme="outline"
-                      onClick={handleChangeExecutableLocation}
-                    >
-                      <FileIcon />
-                      {t("select_executable")}
-                    </Button>
-                    {game.executablePath && (
-                      <Button
-                        onClick={handleClearExecutablePath}
-                        theme="outline"
-                      >
-                        {t("clear")}
-                      </Button>
-                    )}
-                  </>
-                }
-              />
-
-              {game.executablePath && (
-                <div className="game-options-modal__executable-field-buttons">
-                  <Button
-                    type="button"
-                    theme="outline"
-                    onClick={handleOpenGameExecutablePath}
-                  >
-                    {t("open_folder")}
-                  </Button>
-                  <Button onClick={handleCreateShortcut} theme="outline">
-                    {t("create_shortcut")}
-                  </Button>
-                </div>
-              )}
-            </div>
+        <div className={styles.optionsContainer}>
+          <div className={styles.gameOptionHeader}>
+            <h2>{t("executable_section_title")}</h2>
+            <h4 className={styles.gameOptionHeaderDescription}>
+              {t("executable_section_description")}
+            </h4>
           </div>
 
+          <TextField
+            value={game.executablePath || ""}
+            readOnly
+            theme="dark"
+            disabled
+            placeholder={t("no_executable_selected")}
+            rightContent={
+              <>
+                <Button
+                  type="button"
+                  theme="outline"
+                  onClick={handleChangeExecutableLocation}
+                >
+                  <FileIcon />
+                  {t("select_executable")}
+                </Button>
+                {game.executablePath && (
+                  <Button onClick={handleClearExecutablePath} theme="outline">
+                    {t("clear")}
+                  </Button>
+                )}
+              </>
+            }
+          />
+
+          {game.executablePath && (
+            <div className={styles.gameOptionRow}>
+              <Button
+                type="button"
+                theme="outline"
+                onClick={handleOpenGameExecutablePath}
+              >
+                {t("open_folder")}
+              </Button>
+              <Button onClick={handleCreateShortcut} theme="outline">
+                {t("create_shortcut")}
+              </Button>
+            </div>
+          )}
+
           {shouldShowWinePrefixConfiguration && (
-            <div className="game-options-modal__wine-prefix">
-              <div className="game-options-modal__header">
+            <div className={styles.optionsContainer}>
+              <div className={styles.gameOptionHeader}>
                 <h2>{t("wine_prefix")}</h2>
-                <h4 className="game-options-modal__header-description">
+                <h4 className={styles.gameOptionHeaderDescription}>
                   {t("wine_prefix_description")}
                 </h4>
               </div>
@@ -304,100 +297,95 @@ export function GameOptionsModal({
             </div>
           )}
 
-          {shouldShowLaunchOptionsConfiguration && (
-            <div className="game-options-modal__launch-options">
-              <div className="game-options-modal__header">
-                <h2>{t("launch_options")}</h2>
-                <h4 className="game-options-modal__header-description">
-                  {t("launch_options_description")}
-                </h4>
-              </div>
-              <TextField
-                value={launchOptions}
-                theme="dark"
-                placeholder={t("launch_options_placeholder")}
-                onChange={handleChangeLaunchOptions}
-                rightContent={
-                  game.launchOptions && (
-                    <Button onClick={handleClearLaunchOptions} theme="outline">
-                      {t("clear")}
-                    </Button>
-                  )
-                }
-              />
-            </div>
-          )}
-
-          <div className="game-options-modal__downloads">
-            <div className="game-options-modal__header">
-              <h2>{t("downloads_secion_title")}</h2>
-              <h4 className="game-options-modal__header-description">
-                {t("downloads_section_description")}
+          <div className={styles.optionsContainer}>
+            <div className={styles.gameOptionHeader}>
+              <h2>{t("launch_options")}</h2>
+              <h4 className={styles.gameOptionHeaderDescription}>
+                {t("launch_options_description")}
               </h4>
             </div>
 
-            <div className="game-options-modal__row">
-              <Button
-                onClick={() => setShowRepacksModal(true)}
-                theme="outline"
-                disabled={deleting || isGameDownloading || !repacks.length}
-              >
-                {t("open_download_options")}
-              </Button>
-              {game.download?.downloadPath && (
-                <Button
-                  onClick={handleOpenDownloadFolder}
-                  theme="outline"
-                  disabled={deleting}
-                >
-                  {t("open_download_location")}
-                </Button>
-              )}
-            </div>
+            <TextField
+              value={launchOptions}
+              theme="dark"
+              placeholder={t("launch_options_placeholder")}
+              onChange={handleChangeLaunchOptions}
+              rightContent={
+                game.launchOptions && (
+                  <Button onClick={handleClearLaunchOptions} theme="outline">
+                    {t("clear")}
+                  </Button>
+                )
+              }
+            />
           </div>
 
-          <div className="game-options-modal__danger-zone">
-            <div className="game-options-modal__header">
-              <h2>{t("danger_zone_section_title")}</h2>
-              <h4 className="game-options-modal__danger-zone-description">
-                {t("danger_zone_section_description")}
-              </h4>
-            </div>
+          <div className={styles.gameOptionHeader}>
+            <h2>{t("downloads_secion_title")}</h2>
+            <h4 className={styles.gameOptionHeaderDescription}>
+              {t("downloads_section_description")}
+            </h4>
+          </div>
 
-            <div className="game-options-modal__danger-zone-buttons">
+          <div className={styles.gameOptionRow}>
+            <Button
+              onClick={() => setShowRepacksModal(true)}
+              theme="outline"
+              disabled={deleting || isGameDownloading || !repacks.length}
+            >
+              {t("open_download_options")}
+            </Button>
+            {game.download?.downloadPath && (
               <Button
-                onClick={() => setShowRemoveGameModal(true)}
-                theme="danger"
+                onClick={handleOpenDownloadFolder}
+                theme="outline"
                 disabled={deleting}
               >
-                {t("remove_from_library")}
+                {t("open_download_location")}
               </Button>
+            )}
+          </div>
 
-              <Button
-                onClick={() => setShowResetAchievementsModal(true)}
-                theme="danger"
-                disabled={
-                  deleting ||
-                  isDeletingAchievements ||
-                  !hasAchievements ||
-                  !userDetails
-                }
-              >
-                {t("reset_achievements")}
-              </Button>
+          <div className={styles.gameOptionHeader}>
+            <h2>{t("danger_zone_section_title")}</h2>
+            <h4 className={styles.gameOptionHeaderDescription}>
+              {t("danger_zone_section_description")}
+            </h4>
+          </div>
 
-              <Button
-                onClick={() => {
-                  setShowDeleteModal(true);
-                }}
-                theme="danger"
-                disabled={
-                  isGameDownloading || deleting || !game.download?.downloadPath
-                }
-              >
-                {t("remove_files")}
-              </Button>
-            </div>
+          <div className={styles.gameOptionRow}>
+            <Button
+              onClick={() => setShowRemoveGameModal(true)}
+              theme="danger"
+              disabled={deleting}
+            >
+              {t("remove_from_library")}
+            </Button>
+
+            <Button
+              onClick={() => setShowResetAchievementsModal(true)}
+              theme="danger"
+              disabled={
+                deleting ||
+                isDeletingAchievements ||
+                !hasAchievements ||
+                !userDetails
+              }
+            >
+              {t("reset_achievements")}
+            </Button>
+
+            <Button
+              onClick={() => {
+                setShowDeleteModal(true);
+              }}
+              theme="danger"
+              disabled={
+                isGameDownloading || deleting || !game.download?.downloadPath
+              }
+            >
+              {t("remove_files")}
+            </Button>
           </div>
         </div>
       </Modal>

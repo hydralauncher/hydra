@@ -98,9 +98,7 @@ export function DownloadSettingsModal({
       ? Downloader.RealDebrid
       : filteredDownloaders[0];
 
-    setSelectedDownloader(
-      selectedDownloader === undefined ? null : selectedDownloader
-    );
+    setSelectedDownloader(selectedDownloader ?? null);
   }, [
     userPreferences?.downloadsPath,
     downloaders,
@@ -127,8 +125,8 @@ export function DownloadSettingsModal({
         .then(() => {
           onClose();
         })
-        .catch(() => {
-          showErrorToast(t("download_error"));
+        .catch((error) => {
+          showErrorToast(t("download_error"), error.message);
         })
         .finally(() => {
           setDownloadStarting(false);

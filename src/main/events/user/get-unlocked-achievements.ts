@@ -12,7 +12,7 @@ export const getUnlockedAchievements = async (
     levelKeys.game(shop, objectId)
   );
 
-  const userPreferences = await db.get<string, UserPreferences>(
+  const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {
       valueEncoding: "json",

@@ -40,7 +40,7 @@ export const getGameAchievementData = async (
         throw err;
       }
 
-      logger.error("Failed to get game achievements", err);
+      logger.error("Failed to get game achievements for", objectId, err);
 
       return [];
     });
