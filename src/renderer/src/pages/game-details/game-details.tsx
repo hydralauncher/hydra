@@ -12,8 +12,6 @@ import { useTranslation } from "react-i18next";
 import { SkeletonTheme } from "react-loading-skeleton";
 import { GameDetailsSkeleton } from "./game-details-skeleton";
 
-import { vars } from "@renderer/theme.css";
-
 import { GameDetailsContent } from "./game-details-content";
 import {
   CloudSyncContextConsumer,
@@ -148,10 +146,7 @@ export default function GameDetails() {
                 )}
               </CloudSyncContextConsumer>
 
-              <SkeletonTheme
-                baseColor={vars.color.background}
-                highlightColor="#444"
-              >
+              <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
                 {isLoading ? <GameDetailsSkeleton /> : <GameDetailsContent />}
 
                 <RepacksModal

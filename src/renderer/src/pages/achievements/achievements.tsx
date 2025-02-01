@@ -3,7 +3,6 @@ import { useAppDispatch, useUserDetails } from "@renderer/hooks";
 import type { ComparedAchievements, GameShop } from "@types";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { vars } from "@renderer/theme.css";
 import {
   GameDetailsContextConsumer,
   GameDetailsContextProvider,
@@ -75,10 +74,7 @@ export default function Achievements() {
             (otherUserId && comparedAchievements === null);
 
           return (
-            <SkeletonTheme
-              baseColor={vars.color.background}
-              highlightColor="#444"
-            >
+            <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
               {showSkeleton ? (
                 <AchievementsSkeleton />
               ) : (

@@ -35,12 +35,23 @@ $toast-height: 80px;
     align-items: center;
   }
 
+  &__message-container {
+    display: flex;
+    gap: globals.$spacing-unit;
+  }
+
+  &__message {
+    font-weight: bold;
+  }
+
   &__progress {
     width: 100%;
     height: 5px;
+
     &::-webkit-progress-bar {
       background-color: globals.$dark-background-color;
     }
+
     &::-webkit-progress-value {
       background-color: globals.$muted-color;
     }

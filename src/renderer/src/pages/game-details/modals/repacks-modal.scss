@@ -1,6 +1,10 @@
 @use "../../../scss/globals.scss";
 
 .repacks-modal {
+  &__filter-container {
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
   &__repacks {
     display: flex;
     gap: globals.$spacing-unit;
