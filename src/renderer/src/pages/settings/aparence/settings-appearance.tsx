@@ -19,7 +19,7 @@ export const SettingsAppearance = () => {
     <div className="settings-appearance">
       <p className="settings-appearance__description">Appearance</p>
 
-      <ThemeActions onListUpdated={loadThemes} />
+      <ThemeActions onListUpdated={loadThemes} themesCount={themes.length} />
 
       <div className="settings-appearance__themes">
         {!themes.length ? (

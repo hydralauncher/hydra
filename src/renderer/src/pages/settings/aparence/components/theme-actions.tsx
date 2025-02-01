@@ -7,9 +7,10 @@ import { useState } from "react";
 
 interface ThemeActionsProps {
   onListUpdated: () => void;
+  themesCount: number;
 }
 
-export const ThemeActions = ({ onListUpdated }: ThemeActionsProps) => {
+export const ThemeActions = ({ onListUpdated, themesCount }: ThemeActionsProps) => {
   const { t } = useTranslation("settings");
 
   const [addThemeModalVisible, setAddThemeModalVisible] = useState(false);
@@ -41,6 +42,7 @@ export const ThemeActions = ({ onListUpdated }: ThemeActionsProps) => {
             theme="danger"
             className="settings-appearance__button"
             onClick={() => setDeleteAllThemesModalVisible(true)}
+            disabled={themesCount < 1}
           >
             <TrashIcon />
             {t("clear_themes")}
