@@ -121,7 +121,7 @@ export function Modal({
         data-hydra-dialog
       >
         <div className="modal__header">
-          <div style={{ display: "flex", gap: 4, flexDirection: "column" }}>
+          <div className="modal__header-title">
             <h3>{title}</h3>
             {description && <p>{description}</p>}
           </div>

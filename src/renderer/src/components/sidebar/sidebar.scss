@@ -101,6 +101,12 @@
     font-weight: bold;
   }
 
+  &__container {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
   &__section {
     gap: calc(globals.$spacing-unit * 2);
     display: flex;

@@ -23,7 +23,7 @@ export function SelectField({
   const id = useId();
 
   return (
-    <div style={{ flex: 1 }}>
+    <div className="select-field__container">
       {label && (
         <label htmlFor={id} className="select-field__label">
           {label}

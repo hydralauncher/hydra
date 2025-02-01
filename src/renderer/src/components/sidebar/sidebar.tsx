@@ -180,9 +180,7 @@ export function Sidebar() {
         maxWidth: sidebarWidth,
       }}
     >
-      <div
-        style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}
-      >
+      <div className="sidebar__container">
         <SidebarProfile />
 
         <div className="sidebar__content">

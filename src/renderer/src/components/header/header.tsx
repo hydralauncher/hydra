@@ -81,7 +81,7 @@ export function Header() {
           "header--is-windows": window.electron.platform === "win32",
         })}
       >
-        <section className="header__section" style={{ flex: 1 }}>
+        <section className="header__section header__section--left">
           <button
             type="button"
             className={cn("header__back-button", {
