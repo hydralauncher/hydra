@@ -104,7 +104,7 @@ export function SettingsTorbox() {
               }}
               disabled={isButtonDisabled}
             >
-              {t("save")}
+              {t("save_changes")}
             </Button>
           }
           hint={
