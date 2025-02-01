@@ -13,12 +13,16 @@ export class MediafireApi {
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
         },
         maxRedirects: 0,
-        validateStatus: (status: number) => status === 302 || status < 400,
+        validateStatus: (status: number) => status === 200 || status === 302,
       }
     );
 
     if (response.status === 302) {
-      return response.headers["location"] || "";
+      const location = response.headers["location"];
+      if (!location) {
+        throw new Error("Missing location header in 302 redirect response");
+      }
+      return location;
     }
 
     const dom = new JSDOM(response.data);
@@ -26,6 +30,10 @@ export class MediafireApi {
       "a#downloadButton"
     ) as HTMLAnchorElement;
 
-    return downloadButton?.href || "";
+    if (!downloadButton?.href) {
+      throw new Error("Download button URL not found in page content");
+    }
+
+    return downloadButton.href;
   }
 }
