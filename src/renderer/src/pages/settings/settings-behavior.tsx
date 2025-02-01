@@ -28,13 +28,15 @@ export function SettingsBehavior() {
   useEffect(() => {
     if (userPreferences) {
       setForm({
-        preferQuitInsteadOfHiding: userPreferences.preferQuitInsteadOfHiding,
-        runAtStartup: userPreferences.runAtStartup,
-        startMinimized: userPreferences.startMinimized,
-        disableNsfwAlert: userPreferences.disableNsfwAlert,
-        seedAfterDownloadComplete: userPreferences.seedAfterDownloadComplete,
+        preferQuitInsteadOfHiding:
+          userPreferences.preferQuitInsteadOfHiding ?? false,
+        runAtStartup: userPreferences.runAtStartup ?? false,
+        startMinimized: userPreferences.startMinimized ?? false,
+        disableNsfwAlert: userPreferences.disableNsfwAlert ?? false,
+        seedAfterDownloadComplete:
+          userPreferences.seedAfterDownloadComplete ?? false,
         showHiddenAchievementsDescription:
-          userPreferences.showHiddenAchievementsDescription,
+          userPreferences.showHiddenAchievementsDescription ?? false,
       });
     }
   }, [userPreferences]);
