@@ -11,7 +11,6 @@ import flameIconStatic from "@renderer/assets/icons/flame-static.png";
 import flameIconAnimated from "@renderer/assets/icons/flame-animated.gif";
 import starsIconAnimated from "@renderer/assets/icons/stars-animated.gif";
 
-import { vars } from "@renderer/theme.css";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { CatalogueCategory } from "@shared";
 import "./home.scss";
@@ -94,7 +93,7 @@ export default function Home() {
   };
 
   return (
-    <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
+    <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
       <section className="home__content">
         <h2>{t("featured")}</h2>
 
