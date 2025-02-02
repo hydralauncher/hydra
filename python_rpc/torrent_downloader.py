@@ -102,7 +102,7 @@ class TorrentDownloader:
             "http://bvarf.tracker.sh:2086/announce",
         ]
 
-    def start_download(self, magnet: str, save_path: str, header: str):
+    def start_download(self, magnet: str, save_path: str):
         params = {'url': magnet, 'save_path': save_path, 'trackers': self.trackers, 'flags': self.flags}
         self.torrent_handle = self.session.add_torrent(params)
         self.torrent_handle.resume()

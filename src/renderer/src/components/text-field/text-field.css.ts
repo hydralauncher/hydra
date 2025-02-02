@@ -14,7 +14,7 @@ export const textField = recipe({
   base: {
     display: "inline-flex",
     transition: "all ease 0.2s",
-    width: "100%",
+    flex: 1,
     alignItems: "center",
     borderRadius: "8px",
     border: `solid 1px ${vars.color.border}`,

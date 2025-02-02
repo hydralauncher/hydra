@@ -5,15 +5,16 @@ import { useTranslation } from "react-i18next";
 import { SettingsRealDebrid } from "./settings-real-debrid";
 import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
-
+import torBoxLogo from "@renderer/assets/icons/torbox.webp";
 import { SettingsDownloadSources } from "./settings-download-sources";
 import {
   SettingsContextConsumer,
   SettingsContextProvider,
 } from "@renderer/context";
-import { SettingsPrivacy } from "./settings-privacy";
+import { SettingsAccount } from "./settings-account";
 import { useUserDetails } from "@renderer/hooks";
 import { useMemo } from "react";
+import { SettingsTorbox } from "./settings-torbox";
 
 export default function Settings() {
   const { t } = useTranslation("settings");
@@ -22,13 +23,26 @@ export default function Settings() {
 
   const categories = useMemo(() => {
     const categories = [
-      t("general"),
-      t("behavior"),
-      t("download_sources"),
-      "Real-Debrid",
+      { tabLabel: t("general"), contentTitle: t("general") },
+      { tabLabel: t("behavior"), contentTitle: t("behavior") },
+      { tabLabel: t("download_sources"), contentTitle: t("download_sources") },
+      {
+        tabLabel: (
+          <>
+            <img src={torBoxLogo} alt="TorBox" style={{ width: 13 }} />
+            Torbox
+          </>
+        ),
+        contentTitle: "TorBox",
+      },
+      { tabLabel: "Real-Debrid", contentTitle: "Real-Debrid" },
     ];
 
-    if (userDetails) return [...categories, t("privacy")];
+    if (userDetails)
+      return [
+        ...categories,
+        { tabLabel: t("account"), contentTitle: t("account") },
+      ];
     return categories;
   }, [userDetails, t]);
 
@@ -50,10 +64,14 @@ export default function Settings() {
             }
 
             if (currentCategoryIndex === 3) {
+              return <SettingsTorbox />;
+            }
+
+            if (currentCategoryIndex === 4) {
               return <SettingsRealDebrid />;
             }
 
-            return <SettingsPrivacy />;
+            return <SettingsAccount />;
           };
 
           return (
@@ -62,18 +80,18 @@ export default function Settings() {
                 <section className={styles.settingsCategories}>
                   {categories.map((category, index) => (
                     <Button
-                      key={category}
+                      key={index}
                       theme={
                         currentCategoryIndex === index ? "primary" : "outline"
                       }
                       onClick={() => setCurrentCategoryIndex(index)}
                     >
-                      {category}
+                      {category.tabLabel}
                     </Button>
                   ))}
                 </section>
 
-                <h2>{categories[currentCategoryIndex]}</h2>
+                <h2>{categories[currentCategoryIndex].contentTitle}</h2>
                 {renderCategory()}
               </div>
             </section>
