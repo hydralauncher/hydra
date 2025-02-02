@@ -100,13 +100,7 @@ export function SettingsTorbox() {
             },
           }}
           rightContent={
-            <Button
-              type="submit"
-              style={{
-                alignSelf: "flex-end",
-              }}
-              disabled={isButtonDisabled}
-            >
+            <Button type="submit" disabled={isButtonDisabled}>
               {t("save_changes")}
             </Button>
           }
