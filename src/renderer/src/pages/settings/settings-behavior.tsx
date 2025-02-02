@@ -29,13 +29,15 @@ export function SettingsBehavior() {
   useEffect(() => {
     if (userPreferences) {
       setForm({
-        preferQuitInsteadOfHiding: userPreferences.preferQuitInsteadOfHiding,
-        runAtStartup: userPreferences.runAtStartup,
-        startMinimized: userPreferences.startMinimized,
-        disableNsfwAlert: userPreferences.disableNsfwAlert,
-        seedAfterDownloadComplete: userPreferences.seedAfterDownloadComplete,
+        preferQuitInsteadOfHiding:
+          userPreferences.preferQuitInsteadOfHiding ?? false,
+        runAtStartup: userPreferences.runAtStartup ?? false,
+        startMinimized: userPreferences.startMinimized ?? false,
+        disableNsfwAlert: userPreferences.disableNsfwAlert ?? false,
+        seedAfterDownloadComplete:
+          userPreferences.seedAfterDownloadComplete ?? false,
         showHiddenAchievementsDescription:
-          userPreferences.showHiddenAchievementsDescription,
+          userPreferences.showHiddenAchievementsDescription ?? false,
       });
     }
   }, [userPreferences]);
@@ -83,6 +85,7 @@ export function SettingsBehavior() {
         >
           <CheckboxField
             label={t("launch_minimized")}
+            style={{ cursor: form.runAtStartup ? "pointer" : "not-allowed" }}
             checked={form.runAtStartup && form.startMinimized}
             disabled={!form.runAtStartup}
             onChange={() => {

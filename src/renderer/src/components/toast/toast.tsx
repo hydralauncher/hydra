@@ -11,14 +11,23 @@ import cn from "classnames";
 
 export interface ToastProps {
   visible: boolean;
-  message: string;
+  title: string;
+  message?: string;
   type: "success" | "error" | "warning";
+  duration?: number;
   onClose: () => void;
 }
 
 const INITIAL_PROGRESS = 100;
 
-export function Toast({ visible, message, type, onClose }: ToastProps) {
+export function Toast({
+  visible,
+  title,
+  message,
+  type,
+  duration = 2500,
+  onClose,
+}: Readonly<ToastProps>) {
   const [isClosing, setIsClosing] = useState(false);
   const [progress, setProgress] = useState(INITIAL_PROGRESS);
 
@@ -31,7 +40,7 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
 
     closingAnimation.current = requestAnimationFrame(
       function animateClosing(time) {
-        if (time - zero <= 200) {
+        if (time - zero <= 150) {
           closingAnimation.current = requestAnimationFrame(animateClosing);
         } else {
           onClose();
@@ -43,17 +52,13 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
   useEffect(() => {
     if (visible) {
       const zero = performance.now();
-
       progressAnimation.current = requestAnimationFrame(
         function animateProgress(time) {
           const elapsed = time - zero;
-
-          const progress = Math.min(elapsed / 2500, 1);
+          const progress = Math.min(elapsed / duration, 1);
           const currentValue =
             INITIAL_PROGRESS + (0 - INITIAL_PROGRESS) * progress;
-
           setProgress(currentValue);
-
           if (progress < 1) {
             progressAnimation.current = requestAnimationFrame(animateProgress);
           } else {
@@ -70,9 +75,8 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
         setIsClosing(false);
       };
     }
-
     return () => {};
-  }, [startAnimateClosing, visible]);
+  }, [startAnimateClosing, duration, visible]);
 
   if (!visible) return null;
 
@@ -84,26 +88,40 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
     >
       <div className="toast__content">
         <div className="toast__message-container">
-          {type === "success" && (
-            <CheckCircleFillIcon className="toast__success-icon" />
-          )}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: `8px`,
+            }}
+          >
+            {type === "success" && (
+              <CheckCircleFillIcon className="toast__icon--success" />
+            )}
 
-          {type === "error" && (
-            <XCircleFillIcon className="toast__error-icon" />
-          )}
+            {type === "error" && (
+              <XCircleFillIcon className="toast__icon--error" />
+            )}
 
-          {type === "warning" && <AlertIcon className="toast__warning-icon" />}
-          <span className="toast__message">{message}</span>
+            {type === "warning" && (
+              <AlertIcon className="toast__icon--warning" />
+            )}
+
+            <span style={{ fontWeight: "bold", flex: 1 }}>{title}</span>
+
+            <button
+              type="button"
+              className="toast__close-button"
+              onClick={startAnimateClosing}
+              aria-label="Close toast"
+            >
+              <XIcon />
+            </button>
+          </div>
+
+          {message && <p>{message}</p>}
         </div>
-
-        <button
-          type="button"
-          className="toast__close-button"
-          onClick={startAnimateClosing}
-          aria-label="Close toast"
-        >
-          <XIcon />
-        </button>
       </div>
 
       <progress className="toast__progress" value={progress} max={100} />

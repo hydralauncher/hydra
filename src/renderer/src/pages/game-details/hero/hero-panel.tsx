@@ -23,7 +23,7 @@ export function HeroPanel({ isHeaderStuck }: HeroPanelProps) {
   const { lastPacket } = useDownload();
 
   const isGameDownloading =
-    game?.status === "active" && lastPacket?.game.id === game?.id;
+    game?.download?.status === "active" && lastPacket?.gameId === game?.id;
 
   const getInfo = () => {
     if (!game) {
@@ -50,8 +50,8 @@ export function HeroPanel({ isHeaderStuck }: HeroPanelProps) {
   };
 
   const showProgressBar =
-    (game?.status === "active" && game?.progress < 1) ||
-    game?.status === "paused";
+    (game?.download?.status === "active" && game?.download?.progress < 1) ||
+    game?.download?.status === "paused";
 
   return (
     <div
@@ -66,9 +66,11 @@ export function HeroPanel({ isHeaderStuck }: HeroPanelProps) {
       {showProgressBar && (
         <progress
           max={1}
-          value={isGameDownloading ? lastPacket?.game.progress : game?.progress}
+          value={
+            isGameDownloading ? lastPacket?.progress : game?.download?.progress
+          }
           className={`hero-panel__progress-bar ${
-            game?.status === "paused"
+            game?.download?.status === "paused"
               ? "hero-panel__progress-bar--disabled"
               : ""
           }`}

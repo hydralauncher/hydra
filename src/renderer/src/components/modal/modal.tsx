@@ -53,6 +53,7 @@ export function Modal({
       )
     )
       return false;
+
     const openModals = document.querySelectorAll("[role=dialog]");
 
     return (

@@ -196,7 +196,7 @@ export function ProfileHero() {
         <Button
           theme="outline"
           onClick={() =>
-            handleFriendAction(userProfile.relation!.AId, "CANCEL")
+            handleFriendAction(userProfile.relation!.BId, "CANCEL")
           }
           disabled={isPerformingAction}
           className="profile-hero__button--outline"
@@ -249,7 +249,7 @@ export function ProfileHero() {
       if (gameRunning)
         return {
           ...gameRunning,
-          objectId: gameRunning.objectID,
+          objectId: gameRunning.objectId,
           sessionDurationInSeconds: gameRunning.sessionDurationInMillis / 1000,
         };
 

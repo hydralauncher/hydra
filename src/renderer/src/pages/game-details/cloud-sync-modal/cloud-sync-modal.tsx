@@ -189,14 +189,6 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
         </Button>
       </div>
 
-      {uploadingBackup && (
-        <progress
-          className="cloud-sync-modal__progress"
-          value={backupDownloadProgress?.progress ?? 0}
-          max={100}
-        />
-      )}
-
       <div className="cloud-sync-modal__backups-header">
         <h2>{t("backups")}</h2>
         <small>

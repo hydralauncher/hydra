@@ -1,16 +1,22 @@
-import { gameAchievementRepository, gameRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
 import { findAchievementFiles } from "@main/services/achievements/find-achivement-files";
 import fs from "fs";
 import { achievementsLogger, HydraApi, WindowManager } from "@main/services";
 import { getUnlockedAchievements } from "../user/get-unlocked-achievements";
+import {
+  gameAchievementsSublevel,
+  gamesSublevel,
+  levelKeys,
+} from "@main/level";
+import type { GameShop } from "@types";
 
 const resetGameAchievements = async (
   _event: Electron.IpcMainInvokeEvent,
-  gameId: number
+  shop: GameShop,
+  objectId: string
 ) => {
   try {
-    const game = await gameRepository.findOne({ where: { id: gameId } });
+    const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
 
     if (!game) return;
 
@@ -23,28 +29,34 @@ const resetGameAchievements = async (
       }
     }
 
-    await gameAchievementRepository.update(
-      { objectId: game.objectID },
-      {
-        unlockedAchievements: null,
-      }
-    );
+    const levelKey = levelKeys.game(game.shop, game.objectId);
+
+    await gameAchievementsSublevel
+      .get(levelKey)
+      .then(async (gameAchievements) => {
+        if (gameAchievements) {
+          await gameAchievementsSublevel.put(levelKey, {
+            ...gameAchievements,
+            unlockedAchievements: [],
+          });
+        }
+      });
 
     await HydraApi.delete(`/profile/games/achievements/${game.remoteId}`).then(
       () =>
         achievementsLogger.log(
-          `Deleted achievements from ${game.remoteId} - ${game.objectID} - ${game.title}`
+          `Deleted achievements from ${game.remoteId} - ${game.objectId} - ${game.title}`
         )
     );
 
     const gameAchievements = await getUnlockedAchievements(
-      game.objectID,
+      game.objectId,
       game.shop,
       true
     );
 
     WindowManager.mainWindow?.webContents.send(
-      `on-update-achievements-${game.objectID}-${game.shop}`,
+      `on-update-achievements-${game.objectId}-${game.shop}`,
       gameAchievements
     );
   } catch (error) {
