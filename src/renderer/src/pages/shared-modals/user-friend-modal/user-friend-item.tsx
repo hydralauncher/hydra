@@ -30,9 +30,10 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
 
   const getRequestDescription = () => {
     if (type === "ACCEPTED" || type === null) return null;
+
     return (
       <small>
-        {type === "SENT" ? t("request_sent") : t("request_received")}
+        {type == "SENT" ? t("request_sent") : t("request_received")}
       </small>
     );
   };
@@ -105,10 +106,12 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
       <div className="user-friend-item__container">
         <div className="user-friend-item__button">
           <Avatar size={35} src={profileImageUrl} alt={displayName} />
+
           <div className="user-friend-item__button__content">
             <p className="user-friend-item__display-name">{displayName}</p>
           </div>
         </div>
+
         <div className="user-friend-item__button__actions">
           {getRequestActions()}
         </div>
@@ -130,6 +133,7 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
           {getRequestDescription()}
         </div>
       </button>
+
       <div className="user-friend-item__button__actions">
         {getRequestActions()}
       </div>

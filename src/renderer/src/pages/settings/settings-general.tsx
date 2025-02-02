@@ -60,10 +60,32 @@ export function SettingsGeneral() {
     );
   }, []);
 
-  useEffect(updateFormWithUserPreferences, [
-    userPreferences,
-    defaultDownloadsPath,
-  ]);
+  useEffect(() => {
+    if (userPreferences) {
+      const languageKeys = Object.keys(languageResources);
+      const language =
+        languageKeys.find(
+          (language) => language === userPreferences.language
+        ) ??
+        languageKeys.find((language) => {
+          return language.startsWith(
+            userPreferences.language?.split("-")[0] ?? "en"
+          );
+        });
+
+      setForm((prev) => ({
+        ...prev,
+        downloadsPath: userPreferences.downloadsPath ?? defaultDownloadsPath,
+        downloadNotificationsEnabled:
+          userPreferences.downloadNotificationsEnabled ?? false,
+        repackUpdatesNotificationsEnabled:
+          userPreferences.repackUpdatesNotificationsEnabled ?? false,
+        achievementNotificationsEnabled:
+          userPreferences.achievementNotificationsEnabled ?? false,
+        language: language ?? "en",
+      }));
+    }
+  }, [userPreferences, defaultDownloadsPath]);
 
   const handleLanguageChange = (event) => {
     const value = event.target.value;
@@ -88,31 +110,6 @@ export function SettingsGeneral() {
       handleChange({ downloadsPath: path });
     }
   };
-
-  function updateFormWithUserPreferences() {
-    if (userPreferences) {
-      const languageKeys = Object.keys(languageResources);
-      const language =
-        languageKeys.find((language) => {
-          return language === userPreferences.language;
-        }) ??
-        languageKeys.find((language) => {
-          return language.startsWith(userPreferences.language.split("-")[0]);
-        });
-
-      setForm((prev) => ({
-        ...prev,
-        downloadsPath: userPreferences.downloadsPath ?? defaultDownloadsPath,
-        downloadNotificationsEnabled:
-          userPreferences.downloadNotificationsEnabled,
-        repackUpdatesNotificationsEnabled:
-          userPreferences.repackUpdatesNotificationsEnabled,
-        achievementNotificationsEnabled:
-          userPreferences.achievementNotificationsEnabled,
-        language: language ?? "en",
-      }));
-    }
-  }
 
   return (
     <div className="settings-general">

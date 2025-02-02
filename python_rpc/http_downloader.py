@@ -11,11 +11,12 @@ class HttpDownloader:
             )
         )
 
-    def start_download(self, url: str, save_path: str, header: str):
+    def start_download(self, url: str, save_path: str, header: str, out: str = None):
         if self.download:
             self.aria2.resume([self.download])
         else:
-            downloads = self.aria2.add(url, options={"header": header, "dir": save_path})
+            downloads = self.aria2.add(url, options={"header": header, "dir": save_path, "out": out})
+            
             self.download = downloads[0]
     
     def pause_download(self):

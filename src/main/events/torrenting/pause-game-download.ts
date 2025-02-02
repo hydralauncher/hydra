@@ -1,24 +1,27 @@
 import { registerEvent } from "../register-event";
 
 import { DownloadManager } from "@main/services";
-import { dataSource } from "@main/data-source";
-import { DownloadQueue, Game } from "@main/entity";
+import { GameShop } from "@types";
+import { downloadsSublevel, levelKeys } from "@main/level";
 
 const pauseGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
-  gameId: number
+  shop: GameShop,
+  objectId: string
 ) => {
-  await dataSource.transaction(async (transactionalEntityManager) => {
-    await DownloadManager.pauseDownload();
+  const gameKey = levelKeys.game(shop, objectId);
 
-    await transactionalEntityManager.getRepository(DownloadQueue).delete({
-      game: { id: gameId },
+  const download = await downloadsSublevel.get(gameKey);
+
+  if (download) {
+    await DownloadManager.pauseDownload(gameKey);
+
+    await downloadsSublevel.put(gameKey, {
+      ...download,
+      status: "paused",
+      queued: false,
     });
-
-    await transactionalEntityManager
-      .getRepository(Game)
-      .update({ id: gameId }, { status: "paused" });
-  });
+  }
 };
 
 registerEvent("pauseGameDownload", pauseGameDownload);

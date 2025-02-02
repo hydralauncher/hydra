@@ -1,14 +1,14 @@
 import type {
-  Game,
   GameRepack,
   GameShop,
   GameStats,
+  LibraryGame,
   ShopDetails,
   UserAchievement,
 } from "@types";
 
 export interface GameDetailsContext {
-  game: Game | null;
+  game: LibraryGame | null;
   shopDetails: ShopDetails | null;
   repacks: GameRepack[];
   shop: GameShop;

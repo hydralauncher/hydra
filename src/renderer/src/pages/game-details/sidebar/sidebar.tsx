@@ -164,8 +164,8 @@ export function Sidebar() {
               </button>
             )}
 
-            {achievements.slice(0, 4).map((achievement, index) => (
-              <li key={index}>
+            {achievements.slice(0, 4).map((achievement) => (
+              <li key={achievement.displayName}>
                 <Link
                   to={buildGameAchievementPath({
                     shop: shop,
@@ -194,7 +194,6 @@ export function Sidebar() {
             ))}
 
             <Link
-              style={{ textAlign: "center" }}
               to={buildGameAchievementPath({
                 shop: shop,
                 objectId: objectId!,
