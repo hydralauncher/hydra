@@ -15,6 +15,12 @@ const getUserPreferences = async () =>
         );
       }
 
+      if (userPreferences?.torBoxApiToken) {
+        userPreferences.torBoxApiToken = Crypto.decrypt(
+          userPreferences.torBoxApiToken
+        );
+      }
+
       return userPreferences;
     });
 

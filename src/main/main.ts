@@ -20,6 +20,7 @@ import {
 } from "./level";
 import { Auth, User, type UserPreferences } from "@types";
 import { knexClient } from "./knex-client";
+import { TorBoxClient } from "./services/download/torbox";
 
 export const loadState = async () => {
   const userPreferences = await migrateFromSqlite().then(async () => {
@@ -40,6 +41,10 @@ export const loadState = async () => {
     RealDebridClient.authorize(
       Crypto.decrypt(userPreferences.realDebridApiToken)
     );
+  }
+
+  if (userPreferences?.torBoxApiToken) {
+    TorBoxClient.authorize(Crypto.decrypt(userPreferences.torBoxApiToken));
   }
 
   Ludusavi.addManifestToLudusaviConfig();

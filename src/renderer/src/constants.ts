@@ -10,6 +10,7 @@ export const DOWNLOADER_NAME = {
   [Downloader.Qiwi]: "Qiwi",
   [Downloader.Datanodes]: "Datanodes",
   [Downloader.Mediafire]: "Mediafire",
+  [Downloader.TorBox]: "TorBox",
 };
 
 export const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;

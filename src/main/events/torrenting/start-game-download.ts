@@ -76,10 +76,10 @@ const startGameDownload = async (
     queued: true,
   };
 
-  await downloadsSublevel.put(gameKey, download);
-
   try {
-    await DownloadManager.startDownload(download);
+    await DownloadManager.startDownload(download).then(() => {
+      return downloadsSublevel.put(gameKey, download);
+    });
 
     const updatedGame = await gamesSublevel.get(gameKey);
 
@@ -112,6 +112,10 @@ const startGameDownload = async (
           ok: false,
           error: DownloadError.RealDebridAccountNotAuthorized,
         };
+      }
+
+      if (downloader === Downloader.TorBox) {
+        return { ok: false, error: err.response?.data?.detail };
       }
     }
 
