@@ -34,6 +34,7 @@
   &__message-container {
     display: flex;
     gap: globals.$spacing-unit;
+    flex-direction: column;
   }
 
   &__message {
