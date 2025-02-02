@@ -19,7 +19,7 @@ export interface RepacksModalProps {
     repack: GameRepack,
     downloader: Downloader,
     downloadPath: string
-  ) => Promise<void>;
+  ) => Promise<{ ok: boolean; error?: string }>;
   onClose: () => void;
 }
 
@@ -27,7 +27,7 @@ export function RepacksModal({
   visible,
   startDownload,
   onClose,
-}: RepacksModalProps) {
+}: Readonly<RepacksModalProps>) {
   const [filteredRepacks, setFilteredRepacks] = useState<GameRepack[]>([]);
   const [repack, setRepack] = useState<GameRepack | null>(null);
   const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
@@ -111,7 +111,7 @@ export function RepacksModal({
 
                 <p style={{ fontSize: "12px" }}>
                   {repack.fileSize} - {repack.repacker} -{" "}
-                  {repack.uploadDate ? formatDate(repack.uploadDate!) : ""}
+                  {repack.uploadDate ? formatDate(repack.uploadDate) : ""}
                 </p>
               </Button>
             );

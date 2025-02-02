@@ -29,10 +29,11 @@ export function useDownload() {
   const startDownload = async (payload: StartGameDownloadPayload) => {
     dispatch(clearDownload());
 
-    const game = await window.electron.startGameDownload(payload);
+    const response = await window.electron.startGameDownload(payload);
 
-    await updateLibrary();
-    return game;
+    if (response.ok) updateLibrary();
+
+    return response;
   };
 
   const pauseDownload = async (shop: GameShop, objectId: string) => {

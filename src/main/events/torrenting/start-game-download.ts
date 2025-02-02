@@ -1,11 +1,12 @@
 import { registerEvent } from "../register-event";
 import type { Download, StartGameDownloadPayload } from "@types";
-import { DownloadManager, HydraApi } from "@main/services";
+import { DownloadManager, HydraApi, logger } from "@main/services";
 
 import { steamGamesWorker } from "@main/workers";
 import { createGame } from "@main/services/library-sync";
-import { steamUrlBuilder } from "@shared";
+import { Downloader, DownloadError, steamUrlBuilder } from "@shared";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import { AxiosError } from "axios";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -77,21 +78,49 @@ const startGameDownload = async (
 
   await downloadsSublevel.put(gameKey, download);
 
-  await DownloadManager.startDownload(download);
+  try {
+    await DownloadManager.startDownload(download);
 
-  const updatedGame = await gamesSublevel.get(gameKey);
+    const updatedGame = await gamesSublevel.get(gameKey);
 
-  await Promise.all([
-    createGame(updatedGame!).catch(() => {}),
-    HydraApi.post(
-      "/games/download",
-      {
-        objectId,
-        shop,
-      },
-      { needsAuth: false }
-    ).catch(() => {}),
-  ]);
+    await Promise.all([
+      createGame(updatedGame!).catch(() => {}),
+      HydraApi.post(
+        "/games/download",
+        {
+          objectId,
+          shop,
+        },
+        { needsAuth: false }
+      ).catch(() => {}),
+    ]);
+
+    return { ok: true };
+  } catch (err: unknown) {
+    logger.error("Failed to start download", err);
+
+    if (err instanceof AxiosError) {
+      if (err.response?.status === 429 && downloader === Downloader.Gofile) {
+        return { ok: false, error: DownloadError.GofileQuotaExceeded };
+      }
+
+      if (
+        err.response?.status === 403 &&
+        downloader === Downloader.RealDebrid
+      ) {
+        return {
+          ok: false,
+          error: DownloadError.RealDebridAccountNotAuthorized,
+        };
+      }
+    }
+
+    if (err instanceof Error) {
+      return { ok: false, error: err.message };
+    }
+
+    return { ok: false };
+  }
 };
 
 registerEvent("startGameDownload", startGameDownload);
