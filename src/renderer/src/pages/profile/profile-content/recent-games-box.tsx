@@ -11,7 +11,9 @@ import "./recent-games-box.scss";
 
 export function RecentGamesBox() {
   const { userProfile } = useContext(userProfileContext);
+
   const { t } = useTranslation("user_profile");
+
   const { numberFormatter } = useFormat();
 
   const formatPlayTime = useCallback(

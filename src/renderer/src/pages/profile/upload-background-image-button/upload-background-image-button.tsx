@@ -10,9 +10,12 @@ export function UploadBackgroundImageButton() {
   const [isUploadingBackgroundImage, setIsUploadingBackgorundImage] =
     useState(false);
   const { hasActiveSubscription } = useUserDetails();
+
   const { t } = useTranslation("user_profile");
+
   const { isMe, setSelectedBackgroundImage } = useContext(userProfileContext);
   const { patchUser, fetchUserDetails } = useUserDetails();
+
   const { showSuccessToast } = useToast();
 
   const handleChangeCoverClick = async () => {

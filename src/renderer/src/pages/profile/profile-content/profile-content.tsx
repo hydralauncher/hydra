@@ -5,7 +5,6 @@ import { useAppDispatch, useFormat } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { TelescopeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
 import { FriendsBox } from "./friends-box";
@@ -65,8 +64,6 @@ export function ProfileContent() {
 
   const { numberFormatter } = useFormat();
 
-  const navigate = useNavigate();
-
   const usersAreFriends = useMemo(() => {
     return userProfile?.relation?.status === "ACCEPTED";
   }, [userProfile]);
@@ -83,6 +80,7 @@ export function ProfileContent() {
     }
 
     const hasGames = userProfile?.libraryGames.length > 0;
+
     const shouldShowRightContent = hasGames || userProfile.friends.length > 0;
 
     return (
@@ -102,6 +100,7 @@ export function ProfileContent() {
             <>
               <div className="profile-content__section-header">
                 <h2>{t("library")}</h2>
+
                 {userStats && (
                   <span>{numberFormatter.format(userStats.libraryCount)}</span>
                 )}
@@ -139,13 +138,13 @@ export function ProfileContent() {
     userStats,
     numberFormatter,
     t,
-    navigate,
     statsIndex,
   ]);
 
   return (
     <div>
       <ProfileHero />
+
       {content}
     </div>
   );

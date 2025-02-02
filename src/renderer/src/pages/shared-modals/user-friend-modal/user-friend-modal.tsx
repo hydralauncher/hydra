@@ -26,11 +26,15 @@ export const UserFriendModal = ({
   userId,
 }: UserFriendsModalProps) => {
   const { t } = useTranslation("user_profile");
+
   const tabs = [t("friends_list"), t("add_friends")];
+
   const [currentTab, setCurrentTab] = useState(
     initialTab || UserFriendModalTab.FriendsList
   );
+
   const { showSuccessToast } = useToast();
+
   const { userDetails } = useUserDetails();
   const isMe = userDetails?.id == userId;
 

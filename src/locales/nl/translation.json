@@ -111,7 +111,7 @@
     "general": "Algemeen",
     "behavior": "Gedrag",
     "enable_real_debrid": "Enable Real-Debrid",
-    "real_debrid_api_token_hint": "U kunt uw API-sleutel <0>hier</0> verkrijgen.",
+    "debrid_api_token_hint": "U kunt uw API-sleutel <0>hier</0> verkrijgen.",
     "save_changes": "Wijzigingen opslaan"
   },
   "notifications": {

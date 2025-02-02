@@ -55,11 +55,9 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
     }, [props.type, isPasswordVisible]);
 
     const hintContent = useMemo(() => {
-      if (error && typeof error === "object" && "message" in error)
+      if (error)
         return (
-          <small className="text-field-container__error-label">
-            {error.message as string}
-          </small>
+          <small className="text-field-container__error-label">{error}</small>
         );
 
       if (hint) return <small>{hint}</small>;

@@ -110,7 +110,7 @@
     "general": "کلی",
     "behavior": "رفتار",
     "enable_real_debrid": "فعال‌سازی Real-Debrid",
-    "real_debrid_api_token_hint": "کلید API خود را از <ب0>اینجا</0> بگیرید.",
+    "debrid_api_token_hint": "کلید API خود را از <ب0>اینجا</0> بگیرید.",
     "save_changes": "ذخیره تغییرات"
   },
   "notifications": {

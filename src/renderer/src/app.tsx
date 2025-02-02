@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-
+import achievementSound from "@renderer/assets/audio/achievement.wav";
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
 import {
@@ -84,7 +84,7 @@ export function App() {
   useEffect(() => {
     const unsubscribe = window.electron.onDownloadProgress(
       (downloadProgress) => {
-        if (downloadProgress.game.progress === 1) {
+        if (downloadProgress.progress === 1) {
           clearDownload();
           updateLibrary();
           return;
@@ -212,26 +212,42 @@ export function App() {
     const id = crypto.randomUUID();
     const channel = new BroadcastChannel(`download_sources:sync:${id}`);
 
-    channel.onmessage = (event: MessageEvent<number>) => {
+    channel.onmessage = async (event: MessageEvent<number>) => {
       const newRepacksCount = event.data;
       window.electron.publishNewRepacksNotification(newRepacksCount);
       updateRepacks();
 
-      downloadSourcesTable.toArray().then((downloadSources) => {
-        downloadSources
-          .filter((source) => !source.fingerprint)
-          .forEach((downloadSource) => {
-            window.electron
-              .putDownloadSource(downloadSource.objectIds)
-              .then(({ fingerprint }) => {
-                downloadSourcesTable.update(downloadSource.id, { fingerprint });
-              });
-          });
-      });
+      const downloadSources = await downloadSourcesTable.toArray();
+
+      downloadSources
+        .filter((source) => !source.fingerprint)
+        .forEach(async (downloadSource) => {
+          const { fingerprint } = await window.electron.putDownloadSource(
+            downloadSource.objectIds
+          );
+
+          downloadSourcesTable.update(downloadSource.id, { fingerprint });
+        });
     };
 
     downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
   }, [updateRepacks]);
+
+  const playAudio = useCallback(() => {
+    const audio = new Audio(achievementSound);
+    audio.volume = 0.2;
+    audio.play();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onAchievementUnlocked(() => {
+      playAudio();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [playAudio]);
 
   const handleToastClose = useCallback(() => {
     dispatch(closeToast());
@@ -252,9 +268,11 @@ export function App() {
 
       <Toast
         visible={toast.visible}
+        title={toast.title}
         message={toast.message}
         type={toast.type}
         onClose={handleToastClose}
+        duration={toast.duration}
       />
 
       <HydraCloudModal

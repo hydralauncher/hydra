@@ -1,30 +1,26 @@
 @use "../../scss/globals.scss";
 
-$toast-height: 80px;
-
 .toast {
   animation-duration: 0.2s;
   animation-timing-function: ease-in-out;
-  max-height: $toast-height;
-  position: fixed;
-  background-color: globals.$background-color;
+  position: absolute;
+  background-color: globals.$dark-background-color;
   border-radius: 4px;
   border: solid 1px globals.$border-color;
-  right: calc(globals.$spacing-unit * 2);
-  //bottom panel height + 16px
-  bottom: calc(26px + #{globals.$spacing-unit * 2});
+  right: 0;
+  bottom: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   z-index: globals.$toast-z-index;
-  max-width: 500px;
-  animation-name: slide-in;
+  max-width: 420px;
+  animation-name: enter;
   transform: translateY(0);
 
   &--closing {
-    animation-name: slide-out;
-    transform: translateY(calc($toast-height + #{globals.$spacing-unit * 2}));
+    animation-name: exit;
+    transform: translateY(100%);
   }
 
   &__content {
@@ -62,37 +58,38 @@ $toast-height: 80px;
     cursor: pointer;
     padding: 0;
     margin: 0;
+    transition: color 0.2s ease-in-out;
+
+    &:hover {
+      color: globals.$muted-color;
+    }
   }
 
-  &__success-icon {
-    color: globals.$success-color;
-  }
+  &__icon {
+    &--success {
+      color: globals.$success-color;
+    }
 
-  &__error-icon {
-    color: globals.$danger-color;
-  }
+    &--error {
+      color: globals.$danger-color;
+    }
 
-  &__warning-icon {
-    color: globals.$warning-color;
-  }
-}
-
-@keyframes slide-in {
-  0% {
-    transform: translateY(calc($toast-height + #{globals.$spacing-unit * 2}));
-  }
-
-  100% {
-    transform: translateY(0);
+    &--warning {
+      color: globals.$warning-color;
+    }
   }
 }
 
-@keyframes slide-out {
+@keyframes enter {
   0% {
-    transform: translateY(0);
+    opacity: 0;
+    transform: translateY(100%);
   }
+}
 
-  100% {
-    transform: translateY(calc($toast-height + #{globals.$spacing-unit * 2}));
+@keyframes exit {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

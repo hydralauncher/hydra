@@ -118,7 +118,7 @@
     "general": "Generale",
     "behavior": "Comportamento",
     "enable_real_debrid": "Abilita Real Debrid",
-    "real_debrid_api_token_hint": "Puoi trovare la tua chiave API <0>here</0>",
+    "debrid_api_token_hint": "Puoi trovare la tua chiave API <0>here</0>",
     "save_changes": "Salva modifiche"
   },
   "notifications": {

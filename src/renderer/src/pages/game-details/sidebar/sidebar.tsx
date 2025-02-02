@@ -22,7 +22,7 @@ import { buildGameAchievementPath } from "@renderer/helpers";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./sidebar.scss";
 
-const fakeAchievements: UserAchievement[] = [
+const achievementsPlaceholder: UserAchievement[] = [
   {
     displayName: "Timber!!",
     name: "",
@@ -136,8 +136,8 @@ export function Sidebar() {
             <h3>{t("sign_in_to_see_achievements")}</h3>
           </div>
           <ul className="list" style={{ filter: "blur(4px)" }}>
-            {fakeAchievements.map((achievement, index) => (
-              <li key={index}>
+            {achievementsPlaceholder.map((achievement) => (
+              <li key={achievement.displayName}>
                 <div className="list__item">
                   <img
                     style={{ filter: "blur(8px)" }}
@@ -179,8 +179,8 @@ export function Sidebar() {
               </button>
             )}
 
-            {achievements.slice(0, 4).map((achievement, index) => (
-              <li key={index}>
+            {achievements.slice(0, 4).map((achievement) => (
+              <li key={achievement.displayName}>
                 <Link
                   to={buildGameAchievementPath({
                     shop: shop,
@@ -209,7 +209,6 @@ export function Sidebar() {
             ))}
 
             <Link
-              style={{ textAlign: "center" }}
               to={buildGameAchievementPath({
                 shop: shop,
                 objectId: objectId!,
