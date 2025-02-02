@@ -88,14 +88,14 @@ export function DownloadSettingsModal({
     const filteredDownloaders = downloaders.filter((downloader) => {
       if (downloader === Downloader.RealDebrid)
         return userPreferences?.realDebridApiToken;
+      if (downloader === Downloader.TorBox)
+        return userPreferences?.torBoxApiToken;
       return true;
     });
 
-    /* Gives preference to Real Debrid */
-    const selectedDownloader = filteredDownloaders.includes(
-      Downloader.RealDebrid
-    )
-      ? Downloader.RealDebrid
+    /* Gives preference to TorBox */
+    const selectedDownloader = filteredDownloaders.includes(Downloader.TorBox)
+      ? Downloader.TorBox
       : filteredDownloaders[0];
 
     setSelectedDownloader(selectedDownloader ?? null);

@@ -28,6 +28,7 @@ import type {
   CatalogueSearchPayload,
   LibraryGame,
   GameRunning,
+  TorBoxUser,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -144,6 +145,7 @@ declare global {
       minimized: boolean;
     }) => Promise<void>;
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
+    authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
     onAchievementUnlocked: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* Download sources */

@@ -30,6 +30,9 @@ import {
   XCircleIcon,
 } from "@primer/octicons-react";
 
+import torBoxLogo from "@renderer/assets/icons/torbox.webp";
+import { SPACING_UNIT, vars } from "@renderer/theme.css";
+
 export interface DownloadGroupProps {
   library: LibraryGame[];
   title: string;
@@ -235,12 +238,16 @@ export function DownloadGroup({
       ];
     }
 
+    const isResumeDisabled =
+      (download?.downloader === Downloader.RealDebrid &&
+        !userPreferences?.realDebridApiToken) ||
+      (download?.downloader === Downloader.TorBox &&
+        !userPreferences?.torBoxApiToken);
+
     return [
       {
         label: t("resume"),
-        disabled:
-          download?.downloader === Downloader.RealDebrid &&
-          !userPreferences?.realDebridApiToken,
+        disabled: isResumeDisabled,
         onClick: () => {
           resumeDownload(game.shop, game.objectId);
         },
@@ -279,13 +286,30 @@ export function DownloadGroup({
                   />
 
                   <div className="download-group__cover-content">
-                    <Badge>
-                      {
-                        DOWNLOADER_NAME[
-                          game?.download?.downloader as Downloader
-                        ]
-                      }
-                    </Badge>
+                    {game.download?.downloader === Downloader.TorBox ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          background: "#11141b",
+                          padding: `${SPACING_UNIT / 2}px ${SPACING_UNIT}px`,
+                          borderRadius: "4px",
+                          gap: 4,
+                          border: `1px solid ${vars.color.border}`,
+                        }}
+                      >
+                        <img
+                          src={torBoxLogo}
+                          alt="TorBox"
+                          style={{ width: 13 }}
+                        />
+                        <span style={{ fontSize: 10 }}>TorBox</span>
+                      </div>
+                    ) : (
+                      <Badge>
+                        {DOWNLOADER_NAME[game.download!.downloader]}
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>
