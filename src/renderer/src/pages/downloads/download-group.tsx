@@ -291,7 +291,7 @@ export function DownloadGroup({
                           alt="TorBox"
                           style={{ width: 13 }}
                         />
-                        <span style={{ fontSize: 10 }}>TorBox</span>
+                        <span>TorBox</span>
                       </Badge>
                     ) : (
                       <Badge>
