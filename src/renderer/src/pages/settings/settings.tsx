@@ -23,14 +23,26 @@ export default function Settings() {
 
   const categories = useMemo(() => {
     const categories = [
-      t("general"),
-      t("behavior"),
-      t("download_sources"),
-      "Torbox",
-      "Real-Debrid",
+      { tabLabel: t("general"), contentTitle: t("general") },
+      { tabLabel: t("behavior"), contentTitle: t("behavior") },
+      { tabLabel: t("download_sources"), contentTitle: t("download_sources") },
+      {
+        tabLabel: (
+          <>
+            <img src={torBoxLogo} alt="TorBox" style={{ width: 13 }} />
+            Torbox
+          </>
+        ),
+        contentTitle: "TorBox",
+      },
+      { tabLabel: "Real-Debrid", contentTitle: "Real-Debrid" },
     ];
 
-    if (userDetails) return [...categories, t("account")];
+    if (userDetails)
+      return [
+        ...categories,
+        { tabLabel: t("account"), contentTitle: t("account") },
+      ];
     return categories;
   }, [userDetails, t]);
 
@@ -68,25 +80,18 @@ export default function Settings() {
                 <section className={styles.settingsCategories}>
                   {categories.map((category, index) => (
                     <Button
-                      key={category}
+                      key={index}
                       theme={
                         currentCategoryIndex === index ? "primary" : "outline"
                       }
                       onClick={() => setCurrentCategoryIndex(index)}
                     >
-                      {index === 3 && (
-                        <img
-                          src={torBoxLogo}
-                          alt="TorBox"
-                          style={{ width: 13 }}
-                        />
-                      )}
-                      {category}
+                      {category.tabLabel}
                     </Button>
                   ))}
                 </section>
 
-                <h2>{categories[currentCategoryIndex]}</h2>
+                <h2>{categories[currentCategoryIndex].contentTitle}</h2>
                 {renderCategory()}
               </div>
             </section>
