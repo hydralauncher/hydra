@@ -57,7 +57,8 @@ export function SettingsRealDebrid() {
           return;
         } else {
           showSuccessToast(
-            t("real_debrid_linked_message", { username: user.username })
+            t("real_debrid_account_linked"),
+            t("debrid_linked_message", { username: user.username })
           );
         }
       } else {
@@ -68,7 +69,7 @@ export function SettingsRealDebrid() {
         realDebridApiToken: form.useRealDebrid ? form.realDebridApiToken : null,
       });
     } catch (err) {
-      showErrorToast(t("real_debrid_invalid_token"));
+      showErrorToast(t("debrid_invalid_token"));
     } finally {
       setIsLoading(false);
     }
@@ -94,29 +95,30 @@ export function SettingsRealDebrid() {
 
       {form.useRealDebrid && (
         <TextField
-          label={t("real_debrid_api_token")}
+          label={t("api_token")}
           value={form.realDebridApiToken ?? ""}
           type="password"
           onChange={(event) =>
             setForm({ ...form, realDebridApiToken: event.target.value })
           }
           placeholder="API Token"
-          containerProps={{ style: { marginTop: `${SPACING_UNIT}px` } }}
+          containerProps={{
+            style: {
+              marginTop: `${SPACING_UNIT}px`,
+            },
+          }}
+          rightContent={
+            <Button type="submit" disabled={isButtonDisabled}>
+              {t("save_changes")}
+            </Button>
+          }
           hint={
-            <Trans i18nKey="real_debrid_api_token_hint" ns="settings">
+            <Trans i18nKey="debrid_api_token_hint" ns="settings">
               <Link to={REAL_DEBRID_API_TOKEN_URL} />
             </Trans>
           }
         />
       )}
-
-      <Button
-        type="submit"
-        style={{ alignSelf: "flex-end", marginTop: `${SPACING_UNIT * 2}px` }}
-        disabled={isButtonDisabled}
-      >
-        {t("save_changes")}
-      </Button>
     </form>
   );
 }

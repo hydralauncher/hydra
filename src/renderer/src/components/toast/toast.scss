@@ -1,0 +1,85 @@
+@use "../../scss/globals.scss";
+
+.toast {
+  animation-duration: 0.2s;
+  animation-timing-function: ease-in-out;
+  position: absolute;
+  background-color: globals.$dark-background-color;
+  border-radius: 4px;
+  border: solid 1px globals.$border-color;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  z-index: globals.$toast-z-index;
+  max-width: 420px;
+  animation-name: enter;
+  transform: translateY(0);
+
+  &--closing {
+    animation-name: exit;
+    transform: translateY(100%);
+  }
+
+  &__content {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2);
+    justify-content: center;
+    align-items: center;
+  }
+
+  &__progress {
+    width: 100%;
+    height: 5px;
+
+    &::-webkit-progress-bar {
+      background-color: globals.$dark-background-color;
+    }
+    &::-webkit-progress-value {
+      background-color: globals.$muted-color;
+    }
+  }
+
+  &__close-button {
+    color: globals.$body-color;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    transition: color 0.2s ease-in-out;
+
+    &:hover {
+      color: globals.$muted-color;
+    }
+  }
+
+  &__icon {
+    &--success {
+      color: globals.$success-color;
+    }
+
+    &--error {
+      color: globals.$danger-color;
+    }
+
+    &--warning {
+      color: globals.$warning-color;
+    }
+  }
+}
+
+@keyframes enter {
+  0% {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+@keyframes exit {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

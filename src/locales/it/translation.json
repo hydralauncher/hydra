@@ -124,7 +124,7 @@
     "title_confirmation_delete_all_sources": "Elimina tutte le fonti di download",
     "removed_download_sources": "Fonti di download rimosse",
     "button_delete_all_sources": "Rimuovi tutte le fonti di download",
-    "real_debrid_api_token_hint": "Puoi trovare la tua chiave API <0>here</0>",
+    "debrid_api_token_hint": "Puoi trovare la tua chiave API <0>here</0>",
     "save_changes": "Salva modifiche"
   },
   "notifications": {
