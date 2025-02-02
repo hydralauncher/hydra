@@ -61,7 +61,9 @@ export function UserLibraryGameCard({
 
   const formatAchievementPoints = (number: number) => {
     if (number < 100_000) return numberFormatter.format(number);
+
     if (number < 1_000_000) return `${(number / 1000).toFixed(1)}K`;
+
     return `${(number / 1_000_000).toFixed(1)}M`;
   };
 

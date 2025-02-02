@@ -46,6 +46,7 @@ import "./user-preferences/auto-launch";
 import "./autoupdater/check-for-updates";
 import "./autoupdater/restart-and-install-update";
 import "./user-preferences/authenticate-real-debrid";
+import "./user-preferences/authenticate-torbox";
 import "./download-sources/put-download-source";
 import "./auth/sign-out";
 import "./auth/open-auth-window";

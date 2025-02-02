@@ -13,11 +13,13 @@ import { t } from "i18next";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
-import { gameRepository, userPreferencesRepository } from "@main/repository";
-import { IsNull, Not } from "typeorm";
 import { HydraApi } from "./hydra-api";
 import UserAgent from "user-agents";
+import { db, gamesSublevel, levelKeys } from "@main/level";
+import { slice, sortBy } from "lodash-es";
+import type { UserPreferences } from "@types";
 import { AuthPage } from "@shared";
+import { isStaging } from "@main/constants";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -49,7 +51,7 @@ export class WindowManager {
       minHeight: 540,
       backgroundColor: "#1c1c1c",
       titleBarStyle: process.platform === "linux" ? "default" : "hidden",
-      ...(process.platform === "linux" ? { icon } : {}),
+      icon,
       trafficLightPosition: { x: 16, y: 16 },
       titleBarOverlay: {
         symbolColor: "#DADBE1",
@@ -126,20 +128,29 @@ export class WindowManager {
     this.mainWindow.removeMenu();
 
     this.mainWindow.on("ready-to-show", () => {
-      if (!app.isPackaged) WindowManager.mainWindow?.webContents.openDevTools();
+      if (!app.isPackaged || isStaging)
+        WindowManager.mainWindow?.webContents.openDevTools();
       WindowManager.mainWindow?.show();
     });
 
     this.mainWindow.on("close", async () => {
-      const userPreferences = await userPreferencesRepository.findOne({
-        where: { id: 1 },
-      });
+      const userPreferences = await db.get<string, UserPreferences>(
+        levelKeys.userPreferences,
+        {
+          valueEncoding: "json",
+        }
+      );
 
       if (userPreferences?.preferQuitInsteadOfHiding) {
         app.quit();
       }
       WindowManager.mainWindow?.setProgressBar(-1);
       WindowManager.mainWindow = null;
+    });
+
+    this.mainWindow.webContents.setWindowOpenHandler((handler) => {
+      shell.openExternal(handler.url);
+      return { action: "deny" };
     });
   }
 
@@ -211,17 +222,19 @@ export class WindowManager {
     }
 
     const updateSystemTray = async () => {
-      const games = await gameRepository.find({
-        where: {
-          isDeleted: false,
-          executablePath: Not(IsNull()),
-          lastTimePlayed: Not(IsNull()),
-        },
-        take: 5,
-        order: {
-          lastTimePlayed: "DESC",
-        },
-      });
+      const games = await gamesSublevel
+        .values()
+        .all()
+        .then((games) => {
+          const filteredGames = games.filter(
+            (game) =>
+              !game.isDeleted && game.executablePath && game.lastTimePlayed
+          );
+
+          const sortedGames = sortBy(filteredGames, "lastTimePlayed", "DESC");
+
+          return slice(sortedGames, 5);
+        });
 
       const recentlyPlayedGames: Array<MenuItemConstructorOptions | MenuItem> =
         games.map(({ title, executablePath }) => ({
