@@ -128,7 +128,8 @@ export class WindowManager {
     this.mainWindow.removeMenu();
 
     this.mainWindow.on("ready-to-show", () => {
-      if (!app.isPackaged) WindowManager.mainWindow?.webContents.openDevTools();
+      if (!app.isPackaged || isStaging)
+        WindowManager.mainWindow?.webContents.openDevTools();
       WindowManager.mainWindow?.show();
     });
 
@@ -173,9 +174,7 @@ export class WindowManager {
 
       authWindow.removeMenu();
 
-      if (!app.isPackaged || isStaging) {
-        authWindow.webContents.openDevTools();
-      }
+      if (!app.isPackaged) authWindow.webContents.openDevTools();
 
       authWindow.loadURL(
         `${import.meta.env.MAIN_VITE_AUTH_URL}${page}?${searchParams.toString()}`

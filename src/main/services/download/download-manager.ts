@@ -1,4 +1,4 @@
-import { Downloader } from "@shared";
+import { Downloader, DownloadError } from "@shared";
 import { WindowManager } from "../window-manager";
 import { publishDownloadCompleteNotification } from "../notifications";
 import type { Download, DownloadProgress, UserPreferences } from "@types";
@@ -264,6 +264,8 @@ export class DownloadManager {
         const token = await GofileApi.authorize();
         const downloadLink = await GofileApi.getDownloadLink(id!);
 
+        await GofileApi.checkDownloadUrl(downloadLink);
+
         return {
           action: "start",
           game_id: downloadId,
@@ -320,10 +322,7 @@ export class DownloadManager {
       case Downloader.RealDebrid: {
         const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
 
-        if (!downloadUrl)
-          throw new Error(
-            "This download is not available on Real-Debrid and polling download status from Real-Debrid is not yet available."
-          );
+        if (!downloadUrl) throw new Error(DownloadError.NotCachedInRealDebrid);
 
         return {
           action: "start",

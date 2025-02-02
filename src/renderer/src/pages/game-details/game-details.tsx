@@ -102,19 +102,23 @@ export default function GameDetails() {
             downloader: Downloader,
             downloadPath: string
           ) => {
-            await startDownload({
+            const response = await startDownload({
               repackId: repack.id,
               objectId: objectId!,
               title: gameTitle,
               downloader,
-              shop: shop as GameShop,
+              shop,
               downloadPath,
               uri: selectRepackUri(repack, downloader),
             });
 
-            await updateGame();
-            setShowRepacksModal(false);
-            setShowGameOptionsModal(false);
+            if (response.ok) {
+              await updateGame();
+              setShowRepacksModal(false);
+              setShowGameOptionsModal(false);
+            }
+
+            return response;
           };
 
           const handleNSFWContentRefuse = () => {
@@ -123,10 +127,7 @@ export default function GameDetails() {
           };
 
           return (
-            <CloudSyncContextProvider
-              objectId={objectId!}
-              shop={shop! as GameShop}
-            >
+            <CloudSyncContextProvider objectId={objectId!} shop={shop}>
               <CloudSyncContextConsumer>
                 {({
                   showCloudSyncModal,

@@ -282,6 +282,7 @@ export function App() {
           message={toast.message}
           type={toast.type}
           onClose={handleToastClose}
+          duration={toast.duration}
         />
       </div>
 
