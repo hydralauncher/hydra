@@ -66,9 +66,9 @@ $logo-max-width: 200px;
 
   &__table-header {
     width: 100%;
-    background-color: var(--color-dark-background);
+    background-color: globals.$dark-background-color;
     transition: all ease 0.2s;
-    border-bottom: solid 1px var(--color-border);
+    border-bottom: solid 1px globals.$border-color;
     position: sticky;
     top: 0;
     z-index: 1;
@@ -86,13 +86,13 @@ $logo-max-width: 200px;
     gap: globals.$spacing-unit * 2;
     padding: globals.$spacing-unit * 2;
     width: 100%;
-    background-color: var(--color-background);
+    background-color: globals.$background-color;
   }
 
   &__item {
     display: flex;
     transition: all ease 0.1s;
-    color: var(--color-muted);
+    color: globals.$muted-color;
     width: 100%;
     overflow: hidden;
     border-radius: 4px;
@@ -102,7 +102,7 @@ $logo-max-width: 200px;
     text-align: left;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.15);
+      background-color: globals.$border-color;
       text-decoration: none;
     }
 
@@ -129,7 +129,7 @@ $logo-max-width: 200px;
 
     &-hidden-icon {
       display: flex;
-      color: var(--color-warning);
+      color: globals.$warning-color;
       opacity: 0.8;
 
       &:hover {
@@ -164,7 +164,7 @@ $logo-max-width: 200px;
 
       &--locked {
         cursor: pointer;
-        color: var(--color-warning);
+        color: globals.$warning-color;
       }
 
       &-icon {
@@ -219,12 +219,12 @@ $logo-max-width: 200px;
     transition: all ease 0.2s;
 
     &::-webkit-progress-bar {
-      background-color: rgba(255, 255, 255, 0.15);
+      background-color: globals.$border-color;
       border-radius: 4px;
     }
 
     &::-webkit-progress-value {
-      background-color: var(--color-muted);
+      background-color: globals.$muted-color;
       border-radius: 4px;
     }
   }
@@ -236,7 +236,7 @@ $logo-max-width: 200px;
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: var(--color-background);
+    background-color: globals.$background-color;
     position: relative;
     object-fit: cover;
 
@@ -252,7 +252,7 @@ $logo-max-width: 200px;
     justify-content: center;
     width: 100%;
     gap: math.div(globals.$spacing-unit, 2);
-    color: var(--color-body);
+    color: globals.$muted-color;
     cursor: pointer;
 
     &:hover {
