@@ -28,14 +28,14 @@ if start_download_payload:
         torrent_downloader = TorrentDownloader(torrent_session)
         downloads[initial_download['game_id']] = torrent_downloader
         try:
-            torrent_downloader.start_download(initial_download['url'], initial_download['save_path'], "")
+            torrent_downloader.start_download(initial_download['url'], initial_download['save_path'])
         except Exception as e:
             print("Error starting torrent download", e)
     else:
         http_downloader = HttpDownloader()
         downloads[initial_download['game_id']] = http_downloader
         try:
-            http_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'))
+            http_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'), initial_download.get("out"))
         except Exception as e:
             print("Error starting http download", e)
 
@@ -45,7 +45,7 @@ if start_seeding_payload:
         torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
         downloads[seed['game_id']] = torrent_downloader
         try:
-            torrent_downloader.start_download(seed['url'], seed['save_path'], "")
+            torrent_downloader.start_download(seed['url'], seed['save_path'])
         except Exception as e:
             print("Error starting seeding", e)
 
@@ -94,7 +94,7 @@ def seed_status():
 
 @app.route("/healthcheck", methods=["GET"])
 def healthcheck():
-    return "", 200
+    return "ok", 200
 
 @app.route("/process-list", methods=["GET"])
 def process_list():
@@ -140,18 +140,18 @@ def action():
 
         if url.startswith('magnet'):
             if existing_downloader and isinstance(existing_downloader, TorrentDownloader):
-                existing_downloader.start_download(url, data['save_path'], "")
+                existing_downloader.start_download(url, data['save_path'])
             else:
                 torrent_downloader = TorrentDownloader(torrent_session)
                 downloads[game_id] = torrent_downloader
-                torrent_downloader.start_download(url, data['save_path'], "")
+                torrent_downloader.start_download(url, data['save_path'])
         else:
             if existing_downloader and isinstance(existing_downloader, HttpDownloader):
-                existing_downloader.start_download(url, data['save_path'], data.get('header'))
+                existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
             else:
                 http_downloader = HttpDownloader()
                 downloads[game_id] = http_downloader
-                http_downloader.start_download(url, data['save_path'], data.get('header'))
+                http_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
         
         downloading_game_id = game_id
 
@@ -167,7 +167,7 @@ def action():
     elif action == 'resume_seeding':
         torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
         downloads[game_id] = torrent_downloader
-        torrent_downloader.start_download(data['url'], data['save_path'], "")
+        torrent_downloader.start_download(data['url'], data['save_path'])
     elif action == 'pause_seeding':
         downloader = downloads.get(game_id)
         if downloader:

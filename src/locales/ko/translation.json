@@ -116,7 +116,7 @@
     "removed_download_sources": "제거된 글꼴",
     "button_delete_all_sources": "모든 다운로드 소스 제거",
     "enable_real_debrid": "Real-Debrid 활성화",
-    "real_debrid_api_token_hint": "API 키를 <0>이곳</0>에서 얻으세요.",
+    "debrid_api_token_hint": "API 키를 <0>이곳</0>에서 얻으세요.",
     "save_changes": "변경 사항 저장"
   },
   "notifications": {

@@ -22,6 +22,7 @@ export function HeroPanelActions() {
     game,
     repacks,
     isGameRunning,
+    shop,
     objectId,
     gameTitle,
     setShowGameOptionsModal,
@@ -33,7 +34,7 @@ export function HeroPanelActions() {
   const { lastPacket } = useDownload();
 
   const isGameDownloading =
-    game?.status === "active" && lastPacket?.game.id === game?.id;
+    game?.download?.status === "active" && lastPacket?.gameId === game?.id;
 
   const { updateLibrary } = useLibrary();
 
@@ -43,7 +44,7 @@ export function HeroPanelActions() {
     setToggleLibraryGameDisabled(true);
 
     try {
-      await window.electron.addGameToLibrary(objectId!, gameTitle, "steam");
+      await window.electron.addGameToLibrary(shop, objectId!, gameTitle);
 
       updateLibrary();
       updateGame();
@@ -56,7 +57,8 @@ export function HeroPanelActions() {
     if (game) {
       if (game.executablePath) {
         window.electron.openGame(
-          game.id,
+          game.shop,
+          game.objectId,
           game.executablePath,
           game.launchOptions
         );
@@ -66,7 +68,8 @@ export function HeroPanelActions() {
       const gameExecutablePath = await selectGameExecutable();
       if (gameExecutablePath)
         window.electron.openGame(
-          game.id,
+          game.shop,
+          game.objectId,
           gameExecutablePath,
           game.launchOptions
         );
@@ -74,7 +77,7 @@ export function HeroPanelActions() {
   };
 
   const closeGame = () => {
-    if (game) window.electron.closeGame(game.id);
+    if (game) window.electron.closeGame(game.shop, game.objectId);
   };
 
   const deleting = game ? isGameDeleting(game?.id) : false;

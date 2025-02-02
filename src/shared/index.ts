@@ -39,7 +39,7 @@ export const pipe =
     fns.reduce((prev, fn) => fn(prev), arg);
 
 export const removeReleaseYearFromName = (name: string) =>
-  name.replace(/\([0-9]{4}\)/g, "");
+  name.replace(/\(\d{4}\)/g, "");
 
 export const removeSymbolsFromName = (name: string) =>
   name.replace(/[^A-Za-z 0-9]/g, "");
@@ -88,12 +88,14 @@ export const getDownloadersForUri = (uri: string) => {
   if (uri.startsWith("https://pixeldrain.com")) return [Downloader.PixelDrain];
   if (uri.startsWith("https://qiwi.gg")) return [Downloader.Qiwi];
   if (uri.startsWith("https://datanodes.to")) return [Downloader.Datanodes];
+  if (uri.startsWith("https://www.mediafire.com"))
+    return [Downloader.Mediafire];
 
   if (realDebridHosts.some((host) => uri.startsWith(host)))
     return [Downloader.RealDebrid];
 
   if (uri.startsWith("magnet:")) {
-    return [Downloader.Torrent, Downloader.RealDebrid];
+    return [Downloader.Torrent, Downloader.TorBox, Downloader.RealDebrid];
   }
 
   return [];

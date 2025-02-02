@@ -1,26 +1,26 @@
 import { registerEvent } from "../register-event";
-import { gameRepository } from "../../repository";
-import { HydraApi, logger } from "@main/services";
+import { HydraApi } from "@main/services";
+import { gamesSublevel, levelKeys } from "@main/level";
+import type { GameShop } from "@types";
 
 const removeGameFromLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
-  gameId: number
+  shop: GameShop,
+  objectId: string
 ) => {
-  gameRepository.update(
-    { id: gameId },
-    { isDeleted: true, executablePath: null }
-  );
+  const gameKey = levelKeys.game(shop, objectId);
+  const game = await gamesSublevel.get(gameKey);
 
-  removeRemoveGameFromLibrary(gameId).catch((err) => {
-    logger.error("removeRemoveGameFromLibrary", err);
-  });
-};
+  if (game) {
+    await gamesSublevel.put(gameKey, {
+      ...game,
+      isDeleted: true,
+      executablePath: null,
+    });
 
-const removeRemoveGameFromLibrary = async (gameId: number) => {
-  const game = await gameRepository.findOne({ where: { id: gameId } });
-
-  if (game?.remoteId) {
-    HydraApi.delete(`/profile/games/${game.remoteId}`).catch(() => {});
+    if (game?.remoteId) {
+      HydraApi.delete(`/profile/games/${game.remoteId}`).catch(() => {});
+    }
   }
 };
 

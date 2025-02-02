@@ -6,19 +6,28 @@ import {
   XIcon,
 } from "@primer/octicons-react";
 
-import * as styles from "./toast.css";
-import { SPACING_UNIT } from "@renderer/theme.css";
+import "./toast.scss";
+import cn from "classnames";
 
 export interface ToastProps {
   visible: boolean;
-  message: string;
+  title: string;
+  message?: string;
   type: "success" | "error" | "warning";
+  duration?: number;
   onClose: () => void;
 }
 
 const INITIAL_PROGRESS = 100;
 
-export function Toast({ visible, message, type, onClose }: ToastProps) {
+export function Toast({
+  visible,
+  title,
+  message,
+  type,
+  duration = 2500,
+  onClose,
+}: Readonly<ToastProps>) {
   const [isClosing, setIsClosing] = useState(false);
   const [progress, setProgress] = useState(INITIAL_PROGRESS);
 
@@ -31,7 +40,7 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
 
     closingAnimation.current = requestAnimationFrame(
       function animateClosing(time) {
-        if (time - zero <= 200) {
+        if (time - zero <= 150) {
           closingAnimation.current = requestAnimationFrame(animateClosing);
         } else {
           onClose();
@@ -43,17 +52,13 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
   useEffect(() => {
     if (visible) {
       const zero = performance.now();
-
       progressAnimation.current = requestAnimationFrame(
         function animateProgress(time) {
           const elapsed = time - zero;
-
-          const progress = Math.min(elapsed / 2500, 1);
+          const progress = Math.min(elapsed / duration, 1);
           const currentValue =
             INITIAL_PROGRESS + (0 - INITIAL_PROGRESS) * progress;
-
           setProgress(currentValue);
-
           if (progress < 1) {
             progressAnimation.current = requestAnimationFrame(animateProgress);
           } else {
@@ -70,37 +75,62 @@ export function Toast({ visible, message, type, onClose }: ToastProps) {
         setIsClosing(false);
       };
     }
-
     return () => {};
-  }, [startAnimateClosing, visible]);
+  }, [startAnimateClosing, duration, visible]);
 
   if (!visible) return null;
 
   return (
-    <div className={styles.toast({ closing: isClosing })}>
-      <div className={styles.toastContent}>
-        <div style={{ display: "flex", gap: `${SPACING_UNIT}px` }}>
-          {type === "success" && (
-            <CheckCircleFillIcon className={styles.successIcon} />
-          )}
-
-          {type === "error" && <XCircleFillIcon className={styles.errorIcon} />}
-
-          {type === "warning" && <AlertIcon className={styles.warningIcon} />}
-          <span style={{ fontWeight: "bold" }}>{message}</span>
-        </div>
-
-        <button
-          type="button"
-          className={styles.closeButton}
-          onClick={startAnimateClosing}
-          aria-label="Close toast"
+    <div
+      className={cn("toast", {
+        "toast--closing": isClosing,
+      })}
+    >
+      <div className="toast__content">
+        <div
+          style={{
+            display: "flex",
+            gap: `8px`,
+            flexDirection: "column",
+          }}
         >
-          <XIcon />
-        </button>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: `8px`,
+            }}
+          >
+            {type === "success" && (
+              <CheckCircleFillIcon className="toast__icon--success" />
+            )}
+
+            {type === "error" && (
+              <XCircleFillIcon className="toast__icon--error" />
+            )}
+
+            {type === "warning" && (
+              <AlertIcon className="toast__icon--warning" />
+            )}
+
+            <span style={{ fontWeight: "bold", flex: 1 }}>{title}</span>
+
+            <button
+              type="button"
+              className="toast__close-button"
+              onClick={startAnimateClosing}
+              aria-label="Close toast"
+            >
+              <XIcon />
+            </button>
+          </div>
+
+          {message && <p>{message}</p>}
+        </div>
       </div>
 
-      <progress className={styles.progress} value={progress} max={100} />
+      <progress className="toast__progress" value={progress} max={100} />
     </div>
   );
 }

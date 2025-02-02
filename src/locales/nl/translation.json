@@ -117,7 +117,7 @@
     "removed_download_sources": "Downloadbronnen verwijderd",
     "button_delete_all_sources": "Verwijder alle downloadbronnen",
     "enable_real_debrid": "Enable Real-Debrid",
-    "real_debrid_api_token_hint": "U kunt uw API-sleutel <0>hier</0> verkrijgen.",
+    "debrid_api_token_hint": "U kunt uw API-sleutel <0>hier</0> verkrijgen.",
     "save_changes": "Wijzigingen opslaan"
   },
   "notifications": {
