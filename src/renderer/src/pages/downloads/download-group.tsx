@@ -280,11 +280,7 @@ export function DownloadGroup({
 
                   <div className="download-group__cover-content">
                     <Badge>
-                      {
-                        DOWNLOADER_NAME[
-                          game?.download?.downloader as Downloader
-                        ]
-                      }
+                      {DOWNLOADER_NAME[game.download?.downloader as Downloader]}
                     </Badge>
                   </div>
                 </div>
