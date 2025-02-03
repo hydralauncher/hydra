@@ -30,6 +30,10 @@ const updateUserPreferences = async (
     );
   }
 
+  if (preferences.torBoxApiToken) {
+    preferences.torBoxApiToken = Crypto.encrypt(preferences.torBoxApiToken);
+  }
+
   if (!preferences.downloadsPath) {
     preferences.downloadsPath = null;
   }

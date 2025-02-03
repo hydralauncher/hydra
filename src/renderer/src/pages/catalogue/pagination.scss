@@ -1,0 +1,21 @@
+.pagination {
+  display: flex;
+  gap: 4px;
+
+  &__button {
+    width: 40px;
+    max-width: 40px;
+    max-height: 40px;
+  }
+
+  &__ellipsis {
+    width: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    &-text {
+      font-size: 16px;
+    }
+  }
+}

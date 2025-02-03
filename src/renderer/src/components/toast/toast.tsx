@@ -87,13 +87,7 @@ export function Toast({
       })}
     >
       <div className="toast__content">
-        <div
-          style={{
-            display: "flex",
-            gap: `8px`,
-            flexDirection: "column",
-          }}
-        >
+        <div className="toast__message-container">
           <div
             style={{
               display: "flex",
