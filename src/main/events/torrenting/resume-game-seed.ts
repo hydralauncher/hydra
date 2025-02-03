@@ -14,6 +14,7 @@ const resumeGameSeed = async (
 
   await downloadsSublevel.put(levelKeys.game(shop, objectId), {
     ...download,
+    status: "seeding",
     shouldSeed: true,
   });
 

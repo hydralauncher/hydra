@@ -173,7 +173,7 @@ export function DownloadGroup({
 
     const deleting = isGameDeleting(game.id);
 
-    if (download?.progress === 1) {
+    if (game.download?.progress === 1) {
       return [
         {
           label: t("install"),
@@ -188,8 +188,8 @@ export function DownloadGroup({
           disabled: deleting,
           icon: <UnlinkIcon />,
           show:
-            download.status === "seeding" &&
-            download.downloader === Downloader.Torrent,
+            game.download?.status === "seeding" &&
+            game.download?.downloader === Downloader.Torrent,
           onClick: () => {
             pauseSeeding(game.shop, game.objectId);
           },
@@ -199,8 +199,8 @@ export function DownloadGroup({
           disabled: deleting,
           icon: <LinkIcon />,
           show:
-            download.status !== "seeding" &&
-            download.downloader === Downloader.Torrent,
+            game.download?.status !== "seeding" &&
+            game.download?.downloader === Downloader.Torrent,
           onClick: () => {
             resumeSeeding(game.shop, game.objectId);
           },
