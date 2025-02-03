@@ -24,6 +24,7 @@ import {
   DownloadIcon,
   LinkIcon,
   PlayIcon,
+  QuestionIcon,
   ThreeBarsIcon,
   TrashIcon,
   UnlinkIcon,
@@ -122,8 +123,12 @@ export function DownloadGroup({
           </p>
 
           {download.downloader === Downloader.Torrent && (
-            <small>
+            <small
+              className="download-group__details-with-article"
+              data-open-article="peers-and-seeds"
+            >
               {lastPacket?.numPeers} peers / {lastPacket?.numSeeds} seeds
+              <QuestionIcon size={12} />
             </small>
           )}
         </>
@@ -136,7 +141,14 @@ export function DownloadGroup({
       return download.status === "seeding" &&
         download.downloader === Downloader.Torrent ? (
         <>
-          <p>{t("seeding")}</p>
+          <p
+            data-open-article="seeding"
+            className="download-group__details-with-article"
+          >
+            {t("seeding")}
+
+            <QuestionIcon />
+          </p>
           {uploadSpeed && <p>{uploadSpeed}/s</p>}
         </>
       ) : (
@@ -217,7 +229,7 @@ export function DownloadGroup({
       ];
     }
 
-    if (isGameDownloading || download?.status === "active") {
+    if (isGameDownloading) {
       return [
         {
           label: t("pause"),
