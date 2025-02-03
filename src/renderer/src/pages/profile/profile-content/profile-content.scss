@@ -1,0 +1,89 @@
+@use "../../../scss/globals.scss";
+
+.profile-content {
+  &__section {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 3);
+    padding: calc(globals.$spacing-unit * 3);
+  }
+
+  &__main {
+    flex: 1;
+  }
+
+  &__right-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    gap: calc(globals.$spacing-unit * 2);
+    flex-direction: column;
+    transition: all ease 0.2s;
+
+    @media (min-width: 1024px) {
+      max-width: 300px;
+      width: 100%;
+    }
+
+    @media (min-width: 1280px) {
+      width: 100%;
+      max-width: 400px;
+    }
+  }
+
+  &__no-games {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__telescope-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
+  &__section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
+  &__games-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: calc(globals.$spacing-unit * 2);
+    grid-template-columns: repeat(2, 1fr);
+
+    @container #{globals.$app-container} (min-width: 900px) {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    @container #{globals.$app-container} (min-width: 1300px) {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    @container #{globals.$app-container} (min-width: 2000px) {
+      grid-template-columns: repeat(6, 1fr);
+    }
+
+    @container #{globals.$app-container} (min-width: 2600px) {
+      grid-template-columns: repeat(8, 1fr);
+    }
+
+    @container #{globals.$app-container} (min-width: 3000px) {
+      grid-template-columns: repeat(12, 1fr);
+    }
+  }
+}

@@ -1,0 +1,248 @@
+@use "../../scss/globals.scss";
+
+$hero-height: 150px;
+$logo-height: 100px;
+$logo-max-width: 200px;
+
+.achievements-content {
+  &__comparison {
+    display: flex;
+    gap: globals.$spacing-unit * 2;
+    align-items: center;
+    position: relative;
+    padding: globals.$spacing-unit;
+
+    &__container {
+      position: absolute;
+      z-index: 2;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      flex-direction: row;
+      gap: globals.$spacing-unit;
+      border-radius: 4px;
+      justify-content: center;
+
+      &__subscription-required-button {
+        text-decoration: none;
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        gap: globals.$spacing-unit / 2;
+        color: globals.$body-color;
+        cursor: pointer;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+
+    &__blured-avatar {
+      display: flex;
+      gap: globals.$spacing-unit * 2;
+      align-items: center;
+      height: 62px;
+      position: relative;
+      filter: blur(4px);
+
+      h1 {
+        margin-bottom: 8px;
+      }
+    }
+
+    &__small-avatar {
+      height: 32px;
+      width: 32px;
+      border-radius: 4px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      object-fit: cover;
+    }
+  }
+
+  &__subscription-required-button {
+    text-decoration: none;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    gap: 8px;
+    color: globals.$body-color;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__user-summary {
+    display: flex;
+    gap: globals.$spacing-unit * 2;
+    align-items: center;
+    padding: globals.$spacing-unit globals.$spacing-unit * 2;
+
+    &__container {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+
+      h1 {
+        margin-bottom: 8px;
+      }
+
+      &__stats {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        color: globals.$muted-color;
+
+        &__trophy-count {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        &__progress-bar {
+          width: 100%;
+          height: 8px;
+          transition: all ease 0.2s;
+
+          &::-webkit-progress-bar {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+          }
+
+          &::-webkit-progress-value {
+            background-color: globals.$muted-color;
+            border-radius: 4px;
+          }
+        }
+      }
+    }
+  }
+
+  &__achievements-list {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    transition: all ease 0.3s;
+
+    &__image {
+      display: none;
+    }
+
+    &__section {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: auto;
+      z-index: 1;
+
+      &__container {
+        display: flex;
+        flex-direction: column;
+        background: linear-gradient(
+          0deg,
+          globals.$background-color 0%,
+          globals.$background-color 100%
+        );
+
+        &__hero {
+          width: 100%;
+          height: $hero-height;
+          min-height: $hero-height;
+          display: flex;
+          flex-direction: column;
+          position: relative;
+          transition: all ease 0.2s;
+
+          &__content {
+            padding: globals.$spacing-unit * 2;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            &__game-logo {
+              width: $logo-max-width;
+              height: $logo-height;
+              object-fit: contain;
+              transition: all ease 0.2s;
+
+              &:hover {
+                transform: scale(1.05);
+              }
+            }
+          }
+        }
+
+        &__achievements-summary-wrapper {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          gap: globals.$spacing-unit;
+          padding: globals.$spacing-unit;
+        }
+      }
+
+      &__table-header {
+        width: 100%;
+        background-color: globals.$background-color;
+        transition: all ease 0.2s;
+        border-bottom: 1px solid globals.$border-color;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+
+        &--stuck {
+          box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.8);
+        }
+
+        &__container {
+          display: grid;
+          gap: globals.$spacing-unit * 2;
+          padding: globals.$spacing-unit * 3;
+
+          &--has-no-active-subscription {
+            grid-template-columns: 3fr 2fr;
+          }
+
+          &--has-active-subscription {
+            grid-template-columns: 3fr 1fr 1fr;
+          }
+
+          &__user-avatar {
+            display: flex;
+            justify-content: center;
+          }
+
+          &__other-user-avatar {
+            display: flex;
+            justify-content: center;
+          }
+        }
+      }
+    }
+  }
+
+  &__profile-avatar {
+    height: 54px;
+    width: 54px;
+    border-radius: 4px;
+    display: flex;
+
+    justify-content: center;
+    align-items: center;
+    background-color: globals.$background-color;
+    position: relative;
+    object-fit: cover;
+  }
+}

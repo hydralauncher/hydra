@@ -50,7 +50,7 @@ declare global {
     pauseGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     resumeGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     onDownloadProgress: (
-      cb: (value: DownloadProgress) => void
+      cb: (value: DownloadProgress | null) => void
     ) => () => Electron.IpcRenderer;
     onSeedingStatus: (
       cb: (value: SeedingStatus[]) => void

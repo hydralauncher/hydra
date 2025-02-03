@@ -1,9 +1,8 @@
 import { CheckboxField, TextField } from "@renderer/components";
 import { useFormat } from "@renderer/hooks";
 import { useCallback, useMemo, useState } from "react";
-
+import "./filter.scss";
 import List from "rc-virtual-list";
-import { vars } from "@renderer/theme.css";
 import { useTranslation } from "react-i18next";
 
 export interface FilterSectionProps {
@@ -54,36 +53,18 @@ export function FilterSection({
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <div className="filter-section__header">
         <div
-          style={{
-            width: 10,
-            height: 10,
-            backgroundColor: color,
-            borderRadius: "50%",
-          }}
+          className="filter-section__orb"
+          style={{ backgroundColor: color }}
         />
-        <h3
-          style={{
-            fontSize: 16,
-            fontWeight: 500,
-          }}
-        >
-          {title}
-        </h3>
+        <h3 className="filter-section__title">{title}</h3>
       </div>
 
       {selectedItemsCount > 0 ? (
         <button
           type="button"
-          style={{
-            fontSize: 12,
-            marginBottom: 12,
-            display: "block",
-            color: vars.color.body,
-            cursor: "pointer",
-            textDecoration: "underline",
-          }}
+          className="filter-section__clear-button"
           onClick={onClear}
         >
           {t("clear_filters", {
@@ -91,7 +72,7 @@ export function FilterSection({
           })}
         </button>
       ) : (
-        <span style={{ fontSize: 12, marginBottom: 12, display: "block" }}>
+        <span className="filter-section__count">
           {t("filter_count", {
             filterCount: formatNumber(items.length),
           })}
@@ -102,7 +83,7 @@ export function FilterSection({
         placeholder={t("search")}
         onChange={(e) => onSearch(e.target.value)}
         value={search}
-        containerProps={{ style: { marginBottom: 16 } }}
+        containerProps={{ className: "filter-section__search" }}
         theme="dark"
       />
 
@@ -122,7 +103,7 @@ export function FilterSection({
         }}
       >
         {(item) => (
-          <div key={item.value} style={{ height: 28, maxHeight: 28 }}>
+          <div key={item.value} className="filter-section__item">
             <CheckboxField
               label={item.label}
               checked={item.checked}

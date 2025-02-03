@@ -117,31 +117,16 @@ export function Sidebar() {
     <aside className="content-sidebar">
       {userDetails === null && (
         <SidebarSection title={t("achievements")}>
-          <div
-            style={{
-              position: "absolute",
-              zIndex: 1,
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              background: "rgba(0, 0, 0, 0.7)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              flexDirection: "column",
-              gap: "8px",
-            }}
-          >
+          <div className="achievements-placeholder">
             <LockIcon size={36} />
             <h3>{t("sign_in_to_see_achievements")}</h3>
           </div>
-          <ul className="list" style={{ filter: "blur(4px)" }}>
-            {achievementsPlaceholder.map((achievement) => (
-              <li key={achievement.displayName}>
+          <ul className="list achievements-placeholder__blur">
+            {achievementsPlaceholder.map((achievement, index) => (
+              <li key={index}>
                 <div className="list__item">
                   <img
-                    style={{ filter: "blur(8px)" }}
-                    className={`list__item-image ${
+                    className={`list__item-image achievements-placeholder__blur ${
                       achievement.unlocked ? "" : "list__item-image--locked"
                     }`}
                     src={achievement.icon}

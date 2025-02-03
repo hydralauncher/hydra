@@ -1,6 +1,4 @@
 import { Button } from "@renderer/components";
-
-import * as styles from "./settings.css";
 import { useTranslation } from "react-i18next";
 import { SettingsRealDebrid } from "./settings-real-debrid";
 import { SettingsGeneral } from "./settings-general";
@@ -14,6 +12,7 @@ import {
 import { SettingsAccount } from "./settings-account";
 import { useUserDetails } from "@renderer/hooks";
 import { useMemo } from "react";
+import "./settings.scss";
 import { SettingsTorbox } from "./settings-torbox";
 
 export default function Settings() {
@@ -75,9 +74,9 @@ export default function Settings() {
           };
 
           return (
-            <section className={styles.container}>
-              <div className={styles.content}>
-                <section className={styles.settingsCategories}>
+            <section className="settings__container">
+              <div className="settings__content">
+                <section className="settings__categories">
                   {categories.map((category, index) => (
                     <Button
                       key={index}
