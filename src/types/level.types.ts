@@ -69,6 +69,7 @@ export interface UserPreferences {
   downloadsPath?: string | null;
   language?: string;
   realDebridApiToken?: string | null;
+  torBoxApiToken?: string | null;
   preferQuitInsteadOfHiding?: boolean;
   runAtStartup?: boolean;
   startMinimized?: boolean;

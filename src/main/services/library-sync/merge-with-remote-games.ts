@@ -35,22 +35,20 @@ export const mergeWithRemoteGames = async () => {
             name: "getById",
           });
 
-          if (steamGame) {
-            const iconUrl = steamGame?.clientIcon
-              ? steamUrlBuilder.icon(game.objectId, steamGame.clientIcon)
-              : null;
+          const iconUrl = steamGame?.clientIcon
+            ? steamUrlBuilder.icon(game.objectId, steamGame.clientIcon)
+            : null;
 
-            gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
-              objectId: game.objectId,
-              title: steamGame?.name,
-              remoteId: game.id,
-              shop: game.shop,
-              iconUrl,
-              lastTimePlayed: game.lastTimePlayed,
-              playTimeInMilliseconds: game.playTimeInMilliseconds,
-              isDeleted: false,
-            });
-          }
+          gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+            objectId: game.objectId,
+            title: steamGame?.name,
+            remoteId: game.id,
+            shop: game.shop,
+            iconUrl,
+            lastTimePlayed: game.lastTimePlayed,
+            playTimeInMilliseconds: game.playTimeInMilliseconds,
+            isDeleted: false,
+          });
         }
       }
     })

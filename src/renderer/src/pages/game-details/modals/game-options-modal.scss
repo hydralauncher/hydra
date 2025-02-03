@@ -1,0 +1,86 @@
+@use "../../../scss/globals.scss";
+
+.game-options-modal {
+  &__container {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 2);
+    flex-direction: column;
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__header {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+
+    &-description {
+      font-weight: 400;
+    }
+  }
+
+  &__row {
+    display: flex;
+    gap: globals.$spacing-unit;
+  }
+
+  &__executable-field {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+
+    &-input {
+      width: 100%;
+    }
+
+    &-buttons {
+      display: flex;
+      gap: globals.$spacing-unit;
+    }
+  }
+
+  &__wine-prefix {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+
+    &-input {
+      width: 100%;
+    }
+  }
+
+  &__launch-options {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+
+    &-input {
+      width: 100%;
+    }
+  }
+
+  &__downloads {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__danger-zone {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+
+    &-description {
+      font-weight: 400;
+    }
+
+    &-buttons {
+      display: flex;
+      gap: globals.$spacing-unit;
+    }
+  }
+}

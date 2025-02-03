@@ -25,6 +25,7 @@ export interface SteamMovies {
 
 export interface SteamAppDetails {
   name: string;
+  steam_appid: number;
   detailed_description: string;
   about_the_game: string;
   short_description: string;

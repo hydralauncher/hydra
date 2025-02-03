@@ -6,6 +6,7 @@ export enum Downloader {
   Qiwi,
   Datanodes,
   Mediafire,
+  TorBox,
 }
 
 export enum DownloadSourceStatus {

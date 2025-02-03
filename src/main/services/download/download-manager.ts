@@ -15,6 +15,7 @@ import path from "path";
 import { logger } from "../logger";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { sortBy } from "lodash-es";
+import { TorBoxClient } from "./torbox";
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
@@ -233,7 +234,9 @@ export class DownloadManager {
     });
 
     WindowManager.mainWindow?.setProgressBar(-1);
+
     if (downloadKey === this.downloadingGameId) {
+      WindowManager.mainWindow?.webContents.send("on-download-progress", null);
       this.downloadingGameId = null;
     }
   }
@@ -275,6 +278,7 @@ export class DownloadManager {
       }
       case Downloader.PixelDrain: {
         const id = download.uri.split("/").pop();
+
         return {
           action: "start",
           game_id: downloadId,
@@ -327,6 +331,18 @@ export class DownloadManager {
           game_id: downloadId,
           url: downloadUrl,
           save_path: download.downloadPath,
+        };
+      }
+      case Downloader.TorBox: {
+        const { name, url } = await TorBoxClient.getDownloadInfo(download.uri);
+
+        if (!url) return;
+        return {
+          action: "start",
+          game_id: downloadId,
+          url,
+          save_path: download.downloadPath,
+          out: name,
         };
       }
     }

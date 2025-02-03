@@ -28,6 +28,7 @@ import type {
   CatalogueSearchPayload,
   LibraryGame,
   GameRunning,
+  TorBoxUser,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -49,7 +50,7 @@ declare global {
     pauseGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     resumeGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     onDownloadProgress: (
-      cb: (value: DownloadProgress) => void
+      cb: (value: DownloadProgress | null) => void
     ) => () => Electron.IpcRenderer;
     onSeedingStatus: (
       cb: (value: SeedingStatus[]) => void
@@ -144,6 +145,7 @@ declare global {
       minimized: boolean;
     }) => Promise<void>;
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
+    authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
     onAchievementUnlocked: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* Download sources */

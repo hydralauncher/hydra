@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Button, Modal } from "@renderer/components";
-import * as styles from "./remove-from-library-modal.css";
 import type { Game } from "@types";
+import "./remove-from-library-modal.scss";
 
 interface RemoveGameFromLibraryModalProps {
   visible: boolean;
@@ -30,7 +30,7 @@ export function RemoveGameFromLibraryModal({
       description={t("remove_from_library_description", { game: game.title })}
       onClose={onClose}
     >
-      <div className={styles.deleteActionsButtonsCtn}>
+      <div className="remove-from-library-modal__actions">
         <Button onClick={handleRemoveGame} theme="outline">
           {t("remove")}
         </Button>
