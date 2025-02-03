@@ -1,4 +1,3 @@
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import type { UserFriend } from "@types";
 import { useEffect, useRef, useState } from "react";
 import { UserFriendItem } from "./user-friend-item";
@@ -6,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import "./user-friend-modal-list.scss";
 
 export interface UserFriendModalListProps {
   userId: string;
@@ -94,41 +94,21 @@ export const UserFriendModalList = ({
   };
 
   return (
-    <SkeletonTheme baseColor={vars.color.background} highlightColor="#444">
-      <div
-        ref={listContainer}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: `${SPACING_UNIT * 2}px`,
-          maxHeight: "400px",
-          overflowY: "scroll",
-        }}
-      >
+    <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
+      <div ref={listContainer} className="user-friend-modal-list">
         {!isLoading && friends.length === 0 && <p>{t("no_friends_added")}</p>}
-        {friends.map((friend) => {
-          return (
-            <UserFriendItem
-              userId={friend.id}
-              displayName={friend.displayName}
-              profileImageUrl={friend.profileImageUrl}
-              onClickItem={handleClickFriend}
-              onClickUndoFriendship={handleUndoFriendship}
-              type={isMe ? "ACCEPTED" : null}
-              key={"modal" + friend.id}
-            />
-          );
-        })}
-        {isLoading && (
-          <Skeleton
-            style={{
-              width: "100%",
-              height: "54px",
-              overflow: "hidden",
-              borderRadius: "4px",
-            }}
+        {friends.map((friend) => (
+          <UserFriendItem
+            userId={friend.id}
+            displayName={friend.displayName}
+            profileImageUrl={friend.profileImageUrl}
+            onClickItem={handleClickFriend}
+            onClickUndoFriendship={handleUndoFriendship}
+            type={isMe ? "ACCEPTED" : null}
+            key={"modal" + friend.id}
           />
-        )}
+        ))}
+        {isLoading && <Skeleton className="user-friend-modal-list__skeleton" />}
       </div>
     </SkeletonTheme>
   );

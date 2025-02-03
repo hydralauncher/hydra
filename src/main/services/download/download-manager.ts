@@ -234,7 +234,9 @@ export class DownloadManager {
     });
 
     WindowManager.mainWindow?.setProgressBar(-1);
+
     if (downloadKey === this.downloadingGameId) {
+      WindowManager.mainWindow?.webContents.send("on-download-progress", null);
       this.downloadingGameId = null;
     }
   }

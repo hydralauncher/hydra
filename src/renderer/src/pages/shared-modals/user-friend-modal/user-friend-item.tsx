@@ -1,8 +1,7 @@
 import { CheckCircleIcon, XCircleIcon } from "@primer/octicons-react";
-import * as styles from "./user-friend-modal.css";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@renderer/components";
+import "./user-friend-item.scss";
 
 export type UserFriendItemProps = {
   userId: string;
@@ -45,7 +44,7 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
     if (type === "SENT") {
       return (
         <button
-          className={styles.cancelRequestButton}
+          className="user-friend-item__cancel-button"
           onClick={() => props.onClickCancelRequest(userId)}
           title={t("cancel_request")}
         >
@@ -58,14 +57,14 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
       return (
         <>
           <button
-            className={styles.acceptRequestButton}
+            className="user-friend-item__accept-button"
             onClick={() => props.onClickAcceptRequest(userId)}
             title={t("accept_request")}
           >
             <CheckCircleIcon size={28} />
           </button>
           <button
-            className={styles.cancelRequestButton}
+            className="user-friend-item__cancel-button"
             onClick={() => props.onClickRefuseRequest(userId)}
             title={t("ignore_request")}
           >
@@ -78,7 +77,7 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
     if (type === "ACCEPTED") {
       return (
         <button
-          className={styles.cancelRequestButton}
+          className="user-friend-item__cancel-button"
           onClick={() => props.onClickUndoFriendship(userId)}
           title={t("undo_friendship")}
         >
@@ -90,7 +89,7 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
     if (type === "BLOCKED") {
       return (
         <button
-          className={styles.cancelRequestButton}
+          className="user-friend-item__cancel-button"
           onClick={() => props.onClickUnblock(userId)}
           title={t("unblock")}
         >
@@ -104,31 +103,16 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
 
   if (type === "BLOCKED") {
     return (
-      <div className={styles.friendListContainer}>
-        <div className={styles.friendListButton} style={{ cursor: "inherit" }}>
+      <div className="user-friend-item__container">
+        <div className="user-friend-item__button">
           <Avatar size={35} src={profileImageUrl} alt={displayName} />
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-start",
-              flex: "1",
-              minWidth: 0,
-            }}
-          >
-            <p className={styles.friendListDisplayName}>{displayName}</p>
+          <div className="user-friend-item__button__content">
+            <p className="user-friend-item__display-name">{displayName}</p>
           </div>
         </div>
 
-        <div
-          style={{
-            position: "absolute",
-            right: "8px",
-            display: "flex",
-            gap: `${SPACING_UNIT}px`,
-          }}
-        >
+        <div className="user-friend-item__button__actions">
           {getRequestActions()}
         </div>
       </div>
@@ -136,35 +120,21 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
   }
 
   return (
-    <div className={styles.friendListContainer}>
+    <div className="user-friend-item__container">
       <button
         type="button"
-        className={styles.friendListButton}
+        className="user-friend-item__button"
         onClick={() => props.onClickItem(userId)}
       >
         <Avatar size={35} src={profileImageUrl} alt={displayName} />
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            flex: "1",
-            minWidth: 0,
-          }}
-        >
-          <p className={styles.friendListDisplayName}>{displayName}</p>
+        <div className="user-friend-item__button__content">
+          <p className="user-friend-item__display-name">{displayName}</p>
+
           {getRequestDescription()}
         </div>
       </button>
 
-      <div
-        style={{
-          position: "absolute",
-          right: "8px",
-          display: "flex",
-          gap: `${SPACING_UNIT}px`,
-        }}
-      >
+      <div className="user-friend-item__button__actions">
         {getRequestActions()}
       </div>
     </div>

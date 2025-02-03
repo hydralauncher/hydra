@@ -8,9 +8,8 @@ import { Button } from "@renderer/components";
 import { useDownload, useLibrary } from "@renderer/hooks";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
-import * as styles from "./hero-panel-actions.css";
-
 import { gameDetailsContext } from "@renderer/context";
+import "./hero-panel-actions.scss";
 
 export function HeroPanelActions() {
   const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
@@ -87,7 +86,7 @@ export function HeroPanelActions() {
       theme="outline"
       disabled={toggleLibraryGameDisabled}
       onClick={addGameToLibrary}
-      className={styles.heroPanelAction}
+      className="hero-panel-actions__action"
     >
       <PlusCircleIcon />
       {t("add_to_library")}
@@ -99,7 +98,7 @@ export function HeroPanelActions() {
       onClick={() => setShowRepacksModal(true)}
       theme="outline"
       disabled={deleting}
-      className={styles.heroPanelAction}
+      className="hero-panel-actions__action"
     >
       {t("open_download_options")}
     </Button>
@@ -112,7 +111,7 @@ export function HeroPanelActions() {
           onClick={closeGame}
           theme="outline"
           disabled={deleting}
-          className={styles.heroPanelAction}
+          className="hero-panel-actions__action"
         >
           {t("close")}
         </Button>
@@ -125,7 +124,7 @@ export function HeroPanelActions() {
           onClick={openGame}
           theme="outline"
           disabled={deleting || isGameRunning}
-          className={styles.heroPanelAction}
+          className="hero-panel-actions__action"
         >
           <PlayIcon />
           {t("play")}
@@ -138,7 +137,7 @@ export function HeroPanelActions() {
         onClick={() => setShowRepacksModal(true)}
         theme="outline"
         disabled={isGameDownloading || !repacks.length}
-        className={styles.heroPanelAction}
+        className="hero-panel-actions__action"
       >
         <DownloadIcon />
         {t("download")}
@@ -157,16 +156,14 @@ export function HeroPanelActions() {
 
   if (game) {
     return (
-      <div className={styles.actions}>
+      <div className="hero-panel-actions__container">
         {gameActionButton()}
-
-        <div className={styles.separator} />
-
+        <div className="hero-panel-actions__separator" />
         <Button
           onClick={() => setShowGameOptionsModal(true)}
           theme="outline"
           disabled={deleting}
-          className={styles.heroPanelAction}
+          className="hero-panel-actions__action"
         >
           <GearIcon />
           {t("options")}

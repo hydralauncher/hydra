@@ -1,13 +1,13 @@
 import { useId, useState } from "react";
-import type { RecipeVariants } from "@vanilla-extract/recipes";
-import * as styles from "./select-field.css";
+import "./select-field.scss";
+import cn from "classnames";
 
 export interface SelectProps
   extends React.DetailedHTMLProps<
     React.SelectHTMLAttributes<HTMLSelectElement>,
     HTMLSelectElement
   > {
-  theme?: NonNullable<RecipeVariants<typeof styles.select>>["theme"];
+  theme?: "primary" | "dark";
   label?: string;
   options?: { key: string; value: string; label: string }[];
 }
@@ -23,18 +23,22 @@ export function SelectField({
   const id = useId();
 
   return (
-    <div style={{ flex: 1 }}>
+    <div className="select-field__container">
       {label && (
-        <label htmlFor={id} className={styles.label}>
+        <label htmlFor={id} className="select-field__label">
           {label}
         </label>
       )}
 
-      <div className={styles.select({ focused: isFocused, theme })}>
+      <div
+        className={cn("select-field", `select-field--${theme}`, {
+          "select-field--focused": isFocused,
+        })}
+      >
         <select
           id={id}
           value={value}
-          className={styles.option}
+          className="select-field__option"
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           onChange={onChange}

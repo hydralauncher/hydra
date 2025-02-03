@@ -18,9 +18,9 @@ export const downloadSlice = createSlice({
   name: "download",
   initialState,
   reducers: {
-    setLastPacket: (state, action: PayloadAction<DownloadProgress>) => {
+    setLastPacket: (state, action: PayloadAction<DownloadProgress | null>) => {
       state.lastPacket = action.payload;
-      if (!state.gameId) state.gameId = action.payload.gameId;
+      if (!state.gameId && action.payload) state.gameId = action.payload.gameId;
     },
     clearDownload: (state) => {
       state.lastPacket = null;

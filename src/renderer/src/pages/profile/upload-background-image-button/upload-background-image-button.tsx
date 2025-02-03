@@ -2,10 +2,9 @@ import { UploadIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import { useContext, useState } from "react";
 import { userProfileContext } from "@renderer/context";
-
-import * as styles from "./upload-background-image-button.css";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
+import "./upload-background-image-button.scss";
 
 export function UploadBackgroundImageButton() {
   const [isUploadingBackgroundImage, setIsUploadingBackgorundImage] =
@@ -52,7 +51,7 @@ export function UploadBackgroundImageButton() {
   return (
     <Button
       theme="outline"
-      className={styles.uploadBackgroundImageButton}
+      className="upload-background-image-button"
       onClick={handleChangeCoverClick}
       disabled={isUploadingBackgroundImage}
     >
