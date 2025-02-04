@@ -82,7 +82,7 @@ export class WindowManager {
     }
   }
   private static updateInitialConfig(
-    newConfig: Partial<Electron.BrowserViewConstructorOptions>
+    newConfig: Partial<Electron.BrowserWindowConstructorOptions>
   ) {
     this.initialConfigInitializationMainWindow = {
       ...this.initialConfigInitializationMainWindow,
@@ -203,8 +203,10 @@ export class WindowManager {
       if (userPreferences?.preferQuitInsteadOfHiding) {
         app.quit();
       }
-      if (lastBounds) {
-        const isMaximized = this.mainWindow?.isMaximized() ?? false;
+
+      if (this.mainWindow) {
+        const lastBounds = this.mainWindow.getBounds();
+        const isMaximized = this.mainWindow.isMaximized() ?? false;
         const screenConfig = isMaximized
           ? {
               x: undefined,
