@@ -3,15 +3,17 @@ import { LibraryGame } from "@types";
 import cn from "classnames";
 import { useLocation } from "react-router-dom";
 
+interface SidebarGameItemProps {
+  game: LibraryGame;
+  handleSidebarGameClick: (event: React.MouseEvent, game: LibraryGame) => void;
+  getGameTitle: (game: LibraryGame) => string;
+}
+
 export function SidebarGameItem({
   game,
   handleSidebarGameClick,
   getGameTitle,
-}: {
-  game: LibraryGame;
-  handleSidebarGameClick: (event: React.MouseEvent, game: LibraryGame) => void;
-  getGameTitle: (game: LibraryGame) => string;
-}) {
+}: Readonly<SidebarGameItemProps>) {
   const location = useLocation();
 
   return (
