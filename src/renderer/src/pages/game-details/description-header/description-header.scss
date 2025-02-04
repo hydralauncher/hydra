@@ -1,0 +1,17 @@
+@use "../../../scss/globals.scss";
+
+.description-header {
+  width: 100%;
+  padding: calc(globals.$spacing-unit * 2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: globals.$background-color;
+  height: 72px;
+
+  &__info {
+    display: flex;
+    gap: globals.$spacing-unit;
+    flex-direction: column;
+  }
+}

@@ -31,8 +31,6 @@ import {
 } from "@primer/octicons-react";
 
 import torBoxLogo from "@renderer/assets/icons/torbox.webp";
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
-
 export interface DownloadGroupProps {
   library: LibraryGame[];
   title: string;
@@ -287,24 +285,14 @@ export function DownloadGroup({
 
                   <div className="download-group__cover-content">
                     {game.download?.downloader === Downloader.TorBox ? (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          background: "#11141b",
-                          padding: `${SPACING_UNIT / 2}px ${SPACING_UNIT}px`,
-                          borderRadius: "4px",
-                          gap: 4,
-                          border: `1px solid ${vars.color.border}`,
-                        }}
-                      >
+                      <Badge>
                         <img
                           src={torBoxLogo}
                           alt="TorBox"
                           style={{ width: 13 }}
                         />
-                        <span style={{ fontSize: 10 }}>TorBox</span>
-                      </div>
+                        <span>TorBox</span>
+                      </Badge>
                     ) : (
                       <Badge>
                         {DOWNLOADER_NAME[game.download!.downloader]}

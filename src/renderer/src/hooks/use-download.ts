@@ -114,7 +114,7 @@ export function useDownload() {
     pauseSeeding,
     resumeSeeding,
     clearDownload: () => dispatch(clearDownload()),
-    setLastPacket: (packet: DownloadProgress) =>
+    setLastPacket: (packet: DownloadProgress | null) =>
       dispatch(setLastPacket(packet)),
   };
 }

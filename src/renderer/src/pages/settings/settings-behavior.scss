@@ -1,0 +1,13 @@
+@use "../../scss/globals.scss";
+
+.settings-behavior {
+  &__checkbox-container {
+    opacity: globals.$disabled-opacity;
+    cursor: not-allowed;
+
+    &--enabled {
+      opacity: 1;
+      cursor: pointer;
+    }
+  }
+}

@@ -11,9 +11,6 @@ import starsIconAnimated from "@renderer/assets/icons/stars-animated.gif";
 import { useTranslation } from "react-i18next";
 import { SkeletonTheme } from "react-loading-skeleton";
 import { GameDetailsSkeleton } from "./game-details-skeleton";
-import * as styles from "./game-details.css";
-
-import { vars } from "@renderer/theme.css";
 
 import { GameDetailsContent } from "./game-details-content";
 import {
@@ -27,6 +24,7 @@ import { GameOptionsModal, RepacksModal } from "./modals";
 import { Downloader, getDownloadersForUri } from "@shared";
 import { CloudSyncModal } from "./cloud-sync-modal/cloud-sync-modal";
 import { CloudSyncFilesModal } from "./cloud-sync-files-modal/cloud-sync-files-modal";
+import "./game-details.scss";
 
 export default function GameDetails() {
   const [randomGame, setRandomGame] = useState<Steam250Game | null>(null);
@@ -149,10 +147,7 @@ export default function GameDetails() {
                 )}
               </CloudSyncContextConsumer>
 
-              <SkeletonTheme
-                baseColor={vars.color.background}
-                highlightColor="#444"
-              >
+              <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
                 {isLoading ? <GameDetailsSkeleton /> : <GameDetailsContent />}
 
                 <RepacksModal
@@ -186,23 +181,16 @@ export default function GameDetails() {
 
                 {fromRandomizer && (
                   <Button
-                    className={styles.randomizerButton}
+                    className="game-details__randomizer-button"
                     onClick={handleRandomizerClick}
                     theme="outline"
                     disabled={!randomGame || randomizerLocked}
                   >
-                    <div
-                      style={{ width: 16, height: 16, position: "relative" }}
-                    >
+                    <div className="game-details__stars-icon-container">
                       <img
                         src={starsIconAnimated}
                         alt="Stars animation"
-                        style={{
-                          width: 70,
-                          position: "absolute",
-                          top: -28,
-                          left: -27,
-                        }}
+                        className="game-details__stars-icon"
                       />
                     </div>
                     {t("next_suggestion")}

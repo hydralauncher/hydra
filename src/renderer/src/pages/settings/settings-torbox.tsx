@@ -2,11 +2,10 @@ import { useContext, useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
 import { Button, CheckboxField, Link, TextField } from "@renderer/components";
-import * as styles from "./settings-torbox.css";
+import "./settings-torbox.scss";
 
 import { useAppSelector, useToast } from "@renderer/hooks";
 
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { settingsContext } from "@renderer/context";
 
 const TORBOX_API_TOKEN_URL = "https://torbox.app/settings";
@@ -71,8 +70,8 @@ export function SettingsTorbox() {
     (form.useTorBox && !form.torBoxApiToken) || isLoading;
 
   return (
-    <form className={styles.form} onSubmit={handleFormSubmit}>
-      <p className={styles.description}>{t("torbox_description")}</p>
+    <form className="settings-torbox__form" onSubmit={handleFormSubmit}>
+      <p className="settings-torbox__description">{t("torbox_description")}</p>
 
       <CheckboxField
         label={t("enable_torbox")}
@@ -94,11 +93,6 @@ export function SettingsTorbox() {
             setForm({ ...form, torBoxApiToken: event.target.value })
           }
           placeholder="API Token"
-          containerProps={{
-            style: {
-              marginTop: `${SPACING_UNIT}px`,
-            },
-          }}
           rightContent={
             <Button type="submit" disabled={isButtonDisabled}>
               {t("save_changes")}

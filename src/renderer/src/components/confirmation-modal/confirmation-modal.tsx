@@ -1,7 +1,7 @@
 import { Button } from "../button/button";
 import { Modal, type ModalProps } from "../modal/modal";
 
-import * as styles from "./confirmation-modal.css";
+import "./confirmation-modal.scss";
 
 export interface ConfirmationModalProps extends Omit<ModalProps, "children"> {
   confirmButtonLabel: string;
@@ -34,15 +34,11 @@ export function ConfirmationModal({
 
   return (
     <Modal {...props}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        <p className={styles.descriptionText}>{descriptionText}</p>
+      <div className="confirmation-modal">
+        <p className="confirmation-modal__description">{descriptionText}</p>
 
-        <div className={styles.actions}>
-          <Button
-            theme="outline"
-            disabled={buttonsIsDisabled}
-            onClick={handleCancelClick}
-          >
+        <div className="confirmation-modal__actions">
+          <Button theme="outline" onClick={handleCancelClick}>
             {cancelButtonLabel}
           </Button>
           <Button

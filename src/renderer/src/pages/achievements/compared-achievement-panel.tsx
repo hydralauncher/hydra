@@ -1,10 +1,8 @@
 import { useTranslation } from "react-i18next";
-import * as styles from "./achievement-panel.css";
-
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { ComparedAchievements } from "@types";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { useUserDetails } from "@renderer/hooks";
+import "./achievement-panel.scss";
 
 export interface ComparedAchievementPanelProps {
   achievements: ComparedAchievements;
@@ -18,25 +16,25 @@ export function ComparedAchievementPanel({
 
   return (
     <div
-      className={styles.panel}
-      style={{
-        display: "grid",
-        gridTemplateColumns: hasActiveSubscription ? "3fr 1fr 1fr" : "3fr 2fr",
-        gap: `${SPACING_UNIT * 2}px`,
-      }}
+      className={`achievement-panel achievement-panel__grid ${
+        hasActiveSubscription
+          ? "achievement-panel__grid--with-subscription"
+          : "achievement-panel__grid--without-subscription"
+      }`}
     >
-      <div style={{ display: "flex", gap: `${SPACING_UNIT}px` }}>
-        {t("available_points")} <HydraIcon width={20} height={20} />{" "}
+      <div className="achievement-panel__points-container">
+        {t("available_points")}{" "}
+        <HydraIcon className="achievement-panel__content-icon" />{" "}
         {achievements.achievementsPointsTotal}
       </div>
       {hasActiveSubscription && (
-        <div className={styles.content}>
-          <HydraIcon width={20} height={20} />
+        <div className="achievement-panel__content">
+          <HydraIcon className="achievement-panel__content-icon" />
           {achievements.owner.achievementsPointsEarnedSum ?? 0}
         </div>
       )}
-      <div className={styles.content}>
-        <HydraIcon width={20} height={20} />
+      <div className="achievement-panel__content">
+        <HydraIcon className="achievement-panel__content-icon" />
         {achievements.target.achievementsPointsEarnedSum}
       </div>
     </div>

@@ -8,7 +8,6 @@ import {
 } from "@renderer/components";
 import { useTranslation } from "react-i18next";
 
-import * as styles from "./settings-download-sources.css";
 import type { DownloadSource } from "@types";
 import {
   NoEntryIcon,
@@ -24,6 +23,7 @@ import { downloadSourcesTable } from "@renderer/dexie";
 import { downloadSourcesWorker } from "@renderer/workers";
 import { useNavigate } from "react-router-dom";
 import { setFilters, clearFilters } from "@renderer/features";
+import "./settings-download-sources.scss";
 
 export function SettingsDownloadSources() {
   const [
@@ -166,7 +166,7 @@ export function SettingsDownloadSources() {
 
       <p>{t("download_sources_description")}</p>
 
-      <div className={styles.downloadSourcesHeader}>
+      <div className="settings-download-sources__header">
         <Button
           type="button"
           theme="outline"
@@ -192,15 +192,27 @@ export function SettingsDownloadSources() {
         </Button>
       </div>
 
-      <ul className={styles.downloadSources}>
+      {!isFetchingSources && downloadSources.length >= 2 && (
+        <div className="settings-download-sources__remove_all_sources_button">
+          <Button
+            type="button"
+            theme="danger"
+            onClick={() => setShowConfirmationDeleteAllSourcesModal(true)}
+            disabled={isRemovingDownloadSource}
+          >
+            <XIcon />
+            {t("button_delete_all_sources")}
+          </Button>
+        </div>
+      )}
+
+      <ul className="settings-download-sources__list">
         {downloadSources.map((downloadSource) => (
           <li
             key={downloadSource.id}
-            className={styles.downloadSourceItem({
-              isSyncing: isSyncingDownloadSources,
-            })}
+            className={`settings-download-sources__item ${isSyncingDownloadSources ? "settings-download-sources__item--syncing" : ""}`}
           >
-            <div className={styles.downloadSourceItemHeader}>
+            <div className="settings-download-sources__item-header">
               <h2>{downloadSource.name}</h2>
 
               <div style={{ display: "flex" }}>
@@ -209,7 +221,7 @@ export function SettingsDownloadSources() {
 
               <button
                 type="button"
-                className={styles.navigateToCatalogueButton}
+                className="settings-download-sources__navigate-button"
                 disabled={!downloadSource.fingerprint}
                 onClick={() => navigateToCatalogue(downloadSource.fingerprint)}
               >
@@ -244,20 +256,6 @@ export function SettingsDownloadSources() {
           </li>
         ))}
       </ul>
-
-      {!isFetchingSources && downloadSources.length >= 2 && (
-        <div className={styles.removeAllSourcesButton}>
-          <Button
-            type="button"
-            theme="danger"
-            onClick={() => setShowConfirmationDeleteAllSourcesModal(true)}
-            disabled={isRemovingDownloadSource}
-          >
-            <XIcon />
-            {t("button_delete_all_sources")}
-          </Button>
-        </div>
-      )}
     </>
   );
 }

@@ -1,0 +1,18 @@
+@use "../../scss/globals.scss";
+
+.settings-real-debrid {
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__description {
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
+  &__submit-button {
+    align-self: flex-end;
+    width: 100%;
+  }
+}

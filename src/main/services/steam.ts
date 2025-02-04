@@ -21,11 +21,18 @@ export const getSteamAppDetails = async (
   });
 
   return axios
-    .get(
+    .get<SteamAppDetailsResponse>(
       `http://store.steampowered.com/api/appdetails?${searchParams.toString()}`
     )
     .then((response) => {
-      if (response.data[objectId].success) return response.data[objectId].data;
+      if (response.data[objectId].success) {
+        const data = response.data[objectId].data;
+        return {
+          ...data,
+          objectId,
+        };
+      }
+
       return null;
     })
     .catch((err) => {
