@@ -19,8 +19,6 @@ export function BottomPanel() {
 
   const { lastPacket, progress, downloadSpeed, eta } = useDownload();
 
-  const isGameDownloading = !!lastPacket;
-
   const [version, setVersion] = useState("");
   const [sessionHash, setSessionHash] = useState<null | string>("");
 
@@ -33,9 +31,11 @@ export function BottomPanel() {
   }, [userDetails?.id]);
 
   const status = useMemo(() => {
-    if (isGameDownloading) {
-      const game = library.find((game) => game.id === lastPacket?.gameId)!;
+    const game = lastPacket
+      ? library.find((game) => game.id === lastPacket?.gameId)
+      : undefined;
 
+    if (game) {
       if (lastPacket?.isCheckingFiles)
         return t("checking_files", {
           title: game.title,
@@ -64,7 +64,7 @@ export function BottomPanel() {
     }
 
     return t("no_downloads_in_progress");
-  }, [t, isGameDownloading, library, lastPacket, progress, eta, downloadSpeed]);
+  }, [t, library, lastPacket, progress, eta, downloadSpeed]);
 
   return (
     <footer className="bottom-panel">

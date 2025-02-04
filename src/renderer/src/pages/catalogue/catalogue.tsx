@@ -10,7 +10,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import "./catalogue.scss";
 
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { downloadSourcesTable } from "@renderer/dexie";
 import { FilterSection } from "./filter-section";
 import { setFilters, setPage } from "@renderer/features";
@@ -276,25 +275,9 @@ export default function Catalogue() {
 
   return (
     <div className="catalogue" ref={cataloguePageRef}>
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <ul
-            style={{
-              display: "flex",
-              gap: 8,
-              flexWrap: "wrap",
-              listStyle: "none",
-              margin: 0,
-              padding: 0,
-            }}
-          >
+      <div className="catalogue__header">
+        <div className="catalogue__filters-wrapper">
+          <ul className="catalogue__filters-list">
             {groupedFilters.map((filter) => (
               <li key={`${filter.key}-${filter.value}`}>
                 <FilterItem
@@ -316,50 +299,20 @@ export default function Catalogue() {
         </div>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          gap: SPACING_UNIT * 2,
-          justifyContent: "space-between",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            width: "100%",
-            gap: 8,
-          }}
-        >
+      <div className="catalogue__content">
+        <div className="catalogue__games-container">
           {isLoading ? (
-            <SkeletonTheme
-              baseColor={vars.color.darkBackground}
-              highlightColor={vars.color.background}
-            >
+            <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
               {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-                <Skeleton
-                  key={i}
-                  style={{
-                    height: 105,
-                    borderRadius: 4,
-                    border: `solid 1px ${vars.color.border}`,
-                  }}
-                />
+                <Skeleton key={i} className="catalogue__skeleton" />
               ))}
             </SkeletonTheme>
           ) : (
             results.map((game) => <GameItem key={game.id} game={game} />)
           )}
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginTop: 16,
-            }}
-          >
-            <span style={{ fontSize: 12 }}>
+          <div className="catalogue__pagination-container">
+            <span className="catalogue__result-count">
               {t("result_count", {
                 resultCount: formatNumber(itemsCount),
               })}
@@ -392,7 +345,7 @@ export default function Catalogue() {
         </div>
 
         <div className="catalogue__filters-container">
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="catalogue__filters-sections">
             {filterSections.map((section) => (
               <FilterSection
                 key={section.key}

@@ -6,7 +6,6 @@ import {
   externalizeDepsPlugin,
 } from "electron-vite";
 import react from "@vitejs/plugin-react";
-import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 import svgr from "vite-plugin-svgr";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 
@@ -55,7 +54,6 @@ export default defineConfig(({ mode }) => {
       plugins: [
         svgr(),
         react(),
-        vanillaExtractPlugin(),
         sentryVitePlugin({
           authToken: process.env.SENTRY_AUTH_TOKEN,
           org: "hydra-launcher",
