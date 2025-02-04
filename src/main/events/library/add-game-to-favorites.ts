@@ -12,10 +12,14 @@ const addGameToFavorites = async (
   const game = await gamesSublevel.get(gameKey);
   if (!game) return;
 
-  await gamesSublevel.put(gameKey, {
-    ...game,
-    favorite: true,
-  });
+  try {
+    await gamesSublevel.put(gameKey, {
+      ...game,
+      favorite: true,
+    });
+  } catch (error) {
+    throw new Error(`Failed to update game favorite status: ${error}`);
+  }
 };
 
 registerEvent("addGameToFavorites", addGameToFavorites);

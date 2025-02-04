@@ -12,10 +12,14 @@ const removeGameFromFavorites = async (
   const game = await gamesSublevel.get(gameKey);
   if (!game) return;
 
-  await gamesSublevel.put(gameKey, {
-    ...game,
-    favorite: false,
-  });
+  try {
+    await gamesSublevel.put(gameKey, {
+      ...game,
+      favorite: false,
+    });
+  } catch (error) {
+    throw new Error(`Failed to update game favorite status: ${error}`);
+  }
 };
 
 registerEvent("removeGameFromFavorites", removeGameFromFavorites);
