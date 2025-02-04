@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import * as styles from "./hero.css";
 import { useEffect, useState } from "react";
 import type { TrendingGame } from "@types";
 import { useTranslation } from "react-i18next";
 import Skeleton from "react-loading-skeleton";
+import "./hero.scss";
 
 export function Hero() {
   const [featuredGameDetails, setFeaturedGameDetails] = useState<
@@ -29,7 +29,7 @@ export function Hero() {
   }, [i18n.language]);
 
   if (isLoading) {
-    return <Skeleton className={styles.hero} />;
+    return <Skeleton className="hero" />;
   }
 
   if (featuredGameDetails?.length) {
@@ -37,17 +37,17 @@ export function Hero() {
       <button
         type="button"
         onClick={() => navigate(game.uri)}
-        className={styles.hero}
+        className="hero"
         key={index}
       >
-        <div className={styles.backdrop}>
+        <div className="hero__backdrop">
           <img
             src={game.background}
             alt={game.description}
-            className={styles.heroMedia}
+            className="hero__media"
           />
 
-          <div className={styles.content}>
+          <div className="hero__content">
             {game.logo && (
               <img
                 src={game.logo}
@@ -56,7 +56,7 @@ export function Hero() {
                 loading="eager"
               />
             )}
-            <p className={styles.description}>{game.description}</p>
+            <p className="hero__description">{game.description}</p>
           </div>
         </div>
       </button>

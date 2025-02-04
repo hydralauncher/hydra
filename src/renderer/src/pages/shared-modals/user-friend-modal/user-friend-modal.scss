@@ -1,0 +1,34 @@
+@use "../../../scss/globals.scss";
+
+.user-friend-modal {
+  &__container {
+    display: flex;
+    width: 500px;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__header {
+    display: flex;
+    gap: globals.$spacing-unit;
+    align-items: center;
+  }
+
+  &__friend-code-button {
+    color: globals.$body-color;
+    cursor: pointer;
+    display: flex;
+    gap: calc(globals.$spacing-unit / 2);
+    align-items: center;
+    transition: all ease 0.2s;
+
+    &:hover {
+      color: globals.$muted-color;
+    }
+  }
+
+  &__tabs {
+    display: flex;
+    gap: globals.$spacing-unit;
+  }
+}

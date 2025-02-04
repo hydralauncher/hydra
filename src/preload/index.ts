@@ -32,10 +32,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("pauseGameSeed", shop, objectId),
   resumeGameSeed: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("resumeGameSeed", shop, objectId),
-  onDownloadProgress: (cb: (value: DownloadProgress) => void) => {
+  onDownloadProgress: (cb: (value: DownloadProgress | null) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      value: DownloadProgress
+      value: DownloadProgress | null
     ) => cb(value);
     ipcRenderer.on("on-download-progress", listener);
     return () => ipcRenderer.removeListener("on-download-progress", listener);
