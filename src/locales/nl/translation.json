@@ -14,10 +14,12 @@
     "paused": "{{title}} (Gepauzeerd)",
     "downloading": "{{title}} ({{percentage}} - Downloading…)",
     "filter": "Filter Bibliotheek",
-    "home": "Home"
+    "home": "Home",
+    "favorites": "Favorieten"
   },
   "header": {
     "search": "Zoek spellen",
+
     "home": "Home",
     "catalogue": "Bibliotheek",
     "downloads": "Downloads",
@@ -72,8 +74,7 @@
     "change": "Verander",
     "repacks_modal_description": "Kies de herverpakking die u wilt downloaden",
     "select_folder_hint": "Om de standaardmap te wijzigen, gaat u naar <0>instellingen</0>",
-    "download_now": "Download nu",
-    "favorites": "Favorieten"
+    "download_now": "Download nu"
   },
   "activation": {
     "title": "Activeer Hydra",

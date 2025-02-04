@@ -14,8 +14,10 @@
     "paused": "{{title}} (متوقف شده)",
     "downloading": "{{title}} ({{percentage}} - در حال دانلود…)",
     "filter": "فیلتر کردن کتابخانه",
-    "home": "خانه"
+    "home": "خانه",
+    "favorites": "علاقه‌مندی‌ها"
   },
+
   "header": {
     "search": "جستجوی  بازی‌ها",
     "home": "خانه",
@@ -72,8 +74,7 @@
     "change": "تغییر",
     "repacks_modal_description": "ریپک مورد نظر برای دانلود را انتخاب کنید",
     "select_folder_hint": "برای تغییر پوشه‌ی پیش‌فرض به <0>Settings</0> بروید",
-    "download_now": "الان دانلود کن",
-    "favorites": "علاقه‌مندی‌ها"
+    "download_now": "الان دانلود کن"
   },
   "activation": {
     "title": "فعال کردن هایدرا",

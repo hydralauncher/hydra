@@ -14,10 +14,12 @@
     "paused": "{{title}} (Zatrzymano)",
     "downloading": "{{title}} ({{percentage}} - Pobieranie…)",
     "filter": "Filtruj biblioteke",
-    "home": "Główna"
+    "home": "Główna",
+    "favorites": "Ulubione"
   },
   "header": {
     "search": "Szukaj",
+
     "home": "Główna",
     "catalogue": "Katalog",
     "downloads": "Pobrane",
@@ -79,8 +81,7 @@
     "previous_screenshot": "Poprzedni zrzut ekranu",
     "next_screenshot": "Następny zrzut ekranu",
     "screenshot": "Zrzut ekranu {{number}}",
-    "open_screenshot": "Otwórz zrzut ekranu {{number}}",
-    "favorites": "Ulubione"
+    "open_screenshot": "Otwórz zrzut ekranu {{number}}"
   },
   "activation": {
     "title": "Aktywuj Hydra",

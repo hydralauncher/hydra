@@ -25,7 +25,8 @@
     "queued": "{{title}} (Järjekorras)",
     "game_has_no_executable": "Mängul pole käivitusfaili valitud",
     "sign_in": "Logi sisse",
-    "friends": "Sõbrad"
+    "friends": "Sõbrad",
+    "favorites": "Töölist"
   },
   "header": {
     "search": "Otsi mänge",
@@ -165,8 +166,7 @@
     "manage_files_description": "Hallake, millised failid varundatakse ja taastatakse",
     "select_folder": "Vali kaust",
     "backup_from": "Varundamine kuupäevast {{date}}",
-    "custom_backup_location_set": "Kohandatud varundamise asukoht määratud",
-    "favorites": "Töölist"
+    "custom_backup_location_set": "Kohandatud varundamise asukoht määratud"
   },
   "activation": {
     "title": "Aktiveeri Hydra",

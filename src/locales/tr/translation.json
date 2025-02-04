@@ -26,7 +26,8 @@
     "game_has_no_executable": "Oyun için bir çalıştırılabilir dosya seçilmedi",
     "sign_in": "Giriş yap",
     "friends": "Arkadaşlar",
-    "need_help": "Yardıma mı ihtiyacınız var?"
+    "need_help": "Yardıma mı ihtiyacınız var?",
+    "favorites": "Favoriler"
   },
   "header": {
     "search": "Oyunları ara",
@@ -184,8 +185,7 @@
     "reset_achievements_description": "Bu işlem {{game}} için tüm başarıları sıfırlar",
     "reset_achievements_title": "Emin misiniz?",
     "reset_achievements_success": "Başarılar başarıyla sıfırlandı",
-    "reset_achievements_error": "Başarılar sıfırlanamadı",
-    "favorites": "Favoriler"
+    "reset_achievements_error": "Başarılar sıfırlanamadı"
   },
   "activation": {
     "title": "Hydra'yı Aktive Et",

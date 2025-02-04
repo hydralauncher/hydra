@@ -26,7 +26,8 @@
     "game_has_no_executable": "Файл запуска игры не выбран",
     "sign_in": "Войти",
     "friends": "Друзья",
-    "need_help": "Нужна помощь?"
+    "need_help": "Нужна помощь?",
+    "favorites": "Избранное"
   },
   "header": {
     "search": "Поиск",
@@ -182,8 +183,7 @@
     "no_write_permission": "Невозможно загрузить в эту директорию. Нажмите здесь, чтобы узнать больше.",
     "reset_achievements_title": "Вы уверены?",
     "reset_achievements_success": "Достижения успешно сброшены",
-    "reset_achievements_error": "Не удалось сбросить достижения",
-    "favorites": "Избранное"
+    "reset_achievements_error": "Не удалось сбросить достижения"
   },
   "activation": {
     "title": "Активировать Hydra",

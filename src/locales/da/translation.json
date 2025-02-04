@@ -24,10 +24,12 @@
     "queued": "{{title}} (I køen)",
     "game_has_no_executable": "Spillet har ikke nogen eksekverbar fil valgt",
     "sign_in": "Log ind",
-    "friends": "Venner"
+    "friends": "Venner",
+    "favorites": "Favoriter"
   },
   "header": {
     "search": "Søg efter spil",
+
     "home": "Hjem",
     "catalogue": "Katalog",
     "downloads": "Downloads",
@@ -129,8 +131,7 @@
     "download": "Download",
     "executable_path_in_use": "Eksekverbar allerede i brug af \"{{game}}\"",
     "warning": "Advarsel:",
-    "hydra_needs_to_remain_open": "Hydra skal forblive åbent for at denne download kan gennemføres. I tilfælde af at Hydra lukker før downloaden er færdig, mister du dit fremskridt.",
-    "favorites": "Favoriter"
+    "hydra_needs_to_remain_open": "Hydra skal forblive åbent for at denne download kan gennemføres. I tilfælde af at Hydra lukker før downloaden er færdig, mister du dit fremskridt."
   },
   "activation": {
     "title": "Aktivér Hydra",

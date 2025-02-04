@@ -20,10 +20,12 @@
     "home": "Головна",
     "game_has_no_executable": "Не було вибрано файл для запуску гри",
     "queued": "{{title}} в черзі",
-    "sign_in": "Увійти"
+    "sign_in": "Увійти",
+    "favorites": "Улюблені"
   },
   "header": {
     "search": "Пошук",
+
     "home": "Головна",
     "catalogue": "Каталог",
     "downloads": "Завантаження",
@@ -110,8 +112,7 @@
     "remove_from_library_description": "{{game}} буде видалено з вашої бібліотеки",
     "remove_from_library_title": "Ви впевнені?",
     "screenshot": "Скріншот",
-    "select_executable": "Обрати",
-    "favorites": "Улюблені"
+    "select_executable": "Обрати"
   },
   "activation": {
     "title": "Активувати Hydra",

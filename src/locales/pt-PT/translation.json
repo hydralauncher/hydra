@@ -25,10 +25,12 @@
     "queued": "{{title}} (Na fila)",
     "game_has_no_executable": "O jogo não tem um executável selecionado",
     "sign_in": "Iniciar sessão",
-    "friends": "Amigos"
+    "friends": "Amigos",
+    "favorites": "Favoritos"
   },
   "header": {
     "search": "Procurar jogos",
+
     "catalogue": "Catálogo",
     "downloads": "Transferências",
     "search_results": "Resultados da pesquisa",
@@ -157,8 +159,7 @@
     "no_download_option_info": "Sem informações disponíveis",
     "backup_deletion_failed": "Falha ao apagar o backup",
     "max_number_of_artifacts_reached": "Número máximo de backups atingido para este jogo",
-    "achievements_not_sync": "As tuas conquistas não estão sincronizadas",
-    "favorites": "Favoritos"
+    "achievements_not_sync": "As tuas conquistas não estão sincronizadas"
   },
 
   "activation": {

@@ -14,10 +14,12 @@
     "paused": "{{title}} (Pauzat)",
     "downloading": "{{title}} ({{percentage}} - Se descarcă...)",
     "filter": "Filtrează biblioteca",
-    "home": "Acasă"
+    "home": "Acasă",
+    "favorites": "Favorite"
   },
   "header": {
     "search": "Caută jocuri",
+
     "home": "Acasă",
     "catalogue": "Catalog",
     "downloads": "Descărcări",
@@ -84,8 +86,7 @@
     "screenshot": "Captură de ecran {{number}}",
     "open_screenshot": "Deschide captura de ecran {{number}}",
     "download_settings": "Setări de descărcare",
-    "downloader": "Program de descărcare",
-    "favorites": "Favorite"
+    "downloader": "Program de descărcare"
   },
   "activation": {
     "title": "Activează Hydra",

@@ -14,10 +14,12 @@
     "paused": "{{title}} (In pausa)",
     "downloading": "{{title}} ({{percentage}} - Download…)",
     "filter": "Filtra libreria",
-    "home": "Home"
+    "home": "Home",
+    "favorites": "Preferiti"
   },
   "header": {
     "search": "Cerca",
+
     "home": "Home",
     "catalogue": "Catalogo",
     "downloads": "Download",
@@ -79,8 +81,7 @@
     "previous_screenshot": "Screenshot precedente",
     "next_screenshot": "Screenshot successivo",
     "screenshot": "Screenshot {{number}}",
-    "open_screenshot": "Apri screenshot {{number}}",
-    "favorites": "Preferiti"
+    "open_screenshot": "Apri screenshot {{number}}"
   },
   "activation": {
     "title": "Attiva Hydra",
