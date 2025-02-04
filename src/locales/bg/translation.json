@@ -26,7 +26,8 @@
     "game_has_no_executable": "Играта няма избран изпълним файл",
     "sign_in": "Вписване",
     "friends": "Приятели",
-    "need_help": "Имате нужда от помощ??"
+    "need_help": "Имате нужда от помощ??",
+    "favorites": "Любими игри"
   },
   "header": {
     "search": "Търсене",
@@ -176,8 +177,7 @@
     "manage_files_description": "Управлявайте кои файлове ще бъдат архивирани и възстановени",
     "select_folder": "Избери папка",
     "backup_from": "Резервно копие от {{date}}",
-    "custom_backup_location_set": "Задаване на персонализирано местоположение за архивиране",
-    "favorites": "Любими игри"
+    "custom_backup_location_set": "Задаване на персонализирано местоположение за архивиране"
   },
   "activation": {
     "title": "Активирай Hydra",

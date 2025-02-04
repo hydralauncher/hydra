@@ -25,7 +25,8 @@
     "queued": "{{title}} (已加入下载队列)",
     "game_has_no_executable": "未选择游戏的可执行文件",
     "sign_in": "登入",
-    "friends": "好友"
+    "friends": "好友",
+    "favorites": "收藏"
   },
   "header": {
     "search": "搜索游戏",
@@ -165,8 +166,7 @@
     "manage_files_description": "管理哪些文件要备份和恢复",
     "select_folder": "选择文件夹",
     "backup_from": "{{date}} 时备份",
-    "custom_backup_location_set": "自定义备份文件位置",
-    "favorites": "收藏"
+    "custom_backup_location_set": "自定义备份文件位置"
   },
   "activation": {
     "title": "激活 Hydra",

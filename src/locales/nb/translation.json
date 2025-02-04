@@ -24,10 +24,12 @@
     "queued": "{{title}} (I køen)",
     "game_has_no_executable": "Spillet har ikke noen kjørbar fil valgt",
     "sign_in": "Logge inn",
-    "friends": "Venner"
+    "friends": "Venner",
+    "favorites": "Favoritter"
   },
   "header": {
     "search": "Søk efter spill",
+
     "home": "Hjem",
     "catalogue": "Katalog",
     "downloads": "Nedlastinger",
@@ -129,8 +131,7 @@
     "download": "Last ned",
     "executable_path_in_use": "Kjørbar fil blir allerede brukt av \"{{game}}\"",
     "warning": "Advarsel:",
-    "hydra_needs_to_remain_open": "Hydra skal forbli åpent for at denne nedlastingen kan gjennomføres. I tilfelle av at Hydra lukker før nedlastingen er ferdig, mister du fremskrittet ditt.",
-    "favorites": "Favoritter"
+    "hydra_needs_to_remain_open": "Hydra skal forbli åpent for at denne nedlastingen kan gjennomføres. I tilfelle av at Hydra lukker før nedlastingen er ferdig, mister du fremskrittet ditt."
   },
   "activation": {
     "title": "Aktivér Hydra",

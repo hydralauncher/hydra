@@ -14,8 +14,10 @@
     "paused": "{{title}} (Спынена)",
     "downloading": "{{title}} ({{percentage}} - Сцягванне…)",
     "filter": "Фільтар бібліятэкі",
-    "home": "Галоўная"
+    "home": "Галоўная",
+    "favorites": "Улюбленыя"
   },
+
   "header": {
     "search": "Пошук",
     "home": "Галоўная",
@@ -72,8 +74,7 @@
     "change": "Змяніць",
     "repacks_modal_description": "Абярыце рэпак, які хочаце сцягнуць",
     "select_folder_hint": "Каб змяніць папку па змоўчанні, адкрыйце",
-    "download_now": "Сцягнуць зараз",
-    "favorites": "Улюбленыя"
+    "download_now": "Сцягнуць зараз"
   },
   "activation": {
     "title": "Актываваць Hydra",

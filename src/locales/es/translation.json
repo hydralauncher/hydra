@@ -26,10 +26,12 @@
     "game_has_no_executable": "El juego no tiene un ejecutable seleccionado",
     "sign_in": "Iniciar sesión",
     "friends": "Amigos",
-    "need_help": "¿Necesitas ayuda?"
+    "need_help": "¿Necesitas ayuda?",
+    "favorites": "Favorites"
   },
   "header": {
     "search": "Buscar juegos",
+
     "home": "Inicio",
     "catalogue": "Catálogo",
     "downloads": "Descargas",
@@ -184,8 +186,7 @@
     "reset_achievements_description": "Esto reiniciará todos los logros de {{game}}",
     "reset_achievements_title": "¿Estás seguro?",
     "reset_achievements_success": "Logros reiniciados exitosamente",
-    "reset_achievements_error": "Se produjo un error al reiniciar los logros",
-    "favorites": "Favorites"
+    "reset_achievements_error": "Se produjo un error al reiniciar los logros"
   },
   "activation": {
     "title": "Activar Hydra",

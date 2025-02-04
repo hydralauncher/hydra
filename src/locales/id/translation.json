@@ -20,10 +20,12 @@
     "home": "Beranda",
     "queued": "{{title}} (Antrian)",
     "game_has_no_executable": "Game tidak punya file eksekusi yang dipilih",
-    "sign_in": "Masuk"
+    "sign_in": "Masuk",
+    "favorites": "Favorit"
   },
   "header": {
     "search": "Cari game",
+
     "home": "Beranda",
     "catalogue": "Katalog",
     "downloads": "Unduhan",
@@ -113,8 +115,7 @@
     "download_paused": "Unduhan dijeda",
     "last_downloaded_option": "Opsi terakhir diunduh",
     "create_shortcut_success": "Pintasan berhasil dibuat",
-    "create_shortcut_error": "Gagal membuat pintasan",
-    "favorites": "Favorit"
+    "create_shortcut_error": "Gagal membuat pintasan"
   },
   "activation": {
     "title": "Aktifkan Hydra",

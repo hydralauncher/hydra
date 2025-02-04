@@ -20,8 +20,10 @@
     "home": "Басты бет",
     "queued": "{{title}} (Кезекте)",
     "game_has_no_executable": "Ойынды іске қосу файлы таңдалмаған",
-    "sign_in": "Кіру"
+    "sign_in": "Кіру",
+    "favorites": "Қолданған"
   },
+
   "header": {
     "search": "Іздеу",
     "home": "Басты бет",
@@ -112,8 +114,7 @@
     "download_paused": "Жүктеу тоқтатылды",
     "last_downloaded_option": "Соңғы жүктеу нұсқасы",
     "create_shortcut_success": "Жарлық жасалды",
-    "create_shortcut_error": "Жарлық жасау мүмкін болмады",
-    "favorites": "Қолданған"
+    "create_shortcut_error": "Жарлық жасау мүмкін болмады"
   },
   "activation": {
     "title": "Hydra-ны белсендіру",

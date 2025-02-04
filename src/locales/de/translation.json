@@ -20,10 +20,12 @@
     "home": "Home",
     "queued": "{{title}} (In Warteschlange)",
     "game_has_no_executable": "Spiel hat keine ausführbare Datei gewählt",
-    "sign_in": "Anmelden"
+    "sign_in": "Anmelden",
+    "favorites": "Favoriten"
   },
   "header": {
     "search": "Spiele suchen",
+
     "home": "Home",
     "catalogue": "Katalog",
     "downloads": "Downloads",
@@ -113,8 +115,7 @@
     "download_paused": "Download ist pausiert",
     "last_downloaded_option": "Letzte Download-Option",
     "create_shortcut_success": "Verknüpfung erfolgreich erstellt",
-    "create_shortcut_error": "Fehler bei Erstellung von Verknüpfung",
-    "favorites": "Favoriten"
+    "create_shortcut_error": "Fehler bei Erstellung von Verknüpfung"
   },
   "activation": {
     "title": "Hydra aktivieren",
