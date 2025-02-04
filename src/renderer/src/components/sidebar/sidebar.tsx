@@ -167,6 +167,38 @@ export function Sidebar() {
     }
   };
 
+  const SidebarGame = ({ game }: { game: LibraryGame }) => (
+    <li
+      key={game.id}
+      className={cn("sidebar__menu-item", {
+        "sidebar__menu-item--active":
+          location.pathname === `/game/${game.shop}/${game.objectId}`,
+        "sidebar__menu-item--muted": game.download?.status === "removed",
+      })}
+    >
+      <button
+        type="button"
+        className="sidebar__menu-item-button"
+        onClick={(event) => handleSidebarGameClick(event, game)}
+      >
+        {game.iconUrl ? (
+          <img
+            className="sidebar__game-icon"
+            src={game.iconUrl}
+            alt={game.title}
+            loading="lazy"
+          />
+        ) : (
+          <SteamLogo className="sidebar__game-icon" />
+        )}
+
+        <span className="sidebar__menu-item-button-label">
+          {getGameTitle(game)}
+        </span>
+      </button>
+    </li>
+  );
+
   return (
     <aside
       ref={sidebarRef}
@@ -213,37 +245,7 @@ export function Sidebar() {
               {sortedLibrary
                 .filter((game) => game.favorite)
                 .map((game) => (
-                  <li
-                    key={game.id}
-                    className={cn("sidebar__menu-item", {
-                      "sidebar__menu-item--active":
-                        location.pathname ===
-                        `/game/${game.shop}/${game.objectId}`,
-                      "sidebar__menu-item--muted":
-                        game.download?.status === "removed",
-                    })}
-                  >
-                    <button
-                      type="button"
-                      className="sidebar__menu-item-button"
-                      onClick={(event) => handleSidebarGameClick(event, game)}
-                    >
-                      {game.iconUrl ? (
-                        <img
-                          className="sidebar__game-icon"
-                          src={game.iconUrl}
-                          alt={game.title}
-                          loading="lazy"
-                        />
-                      ) : (
-                        <SteamLogo className="sidebar__game-icon" />
-                      )}
-
-                      <span className="sidebar__menu-item-button-label">
-                        {getGameTitle(game)}
-                      </span>
-                    </button>
-                  </li>
+                  <SidebarGame key={game.id} game={game} />
                 ))}
             </ul>
           </section>
@@ -262,37 +264,7 @@ export function Sidebar() {
               {filteredLibrary
                 .filter((game) => !game.favorite)
                 .map((game) => (
-                  <li
-                    key={game.id}
-                    className={cn("sidebar__menu-item", {
-                      "sidebar__menu-item--active":
-                        location.pathname ===
-                        `/game/${game.shop}/${game.objectId}`,
-                      "sidebar__menu-item--muted":
-                        game.download?.status === "removed",
-                    })}
-                  >
-                    <button
-                      type="button"
-                      className="sidebar__menu-item-button"
-                      onClick={(event) => handleSidebarGameClick(event, game)}
-                    >
-                      {game.iconUrl ? (
-                        <img
-                          className="sidebar__game-icon"
-                          src={game.iconUrl}
-                          alt={game.title}
-                          loading="lazy"
-                        />
-                      ) : (
-                        <SteamLogo className="sidebar__game-icon" />
-                      )}
-
-                      <span className="sidebar__menu-item-button-label">
-                        {getGameTitle(game)}
-                      </span>
-                    </button>
-                  </li>
+                  <SidebarGame key={game.id} game={game} />
                 ))}
             </ul>
           </section>
