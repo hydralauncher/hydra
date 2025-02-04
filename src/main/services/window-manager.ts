@@ -192,7 +192,6 @@ export class WindowManager {
     });
 
     this.mainWindow.on("close", async () => {
-      const lastBounds = this.mainWindow?.getBounds();
       const userPreferences = await db.get<string, UserPreferences>(
         levelKeys.userPreferences,
         {
