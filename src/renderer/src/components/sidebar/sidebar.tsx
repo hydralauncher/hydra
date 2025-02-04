@@ -18,11 +18,11 @@ import "./sidebar.scss";
 
 import { buildGameDetailsPath } from "@renderer/helpers";
 
-import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { SidebarProfile } from "./sidebar-profile";
 import { sortBy } from "lodash-es";
 import cn from "classnames";
 import { CommentDiscussionIcon } from "@primer/octicons-react";
+import { SidebarGameItem } from "./sidebar-game-item";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -167,38 +167,6 @@ export function Sidebar() {
     }
   };
 
-  const SidebarGame = ({ game }: { game: LibraryGame }) => (
-    <li
-      key={game.id}
-      className={cn("sidebar__menu-item", {
-        "sidebar__menu-item--active":
-          location.pathname === `/game/${game.shop}/${game.objectId}`,
-        "sidebar__menu-item--muted": game.download?.status === "removed",
-      })}
-    >
-      <button
-        type="button"
-        className="sidebar__menu-item-button"
-        onClick={(event) => handleSidebarGameClick(event, game)}
-      >
-        {game.iconUrl ? (
-          <img
-            className="sidebar__game-icon"
-            src={game.iconUrl}
-            alt={game.title}
-            loading="lazy"
-          />
-        ) : (
-          <SteamLogo className="sidebar__game-icon" />
-        )}
-
-        <span className="sidebar__menu-item-button-label">
-          {getGameTitle(game)}
-        </span>
-      </button>
-    </li>
-  );
-
   return (
     <aside
       ref={sidebarRef}
@@ -245,7 +213,12 @@ export function Sidebar() {
               {sortedLibrary
                 .filter((game) => game.favorite)
                 .map((game) => (
-                  <SidebarGame key={game.id} game={game} />
+                  <SidebarGameItem
+                    key={game.id}
+                    game={game}
+                    handleSidebarGameClick={handleSidebarGameClick}
+                    getGameTitle={getGameTitle}
+                  />
                 ))}
             </ul>
           </section>
@@ -264,7 +237,12 @@ export function Sidebar() {
               {filteredLibrary
                 .filter((game) => !game.favorite)
                 .map((game) => (
-                  <SidebarGame key={game.id} game={game} />
+                  <SidebarGameItem
+                    key={game.id}
+                    game={game}
+                    handleSidebarGameClick={handleSidebarGameClick}
+                    getGameTitle={getGameTitle}
+                  />
                 ))}
             </ul>
           </section>
