@@ -20,31 +20,18 @@ import { slice, sortBy } from "lodash-es";
 import type { UserPreferences } from "@types";
 import { AuthPage } from "@shared";
 import { isStaging } from "@main/constants";
+import { writeFile, readFile } from "fs/promises";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
 
-  private static loadMainWindowURL(hash = "") {
-    // HMR for renderer base on electron-vite cli.
-    // Load the remote URL for development or the local html file for production.
-    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      this.mainWindow?.loadURL(
-        `${process.env["ELECTRON_RENDERER_URL"]}#/${hash}`
-      );
-    } else {
-      this.mainWindow?.loadFile(
-        path.join(__dirname, "../renderer/index.html"),
-        {
-          hash,
-        }
-      );
-    }
-  }
+  private static configPath = path.join(
+    app.getPath("userData"),
+    "HydraScreenState.json"
+  );
 
-  public static createMainWindow() {
-    if (this.mainWindow) return;
-
-    this.mainWindow = new BrowserWindow({
+  private static initialConfigInitializationMainWindow: Electron.BrowserWindowConstructorOptions =
+    {
       width: 1200,
       height: 720,
       minWidth: 1024,
@@ -63,7 +50,78 @@ export class WindowManager {
         sandbox: false,
       },
       show: false,
-    });
+    };
+
+  private static async saveScreenConfig({
+    ...configScreenWhenClosed
+  }: {
+    x: number | undefined;
+    y: number | undefined;
+    width: number;
+    height: number;
+    isMaximized: boolean;
+  }) {
+    try {
+      await writeFile(
+        this.configPath,
+        JSON.stringify(configScreenWhenClosed, null, 0),
+        "utf-8"
+      );
+    } catch (error) {
+      console.error("failed to save screenConfig", error);
+    }
+  }
+
+  private static async loadScreenConfig() {
+    try {
+      const screenConfigData = await readFile(this.configPath, "utf-8");
+      return JSON.parse(screenConfigData);
+    } catch (error) {
+      console.error("failed to load screenConfig:", error);
+      return {};
+    }
+  }
+  private static updateInitialConfig(
+    newConfig: Partial<Electron.BrowserViewConstructorOptions>
+  ) {
+    this.initialConfigInitializationMainWindow = {
+      ...this.initialConfigInitializationMainWindow,
+      ...newConfig,
+    };
+  }
+
+  private static loadMainWindowURL(hash = "") {
+    // HMR for renderer base on electron-vite cli.
+    // Load the remote URL for development or the local html file for production.
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+      this.mainWindow?.loadURL(
+        `${process.env["ELECTRON_RENDERER_URL"]}#/${hash}`
+      );
+    } else {
+      this.mainWindow?.loadFile(
+        path.join(__dirname, "../renderer/index.html"),
+        {
+          hash,
+        }
+      );
+    }
+  }
+
+  public static async createMainWindow() {
+    if (this.mainWindow) return;
+
+    const { isMaximized, ...configWithoutMaximized } =
+      await this.loadScreenConfig();
+
+    this.updateInitialConfig(configWithoutMaximized);
+
+    this.mainWindow = new BrowserWindow(
+      this.initialConfigInitializationMainWindow
+    );
+
+    if (isMaximized) {
+      this.mainWindow.maximize();
+    }
 
     this.mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
       (details, callback) => {
@@ -134,6 +192,7 @@ export class WindowManager {
     });
 
     this.mainWindow.on("close", async () => {
+      const lastBounds = this.mainWindow?.getBounds();
       const userPreferences = await db.get<string, UserPreferences>(
         levelKeys.userPreferences,
         {
@@ -143,6 +202,20 @@ export class WindowManager {
 
       if (userPreferences?.preferQuitInsteadOfHiding) {
         app.quit();
+      }
+      if (lastBounds) {
+        const isMaximized = this.mainWindow?.isMaximized() ?? false;
+        const screenConfig = isMaximized
+          ? {
+              x: undefined,
+              y: undefined,
+              height: this.initialConfigInitializationMainWindow.height!,
+              width: this.initialConfigInitializationMainWindow.width!,
+              isMaximized: true,
+            }
+          : { ...lastBounds, isMaximized };
+
+        await this.saveScreenConfig(screenConfig);
       }
       WindowManager.mainWindow?.setProgressBar(-1);
       WindowManager.mainWindow = null;
