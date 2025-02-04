@@ -58,7 +58,8 @@ export function HeroPanelActions() {
     setToggleLibraryGameDisabled(true);
 
     try {
-      await window.electron.addGameToFavorites(shop, objectId!);
+      if (!objectId) throw new Error("objectId is required");
+      await window.electron.addGameToFavorites(shop, objectId);
       updateLibrary();
       updateGame();
     } finally {
@@ -70,7 +71,8 @@ export function HeroPanelActions() {
     setToggleLibraryGameDisabled(true);
 
     try {
-      await window.electron.removeGameFromFavorites(shop, objectId!);
+      if (!objectId) throw new Error("objectId is required");
+      await window.electron.removeGameFromFavorites(shop, objectId);
       updateLibrary();
       updateGame();
     } finally {
