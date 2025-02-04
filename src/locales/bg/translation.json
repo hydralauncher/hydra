@@ -176,7 +176,8 @@
     "manage_files_description": "Управлявайте кои файлове ще бъдат архивирани и възстановени",
     "select_folder": "Избери папка",
     "backup_from": "Резервно копие от {{date}}",
-    "custom_backup_location_set": "Задаване на персонализирано местоположение за архивиране"
+    "custom_backup_location_set": "Задаване на персонализирано местоположение за архивиране",
+    "favorites": "Любими игри"
   },
   "activation": {
     "title": "Активирай Hydra",

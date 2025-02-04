@@ -166,7 +166,8 @@
     "manage_files_description": "Spravovat, které soubory budou zálohovány a obnoveny",
     "select_folder": "Vybrat složku",
     "backup_from": "Zálohy z {{date}}",
-    "custom_backup_location_set": "Vlastní umístění záloh nastaveno"
+    "custom_backup_location_set": "Vlastní umístění záloh nastaveno",
+    "favorites": "Oblíbené"
   },
   "activation": {
     "title": "Aktivovat hydru",

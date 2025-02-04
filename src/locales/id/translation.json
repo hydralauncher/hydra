@@ -113,7 +113,8 @@
     "download_paused": "Unduhan dijeda",
     "last_downloaded_option": "Opsi terakhir diunduh",
     "create_shortcut_success": "Pintasan berhasil dibuat",
-    "create_shortcut_error": "Gagal membuat pintasan"
+    "create_shortcut_error": "Gagal membuat pintasan",
+    "favorites": "Favorit"
   },
   "activation": {
     "title": "Aktifkan Hydra",

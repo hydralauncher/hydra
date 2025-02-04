@@ -72,7 +72,8 @@
     "change": "바꾸기",
     "repacks_modal_description": "다운로드 할 리팩을 선택해 주세요",
     "select_folder_hint": "기본 폴더를 바꾸려면 <0>설정</0>으로 가세요",
-    "download_now": "지금 다운로드"
+    "download_now": "지금 다운로드",
+    "favorites": "즐겨찾기"
   },
   "activation": {
     "title": "Hydra 실행",

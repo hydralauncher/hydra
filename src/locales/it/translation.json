@@ -79,7 +79,8 @@
     "previous_screenshot": "Screenshot precedente",
     "next_screenshot": "Screenshot successivo",
     "screenshot": "Screenshot {{number}}",
-    "open_screenshot": "Apri screenshot {{number}}"
+    "open_screenshot": "Apri screenshot {{number}}",
+    "favorites": "Preferiti"
   },
   "activation": {
     "title": "Attiva Hydra",

@@ -165,7 +165,8 @@
     "manage_files_description": "Hallake, millised failid varundatakse ja taastatakse",
     "select_folder": "Vali kaust",
     "backup_from": "Varundamine kuupäevast {{date}}",
-    "custom_backup_location_set": "Kohandatud varundamise asukoht määratud"
+    "custom_backup_location_set": "Kohandatud varundamise asukoht määratud",
+    "favorites": "Töölist"
   },
   "activation": {
     "title": "Aktiveeri Hydra",

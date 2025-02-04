@@ -129,7 +129,8 @@
     "download": "Last ned",
     "executable_path_in_use": "Kjørbar fil blir allerede brukt av \"{{game}}\"",
     "warning": "Advarsel:",
-    "hydra_needs_to_remain_open": "Hydra skal forbli åpent for at denne nedlastingen kan gjennomføres. I tilfelle av at Hydra lukker før nedlastingen er ferdig, mister du fremskrittet ditt."
+    "hydra_needs_to_remain_open": "Hydra skal forbli åpent for at denne nedlastingen kan gjennomføres. I tilfelle av at Hydra lukker før nedlastingen er ferdig, mister du fremskrittet ditt.",
+    "favorites": "Favoritter"
   },
   "activation": {
     "title": "Aktivér Hydra",

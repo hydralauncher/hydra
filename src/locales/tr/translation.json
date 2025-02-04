@@ -184,7 +184,8 @@
     "reset_achievements_description": "Bu işlem {{game}} için tüm başarıları sıfırlar",
     "reset_achievements_title": "Emin misiniz?",
     "reset_achievements_success": "Başarılar başarıyla sıfırlandı",
-    "reset_achievements_error": "Başarılar sıfırlanamadı"
+    "reset_achievements_error": "Başarılar sıfırlanamadı",
+    "favorites": "Favoriler"
   },
   "activation": {
     "title": "Hydra'yı Aktive Et",

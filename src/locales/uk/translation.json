@@ -110,7 +110,8 @@
     "remove_from_library_description": "{{game}} буде видалено з вашої бібліотеки",
     "remove_from_library_title": "Ви впевнені?",
     "screenshot": "Скріншот",
-    "select_executable": "Обрати"
+    "select_executable": "Обрати",
+    "favorites": "Улюблені"
   },
   "activation": {
     "title": "Активувати Hydra",

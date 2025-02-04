@@ -165,7 +165,8 @@
     "manage_files_description": "管理哪些文件要备份和恢复",
     "select_folder": "选择文件夹",
     "backup_from": "{{date}} 时备份",
-    "custom_backup_location_set": "自定义备份文件位置"
+    "custom_backup_location_set": "自定义备份文件位置",
+    "favorites": "收藏"
   },
   "activation": {
     "title": "激活 Hydra",
