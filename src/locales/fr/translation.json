@@ -70,7 +70,6 @@
   },
   "activation": {
     "title": "Activer Hydra",
-
     "installation_id": "ID d'installation :",
     "enter_activation_code": "Entrez votre code d'activation",
     "message": "Si vous ne savez pas où demander ceci, vous ne devriez pas l'avoir.",

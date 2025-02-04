@@ -161,7 +161,6 @@
     "max_number_of_artifacts_reached": "Número máximo de backups atingido para este jogo",
     "achievements_not_sync": "As tuas conquistas não estão sincronizadas"
   },
-
   "activation": {
     "title": "Ativação",
     "installation_id": "ID da instalação:",
