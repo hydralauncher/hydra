@@ -72,7 +72,8 @@
     "change": "Verander",
     "repacks_modal_description": "Kies de herverpakking die u wilt downloaden",
     "select_folder_hint": "Om de standaardmap te wijzigen, gaat u naar <0>instellingen</0>",
-    "download_now": "Download nu"
+    "download_now": "Download nu",
+    "favorites": "Favorieten"
   },
   "activation": {
     "title": "Activeer Hydra",

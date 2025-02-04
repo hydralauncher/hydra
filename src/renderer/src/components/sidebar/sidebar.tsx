@@ -207,6 +207,48 @@ export function Sidebar() {
           </section>
 
           <section className="sidebar__section">
+            <small className="sidebar__section-title">{t("favorites")}</small>
+
+            <ul className="sidebar__menu">
+              {sortedLibrary
+                .filter((game) => game.favorite)
+                .map((game) => (
+                  <li
+                    key={game.id}
+                    className={cn("sidebar__menu-item", {
+                      "sidebar__menu-item--active":
+                        location.pathname ===
+                        `/game/${game.shop}/${game.objectId}`,
+                      "sidebar__menu-item--muted":
+                        game.download?.status === "removed",
+                    })}
+                  >
+                    <button
+                      type="button"
+                      className="sidebar__menu-item-button"
+                      onClick={(event) => handleSidebarGameClick(event, game)}
+                    >
+                      {game.iconUrl ? (
+                        <img
+                          className="sidebar__game-icon"
+                          src={game.iconUrl}
+                          alt={game.title}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <SteamLogo className="sidebar__game-icon" />
+                      )}
+
+                      <span className="sidebar__menu-item-button-label">
+                        {getGameTitle(game)}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          </section>
+
+          <section className="sidebar__section">
             <small className="sidebar__section-title">{t("my_library")}</small>
 
             <TextField
@@ -217,39 +259,41 @@ export function Sidebar() {
             />
 
             <ul className="sidebar__menu">
-              {filteredLibrary.map((game) => (
-                <li
-                  key={game.id}
-                  className={cn("sidebar__menu-item", {
-                    "sidebar__menu-item--active":
-                      location.pathname ===
-                      `/game/${game.shop}/${game.objectId}`,
-                    "sidebar__menu-item--muted":
-                      game.download?.status === "removed",
-                  })}
-                >
-                  <button
-                    type="button"
-                    className="sidebar__menu-item-button"
-                    onClick={(event) => handleSidebarGameClick(event, game)}
+              {filteredLibrary
+                .filter((game) => !game.favorite)
+                .map((game) => (
+                  <li
+                    key={game.id}
+                    className={cn("sidebar__menu-item", {
+                      "sidebar__menu-item--active":
+                        location.pathname ===
+                        `/game/${game.shop}/${game.objectId}`,
+                      "sidebar__menu-item--muted":
+                        game.download?.status === "removed",
+                    })}
                   >
-                    {game.iconUrl ? (
-                      <img
-                        className="sidebar__game-icon"
-                        src={game.iconUrl}
-                        alt={game.title}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <SteamLogo className="sidebar__game-icon" />
-                    )}
+                    <button
+                      type="button"
+                      className="sidebar__menu-item-button"
+                      onClick={(event) => handleSidebarGameClick(event, game)}
+                    >
+                      {game.iconUrl ? (
+                        <img
+                          className="sidebar__game-icon"
+                          src={game.iconUrl}
+                          alt={game.title}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <SteamLogo className="sidebar__game-icon" />
+                      )}
 
-                    <span className="sidebar__menu-item-button-label">
-                      {getGameTitle(game)}
-                    </span>
-                  </button>
-                </li>
-              ))}
+                      <span className="sidebar__menu-item-button-label">
+                        {getGameTitle(game)}
+                      </span>
+                    </button>
+                  </li>
+                ))}
             </ul>
           </section>
         </div>

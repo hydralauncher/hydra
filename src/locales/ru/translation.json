@@ -182,7 +182,8 @@
     "no_write_permission": "Невозможно загрузить в эту директорию. Нажмите здесь, чтобы узнать больше.",
     "reset_achievements_title": "Вы уверены?",
     "reset_achievements_success": "Достижения успешно сброшены",
-    "reset_achievements_error": "Не удалось сбросить достижения"
+    "reset_achievements_error": "Не удалось сбросить достижения",
+    "favorites": "Избранное"
   },
   "activation": {
     "title": "Активировать Hydra",

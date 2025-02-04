@@ -112,7 +112,8 @@
     "download_paused": "Жүктеу тоқтатылды",
     "last_downloaded_option": "Соңғы жүктеу нұсқасы",
     "create_shortcut_success": "Жарлық жасалды",
-    "create_shortcut_error": "Жарлық жасау мүмкін болмады"
+    "create_shortcut_error": "Жарлық жасау мүмкін болмады",
+    "favorites": "Қолданған"
   },
   "activation": {
     "title": "Hydra-ны белсендіру",

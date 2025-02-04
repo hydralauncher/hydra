@@ -157,8 +157,10 @@
     "no_download_option_info": "Sem informações disponíveis",
     "backup_deletion_failed": "Falha ao apagar o backup",
     "max_number_of_artifacts_reached": "Número máximo de backups atingido para este jogo",
-    "achievements_not_sync": "As tuas conquistas não estão sincronizadas"
+    "achievements_not_sync": "As tuas conquistas não estão sincronizadas",
+    "favorites": "Favoritos"
   },
+
   "activation": {
     "title": "Ativação",
     "installation_id": "ID da instalação:",

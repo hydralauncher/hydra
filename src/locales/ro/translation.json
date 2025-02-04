@@ -84,7 +84,8 @@
     "screenshot": "Captură de ecran {{number}}",
     "open_screenshot": "Deschide captura de ecran {{number}}",
     "download_settings": "Setări de descărcare",
-    "downloader": "Program de descărcare"
+    "downloader": "Program de descărcare",
+    "favorites": "Favorite"
   },
   "activation": {
     "title": "Activează Hydra",

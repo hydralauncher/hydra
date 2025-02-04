@@ -113,7 +113,8 @@
     "download_paused": "Download ist pausiert",
     "last_downloaded_option": "Letzte Download-Option",
     "create_shortcut_success": "Verknüpfung erfolgreich erstellt",
-    "create_shortcut_error": "Fehler bei Erstellung von Verknüpfung"
+    "create_shortcut_error": "Fehler bei Erstellung von Verknüpfung",
+    "favorites": "Favoriten"
   },
   "activation": {
     "title": "Hydra aktivieren",

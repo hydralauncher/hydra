@@ -72,7 +72,8 @@
     "change": "تغییر",
     "repacks_modal_description": "ریپک مورد نظر برای دانلود را انتخاب کنید",
     "select_folder_hint": "برای تغییر پوشه‌ی پیش‌فرض به <0>Settings</0> بروید",
-    "download_now": "الان دانلود کن"
+    "download_now": "الان دانلود کن",
+    "favorites": "علاقه‌مندی‌ها"
   },
   "activation": {
     "title": "فعال کردن هایدرا",

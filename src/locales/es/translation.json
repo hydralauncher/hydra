@@ -184,7 +184,8 @@
     "reset_achievements_description": "Esto reiniciará todos los logros de {{game}}",
     "reset_achievements_title": "¿Estás seguro?",
     "reset_achievements_success": "Logros reiniciados exitosamente",
-    "reset_achievements_error": "Se produjo un error al reiniciar los logros"
+    "reset_achievements_error": "Se produjo un error al reiniciar los logros",
+    "favorites": "Favorites"
   },
   "activation": {
     "title": "Activar Hydra",

@@ -79,7 +79,8 @@
     "previous_screenshot": "Poprzedni zrzut ekranu",
     "next_screenshot": "Następny zrzut ekranu",
     "screenshot": "Zrzut ekranu {{number}}",
-    "open_screenshot": "Otwórz zrzut ekranu {{number}}"
+    "open_screenshot": "Otwórz zrzut ekranu {{number}}",
+    "favorites": "Ulubione"
   },
   "activation": {
     "title": "Aktywuj Hydra",
