@@ -14,10 +14,12 @@
     "paused": "{{title}} (Zatrzymano)",
     "downloading": "{{title}} ({{percentage}} - Pobieranie…)",
     "filter": "Filtruj biblioteke",
-    "home": "Główna"
+    "home": "Główna",
+    "favorites": "Ulubione"
   },
   "header": {
     "search": "Szukaj",
+
     "home": "Główna",
     "catalogue": "Katalog",
     "downloads": "Pobrane",
