@@ -199,10 +199,6 @@ export class WindowManager {
         }
       );
 
-      if (userPreferences?.preferQuitInsteadOfHiding) {
-        app.quit();
-      }
-
       if (this.mainWindow) {
         const lastBounds = this.mainWindow.getBounds();
         const isMaximized = this.mainWindow.isMaximized() ?? false;
@@ -218,6 +214,11 @@ export class WindowManager {
 
         await this.saveScreenConfig(screenConfig);
       }
+
+      if (userPreferences?.preferQuitInsteadOfHiding) {
+        app.quit();
+      }
+
       WindowManager.mainWindow?.setProgressBar(-1);
       WindowManager.mainWindow = null;
     });
