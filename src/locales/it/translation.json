@@ -14,10 +14,12 @@
     "paused": "{{title}} (In pausa)",
     "downloading": "{{title}} ({{percentage}} - Download…)",
     "filter": "Filtra libreria",
-    "home": "Home"
+    "home": "Home",
+    "favorites": "Preferiti"
   },
   "header": {
     "search": "Cerca",
+
     "home": "Home",
     "catalogue": "Catalogo",
     "downloads": "Download",
