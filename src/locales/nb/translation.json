@@ -24,10 +24,12 @@
     "queued": "{{title}} (I køen)",
     "game_has_no_executable": "Spillet har ikke noen kjørbar fil valgt",
     "sign_in": "Logge inn",
-    "friends": "Venner"
+    "friends": "Venner",
+    "favorites": "Favoritter"
   },
   "header": {
     "search": "Søk efter spill",
+
     "home": "Hjem",
     "catalogue": "Katalog",
     "downloads": "Nedlastinger",
