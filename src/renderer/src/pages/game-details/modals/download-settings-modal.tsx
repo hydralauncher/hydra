@@ -163,8 +163,10 @@ export function DownloadSettingsModal({
                   selectedDownloader === downloader ? "primary" : "outline"
                 }
                 disabled={
-                  downloader === Downloader.RealDebrid &&
-                  !userPreferences?.realDebridApiToken
+                  (downloader === Downloader.RealDebrid &&
+                    !userPreferences?.realDebridApiToken) ||
+                  (downloader === Downloader.TorBox &&
+                    !userPreferences?.torBoxApiToken)
                 }
                 onClick={() => setSelectedDownloader(downloader)}
               >

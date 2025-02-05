@@ -32,7 +32,7 @@ export const getUnlockedAchievements = async (
 
   return achievementsData
     .map((achievementData) => {
-      const unlockedAchiementData = unlockedAchievements.find(
+      const unlockedAchievementData = unlockedAchievements.find(
         (localAchievement) => {
           return (
             localAchievement.name.toUpperCase() ==
@@ -45,11 +45,11 @@ export const getUnlockedAchievements = async (
         ? achievementData.icon
         : achievementData.icongray;
 
-      if (unlockedAchiementData) {
+      if (unlockedAchievementData) {
         return {
           ...achievementData,
           unlocked: true,
-          unlockTime: unlockedAchiementData.unlockTime,
+          unlockTime: unlockedAchievementData.unlockTime,
         };
       }
 

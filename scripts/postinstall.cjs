@@ -107,7 +107,10 @@ const copyAria2Macos = async () => {
 };
 
 const copyAria2 = () => {
-  if (fs.existsSync("aria2")) {
+  const aria2Path =
+    process.platform === "win32" ? "aria2/aria2c.exe" : "aria2/aria2c";
+
+  if (fs.existsSync(aria2Path)) {
     console.log("Aria2 already exists, skipping download...");
     return;
   }

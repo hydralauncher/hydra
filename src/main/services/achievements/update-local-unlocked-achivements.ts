@@ -6,7 +6,7 @@ import { parseAchievementFile } from "./parse-achievement-file";
 import { mergeAchievements } from "./merge-achievements";
 import type { Game, UnlockedAchievement } from "@types";
 
-export const updateLocalUnlockedAchivements = async (game: Game) => {
+export const updateLocalUnlockedAchievements = async (game: Game) => {
   const gameAchievementFiles = findAchievementFiles(game);
 
   const achievementFileInsideDirectory =

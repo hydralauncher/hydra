@@ -8,7 +8,7 @@ import "./downloads.scss";
 import { DeleteGameModal } from "./delete-game-modal";
 import { DownloadGroup } from "./download-group";
 import type { GameShop, LibraryGame, SeedingStatus } from "@types";
-import { orderBy, sortBy } from "lodash-es";
+import { orderBy } from "lodash-es";
 import { ArrowDownIcon } from "@primer/octicons-react";
 
 export default function Downloads() {
@@ -58,24 +58,24 @@ export default function Downloads() {
       complete: [],
     };
 
-    const result = sortBy(library, (game) => game.download?.timestamp).reduce(
-      (prev, next) => {
-        /* Game has been manually added to the library or has been canceled */
-        if (!next.download?.status || next.download?.status === "removed")
-          return prev;
+    const result = orderBy(
+      library,
+      (game) => game.download?.timestamp,
+      "desc"
+    ).reduce((prev, next) => {
+      /* Game has been manually added to the library */
+      if (!next.download) return prev;
 
-        /* Is downloading */
-        if (lastPacket?.gameId === next.id)
-          return { ...prev, downloading: [...prev.downloading, next] };
+      /* Is downloading */
+      if (lastPacket?.gameId === next.id)
+        return { ...prev, downloading: [...prev.downloading, next] };
 
-        /* Is either queued or paused */
-        if (next.download.queued || next.download?.status === "paused")
-          return { ...prev, queued: [...prev.queued, next] };
+      /* Is either queued or paused */
+      if (next.download.queued || next.download?.status === "paused")
+        return { ...prev, queued: [...prev.queued, next] };
 
-        return { ...prev, complete: [...prev.complete, next] };
-      },
-      initialValue
-    );
+      return { ...prev, complete: [...prev.complete, next] };
+    }, initialValue);
 
     const queued = orderBy(result.queued, (game) => game.download?.timestamp, [
       "desc",
