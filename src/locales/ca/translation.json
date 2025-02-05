@@ -20,10 +20,12 @@
     "home": "Inici",
     "queued": "{{title}} (En espera)",
     "game_has_no_executable": "El joc encara no té un executable seleccionat",
-    "sign_in": "Entra"
+    "sign_in": "Entra",
+    "favorites": "Favorits"
   },
   "header": {
     "search": "Cerca jocs",
+
     "home": "Inici",
     "catalogue": "Catàleg",
     "downloads": "Baixades",

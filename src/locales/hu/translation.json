@@ -14,10 +14,12 @@
     "paused": "{{title}} (Szünet)",
     "downloading": "{{title}} ({{percentage}} - Letöltés…)",
     "filter": "Könyvtár szűrése",
-    "home": "Főoldal"
+    "home": "Főoldal",
+    "favorites": "Kedvenc játékok"
   },
   "header": {
     "search": "Keresés",
+
     "home": "Főoldal",
     "catalogue": "Katalógus",
     "downloads": "Letöltések",
