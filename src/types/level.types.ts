@@ -81,3 +81,11 @@ export interface UserPreferences {
   repackUpdatesNotificationsEnabled?: boolean;
   achievementNotificationsEnabled?: boolean;
 }
+
+export interface ScreenState {
+  x?: number;
+  y?: number;
+  height: number;
+  width: number;
+  isMaximized: boolean;
+}

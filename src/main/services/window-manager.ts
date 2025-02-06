@@ -17,18 +17,12 @@ import { HydraApi } from "./hydra-api";
 import UserAgent from "user-agents";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { slice, sortBy } from "lodash-es";
-import type { UserPreferences } from "@types";
+import type { ScreenState, UserPreferences } from "@types";
 import { AuthPage } from "@shared";
 import { isStaging } from "@main/constants";
-import { writeFile, readFile } from "fs/promises";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
-
-  private static configPath = path.join(
-    app.getPath("userData"),
-    "HydraScreenState.json"
-  );
 
   private static initialConfigInitializationMainWindow: Electron.BrowserWindowConstructorOptions =
     {
@@ -61,25 +55,16 @@ export class WindowManager {
     height: number;
     isMaximized: boolean;
   }) {
-    try {
-      await writeFile(
-        this.configPath,
-        JSON.stringify(configScreenWhenClosed, null, 0),
-        "utf-8"
-      );
-    } catch (error) {
-      console.error("failed to save screenConfig", error);
-    }
+    await db.put(levelKeys.screenState, configScreenWhenClosed, {
+      valueEncoding: "json",
+    });
   }
 
   private static async loadScreenConfig() {
-    try {
-      const screenConfigData = await readFile(this.configPath, "utf-8");
-      return JSON.parse(screenConfigData);
-    } catch (error) {
-      console.error("failed to load screenConfig:", error);
-      return {};
-    }
+    const data = await db.get<string, ScreenState>(levelKeys.screenState, {
+      valueEncoding: "json",
+    });
+    return data ?? {};
   }
   private static updateInitialConfig(
     newConfig: Partial<Electron.BrowserWindowConstructorOptions>
@@ -110,7 +95,7 @@ export class WindowManager {
   public static async createMainWindow() {
     if (this.mainWindow) return;
 
-    const { isMaximized, ...configWithoutMaximized } =
+    const { isMaximized = false, ...configWithoutMaximized } =
       await this.loadScreenConfig();
 
     this.updateInitialConfig(configWithoutMaximized);
