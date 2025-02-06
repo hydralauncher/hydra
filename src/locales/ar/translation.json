@@ -54,7 +54,8 @@
     "download_sources": "مصادر التنزيل",
     "result_count": "{{resultCount}} نتيجة",
     "filter_count": "{{filterCount}} متاح",
-    "clear_filters": "مسح {{filterCount}} المحددة"
+    "clear_filters": "مسح {{filterCount}} المحددة",
+    "go_up_button": "العودة إلى الأعلى"
   },
   "game_details": {
     "open_download_options": "فتح خيارات التنزيل",

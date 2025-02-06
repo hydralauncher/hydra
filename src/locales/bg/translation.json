@@ -55,7 +55,8 @@
     "download_sources": "Източници за изтегляне",
     "result_count": "{{resultCount}} резултати",
     "filter_count": "{{filterCount}} налични",
-    "clear_filters": "Изчисти {{filterCount}} избрани"
+    "clear_filters": "Изчисти {{filterCount}} избрани",
+    "go_up_button": "Обратно към върха"
   },
   "game_details": {
     "launch_options": "Опции за стартиране",
