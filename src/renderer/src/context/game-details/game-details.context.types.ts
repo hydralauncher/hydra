@@ -24,7 +24,9 @@ export interface GameDetailsContext {
   hasNSFWContentBlocked: boolean;
   lastDownloadedOption: GameRepack | null;
   setGameColor: React.Dispatch<React.SetStateAction<string>>;
-  selectGameExecutable: () => Promise<string | null>;
+  selectGameExecutable: (
+    gameInstallerFolderIfExists?: string
+  ) => Promise<string | null>;
   updateGame: () => Promise<void>;
   setShowRepacksModal: React.Dispatch<React.SetStateAction<boolean>>;
   setShowGameOptionsModal: React.Dispatch<React.SetStateAction<boolean>>;
