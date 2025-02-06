@@ -196,7 +196,6 @@ export function HeroPanelActions() {
           {game.favorite ? <HeartFillIcon /> : <HeartIcon />}
         </Button>
 
-
         <Button
           onClick={() => setShowGameOptionsModal(true)}
           theme="outline"
