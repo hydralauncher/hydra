@@ -26,7 +26,8 @@
     "game_has_no_executable": "Hra nemá zvolen žádný spustitelný soubor",
     "sign_in": "Přihlásit se",
     "friends": "Přátelé",
-    "need_help": "Potřebujete pomoc?"
+    "need_help": "Potřebujete pomoc?",
+    "favorites": "Oblíbené"
   },
   "header": {
     "search": "Vyhledat hry",

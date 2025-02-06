@@ -25,7 +25,8 @@
     "queued": "{{title}} (已加入下载队列)",
     "game_has_no_executable": "未选择游戏的可执行文件",
     "sign_in": "登入",
-    "friends": "好友"
+    "friends": "好友",
+    "favorites": "收藏"
   },
   "header": {
     "search": "搜索游戏",

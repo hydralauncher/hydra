@@ -26,7 +26,8 @@
     "game_has_no_executable": "Game has no executable selected",
     "sign_in": "Sign in",
     "friends": "Friends",
-    "need_help": "Need help?"
+    "need_help": "Need help?",
+    "favorites": "Favorites"
   },
   "header": {
     "search": "Search games",
@@ -191,6 +192,7 @@
     "download_error_not_cached_in_real_debrid": "This download is not available on Real-Debrid and polling download status from Real-Debrid is not yet available.",
     "download_error_not_cached_in_torbox": "This download is not available on Torbox and polling download status from Torbox is not yet available."
   },
+
   "activation": {
     "title": "Activate Hydra",
     "installation_id": "Installation ID:",

@@ -26,10 +26,12 @@
     "game_has_no_executable": "Jogo não possui executável selecionado",
     "sign_in": "Login",
     "friends": "Amigos",
-    "need_help": "Precisa de ajuda?"
+    "need_help": "Precisa de ajuda?",
+    "favorites": "Favoritos"
   },
   "header": {
     "search": "Buscar jogos",
+
     "catalogue": "Catálogo",
     "downloads": "Downloads",
     "search_results": "Resultados da busca",
@@ -179,6 +181,7 @@
     "download_error_not_cached_in_real_debrid": "Este download não está disponível no Real-Debrid e a verificação do status do download não está disponível.",
     "download_error_not_cached_in_torbox": "Este download não está disponível no Torbox e a verificação do status do download não está disponível."
   },
+
   "activation": {
     "title": "Ativação",
     "installation_id": "ID da instalação:",

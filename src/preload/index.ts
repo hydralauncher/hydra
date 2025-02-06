@@ -110,11 +110,16 @@ contextBridge.exposeInMainWorld("electron", {
     executablePath: string | null
   ) =>
     ipcRenderer.invoke("updateExecutablePath", shop, objectId, executablePath),
+  addGameToFavorites: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("addGameToFavorites", shop, objectId),
+  removeGameFromFavorites: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("removeGameFromFavorites", shop, objectId),
   updateLaunchOptions: (
     shop: GameShop,
     objectId: string,
     launchOptions: string | null
   ) => ipcRenderer.invoke("updateLaunchOptions", shop, objectId, launchOptions),
+
   selectGameWinePrefix: (
     shop: GameShop,
     objectId: string,
