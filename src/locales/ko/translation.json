@@ -111,6 +111,12 @@
     "launch_with_system": "컴퓨터가 시작되었을 때 Hydra 실행",
     "general": "일반",
     "behavior": "행동",
+    "cancel_button_confirmation_delete_all_sources": "아니요",
+    "confirm_button_confirmation_delete_all_sources": "네, 모두 삭제합니다",
+    "description_confirmation_delete_all_sources": "모든 다운로드 소스를 삭제합니다.",
+    "title_confirmation_delete_all_sources": "모든 다운로드 소스 삭제",
+    "removed_download_sources": "제거된 글꼴",
+    "button_delete_all_sources": "모든 다운로드 소스 제거",
     "enable_real_debrid": "Real-Debrid 활성화",
     "debrid_api_token_hint": "API 키를 <0>이곳</0>에서 얻으세요.",
     "save_changes": "변경 사항 저장"

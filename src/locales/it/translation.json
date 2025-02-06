@@ -120,6 +120,12 @@
     "general": "Generale",
     "behavior": "Comportamento",
     "enable_real_debrid": "Abilita Real Debrid",
+    "cancel_button_confirmation_delete_all_sources": "NO",
+    "confirm_button_confirmation_delete_all_sources": "Sì, cancella tutto",
+    "description_confirmation_delete_all_sources": "Eliminerai tutte le fonti di download",
+    "title_confirmation_delete_all_sources": "Elimina tutte le fonti di download",
+    "removed_download_sources": "Fonti di download rimosse",
+    "button_delete_all_sources": "Rimuovi tutte le fonti di download",
     "debrid_api_token_hint": "Puoi trovare la tua chiave API <0>here</0>",
     "save_changes": "Salva modifiche"
   },
