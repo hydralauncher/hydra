@@ -1,6 +1,7 @@
 import { Button } from "@renderer/components";
 import { useTranslation } from "react-i18next";
 import { SettingsRealDebrid } from "./settings-real-debrid";
+import { SettingsAllDebrid } from "./settings-all-debrid";
 import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
 import torBoxLogo from "@renderer/assets/icons/torbox.webp";
@@ -35,6 +36,7 @@ export default function Settings() {
         contentTitle: "TorBox",
       },
       { tabLabel: "Real-Debrid", contentTitle: "Real-Debrid" },
+      { tabLabel: "All-Debrid", contentTitle: "All-Debrid" },
     ];
 
     if (userDetails)
@@ -68,6 +70,10 @@ export default function Settings() {
 
             if (currentCategoryIndex === 4) {
               return <SettingsRealDebrid />;
+            }
+
+            if (currentCategoryIndex === 5) {
+              return <SettingsAllDebrid />;
             }
 
             return <SettingsAccount />;

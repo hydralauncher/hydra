@@ -174,3 +174,11 @@ export interface SeedingStatus {
   status: DownloadStatus;
   uploadSpeed: number;
 }
+
+/* All-Debrid */
+export interface AllDebridUser {
+  username: string;
+  email: string;
+  isPremium: boolean;
+  premiumUntil: string;
+}
