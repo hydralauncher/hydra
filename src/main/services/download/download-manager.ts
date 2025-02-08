@@ -16,6 +16,8 @@ import { logger } from "../logger";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { sortBy } from "lodash-es";
 import { TorBoxClient } from "./torbox";
+import { AllDebridClient } from "./all-debrid";
+import { spawn } from "child_process";
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
@@ -330,6 +332,18 @@ export class DownloadManager {
           action: "start",
           game_id: downloadId,
           url: downloadUrl,
+          save_path: download.downloadPath,
+        };
+      }
+      case Downloader.AllDebrid: {
+        const downloadUrls = await AllDebridClient.getDownloadUrls(download.uri);
+
+        if (!downloadUrls.length) throw new Error(DownloadError.NotCachedInAllDebrid);
+
+        return {
+          action: "start",
+          game_id: downloadId,
+          url: downloadUrls,
           save_path: download.downloadPath,
         };
       }

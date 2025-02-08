@@ -182,3 +182,30 @@ export interface AllDebridUser {
   isPremium: boolean;
   premiumUntil: string;
 }
+
+export enum Downloader {
+    Gofile = "gofile",
+    PixelDrain = "pixeldrain",
+    Qiwi = "qiwi",
+    Datanodes = "datanodes",
+    Mediafire = "mediafire",
+    Torrent = "torrent",
+    RealDebrid = "realdebrid",
+    AllDebrid = "alldebrid",
+    TorBox = "torbox",
+}
+
+export enum DownloadError {
+    NotCachedInRealDebrid = "not_cached_in_realdebrid",
+    NotCachedInAllDebrid = "not_cached_in_alldebrid",
+    // ... alte erori existente
+}
+
+export interface GamePayload {
+    action: string;
+    game_id: string;
+    url: string | string[];  // Modificăm pentru a accepta și array de URL-uri
+    save_path: string;
+    header?: string;
+    out?: string;
+}

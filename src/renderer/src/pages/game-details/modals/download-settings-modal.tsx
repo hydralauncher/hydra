@@ -87,6 +87,8 @@ export function DownloadSettingsModal({
         return userPreferences?.realDebridApiToken;
       if (downloader === Downloader.TorBox)
         return userPreferences?.torBoxApiToken;
+      if (downloader === Downloader.AllDebrid)
+        return userPreferences?.allDebridApiKey;
       return true;
     });
 
@@ -100,6 +102,8 @@ export function DownloadSettingsModal({
     userPreferences?.downloadsPath,
     downloaders,
     userPreferences?.realDebridApiToken,
+    userPreferences?.torBoxApiToken,
+    userPreferences?.allDebridApiKey,
   ]);
 
   const handleChooseDownloadsPath = async () => {
@@ -163,8 +167,10 @@ export function DownloadSettingsModal({
                   selectedDownloader === downloader ? "primary" : "outline"
                 }
                 disabled={
-                  downloader === Downloader.RealDebrid &&
-                  !userPreferences?.realDebridApiToken
+                  (downloader === Downloader.RealDebrid &&
+                    !userPreferences?.realDebridApiToken) ||
+                  (downloader === Downloader.AllDebrid &&
+                    !userPreferences?.allDebridApiKey)
                 }
                 onClick={() => setSelectedDownloader(downloader)}
               >

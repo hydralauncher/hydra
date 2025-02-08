@@ -23,19 +23,27 @@ torrent_session = lt.session({'listen_interfaces': '0.0.0.0:{port}'.format(port=
 if start_download_payload:
     initial_download = json.loads(urllib.parse.unquote(start_download_payload))
     downloading_game_id = initial_download['game_id']
+    url = initial_download['url']
     
-    if initial_download['url'].startswith('magnet'):
+    # Verificăm dacă avem un URL de tip magnet (fie direct, fie primul dintr-o listă)
+    is_magnet = False
+    if isinstance(url, str):
+        is_magnet = url.startswith('magnet')
+    elif isinstance(url, list) and url:
+        is_magnet = False  # Pentru AllDebrid, chiar dacă vine dintr-un magnet, primim HTTP links
+    
+    if is_magnet:
         torrent_downloader = TorrentDownloader(torrent_session)
         downloads[initial_download['game_id']] = torrent_downloader
         try:
-            torrent_downloader.start_download(initial_download['url'], initial_download['save_path'])
+            torrent_downloader.start_download(url, initial_download['save_path'])
         except Exception as e:
             print("Error starting torrent download", e)
     else:
         http_downloader = HttpDownloader()
         downloads[initial_download['game_id']] = http_downloader
         try:
-            http_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'), initial_download.get("out"))
+            http_downloader.start_download(url, initial_download['save_path'], initial_download.get('header'), initial_download.get("out"))
         except Exception as e:
             print("Error starting http download", e)
 
@@ -135,10 +143,18 @@ def action():
 
     if action == 'start':
         url = data.get('url')
+        print(f"Starting download with URL: {url}")
 
         existing_downloader = downloads.get(game_id)
 
-        if url.startswith('magnet'):
+        # Verificăm dacă avem un URL de tip magnet (fie direct, fie primul dintr-o listă)
+        is_magnet = False
+        if isinstance(url, str):
+            is_magnet = url.startswith('magnet')
+        elif isinstance(url, list) and url:
+            is_magnet = False  # Pentru AllDebrid, chiar dacă vine dintr-un magnet, primim HTTP links
+
+        if is_magnet:
             if existing_downloader and isinstance(existing_downloader, TorrentDownloader):
                 existing_downloader.start_download(url, data['save_path'])
             else:
@@ -172,7 +188,6 @@ def action():
         downloader = downloads.get(game_id)
         if downloader:
             downloader.cancel_download()
-
     else:
         return jsonify({"error": "Invalid action"}), 400
 

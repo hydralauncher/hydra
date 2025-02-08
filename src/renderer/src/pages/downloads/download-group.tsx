@@ -240,7 +240,9 @@ export function DownloadGroup({
       (download?.downloader === Downloader.RealDebrid &&
         !userPreferences?.realDebridApiToken) ||
       (download?.downloader === Downloader.TorBox &&
-        !userPreferences?.torBoxApiToken);
+        !userPreferences?.torBoxApiToken) ||
+      (download?.downloader === Downloader.AllDebrid &&
+        !userPreferences?.allDebridApiKey);
 
     return [
       {
