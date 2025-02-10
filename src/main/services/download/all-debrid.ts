@@ -27,6 +27,12 @@ interface AllDebridError {
     message: string;
 }
 
+interface AllDebridDownloadUrl {
+    link: string;
+    size?: number;
+    filename?: string;
+}
+
 export class AllDebridClient {
     private static instance: AxiosInstance;
     private static readonly baseURL = "https://api.alldebrid.com/v4";
@@ -201,7 +207,7 @@ export class AllDebridClient {
         }
     }
 
-    public static async getDownloadUrls(uri: string): Promise<string[]> {
+    public static async getDownloadUrls(uri: string): Promise<AllDebridDownloadUrl[]> {
         try {
             logger.info("[AllDebrid] Getting download URLs for URI:", uri);
             
@@ -226,7 +232,11 @@ export class AllDebridClient {
                                 try {
                                     const unlockedLink = await this.unlockLink(link.link);
                                     logger.info("[AllDebrid] Successfully unlocked link:", unlockedLink);
-                                    return unlockedLink;
+                                    return {
+                                        link: unlockedLink,
+                                        size: link.size,
+                                        filename: link.filename
+                                    };
                                 } catch (error) {
                                     logger.error("[AllDebrid] Failed to unlock link:", link.link, error);
                                     throw new Error("Failed to unlock all links");
@@ -249,7 +259,9 @@ export class AllDebridClient {
                 // Pentru link-uri normale, doar debridam link-ul
                 const downloadUrl = await this.unlockLink(uri);
                 logger.info("[AllDebrid] Got unlocked download URL:", downloadUrl);
-                return [downloadUrl];
+                return [{
+                    link: downloadUrl
+                }];
             }
         } catch (error: any) {
             logger.error("[AllDebrid] Get Download URLs Error:", error);

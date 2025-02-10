@@ -8,8 +8,6 @@ import crypto from "node:crypto";
 import { pythonRpcLogger } from "./logger";
 import { Readable } from "node:stream";
 import { app, dialog } from "electron";
-import { db, levelKeys } from "@main/level";
-import type { UserPreferences } from "@types";
 
 interface GamePayload {
   game_id: string;
@@ -44,7 +42,7 @@ export class PythonRPC {
     readable.on("data", pythonRpcLogger.log);
   }
 
-  public static async spawn(
+  public static spawn(
     initialDownload?: GamePayload,
     initialSeeding?: GamePayload[]
   ) {
@@ -55,15 +53,6 @@ export class PythonRPC {
       initialDownload ? JSON.stringify(initialDownload) : "",
       initialSeeding ? JSON.stringify(initialSeeding) : "",
     ];
-
-    const userPreferences = await db.get<string, UserPreferences | null>(levelKeys.userPreferences, {
-      valueEncoding: "json",
-    });
-
-    const env = {
-      ...process.env,
-      ALLDEBRID_API_KEY: userPreferences?.allDebridApiKey || ""
-    };
 
     if (app.isPackaged) {
       const binaryName = binaryNameByPlatform[process.platform]!;
@@ -85,7 +74,6 @@ export class PythonRPC {
       const childProcess = cp.spawn(binaryPath, commonArgs, {
         windowsHide: true,
         stdio: ["inherit", "inherit"],
-        env
       });
 
       this.logStderr(childProcess.stderr);
@@ -102,7 +90,6 @@ export class PythonRPC {
 
       const childProcess = cp.spawn("python3", [scriptPath, ...commonArgs], {
         stdio: ["inherit", "inherit"],
-        env
       });
 
       this.logStderr(childProcess.stderr);

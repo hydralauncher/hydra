@@ -17,17 +17,24 @@ export const calculateETA = (
 };
 
 export const getDirSize = async (dir: string): Promise<number> => {
-  const getItemSize = async (filePath: string): Promise<number> => {
-    const stat = await fs.promises.stat(filePath);
-
-    if (stat.isDirectory()) {
-      return getDirSize(filePath);
+  try {
+    const stat = await fs.promises.stat(dir);
+    
+    // If it's a file, return its size directly
+    if (!stat.isDirectory()) {
+      return stat.size;
     }
 
-    return stat.size;
-  };
+    const getItemSize = async (filePath: string): Promise<number> => {
+      const stat = await fs.promises.stat(filePath);
 
-  try {
+      if (stat.isDirectory()) {
+        return getDirSize(filePath);
+      }
+
+      return stat.size;
+    };
+
     const files = await fs.promises.readdir(dir);
     const filePaths = files.map((file) => path.join(dir, file));
     const sizes = await Promise.all(filePaths.map(getItemSize));
