@@ -44,5 +44,5 @@ class HttpDownloader:
             'status': download.status,
             'bytesDownloaded': download.completed_length,
         }
-
+        
         return response

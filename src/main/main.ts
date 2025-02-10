@@ -6,6 +6,7 @@ import {
   startMainLoop,
 } from "./services";
 import { RealDebridClient } from "./services/download/real-debrid";
+import { AllDebridClient } from "./services/download/all-debrid";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
 import { Aria2 } from "./services/aria2";
@@ -41,6 +42,10 @@ export const loadState = async () => {
     RealDebridClient.authorize(
       Crypto.decrypt(userPreferences.realDebridApiToken)
     );
+  }
+
+  if (userPreferences?.allDebridApiKey) {
+    AllDebridClient.authorize(Crypto.decrypt(userPreferences.allDebridApiKey));
   }
 
   if (userPreferences?.torBoxApiToken) {
@@ -117,7 +122,8 @@ const migrateFromSqlite = async () => {
     .select("*")
     .then(async (userPreferences) => {
       if (userPreferences.length > 0) {
-        const { realDebridApiToken, ...rest } = userPreferences[0];
+        const { realDebridApiToken, allDebridApiKey, ...rest } =
+          userPreferences[0];
 
         await db.put<string, UserPreferences>(
           levelKeys.userPreferences,
@@ -125,6 +131,9 @@ const migrateFromSqlite = async () => {
             ...rest,
             realDebridApiToken: realDebridApiToken
               ? Crypto.encrypt(realDebridApiToken)
+              : null,
+            allDebridApiKey: allDebridApiKey
+              ? Crypto.encrypt(allDebridApiKey)
               : null,
             preferQuitInsteadOfHiding: rest.preferQuitInsteadOfHiding === 1,
             runAtStartup: rest.runAtStartup === 1,

@@ -30,6 +30,10 @@ const updateUserPreferences = async (
     );
   }
 
+  if (preferences.allDebridApiKey) {
+    preferences.allDebridApiKey = Crypto.encrypt(preferences.allDebridApiKey);
+  }
+
   if (preferences.torBoxApiToken) {
     preferences.torBoxApiToken = Crypto.encrypt(preferences.torBoxApiToken);
   }

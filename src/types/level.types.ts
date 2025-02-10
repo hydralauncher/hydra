@@ -70,6 +70,7 @@ export interface UserPreferences {
   downloadsPath?: string | null;
   language?: string;
   realDebridApiToken?: string | null;
+  allDebridApiKey?: string | null;
   torBoxApiToken?: string | null;
   preferQuitInsteadOfHiding?: boolean;
   runAtStartup?: boolean;
