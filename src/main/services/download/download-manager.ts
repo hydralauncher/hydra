@@ -317,18 +317,24 @@ export class DownloadManager {
         };
       }
       case Downloader.AllDebrid: {
-        const downloadUrls = await AllDebridClient.getDownloadUrls(download.uri);
+        const downloadUrls = await AllDebridClient.getDownloadUrls(
+          download.uri
+        );
 
-        if (!downloadUrls.length) throw new Error(DownloadError.NotCachedInAllDebrid);
+        if (!downloadUrls.length)
+          throw new Error(DownloadError.NotCachedInAllDebrid);
 
-        const totalSize = downloadUrls.reduce((total, url) => total + (url.size || 0), 0);
+        const totalSize = downloadUrls.reduce(
+          (total, url) => total + (url.size || 0),
+          0
+        );
 
         return {
           action: "start",
           game_id: downloadId,
-          url: downloadUrls.map(d => d.link),
+          url: downloadUrls.map((d) => d.link),
           save_path: download.downloadPath,
-          total_size: totalSize
+          total_size: totalSize,
         };
       }
       case Downloader.Torrent:

@@ -151,7 +151,9 @@ declare global {
       minimized: boolean;
     }) => Promise<void>;
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
-    authenticateAllDebrid: (apiKey: string) => Promise<AllDebridUser | { error_code: string }>;
+    authenticateAllDebrid: (
+      apiKey: string
+    ) => Promise<AllDebridUser | { error_code: string }>;
     authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
     onAchievementUnlocked: (cb: () => void) => () => Electron.IpcRenderer;
 
