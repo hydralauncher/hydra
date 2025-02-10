@@ -292,7 +292,7 @@ export class AllDebridClient {
           }
 
           await new Promise((resolve) => setTimeout(resolve, 2000)); // Așteptăm 2 secunde între verificări
-        } while (true);
+        } while (magnetStatus.statusCode !== 4);
       } else {
         logger.info("[AllDebrid] Regular link, unlocking...");
         // Pentru link-uri normale, doar debridam link-ul
@@ -308,5 +308,6 @@ export class AllDebridClient {
       logger.error("[AllDebrid] Get Download URLs Error:", error);
       throw error;
     }
+    return []; // Add default return for TypeScript
   }
 }
