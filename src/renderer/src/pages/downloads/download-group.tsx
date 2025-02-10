@@ -112,6 +112,15 @@ export function DownloadGroup({
         );
       }
 
+      if (download.downloader === Downloader.AllDebrid) {
+        return (
+          <>
+            <p>{progress}</p>
+            <p>{t("alldebrid_size_not_supported")}</p>
+          </>
+        );
+      }
+
       return (
         <>
           <p>{progress}</p>
@@ -154,6 +163,15 @@ export function DownloadGroup({
     }
 
     if (download.status === "active") {
+      if (download.downloader === Downloader.AllDebrid) {
+        return (
+          <>
+            <p>{formatDownloadProgress(download.progress)}</p>
+            <p>{t("alldebrid_size_not_supported")}</p>
+          </>
+        );
+      }
+
       return (
         <>
           <p>{formatDownloadProgress(download.progress)}</p>

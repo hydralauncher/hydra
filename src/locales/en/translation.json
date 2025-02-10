@@ -227,7 +227,8 @@
     "seeding": "Seeding",
     "stop_seeding": "Stop seeding",
     "resume_seeding": "Resume seeding",
-    "options": "Manage"
+    "options": "Manage",
+    "alldebrid_size_not_supported": "Download info for AllDebrid is not supported yet"
   },
   "settings": {
     "downloads_path": "Downloads path",
