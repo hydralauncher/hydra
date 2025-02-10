@@ -45,15 +45,11 @@ export const loadState = async () => {
   }
 
   if (userPreferences?.allDebridApiKey) {
-      AllDebridClient.authorize(
-        Crypto.decrypt(userPreferences.allDebridApiKey)
-      );
+    AllDebridClient.authorize(Crypto.decrypt(userPreferences.allDebridApiKey));
   }
 
   if (userPreferences?.torBoxApiToken) {
-    TorBoxClient.authorize(
-      Crypto.decrypt(userPreferences.torBoxApiToken)
-    );
+    TorBoxClient.authorize(Crypto.decrypt(userPreferences.torBoxApiToken));
   }
 
   Ludusavi.addManifestToLudusaviConfig();
@@ -126,7 +122,8 @@ const migrateFromSqlite = async () => {
     .select("*")
     .then(async (userPreferences) => {
       if (userPreferences.length > 0) {
-        const { realDebridApiToken, allDebridApiKey, ...rest } = userPreferences[0];
+        const { realDebridApiToken, allDebridApiKey, ...rest } =
+          userPreferences[0];
 
         await db.put<string, UserPreferences>(
           levelKeys.userPreferences,

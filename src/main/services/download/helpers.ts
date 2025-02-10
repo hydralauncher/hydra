@@ -19,7 +19,7 @@ export const calculateETA = (
 export const getDirSize = async (dir: string): Promise<number> => {
   try {
     const stat = await fs.promises.stat(dir);
-    
+
     // If it's a file, return its size directly
     if (!stat.isDirectory()) {
       return stat.size;

@@ -53,7 +53,7 @@ export function SettingsAllDebrid() {
           form.allDebridApiKey
         );
 
-        if ('error_code' in result) {
+        if ("error_code" in result) {
           showErrorToast(t(result.error_code));
           return;
         }
@@ -126,4 +126,4 @@ export function SettingsAllDebrid() {
       )}
     </form>
   );
-} 
+}

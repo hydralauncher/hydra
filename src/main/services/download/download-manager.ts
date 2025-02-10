@@ -17,17 +17,6 @@ import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { sortBy } from "lodash-es";
 import { TorBoxClient } from "./torbox";
 import { AllDebridClient } from "./all-debrid";
-import { spawn } from "child_process";
-
-interface GamePayload {
-  action: string;
-  game_id: string;
-  url: string | string[];
-  save_path: string;
-  header?: string;
-  out?: string;
-  total_size?: number;
-}
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
@@ -44,6 +33,7 @@ export class DownloadManager {
           })
         : undefined,
       downloadsToSeed?.map((download) => ({
+        action: "seed",
         game_id: levelKeys.game(download.shop, download.objectId),
         url: download.uri,
         save_path: download.downloadPath,
@@ -145,15 +135,45 @@ export class DownloadManager {
       if (progress === 1 && download) {
         publishDownloadCompleteNotification(game);
 
-        await downloadsSublevel.put(gameId, {
-          ...download,
-          status: "complete",
-          shouldSeed: false,
-          queued: false,
-        });
+        if (
+          userPreferences?.seedAfterDownloadComplete &&
+          download.downloader === Downloader.Torrent
+        ) {
+          downloadsSublevel.put(gameId, {
+            ...download,
+            status: "seeding",
+            shouldSeed: true,
+            queued: false,
+          });
+        } else {
+          downloadsSublevel.put(gameId, {
+            ...download,
+            status: "complete",
+            shouldSeed: false,
+            queued: false,
+          });
 
-        await this.cancelDownload(gameId);
-        this.downloadingGameId = null;
+          this.cancelDownload(gameId);
+        }
+
+        const downloads = await downloadsSublevel
+          .values()
+          .all()
+          .then((games) => {
+            return sortBy(
+              games.filter((game) => game.status === "paused" && game.queued),
+              "timestamp",
+              "DESC"
+            );
+          });
+
+        const [nextItemOnQueue] = downloads;
+
+        if (nextItemOnQueue) {
+          this.resumeDownload(nextItemOnQueue);
+        } else {
+          this.downloadingGameId = null;
+        }
       }
     }
   }
@@ -296,6 +316,21 @@ export class DownloadManager {
           save_path: download.downloadPath,
         };
       }
+      case Downloader.AllDebrid: {
+        const downloadUrls = await AllDebridClient.getDownloadUrls(download.uri);
+
+        if (!downloadUrls.length) throw new Error(DownloadError.NotCachedInAllDebrid);
+
+        const totalSize = downloadUrls.reduce((total, url) => total + (url.size || 0), 0);
+
+        return {
+          action: "start",
+          game_id: downloadId,
+          url: downloadUrls.map(d => d.link),
+          save_path: download.downloadPath,
+          total_size: totalSize
+        };
+      }
       case Downloader.Torrent:
         return {
           action: "start",
@@ -313,21 +348,6 @@ export class DownloadManager {
           game_id: downloadId,
           url: downloadUrl,
           save_path: download.downloadPath,
-        };
-      }
-      case Downloader.AllDebrid: {
-        const downloadUrls = await AllDebridClient.getDownloadUrls(download.uri);
-
-        if (!downloadUrls.length) throw new Error(DownloadError.NotCachedInAllDebrid);
-
-        const totalSize = downloadUrls.reduce((total, url) => total + (url.size || 0), 0);
-
-        return {
-          action: "start",
-          game_id: downloadId,
-          url: downloadUrls.map(d => d.link),
-          save_path: download.downloadPath,
-          total_size: totalSize
         };
       }
       case Downloader.TorBox: {

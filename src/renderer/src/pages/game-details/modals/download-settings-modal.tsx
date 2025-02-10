@@ -176,7 +176,6 @@ export function DownloadSettingsModal({
                 }
                 onClick={() => setSelectedDownloader(downloader)}
               >
-
                 {selectedDownloader === downloader && (
                   <CheckCircleFillIcon className="download-settings-modal__downloader-icon" />
                 )}

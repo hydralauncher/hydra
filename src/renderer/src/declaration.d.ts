@@ -29,6 +29,7 @@ import type {
   LibraryGame,
   GameRunning,
   TorBoxUser,
+  AllDebridUser,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -150,6 +151,7 @@ declare global {
       minimized: boolean;
     }) => Promise<void>;
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
+    authenticateAllDebrid: (apiKey: string) => Promise<AllDebridUser | { error_code: string }>;
     authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
     onAchievementUnlocked: (cb: () => void) => () => Electron.IpcRenderer;
 

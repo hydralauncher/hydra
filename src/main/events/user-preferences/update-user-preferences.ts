@@ -31,9 +31,7 @@ const updateUserPreferences = async (
   }
 
   if (preferences.allDebridApiKey) {
-    preferences.allDebridApiKey = Crypto.encrypt(
-      preferences.allDebridApiKey
-    );
+    preferences.allDebridApiKey = Crypto.encrypt(preferences.allDebridApiKey);
   }
 
   if (preferences.torBoxApiToken) {

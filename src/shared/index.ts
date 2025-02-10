@@ -95,7 +95,12 @@ export const getDownloadersForUri = (uri: string) => {
     return [Downloader.RealDebrid];
 
   if (uri.startsWith("magnet:")) {
-    return [Downloader.Torrent, Downloader.TorBox, Downloader.RealDebrid, Downloader.AllDebrid];
+    return [
+      Downloader.Torrent,
+      Downloader.TorBox,
+      Downloader.RealDebrid,
+      Downloader.AllDebrid,
+    ];
   }
 
   return [];
