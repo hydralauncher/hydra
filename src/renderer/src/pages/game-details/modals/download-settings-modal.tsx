@@ -170,10 +170,13 @@ export function DownloadSettingsModal({
                   (downloader === Downloader.RealDebrid &&
                     !userPreferences?.realDebridApiToken) ||
                   (downloader === Downloader.AllDebrid &&
-                    !userPreferences?.allDebridApiKey)
+                    !userPreferences?.allDebridApiKey) ||
+                  (downloader === Downloader.TorBox &&
+                    !userPreferences?.torBoxApiToken)
                 }
                 onClick={() => setSelectedDownloader(downloader)}
               >
+
                 {selectedDownloader === downloader && (
                   <CheckCircleFillIcon className="download-settings-modal__downloader-icon" />
                 )}
