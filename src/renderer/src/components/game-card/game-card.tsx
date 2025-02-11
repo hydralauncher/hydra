@@ -75,40 +75,40 @@ export function GameCard({ game, ...props }: GameCardProps) {
             <p className="game-card__title">{game.title}</p>
           </div>
 
-{uniqueRepackers.length > 0 ? (
-  <ul className="game-card__download-options">
-    {firstThreeRepackers.map((repacker) => (
-      <li key={repacker}>
-        <Badge>{repacker}</Badge>
-      </li>
-    ))}
-    {remainingCount > 0 && (
-      <li>
-        <Badge>
-          +{remainingCount} {t("game_card:available", { count: remainingCount })}
-        </Badge>
-      </li>
-    )}
-  </ul>
-) : (
-  <p className="game-card__no-download-label">{t("no_downloads")}</p>
-)}
+          {uniqueRepackers.length > 0 ? (
+            <ul className="game-card__download-options">
+              {firstThreeRepackers.map((repacker) => (
+                <li key={repacker}>
+                  <Badge>{repacker}</Badge>
+                </li>
+              ))}
+              {remainingCount > 0 && (
+                <li>
+                  <Badge>
+                    +{remainingCount}{" "}
+                    {t("game_card:available", { count: remainingCount })}
+                  </Badge>
+                </li>
+              )}
+            </ul>
+          ) : (
+            <p className="game-card__no-download-label">{t("no_downloads")}</p>
+          )}
 
-<div className="game-card__specifics">
-  <div className="game-card__specifics-item">
-    <DownloadIcon />
-    <span>
-      {stats ? numberFormatter.format(stats.downloadCount) : "…"}
-    </span>
-  </div>
-  <div className="game-card__specifics-item">
-    <PeopleIcon />
-    <span>
-      {stats ? numberFormatter.format(stats.playerCount) : "…"}
-    </span>
-  </div>
-</div>
-
+          <div className="game-card__specifics">
+            <div className="game-card__specifics-item">
+              <DownloadIcon />
+              <span>
+                {stats ? numberFormatter.format(stats.downloadCount) : "…"}
+              </span>
+            </div>
+            <div className="game-card__specifics-item">
+              <PeopleIcon />
+              <span>
+                {stats ? numberFormatter.format(stats.playerCount) : "…"}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </button>
