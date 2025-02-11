@@ -96,23 +96,19 @@ export function GameCard({ game, ...props }: GameCardProps) {
 
 <div className="game-card__specifics">
   <div className="game-card__specifics-item">
-    {/* ...additional specifics content... */}
+    <DownloadIcon />
+    <span>
+      {stats ? numberFormatter.format(stats.downloadCount) : "…"}
+    </span>
+  </div>
+  <div className="game-card__specifics-item">
+    <PeopleIcon />
+    <span>
+      {stats ? numberFormatter.format(stats.playerCount) : "…"}
+    </span>
   </div>
 </div>
 
-              <DownloadIcon />
-              <span>
-                {stats ? numberFormatter.format(stats.downloadCount) : "…"}
-              </span>
-            </div>
-
-            <div className="game-card__specifics-item">
-              <PeopleIcon />
-              <span>
-                {stats ? numberFormatter.format(stats?.playerCount) : "…"}
-              </span>
-            </div>
-          </div>
         </div>
       </div>
     </button>
