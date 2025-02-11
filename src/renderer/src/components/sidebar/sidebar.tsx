@@ -14,13 +14,15 @@ import {
 
 import { routes } from "./routes";
 
-import * as styles from "./sidebar.css";
+import "./sidebar.scss";
+
 import { buildGameDetailsPath } from "@renderer/helpers";
 
-import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { SidebarProfile } from "./sidebar-profile";
 import { sortBy } from "lodash-es";
+import cn from "classnames";
 import { CommentDiscussionIcon } from "@primer/octicons-react";
+import { SidebarGameItem } from "./sidebar-game-item";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -56,7 +58,7 @@ export function Sidebar() {
 
   useEffect(() => {
     updateLibrary();
-  }, [lastPacket?.game.id, updateLibrary]);
+  }, [lastPacket?.gameId, updateLibrary]);
 
   const sidebarRef = useRef<HTMLElement>(null);
 
@@ -118,18 +120,17 @@ export function Sidebar() {
   }, [isResizing]);
 
   const getGameTitle = (game: LibraryGame) => {
-    if (lastPacket?.game.id === game.id) {
+    if (lastPacket?.gameId === game.id) {
       return t("downloading", {
         title: game.title,
         percentage: progress,
       });
     }
 
-    if (game.downloadQueue !== null) {
-      return t("queued", { title: game.title });
-    }
+    if (game.download?.queued) return t("queued", { title: game.title });
 
-    if (game.status === "paused") return t("paused", { title: game.title });
+    if (game.download?.status === "paused")
+      return t("paused", { title: game.title });
 
     return game.title;
   };
@@ -146,7 +147,7 @@ export function Sidebar() {
   ) => {
     const path = buildGameDetailsPath({
       ...game,
-      objectId: game.objectID,
+      objectId: game.objectId,
     });
     if (path !== location.pathname) {
       navigate(path);
@@ -155,7 +156,8 @@ export function Sidebar() {
     if (event.detail === 2) {
       if (game.executablePath) {
         window.electron.openGame(
-          game.id,
+          game.shop,
+          game.objectId,
           game.executablePath,
           game.launchOptions
         );
@@ -168,9 +170,9 @@ export function Sidebar() {
   return (
     <aside
       ref={sidebarRef}
-      className={styles.sidebar({
-        resizing: isResizing,
-        darwin: window.electron.platform === "darwin",
+      className={cn("sidebar", {
+        "sidebar--resizing": isResizing,
+        "sidebar--darwin": window.electron.platform === "darwin",
       })}
       style={{
         width: sidebarWidth,
@@ -178,24 +180,22 @@ export function Sidebar() {
         maxWidth: sidebarWidth,
       }}
     >
-      <div
-        style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}
-      >
+      <div className="sidebar__container">
         <SidebarProfile />
 
-        <div className={styles.content}>
-          <section className={styles.section}>
-            <ul className={styles.menu}>
+        <div className="sidebar__content">
+          <section className="sidebar__section">
+            <ul className="sidebar__menu">
               {routes.map(({ nameKey, path, render }) => (
                 <li
                   key={nameKey}
-                  className={styles.menuItem({
-                    active: location.pathname === path,
+                  className={cn("sidebar__menu-item", {
+                    "sidebar__menu-item--active": location.pathname === path,
                   })}
                 >
                   <button
                     type="button"
-                    className={styles.menuItemButton}
+                    className="sidebar__menu-item-button"
                     onClick={() => handleSidebarItemClick(path)}
                   >
                     {render()}
@@ -206,8 +206,25 @@ export function Sidebar() {
             </ul>
           </section>
 
-          <section className={styles.section}>
-            <small className={styles.sectionTitle}>{t("my_library")}</small>
+          <section className="sidebar__section">
+            <small className="sidebar__section-title">{t("favorites")}</small>
+
+            <ul className="sidebar__menu">
+              {sortedLibrary
+                .filter((game) => game.favorite)
+                .map((game) => (
+                  <SidebarGameItem
+                    key={game.id}
+                    game={game}
+                    handleSidebarGameClick={handleSidebarGameClick}
+                    getGameTitle={getGameTitle}
+                  />
+                ))}
+            </ul>
+          </section>
+
+          <section className="sidebar__section">
+            <small className="sidebar__section-title">{t("my_library")}</small>
 
             <TextField
               ref={filterRef}
@@ -216,39 +233,17 @@ export function Sidebar() {
               theme="dark"
             />
 
-            <ul className={styles.menu}>
-              {filteredLibrary.map((game) => (
-                <li
-                  key={game.id}
-                  className={styles.menuItem({
-                    active:
-                      location.pathname ===
-                      `/game/${game.shop}/${game.objectID}`,
-                    muted: game.status === "removed",
-                  })}
-                >
-                  <button
-                    type="button"
-                    className={styles.menuItemButton}
-                    onClick={(event) => handleSidebarGameClick(event, game)}
-                  >
-                    {game.iconUrl ? (
-                      <img
-                        className={styles.gameIcon}
-                        src={game.iconUrl}
-                        alt={game.title}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <SteamLogo className={styles.gameIcon} />
-                    )}
-
-                    <span className={styles.menuItemButtonLabel}>
-                      {getGameTitle(game)}
-                    </span>
-                  </button>
-                </li>
-              ))}
+            <ul className="sidebar__menu">
+              {filteredLibrary
+                .filter((game) => !game.favorite)
+                .map((game) => (
+                  <SidebarGameItem
+                    key={game.id}
+                    game={game}
+                    handleSidebarGameClick={handleSidebarGameClick}
+                    getGameTitle={getGameTitle}
+                  />
+                ))}
             </ul>
           </section>
         </div>
@@ -257,10 +252,10 @@ export function Sidebar() {
       {hasActiveSubscription && (
         <button
           type="button"
-          className={styles.helpButton}
+          className="sidebar__help-button"
           data-open-support-chat
         >
-          <div className={styles.helpButtonIcon}>
+          <div className="sidebar__help-button-icon">
             <CommentDiscussionIcon size={14} />
           </div>
           <span>{t("need_help")}</span>
@@ -269,7 +264,7 @@ export function Sidebar() {
 
       <button
         type="button"
-        className={styles.handle}
+        className="sidebar__handle"
         onMouseDown={handleMouseDown}
       />
     </aside>

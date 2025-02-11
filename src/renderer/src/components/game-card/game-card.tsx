@@ -3,7 +3,8 @@ import type { GameStats } from "@types";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 
-import * as styles from "./game-card.css";
+import "./game-card.scss";
+
 import { useTranslation } from "react-i18next";
 import { Badge } from "../badge/badge";
 import { useCallback, useState, useMemo } from "react";
@@ -19,7 +20,7 @@ export interface GameCardProps
 }
 
 const shopIcon = {
-  steam: <SteamLogo className={styles.shopIcon} />,
+  steam: <SteamLogo className="game-card__shop-icon" />,
 };
 
 export function GameCard({ game, ...props }: GameCardProps) {
@@ -57,49 +58,55 @@ export function GameCard({ game, ...props }: GameCardProps) {
     <button
       {...props}
       type="button"
-      className={styles.card}
+      className="game-card"
       onMouseEnter={handleHover}
     >
-      <div className={styles.backdrop}>
+      <div className="game-card__backdrop">
         <img
           src={steamUrlBuilder.library(game.objectId)}
           alt={game.title}
-          className={styles.cover}
+          className="game-card__cover"
           loading="lazy"
         />
 
-        <div className={styles.content}>
-          <div className={styles.titleContainer}>
+        <div className="game-card__content">
+          <div className="game-card__title-container">
             {shopIcon[game.shop]}
-            <p className={styles.title}>{game.title}</p>
+            <p className="game-card__title">{game.title}</p>
           </div>
 
-          <div className={styles.downloadOptions}>
-            {uniqueRepackers.length > 0 ? (
-              <>
-                {firstThreeRepackers.map((repacker) => (
-                  <Badge key={repacker}>{repacker}</Badge>
-                ))}
-                {remainingCount > 0 && (
-                  <Badge>
-                    +{remainingCount} {t("game_card:available", { count: remainingCount })}
-                  </Badge>
-                )}
-              </>
-            ) : (
-              <p className={styles.noDownloadsLabel}>{t("no_downloads")}</p>
-            )}
-          </div>
+{uniqueRepackers.length > 0 ? (
+  <ul className="game-card__download-options">
+    {firstThreeRepackers.map((repacker) => (
+      <li key={repacker}>
+        <Badge>{repacker}</Badge>
+      </li>
+    ))}
+    {remainingCount > 0 && (
+      <li>
+        <Badge>
+          +{remainingCount} {t("game_card:available", { count: remainingCount })}
+        </Badge>
+      </li>
+    )}
+  </ul>
+) : (
+  <p className="game-card__no-download-label">{t("no_downloads")}</p>
+)}
 
-          <div className={styles.specifics}>
-            <div className={styles.specificsItem}>
+<div className="game-card__specifics">
+  <div className="game-card__specifics-item">
+    {/* ...additional specifics content... */}
+  </div>
+</div>
+
               <DownloadIcon />
               <span>
                 {stats ? numberFormatter.format(stats.downloadCount) : "…"}
               </span>
             </div>
 
-            <div className={styles.specificsItem}>
+            <div className="game-card__specifics-item">
               <PeopleIcon />
               <span>
                 {stats ? numberFormatter.format(stats?.playerCount) : "…"}

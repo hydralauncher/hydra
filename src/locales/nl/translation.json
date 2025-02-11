@@ -14,10 +14,12 @@
     "paused": "{{title}} (Gepauzeerd)",
     "downloading": "{{title}} ({{percentage}} - Downloading…)",
     "filter": "Filter Bibliotheek",
-    "home": "Home"
+    "home": "Home",
+    "favorites": "Favorieten"
   },
   "header": {
     "search": "Zoek spellen",
+
     "home": "Home",
     "catalogue": "Bibliotheek",
     "downloads": "Downloads",
@@ -111,7 +113,7 @@
     "general": "Algemeen",
     "behavior": "Gedrag",
     "enable_real_debrid": "Enable Real-Debrid",
-    "real_debrid_api_token_hint": "U kunt uw API-sleutel <0>hier</0> verkrijgen.",
+    "debrid_api_token_hint": "U kunt uw API-sleutel <0>hier</0> verkrijgen.",
     "save_changes": "Wijzigingen opslaan"
   },
   "notifications": {

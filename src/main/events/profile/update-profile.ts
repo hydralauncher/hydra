@@ -7,7 +7,7 @@ import { omit } from "lodash-es";
 import axios from "axios";
 import { fileTypeFromFile } from "file-type";
 
-const patchUserProfile = async (updateProfile: UpdateProfileRequest) => {
+export const patchUserProfile = async (updateProfile: UpdateProfileRequest) => {
   return HydraApi.patch<UserProfile>("/profile", updateProfile);
 };
 

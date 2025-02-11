@@ -26,7 +26,8 @@
     "game_has_no_executable": "Game has no executable selected",
     "sign_in": "Sign in",
     "friends": "Friends",
-    "need_help": "Need help?"
+    "need_help": "Need help?",
+    "favorites": "Favorites"
   },
   "header": {
     "search": "Search games",
@@ -184,8 +185,13 @@
     "reset_achievements_description": "This will reset all achievements for {{game}}",
     "reset_achievements_title": "Are you sure?",
     "reset_achievements_success": "Achievements successfully reset",
-    "reset_achievements_error": "Failed to reset achievements"
+    "reset_achievements_error": "Failed to reset achievements",
+    "download_error_gofile_quota_exceeded": "You have exceeded your Gofile monthly quota. Please await the quota to reset.",
+    "download_error_real_debrid_account_not_authorized": "Your Real-Debrid account is not authorized to make new downloads. Please check your account settings and try again.",
+    "download_error_not_cached_in_real_debrid": "This download is not available on Real-Debrid and polling download status from Real-Debrid is not yet available.",
+    "download_error_not_cached_in_torbox": "This download is not available on Torbox and polling download status from Torbox is not yet available."
   },
+
   "activation": {
     "title": "Activate Hydra",
     "installation_id": "Installation ID:",
@@ -236,13 +242,13 @@
     "behavior": "Behavior",
     "download_sources": "Download sources",
     "language": "Language",
-    "real_debrid_api_token": "API Token",
+    "api_token": "API Token",
     "enable_real_debrid": "Enable Real-Debrid",
     "real_debrid_description": "Real-Debrid is an unrestricted downloader that allows you to quickly download files, only limited by your internet speed.",
-    "real_debrid_invalid_token": "Invalid API token",
-    "real_debrid_api_token_hint": "You can get your API token <0>here</0>",
+    "debrid_invalid_token": "Invalid API token",
+    "debrid_api_token_hint": "You can get your API token <0>here</0>",
     "real_debrid_free_account_error": "The account \"{{username}}\" is a free account. Please subscribe to Real-Debrid",
-    "real_debrid_linked_message": "Account \"{{username}}\" linked",
+    "debrid_linked_message": "Account \"{{username}}\" linked",
     "save_changes": "Save changes",
     "changes_saved": "Changes successfully saved",
     "download_sources_description": "Hydra will fetch the download links from these sources. The source URL must be a direct link to a .json file containing the download links.",
@@ -296,7 +302,11 @@
     "become_subscriber": "Be Hydra Cloud",
     "subscription_renew_cancelled": "Automatic renewal is disabled",
     "subscription_renews_on": "Your subscription renews on {{date}}",
-    "bill_sent_until": "Your next bill will be sent until this day"
+    "bill_sent_until": "Your next bill will be sent until this day",
+    "enable_torbox": "Enable Torbox",
+    "torbox_description": "TorBox is your premium seedbox service rivaling even the best servers on the market.",
+    "torbox_account_linked": "TorBox account linked",
+    "real_debrid_account_linked": "Real-Debrid account linked"
   },
   "notifications": {
     "download_complete": "Download complete",

@@ -1,6 +1,6 @@
 import { Link as ReactRouterDomLink, LinkProps } from "react-router-dom";
 import cn from "classnames";
-import * as styles from "./link.css";
+import "./link.scss";
 
 export function Link({ children, to, className, ...props }: LinkProps) {
   const openExternal = (event: React.MouseEvent) => {
@@ -12,7 +12,7 @@ export function Link({ children, to, className, ...props }: LinkProps) {
     return (
       <a
         href={to}
-        className={cn(styles.link, className)}
+        className={cn("link", className)}
         onClick={openExternal}
         {...props}
       >
@@ -22,11 +22,7 @@ export function Link({ children, to, className, ...props }: LinkProps) {
   }
 
   return (
-    <ReactRouterDomLink
-      className={cn(styles.link, className)}
-      to={to}
-      {...props}
-    >
+    <ReactRouterDomLink className={cn("link", className)} to={to} {...props}>
       {children}
     </ReactRouterDomLink>
   );

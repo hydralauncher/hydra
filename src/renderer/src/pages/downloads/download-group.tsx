@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
-import type { LibraryGame, SeedingStatus } from "@types";
+import type { GameShop, LibraryGame, SeedingStatus } from "@types";
 
 import { Badge, Button } from "@renderer/components";
 import {
@@ -12,9 +12,8 @@ import { Downloader, formatBytes, steamUrlBuilder } from "@shared";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import { useAppSelector, useDownload } from "@renderer/hooks";
 
-import * as styles from "./download-group.css";
+import "./download-group.scss";
 import { useTranslation } from "react-i18next";
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
 import { useMemo } from "react";
 import {
   DropdownMenu,
@@ -31,11 +30,12 @@ import {
   XCircleIcon,
 } from "@primer/octicons-react";
 
+import torBoxLogo from "@renderer/assets/icons/torbox.webp";
 export interface DownloadGroupProps {
   library: LibraryGame[];
   title: string;
-  openDeleteGameModal: (gameId: number) => void;
-  openGameInstaller: (gameId: number) => void;
+  openDeleteGameModal: (shop: GameShop, objectId: string) => void;
+  openGameInstaller: (shop: GameShop, objectId: string) => void;
   seedingStatus: SeedingStatus[];
 }
 
@@ -45,7 +45,7 @@ export function DownloadGroup({
   openDeleteGameModal,
   openGameInstaller,
   seedingStatus,
-}: DownloadGroupProps) {
+}: Readonly<DownloadGroupProps>) {
   const navigate = useNavigate();
 
   const { t } = useTranslation("downloads");
@@ -66,18 +66,19 @@ export function DownloadGroup({
   } = useDownload();
 
   const getFinalDownloadSize = (game: LibraryGame) => {
-    const isGameDownloading = lastPacket?.game.id === game.id;
+    const download = game.download!;
+    const isGameDownloading = lastPacket?.gameId === game.id;
 
-    if (game.fileSize) return formatBytes(game.fileSize);
+    if (download.fileSize) return formatBytes(download.fileSize);
 
-    if (lastPacket?.game.fileSize && isGameDownloading)
-      return formatBytes(lastPacket?.game.fileSize);
+    if (lastPacket?.download.fileSize && isGameDownloading)
+      return formatBytes(lastPacket.download.fileSize);
 
     return "N/A";
   };
 
   const seedingMap = useMemo(() => {
-    const map = new Map<number, SeedingStatus>();
+    const map = new Map<string, SeedingStatus>();
 
     seedingStatus.forEach((seed) => {
       map.set(seed.gameId, seed);
@@ -87,7 +88,9 @@ export function DownloadGroup({
   }, [seedingStatus]);
 
   const getGameInfo = (game: LibraryGame) => {
-    const isGameDownloading = lastPacket?.game.id === game.id;
+    const download = game.download!;
+
+    const isGameDownloading = lastPacket?.gameId === game.id;
     const finalDownloadSize = getFinalDownloadSize(game);
     const seedingStatus = seedingMap.get(game.id);
 
@@ -114,11 +117,11 @@ export function DownloadGroup({
           <p>{progress}</p>
 
           <p>
-            {formatBytes(lastPacket?.game.bytesDownloaded)} /{" "}
+            {formatBytes(lastPacket.download.bytesDownloaded)} /{" "}
             {finalDownloadSize}
           </p>
 
-          {game.downloader === Downloader.Torrent && (
+          {download.downloader === Downloader.Torrent && (
             <small>
               {lastPacket?.numPeers} peers / {lastPacket?.numSeeds} seeds
             </small>
@@ -127,11 +130,11 @@ export function DownloadGroup({
       );
     }
 
-    if (game.progress === 1) {
+    if (download.progress === 1) {
       const uploadSpeed = formatBytes(seedingStatus?.uploadSpeed ?? 0);
 
-      return game.status === "seeding" &&
-        game.downloader === Downloader.Torrent ? (
+      return download.status === "seeding" &&
+        download.downloader === Downloader.Torrent ? (
         <>
           <p>{t("seeding")}</p>
           {uploadSpeed && <p>{uploadSpeed}/s</p>}
@@ -141,41 +144,44 @@ export function DownloadGroup({
       );
     }
 
-    if (game.status === "paused") {
+    if (download.status === "paused") {
       return (
         <>
-          <p>{formatDownloadProgress(game.progress)}</p>
-          <p>{t(game.downloadQueue && lastPacket ? "queued" : "paused")}</p>
+          <p>{formatDownloadProgress(download.progress)}</p>
+          <p>{t(download.queued ? "queued" : "paused")}</p>
         </>
       );
     }
 
-    if (game.status === "active") {
+    if (download.status === "active") {
       return (
         <>
-          <p>{formatDownloadProgress(game.progress)}</p>
+          <p>{formatDownloadProgress(download.progress)}</p>
 
           <p>
-            {formatBytes(game.bytesDownloaded)} / {finalDownloadSize}
+            {formatBytes(download.bytesDownloaded)} / {finalDownloadSize}
           </p>
         </>
       );
     }
 
-    return <p>{t(game.status as string)}</p>;
+    return <p>{t(download.status as string)}</p>;
   };
 
   const getGameActions = (game: LibraryGame): DropdownMenuItem[] => {
-    const isGameDownloading = lastPacket?.game.id === game.id;
+    const download = lastPacket?.download;
+    const isGameDownloading = lastPacket?.gameId === game.id;
 
     const deleting = isGameDeleting(game.id);
 
-    if (game.progress === 1) {
+    if (download?.progress === 1) {
       return [
         {
           label: t("install"),
           disabled: deleting,
-          onClick: () => openGameInstaller(game.id),
+          onClick: () => {
+            openGameInstaller(game.shop, game.objectId);
+          },
           icon: <DownloadIcon />,
         },
         {
@@ -183,53 +189,73 @@ export function DownloadGroup({
           disabled: deleting,
           icon: <UnlinkIcon />,
           show:
-            game.status === "seeding" && game.downloader === Downloader.Torrent,
-          onClick: () => pauseSeeding(game.id),
+            download.status === "seeding" &&
+            download.downloader === Downloader.Torrent,
+          onClick: () => {
+            pauseSeeding(game.shop, game.objectId);
+          },
         },
         {
           label: t("resume_seeding"),
           disabled: deleting,
           icon: <LinkIcon />,
           show:
-            game.status !== "seeding" && game.downloader === Downloader.Torrent,
-          onClick: () => resumeSeeding(game.id),
+            download.status !== "seeding" &&
+            download.downloader === Downloader.Torrent,
+          onClick: () => {
+            resumeSeeding(game.shop, game.objectId);
+          },
         },
         {
           label: t("delete"),
           disabled: deleting,
           icon: <TrashIcon />,
-          onClick: () => openDeleteGameModal(game.id),
+          onClick: () => {
+            openDeleteGameModal(game.shop, game.objectId);
+          },
         },
       ];
     }
 
-    if (isGameDownloading || game.status === "active") {
+    if (isGameDownloading || download?.status === "active") {
       return [
         {
           label: t("pause"),
-          onClick: () => pauseDownload(game.id),
+          onClick: () => {
+            pauseDownload(game.shop, game.objectId);
+          },
           icon: <ColumnsIcon />,
         },
         {
           label: t("cancel"),
-          onClick: () => cancelDownload(game.id),
+          onClick: () => {
+            cancelDownload(game.shop, game.objectId);
+          },
           icon: <XCircleIcon />,
         },
       ];
     }
 
+    const isResumeDisabled =
+      (download?.downloader === Downloader.RealDebrid &&
+        !userPreferences?.realDebridApiToken) ||
+      (download?.downloader === Downloader.TorBox &&
+        !userPreferences?.torBoxApiToken);
+
     return [
       {
         label: t("resume"),
-        disabled:
-          game.downloader === Downloader.RealDebrid &&
-          !userPreferences?.realDebridApiToken,
-        onClick: () => resumeDownload(game.id),
+        disabled: isResumeDisabled,
+        onClick: () => {
+          resumeDownload(game.shop, game.objectId);
+        },
         icon: <PlayIcon />,
       },
       {
         label: t("cancel"),
-        onClick: () => cancelDownload(game.id),
+        onClick: () => {
+          cancelDownload(game.shop, game.objectId);
+        },
         icon: <XCircleIcon />,
       },
     ];
@@ -238,59 +264,54 @@ export function DownloadGroup({
   if (!library.length) return null;
 
   return (
-    <div className={styles.downloadGroup}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: `${SPACING_UNIT * 2}px`,
-        }}
-      >
+    <div className="download-group">
+      <div className="download-group__header">
         <h2>{title}</h2>
-
-        <div
-          style={{
-            flex: 1,
-            backgroundColor: vars.color.border,
-            height: "1px",
-          }}
-        />
-        <h3 style={{ fontWeight: "400" }}>{library.length}</h3>
+        <div className="download-group__header-divider" />
+        <h3 className="download-group__header-count">{library.length}</h3>
       </div>
 
-      <ul className={styles.downloads}>
+      <ul className="download-group__downloads">
         {library.map((game) => {
           return (
-            <li
-              key={game.id}
-              className={styles.download}
-              style={{ position: "relative" }}
-            >
-              <div className={styles.downloadCover}>
-                <div className={styles.downloadCoverBackdrop}>
+            <li key={game.id} className="download-group__item">
+              <div className="download-group__cover">
+                <div className="download-group__cover-backdrop">
                   <img
-                    src={steamUrlBuilder.library(game.objectID)}
-                    className={styles.downloadCoverImage}
+                    src={steamUrlBuilder.library(game.objectId)}
+                    className="download-group__cover-image"
                     alt={game.title}
                   />
 
-                  <div className={styles.downloadCoverContent}>
-                    <Badge>{DOWNLOADER_NAME[game.downloader]}</Badge>
+                  <div className="download-group__cover-content">
+                    {game.download?.downloader === Downloader.TorBox ? (
+                      <Badge>
+                        <img
+                          src={torBoxLogo}
+                          alt="TorBox"
+                          style={{ width: 13 }}
+                        />
+                        <span>TorBox</span>
+                      </Badge>
+                    ) : (
+                      <Badge>
+                        {DOWNLOADER_NAME[game.download!.downloader]}
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>
-              <div className={styles.downloadRightContent}>
-                <div className={styles.downloadDetails}>
-                  <div className={styles.downloadTitleWrapper}>
+              <div className="download-group__right-content">
+                <div className="download-group__details">
+                  <div className="download-group__title-wrapper">
                     <button
                       type="button"
-                      className={styles.downloadTitle}
+                      className="download-group__title"
                       onClick={() =>
                         navigate(
                           buildGameDetailsPath({
                             ...game,
-                            objectId: game.objectID,
+                            objectId: game.objectId,
                           })
                         )
                       }
@@ -309,15 +330,7 @@ export function DownloadGroup({
                     sideOffset={-75}
                   >
                     <Button
-                      style={{
-                        position: "absolute",
-                        top: "12px",
-                        right: "12px",
-                        borderRadius: "50%",
-                        border: "none",
-                        padding: "8px",
-                        minHeight: "unset",
-                      }}
+                      className="download-group__menu-button"
                       theme="outline"
                     >
                       <ThreeBarsIcon />
