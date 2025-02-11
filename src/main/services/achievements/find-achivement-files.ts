@@ -1,9 +1,8 @@
 import path from "node:path";
 import fs from "node:fs";
 import { app } from "electron";
-import type { AchievementFile } from "@types";
+import type { Game, AchievementFile } from "@types";
 import { Cracker } from "@shared";
-import { Game } from "@main/entity";
 import { achievementsLogger } from "../logger";
 
 const getAppDataPath = () => {
@@ -254,7 +253,7 @@ export const findAchievementFiles = (game: Game) => {
 
   for (const cracker of crackers) {
     for (const { folderPath, fileLocation } of getPathFromCracker(cracker)) {
-      for (const objectId of getAlternativeObjectIds(game.objectID)) {
+      for (const objectId of getAlternativeObjectIds(game.objectId)) {
         const filePath = path.join(
           game.winePrefixPath ?? "",
           folderPath,

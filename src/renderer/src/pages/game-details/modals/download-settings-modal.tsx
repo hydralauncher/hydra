@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-
-import * as styles from "./download-settings-modal.css";
 import { Button, Link, Modal, TextField } from "@renderer/components";
 import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
 import { Downloader, formatBytes, getDownloadersForUris } from "@shared";
-
 import type { GameRepack } from "@types";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import { useAppSelector, useFeature, useToast } from "@renderer/hooks";
+import "./download-settings-modal.scss";
 
 export interface DownloadSettingsModalProps {
   visible: boolean;
@@ -18,7 +15,7 @@ export interface DownloadSettingsModalProps {
     repack: GameRepack,
     downloader: Downloader,
     downloadPath: string
-  ) => Promise<void>;
+  ) => Promise<{ ok: boolean; error?: string }>;
   repack: GameRepack | null;
 }
 
@@ -27,7 +24,7 @@ export function DownloadSettingsModal({
   onClose,
   startDownload,
   repack,
-}: DownloadSettingsModalProps) {
+}: Readonly<DownloadSettingsModalProps>) {
   const { t } = useTranslation("game_details");
 
   const { showErrorToast } = useToast();
@@ -88,19 +85,17 @@ export function DownloadSettingsModal({
     const filteredDownloaders = downloaders.filter((downloader) => {
       if (downloader === Downloader.RealDebrid)
         return userPreferences?.realDebridApiToken;
+      if (downloader === Downloader.TorBox)
+        return userPreferences?.torBoxApiToken;
       return true;
     });
 
-    /* Gives preference to Real Debrid */
-    const selectedDownloader = filteredDownloaders.includes(
-      Downloader.RealDebrid
-    )
-      ? Downloader.RealDebrid
+    /* Gives preference to TorBox */
+    const selectedDownloader = filteredDownloaders.includes(Downloader.TorBox)
+      ? Downloader.TorBox
       : filteredDownloaders[0];
 
-    setSelectedDownloader(
-      selectedDownloader === undefined ? null : selectedDownloader
-    );
+    setSelectedDownloader(selectedDownloader ?? null);
   }, [
     userPreferences?.downloadsPath,
     downloaders,
@@ -119,20 +114,30 @@ export function DownloadSettingsModal({
     }
   };
 
-  const handleStartClick = () => {
+  const handleStartClick = async () => {
     if (repack) {
       setDownloadStarting(true);
 
-      startDownload(repack, selectedDownloader!, selectedPath)
-        .then(() => {
+      try {
+        const response = await startDownload(
+          repack,
+          selectedDownloader!,
+          selectedPath
+        );
+
+        if (response.ok) {
           onClose();
-        })
-        .catch(() => {
-          showErrorToast(t("download_error"));
-        })
-        .finally(() => {
-          setDownloadStarting(false);
-        });
+          return;
+        } else if (response.error) {
+          showErrorToast(t("download_error"), t(response.error), 4_000);
+        }
+      } catch (error) {
+        if (error instanceof Error) {
+          showErrorToast(t("download_error"), error.message, 4_000);
+        }
+      } finally {
+        setDownloadStarting(false);
+      }
     }
   };
 
@@ -145,21 +150,15 @@ export function DownloadSettingsModal({
       })}
       onClose={onClose}
     >
-      <div className={styles.container}>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: `${SPACING_UNIT}px`,
-          }}
-        >
+      <div className="download-settings-modal__container">
+        <div className="download-settings-modal__downloads-path-field">
           <span>{t("downloader")}</span>
 
-          <div className={styles.downloaders}>
+          <div className="download-settings-modal__downloaders">
             {downloaders.map((downloader) => (
               <Button
                 key={downloader}
-                className={styles.downloaderOption}
+                className="download-settings-modal__downloader-option"
                 theme={
                   selectedDownloader === downloader ? "primary" : "outline"
                 }
@@ -170,7 +169,7 @@ export function DownloadSettingsModal({
                 onClick={() => setSelectedDownloader(downloader)}
               >
                 {selectedDownloader === downloader && (
-                  <CheckCircleFillIcon className={styles.downloaderIcon} />
+                  <CheckCircleFillIcon className="download-settings-modal__downloader-icon" />
                 )}
                 {DOWNLOADER_NAME[downloader]}
               </Button>
@@ -178,13 +177,7 @@ export function DownloadSettingsModal({
           </div>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: `${SPACING_UNIT}px`,
-          }}
-        >
+        <div className="download-settings-modal__downloads-path-field">
           <TextField
             value={selectedPath}
             readOnly
@@ -193,7 +186,7 @@ export function DownloadSettingsModal({
             error={
               hasWritePermission === false ? (
                 <span
-                  className={styles.pathError}
+                  className="download-settings-modal__path-error"
                   data-open-article="cannot-write-directory"
                 >
                   {t("no_write_permission")}
@@ -202,7 +195,7 @@ export function DownloadSettingsModal({
             }
             rightContent={
               <Button
-                style={{ alignSelf: "flex-end" }}
+                className="download-settings-modal__change-path-button"
                 theme="outline"
                 onClick={handleChooseDownloadsPath}
                 disabled={downloadStarting}
@@ -212,7 +205,7 @@ export function DownloadSettingsModal({
             }
           />
 
-          <p className={styles.hintText}>
+          <p className="download-settings-modal__hint-text">
             <Trans i18nKey="select_folder_hint" ns="game_details">
               <Link to="/settings" />
             </Trans>

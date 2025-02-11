@@ -1,17 +1,15 @@
-import { gameRepository } from "@main/repository";
 import { HydraApi } from "../hydra-api";
 import { steamGamesWorker } from "@main/workers";
 import { steamUrlBuilder } from "@shared";
+import { gamesSublevel, levelKeys } from "@main/level";
 
 export const mergeWithRemoteGames = async () => {
   return HydraApi.get("/profile/games")
     .then(async (response) => {
       for (const game of response) {
-        const localGame = await gameRepository.findOne({
-          where: {
-            objectID: game.objectId,
-          },
-        });
+        const localGame = await gamesSublevel.get(
+          levelKeys.game(game.shop, game.objectId)
+        );
 
         if (localGame) {
           const updatedLastTimePlayed =
@@ -26,37 +24,31 @@ export const mergeWithRemoteGames = async () => {
               ? game.playTimeInMilliseconds
               : localGame.playTimeInMilliseconds;
 
-          gameRepository.update(
-            {
-              objectID: game.objectId,
-              shop: "steam",
-            },
-            {
-              remoteId: game.id,
-              lastTimePlayed: updatedLastTimePlayed,
-              playTimeInMilliseconds: updatedPlayTime,
-            }
-          );
+          gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+            ...localGame,
+            remoteId: game.id,
+            lastTimePlayed: updatedLastTimePlayed,
+            playTimeInMilliseconds: updatedPlayTime,
+          });
         } else {
           const steamGame = await steamGamesWorker.run(Number(game.objectId), {
             name: "getById",
           });
 
-          if (steamGame) {
-            const iconUrl = steamGame?.clientIcon
-              ? steamUrlBuilder.icon(game.objectId, steamGame.clientIcon)
-              : null;
+          const iconUrl = steamGame?.clientIcon
+            ? steamUrlBuilder.icon(game.objectId, steamGame.clientIcon)
+            : null;
 
-            gameRepository.insert({
-              objectID: game.objectId,
-              title: steamGame?.name,
-              remoteId: game.id,
-              shop: game.shop,
-              iconUrl,
-              lastTimePlayed: game.lastTimePlayed,
-              playTimeInMilliseconds: game.playTimeInMilliseconds,
-            });
-          }
+          gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+            objectId: game.objectId,
+            title: steamGame?.name,
+            remoteId: game.id,
+            shop: game.shop,
+            iconUrl,
+            lastTimePlayed: game.lastTimePlayed,
+            playTimeInMilliseconds: game.playTimeInMilliseconds,
+            isDeleted: false,
+          });
         }
       }
     })
