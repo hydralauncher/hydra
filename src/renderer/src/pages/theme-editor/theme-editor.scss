@@ -9,7 +9,7 @@
   &__header {
     display: flex;
     align-items: center;
-    padding: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit + 1px);
     background-color: globals.$dark-background-color;
     font-size: 8px;
     z-index: 50;
@@ -47,7 +47,7 @@
     &-actions {
       display: flex;
       flex-direction: row;
-      justify-content: space-between;
+      justify-content: flex-end;
       align-items: center;
 
       &__tabs {
