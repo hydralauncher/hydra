@@ -81,17 +81,6 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
       >
         <div className="theme-card__header">
           <div className="theme-card__header__title">{theme.name}</div>
-
-          <div className="theme-card__header__colors">
-            {Object.entries(theme.colors).map(([key, color]) => (
-              <div
-                title={color}
-                style={{ backgroundColor: color }}
-                className="theme-card__header__colors__color"
-                key={key}
-              ></div>
-            ))}
-          </div>
         </div>
 
         {theme.authorName && (
