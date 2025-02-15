@@ -10,7 +10,7 @@ const getComparedUnlockedAchievements = async (
   shop: GameShop,
   userId: string
 ) => {
-  const userPreferences = await db.get<string, UserPreferences>(
+  const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {
       valueEncoding: "json",
@@ -25,7 +25,7 @@ const getComparedUnlockedAchievements = async (
     {
       shop,
       objectId,
-      language: userPreferences?.language || "en",
+      language: userPreferences?.language ?? "en",
     }
   ).then((achievements) => {
     const sortedAchievements = achievements.achievements

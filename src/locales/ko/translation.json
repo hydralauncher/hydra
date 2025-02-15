@@ -14,8 +14,10 @@
     "paused": "{{title}} (일시 정지됨)",
     "downloading": "{{title}} ({{percentage}} - 다운로드 중…)",
     "filter": "라이브러리 정렬",
-    "home": "홈"
+    "home": "홈",
+    "favorites": "즐겨찾기"
   },
+
   "header": {
     "search": "게임 검색하기",
     "home": "홈",
@@ -110,7 +112,7 @@
     "general": "일반",
     "behavior": "행동",
     "enable_real_debrid": "Real-Debrid 활성화",
-    "real_debrid_api_token_hint": "API 키를 <0>이곳</0>에서 얻으세요.",
+    "debrid_api_token_hint": "API 키를 <0>이곳</0>에서 얻으세요.",
     "save_changes": "변경 사항 저장"
   },
   "notifications": {

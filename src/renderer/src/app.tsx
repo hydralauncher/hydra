@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-
+import achievementSound from "@renderer/assets/audio/achievement.wav";
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
 import {
@@ -85,7 +85,7 @@ export function App() {
   useEffect(() => {
     const unsubscribe = window.electron.onDownloadProgress(
       (downloadProgress) => {
-        if (downloadProgress.progress === 1) {
+        if (downloadProgress?.progress === 1) {
           clearDownload();
           updateLibrary();
           return;
@@ -245,6 +245,22 @@ export function App() {
     loadAndApplyTheme();
   }, []);
 
+  const playAudio = useCallback(() => {
+    const audio = new Audio(achievementSound);
+    audio.volume = 0.2;
+    audio.play();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onAchievementUnlocked(() => {
+      playAudio();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [playAudio]);
+
   useEffect(() => {
     const unsubscribe = window.electron.onCssInjected((cssString) => {
       if (cssString) {
@@ -252,9 +268,7 @@ export function App() {
       }
     });
 
-    return () => {
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, []);
 
   const handleToastClose = useCallback(() => {
@@ -276,9 +290,11 @@ export function App() {
 
       <Toast
         visible={toast.visible}
+        title={toast.title}
         message={toast.message}
         type={toast.type}
         onClose={handleToastClose}
+        duration={toast.duration}
       />
 
       <HydraCloudModal

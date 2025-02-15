@@ -1,8 +1,10 @@
 import { registerEvent } from "../register-event";
 import { shell } from "electron";
+import { spawn } from "child_process";
 import { parseExecutablePath } from "../helpers/parse-executable-path";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
+import { parseLaunchOptions } from "../helpers/parse-launch-options";
 
 const openGame = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -11,8 +13,8 @@ const openGame = async (
   executablePath: string,
   launchOptions?: string | null
 ) => {
-  // TODO: revisit this for launchOptions
   const parsedPath = parseExecutablePath(executablePath);
+  const parsedParams = parseLaunchOptions(launchOptions);
 
   const gameKey = levelKeys.game(shop, objectId);
 
@@ -26,7 +28,12 @@ const openGame = async (
     launchOptions,
   });
 
-  shell.openPath(parsedPath);
+  if (parsedParams.length === 0) {
+    shell.openPath(parsedPath);
+    return;
+  }
+
+  spawn(parsedPath, parsedParams, { shell: false, detached: true });
 };
 
 registerEvent("openGame", openGame);

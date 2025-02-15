@@ -15,6 +15,8 @@
   &__checkbox {
     width: 20px;
     height: 20px;
+    min-width: 20px;
+    min-height: 20px;
     border-radius: 4px;
     background-color: globals.$dark-background-color;
     display: flex;
@@ -45,6 +47,9 @@
 
   &__label {
     cursor: pointer;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
 
     &:has(+ input:disabled) {
       cursor: not-allowed;

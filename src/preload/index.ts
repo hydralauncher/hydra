@@ -33,10 +33,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("pauseGameSeed", shop, objectId),
   resumeGameSeed: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("resumeGameSeed", shop, objectId),
-  onDownloadProgress: (cb: (value: DownloadProgress) => void) => {
+  onDownloadProgress: (cb: (value: DownloadProgress | null) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      value: DownloadProgress
+      value: DownloadProgress | null
     ) => cb(value);
     ipcRenderer.on("on-download-progress", listener);
     return () => ipcRenderer.removeListener("on-download-progress", listener);
@@ -93,6 +93,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("autoLaunch", autoLaunchProps),
   authenticateRealDebrid: (apiToken: string) =>
     ipcRenderer.invoke("authenticateRealDebrid", apiToken),
+  authenticateTorBox: (apiToken: string) =>
+    ipcRenderer.invoke("authenticateTorBox", apiToken),
 
   /* Download sources */
   putDownloadSource: (objectIds: string[]) =>
@@ -109,11 +111,16 @@ contextBridge.exposeInMainWorld("electron", {
     executablePath: string | null
   ) =>
     ipcRenderer.invoke("updateExecutablePath", shop, objectId, executablePath),
+  addGameToFavorites: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("addGameToFavorites", shop, objectId),
+  removeGameFromFavorites: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("removeGameFromFavorites", shop, objectId),
   updateLaunchOptions: (
     shop: GameShop,
     objectId: string,
     launchOptions: string | null
   ) => ipcRenderer.invoke("updateLaunchOptions", shop, objectId, launchOptions),
+
   selectGameWinePrefix: (
     shop: GameShop,
     objectId: string,
@@ -169,6 +176,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-library-batch-complete", listener);
     return () =>
       ipcRenderer.removeListener("on-library-batch-complete", listener);
+  },
+  onAchievementUnlocked: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-achievement-unlocked", listener);
+    return () =>
+      ipcRenderer.removeListener("on-achievement-unlocked", listener);
   },
 
   /* Hardware */

@@ -60,4 +60,12 @@ export class GofileApi {
 
     throw new Error("Failed to get download link");
   }
+
+  public static async checkDownloadUrl(url: string) {
+    return axios.head(url, {
+      headers: {
+        Cookie: `accountToken=${this.token}`,
+      },
+    });
+  }
 }

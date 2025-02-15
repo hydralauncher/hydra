@@ -29,7 +29,6 @@ export const getUserData = async () => {
     })
     .catch(async (err) => {
       if (err instanceof UserNotLoggedInError) {
-        logger.info("User is not logged in", err);
         return null;
       }
       logger.error("Failed to get logged user");
@@ -59,6 +58,7 @@ export const getUserData = async () => {
                 expiresAt: loggedUser.subscription.expiresAt,
               }
             : null,
+          featurebaseJwt: "",
         } as UserDetails;
       }
 

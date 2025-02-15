@@ -30,9 +30,10 @@ export const UserFriendItem = (props: UserFriendItemProps) => {
 
   const getRequestDescription = () => {
     if (type === "ACCEPTED" || type === null) return null;
+
     return (
       <small>
-        {type === "SENT" ? t("request_sent") : t("request_received")}
+        {type == "SENT" ? t("request_sent") : t("request_received")}
       </small>
     );
   };
