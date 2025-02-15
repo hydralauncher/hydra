@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import "./editor.scss";
+import { useCallback, useEffect, useState } from "react";
+import "./theme-editor.scss";
 import Editor from "@monaco-editor/react";
 import { Theme } from "@types";
 import { useSearchParams } from "react-router-dom";
@@ -10,8 +10,9 @@ import {
   ProjectRoadmapIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
+import cn from "classnames";
 
-const EditorPage = () => {
+export default function ThemeEditor() {
   const [searchParams] = useSearchParams();
   const [theme, setTheme] = useState<Theme | null>(null);
   const [code, setCode] = useState("");
@@ -37,29 +38,7 @@ const EditorPage = () => {
     }
   }, [themeId]);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === "s") {
-        event.preventDefault();
-        handleSave();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [code, theme]);
-
-  const handleEditorChange = (value: string | undefined) => {
-    if (value !== undefined) {
-      setCode(value);
-      setHasUnsavedChanges(true);
-    }
-  };
-
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (theme) {
       const updatedTheme = {
         ...theme,
@@ -74,13 +53,41 @@ const EditorPage = () => {
         window.electron.injectCSS(code);
       }
     }
+  }, [code, theme]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+        event.preventDefault();
+        handleSave();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [code, handleSave, theme]);
+
+  const handleEditorChange = (value: string | undefined) => {
+    if (value !== undefined) {
+      setCode(value);
+      setHasUnsavedChanges(true);
+    }
   };
 
   return (
-    <div className="editor">
-      <div className="editor__header">
+    <div className="theme-editor">
+      <div
+        className={cn("theme-editor__header", {
+          "theme-editor__header--darwin": window.electron.platform === "darwin",
+        })}
+      >
         <h1>{theme?.name}</h1>
-        {hasUnsavedChanges && <div className="editor__header__status"></div>}
+        {hasUnsavedChanges && (
+          <div className="theme-editor__header__status"></div>
+        )}
       </div>
 
       {activeTab === "code" && (
@@ -100,15 +107,15 @@ const EditorPage = () => {
       )}
 
       {activeTab === "info" && (
-        <div className="editor__info">
+        <div className="theme-editor__info">
           entao mano eu ate fiz isso aqui mas tava feio dms ai deu vergonha e
           removi kkkk
         </div>
       )}
 
-      <div className="editor__footer">
-        <div className="editor__footer-actions">
-          <div className="editor__footer-actions__tabs">
+      <div className="theme-editor__footer">
+        <div className="theme-editor__footer-actions">
+          <div className="theme-editor__footer-actions__tabs">
             <Button
               onClick={() => handleTabChange("code")}
               theme="dark"
@@ -135,6 +142,4 @@ const EditorPage = () => {
       </div>
     </div>
   );
-};
-
-export default EditorPage;
+}

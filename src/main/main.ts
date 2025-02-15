@@ -1,10 +1,4 @@
-import {
-  Crypto,
-  DownloadManager,
-  logger,
-  Ludusavi,
-  startMainLoop,
-} from "./services";
+import { DownloadManager, logger, Ludusavi, startMainLoop } from "./services";
 import { RealDebridClient } from "./services/download/real-debrid";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
@@ -27,9 +21,7 @@ const loadState = async (userPreferences: UserPreferences | null) => {
   Aria2.spawn();
 
   if (userPreferences?.realDebridApiToken) {
-    RealDebridClient.authorize(
-      Crypto.decrypt(userPreferences.realDebridApiToken)
-    );
+    RealDebridClient.authorize(userPreferences.realDebridApiToken);
   }
 
   Ludusavi.addManifestToLudusaviConfig();
@@ -106,9 +98,7 @@ const migrateFromSqlite = async () => {
 
         await db.put(levelKeys.userPreferences, {
           ...rest,
-          realDebridApiToken: realDebridApiToken
-            ? Crypto.encrypt(realDebridApiToken)
-            : null,
+          realDebridApiToken,
           preferQuitInsteadOfHiding: rest.preferQuitInsteadOfHiding === 1,
           runAtStartup: rest.runAtStartup === 1,
           startMinimized: rest.startMinimized === 1,
@@ -171,8 +161,8 @@ const migrateFromSqlite = async () => {
         await db.put<string, Auth>(
           levelKeys.auth,
           {
-            accessToken: Crypto.encrypt(users[0].accessToken),
-            refreshToken: Crypto.encrypt(users[0].refreshToken),
+            accessToken: users[0].accessToken,
+            refreshToken: users[0].refreshToken,
             tokenExpirationTimestamp: users[0].tokenExpirationTimestamp,
           },
           {

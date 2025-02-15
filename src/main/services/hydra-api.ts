@@ -12,7 +12,6 @@ import { isFuture, isToday } from "date-fns";
 import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 import type { Auth, User } from "@types";
-import { Crypto } from "./crypto";
 
 interface HydraApiOptions {
   needsAuth?: boolean;
@@ -32,7 +31,9 @@ export class HydraApi {
   private static readonly EXPIRATION_OFFSET_IN_MS = 1000 * 60 * 5; // 5 minutes
   private static readonly ADD_LOG_INTERCEPTOR = true;
 
-  private static secondsToMilliseconds = (seconds: number) => seconds * 1000;
+  private static secondsToMilliseconds(seconds: number) {
+    return seconds * 1000;
+  }
 
   private static userAuth: HydraApiUserAuth = {
     authToken: "",
@@ -80,8 +81,8 @@ export class HydraApi {
     db.put<string, Auth>(
       levelKeys.auth,
       {
-        accessToken: Crypto.encrypt(accessToken),
-        refreshToken: Crypto.encrypt(refreshToken),
+        accessToken,
+        refreshToken,
         tokenExpirationTimestamp,
       },
       { valueEncoding: "json" }
@@ -194,12 +195,8 @@ export class HydraApi {
     const user = result.at(1) as User | undefined;
 
     this.userAuth = {
-      authToken: userAuth?.accessToken
-        ? Crypto.decrypt(userAuth.accessToken)
-        : "",
-      refreshToken: userAuth?.refreshToken
-        ? Crypto.decrypt(userAuth.refreshToken)
-        : "",
+      authToken: userAuth?.accessToken ?? "",
+      refreshToken: userAuth?.refreshToken ?? "",
       expirationTimestamp: userAuth?.tokenExpirationTimestamp ?? 0,
       subscription: user?.subscription
         ? { expiresAt: user.subscription?.expiresAt }
@@ -248,7 +245,7 @@ export class HydraApi {
           levelKeys.auth,
           {
             ...auth,
-            accessToken: Crypto.encrypt(accessToken),
+            accessToken,
             tokenExpirationTimestamp,
           },
           { valueEncoding: "json" }
