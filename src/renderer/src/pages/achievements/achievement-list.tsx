@@ -10,7 +10,9 @@ interface AchievementListProps {
   achievements: UserAchievement[];
 }
 
-export function AchievementList({ achievements }: AchievementListProps) {
+export function AchievementList({
+  achievements,
+}: Readonly<AchievementListProps>) {
   const { t } = useTranslation("achievement");
   const { showHydraCloudModal } = useSubscription();
   const { formatDateTime } = useDate();

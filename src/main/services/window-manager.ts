@@ -19,6 +19,7 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import { slice, sortBy } from "lodash-es";
 import type { UserPreferences } from "@types";
 import { AuthPage } from "@shared";
+import { isStaging } from "@main/constants";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -52,7 +53,7 @@ export class WindowManager {
       minHeight: 540,
       backgroundColor: "#1c1c1c",
       titleBarStyle: process.platform === "linux" ? "default" : "hidden",
-      ...(process.platform === "linux" ? { icon } : {}),
+      icon,
       trafficLightPosition: { x: 16, y: 16 },
       titleBarOverlay: {
         symbolColor: "#DADBE1",
@@ -129,7 +130,8 @@ export class WindowManager {
     this.mainWindow.removeMenu();
 
     this.mainWindow.on("ready-to-show", () => {
-      if (!app.isPackaged) WindowManager.mainWindow?.webContents.openDevTools();
+      if (!app.isPackaged || isStaging)
+        WindowManager.mainWindow?.webContents.openDevTools();
       WindowManager.mainWindow?.show();
     });
 
@@ -146,6 +148,11 @@ export class WindowManager {
       }
       WindowManager.mainWindow?.setProgressBar(-1);
       WindowManager.mainWindow = null;
+    });
+
+    this.mainWindow.webContents.setWindowOpenHandler((handler) => {
+      shell.openExternal(handler.url);
+      return { action: "deny" };
     });
   }
 

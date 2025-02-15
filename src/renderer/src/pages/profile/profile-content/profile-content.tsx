@@ -80,6 +80,7 @@ export function ProfileContent() {
     }
 
     const hasGames = userProfile?.libraryGames.length > 0;
+
     const shouldShowRightContent = hasGames || userProfile.friends.length > 0;
 
     return (
@@ -99,6 +100,7 @@ export function ProfileContent() {
             <>
               <div className="profile-content__section-header">
                 <h2>{t("library")}</h2>
+
                 {userStats && (
                   <span>{numberFormatter.format(userStats.libraryCount)}</span>
                 )}
@@ -142,6 +144,7 @@ export function ProfileContent() {
   return (
     <div>
       <ProfileHero />
+
       {content}
     </div>
   );

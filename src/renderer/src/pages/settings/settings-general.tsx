@@ -68,18 +68,20 @@ export function SettingsGeneral() {
           (language) => language === userPreferences.language
         ) ??
         languageKeys.find((language) => {
-          return language.startsWith(userPreferences.language.split("-")[0]);
+          return language.startsWith(
+            userPreferences.language?.split("-")[0] ?? "en"
+          );
         });
 
       setForm((prev) => ({
         ...prev,
         downloadsPath: userPreferences.downloadsPath ?? defaultDownloadsPath,
         downloadNotificationsEnabled:
-          userPreferences.downloadNotificationsEnabled,
+          userPreferences.downloadNotificationsEnabled ?? false,
         repackUpdatesNotificationsEnabled:
-          userPreferences.repackUpdatesNotificationsEnabled,
+          userPreferences.repackUpdatesNotificationsEnabled ?? false,
         achievementNotificationsEnabled:
-          userPreferences.achievementNotificationsEnabled,
+          userPreferences.achievementNotificationsEnabled ?? false,
         language: language ?? "en",
       }));
     }

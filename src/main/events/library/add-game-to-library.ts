@@ -46,9 +46,9 @@ const addGameToLibrary = async (
 
     await gamesSublevel.put(levelKeys.game(shop, objectId), game);
 
-    updateLocalUnlockedAchivements(game!);
+    updateLocalUnlockedAchivements(game);
 
-    createGame(game!).catch(() => {});
+    createGame(game).catch(() => {});
   }
 };
 

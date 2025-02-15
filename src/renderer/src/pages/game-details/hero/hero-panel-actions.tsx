@@ -1,14 +1,17 @@
 import {
   DownloadIcon,
   GearIcon,
+  HeartFillIcon,
+  HeartIcon,
   PlayIcon,
   PlusCircleIcon,
 } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
-import { useDownload, useLibrary } from "@renderer/hooks";
+import { useDownload, useLibrary, useToast } from "@renderer/hooks";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { gameDetailsContext } from "@renderer/context";
+
 import "./hero-panel-actions.scss";
 
 export function HeroPanelActions() {
@@ -37,6 +40,8 @@ export function HeroPanelActions() {
 
   const { updateLibrary } = useLibrary();
 
+  const { showSuccessToast } = useToast();
+
   const { t } = useTranslation("game_details");
 
   const addGameToLibrary = async () => {
@@ -44,6 +49,29 @@ export function HeroPanelActions() {
 
     try {
       await window.electron.addGameToLibrary(shop, objectId!, gameTitle);
+
+      updateLibrary();
+      updateGame();
+    } finally {
+      setToggleLibraryGameDisabled(false);
+    }
+  };
+
+  const toggleGameFavorite = async () => {
+    setToggleLibraryGameDisabled(true);
+
+    try {
+      if (game?.favorite) {
+        await window.electron
+          .removeGameFromFavorites(shop, objectId!)
+          .then(() => {
+            showSuccessToast(t("game_removed_from_favorites"));
+          });
+      } else {
+        await window.electron.addGameToFavorites(shop, objectId!).then(() => {
+          showSuccessToast(t("game_added_to_favorites"));
+        });
+      }
 
       updateLibrary();
       updateGame();
@@ -159,6 +187,15 @@ export function HeroPanelActions() {
       <div className="hero-panel-actions__container">
         {gameActionButton()}
         <div className="hero-panel-actions__separator" />
+        <Button
+          onClick={toggleGameFavorite}
+          theme="outline"
+          disabled={deleting}
+          className="hero-panel-actions__action"
+        >
+          {game.favorite ? <HeartFillIcon /> : <HeartIcon />}
+        </Button>
+
         <Button
           onClick={() => setShowGameOptionsModal(true)}
           theme="outline"

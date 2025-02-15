@@ -9,6 +9,7 @@ import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
 import { Aria2 } from "./services/aria2";
 import { db, levelKeys } from "./level";
+import { loadState } from "./main";
 
 const { autoUpdater } = updater;
 
@@ -57,7 +58,7 @@ app.whenReady().then(async () => {
     return net.fetch(url.pathToFileURL(decodeURI(filePath)).toString());
   });
 
-  await import("./main");
+  await loadState();
 
   const language = await db.get<string, string>(levelKeys.language, {
     valueEncoding: "utf-8",

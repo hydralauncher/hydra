@@ -42,6 +42,7 @@ export interface Game {
   winePrefixPath?: string | null;
   executablePath?: string | null;
   launchOptions?: string | null;
+  favorite?: boolean;
 }
 
 export interface Download {
@@ -66,16 +67,17 @@ export interface GameAchievement {
 }
 
 export interface UserPreferences {
-  downloadsPath: string | null;
-  language: string;
-  realDebridApiToken: string | null;
-  preferQuitInsteadOfHiding: boolean;
-  runAtStartup: boolean;
-  startMinimized: boolean;
-  disableNsfwAlert: boolean;
-  seedAfterDownloadComplete: boolean;
-  showHiddenAchievementsDescription: boolean;
-  downloadNotificationsEnabled: boolean;
-  repackUpdatesNotificationsEnabled: boolean;
-  achievementNotificationsEnabled: boolean;
+  downloadsPath?: string | null;
+  language?: string;
+  realDebridApiToken?: string | null;
+  torBoxApiToken?: string | null;
+  preferQuitInsteadOfHiding?: boolean;
+  runAtStartup?: boolean;
+  startMinimized?: boolean;
+  disableNsfwAlert?: boolean;
+  seedAfterDownloadComplete?: boolean;
+  showHiddenAchievementsDescription?: boolean;
+  downloadNotificationsEnabled?: boolean;
+  repackUpdatesNotificationsEnabled?: boolean;
+  achievementNotificationsEnabled?: boolean;
 }

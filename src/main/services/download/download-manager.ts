@@ -1,8 +1,8 @@
-import { Downloader } from "@shared";
+import { Downloader, DownloadError } from "@shared";
 import { WindowManager } from "../window-manager";
 import { publishDownloadCompleteNotification } from "../notifications";
 import type { Download, DownloadProgress, UserPreferences } from "@types";
-import { GofileApi, QiwiApi, DatanodesApi } from "../hosters";
+import { GofileApi, QiwiApi, DatanodesApi, MediafireApi } from "../hosters";
 import { PythonRPC } from "../python-rpc";
 import {
   LibtorrentPayload,
@@ -15,6 +15,7 @@ import path from "path";
 import { logger } from "../logger";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { sortBy } from "lodash-es";
+import { TorBoxClient } from "./torbox";
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
@@ -25,17 +26,20 @@ export class DownloadManager {
   ) {
     PythonRPC.spawn(
       download?.status === "active"
-        ? await this.getDownloadPayload(download).catch(() => undefined)
+        ? await this.getDownloadPayload(download).catch((err) => {
+            logger.error("Error getting download payload", err);
+            return undefined;
+          })
         : undefined,
       downloadsToSeed?.map((download) => ({
-        game_id: `${download.shop}-${download.objectId}`,
+        game_id: levelKeys.game(download.shop, download.objectId),
         url: download.uri,
         save_path: download.downloadPath,
       }))
     );
 
     if (download) {
-      this.downloadingGameId = `${download.shop}-${download.objectId}`;
+      this.downloadingGameId = levelKeys.game(download.shop, download.objectId);
     }
   }
 
@@ -106,7 +110,7 @@ export class DownloadManager {
 
       if (!download || !game) return;
 
-      const userPreferences = await db.get<string, UserPreferences>(
+      const userPreferences = await db.get<string, UserPreferences | null>(
         levelKeys.userPreferences,
         {
           valueEncoding: "json",
@@ -230,7 +234,9 @@ export class DownloadManager {
     });
 
     WindowManager.mainWindow?.setProgressBar(-1);
+
     if (downloadKey === this.downloadingGameId) {
+      WindowManager.mainWindow?.webContents.send("on-download-progress", null);
       this.downloadingGameId = null;
     }
   }
@@ -260,6 +266,8 @@ export class DownloadManager {
         const token = await GofileApi.authorize();
         const downloadLink = await GofileApi.getDownloadLink(id!);
 
+        await GofileApi.checkDownloadUrl(downloadLink);
+
         return {
           action: "start",
           game_id: downloadId,
@@ -270,10 +278,11 @@ export class DownloadManager {
       }
       case Downloader.PixelDrain: {
         const id = download.uri.split("/").pop();
+
         return {
           action: "start",
           game_id: downloadId,
-          url: `https://pixeldrain.com/api/file/${id}?download`,
+          url: `https://cdn.pd5-gamedriveorg.workers.dev/api/file/${id}`,
           save_path: download.downloadPath,
         };
       }
@@ -295,6 +304,16 @@ export class DownloadManager {
           save_path: download.downloadPath,
         };
       }
+      case Downloader.Mediafire: {
+        const downloadUrl = await MediafireApi.getDownloadUrl(download.uri);
+
+        return {
+          action: "start",
+          game_id: downloadId,
+          url: downloadUrl,
+          save_path: download.downloadPath,
+        };
+      }
       case Downloader.Torrent:
         return {
           action: "start",
@@ -305,16 +324,25 @@ export class DownloadManager {
       case Downloader.RealDebrid: {
         const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
 
-        if (!downloadUrl)
-          throw new Error(
-            "This download is not available on Real-Debrid and polling download status from Real-Debrid is not yet available."
-          );
+        if (!downloadUrl) throw new Error(DownloadError.NotCachedInRealDebrid);
 
         return {
           action: "start",
           game_id: downloadId,
           url: downloadUrl,
           save_path: download.downloadPath,
+        };
+      }
+      case Downloader.TorBox: {
+        const { name, url } = await TorBoxClient.getDownloadInfo(download.uri);
+
+        if (!url) return;
+        return {
+          action: "start",
+          game_id: downloadId,
+          url,
+          save_path: download.downloadPath,
+          out: name,
         };
       }
     }

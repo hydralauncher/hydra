@@ -21,7 +21,7 @@ export function GameOptionsModal({
   visible,
   game,
   onClose,
-}: GameOptionsModalProps) {
+}: Readonly<GameOptionsModalProps>) {
   const { t } = useTranslation("game_details");
 
   const { showSuccessToast, showErrorToast } = useToast();
@@ -183,8 +183,6 @@ export function GameOptionsModal({
     }
   };
 
-  const shouldShowLaunchOptionsConfiguration = false;
-
   return (
     <>
       <DeleteGameModal
@@ -192,12 +190,14 @@ export function GameOptionsModal({
         onClose={() => setShowDeleteModal(false)}
         deleteGame={handleDeleteGame}
       />
+
       <RemoveGameFromLibraryModal
         visible={showRemoveGameModal}
         onClose={() => setShowRemoveGameModal(false)}
         removeGameFromLibrary={handleRemoveGameFromLibrary}
         game={game}
       />
+
       <ResetAchievementsModal
         visible={showResetAchievementsModal}
         onClose={() => setShowResetAchievementsModal(false)}
@@ -304,29 +304,27 @@ export function GameOptionsModal({
             </div>
           )}
 
-          {shouldShowLaunchOptionsConfiguration && (
-            <div className="game-options-modal__launch-options">
-              <div className="game-options-modal__header">
-                <h2>{t("launch_options")}</h2>
-                <h4 className="game-options-modal__header-description">
-                  {t("launch_options_description")}
-                </h4>
-              </div>
-              <TextField
-                value={launchOptions}
-                theme="dark"
-                placeholder={t("launch_options_placeholder")}
-                onChange={handleChangeLaunchOptions}
-                rightContent={
-                  game.launchOptions && (
-                    <Button onClick={handleClearLaunchOptions} theme="outline">
-                      {t("clear")}
-                    </Button>
-                  )
-                }
-              />
+          <div className="game-options-modal__launch-options">
+            <div className="game-options-modal__header">
+              <h2>{t("launch_options")}</h2>
+              <h4 className="game-options-modal__header-description">
+                {t("launch_options_description")}
+              </h4>
             </div>
-          )}
+            <TextField
+              value={launchOptions}
+              theme="dark"
+              placeholder={t("launch_options_placeholder")}
+              onChange={handleChangeLaunchOptions}
+              rightContent={
+                game.launchOptions && (
+                  <Button onClick={handleClearLaunchOptions} theme="outline">
+                    {t("clear")}
+                  </Button>
+                )
+              }
+            />
+          </div>
 
           <div className="game-options-modal__downloads">
             <div className="game-options-modal__header">

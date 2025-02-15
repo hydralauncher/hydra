@@ -26,7 +26,8 @@
     "game_has_no_executable": "Hra nemá zvolen žádný spustitelný soubor",
     "sign_in": "Přihlásit se",
     "friends": "Přátelé",
-    "need_help": "Potřebujete pomoc?"
+    "need_help": "Potřebujete pomoc?",
+    "favorites": "Oblíbené"
   },
   "header": {
     "search": "Vyhledat hry",
@@ -214,13 +215,13 @@
     "behavior": "Chování",
     "download_sources": "Zdroje stahování",
     "language": "Jazyk",
-    "real_debrid_api_token": "API Token",
+    "api_token": "API Token",
     "enable_real_debrid": "Povolit Real-Debrid",
     "real_debrid_description": "Real-Debrid je neomezený správce stahování, který umožňuje stahovat soubory v nejvyšší rychlosti vašeho internetu.",
-    "real_debrid_invalid_token": "Neplatný API token",
-    "real_debrid_api_token_hint": "API token můžeš sehnat <0>zde</0>",
+    "debrid_invalid_token": "Neplatný API token",
+    "debrid_api_token_hint": "API token můžeš sehnat <0>zde</0>",
     "real_debrid_free_account_error": "Účet \"{{username}}\" má základní úroveň. Prosím předplaťte si Real-Debrid",
-    "real_debrid_linked_message": "Účet \"{{username}}\" je propojen",
+    "debrid_linked_message": "Účet \"{{username}}\" je propojen",
     "save_changes": "Uložit změny",
     "changes_saved": "Změny úspěšně uloženy",
     "download_sources_description": "Hydra bude odsud sbírat soubory. Zdrojový odkaz musí být .json soubor obsahující odkazy na soubory.",

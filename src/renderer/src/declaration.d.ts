@@ -28,6 +28,7 @@ import type {
   CatalogueSearchPayload,
   LibraryGame,
   GameRunning,
+  TorBoxUser,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -40,14 +41,16 @@ declare global {
 
   interface Electron {
     /* Torrenting */
-    startGameDownload: (payload: StartGameDownloadPayload) => Promise<void>;
+    startGameDownload: (
+      payload: StartGameDownloadPayload
+    ) => Promise<{ ok: boolean; error?: string }>;
     cancelGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
     pauseGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
     resumeGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
     pauseGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     resumeGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     onDownloadProgress: (
-      cb: (value: DownloadProgress) => void
+      cb: (value: DownloadProgress | null) => void
     ) => () => Electron.IpcRenderer;
     onSeedingStatus: (
       cb: (value: SeedingStatus[]) => void
@@ -92,6 +95,11 @@ declare global {
       shop: GameShop,
       objectId: string,
       executablePath: string | null
+    ) => Promise<void>;
+    addGameToFavorites: (shop: GameShop, objectId: string) => Promise<void>;
+    removeGameFromFavorites: (
+      shop: GameShop,
+      objectId: string
     ) => Promise<void>;
     updateLaunchOptions: (
       shop: GameShop,
@@ -142,6 +150,8 @@ declare global {
       minimized: boolean;
     }) => Promise<void>;
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
+    authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
+    onAchievementUnlocked: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* Download sources */
     putDownloadSource: (

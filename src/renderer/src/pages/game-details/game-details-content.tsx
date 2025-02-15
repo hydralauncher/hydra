@@ -139,6 +139,7 @@ export function GameDetailsContent() {
             className="game-details__hero-backdrop"
             style={{
               backgroundColor: gameColor,
+              flex: 1,
               opacity: Math.min(1, 1 - backdropOpactiy),
             }}
           />

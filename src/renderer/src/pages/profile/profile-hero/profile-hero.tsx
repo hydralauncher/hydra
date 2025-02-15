@@ -196,7 +196,7 @@ export function ProfileHero() {
         <Button
           theme="outline"
           onClick={() =>
-            handleFriendAction(userProfile.relation!.AId, "CANCEL")
+            handleFriendAction(userProfile.relation!.BId, "CANCEL")
           }
           disabled={isPerformingAction}
           className="profile-hero__button--outline"
