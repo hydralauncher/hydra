@@ -30,7 +30,6 @@ import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-m
 
 import { injectCustomCss } from "./helpers";
 import "./app.scss";
-import { Theme } from "@types";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -214,22 +213,22 @@ export function App() {
     const id = crypto.randomUUID();
     const channel = new BroadcastChannel(`download_sources:sync:${id}`);
 
-    channel.onmessage = (event: MessageEvent<number>) => {
+    channel.onmessage = async (event: MessageEvent<number>) => {
       const newRepacksCount = event.data;
       window.electron.publishNewRepacksNotification(newRepacksCount);
       updateRepacks();
 
-      downloadSourcesTable.toArray().then((downloadSources) => {
-        downloadSources
-          .filter((source) => !source.fingerprint)
-          .forEach((downloadSource) => {
-            window.electron
-              .putDownloadSource(downloadSource.objectIds)
-              .then(({ fingerprint }) => {
-                downloadSourcesTable.update(downloadSource.id, { fingerprint });
-              });
-          });
-      });
+      const downloadSources = await downloadSourcesTable.toArray();
+
+      downloadSources
+        .filter((source) => !source.fingerprint)
+        .forEach(async (downloadSource) => {
+          const { fingerprint } = await window.electron.putDownloadSource(
+            downloadSource.objectIds
+          );
+
+          downloadSourcesTable.update(downloadSource.id, { fingerprint });
+        });
     };
 
     downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
@@ -237,9 +236,9 @@ export function App() {
 
   useEffect(() => {
     const loadAndApplyTheme = async () => {
-      const activeTheme: Theme = await window.electron.getActiveCustomTheme();
+      const activeTheme = await window.electron.getActiveCustomTheme();
 
-      if (activeTheme.code) {
+      if (activeTheme?.code) {
         injectCustomCss(activeTheme.code);
       }
     };

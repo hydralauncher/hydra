@@ -1,21 +1,24 @@
-@use "../../scss/globals.scss" as globals;
+@use "../../scss/globals.scss";
 
-.editor {
+.theme-editor {
   display: flex;
   flex-direction: column;
   height: 100%;
   width: 100%;
 
   &__header {
-    height: 35px;
     display: flex;
     align-items: center;
-    padding: 10px;
+    padding: calc(globals.$spacing-unit * 2);
     background-color: globals.$dark-background-color;
     font-size: 8px;
     z-index: 50;
     -webkit-app-region: drag;
     gap: 8px;
+
+    &--darwin {
+      padding-top: calc(globals.$spacing-unit * 6);
+    }
 
     h1 {
       margin: 0;

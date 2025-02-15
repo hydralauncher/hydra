@@ -33,7 +33,9 @@ const Profile = React.lazy(() => import("./pages/profile/profile"));
 const Achievements = React.lazy(
   () => import("./pages/achievements/achievements")
 );
-const Editor = React.lazy(() => import("./pages/editor/editor"));
+const ThemeEditor = React.lazy(
+  () => import("./pages/theme-editor/theme-editor")
+);
 
 import * as Sentry from "@sentry/react";
 
@@ -107,8 +109,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           </Route>
 
           <Route
-            path="/editor"
-            element={<SuspenseWrapper Component={Editor} />}
+            path="/theme-editor"
+            element={<SuspenseWrapper Component={ThemeEditor} />}
           />
         </Routes>
       </HashRouter>

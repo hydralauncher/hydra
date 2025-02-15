@@ -234,7 +234,7 @@ export class WindowManager {
 
       if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
         editorWindow.loadURL(
-          `${process.env["ELECTRON_RENDERER_URL"]}#/editor?themeId=${themeId}`
+          `${process.env["ELECTRON_RENDERER_URL"]}#/theme-editor?themeId=${themeId}`
         );
       } else {
         editorWindow.loadFile(path.join(__dirname, "../renderer/index.html"), {
