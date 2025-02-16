@@ -7,7 +7,7 @@ import {
   PlusCircleIcon,
 } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
-import { useDownload, useLibrary } from "@renderer/hooks";
+import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { gameDetailsContext } from "@renderer/context";
@@ -18,6 +18,10 @@ export function HeroPanelActions() {
     useState(false);
 
   const { isGameDeleting } = useDownload();
+
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
 
   const {
     game,
@@ -92,7 +96,25 @@ export function HeroPanelActions() {
         return;
       }
 
-      const gameExecutablePath = await selectGameExecutable();
+      let gameInstallerFolderIfExists
+
+      if (game && game.folderName) {
+        let downloadsPath = await window.electron.getDefaultDownloadsPath();
+        if (userPreferences?.downloadsPath)
+          downloadsPath = userPreferences.downloadsPath;
+
+        const folderSeparator =
+          window.electron.platform == "win32" ? "\\" : "/";
+
+        gameInstallerFolderIfExists =
+          (game.downloadPath ?? downloadsPath) +
+          folderSeparator +
+          game.folderName!;
+      }
+
+      const gameExecutablePath = await selectGameExecutable(
+        gameInstallerFolderIfExists
+      );
       if (gameExecutablePath)
         window.electron.openGame(
           game.shop,
