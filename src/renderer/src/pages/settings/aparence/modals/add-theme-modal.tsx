@@ -54,7 +54,7 @@ export function AddThemeModal({
         isActive: false,
         author: userDetails?.id,
         authorName: userDetails?.username,
-        code: "",
+        code: "/* Your theme goes here */",
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -86,7 +86,7 @@ export function AddThemeModal({
           error={errors.name?.message}
         />
 
-        <Button theme="primary" disabled={isSubmitting}>
+        <Button type="submit" theme="primary" disabled={isSubmitting}>
           {t("create_theme")}
         </Button>
       </form>
