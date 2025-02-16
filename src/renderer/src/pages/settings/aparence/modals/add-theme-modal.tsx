@@ -74,7 +74,10 @@ export function AddThemeModal({
       description={t("create_theme_modal_description")}
       onClose={onClose}
     >
-      <form className="add-theme-modal__container">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="add-theme-modal__container"
+      >
         <TextField
           {...register("name")}
           label={t("theme_name")}
@@ -83,11 +86,7 @@ export function AddThemeModal({
           error={errors.name?.message}
         />
 
-        <Button
-          theme="primary"
-          onClick={handleSubmit(onSubmit)}
-          disabled={isSubmitting}
-        >
+        <Button theme="primary" disabled={isSubmitting}>
           {t("create_theme")}
         </Button>
       </form>

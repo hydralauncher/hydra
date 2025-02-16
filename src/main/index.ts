@@ -85,6 +85,12 @@ const handleDeepLinkPath = (uri?: string) => {
 
     if (url.host === "install-source") {
       WindowManager.redirect(`settings${url.search}`);
+      return;
+    }
+
+    if (url.host === "profile") {
+      WindowManager.redirect(`profile${url.search}`);
+      return;
     }
 
     if (url.host === "install-theme") {
