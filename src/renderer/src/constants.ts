@@ -1,6 +1,6 @@
 import { Downloader } from "@shared";
 
-export const VERSION_CODENAME = "Spectre";
+export const VERSION_CODENAME = "Polychrome";
 
 export const DOWNLOADER_NAME = {
   [Downloader.RealDebrid]: "Real-Debrid",
