@@ -6,6 +6,7 @@ import { Theme } from "@types";
 import { injectCustomCss, removeCustomCss } from "@renderer/helpers";
 import { useToast } from "@renderer/hooks";
 import { UserProfile } from "@types";
+import { WEB_STORE_URL } from "@renderer/constants";
 interface ImportThemeModalProps {
   visible: boolean;
   onClose: () => void;
@@ -36,7 +37,7 @@ export const ImportThemeModal = ({
       isActive: false,
       author: author?.id,
       authorName: author?.displayName,
-      code: `https://hydrathemes.shop/themes/${themeName}.css`,
+      code: `${WEB_STORE_URL}/themes/${themeName}/theme.css`,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
