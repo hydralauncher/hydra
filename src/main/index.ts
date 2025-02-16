@@ -101,11 +101,12 @@ const handleDeepLinkPath = (uri?: string) => {
 
     if (url.host === "install-theme") {
       const themeName = url.searchParams.get("theme");
-      const authorCode = url.searchParams.get("author");
+      const authorId = url.searchParams.get("authorId");
+      const authorName = url.searchParams.get("authorName");
 
-      if (themeName && authorCode) {
+      if (themeName && authorId && authorName) {
         WindowManager.redirect(
-          `settings?theme=${themeName}&author=${authorCode}`
+          `settings?theme=${themeName}&authorId=${authorId}&authorName=${authorName}`
         );
       }
     }
