@@ -41,11 +41,6 @@ export const AddThemeModal = ({
       isActive: false,
       author: userDetails?.id || undefined,
       authorName: userDetails?.username || undefined,
-      colors: {
-        accent: "",
-        background: "",
-        surface: "",
-      },
       code: "",
       createdAt: new Date(),
       updatedAt: new Date(),
