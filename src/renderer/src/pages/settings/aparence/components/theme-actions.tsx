@@ -4,8 +4,7 @@ import { useTranslation } from "react-i18next";
 import { AddThemeModal, DeleteAllThemesModal } from "../index";
 import "./theme-actions.scss";
 import { useState } from "react";
-
-export const WEB_STORE_URL = "https://hydrathemes.shop";
+import { WEB_STORE_URL } from "@renderer/constants";
 
 interface ThemeActionsProps {
   onListUpdated: () => void;
