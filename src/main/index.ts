@@ -98,10 +98,8 @@ const handleDeepLinkPath = (uri?: string) => {
       const authorCode = url.searchParams.get("author");
 
       if (themeName && authorCode) {
-        WindowManager.mainWindow?.webContents.send(
-          "import-theme",
-          themeName,
-          authorCode
+        WindowManager.redirect(
+          `settings?theme=${themeName}&author=${authorCode}`
         );
       }
     }

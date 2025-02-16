@@ -2,9 +2,24 @@ import { useEffect, useState } from "react";
 import "./settings-appearance.scss";
 import { ThemeActions, ThemeCard, ThemePlaceholder } from "./index";
 import type { Theme } from "@types";
+import { ImportThemeModal } from "./modals/import-theme-modal";
 
-export const SettingsAppearance = () => {
+interface SettingsAppearanceProps {
+  appearanceTheme: string | null;
+  appearanceAuthor: string | null;
+}
+
+export const SettingsAppearance = ({
+  appearanceTheme,
+  appearanceAuthor,
+}: SettingsAppearanceProps) => {
   const [themes, setThemes] = useState<Theme[]>([]);
+  const [isImportThemeModalVisible, setIsImportThemeModalVisible] =
+    useState(false);
+  const [importTheme, setImportTheme] = useState<{
+    theme: string;
+    author: string;
+  } | null>(null);
 
   const loadThemes = async () => {
     const themesList = await window.electron.getAllCustomThemes();
@@ -22,6 +37,16 @@ export const SettingsAppearance = () => {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (appearanceTheme && appearanceAuthor) {
+      setIsImportThemeModalVisible(true);
+      setImportTheme({
+        theme: appearanceTheme,
+        author: appearanceAuthor,
+      });
+    }
+  }, [appearanceTheme, appearanceAuthor]);
 
   return (
     <div className="settings-appearance">
@@ -46,6 +71,19 @@ export const SettingsAppearance = () => {
             ))
         )}
       </div>
+
+      {importTheme && (
+        <ImportThemeModal
+          visible={isImportThemeModalVisible}
+          onClose={() => setIsImportThemeModalVisible(false)}
+          onThemeImported={() => {
+            setIsImportThemeModalVisible(false);
+            loadThemes();
+          }}
+          themeName={importTheme.theme}
+          authorCode={importTheme.author}
+        />
+      )}
     </div>
   );
 };
