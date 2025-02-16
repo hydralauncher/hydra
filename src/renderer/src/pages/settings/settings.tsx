@@ -39,7 +39,11 @@ export default function Settings() {
             {
               tabLabel: (
                 <>
-                  <img src={torBoxLogo} alt="TorBox" style={{ width: 13 }} />
+                  <img
+                    src={torBoxLogo}
+                    alt="TorBox"
+                    style={{ width: 13, height: 13 }}
+                  />
                   Torbox
                 </>
               ),
@@ -65,7 +69,8 @@ export default function Settings() {
           currentCategoryIndex,
           setCurrentCategoryIndex,
           appearanceTheme,
-          appearanceAuthor,
+          appearanceAuthorId,
+          appearanceAuthorName,
         }) => {
           const renderCategory = () => {
             if (currentCategoryIndex === 0) {
@@ -84,7 +89,8 @@ export default function Settings() {
               return (
                 <SettingsAppearance
                   appearanceTheme={appearanceTheme}
-                  appearanceAuthor={appearanceAuthor}
+                  appearanceAuthorId={appearanceAuthorId}
+                  appearanceAuthorName={appearanceAuthorName}
                 />
               );
             }

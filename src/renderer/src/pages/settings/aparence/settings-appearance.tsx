@@ -6,19 +6,22 @@ import { ImportThemeModal } from "./modals/import-theme-modal";
 
 interface SettingsAppearanceProps {
   appearanceTheme: string | null;
-  appearanceAuthor: string | null;
+  appearanceAuthorId: string | null;
+  appearanceAuthorName: string | null;
 }
 
 export const SettingsAppearance = ({
   appearanceTheme,
-  appearanceAuthor,
+  appearanceAuthorId,
+  appearanceAuthorName,
 }: SettingsAppearanceProps) => {
   const [themes, setThemes] = useState<Theme[]>([]);
   const [isImportThemeModalVisible, setIsImportThemeModalVisible] =
     useState(false);
   const [importTheme, setImportTheme] = useState<{
     theme: string;
-    author: string;
+    authorId: string;
+    authorName: string;
   } | null>(null);
 
   const loadThemes = async () => {
@@ -39,14 +42,15 @@ export const SettingsAppearance = ({
   }, []);
 
   useEffect(() => {
-    if (appearanceTheme && appearanceAuthor) {
+    if (appearanceTheme && appearanceAuthorId && appearanceAuthorName) {
       setIsImportThemeModalVisible(true);
       setImportTheme({
         theme: appearanceTheme,
-        author: appearanceAuthor,
+        authorId: appearanceAuthorId,
+        authorName: appearanceAuthorName,
       });
     }
-  }, [appearanceTheme, appearanceAuthor]);
+  }, [appearanceTheme, appearanceAuthorId, appearanceAuthorName]);
 
   return (
     <div className="settings-appearance">
@@ -81,7 +85,8 @@ export const SettingsAppearance = ({
             loadThemes();
           }}
           themeName={importTheme.theme}
-          authorCode={importTheme.author}
+          authorId={importTheme.authorId}
+          authorName={importTheme.authorName}
         />
       )}
     </div>
