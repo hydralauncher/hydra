@@ -61,13 +61,20 @@ export const injectCustomCss = (css: string) => {
       currentCustomCss.remove();
     }
 
-    const style = document.createElement("style");
-
-    style.id = "custom-css";
-    style.textContent = `
-      ${css}
-    `;
-    document.head.appendChild(style);
+    if (css.startsWith("https://hydrathemes.shop/")) {
+      const link = document.createElement("link");
+      link.id = "custom-css";
+      link.rel = "stylesheet";
+      link.href = css;
+      document.head.appendChild(link);
+    } else {
+      const style = document.createElement("style");
+      style.id = "custom-css";
+      style.textContent = `
+        ${css}
+      `;
+      document.head.appendChild(style);
+    }
   } catch (error) {
     console.error("failed to inject custom css:", error);
   }

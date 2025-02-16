@@ -10,6 +10,7 @@ import { PythonRPC } from "./services/python-rpc";
 import { Aria2 } from "./services/aria2";
 import { db, levelKeys } from "./level";
 import { loadState } from "./main";
+import { handleDeepLinkTheme } from "./events/themes/deeplink";
 
 const { autoUpdater } = updater;
 
@@ -85,6 +86,15 @@ const handleDeepLinkPath = (uri?: string) => {
 
     if (url.host === "install-source") {
       WindowManager.redirect(`settings${url.search}`);
+    }
+
+    if (url.host === "install-theme") {
+      const themeName = url.searchParams.get("theme");
+      const authorCode = url.searchParams.get("author");
+
+      if (themeName && authorCode) {
+        handleDeepLinkTheme(themeName, authorCode);
+      }
     }
   } catch (error) {
     logger.error("Error handling deep link", uri, error);
