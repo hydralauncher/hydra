@@ -219,8 +219,10 @@ export class DownloadManager {
       } as PauseDownloadPayload)
       .catch(() => {});
 
-    WindowManager.mainWindow?.setProgressBar(-1);
-    this.downloadingGameId = null;
+    if (downloadKey === this.downloadingGameId) {
+      WindowManager.mainWindow?.setProgressBar(-1);
+      this.downloadingGameId = null;
+    }
   }
 
   static async resumeDownload(download: Download) {
