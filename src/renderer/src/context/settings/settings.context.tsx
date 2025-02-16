@@ -47,9 +47,9 @@ export function SettingsContextProvider({
   const [appearanceAuthorId, setAppearanceAuthorId] = useState<string | null>(
     null
   );
-  const [appearanceAuthorName, setAppearanceAuthorName] = useState<string | null>(
-    null
-  );
+  const [appearanceAuthorName, setAppearanceAuthorName] = useState<
+    string | null
+  >(null);
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
 
   const [blockedUsers, setBlockedUsers] = useState<UserBlocks["blocks"]>([]);
@@ -75,7 +75,11 @@ export function SettingsContextProvider({
   }, [appearanceTheme]);
 
   useEffect(() => {
-    if (defaultAppearanceTheme && defaultAppearanceAuthorId && defaultAppearanceAuthorName) {
+    if (
+      defaultAppearanceTheme &&
+      defaultAppearanceAuthorId &&
+      defaultAppearanceAuthorName
+    ) {
       setAppearanceTheme(defaultAppearanceTheme);
       setAppearanceAuthorId(defaultAppearanceAuthorId);
       setAppearanceAuthorName(defaultAppearanceAuthorName);
