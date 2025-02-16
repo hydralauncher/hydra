@@ -361,8 +361,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getCustomThemeById", themeId),
   getActiveCustomTheme: () => ipcRenderer.invoke("getActiveCustomTheme"),
   onImportTheme: (cb: (theme: string, author: string) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, theme: string, author: string) =>
-      cb(theme, author);
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      theme: string,
+      author: string
+    ) => cb(theme, author);
     ipcRenderer.on("import-theme", listener);
     return () => ipcRenderer.removeListener("import-theme", listener);
   },
