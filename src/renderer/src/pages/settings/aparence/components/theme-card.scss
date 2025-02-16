@@ -85,6 +85,10 @@
       flex-direction: row;
       gap: 8px;
 
+      &--external {
+        display: none;
+      }
+
       Button {
         padding: 8px 11px;
       }
