@@ -2,9 +2,16 @@ import { useEffect, useState } from "react";
 import "./settings-appearance.scss";
 import { ThemeActions, ThemeCard, ThemePlaceholder } from "./index";
 import type { Theme } from "@types";
+import { ImportThemeModal } from "./modals/import-theme-modal";
 
 export const SettingsAppearance = () => {
   const [themes, setThemes] = useState<Theme[]>([]);
+  const [isImportThemeModalVisible, setIsImportThemeModalVisible] =
+    useState(false);
+  const [importTheme, setImportTheme] = useState<{
+    theme: string;
+    author: string;
+  } | null>(null);
 
   const loadThemes = async () => {
     const themesList = await window.electron.getAllCustomThemes();
@@ -18,6 +25,15 @@ export const SettingsAppearance = () => {
   useEffect(() => {
     const unsubscribe = window.electron.onCssInjected(() => {
       loadThemes();
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onImportTheme((theme, author) => {
+      setIsImportThemeModalVisible(true);
+      setImportTheme({ theme, author });
     });
 
     return () => unsubscribe();
@@ -46,6 +62,19 @@ export const SettingsAppearance = () => {
             ))
         )}
       </div>
+
+      {importTheme && (
+        <ImportThemeModal
+          visible={isImportThemeModalVisible}
+          onClose={() => setIsImportThemeModalVisible(false)}
+          onThemeImported={() => {
+            setIsImportThemeModalVisible(false);
+            loadThemes();
+          }}
+          themeName={importTheme.theme}
+          authorCode={importTheme.author}
+        />
+      )}
     </div>
   );
 };
