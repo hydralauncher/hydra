@@ -251,18 +251,18 @@ export class WindowManager {
 
       editorWindow.once("ready-to-show", () => {
         editorWindow.show();
-        WindowManager.mainWindow?.webContents.openDevTools();
+        editorWindow.webContents.openDevTools();
       });
 
       editorWindow.webContents.on("before-input-event", (event, input) => {
         if (input.key === "F12") {
           event.preventDefault();
-          this.mainWindow?.webContents.toggleDevTools();
+          editorWindow.webContents.toggleDevTools();
         }
       });
 
       editorWindow.on("close", () => {
-        WindowManager.mainWindow?.webContents.closeDevTools();
+        editorWindow.webContents.closeDevTools();
         this.editorWindows.delete(themeId);
       });
     }
