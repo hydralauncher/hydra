@@ -32,6 +32,7 @@ import {
 } from "@primer/octicons-react";
 
 import torBoxLogo from "@renderer/assets/icons/torbox.webp";
+
 export interface DownloadGroupProps {
   library: LibraryGame[];
   title: string;

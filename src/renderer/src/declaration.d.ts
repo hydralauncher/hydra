@@ -29,6 +29,7 @@ import type {
   LibraryGame,
   GameRunning,
   TorBoxUser,
+  Theme,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -279,6 +280,23 @@ declare global {
 
     /* Notifications */
     publishNewRepacksNotification: (newRepacksCount: number) => Promise<void>;
+
+    /* Themes */
+    addCustomTheme: (theme: Theme) => Promise<void>;
+    getAllCustomThemes: () => Promise<Theme[]>;
+    deleteAllCustomThemes: () => Promise<void>;
+    deleteCustomTheme: (themeId: string) => Promise<void>;
+    updateCustomTheme: (themeId: string, code: string) => Promise<void>;
+    getCustomThemeById: (themeId: string) => Promise<Theme | null>;
+    getActiveCustomTheme: () => Promise<Theme | null>;
+    toggleCustomTheme: (themeId: string, isActive: boolean) => Promise<void>;
+
+    /* Editor */
+    openEditorWindow: (themeId: string) => Promise<void>;
+    onCssInjected: (
+      cb: (cssString: string) => void
+    ) => () => Electron.IpcRenderer;
+    closeEditorWindow: (themeId?: string) => Promise<void>;
   }
 
   interface Window {
