@@ -61,14 +61,16 @@ export function HeroPanelActions() {
     setToggleLibraryGameDisabled(true);
 
     try {
-      if (game?.favorite) {
+      if (game?.favorite && objectId) {
         await window.electron
-          .removeGameFromFavorites(shop, objectId!)
+          .removeGameFromFavorites(shop, objectId)
           .then(() => {
             showSuccessToast(t("game_removed_from_favorites"));
           });
       } else {
-        await window.electron.addGameToFavorites(shop, objectId!).then(() => {
+        if (!objectId) return;
+
+        await window.electron.addGameToFavorites(shop, objectId).then(() => {
           showSuccessToast(t("game_added_to_favorites"));
         });
       }
