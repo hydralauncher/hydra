@@ -1,20 +1,21 @@
-import { useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import "./settings-appearance.scss";
 import { ThemeActions, ThemeCard, ThemePlaceholder } from "./index";
 import type { Theme } from "@types";
 import { ImportThemeModal } from "./modals/import-theme-modal";
+import { settingsContext } from "@renderer/context";
 
 interface SettingsAppearanceProps {
-  appearanceTheme: string | null;
-  appearanceAuthorId: string | null;
-  appearanceAuthorName: string | null;
+  appearance: {
+    theme: string | null;
+    authorId: string | null;
+    authorName: string | null;
+  };
 }
 
-export const SettingsAppearance = ({
-  appearanceTheme,
-  appearanceAuthorId,
-  appearanceAuthorName,
-}: SettingsAppearanceProps) => {
+export function SettingsAppearance({
+  appearance,
+}: Readonly<SettingsAppearanceProps>) {
   const [themes, setThemes] = useState<Theme[]>([]);
   const [isImportThemeModalVisible, setIsImportThemeModalVisible] =
     useState(false);
@@ -24,14 +25,16 @@ export const SettingsAppearance = ({
     authorName: string;
   } | null>(null);
 
-  const loadThemes = async () => {
+  const { clearTheme } = useContext(settingsContext);
+
+  const loadThemes = useCallback(async () => {
     const themesList = await window.electron.getAllCustomThemes();
     setThemes(themesList);
-  };
+  }, []);
 
   useEffect(() => {
     loadThemes();
-  }, []);
+  }, [loadThemes]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onCssInjected(() => {
@@ -39,18 +42,24 @@ export const SettingsAppearance = ({
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [loadThemes]);
 
   useEffect(() => {
-    if (appearanceTheme && appearanceAuthorId && appearanceAuthorName) {
+    if (appearance.theme && appearance.authorId && appearance.authorName) {
       setIsImportThemeModalVisible(true);
       setImportTheme({
-        theme: appearanceTheme,
-        authorId: appearanceAuthorId,
-        authorName: appearanceAuthorName,
+        theme: appearance.theme,
+        authorId: appearance.authorId,
+        authorName: appearance.authorName,
       });
     }
-  }, [appearanceTheme, appearanceAuthorId, appearanceAuthorName]);
+  }, [appearance.theme, appearance.authorId, appearance.authorName]);
+
+  const onThemeImported = useCallback(() => {
+    setIsImportThemeModalVisible(false);
+    loadThemes();
+    clearTheme();
+  }, [clearTheme, loadThemes]);
 
   return (
     <div className="settings-appearance">
@@ -80,10 +89,7 @@ export const SettingsAppearance = ({
         <ImportThemeModal
           visible={isImportThemeModalVisible}
           onClose={() => setIsImportThemeModalVisible(false)}
-          onThemeImported={() => {
-            setIsImportThemeModalVisible(false);
-            loadThemes();
-          }}
+          onThemeImported={onThemeImported}
           themeName={importTheme.theme}
           authorId={importTheme.authorId}
           authorName={importTheme.authorName}
@@ -91,4 +97,4 @@ export const SettingsAppearance = ({
       )}
     </div>
   );
-};
+}
