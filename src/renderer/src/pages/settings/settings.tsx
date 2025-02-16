@@ -36,20 +36,20 @@ export default function Settings() {
       },
       ...(isTorboxEnabled
         ? [
-          {
-            tabLabel: (
-              <>
-                <img
-                  src={torBoxLogo}
-                  alt="TorBox"
-                  style={{ width: 13, height: 13 }}
-                />{" "}
-                Torbox
-              </>
-            ),
-            contentTitle: "TorBox",
-          },
-        ]
+            {
+              tabLabel: (
+                <>
+                  <img
+                    src={torBoxLogo}
+                    alt="TorBox"
+                    style={{ width: 13, height: 13 }}
+                  />{" "}
+                  Torbox
+                </>
+              ),
+              contentTitle: "TorBox",
+            },
+          ]
         : []),
       { tabLabel: "Real-Debrid", contentTitle: "Real-Debrid" },
     ];
