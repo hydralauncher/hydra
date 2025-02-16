@@ -56,8 +56,8 @@ export const AddThemeModal = ({
   return (
     <Modal
       visible={visible}
-      title={t("add_theme_modal_title")}
-      description={t("add_theme_modal_description")}
+      title={t("create_theme_modal_title")}
+      description={t("create_theme_modal_description")}
       onClose={onClose}
     >
       <div className="add-theme-modal__container">
@@ -72,7 +72,7 @@ export const AddThemeModal = ({
         />
 
         <Button theme="primary" onClick={handleSubmit}>
-          {t("add_theme")}
+          {t("create_theme")}
         </Button>
       </div>
     </Modal>

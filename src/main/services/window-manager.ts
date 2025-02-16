@@ -245,13 +245,16 @@ export class WindowManager {
         );
       } else {
         editorWindow.loadFile(path.join(__dirname, "../renderer/index.html"), {
-          hash: `editor?themeId=${themeId}`,
+          hash: `theme-editor?themeId=${themeId}`,
         });
       }
 
       editorWindow.once("ready-to-show", () => {
         editorWindow.show();
-        WindowManager.mainWindow?.webContents.openDevTools();
+        this.mainWindow?.webContents.openDevTools();
+        if (isStaging) {
+          editorWindow.webContents.openDevTools();
+        }
       });
 
       editorWindow.webContents.on("before-input-event", (event, input) => {
@@ -262,7 +265,7 @@ export class WindowManager {
       });
 
       editorWindow.on("close", () => {
-        WindowManager.mainWindow?.webContents.closeDevTools();
+        this.mainWindow?.webContents.closeDevTools();
         this.editorWindows.delete(themeId);
       });
     }
