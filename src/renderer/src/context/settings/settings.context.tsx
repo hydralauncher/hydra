@@ -34,7 +34,7 @@ export interface SettingsContextProviderProps {
 
 export function SettingsContextProvider({
   children,
-}: SettingsContextProviderProps) {
+}: Readonly<SettingsContextProviderProps>) {
   const dispatch = useAppDispatch();
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
