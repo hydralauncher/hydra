@@ -10,7 +10,6 @@ import { PythonRPC } from "./services/python-rpc";
 import { Aria2 } from "./services/aria2";
 import { db, levelKeys } from "./level";
 import { loadState } from "./main";
-import { handleDeepLinkTheme } from "./events/themes/deeplink";
 
 const { autoUpdater } = updater;
 
@@ -93,7 +92,7 @@ const handleDeepLinkPath = (uri?: string) => {
       const authorCode = url.searchParams.get("author");
 
       if (themeName && authorCode) {
-        handleDeepLinkTheme(themeName, authorCode);
+        WindowManager.mainWindow?.webContents.send("import-theme", themeName, authorCode);
       }
     }
   } catch (error) {
