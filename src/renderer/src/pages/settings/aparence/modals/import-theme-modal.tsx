@@ -47,20 +47,14 @@ export const ImportThemeModal = ({
 
       if (activeTheme) {
         removeCustomCss();
-        await window.electron.updateCustomTheme(activeTheme.id, {
-          ...activeTheme,
-          isActive: false,
-        });
+        await window.electron.toggleCustomTheme(activeTheme.id, false);
       }
 
       if (currentTheme.code) {
         injectCustomCss(currentTheme.code);
       }
 
-      await window.electron.updateCustomTheme(currentTheme.id, {
-        ...currentTheme,
-        isActive: true,
-      });
+      await window.electron.toggleCustomTheme(currentTheme.id, true);
       onThemeImported();
       showSuccessToast(t("theme_imported"));
       onClose();

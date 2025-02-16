@@ -355,11 +355,13 @@ contextBridge.exposeInMainWorld("electron", {
   deleteAllCustomThemes: () => ipcRenderer.invoke("deleteAllCustomThemes"),
   deleteCustomTheme: (themeId: string) =>
     ipcRenderer.invoke("deleteCustomTheme", themeId),
-  updateCustomTheme: (themeId: string, theme: Theme) =>
-    ipcRenderer.invoke("updateCustomTheme", themeId, theme),
+  updateCustomTheme: (themeId: string, code: string) =>
+    ipcRenderer.invoke("updateCustomTheme", themeId, code),
   getCustomThemeById: (themeId: string) =>
     ipcRenderer.invoke("getCustomThemeById", themeId),
   getActiveCustomTheme: () => ipcRenderer.invoke("getActiveCustomTheme"),
+  toggleCustomTheme: (themeId: string, isActive: boolean) =>
+    ipcRenderer.invoke("toggleCustomTheme", themeId, isActive),
   onImportTheme: (cb: (theme: string, author: string) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
