@@ -2,10 +2,10 @@ import { Button } from "@renderer/components/button/button";
 import { Modal } from "@renderer/components/modal/modal";
 import { useTranslation } from "react-i18next";
 import "./modals.scss";
-import { Theme } from "@types";
+import { Theme, UserProfile } from "@types";
 import { injectCustomCss, removeCustomCss } from "@renderer/helpers";
 import { useToast } from "@renderer/hooks";
-import { UserProfile } from "@types";
+
 interface ImportThemeModalProps {
   visible: boolean;
   onClose: () => void;
@@ -74,7 +74,7 @@ export const ImportThemeModal = ({
     <Modal
       visible={visible}
       title={t("import_theme")}
-      description={t("import_theme_description")}
+      description={t("import_theme_description", { theme: themeName })}
       onClose={onClose}
     >
       <div className="delete-all-themes-modal__container">
