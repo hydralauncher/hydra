@@ -245,7 +245,7 @@ export class WindowManager {
         );
       } else {
         editorWindow.loadFile(path.join(__dirname, "../renderer/index.html"), {
-          hash: `editor?themeId=${themeId}`,
+          hash: `theme-editor?themeId=${themeId}`,
         });
       }
 
