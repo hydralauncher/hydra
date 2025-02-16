@@ -5,6 +5,8 @@ import { AddThemeModal, DeleteAllThemesModal } from "../index";
 import "./theme-actions.scss";
 import { useState } from "react";
 
+export const WEB_STORE_URL = "https://hydrathemes.shop";
+
 interface ThemeActionsProps {
   onListUpdated: () => void;
   themesCount: number;
@@ -36,7 +38,13 @@ export const ThemeActions = ({
 
       <div className="settings-appearance__actions">
         <div className="settings-appearance__actions-left">
-          <Button theme="primary" className="settings-appearance__button">
+          <Button
+            theme="primary"
+            className="settings-appearance__button"
+            onClick={() => {
+              window.open(WEB_STORE_URL, "_blank");
+            }}
+          >
             <GlobeIcon />
             {t("web_store")}
           </Button>
