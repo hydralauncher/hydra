@@ -286,9 +286,10 @@ declare global {
     getAllCustomThemes: () => Promise<Theme[]>;
     deleteAllCustomThemes: () => Promise<void>;
     deleteCustomTheme: (themeId: string) => Promise<void>;
-    updateCustomTheme: (themeId: string, theme: Theme) => Promise<void>;
+    updateCustomTheme: (themeId: string, code: string) => Promise<void>;
     getCustomThemeById: (themeId: string) => Promise<Theme | null>;
     getActiveCustomTheme: () => Promise<Theme | null>;
+    toggleCustomTheme: (themeId: string, isActive: boolean) => Promise<void>;
     onImportTheme: (
       cb: (theme: string, author: string) => void
     ) => () => Electron.IpcRenderer;

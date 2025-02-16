@@ -31,13 +31,7 @@ export default function ThemeEditor() {
 
   const handleSave = useCallback(async () => {
     if (theme) {
-      const updatedTheme = {
-        ...theme,
-        code: code,
-        updatedAt: new Date(),
-      };
-
-      await window.electron.updateCustomTheme(theme.id, updatedTheme);
+      await window.electron.updateCustomTheme(theme.id, code);
       setHasUnsavedChanges(false);
 
       if (theme.isActive) {

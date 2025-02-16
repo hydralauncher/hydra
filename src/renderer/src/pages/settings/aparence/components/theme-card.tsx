@@ -29,20 +29,14 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
 
       if (activeTheme) {
         removeCustomCss();
-        await window.electron.updateCustomTheme(activeTheme.id, {
-          ...activeTheme,
-          isActive: false,
-        });
+        await window.electron.toggleCustomTheme(activeTheme.id, false);
       }
 
       if (currentTheme.code) {
         injectCustomCss(currentTheme.code);
       }
 
-      await window.electron.updateCustomTheme(currentTheme.id, {
-        ...currentTheme,
-        isActive: true,
-      });
+      await window.electron.toggleCustomTheme(currentTheme.id, true);
 
       onListUpdated();
     } catch (error) {
@@ -53,10 +47,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
   const handleUnsetTheme = async () => {
     try {
       removeCustomCss();
-      await window.electron.updateCustomTheme(theme.id, {
-        ...theme,
-        isActive: false,
-      });
+      await window.electron.toggleCustomTheme(theme.id, false);
 
       onListUpdated();
     } catch (error) {

@@ -1,11 +1,11 @@
-import { themes } from "@main/level/sublevels/themes";
+import { themesSublevel } from "@main/level";
 import { registerEvent } from "../register-event";
 
 const getCustomThemeById = async (
   _event: Electron.IpcMainInvokeEvent,
   themeId: string
 ) => {
-  return await themes.get(themeId);
+  return themesSublevel.get(themeId);
 };
 
 registerEvent("getCustomThemeById", getCustomThemeById);

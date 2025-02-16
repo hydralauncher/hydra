@@ -1,13 +1,22 @@
-import { themes } from "@main/level/sublevels/themes";
+import { themesSublevel } from "@main/level";
 import { registerEvent } from "../register-event";
-import { Theme } from "@types";
 
 const updateCustomTheme = async (
   _event: Electron.IpcMainInvokeEvent,
   themeId: string,
-  theme: Theme
+  code: string
 ) => {
-  await themes.put(themeId, theme);
+  const theme = await themesSublevel.get(themeId);
+
+  if (!theme) {
+    throw new Error("Theme not found");
+  }
+
+  await themesSublevel.put(themeId, {
+    ...theme,
+    code,
+    updatedAt: new Date(),
+  });
 };
 
 registerEvent("updateCustomTheme", updateCustomTheme);

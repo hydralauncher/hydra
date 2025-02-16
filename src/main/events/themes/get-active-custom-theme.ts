@@ -1,10 +1,9 @@
+import { themesSublevel } from "@main/level";
 import { registerEvent } from "../register-event";
-import { themes } from "@main/level/sublevels/themes";
-import { Theme } from "@types";
 
 const getActiveCustomTheme = async () => {
-  const allThemes = await themes.values().all();
-  return allThemes.find((theme: Theme) => theme.isActive);
+  const allThemes = await themesSublevel.values().all();
+  return allThemes.find((theme) => theme.isActive);
 };
 
 registerEvent("getActiveCustomTheme", getActiveCustomTheme);
