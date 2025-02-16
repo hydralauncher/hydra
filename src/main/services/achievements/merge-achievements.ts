@@ -23,23 +23,21 @@ const saveAchievementsOnLocal = async (
   return gameAchievementsSublevel
     .get(levelKey)
     .then(async (gameAchievement) => {
-      if (gameAchievement) {
-        await gameAchievementsSublevel.put(levelKey, {
-          ...gameAchievement,
-          unlockedAchievements: unlockedAchievements,
-        });
+      await gameAchievementsSublevel.put(levelKey, {
+        achievements: gameAchievement?.achievements ?? [],
+        unlockedAchievements: unlockedAchievements,
+      });
 
-        if (!sendUpdateEvent) return;
+      if (!sendUpdateEvent) return;
 
-        return getUnlockedAchievements(objectId, shop, true)
-          .then((achievements) => {
-            WindowManager.mainWindow?.webContents.send(
-              `on-update-achievements-${objectId}-${shop}`,
-              achievements
-            );
-          })
-          .catch(() => {});
-      }
+      return getUnlockedAchievements(objectId, shop, true)
+        .then((achievements) => {
+          WindowManager.mainWindow?.webContents.send(
+            `on-update-achievements-${objectId}-${shop}`,
+            achievements
+          );
+        })
+        .catch(() => {});
     });
 };
 
@@ -133,7 +131,7 @@ export const mergeAchievements = async (
         );
       })
       .catch((err) => {
-        if (err! instanceof SubscriptionRequiredError) {
+        if (err instanceof SubscriptionRequiredError) {
           achievementsLogger.log(
             "Achievements not synchronized on API due to lack of subscription",
             game.objectId,
