@@ -13,6 +13,8 @@ import "./catalogue/get-developers";
 import "./hardware/get-disk-free-space";
 import "./hardware/check-folder-write-permission";
 import "./library/add-game-to-library";
+import "./library/add-game-to-favorites";
+import "./library/remove-game-from-favorites";
 import "./library/create-game-shortcut";
 import "./library/close-game";
 import "./library/delete-game-folder";

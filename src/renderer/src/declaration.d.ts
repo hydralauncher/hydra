@@ -96,6 +96,11 @@ declare global {
       objectId: string,
       executablePath: string | null
     ) => Promise<void>;
+    addGameToFavorites: (shop: GameShop, objectId: string) => Promise<void>;
+    removeGameFromFavorites: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<void>;
     updateLaunchOptions: (
       shop: GameShop,
       objectId: string,

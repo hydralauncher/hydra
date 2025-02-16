@@ -1,6 +1,8 @@
 import {
   DownloadIcon,
   GearIcon,
+  HeartFillIcon,
+  HeartIcon,
   PlayIcon,
   PlusCircleIcon,
 } from "@primer/octicons-react";
@@ -45,6 +47,32 @@ export function HeroPanelActions() {
     try {
       await window.electron.addGameToLibrary(shop, objectId!, gameTitle);
 
+      updateLibrary();
+      updateGame();
+    } finally {
+      setToggleLibraryGameDisabled(false);
+    }
+  };
+
+  const addGameToFavorites = async () => {
+    setToggleLibraryGameDisabled(true);
+
+    try {
+      if (!objectId) throw new Error("objectId is required");
+      await window.electron.addGameToFavorites(shop, objectId);
+      updateLibrary();
+      updateGame();
+    } finally {
+      setToggleLibraryGameDisabled(false);
+    }
+  };
+
+  const removeGameFromFavorites = async () => {
+    setToggleLibraryGameDisabled(true);
+
+    try {
+      if (!objectId) throw new Error("objectId is required");
+      await window.electron.removeGameFromFavorites(shop, objectId);
       updateLibrary();
       updateGame();
     } finally {
@@ -159,6 +187,16 @@ export function HeroPanelActions() {
       <div className="hero-panel-actions__container">
         {gameActionButton()}
         <div className="hero-panel-actions__separator" />
+        <Button
+          onClick={game.favorite ? removeGameFromFavorites : addGameToFavorites}
+          theme="outline"
+          disabled={deleting}
+          className="hero-panel-actions__action"
+        >
+          {game.favorite ? <HeartFillIcon /> : <HeartIcon />}
+        </Button>
+
+
         <Button
           onClick={() => setShowGameOptionsModal(true)}
           theme="outline"
