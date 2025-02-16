@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { AddThemeModal, DeleteAllThemesModal } from "../index";
 import "./theme-actions.scss";
 import { useState } from "react";
-import { WEB_STORE_URL } from "@renderer/constants";
+import { THEME_WEB_STORE_URL } from "@renderer/constants";
 
 interface ThemeActionsProps {
   onListUpdated: () => void;
@@ -41,7 +41,7 @@ export const ThemeActions = ({
             theme="primary"
             className="settings-appearance__button"
             onClick={() => {
-              window.open(WEB_STORE_URL, "_blank");
+              window.open(THEME_WEB_STORE_URL, "_blank");
             }}
           >
             <GlobeIcon />
