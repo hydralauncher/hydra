@@ -26,7 +26,7 @@ export function AddDownloadSourceModal({
   visible,
   onClose,
   onAddDownloadSource,
-}: AddDownloadSourceModalProps) {
+}: Readonly<AddDownloadSourceModalProps>) {
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
