@@ -24,6 +24,7 @@ import {
   DownloadIcon,
   LinkIcon,
   PlayIcon,
+  QuestionIcon,
   ThreeBarsIcon,
   TrashIcon,
   UnlinkIcon,
@@ -123,8 +124,12 @@ export function DownloadGroup({
           </p>
 
           {download.downloader === Downloader.Torrent && (
-            <small>
+            <small
+              className="download-group__details-with-article"
+              data-open-article="peers-and-seeds"
+            >
               {lastPacket?.numPeers} peers / {lastPacket?.numSeeds} seeds
+              <QuestionIcon size={12} />
             </small>
           )}
         </>
@@ -137,7 +142,14 @@ export function DownloadGroup({
       return download.status === "seeding" &&
         download.downloader === Downloader.Torrent ? (
         <>
-          <p>{t("seeding")}</p>
+          <p
+            data-open-article="seeding"
+            className="download-group__details-with-article"
+          >
+            {t("seeding")}
+
+            <QuestionIcon />
+          </p>
           {uploadSpeed && <p>{uploadSpeed}/s</p>}
         </>
       ) : (
@@ -175,7 +187,7 @@ export function DownloadGroup({
 
     const deleting = isGameDeleting(game.id);
 
-    if (download?.progress === 1) {
+    if (game.download?.progress === 1) {
       return [
         {
           label: t("install"),
@@ -190,8 +202,8 @@ export function DownloadGroup({
           disabled: deleting,
           icon: <UnlinkIcon />,
           show:
-            download.status === "seeding" &&
-            download.downloader === Downloader.Torrent,
+            game.download?.status === "seeding" &&
+            game.download?.downloader === Downloader.Torrent,
           onClick: () => {
             pauseSeeding(game.shop, game.objectId);
           },
@@ -201,8 +213,8 @@ export function DownloadGroup({
           disabled: deleting,
           icon: <LinkIcon />,
           show:
-            download.status !== "seeding" &&
-            download.downloader === Downloader.Torrent,
+            game.download?.status !== "seeding" &&
+            game.download?.downloader === Downloader.Torrent,
           onClick: () => {
             resumeSeeding(game.shop, game.objectId);
           },
@@ -218,7 +230,7 @@ export function DownloadGroup({
       ];
     }
 
-    if (isGameDownloading || download?.status === "active") {
+    if (isGameDownloading) {
       return [
         {
           label: t("pause"),
