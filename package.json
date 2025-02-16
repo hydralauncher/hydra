@@ -60,6 +60,7 @@
     "i18next-browser-languagedetector": "^7.2.1",
     "jsdom": "^24.0.0",
     "jsonwebtoken": "^9.0.2",
+    "kill-port": "^2.0.1",
     "knex": "^3.1.0",
     "lodash-es": "^4.17.21",
     "parse-torrent": "^11.0.17",
