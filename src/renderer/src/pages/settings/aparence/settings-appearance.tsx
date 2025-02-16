@@ -58,7 +58,6 @@ export function SettingsAppearance({
   const onThemeImported = useCallback(() => {
     setIsImportThemeModalVisible(false);
     loadThemes();
-    clearTheme();
   }, [clearTheme, loadThemes]);
 
   return (
@@ -88,7 +87,10 @@ export function SettingsAppearance({
       {importTheme && (
         <ImportThemeModal
           visible={isImportThemeModalVisible}
-          onClose={() => setIsImportThemeModalVisible(false)}
+          onClose={() => {
+            setIsImportThemeModalVisible(false);
+            clearTheme();
+          }}
           onThemeImported={onThemeImported}
           themeName={importTheme.theme}
           authorId={importTheme.authorId}
