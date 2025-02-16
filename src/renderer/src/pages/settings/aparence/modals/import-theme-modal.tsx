@@ -6,6 +6,7 @@ import { Theme, UserProfile } from "@types";
 import { injectCustomCss, removeCustomCss } from "@renderer/helpers";
 import { useToast } from "@renderer/hooks";
 import { THEME_WEB_STORE_URL } from "@renderer/constants";
+import { logger } from "@renderer/logger";
 
 interface ImportThemeModalProps {
   visible: boolean;
@@ -65,7 +66,7 @@ export const ImportThemeModal = ({
       showSuccessToast(t("theme_imported"));
       onClose();
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       showErrorToast(t("error_importing_theme"));
       onClose();
     }
