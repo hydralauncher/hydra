@@ -22,6 +22,38 @@ interface FormValues {
   name: string;
 }
 
+const DEFAULT_THEME_CODE = `
+  /*
+    Here you can edit CSS for your theme and apply it on Hydra.
+    There are a few classes already in place, you can use them to style the launcher.
+
+    If you want to learn more about how to run Hydra in dev mode (which will allow you to inspect the DOM and view the classes)
+    or how to publish your theme in the theme store, you can check the docs:
+    https://docs.hydralauncher.gg/
+
+    Happy hacking!
+  */
+
+  /* Header */
+  .header {}
+
+  /* Sidebar */
+  .sidebar {}
+
+  /* Main content */
+  .container__content {}
+
+  /* Bottom panel */
+  .bottom-panel {}
+
+  /* Toast */
+  .toast {}
+
+  /* Button */
+  .button {}
+
+`;
+
 export function AddThemeModal({
   visible,
   onClose,
@@ -54,7 +86,7 @@ export function AddThemeModal({
         isActive: false,
         author: userDetails?.id,
         authorName: userDetails?.username,
-        code: "/* Your theme goes here */",
+        code: DEFAULT_THEME_CODE,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

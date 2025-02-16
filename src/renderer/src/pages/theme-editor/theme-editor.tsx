@@ -33,10 +33,6 @@ export default function ThemeEditor() {
     if (theme) {
       await window.electron.updateCustomTheme(theme.id, code);
       setHasUnsavedChanges(false);
-
-      if (theme.isActive) {
-        window.electron.injectCSS(code);
-      }
     }
   }, [code, theme]);
 
