@@ -327,7 +327,8 @@
     "enable_torbox": "Enable Torbox",
     "torbox_description": "TorBox is your premium seedbox service rivaling even the best servers on the market.",
     "torbox_account_linked": "TorBox account linked",
-    "real_debrid_account_linked": "Real-Debrid account linked"
+    "real_debrid_account_linked": "Real-Debrid account linked",
+    "name_min_length": "Theme name must be at least 3 characters long"
   },
   "notifications": {
     "download_complete": "Download complete",

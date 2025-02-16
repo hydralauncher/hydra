@@ -44,10 +44,9 @@ export function DownloadSettingsModal({
     (state) => state.userPreferences.value
   );
 
-  const getDiskFreeSpace = (path: string) => {
-    window.electron.getDiskFreeSpace(path).then((result) => {
-      setDiskFreeSpace(result.free);
-    });
+  const getDiskFreeSpace = async (path: string) => {
+    const result = await window.electron.getDiskFreeSpace(path);
+    setDiskFreeSpace(result.free);
   };
 
   const checkFolderWritePermission = useCallback(
@@ -100,6 +99,7 @@ export function DownloadSettingsModal({
     userPreferences?.downloadsPath,
     downloaders,
     userPreferences?.realDebridApiToken,
+    userPreferences?.torBoxApiToken,
   ]);
 
   const handleChooseDownloadsPath = async () => {
@@ -155,27 +155,30 @@ export function DownloadSettingsModal({
           <span>{t("downloader")}</span>
 
           <div className="download-settings-modal__downloaders">
-            {downloaders.map((downloader) => (
-              <Button
-                key={downloader}
-                className="download-settings-modal__downloader-option"
-                theme={
-                  selectedDownloader === downloader ? "primary" : "outline"
-                }
-                disabled={
-                  (downloader === Downloader.RealDebrid &&
-                    !userPreferences?.realDebridApiToken) ||
-                  (downloader === Downloader.TorBox &&
-                    !userPreferences?.torBoxApiToken)
-                }
-                onClick={() => setSelectedDownloader(downloader)}
-              >
-                {selectedDownloader === downloader && (
-                  <CheckCircleFillIcon className="download-settings-modal__downloader-icon" />
-                )}
-                {DOWNLOADER_NAME[downloader]}
-              </Button>
-            ))}
+            {downloaders.map((downloader) => {
+              const shouldDisableButton =
+                (downloader === Downloader.RealDebrid &&
+                  !userPreferences?.realDebridApiToken) ||
+                (downloader === Downloader.TorBox &&
+                  !userPreferences?.torBoxApiToken);
+
+              return (
+                <Button
+                  key={downloader}
+                  className="download-settings-modal__downloader-option"
+                  theme={
+                    selectedDownloader === downloader ? "primary" : "outline"
+                  }
+                  disabled={shouldDisableButton}
+                  onClick={() => setSelectedDownloader(downloader)}
+                >
+                  {selectedDownloader === downloader && (
+                    <CheckCircleFillIcon className="download-settings-modal__downloader-icon" />
+                  )}
+                  {DOWNLOADER_NAME[downloader]}
+                </Button>
+              );
+            })}
           </div>
         </div>
 

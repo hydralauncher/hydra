@@ -2,10 +2,14 @@ import { Modal } from "@renderer/components/modal/modal";
 import { TextField } from "@renderer/components/text-field/text-field";
 import { Button } from "@renderer/components/button/button";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
 import "./modals.scss";
 import { useUserDetails } from "@renderer/hooks";
 import { Theme } from "@types";
+import { useForm } from "react-hook-form";
+
+import * as yup from "yup";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { useCallback } from "react";
 
 interface AddThemeModalProps {
   visible: boolean;
@@ -13,45 +17,54 @@ interface AddThemeModalProps {
   onThemeAdded: () => void;
 }
 
-export const AddThemeModal = ({
+interface FormValues {
+  name: string;
+}
+
+export function AddThemeModal({
   visible,
   onClose,
   onThemeAdded,
-}: AddThemeModalProps) => {
+}: Readonly<AddThemeModalProps>) {
   const { t } = useTranslation("settings");
   const { userDetails } = useUserDetails();
-  const [name, setName] = useState("");
-  const [error, setError] = useState("");
 
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === "Enter") {
-      handleSubmit();
-    }
-  };
+  const schema = yup.object({
+    name: yup
+      .string()
+      .required(t("required_field"))
+      .min(3, t("name_min_length")),
+  });
 
-  const handleSubmit = async () => {
-    if (!name || name.length < 3) {
-      setError(t("theme_name_error_hint"));
-      return;
-    }
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { isSubmitting, errors },
+  } = useForm<FormValues>({
+    resolver: yupResolver(schema),
+  });
 
-    const theme: Theme = {
-      id: crypto.randomUUID(),
-      name,
-      isActive: false,
-      author: userDetails?.id || undefined,
-      authorName: userDetails?.username || undefined,
-      code: "",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+  const onSubmit = useCallback(
+    async (values: FormValues) => {
+      const theme: Theme = {
+        id: crypto.randomUUID(),
+        name: values.name,
+        isActive: false,
+        author: userDetails?.id,
+        authorName: userDetails?.username,
+        code: "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
 
-    await window.electron.addCustomTheme(theme);
-    setName("");
-    setError("");
-    onThemeAdded();
-    onClose();
-  };
+      await window.electron.addCustomTheme(theme);
+      onThemeAdded();
+      onClose();
+      reset();
+    },
+    [onClose, onThemeAdded, userDetails?.id, userDetails?.username, reset]
+  );
 
   return (
     <Modal
@@ -60,21 +73,23 @@ export const AddThemeModal = ({
       description={t("create_theme_modal_description")}
       onClose={onClose}
     >
-      <div className="add-theme-modal__container">
+      <form className="add-theme-modal__container">
         <TextField
+          {...register("name")}
           label={t("theme_name")}
           placeholder={t("insert_theme_name")}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          hint={error}
-          error={!!error}
-          onKeyDown={handleKeyDown}
+          hint={errors.name?.message}
+          error={errors.name?.message}
         />
 
-        <Button theme="primary" onClick={handleSubmit}>
+        <Button
+          theme="primary"
+          onClick={handleSubmit(onSubmit)}
+          disabled={isSubmitting}
+        >
           {t("create_theme")}
         </Button>
-      </div>
+      </form>
     </Modal>
   );
-};
+}
