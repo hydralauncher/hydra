@@ -312,7 +312,7 @@
     "web_store": "Web store",
     "clear_themes": "Clear",
     "add_theme": "Add",
-    "add_theme_modal_title": "Add custom theme",
+    "add_theme_modal_title": "Create custom theme",
     "add_theme_modal_description": "Create a new theme to customize Hydra's appearance",
     "theme_name": "Name",
     "insert_theme_name": "Insert theme name",
