@@ -111,6 +111,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
 
           <div className="theme-card__actions__right">
             <Button
+              className={theme.code.startsWith("https://hydrathemes.shop/") ? "theme-card__actions__right--external" : ""}
               onClick={() => window.electron.openEditorWindow(theme.id)}
               title={t("edit_theme")}
               theme="outline"
