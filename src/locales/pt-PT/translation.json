@@ -25,10 +25,12 @@
     "queued": "{{title}} (Na fila)",
     "game_has_no_executable": "O jogo não tem um executável selecionado",
     "sign_in": "Iniciar sessão",
-    "friends": "Amigos"
+    "friends": "Amigos",
+    "favorites": "Favoritos"
   },
   "header": {
     "search": "Procurar jogos",
+
     "catalogue": "Catálogo",
     "downloads": "Transferências",
     "search_results": "Resultados da pesquisa",

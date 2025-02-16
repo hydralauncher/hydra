@@ -26,7 +26,8 @@
     "game_has_no_executable": "Oyun için bir çalıştırılabilir dosya seçilmedi",
     "sign_in": "Giriş yap",
     "friends": "Arkadaşlar",
-    "need_help": "Yardıma mı ihtiyacınız var?"
+    "need_help": "Yardıma mı ihtiyacınız var?",
+    "favorites": "Favoriler"
   },
   "header": {
     "search": "Oyunları ara",
