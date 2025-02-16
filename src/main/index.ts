@@ -10,6 +10,7 @@ import { PythonRPC } from "./services/python-rpc";
 import { Aria2 } from "./services/aria2";
 import { db, levelKeys } from "./level";
 import { loadState } from "./main";
+import { sleep } from "./helpers";
 
 const { autoUpdater } = updater;
 
@@ -92,11 +93,15 @@ const handleDeepLinkPath = (uri?: string) => {
       const authorCode = url.searchParams.get("author");
 
       if (themeName && authorCode) {
-        WindowManager.mainWindow?.webContents.send(
-          "import-theme",
-          themeName,
-          authorCode
-        );
+        WindowManager.redirect(`settings?theme=true`);
+
+        sleep(1000).then(() => {
+          WindowManager.mainWindow?.webContents.send(
+            "import-theme",
+            themeName,
+            authorCode
+          );
+        });
       }
     }
   } catch (error) {

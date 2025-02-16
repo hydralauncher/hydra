@@ -37,22 +37,33 @@ export function SettingsContextProvider({
 }: Readonly<SettingsContextProviderProps>) {
   const dispatch = useAppDispatch();
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
+  const [appearanceUrl, setAppearanceUrl] = useState<string | null>(null);
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
 
   const [blockedUsers, setBlockedUsers] = useState<UserBlocks["blocks"]>([]);
 
   const [searchParams] = useSearchParams();
   const defaultSourceUrl = searchParams.get("urls");
-
+  const defaultAppearanceUrl = searchParams.get("theme");
   useEffect(() => {
     if (sourceUrl) setCurrentCategoryIndex(2);
   }, [sourceUrl]);
-
+  
   useEffect(() => {
     if (defaultSourceUrl) {
       setSourceUrl(defaultSourceUrl);
     }
   }, [defaultSourceUrl]);
+  
+  useEffect(() => {
+    if (appearanceUrl) setCurrentCategoryIndex(3);
+  }, [appearanceUrl]);
+  
+  useEffect(() => {
+    if (defaultAppearanceUrl) {
+      setAppearanceUrl(defaultAppearanceUrl);
+    }
+  }, [defaultAppearanceUrl]);
 
   const fetchBlockedUsers = useCallback(async () => {
     const blockedUsers = await window.electron.getBlockedUsers(12, 0);
