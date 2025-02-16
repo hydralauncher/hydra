@@ -189,9 +189,10 @@
     "download_error_gofile_quota_exceeded": "You have exceeded your Gofile monthly quota. Please await the quota to reset.",
     "download_error_real_debrid_account_not_authorized": "Your Real-Debrid account is not authorized to make new downloads. Please check your account settings and try again.",
     "download_error_not_cached_in_real_debrid": "This download is not available on Real-Debrid and polling download status from Real-Debrid is not yet available.",
-    "download_error_not_cached_in_torbox": "This download is not available on Torbox and polling download status from Torbox is not yet available."
+    "download_error_not_cached_in_torbox": "This download is not available on Torbox and polling download status from Torbox is not yet available.",
+    "game_removed_from_favorites": "Game removed from favorites",
+    "game_added_to_favorites": "Game added to favorites"
   },
-
   "activation": {
     "title": "Activate Hydra",
     "installation_id": "Installation ID:",
