@@ -29,6 +29,7 @@ import type {
   LibraryGame,
   GameRunning,
   TorBoxUser,
+  Theme,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
