@@ -77,6 +77,16 @@ import "./cloud-save/upload-save-game";
 import "./cloud-save/delete-game-artifact";
 import "./cloud-save/select-game-backup-path";
 import "./notifications/publish-new-repacks-notification";
+import "./themes/add-custom-theme";
+import "./themes/delete-custom-theme";
+import "./themes/get-all-custom-themes";
+import "./themes/delete-all-custom-themes";
+import "./themes/update-custom-theme";
+import "./themes/open-editor-window";
+import "./themes/get-custom-theme-by-id";
+import "./themes/get-active-custom-theme";
+import "./themes/close-editor-window";
+import "./themes/toggle-custom-theme";
 import { isPortableVersion } from "@main/helpers";
 
 ipcMain.handle("ping", () => "pong");

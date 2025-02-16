@@ -28,6 +28,7 @@ import { downloadSourcesTable } from "./dexie";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 
+import { injectCustomCss } from "./helpers";
 import "./app.scss";
 
 export interface AppProps {
@@ -233,6 +234,17 @@ export function App() {
     downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
   }, [updateRepacks]);
 
+  useEffect(() => {
+    const loadAndApplyTheme = async () => {
+      const activeTheme = await window.electron.getActiveCustomTheme();
+
+      if (activeTheme?.code) {
+        injectCustomCss(activeTheme.code);
+      }
+    };
+    loadAndApplyTheme();
+  }, []);
+
   const playAudio = useCallback(() => {
     const audio = new Audio(achievementSound);
     audio.volume = 0.2;
@@ -248,6 +260,16 @@ export function App() {
       unsubscribe();
     };
   }, [playAudio]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onCssInjected((cssString) => {
+      if (cssString) {
+        injectCustomCss(cssString);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleToastClose = useCallback(() => {
     dispatch(closeToast());
