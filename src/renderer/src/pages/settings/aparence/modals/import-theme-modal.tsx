@@ -2,7 +2,7 @@ import { Button } from "@renderer/components/button/button";
 import { Modal } from "@renderer/components/modal/modal";
 import { useTranslation } from "react-i18next";
 import "./modals.scss";
-import { Theme, UserProfile } from "@types";
+import { Theme } from "@types";
 import { injectCustomCss, removeCustomCss } from "@renderer/helpers";
 import { useToast } from "@renderer/hooks";
 import { THEME_WEB_STORE_URL } from "@renderer/constants";
@@ -13,7 +13,8 @@ interface ImportThemeModalProps {
   onClose: () => void;
   onThemeImported: () => void;
   themeName: string;
-  authorCode: string;
+  authorId: string;
+  authorName: string;
 }
 
 export const ImportThemeModal = ({
@@ -21,23 +22,19 @@ export const ImportThemeModal = ({
   onClose,
   onThemeImported,
   themeName,
-  authorCode,
+  authorId,
+  authorName,
 }: ImportThemeModalProps) => {
   const { t } = useTranslation("settings");
   const { showSuccessToast, showErrorToast } = useToast();
-
-  let author: UserProfile | null = null;
-  window.electron.getUser(authorCode).then((user) => {
-    author = user;
-  });
 
   const handleImportTheme = async () => {
     const theme: Theme = {
       id: crypto.randomUUID(),
       name: themeName,
       isActive: false,
-      author: author?.id,
-      authorName: author?.displayName,
+      author: authorId,
+      authorName: authorName,
       code: `${THEME_WEB_STORE_URL}/themes/${themeName.toLowerCase()}/theme.css`,
       createdAt: new Date(),
       updatedAt: new Date(),
