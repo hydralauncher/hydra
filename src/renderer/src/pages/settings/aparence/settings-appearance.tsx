@@ -15,6 +15,14 @@ export const SettingsAppearance = () => {
     loadThemes();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = window.electron.onCssInjected(() => {
+      loadThemes();
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   return (
     <div className="settings-appearance">
       <ThemeActions onListUpdated={loadThemes} themesCount={themes.length} />

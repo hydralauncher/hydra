@@ -2,7 +2,6 @@ import { Modal } from "@renderer/components/modal/modal";
 import { TextField } from "@renderer/components/text-field/text-field";
 import { Button } from "@renderer/components/button/button";
 import { useTranslation } from "react-i18next";
-import "./modals.scss";
 import { useUserDetails } from "@renderer/hooks";
 import { Theme } from "@types";
 import { useForm } from "react-hook-form";
@@ -10,6 +9,8 @@ import { useForm } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useCallback } from "react";
+
+import "./modals.scss";
 
 interface AddThemeModalProps {
   visible: boolean;

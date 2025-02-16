@@ -1,8 +1,8 @@
 export interface Theme {
   id: string;
   name: string;
-  author: string | undefined;
-  authorName: string | undefined;
+  author?: string;
+  authorName?: string;
   isActive: boolean;
   code: string;
   createdAt: Date;
