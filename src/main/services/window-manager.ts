@@ -251,18 +251,21 @@ export class WindowManager {
 
       editorWindow.once("ready-to-show", () => {
         editorWindow.show();
-        editorWindow.webContents.openDevTools();
+        this.mainWindow?.webContents.openDevTools();
+        if (isStaging) {
+          editorWindow.webContents.openDevTools();
+        }
       });
 
       editorWindow.webContents.on("before-input-event", (event, input) => {
         if (input.key === "F12") {
           event.preventDefault();
-          editorWindow.webContents.toggleDevTools();
+          this.mainWindow?.webContents.toggleDevTools();
         }
       });
 
       editorWindow.on("close", () => {
-        editorWindow.webContents.closeDevTools();
+        this.mainWindow?.webContents.closeDevTools();
         this.editorWindows.delete(themeId);
       });
     }
