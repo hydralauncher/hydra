@@ -5,6 +5,14 @@
   flex-direction: column;
   gap: calc(globals.$spacing-unit * 2);
 
+  &__details-with-article {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    align-self: flex-start;
+    cursor: pointer;
+  }
+
   &__header {
     display: flex;
     align-items: center;
