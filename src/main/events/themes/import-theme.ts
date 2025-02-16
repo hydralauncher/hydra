@@ -4,7 +4,7 @@ import { WindowManager } from "@main/services";
 const importTheme = async (
   _event: Electron.IpcMainInvokeEvent,
   theme: string,
-  author: string,
+  author: string
 ) => {
   WindowManager.mainWindow?.webContents.send("import-theme", theme, author);
 };

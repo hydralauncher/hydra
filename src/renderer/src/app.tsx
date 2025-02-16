@@ -39,12 +39,12 @@ export interface AppProps {
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library } = useLibrary();
-  const [isImportThemeModalVisible, setIsImportThemeModalVisible] = useState(false);
+  const [isImportThemeModalVisible, setIsImportThemeModalVisible] =
+    useState(false);
   const [importTheme, setImportTheme] = useState<{
     theme: string;
     author: string;
   } | null>(null);
-
 
   const { t } = useTranslation("app");
 
