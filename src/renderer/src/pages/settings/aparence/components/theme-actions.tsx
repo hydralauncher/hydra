@@ -67,7 +67,7 @@ export const ThemeActions = ({
             onClick={() => setAddThemeModalVisible(true)}
           >
             <PlusIcon />
-            {t("add_theme")}
+            {t("create_theme")}
           </Button>
         </div>
       </div>
