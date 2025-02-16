@@ -86,13 +86,13 @@ export default function ThemeEditor() {
         defaultLanguage="css"
         value={code}
         onChange={handleEditorChange}
-          options={{
-            minimap: { enabled: false },
-            fontSize: 14,
-            lineNumbers: "on",
-            wordWrap: "on",
-            automaticLayout: true,
-          }}
+        options={{
+          minimap: { enabled: false },
+          fontSize: 14,
+          lineNumbers: "on",
+          wordWrap: "on",
+          automaticLayout: true,
+        }}
       />
 
       <div className="theme-editor__footer">
