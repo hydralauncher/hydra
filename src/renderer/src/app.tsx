@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import achievementSound from "@renderer/assets/audio/achievement.wav";
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
@@ -30,7 +30,6 @@ import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-m
 
 import { injectCustomCss } from "./helpers";
 import "./app.scss";
-import { ImportThemeModal } from "./pages/settings/aparence/modals/import-theme-modal";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -39,12 +38,6 @@ export interface AppProps {
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library } = useLibrary();
-  const [isImportThemeModalVisible, setIsImportThemeModalVisible] =
-    useState(false);
-  const [importTheme, setImportTheme] = useState<{
-    theme: string;
-    author: string;
-  } | null>(null);
 
   const { t } = useTranslation("app");
 
@@ -278,15 +271,6 @@ export function App() {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const unsubscribe = window.electron.onImportTheme((theme, author) => {
-      setImportTheme({ theme, author });
-      setIsImportThemeModalVisible(true);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
   const handleToastClose = useCallback(() => {
     dispatch(closeToast());
   }, [dispatch]);
@@ -325,16 +309,6 @@ export function App() {
           initialTab={friendRequetsModalTab}
           onClose={hideFriendsModal}
           userId={friendModalUserId}
-        />
-      )}
-
-      {importTheme && (
-        <ImportThemeModal
-          visible={isImportThemeModalVisible}
-          onClose={() => setIsImportThemeModalVisible(false)}
-          onThemeImported={() => setIsImportThemeModalVisible(false)}
-          themeName={importTheme.theme}
-          authorCode={importTheme.author}
         />
       )}
 

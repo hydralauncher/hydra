@@ -13,16 +13,20 @@ export interface SettingsContext {
   currentCategoryIndex: number;
   blockedUsers: UserBlocks["blocks"];
   fetchBlockedUsers: () => Promise<void>;
+  appearanceTheme: string | null;
+  appearanceAuthor: string | null;
 }
 
 export const settingsContext = createContext<SettingsContext>({
-  updateUserPreferences: async () => {},
-  setCurrentCategoryIndex: () => {},
-  clearSourceUrl: () => {},
+  updateUserPreferences: async () => { },
+  setCurrentCategoryIndex: () => { },
+  clearSourceUrl: () => { },
   sourceUrl: null,
   currentCategoryIndex: 0,
   blockedUsers: [],
-  fetchBlockedUsers: async () => {},
+  fetchBlockedUsers: async () => { },
+  appearanceTheme: null,
+  appearanceAuthor: null,
 });
 
 const { Provider } = settingsContext;
@@ -37,33 +41,39 @@ export function SettingsContextProvider({
 }: Readonly<SettingsContextProviderProps>) {
   const dispatch = useAppDispatch();
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
-  const [appearanceUrl, setAppearanceUrl] = useState<string | null>(null);
+  const [appearanceTheme, setAppearanceTheme] = useState<string | null>(null);
+  const [appearanceAuthor, setAppearanceAuthor] = useState<string | null>(
+    null
+  );
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
 
   const [blockedUsers, setBlockedUsers] = useState<UserBlocks["blocks"]>([]);
 
   const [searchParams] = useSearchParams();
   const defaultSourceUrl = searchParams.get("urls");
-  const defaultAppearanceUrl = searchParams.get("theme");
+  const defaultAppearanceTheme = searchParams.get("theme");
+  const defaultAppearanceAuthor = searchParams.get("author");
+
   useEffect(() => {
     if (sourceUrl) setCurrentCategoryIndex(2);
   }, [sourceUrl]);
-  
+
   useEffect(() => {
     if (defaultSourceUrl) {
       setSourceUrl(defaultSourceUrl);
     }
   }, [defaultSourceUrl]);
-  
+
   useEffect(() => {
-    if (appearanceUrl) setCurrentCategoryIndex(3);
-  }, [appearanceUrl]);
-  
+    if (appearanceTheme) setCurrentCategoryIndex(3);
+  }, [appearanceTheme]);
+
   useEffect(() => {
-    if (defaultAppearanceUrl) {
-      setAppearanceUrl(defaultAppearanceUrl);
+    if (defaultAppearanceTheme && defaultAppearanceAuthor) {
+      setAppearanceTheme(defaultAppearanceTheme);
+      setAppearanceAuthor(defaultAppearanceAuthor);
     }
-  }, [defaultAppearanceUrl]);
+  }, [defaultAppearanceTheme, defaultAppearanceAuthor]);
 
   const fetchBlockedUsers = useCallback(async () => {
     const blockedUsers = await window.electron.getBlockedUsers(12, 0);
@@ -93,6 +103,8 @@ export function SettingsContextProvider({
         currentCategoryIndex,
         sourceUrl,
         blockedUsers,
+        appearanceTheme,
+        appearanceAuthor,
       }}
     >
       {children}
