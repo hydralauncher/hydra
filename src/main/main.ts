@@ -57,22 +57,20 @@ export const loadState = async () => {
     .values()
     .all()
     .then((games) => {
-      return sortBy(
-        games.filter((game) => game.queued),
-        "timestamp",
-        "DESC"
-      );
+      return sortBy(games, "timestamp", "DESC");
     });
 
-  const [nextItemOnQueue] = downloads;
+  const [nextItemOnQueue] = downloads.filter((game) => game.queued);
 
   const downloadsToSeed = downloads.filter(
-    (download) =>
-      download.shouldSeed &&
-      download.downloader === Downloader.Torrent &&
-      download.progress === 1 &&
-      download.uri !== null
+    (game) =>
+      game.shouldSeed &&
+      game.downloader === Downloader.Torrent &&
+      game.progress === 1 &&
+      game.uri !== null
   );
+
+  console.log("downloadsToSeed", downloadsToSeed);
 
   await DownloadManager.startRPC(nextItemOnQueue, downloadsToSeed);
 
