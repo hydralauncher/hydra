@@ -69,7 +69,7 @@ export function HeroPanelActions() {
           });
       } else {
         if (!objectId) return;
-        
+
         await window.electron.addGameToFavorites(shop, objectId).then(() => {
           showSuccessToast(t("game_added_to_favorites"));
         });
