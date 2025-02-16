@@ -362,15 +362,6 @@ contextBridge.exposeInMainWorld("electron", {
   getActiveCustomTheme: () => ipcRenderer.invoke("getActiveCustomTheme"),
   toggleCustomTheme: (themeId: string, isActive: boolean) =>
     ipcRenderer.invoke("toggleCustomTheme", themeId, isActive),
-  onImportTheme: (cb: (theme: string, author: string) => void) => {
-    const listener = (
-      _event: Electron.IpcRendererEvent,
-      theme: string,
-      author: string
-    ) => cb(theme, author);
-    ipcRenderer.on("import-theme", listener);
-    return () => ipcRenderer.removeListener("import-theme", listener);
-  },
 
   /* Editor */
   openEditorWindow: (themeId: string) =>

@@ -4,7 +4,12 @@ import { ThemeActions, ThemeCard, ThemePlaceholder } from "./index";
 import type { Theme } from "@types";
 import { ImportThemeModal } from "./modals/import-theme-modal";
 
-export const SettingsAppearance = () => {
+interface SettingsAppearanceProps {
+  appearanceTheme: string | null;
+  appearanceAuthor: string | null;
+}
+
+export const SettingsAppearance = ({ appearanceTheme, appearanceAuthor }: SettingsAppearanceProps) => {
   const [themes, setThemes] = useState<Theme[]>([]);
   const [isImportThemeModalVisible, setIsImportThemeModalVisible] =
     useState(false);
@@ -31,13 +36,14 @@ export const SettingsAppearance = () => {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onImportTheme((theme, author) => {
+    if (appearanceTheme && appearanceAuthor) {
       setIsImportThemeModalVisible(true);
-      setImportTheme({ theme, author });
-    });
-
-    return () => unsubscribe();
-  }, []);
+      setImportTheme({
+        theme: appearanceTheme,
+        author: appearanceAuthor
+      });
+    }
+  }, [appearanceTheme, appearanceAuthor]);
 
   return (
     <div className="settings-appearance">
