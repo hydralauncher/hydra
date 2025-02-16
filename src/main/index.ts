@@ -92,7 +92,9 @@ const handleDeepLinkPath = (uri?: string) => {
       const authorCode = url.searchParams.get("author");
 
       if (themeName && authorCode) {
-        WindowManager.redirect(`settings?theme=${themeName}&author=${authorCode}`);
+        WindowManager.redirect(
+          `settings?theme=${themeName}&author=${authorCode}`
+        );
       }
     }
   } catch (error) {
