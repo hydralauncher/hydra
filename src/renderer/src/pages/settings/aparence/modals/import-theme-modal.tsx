@@ -38,7 +38,7 @@ export const ImportThemeModal = ({
       isActive: false,
       author: author?.id,
       authorName: author?.displayName,
-      code: `${THEME_WEB_STORE_URL}/themes/${themeName}/theme.css`,
+      code: `${THEME_WEB_STORE_URL}/themes/${themeName.toLowerCase()}/theme.css`,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
