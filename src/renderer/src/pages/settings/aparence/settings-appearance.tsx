@@ -9,7 +9,10 @@ interface SettingsAppearanceProps {
   appearanceAuthor: string | null;
 }
 
-export const SettingsAppearance = ({ appearanceTheme, appearanceAuthor }: SettingsAppearanceProps) => {
+export const SettingsAppearance = ({
+  appearanceTheme,
+  appearanceAuthor,
+}: SettingsAppearanceProps) => {
   const [themes, setThemes] = useState<Theme[]>([]);
   const [isImportThemeModalVisible, setIsImportThemeModalVisible] =
     useState(false);
@@ -40,7 +43,7 @@ export const SettingsAppearance = ({ appearanceTheme, appearanceAuthor }: Settin
       setIsImportThemeModalVisible(true);
       setImportTheme({
         theme: appearanceTheme,
-        author: appearanceAuthor
+        author: appearanceAuthor,
       });
     }
   }, [appearanceTheme, appearanceAuthor]);

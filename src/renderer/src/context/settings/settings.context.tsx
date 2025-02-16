@@ -18,13 +18,13 @@ export interface SettingsContext {
 }
 
 export const settingsContext = createContext<SettingsContext>({
-  updateUserPreferences: async () => { },
-  setCurrentCategoryIndex: () => { },
-  clearSourceUrl: () => { },
+  updateUserPreferences: async () => {},
+  setCurrentCategoryIndex: () => {},
+  clearSourceUrl: () => {},
   sourceUrl: null,
   currentCategoryIndex: 0,
   blockedUsers: [],
-  fetchBlockedUsers: async () => { },
+  fetchBlockedUsers: async () => {},
   appearanceTheme: null,
   appearanceAuthor: null,
 });
@@ -42,9 +42,7 @@ export function SettingsContextProvider({
   const dispatch = useAppDispatch();
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const [appearanceTheme, setAppearanceTheme] = useState<string | null>(null);
-  const [appearanceAuthor, setAppearanceAuthor] = useState<string | null>(
-    null
-  );
+  const [appearanceAuthor, setAppearanceAuthor] = useState<string | null>(null);
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
 
   const [blockedUsers, setBlockedUsers] = useState<UserBlocks["blocks"]>([]);
