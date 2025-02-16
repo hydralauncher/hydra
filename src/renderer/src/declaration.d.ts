@@ -290,9 +290,6 @@ declare global {
     getCustomThemeById: (themeId: string) => Promise<Theme | null>;
     getActiveCustomTheme: () => Promise<Theme | null>;
     toggleCustomTheme: (themeId: string, isActive: boolean) => Promise<void>;
-    onImportTheme: (
-      cb: (theme: string, author: string) => void
-    ) => () => Electron.IpcRenderer;
 
     /* Editor */
     openEditorWindow: (themeId: string) => Promise<void>;

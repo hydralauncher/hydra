@@ -5,7 +5,7 @@ import "./modals.scss";
 import { Theme } from "@types";
 import { injectCustomCss, removeCustomCss } from "@renderer/helpers";
 import { useToast } from "@renderer/hooks";
-
+import { UserProfile } from "@types";
 interface ImportThemeModalProps {
   visible: boolean;
   onClose: () => void;
@@ -24,13 +24,18 @@ export const ImportThemeModal = ({
   const { t } = useTranslation("settings");
   const { showSuccessToast, showErrorToast } = useToast();
 
+  let author: UserProfile | null = null;
+  window.electron.getUser(authorCode).then((user) => {
+    author = user;
+  });
+
   const handleImportTheme = async () => {
     const theme: Theme = {
       id: crypto.randomUUID(),
       name: themeName,
       isActive: false,
-      author: authorCode,
-      authorName: "spectre",
+      author: author?.id,
+      authorName: author?.displayName,
       code: `https://hydrathemes.shop/themes/${themeName}.css`,
       createdAt: new Date(),
       updatedAt: new Date(),

@@ -61,7 +61,12 @@ export default function Settings() {
   return (
     <SettingsContextProvider>
       <SettingsContextConsumer>
-        {({ currentCategoryIndex, setCurrentCategoryIndex }) => {
+        {({
+          currentCategoryIndex,
+          setCurrentCategoryIndex,
+          appearanceTheme,
+          appearanceAuthor,
+        }) => {
           const renderCategory = () => {
             if (currentCategoryIndex === 0) {
               return <SettingsGeneral />;
@@ -76,7 +81,12 @@ export default function Settings() {
             }
 
             if (currentCategoryIndex === 3) {
-              return <SettingsAppearance />;
+              return (
+                <SettingsAppearance
+                  appearanceTheme={appearanceTheme}
+                  appearanceAuthor={appearanceAuthor}
+                />
+              );
             }
 
             if (currentCategoryIndex === 4) {
