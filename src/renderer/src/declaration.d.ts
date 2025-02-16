@@ -293,7 +293,6 @@ declare global {
 
     /* Editor */
     openEditorWindow: (themeId: string) => Promise<void>;
-    injectCSS: (cssString: string) => Promise<void>;
     onCssInjected: (
       cb: (cssString: string) => void
     ) => () => Electron.IpcRenderer;

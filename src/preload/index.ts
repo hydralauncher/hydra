@@ -366,7 +366,6 @@ contextBridge.exposeInMainWorld("electron", {
   /* Editor */
   openEditorWindow: (themeId: string) =>
     ipcRenderer.invoke("openEditorWindow", themeId),
-  injectCSS: (cssString: string) => ipcRenderer.invoke("injectCSS", cssString),
   onCssInjected: (cb: (cssString: string) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, cssString: string) =>
       cb(cssString);

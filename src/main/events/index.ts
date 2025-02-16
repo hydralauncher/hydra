@@ -85,7 +85,6 @@ import "./themes/update-custom-theme";
 import "./themes/open-editor-window";
 import "./themes/get-custom-theme-by-id";
 import "./themes/get-active-custom-theme";
-import "./themes/css-injector";
 import "./themes/close-editor-window";
 import "./themes/toggle-custom-theme";
 import { isPortableVersion } from "@main/helpers";
