@@ -68,7 +68,9 @@ export function HeroPanelActions() {
             showSuccessToast(t("game_removed_from_favorites"));
           });
       } else {
-        await window.electron.addGameToFavorites(shop, objectId!).then(() => {
+        if (!objectId) return;
+        
+        await window.electron.addGameToFavorites(shop, objectId).then(() => {
           showSuccessToast(t("game_added_to_favorites"));
         });
       }
