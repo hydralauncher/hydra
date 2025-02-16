@@ -7,7 +7,7 @@ import "./theme-card.scss";
 import { useState } from "react";
 import { DeleteThemeModal } from "../modals/delete-theme-modal";
 import { injectCustomCss, removeCustomCss } from "@renderer/helpers";
-import { WEB_STORE_URL } from "@renderer/constants";
+import { THEME_WEB_STORE_URL } from "@renderer/constants";
 
 interface ThemeCardProps {
   theme: Theme;
@@ -104,7 +104,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
           <div className="theme-card__actions__right">
             <Button
               className={
-                theme.code.startsWith(WEB_STORE_URL)
+                theme.code.startsWith(THEME_WEB_STORE_URL)
                   ? "theme-card__actions__right--external"
                   : ""
               }

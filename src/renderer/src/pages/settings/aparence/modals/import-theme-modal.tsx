@@ -5,7 +5,7 @@ import "./modals.scss";
 import { Theme, UserProfile } from "@types";
 import { injectCustomCss, removeCustomCss } from "@renderer/helpers";
 import { useToast } from "@renderer/hooks";
-import { WEB_STORE_URL } from "@renderer/constants";
+import { THEME_WEB_STORE_URL } from "@renderer/constants";
 
 interface ImportThemeModalProps {
   visible: boolean;
@@ -37,7 +37,7 @@ export const ImportThemeModal = ({
       isActive: false,
       author: author?.id,
       authorName: author?.displayName,
-      code: `${WEB_STORE_URL}/themes/${themeName}/theme.css`,
+      code: `${THEME_WEB_STORE_URL}/themes/${themeName}/theme.css`,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

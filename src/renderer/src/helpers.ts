@@ -1,6 +1,7 @@
 import type { GameShop } from "@types";
 
 import Color from "color";
+import { THEME_WEB_STORE_URL } from "./constants";
 
 export const formatDownloadProgress = (
   progress?: number,
@@ -61,7 +62,7 @@ export const injectCustomCss = (css: string) => {
       currentCustomCss.remove();
     }
 
-    if (css.startsWith("https://hydrathemes.shop/")) {
+    if (css.startsWith(THEME_WEB_STORE_URL)) {
       const link = document.createElement("link");
       link.id = "custom-css";
       link.rel = "stylesheet";

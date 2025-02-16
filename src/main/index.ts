@@ -89,7 +89,12 @@ const handleDeepLinkPath = (uri?: string) => {
     }
 
     if (url.host === "profile") {
-      WindowManager.redirect(`profile${url.search}`);
+      const userId = url.searchParams.get("userId");
+
+      if (userId) {
+        WindowManager.redirect(`profile/${userId}`);
+      }
+
       return;
     }
 
