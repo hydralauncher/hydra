@@ -311,7 +311,7 @@
     "create_theme": "Создать",
     "create_theme_modal_title": "Создать пользовательскую тему",
     "create_theme_modal_description": "Создать новую тему для настройки внешнего вида Hydra",
-    "theme_name": "Name",
+    "theme_name": "Название",
     "insert_theme_name": "Вставить название темы",
     "set_theme": "Установить тему",
     "unset_theme": "Снять тему",
