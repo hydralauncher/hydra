@@ -57,7 +57,7 @@ export class WindowManager {
       trafficLightPosition: { x: 16, y: 16 },
       titleBarOverlay: {
         symbolColor: "#DADBE1",
-        color: "#151515",
+        color: "#00000000",
         height: 34,
       },
       webPreferences: {
