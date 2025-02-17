@@ -9,11 +9,7 @@ import { HeroPanelPlaytime } from "./hero-panel-playtime";
 import { gameDetailsContext } from "@renderer/context";
 import "./hero-panel.scss";
 
-export interface HeroPanelProps {
-  isHeaderStuck: boolean;
-}
-
-export function HeroPanel({ isHeaderStuck }: HeroPanelProps) {
+export function HeroPanel() {
   const { t } = useTranslation("game_details");
 
   const { formatDate } = useDate();
@@ -56,7 +52,7 @@ export function HeroPanel({ isHeaderStuck }: HeroPanelProps) {
   return (
     <div
       style={{ backgroundColor: gameColor }}
-      className={`hero-panel ${isHeaderStuck ? "hero-panel--stuck" : ""}`}
+      className="hero-panel"
     >
       <div className="hero-panel__content">{getInfo()}</div>
       <div className="hero-panel__actions">
