@@ -50,10 +50,7 @@ export function HeroPanel() {
     game?.download?.status === "paused";
 
   return (
-    <div
-      style={{ backgroundColor: gameColor }}
-      className="hero-panel"
-    >
+    <div style={{ backgroundColor: gameColor }} className="hero-panel">
       <div className="hero-panel__content">{getInfo()}</div>
       <div className="hero-panel__actions">
         <HeroPanelActions />
