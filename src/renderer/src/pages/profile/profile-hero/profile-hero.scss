@@ -65,6 +65,12 @@
     overflow: hidden;
   }
 
+  &__display-name-container {
+    display: flex;
+    gap: globals.$spacing-unit;
+    align-items: center;
+  }
+
   &__display-name {
     font-weight: bold;
     overflow: hidden;
@@ -74,6 +80,12 @@
     align-items: center;
     position: relative;
     text-shadow: 0 0 5px rgb(0 0 0 / 40%);
+  }
+
+  &__display-name-badges-container {
+    display: flex;
+    gap: globals.$spacing-unit;
+    align-items: center;
   }
 
   &__current-game {
