@@ -48,7 +48,12 @@ export function SettingsAppearance({
   }, [loadThemes]);
 
   useEffect(() => {
-    if (appearance.theme && appearance.authorId && appearance.authorName && !hasShownModal) {
+    if (
+      appearance.theme &&
+      appearance.authorId &&
+      appearance.authorName &&
+      !hasShownModal
+    ) {
       setIsImportThemeModalVisible(true);
       setImportTheme({
         theme: appearance.theme,
