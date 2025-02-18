@@ -25,6 +25,7 @@ import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
 import Skeleton from "react-loading-skeleton";
 import { UploadBackgroundImageButton } from "../upload-background-image-button/upload-background-image-button";
 import "./profile-hero.scss";
+import { UserBadges } from "./user-badges";
 
 type FriendAction =
   | FriendRequestAction
@@ -307,9 +308,12 @@ export function ProfileHero() {
 
             <div className="profile-hero__information">
               {userProfile ? (
-                <h2 className="profile-hero__display-name">
-                  {userProfile?.displayName}
-                </h2>
+                <div className="profile-hero__display-name-container">
+                  <h2 className="profile-hero__display-name">
+                    {userProfile?.displayName}
+                  </h2>
+                  <UserBadges />
+                </div>
               ) : (
                 <Skeleton width={150} height={28} />
               )}
