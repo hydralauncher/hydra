@@ -20,13 +20,14 @@ export function UserBadges() {
   };
 
   return (
-    <div className="profile-hero__display-name-badges">
+    <div className="profile-hero__display-name-badges-container">
       {userProfile.badges.map((badge) => {
         const badgeIcon = getBadgeIcon(badge);
 
         if (!badgeIcon) return null;
         return (
           <div
+            className={`badge__${badge.toLowerCase()}`}
             key={badge}
             title={t(`badge_description_${badge.toLowerCase()}`)}
           >

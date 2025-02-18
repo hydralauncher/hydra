@@ -82,7 +82,7 @@
     text-shadow: 0 0 5px rgb(0 0 0 / 40%);
   }
 
-  &__display-name-badges {
+  &__display-name-badges-container {
     display: flex;
     gap: globals.$spacing-unit;
     align-items: center;
