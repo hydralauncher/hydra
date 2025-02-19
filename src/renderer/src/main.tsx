@@ -18,26 +18,17 @@ import { store } from "./store";
 
 import resources from "@locales";
 
-import { SuspenseWrapper } from "./components";
 import { logger } from "./logger";
 import { addCookieInterceptor } from "./cookies";
-
-const Home = React.lazy(() => import("./pages/home/home"));
-const GameDetails = React.lazy(
-  () => import("./pages/game-details/game-details")
-);
-const Downloads = React.lazy(() => import("./pages/downloads/downloads"));
-const Settings = React.lazy(() => import("./pages/settings/settings"));
-const Catalogue = React.lazy(() => import("./pages/catalogue/catalogue"));
-const Profile = React.lazy(() => import("./pages/profile/profile"));
-const Achievements = React.lazy(
-  () => import("./pages/achievements/achievements")
-);
-const ThemeEditor = React.lazy(
-  () => import("./pages/theme-editor/theme-editor")
-);
-
 import * as Sentry from "@sentry/react";
+import Catalogue from "./pages/catalogue/catalogue";
+import Home from "./pages/home/home";
+import Downloads from "./pages/downloads/downloads";
+import GameDetails from "./pages/game-details/game-details";
+import Settings from "./pages/settings/settings";
+import Profile from "./pages/profile/profile";
+import Achievements from "./pages/achievements/achievements";
+import ThemeEditor from "./pages/theme-editor/theme-editor";
 
 Sentry.init({
   dsn: import.meta.env.RENDERER_VITE_SENTRY_DSN,
@@ -82,37 +73,16 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <HashRouter>
         <Routes>
           <Route element={<App />}>
-            <Route path="/" element={<SuspenseWrapper Component={Home} />} />
-            <Route
-              path="/catalogue"
-              element={<SuspenseWrapper Component={Catalogue} />}
-            />
-            <Route
-              path="/downloads"
-              element={<SuspenseWrapper Component={Downloads} />}
-            />
-            <Route
-              path="/game/:shop/:objectId"
-              element={<SuspenseWrapper Component={GameDetails} />}
-            />
-            <Route
-              path="/settings"
-              element={<SuspenseWrapper Component={Settings} />}
-            />
-            <Route
-              path="/profile/:userId"
-              element={<SuspenseWrapper Component={Profile} />}
-            />
-            <Route
-              path="/achievements"
-              element={<SuspenseWrapper Component={Achievements} />}
-            />
+            <Route path="/" element={<Home />} />
+            <Route path="/catalogue" element={<Catalogue />} />
+            <Route path="/downloads" element={<Downloads />} />
+            <Route path="/game/:shop/:objectId" element={<GameDetails />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/profile/:userId" element={<Profile />} />
+            <Route path="/achievements" element={<Achievements />} />
           </Route>
 
-          <Route
-            path="/theme-editor"
-            element={<SuspenseWrapper Component={ThemeEditor} />}
-          />
+          <Route path="/theme-editor" element={<ThemeEditor />} />
         </Routes>
       </HashRouter>
     </Provider>
