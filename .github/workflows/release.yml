@@ -1,5 +1,8 @@
 name: Release
 
+concurrency:
+  group: release
+
 on:
   push:
     branches: main

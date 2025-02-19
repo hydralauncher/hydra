@@ -1,5 +1,8 @@
 name: Build
 
+concurrency:
+  group: build
+
 on: pull_request
 
 jobs:
