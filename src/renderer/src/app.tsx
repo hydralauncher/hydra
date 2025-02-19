@@ -263,9 +263,7 @@ export function App() {
 
   useEffect(() => {
     const unsubscribe = window.electron.onCssInjected((cssString) => {
-      if (cssString) {
-        injectCustomCss(cssString);
-      }
+      injectCustomCss(cssString);
     });
 
     return () => unsubscribe();

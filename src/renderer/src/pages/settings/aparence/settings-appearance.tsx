@@ -110,6 +110,7 @@ export function SettingsAppearance({
           onClose={() => {
             setIsImportThemeModalVisible(false);
             clearTheme();
+            setHasShownModal(false);
           }}
           onThemeImported={onThemeImported}
           themeName={importTheme.theme}
