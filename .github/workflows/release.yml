@@ -2,6 +2,7 @@ name: Release
 
 concurrency:
   group: release
+  cancel-in-progress: true
 
 on:
   push:
