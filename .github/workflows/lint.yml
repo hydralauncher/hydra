@@ -1,7 +1,7 @@
 name: Lint
 
 concurrency:
-  group: lint
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 on: pull_request
