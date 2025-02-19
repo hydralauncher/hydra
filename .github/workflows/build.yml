@@ -2,6 +2,7 @@ name: Build
 
 concurrency:
   group: build
+  cancel-in-progress: true
 
 on: pull_request
 

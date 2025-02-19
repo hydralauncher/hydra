@@ -1,5 +1,9 @@
 name: Lint
 
+concurrency:
+  group: lint
+  cancel-in-progress: true
+
 on: pull_request
 
 jobs:
