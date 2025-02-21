@@ -440,6 +440,9 @@
     "show_achievements_on_profile": "Покажите свои достижения в профиле",
     "show_points_on_profile": "Показывать заработанные очки в своем профиле"
   },
+  "badge": {
+    "badge_description_theme_creator": "Награждается тот, кто создал пользовательскую тему".
+  },
   "achievement": {
     "achievement_unlocked": "Достижение разблокировано",
     "user_achievements": "Достижения {{displayName}}",
