@@ -24,7 +24,9 @@ jobs:
           node-version: 20.18.0
 
       - name: Install dependencies
-        run: yarn
+        run: |
+          pip install setuptools
+          yarn
 
       - name: Install Python
         uses: actions/setup-python@v5
