@@ -6,3 +6,4 @@ psutil
 Pillow
 flask
 aria2p
+setuptools
