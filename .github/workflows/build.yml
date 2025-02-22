@@ -55,7 +55,7 @@ jobs:
 
       - name: Build macOS
         if: matrix.os == 'macos-latest'
-        run: yarn build:mac
+        run: sudo yarn build:mac
         env:
           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
           MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
