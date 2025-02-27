@@ -59,9 +59,8 @@ export class DatanodesApi {
         throw new Error("Empty response received");
       }
 
-      const downloadLinkMatch = htmlContent.match(
-        /href=["'](https:\/\/[^"']+)["']/
-      );
+      const downloadLinkRegex = /href=["'](https:\/\/[^"']+)["']/;
+      const downloadLinkMatch = downloadLinkRegex.exec(htmlContent);
       if (downloadLinkMatch) {
         return downloadLinkMatch[1];
       }
