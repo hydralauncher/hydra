@@ -41,7 +41,7 @@ export interface UserProfileContextProviderProps {
 export function UserProfileContextProvider({
   children,
   userId,
-}: UserProfileContextProviderProps) {
+}: Readonly<UserProfileContextProviderProps>) {
   const { userDetails } = useAppSelector((state) => state.userDetails);
 
   const [userStats, setUserStats] = useState<UserStats | null>(null);

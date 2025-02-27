@@ -5,6 +5,8 @@ export enum Downloader {
   PixelDrain,
   Qiwi,
   Datanodes,
+  Mediafire,
+  TorBox,
 }
 
 export enum DownloadSourceStatus {
@@ -41,4 +43,17 @@ export enum Cracker {
   flt = "FLT",
   rle = "RLE",
   razor1911 = "RAZOR1911",
+}
+
+export enum AuthPage {
+  SignIn = "/",
+  UpdateEmail = "/update-email",
+  UpdatePassword = "/update-password",
+}
+
+export enum DownloadError {
+  NotCachedInRealDebrid = "download_error_not_cached_in_real_debrid",
+  NotCachedInTorbox = "download_error_not_cached_in_torbox",
+  GofileQuotaExceeded = "download_error_gofile_quota_exceeded",
+  RealDebridAccountNotAuthorized = "download_error_real_debrid_account_not_authorized",
 }

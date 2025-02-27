@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-
+import achievementSound from "@renderer/assets/audio/achievement.wav";
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
 import {
@@ -11,8 +11,6 @@ import {
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
-
-import * as styles from "./app.css";
 
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -29,6 +27,9 @@ import { downloadSourcesWorker } from "./workers";
 import { downloadSourcesTable } from "./dexie";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
+
+import { injectCustomCss } from "./helpers";
+import "./app.scss";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -84,7 +85,7 @@ export function App() {
   useEffect(() => {
     const unsubscribe = window.electron.onDownloadProgress(
       (downloadProgress) => {
-        if (downloadProgress.game.progress === 1) {
+        if (downloadProgress?.progress === 1) {
           clearDownload();
           updateLibrary();
           return;
@@ -212,26 +213,61 @@ export function App() {
     const id = crypto.randomUUID();
     const channel = new BroadcastChannel(`download_sources:sync:${id}`);
 
-    channel.onmessage = (event: MessageEvent<number>) => {
+    channel.onmessage = async (event: MessageEvent<number>) => {
       const newRepacksCount = event.data;
       window.electron.publishNewRepacksNotification(newRepacksCount);
       updateRepacks();
 
-      downloadSourcesTable.toArray().then((downloadSources) => {
-        downloadSources
-          .filter((source) => !source.fingerprint)
-          .forEach((downloadSource) => {
-            window.electron
-              .putDownloadSource(downloadSource.objectIds)
-              .then(({ fingerprint }) => {
-                downloadSourcesTable.update(downloadSource.id, { fingerprint });
-              });
-          });
-      });
+      const downloadSources = await downloadSourcesTable.toArray();
+
+      downloadSources
+        .filter((source) => !source.fingerprint)
+        .forEach(async (downloadSource) => {
+          const { fingerprint } = await window.electron.putDownloadSource(
+            downloadSource.objectIds
+          );
+
+          downloadSourcesTable.update(downloadSource.id, { fingerprint });
+        });
     };
 
     downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
   }, [updateRepacks]);
+
+  useEffect(() => {
+    const loadAndApplyTheme = async () => {
+      const activeTheme = await window.electron.getActiveCustomTheme();
+
+      if (activeTheme?.code) {
+        injectCustomCss(activeTheme.code);
+      }
+    };
+    loadAndApplyTheme();
+  }, []);
+
+  const playAudio = useCallback(() => {
+    const audio = new Audio(achievementSound);
+    audio.volume = 0.2;
+    audio.play();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onAchievementUnlocked(() => {
+      playAudio();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [playAudio]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onCssInjected((cssString) => {
+      injectCustomCss(cssString);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleToastClose = useCallback(() => {
     dispatch(closeToast());
@@ -240,11 +276,11 @@ export function App() {
   return (
     <>
       {window.electron.platform === "win32" && (
-        <div className={styles.titleBar}>
+        <div className="title-bar">
           <h4>
             Hydra
             {hasActiveSubscription && (
-              <span className={styles.cloudText}> Cloud</span>
+              <span className="title-bar__cloud-text"> Cloud</span>
             )}
           </h4>
         </div>
@@ -252,9 +288,11 @@ export function App() {
 
       <Toast
         visible={toast.visible}
+        title={toast.title}
         message={toast.message}
         type={toast.type}
         onClose={handleToastClose}
+        duration={toast.duration}
       />
 
       <HydraCloudModal
@@ -275,10 +313,10 @@ export function App() {
       <main>
         <Sidebar />
 
-        <article className={styles.container}>
+        <article className="container">
           <Header />
 
-          <section ref={contentRef} className={styles.content}>
+          <section ref={contentRef} className="container__content">
             <Outlet />
           </section>
         </article>

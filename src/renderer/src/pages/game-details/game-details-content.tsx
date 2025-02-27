@@ -7,21 +7,17 @@ import { DescriptionHeader } from "./description-header/description-header";
 import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
 
-import * as styles from "./game-details.css";
 import { useTranslation } from "react-i18next";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
-import { steamUrlBuilder } from "@shared";
+import { AuthPage, steamUrlBuilder } from "@shared";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import { useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
-
-const HERO_ANIMATION_THRESHOLD = 25;
+import "./game-details.scss";
 
 export function GameDetailsContent() {
   const heroRef = useRef<HTMLDivElement | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [isHeaderStuck, setIsHeaderStuck] = useState(false);
 
   const { t } = useTranslation("game_details");
 
@@ -60,7 +56,7 @@ export function GameDetailsContent() {
     return t("no_shop_details");
   }, [shopDetails, t]);
 
-  const [backdropOpactiy, setBackdropOpacity] = useState(1);
+  const [backdropOpacity, setBackdropOpacity] = useState(1);
 
   const handleHeroLoad = async () => {
     const output = await average(steamUrlBuilder.libraryHero(objectId!), {
@@ -69,7 +65,7 @@ export function GameDetailsContent() {
     });
 
     const backgroundColor = output
-      ? (new Color(output).darken(0.7).toString() as string)
+      ? new Color(output).darken(0.7).toString()
       : "";
 
     setGameColor(backgroundColor);
@@ -79,29 +75,9 @@ export function GameDetailsContent() {
     setBackdropOpacity(1);
   }, [objectId]);
 
-  const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
-    const heroHeight = heroRef.current?.clientHeight ?? styles.HERO_HEIGHT;
-
-    const scrollY = (event.target as HTMLDivElement).scrollTop;
-    const opacity = Math.max(
-      0,
-      1 - scrollY / (heroHeight - HERO_ANIMATION_THRESHOLD)
-    );
-
-    if (scrollY >= heroHeight && !isHeaderStuck) {
-      setIsHeaderStuck(true);
-    }
-
-    if (scrollY <= heroHeight && isHeaderStuck) {
-      setIsHeaderStuck(false);
-    }
-
-    setBackdropOpacity(opacity);
-  };
-
   const handleCloudSaveButtonClick = () => {
     if (!userDetails) {
-      window.electron.openAuthWindow();
+      window.electron.openAuthWindow(AuthPage.SignIn);
       return;
     }
 
@@ -118,58 +94,46 @@ export function GameDetailsContent() {
   }, [getGameArtifacts]);
 
   return (
-    <div className={styles.wrapper({ blurredContent: hasNSFWContentBlocked })}>
-      <img
-        src={steamUrlBuilder.libraryHero(objectId!)}
-        className={styles.heroImage}
-        alt={game?.title}
-        onLoad={handleHeroLoad}
-      />
-
-      <section
-        ref={containerRef}
-        onScroll={onScroll}
-        className={styles.container}
-      >
-        <div ref={heroRef} className={styles.hero}>
+    <div
+      className={`game-details__wrapper ${hasNSFWContentBlocked ? "game-details__wrapper--blurred" : ""}`}
+    >
+      <section className="game-details__container">
+        <div ref={heroRef} className="game-details__hero">
+          <img
+            src={steamUrlBuilder.libraryHero(objectId!)}
+            className="game-details__hero-image"
+            alt={game?.title}
+            onLoad={handleHeroLoad}
+          />
           <div
+            className="game-details__hero-backdrop"
             style={{
               backgroundColor: gameColor,
               flex: 1,
-              opacity: Math.min(1, 1 - backdropOpactiy),
             }}
           />
 
           <div
-            className={styles.heroLogoBackdrop}
-            style={{ opacity: backdropOpactiy }}
+            className="game-details__hero-logo-backdrop"
+            style={{ opacity: backdropOpacity }}
           >
-            <div className={styles.heroContent}>
+            <div className="game-details__hero-content">
               <img
                 src={steamUrlBuilder.logo(objectId!)}
-                className={styles.gameLogo}
+                className="game-details__game-logo"
                 alt={game?.title}
               />
 
               <button
                 type="button"
-                className={styles.cloudSyncButton}
+                className="game-details__cloud-sync-button"
                 onClick={handleCloudSaveButtonClick}
               >
-                <div
-                  style={{
-                    width: 16 + 4,
-                    height: 16,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    position: "relative",
-                  }}
-                >
+                <div className="game-details__cloud-icon-container">
                   <img
                     src={cloudIconAnimated}
                     alt="Cloud icon"
-                    style={{ width: 26, position: "absolute", top: -3 }}
+                    className="game-details__cloud-icon"
                   />
                 </div>
                 {t("cloud_save")}
@@ -178,10 +142,10 @@ export function GameDetailsContent() {
           </div>
         </div>
 
-        <HeroPanel isHeaderStuck={isHeaderStuck} />
+        <HeroPanel />
 
-        <div className={styles.descriptionContainer}>
-          <div className={styles.descriptionContent}>
+        <div className="game-details__description-container">
+          <div className="game-details__description-content">
             <DescriptionHeader />
             <GallerySlider />
 
@@ -189,7 +153,7 @@ export function GameDetailsContent() {
               dangerouslySetInnerHTML={{
                 __html: aboutTheGame,
               }}
-              className={styles.description}
+              className="game-details__description"
             />
           </div>
 

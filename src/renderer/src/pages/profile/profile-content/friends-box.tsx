@@ -3,23 +3,21 @@ import { useFormat } from "@renderer/hooks";
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import * as styles from "./profile-content.css";
 import { Avatar, Link } from "@renderer/components";
+import "./friends-box.scss";
 
 export function FriendsBox() {
   const { userProfile, userStats } = useContext(userProfileContext);
-
   const { t } = useTranslation("user_profile");
-
   const { numberFormatter } = useFormat();
 
   const getGameImage = (game: { iconUrl: string | null; title: string }) => {
     if (game.iconUrl) {
       return (
         <img
+          className="friends-box__game-image"
           alt={game.title}
           width={16}
-          style={{ borderRadius: 4 }}
           src={game.iconUrl}
         />
       );
@@ -32,15 +30,15 @@ export function FriendsBox() {
 
   return (
     <div>
-      <div className={styles.sectionHeader}>
+      <div className="friends-box__section-header">
         <h2>{t("friends")}</h2>
         {userStats && (
           <span>{numberFormatter.format(userStats.friendsCount)}</span>
         )}
       </div>
 
-      <div className={styles.box}>
-        <ul className={styles.list}>
+      <div className="friends-box__box">
+        <ul className="friends-box__list">
           {userProfile?.friends.map((friend) => (
             <li
               key={friend.id}
@@ -50,21 +48,22 @@ export function FriendsBox() {
                   : undefined
               }
             >
-              <Link to={`/profile/${friend.id}`} className={styles.listItem}>
+              <Link
+                to={`/profile/${friend.id}`}
+                className="friends-box__list-item"
+              >
                 <Avatar
                   size={32}
                   src={friend.profileImageUrl}
                   alt={friend.displayName}
                 />
 
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 4 }}
-                >
-                  <span className={styles.friendName}>
+                <div className="friends-box__friend-details">
+                  <span className="friends-box__friend-name">
                     {friend.displayName}
                   </span>
                   {friend.currentGame && (
-                    <div style={{ display: "flex", gap: 4 }}>
+                    <div className="friends-box__game-info">
                       {getGameImage(friend.currentGame)}
                       <small>{friend.currentGame.title}</small>
                     </div>

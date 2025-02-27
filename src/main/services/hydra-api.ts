@@ -1,18 +1,17 @@
-import {
-  userAuthRepository,
-  userSubscriptionRepository,
-} from "@main/repository";
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { WindowManager } from "./window-manager";
 import url from "url";
 import { uploadGamesBatch } from "./library-sync";
 import { clearGamesRemoteIds } from "./library-sync/clear-games-remote-id";
-import { logger } from "./logger";
+import { networkLogger as logger } from "./logger";
 import { UserNotLoggedInError, SubscriptionRequiredError } from "@shared";
 import { omit } from "lodash-es";
 import { appVersion } from "@main/constants";
 import { getUserData } from "./user/get-user-data";
 import { isFuture, isToday } from "date-fns";
+import { db } from "@main/level";
+import { levelKeys } from "@main/level/sublevels";
+import type { Auth, User } from "@types";
 
 interface HydraApiOptions {
   needsAuth?: boolean;
@@ -32,7 +31,9 @@ export class HydraApi {
   private static readonly EXPIRATION_OFFSET_IN_MS = 1000 * 60 * 5; // 5 minutes
   private static readonly ADD_LOG_INTERCEPTOR = true;
 
-  private static secondsToMilliseconds = (seconds: number) => seconds * 1000;
+  private static secondsToMilliseconds(seconds: number) {
+    return seconds * 1000;
+  }
 
   private static userAuth: HydraApiUserAuth = {
     authToken: "",
@@ -77,14 +78,14 @@ export class HydraApi {
       tokenExpirationTimestamp
     );
 
-    await userAuthRepository.upsert(
+    db.put<string, Auth>(
+      levelKeys.auth,
       {
-        id: 1,
         accessToken,
-        tokenExpirationTimestamp,
         refreshToken,
+        tokenExpirationTimestamp,
       },
-      ["id"]
+      { valueEncoding: "json" }
     );
 
     await getUserData().then((userDetails) => {
@@ -153,7 +154,8 @@ export class HydraApi {
         (error) => {
           logger.error(" ---- RESPONSE ERROR -----");
           const { config } = error;
-          const data = JSON.parse(config.data);
+
+          const data = JSON.parse(config.data ?? null);
 
           logger.error(
             config.method,
@@ -174,29 +176,39 @@ export class HydraApi {
               error.response.status,
               error.response.data
             );
-          } else if (error.request) {
-            const errorData = error.toJSON();
-            logger.error("Request error:", errorData.message);
-          } else {
-            logger.error("Error", error.message);
+
+            return Promise.reject(error as Error);
           }
-          logger.error(" ----- END RESPONSE ERROR -------");
-          return Promise.reject(error);
+
+          if (error.request) {
+            const errorData = error.toJSON();
+            logger.error("Request error:", errorData.code, errorData.message);
+            return Promise.reject(
+              new Error(
+                `Request failed with ${errorData.code} ${errorData.message}`
+              )
+            );
+          }
+
+          logger.error("Error", error.message);
+          return Promise.reject(error as Error);
         }
       );
     }
 
-    const userAuth = await userAuthRepository.findOne({
-      where: { id: 1 },
-      relations: { subscription: true },
+    const result = await db.getMany<string>([levelKeys.auth, levelKeys.user], {
+      valueEncoding: "json",
     });
+
+    const userAuth = result.at(0) as Auth | undefined;
+    const user = result.at(1) as User | undefined;
 
     this.userAuth = {
       authToken: userAuth?.accessToken ?? "",
       refreshToken: userAuth?.refreshToken ?? "",
       expirationTimestamp: userAuth?.tokenExpirationTimestamp ?? 0,
-      subscription: userAuth?.subscription
-        ? { expiresAt: userAuth.subscription?.expiresAt }
+      subscription: user?.subscription
+        ? { expiresAt: user.subscription?.expiresAt }
         : null,
     };
 
@@ -215,38 +227,47 @@ export class HydraApi {
     }
   }
 
-  private static async revalidateAccessTokenIfExpired() {
-    const now = new Date();
+  public static async refreshToken() {
+    const response = await this.instance.post(`/auth/refresh`, {
+      refreshToken: this.userAuth.refreshToken,
+    });
 
-    if (this.userAuth.expirationTimestamp < now.getTime()) {
-      try {
-        const response = await this.instance.post(`/auth/refresh`, {
-          refreshToken: this.userAuth.refreshToken,
-        });
+    const { accessToken, expiresIn } = response.data;
 
-        const { accessToken, expiresIn } = response.data;
+    const tokenExpirationTimestamp =
+      Date.now() +
+      this.secondsToMilliseconds(expiresIn) -
+      this.EXPIRATION_OFFSET_IN_MS;
 
-        const tokenExpirationTimestamp =
-          now.getTime() +
-          this.secondsToMilliseconds(expiresIn) -
-          this.EXPIRATION_OFFSET_IN_MS;
+    this.userAuth.authToken = accessToken;
+    this.userAuth.expirationTimestamp = tokenExpirationTimestamp;
 
-        this.userAuth.authToken = accessToken;
-        this.userAuth.expirationTimestamp = tokenExpirationTimestamp;
+    logger.log(
+      "Token refreshed. New expiration:",
+      this.userAuth.expirationTimestamp
+    );
 
-        logger.log(
-          "Token refreshed. New expiration:",
-          this.userAuth.expirationTimestamp
-        );
-
-        userAuthRepository.upsert(
+    await db
+      .get<string, Auth>(levelKeys.auth, { valueEncoding: "json" })
+      .then((auth) => {
+        return db.put<string, Auth>(
+          levelKeys.auth,
           {
-            id: 1,
+            ...auth,
             accessToken,
             tokenExpirationTimestamp,
           },
-          ["id"]
+          { valueEncoding: "json" }
         );
+      });
+
+    return { accessToken, expiresIn };
+  }
+
+  private static async revalidateAccessTokenIfExpired() {
+    if (this.userAuth.expirationTimestamp < Date.now()) {
+      try {
+        await this.refreshToken();
       } catch (err) {
         this.handleUnauthorizedError(err);
       }
@@ -261,7 +282,7 @@ export class HydraApi {
     };
   }
 
-  private static handleUnauthorizedError = (err) => {
+  private static readonly handleUnauthorizedError = (err) => {
     if (err instanceof AxiosError && err.response?.status === 401) {
       logger.error(
         "401 - Current credentials:",
@@ -276,8 +297,16 @@ export class HydraApi {
         subscription: null,
       };
 
-      userAuthRepository.delete({ id: 1 });
-      userSubscriptionRepository.delete({ id: 1 });
+      db.batch([
+        {
+          type: "del",
+          key: levelKeys.auth,
+        },
+        {
+          type: "del",
+          key: levelKeys.user,
+        },
+      ]);
 
       this.sendSignOutEvent();
     }

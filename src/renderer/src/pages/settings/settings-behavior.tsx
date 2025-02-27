@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { CheckboxField } from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
+import "./settings-behavior.scss";
 
 export function SettingsBehavior() {
   const userPreferences = useAppSelector(
@@ -28,13 +29,15 @@ export function SettingsBehavior() {
   useEffect(() => {
     if (userPreferences) {
       setForm({
-        preferQuitInsteadOfHiding: userPreferences.preferQuitInsteadOfHiding,
-        runAtStartup: userPreferences.runAtStartup,
-        startMinimized: userPreferences.startMinimized,
-        disableNsfwAlert: userPreferences.disableNsfwAlert,
-        seedAfterDownloadComplete: userPreferences.seedAfterDownloadComplete,
+        preferQuitInsteadOfHiding:
+          userPreferences.preferQuitInsteadOfHiding ?? false,
+        runAtStartup: userPreferences.runAtStartup ?? false,
+        startMinimized: userPreferences.startMinimized ?? false,
+        disableNsfwAlert: userPreferences.disableNsfwAlert ?? false,
+        seedAfterDownloadComplete:
+          userPreferences.seedAfterDownloadComplete ?? false,
         showHiddenAchievementsDescription:
-          userPreferences.showHiddenAchievementsDescription,
+          userPreferences.showHiddenAchievementsDescription ?? false,
       });
     }
   }, [userPreferences]);
@@ -77,7 +80,9 @@ export function SettingsBehavior() {
       )}
 
       {showRunAtStartup && (
-        <div style={{ opacity: form.runAtStartup ? 1 : 0.5 }}>
+        <div
+          className={`settings-behavior__checkbox-container ${form.runAtStartup ? "settings-behavior__checkbox-container--enabled" : ""}`}
+        >
           <CheckboxField
             label={t("launch_minimized")}
             style={{ cursor: form.runAtStartup ? "pointer" : "not-allowed" }}

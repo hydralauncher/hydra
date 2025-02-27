@@ -1,0 +1,83 @@
+@use "../../scss/globals.scss";
+
+.modal {
+  animation: scale-fade-in 0.2s cubic-bezier(0.33, 1, 0.68, 1) 0s 1 normal none
+    running;
+  background-color: globals.$background-color;
+  border-radius: 4px;
+  min-width: 400px;
+  max-width: 600px;
+  color: globals.$body-color;
+  max-height: 100%;
+  border: solid 1px globals.$border-color;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  &--closing {
+    animation-name: scale-fade-out;
+    opacity: 0;
+  }
+
+  &--large {
+    width: 800px;
+    max-width: 800px;
+  }
+
+  &__content {
+    height: 100%;
+    overflow: auto;
+    padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
+  }
+
+  &__header {
+    display: flex;
+    gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 2);
+    border-bottom: solid 1px globals.$border-color;
+    justify-content: space-between;
+    align-items: center;
+
+    &-title {
+      display: flex;
+      gap: 4px;
+      flex-direction: column;
+    }
+  }
+
+  &__close-button {
+    cursor: pointer;
+    transition: all ease 0.2s;
+    align-self: flex-start;
+
+    &:hover {
+      opacity: 0.75;
+    }
+  }
+
+  &__close-button-icon {
+    color: globals.$body-color;
+  }
+}
+
+@keyframes scale-fade-in {
+  0% {
+    opacity: 0;
+    scale: 0.5;
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes scale-fade-out {
+  0% {
+    opacity: 1;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 0.5;
+  }
+}

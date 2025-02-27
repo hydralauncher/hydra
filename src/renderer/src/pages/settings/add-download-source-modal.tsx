@@ -2,7 +2,6 @@ import { useCallback, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, Modal, TextField } from "@renderer/components";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { settingsContext } from "@renderer/context";
 import { useForm } from "react-hook-form";
 
@@ -11,6 +10,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { downloadSourcesTable } from "@renderer/dexie";
 import type { DownloadSourceValidationResult } from "@types";
 import { downloadSourcesWorker } from "@renderer/workers";
+import "./add-download-source-modal.scss";
 
 interface AddDownloadSourceModalProps {
   visible: boolean;
@@ -26,7 +26,7 @@ export function AddDownloadSourceModal({
   visible,
   onClose,
   onAddDownloadSource,
-}: AddDownloadSourceModalProps) {
+}: Readonly<AddDownloadSourceModalProps>) {
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -138,14 +138,7 @@ export function AddDownloadSourceModal({
       description={t("add_download_source_description")}
       onClose={onClose}
     >
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: `${SPACING_UNIT}px`,
-          minWidth: "500px",
-        }}
-      >
+      <div className="add-download-source-modal__container">
         <TextField
           {...register("url")}
           label={t("download_source_url")}
@@ -155,7 +148,7 @@ export function AddDownloadSourceModal({
             <Button
               type="button"
               theme="outline"
-              style={{ alignSelf: "flex-end" }}
+              className="add-download-source-modal__validate-button"
               onClick={handleSubmit(onSubmit)}
               disabled={isSubmitting || isLoading}
             >
@@ -165,21 +158,8 @@ export function AddDownloadSourceModal({
         />
 
         {validationResult && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginTop: `${SPACING_UNIT * 3}px`,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: `${SPACING_UNIT / 2}px`,
-              }}
-            >
+          <div className="add-download-source-modal__validation-result">
+            <div className="add-download-source-modal__validation-info">
               <h4>{validationResult?.name}</h4>
               <small>
                 {t("found_download_option", {

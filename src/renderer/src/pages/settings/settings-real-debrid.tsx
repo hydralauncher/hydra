@@ -2,11 +2,10 @@ import { useContext, useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
 import { Button, CheckboxField, Link, TextField } from "@renderer/components";
-import * as styles from "./settings-real-debrid.css";
+import "./settings-real-debrid.scss";
 
 import { useAppSelector, useToast } from "@renderer/hooks";
 
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { settingsContext } from "@renderer/context";
 
 const REAL_DEBRID_API_TOKEN_URL = "https://real-debrid.com/apitoken";
@@ -57,7 +56,8 @@ export function SettingsRealDebrid() {
           return;
         } else {
           showSuccessToast(
-            t("real_debrid_linked_message", { username: user.username })
+            t("real_debrid_account_linked"),
+            t("debrid_linked_message", { username: user.username })
           );
         }
       } else {
@@ -68,7 +68,7 @@ export function SettingsRealDebrid() {
         realDebridApiToken: form.useRealDebrid ? form.realDebridApiToken : null,
       });
     } catch (err) {
-      showErrorToast(t("real_debrid_invalid_token"));
+      showErrorToast(t("debrid_invalid_token"));
     } finally {
       setIsLoading(false);
     }
@@ -78,45 +78,43 @@ export function SettingsRealDebrid() {
     (form.useRealDebrid && !form.realDebridApiToken) || isLoading;
 
   return (
-    <form className={styles.form} onSubmit={handleFormSubmit}>
-      <p className={styles.description}>{t("real_debrid_description")}</p>
+    <form className="settings-real-debrid__form" onSubmit={handleFormSubmit}>
+      <p className="settings-real-debrid__description">
+        {t("real_debrid_description")}
+      </p>
 
       <CheckboxField
         label={t("enable_real_debrid")}
         checked={form.useRealDebrid}
-        onChange={() =>
+        onChange={() => {
           setForm((prev) => ({
             ...prev,
             useRealDebrid: !form.useRealDebrid,
-          }))
-        }
+          }));
+        }}
       />
 
       {form.useRealDebrid && (
         <TextField
-          label={t("real_debrid_api_token")}
+          label={t("api_token")}
           value={form.realDebridApiToken ?? ""}
           type="password"
           onChange={(event) =>
             setForm({ ...form, realDebridApiToken: event.target.value })
           }
+          rightContent={
+            <Button type="submit" disabled={isButtonDisabled}>
+              {t("save_changes")}
+            </Button>
+          }
           placeholder="API Token"
-          containerProps={{ style: { marginTop: `${SPACING_UNIT}px` } }}
           hint={
-            <Trans i18nKey="real_debrid_api_token_hint" ns="settings">
+            <Trans i18nKey="debrid_api_token_hint" ns="settings">
               <Link to={REAL_DEBRID_API_TOKEN_URL} />
             </Trans>
           }
         />
       )}
-
-      <Button
-        type="submit"
-        style={{ alignSelf: "flex-end", marginTop: `${SPACING_UNIT * 2}px` }}
-        disabled={isButtonDisabled}
-      >
-        {t("save_changes")}
-      </Button>
     </form>
   );
 }

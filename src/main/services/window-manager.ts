@@ -9,17 +9,22 @@ import {
   shell,
 } from "electron";
 import { is } from "@electron-toolkit/utils";
-import i18next, { t } from "i18next";
+import { t } from "i18next";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
-import { gameRepository, userPreferencesRepository } from "@main/repository";
-import { IsNull, Not } from "typeorm";
 import { HydraApi } from "./hydra-api";
 import UserAgent from "user-agents";
+import { db, gamesSublevel, levelKeys } from "@main/level";
+import { slice, sortBy } from "lodash-es";
+import type { UserPreferences } from "@types";
+import { AuthPage } from "@shared";
+import { isStaging } from "@main/constants";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
+
+  private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
 
   private static loadMainWindowURL(hash = "") {
     // HMR for renderer base on electron-vite cli.
@@ -48,11 +53,11 @@ export class WindowManager {
       minHeight: 540,
       backgroundColor: "#1c1c1c",
       titleBarStyle: process.platform === "linux" ? "default" : "hidden",
-      ...(process.platform === "linux" ? { icon } : {}),
+      icon,
       trafficLightPosition: { x: 16, y: 16 },
       titleBarOverlay: {
         symbolColor: "#DADBE1",
-        color: "#151515",
+        color: "#00000000",
         height: 34,
       },
       webPreferences: {
@@ -125,14 +130,18 @@ export class WindowManager {
     this.mainWindow.removeMenu();
 
     this.mainWindow.on("ready-to-show", () => {
-      if (!app.isPackaged) WindowManager.mainWindow?.webContents.openDevTools();
+      if (!app.isPackaged || isStaging)
+        WindowManager.mainWindow?.webContents.openDevTools();
       WindowManager.mainWindow?.show();
     });
 
     this.mainWindow.on("close", async () => {
-      const userPreferences = await userPreferencesRepository.findOne({
-        where: { id: 1 },
-      });
+      const userPreferences = await db.get<string, UserPreferences>(
+        levelKeys.userPreferences,
+        {
+          valueEncoding: "json",
+        }
+      );
 
       if (userPreferences?.preferQuitInsteadOfHiding) {
         app.quit();
@@ -140,9 +149,14 @@ export class WindowManager {
       WindowManager.mainWindow?.setProgressBar(-1);
       WindowManager.mainWindow = null;
     });
+
+    this.mainWindow.webContents.setWindowOpenHandler((handler) => {
+      shell.openExternal(handler.url);
+      return { action: "deny" };
+    });
   }
 
-  public static openAuthWindow() {
+  public static openAuthWindow(page: AuthPage, searchParams: URLSearchParams) {
     if (this.mainWindow) {
       const authWindow = new BrowserWindow({
         width: 600,
@@ -164,12 +178,8 @@ export class WindowManager {
 
       if (!app.isPackaged) authWindow.webContents.openDevTools();
 
-      const searchParams = new URLSearchParams({
-        lng: i18next.language,
-      });
-
       authWindow.loadURL(
-        `${import.meta.env.MAIN_VITE_AUTH_URL}/?${searchParams.toString()}`
+        `${import.meta.env.MAIN_VITE_AUTH_URL}${page}?${searchParams.toString()}`
       );
 
       authWindow.once("ready-to-show", () => {
@@ -181,7 +191,95 @@ export class WindowManager {
           authWindow.close();
 
           HydraApi.handleExternalAuth(url);
+          return;
         }
+
+        if (url.startsWith("hydralauncher://update-account")) {
+          authWindow.close();
+
+          WindowManager.mainWindow?.webContents.send("on-account-updated");
+        }
+      });
+    }
+  }
+
+  public static openEditorWindow(themeId: string) {
+    if (this.mainWindow) {
+      const existingWindow = this.editorWindows.get(themeId);
+      if (existingWindow) {
+        if (existingWindow.isMinimized()) {
+          existingWindow.restore();
+        }
+        existingWindow.focus();
+        return;
+      }
+
+      const editorWindow = new BrowserWindow({
+        width: 600,
+        height: 720,
+        minWidth: 600,
+        minHeight: 540,
+        backgroundColor: "#1c1c1c",
+        titleBarStyle: process.platform === "linux" ? "default" : "hidden",
+        ...(process.platform === "linux" ? { icon } : {}),
+        trafficLightPosition: { x: 16, y: 16 },
+        titleBarOverlay: {
+          symbolColor: "#DADBE1",
+          color: "#151515",
+          height: 34,
+        },
+        webPreferences: {
+          preload: path.join(__dirname, "../preload/index.mjs"),
+          sandbox: false,
+        },
+        show: false,
+      });
+
+      this.editorWindows.set(themeId, editorWindow);
+
+      editorWindow.removeMenu();
+
+      if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+        editorWindow.loadURL(
+          `${process.env["ELECTRON_RENDERER_URL"]}#/theme-editor?themeId=${themeId}`
+        );
+      } else {
+        editorWindow.loadFile(path.join(__dirname, "../renderer/index.html"), {
+          hash: `theme-editor?themeId=${themeId}`,
+        });
+      }
+
+      editorWindow.once("ready-to-show", () => {
+        editorWindow.show();
+        this.mainWindow?.webContents.openDevTools();
+        if (isStaging) {
+          editorWindow.webContents.openDevTools();
+        }
+      });
+
+      editorWindow.webContents.on("before-input-event", (event, input) => {
+        if (input.key === "F12") {
+          event.preventDefault();
+          this.mainWindow?.webContents.toggleDevTools();
+        }
+      });
+
+      editorWindow.on("close", () => {
+        this.mainWindow?.webContents.closeDevTools();
+        this.editorWindows.delete(themeId);
+      });
+    }
+  }
+
+  public static closeEditorWindow(themeId?: string) {
+    if (themeId) {
+      const editorWindow = this.editorWindows.get(themeId);
+      if (editorWindow) {
+        editorWindow.close();
+      }
+    } else {
+      this.editorWindows.forEach((editorWindow) => {
+        editorWindow.close();
       });
     }
   }
@@ -207,17 +305,19 @@ export class WindowManager {
     }
 
     const updateSystemTray = async () => {
-      const games = await gameRepository.find({
-        where: {
-          isDeleted: false,
-          executablePath: Not(IsNull()),
-          lastTimePlayed: Not(IsNull()),
-        },
-        take: 5,
-        order: {
-          lastTimePlayed: "DESC",
-        },
-      });
+      const games = await gamesSublevel
+        .values()
+        .all()
+        .then((games) => {
+          const filteredGames = games.filter(
+            (game) =>
+              !game.isDeleted && game.executablePath && game.lastTimePlayed
+          );
+
+          const sortedGames = sortBy(filteredGames, "lastTimePlayed", "DESC");
+
+          return slice(sortedGames, 5);
+        });
 
       const recentlyPlayedGames: Array<MenuItemConstructorOptions | MenuItem> =
         games.map(({ title, executablePath }) => ({

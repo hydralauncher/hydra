@@ -4,14 +4,12 @@ import { useTranslation } from "react-i18next";
 import { Badge, Button, Modal, TextField } from "@renderer/components";
 import type { GameRepack } from "@types";
 
-import * as styles from "./repacks-modal.css";
-
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "@renderer/context";
 import { Downloader } from "@shared";
 import { orderBy } from "lodash-es";
 import { useDate } from "@renderer/hooks";
+import "./repacks-modal.scss";
 
 export interface RepacksModalProps {
   visible: boolean;
@@ -19,7 +17,7 @@ export interface RepacksModalProps {
     repack: GameRepack,
     downloader: Downloader,
     downloadPath: string
-  ) => Promise<void>;
+  ) => Promise<{ ok: boolean; error?: string }>;
   onClose: () => void;
 }
 
@@ -27,7 +25,7 @@ export function RepacksModal({
   visible,
   startDownload,
   onClose,
-}: RepacksModalProps) {
+}: Readonly<RepacksModalProps>) {
   const [filteredRepacks, setFilteredRepacks] = useState<GameRepack[]>([]);
   const [repack, setRepack] = useState<GameRepack | null>(null);
   const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
@@ -67,8 +65,8 @@ export function RepacksModal({
   };
 
   const checkIfLastDownloadedOption = (repack: GameRepack) => {
-    if (!game) return false;
-    return repack.uris.some((uri) => uri.includes(game.uri!));
+    if (!game?.download) return false;
+    return repack.uris.some((uri) => uri.includes(game.download!.uri));
   };
 
   return (
@@ -86,11 +84,11 @@ export function RepacksModal({
         description={t("repacks_modal_description")}
         onClose={onClose}
       >
-        <div style={{ marginBottom: `${SPACING_UNIT * 2}px` }}>
+        <div className="repacks-modal__filter-container">
           <TextField placeholder={t("filter")} onChange={handleFilter} />
         </div>
 
-        <div className={styles.repacks}>
+        <div className="repacks-modal__repacks">
           {filteredRepacks.map((repack) => {
             const isLastDownloadedOption = checkIfLastDownloadedOption(repack);
 
@@ -99,19 +97,17 @@ export function RepacksModal({
                 key={repack.id}
                 theme="dark"
                 onClick={() => handleRepackClick(repack)}
-                className={styles.repackButton}
+                className="repacks-modal__repack-button"
               >
-                <p style={{ color: "#DADBE1", wordBreak: "break-word" }}>
-                  {repack.title}
-                </p>
+                <p className="repacks-modal__repack-title">{repack.title}</p>
 
                 {isLastDownloadedOption && (
                   <Badge>{t("last_downloaded_option")}</Badge>
                 )}
 
-                <p style={{ fontSize: "12px" }}>
+                <p className="repacks-modal__repack-info">
                   {repack.fileSize} - {repack.repacker} -{" "}
-                  {repack.uploadDate ? formatDate(repack.uploadDate!) : ""}
+                  {repack.uploadDate ? formatDate(repack.uploadDate) : ""}
                 </p>
               </Button>
             );
