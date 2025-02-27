@@ -1,0 +1,262 @@
+@use "../../scss/globals.scss";
+@use "sass:math";
+
+$hero-height: 150px;
+$logo-height: 100px;
+$logo-max-width: 200px;
+
+.achievements {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  transition: all ease 0.3s;
+
+  &__hero {
+    width: 100%;
+    height: $hero-height;
+    min-height: $hero-height;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: all ease 0.2s;
+
+    &-content {
+      padding: globals.$spacing-unit * 2;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    &-logo-backdrop {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    &-image-skeleton {
+      height: 150px;
+    }
+  }
+
+  &__game-logo {
+    width: $logo-max-width;
+    height: $logo-height;
+    object-fit: contain;
+    transition: all ease 0.2s;
+
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+
+  &__container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    z-index: 1;
+  }
+
+  &__table-header {
+    width: 100%;
+    background-color: globals.$dark-background-color;
+    transition: all ease 0.2s;
+    border-bottom: solid 1px globals.$border-color;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+
+    &--stuck {
+      box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.8);
+    }
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit * 2;
+    padding: globals.$spacing-unit * 2;
+    width: 100%;
+    background-color: globals.$background-color;
+  }
+
+  &__item {
+    display: flex;
+    transition: all ease 0.1s;
+    color: globals.$muted-color;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 4px;
+    padding: globals.$spacing-unit globals.$spacing-unit;
+    gap: globals.$spacing-unit * 2;
+    align-items: center;
+    text-align: left;
+
+    &:hover {
+      background-color: globals.$border-color;
+      text-decoration: none;
+    }
+
+    &-image {
+      width: 54px;
+      height: 54px;
+      border-radius: 4px;
+      object-fit: cover;
+
+      &--locked {
+        filter: grayscale(100%);
+      }
+    }
+
+    &-content {
+      flex: 1;
+    }
+
+    &-title {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    &-hidden-icon {
+      display: flex;
+      color: globals.$warning-color;
+      opacity: 0.8;
+
+      &:hover {
+        opacity: 1;
+      }
+
+      svg {
+        width: 12px;
+        height: 12px;
+      }
+    }
+
+    &-eye-closed {
+      width: 12px;
+      height: 12px;
+      color: globals.$warning-color;
+      scale: 4;
+    }
+
+    &-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    &-points {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-right: 4px;
+      font-weight: 600;
+
+      &--locked {
+        cursor: pointer;
+        color: globals.$warning-color;
+      }
+
+      &-icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      &-value {
+        font-size: 1.1em;
+      }
+    }
+
+    &-unlock-time {
+      white-space: nowrap;
+      gap: 4px;
+      display: flex;
+    }
+
+    &-compared {
+      display: grid;
+      grid-template-columns: 3fr 1fr 1fr;
+
+      &--no-owner {
+        grid-template-columns: 3fr 2fr;
+      }
+    }
+
+    &-main {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: globals.$spacing-unit;
+    }
+
+    &-status {
+      display: flex;
+      padding: globals.$spacing-unit;
+      justify-content: center;
+
+      &--unlocked {
+        white-space: nowrap;
+        flex-direction: row;
+        gap: globals.$spacing-unit;
+        padding: 0;
+      }
+    }
+  }
+
+  &__progress-bar {
+    width: 100%;
+    height: 8px;
+    transition: all ease 0.2s;
+
+    &::-webkit-progress-bar {
+      background-color: globals.$border-color;
+      border-radius: 4px;
+    }
+
+    &::-webkit-progress-value {
+      background-color: globals.$muted-color;
+      border-radius: 4px;
+    }
+  }
+
+  &__profile-avatar {
+    height: 54px;
+    width: 54px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: globals.$background-color;
+    position: relative;
+    object-fit: cover;
+
+    &--small {
+      height: 32px;
+      width: 32px;
+    }
+  }
+
+  &__subscription-button {
+    text-decoration: none;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    gap: math.div(globals.$spacing-unit, 2);
+    color: globals.$muted-color;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

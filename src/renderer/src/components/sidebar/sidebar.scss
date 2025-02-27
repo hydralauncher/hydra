@@ -1,0 +1,145 @@
+@use "../../scss/globals.scss";
+
+.sidebar {
+  background-color: globals.$dark-background-color;
+  color: globals.$muted-color;
+  flex-direction: column;
+  display: flex;
+  transition: opacity ease 0.2s;
+  border-right: solid 1px globals.$border-color;
+  position: relative;
+  overflow: hidden;
+  padding-top: globals.$spacing-unit;
+
+  &--resizing {
+    opacity: globals.$active-opacity;
+    pointer-events: none;
+  }
+
+  &--darwin {
+    padding-top: calc(globals.$spacing-unit * 6);
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: calc(globals.$spacing-unit * 2);
+    gap: calc(globals.$spacing-unit * 2);
+    width: 100%;
+    overflow: auto;
+  }
+
+  &__handle {
+    width: 5px;
+    height: 100%;
+    cursor: col-resize;
+    position: absolute;
+    right: 0;
+  }
+
+  &__menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    gap: calc(globals.$spacing-unit / 2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  &__menu-item {
+    transition: all ease 0.1s;
+    cursor: pointer;
+    text-wrap: nowrap;
+    display: flex;
+    color: globals.$muted-color;
+    border-radius: 4px;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    &--active {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    &--muted {
+      opacity: globals.$disabled-opacity;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+  }
+
+  &__menu-item-button {
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    cursor: pointer;
+    overflow: hidden;
+    width: 100%;
+    padding: 9px globals.$spacing-unit;
+  }
+
+  &__menu-item-button-label {
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  &__game-icon {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+    border-radius: 4px;
+    background-size: cover;
+  }
+
+  &__section-title {
+    text-transform: uppercase;
+    font-weight: bold;
+  }
+
+  &__container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    padding-bottom: globals.$spacing-unit;
+  }
+
+  &__help-button {
+    color: globals.$muted-color;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    gap: 9px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    border-top: solid 1px globals.$border-color;
+    transition: background-color ease 0.1s;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  &__help-button-icon {
+    background: linear-gradient(0deg, #16b195 50%, #3e62c0 100%);
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    border-radius: 50%;
+  }
+}

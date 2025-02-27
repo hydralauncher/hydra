@@ -1,0 +1,16 @@
+@use "../../../scss/globals.scss";
+
+.user-friend-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+  max-height: 400px;
+  overflow-y: scroll;
+
+  &__skeleton {
+    width: 100%;
+    height: 54px;
+    overflow: hidden;
+    border-radius: 4px;
+  }
+}

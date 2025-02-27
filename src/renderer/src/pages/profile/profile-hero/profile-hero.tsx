@@ -1,6 +1,3 @@
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
-
-import * as styles from "./profile-hero.css";
 import { useCallback, useContext, useMemo, useState } from "react";
 import { userProfileContext } from "@renderer/context";
 import {
@@ -27,13 +24,12 @@ import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
 import Skeleton from "react-loading-skeleton";
 import { UploadBackgroundImageButton } from "../upload-background-image-button/upload-background-image-button";
+import "./profile-hero.scss";
+import { UserBadges } from "./user-badges";
 
 type FriendAction =
   | FriendRequestAction
   | ("BLOCK" | "UNDO_FRIENDSHIP" | "SEND");
-
-const backgroundImageLayer =
-  "linear-gradient(135deg, rgb(0 0 0 / 40%), rgb(0 0 0 / 30%))";
 
 export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -127,7 +123,7 @@ export function ProfileHero() {
             theme="outline"
             onClick={() => setShowEditProfileModal(true)}
             disabled={isPerformingAction}
-            style={{ borderColor: vars.color.body }}
+            className="profile-hero__button--outline"
           >
             <PencilIcon />
             {t("edit_profile")}
@@ -152,7 +148,7 @@ export function ProfileHero() {
             theme="outline"
             onClick={() => handleFriendAction(userProfile.id, "SEND")}
             disabled={isPerformingAction}
-            style={{ borderColor: vars.color.body }}
+            className="profile-hero__button--outline"
           >
             <PersonAddIcon />
             {t("add_friend")}
@@ -187,7 +183,7 @@ export function ProfileHero() {
               handleFriendAction(userProfile.id, "UNDO_FRIENDSHIP")
             }
             disabled={isPerformingAction}
-            style={{ borderColor: vars.color.body }}
+            className="profile-hero__button--outline"
           >
             <XCircleFillIcon />
             {t("undo_friendship")}
@@ -204,7 +200,7 @@ export function ProfileHero() {
             handleFriendAction(userProfile.relation!.BId, "CANCEL")
           }
           disabled={isPerformingAction}
-          style={{ borderColor: vars.color.body }}
+          className="profile-hero__button--outline"
         >
           <XCircleFillIcon /> {t("cancel_request")}
         </Button>
@@ -219,7 +215,7 @@ export function ProfileHero() {
             handleFriendAction(userProfile.relation!.AId, "ACCEPTED")
           }
           disabled={isPerformingAction}
-          style={{ borderColor: vars.color.body }}
+          className="profile-hero__button--outline"
         >
           <CheckCircleFillIcon /> {t("accept_request")}
         </Button>
@@ -254,7 +250,7 @@ export function ProfileHero() {
       if (gameRunning)
         return {
           ...gameRunning,
-          objectId: gameRunning.objectID,
+          objectId: gameRunning.objectId,
           sessionDurationInSeconds: gameRunning.sessionDurationInMillis / 1000,
         };
 
@@ -279,34 +275,28 @@ export function ProfileHero() {
       />
 
       <section
-        className={styles.profileContentBox}
-        style={{ background: heroBackground }}
+        className="profile-hero__content-box"
+        style={{ background: !backgroundImage ? heroBackground : undefined }}
       >
         {backgroundImage && (
           <img
             src={backgroundImage}
             alt=""
-            style={{
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
+            className="profile-hero__background-image"
           />
         )}
 
         <div
-          style={{
-            background: backgroundImage ? backgroundImageLayer : "transparent",
-            width: "100%",
-            height: "100%",
-            zIndex: 1,
-          }}
+          className={`profile-hero__background-overlay ${
+            !backgroundImage
+              ? "profile-hero__background-overlay--transparent"
+              : ""
+          }`}
         >
-          <div className={styles.userInformation}>
+          <div className="profile-hero__user-information">
             <button
               type="button"
-              className={styles.profileAvatarButton}
+              className="profile-hero__avatar-button"
               onClick={handleAvatarClick}
             >
               <Avatar
@@ -316,18 +306,21 @@ export function ProfileHero() {
               />
             </button>
 
-            <div className={styles.profileInformation}>
+            <div className="profile-hero__information">
               {userProfile ? (
-                <h2 className={styles.profileDisplayName}>
-                  {userProfile?.displayName}
-                </h2>
+                <div className="profile-hero__display-name-container">
+                  <h2 className="profile-hero__display-name">
+                    {userProfile?.displayName}
+                  </h2>
+                  <UserBadges />
+                </div>
               ) : (
                 <Skeleton width={150} height={28} />
               )}
 
               {currentGame && (
-                <div className={styles.currentGameWrapper}>
-                  <div className={styles.currentGameDetails}>
+                <div className="profile-hero__current-game-wrapper">
+                  <div className="profile-hero__current-game-details">
                     <Link
                       to={buildGameDetailsPath({
                         ...currentGame,
@@ -358,21 +351,14 @@ export function ProfileHero() {
         </div>
 
         <div
-          className={styles.heroPanel}
+          className={`profile-hero__hero-panel ${
+            !backgroundImage ? "profile-hero__hero-panel--transparent" : ""
+          }`}
           style={{
-            background: backgroundImage ? backgroundImageLayer : heroBackground,
+            background: !backgroundImage ? heroBackground : undefined,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              gap: `${SPACING_UNIT}px`,
-              justifyContent: "flex-end",
-              flex: 1,
-            }}
-          >
-            {profileActions}
-          </div>
+          <div className="profile-hero__actions">{profileActions}</div>
         </div>
       </section>
     </>

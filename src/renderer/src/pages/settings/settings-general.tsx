@@ -11,6 +11,7 @@ import { changeLanguage } from "i18next";
 import languageResources from "@locales";
 import { orderBy } from "lodash-es";
 import { settingsContext } from "@renderer/context";
+import "./settings-general.scss";
 
 interface LanguageOption {
   option: string;
@@ -32,6 +33,8 @@ export function SettingsGeneral() {
     repackUpdatesNotificationsEnabled: false,
     achievementNotificationsEnabled: false,
     language: "",
+
+    customStyles: window.localStorage.getItem("customStyles") || "",
   });
 
   const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([]);
@@ -57,10 +60,32 @@ export function SettingsGeneral() {
     );
   }, []);
 
-  useEffect(updateFormWithUserPreferences, [
-    userPreferences,
-    defaultDownloadsPath,
-  ]);
+  useEffect(() => {
+    if (userPreferences) {
+      const languageKeys = Object.keys(languageResources);
+      const language =
+        languageKeys.find(
+          (language) => language === userPreferences.language
+        ) ??
+        languageKeys.find((language) => {
+          return language.startsWith(
+            userPreferences.language?.split("-")[0] ?? "en"
+          );
+        });
+
+      setForm((prev) => ({
+        ...prev,
+        downloadsPath: userPreferences.downloadsPath ?? defaultDownloadsPath,
+        downloadNotificationsEnabled:
+          userPreferences.downloadNotificationsEnabled ?? false,
+        repackUpdatesNotificationsEnabled:
+          userPreferences.repackUpdatesNotificationsEnabled ?? false,
+        achievementNotificationsEnabled:
+          userPreferences.achievementNotificationsEnabled ?? false,
+        language: language ?? "en",
+      }));
+    }
+  }, [userPreferences, defaultDownloadsPath]);
 
   const handleLanguageChange = (event) => {
     const value = event.target.value;
@@ -86,33 +111,8 @@ export function SettingsGeneral() {
     }
   };
 
-  function updateFormWithUserPreferences() {
-    if (userPreferences) {
-      const languageKeys = Object.keys(languageResources);
-      const language =
-        languageKeys.find((language) => {
-          return language === userPreferences.language;
-        }) ??
-        languageKeys.find((language) => {
-          return language.startsWith(userPreferences.language.split("-")[0]);
-        });
-
-      setForm((prev) => ({
-        ...prev,
-        downloadsPath: userPreferences.downloadsPath ?? defaultDownloadsPath,
-        downloadNotificationsEnabled:
-          userPreferences.downloadNotificationsEnabled,
-        repackUpdatesNotificationsEnabled:
-          userPreferences.repackUpdatesNotificationsEnabled,
-        achievementNotificationsEnabled:
-          userPreferences.achievementNotificationsEnabled,
-        language: language ?? "en",
-      }));
-    }
-  }
-
   return (
-    <>
+    <div className="settings-general">
       <TextField
         label={t("downloads_path")}
         value={form.downloadsPath}
@@ -136,7 +136,9 @@ export function SettingsGeneral() {
         }))}
       />
 
-      <h3>{t("notifications")}</h3>
+      <p className="settings-general__notifications-title">
+        {t("notifications")}
+      </p>
 
       <CheckboxField
         label={t("enable_download_notifications")}
@@ -169,6 +171,6 @@ export function SettingsGeneral() {
           })
         }
       />
-    </>
+    </div>
   );
 }

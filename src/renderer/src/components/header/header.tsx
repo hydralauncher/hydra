@@ -5,9 +5,10 @@ import { ArrowLeftIcon, SearchIcon, XIcon } from "@primer/octicons-react";
 
 import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 
-import * as styles from "./header.css";
+import "./header.scss";
 import { AutoUpdateSubHeader } from "./auto-update-sub-header";
 import { setFilters } from "@renderer/features";
+import cn from "classnames";
 
 const pathTitle: Record<string, string> = {
   "/": "home",
@@ -75,16 +76,16 @@ export function Header() {
   return (
     <>
       <header
-        className={styles.header({
-          draggingDisabled,
-          isWindows: window.electron.platform === "win32",
+        className={cn("header", {
+          "header--dragging-disabled": draggingDisabled,
+          "header--is-windows": window.electron.platform === "win32",
         })}
       >
-        <section className={styles.section} style={{ flex: 1 }}>
+        <section className="header__section header__section--left">
           <button
             type="button"
-            className={styles.backButton({
-              enabled: location.key !== "default",
+            className={cn("header__back-button", {
+              "header__back-button--enabled": location.key !== "default",
             })}
             onClick={handleBackButtonClick}
             disabled={location.key === "default"}
@@ -93,19 +94,23 @@ export function Header() {
           </button>
 
           <h3
-            className={styles.title({
-              hasBackButton: location.key !== "default",
+            className={cn("header__title", {
+              "header__title--has-back-button": location.key !== "default",
             })}
           >
             {title}
           </h3>
         </section>
 
-        <section className={styles.section}>
-          <div className={styles.search({ focused: isFocused })}>
+        <section className="header__section">
+          <div
+            className={cn("header__search", {
+              "header__search--focused": isFocused,
+            })}
+          >
             <button
               type="button"
-              className={styles.actionButton}
+              className="header__action-button"
               onClick={focusInput}
             >
               <SearchIcon />
@@ -117,7 +122,7 @@ export function Header() {
               name="search"
               placeholder={t("search")}
               value={searchValue}
-              className={styles.searchInput}
+              className="header__search-input"
               onChange={(event) => handleSearch(event.target.value)}
               onFocus={() => setIsFocused(true)}
               onBlur={handleBlur}
@@ -127,7 +132,7 @@ export function Header() {
               <button
                 type="button"
                 onClick={() => dispatch(setFilters({ title: "" }))}
-                className={styles.actionButton}
+                className="header__action-button"
               >
                 <XIcon />
               </button>

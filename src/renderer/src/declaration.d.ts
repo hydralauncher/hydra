@@ -1,8 +1,6 @@
-import type { CatalogueCategory } from "@shared";
+import type { AuthPage, CatalogueCategory } from "@shared";
 import type {
   AppUpdaterEvent,
-  Game,
-  LibraryGame,
   GameShop,
   HowLongToBeatCategory,
   ShopDetails,
@@ -23,12 +21,15 @@ import type {
   UserStats,
   UserDetails,
   FriendRequestSync,
-  GameAchievement,
   GameArtifact,
   LudusaviBackup,
   UserAchievement,
   ComparedAchievements,
   CatalogueSearchPayload,
+  LibraryGame,
+  GameRunning,
+  TorBoxUser,
+  Theme,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -41,14 +42,16 @@ declare global {
 
   interface Electron {
     /* Torrenting */
-    startGameDownload: (payload: StartGameDownloadPayload) => Promise<void>;
-    cancelGameDownload: (gameId: number) => Promise<void>;
-    pauseGameDownload: (gameId: number) => Promise<void>;
-    resumeGameDownload: (gameId: number) => Promise<void>;
-    pauseGameSeed: (gameId: number) => Promise<void>;
-    resumeGameSeed: (gameId: number) => Promise<void>;
+    startGameDownload: (
+      payload: StartGameDownloadPayload
+    ) => Promise<{ ok: boolean; error?: string }>;
+    cancelGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
+    pauseGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
+    resumeGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
+    pauseGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
+    resumeGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     onDownloadProgress: (
-      cb: (value: DownloadProgress) => void
+      cb: (value: DownloadProgress | null) => void
     ) => () => Electron.IpcRenderer;
     onSeedingStatus: (
       cb: (value: SeedingStatus[]) => void
@@ -77,52 +80,67 @@ declare global {
     onUpdateAchievements: (
       objectId: string,
       shop: GameShop,
-      cb: (achievements: GameAchievement[]) => void
+      cb: (achievements: UserAchievement[]) => void
     ) => () => Electron.IpcRenderer;
     getPublishers: () => Promise<string[]>;
     getDevelopers: () => Promise<string[]>;
 
     /* Library */
     addGameToLibrary: (
+      shop: GameShop,
       objectId: string,
-      title: string,
-      shop: GameShop
+      title: string
     ) => Promise<void>;
-    createGameShortcut: (id: number) => Promise<boolean>;
+    createGameShortcut: (shop: GameShop, objectId: string) => Promise<boolean>;
     updateExecutablePath: (
-      id: number,
+      shop: GameShop,
+      objectId: string,
       executablePath: string | null
     ) => Promise<void>;
+    addGameToFavorites: (shop: GameShop, objectId: string) => Promise<void>;
+    removeGameFromFavorites: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<void>;
     updateLaunchOptions: (
-      id: number,
+      shop: GameShop,
+      objectId: string,
       launchOptions: string | null
     ) => Promise<void>;
     selectGameWinePrefix: (
-      id: number,
+      shop: GameShop,
+      objectId: string,
       winePrefixPath: string | null
     ) => Promise<void>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
     getLibrary: () => Promise<LibraryGame[]>;
-    openGameInstaller: (gameId: number) => Promise<boolean>;
-    openGameInstallerPath: (gameId: number) => Promise<boolean>;
-    openGameExecutablePath: (gameId: number) => Promise<void>;
+    openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
+    openGameInstallerPath: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<boolean>;
+    openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
     openGame: (
-      gameId: number,
+      shop: GameShop,
+      objectId: string,
       executablePath: string,
-      launchOptions: string | null
+      launchOptions?: string | null
     ) => Promise<void>;
-    closeGame: (gameId: number) => Promise<boolean>;
-    removeGameFromLibrary: (gameId: number) => Promise<void>;
-    removeGame: (gameId: number) => Promise<void>;
-    deleteGameFolder: (gameId: number) => Promise<unknown>;
-    getGameByObjectId: (objectId: string) => Promise<Game | null>;
+    closeGame: (shop: GameShop, objectId: string) => Promise<boolean>;
+    removeGameFromLibrary: (shop: GameShop, objectId: string) => Promise<void>;
+    removeGame: (shop: GameShop, objectId: string) => Promise<void>;
+    deleteGameFolder: (shop: GameShop, objectId: string) => Promise<unknown>;
+    getGameByObjectId: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<LibraryGame | null>;
     onGamesRunning: (
       cb: (
         gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
       ) => void
     ) => () => Electron.IpcRenderer;
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
-    resetGameAchievements: (gameId: number) => Promise<void>;
+    resetGameAchievements: (shop: GameShop, objectId: string) => Promise<void>;
     /* User preferences */
     getUserPreferences: () => Promise<UserPreferences | null>;
     updateUserPreferences: (
@@ -133,6 +151,8 @@ declare global {
       minimized: boolean;
     }) => Promise<void>;
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
+    authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
+    onAchievementUnlocked: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* Download sources */
     putDownloadSource: (
@@ -208,9 +228,10 @@ declare global {
 
     /* Auth */
     signOut: () => Promise<void>;
-    openAuthWindow: () => Promise<void>;
+    openAuthWindow: (page: AuthPage) => Promise<void>;
     getSessionHash: () => Promise<string | null>;
     onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
+    onAccountUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* User */
@@ -259,6 +280,23 @@ declare global {
 
     /* Notifications */
     publishNewRepacksNotification: (newRepacksCount: number) => Promise<void>;
+
+    /* Themes */
+    addCustomTheme: (theme: Theme) => Promise<void>;
+    getAllCustomThemes: () => Promise<Theme[]>;
+    deleteAllCustomThemes: () => Promise<void>;
+    deleteCustomTheme: (themeId: string) => Promise<void>;
+    updateCustomTheme: (themeId: string, code: string) => Promise<void>;
+    getCustomThemeById: (themeId: string) => Promise<Theme | null>;
+    getActiveCustomTheme: () => Promise<Theme | null>;
+    toggleCustomTheme: (themeId: string, isActive: boolean) => Promise<void>;
+
+    /* Editor */
+    openEditorWindow: (themeId: string) => Promise<void>;
+    onCssInjected: (
+      cb: (cssString: string) => void
+    ) => () => Electron.IpcRenderer;
+    closeEditorWindow: (themeId?: string) => Promise<void>;
   }
 
   interface Window {

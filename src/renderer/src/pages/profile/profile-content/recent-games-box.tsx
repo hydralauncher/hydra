@@ -1,6 +1,4 @@
 import { buildGameDetailsPath } from "@renderer/helpers";
-
-import * as styles from "./profile-content.css";
 import { Link } from "@renderer/components";
 import { useCallback, useContext } from "react";
 import { userProfileContext } from "@renderer/context";
@@ -9,6 +7,7 @@ import { ClockIcon } from "@primer/octicons-react";
 import { useFormat } from "@renderer/hooks";
 import type { UserGame } from "@types";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
+import "./recent-games-box.scss";
 
 export function RecentGamesBox() {
   const { userProfile } = useContext(userProfileContext);
@@ -44,28 +43,28 @@ export function RecentGamesBox() {
 
   return (
     <div>
-      <div className={styles.sectionHeader}>
+      <div className="recent-games__section-header">
         <h2>{t("activity")}</h2>
       </div>
 
-      <div className={styles.box}>
-        <ul className={styles.list}>
+      <div className="recent-games__box">
+        <ul className="recent-games__list">
           {userProfile?.recentGames.map((game) => (
             <li key={`${game.shop}-${game.objectId}`}>
               <Link
                 to={buildUserGameDetailsPath(game)}
-                className={styles.listItem}
+                className="recent-games__list-item"
               >
                 <img
                   src={game.iconUrl!}
                   alt={game.title}
-                  className={styles.listItemImage}
+                  className="recent-games__game-image"
                 />
 
-                <div className={styles.listItemDetails}>
-                  <span className={styles.listItemTitle}>{game.title}</span>
+                <div className="recent-games__game-details">
+                  <span className="recent-games__game-title">{game.title}</span>
 
-                  <div className={styles.listItemDescription}>
+                  <div className="recent-games__game-description">
                     <ClockIcon />
                     <small>{formatPlayTime(game)}</small>
                   </div>
