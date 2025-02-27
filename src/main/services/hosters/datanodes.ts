@@ -27,7 +27,7 @@ export class DatanodesApi {
         op: "download2",
         id: fileCode,
         method_free: "Free Download >>",
-        dl: "1"
+        dl: "1",
       });
 
       const response: AxiosResponse = await this.session.post(
@@ -35,10 +35,11 @@ export class DatanodesApi {
         payload,
         {
           headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0",
-            "Referer": "https://datanodes.to/download",
-            "Origin": "https://datanodes.to",
-            "Content-Type": "application/x-www-form-urlencoded"
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0",
+            Referer: "https://datanodes.to/download",
+            Origin: "https://datanodes.to",
+            "Content-Type": "application/x-www-form-urlencoded",
           },
           maxRedirects: 0,
           validateStatus: (status: number) => status === 302 || status < 400,
@@ -49,7 +50,7 @@ export class DatanodesApi {
         return response.headers["location"];
       }
 
-      if (typeof response.data === 'object' && response.data.url) {
+      if (typeof response.data === "object" && response.data.url) {
         return decodeURIComponent(response.data.url);
       }
 
@@ -58,7 +59,9 @@ export class DatanodesApi {
         throw new Error("Empty response received");
       }
 
-      const downloadLinkMatch = htmlContent.match(/href=["'](https:\/\/[^"']+)["']/);
+      const downloadLinkMatch = htmlContent.match(
+        /href=["'](https:\/\/[^"']+)["']/
+      );
       if (downloadLinkMatch) {
         return downloadLinkMatch[1];
       }
