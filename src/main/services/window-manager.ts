@@ -24,6 +24,8 @@ import { isStaging } from "@main/constants";
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
 
+  private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
+
   private static loadMainWindowURL(hash = "") {
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
@@ -55,7 +57,7 @@ export class WindowManager {
       trafficLightPosition: { x: 16, y: 16 },
       titleBarOverlay: {
         symbolColor: "#DADBE1",
-        color: "#151515",
+        color: "#00000000",
         height: 34,
       },
       webPreferences: {
@@ -197,6 +199,87 @@ export class WindowManager {
 
           WindowManager.mainWindow?.webContents.send("on-account-updated");
         }
+      });
+    }
+  }
+
+  public static openEditorWindow(themeId: string) {
+    if (this.mainWindow) {
+      const existingWindow = this.editorWindows.get(themeId);
+      if (existingWindow) {
+        if (existingWindow.isMinimized()) {
+          existingWindow.restore();
+        }
+        existingWindow.focus();
+        return;
+      }
+
+      const editorWindow = new BrowserWindow({
+        width: 600,
+        height: 720,
+        minWidth: 600,
+        minHeight: 540,
+        backgroundColor: "#1c1c1c",
+        titleBarStyle: process.platform === "linux" ? "default" : "hidden",
+        ...(process.platform === "linux" ? { icon } : {}),
+        trafficLightPosition: { x: 16, y: 16 },
+        titleBarOverlay: {
+          symbolColor: "#DADBE1",
+          color: "#151515",
+          height: 34,
+        },
+        webPreferences: {
+          preload: path.join(__dirname, "../preload/index.mjs"),
+          sandbox: false,
+        },
+        show: false,
+      });
+
+      this.editorWindows.set(themeId, editorWindow);
+
+      editorWindow.removeMenu();
+
+      if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+        editorWindow.loadURL(
+          `${process.env["ELECTRON_RENDERER_URL"]}#/theme-editor?themeId=${themeId}`
+        );
+      } else {
+        editorWindow.loadFile(path.join(__dirname, "../renderer/index.html"), {
+          hash: `theme-editor?themeId=${themeId}`,
+        });
+      }
+
+      editorWindow.once("ready-to-show", () => {
+        editorWindow.show();
+        this.mainWindow?.webContents.openDevTools();
+        if (isStaging) {
+          editorWindow.webContents.openDevTools();
+        }
+      });
+
+      editorWindow.webContents.on("before-input-event", (event, input) => {
+        if (input.key === "F12") {
+          event.preventDefault();
+          this.mainWindow?.webContents.toggleDevTools();
+        }
+      });
+
+      editorWindow.on("close", () => {
+        this.mainWindow?.webContents.closeDevTools();
+        this.editorWindows.delete(themeId);
+      });
+    }
+  }
+
+  public static closeEditorWindow(themeId?: string) {
+    if (themeId) {
+      const editorWindow = this.editorWindows.get(themeId);
+      if (editorWindow) {
+        editorWindow.close();
+      }
+    } else {
+      this.editorWindows.forEach((editorWindow) => {
+        editorWindow.close();
       });
     }
   }

@@ -183,7 +183,13 @@
     "no_write_permission": "Невозможно загрузить в эту директорию. Нажмите здесь, чтобы узнать больше.",
     "reset_achievements_title": "Вы уверены?",
     "reset_achievements_success": "Достижения успешно сброшены",
-    "reset_achievements_error": "Не удалось сбросить достижения"
+    "reset_achievements_error": "Не удалось сбросить достижения",
+    "download_error_gofile_quota_exceeded": "Вы превысили месячную квоту Gofile. Пожалуйста, подождите, пока квота не будет восстановлена.",
+    "download_error_real_debrid_account_not_authorized": "Ваш аккаунт Real-Debrid не авторизован для осуществления новых загрузок. Пожалуйста, проверьте настройки учетной записи и повторите попытку.",
+    "download_error_not_cached_in_real_debrid": "Эта загрузка недоступна на Real-Debrid, а опрос статуса загрузки с Real-Debrid пока недоступен.",
+    "download_error_not_cached_in_torbox": "Эта загрузка недоступна на Torbox, и опросить статус загрузки с Torbox пока невозможно.",
+    "game_added_to_favorites": "Игра добавлена в избранное",
+    "game_removed_from_favorites": "Игра удалена из избранного"
   },
   "activation": {
     "title": "Активировать Hydra",
@@ -295,7 +301,36 @@
     "become_subscriber": "Станьте обладателем Hydra Cloud",
     "subscription_renew_cancelled": "Автоматическое продление отключено",
     "subscription_renews_on": "Ваша подписка продлевается на {{date}}",
-    "bill_sent_until": "Ваш следующий счет будет отправлен до этого дня"
+    "bill_sent_until": "Ваш следующий счет будет отправлен до этого дня",
+    "no_themes": "Похоже, что у вас еще нет тем, но не волнуйтесь, нажмите здесь, чтобы создать свой первый шедевр",
+    "editor_tab_code": "Код",
+    "editor_tab_info": "Информация",
+    "editor_tab_save": "Сохранить",
+    "web_store": "Веб-магазин",
+    "clear_themes": "Очистить",
+    "create_theme": "Создать",
+    "create_theme_modal_title": "Создать пользовательскую тему",
+    "create_theme_modal_description": "Создать новую тему для настройки внешнего вида Hydra",
+    "theme_name": "Название",
+    "insert_theme_name": "Вставить название темы",
+    "set_theme": "Установить тему",
+    "unset_theme": "Снять тему",
+    "delete_theme": "Удалить тему",
+    "edit_theme": "Редактировать тему",
+    "delete_all_themes": "Удалить все темы",
+    "delete_all_themes_description": "Это удалит все ваши пользовательские темы",
+    "delete_theme_description": "Это приведет к удалению темы {{theme}}",
+    "cancel": "Отменить",
+    "appearance": "Внешний вид",
+    "enable_torbox": "Включить Torbox",
+    "torbox_description": "TorBox - это ваш премиум-сервис, конкурирующий даже с лучшими серверами на рынке.",
+    "torbox_account_linked": "Аккаунт TorBox привязан",
+    "real_debrid_account_linked": "Аккаунт Real-Debrid привязан",
+    "name_min_length": "Название темы должно содержать не менее 3 символов",
+    "import_theme": "Импортировать тему",
+    "import_theme_description": "Вы импортируете {{theme}} из магазина тем",
+    "error_importing_theme": "Ошибка при импорте темы",
+    "theme_imported": "Тема успешно импортирована"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -404,6 +439,9 @@
     "achievements_unlocked": "Достижения разблокированы",
     "show_achievements_on_profile": "Покажите свои достижения в профиле",
     "show_points_on_profile": "Показывать заработанные очки в своем профиле"
+  },
+  "badge": {
+    "badge_description_theme_creator": "Награждается тот, кто создал пользовательскую тему"
   },
   "achievement": {
     "achievement_unlocked": "Достижение разблокировано",

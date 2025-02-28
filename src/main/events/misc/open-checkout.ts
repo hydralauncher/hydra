@@ -1,6 +1,6 @@
 import { shell } from "electron";
 import { registerEvent } from "../register-event";
-import { Crypto, HydraApi } from "@main/services";
+import { HydraApi } from "@main/services";
 import { db, levelKeys } from "@main/level";
 import type { Auth } from "@types";
 
@@ -14,7 +14,7 @@ const openCheckout = async (_event: Electron.IpcMainInvokeEvent) => {
   }
 
   const paymentToken = await HydraApi.post("/auth/payment", {
-    refreshToken: Crypto.decrypt(auth.refreshToken),
+    refreshToken: auth.refreshToken,
   }).then((response) => response.accessToken);
 
   const params = new URLSearchParams({

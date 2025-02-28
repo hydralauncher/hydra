@@ -159,6 +159,8 @@ def action():
         downloader = downloads.get(game_id)
         if downloader:
             downloader.pause_download()
+        
+        if downloading_game_id == game_id:
             downloading_game_id = -1
     elif action == 'cancel':
         downloader = downloads.get(game_id)

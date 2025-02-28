@@ -1,6 +1,6 @@
 {
   "name": "hydralauncher",
-  "version": "3.1.5",
+  "version": "3.2.2",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
@@ -36,6 +36,7 @@
     "@electron-toolkit/utils": "^3.0.0",
     "@fontsource/noto-sans": "^5.1.0",
     "@hookform/resolvers": "^3.9.1",
+    "@monaco-editor/react": "^4.6.0",
     "@primer/octicons-react": "^19.9.0",
     "@radix-ui/react-dropdown-menu": "^2.1.2",
     "@reduxjs/toolkit": "^2.2.3",
@@ -59,6 +60,7 @@
     "i18next-browser-languagedetector": "^7.2.1",
     "jsdom": "^24.0.0",
     "jsonwebtoken": "^9.0.2",
+    "kill-port": "^2.0.1",
     "knex": "^3.1.0",
     "lodash-es": "^4.17.21",
     "parse-torrent": "^11.0.17",
