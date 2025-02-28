@@ -219,8 +219,10 @@ export class DownloadManager {
       } as PauseDownloadPayload)
       .catch(() => {});
 
-    WindowManager.mainWindow?.setProgressBar(-1);
-    this.downloadingGameId = null;
+    if (downloadKey === this.downloadingGameId) {
+      WindowManager.mainWindow?.setProgressBar(-1);
+      this.downloadingGameId = null;
+    }
   }
 
   static async resumeDownload(download: Download) {
@@ -228,14 +230,17 @@ export class DownloadManager {
   }
 
   static async cancelDownload(downloadKey = this.downloadingGameId) {
-    await PythonRPC.rpc.post("/action", {
-      action: "cancel",
-      game_id: downloadKey,
-    });
-
-    WindowManager.mainWindow?.setProgressBar(-1);
+    await PythonRPC.rpc
+      .post("/action", {
+        action: "cancel",
+        game_id: downloadKey,
+      })
+      .catch((err) => {
+        logger.error("Failed to cancel game download", err);
+      });
 
     if (downloadKey === this.downloadingGameId) {
+      WindowManager.mainWindow?.setProgressBar(-1);
       WindowManager.mainWindow?.webContents.send("on-download-progress", null);
       this.downloadingGameId = null;
     }

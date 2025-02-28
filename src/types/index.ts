@@ -130,6 +130,8 @@ export interface UserProfileCurrentGame extends Omit<GameRunning, "objectId"> {
 
 export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
 
+export type UserBadge = "THEME_CREATOR";
+
 export interface UserDetails {
   id: string;
   username: string;
@@ -164,6 +166,7 @@ export interface UserProfile {
   quirks: {
     backupsPerGameLimit: number;
   };
+  badges: UserBadge[];
 }
 
 export interface UpdateProfileRequest {
@@ -296,3 +299,4 @@ export * from "./download.types";
 export * from "./ludusavi.types";
 export * from "./how-long-to-beat.types";
 export * from "./level.types";
+export * from "./theme.types";
