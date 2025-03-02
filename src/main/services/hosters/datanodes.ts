@@ -19,7 +19,7 @@ export class DatanodesApi {
       const fileCode = pathSegments[0];
 
       await this.jar.setCookie(
-        "lang=english; affiliate=xMMbODVvr8YJ2fSUcUnMp%2BGXrORHVW1k8r7y2EAcXokClQHfT29mJ1a8NtvhD7dfq%2BzAz0Sxmz5NoIEyvh32QE0nzx7KyKTspsroVhug2lkfAffiIqvzq52eJ2GGVY9jl9iVmw%3D%3D",
+        "lang=english;",
         "https://datanodes.to"
       );
 
