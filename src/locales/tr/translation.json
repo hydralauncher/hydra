@@ -55,7 +55,8 @@
     "download_sources": "İndirme kaynakları",
     "result_count": "{{resultCount}} sonuç",
     "filter_count": "{{filterCount}} mevcut",
-    "clear_filters": "{{filterCount}} seçili filtreyi temizle"
+    "clear_filters": "{{filterCount}} seçili filtreyi temizle",
+    "go_up_button": "Tepeye dön"
   },
   "game_details": {
     "open_download_options": "İndirme seçeneklerini aç",

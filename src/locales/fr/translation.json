@@ -122,6 +122,7 @@
   },
   "catalogue": {
     "next_page": "Page suivante",
-    "previous_page": "Page précédente"
+    "previous_page": "Page précédente",
+    "go_up_button": "Retourner au sommet"
   }
 }
