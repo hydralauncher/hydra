@@ -25,6 +25,8 @@ export function Avatar({ size, alt, src, ...props }: AvatarProps) {
           width={size}
           height={size}
           {...props}
+          width={size}
+          height={size}
         />
       ) : (
         <PersonIcon size={size * 0.7} />
