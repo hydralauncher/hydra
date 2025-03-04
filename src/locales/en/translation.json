@@ -231,6 +231,7 @@
     "options": "Manage"
   },
   "settings": {
+    "username": "Username:",
     "downloads_path": "Downloads path",
     "change": "Update",
     "notifications": "Notifications",
