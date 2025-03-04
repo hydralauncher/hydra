@@ -11,6 +11,7 @@ import "@fontsource/noto-sans/500.css";
 import "@fontsource/noto-sans/700.css";
 
 import "react-loading-skeleton/dist/skeleton.css";
+import "react-tooltip/dist/react-tooltip.css";
 
 import { App } from "./app";
 
