@@ -30,6 +30,7 @@ import type {
   GameRunning,
   TorBoxUser,
   Theme,
+  Badge,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -217,6 +218,7 @@ declare global {
     ) => Promise<Electron.OpenDialogReturnValue>;
     showItemInFolder: (path: string) => Promise<void>;
     getFeatures: () => Promise<string[]>;
+    getBadges: () => Promise<Badge[]>;
     platform: NodeJS.Platform;
 
     /* Auto update */

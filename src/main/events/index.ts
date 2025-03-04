@@ -87,6 +87,7 @@ import "./themes/get-custom-theme-by-id";
 import "./themes/get-active-custom-theme";
 import "./themes/close-editor-window";
 import "./themes/toggle-custom-theme";
+import "./misc/get-badges";
 import { isPortableVersion } from "@main/helpers";
 
 ipcMain.handle("ping", () => "pong");

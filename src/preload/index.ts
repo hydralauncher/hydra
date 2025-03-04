@@ -266,6 +266,7 @@ contextBridge.exposeInMainWorld("electron", {
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
   getFeatures: () => ipcRenderer.invoke("getFeatures"),
+  getBadges: () => ipcRenderer.invoke("getBadges"),
   platform: process.platform,
 
   /* Auto update */
