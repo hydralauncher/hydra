@@ -1,8 +1,7 @@
 import { Badge } from "@types";
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
-import { levelKeys } from "@main/level";
-import { db } from "@main/level";
+import { db, levelKeys } from "@main/level";
 
 const getBadges = async (_event: Electron.IpcMainInvokeEvent) => {
   const language = await db
