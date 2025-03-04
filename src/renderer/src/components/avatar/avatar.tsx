@@ -19,12 +19,10 @@ export function Avatar({ size, alt, src, ...props }: AvatarProps) {
     <div className="profile-avatar" style={{ width: size, height: size }}>
       {src ? (
         <img
+          {...props}
           className="profile-avatar__image"
           alt={alt}
           src={src}
-          width={size}
-          height={size}
-          {...props}
           width={size}
           height={size}
         />
