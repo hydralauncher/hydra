@@ -18,7 +18,14 @@ export function Avatar({ size, alt, src, ...props }: AvatarProps) {
   return (
     <div className="profile-avatar" style={{ width: size, height: size }}>
       {src ? (
-        <img className="profile-avatar__image" alt={alt} src={src} {...props} />
+        <img
+          className="profile-avatar__image"
+          alt={alt}
+          src={src}
+          width={size}
+          height={size}
+          {...props}
+        />
       ) : (
         <PersonIcon size={size * 0.7} />
       )}

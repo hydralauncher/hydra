@@ -440,9 +440,6 @@
     "show_achievements_on_profile": "Exiba suas conquistas no perfil",
     "show_points_on_profile": "Exiba seus pontos ganhos no perfil"
   },
-  "badge": {
-    "badge_description_theme_creator": "Concedido àqueles que criaram um tema customizado"
-  },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",
     "your_achievements": "Suas Conquistas",
