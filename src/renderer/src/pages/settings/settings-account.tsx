@@ -178,7 +178,8 @@ export function SettingsAccount() {
       <section className="settings-account__section">
         <h4>{t("current_email")}</h4>
         <p>{userDetails?.email ?? t("no_email_account")}</p>
-
+        <h4>Nome de usuário:</h4>
+        <p>{userDetails?.username}</p>
         <div className="settings-account__actions">
           <Button
             theme="outline"
@@ -199,7 +200,6 @@ export function SettingsAccount() {
           </Button>
         </div>
       </section>
-
       <section className="settings-account__section">
         <h3>Hydra Cloud</h3>
         <div className="settings-account__subscription-info">
