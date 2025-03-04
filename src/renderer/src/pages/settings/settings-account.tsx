@@ -161,7 +161,7 @@ export function SettingsAccount() {
                 label={t("profile_visibility")}
                 value={field.value}
                 onChange={handleChange}
-                options={visibilityOptions.map((visiblity) => ({
+                options={visibilityOptions.map((visibility) => ({
                   key: visiblity.value,
                   value: visiblity.value,
                   label: visiblity.label,
