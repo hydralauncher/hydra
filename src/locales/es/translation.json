@@ -225,6 +225,7 @@
     "options": "Gestionar"
   },
   "settings": {
+    "username": "Nombre de usuário",
     "downloads_path": "Ruta de descarga",
     "change": "Cambiar",
     "notifications": "Notificaciones",
