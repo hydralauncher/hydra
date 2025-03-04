@@ -229,6 +229,7 @@
     "options": "Управлять"
   },
   "settings": {
+    "username": "Имя пользователя:",
     "downloads_path": "Путь загрузок",
     "change": "Изменить",
     "notifications": "Уведомления",
