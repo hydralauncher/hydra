@@ -221,7 +221,7 @@
     "options": "Gerenciar"
   },
   "settings": {
-    "username": "Nome de usuário:",
+    "username": "Nome de usuário",
     "downloads_path": "Diretório dos downloads",
     "change": "Explorar...",
     "notifications": "Notificações",
