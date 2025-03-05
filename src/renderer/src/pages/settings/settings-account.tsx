@@ -162,9 +162,9 @@ export function SettingsAccount() {
                 value={field.value}
                 onChange={handleChange}
                 options={visibilityOptions.map((visibility) => ({
-                  key: visiblity.value,
-                  value: visiblity.value,
-                  label: visiblity.label,
+                  key: visibility.value,
+                  value: visibility.value,
+                  label: visibility.label,
                 }))}
                 disabled={isSubmitting}
               />
