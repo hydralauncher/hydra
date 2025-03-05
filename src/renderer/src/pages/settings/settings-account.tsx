@@ -178,7 +178,7 @@ export function SettingsAccount() {
       <section className="settings-account__section">
         <h4>{t("current_email")}</h4>
         <p>{userDetails?.email ?? t("no_email_account")}</p>
-        <h4>{t("username")}</h4>
+        <h4>{t("username")}:</h4>
         <p>{userDetails?.username}</p>
          <div className="settings-account__actions">
           <Button
