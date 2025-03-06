@@ -326,7 +326,7 @@
     "insert_theme_name": "Introducí el nombre del tema",
     "name_min_length": "El tema tiene que tener 3 carácteres de largo mínimo",
     "no_themes": "Parece que no tenés ningún tema aún, pero no te preocupes, presiona acá para crear tu primer tema.",
-   "real_debrid_account_linked": "Cuenta de Real-Debrid vinculada",
+    "real_debrid_account_linked": "Cuenta de Real-Debrid vinculada",
     "set_theme": "Establecer tema",
     "theme_imported": "Tema importado exitosamente",
     "theme_name": "Nombre",
