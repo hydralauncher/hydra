@@ -132,7 +132,9 @@ const migrateFromSqlite = async () => {
         );
 
         if (rest.language) {
-          await db.put(levelKeys.language, rest.language);
+          await db.put<string, string>(levelKeys.language, rest.language, {
+            valueEncoding: "utf-8",
+          });
         }
       }
     })

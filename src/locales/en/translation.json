@@ -444,9 +444,6 @@
     "show_achievements_on_profile": "Show your achievements on your profile",
     "show_points_on_profile": "Show your earned points on your profile"
   },
-  "badge": {
-    "badge_description_theme_creator": "Awarded to those who created a custom theme"
-  },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",
     "user_achievements": "{{displayName}}'s Achievements",
