@@ -3572,6 +3572,11 @@ agent-base@^7.0.2, agent-base@^7.1.0:
   dependencies:
     debug "^4.3.4"
 
+agent-base@^7.1.3:
+  version "7.1.3"
+  resolved "https://registry.yarnpkg.com/agent-base/-/agent-base-7.1.3.tgz#29435eb821bc4194633a5b89e5bc4703bafc25a1"
+  integrity sha512-jRR5wdylq8CkOe6hei19GGZnxM6rBGwFl3Bg0YItGDimvjGtAvdZk4Pu6Cl4u4Igsws4a1fd1Vq3ezrhn4KmFw==
+
 agentkeepalive@^4.2.1:
   version "4.5.0"
   resolved "https://registry.yarnpkg.com/agentkeepalive/-/agentkeepalive-4.5.0.tgz#2673ad1389b3c418c5a20c5d7364f93ca04be923"
@@ -3907,6 +3912,13 @@ axe-core@^4.10.0:
   version "4.10.0"
   resolved "https://registry.yarnpkg.com/axe-core/-/axe-core-4.10.0.tgz#d9e56ab0147278272739a000880196cdfe113b59"
   integrity sha512-Mr2ZakwQ7XUAjp7pAwQWRhhK8mQQ6JAaNWSjmjxil0R8BPioMtQsTLOolGYkji1rcL++3dCqZA3zWqpT+9Ew6g==
+
+axios-cookiejar-support@^5.0.5:
+  version "5.0.5"
+  resolved "https://registry.yarnpkg.com/axios-cookiejar-support/-/axios-cookiejar-support-5.0.5.tgz#6030e17b438a64e3967a5ca190ee4202481c0ecf"
+  integrity sha512-jJG+p7JnOYxkVrYkCDKBrLqUmcpwHZTNQrEcIEKr5qe7YVTyPAD9nCsi1cO5LDmQpQApfS430czO+oceI3g/3g==
+  dependencies:
+    http-cookie-agent "^6.0.8"
 
 axios@^1.7.9:
   version "1.7.9"
@@ -6146,6 +6158,13 @@ http-cache-semantics@^4.0.0, http-cache-semantics@^4.1.0:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/http-cache-semantics/-/http-cache-semantics-4.1.1.tgz#abe02fcb2985460bf0323be664436ec3476a6d5a"
   integrity sha512-er295DKPVsV82j5kw1Gjt+ADA/XYHsajl82cGNQG2eyoPkvgUhX+nDIyelzhIWbbsXP39EHcI6l5tYs2FYqYXQ==
+
+http-cookie-agent@^6.0.8:
+  version "6.0.8"
+  resolved "https://registry.yarnpkg.com/http-cookie-agent/-/http-cookie-agent-6.0.8.tgz#f2635638f4172c7de0c482396ea7313e9731a62b"
+  integrity sha512-qnYh3yLSr2jBsTYkw11elq+T361uKAJaZ2dR4cfYZChw1dt9uL5t3zSUwehoqqVb4oldk1BpkXKm2oat8zV+oA==
+  dependencies:
+    agent-base "^7.1.3"
 
 http-proxy-agent@^5.0.0:
   version "5.0.0"
@@ -9148,6 +9167,18 @@ tinyexec@^0.3.0:
   resolved "https://registry.yarnpkg.com/tinyexec/-/tinyexec-0.3.1.tgz#0ab0daf93b43e2c211212396bdb836b468c97c98"
   integrity sha512-WiCJLEECkO18gwqIp6+hJg0//p23HXp4S+gGtAKu3mI2F2/sXC4FvHvXvB0zJVVaTPhx1/tOwdbRsa1sOBIKqQ==
 
+tldts-core@^6.1.78:
+  version "6.1.78"
+  resolved "https://registry.yarnpkg.com/tldts-core/-/tldts-core-6.1.78.tgz#47b477d9742870daa01dbd5ff9a598a48379728c"
+  integrity sha512-jS0svNsB99jR6AJBmfmEWuKIgz91Haya91Z43PATaeHJ24BkMoNRb/jlaD37VYjb0mYf6gRL/HOnvS1zEnYBiw==
+
+tldts@^6.1.32:
+  version "6.1.78"
+  resolved "https://registry.yarnpkg.com/tldts/-/tldts-6.1.78.tgz#ee94576653a60d421ff94162c4e9060f2e62467b"
+  integrity sha512-fSgYrW0ITH0SR/CqKMXIruYIPpNu5aDgUp22UhYoSrnUQwc7SBqifEBFNce7AAcygUPBo6a/gbtcguWdmko4RQ==
+  dependencies:
+    tldts-core "^6.1.78"
+
 tmp-promise@^3.0.2:
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/tmp-promise/-/tmp-promise-3.0.3.tgz#60a1a1cc98c988674fcbfd23b6e3367bdeac4ce7"
@@ -9194,6 +9225,13 @@ tough-cookie@^4.1.4:
     punycode "^2.1.1"
     universalify "^0.2.0"
     url-parse "^1.5.3"
+
+tough-cookie@^5.1.1:
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/tough-cookie/-/tough-cookie-5.1.1.tgz#4641c1fdbf024927e29c5532edb7b6e5377ea1f2"
+  integrity sha512-Ek7HndSVkp10hmHP9V4qZO1u+pn1RU5sI0Fw+jCU3lyvuMZcgqsNgc6CmJJZyByK4Vm/qotGRJlfgAX8q+4JiA==
+  dependencies:
+    tldts "^6.1.32"
 
 tr46@^5.0.0:
   version "5.0.0"
