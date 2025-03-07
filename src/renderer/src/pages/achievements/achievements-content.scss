@@ -31,7 +31,7 @@ $logo-max-width: 200px;
         display: flex;
         justify-content: center;
         width: 100%;
-        gap: globals.$spacing-unit / 2;
+        gap: calc(globals.$spacing-unit / 2);
         color: globals.$body-color;
         cursor: pointer;
 
