@@ -70,53 +70,43 @@ export class CloudSync {
       game?.winePrefixPath ?? null
     );
 
-    fs.stat(bundleLocation, async (err, stat) => {
+    const stat = await fs.promises.stat(bundleLocation);
+
+    const { uploadUrl } = await HydraApi.post<{
+      id: string;
+      uploadUrl: string;
+    }>("/profile/games/artifacts", {
+      artifactLengthInBytes: stat.size,
+      shop,
+      objectId,
+      hostname: os.hostname(),
+      homeDir: normalizePath(app.getPath("home")),
+      downloadOptionTitle,
+      platform: os.platform(),
+      label,
+    });
+
+    const fileBuffer = await fs.promises.readFile(bundleLocation);
+
+    await axios.put(uploadUrl, fileBuffer, {
+      headers: {
+        "Content-Type": "application/tar",
+      },
+      onUploadProgress: (progressEvent) => {
+        logger.log(progressEvent);
+      },
+    });
+
+    WindowManager.mainWindow?.webContents.send(
+      `on-upload-complete-${objectId}-${shop}`,
+      true
+    );
+
+    fs.rm(bundleLocation, (err) => {
       if (err) {
-        logger.error("Failed to get zip file stats", err);
+        logger.error("Failed to remove tar file", err);
         throw err;
       }
-
-      const { uploadUrl } = await HydraApi.post<{
-        id: string;
-        uploadUrl: string;
-      }>("/profile/games/artifacts", {
-        artifactLengthInBytes: stat.size,
-        shop,
-        objectId,
-        hostname: os.hostname(),
-        homeDir: normalizePath(app.getPath("home")),
-        downloadOptionTitle,
-        platform: os.platform(),
-        label,
-      });
-
-      fs.readFile(bundleLocation, async (err, fileBuffer) => {
-        if (err) {
-          logger.error("Failed to read zip file", err);
-          throw err;
-        }
-
-        await axios.put(uploadUrl, fileBuffer, {
-          headers: {
-            "Content-Type": "application/tar",
-          },
-          onUploadProgress: (progressEvent) => {
-            logger.log(progressEvent);
-          },
-        });
-
-        WindowManager.mainWindow?.webContents.send(
-          `on-upload-complete-${objectId}-${shop}`,
-          true
-        );
-
-        fs.rm(bundleLocation, (err) => {
-          if (err) {
-            logger.error("Failed to remove tar file", err);
-            throw err;
-          }
-        });
-      });
     });
   }
 }

@@ -235,6 +235,7 @@ declare global {
     restartAndInstallUpdate: () => Promise<void>;
 
     /* Auth */
+    getAuth: () => Promise<Auth | null>;
     signOut: () => Promise<void>;
     openAuthWindow: (page: AuthPage) => Promise<void>;
     getSessionHash: () => Promise<string | null>;
@@ -243,7 +244,6 @@ declare global {
     onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* User */
-    getAuth: () => Promise<Auth | null>;
     getUser: (userId: string) => Promise<UserProfile | null>;
     blockUser: (userId: string) => Promise<void>;
     unblockUser: (userId: string) => Promise<void>;

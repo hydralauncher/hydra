@@ -34,7 +34,7 @@
     color: #fff;
     padding: 0 globals.$spacing-unit;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
   }
 
   &__row {
