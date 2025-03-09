@@ -101,6 +101,17 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("putDownloadSource", objectIds),
 
   /* Library */
+  toggleAutomaticCloudSync: (
+    shop: GameShop,
+    objectId: string,
+    automaticCloudSync: boolean
+  ) =>
+    ipcRenderer.invoke(
+      "toggleAutomaticCloudSync",
+      shop,
+      objectId,
+      automaticCloudSync
+    ),
   addGameToLibrary: (shop: GameShop, objectId: string, title: string) =>
     ipcRenderer.invoke("addGameToLibrary", shop, objectId, title),
   createGameShortcut: (shop: GameShop, objectId: string) =>
@@ -301,6 +312,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("sendFriendRequest", userId),
 
   /* User */
+  getAuth: () => ipcRenderer.invoke("getAuth"),
   getUser: (userId: string) => ipcRenderer.invoke("getUser", userId),
   blockUser: (userId: string) => ipcRenderer.invoke("blockUser", userId),
   unblockUser: (userId: string) => ipcRenderer.invoke("unblockUser", userId),

@@ -31,6 +31,7 @@ import type {
   TorBoxUser,
   Theme,
   Badge,
+  Auth,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -87,6 +88,11 @@ declare global {
     getDevelopers: () => Promise<string[]>;
 
     /* Library */
+    toggleAutomaticCloudSync: (
+      shop: GameShop,
+      objectId: string,
+      automaticCloudSync: boolean
+    ) => Promise<void>;
     addGameToLibrary: (
       shop: GameShop,
       objectId: string,
@@ -237,6 +243,7 @@ declare global {
     onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* User */
+    getAuth: () => Promise<Auth | null>;
     getUser: (userId: string) => Promise<UserProfile | null>;
     blockUser: (userId: string) => Promise<void>;
     unblockUser: (userId: string) => Promise<void>;

@@ -7,7 +7,7 @@ export interface CheckboxFieldProps
     React.InputHTMLAttributes<HTMLInputElement>,
     HTMLInputElement
   > {
-  label: string;
+  label: string | React.ReactNode;
 }
 
 export function CheckboxField({ label, ...props }: CheckboxFieldProps) {
