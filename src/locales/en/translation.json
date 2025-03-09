@@ -178,6 +178,8 @@
     "manage_files_description": "Manage which files will be backed up and restored",
     "select_folder": "Select folder",
     "backup_from": "Backup from {{date}}",
+    "automatic_backup_from": "Automatic backup from {{date}}",
+    "enable_automatic_cloud_sync": "Enable automatic cloud sync",
     "custom_backup_location_set": "Custom backup location set",
     "no_directory_selected": "No directory selected",
     "no_write_permission": "Cannot download into this directory. Click here to learn more.",

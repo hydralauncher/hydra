@@ -165,6 +165,8 @@
     "max_number_of_artifacts_reached": "Número máximo de backups atingido para este jogo",
     "achievements_not_sync": "Veja como exibir suas conquistas no perfil",
     "backup_from": "Backup de {{date}}",
+    "automatic_backup_from": "Backup automático de {{date}}",
+    "enable_automatic_cloud_sync": "Habilitar sincronização automática na nuvem",
     "custom_backup_location_set": "Localização customizada selecionada",
     "select_folder": "Selecione a pasta",
     "manage_files_description": "Gerencie quais arquivos serão feitos backup",
