@@ -312,7 +312,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("sendFriendRequest", userId),
 
   /* User */
-  getAuth: () => ipcRenderer.invoke("getAuth"),
   getUser: (userId: string) => ipcRenderer.invoke("getUser", userId),
   blockUser: (userId: string) => ipcRenderer.invoke("blockUser", userId),
   unblockUser: (userId: string) => ipcRenderer.invoke("unblockUser", userId),
@@ -338,6 +337,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getUnlockedAchievements", objectId, shop),
 
   /* Auth */
+  getAuth: () => ipcRenderer.invoke("getAuth"),
   signOut: () => ipcRenderer.invoke("signOut"),
   openAuthWindow: (page: AuthPage) =>
     ipcRenderer.invoke("openAuthWindow", page),
