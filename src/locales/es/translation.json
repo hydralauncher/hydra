@@ -174,6 +174,8 @@
     "manage_files_description": "Gestiona los archivos que serán respaldados y restaurados",
     "select_folder": "Seleccionar carpeta",
     "backup_from": "Copia de seguridad de {{date}}",
+    "automatic_backup_from": "Copia de seguridad automática de {{date}}",
+    "enable_automatic_cloud_sync": "Habilitar sincronización automática en la nube",
     "custom_backup_location_set": "Se configuró la carpeta de copia de seguridad",
     "clear": "Limpiar",
     "no_directory_selected": "No se seleccionó un directorio",
