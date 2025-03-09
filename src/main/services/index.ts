@@ -7,3 +7,4 @@ export * from "./process-watcher";
 export * from "./main-loop";
 export * from "./hydra-api";
 export * from "./ludusavi";
+export * from "./cloud-sync";
