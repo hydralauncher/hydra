@@ -62,8 +62,6 @@ export const loadState = async () => {
       game.uri !== null
   );
 
-  console.log("downloadsToSeed", downloadsToSeed);
-
   await DownloadManager.startRPC(nextItemOnQueue, downloadsToSeed);
 
   startMainLoop();
