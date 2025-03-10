@@ -1,11 +1,9 @@
 import updater, { UpdateInfo } from "electron-updater";
 import { logger, WindowManager } from "@main/services";
-import { AppUpdaterEvent } from "@types";
+import { AppUpdaterEvent, UserPreferences } from "@types";
 import { app } from "electron";
 import { publishNotificationUpdateReadyToInstall } from "@main/services/notifications";
-
-const isAutoInstallAvailable =
-  process.platform !== "darwin" && process.env.PORTABLE_EXECUTABLE_FILE == null;
+import { db, levelKeys } from "@main/level";
 
 const { autoUpdater } = updater;
 const sendEventsForDebug = false;
@@ -16,7 +14,7 @@ export class UpdateManager {
   private static checkTick = 0;
 
   private static mockValuesForDebug() {
-    this.sendEvent({ type: "update-available", info: { version: "1.3.0" } });
+    this.sendEvent({ type: "update-available", info: { version: "3.3.1" } });
     this.sendEvent({ type: "update-downloaded" });
   }
 
@@ -24,7 +22,27 @@ export class UpdateManager {
     WindowManager.mainWindow?.webContents.send("autoUpdaterEvent", event);
   }
 
-  public static checkForUpdates() {
+  private static async isAutoInstallEnabled() {
+    if (process.platform === "darwin") return false;
+    if (process.platform === "win32") {
+      return process.env.PORTABLE_EXECUTABLE_FILE == null;
+    }
+
+    if (process.platform === "linux") {
+      const userPreferences = await db.get<string, UserPreferences>(
+        levelKeys.userPreferences,
+        {
+          valueEncoding: "json",
+        }
+      );
+
+      return userPreferences.enableAutoInstall === true;
+    }
+
+    return false;
+  }
+
+  public static async checkForUpdates() {
     autoUpdater
       .once("update-available", (info: UpdateInfo) => {
         this.sendEvent({ type: "update-available", info });
@@ -38,6 +56,8 @@ export class UpdateManager {
           publishNotificationUpdateReadyToInstall(this.newVersion);
         }
       });
+
+    const isAutoInstallAvailable = await this.isAutoInstallEnabled();
 
     if (app.isPackaged) {
       autoUpdater.autoDownload = isAutoInstallAvailable;

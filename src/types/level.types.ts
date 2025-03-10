@@ -76,6 +76,7 @@ export interface UserPreferences {
   runAtStartup?: boolean;
   startMinimized?: boolean;
   disableNsfwAlert?: boolean;
+  enableAutoInstall?: boolean;
   seedAfterDownloadComplete?: boolean;
   showHiddenAchievementsDescription?: boolean;
   downloadNotificationsEnabled?: boolean;

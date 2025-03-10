@@ -12,6 +12,7 @@ export function SettingsBehavior() {
   );
 
   const [showRunAtStartup, setShowRunAtStartup] = useState(false);
+  const [showAutoInstall, setShowAutoInstall] = useState(true);
 
   const { updateUserPreferences } = useContext(settingsContext);
 
@@ -20,6 +21,7 @@ export function SettingsBehavior() {
     runAtStartup: false,
     startMinimized: false,
     disableNsfwAlert: false,
+    enableAutoInstall: false,
     seedAfterDownloadComplete: false,
     showHiddenAchievementsDescription: false,
   });
@@ -34,6 +36,7 @@ export function SettingsBehavior() {
         runAtStartup: userPreferences.runAtStartup ?? false,
         startMinimized: userPreferences.startMinimized ?? false,
         disableNsfwAlert: userPreferences.disableNsfwAlert ?? false,
+        enableAutoInstall: userPreferences.enableAutoInstall ?? false,
         seedAfterDownloadComplete:
           userPreferences.seedAfterDownloadComplete ?? false,
         showHiddenAchievementsDescription:
@@ -46,6 +49,10 @@ export function SettingsBehavior() {
     window.electron.isPortableVersion().then((isPortableVersion) => {
       setShowRunAtStartup(!isPortableVersion);
     });
+
+    if (window.electron.platform === "linux") {
+      setShowAutoInstall(true);
+    }
   }, []);
 
   const handleChange = (values: Partial<typeof form>) => {
@@ -97,6 +104,16 @@ export function SettingsBehavior() {
             }}
           />
         </div>
+      )}
+
+      {showAutoInstall && (
+        <CheckboxField
+          label={t("enable_auto_install")}
+          checked={form.enableAutoInstall}
+          onChange={() => {
+            handleChange({ enableAutoInstall: !form.enableAutoInstall });
+          }}
+        />
       )}
 
       <CheckboxField
