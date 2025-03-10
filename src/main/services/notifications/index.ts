@@ -81,14 +81,14 @@ export const publishNotificationUpdateReadyToInstall = async (
 };
 
 export const publishNewFriendRequestNotification = async () => {
-  const userPreferences = await db.get<string, UserPreferences>(
+  const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {
       valueEncoding: "json",
     }
   );
 
-  if (!userPreferences.friendRequestNotificationsEnabled) return;
+  if (!userPreferences?.friendRequestNotificationsEnabled) return;
 
   new Notification({
     title: t("new_friend_request_title", {
