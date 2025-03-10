@@ -161,10 +161,10 @@ export function SettingsAccount() {
                 label={t("profile_visibility")}
                 value={field.value}
                 onChange={handleChange}
-                options={visibilityOptions.map((visiblity) => ({
-                  key: visiblity.value,
-                  value: visiblity.value,
-                  label: visiblity.label,
+                options={visibilityOptions.map((visibility) => ({
+                  key: visibility.value,
+                  value: visibility.value,
+                  label: visibility.label,
                 }))}
                 disabled={isSubmitting}
               />
@@ -178,8 +178,9 @@ export function SettingsAccount() {
       <section className="settings-account__section">
         <h4>{t("current_email")}</h4>
         <p>{userDetails?.email ?? t("no_email_account")}</p>
-
-        <div className="settings-account__actions">
+        <h4>{t("username")}:</h4>
+        <p>{userDetails?.username}</p>
+         <div className="settings-account__actions">
           <Button
             theme="outline"
             onClick={() => window.electron.openAuthWindow(AuthPage.UpdateEmail)}
@@ -199,7 +200,6 @@ export function SettingsAccount() {
           </Button>
         </div>
       </section>
-
       <section className="settings-account__section">
         <h3>Hydra Cloud</h3>
         <div className="settings-account__subscription-info">
