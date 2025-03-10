@@ -4,7 +4,7 @@ import updater from "electron-updater";
 
 const { autoUpdater } = updater;
 
-export const restartAndInstallUpdate = async () => {
+export const restartAndInstallUpdate = () => {
   autoUpdater.removeAllListeners();
   if (app.isPackaged) {
     autoUpdater.quitAndInstall(false);

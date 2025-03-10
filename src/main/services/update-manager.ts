@@ -29,14 +29,14 @@ export class UpdateManager {
     }
 
     if (process.platform === "linux") {
-      const userPreferences = await db.get<string, UserPreferences>(
+      const userPreferences = await db.get<string, UserPreferences | null>(
         levelKeys.userPreferences,
         {
           valueEncoding: "json",
         }
       );
 
-      return userPreferences.enableAutoInstall === true;
+      return userPreferences?.enableAutoInstall === true;
     }
 
     return false;
