@@ -16,13 +16,15 @@ const syncFriendRequests = async (_event: Electron.IpcMainInvokeEvent) => {
   return HydraApi.get<FriendRequestSync>(`/profile/friend-requests/sync`)
     .then((res) => {
       if (
-        syncState.friendsRequest &&
+        syncState.friendsRequest != null &&
         syncState.friendsRequest < res.friendRequestCount
       ) {
         publishNewFriendRequestNotification();
       }
 
       syncState.friendsRequest = res.friendRequestCount;
+
+      return res;
     })
     .catch((err) => {
       if (err instanceof UserNotLoggedInError) {

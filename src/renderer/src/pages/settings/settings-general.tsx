@@ -32,6 +32,7 @@ export function SettingsGeneral() {
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
     achievementNotificationsEnabled: false,
+    friendRequestNotificationsEnabled: false,
     language: "",
 
     customStyles: window.localStorage.getItem("customStyles") || "",
@@ -82,6 +83,8 @@ export function SettingsGeneral() {
           userPreferences.repackUpdatesNotificationsEnabled ?? false,
         achievementNotificationsEnabled:
           userPreferences.achievementNotificationsEnabled ?? false,
+        friendRequestNotificationsEnabled:
+          userPreferences.friendRequestNotificationsEnabled ?? false,
         language: language ?? "en",
       }));
     }
@@ -168,6 +171,17 @@ export function SettingsGeneral() {
           handleChange({
             achievementNotificationsEnabled:
               !form.achievementNotificationsEnabled,
+          })
+        }
+      />
+
+      <CheckboxField
+        label={t("enable_friend_request_notifications")}
+        checked={form.friendRequestNotificationsEnabled}
+        onChange={() =>
+          handleChange({
+            friendRequestNotificationsEnabled:
+              !form.friendRequestNotificationsEnabled,
           })
         }
       />

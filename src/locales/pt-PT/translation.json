@@ -30,7 +30,6 @@
   },
   "header": {
     "search": "Procurar jogos",
-
     "catalogue": "Catálogo",
     "downloads": "Transferências",
     "search_results": "Resultados da pesquisa",
@@ -250,7 +249,8 @@
     "must_be_valid_url": "A fonte deve ser um URL válido",
     "blocked_users": "Utilizadores bloqueados",
     "user_unblocked": "Utilizador desbloqueado",
-    "enable_achievement_notifications": "Quando uma conquista é desbloqueada"
+    "enable_achievement_notifications": "Quando uma conquista é desbloqueada",
+    "enable_friend_request_notifications": "Quando um pedido de amizade é recebido"
   },
   "notifications": {
     "download_complete": "Transferência concluída",
@@ -259,7 +259,9 @@
     "repack_count_one": "{{count}} novo repack",
     "repack_count_other": "{{count}} novos repacks",
     "new_update_available": "Versão {{version}} disponível",
-    "restart_to_install_update": "Reinicia o Hydra para instalar a nova versão"
+    "restart_to_install_update": "Reinicia o Hydra para instalar a nova versão",
+    "new_friend_request_title": "Novo pedido de amizade",
+    "new_friend_request_description": "Você recebeu um novo pedido de amizade"
   },
   "system_tray": {
     "open": "Abrir o Hydra",

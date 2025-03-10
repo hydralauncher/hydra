@@ -81,15 +81,24 @@ export const publishNotificationUpdateReadyToInstall = async (
 };
 
 export const publishNewFriendRequestNotification = async () => {
+  const userPreferences = await db.get<string, UserPreferences>(
+    levelKeys.userPreferences,
+    {
+      valueEncoding: "json",
+    }
+  );
+
+  if (!userPreferences.friendRequestNotificationsEnabled) return;
+
   new Notification({
-    title: t("new_friend_request", {
+    title: t("new_friend_request_title", {
       ns: "notifications",
     }),
-    body: t("You have received a new friend request", {
+    body: t("new_friend_request_description", {
       ns: "notifications",
     }),
     icon: trayIcon,
-  });
+  }).show();
 };
 
 export const publishCombinedNewAchievementNotification = async (
