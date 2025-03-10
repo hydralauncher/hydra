@@ -333,7 +333,8 @@
     "import_theme_description": "Вы импортируете {{theme}} из магазина тем",
     "error_importing_theme": "Ошибка при импорте темы",
     "theme_imported": "Тема успешно импортирована",
-    "enable_friend_request_notifications": "При получении запроса на добавление в друзья"
+    "enable_friend_request_notifications": "При получении запроса на добавление в друзья",
+    "enable_auto_install": "Загружать обновления автоматически"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",

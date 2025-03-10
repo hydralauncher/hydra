@@ -12,7 +12,6 @@ export function SettingsBehavior() {
   );
 
   const [showRunAtStartup, setShowRunAtStartup] = useState(false);
-  const [showAutoInstall, setShowAutoInstall] = useState(true);
 
   const { updateUserPreferences } = useContext(settingsContext);
 
@@ -49,10 +48,6 @@ export function SettingsBehavior() {
     window.electron.isPortableVersion().then((isPortableVersion) => {
       setShowRunAtStartup(!isPortableVersion);
     });
-
-    if (window.electron.platform === "linux") {
-      setShowAutoInstall(true);
-    }
   }, []);
 
   const handleChange = (values: Partial<typeof form>) => {
@@ -106,7 +101,7 @@ export function SettingsBehavior() {
         </div>
       )}
 
-      {showAutoInstall && (
+      {window.electron.platform === "linux" && (
         <CheckboxField
           label={t("enable_auto_install")}
           checked={form.enableAutoInstall}

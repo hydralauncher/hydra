@@ -335,7 +335,8 @@
     "import_theme_description": "You will import {{theme}} from the theme store",
     "error_importing_theme": "Error importing theme",
     "theme_imported": "Theme imported successfully",
-    "enable_friend_request_notifications": "When a friend request is received"
+    "enable_friend_request_notifications": "When a friend request is received",
+    "enable_auto_install": "Download updates automatically"
   },
   "notifications": {
     "download_complete": "Download complete",
