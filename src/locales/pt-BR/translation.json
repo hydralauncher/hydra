@@ -165,6 +165,8 @@
     "max_number_of_artifacts_reached": "Número máximo de backups atingido para este jogo",
     "achievements_not_sync": "Veja como exibir suas conquistas no perfil",
     "backup_from": "Backup de {{date}}",
+    "automatic_backup_from": "Backup automático de {{date}}",
+    "enable_automatic_cloud_sync": "Habilitar sincronização automática na nuvem",
     "custom_backup_location_set": "Localização customizada selecionada",
     "select_folder": "Selecione a pasta",
     "manage_files_description": "Gerencie quais arquivos serão feitos backup",
@@ -439,9 +441,6 @@
     "earned_points": "Pontos ganhos",
     "show_achievements_on_profile": "Exiba suas conquistas no perfil",
     "show_points_on_profile": "Exiba seus pontos ganhos no perfil"
-  },
-  "badge": {
-    "badge_description_theme_creator": "Concedido àqueles que criaram um tema customizado"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",

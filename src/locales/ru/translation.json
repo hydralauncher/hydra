@@ -178,6 +178,8 @@
     "manage_files_description": "Управляйте файлами, которые будут сохраняться и восстанавливаться",
     "select_folder": "Выбрать папку",
     "backup_from": "Резервная копия от {{date}}",
+    "automatic_backup_from": "Автоматическая резервная копия от {{date}}",
+    "enable_automatic_cloud_sync": "Включить автоматическую синхронизацию в облаке",
     "custom_backup_location_set": "Установлено настраиваемое местоположение резервной копии",
     "no_directory_selected": "Не выбран каталог",
     "no_write_permission": "Невозможно загрузить в эту директорию. Нажмите здесь, чтобы узнать больше.",
@@ -439,9 +441,6 @@
     "achievements_unlocked": "Достижения разблокированы",
     "show_achievements_on_profile": "Покажите свои достижения в профиле",
     "show_points_on_profile": "Показывать заработанные очки в своем профиле"
-  },
-  "badge": {
-    "badge_description_theme_creator": "Награждается тот, кто создал пользовательскую тему"
   },
   "achievement": {
     "achievement_unlocked": "Достижение разблокировано",

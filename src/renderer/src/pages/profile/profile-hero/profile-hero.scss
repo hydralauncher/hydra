@@ -27,6 +27,11 @@
     }
   }
 
+  &__badges {
+    display: flex;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
   &__user-information {
     display: flex;
     padding: calc(globals.$spacing-unit * 7) calc(globals.$spacing-unit * 3);
@@ -80,12 +85,6 @@
     align-items: center;
     position: relative;
     text-shadow: 0 0 5px rgb(0 0 0 / 40%);
-  }
-
-  &__display-name-badges-container {
-    display: flex;
-    gap: globals.$spacing-unit;
-    align-items: center;
   }
 
   &__current-game {

@@ -130,7 +130,13 @@ export interface UserProfileCurrentGame extends Omit<GameRunning, "objectId"> {
 
 export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
 
-export type UserBadge = "THEME_CREATOR";
+export interface Badge {
+  name: string;
+  description: string;
+  badge: {
+    url: string;
+  };
+}
 
 export interface UserDetails {
   id: string;
@@ -166,7 +172,7 @@ export interface UserProfile {
   quirks: {
     backupsPerGameLimit: number;
   };
-  badges: UserBadge[];
+  badges: string[];
 }
 
 export interface UpdateProfileRequest {
@@ -247,6 +253,7 @@ export interface GameArtifact {
   updatedAt: string;
   hostname: string;
   downloadCount: number;
+  label?: string;
 }
 
 export interface ComparedAchievements {
