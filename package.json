@@ -77,7 +77,6 @@
     "sudo-prompt": "^9.2.1",
     "tar": "^7.4.3",
     "tough-cookie": "^5.1.1",
-    "typeorm": "^0.3.20",
     "user-agents": "^1.1.387",
     "yaml": "^2.6.1",
     "yup": "^1.5.0",
