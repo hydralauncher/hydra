@@ -332,7 +332,8 @@
     "import_theme": "Импортировать тему",
     "import_theme_description": "Вы импортируете {{theme}} из магазина тем",
     "error_importing_theme": "Ошибка при импорте темы",
-    "theme_imported": "Тема успешно импортирована"
+    "theme_imported": "Тема успешно импортирована",
+    "enable_friend_request_notifications": "При получении запроса на добавление в друзья"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -343,7 +344,9 @@
     "new_update_available": "Доступна новая версия {{version}}",
     "restart_to_install_update": "Перезапустите Hydra для установки обновления",
     "notification_achievement_unlocked_title": "Достижение разблокировано для {{game}}",
-    "notification_achievement_unlocked_body": "были разблокированы {{achievement}} и другие {{count}}"
+    "notification_achievement_unlocked_body": "были разблокированы {{achievement}} и другие {{count}}",
+    "new_friend_request_title": "Новый запрос на добавление в друзья",
+    "new_friend_request_description": "Вы получили новый запрос на добавление в друзья"
   },
   "system_tray": {
     "open": "Открыть Hydra",
