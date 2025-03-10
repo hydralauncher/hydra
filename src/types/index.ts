@@ -253,6 +253,7 @@ export interface GameArtifact {
   updatedAt: string;
   hostname: string;
   downloadCount: number;
+  label?: string;
 }
 
 export interface ComparedAchievements {

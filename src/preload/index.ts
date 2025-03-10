@@ -101,6 +101,17 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("putDownloadSource", objectIds),
 
   /* Library */
+  toggleAutomaticCloudSync: (
+    shop: GameShop,
+    objectId: string,
+    automaticCloudSync: boolean
+  ) =>
+    ipcRenderer.invoke(
+      "toggleAutomaticCloudSync",
+      shop,
+      objectId,
+      automaticCloudSync
+    ),
   addGameToLibrary: (shop: GameShop, objectId: string, title: string) =>
     ipcRenderer.invoke("addGameToLibrary", shop, objectId, title),
   createGameShortcut: (shop: GameShop, objectId: string) =>
@@ -326,6 +337,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getUnlockedAchievements", objectId, shop),
 
   /* Auth */
+  getAuth: () => ipcRenderer.invoke("getAuth"),
   signOut: () => ipcRenderer.invoke("signOut"),
   openAuthWindow: (page: AuthPage) =>
     ipcRenderer.invoke("openAuthWindow", page),

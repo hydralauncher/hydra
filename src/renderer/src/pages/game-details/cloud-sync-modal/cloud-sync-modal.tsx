@@ -203,9 +203,10 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
               <div className="cloud-sync-modal__artifact-info">
                 <div className="cloud-sync-modal__artifact-header">
                   <h3>
-                    {t("backup_from", {
-                      date: format(artifact.createdAt, "dd/MM/yyyy"),
-                    })}
+                    {artifact.label ??
+                      t("backup_from", {
+                        date: format(artifact.createdAt, "dd/MM/yyyy"),
+                      })}
                   </h3>
                   <small>{formatBytes(artifact.artifactLengthInBytes)}</small>
                 </div>
