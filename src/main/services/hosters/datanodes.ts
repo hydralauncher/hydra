@@ -1,47 +1,74 @@
 import axios, { AxiosResponse } from "axios";
+import { wrapper } from "axios-cookiejar-support";
+import { CookieJar } from "tough-cookie";
 
 export class DatanodesApi {
-  private static readonly session = axios.create({});
+  private static readonly jar = new CookieJar();
+
+  private static readonly session = wrapper(
+    axios.create({
+      jar: DatanodesApi.jar,
+      withCredentials: true,
+    })
+  );
 
   public static async getDownloadUrl(downloadUrl: string): Promise<string> {
-    const parsedUrl = new URL(downloadUrl);
-    const pathSegments = parsedUrl.pathname.split("/");
+    try {
+      const parsedUrl = new URL(downloadUrl);
+      const pathSegments = parsedUrl.pathname.split("/").filter(Boolean);
+      const fileCode = pathSegments[0];
 
-    const fileCode = decodeURIComponent(pathSegments[1]);
-    const fileName = decodeURIComponent(pathSegments[pathSegments.length - 1]);
+      await this.jar.setCookie(
+        "lang=english;",
+        "https://datanodes.to"
+      );
 
-    const payload = new URLSearchParams({
-      op: "download2",
-      id: fileCode,
-      rand: "",
-      referer: "https://datanodes.to/download",
-      method_free: "Free Download >>",
-      method_premium: "",
-      adblock_detected: "",
-    });
+      const payload = new URLSearchParams({
+        op: "download2",
+        id: fileCode,
+        method_free: "Free Download >>",
+        dl: "1",
+      });
 
-    const response: AxiosResponse = await this.session.post(
-      "https://datanodes.to/download",
-      payload,
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Cookie: `lang=english; file_name=${fileName}; file_code=${fileCode};`,
-          Host: "datanodes.to",
-          Origin: "https://datanodes.to",
-          Referer: "https://datanodes.to/download",
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-        },
-        maxRedirects: 0,
-        validateStatus: (status: number) => status === 302 || status < 400,
+      const response: AxiosResponse = await this.session.post(
+        "https://datanodes.to/download",
+        payload,
+        {
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0",
+            Referer: "https://datanodes.to/download",
+            Origin: "https://datanodes.to",
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          maxRedirects: 0,
+          validateStatus: (status: number) => status === 302 || status < 400,
+        }
+      );
+
+      if (response.status === 302) {
+        return response.headers["location"];
       }
-    );
 
-    if (response.status === 302) {
-      return response.headers["location"];
+      if (typeof response.data === "object" && response.data.url) {
+        return decodeURIComponent(response.data.url);
+      }
+
+      const htmlContent = String(response.data);
+      if (!htmlContent) {
+        throw new Error("Empty response received");
+      }
+
+      const downloadLinkRegex = /href=["'](https:\/\/[^"']+)["']/;
+      const downloadLinkMatch = downloadLinkRegex.exec(htmlContent);
+      if (downloadLinkMatch) {
+        return downloadLinkMatch[1];
+      }
+
+      throw new Error("Failed to get the download link");
+    } catch (error) {
+      console.error("Error fetching download URL:", error);
+      throw error;
     }
-
-    return "";
   }
 }
