@@ -23,6 +23,20 @@
     }
   }
 
+  &__cloud-sync-label {
+    display: flex;
+    gap: globals.$spacing-unit;
+    align-items: center;
+  }
+
+  &__cloud-sync-hydra-cloud {
+    background: linear-gradient(270deg, #16b195 50%, #3e62c0 100%);
+    color: #fff;
+    padding: 0 globals.$spacing-unit;
+    border-radius: 4px;
+    font-size: globals.$small-font-size;
+  }
+
   &__row {
     display: flex;
     gap: globals.$spacing-unit;
