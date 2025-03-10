@@ -335,7 +335,8 @@
     "torbox_description": "TorBox es tu servicio premium de seedbox que rivaliza incluso a los mejores servidores del mercado.",
     "unset_theme": "Desactivar tema",
     "web_store": "Tienda Web",
-    "enable_friend_request_notifications": "Cuando se recibe una solicitud de amistad"
+    "enable_friend_request_notifications": "Cuando se recibe una solicitud de amistad",
+    "enable_auto_install": "Descargar actualizaciones automáticamente"
   },
   "notifications": {
     "download_complete": "Descarga completada",

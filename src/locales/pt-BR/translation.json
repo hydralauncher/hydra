@@ -322,7 +322,8 @@
     "import_theme_description": "Você irá importar {{theme}} da loja de temas",
     "error_importing_theme": "Erro ao importar tema",
     "theme_imported": "Tema importado com sucesso",
-    "enable_friend_request_notifications": "Quando um pedido de amizade é recebido"
+    "enable_friend_request_notifications": "Quando um pedido de amizade é recebido",
+    "enable_auto_install": "Baixar atualizações automaticamente"
   },
   "notifications": {
     "download_complete": "Download concluído",
