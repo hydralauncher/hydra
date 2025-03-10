@@ -82,4 +82,5 @@ export interface UserPreferences {
   downloadNotificationsEnabled?: boolean;
   repackUpdatesNotificationsEnabled?: boolean;
   achievementNotificationsEnabled?: boolean;
+  friendRequestNotificationsEnabled?: boolean;
 }
