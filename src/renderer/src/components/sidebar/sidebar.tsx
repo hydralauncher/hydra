@@ -167,6 +167,10 @@ export function Sidebar() {
     }
   };
 
+  const favoriteGames = useMemo(() => {
+    return sortedLibrary.filter((game) => game.favorite);
+  }, [sortedLibrary]);
+
   return (
     <aside
       ref={sidebarRef}
@@ -206,13 +210,12 @@ export function Sidebar() {
             </ul>
           </section>
 
-          <section className="sidebar__section">
-            <small className="sidebar__section-title">{t("favorites")}</small>
+          {favoriteGames.length > 0 && (
+            <section className="sidebar__section">
+              <small className="sidebar__section-title">{t("favorites")}</small>
 
-            <ul className="sidebar__menu">
-              {sortedLibrary
-                .filter((game) => game.favorite)
-                .map((game) => (
+              <ul className="sidebar__menu">
+                {favoriteGames.map((game) => (
                   <SidebarGameItem
                     key={game.id}
                     game={game}
@@ -220,8 +223,9 @@ export function Sidebar() {
                     getGameTitle={getGameTitle}
                   />
                 ))}
-            </ul>
-          </section>
+              </ul>
+            </section>
+          )}
 
           <section className="sidebar__section">
             <small className="sidebar__section-title">{t("my_library")}</small>

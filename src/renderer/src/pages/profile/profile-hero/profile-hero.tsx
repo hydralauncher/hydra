@@ -24,6 +24,7 @@ import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
 import Skeleton from "react-loading-skeleton";
 import { UploadBackgroundImageButton } from "../upload-background-image-button/upload-background-image-button";
+import { Tooltip } from "react-tooltip";
 import "./profile-hero.scss";
 
 type FriendAction =
@@ -34,8 +35,14 @@ export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [isPerformingAction, setIsPerformingAction] = useState(false);
 
-  const { isMe, getUserProfile, userProfile, heroBackground, backgroundImage } =
-    useContext(userProfileContext);
+  const {
+    isMe,
+    badges,
+    getUserProfile,
+    userProfile,
+    heroBackground,
+    backgroundImage,
+  } = useContext(userProfileContext);
   const {
     signOut,
     updateFriendRequestState,
@@ -260,14 +267,6 @@ export function ProfileHero() {
 
   return (
     <>
-      {/* <ConfirmationModal
-        visible
-        title={t("sign_out_modal_title")}
-        descriptionText={t("sign_out_modal_text")}
-        confirmButtonLabel={t("sign_out")}
-        cancelButtonLabel={t("cancel")}
-      /> */}
-
       <EditProfileModal
         visible={showEditProfileModal}
         onClose={() => setShowEditProfileModal(false)}
@@ -307,9 +306,34 @@ export function ProfileHero() {
 
             <div className="profile-hero__information">
               {userProfile ? (
-                <h2 className="profile-hero__display-name">
-                  {userProfile?.displayName}
-                </h2>
+                <div className="profile-hero__display-name-container">
+                  <h2 className="profile-hero__display-name">
+                    {userProfile?.displayName}
+                  </h2>
+
+                  <div className="profile-hero__badges">
+                    {userProfile.badges.map((badgeName) => {
+                      const badge = badges.find((b) => b.name === badgeName);
+
+                      if (!badge) return null;
+
+                      return (
+                        <img
+                          key={badge.name}
+                          src={badge.badge.url}
+                          alt={badge.name}
+                          width={24}
+                          height={24}
+                          data-tooltip-place="top"
+                          data-tooltip-content={badge.description}
+                          data-tooltip-id="badge-name"
+                        />
+                      );
+                    })}
+
+                    <Tooltip id="badge-name" />
+                  </div>
+                </div>
               ) : (
                 <Skeleton width={150} height={28} />
               )}

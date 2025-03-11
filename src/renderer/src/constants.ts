@@ -1,6 +1,6 @@
 import { Downloader } from "@shared";
 
-export const VERSION_CODENAME = "Spectre";
+export const VERSION_CODENAME = "Polychrome";
 
 export const DOWNLOADER_NAME = {
   [Downloader.RealDebrid]: "Real-Debrid",
@@ -14,3 +14,5 @@ export const DOWNLOADER_NAME = {
 };
 
 export const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
+
+export const THEME_WEB_STORE_URL = "https://hydrathemes.shop";
