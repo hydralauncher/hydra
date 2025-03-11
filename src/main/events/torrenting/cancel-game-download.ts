@@ -13,7 +13,14 @@ const cancelGameDownload = async (
 
   await DownloadManager.cancelDownload(downloadKey);
 
-  await downloadsSublevel.del(downloadKey);
+  const download = await downloadsSublevel.get(downloadKey);
+
+  if (!download) return;
+
+  await downloadsSublevel.put(downloadKey, {
+    ...download,
+    status: "removed",
+  });
 };
 
 registerEvent("cancelGameDownload", cancelGameDownload);

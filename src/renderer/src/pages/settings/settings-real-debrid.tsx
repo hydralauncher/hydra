@@ -86,12 +86,12 @@ export function SettingsRealDebrid() {
       <CheckboxField
         label={t("enable_real_debrid")}
         checked={form.useRealDebrid}
-        onChange={() =>
+        onChange={() => {
           setForm((prev) => ({
             ...prev,
             useRealDebrid: !form.useRealDebrid,
-          }))
-        }
+          }));
+        }}
       />
 
       {form.useRealDebrid && (

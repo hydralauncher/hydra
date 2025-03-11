@@ -15,7 +15,7 @@ export function Button({
   theme = "primary",
   className,
   ...props
-}: ButtonProps) {
+}: Readonly<ButtonProps>) {
   return (
     <button
       type="button"

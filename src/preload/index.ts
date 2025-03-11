@@ -14,6 +14,7 @@ import type {
   CatalogueSearchPayload,
   SeedingStatus,
   GameAchievement,
+  Theme,
 } from "@types";
 import type { AuthPage, CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -100,6 +101,17 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("putDownloadSource", objectIds),
 
   /* Library */
+  toggleAutomaticCloudSync: (
+    shop: GameShop,
+    objectId: string,
+    automaticCloudSync: boolean
+  ) =>
+    ipcRenderer.invoke(
+      "toggleAutomaticCloudSync",
+      shop,
+      objectId,
+      automaticCloudSync
+    ),
   addGameToLibrary: (shop: GameShop, objectId: string, title: string) =>
     ipcRenderer.invoke("addGameToLibrary", shop, objectId, title),
   createGameShortcut: (shop: GameShop, objectId: string) =>
@@ -265,6 +277,7 @@ contextBridge.exposeInMainWorld("electron", {
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
   getFeatures: () => ipcRenderer.invoke("getFeatures"),
+  getBadges: () => ipcRenderer.invoke("getBadges"),
   platform: process.platform,
 
   /* Auto update */
@@ -324,6 +337,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getUnlockedAchievements", objectId, shop),
 
   /* Auth */
+  getAuth: () => ipcRenderer.invoke("getAuth"),
   signOut: () => ipcRenderer.invoke("signOut"),
   openAuthWindow: (page: AuthPage) =>
     ipcRenderer.invoke("openAuthWindow", page),
@@ -347,4 +361,30 @@ contextBridge.exposeInMainWorld("electron", {
   /* Notifications */
   publishNewRepacksNotification: (newRepacksCount: number) =>
     ipcRenderer.invoke("publishNewRepacksNotification", newRepacksCount),
+
+  /* Themes */
+  addCustomTheme: (theme: Theme) => ipcRenderer.invoke("addCustomTheme", theme),
+  getAllCustomThemes: () => ipcRenderer.invoke("getAllCustomThemes"),
+  deleteAllCustomThemes: () => ipcRenderer.invoke("deleteAllCustomThemes"),
+  deleteCustomTheme: (themeId: string) =>
+    ipcRenderer.invoke("deleteCustomTheme", themeId),
+  updateCustomTheme: (themeId: string, code: string) =>
+    ipcRenderer.invoke("updateCustomTheme", themeId, code),
+  getCustomThemeById: (themeId: string) =>
+    ipcRenderer.invoke("getCustomThemeById", themeId),
+  getActiveCustomTheme: () => ipcRenderer.invoke("getActiveCustomTheme"),
+  toggleCustomTheme: (themeId: string, isActive: boolean) =>
+    ipcRenderer.invoke("toggleCustomTheme", themeId, isActive),
+
+  /* Editor */
+  openEditorWindow: (themeId: string) =>
+    ipcRenderer.invoke("openEditorWindow", themeId),
+  onCssInjected: (cb: (cssString: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, cssString: string) =>
+      cb(cssString);
+    ipcRenderer.on("css-injected", listener);
+    return () => ipcRenderer.removeListener("css-injected", listener);
+  },
+  closeEditorWindow: (themeId?: string) =>
+    ipcRenderer.invoke("closeEditorWindow", themeId),
 });
