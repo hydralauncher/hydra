@@ -14,10 +14,12 @@
     "paused": "{{title}} (En pause)",
     "downloading": "{{title}} ({{percentage}} - Téléchargement en cours…)",
     "filter": "Filtrer la bibliothèque",
-    "home": "Page d’accueil"
+    "home": "Page d’accueil",
+    "favorites": "Favoris"
   },
   "header": {
     "search": "Recherche",
+
     "catalogue": "Catalogue",
     "downloads": "Téléchargements",
     "search_results": "Résultats de la recherche",

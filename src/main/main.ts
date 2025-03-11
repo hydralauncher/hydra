@@ -1,10 +1,4 @@
-import {
-  Crypto,
-  DownloadManager,
-  logger,
-  Ludusavi,
-  startMainLoop,
-} from "./services";
+import { DownloadManager, logger, Ludusavi, startMainLoop } from "./services";
 import { RealDebridClient } from "./services/download/real-debrid";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
@@ -38,13 +32,11 @@ export const loadState = async () => {
   Aria2.spawn();
 
   if (userPreferences?.realDebridApiToken) {
-    RealDebridClient.authorize(
-      Crypto.decrypt(userPreferences.realDebridApiToken)
-    );
+    RealDebridClient.authorize(userPreferences.realDebridApiToken);
   }
 
   if (userPreferences?.torBoxApiToken) {
-    TorBoxClient.authorize(Crypto.decrypt(userPreferences.torBoxApiToken));
+    TorBoxClient.authorize(userPreferences.torBoxApiToken);
   }
 
   Ludusavi.addManifestToLudusaviConfig();
@@ -57,21 +49,17 @@ export const loadState = async () => {
     .values()
     .all()
     .then((games) => {
-      return sortBy(
-        games.filter((game) => game.queued),
-        "timestamp",
-        "DESC"
-      );
+      return sortBy(games, "timestamp", "DESC");
     });
 
-  const [nextItemOnQueue] = downloads;
+  const [nextItemOnQueue] = downloads.filter((game) => game.queued);
 
   const downloadsToSeed = downloads.filter(
-    (download) =>
-      download.shouldSeed &&
-      download.downloader === Downloader.Torrent &&
-      download.progress === 1 &&
-      download.uri !== null
+    (game) =>
+      game.shouldSeed &&
+      game.downloader === Downloader.Torrent &&
+      game.progress === 1 &&
+      game.uri !== null
   );
 
   await DownloadManager.startRPC(nextItemOnQueue, downloadsToSeed);
@@ -123,9 +111,7 @@ const migrateFromSqlite = async () => {
           levelKeys.userPreferences,
           {
             ...rest,
-            realDebridApiToken: realDebridApiToken
-              ? Crypto.encrypt(realDebridApiToken)
-              : null,
+            realDebridApiToken,
             preferQuitInsteadOfHiding: rest.preferQuitInsteadOfHiding === 1,
             runAtStartup: rest.runAtStartup === 1,
             startMinimized: rest.startMinimized === 1,
@@ -144,7 +130,9 @@ const migrateFromSqlite = async () => {
         );
 
         if (rest.language) {
-          await db.put(levelKeys.language, rest.language);
+          await db.put<string, string>(levelKeys.language, rest.language, {
+            valueEncoding: "utf-8",
+          });
         }
       }
     })
@@ -191,8 +179,8 @@ const migrateFromSqlite = async () => {
         await db.put<string, Auth>(
           levelKeys.auth,
           {
-            accessToken: Crypto.encrypt(users[0].accessToken),
-            refreshToken: Crypto.encrypt(users[0].refreshToken),
+            accessToken: users[0].accessToken,
+            refreshToken: users[0].refreshToken,
             tokenExpirationTimestamp: users[0].tokenExpirationTimestamp,
           },
           {

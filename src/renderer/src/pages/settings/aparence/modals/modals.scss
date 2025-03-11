@@ -1,0 +1,15 @@
+.add-theme-modal {
+  &__container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+.delete-all-themes-modal__container {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  width: 100%;
+  justify-content: flex-end;
+}

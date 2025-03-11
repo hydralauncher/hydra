@@ -63,7 +63,7 @@ export function SettingsAccount() {
     return () => {
       unsubscribe();
     };
-  }, [fetchUserDetails, updateUserDetails, showSuccessToast]);
+  }, [fetchUserDetails, updateUserDetails, t, showSuccessToast]);
 
   const visibilityOptions = [
     { value: "PUBLIC", label: t("public") },

@@ -14,10 +14,12 @@
     "paused": "{{title}} (Gepauzeerd)",
     "downloading": "{{title}} ({{percentage}} - Downloading…)",
     "filter": "Filter Bibliotheek",
-    "home": "Home"
+    "home": "Home",
+    "favorites": "Favorieten"
   },
   "header": {
     "search": "Zoek spellen",
+
     "home": "Home",
     "catalogue": "Bibliotheek",
     "downloads": "Downloads",

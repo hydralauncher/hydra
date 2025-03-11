@@ -27,6 +27,11 @@
     }
   }
 
+  &__badges {
+    display: flex;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
   &__user-information {
     display: flex;
     padding: calc(globals.$spacing-unit * 7) calc(globals.$spacing-unit * 3);
@@ -63,6 +68,12 @@
     color: globals.$muted-color;
     z-index: 1;
     overflow: hidden;
+  }
+
+  &__display-name-container {
+    display: flex;
+    gap: globals.$spacing-unit;
+    align-items: center;
   }
 
   &__display-name {
