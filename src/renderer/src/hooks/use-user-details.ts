@@ -15,7 +15,6 @@ import type {
 } from "@types";
 import * as Sentry from "@sentry/react";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
-import { isFuture, isToday } from "date-fns";
 
 export function useUserDetails() {
   const dispatch = useAppDispatch();
@@ -146,8 +145,8 @@ export function useUserDetails() {
   const unblockUser = (userId: string) => window.electron.unblockUser(userId);
 
   const hasActiveSubscription = useMemo(() => {
-    const expiresAt = userDetails?.subscription?.expiresAt;
-    return expiresAt && (isFuture(expiresAt) || isToday(expiresAt));
+    const expiresAt = new Date(userDetails?.subscription?.expiresAt ?? 0);
+    return expiresAt > new Date();
   }, [userDetails]);
 
   return {
