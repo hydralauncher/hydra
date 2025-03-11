@@ -2,7 +2,13 @@ import { Downloader, DownloadError } from "@shared";
 import { WindowManager } from "../window-manager";
 import { publishDownloadCompleteNotification } from "../notifications";
 import type { Download, DownloadProgress, UserPreferences } from "@types";
-import { GofileApi, QiwiApi, DatanodesApi, MediafireApi, PixelDrainApi } from "../hosters";
+import {
+  GofileApi,
+  QiwiApi,
+  DatanodesApi,
+  MediafireApi,
+  PixelDrainApi,
+} from "../hosters";
 import { PythonRPC } from "../python-rpc";
 import {
   LibtorrentPayload,
