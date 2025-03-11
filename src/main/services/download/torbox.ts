@@ -6,6 +6,7 @@ import type {
   TorBoxAddTorrentRequest,
   TorBoxRequestLinkRequest,
 } from "@types";
+import { appVersion } from "@main/constants";
 
 export class TorBoxClient {
   private static instance: AxiosInstance;
@@ -18,6 +19,7 @@ export class TorBoxClient {
       baseURL: this.baseURL,
       headers: {
         Authorization: `Bearer ${apiToken}`,
+        "User-Agent": `Hydra/${appVersion}`,
       },
     });
   }

@@ -43,6 +43,7 @@ export interface Game {
   executablePath?: string | null;
   launchOptions?: string | null;
   favorite?: boolean;
+  automaticCloudSync?: boolean;
 }
 
 export interface Download {

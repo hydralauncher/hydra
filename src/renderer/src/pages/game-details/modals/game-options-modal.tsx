@@ -1,6 +1,6 @@
 import { useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Modal, TextField } from "@renderer/components";
+import { Button, CheckboxField, Modal, TextField } from "@renderer/components";
 import type { LibraryGame } from "@types";
 import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
@@ -34,12 +34,17 @@ export function GameOptionsModal({
     achievements,
   } = useContext(gameDetailsContext);
 
+  const { hasActiveSubscription } = useUserDetails();
+
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRemoveGameModal, setShowRemoveGameModal] = useState(false);
   const [launchOptions, setLaunchOptions] = useState(game.launchOptions ?? "");
   const [showResetAchievementsModal, setShowResetAchievementsModal] =
     useState(false);
   const [isDeletingAchievements, setIsDeletingAchievements] = useState(false);
+  const [automaticCloudSync, setAutomaticCloudSync] = useState(
+    game.automaticCloudSync ?? false
+  );
 
   const {
     removeGameInstaller,
@@ -183,6 +188,20 @@ export function GameOptionsModal({
     }
   };
 
+  const handleToggleAutomaticCloudSync = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setAutomaticCloudSync(event.target.checked);
+
+    await window.electron.toggleAutomaticCloudSync(
+      game.shop,
+      game.objectId,
+      event.target.checked
+    );
+
+    updateGame();
+  };
+
   return (
     <>
       <DeleteGameModal
@@ -265,6 +284,20 @@ export function GameOptionsModal({
               )}
             </div>
           </div>
+
+          <CheckboxField
+            label={
+              <div className="game-options-modal__cloud-sync-label">
+                {t("enable_automatic_cloud_sync")}
+                <span className="game-options-modal__cloud-sync-hydra-cloud">
+                  Hydra Cloud
+                </span>
+              </div>
+            }
+            checked={automaticCloudSync}
+            disabled={!hasActiveSubscription || !game.executablePath}
+            onChange={handleToggleAutomaticCloudSync}
+          />
 
           {shouldShowWinePrefixConfiguration && (
             <div className="game-options-modal__wine-prefix">
