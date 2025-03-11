@@ -65,25 +65,20 @@ export class WindowManager {
     }
   }
 
-  private static async saveScreenConfig({
-    ...configScreenWhenClosed
-  }: {
-    x: number | undefined;
-    y: number | undefined;
-    width: number;
-    height: number;
-    isMaximized: boolean;
-  }) {
+  private static async saveScreenConfig(configScreenWhenClosed: ScreenState) {
     await db.put(levelKeys.screenState, configScreenWhenClosed, {
       valueEncoding: "json",
     });
   }
 
   private static async loadScreenConfig() {
-    const data = await db.get<string, ScreenState>(levelKeys.screenState, {
-      valueEncoding: "json",
-    });
-    return data ?? {};
+    const data = await db.get<string, ScreenState | undefined>(
+      levelKeys.screenState,
+      {
+        valueEncoding: "json",
+      }
+    );
+    return data ?? { isMaximized: false, height: 720, width: 1200 };
   }
 
   private static updateInitialConfig(
@@ -194,8 +189,8 @@ export class WindowManager {
           ? {
               x: undefined,
               y: undefined,
-              height: this.initialConfigInitializationMainWindow.height!,
-              width: this.initialConfigInitializationMainWindow.width!,
+              height: this.initialConfigInitializationMainWindow.height ?? 720,
+              width: this.initialConfigInitializationMainWindow.width ?? 1200,
               isMaximized: true,
             }
           : { ...lastBounds, isMaximized };
