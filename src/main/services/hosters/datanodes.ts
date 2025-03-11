@@ -18,10 +18,7 @@ export class DatanodesApi {
       const pathSegments = parsedUrl.pathname.split("/").filter(Boolean);
       const fileCode = pathSegments[0];
 
-      await this.jar.setCookie(
-        "lang=english;",
-        "https://datanodes.to"
-      );
+      await this.jar.setCookie("lang=english;", "https://datanodes.to");
 
       const payload = new URLSearchParams({
         op: "download2",

@@ -17,7 +17,7 @@ import { HydraApi } from "./hydra-api";
 import UserAgent from "user-agents";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { slice, sortBy } from "lodash-es";
-import type { UserPreferences } from "@types";
+import type { ScreenState, UserPreferences } from "@types";
 import { AuthPage } from "@shared";
 import { isStaging } from "@main/constants";
 
@@ -26,27 +26,8 @@ export class WindowManager {
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
 
-  private static loadMainWindowURL(hash = "") {
-    // HMR for renderer base on electron-vite cli.
-    // Load the remote URL for development or the local html file for production.
-    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      this.mainWindow?.loadURL(
-        `${process.env["ELECTRON_RENDERER_URL"]}#/${hash}`
-      );
-    } else {
-      this.mainWindow?.loadFile(
-        path.join(__dirname, "../renderer/index.html"),
-        {
-          hash,
-        }
-      );
-    }
-  }
-
-  public static createMainWindow() {
-    if (this.mainWindow) return;
-
-    this.mainWindow = new BrowserWindow({
+  private static initialConfigInitializationMainWindow: Electron.BrowserWindowConstructorOptions =
+    {
       width: 1200,
       height: 720,
       minWidth: 1024,
@@ -65,7 +46,70 @@ export class WindowManager {
         sandbox: false,
       },
       show: false,
+    };
+
+  private static loadMainWindowURL(hash = "") {
+    // HMR for renderer base on electron-vite cli.
+    // Load the remote URL for development or the local html file for production.
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+      this.mainWindow?.loadURL(
+        `${process.env["ELECTRON_RENDERER_URL"]}#/${hash}`
+      );
+    } else {
+      this.mainWindow?.loadFile(
+        path.join(__dirname, "../renderer/index.html"),
+        {
+          hash,
+        }
+      );
+    }
+  }
+
+  private static async saveScreenConfig({
+    ...configScreenWhenClosed
+  }: {
+    x: number | undefined;
+    y: number | undefined;
+    width: number;
+    height: number;
+    isMaximized: boolean;
+  }) {
+    await db.put(levelKeys.screenState, configScreenWhenClosed, {
+      valueEncoding: "json",
     });
+  }
+
+  private static async loadScreenConfig() {
+    const data = await db.get<string, ScreenState>(levelKeys.screenState, {
+      valueEncoding: "json",
+    });
+    return data ?? {};
+  }
+
+  private static updateInitialConfig(
+    newConfig: Partial<Electron.BrowserWindowConstructorOptions>
+  ) {
+    this.initialConfigInitializationMainWindow = {
+      ...this.initialConfigInitializationMainWindow,
+      ...newConfig,
+    };
+  }
+
+  public static async createMainWindow() {
+    if (this.mainWindow) return;
+
+    const { isMaximized = false, ...configWithoutMaximized } =
+      await this.loadScreenConfig();
+
+    this.updateInitialConfig(configWithoutMaximized);
+
+    this.mainWindow = new BrowserWindow(
+      this.initialConfigInitializationMainWindow
+    );
+
+    if (isMaximized) {
+      this.mainWindow.maximize();
+    }
 
     this.mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
       (details, callback) => {
@@ -142,6 +186,22 @@ export class WindowManager {
           valueEncoding: "json",
         }
       );
+
+      if (this.mainWindow) {
+        const lastBounds = this.mainWindow.getBounds();
+        const isMaximized = this.mainWindow.isMaximized() ?? false;
+        const screenConfig = isMaximized
+          ? {
+              x: undefined,
+              y: undefined,
+              height: this.initialConfigInitializationMainWindow.height!,
+              width: this.initialConfigInitializationMainWindow.width!,
+              isMaximized: true,
+            }
+          : { ...lastBounds, isMaximized };
+
+        await this.saveScreenConfig(screenConfig);
+      }
 
       if (userPreferences?.preferQuitInsteadOfHiding) {
         app.quit();
