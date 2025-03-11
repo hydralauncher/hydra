@@ -1,0 +1,13 @@
+name: Trigger Landing Page Build
+
+# on:
+#   release:
+#     types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Landing Page build
+        run: curl --location --request POST '${{ vars.LP_TRIGGER_DEPLOY_URL }}'
