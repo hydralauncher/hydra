@@ -1,9 +1,8 @@
 name: Trigger Landing Page Build
 
-# on:
-#   release:
-#     types: [published]
-on: pull_request
+on:
+  release:
+    types: [published]
 
 jobs:
   build:
