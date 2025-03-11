@@ -84,3 +84,11 @@ export interface UserPreferences {
   achievementNotificationsEnabled?: boolean;
   friendRequestNotificationsEnabled?: boolean;
 }
+
+export interface ScreenState {
+  x?: number;
+  y?: number;
+  height: number;
+  width: number;
+  isMaximized: boolean;
+}
