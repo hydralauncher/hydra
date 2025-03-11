@@ -24,7 +24,7 @@ export const mergeWithRemoteGames = async () => {
               ? game.playTimeInMilliseconds
               : localGame.playTimeInMilliseconds;
 
-          gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+          await gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
             ...localGame,
             remoteId: game.id,
             lastTimePlayed: updatedLastTimePlayed,
@@ -39,7 +39,7 @@ export const mergeWithRemoteGames = async () => {
             ? steamUrlBuilder.icon(game.objectId, steamGame.clientIcon)
             : null;
 
-          gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+          await gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
             objectId: game.objectId,
             title: steamGame?.name,
             remoteId: game.id,

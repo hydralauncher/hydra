@@ -6,6 +6,9 @@ import axios from "axios";
 import { exec } from "child_process";
 import { ProcessPayload } from "./download/types";
 import { gamesSublevel, levelKeys } from "@main/level";
+import { t } from "i18next";
+import { CloudSync } from "./cloud-sync";
+import { format } from "date-fns";
 
 const commands = {
   findWineDir: `lsof -c wine 2>/dev/null | grep '/drive_c/windows$' | head -n 1 | awk '{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}'`,
@@ -225,6 +228,18 @@ function onOpenGame(game: Game) {
 
   if (game.remoteId) {
     updateGamePlaytime(game, 0, new Date()).catch(() => {});
+
+    if (game.automaticCloudSync) {
+      CloudSync.uploadSaveGame(
+        game.objectId,
+        game.shop,
+        null,
+        t("automatic_backup_from", {
+          ns: "game_details",
+          date: format(new Date(), "dd/MM/yyyy"),
+        })
+      );
+    }
   } else {
     createGame({ ...game, lastTimePlayed: new Date() }).catch(() => {});
   }
@@ -287,6 +302,18 @@ const onCloseGame = (game: Game) => {
       performance.now() - gamePlaytime.lastSyncTick,
       game.lastTimePlayed!
     ).catch(() => {});
+
+    if (game.automaticCloudSync) {
+      CloudSync.uploadSaveGame(
+        game.objectId,
+        game.shop,
+        null,
+        t("automatic_backup_from", {
+          ns: "game_details",
+          date: format(new Date(), "dd/MM/yyyy"),
+        })
+      );
+    }
   } else {
     createGame(game).catch(() => {});
   }

@@ -2,7 +2,7 @@ import { Downloader, DownloadError } from "@shared";
 import { WindowManager } from "../window-manager";
 import { publishDownloadCompleteNotification } from "../notifications";
 import type { Download, DownloadProgress, UserPreferences } from "@types";
-import { GofileApi, QiwiApi, DatanodesApi, MediafireApi } from "../hosters";
+import { GofileApi, QiwiApi, DatanodesApi, MediafireApi, PixelDrainApi } from "../hosters";
 import { PythonRPC } from "../python-rpc";
 import {
   LibtorrentPayload,
@@ -219,8 +219,10 @@ export class DownloadManager {
       } as PauseDownloadPayload)
       .catch(() => {});
 
-    WindowManager.mainWindow?.setProgressBar(-1);
-    this.downloadingGameId = null;
+    if (downloadKey === this.downloadingGameId) {
+      WindowManager.mainWindow?.setProgressBar(-1);
+      this.downloadingGameId = null;
+    }
   }
 
   static async resumeDownload(download: Download) {
@@ -228,14 +230,17 @@ export class DownloadManager {
   }
 
   static async cancelDownload(downloadKey = this.downloadingGameId) {
-    await PythonRPC.rpc.post("/action", {
-      action: "cancel",
-      game_id: downloadKey,
-    });
-
-    WindowManager.mainWindow?.setProgressBar(-1);
+    await PythonRPC.rpc
+      .post("/action", {
+        action: "cancel",
+        game_id: downloadKey,
+      })
+      .catch((err) => {
+        logger.error("Failed to cancel game download", err);
+      });
 
     if (downloadKey === this.downloadingGameId) {
+      WindowManager.mainWindow?.setProgressBar(-1);
       WindowManager.mainWindow?.webContents.send("on-download-progress", null);
       this.downloadingGameId = null;
     }
@@ -278,11 +283,12 @@ export class DownloadManager {
       }
       case Downloader.PixelDrain: {
         const id = download.uri.split("/").pop();
+        const downloadUrl = await PixelDrainApi.getDownloadUrl(id!);
 
         return {
           action: "start",
           game_id: downloadId,
-          url: `https://cdn.pd5-gamedriveorg.workers.dev/api/file/${id}`,
+          url: downloadUrl,
           save_path: download.downloadPath,
         };
       }

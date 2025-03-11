@@ -14,8 +14,10 @@
     "paused": "{{title}} (متوقف شده)",
     "downloading": "{{title}} ({{percentage}} - در حال دانلود…)",
     "filter": "فیلتر کردن کتابخانه",
-    "home": "خانه"
+    "home": "خانه",
+    "favorites": "علاقه‌مندی‌ها"
   },
+
   "header": {
     "search": "جستجوی  بازی‌ها",
     "home": "خانه",

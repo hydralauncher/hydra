@@ -3,6 +3,7 @@ import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
 import url from "node:url";
+import kill from "kill-port";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { logger, WindowManager } from "@main/services";
 import resources from "@locales";
@@ -58,7 +59,7 @@ app.whenReady().then(async () => {
     return net.fetch(url.pathToFileURL(decodeURI(filePath)).toString());
   });
 
-  await loadState();
+  await kill(PythonRPC.RPC_PORT).finally(() => loadState());
 
   const language = await db.get<string, string>(levelKeys.language, {
     valueEncoding: "utf-8",
@@ -85,6 +86,29 @@ const handleDeepLinkPath = (uri?: string) => {
 
     if (url.host === "install-source") {
       WindowManager.redirect(`settings${url.search}`);
+      return;
+    }
+
+    if (url.host === "profile") {
+      const userId = url.searchParams.get("userId");
+
+      if (userId) {
+        WindowManager.redirect(`profile/${userId}`);
+      }
+
+      return;
+    }
+
+    if (url.host === "install-theme") {
+      const themeName = url.searchParams.get("theme");
+      const authorId = url.searchParams.get("authorId");
+      const authorName = url.searchParams.get("authorName");
+
+      if (themeName && authorId && authorName) {
+        WindowManager.redirect(
+          `settings?theme=${themeName}&authorId=${authorId}&authorName=${authorName}`
+        );
+      }
     }
   } catch (error) {
     logger.error("Error handling deep link", uri, error);
