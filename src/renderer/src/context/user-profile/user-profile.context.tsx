@@ -1,6 +1,6 @@
 import { darkenColor } from "@renderer/helpers";
 import { useAppSelector, useToast } from "@renderer/hooks";
-import type { UserProfile, UserStats } from "@types";
+import type { Badge, UserProfile, UserStats } from "@types";
 import { average } from "color.js";
 
 import { createContext, useCallback, useEffect, useState } from "react";
@@ -16,6 +16,7 @@ export interface UserProfileContext {
   getUserProfile: () => Promise<void>;
   setSelectedBackgroundImage: React.Dispatch<React.SetStateAction<string>>;
   backgroundImage: string;
+  badges: Badge[];
 }
 
 export const DEFAULT_USER_PROFILE_BACKGROUND = "#151515B3";
@@ -28,6 +29,7 @@ export const userProfileContext = createContext<UserProfileContext>({
   getUserProfile: async () => {},
   setSelectedBackgroundImage: () => {},
   backgroundImage: "",
+  badges: [],
 });
 
 const { Provider } = userProfileContext;
@@ -47,6 +49,7 @@ export function UserProfileContextProvider({
   const [userStats, setUserStats] = useState<UserStats | null>(null);
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [badges, setBadges] = useState<Badge[]>([]);
   const [heroBackground, setHeroBackground] = useState(
     DEFAULT_USER_PROFILE_BACKGROUND
   );
@@ -101,12 +104,18 @@ export function UserProfileContextProvider({
     });
   }, [navigate, getUserStats, showErrorToast, userId, t]);
 
+  const getBadges = useCallback(async () => {
+    const badges = await window.electron.getBadges();
+    setBadges(badges);
+  }, []);
+
   useEffect(() => {
     setUserProfile(null);
     setHeroBackground(DEFAULT_USER_PROFILE_BACKGROUND);
 
     getUserProfile();
-  }, [getUserProfile]);
+    getBadges();
+  }, [getUserProfile, getBadges]);
 
   return (
     <Provider
@@ -118,6 +127,7 @@ export function UserProfileContextProvider({
         setSelectedBackgroundImage,
         backgroundImage: getBackgroundImageUrl(),
         userStats,
+        badges,
       }}
     >
       {children}

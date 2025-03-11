@@ -2,7 +2,13 @@ import { Downloader, DownloadError } from "@shared";
 import { WindowManager } from "../window-manager";
 import { publishDownloadCompleteNotification } from "../notifications";
 import type { Download, DownloadProgress, UserPreferences } from "@types";
-import { GofileApi, QiwiApi, DatanodesApi, MediafireApi } from "../hosters";
+import {
+  GofileApi,
+  QiwiApi,
+  DatanodesApi,
+  MediafireApi,
+  PixelDrainApi,
+} from "../hosters";
 import { PythonRPC } from "../python-rpc";
 import {
   LibtorrentPayload,
@@ -283,11 +289,12 @@ export class DownloadManager {
       }
       case Downloader.PixelDrain: {
         const id = download.uri.split("/").pop();
+        const downloadUrl = await PixelDrainApi.getDownloadUrl(id!);
 
         return {
           action: "start",
           game_id: downloadId,
-          url: `https://cdn.pd5-gamedriveorg.workers.dev/api/file/${id}`,
+          url: downloadUrl,
           save_path: download.downloadPath,
         };
       }

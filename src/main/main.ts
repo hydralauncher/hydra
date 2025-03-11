@@ -62,8 +62,6 @@ export const loadState = async () => {
       game.uri !== null
   );
 
-  console.log("downloadsToSeed", downloadsToSeed);
-
   await DownloadManager.startRPC(nextItemOnQueue, downloadsToSeed);
 
   startMainLoop();
@@ -132,7 +130,9 @@ const migrateFromSqlite = async () => {
         );
 
         if (rest.language) {
-          await db.put(levelKeys.language, rest.language);
+          await db.put<string, string>(levelKeys.language, rest.language, {
+            valueEncoding: "utf-8",
+          });
         }
       }
     })
