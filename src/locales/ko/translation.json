@@ -14,8 +14,10 @@
     "paused": "{{title}} (일시 정지됨)",
     "downloading": "{{title}} ({{percentage}} - 다운로드 중…)",
     "filter": "라이브러리 정렬",
-    "home": "홈"
+    "home": "홈",
+    "favorites": "즐겨찾기"
   },
+
   "header": {
     "search": "게임 검색하기",
     "home": "홈",

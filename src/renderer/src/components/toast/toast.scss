@@ -7,8 +7,9 @@
   background-color: globals.$dark-background-color;
   border-radius: 4px;
   border: solid 1px globals.$border-color;
-  right: 16px;
-  bottom: 26px + globals.$spacing-unit;
+  right: calc(globals.$spacing-unit * 2);
+  // 28px is the height of the bottom panel
+  bottom: calc(28px + globals.$spacing-unit * 2);
   overflow: hidden;
   display: flex;
   flex-direction: column;

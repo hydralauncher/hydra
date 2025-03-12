@@ -130,6 +130,14 @@ export interface UserProfileCurrentGame extends Omit<GameRunning, "objectId"> {
 
 export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
 
+export interface Badge {
+  name: string;
+  description: string;
+  badge: {
+    url: string;
+  };
+}
+
 export interface UserDetails {
   id: string;
   username: string;
@@ -164,6 +172,7 @@ export interface UserProfile {
   quirks: {
     backupsPerGameLimit: number;
   };
+  badges: string[];
 }
 
 export interface UpdateProfileRequest {
@@ -244,6 +253,7 @@ export interface GameArtifact {
   updatedAt: string;
   hostname: string;
   downloadCount: number;
+  label?: string;
 }
 
 export interface ComparedAchievements {
@@ -296,3 +306,4 @@ export * from "./download.types";
 export * from "./ludusavi.types";
 export * from "./how-long-to-beat.types";
 export * from "./level.types";
+export * from "./theme.types";

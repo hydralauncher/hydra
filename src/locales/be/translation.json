@@ -14,8 +14,10 @@
     "paused": "{{title}} (Спынена)",
     "downloading": "{{title}} ({{percentage}} - Сцягванне…)",
     "filter": "Фільтар бібліятэкі",
-    "home": "Галоўная"
+    "home": "Галоўная",
+    "favorites": "Улюбленыя"
   },
+
   "header": {
     "search": "Пошук",
     "home": "Галоўная",

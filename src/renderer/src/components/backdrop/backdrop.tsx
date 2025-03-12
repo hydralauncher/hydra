@@ -6,7 +6,10 @@ export interface BackdropProps {
   children: React.ReactNode;
 }
 
-export function Backdrop({ isClosing = false, children }: BackdropProps) {
+export function Backdrop({
+  isClosing = false,
+  children,
+}: Readonly<BackdropProps>) {
   return (
     <div
       className={cn("backdrop", {

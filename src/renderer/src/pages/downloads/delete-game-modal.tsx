@@ -12,7 +12,7 @@ export function DeleteGameModal({
   onClose,
   visible,
   deleteGame,
-}: DeleteGameModalProps) {
+}: Readonly<DeleteGameModalProps>) {
   const { t } = useTranslation("downloads");
 
   const handleDeleteGame = () => {

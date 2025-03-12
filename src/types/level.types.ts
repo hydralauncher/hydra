@@ -42,6 +42,8 @@ export interface Game {
   winePrefixPath?: string | null;
   executablePath?: string | null;
   launchOptions?: string | null;
+  favorite?: boolean;
+  automaticCloudSync?: boolean;
 }
 
 export interface Download {
@@ -79,4 +81,12 @@ export interface UserPreferences {
   downloadNotificationsEnabled?: boolean;
   repackUpdatesNotificationsEnabled?: boolean;
   achievementNotificationsEnabled?: boolean;
+}
+
+export interface ScreenState {
+  x?: number;
+  y?: number;
+  height: number;
+  width: number;
+  isMaximized: boolean;
 }
