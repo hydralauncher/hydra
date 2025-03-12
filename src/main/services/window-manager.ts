@@ -17,12 +17,36 @@ import { HydraApi } from "./hydra-api";
 import UserAgent from "user-agents";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { slice, sortBy } from "lodash-es";
-import type { UserPreferences } from "@types";
+import type { ScreenState, UserPreferences } from "@types";
 import { AuthPage } from "@shared";
 import { isStaging } from "@main/constants";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
+
+  private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
+
+  private static initialConfigInitializationMainWindow: Electron.BrowserWindowConstructorOptions =
+    {
+      width: 1200,
+      height: 720,
+      minWidth: 1024,
+      minHeight: 540,
+      backgroundColor: "#1c1c1c",
+      titleBarStyle: process.platform === "linux" ? "default" : "hidden",
+      icon,
+      trafficLightPosition: { x: 16, y: 16 },
+      titleBarOverlay: {
+        symbolColor: "#DADBE1",
+        color: "#00000000",
+        height: 34,
+      },
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+      show: false,
+    };
 
   private static loadMainWindowURL(hash = "") {
     // HMR for renderer base on electron-vite cli.
@@ -41,29 +65,51 @@ export class WindowManager {
     }
   }
 
-  public static createMainWindow() {
+  private static async saveScreenConfig({
+    ...configScreenWhenClosed
+  }: {
+    x: number | undefined;
+    y: number | undefined;
+    width: number;
+    height: number;
+    isMaximized: boolean;
+  }) {
+    await db.put(levelKeys.screenState, configScreenWhenClosed, {
+      valueEncoding: "json",
+    });
+  }
+
+  private static async loadScreenConfig() {
+    const data = await db.get<string, ScreenState>(levelKeys.screenState, {
+      valueEncoding: "json",
+    });
+    return data ?? {};
+  }
+
+  private static updateInitialConfig(
+    newConfig: Partial<Electron.BrowserWindowConstructorOptions>
+  ) {
+    this.initialConfigInitializationMainWindow = {
+      ...this.initialConfigInitializationMainWindow,
+      ...newConfig,
+    };
+  }
+
+  public static async createMainWindow() {
     if (this.mainWindow) return;
 
-    this.mainWindow = new BrowserWindow({
-      width: 1200,
-      height: 720,
-      minWidth: 1024,
-      minHeight: 540,
-      backgroundColor: "#1c1c1c",
-      titleBarStyle: process.platform === "linux" ? "default" : "hidden",
-      icon,
-      trafficLightPosition: { x: 16, y: 16 },
-      titleBarOverlay: {
-        symbolColor: "#DADBE1",
-        color: "#151515",
-        height: 34,
-      },
-      webPreferences: {
-        preload: path.join(__dirname, "../preload/index.mjs"),
-        sandbox: false,
-      },
-      show: false,
-    });
+    const { isMaximized = false, ...configWithoutMaximized } =
+      await this.loadScreenConfig();
+
+    this.updateInitialConfig(configWithoutMaximized);
+
+    this.mainWindow = new BrowserWindow(
+      this.initialConfigInitializationMainWindow
+    );
+
+    if (isMaximized) {
+      this.mainWindow.maximize();
+    }
 
     this.mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
       (details, callback) => {
@@ -141,6 +187,22 @@ export class WindowManager {
         }
       );
 
+      if (this.mainWindow) {
+        const lastBounds = this.mainWindow.getBounds();
+        const isMaximized = this.mainWindow.isMaximized() ?? false;
+        const screenConfig = isMaximized
+          ? {
+              x: undefined,
+              y: undefined,
+              height: this.initialConfigInitializationMainWindow.height!,
+              width: this.initialConfigInitializationMainWindow.width!,
+              isMaximized: true,
+            }
+          : { ...lastBounds, isMaximized };
+
+        await this.saveScreenConfig(screenConfig);
+      }
+
       if (userPreferences?.preferQuitInsteadOfHiding) {
         app.quit();
       }
@@ -197,6 +259,87 @@ export class WindowManager {
 
           WindowManager.mainWindow?.webContents.send("on-account-updated");
         }
+      });
+    }
+  }
+
+  public static openEditorWindow(themeId: string) {
+    if (this.mainWindow) {
+      const existingWindow = this.editorWindows.get(themeId);
+      if (existingWindow) {
+        if (existingWindow.isMinimized()) {
+          existingWindow.restore();
+        }
+        existingWindow.focus();
+        return;
+      }
+
+      const editorWindow = new BrowserWindow({
+        width: 600,
+        height: 720,
+        minWidth: 600,
+        minHeight: 540,
+        backgroundColor: "#1c1c1c",
+        titleBarStyle: process.platform === "linux" ? "default" : "hidden",
+        ...(process.platform === "linux" ? { icon } : {}),
+        trafficLightPosition: { x: 16, y: 16 },
+        titleBarOverlay: {
+          symbolColor: "#DADBE1",
+          color: "#151515",
+          height: 34,
+        },
+        webPreferences: {
+          preload: path.join(__dirname, "../preload/index.mjs"),
+          sandbox: false,
+        },
+        show: false,
+      });
+
+      this.editorWindows.set(themeId, editorWindow);
+
+      editorWindow.removeMenu();
+
+      if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+        editorWindow.loadURL(
+          `${process.env["ELECTRON_RENDERER_URL"]}#/theme-editor?themeId=${themeId}`
+        );
+      } else {
+        editorWindow.loadFile(path.join(__dirname, "../renderer/index.html"), {
+          hash: `theme-editor?themeId=${themeId}`,
+        });
+      }
+
+      editorWindow.once("ready-to-show", () => {
+        editorWindow.show();
+        this.mainWindow?.webContents.openDevTools();
+        if (isStaging) {
+          editorWindow.webContents.openDevTools();
+        }
+      });
+
+      editorWindow.webContents.on("before-input-event", (event, input) => {
+        if (input.key === "F12") {
+          event.preventDefault();
+          this.mainWindow?.webContents.toggleDevTools();
+        }
+      });
+
+      editorWindow.on("close", () => {
+        this.mainWindow?.webContents.closeDevTools();
+        this.editorWindows.delete(themeId);
+      });
+    }
+  }
+
+  public static closeEditorWindow(themeId?: string) {
+    if (themeId) {
+      const editorWindow = this.editorWindows.get(themeId);
+      if (editorWindow) {
+        editorWindow.close();
+      }
+    } else {
+      this.editorWindows.forEach((editorWindow) => {
+        editorWindow.close();
       });
     }
   }

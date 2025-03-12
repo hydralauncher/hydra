@@ -5,7 +5,7 @@ import type { Game, GameShop } from "@types";
 import { steamGamesWorker } from "@main/workers";
 import { createGame } from "@main/services/library-sync";
 import { steamUrlBuilder } from "@shared";
-import { updateLocalUnlockedAchivements } from "@main/services/achievements/update-local-unlocked-achivements";
+import { updateLocalUnlockedAchievements } from "@main/services/achievements/update-local-unlocked-achivements";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 
 const addGameToLibrary = async (
@@ -46,9 +46,9 @@ const addGameToLibrary = async (
 
     await gamesSublevel.put(levelKeys.game(shop, objectId), game);
 
-    updateLocalUnlockedAchivements(game);
+    await createGame(game).catch(() => {});
 
-    createGame(game).catch(() => {});
+    updateLocalUnlockedAchievements(game);
   }
 };
 

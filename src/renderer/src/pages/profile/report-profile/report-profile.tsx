@@ -74,7 +74,10 @@ export function ReportProfile() {
         title={t("report_profile")}
         clickOutsideToClose={false}
       >
-        <form className="report-profile__form">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="report-profile__form"
+        >
           <Controller
             control={control}
             name="reason"
@@ -101,12 +104,7 @@ export function ReportProfile() {
             error={errors.description?.message}
           />
 
-          <Button
-            className="report-profile__submit"
-            onClick={handleSubmit(onSubmit)}
-          >
-            {t("report")}
-          </Button>
+          <Button className="report-profile__submit">{t("report")}</Button>
         </form>
       </Modal>
 

@@ -9,20 +9,32 @@ export interface SettingsContext {
   updateUserPreferences: (values: Partial<UserPreferences>) => Promise<void>;
   setCurrentCategoryIndex: React.Dispatch<React.SetStateAction<number>>;
   clearSourceUrl: () => void;
+  clearTheme: () => void;
   sourceUrl: string | null;
   currentCategoryIndex: number;
   blockedUsers: UserBlocks["blocks"];
   fetchBlockedUsers: () => Promise<void>;
+  appearance: {
+    theme: string | null;
+    authorId: string | null;
+    authorName: string | null;
+  };
 }
 
 export const settingsContext = createContext<SettingsContext>({
   updateUserPreferences: async () => {},
   setCurrentCategoryIndex: () => {},
   clearSourceUrl: () => {},
+  clearTheme: () => {},
   sourceUrl: null,
   currentCategoryIndex: 0,
   blockedUsers: [],
   fetchBlockedUsers: async () => {},
+  appearance: {
+    theme: null,
+    authorId: null,
+    authorName: null,
+  },
 });
 
 const { Provider } = settingsContext;
@@ -34,15 +46,26 @@ export interface SettingsContextProviderProps {
 
 export function SettingsContextProvider({
   children,
-}: SettingsContextProviderProps) {
+}: Readonly<SettingsContextProviderProps>) {
   const dispatch = useAppDispatch();
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
+  const [appearance, setAppearance] = useState<{
+    theme: string | null;
+    authorId: string | null;
+    authorName: string | null;
+  }>({
+    theme: null,
+    authorId: null,
+    authorName: null,
+  });
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
-
   const [blockedUsers, setBlockedUsers] = useState<UserBlocks["blocks"]>([]);
 
   const [searchParams] = useSearchParams();
   const defaultSourceUrl = searchParams.get("urls");
+  const defaultAppearanceTheme = searchParams.get("theme");
+  const defaultAppearanceAuthorId = searchParams.get("authorId");
+  const defaultAppearanceAuthorName = searchParams.get("authorName");
 
   useEffect(() => {
     if (sourceUrl) setCurrentCategoryIndex(2);
@@ -53,6 +76,36 @@ export function SettingsContextProvider({
       setSourceUrl(defaultSourceUrl);
     }
   }, [defaultSourceUrl]);
+
+  useEffect(() => {
+    if (appearance.theme) setCurrentCategoryIndex(3);
+  }, [appearance.theme]);
+
+  useEffect(() => {
+    if (
+      defaultAppearanceTheme &&
+      defaultAppearanceAuthorId &&
+      defaultAppearanceAuthorName
+    ) {
+      setAppearance({
+        theme: defaultAppearanceTheme,
+        authorId: defaultAppearanceAuthorId,
+        authorName: defaultAppearanceAuthorName,
+      });
+    }
+  }, [
+    defaultAppearanceTheme,
+    defaultAppearanceAuthorId,
+    defaultAppearanceAuthorName,
+  ]);
+
+  const clearTheme = useCallback(() => {
+    setAppearance({
+      theme: null,
+      authorId: null,
+      authorName: null,
+    });
+  }, []);
 
   const fetchBlockedUsers = useCallback(async () => {
     const blockedUsers = await window.electron.getBlockedUsers(12, 0);
@@ -79,9 +132,11 @@ export function SettingsContextProvider({
         setCurrentCategoryIndex,
         clearSourceUrl,
         fetchBlockedUsers,
+        clearTheme,
         currentCategoryIndex,
         sourceUrl,
         blockedUsers,
+        appearance,
       }}
     >
       {children}

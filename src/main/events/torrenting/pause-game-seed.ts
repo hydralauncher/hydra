@@ -15,6 +15,7 @@ const pauseGameSeed = async (
 
   await downloadsSublevel.put(downloadKey, {
     ...download,
+    status: "complete",
     shouldSeed: false,
   });
 
