@@ -106,6 +106,12 @@
     "change": "Frissítés",
     "notifications": "Értesítések",
     "enable_download_notifications": "Amikor egy letöltés befejeződik",
+    "cancel_button_confirmation_delete_all_sources": "Nem",
+    "confirm_button_confirmation_delete_all_sources": "Igen, törölj mindent",
+    "description_confirmation_delete_all_sources": "Törölni fog minden letöltési forrást",
+    "title_confirmation_delete_all_sources": "Törölje az összes letöltési forrást",
+    "removed_download_sources": "Betűtípusok eltávolítva",
+    "button_delete_all_sources": "Távolítsa el az összes letöltési forrást",
     "enable_repack_list_notifications": "Amikor egy új repack hozzáadásra kerül"
   },
   "notifications": {
