@@ -20,6 +20,8 @@ import { useCatalogue } from "@renderer/hooks/use-catalogue";
 import { GameItem } from "./game-item";
 import { FilterItem } from "./filter-item";
 import { debounce } from "lodash-es";
+import { Button } from "@renderer/components";
+import { ArrowUpIcon } from "@primer/octicons-react";
 
 const filterCategoryColors = {
   genres: "hsl(262deg 50% 47%)",
@@ -30,6 +32,8 @@ const filterCategoryColors = {
 };
 
 const PAGE_SIZE = 20;
+const TOTAL_ITEMS_TO_SHOW_GO_UP_BUTTOM = 10;
+const LIMIT_SCROLL_TO_DISAPEAR_GO_UP_BUTTON = 500;
 
 export default function Catalogue() {
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -45,6 +49,8 @@ export default function Catalogue() {
   const [isLoading, setIsLoading] = useState(true);
 
   const [results, setResults] = useState<any[]>([]);
+
+  const [wantGoUpButtonIsVisible, setWantGoUpButtonIsVisible] = useState(false);
 
   const [itemsCount, setItemsCount] = useState(0);
 
@@ -76,6 +82,37 @@ export default function Catalogue() {
       setIsLoading(false);
     }, 500)
   ).current;
+
+  const isGoUpButtonVisible = (results: any[], scrollTop: number) => {
+    const withinLimit =
+      results.length > 0 && results.length <= TOTAL_ITEMS_TO_SHOW_GO_UP_BUTTOM;
+    return withinLimit && scrollTop >= LIMIT_SCROLL_TO_DISAPEAR_GO_UP_BUTTON;
+  };
+
+  useEffect(() => {
+    const withinLimit =
+      results.length > 0 && results.length <= TOTAL_ITEMS_TO_SHOW_GO_UP_BUTTOM;
+    setWantGoUpButtonIsVisible(withinLimit);
+  }, [results]);
+
+  useEffect(() => {
+    const handleScroll = debounce(() => {
+      if (cataloguePageRef.current) {
+        const scrollTop = cataloguePageRef.current.scrollTop;
+        setWantGoUpButtonIsVisible(isGoUpButtonVisible(results, scrollTop));
+      }
+    }, 100);
+
+    const ref = cataloguePageRef.current;
+    if (ref) {
+      ref.addEventListener("scroll", handleScroll);
+    }
+
+    return () => {
+      ref?.removeEventListener("scroll", handleScroll);
+      handleScroll.cancel();
+    };
+  }, [results]);
 
   useEffect(() => {
     setResults([]);
@@ -227,6 +264,15 @@ export default function Catalogue() {
     t,
   ]);
 
+  const handleWantGoUpButtonClick = () => {
+    if (cataloguePageRef.current) {
+      cataloguePageRef.current.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }
+  };
+
   return (
     <div className="catalogue" ref={cataloguePageRef}>
       <div className="catalogue__header">
@@ -283,6 +329,19 @@ export default function Catalogue() {
               }}
             />
           </div>
+
+          {wantGoUpButtonIsVisible && (
+            <Button
+              onClick={handleWantGoUpButtonClick}
+              theme="outline"
+              style={{ position: "fixed", bottom: 16, left: 16 }}
+            >
+              {t("result_count", {
+                resultCount: formatNumber(itemsCount),
+              })}
+              , {t("go_up_button")} <ArrowUpIcon />
+            </Button>
+          )}
         </div>
 
         <div className="catalogue__filters-container">
