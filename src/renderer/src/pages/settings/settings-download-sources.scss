@@ -53,4 +53,9 @@
       text-decoration: none;
     }
   }
+
+  &__remove_all_sources_button {
+    display: flex;
+    justify-content: flex-end;
+  }
 }
