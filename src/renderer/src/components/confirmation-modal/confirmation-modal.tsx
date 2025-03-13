@@ -10,6 +10,8 @@ export interface ConfirmationModalProps extends Omit<ModalProps, "children"> {
 
   onConfirm: () => void;
   onCancel?: () => void;
+
+  buttonsIsDisabled?: boolean;
 }
 
 export function ConfirmationModal({
@@ -18,6 +20,7 @@ export function ConfirmationModal({
   descriptionText,
   onConfirm,
   onCancel,
+  buttonsIsDisabled = false,
   ...props
 }: ConfirmationModalProps) {
   const handleCancelClick = () => {
@@ -38,7 +41,11 @@ export function ConfirmationModal({
           <Button theme="outline" onClick={handleCancelClick}>
             {cancelButtonLabel}
           </Button>
-          <Button theme="danger" onClick={onConfirm}>
+          <Button
+            theme="danger"
+            disabled={buttonsIsDisabled}
+            onClick={onConfirm}
+          >
             {confirmButtonLabel}
           </Button>
         </div>
