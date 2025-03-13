@@ -107,6 +107,12 @@
     "notifications": "Апавяшчэнні",
     "enable_download_notifications": "Па сканчэнні сцягванні",
     "enable_repack_list_notifications": "Пры даданні новага рэпака",
+    "cancel_button_confirmation_delete_all_sources": "Няма",
+    "confirm_button_confirmation_delete_all_sources": "Так,выдаліць усё",
+    "description_confirmation_delete_all_sources": "Вы выдаліце ​​ўсе крыніцы сцягвання",
+    "title_confirmation_delete_all_sources": "Выдаліць усе крыніцы сцягвання",
+    "removed_download_sources": "Крыніцы сцягвання выдалены",
+    "button_delete_all_sources": "Премахнете всички източници на изтегляне",
     "behavior": "Паводзіны",
     "quit_app_instead_hiding": "Закрываць праграму замест таго, каб хаваць яе ў трэй",
     "launch_with_system": "Запускаць праграму пры запуску сыстэмы"
