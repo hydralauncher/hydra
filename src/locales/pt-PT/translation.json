@@ -355,6 +355,8 @@
     "instructions": "Verifica a forma correta de instalar algum deles na tua distribuição Linux, para garantir a execução normal do jogo"
   },
   "catalogue": {
+    "next_page": "Página seguinte",
+    "previous_page": "Página anterior"
     "search": "Filtrar…",
     "developers": "Desenvolvedores",
     "genres": "Géneros",
