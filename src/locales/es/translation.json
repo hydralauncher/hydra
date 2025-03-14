@@ -359,6 +359,8 @@
     "quit": "Salir"
   },
   "game_card": {
+    "available_one": "Disponible",
+    "available_other": "Disponibles",
     "no_downloads": "No hay descargas disponibles"
   },
   "binary_not_found_modal": {
