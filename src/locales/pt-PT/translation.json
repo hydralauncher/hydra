@@ -460,7 +460,7 @@
     "user_achievements": "Conquistas de {{displayName}}",
     "unlocked_at": "Desbloqueada em: {{date}}",
     "subscription_needed": "Precisas de uma subscrição Hydra Cloud para visualizar este conteúdo",
-    "new_achievements_unlocked": "{{achievementCount}} novas conquistas de {{gameCount}} jogos"
+    "new_achievements_unlocked": "{{achievementCount}} novas conquistas de {{gameCount}} jogos",
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} conquistas",
     "achievements_unlocked_for_game": "Desbloqueadas {{achievementCount}} novas conquistas em {{gameTitle}}",
     "hidden_achievement_tooltip": "Esta é uma conquista oculta",
