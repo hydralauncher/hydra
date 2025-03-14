@@ -159,7 +159,7 @@
     "no_download_option_info": "Sem informações disponíveis",
     "backup_deletion_failed": "Falha ao apagar o backup",
     "max_number_of_artifacts_reached": "Número máximo de backups atingido para este jogo",
-    "achievements_not_sync": "As tuas conquistas não estão sincronizadas"
+    "achievements_not_sync": "As tuas conquistas não estão sincronizadas",
     "backup_from": "Backup de {{date}}",
     "automatic_backup_from": "Backup automático de {{date}}",
     "enable_automatic_cloud_sync": "Ativar sincronização automática na nuvem",
