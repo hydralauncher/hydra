@@ -105,9 +105,9 @@ export function SettingsBehavior() {
         <CheckboxField
           label={t("enable_auto_install")}
           checked={form.enableAutoInstall}
-          onChange={() => {
-            handleChange({ enableAutoInstall: !form.enableAutoInstall });
-          }}
+          onChange={() =>
+            handleChange({ enableAutoInstall: !form.enableAutoInstall })
+          }
         />
       )}
 
