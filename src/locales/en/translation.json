@@ -362,6 +362,8 @@
     "quit": "Quit"
   },
   "game_card": {
+    "available_one": "Available",
+    "available_other": "Available",
     "no_downloads": "No downloads available"
   },
   "binary_not_found_modal": {
