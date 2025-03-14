@@ -360,6 +360,8 @@
     "quit": "Выйти"
   },
   "game_card": {
+    "available_one": "Доступный",
+    "available_other": "Доступный",
     "no_downloads": "Нет доступных источников"
   },
   "binary_not_found_modal": {
