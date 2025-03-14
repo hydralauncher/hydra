@@ -13,8 +13,6 @@ export const restartAndInstallUpdate = () => {
 
 const restartAndInstallUpdateEvent = async (
   _event: Electron.IpcMainInvokeEvent
-) => {
-  restartAndInstallUpdate();
-};
+) => restartAndInstallUpdate();
 
 registerEvent("restartAndInstallUpdate", restartAndInstallUpdateEvent);
