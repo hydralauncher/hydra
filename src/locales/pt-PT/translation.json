@@ -345,6 +345,8 @@
     "quit": "Sair"
   },
   "game_card": {
+    "available_one": "Disponível",
+    "available_other": "Disponíveis",
     "no_downloads": "Sem downloads disponíveis"
   },
   "binary_not_found_modal": {
@@ -353,8 +355,15 @@
     "instructions": "Verifica a forma correta de instalar algum deles na tua distribuição Linux, para garantir a execução normal do jogo"
   },
   "catalogue": {
-    "next_page": "Página seguinte",
-    "previous_page": "Página anterior"
+    "search": "Filtrar…",
+    "developers": "Desenvolvedores",
+    "genres": "Géneros",
+    "tags": "Marcadores",
+    "publishers": "Distribuidoras",
+    "download_sources": "Fontes de download",
+    "result_count": "{{resultCount}} resultados",
+    "filter_count": "{{filterCount}} disponíveis",
+    "clear_filters": "Limpar {{filterCount}} selecionados"
   },
   "modal": {
     "close": "Botão de fechar"
@@ -432,6 +441,16 @@
     "your_friend_code": "O teu código de amigo:",
     "upload_banner": "Fazer upload do banner",
     "uploading_banner": "A fazer upload do banner…"
+    "background_image_updated": "Imagem de fundo salva",
+    "stats": "Estatísticas",
+    "achievements": "conquistas",
+    "games": "Jogos",
+    "ranking_updated_weekly": "O ranking é atualizado semanalmente",
+    "playing": "A jogar {{game}}",
+    "achievements_unlocked": "Conquistas desbloqueadas",
+    "earned_points": "Pontos ganhos",
+    "show_achievements_on_profile": "Mostre as suas conquistas no perfil",
+    "show_points_on_profile": "Mostre os seus pontos ganhos no perfil"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",
@@ -440,14 +459,24 @@
     "unlocked_at": "Desbloqueada em: {{date}}",
     "subscription_needed": "Precisas de uma subscrição Hydra Cloud para visualizar este conteúdo",
     "new_achievements_unlocked": "{{achievementCount}} novas conquistas de {{gameCount}} jogos"
+    "achievement_progress": "{{unlockedCount}}/{{totalCount}} conquistas",
+    "achievements_unlocked_for_game": "Desbloqueadas {{achievementCount}} novas conquistas em {{gameTitle}}",
+    "hidden_achievement_tooltip": "Esta é uma conquista oculta",
+    "achievement_earn_points": "Ganhe {{points}} pontos com essa conquista",
+    "earned_points": "Pontos ganhos:",
+    "available_points": "Pontos disponíveis:",
+    "how_to_earn_achievements_points": "Como desbloquear pontos nas conquistas?"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Subscrição Hydra Cloud",
     "subscribe_now": "Subscreve agora",
     "cloud_achievements": "Gravação de conquistas na nuvem",
     "animated_profile_picture": "Fotos de perfil animadas",
-    "premium_support": "Apoio Premium",
+    "premium_support": "Suporte Premium",
     "show_and_compare_achievements": "Mostra e compara as tuas conquistas com as de outros utilizadores",
     "animated_profile_banner": "Banner animado no perfil"
+    "cloud_saving": "Progresso dos jogos na nuvem",
+    "hydra_cloud_feature_found": "Descubriste uma funcionalidade Hydra Cloud!",
+    "learn_more": "Saber mais"
   }
 }
