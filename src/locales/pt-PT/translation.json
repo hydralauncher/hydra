@@ -283,7 +283,7 @@
     "enable_achievement_notifications": "Quando uma conquista é desbloqueada"
     "launch_minimized": "Iniciar Hydra minimizado",
     "disable_nsfw_alert": "Desativar alertas NSFW",
-    "seed_after_download_complete": "Semear após conluir o download", 
+    "seed_after_download_complete": "Semear após concluir o download",
     "show_hidden_achievement_description": "Mostrar descrição de conquistas ocultas antes de as desbloquear",
     "account": "Conta",
     "no_users_blocked": "Não tem utilizadores bloqueados",
