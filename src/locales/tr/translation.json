@@ -295,7 +295,7 @@
     "launch_minimized": "Hydra'yı küçültülmüş başlat",
     "disable_nsfw_alert": "NSFW uyarısını devre dışı bırak",
     "seed_after_download_complete": "İndirme tamamlandıktan sonra paylaş",
-    "show_hidden_achievement_description": "Gizli başarım açıklamalarını kilitlenmeden önce göster"
+    "show_hidden_achievement_description": "Gizli başarım açıklamalarını kilitlenmeden önce göster",
     "account": "Hesap",
     "no_users_blocked": "Hiçbir kullanıcıyı engellemediniz",
     "subscription_active_until": "Hydra Cloud'unuz {{date}} tarihine kadar aktif",
