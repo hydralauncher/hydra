@@ -4,9 +4,11 @@ import { AppUpdaterEvent, UserPreferences } from "@types";
 import { app } from "electron";
 import { publishNotificationUpdateReadyToInstall } from "@main/services/notifications";
 import { db, levelKeys } from "@main/level";
+import { MAIN_LOOP_INTERVAL } from "@main/constants";
 
 const { autoUpdater } = updater;
 const sendEventsForDebug = false;
+const ticksToUpdate = (50 * 60 * 1000) / MAIN_LOOP_INTERVAL; // 50 minutes
 
 export class UpdateManager {
   private static hasNotified = false;
@@ -72,7 +74,7 @@ export class UpdateManager {
   }
 
   public static checkForUpdatePeriodically() {
-    if (this.checkTick % 2000 == 0) {
+    if (this.checkTick % ticksToUpdate == 0) {
       this.checkForUpdates();
     }
     this.checkTick++;
