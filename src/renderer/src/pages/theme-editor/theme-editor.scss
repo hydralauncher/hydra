@@ -1,4 +1,5 @@
 @use "../../scss/globals.scss";
+@use "sass:color";
 
 .theme-editor {
   display: flex;
@@ -58,7 +59,10 @@
         gap: 8px;
 
         .active {
-          background-color: darken(globals.$dark-background-color, 2%);
+          background-color: color.adjust(
+            globals.$dark-background-color,
+            $lightness: -2%
+          );
         }
       }
     }
