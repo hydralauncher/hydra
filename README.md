@@ -25,7 +25,7 @@
 [![cs](https://img.shields.io/badge/lang-cs-purple)](./docs/README.cs.md)
 [![da](https://img.shields.io/badge/lang-da-red)](./docs/README.da.md)
 [![nb](https://img.shields.io/badge/lang-nb-blue)](./docs/README.nb.md)
-[![ee](https://img.shields.io/badge/lang-et-blue.svg)](./docs/README.et.md)
+[![et](https://img.shields.io/badge/lang-et-blue.svg)](./docs/README.et.md)
 [![tr](https://img.shields.io/badge/lang-tr-red.svg)](./docs/README.tr.md)
 
 ![Hydra Catalogue](./docs/screenshot.png)
