@@ -31,3 +31,5 @@ export const achievementSoundPath = app.isPackaged
 export const backupsPath = path.join(app.getPath("userData"), "Backups");
 
 export const appVersion = app.getVersion() + (isStaging ? "-staging" : "");
+
+export const MAIN_LOOP_INTERVAL = 1500;

@@ -20,6 +20,7 @@ import {
   setUserDetails,
   setProfileBackground,
   setGameRunning,
+  setFriendRequestCount,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
@@ -51,7 +52,6 @@ export function App() {
     isFriendsModalVisible,
     friendRequetsModalTab,
     friendModalUserId,
-    syncFriendRequests,
     hideFriendsModal,
     fetchUserDetails,
     updateUserDetails,
@@ -123,7 +123,7 @@ export function App() {
       .then((response) => {
         if (response) {
           updateUserDetails(response);
-          syncFriendRequests();
+          window.electron.syncFriendRequests();
         }
       })
       .finally(() => {
@@ -134,23 +134,27 @@ export function App() {
         $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
         document.head.appendChild($script);
       });
-  }, [fetchUserDetails, syncFriendRequests, updateUserDetails, dispatch]);
+  }, [fetchUserDetails, updateUserDetails, dispatch]);
 
   const onSignIn = useCallback(() => {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
-        syncFriendRequests();
+        window.electron.syncFriendRequests();
         showSuccessToast(t("successfully_signed_in"));
       }
     });
-  }, [
-    fetchUserDetails,
-    syncFriendRequests,
-    t,
-    showSuccessToast,
-    updateUserDetails,
-  ]);
+  }, [fetchUserDetails, t, showSuccessToast, updateUserDetails]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onSyncFriendRequests((result) => {
+      dispatch(setFriendRequestCount(result.friendRequestCount));
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
