@@ -187,7 +187,7 @@
     "reset_achievements_description": "Bu işlem {{game}} için tüm başarımları sıfırlar",
     "reset_achievements_title": "Emin misiniz?",
     "reset_achievements_success": "Başarımlar başarıyla sıfırlandı",
-    "reset_achievements_error": "Başarımlar sıfırlanamadı"
+    "reset_achievements_error": "Başarımlar sıfırlanamadı",
     "download_error_gofile_quota_exceeded": "Gofile aylık kotanızı doldurdunuz. Kotanın yenilenmesini bekleyin.",
     "download_error_real_debrid_account_not_authorized": "Real-Debrid hesabınız yeni indirme işlemleri yapmak için yetkilendirilmemiş. Lütfen hesap ayarlarınızı kontrol edip tekrar deneyin.",
     "download_error_not_cached_in_real_debrid": "Bu indirme Real-Debrid üzerinde mevcut değil ve Real-Debrid'den indirme durumu henüz sorgulanamıyor.",
