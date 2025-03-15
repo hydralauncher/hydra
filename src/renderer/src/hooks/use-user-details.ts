@@ -6,7 +6,6 @@ import {
   setFriendRequests,
   setFriendsModalVisible,
   setFriendsModalHidden,
-  setFriendRequestCount,
 } from "@renderer/features";
 import type {
   FriendRequestAction,
@@ -88,24 +87,15 @@ export function useUserDetails() {
     ]
   );
 
-  const syncFriendRequests = useCallback(async () => {
-    return window.electron
-      .syncFriendRequests()
-      .then((sync) => {
-        dispatch(setFriendRequestCount(sync.friendRequestCount));
-      })
-      .catch(() => {});
-  }, [dispatch]);
-
   const fetchFriendRequests = useCallback(async () => {
     return window.electron
       .getFriendRequests()
       .then((friendRequests) => {
-        syncFriendRequests();
+        window.electron.syncFriendRequests();
         dispatch(setFriendRequests(friendRequests));
       })
       .catch(() => {});
-  }, [dispatch, syncFriendRequests]);
+  }, [dispatch]);
 
   const showFriendsModal = useCallback(
     (initialTab: UserFriendModalTab, userId: string) => {
@@ -167,7 +157,6 @@ export function useUserDetails() {
     patchUser,
     sendFriendRequest,
     fetchFriendRequests,
-    syncFriendRequests,
     updateFriendRequestState,
     blockUser,
     unblockUser,
