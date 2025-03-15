@@ -55,7 +55,7 @@
 - [Derleme](#derleme)
   - [BitTorrent istemcisini derleme](#bittorrent-istemci-derle)
   - [Electron uygulamasını derleme](#electron-uygulama-derle)
-- [Katkıda bulunanlar](#katkida-bulunanlar)
+- [Katkıda bulunanlar](#katkıda-bulunanlar)
 - [Lisans](#lisans)
 
 ## <a name="hakkında"></a> Hakkında
