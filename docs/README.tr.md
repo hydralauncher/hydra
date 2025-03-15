@@ -28,7 +28,7 @@
 [![ee](https://img.shields.io/badge/lang-et-blue.svg)](README.et.md)
 [![tr](https://img.shields.io/badge/lang-tr-red.svg)](README.tr.md)
 
-![Hydra Catalogue](./docs/screenshot.png)
+![Hydra Catalogue](../docs/screenshot.png)
 
 </div>
 
