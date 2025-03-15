@@ -76,11 +76,13 @@ export interface UserPreferences {
   runAtStartup?: boolean;
   startMinimized?: boolean;
   disableNsfwAlert?: boolean;
+  enableAutoInstall?: boolean;
   seedAfterDownloadComplete?: boolean;
   showHiddenAchievementsDescription?: boolean;
   downloadNotificationsEnabled?: boolean;
   repackUpdatesNotificationsEnabled?: boolean;
   achievementNotificationsEnabled?: boolean;
+  friendRequestNotificationsEnabled?: boolean;
 }
 
 export interface ScreenState {

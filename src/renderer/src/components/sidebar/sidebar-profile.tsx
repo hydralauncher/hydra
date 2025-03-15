@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { PeopleIcon } from "@primer/octicons-react";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
@@ -9,19 +9,13 @@ import { Avatar } from "../avatar/avatar";
 import { AuthPage } from "@shared";
 import "./sidebar-profile.scss";
 
-const LONG_POLLING_INTERVAL = 120_000;
-
 export function SidebarProfile() {
   const navigate = useNavigate();
 
   const { t } = useTranslation("sidebar");
 
-  const {
-    userDetails,
-    friendRequestCount,
-    showFriendsModal,
-    syncFriendRequests,
-  } = useUserDetails();
+  const { userDetails, friendRequestCount, showFriendsModal } =
+    useUserDetails();
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
 
@@ -33,16 +27,6 @@ export function SidebarProfile() {
 
     navigate(`/profile/${userDetails.id}`);
   };
-
-  useEffect(() => {
-    const pollingInterval = setInterval(() => {
-      syncFriendRequests();
-    }, LONG_POLLING_INTERVAL);
-
-    return () => {
-      clearInterval(pollingInterval);
-    };
-  }, [syncFriendRequests]);
 
   const friendsButton = useMemo(() => {
     if (!userDetails) return null;

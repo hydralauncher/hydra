@@ -280,7 +280,10 @@ declare global {
       path: string
     ) => Promise<{ imagePath: string; mimeType: string }>;
     getFriendRequests: () => Promise<FriendRequest[]>;
-    syncFriendRequests: () => Promise<FriendRequestSync>;
+    syncFriendRequests: () => Promise<void>;
+    onSyncFriendRequests: (
+      cb: (friendRequests: FriendRequestSync) => void
+    ) => () => Electron.IpcRenderer;
     updateFriendRequest: (
       userId: string,
       action: FriendRequestAction

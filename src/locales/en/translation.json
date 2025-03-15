@@ -340,7 +340,9 @@
     "import_theme": "Import theme",
     "import_theme_description": "You will import {{theme}} from the theme store",
     "error_importing_theme": "Error importing theme",
-    "theme_imported": "Theme imported successfully"
+    "theme_imported": "Theme imported successfully",
+    "enable_friend_request_notifications": "When a friend request is received",
+    "enable_auto_install": "Download updates automatically"
   },
   "notifications": {
     "download_complete": "Download complete",
@@ -351,7 +353,9 @@
     "new_update_available": "Version {{version}} available",
     "restart_to_install_update": "Restart Hydra to install the update",
     "notification_achievement_unlocked_title": "Achievement unlocked for {{game}}",
-    "notification_achievement_unlocked_body": "{{achievement}} and other {{count}} were unlocked"
+    "notification_achievement_unlocked_body": "{{achievement}} and other {{count}} were unlocked",
+    "new_friend_request_description": "You have received a new friend request",
+    "new_friend_request_title": "New friend request"
   },
   "system_tray": {
     "open": "Open Hydra",
