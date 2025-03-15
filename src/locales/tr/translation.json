@@ -358,9 +358,9 @@
     "quit": "Çık"
   },
   "game_card": {
-    "no_downloads": "İndirilebilir içerik bulunmuyor"
+    "no_downloads": "İndirilebilir içerik bulunmuyor",
     "available_one": "Mevcut",
-    "available_other": "Mevcut",
+    "available_other": "Mevcut"
   },
   "binary_not_found_modal": {
     "title": "Programlar Yüklü Değil",
