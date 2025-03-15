@@ -15,6 +15,7 @@ import type {
   SeedingStatus,
   GameAchievement,
   Theme,
+  FriendRequestSync,
 } from "@types";
 import type { AuthPage, CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -306,6 +307,15 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("processProfileImage", imagePath),
   getFriendRequests: () => ipcRenderer.invoke("getFriendRequests"),
   syncFriendRequests: () => ipcRenderer.invoke("syncFriendRequests"),
+  onSyncFriendRequests: (cb: (friendRequests: FriendRequestSync) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      friendRequests: FriendRequestSync
+    ) => cb(friendRequests);
+    ipcRenderer.on("on-sync-friend-requests", listener);
+    return () =>
+      ipcRenderer.removeListener("on-sync-friend-requests", listener);
+  },
   updateFriendRequest: (userId: string, action: FriendRequestAction) =>
     ipcRenderer.invoke("updateFriendRequest", userId, action),
   sendFriendRequest: (userId: string) =>
