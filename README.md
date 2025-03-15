@@ -7,7 +7,7 @@
   <h1 align="center">Hydra Launcher</h1>
 
   <p align="center">
-    <strong>Hydra, kendi gömülü BitTorrent istemcisine sahip bir oyun başlatıcısıdır.</strong>
+    <strong>Hydra is a game launcher with its own embedded bittorrent client.</strong>
   </p>
 
 [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
@@ -32,163 +32,162 @@
 
 </div>
 
-## <a name="içindekiler"></a> İçindekiler
+## Table of Contents
 
-- [İçindekiler](#içindekiler)
-- [Hakkında](#hakkında)
-- [Özellikler](#özellikler)
-- [Kurulum](#kurulum)
-- [Katkıda bulunma](#katkıda-bulunma)
-  - [Telegram grubumuza katılın](#telegram-katıl)
-  - [Repoyu forklayın ve klonlayın](#repo-fork-klon)
-  - [Katkıda bulunabileceğin yollar](#katkı-yolları)
-  - [Proje yapısı](#proje-yapısı)
-- [Kaynak kodundan derleme](#kaynak-kodundan-derleme)
-  - [Node.js'i yükleme](#nodejs-yükle)
-  - [Yarn'ı yükleme](#yarn-yükle)
-  - [Node bağımlılıklarını yükleme](#node-bağımlılık-yükle)
-  - [OpenSSL 1.1'i yükleme](#openssl-1-1-yükle)
-  - [Python 3.9'u yükleme](#python-3-9-yükle)
-  - [Python bağımlılıklarını yükleme](#python-bağımlılık-yükle)
-- [Ortam değişkenleri](#ortam-değişkenleri)
-- [Çalıştırma](#çalıştırma)
-- [Derleme](#derleme)
-  - [BitTorrent istemcisini derleme](#bittorrent-istemci-derle)
-  - [Electron uygulamasını derleme](#electron-uygulama-derle)
-- [Katkıda bulunanlar](#katkida-bulunanlar)
-- [Lisans](#lisans)
+- [Table of Contents](#table-of-contents)
+- [About](#about)
+- [Features](#features)
+- [Installation](#installation)
+- [Contributing](#-contributing)
+  - [Join our Telegram](#-join-our-telegram)
+  - [Fork and clone your repository](#fork-and-clone-your-repository)
+  - [Ways you can contribute](#ways-you-can-contribute)
+  - [Project Structure](#project-structure)
+- [Build from source](#build-from-source)
+  - [Install Node.js](#install-nodejs)
+  - [Install Yarn](#install-yarn)
+  - [Install Node Dependencies](#install-node-dependencies)
+  - [Install Python 3.9](#install-python-39)
+  - [Install Python Dependencies](#install-python-dependencies)
+- [Environment variables](#environment-variables)
+- [Running](#running)
+- [Build](#build)
+  - [Build the bittorrent client](#build-the-bittorrent-client)
+  - [Build the Electron application](#build-the-electron-application)
+- [Contributors](#contributors)
+- [License](#license)
 
-## <a name="hakkında"></a> Hakkında
+## About
 
-**Hydra**, kendi gömülü **BitTorrent istemci**sine sahip bir **oyun başlatıcısı**dır.
+**Hydra** is a **Game Launcher** with its own embedded **BitTorrent Client**.
 <br>
-Başlatıcı, torrent sistemini libtorrent kullanarak yöneten Python ve TypeScript (Electron) ile yazılmıştır.
+The launcher is written in TypeScript (Electron) and Python, which handles the torrenting system by using libtorrent.
 
-## <a name="özellikler"></a> Özellikler
+## Features
 
-- Kendi gömülü BitTorrent istemcisi
-- Oyun sayfasında How Long To Beat (HLTB) entegrasyonu
-- İndirme yolu özelleştirmesi
-- Windows ve Linux desteği
-- Sürekli güncelleme
-- Ve daha fazlası...
+- Own embedded bittorrent client
+- How Long To Beat (HLTB) integration on game page
+- Downloads path customization
+- Windows and Linux support
+- Constantly updated
+- And more ...
 
-## <a name="kurulum"></a> Kurulum
+## Installation
 
-Aşağıdaki adımları izleyerek Hydra'yı kurun:
+Follow the steps below to install:
 
-1. Hydra'nın en son sürümünü [Releases](https://github.com/hydralauncher/hydra/releases/latest) sayfasından indirin.
-   - Hydra'yı Windows'a kurmak istiyorsanız sadece .exe dosyasını indirin.
-   - Hydra'yı Linux'a kurmak istiyorsanız .deb, .rpm veya .zip dosyasını indirin (kullandığınız Linux dağıtımına bağlı olarak).
-2. İndirilen dosyayı çalıştırın.
-3. Hydra'nın keyfini çıkarın!
+1. Download the latest version of Hydra from the [Releases](https://github.com/hydralauncher/hydra/releases/latest) page.
+   - Download only .exe if you want to install Hydra on Windows.
+   - Download .deb or .rpm or .zip if you want to install Hydra on Linux. (depends on your Linux distro)
+2. Run the downloaded file.
+3. Enjoy Hydra!
 
-## <a name="katkıda-bulunma"></a> Katkıda Bulunma
+## <a name="contributing"> Contributing
 
-### <a name="telegram-katıl"></a> Telegram grubumuza katılın
+### <a name="join-our-telegram"></a> Join our Telegram
 
-Tartışmalarımızı [Telegram](https://t.me/hydralauncher) kanalımız üzerinde yürütüyoruz.
+We concentrate our discussions on our [Telegram](https://t.me/hydralauncher) channel.
 
-### <a name="repo-fork-klon"></a> Repoyu forklayın ve klonlayın
+### Fork and clone your repository
 
-1. Depoyu fork'layın [(şimdi forklamak için tıklayın)](https://github.com/hydralauncher/hydra/fork)
-2. Forkladığınız kodu klonlayın `git clone https://github.com/kullanıcı_adınız/hydra`
-3. Yeni bir branch oluşturun
-4. Commitlerinizi gönderin (push)
-5. Yeni bir Pull Request gönderin
+1. Fork the repository [(click here to fork now)](https://github.com/hydralauncher/hydra/fork)
+2. Clone your forked code `git clone https://github.com/your_username/hydra`
+3. Create a new branch
+4. Push your commits
+5. Submit a new Pull Request
 
-### <a name="katkı-yolları"></a> Katkıda bulunabileceğin yollar
+### Ways you can contribute
 
-- Çeviri: Hydra'nın mümkün olduğunca fazla kişiye ulaşmasını istiyoruz. Yeni dillere çeviri yapmak ya da mevcut dillere güncelleme ve iyileştirme yapmak için yardımcı olmaktan çekinmeyin.
-- Kod: Hydra, Typescript, Electron ve biraz Python ile inşa edilmiştir. Katkıda bulunmak isterseniz, [Telegram](https://t.me/hydralauncher) kanalımıza katılın!
+- Translation: We want Hydra to be available to as many people as possible. Feel free to help translate to new languages or update and improve the ones that are already available on Hydra.
+- Code: Hydra is built with Typescript, Electron and a little bit of Python. If you want to contribute, join our [Telegram](https://t.me/hydralauncher)!
 
-### <a name="proje-yapısı"></a> Proje yapısı
+### Project Structure
 
-- torrent-client: Torrent indirmelerini yönetmek için libtorrent adlı bir Python kütüphanesini kullanıyoruz.
-- src/renderer: Uygulamanın kullanıcı arayüzü burada bulunur.
-- src/main: Uygulamanın tüm işleyişi ve iş mantığı bu bölümde bulunur.
+- torrent-client: We use libtorrent, a Python library, to manage torrent downloads
+- src/renderer: the UI of the application
+- src/main: all the logic rests here.
 
-## <a name="kaynak-kodundan-derleme"></a> Kaynak kodundan derleme
+## Build from source
 
-### <a name="nodejs-yükle"></a> Node.js'i yükleme
+### Install Node.js
 
-Makinenizde Node.js'in yüklü olduğundan emin olun. Yüklü değilse, [nodejs.org](https://nodejs.org/) adresinden indirip kurun.
+Ensure you have Node.js installed on your machine. If not, download and install it from [nodejs.org](https://nodejs.org/).
 
-### <a name="yarn-yükle"></a> Yarn'ı yükleme
+### Install Yarn
 
-Yarn, Node.js için bir paket yöneticisidir. Eğer Yarn'ı henüz kurmadıysanız, [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/) adresindeki talimatları izleyerek kurabilirsiniz.
+Yarn is a package manager for Node.js. If you haven't installed Yarn yet, you can do so by following the instructions on [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/).
 
-### <a name="node-bağımlılık-yükle"></a> Node bağımlılıklarını yükleme
+### Install Node Dependencies
 
-Proje dizinine gidin ve Yarn kullanarak Node bağımlılıklarını yükleyin:
+Navigate to the project directory and install the Node dependencies using Yarn:
 
 ```bash
 cd hydra
 yarn
 ```
 
-### <a name="openssl-1-1-yükle"></a> OpenSSL 1.1'i yükleme
+### Install OpenSSL 1.1
 
-Windows ortamlarında libtorrent tarafından gerekli olan [OpenSSL 1.1](https://slproweb.com/download/Win64OpenSSL-1_1_1w.exe)'i indirip yükleyin.
+[OpenSSL 1.1](https://slproweb.com/download/Win64OpenSSL-1_1_1w.exe) is required by libtorrent in Windows environments.
 
-### <a name="python-3-9-yükle"></a> Python 3.9'u yükleme
+### Install Python 3.9
 
-Makinenizde Python 3.9'un yüklü olduğundan emin olun. Bunu [python.org](https://www.python.org/downloads/release/python-3913/) adresinden indirip kurarak yapabilirsiniz.
+Ensure you have Python 3.9 installed on your machine. You can download and install it from [python.org](https://www.python.org/downloads/release/python-3913/).
 
-### <a name="python-bağımlılık-yükle"></a> Python bağımlılıklarını yükleme
+### Install Python Dependencies
 
-Gerekli Python bağımlılıklarını pip kullanarak yükleyin:
+Install the required Python dependencies using pip:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## <a name="ortam-değişkenleri"></a> Ortam değişkenleri
+## Environment variables
 
-Oyun simgelerini yüklemek için bir SteamGridDB API Anahtarına ihtiyacınız olacak.
+You'll need an SteamGridDB API Key in order to fetch the game icons on installation.
 
-Bu anahtara sahip olduktan sonra, `.env.example` dosyasını kopyalayabilir veya adını `.env` olarak değiştirebilir ve `STEAMGRIDDB_API_KEY` değerini buraya ekleyebilirsiniz.
+Once you have it, you can copy or rename the `.env.example` file to `.env` and put it on`STEAMGRIDDB_API_KEY`.
 
-## <a name="çalıştırma"></a> Çalıştırma
+## Running
 
-Tüm ayarları tamamladıktan sonra, hem Electron sürecini hem de bittorrent istemcisini başlatmak için aşağıdaki komutu çalıştırabilirsiniz:
+Once you've got all things set up, you can run the following command to start both the Electron process and the bittorrent client:
 
 ```bash
 yarn dev
 ```
 
-## <a name="derleme"></a> Derleme
+## Build
 
-### <a name="bittorrent-istemci-derle"></a> BitTorrent istemcisini derleme
+### Build the bittorrent client
 
-Bittorrent istemcisini aşağıdaki komutla derleyin:
+Build the bittorrent client by using this command:
 
 ```bash
 python torrent-client/setup.py build
 ```
 
-### <a name="electron-uygulama-derle"></a> Electron uygulamasını derleme
+### Build the Electron application
 
-Electron uygulamasını aşağıdaki komutlarla derleyebilirsiniz:
+Build the Electron application by using this command:
 
-Windows'ta:
+On Windows:
 
 ```bash
 yarn build:win
 ```
 
-Linux'ta:
+On Linux:
 
 ```bash
 yarn build:linux
 ```
 
-## <a name="katkıda-bulunanlar"></a> Katkıda bulunanlar
+## Contributors
 
 <a href="https://github.com/hydralauncher/hydra/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=hydralauncher/hydra" />
 </a>
 
-## <a name="lisans"></a> Lisans
+## License
 
-Hydra, [MIT Lisansı](https://github.com/hydralauncher/hydra/blob/main/LICENSE) altında lisanlanmıştır.
+Hydra is licensed under the [MIT License](LICENSE).
