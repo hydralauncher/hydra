@@ -13,7 +13,6 @@ import { logger } from "./logger";
 import { WindowManager } from "./window-manager";
 import axios from "axios";
 import { Ludusavi } from "./ludusavi";
-import { isFuture, isToday } from "date-fns";
 import { SubscriptionRequiredError } from "@shared";
 
 export class CloudSync {
@@ -54,8 +53,8 @@ export class CloudSync {
     const hasActiveSubscription = await db
       .get<string, User>(levelKeys.user, { valueEncoding: "json" })
       .then((user) => {
-        const expiresAt = user?.subscription?.expiresAt;
-        return expiresAt && (isFuture(expiresAt) || isToday(expiresAt));
+        const expiresAt = new Date(user?.subscription?.expiresAt ?? 0);
+        return expiresAt > new Date();
       });
 
     if (!hasActiveSubscription) {
