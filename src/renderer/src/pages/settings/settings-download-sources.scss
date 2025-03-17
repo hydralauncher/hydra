@@ -54,8 +54,8 @@
     }
   }
 
-  &__remove_all_sources_button {
+  &__buttons-container {
     display: flex;
-    justify-content: flex-end;
+    gap: globals.$spacing-unit;
   }
 }
