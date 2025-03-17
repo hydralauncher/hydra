@@ -7,12 +7,22 @@
     gap: globals.$spacing-unit;
   }
 
-  &__description {
-    margin-bottom: calc(globals.$spacing-unit * 2);
-  }
-
   &__submit-button {
     align-self: flex-end;
     width: 100%;
+  }
+
+  &__description-container {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    margin-bottom: calc(globals.$spacing-unit * 2);
+    align-items: flex-start;
+  }
+
+  &__create-account {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
   }
 }
