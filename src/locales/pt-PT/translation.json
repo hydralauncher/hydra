@@ -260,7 +260,7 @@
     "description_confirmation_delete_all_sources": "Irá remover todas as fontes de download",
     "title_confirmation_delete_all_sources": "Remover todas as fontes de download",
     "removed_download_sources": "Fontes de download removidas",
-    "button_delete_all_sources": "Remover todas as fontes de download",
+    "button_delete_all_sources": "Remover todas",
     "added_download_source": "Fonte adicionada",
     "download_sources_synced": "As fontes foram sincronizadas",
     "insert_valid_json_url": "Insere o URL de um JSON válido",
