@@ -12,6 +12,7 @@ import { logger } from "../logger";
 import { WindowManager } from "../window-manager";
 import type { Game, UserPreferences } from "@types";
 import { db, levelKeys } from "@main/level";
+import { restartAndInstallUpdate } from "@main/events/autoupdater/restart-and-install-update";
 
 async function downloadImage(url: string | null) {
   if (!url) return undefined;
@@ -72,10 +73,33 @@ export const publishNotificationUpdateReadyToInstall = async (
       ns: "notifications",
     }),
     icon: trayIcon,
-  }).show();
+  })
+    .on("click", () => {
+      restartAndInstallUpdate();
+    })
+    .show();
 };
 
-export const publishNewFriendRequestNotification = async () => {};
+export const publishNewFriendRequestNotification = async () => {
+  const userPreferences = await db.get<string, UserPreferences | null>(
+    levelKeys.userPreferences,
+    {
+      valueEncoding: "json",
+    }
+  );
+
+  if (!userPreferences?.friendRequestNotificationsEnabled) return;
+
+  new Notification({
+    title: t("new_friend_request_title", {
+      ns: "notifications",
+    }),
+    body: t("new_friend_request_description", {
+      ns: "notifications",
+    }),
+    icon: trayIcon,
+  }).show();
+};
 
 export const publishCombinedNewAchievementNotification = async (
   achievementCount,

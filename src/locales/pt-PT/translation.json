@@ -30,7 +30,6 @@
   },
   "header": {
     "search": "Procurar jogos",
-
     "catalogue": "Catálogo",
     "downloads": "Transferências",
     "search_results": "Resultados da pesquisa",
@@ -261,7 +260,7 @@
     "description_confirmation_delete_all_sources": "Irá remover todas as fontes de download",
     "title_confirmation_delete_all_sources": "Remover todas as fontes de download",
     "removed_download_sources": "Fontes de download removidas",
-    "button_delete_all_sources": "Remover todas as fontes de download",
+    "button_delete_all_sources": "Remover todas",
     "added_download_source": "Fonte adicionada",
     "download_sources_synced": "As fontes foram sincronizadas",
     "insert_valid_json_url": "Insere o URL de um JSON válido",
@@ -281,6 +280,7 @@
     "blocked_users": "Utilizadores bloqueados",
     "user_unblocked": "Utilizador desbloqueado",
     "enable_achievement_notifications": "Quando uma conquista é desbloqueada",
+    "enable_friend_request_notifications": "Quando um pedido de amizade é recebido",
     "launch_minimized": "Iniciar Hydra minimizado",
     "disable_nsfw_alert": "Desativar alertas NSFW",
     "seed_after_download_complete": "Semear após concluir o download",
@@ -338,7 +338,9 @@
     "repack_count_one": "{{count}} novo repack",
     "repack_count_other": "{{count}} novos repacks",
     "new_update_available": "Versão {{version}} disponível",
-    "restart_to_install_update": "Reinicia o Hydra para instalar a nova versão"
+    "restart_to_install_update": "Reinicia o Hydra para instalar a nova versão",
+    "new_friend_request_title": "Novo pedido de amizade",
+    "new_friend_request_description": "Recebeste um novo pedido de amizade"
   },
   "system_tray": {
     "open": "Abrir o Hydra",

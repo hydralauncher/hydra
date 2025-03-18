@@ -13,7 +13,7 @@ import {
   NoEntryIcon,
   PlusCircleIcon,
   SyncIcon,
-  XIcon,
+  TrashIcon,
 } from "@primer/octicons-react";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
 import { useAppDispatch, useRepacks, useToast } from "@renderer/hooks";
@@ -173,7 +173,8 @@ export function SettingsDownloadSources() {
           disabled={
             !downloadSources.length ||
             isSyncingDownloadSources ||
-            isRemovingDownloadSource
+            isRemovingDownloadSource ||
+            isFetchingSources
           }
           onClick={syncDownloadSources}
         >
@@ -181,30 +182,37 @@ export function SettingsDownloadSources() {
           {t("sync_download_sources")}
         </Button>
 
-        <Button
-          type="button"
-          theme="outline"
-          onClick={() => setShowAddDownloadSourceModal(true)}
-          disabled={isSyncingDownloadSources}
-        >
-          <PlusCircleIcon />
-          {t("add_download_source")}
-        </Button>
-      </div>
-
-      {!isFetchingSources && downloadSources.length >= 2 && (
-        <div className="settings-download-sources__remove_all_sources_button">
+        <div className="settings-download-sources__buttons-container">
           <Button
             type="button"
             theme="danger"
             onClick={() => setShowConfirmationDeleteAllSourcesModal(true)}
-            disabled={isRemovingDownloadSource}
+            disabled={
+              isRemovingDownloadSource ||
+              isSyncingDownloadSources ||
+              !downloadSources.length ||
+              isFetchingSources
+            }
           >
-            <XIcon />
+            <TrashIcon />
             {t("button_delete_all_sources")}
           </Button>
+
+          <Button
+            type="button"
+            theme="outline"
+            onClick={() => setShowAddDownloadSourceModal(true)}
+            disabled={
+              isSyncingDownloadSources ||
+              isFetchingSources ||
+              isRemovingDownloadSource
+            }
+          >
+            <PlusCircleIcon />
+            {t("add_download_source")}
+          </Button>
         </div>
-      )}
+      </div>
 
       <ul className="settings-download-sources__list">
         {downloadSources.map((downloadSource) => (
