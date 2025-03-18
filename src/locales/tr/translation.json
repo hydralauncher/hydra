@@ -342,9 +342,9 @@
     "import_theme": "Temayı içe aktar",
     "import_theme_description": "{{theme}} teması, tema mağazasından içeri aktarılacak",
     "error_importing_theme": "Temayı içe aktarmada bir sorun oluştu",
-    "theme_imported": "Tema başarıyla içe aktarıldı"
+    "theme_imported": "Tema başarıyla içe aktarıldı",
     "enable_friend_request_notifications": "Bir arkadaşlık isteği alındığında",
-    "enable_auto_install": "Güncellemeleri otomatik yükle",
+    "enable_auto_install": "Güncellemeleri otomatik yükle"
   },
   "notifications": {
     "download_complete": "İndirme tamamlandı",
@@ -355,9 +355,9 @@
     "new_update_available": "{{version}} sürümü mevcut",
     "restart_to_install_update": "Güncellemeyi yüklemek için Hydra'yı yeniden başlatın",
     "notification_achievement_unlocked_title": "{{game}} için başarım kilidi açıldı",
-    "notification_achievement_unlocked_body": "{{achievement}} ve diğer {{count}} başarım açıldı"
+    "notification_achievement_unlocked_body": "{{achievement}} ve diğer {{count}} başarım açıldı",
     "new_friend_request_description": "Yeni bir arkadaşlık isteği aldınız",
-    "new_friend_request_title": "Yeni arkadaşlık isteği",
+    "new_friend_request_title": "Yeni arkadaşlık isteği"
   },
   "system_tray": {
     "open": "Hydra'yı Aç",
