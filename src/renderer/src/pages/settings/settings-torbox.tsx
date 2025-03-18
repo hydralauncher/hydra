@@ -7,7 +7,13 @@ import "./settings-torbox.scss";
 import { useAppSelector, useToast } from "@renderer/hooks";
 
 import { settingsContext } from "@renderer/context";
+import { LinkExternalIcon } from "@primer/octicons-react";
 
+const torBoxReferralCode = import.meta.env.RENDERER_VITE_TORBOX_REFERRAL_CODE;
+
+const TORBOX_URL = torBoxReferralCode
+  ? `https://torbox.app/subscription?referral=${torBoxReferralCode}`
+  : "https://torbox.app";
 const TORBOX_API_TOKEN_URL = "https://torbox.app/settings";
 
 export function SettingsTorbox() {
@@ -69,19 +75,37 @@ export function SettingsTorbox() {
   const isButtonDisabled =
     (form.useTorBox && !form.torBoxApiToken) || isLoading;
 
+  const toggleTorBox = () => {
+    const updatedValue = !form.useTorBox;
+
+    setForm((prev) => ({
+      ...prev,
+      useTorBox: updatedValue,
+    }));
+
+    if (!updatedValue) {
+      updateUserPreferences({
+        torBoxApiToken: null,
+      });
+    }
+  };
+
   return (
     <form className="settings-torbox__form" onSubmit={handleFormSubmit}>
-      <p className="settings-torbox__description">{t("torbox_description")}</p>
+      <div className="settings-torbox__description-container">
+        <p className="settings-torbox__description">
+          {t("torbox_description")}
+        </p>
+        <Link to={TORBOX_URL} className="settings-torbox__create-account">
+          <LinkExternalIcon />
+          {t("create_torbox_account")}
+        </Link>
+      </div>
 
       <CheckboxField
         label={t("enable_torbox")}
         checked={form.useTorBox}
-        onChange={() =>
-          setForm((prev) => ({
-            ...prev,
-            useTorBox: !form.useTorBox,
-          }))
-        }
+        onChange={toggleTorBox}
       />
 
       {form.useTorBox && (

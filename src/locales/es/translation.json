@@ -304,7 +304,6 @@
     "no_email_account": "No has configurado un correo aún",
     "no_subscription": "Disfruta Hydra de la mejor manera",
     "no_users_blocked": "No tienes usuarios bloqueados",
-    "notifications": "Notificaciones",
     "renew_subscription": "Renovar Hydra Cloud",
     "subscription_active_until": "Tu Hydra Cloud está activa hasta {{date}}",
     "subscription_expired_at": "Tú suscripción expiró el {{date}}",
@@ -341,7 +340,9 @@
     "torbox_account_linked": "Cuenta de TorBox vinculada",
     "torbox_description": "TorBox es tu servicio premium de seedbox que rivaliza incluso a los mejores servidores del mercado.",
     "unset_theme": "Desactivar tema",
-    "web_store": "Tienda Web"
+    "web_store": "Tienda Web",
+    "enable_friend_request_notifications": "Cuando se recibe una solicitud de amistad",
+    "enable_auto_install": "Descargar actualizaciones automáticamente"
   },
   "notifications": {
     "download_complete": "Descarga completada",
@@ -352,7 +353,9 @@
     "new_update_available": "Version {{version}} disponible",
     "restart_to_install_update": "Reinicia Hydra para instalar la actualización",
     "notification_achievement_unlocked_title": "Logro desbloqueado de {{game}}",
-    "notification_achievement_unlocked_body": "{{achievement}} y otros {{count}} fueron desbloqueados"
+    "notification_achievement_unlocked_body": "{{achievement}} y otros {{count}} fueron desbloqueados",
+    "new_friend_request_title": "Nueva solicitud de amistad",
+    "new_friend_request_description": "Has recibido una nueva solicitud de amistad"
   },
   "system_tray": {
     "open": "Abrir Hydra",

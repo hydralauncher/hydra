@@ -7,7 +7,14 @@ import "./settings-real-debrid.scss";
 import { useAppSelector, useToast } from "@renderer/hooks";
 
 import { settingsContext } from "@renderer/context";
+import { LinkExternalIcon } from "@primer/octicons-react";
 
+const realDebridReferralId = import.meta.env
+  .RENDERER_VITE_REAL_DEBRID_REFERRAL_ID;
+
+const REAL_DEBRID_URL = realDebridReferralId
+  ? `https://real-debrid.com/?id=${realDebridReferralId}`
+  : "https://real-debrid.com";
 const REAL_DEBRID_API_TOKEN_URL = "https://real-debrid.com/apitoken";
 
 export function SettingsRealDebrid() {
@@ -74,24 +81,43 @@ export function SettingsRealDebrid() {
     }
   };
 
+  const toggleRealDebrid = () => {
+    const updatedValue = !form.useRealDebrid;
+
+    setForm((prev) => ({
+      ...prev,
+      useRealDebrid: updatedValue,
+    }));
+
+    if (!updatedValue) {
+      updateUserPreferences({
+        realDebridApiToken: null,
+      });
+    }
+  };
+
   const isButtonDisabled =
     (form.useRealDebrid && !form.realDebridApiToken) || isLoading;
 
   return (
     <form className="settings-real-debrid__form" onSubmit={handleFormSubmit}>
-      <p className="settings-real-debrid__description">
-        {t("real_debrid_description")}
-      </p>
+      <div className="settings-real-debrid__description-container">
+        <p className="settings-real-debrid__description">
+          {t("real_debrid_description")}
+        </p>
+        <Link
+          to={REAL_DEBRID_URL}
+          className="settings-real-debrid__create-account"
+        >
+          <LinkExternalIcon />
+          {t("create_real_debrid_account")}
+        </Link>
+      </div>
 
       <CheckboxField
         label={t("enable_real_debrid")}
         checked={form.useRealDebrid}
-        onChange={() => {
-          setForm((prev) => ({
-            ...prev,
-            useRealDebrid: !form.useRealDebrid,
-          }));
-        }}
+        onChange={toggleRealDebrid}
       />
 
       {form.useRealDebrid && (

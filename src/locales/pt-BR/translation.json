@@ -31,7 +31,6 @@
   },
   "header": {
     "search": "Buscar jogos",
-
     "catalogue": "Catálogo",
     "downloads": "Downloads",
     "search_results": "Resultados da busca",
@@ -261,8 +260,8 @@
     "cancel_button_confirmation_delete_all_sources": "Não",
     "confirm_button_confirmation_delete_all_sources": "Sim, excluir tudo",
     "title_confirmation_delete_all_sources": "Remover todas as fontes de download",
-    "description_confirmation_delete_all_sources": "Você irá remover todas as fontes de download",
-    "button_delete_all_sources": "Remover todas as fontes de download",
+    "description_confirmation_delete_all_sources": "Você irá remover todas as fontes de download. Deseja prosseguir?",
+    "button_delete_all_sources": "Remover todas",
     "added_download_source": "Fonte adicionada",
     "download_sources_synced": "As fontes foram sincronizadas",
     "insert_valid_json_url": "Insira a url de um JSON válido",
@@ -323,12 +322,16 @@
     "enable_torbox": "Habilitar Torbox",
     "torbox_description": "TorBox é o seu serviço de seedbox premium que rivaliza até com os melhores servidores do mercado.",
     "torbox_account_linked": "Conta do TorBox vinculada",
+    "create_real_debrid_account": "Clique aqui se você ainda não tem uma conta do Real-Debrid",
+    "create_torbox_account": "Clique aqui se você ainda não tem uma conta do TorBox",
     "real_debrid_account_linked": "Conta Real-Debrid associada",
     "name_min_length": "O nome do tema deve ter pelo menos 3 caracteres",
     "import_theme": "Importar tema",
     "import_theme_description": "Você irá importar {{theme}} da loja de temas",
     "error_importing_theme": "Erro ao importar tema",
-    "theme_imported": "Tema importado com sucesso"
+    "theme_imported": "Tema importado com sucesso",
+    "enable_friend_request_notifications": "Quando um pedido de amizade é recebido",
+    "enable_auto_install": "Baixar atualizações automaticamente"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -337,7 +340,9 @@
     "repack_count_one": "{{count}} novo repack",
     "repack_count_other": "{{count}} novos repacks",
     "new_update_available": "Versão {{version}} disponível",
-    "restart_to_install_update": "Reinicie o Hydra para instalar a nova versão"
+    "restart_to_install_update": "Reinicie o Hydra para instalar a nova versão",
+    "new_friend_request_title": "Novo pedido de amizade",
+    "new_friend_request_description": "Você recebeu um novo pedido de amizade"
   },
   "system_tray": {
     "open": "Abrir Hydra",
