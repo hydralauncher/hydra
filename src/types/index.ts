@@ -22,6 +22,20 @@ export interface GameRepack {
   updatedAt: Date;
 }
 
+export interface DownloadSource {
+  id: number;
+  name: string;
+  url: string;
+  repackCount: number;
+  status: DownloadSourceStatus;
+  objectIds: string[];
+  downloadCount: number;
+  fingerprint: string;
+  etag: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export type ShopDetails = SteamAppDetails & {
   objectId: string;
 };
@@ -195,20 +209,6 @@ export interface DownloadSourceValidationResult {
   name: string;
   etag: string;
   downloadCount: number;
-}
-
-export interface DownloadSource {
-  id: number;
-  name: string;
-  url: string;
-  repackCount: number;
-  status: DownloadSourceStatus;
-  objectIds: string[];
-  downloadCount: number;
-  fingerprint: string;
-  etag: string | null;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface GameStats {
