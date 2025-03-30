@@ -119,7 +119,8 @@ export function AddDownloadSourceModal({
 
       downloadSourcesWorker.postMessage(["IMPORT_DOWNLOAD_SOURCE", url]);
 
-      channel.onmessage = async () => {
+      channel.onmessage = () => {
+        window.electron.createDownloadSource(url);
         setIsLoading(false);
 
         putDownloadSource();

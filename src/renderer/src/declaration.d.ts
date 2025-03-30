@@ -165,6 +165,11 @@ declare global {
     putDownloadSource: (
       objectIds: string[]
     ) => Promise<{ fingerprint: string }>;
+    createDownloadSource: (url: string) => Promise<void>;
+    removeDownloadSource: (url: string, removeAll?: boolean) => Promise<void>;
+    getDownloadSources: () => Promise<
+      Pick<DownloadSource, "url" | "createdAt" | "updatedAt">[]
+    >;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<disk.DiskUsage>;

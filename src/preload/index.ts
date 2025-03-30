@@ -100,6 +100,11 @@ contextBridge.exposeInMainWorld("electron", {
   /* Download sources */
   putDownloadSource: (objectIds: string[]) =>
     ipcRenderer.invoke("putDownloadSource", objectIds),
+  createDownloadSource: (url: string) =>
+    ipcRenderer.invoke("createDownloadSource", url),
+  removeDownloadSource: (url: string, removeAll?: boolean) =>
+    ipcRenderer.invoke("removeDownloadSource", url, removeAll),
+  getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
 
   /* Library */
   toggleAutomaticCloudSync: (

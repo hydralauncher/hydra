@@ -70,14 +70,20 @@ export function SettingsDownloadSources() {
     if (sourceUrl) setShowAddDownloadSourceModal(true);
   }, [sourceUrl]);
 
-  const handleRemoveSource = (id: number) => {
+  const handleRemoveSource = (downloadSource: DownloadSource) => {
     setIsRemovingDownloadSource(true);
-    const channel = new BroadcastChannel(`download_sources:delete:${id}`);
+    const channel = new BroadcastChannel(
+      `download_sources:delete:${downloadSource.id}`
+    );
 
-    downloadSourcesWorker.postMessage(["DELETE_DOWNLOAD_SOURCE", id]);
+    downloadSourcesWorker.postMessage([
+      "DELETE_DOWNLOAD_SOURCE",
+      downloadSource.id,
+    ]);
 
     channel.onmessage = () => {
       showSuccessToast(t("removed_download_source"));
+      window.electron.removeDownloadSource(downloadSource.url);
 
       getDownloadSources();
       setIsRemovingDownloadSource(false);
@@ -96,7 +102,7 @@ export function SettingsDownloadSources() {
 
     channel.onmessage = () => {
       showSuccessToast(t("removed_download_sources"));
-
+      window.electron.removeDownloadSource("", true);
       getDownloadSources();
       setIsRemovingDownloadSource(false);
       setShowConfirmationDeleteAllSourcesModal(false);
@@ -253,7 +259,7 @@ export function SettingsDownloadSources() {
                 <Button
                   type="button"
                   theme="outline"
-                  onClick={() => handleRemoveSource(downloadSource.id)}
+                  onClick={() => handleRemoveSource(downloadSource)}
                   disabled={isRemovingDownloadSource}
                 >
                   <NoEntryIcon />
