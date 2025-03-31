@@ -5,7 +5,7 @@ const createDownloadSource = async (
   _event: Electron.IpcMainInvokeEvent,
   url: string
 ) => {
-  return HydraApi.post("/profile/download-sources", {
+  await HydraApi.post("/profile/download-sources", {
     url,
   });
 };

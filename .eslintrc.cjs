@@ -19,7 +19,6 @@ module.exports = {
       },
     ],
     "@typescript-eslint/no-explicit-any": "warn",
-    "no-async-promise-executor": "off",
     "prettier/prettier": [
       "error",
       {
