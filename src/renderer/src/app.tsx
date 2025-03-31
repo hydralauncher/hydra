@@ -31,6 +31,7 @@ import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-m
 
 import { injectCustomCss } from "./helpers";
 import "./app.scss";
+import { DownloadSource } from "@types";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -139,12 +140,15 @@ export function App() {
   const syncDownloadSources = useCallback(async () => {
     const downloadSources = await window.electron.getDownloadSources();
 
+    const existingDownloadSources: DownloadSource[] =
+      await downloadSourcesTable.toArray();
+
     await Promise.allSettled(
       downloadSources.map(async (source) => {
-        return new Promise(async (resolve) => {
-          const existingDownloadSource = await downloadSourcesTable
-            .where({ url: source.url })
-            .first();
+        return new Promise((resolve) => {
+          const existingDownloadSource = existingDownloadSources.find(
+            (downloadSource) => downloadSource.url === source.url
+          );
 
           if (!existingDownloadSource) {
             const channel = new BroadcastChannel(
@@ -160,6 +164,8 @@ export function App() {
               resolve(true);
               channel.close();
             };
+          } else {
+            resolve(true);
           }
         });
       })
