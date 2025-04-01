@@ -128,6 +128,17 @@ export const publishCombinedNewAchievementNotification = async (
   }
 };
 
+export const publishExtractionCompleteNotification = async (game: Game) => {
+  new Notification({
+    title: t("extraction_complete", { ns: "notifications" }),
+    body: t("game_extracted", {
+      ns: "notifications",
+      title: game.title,
+    }),
+    icon: trayIcon,
+  }).show();
+};
+
 export const publishNewAchievementNotification = async (info: {
   achievements: { displayName: string; iconUrl: string }[];
   unlockedAchievementCount: number;

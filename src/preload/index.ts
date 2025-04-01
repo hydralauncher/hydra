@@ -100,8 +100,8 @@ contextBridge.exposeInMainWorld("electron", {
   /* Download sources */
   putDownloadSource: (objectIds: string[]) =>
     ipcRenderer.invoke("putDownloadSource", objectIds),
-  createDownloadSource: (url: string) =>
-    ipcRenderer.invoke("createDownloadSource", url),
+  createDownloadSources: (urls: string[]) =>
+    ipcRenderer.invoke("createDownloadSources", urls),
   removeDownloadSource: (url: string, removeAll?: boolean) =>
     ipcRenderer.invoke("removeDownloadSource", url, removeAll),
   getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
@@ -199,6 +199,15 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-achievement-unlocked", listener);
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked", listener);
+  },
+  onExtractionComplete: (cb: (shop: GameShop, objectId: string) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      shop: GameShop,
+      objectId: string
+    ) => cb(shop, objectId);
+    ipcRenderer.on("on-extraction-complete", listener);
+    return () => ipcRenderer.removeListener("on-extraction-complete", listener);
   },
 
   /* Hardware */

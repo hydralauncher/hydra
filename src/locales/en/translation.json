@@ -230,7 +230,8 @@
     "seeding": "Seeding",
     "stop_seeding": "Stop seeding",
     "resume_seeding": "Resume seeding",
-    "options": "Manage"
+    "options": "Manage",
+    "extracting": "Extracting files…"
   },
   "settings": {
     "downloads_path": "Downloads path",
@@ -344,7 +345,8 @@
     "error_importing_theme": "Error importing theme",
     "theme_imported": "Theme imported successfully",
     "enable_friend_request_notifications": "When a friend request is received",
-    "enable_auto_install": "Download updates automatically"
+    "enable_auto_install": "Download updates automatically",
+    "automatically_extract_downloaded_files": "Automatically extract downloaded files"
   },
   "notifications": {
     "download_complete": "Download complete",
@@ -357,7 +359,9 @@
     "notification_achievement_unlocked_title": "Achievement unlocked for {{game}}",
     "notification_achievement_unlocked_body": "{{achievement}} and other {{count}} were unlocked",
     "new_friend_request_description": "You have received a new friend request",
-    "new_friend_request_title": "New friend request"
+    "new_friend_request_title": "New friend request",
+    "extraction_complete": "Extraction complete",
+    "game_extracted": "{{title}} extracted successfully"
   },
   "system_tray": {
     "open": "Open Hydra",

@@ -90,7 +90,7 @@ import "./themes/get-custom-theme-by-id";
 import "./themes/get-active-custom-theme";
 import "./themes/close-editor-window";
 import "./themes/toggle-custom-theme";
-import "./download-sources/create-download-source";
+import "./download-sources/create-download-sources";
 import "./download-sources/remove-download-source";
 import "./download-sources/get-download-sources";
 import { isPortableVersion } from "@main/helpers";

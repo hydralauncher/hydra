@@ -139,9 +139,9 @@ export function SettingsGeneral() {
         }))}
       />
 
-      <p className="settings-general__notifications-title">
+      <h2 className="settings-general__notifications-title">
         {t("notifications")}
-      </p>
+      </h2>
 
       <CheckboxField
         label={t("enable_download_notifications")}

@@ -16,7 +16,8 @@ export interface RepacksModalProps {
   startDownload: (
     repack: GameRepack,
     downloader: Downloader,
-    downloadPath: string
+    downloadPath: string,
+    automaticallyExtract: boolean
   ) => Promise<{ ok: boolean; error?: string }>;
   onClose: () => void;
 }
