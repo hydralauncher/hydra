@@ -190,7 +190,7 @@
     "reset_achievements_error": "Не удалось сбросить достижения",
     "download_error_gofile_quota_exceeded": "Вы превысили месячную квоту Gofile. Пожалуйста, подождите, пока квота не будет восстановлена.",
     "download_error_real_debrid_account_not_authorized": "Ваш аккаунт Real-Debrid не авторизован для осуществления новых загрузок. Пожалуйста, проверьте настройки учетной записи и повторите попытку.",
-    "download_error_not_cached_in_real_debrid": "Эта загрузка недоступна на Real-Debrid,и получение статуса загрузки с Real-Debrid пока недоступно.",
+    "download_error_not_cached_in_real_debrid": "Эта загрузка недоступна на Real-Debrid, и получение статуса загрузки с Real-Debrid пока недоступно.",
     "download_error_not_cached_in_torbox": "Эта загрузка недоступна на Torbox, и получить статус загрузки с Torbox пока невозможно.",
     "game_added_to_favorites": "Игра добавлена в избранное",
     "game_removed_from_favorites": "Игра удалена из избранного"
@@ -274,7 +274,7 @@
     "confirm_button_confirmation_delete_all_sources": "Да, удалить все",
     "description_confirmation_delete_all_sources": "Вы удалите все источники",
     "title_confirmation_delete_all_sources": "Удалить все источники",
-    "removed_download_sources": "Шрифты удалены",
+    "removed_download_sources": "Источники удалены",
     "button_delete_all_sources": "Удалить все источники",
     "added_download_source": "Источник добавлен",
     "download_sources_synced": "Все источники обновлены",
