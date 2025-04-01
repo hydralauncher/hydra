@@ -27,7 +27,7 @@ export class _7Zip {
     const child = cp.spawn(this.binaryPath, [
       "x",
       filePath,
-      "-o" + outputPath,
+      `-o"${outputPath}"`,
       "-y",
     ]);
 
