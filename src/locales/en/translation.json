@@ -193,7 +193,8 @@
     "download_error_not_cached_in_real_debrid": "This download is not available on Real-Debrid and polling download status from Real-Debrid is not yet available.",
     "download_error_not_cached_in_torbox": "This download is not available on Torbox and polling download status from Torbox is not yet available.",
     "game_removed_from_favorites": "Game removed from favorites",
-    "game_added_to_favorites": "Game added to favorites"
+    "game_added_to_favorites": "Game added to favorites",
+    "automatically_extract_downloaded_files": "Automatically extract downloaded files"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -345,8 +346,7 @@
     "error_importing_theme": "Error importing theme",
     "theme_imported": "Theme imported successfully",
     "enable_friend_request_notifications": "When a friend request is received",
-    "enable_auto_install": "Download updates automatically",
-    "automatically_extract_downloaded_files": "Automatically extract downloaded files"
+    "enable_auto_install": "Download updates automatically"
   },
   "notifications": {
     "download_complete": "Download complete",
