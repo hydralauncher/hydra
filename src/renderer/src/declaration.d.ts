@@ -160,12 +160,15 @@ declare global {
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
     authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
     onAchievementUnlocked: (cb: () => void) => () => Electron.IpcRenderer;
+    onExtractionComplete: (
+      cb: (shop: GameShop, objectId: string) => void
+    ) => () => Electron.IpcRenderer;
 
     /* Download sources */
     putDownloadSource: (
       objectIds: string[]
     ) => Promise<{ fingerprint: string }>;
-    createDownloadSource: (url: string) => Promise<void>;
+    createDownloadSources: (urls: string[]) => Promise<void>;
     removeDownloadSource: (url: string, removeAll?: boolean) => Promise<void>;
     getDownloadSources: () => Promise<
       Pick<DownloadSource, "url" | "createdAt" | "updatedAt">[]

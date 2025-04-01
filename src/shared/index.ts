@@ -1,5 +1,21 @@
+import {
+  ptBR,
+  enUS,
+  es,
+  fr,
+  pl,
+  hu,
+  tr,
+  ru,
+  it,
+  be,
+  zhCN,
+  da,
+} from "date-fns/locale";
+
 import { charMap } from "./char-map";
 import { Downloader } from "./constants";
+import { format } from "date-fns";
 
 export * from "./constants";
 
@@ -123,4 +139,30 @@ export const steamUrlBuilder = {
     `https://cdn.cloudflare.steamstatic.com/steam/apps/${objectId}/library_600x900.jpg`,
   icon: (objectId: string, clientIcon: string) =>
     `https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/${objectId}/${clientIcon}.ico`,
+};
+
+export const getDateLocale = (language: string) => {
+  if (language.startsWith("pt")) return ptBR;
+  if (language.startsWith("es")) return es;
+  if (language.startsWith("fr")) return fr;
+  if (language.startsWith("hu")) return hu;
+  if (language.startsWith("pl")) return pl;
+  if (language.startsWith("tr")) return tr;
+  if (language.startsWith("ru")) return ru;
+  if (language.startsWith("it")) return it;
+  if (language.startsWith("be")) return be;
+  if (language.startsWith("zh")) return zhCN;
+  if (language.startsWith("da")) return da;
+
+  return enUS;
+};
+
+export const formatDate = (
+  date: number | Date | string,
+  language: string
+): string => {
+  if (isNaN(new Date(date).getDate())) return "N/A";
+
+  const locale = getDateLocale(language);
+  return format(date, locale == enUS ? "MM/dd/yyyy" : "dd/MM/yyyy");
 };

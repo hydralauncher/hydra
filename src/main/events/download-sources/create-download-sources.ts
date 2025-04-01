@@ -1,13 +1,13 @@
 import { HydraApi } from "@main/services";
 import { registerEvent } from "../register-event";
 
-const createDownloadSource = async (
+const createDownloadSources = async (
   _event: Electron.IpcMainInvokeEvent,
-  url: string
+  urls: string[]
 ) => {
   await HydraApi.post("/profile/download-sources", {
-    url,
+    urls,
   });
 };
 
-registerEvent("createDownloadSource", createDownloadSource);
+registerEvent("createDownloadSources", createDownloadSources);

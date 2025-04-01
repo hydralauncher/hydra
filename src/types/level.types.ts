@@ -60,6 +60,8 @@ export interface Download {
   status: DownloadStatus | null;
   queued: boolean;
   timestamp: number;
+  extracting: boolean;
+  automaticallyExtract: boolean;
 }
 
 export interface GameAchievement {

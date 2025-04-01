@@ -143,6 +143,10 @@ export function App() {
     const existingDownloadSources: DownloadSource[] =
       await downloadSourcesTable.toArray();
 
+    window.electron.createDownloadSources(
+      existingDownloadSources.map((source) => source.url)
+    );
+
     await Promise.allSettled(
       downloadSources.map(async (source) => {
         return new Promise((resolve) => {

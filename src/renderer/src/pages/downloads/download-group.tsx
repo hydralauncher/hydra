@@ -96,6 +96,10 @@ export function DownloadGroup({
     const finalDownloadSize = getFinalDownloadSize(game);
     const seedingStatus = seedingMap.get(game.id);
 
+    if (download.extracting) {
+      return <p>{t("extracting")}</p>;
+    }
+
     if (isGameDeleting(game.id)) {
       return <p>{t("deleting")}</p>;
     }

@@ -7,7 +7,8 @@ export type DownloadStatus =
   | "error"
   | "complete"
   | "seeding"
-  | "removed";
+  | "removed"
+  | "extracting";
 
 export interface DownloadProgress {
   downloadSpeed: number;

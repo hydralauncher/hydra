@@ -91,6 +91,7 @@ export interface StartGameDownloadPayload {
   uri: string;
   downloadPath: string;
   downloader: Downloader;
+  automaticallyExtract: boolean;
 }
 
 export interface UserFriend {

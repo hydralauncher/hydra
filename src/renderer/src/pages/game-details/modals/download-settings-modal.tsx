@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { Button, Link, Modal, TextField } from "@renderer/components";
+import {
+  Button,
+  CheckboxField,
+  Link,
+  Modal,
+  TextField,
+} from "@renderer/components";
 import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
 import { Downloader, formatBytes, getDownloadersForUris } from "@shared";
 import type { GameRepack } from "@types";
@@ -14,7 +20,8 @@ export interface DownloadSettingsModalProps {
   startDownload: (
     repack: GameRepack,
     downloader: Downloader,
-    downloadPath: string
+    downloadPath: string,
+    automaticallyExtract: boolean
   ) => Promise<{ ok: boolean; error?: string }>;
   repack: GameRepack | null;
 }
@@ -32,6 +39,8 @@ export function DownloadSettingsModal({
   const [diskFreeSpace, setDiskFreeSpace] = useState<number | null>(null);
   const [selectedPath, setSelectedPath] = useState("");
   const [downloadStarting, setDownloadStarting] = useState(false);
+  const [automaticExtractionEnabled, setAutomaticExtractionEnabled] =
+    useState(true);
   const [selectedDownloader, setSelectedDownloader] =
     useState<Downloader | null>(null);
   const [hasWritePermission, setHasWritePermission] = useState<boolean | null>(
@@ -72,6 +81,21 @@ export function DownloadSettingsModal({
     return getDownloadersForUris(repack?.uris ?? []);
   }, [repack?.uris]);
 
+  const getDefaultDownloader = useCallback(
+    (availableDownloaders: Downloader[]) => {
+      if (availableDownloaders.includes(Downloader.TorBox)) {
+        return Downloader.TorBox;
+      }
+
+      if (availableDownloaders.includes(Downloader.RealDebrid)) {
+        return Downloader.RealDebrid;
+      }
+
+      return availableDownloaders[0];
+    },
+    []
+  );
+
   useEffect(() => {
     if (userPreferences?.downloadsPath) {
       setSelectedPath(userPreferences.downloadsPath);
@@ -89,13 +113,9 @@ export function DownloadSettingsModal({
       return true;
     });
 
-    /* Gives preference to TorBox */
-    const selectedDownloader = filteredDownloaders.includes(Downloader.TorBox)
-      ? Downloader.TorBox
-      : filteredDownloaders[0];
-
-    setSelectedDownloader(selectedDownloader ?? null);
+    setSelectedDownloader(getDefaultDownloader(filteredDownloaders));
   }, [
+    getDefaultDownloader,
     userPreferences?.downloadsPath,
     downloaders,
     userPreferences?.realDebridApiToken,
@@ -122,7 +142,8 @@ export function DownloadSettingsModal({
         const response = await startDownload(
           repack,
           selectedDownloader!,
-          selectedPath
+          selectedPath,
+          automaticExtractionEnabled
         );
 
         if (response.ok) {
@@ -216,6 +237,16 @@ export function DownloadSettingsModal({
             </Trans>
           </p>
         </div>
+
+        {selectedDownloader !== Downloader.Torrent && (
+          <CheckboxField
+            label={t("automatically_extract_downloaded_files")}
+            checked={automaticExtractionEnabled}
+            onChange={() =>
+              setAutomaticExtractionEnabled(!automaticExtractionEnabled)
+            }
+          />
+        )}
 
         <Button
           onClick={handleStartClick}

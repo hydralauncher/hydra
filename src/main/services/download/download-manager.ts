@@ -1,6 +1,9 @@
 import { Downloader, DownloadError } from "@shared";
 import { WindowManager } from "../window-manager";
-import { publishDownloadCompleteNotification } from "../notifications";
+import {
+  publishDownloadCompleteNotification,
+  publishExtractionCompleteNotification,
+} from "../notifications";
 import type { Download, DownloadProgress, UserPreferences } from "@types";
 import {
   GofileApi,
@@ -22,9 +25,11 @@ import { logger } from "../logger";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { sortBy } from "lodash-es";
 import { TorBoxClient } from "./torbox";
+import { _7Zip } from "../7zip";
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
+  private static readonly extensionsToExtract = [".rar", ".zip", ".7z"];
 
   public static async startRPC(
     download?: Download,
@@ -150,12 +155,46 @@ export class DownloadManager {
             queued: false,
           });
         } else {
+          const shouldExtract =
+            download.downloader !== Downloader.Torrent &&
+            this.extensionsToExtract.some((ext) =>
+              download.folderName?.endsWith(ext)
+            ) &&
+            download.automaticallyExtract;
+
           downloadsSublevel.put(gameId, {
             ...download,
             status: "complete",
             shouldSeed: false,
             queued: false,
+            extracting: shouldExtract,
           });
+
+          if (shouldExtract) {
+            _7Zip.extractFile(
+              path.join(download.downloadPath, download.folderName!),
+              path.join(
+                download.downloadPath,
+                path.parse(download.folderName!).name
+              ),
+              async () => {
+                const download = await downloadsSublevel.get(gameId);
+
+                downloadsSublevel.put(gameId, {
+                  ...download!,
+                  extracting: false,
+                });
+
+                WindowManager.mainWindow?.webContents.send(
+                  "on-extraction-complete",
+                  game.shop,
+                  game.objectId
+                );
+
+                publishExtractionCompleteNotification(game);
+              }
+            );
+          }
 
           this.cancelDownload(gameId);
         }
