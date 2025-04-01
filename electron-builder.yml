@@ -21,7 +21,9 @@ asarUnpack:
 win:
   executableName: Hydra
   extraResources:
-    - from: binaries/7zr.exe
+    - from: binaries/7za.exe
+    - from: binaries/7za.dll
+    - from: binaries/7zxa.dll
   target:
     - nsis
     - portable
