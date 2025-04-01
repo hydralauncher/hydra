@@ -5,7 +5,7 @@ import path from "node:path";
 export const binaryName = {
   linux: "7zzs",
   darwin: "7zz",
-  win32: "7za.exe",
+  win32: "7z.exe",
 };
 
 export class _7Zip {
