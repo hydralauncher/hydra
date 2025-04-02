@@ -124,6 +124,7 @@ export class GameFilesManager {
       {
         filePath,
         outputPath: extractionPath,
+        passwords: ["online-fix.me", "steamrip.com"],
       },
       async (success) => {
         if (success) {
