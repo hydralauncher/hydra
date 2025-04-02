@@ -232,6 +232,7 @@
     "stop_seeding": "Stop seeding",
     "resume_seeding": "Resume seeding",
     "options": "Manage",
+    "extract": "Extract files",
     "extracting": "Extracting files…"
   },
   "settings": {

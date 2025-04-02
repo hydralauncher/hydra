@@ -238,15 +238,13 @@ export function DownloadSettingsModal({
           </p>
         </div>
 
-        {selectedDownloader !== Downloader.Torrent && (
-          <CheckboxField
-            label={t("automatically_extract_downloaded_files")}
-            checked={automaticExtractionEnabled}
-            onChange={() =>
-              setAutomaticExtractionEnabled(!automaticExtractionEnabled)
-            }
-          />
-        )}
+        <CheckboxField
+          label={t("automatically_extract_downloaded_files")}
+          checked={automaticExtractionEnabled}
+          onChange={() =>
+            setAutomaticExtractionEnabled(!automaticExtractionEnabled)
+          }
+        />
 
         <Button
           onClick={handleStartClick}
