@@ -10,3 +10,4 @@ export * from "./ludusavi";
 export * from "./cloud-sync";
 export * from "./7zip";
 export * from "./game-files-manager";
+export * from "./common-redist-manager";
