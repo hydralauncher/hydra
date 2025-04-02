@@ -178,6 +178,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGameByObjectId", shop, objectId),
   resetGameAchievements: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("resetGameAchievements", shop, objectId),
+  extractGameDownload: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("extractGameDownload", shop, objectId),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]

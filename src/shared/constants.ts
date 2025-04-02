@@ -57,3 +57,5 @@ export enum DownloadError {
   GofileQuotaExceeded = "download_error_gofile_quota_exceeded",
   RealDebridAccountNotAuthorized = "download_error_real_debrid_account_not_authorized",
 }
+
+export const FILE_EXTENSIONS_TO_EXTRACT = [".rar", ".zip", ".7z"];

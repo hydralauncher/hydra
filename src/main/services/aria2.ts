@@ -16,6 +16,12 @@ export class Aria2 {
         "--rpc-listen-all",
         "--file-allocation=none",
         "--allow-overwrite=true",
+        "-s",
+        "16",
+        "-x",
+        "16",
+        "-k",
+        "1M",
       ],
       { stdio: "inherit", windowsHide: true }
     );

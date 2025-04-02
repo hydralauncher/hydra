@@ -1,6 +1,7 @@
 import { app } from "electron";
 import cp from "node:child_process";
 import path from "node:path";
+import { logger } from "./logger";
 
 export const binaryName = {
   linux: "7zzs",
@@ -20,19 +21,55 @@ export class _7Zip {
       );
 
   public static extractFile(
-    filePath: string,
-    outputPath: string,
-    cb: () => void
-  ) {
-    const child = cp.spawn(this.binaryPath, [
-      "x",
+    {
       filePath,
-      `-o"${outputPath}"`,
-      "-y",
-    ]);
+      outputPath,
+      cwd,
+      passwords = [],
+    }: {
+      filePath: string;
+      outputPath?: string;
+      cwd?: string;
+      passwords?: string[];
+    },
+    cb: (success: boolean) => void
+  ) {
+    const tryPassword = (index = -1) => {
+      const password = passwords[index] ?? "";
+      logger.info(`Trying password ${password} on ${filePath}`);
 
-    child.on("exit", () => {
-      cb();
-    });
+      const args = ["x", filePath, "-y", "-p" + password];
+
+      if (outputPath) {
+        args.push("-o" + outputPath);
+      }
+
+      const child = cp.execFile(this.binaryPath, args, {
+        cwd,
+      });
+
+      child.once("exit", (code) => {
+        console.log("EXIT CALLED", code, filePath);
+
+        if (code === 0) {
+          cb(true);
+          return;
+        }
+
+        if (index < passwords.length - 1) {
+          logger.info(
+            `Failed to extract file: ${filePath} with password: ${password}. Trying next password...`
+          );
+
+          tryPassword(index + 1);
+        } else {
+          logger.info(`Failed to extract file: ${filePath}`);
+
+          cb(false);
+        }
+      });
+    };
+
+    tryPassword();
   }
 }

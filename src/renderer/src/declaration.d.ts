@@ -149,6 +149,8 @@ declare global {
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
     resetGameAchievements: (shop: GameShop, objectId: string) => Promise<void>;
     /* User preferences */
+    authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
+    authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
     getUserPreferences: () => Promise<UserPreferences | null>;
     updateUserPreferences: (
       preferences: Partial<UserPreferences>
@@ -157,8 +159,7 @@ declare global {
       enabled: boolean;
       minimized: boolean;
     }) => Promise<void>;
-    authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
-    authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
+    extractGameDownload: (shop: GameShop, objectId: string) => Promise<boolean>;
     onAchievementUnlocked: (cb: () => void) => () => Electron.IpcRenderer;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
