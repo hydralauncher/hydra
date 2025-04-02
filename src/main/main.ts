@@ -9,7 +9,7 @@ import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
 import type { UserPreferences } from "@types";
 import { TorBoxClient } from "./services/download/torbox";
-
+import { CommonRedistManager } from "./services/common-redist-manager";
 export const loadState = async () => {
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
@@ -65,4 +65,6 @@ export const loadState = async () => {
   await DownloadManager.startRPC(nextItemOnQueue, downloadsToSeed);
 
   startMainLoop();
+
+  CommonRedistManager.downloadCommonRedist();
 };
