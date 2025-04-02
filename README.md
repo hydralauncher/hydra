@@ -187,6 +187,22 @@ yarn build:linux
   <img src="https://contrib.rocks/image?repo=hydralauncher/hydra" />
 </a>
 
+# Epic/Steam/GoG Games on Hydra
+
+To play your **Epic/Steam/GOG** games on Hydra you need to change the executable's path from your chosen game on Hydra's library.
+
+1. On HydraLauncher select your game and go to "Options".
+
+![Image](https://github.com/user-attachments/assets/540d559e-aae9-4642-ba27-c2f6a8afc15a)
+
+2. Then go to "Select" and find your **Epic/Steam/GOG** game's location path. 
+
+![Image](https://github.com/user-attachments/assets/d49eba0c-1698-4ddd-96f1-3b178ab4bba2)
+
+3. And now select your game's executable.
+
+![Image](https://github.com/user-attachments/assets/066308c7-e953-4fc5-bb94-48193a43cc91)
+
 ## License
 
 Hydra is licensed under the [MIT License](LICENSE).
