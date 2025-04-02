@@ -185,6 +185,10 @@ export function SettingsGeneral() {
           })
         }
       />
+
+      <Button onClick={() => window.electron.installCommonRedist()}>
+        {t("install_common_redist")}
+      </Button>
     </div>
   );
 }

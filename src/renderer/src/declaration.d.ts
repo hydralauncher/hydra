@@ -234,6 +234,7 @@ declare global {
     showItemInFolder: (path: string) => Promise<void>;
     getFeatures: () => Promise<string[]>;
     getBadges: () => Promise<Badge[]>;
+    installCommonRedist: () => Promise<void>;
     platform: NodeJS.Platform;
 
     /* Auto update */

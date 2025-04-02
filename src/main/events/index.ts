@@ -39,6 +39,7 @@ import "./misc/show-open-dialog";
 import "./misc/get-features";
 import "./misc/show-item-in-folder";
 import "./misc/get-badges";
+import "./misc/install-commonredist";
 import "./torrenting/cancel-game-download";
 import "./torrenting/pause-game-download";
 import "./torrenting/resume-game-download";
