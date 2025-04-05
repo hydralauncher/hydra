@@ -145,7 +145,7 @@ export class DownloadManager {
           userPreferences?.seedAfterDownloadComplete &&
           download.downloader === Downloader.Torrent
         ) {
-          downloadsSublevel.put(gameId, {
+          await downloadsSublevel.put(gameId, {
             ...download,
             status: "seeding",
             shouldSeed: true,
@@ -154,7 +154,7 @@ export class DownloadManager {
         } else {
           const shouldExtract = download.automaticallyExtract;
 
-          downloadsSublevel.put(gameId, {
+          await downloadsSublevel.put(gameId, {
             ...download,
             status: "complete",
             shouldSeed: false,
