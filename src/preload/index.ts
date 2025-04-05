@@ -311,6 +311,16 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeListener("autoUpdaterEvent", listener);
     };
   },
+  onCommonRedistProgress: (
+    cb: (value: { component: string; complete: boolean }) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      value: { component: string; complete: boolean }
+    ) => cb(value);
+    ipcRenderer.on("common-redist-progress", listener);
+    return () => ipcRenderer.removeListener("common-redist-progress", listener);
+  },
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
   restartAndInstallUpdate: () => ipcRenderer.invoke("restartAndInstallUpdate"),
 

@@ -235,6 +235,9 @@ declare global {
     getFeatures: () => Promise<string[]>;
     getBadges: () => Promise<Badge[]>;
     installCommonRedist: () => Promise<void>;
+    onCommonRedistProgress: (
+      cb: (value: { component: string; complete: boolean }) => void
+    ) => () => Electron.IpcRenderer;
     platform: NodeJS.Platform;
 
     /* Auto update */

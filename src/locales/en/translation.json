@@ -44,7 +44,10 @@
     "downloading_metadata": "Downloading {{title}} metadata…",
     "downloading": "Downloading {{title}}… ({{percentage}} complete) - Completion {{eta}} - {{speed}}",
     "calculating_eta": "Downloading {{title}}… ({{percentage}} complete) - Calculating remaining time…",
-    "checking_files": "Checking {{title}} files… ({{percentage}} complete)"
+    "checking_files": "Checking {{title}} files… ({{percentage}} complete)",
+    "installing_common_redist": "{{log}}…",
+    "installation_complete": "Installation complete",
+    "installation_complete_message": "Common redistributables installed successfully"
   },
   "catalogue": {
     "search": "Filter…",
