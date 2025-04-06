@@ -21,6 +21,8 @@ const updateExecutablePath = async (
   await gamesSublevel.put(gameKey, {
     ...game,
     executablePath: parsedPath,
+    automaticCloudSync:
+      executablePath === null ? false : game.automaticCloudSync,
   });
 };
 

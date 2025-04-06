@@ -23,10 +23,6 @@ const updateUserPreferences = async (
     patchUserProfile({ language: preferences.language }).catch(() => {});
   }
 
-  if (!preferences.downloadsPath) {
-    preferences.downloadsPath = null;
-  }
-
   await db.put<string, UserPreferences>(
     levelKeys.userPreferences,
     {

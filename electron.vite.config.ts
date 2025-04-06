@@ -16,9 +16,6 @@ export default defineConfig(({ mode }) => {
     main: {
       build: {
         sourcemap: true,
-        rollupOptions: {
-          external: ["better-sqlite3"],
-        },
       },
       resolve: {
         alias: {

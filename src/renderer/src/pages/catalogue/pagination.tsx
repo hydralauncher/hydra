@@ -18,14 +18,11 @@ export function Pagination({
 
   if (totalPages <= 1) return null;
 
-  // Number of visible pages
   const visiblePages = 3;
 
-  // Calculate the start and end of the visible range
-  let startPage = Math.max(1, page - 1); // Shift range slightly back
+  let startPage = Math.max(1, page - 1);
   let endPage = startPage + visiblePages - 1;
 
-  // Adjust the range if we're near the start or end
   if (endPage > totalPages) {
     endPage = totalPages;
     startPage = Math.max(1, endPage - visiblePages + 1);
@@ -33,7 +30,6 @@ export function Pagination({
 
   return (
     <div className="pagination">
-      {/* Previous Button */}
       <Button
         theme="outline"
         onClick={() => onPageChange(page - 1)}
@@ -45,7 +41,6 @@ export function Pagination({
 
       {page > 2 && (
         <>
-          {/* initial page */}
           <Button
             theme="outline"
             onClick={() => onPageChange(1)}
@@ -55,14 +50,12 @@ export function Pagination({
             {1}
           </Button>
 
-          {/* ellipsis */}
           <div className="pagination__ellipsis">
             <span className="pagination__ellipsis-text">...</span>
           </div>
         </>
       )}
 
-      {/* Page Buttons */}
       {Array.from(
         { length: endPage - startPage + 1 },
         (_, i) => startPage + i
@@ -79,12 +72,10 @@ export function Pagination({
 
       {page < totalPages - 1 && (
         <>
-          {/* ellipsis */}
           <div className="pagination__ellipsis">
             <span className="pagination__ellipsis-text">...</span>
           </div>
 
-          {/* last page */}
           <Button
             theme="outline"
             onClick={() => onPageChange(totalPages)}
@@ -96,7 +87,6 @@ export function Pagination({
         </>
       )}
 
-      {/* Next Button */}
       <Button
         theme="outline"
         onClick={() => onPageChange(page + 1)}
