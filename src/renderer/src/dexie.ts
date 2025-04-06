@@ -23,7 +23,7 @@ export const db = new Dexie("Hydra");
 
 db.version(9).stores({
   repacks: `++id, title, uris, fileSize, uploadDate, downloadSourceId, repacker, objectIds, createdAt, updatedAt`,
-  downloadSources: `++id, &url, name, etag, objectIds, downloadCount, status, fingerprint, createdAt, updatedAt`,
+  downloadSources: `++id, url, name, etag, objectIds, downloadCount, status, fingerprint, createdAt, updatedAt`,
   howLongToBeatEntries: `++id, categories, [shop+objectId], createdAt, updatedAt`,
 });
 
