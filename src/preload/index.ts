@@ -313,11 +313,11 @@ contextBridge.exposeInMainWorld("electron", {
     };
   },
   onCommonRedistProgress: (
-    cb: (value: { component: string; complete: boolean }) => void
+    cb: (value: { log: string; complete: boolean }) => void
   ) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      value: { component: string; complete: boolean }
+      value: { log: string; complete: boolean }
     ) => cb(value);
     ipcRenderer.on("common-redist-progress", listener);
     return () => ipcRenderer.removeListener("common-redist-progress", listener);

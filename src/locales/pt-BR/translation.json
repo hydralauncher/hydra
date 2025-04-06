@@ -44,7 +44,10 @@
     "downloading_metadata": "Baixando metadados de {{title}}…",
     "downloading": "Baixando {{title}}… ({{percentage}} concluído) - Conclusão {{eta}} - {{speed}}",
     "calculating_eta": "Baixando {{title}}… ({{percentage}} concluído) - Calculando tempo restante…",
-    "checking_files": "Verificando arquivos de {{title}}…"
+    "checking_files": "Verificando arquivos de {{title}}…",
+    "installing_common_redist": "{{log}}…",
+    "installation_complete": "Instalação concluída",
+    "installation_complete_message": "Componentes recomendados instalados com sucesso"
   },
   "game_details": {
     "open_download_options": "Ver opções de download",
