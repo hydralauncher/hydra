@@ -39,6 +39,10 @@ export class CommonRedistManager {
 
     const installationCompleteMessage = "Installation complete";
 
+    if (!fs.existsSync(this.installationLog)) {
+      await fs.promises.writeFile(this.installationLog, "");
+    }
+
     fs.watch(this.installationLog, { signal: abortController.signal }, () => {
       fs.readFile(this.installationLog, "utf-8", (err, data) => {
         if (err) return logger.error("Error reading log file:", err);

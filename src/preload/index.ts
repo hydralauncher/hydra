@@ -295,6 +295,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("showItemInFolder", path),
   getFeatures: () => ipcRenderer.invoke("getFeatures"),
   getBadges: () => ipcRenderer.invoke("getBadges"),
+  canInstallCommonRedist: () => ipcRenderer.invoke("canInstallCommonRedist"),
   installCommonRedist: () => ipcRenderer.invoke("installCommonRedist"),
   platform: process.platform,
 

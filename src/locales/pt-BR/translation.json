@@ -334,7 +334,10 @@
     "error_importing_theme": "Erro ao importar tema",
     "theme_imported": "Tema importado com sucesso",
     "enable_friend_request_notifications": "Quando um pedido de amizade é recebido",
-    "enable_auto_install": "Baixar atualizações automaticamente"
+    "enable_auto_install": "Baixar atualizações automaticamente",
+    "common_redist": "Componentes recomendados",
+    "common_redist_description": "Componentes recomendados são necessários para executar alguns jogos. A instalação deles é recomendada para evitar problemas.",
+    "install_common_redist": "Instalar"
   },
   "notifications": {
     "download_complete": "Download concluído",
