@@ -236,7 +236,7 @@ export function SettingsGeneral() {
       <Button
         onClick={handleInstallCommonRedist}
         className="settings-general__common-redist-button"
-        disabled={!canInstallCommonRedist}
+        disabled={!canInstallCommonRedist || installingCommonRedist}
       >
         <DesktopDownloadIcon />
         {installingCommonRedist
