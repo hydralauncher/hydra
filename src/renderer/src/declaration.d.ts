@@ -234,6 +234,7 @@ declare global {
     showItemInFolder: (path: string) => Promise<void>;
     getFeatures: () => Promise<string[]>;
     getBadges: () => Promise<Badge[]>;
+    canInstallCommonRedist: () => Promise<boolean>;
     installCommonRedist: () => Promise<void>;
     onCommonRedistProgress: (
       cb: (value: { component: string; complete: boolean }) => void

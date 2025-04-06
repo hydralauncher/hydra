@@ -40,6 +40,7 @@ import "./misc/get-features";
 import "./misc/show-item-in-folder";
 import "./misc/get-badges";
 import "./misc/install-common-redist";
+import "./misc/can-install-common-redist";
 import "./torrenting/cancel-game-download";
 import "./torrenting/pause-game-download";
 import "./torrenting/resume-game-download";

@@ -12,6 +12,7 @@ import languageResources from "@locales";
 import { orderBy } from "lodash-es";
 import { settingsContext } from "@renderer/context";
 import "./settings-general.scss";
+import { DesktopDownloadIcon } from "@primer/octicons-react";
 
 interface LanguageOption {
   option: string;
@@ -26,6 +27,8 @@ export function SettingsGeneral() {
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
+
+  const [canInstallCommonRedist, setCanInstallCommonRedist] = useState(false);
 
   const [form, setForm] = useState({
     downloadsPath: "",
@@ -45,6 +48,10 @@ export function SettingsGeneral() {
   useEffect(() => {
     window.electron.getDefaultDownloadsPath().then((path) => {
       setDefaultDownloadsPath(path);
+    });
+
+    window.electron.canInstallCommonRedist().then((canInstall) => {
+      setCanInstallCommonRedist(canInstall);
     });
 
     setLanguageOptions(
@@ -90,7 +97,9 @@ export function SettingsGeneral() {
     }
   }, [userPreferences, defaultDownloadsPath]);
 
-  const handleLanguageChange = (event) => {
+  const handleLanguageChange = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
     const value = event.target.value;
 
     handleChange({ language: value });
@@ -139,9 +148,7 @@ export function SettingsGeneral() {
         }))}
       />
 
-      <h2 className="settings-general__notifications-title">
-        {t("notifications")}
-      </h2>
+      <h2 className="settings-general__section-title">{t("notifications")}</h2>
 
       <CheckboxField
         label={t("enable_download_notifications")}
@@ -186,7 +193,18 @@ export function SettingsGeneral() {
         }
       />
 
-      <Button onClick={() => window.electron.installCommonRedist()}>
+      <h2 className="settings-general__section-title">{t("common_redist")}</h2>
+
+      <p className="settings-general__common-redist-description">
+        {t("common_redist_description")}
+      </p>
+
+      <Button
+        onClick={() => window.electron.installCommonRedist()}
+        className="settings-general__common-redist-button"
+        disabled={!canInstallCommonRedist}
+      >
+        <DesktopDownloadIcon />
         {t("install_common_redist")}
       </Button>
     </div>

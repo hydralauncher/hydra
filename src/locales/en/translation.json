@@ -350,7 +350,10 @@
     "error_importing_theme": "Error importing theme",
     "theme_imported": "Theme imported successfully",
     "enable_friend_request_notifications": "When a friend request is received",
-    "enable_auto_install": "Download updates automatically"
+    "enable_auto_install": "Download updates automatically",
+    "common_redist": "Common redistributables",
+    "common_redist_description": "Common redistributables are required to run some games. Installing them is recommended to avoid issues.",
+    "install_common_redist": "Install"
   },
   "notifications": {
     "download_complete": "Download complete",
