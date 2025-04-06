@@ -80,7 +80,6 @@ jobs:
           BUILDS_URL: ${{ secrets.BUILDS_URL }}
           BUILD_WEBHOOK_URL: ${{ secrets.BUILD_WEBHOOK_URL }}
           GITHUB_ACTOR: ${{ github.actor }}
-
         run: node scripts/upload-build.cjs
 
       - name: Create artifact

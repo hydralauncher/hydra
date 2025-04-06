@@ -29,6 +29,7 @@ export function SettingsGeneral() {
   );
 
   const [canInstallCommonRedist, setCanInstallCommonRedist] = useState(false);
+  const [installingCommonRedist, setInstallingCommonRedist] = useState(false);
 
   const [form, setForm] = useState({
     downloadsPath: "",
@@ -133,6 +134,27 @@ export function SettingsGeneral() {
     }
   };
 
+  useEffect(() => {
+    const unlisten = window.electron.onCommonRedistProgress(
+      ({ log, complete }) => {
+        if (log === "Installation timed out" || complete) {
+          setInstallingCommonRedist(false);
+        }
+      }
+    );
+
+    return () => unlisten();
+  }, []);
+
+  const handleInstallCommonRedist = async () => {
+    setInstallingCommonRedist(true);
+    try {
+      await window.electron.installCommonRedist();
+    } finally {
+      setInstallingCommonRedist(false);
+    }
+  };
+
   return (
     <div className="settings-general">
       <TextField
@@ -210,12 +232,14 @@ export function SettingsGeneral() {
       </p>
 
       <Button
-        onClick={() => window.electron.installCommonRedist()}
+        onClick={handleInstallCommonRedist}
         className="settings-general__common-redist-button"
         disabled={!canInstallCommonRedist}
       >
         <DesktopDownloadIcon />
-        {t("install_common_redist")}
+        {installingCommonRedist
+          ? t("installing_common_redist")
+          : t("install_common_redist")}
       </Button>
     </div>
   );
