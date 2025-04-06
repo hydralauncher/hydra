@@ -1,4 +1,4 @@
-import { Downloader, DownloadError } from "@shared";
+import { Downloader, DownloadError, FILE_EXTENSIONS_TO_EXTRACT } from "@shared";
 import { WindowManager } from "../window-manager";
 import { publishDownloadCompleteNotification } from "../notifications";
 import type { Download, DownloadProgress, UserPreferences } from "@types";
@@ -22,6 +22,7 @@ import { logger } from "../logger";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { sortBy } from "lodash-es";
 import { TorBoxClient } from "./torbox";
+import { GameFilesManager } from "../game-files-manager";
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
@@ -136,6 +137,8 @@ export class DownloadManager {
         );
       }
 
+      const shouldExtract = download.automaticallyExtract;
+
       if (progress === 1 && download) {
         publishDownloadCompleteNotification(game);
 
@@ -143,21 +146,46 @@ export class DownloadManager {
           userPreferences?.seedAfterDownloadComplete &&
           download.downloader === Downloader.Torrent
         ) {
-          downloadsSublevel.put(gameId, {
+          await downloadsSublevel.put(gameId, {
             ...download,
             status: "seeding",
             shouldSeed: true,
             queued: false,
+            extracting: shouldExtract,
           });
         } else {
-          downloadsSublevel.put(gameId, {
+          await downloadsSublevel.put(gameId, {
             ...download,
             status: "complete",
             shouldSeed: false,
             queued: false,
+            extracting: shouldExtract,
           });
 
           this.cancelDownload(gameId);
+        }
+
+        if (shouldExtract) {
+          const gameFilesManager = new GameFilesManager(
+            game.shop,
+            game.objectId
+          );
+
+          if (
+            FILE_EXTENSIONS_TO_EXTRACT.some((ext) =>
+              download.folderName?.endsWith(ext)
+            )
+          ) {
+            gameFilesManager.extractDownloadedFile();
+          } else {
+            gameFilesManager
+              .extractFilesInDirectory(
+                path.join(download.downloadPath, download.folderName!)
+              )
+              .then(() => {
+                gameFilesManager.setExtractionComplete();
+              });
+          }
         }
 
         const downloads = await downloadsSublevel

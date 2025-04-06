@@ -134,6 +134,7 @@ export function GameOptionsModal({
 
   const handleClearExecutablePath = async () => {
     await window.electron.updateExecutablePath(game.shop, game.objectId, null);
+
     updateGame();
   };
 

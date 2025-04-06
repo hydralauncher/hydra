@@ -10,11 +10,11 @@ import {
 
 import { Downloader, formatBytes, steamUrlBuilder } from "@shared";
 import { DOWNLOADER_NAME } from "@renderer/constants";
-import { useAppSelector, useDownload } from "@renderer/hooks";
+import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
 
 import "./download-group.scss";
 import { useTranslation } from "react-i18next";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
   DropdownMenu,
   DropdownMenuItem,
@@ -22,6 +22,7 @@ import {
 import {
   ColumnsIcon,
   DownloadIcon,
+  FileDirectoryIcon,
   LinkIcon,
   PlayIcon,
   QuestionIcon,
@@ -56,6 +57,8 @@ export function DownloadGroup({
     (state) => state.userPreferences.value
   );
 
+  const { updateLibrary } = useLibrary();
+
   const {
     lastPacket,
     progress,
@@ -89,12 +92,24 @@ export function DownloadGroup({
     return map;
   }, [seedingStatus]);
 
+  const extractGameDownload = useCallback(
+    async (shop: GameShop, objectId: string) => {
+      await window.electron.extractGameDownload(shop, objectId);
+      updateLibrary();
+    },
+    [updateLibrary]
+  );
+
   const getGameInfo = (game: LibraryGame) => {
     const download = game.download!;
 
     const isGameDownloading = lastPacket?.gameId === game.id;
     const finalDownloadSize = getFinalDownloadSize(game);
     const seedingStatus = seedingMap.get(game.id);
+
+    if (download.extracting) {
+      return <p>{t("extracting")}</p>;
+    }
 
     if (isGameDeleting(game.id)) {
       return <p>{t("deleting")}</p>;
@@ -196,6 +211,14 @@ export function DownloadGroup({
             openGameInstaller(game.shop, game.objectId);
           },
           icon: <DownloadIcon />,
+        },
+        {
+          label: t("extract"),
+          disabled: game.download.extracting,
+          icon: <FileDirectoryIcon />,
+          onClick: () => {
+            extractGameDownload(game.shop, game.objectId);
+          },
         },
         {
           label: t("stop_seeding"),
