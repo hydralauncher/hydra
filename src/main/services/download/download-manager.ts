@@ -138,6 +138,8 @@ export class DownloadManager {
         );
       }
 
+      const shouldExtract = download.automaticallyExtract;
+
       if (progress === 1 && download) {
         publishDownloadCompleteNotification(game);
 
@@ -150,10 +152,9 @@ export class DownloadManager {
             status: "seeding",
             shouldSeed: true,
             queued: false,
+            extracting: shouldExtract,
           });
         } else {
-          const shouldExtract = download.automaticallyExtract;
-
           await downloadsSublevel.put(gameId, {
             ...download,
             status: "complete",
@@ -162,30 +163,30 @@ export class DownloadManager {
             extracting: shouldExtract,
           });
 
-          if (shouldExtract) {
-            const gameFilesManager = new GameFilesManager(
-              game.shop,
-              game.objectId
-            );
-
-            if (
-              FILE_EXTENSIONS_TO_EXTRACT.some((ext) =>
-                download.folderName?.endsWith(ext)
-              )
-            ) {
-              gameFilesManager.extractDownloadedFile();
-            } else {
-              gameFilesManager
-                .extractFilesInDirectory(
-                  path.join(download.downloadPath, download.folderName!)
-                )
-                .then(() => {
-                  gameFilesManager.setExtractionComplete();
-                });
-            }
-          }
-
           this.cancelDownload(gameId);
+        }
+
+        if (shouldExtract) {
+          const gameFilesManager = new GameFilesManager(
+            game.shop,
+            game.objectId
+          );
+
+          if (
+            FILE_EXTENSIONS_TO_EXTRACT.some((ext) =>
+              download.folderName?.endsWith(ext)
+            )
+          ) {
+            gameFilesManager.extractDownloadedFile();
+          } else {
+            gameFilesManager
+              .extractFilesInDirectory(
+                path.join(download.downloadPath, download.folderName!)
+              )
+              .then(() => {
+                gameFilesManager.setExtractionComplete();
+              });
+          }
         }
 
         const downloads = await downloadsSublevel
