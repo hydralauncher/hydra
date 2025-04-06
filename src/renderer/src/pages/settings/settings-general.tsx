@@ -13,6 +13,7 @@ import { orderBy } from "lodash-es";
 import { settingsContext } from "@renderer/context";
 import "./settings-general.scss";
 import { DesktopDownloadIcon } from "@primer/octicons-react";
+import { logger } from "@renderer/logger";
 
 interface LanguageOption {
   option: string;
@@ -150,7 +151,8 @@ export function SettingsGeneral() {
     setInstallingCommonRedist(true);
     try {
       await window.electron.installCommonRedist();
-    } finally {
+    } catch (err) {
+      logger.error(err);
       setInstallingCommonRedist(false);
     }
   };
