@@ -353,7 +353,8 @@
     "enable_auto_install": "Download updates automatically",
     "common_redist": "Common redistributables",
     "common_redist_description": "Common redistributables are required to run some games. Installing them is recommended to avoid issues.",
-    "install_common_redist": "Install"
+    "install_common_redist": "Install",
+    "installing_common_redist": "Installing…"
   },
   "notifications": {
     "download_complete": "Download complete",
