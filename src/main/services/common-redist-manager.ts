@@ -56,10 +56,8 @@ export class CommonRedistManager {
           }
         }
 
-        const [_, component] = tail?.split("Installing ") ?? [];
-
         WindowManager.mainWindow?.webContents.send("common-redist-progress", {
-          component: component,
+          log: tail,
           complete: tail?.includes(installationCompleteMessage),
         });
       });

@@ -54,6 +54,12 @@ export function SettingsGeneral() {
       setCanInstallCommonRedist(canInstall);
     });
 
+    const interval = setInterval(() => {
+      window.electron.canInstallCommonRedist().then((canInstall) => {
+        setCanInstallCommonRedist(canInstall);
+      });
+    }, 1000 * 5);
+
     setLanguageOptions(
       orderBy(
         Object.entries(languageResources).map(([language, value]) => {
@@ -66,6 +72,10 @@ export function SettingsGeneral() {
         "asc"
       )
     );
+
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {

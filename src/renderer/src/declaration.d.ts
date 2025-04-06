@@ -237,7 +237,7 @@ declare global {
     canInstallCommonRedist: () => Promise<boolean>;
     installCommonRedist: () => Promise<void>;
     onCommonRedistProgress: (
-      cb: (value: { component: string; complete: boolean }) => void
+      cb: (value: { log: string; complete: boolean }) => void
     ) => () => Electron.IpcRenderer;
     platform: NodeJS.Platform;
 
