@@ -51,13 +51,12 @@ export class GameFilesManager {
               cwd: directoryPath,
               passwords: ["online-fix.me", "steamrip.com"],
             },
-            async (success) => {
-              if (success) {
-                resolve(true);
-              } else {
-                reject(new Error(`Failed to extract file: ${file}`));
-                this.clearExtractionState();
-              }
+            () => {
+              resolve(true);
+            },
+            () => {
+              reject(new Error(`Failed to extract file: ${file}`));
+              this.clearExtractionState();
             }
           );
         });
@@ -126,32 +125,31 @@ export class GameFilesManager {
         outputPath: extractionPath,
         passwords: ["online-fix.me", "steamrip.com"],
       },
-      async (success) => {
-        if (success) {
-          await this.extractFilesInDirectory(extractionPath);
+      async () => {
+        await this.extractFilesInDirectory(extractionPath);
 
-          if (fs.existsSync(extractionPath) && fs.existsSync(filePath)) {
-            fs.unlink(filePath, (err) => {
-              if (err) {
-                logger.error(
-                  `Failed to delete file: ${download.folderName}`,
-                  err
-                );
+        if (fs.existsSync(extractionPath) && fs.existsSync(filePath)) {
+          fs.unlink(filePath, (err) => {
+            if (err) {
+              logger.error(
+                `Failed to delete file: ${download.folderName}`,
+                err
+              );
 
-                this.clearExtractionState();
-              }
-            });
-          }
-
-          await downloadsSublevel.put(gameKey, {
-            ...download!,
-            folderName: path.parse(download.folderName!).name,
+              this.clearExtractionState();
+            }
           });
-
-          this.setExtractionComplete();
-        } else {
-          this.clearExtractionState();
         }
+
+        await downloadsSublevel.put(gameKey, {
+          ...download!,
+          folderName: path.parse(download.folderName!).name,
+        });
+
+        this.setExtractionComplete();
+      },
+      () => {
+        this.clearExtractionState();
       }
     );
 

@@ -32,7 +32,8 @@ export class SevenZip {
       cwd?: string;
       passwords?: string[];
     },
-    cb: (success: boolean) => void
+    successCb: () => void,
+    errorCb: () => void
   ) {
     const tryPassword = (index = -1) => {
       const password = passwords[index] ?? "";
@@ -52,7 +53,7 @@ export class SevenZip {
         console.log("EXIT CALLED", code, filePath);
 
         if (code === 0) {
-          cb(true);
+          successCb();
           return;
         }
 
@@ -65,7 +66,7 @@ export class SevenZip {
         } else {
           logger.info(`Failed to extract file: ${filePath}`);
 
-          cb(false);
+          errorCb();
         }
       });
     };
