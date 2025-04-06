@@ -1,7 +1,7 @@
 import { registerEvent } from "../register-event";
 import { GameShop } from "@types";
 import path from "node:path";
-import { _7Zip, GameFilesManager } from "@main/services";
+import { GameFilesManager } from "@main/services";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { FILE_EXTENSIONS_TO_EXTRACT } from "@shared";
 

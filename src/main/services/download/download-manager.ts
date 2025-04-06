@@ -1,4 +1,4 @@
-import { Downloader, DownloadError } from "@shared";
+import { Downloader, DownloadError, FILE_EXTENSIONS_TO_EXTRACT } from "@shared";
 import { WindowManager } from "../window-manager";
 import { publishDownloadCompleteNotification } from "../notifications";
 import type { Download, DownloadProgress, UserPreferences } from "@types";
@@ -22,7 +22,6 @@ import { logger } from "../logger";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { sortBy } from "lodash-es";
 import { TorBoxClient } from "./torbox";
-import { FILE_EXTENSIONS_TO_EXTRACT } from "@shared";
 import { GameFilesManager } from "../game-files-manager";
 
 export class DownloadManager {

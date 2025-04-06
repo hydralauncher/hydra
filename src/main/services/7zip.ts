@@ -9,7 +9,7 @@ export const binaryName = {
   win32: "7z.exe",
 };
 
-export class _7Zip {
+export class SevenZip {
   private static readonly binaryPath = app.isPackaged
     ? path.join(process.resourcesPath, binaryName[process.platform])
     : path.join(

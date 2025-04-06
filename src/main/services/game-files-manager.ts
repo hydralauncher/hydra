@@ -3,7 +3,7 @@ import fs from "node:fs";
 import type { GameShop } from "@types";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { FILE_EXTENSIONS_TO_EXTRACT } from "@shared";
-import { _7Zip } from "./7zip";
+import { SevenZip } from "./7zip";
 import { WindowManager } from "./window-manager";
 import { publishExtractionCompleteNotification } from "./notifications";
 import { logger } from "./logger";
@@ -45,7 +45,7 @@ export class GameFilesManager {
     await Promise.all(
       filesToExtract.map((file) => {
         return new Promise((resolve, reject) => {
-          _7Zip.extractFile(
+          SevenZip.extractFile(
             {
               filePath: path.join(directoryPath, file),
               cwd: directoryPath,
@@ -120,7 +120,7 @@ export class GameFilesManager {
       path.parse(download.folderName!).name
     );
 
-    _7Zip.extractFile(
+    SevenZip.extractFile(
       {
         filePath,
         outputPath: extractionPath,
