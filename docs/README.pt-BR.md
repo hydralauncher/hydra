@@ -69,6 +69,7 @@ O launcher é escrito em TypeScript (Electron) e Python, que lida com o sistema 
 - Personalização do caminho de downloads
 - Suporte para Windows e Linux
 - Constantemente atualizado
+- Opção para adicionar jogos de outras plataformas como Epic/Steam/GoG no Hydra.
 - E mais ...
 
 ## <a name="installation"> Instalação
