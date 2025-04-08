@@ -12,10 +12,9 @@ export const levelDatabasePath = path.join(
   `hydra-db${isStaging ? "-staging" : ""}`
 );
 
-export const databaseDirectory = path.join(app.getPath("appData"), "hydra");
-export const databasePath = path.join(
-  databaseDirectory,
-  isStaging ? "hydra_test.db" : "hydra.db"
+export const commonRedistPath = path.join(
+  app.getPath("userData"),
+  "CommonRedist"
 );
 
 export const logsPath = path.join(app.getPath("userData"), "logs");

@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useDownload, useLibrary, useUserDetails } from "@renderer/hooks";
+import {
+  useDownload,
+  useLibrary,
+  useToast,
+  useUserDetails,
+} from "@renderer/hooks";
 
 import "./bottom-panel.scss";
 
@@ -17,20 +22,52 @@ export function BottomPanel() {
 
   const { library } = useLibrary();
 
+  const { showSuccessToast } = useToast();
+
   const { lastPacket, progress, downloadSpeed, eta } = useDownload();
 
   const [version, setVersion] = useState("");
   const [sessionHash, setSessionHash] = useState<null | string>("");
+  const [commonRedistStatus, setCommonRedistStatus] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     window.electron.getVersion().then((result) => setVersion(result));
   }, []);
 
   useEffect(() => {
+    const unlisten = window.electron.onCommonRedistProgress(
+      ({ log, complete }) => {
+        if (log === "Installation timed out" || complete) {
+          setCommonRedistStatus(null);
+
+          if (complete) {
+            showSuccessToast(
+              t("installation_complete"),
+              t("installation_complete_message")
+            );
+          }
+
+          return;
+        }
+
+        setCommonRedistStatus(log);
+      }
+    );
+
+    return () => unlisten();
+  }, [t, showSuccessToast]);
+
+  useEffect(() => {
     window.electron.getSessionHash().then((result) => setSessionHash(result));
   }, [userDetails?.id]);
 
   const status = useMemo(() => {
+    if (commonRedistStatus) {
+      return t("installing_common_redist", { log: commonRedistStatus });
+    }
+
     const game = lastPacket
       ? library.find((game) => game.id === lastPacket?.gameId)
       : undefined;
@@ -64,7 +101,15 @@ export function BottomPanel() {
     }
 
     return t("no_downloads_in_progress");
-  }, [t, library, lastPacket, progress, eta, downloadSpeed]);
+  }, [
+    t,
+    library,
+    lastPacket,
+    progress,
+    eta,
+    downloadSpeed,
+    commonRedistStatus,
+  ]);
 
   return (
     <footer className="bottom-panel">

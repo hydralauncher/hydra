@@ -12,6 +12,8 @@ import languageResources from "@locales";
 import { orderBy } from "lodash-es";
 import { settingsContext } from "@renderer/context";
 import "./settings-general.scss";
+import { DesktopDownloadIcon } from "@primer/octicons-react";
+import { logger } from "@renderer/logger";
 
 interface LanguageOption {
   option: string;
@@ -26,6 +28,9 @@ export function SettingsGeneral() {
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
+
+  const [canInstallCommonRedist, setCanInstallCommonRedist] = useState(false);
+  const [installingCommonRedist, setInstallingCommonRedist] = useState(false);
 
   const [form, setForm] = useState({
     downloadsPath: "",
@@ -47,6 +52,16 @@ export function SettingsGeneral() {
       setDefaultDownloadsPath(path);
     });
 
+    window.electron.canInstallCommonRedist().then((canInstall) => {
+      setCanInstallCommonRedist(canInstall);
+    });
+
+    const interval = setInterval(() => {
+      window.electron.canInstallCommonRedist().then((canInstall) => {
+        setCanInstallCommonRedist(canInstall);
+      });
+    }, 1000 * 5);
+
     setLanguageOptions(
       orderBy(
         Object.entries(languageResources).map(([language, value]) => {
@@ -59,6 +74,10 @@ export function SettingsGeneral() {
         "asc"
       )
     );
+
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -90,7 +109,9 @@ export function SettingsGeneral() {
     }
   }, [userPreferences, defaultDownloadsPath]);
 
-  const handleLanguageChange = (event) => {
+  const handleLanguageChange = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
     const value = event.target.value;
 
     handleChange({ language: value });
@@ -111,6 +132,28 @@ export function SettingsGeneral() {
     if (filePaths && filePaths.length > 0) {
       const path = filePaths[0];
       handleChange({ downloadsPath: path });
+    }
+  };
+
+  useEffect(() => {
+    const unlisten = window.electron.onCommonRedistProgress(
+      ({ log, complete }) => {
+        if (log === "Installation timed out" || complete) {
+          setInstallingCommonRedist(false);
+        }
+      }
+    );
+
+    return () => unlisten();
+  }, []);
+
+  const handleInstallCommonRedist = async () => {
+    setInstallingCommonRedist(true);
+    try {
+      await window.electron.installCommonRedist();
+    } catch (err) {
+      logger.error(err);
+      setInstallingCommonRedist(false);
     }
   };
 
@@ -139,9 +182,7 @@ export function SettingsGeneral() {
         }))}
       />
 
-      <p className="settings-general__notifications-title">
-        {t("notifications")}
-      </p>
+      <h2 className="settings-general__section-title">{t("notifications")}</h2>
 
       <CheckboxField
         label={t("enable_download_notifications")}
@@ -185,6 +226,23 @@ export function SettingsGeneral() {
           })
         }
       />
+
+      <h2 className="settings-general__section-title">{t("common_redist")}</h2>
+
+      <p className="settings-general__common-redist-description">
+        {t("common_redist_description")}
+      </p>
+
+      <Button
+        onClick={handleInstallCommonRedist}
+        className="settings-general__common-redist-button"
+        disabled={!canInstallCommonRedist || installingCommonRedist}
+      >
+        <DesktopDownloadIcon />
+        {installingCommonRedist
+          ? t("installing_common_redist")
+          : t("install_common_redist")}
+      </Button>
     </div>
   );
 }

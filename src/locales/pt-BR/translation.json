@@ -44,7 +44,10 @@
     "downloading_metadata": "Baixando metadados de {{title}}…",
     "downloading": "Baixando {{title}}… ({{percentage}} concluído) - Conclusão {{eta}} - {{speed}}",
     "calculating_eta": "Baixando {{title}}… ({{percentage}} concluído) - Calculando tempo restante…",
-    "checking_files": "Verificando arquivos de {{title}}…"
+    "checking_files": "Verificando arquivos de {{title}}…",
+    "installing_common_redist": "{{log}}…",
+    "installation_complete": "Instalação concluída",
+    "installation_complete_message": "Componentes recomendados instalados com sucesso"
   },
   "game_details": {
     "open_download_options": "Ver opções de download",
@@ -182,7 +185,8 @@
     "download_error_not_cached_in_real_debrid": "Este download não está disponível no Real-Debrid e a verificação do status do download não está disponível.",
     "download_error_not_cached_in_torbox": "Este download não está disponível no Torbox e a verificação do status do download não está disponível.",
     "game_removed_from_favorites": "Jogo removido dos favoritos",
-    "game_added_to_favorites": "Jogo adicionado aos favoritos"
+    "game_added_to_favorites": "Jogo adicionado aos favoritos",
+    "automatically_extract_downloaded_files": "Extrair automaticamente os arquivos baixados"
   },
   "activation": {
     "title": "Ativação",
@@ -219,7 +223,9 @@
     "seeding": "Semeando",
     "stop_seeding": "Parar de semear",
     "resume_seeding": "Semear",
-    "options": "Gerenciar"
+    "options": "Gerenciar",
+    "extract": "Extrair arquivos",
+    "extracting": "Extraindo arquivos…"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",
@@ -331,7 +337,11 @@
     "error_importing_theme": "Erro ao importar tema",
     "theme_imported": "Tema importado com sucesso",
     "enable_friend_request_notifications": "Quando um pedido de amizade é recebido",
-    "enable_auto_install": "Baixar atualizações automaticamente"
+    "enable_auto_install": "Baixar atualizações automaticamente",
+    "common_redist": "Componentes recomendados",
+    "common_redist_description": "Componentes recomendados são necessários para executar alguns jogos. A instalação deles é recomendada para evitar problemas.",
+    "install_common_redist": "Instalar",
+    "installing_common_redist": "Instalando…"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -342,7 +352,9 @@
     "new_update_available": "Versão {{version}} disponível",
     "restart_to_install_update": "Reinicie o Hydra para instalar a nova versão",
     "new_friend_request_title": "Novo pedido de amizade",
-    "new_friend_request_description": "Você recebeu um novo pedido de amizade"
+    "new_friend_request_description": "Você recebeu um novo pedido de amizade",
+    "extraction_complete": "Extração concluída",
+    "game_extracted": "{{title}} extraído com sucesso"
   },
   "system_tray": {
     "open": "Abrir Hydra",

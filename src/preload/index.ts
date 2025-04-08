@@ -100,6 +100,11 @@ contextBridge.exposeInMainWorld("electron", {
   /* Download sources */
   putDownloadSource: (objectIds: string[]) =>
     ipcRenderer.invoke("putDownloadSource", objectIds),
+  createDownloadSources: (urls: string[]) =>
+    ipcRenderer.invoke("createDownloadSources", urls),
+  removeDownloadSource: (url: string, removeAll?: boolean) =>
+    ipcRenderer.invoke("removeDownloadSource", url, removeAll),
+  getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
 
   /* Library */
   toggleAutomaticCloudSync: (
@@ -173,6 +178,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGameByObjectId", shop, objectId),
   resetGameAchievements: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("resetGameAchievements", shop, objectId),
+  extractGameDownload: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("extractGameDownload", shop, objectId),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
@@ -194,6 +201,15 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-achievement-unlocked", listener);
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked", listener);
+  },
+  onExtractionComplete: (cb: (shop: GameShop, objectId: string) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      shop: GameShop,
+      objectId: string
+    ) => cb(shop, objectId);
+    ipcRenderer.on("on-extraction-complete", listener);
+    return () => ipcRenderer.removeListener("on-extraction-complete", listener);
   },
 
   /* Hardware */
@@ -279,6 +295,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("showItemInFolder", path),
   getFeatures: () => ipcRenderer.invoke("getFeatures"),
   getBadges: () => ipcRenderer.invoke("getBadges"),
+  canInstallCommonRedist: () => ipcRenderer.invoke("canInstallCommonRedist"),
+  installCommonRedist: () => ipcRenderer.invoke("installCommonRedist"),
   platform: process.platform,
 
   /* Auto update */
@@ -293,6 +311,16 @@ contextBridge.exposeInMainWorld("electron", {
     return () => {
       ipcRenderer.removeListener("autoUpdaterEvent", listener);
     };
+  },
+  onCommonRedistProgress: (
+    cb: (value: { log: string; complete: boolean }) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      value: { log: string; complete: boolean }
+    ) => cb(value);
+    ipcRenderer.on("common-redist-progress", listener);
+    return () => ipcRenderer.removeListener("common-redist-progress", listener);
   },
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
   restartAndInstallUpdate: () => ipcRenderer.invoke("restartAndInstallUpdate"),
