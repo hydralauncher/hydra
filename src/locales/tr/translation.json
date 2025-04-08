@@ -197,7 +197,7 @@
     "download_error_not_cached_in_torbox": "Bu indirme Torbox'ta mevcut değil ve Torbox'tan indirme durumu henüz sorgulanamıyor.",
     "game_removed_from_favorites": "Oyun favorilerden silindi",
     "game_added_to_favorites": "Oyun favorilere eklendi"
-    "automatically_extract_downloaded_files": "Yüklenmis dosyaları otomatik olarak çıkart"
+    "automatically_extract_downloaded_files": "Yüklenmiş dosyaları otomatik olarak çıkart"
   },
   "activation": {
     "title": "Hydra'yı Aktive Et",
