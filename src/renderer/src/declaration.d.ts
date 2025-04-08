@@ -149,6 +149,8 @@ declare global {
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
     resetGameAchievements: (shop: GameShop, objectId: string) => Promise<void>;
     /* User preferences */
+    authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
+    authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
     getUserPreferences: () => Promise<UserPreferences | null>;
     updateUserPreferences: (
       preferences: Partial<UserPreferences>
@@ -157,14 +159,21 @@ declare global {
       enabled: boolean;
       minimized: boolean;
     }) => Promise<void>;
-    authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
-    authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
+    extractGameDownload: (shop: GameShop, objectId: string) => Promise<boolean>;
     onAchievementUnlocked: (cb: () => void) => () => Electron.IpcRenderer;
+    onExtractionComplete: (
+      cb: (shop: GameShop, objectId: string) => void
+    ) => () => Electron.IpcRenderer;
 
     /* Download sources */
     putDownloadSource: (
       objectIds: string[]
     ) => Promise<{ fingerprint: string }>;
+    createDownloadSources: (urls: string[]) => Promise<void>;
+    removeDownloadSource: (url: string, removeAll?: boolean) => Promise<void>;
+    getDownloadSources: () => Promise<
+      Pick<DownloadSource, "url" | "createdAt" | "updatedAt">[]
+    >;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<disk.DiskUsage>;
@@ -225,6 +234,11 @@ declare global {
     showItemInFolder: (path: string) => Promise<void>;
     getFeatures: () => Promise<string[]>;
     getBadges: () => Promise<Badge[]>;
+    canInstallCommonRedist: () => Promise<boolean>;
+    installCommonRedist: () => Promise<void>;
+    onCommonRedistProgress: (
+      cb: (value: { log: string; complete: boolean }) => void
+    ) => () => Electron.IpcRenderer;
     platform: NodeJS.Platform;
 
     /* Auto update */

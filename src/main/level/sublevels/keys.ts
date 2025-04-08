@@ -13,6 +13,5 @@ export const levelKeys = {
   downloads: "downloads",
   userPreferences: "userPreferences",
   language: "language",
-  sqliteMigrationDone: "sqliteMigrationDone",
   screenState: "screenState",
 };

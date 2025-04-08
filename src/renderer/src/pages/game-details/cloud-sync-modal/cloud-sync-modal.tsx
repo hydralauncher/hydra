@@ -4,7 +4,6 @@ import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import "./cloud-sync-modal.scss";
 import { formatBytes } from "@shared";
-import { format } from "date-fns";
 import {
   ClockIcon,
   DeviceDesktopIcon,
@@ -14,7 +13,7 @@ import {
   TrashIcon,
   UploadIcon,
 } from "@primer/octicons-react";
-import { useAppSelector, useToast } from "@renderer/hooks";
+import { useAppSelector, useDate, useToast } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
 import { AxiosProgressEvent } from "axios";
 import { formatDownloadProgress } from "@renderer/helpers";
@@ -28,6 +27,8 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     useState<AxiosProgressEvent | null>(null);
 
   const { t } = useTranslation("game_details");
+
+  const { formatDate, formatDateTime } = useDate();
 
   const {
     artifacts,
@@ -205,7 +206,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
                   <h3>
                     {artifact.label ??
                       t("backup_from", {
-                        date: format(artifact.createdAt, "dd/MM/yyyy"),
+                        date: formatDate(artifact.createdAt),
                       })}
                   </h3>
                   <small>{formatBytes(artifact.artifactLengthInBytes)}</small>
@@ -223,7 +224,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
 
                 <span className="cloud-sync-modal__artifact-meta">
                   <ClockIcon size={14} />
-                  {format(artifact.createdAt, "dd/MM/yyyy HH:mm:ss")}
+                  {formatDateTime(artifact.createdAt)}
                 </span>
               </div>
 

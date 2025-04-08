@@ -38,7 +38,13 @@ export default function Downloads() {
 
   useEffect(() => {
     window.electron.onSeedingStatus((value) => setSeedingStatus(value));
-  }, []);
+
+    const unsubscribe = window.electron.onExtractionComplete(() => {
+      updateLibrary();
+    });
+
+    return () => unsubscribe();
+  }, [updateLibrary]);
 
   const handleOpenGameInstaller = (shop: GameShop, objectId: string) =>
     window.electron.openGameInstaller(shop, objectId).then((isBinaryInPath) => {
@@ -67,7 +73,7 @@ export default function Downloads() {
       if (!next.download) return prev;
 
       /* Is downloading */
-      if (lastPacket?.gameId === next.id)
+      if (lastPacket?.gameId === next.id || next.download.extracting)
         return { ...prev, downloading: [...prev.downloading, next] };
 
       /* Is either queued or paused */

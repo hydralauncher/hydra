@@ -12,7 +12,15 @@ const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
   payload: StartGameDownloadPayload
 ) => {
-  const { objectId, title, shop, downloadPath, downloader, uri } = payload;
+  const {
+    objectId,
+    title,
+    shop,
+    downloadPath,
+    downloader,
+    uri,
+    automaticallyExtract,
+  } = payload;
 
   const gameKey = levelKeys.game(shop, objectId);
 
@@ -74,6 +82,8 @@ const startGameDownload = async (
     shouldSeed: false,
     timestamp: Date.now(),
     queued: true,
+    extracting: false,
+    automaticallyExtract,
   };
 
   try {

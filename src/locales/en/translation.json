@@ -44,7 +44,10 @@
     "downloading_metadata": "Downloading {{title}} metadata…",
     "downloading": "Downloading {{title}}… ({{percentage}} complete) - Completion {{eta}} - {{speed}}",
     "calculating_eta": "Downloading {{title}}… ({{percentage}} complete) - Calculating remaining time…",
-    "checking_files": "Checking {{title}} files… ({{percentage}} complete)"
+    "checking_files": "Checking {{title}} files… ({{percentage}} complete)",
+    "installing_common_redist": "{{log}}…",
+    "installation_complete": "Installation complete",
+    "installation_complete_message": "Common redistributables installed successfully"
   },
   "catalogue": {
     "search": "Filter…",
@@ -193,7 +196,8 @@
     "download_error_not_cached_in_real_debrid": "This download is not available on Real-Debrid and polling download status from Real-Debrid is not yet available.",
     "download_error_not_cached_in_torbox": "This download is not available on Torbox and polling download status from Torbox is not yet available.",
     "game_removed_from_favorites": "Game removed from favorites",
-    "game_added_to_favorites": "Game added to favorites"
+    "game_added_to_favorites": "Game added to favorites",
+    "automatically_extract_downloaded_files": "Automatically extract downloaded files"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -230,7 +234,9 @@
     "seeding": "Seeding",
     "stop_seeding": "Stop seeding",
     "resume_seeding": "Resume seeding",
-    "options": "Manage"
+    "options": "Manage",
+    "extract": "Extract files",
+    "extracting": "Extracting files…"
   },
   "settings": {
     "downloads_path": "Downloads path",
@@ -344,7 +350,11 @@
     "error_importing_theme": "Error importing theme",
     "theme_imported": "Theme imported successfully",
     "enable_friend_request_notifications": "When a friend request is received",
-    "enable_auto_install": "Download updates automatically"
+    "enable_auto_install": "Download updates automatically",
+    "common_redist": "Common redistributables",
+    "common_redist_description": "Common redistributables are required to run some games. Installing them is recommended to avoid issues.",
+    "install_common_redist": "Install",
+    "installing_common_redist": "Installing…"
   },
   "notifications": {
     "download_complete": "Download complete",
@@ -357,7 +367,9 @@
     "notification_achievement_unlocked_title": "Achievement unlocked for {{game}}",
     "notification_achievement_unlocked_body": "{{achievement}} and other {{count}} were unlocked",
     "new_friend_request_description": "You have received a new friend request",
-    "new_friend_request_title": "New friend request"
+    "new_friend_request_title": "New friend request",
+    "extraction_complete": "Extraction complete",
+    "game_extracted": "{{title}} extracted successfully"
   },
   "system_tray": {
     "open": "Open Hydra",
