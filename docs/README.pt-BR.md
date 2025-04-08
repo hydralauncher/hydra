@@ -7,7 +7,7 @@
   <h1 align="center">Hydra Launcher</h1>
 
   <p align="center">
-    <strong>Hydra é um Launcher de Jogos com seu próprio cliente de bittorrent integrado.</strong>
+    <strong>Hydra é um Launcher de Jogos com seu próprio cliente de bit-torrent integrado.</strong>
   </p>
 
 [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
@@ -58,18 +58,18 @@
 
 ## <a name="about"> Sobre
 
-**Hydra** é um **Launcher de Jogos** com seu próprio **Cliente BitTorrent incorporado**.
+**Hydra** é um **Launcher de Jogos** com seu próprio **Cliente Bit Torrent incorporado**.
 <br>
 O launcher é escrito em TypeScript (Electron) e Python, que lida com o sistema de torrent usando libtorrent.
 
 ## <a name="features"> Recursos
 
-- Cliente BitTorrent incorporado próprio
+- Cliente Bit Torrent incorporado internamente
 - Integração com [How Long To Beat (HLTB)](https://howlongtobeat.com/) na página do jogo
 - Personalização do caminho de downloads
 - Suporte para Windows e Linux
 - Constantemente atualizado
-- E mais ...
+- E mais...
 
 ## <a name="installation"> Instalação
 
@@ -110,11 +110,11 @@ Concentramos nossas discussões no nosso canal do [Telegram](https://t.me/hydral
 
 ### <a name="install-nodejs"></a> Instale Node.js
 
-Certifique-se de ter o Node.js instalado em sua máquina. Se não, faça o download e instale-o em [nodejs.org](https://nodejs.org/).
+Certifique-se de ter o Node.js instalado em sua máquina. Se não tiver ainda, pode fazer o download e instalar em [nodejs.org](https://nodejs.org/).
 
 ### <a name="install-yarn"></a> Instale Yarn
 
-Yarn é um gerenciador de pacotes para Node.js. Se você ainda não o instalou, pode fazê-lo seguindo as instruções em [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/).
+Yarn é um gerenciador de pacotes para Node.js. Se você ainda não o instalou, pode o instalar seguindo as instruções em [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/).
 
 ### <a name="install-node-dependencies"></a> Instale Dependencias do Node
 
@@ -145,7 +145,7 @@ pip install -r requirements.txt
 
 Você precisará de uma chave da API SteamGridDB para buscar os ícones do jogo durante a instalação.
 
-Depois de obtê-lo, você pode copiar ou renomear o arquivo `.env.example` para `.env` e inserir `STEAMGRIDDB_API_KEY`.
+Depois de conseguir, você pode copiar ou renomear o arquivo `.env.example` para `.env` e inserir `STEAMGRIDDB_API_KEY`.
 
 ## <a name="running"></a> Executando
 
