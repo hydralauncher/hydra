@@ -45,6 +45,9 @@
     "downloading": "{{title}} indiriliyor… ({{percentage}} tamamlandı) - Tamamlanma: {{eta}} - Hız: {{speed}}",
     "calculating_eta": "{{title}} indiriliyor… ({{percentage}} tamamlandı) - Kalan süre hesaplanıyor…",
     "checking_files": "{{title}} dosyaları kontrol ediliyor… ({{percentage}} tamamlandı)"
+    "installing_common_redist": "{{log}}…",
+    "installation_complete": "İndirme tamamlandı",
+    "installation_complete_message": "Genel bağımlılıklar başarıyla yüklendi."
   },
   "catalogue": {
     "search": "Filtrele…",
@@ -194,6 +197,7 @@
     "download_error_not_cached_in_torbox": "Bu indirme Torbox'ta mevcut değil ve Torbox'tan indirme durumu henüz sorgulanamıyor.",
     "game_removed_from_favorites": "Oyun favorilerden silindi",
     "game_added_to_favorites": "Oyun favorilere eklendi"
+    "automatically_extract_downloaded_files": "Yüklenmis dosyaları otomatik olarak çıkart"
   },
   "activation": {
     "title": "Hydra'yı Aktive Et",
@@ -231,6 +235,8 @@
     "stop_seeding": "Paylaşımı durdur",
     "resume_seeding": "Paylaşımı sürdür",
     "options": "Yönet"
+    "extract": "Dosyaları çıkart",
+    "extracting": "Dosyalar çıkartılıyor…"
   },
   "settings": {
     "downloads_path": "İndirme yolu",
@@ -334,17 +340,21 @@
     "appearance": "Görünüm",
     "enable_torbox": "Torbox'u etkinleştir",
     "torbox_description": "TorBox, piyasadaki en iyi sunucularla bile rekabet edebilen premium seedbox hizmetinizdir.",
-    "torbox_account_linked": "TorBox hesabı bağlandı",
-    "create_real_debrid_account": "Bir Real-Debrid hesabınız yoksa tıklayın",
-    "create_torbox_account": "Bir TorBox hesabınız yoksa tıklayın",
-    "real_debrid_account_linked": "Real-Debrid hesabı bağlandı",
+    "torbox_account_linked": "TorBox hesabı bağlando",
+    "create_real_debrid_account": "Henüz bir Real-Debrid hesabınız yoksa buraya tıklayın",
+    "create_torbox_account": "Henüz bir TorBox hesabınız yoksa buraya tıklayın",
+    "real_debrid_account_linked": "Real-Debrid hesabı bağlando",
     "name_min_length": "Tema ismi en az 3 karakter uzunluğunda olmalıdır",
     "import_theme": "Temayı içe aktar",
     "import_theme_description": "{{theme}} teması, tema mağazasından içeri aktarılacak",
     "error_importing_theme": "Temayı içe aktarmada bir sorun oluştu",
-    "theme_imported": "Tema başarıyla içe aktarıldı",
+    "theme_imported": "Tema başarıyla içe aktarıldı"
     "enable_friend_request_notifications": "Bir arkadaşlık isteği alındığında",
-    "enable_auto_install": "Güncellemeleri otomatik yükle"
+    "enable_auto_install": "Güncellemeleri otomatik yükle",
+    "common_redist": "Ortak bağımlılıklar",
+    "common_redist_description": "Bazı oyunların çalışabilmesi için genel bağımlılıklar gereklidir. Sorun yaşamamak için bunların yüklenmesi önerilir.",
+    "install_common_redist": "Yükle",
+    "installing_common_redist": "Yükleniyor…"
   },
   "notifications": {
     "download_complete": "İndirme tamamlandı",
@@ -355,9 +365,11 @@
     "new_update_available": "{{version}} sürümü mevcut",
     "restart_to_install_update": "Güncellemeyi yüklemek için Hydra'yı yeniden başlatın",
     "notification_achievement_unlocked_title": "{{game}} için başarım kilidi açıldı",
-    "notification_achievement_unlocked_body": "{{achievement}} ve diğer {{count}} başarım açıldı",
-    "new_friend_request_description": "Yeni bir arkadaşlık isteği aldınız",
-    "new_friend_request_title": "Yeni arkadaşlık isteği"
+    "notification_achievement_unlocked_body": "{{achievement}} ve diğer {{count}} başarım açıldı"
+    "new_friend_request_description": "Yeni bir arkadaşlık isteğin var",
+    "new_friend_request_title": "Yeni arkadaşlık isteği",
+    "extraction_complete": "Çıkartma tamamlandı",
+    "game_extracted": "{{title}} başarıyla çıkartıldı"
   },
   "system_tray": {
     "open": "Hydra'yı Aç",
