@@ -147,11 +147,11 @@ def action():
                 torrent_downloader.start_download(url, data['save_path'])
         else:
             if existing_downloader and isinstance(existing_downloader, HttpDownloader):
-                existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
+                existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'), data.get('allow_multiple_connections', False))
             else:
                 http_downloader = HttpDownloader()
                 downloads[game_id] = http_downloader
-                http_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
+                http_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'), data.get('allow_multiple_connections', False))
         
         downloading_game_id = game_id
 
