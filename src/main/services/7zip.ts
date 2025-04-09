@@ -45,13 +45,13 @@ export class SevenZip {
         args.push("-o" + outputPath);
       }
 
+      console.log(this.binaryPath, args);
+
       const child = cp.execFile(this.binaryPath, args, {
         cwd,
       });
 
       child.once("exit", (code) => {
-        console.log("EXIT CALLED", code, filePath);
-
         if (code === 0) {
           successCb();
           return;
