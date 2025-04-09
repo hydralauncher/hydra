@@ -81,6 +81,14 @@ Follow the steps below to install:
 2. Run the downloaded file.
 3. Enjoy Hydra!
 
+## Import Games from Epic/Steam/GoG to Hydra
+
+1. On HydraLauncher select your game and go to "Options".
+
+2. Then go to "Select" and find your Epic/Steam/GOG game's location path.
+
+3. And now select your game's executable.
+
 ## <a name="contributing"> Contributing
 
 ### <a name="join-our-telegram"></a> Join our Telegram
