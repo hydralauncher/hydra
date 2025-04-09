@@ -23,7 +23,7 @@ class HttpDownloader:
 
       if allow_multiple_connections:
         options.update({
-          "split": "16",
+          "split": "4",
           "max-connection-per-server": "16",
           "min-split-size": "1M"
         })

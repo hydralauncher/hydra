@@ -16,6 +16,7 @@ export class Aria2 {
         "--rpc-listen-all",
         "--file-allocation=none",
         "--allow-overwrite=true",
+        "--disk-cache=64M",
       ],
       { stdio: "inherit", windowsHide: true }
     );
