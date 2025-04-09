@@ -127,6 +127,10 @@ downloadLudusavi();
 if (process.platform !== "win32") {
   const binariesPath = path.join(__dirname, "..", "binaries");
 
-  fs.chmodSync(path.join(binariesPath, "7zz"), 0o755);
-  fs.chmodSync(path.join(binariesPath, "7zzs"), 0o755);
+  if (fs.existsSync(binariesPath)) {
+    const zzzPath = path.join(binariesPath, "7zz");
+    const zzzsPath = path.join(binariesPath, "7zzs");
+    if (fs.existsSync(zzzPath)) fs.chmodSync(zzzPath, 0o755);
+    if (fs.existsSync(zzzsPath)) fs.chmodSync(zzzsPath, 0o755);
+  }
 }
