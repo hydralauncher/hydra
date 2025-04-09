@@ -11,7 +11,7 @@ class HttpDownloader:
       )
     )
 
-  def start_download(self, url: str, save_path: str, header: str, out: str = None, allow_multiple_connections: bool = False):
+  def start_download(self, url: str, save_path: str, header: str, out: str = None):
     if self.download:
       self.aria2.resume([self.download])
     else:
@@ -20,13 +20,6 @@ class HttpDownloader:
         "dir": save_path,
         "out": out
       }
-
-      if allow_multiple_connections:
-        options.update({
-          "split": "16",
-          "max-connection-per-server": "16",
-          "min-split-size": "1M"
-        })
           
       downloads = self.aria2.add(url, options=options)
       
