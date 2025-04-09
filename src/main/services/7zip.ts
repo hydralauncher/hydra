@@ -45,8 +45,6 @@ export class SevenZip {
         args.push("-o" + outputPath);
       }
 
-      console.log(this.binaryPath, args);
-
       const child = cp.execFile(this.binaryPath, args, {
         cwd,
       });
