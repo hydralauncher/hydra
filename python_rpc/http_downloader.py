@@ -25,7 +25,7 @@ class HttpDownloader:
         options.update({
           "split": "4",
           "max-connection-per-server": "16",
-          "min-split-size": "1M"
+          "min-split-size": "2M"
         })
           
       downloads = self.aria2.add(url, options=options)
