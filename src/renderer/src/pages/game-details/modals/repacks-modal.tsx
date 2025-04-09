@@ -1,7 +1,13 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Badge, Button, Modal, TextField } from "@renderer/components";
+import {
+  Badge,
+  Button,
+  DebridBadge,
+  Modal,
+  TextField,
+} from "@renderer/components";
 import type { GameRepack } from "@types";
 
 import { DownloadSettingsModal } from "./download-settings-modal";
@@ -31,15 +37,51 @@ export function RepacksModal({
   const [repack, setRepack] = useState<GameRepack | null>(null);
   const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
 
+  const [hashesInDebrid, setHashesInDebrid] = useState<Record<string, boolean>>(
+    {}
+  );
+
   const { repacks, game } = useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
 
   const { formatDate } = useDate();
 
-  const sortedRepacks = useMemo(() => {
-    return orderBy(repacks, (repack) => repack.uploadDate, "desc");
+  const getHashFromMagnet = (magnet: string) => {
+    if (!magnet || typeof magnet !== "string") {
+      return null;
+    }
+
+    const hashRegex = /xt=urn:btih:([a-zA-Z0-9]+)/i;
+    const match = magnet.match(hashRegex);
+
+    return match ? match[1].toLowerCase() : null;
+  };
+
+  useEffect(() => {
+    const magnets = repacks.flatMap((repack) =>
+      repack.uris.filter((uri) => uri.startsWith("magnet:"))
+    );
+
+    window.electron.checkDebridAvailability(magnets).then((availableHashes) => {
+      setHashesInDebrid(availableHashes);
+    });
   }, [repacks]);
+
+  const sortedRepacks = useMemo(() => {
+    return orderBy(
+      repacks,
+      [
+        (repack) => {
+          const magnet = repack.uris.find((uri) => uri.startsWith("magnet:"));
+          const hash = magnet ? getHashFromMagnet(magnet) : null;
+          return hash ? (hashesInDebrid[hash] ?? false) : false;
+        },
+        (repack) => repack.uploadDate,
+      ],
+      ["desc", "desc"]
+    );
+  }, [repacks, hashesInDebrid]);
 
   useEffect(() => {
     setFilteredRepacks(sortedRepacks);
@@ -110,6 +152,10 @@ export function RepacksModal({
                   {repack.fileSize} - {repack.repacker} -{" "}
                   {repack.uploadDate ? formatDate(repack.uploadDate) : ""}
                 </p>
+
+                {hashesInDebrid[getHashFromMagnet(repack.uris[0]) ?? ""] && (
+                  <DebridBadge />
+                )}
               </Button>
             );
           })}
