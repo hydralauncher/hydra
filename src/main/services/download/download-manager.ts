@@ -372,7 +372,6 @@ export class DownloadManager {
           game_id: downloadId,
           url: downloadUrl,
           save_path: download.downloadPath,
-          allow_multiple_connections: true,
         };
       }
       case Downloader.TorBox: {
@@ -385,7 +384,6 @@ export class DownloadManager {
           url,
           save_path: download.downloadPath,
           out: name,
-          allow_multiple_connections: true,
         };
       }
       case Downloader.Hydra: {
@@ -400,7 +398,6 @@ export class DownloadManager {
           game_id: downloadId,
           url: downloadUrl,
           save_path: download.downloadPath,
-          allow_multiple_connections: true,
         };
       }
     }
