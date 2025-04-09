@@ -4,14 +4,15 @@ import threading
 import time
 import urllib.parse
 import re
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 
 class HttpDownloader:
     def __init__(self):
         self.download = None
         self.thread = None
-        self.stop_download = False
+        self.pause_event = threading.Event()
+        self.cancel_event = threading.Event()
         self.download_info = None
 
     def start_download(self, url: str, save_path: str, header: str, out: str = None, allow_multiple_connections: bool = False):
@@ -54,11 +55,15 @@ class HttpDownloader:
             'downloadSpeed': 0,
             'status': 'waiting',
             'bytesDownloaded': 0,
-            'start_time': time.time()
+            'start_time': time.time(),
+            'supports_resume': False
         }
         
+        # Reset events
+        self.pause_event.clear()
+        self.cancel_event.clear()
+        
         # Start download in a separate thread
-        self.stop_download = False
         self.thread = threading.Thread(target=self._download_worker)
         self.thread.daemon = True
         self.thread.start()
@@ -67,13 +72,43 @@ class HttpDownloader:
         """Worker thread that performs the actual download"""
         url = self.download_info['url']
         full_path = self.download_info['full_path']
-        headers = self.download_info['headers']
+        headers = self.download_info['headers'].copy()
         
         try:
-            # Start with a HEAD request to get file size
+            # Start with a HEAD request to get file size and check if server supports range requests
             head_response = requests.head(url, headers=headers, allow_redirects=True)
             total_size = int(head_response.headers.get('content-length', 0))
             self.download_info['fileSize'] = total_size
+            
+            # Check if server supports range requests
+            accept_ranges = head_response.headers.get('accept-ranges', '')
+            supports_resume = accept_ranges.lower() == 'bytes' and total_size > 0
+            self.download_info['supports_resume'] = supports_resume
+            
+            # Check if we're resuming a download
+            file_exists = os.path.exists(full_path)
+            downloaded = 0
+            
+            if file_exists and supports_resume:
+                # Get current file size for resume
+                downloaded = os.path.getsize(full_path)
+                
+                # If file is already complete, mark as done
+                if downloaded >= total_size and total_size > 0:
+                    self.download_info['status'] = 'complete'
+                    self.download_info['progress'] = 1.0
+                    self.download_info['bytesDownloaded'] = total_size
+                    return
+                
+                # Add range header for resuming
+                if downloaded > 0:
+                    headers['Range'] = f'bytes={downloaded}-'
+                    self.download_info['bytesDownloaded'] = downloaded
+                    self.download_info['progress'] = downloaded / total_size if total_size > 0 else 0
+            elif file_exists:
+                # If server doesn't support resume but file exists, delete and start over
+                os.remove(full_path)
+                downloaded = 0
             
             # Open the request as a stream
             self.download_info['status'] = 'active'
@@ -83,18 +118,38 @@ class HttpDownloader:
             # If we didn't get file size from HEAD request, try from GET
             if total_size == 0:
                 total_size = int(response.headers.get('content-length', 0))
+                if 'content-range' in response.headers:
+                    content_range = response.headers['content-range']
+                    match = re.search(r'bytes \d+-\d+/(\d+)', content_range)
+                    if match:
+                        total_size = int(match.group(1))
+                
                 self.download_info['fileSize'] = total_size
             
-            downloaded = 0
+            # Setup for tracking speed
             start_time = time.time()
             last_update_time = start_time
             bytes_since_last_update = 0
             
-            with open(full_path, 'wb') as f:
+            # Open file in append mode if resuming, otherwise write mode
+            mode = 'ab' if downloaded > 0 and supports_resume else 'wb'
+            with open(full_path, mode) as f:
                 for chunk in response.iter_content(chunk_size=8192):
-                    if self.stop_download:
-                        self.download_info['status'] = 'paused'
+                    # Check if cancelled
+                    if self.cancel_event.is_set():
+                        self.download_info['status'] = 'cancelled'
                         return
+                    
+                    # Check if paused
+                    if self.pause_event.is_set():
+                        self.download_info['status'] = 'paused'
+                        # Wait until resumed or cancelled
+                        while self.pause_event.is_set() and not self.cancel_event.is_set():
+                            time.sleep(0.5)
+                        
+                        # Update status if resumed
+                        if not self.cancel_event.is_set():
+                            self.download_info['status'] = 'active'
                     
                     if chunk:
                         f.write(chunk)
@@ -124,23 +179,40 @@ class HttpDownloader:
             print(f"Download error: {str(e)}")
     
     def pause_download(self):
-        """Pause the current download (actually stops it)"""
+        """Pause the current download"""
         if self.thread and self.thread.is_alive():
-            self.stop_download = True
-            if self.download_info:
-                self.download_info['status'] = 'paused'
+            self.pause_event.set()
+            self.download_info['status'] = 'pausing'  # Intermediate state until worker confirms
+    
+    def resume_download(self):
+        """Resume a paused download"""
+        if self.download_info and self.download_info['status'] == 'paused':
+            self.pause_event.clear()
+            # If thread is no longer alive, restart it
+            if not self.thread or not self.thread.is_alive():
+                self.thread = threading.Thread(target=self._download_worker)
+                self.thread.daemon = True
+                self.thread.start()
     
     def cancel_download(self):
         """Cancel the current download and reset the download object"""
-        self.pause_download()
-        if self.download_info:
-            # Attempt to delete the partial file
-            try:
-                if os.path.exists(self.download_info['full_path']):
-                    os.remove(self.download_info['full_path'])
-            except:
-                pass
-            self.download_info['status'] = 'removed'
+        if self.thread and self.thread.is_alive():
+            self.cancel_event.set()
+            self.pause_event.clear()  # Clear pause if it was set
+            
+            # Give the thread a moment to clean up
+            self.thread.join(timeout=2.0)
+            
+            if self.download_info:
+                # Attempt to delete the partial file if not resumable
+                if not self.download_info.get('supports_resume', False):
+                    try:
+                        if os.path.exists(self.download_info['full_path']):
+                            os.remove(self.download_info['full_path'])
+                    except:
+                        pass
+                self.download_info['status'] = 'cancelled'
+        
         self.download_info = None
     
     def _extract_filename_from_url(self, url: str) -> str:
@@ -181,4 +253,5 @@ class HttpDownloader:
             'numSeeds': 0,  # Not applicable for HTTP
             'status': self.download_info['status'],
             'bytesDownloaded': self.download_info['bytesDownloaded'],
+            'supports_resume': self.download_info.get('supports_resume', False)
         }
