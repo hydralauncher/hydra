@@ -3,9 +3,8 @@ import subprocess
 import json
 
 class HttpDownloader:
-    def __init__(self):
-        self.binaries_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "binaries")
-        self.hydra_exe = os.path.join(self.binaries_path, "hydra-httpdl.exe")
+    def __init__(self, hydra_httpdl_bin: str):
+        self.hydra_exe = hydra_httpdl_bin
         self.process = None
         self.last_status = None
 

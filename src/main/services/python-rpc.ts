@@ -26,6 +26,10 @@ export class PythonRPC {
   public static readonly RPC_PORT = "8084";
   private static readonly RPC_PASSWORD = crypto.randomBytes(32).toString("hex");
 
+  private static readonly binaryPath = app.isPackaged
+    ? path.join(process.resourcesPath, "binaries", "hydra-httpdl.exe")
+    : path.join(__dirname, "..", "..", "binaries", "hydra-httpdl.exe");
+
   private static pythonProcess: cp.ChildProcess | null = null;
 
   public static readonly rpc = axios.create({
@@ -52,6 +56,7 @@ export class PythonRPC {
       this.RPC_PASSWORD,
       initialDownload ? JSON.stringify(initialDownload) : "",
       initialSeeding ? JSON.stringify(initialSeeding) : "",
+      this.binaryPath,
     ];
 
     if (app.isPackaged) {
