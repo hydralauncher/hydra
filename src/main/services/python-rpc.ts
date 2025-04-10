@@ -27,7 +27,7 @@ export class PythonRPC {
   private static readonly RPC_PASSWORD = crypto.randomBytes(32).toString("hex");
 
   private static readonly binaryPath = app.isPackaged
-    ? path.join(process.resourcesPath, "binaries", "hydra-httpdl.exe")
+    ? path.join(process.resourcesPath, "hydra-httpdl.exe")
     : path.join(__dirname, "..", "..", "binaries", "hydra-httpdl.exe");
 
   private static pythonProcess: cp.ChildProcess | null = null;
