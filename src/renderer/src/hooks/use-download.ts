@@ -15,7 +15,7 @@ import type {
   StartGameDownloadPayload,
 } from "@types";
 import { useDate } from "./use-date";
-import { formatBytes } from "@shared";
+import { formatBytesToMbps } from "@shared";
 
 export function useDownload() {
   const { updateLibrary } = useLibrary();
@@ -100,7 +100,7 @@ export function useDownload() {
   };
 
   return {
-    downloadSpeed: `${formatBytes(lastPacket?.downloadSpeed ?? 0)}/s`,
+    downloadSpeed: formatBytesToMbps(lastPacket?.downloadSpeed ?? 0),
     progress: formatDownloadProgress(lastPacket?.progress ?? 0),
     lastPacket,
     eta: calculateETA(),
