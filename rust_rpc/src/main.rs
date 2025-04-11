@@ -26,6 +26,7 @@ const DEFAULT_RESUME_ONLY: bool = false;
 const HEADER_SIZE: usize = 4096;
 const MAGIC_NUMBER: &[u8; 5] = b"HYDRA";
 const FORMAT_VERSION: u8 = 1;
+const FINALIZE_BUFFER_SIZE: usize = 1024 * 1024;
 
 #[derive(Parser)]
 #[command(name = "hydra-httpdl")]
@@ -809,17 +810,23 @@ impl ResumeManager {
         let source = File::open(&self.file_path)?;
         let dest = File::create(&temp_path)?;
 
-        let mut reader = BufReader::new(source);
-        let mut writer = BufWriter::new(dest);
+        let mut reader = BufReader::with_capacity(FINALIZE_BUFFER_SIZE, source);
+        let mut writer = BufWriter::with_capacity(FINALIZE_BUFFER_SIZE, dest);
 
         reader.seek(SeekFrom::Start(HEADER_SIZE as u64))?;
 
         std::io::copy(&mut reader, &mut writer)?;
         writer.flush()?;
+        drop(writer);
 
-        std::fs::rename(temp_path, &self.file_path)?;
-
-        Ok(())
+        match std::fs::rename(&temp_path, &self.file_path) {
+            Ok(_) => Ok(()),
+            Err(_) => {
+                let _ = std::fs::remove_file(&self.file_path);
+                std::fs::rename(&temp_path, &self.file_path)?;
+                Ok(())
+            }
+        }
     }
 }
 
