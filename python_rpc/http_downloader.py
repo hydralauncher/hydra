@@ -14,14 +14,14 @@ class HttpDownloader:
         cmd.append(url)
         
         cmd.extend([
-            "--chunk-size", "10",
+            "--chunk-size", "5",
             "--buffer-size", "16",
-            "--json-output",
+            "--log",
             "--silent"
         ])
         
         if allow_multiple_connections:
-            cmd.extend(["--connections", "24"])
+            cmd.extend(["--connections", "16"])
         
         print(f"running hydra-httpdl: {' '.join(cmd)}")
         
@@ -54,16 +54,16 @@ class HttpDownloader:
             
             response = {
                 "status": "active",
-                "progress": status["progress"] / 100,
-                "downloadSpeed": status["download_speed"],
+                "progress": status["progress"],
+                "downloadSpeed": status["speed_bps"],
                 "numPeers": 0,
                 "numSeeds": 0,
-                "bytesDownloaded": status["bytes_downloaded"],
-                "fileSize": status["file_size"],
-                "folderName": status["file_name"]
+                "bytesDownloaded": status["downloaded_bytes"],
+                "fileSize": status["total_bytes"],
+                "folderName": status["filename"]
             }
             
-            if status["progress"] == 100.0:
+            if status["progress"] == 1:
                 response["status"] = "complete"
             
             return response
