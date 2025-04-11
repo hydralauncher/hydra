@@ -16,3 +16,6 @@ aria2/
 .env.sentry-build-plugin
 
 *storybook.log
+
+
+target/
