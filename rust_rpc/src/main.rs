@@ -510,6 +510,19 @@ impl Downloader {
         progress.finish();
 
         if let Some((log_handle, log_cancel_tx)) = log_progress {
+            if self.config.should_log_stats() {
+                let json_output = json!({
+                    "progress": 1.0,
+                    "speed_bps": 0.0,
+                    "downloaded_bytes": _file_size,
+                    "total_bytes": _file_size,
+                    "eta_seconds": 0,
+                    "elapsed_seconds": if let Some(pb) = &progress.bar { pb.elapsed().as_secs() } else { 0 },
+                    "filename": real_filename
+                });
+                println!("{}", json_output);
+            }
+
             let _ = log_cancel_tx.send(());
             let _ = log_handle.await;
         }
