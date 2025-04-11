@@ -20,8 +20,13 @@ class HttpDownloader:
             "--silent"
         ])
         
+        if header:
+            cmd.extend(["--header", header])
+        
         if allow_multiple_connections:
             cmd.extend(["--connections", "16"])
+        else:
+            cmd.extend(["--connections", "1"])
         
         print(f"running hydra-httpdl: {' '.join(cmd)}")
         
