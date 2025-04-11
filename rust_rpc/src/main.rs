@@ -620,6 +620,28 @@ impl Downloader {
     async fn get_file_info(&self) -> Result<(u64, Option<String>, String)> {
         let resp = self.client.head(&self.config.url).send().await?;
 
+        let accepts_ranges = resp
+            .headers()
+            .get("accept-ranges")
+            .and_then(|v| v.to_str().ok())
+            .map(|v| v.contains("bytes"))
+            .unwrap_or(false);
+
+        if !accepts_ranges {
+            let range_check = self
+                .client
+                .get(&self.config.url)
+                .header("Range", "bytes=0-0")
+                .send()
+                .await?;
+
+            if range_check.status() != StatusCode::PARTIAL_CONTENT {
+                anyhow::bail!(
+                    "Server does not support Range requests, cannot continue with parallel download"
+                );
+            }
+        }
+
         let file_size = if let Some(content_length) = resp.headers().get("content-length") {
             content_length.to_str()?.parse()?
         } else {
