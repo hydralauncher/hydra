@@ -422,6 +422,8 @@ impl Downloader {
             let progress_clone = progress.bar.clone();
             let filename = real_filename.clone();
 
+            let (log_cancel_tx, mut log_cancel_rx) = tokio::sync::oneshot::channel();
+
             let log_task = tokio::spawn(async move {
                 let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1));
                 let tracker = ProgressTracker {
@@ -429,22 +431,28 @@ impl Downloader {
                 };
 
                 loop {
-                    interval.tick().await;
-                    if let Some(stats) = tracker.get_stats() {
-                        let json_output = json!({
-                            "progress": stats.progress_percent,
-                            "speed_bps": stats.speed_bytes_per_sec,
-                            "downloaded_bytes": stats.bytes_downloaded,
-                            "total_bytes": stats.total_size,
-                            "eta_seconds": stats.eta_seconds,
-                            "elapsed_seconds": stats.elapsed_seconds,
-                            "filename": filename
-                        });
-                        println!("{}", json_output);
+                    tokio::select! {
+                        _ = interval.tick() => {
+                            if let Some(stats) = tracker.get_stats() {
+                                let json_output = json!({
+                                    "progress": stats.progress_percent,
+                                    "speed_bps": stats.speed_bytes_per_sec,
+                                    "downloaded_bytes": stats.bytes_downloaded,
+                                    "total_bytes": stats.total_size,
+                                    "eta_seconds": stats.eta_seconds,
+                                    "elapsed_seconds": stats.elapsed_seconds,
+                                    "filename": filename
+                                });
+                                println!("{}", json_output);
+                            }
+                        }
+                        _ = &mut log_cancel_rx => {
+                            break;
+                        }
                     }
                 }
             });
-            Some(log_task)
+            Some((log_task, log_cancel_tx))
         } else {
             None
         };
@@ -499,8 +507,9 @@ impl Downloader {
 
         progress.finish();
 
-        if let Some(log_handle) = log_progress {
-            log_handle.abort();
+        if let Some((log_handle, log_cancel_tx)) = log_progress {
+            let _ = log_cancel_tx.send(());
+            let _ = log_handle.await;
         }
 
         let manager = resume_manager.lock().await;
