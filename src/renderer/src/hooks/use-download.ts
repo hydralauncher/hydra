@@ -15,11 +15,13 @@ import type {
   StartGameDownloadPayload,
 } from "@types";
 import { useDate } from "./use-date";
-import { formatBytesToMbps } from "@shared";
+import { formatBytes, formatBytesToMbps } from "@shared";
 
 export function useDownload() {
   const { updateLibrary } = useLibrary();
   const { formatDistance } = useDate();
+
+  const userPrefs = useAppSelector((state) => state.userPreferences.value);
 
   const { lastPacket, gamesWithDeletionInProgress } = useAppSelector(
     (state) => state.download
@@ -99,8 +101,14 @@ export function useDownload() {
     return gamesWithDeletionInProgress.includes(objectId);
   };
 
+  const formatDownloadSpeed = (downloadSpeed: number): string => {
+    return userPrefs?.showDownloadSpeedInMegabits
+      ? `${formatBytes(downloadSpeed)}/s`
+      : formatBytesToMbps(downloadSpeed);
+  };
+
   return {
-    downloadSpeed: formatBytesToMbps(lastPacket?.downloadSpeed ?? 0),
+    downloadSpeed: formatDownloadSpeed(lastPacket?.downloadSpeed ?? 0),
     progress: formatDownloadProgress(lastPacket?.progress ?? 0),
     lastPacket,
     eta: calculateETA(),
