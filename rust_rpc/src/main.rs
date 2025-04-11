@@ -73,6 +73,10 @@ struct CliArgs {
     /// only resume existing download, exit if no partial file exists
     #[arg(short = 'r', long, default_value_t = DEFAULT_RESUME_ONLY)]
     resume_only: bool,
+
+    /// HTTP headers to send with request (format: "Key: Value")
+    #[arg(short = 'h', long)]
+    header: Vec<String>,
 }
 
 struct DownloadConfig {
@@ -86,6 +90,7 @@ struct DownloadConfig {
     log: bool,
     force_new: bool,
     resume_only: bool,
+    headers: Vec<String>,
 }
 
 impl DownloadConfig {
@@ -467,6 +472,7 @@ impl Downloader {
             let file_clone = Arc::clone(&file);
             let pb_clone = progress.bar.clone();
             let manager_clone = Arc::clone(&resume_manager);
+            let headers = self.config.headers.clone();
 
             let chunk_size = self.config.chunk_size as u64;
             let chunk_index = (start / chunk_size) as usize;
@@ -480,6 +486,7 @@ impl Downloader {
                     file_clone,
                     pb_clone,
                     DEFAULT_MAX_RETRIES,
+                    &headers,
                 )
                 .await;
 
@@ -546,6 +553,7 @@ impl Downloader {
         file: Arc<Mutex<BufWriter<File>>>,
         progress_bar: Option<ProgressBar>,
         max_retries: usize,
+        headers: &[String],
     ) -> Result<()> {
         let mut retries = 0;
         loop {
@@ -556,6 +564,7 @@ impl Downloader {
                 end,
                 file.clone(),
                 progress_bar.clone(),
+                headers,
             )
             .await
             {
@@ -581,12 +590,21 @@ impl Downloader {
         end: u64,
         file: Arc<Mutex<BufWriter<File>>>,
         progress_bar: Option<ProgressBar>,
+        headers: &[String],
     ) -> Result<()> {
-        let resp = client
+        let mut req = client
             .get(&url)
-            .header("Range", format!("bytes={}-{}", start, end))
-            .send()
-            .await?;
+            .header("Range", format!("bytes={}-{}", start, end));
+
+        for header in headers {
+            if let Some(idx) = header.find(':') {
+                let (name, value) = header.split_at(idx);
+                let value = value[1..].trim();
+                req = req.header(name.trim(), value);
+            }
+        }
+
+        let resp = req.send().await?;
 
         if resp.status() != StatusCode::PARTIAL_CONTENT && resp.status() != StatusCode::OK {
             anyhow::bail!("Server does not support Range requests");
@@ -631,7 +649,17 @@ impl Downloader {
     }
 
     async fn get_file_info(&self) -> Result<(u64, Option<String>, String)> {
-        let resp = self.client.head(&self.config.url).send().await?;
+        let mut req = self.client.head(&self.config.url);
+
+        for header in &self.config.headers {
+            if let Some(idx) = header.find(':') {
+                let (name, value) = header.split_at(idx);
+                let value = value[1..].trim();
+                req = req.header(name.trim(), value);
+            }
+        }
+
+        let resp = req.send().await?;
 
         let accepts_ranges = resp
             .headers()
@@ -880,6 +908,7 @@ async fn main() -> Result<()> {
         log: args.log,
         force_new: args.force_new,
         resume_only: args.resume_only,
+        headers: args.header,
     };
 
     if config.force_new && config.resume_only {
