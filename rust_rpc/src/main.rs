@@ -552,7 +552,7 @@ impl Downloader {
                         return Err(e);
                     }
                     tokio::time::sleep(tokio::time::Duration::from_millis(
-                        RETRY_BACKOFF_MS * retries as u64,
+                        RETRY_BACKOFF_MS * (2_u64.pow(retries as u32 - 1)),
                     ))
                     .await;
                 }
