@@ -374,6 +374,21 @@ export function DownloadGroup({
                   </DropdownMenu>
                 )}
               </div>
+
+              {game.download?.downloader === Downloader.Hydra && (
+                <div
+                  style={{
+                    background:
+                      "linear-gradient(90deg, #01483C 0%, #0CF1CA 50%, #01483C 100%)",
+                    boxShadow: "0px 0px 8px 0px rgba(12, 241, 202, 0.15)",
+                    width: "100%",
+                    position: "absolute",
+                    bottom: 0,
+                    height: 2,
+                    zIndex: 1,
+                  }}
+                />
+              )}
             </li>
           );
         })}

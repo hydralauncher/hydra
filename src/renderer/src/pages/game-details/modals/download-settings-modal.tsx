@@ -83,6 +83,10 @@ export function DownloadSettingsModal({
 
   const getDefaultDownloader = useCallback(
     (availableDownloaders: Downloader[]) => {
+      if (availableDownloaders.includes(Downloader.Hydra)) {
+        return Downloader.Hydra;
+      }
+
       if (availableDownloaders.includes(Downloader.TorBox)) {
         return Downloader.TorBox;
       }

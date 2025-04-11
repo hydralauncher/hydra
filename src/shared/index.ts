@@ -49,6 +49,12 @@ export const formatBytes = (bytes: number): string => {
   return `${Math.trunc(formatedByte * 10) / 10} ${FORMAT[base]}`;
 };
 
+export const formatBytesToMbps = (bytesPerSecond: number): string => {
+  const bitsPerSecond = bytesPerSecond * 8;
+  const mbps = bitsPerSecond / (1024 * 1024);
+  return `${Math.trunc(mbps * 10) / 10} Mbps`;
+};
+
 export const pipe =
   <T>(...fns: ((arg: T) => any)[]) =>
   (arg: T) =>
@@ -111,7 +117,12 @@ export const getDownloadersForUri = (uri: string) => {
     return [Downloader.RealDebrid];
 
   if (uri.startsWith("magnet:")) {
-    return [Downloader.Torrent, Downloader.TorBox, Downloader.RealDebrid];
+    return [
+      Downloader.Torrent,
+      Downloader.Hydra,
+      Downloader.TorBox,
+      Downloader.RealDebrid,
+    ];
   }
 
   return [];
