@@ -233,7 +233,8 @@ impl HydraHeader {
     }
 
     fn get_incomplete_chunks(&self) -> Vec<(u64, u64)> {
-        let mut chunks = Vec::new();
+        let incomplete_count = self.chunk_count as usize - self.chunks_bitmap.count_ones();
+        let mut chunks = Vec::with_capacity(incomplete_count);
         let chunk_size = self.chunk_size as u64;
 
         for i in 0..self.chunk_count as usize {
