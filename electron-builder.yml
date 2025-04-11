@@ -23,6 +23,7 @@ win:
   extraResources:
     - from: binaries/7z.exe
     - from: binaries/7z.dll
+    - from: rust_rpc/target/release/hydra-httpdl.exe
   target:
     - nsis
     - portable
@@ -40,6 +41,7 @@ mac:
   entitlementsInherit: build/entitlements.mac.plist
   extraResources:
     - from: binaries/7zz
+    - from: rust_rpc/target/release/hydra-httpdl
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
@@ -51,6 +53,7 @@ dmg:
 linux:
   extraResources:
     - from: binaries/7zzs
+    - from: rust_rpc/target/release/hydra-httpdl
   target:
     - AppImage
     - snap
