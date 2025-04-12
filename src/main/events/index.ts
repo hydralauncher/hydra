@@ -47,6 +47,7 @@ import "./torrenting/resume-game-download";
 import "./torrenting/start-game-download";
 import "./torrenting/pause-game-seed";
 import "./torrenting/resume-game-seed";
+import "./torrenting/check-debrid-availability";
 import "./user-preferences/get-user-preferences";
 import "./user-preferences/update-user-preferences";
 import "./user-preferences/auto-launch";

@@ -13,35 +13,42 @@ const deleteGameFolder = async (
   objectId: string
 ): Promise<void> => {
   const downloadKey = levelKeys.game(shop, objectId);
-
   const download = await downloadsSublevel.get(downloadKey);
 
-  if (!download) return;
+  if (!download?.folderName) return;
 
-  if (download.folderName) {
-    const folderPath = path.join(
-      download.downloadPath ?? (await getDownloadsPath()),
-      download.folderName
-    );
+  const folderPath = path.join(
+    download.downloadPath ?? (await getDownloadsPath()),
+    download.folderName
+  );
 
-    if (fs.existsSync(folderPath)) {
+  const metaPath = `${folderPath}.meta`;
+
+  const deleteFile = async (filePath: string, isDirectory = false) => {
+    if (fs.existsSync(filePath)) {
       await new Promise<void>((resolve, reject) => {
         fs.rm(
-          folderPath,
-          { recursive: true, force: true, maxRetries: 5, retryDelay: 200 },
+          filePath,
+          {
+            recursive: isDirectory,
+            force: true,
+            maxRetries: 5,
+            retryDelay: 200,
+          },
           (error) => {
             if (error) {
               logger.error(error);
               reject();
             }
-
             resolve();
           }
         );
       });
     }
-  }
+  };
 
+  await deleteFile(folderPath, true);
+  await deleteFile(metaPath);
   await downloadsSublevel.del(downloadKey);
 };
 
