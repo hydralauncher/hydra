@@ -137,6 +137,15 @@ export function App() {
   }, [fetchUserDetails, updateUserDetails, dispatch]);
 
   const onSignIn = useCallback(() => {
+    window.electron.getDownloadSources().then((sources) => {
+      sources.forEach((source) => {
+        downloadSourcesWorker.postMessage([
+          "IMPORT_DOWNLOAD_SOURCE",
+          source.url,
+        ]);
+      });
+    });
+
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
