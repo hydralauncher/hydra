@@ -148,11 +148,11 @@ def action():
                 torrent_downloader.start_download(url, data['save_path'])
         else:
             if existing_downloader and isinstance(existing_downloader, HttpDownloader):
-                existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'), data.get('allow_multiple_connections', False))
+                existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'), data.get('allow_multiple_connections', False), data.get('connections_limit', 24))
             else:
                 http_downloader = HttpDownloader(hydra_httpdl_bin)
                 downloads[game_id] = http_downloader
-                http_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'), data.get('allow_multiple_connections', False))
+                http_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'), data.get('allow_multiple_connections', False), data.get('connections_limit', 24))
         
         downloading_game_id = game_id
 

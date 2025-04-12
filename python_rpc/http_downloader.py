@@ -8,7 +8,7 @@ class HttpDownloader:
         self.process = None
         self.last_status = None
 
-    def start_download(self, url: str, save_path: str, header: str = None, out: str = None, allow_multiple_connections: bool = False):
+    def start_download(self, url: str, save_path: str, header: str = None, out: str = None, allow_multiple_connections: bool = False, connections_limit: int = 1):
         cmd = [self.hydra_exe]
         
         cmd.append(url)
@@ -25,7 +25,7 @@ class HttpDownloader:
             cmd.extend(["--header", header])
         
         if allow_multiple_connections:
-            cmd.extend(["--connections", "24"])
+            cmd.extend(["--connections", str(connections_limit)])
         else:
             cmd.extend(["--connections", "1"])
         
