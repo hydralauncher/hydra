@@ -354,7 +354,8 @@
     "common_redist": "Common redistributables",
     "common_redist_description": "Common redistributables are required to run some games. Installing them is recommended to avoid issues.",
     "install_common_redist": "Install",
-    "installing_common_redist": "Installing…"
+    "installing_common_redist": "Installing…",
+    "show_download_speed_in_megabits": "Show download speed in megabits per second"
   },
   "notifications": {
     "download_complete": "Download complete",
