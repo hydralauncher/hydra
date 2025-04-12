@@ -185,7 +185,9 @@ export function DownloadSettingsModal({
                 (downloader === Downloader.RealDebrid &&
                   !userPreferences?.realDebridApiToken) ||
                 (downloader === Downloader.TorBox &&
-                  !userPreferences?.torBoxApiToken);
+                  !userPreferences?.torBoxApiToken) ||
+                (downloader === Downloader.Hydra &&
+                  !isFeatureEnabled(Feature.Nimbus));
 
               return (
                 <Button
