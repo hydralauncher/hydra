@@ -13,11 +13,13 @@ export class HydraDebridClient {
     );
   }
 
-  public static getDownloadUrl(magnet: string) {
+  public static async getDownloadUrl(magnet: string) {
     try {
-      return HydraApi.post("/debrid/request-file", {
+      const response = await HydraApi.post("/debrid/request-file", {
         magnet,
-      }).then((response) => response.downloadUrl);
+      });
+
+      return response.downloadUrl;
     } catch (error) {
       return null;
     }
