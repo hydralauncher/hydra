@@ -807,13 +807,11 @@ impl ResumeManager {
             match HydraHeader::read_from_file(&mut reader) {
                 Ok(header) => {
                     let current_url_hash = Sha256::digest(url.as_bytes());
-                    let current_etag_hash = Sha256::digest(etag.as_bytes());
 
                     let url_matches = header.url_hash == current_url_hash.as_slice();
-                    let etag_matches = header.etag == current_etag_hash.as_slice();
                     let size_matches = header.file_size == file_size;
 
-                    if url_matches && etag_matches && size_matches {
+                    if url_matches && size_matches {
                         return Ok(Self {
                             header,
                             file_path: path.to_string(),
