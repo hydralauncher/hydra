@@ -14,7 +14,7 @@ class HttpDownloader:
         cmd.append(url)
         
         cmd.extend([
-            "--chunk-size", "5",
+            "--chunk-size", "10",
             "--buffer-size", "16",
             "--log",
             "--silent"
@@ -24,7 +24,7 @@ class HttpDownloader:
             cmd.extend(["--header", header])
         
         if allow_multiple_connections:
-            cmd.extend(["--connections", "16"])
+            cmd.extend(["--connections", "24"])
         else:
             cmd.extend(["--connections", "1"])
         

@@ -75,7 +75,7 @@ struct CliArgs {
     resume_only: bool,
 
     /// HTTP headers to send with request (format: "Key: Value")
-    #[arg(short = 'h', long)]
+    #[arg(short = 'H', long)]
     header: Vec<String>,
 }
 
