@@ -224,18 +224,28 @@ export function App() {
 
       const downloadSources = await downloadSourcesTable.toArray();
 
-      downloadSources
-        .filter((source) => !source.fingerprint)
-        .forEach(async (downloadSource) => {
-          const { fingerprint } = await window.electron.putDownloadSource(
-            downloadSource.objectIds
-          );
+      await Promise.all(
+        downloadSources
+          .filter((source) => !source.fingerprint)
+          .map(async (downloadSource) => {
+            const { fingerprint } = await window.electron.putDownloadSource(
+              downloadSource.objectIds
+            );
 
-          downloadSourcesTable.update(downloadSource.id, { fingerprint });
-        });
+            return downloadSourcesTable.update(downloadSource.id, {
+              fingerprint,
+            });
+          })
+      );
+
+      channel.close();
     };
 
     downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
+
+    return () => {
+      channel.close();
+    };
   }, [updateRepacks]);
 
   useEffect(() => {
