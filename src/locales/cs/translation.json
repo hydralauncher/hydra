@@ -50,6 +50,8 @@
     "installation_complete_message": "Běžné redistribuovatelné komponenty byly úspěšně nainstalovány"
   },
   "catalogue": {
+    "search": "Filtr…",
+    "developers": "Vývojáři",
     "genres": "Žánry",
     "tags": "Tagy",
     "publishers": "Vydavatelé",
@@ -115,6 +117,7 @@
     "open_download_location": "Zobrazit stažené soubory",
     "create_shortcut": "Vytvořit zástupce na ploše",
     "remove_files": "Odebrat soubory",
+    "clear": "Vyčistit",
     "remove_from_library_title": "Jste si jisti?",
     "remove_from_library_description": "Tohle odstraní {{game}} z vaší knihovny",
     "options": "Možnosti",
@@ -351,7 +354,8 @@
     "common_redist": "Běžné redistribuovatelné komponenty",
     "common_redist_description": "Běžné redistribuovatelné komponenty jsou potřeba pro spuštění určitých her. Je doporučeno je nainstalovat, aby se předešlo problémům.",
     "install_common_redist": "Nainstalovat",
-    "installing_common_redist": "Instalování…"
+    "installing_common_redist": "Instalování…",
+    "show_download_speed_in_megabytes": "Ukázat rychlost stahování v megabytech"
   },
   "notifications": {
     "download_complete": "Stahování dokončeno",
@@ -495,6 +499,7 @@
     "animated_profile_banner": "Animovaný banner na profilu",
     "hydra_cloud": "Hydra Cloud",
     "hydra_cloud_feature_found": "Právě jste objevili funkci předplatného Hydra Cloud!",
-    "learn_more": "Zjistit více"
+    "learn_more": "Zjistit více",
+    "debrid_description": "Stahovat až 4x rychleji s Nimbus"
   }
 }
