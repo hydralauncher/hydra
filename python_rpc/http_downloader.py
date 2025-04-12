@@ -41,6 +41,7 @@ class HttpDownloader:
             )
         except Exception as e:
             print(f"error running hydra-httpdl: {e}")
+            return None
 
 
     def get_download_status(self):
