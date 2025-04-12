@@ -23,6 +23,7 @@ export function SettingsBehavior() {
     enableAutoInstall: false,
     seedAfterDownloadComplete: false,
     showHiddenAchievementsDescription: false,
+    showDownloadSpeedInMegabits: false,
   });
 
   const { t } = useTranslation("settings");
@@ -40,6 +41,8 @@ export function SettingsBehavior() {
           userPreferences.seedAfterDownloadComplete ?? false,
         showHiddenAchievementsDescription:
           userPreferences.showHiddenAchievementsDescription ?? false,
+        showDownloadSpeedInMegabits:
+          userPreferences.showDownloadSpeedInMegabits ?? false,
       });
     }
   }, [userPreferences]);
@@ -136,6 +139,16 @@ export function SettingsBehavior() {
           handleChange({
             showHiddenAchievementsDescription:
               !form.showHiddenAchievementsDescription,
+          })
+        }
+      />
+
+      <CheckboxField
+        label={t("show_download_speed_in_megabits")}
+        checked={form.showDownloadSpeedInMegabits}
+        onChange={() =>
+          handleChange({
+            showDownloadSpeedInMegabits: !form.showDownloadSpeedInMegabits,
           })
         }
       />
