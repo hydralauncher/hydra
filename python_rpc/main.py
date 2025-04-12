@@ -36,7 +36,7 @@ if start_download_payload:
         http_downloader = HttpDownloader(hydra_httpdl_bin)
         downloads[initial_download['game_id']] = http_downloader
         try:
-            http_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'), initial_download.get("out"))
+            http_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'), initial_download.get("out"), initial_download.get('allow_multiple_connections', False), initial_download.get('connections_limit', 24))
         except Exception as e:
             print("Error starting http download", e)
 
