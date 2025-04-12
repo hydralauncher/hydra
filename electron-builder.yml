@@ -3,7 +3,6 @@ productName: Hydra
 directories:
   buildResources: build
 extraResources:
-  - aria2
   - ludusavi
   - hydra-python-rpc
   - seeds

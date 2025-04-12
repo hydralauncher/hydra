@@ -5,4 +5,3 @@ pywin32; sys_platform == 'win32'
 psutil
 Pillow
 flask
-aria2p
