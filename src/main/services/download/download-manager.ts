@@ -314,6 +314,8 @@ export class DownloadManager {
           url: downloadLink,
           save_path: download.downloadPath,
           header: `Cookie: accountToken=${token}`,
+          allow_multiple_connections: true,
+          connections_limit: 8,
         };
       }
       case Downloader.PixelDrain: {
