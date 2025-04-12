@@ -69,7 +69,7 @@ export class PythonRPC {
             "..",
             "rust_rpc",
             "target",
-            "release",
+            "debug",
             rustBinaryNameByPlatform[process.platform]!
           ),
     ];
