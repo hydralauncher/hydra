@@ -31,7 +31,6 @@ import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-m
 
 import { injectCustomCss } from "./helpers";
 import "./app.scss";
-import { DownloadSource } from "@types";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -137,70 +136,6 @@ export function App() {
       });
   }, [fetchUserDetails, updateUserDetails, dispatch]);
 
-  const syncDownloadSources = useCallback(async () => {
-    const downloadSources = await window.electron.getDownloadSources();
-
-    const existingDownloadSources: DownloadSource[] =
-      await downloadSourcesTable.toArray();
-
-    window.electron.createDownloadSources(
-      existingDownloadSources.map((source) => source.url)
-    );
-
-    await Promise.allSettled(
-      downloadSources.map(async (source) => {
-        return new Promise((resolve) => {
-          const existingDownloadSource = existingDownloadSources.find(
-            (downloadSource) => downloadSource.url === source.url
-          );
-
-          if (!existingDownloadSource) {
-            const channel = new BroadcastChannel(
-              `download_sources:import:${source.url}`
-            );
-
-            downloadSourcesWorker.postMessage([
-              "IMPORT_DOWNLOAD_SOURCE",
-              source.url,
-            ]);
-
-            channel.onmessage = () => {
-              resolve(true);
-              channel.close();
-            };
-          } else {
-            resolve(true);
-          }
-        });
-      })
-    );
-
-    updateRepacks();
-
-    const id = crypto.randomUUID();
-    const channel = new BroadcastChannel(`download_sources:sync:${id}`);
-
-    channel.onmessage = async (event: MessageEvent<number>) => {
-      const newRepacksCount = event.data;
-      window.electron.publishNewRepacksNotification(newRepacksCount);
-      updateRepacks();
-
-      const downloadSources = await downloadSourcesTable.toArray();
-
-      downloadSources
-        .filter((source) => !source.fingerprint)
-        .forEach(async (downloadSource) => {
-          const { fingerprint } = await window.electron.putDownloadSource(
-            downloadSource.objectIds
-          );
-
-          downloadSourcesTable.update(downloadSource.id, { fingerprint });
-        });
-    };
-
-    downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
-  }, [updateRepacks]);
-
   const onSignIn = useCallback(() => {
     fetchUserDetails().then((response) => {
       if (response) {
@@ -209,15 +144,7 @@ export function App() {
         showSuccessToast(t("successfully_signed_in"));
       }
     });
-
-    syncDownloadSources();
-  }, [
-    fetchUserDetails,
-    t,
-    showSuccessToast,
-    updateUserDetails,
-    syncDownloadSources,
-  ]);
+  }, [fetchUserDetails, t, showSuccessToast, updateUserDetails]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onSyncFriendRequests((result) => {
@@ -285,8 +212,31 @@ export function App() {
   }, [dispatch, draggingDisabled]);
 
   useEffect(() => {
-    syncDownloadSources();
-  }, [syncDownloadSources]);
+    updateRepacks();
+
+    const id = crypto.randomUUID();
+    const channel = new BroadcastChannel(`download_sources:sync:${id}`);
+
+    channel.onmessage = async (event: MessageEvent<number>) => {
+      const newRepacksCount = event.data;
+      window.electron.publishNewRepacksNotification(newRepacksCount);
+      updateRepacks();
+
+      const downloadSources = await downloadSourcesTable.toArray();
+
+      downloadSources
+        .filter((source) => !source.fingerprint)
+        .forEach(async (downloadSource) => {
+          const { fingerprint } = await window.electron.putDownloadSource(
+            downloadSource.objectIds
+          );
+
+          downloadSourcesTable.update(downloadSource.id, { fingerprint });
+        });
+    };
+
+    downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
+  }, [updateRepacks]);
 
   useEffect(() => {
     const loadAndApplyTheme = async () => {
