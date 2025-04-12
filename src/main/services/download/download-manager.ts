@@ -313,6 +313,8 @@ export class DownloadManager {
           url: downloadLink,
           save_path: download.downloadPath,
           header: `Cookie: accountToken=${token}`,
+          allow_multiple_connections: true,
+          connections_limit: 8,
         };
       }
       case Downloader.PixelDrain: {
@@ -371,6 +373,7 @@ export class DownloadManager {
           game_id: downloadId,
           url: downloadUrl,
           save_path: download.downloadPath,
+          allow_multiple_connections: true,
         };
       }
       case Downloader.TorBox: {
@@ -383,6 +386,7 @@ export class DownloadManager {
           url,
           save_path: download.downloadPath,
           out: name,
+          allow_multiple_connections: true,
         };
       }
     }

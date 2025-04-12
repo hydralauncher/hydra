@@ -341,7 +341,8 @@
     "common_redist": "Componentes recomendados",
     "common_redist_description": "Componentes recomendados são necessários para executar alguns jogos. A instalação deles é recomendada para evitar problemas.",
     "install_common_redist": "Instalar",
-    "installing_common_redist": "Instalando…"
+    "installing_common_redist": "Instalando…",
+    "show_download_speed_in_megabytes": "Exibir taxas de download em megabytes por segundo"
   },
   "notifications": {
     "download_complete": "Download concluído",
