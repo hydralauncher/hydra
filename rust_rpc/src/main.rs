@@ -23,6 +23,7 @@ const DEFAULT_SILENT: bool = false;
 const DEFAULT_LOG: bool = false;
 const DEFAULT_FORCE_NEW: bool = false;
 const DEFAULT_RESUME_ONLY: bool = false;
+const DEFAULT_FORCE_DOWNLOAD: bool = false;
 const HEADER_SIZE: usize = 4096;
 const MAGIC_NUMBER: &[u8; 5] = b"HYDRA";
 const FORMAT_VERSION: u8 = 1;
@@ -74,6 +75,10 @@ struct CliArgs {
     #[arg(short = 'r', long, default_value_t = DEFAULT_RESUME_ONLY)]
     resume_only: bool,
 
+    /// force download, ignore some verification checks
+    #[arg(short = 'F', long, default_value_t = DEFAULT_FORCE_DOWNLOAD)]
+    force_download: bool,
+
     /// HTTP headers to send with request (format: "Key: Value")
     #[arg(short = 'H', long)]
     header: Vec<String>,
@@ -91,6 +96,7 @@ struct DownloadConfig {
     force_new: bool,
     resume_only: bool,
     headers: Vec<String>,
+    force_download: bool,
 }
 
 impl DownloadConfig {
@@ -473,6 +479,8 @@ impl Downloader {
             let pb_clone = progress.bar.clone();
             let manager_clone = Arc::clone(&resume_manager);
             let headers = self.config.headers.clone();
+            let force_download = self.config.force_download;
+            let should_log = self.config.should_log();
 
             let chunk_size = self.config.chunk_size as u64;
             let chunk_index = (start / chunk_size) as usize;
@@ -487,6 +495,8 @@ impl Downloader {
                     pb_clone,
                     DEFAULT_MAX_RETRIES,
                     &headers,
+                    force_download,
+                    should_log,
                 )
                 .await;
 
@@ -554,6 +564,8 @@ impl Downloader {
         progress_bar: Option<ProgressBar>,
         max_retries: usize,
         headers: &[String],
+        force_download: bool,
+        should_log: bool,
     ) -> Result<()> {
         let mut retries = 0;
         loop {
@@ -565,6 +577,8 @@ impl Downloader {
                 file.clone(),
                 progress_bar.clone(),
                 headers,
+                force_download,
+                should_log,
             )
             .await
             {
@@ -591,6 +605,8 @@ impl Downloader {
         file: Arc<Mutex<BufWriter<File>>>,
         progress_bar: Option<ProgressBar>,
         headers: &[String],
+        force_download: bool,
+        should_log: bool,
     ) -> Result<()> {
         let mut req = client
             .get(&url)
@@ -607,7 +623,11 @@ impl Downloader {
         let resp = req.send().await?;
 
         if resp.status() != StatusCode::PARTIAL_CONTENT && resp.status() != StatusCode::OK {
-            anyhow::bail!("Server does not support Range requests");
+            if !force_download {
+                anyhow::bail!("Server does not support Range requests");
+            } else if should_log {
+                println!("Server does not support Range requests, ignoring...");
+            }
         }
 
         let mut stream = resp.bytes_stream();
@@ -677,9 +697,13 @@ impl Downloader {
                 .await?;
 
             if range_check.status() != StatusCode::PARTIAL_CONTENT {
-                anyhow::bail!(
-                    "Server does not support Range requests, cannot continue with parallel download"
-                );
+                if !self.config.force_download {
+                    anyhow::bail!(
+                        "Server does not support Range requests, cannot continue with parallel download"
+                    );
+                } else if self.config.should_log() {
+                    println!("Server does not support Range requests, ignoring...");
+                }
             }
         }
 
@@ -909,6 +933,7 @@ async fn main() -> Result<()> {
         force_new: args.force_new,
         resume_only: args.resume_only,
         headers: args.header,
+        force_download: args.force_download,
     };
 
     if config.force_new && config.resume_only {

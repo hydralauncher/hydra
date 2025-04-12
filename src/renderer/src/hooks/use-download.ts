@@ -102,7 +102,7 @@ export function useDownload() {
   };
 
   const formatDownloadSpeed = (downloadSpeed: number): string => {
-    return userPrefs?.showDownloadSpeedInMegabits
+    return userPrefs?.showDownloadSpeedInMegabytes
       ? `${formatBytes(downloadSpeed)}/s`
       : formatBytesToMbps(downloadSpeed);
   };
