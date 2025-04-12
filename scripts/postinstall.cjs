@@ -47,3 +47,10 @@ const downloadLudusavi = async () => {
 };
 
 downloadLudusavi();
+
+if (process.platform !== "win32") {
+  const binariesPath = path.join(__dirname, "..", "binaries");
+
+  fs.chmodSync(path.join(binariesPath, "7zz"), 0o755);
+  fs.chmodSync(path.join(binariesPath, "7zzs"), 0o755);
+}

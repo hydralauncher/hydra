@@ -50,8 +50,6 @@ export class SevenZip {
       });
 
       child.once("exit", (code) => {
-        console.log("EXIT CALLED", code, filePath);
-
         if (code === 0) {
           successCb();
           return;
