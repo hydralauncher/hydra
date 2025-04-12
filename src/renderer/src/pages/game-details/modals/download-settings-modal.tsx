@@ -114,11 +114,15 @@ export function DownloadSettingsModal({
         return userPreferences?.realDebridApiToken;
       if (downloader === Downloader.TorBox)
         return userPreferences?.torBoxApiToken;
+      if (downloader === Downloader.Hydra)
+        return isFeatureEnabled(Feature.Nimbus);
       return true;
     });
 
     setSelectedDownloader(getDefaultDownloader(filteredDownloaders));
   }, [
+    Feature,
+    isFeatureEnabled,
     getDefaultDownloader,
     userPreferences?.downloadsPath,
     downloaders,
