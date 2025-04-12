@@ -13,6 +13,7 @@ http_port = sys.argv[2]
 rpc_password = sys.argv[3]
 start_download_payload = sys.argv[4]
 start_seeding_payload = sys.argv[5]
+hydra_httpdl_bin = sys.argv[6]
 
 downloads = {}
 # This can be streamed down from Node
@@ -32,7 +33,7 @@ if start_download_payload:
         except Exception as e:
             print("Error starting torrent download", e)
     else:
-        http_downloader = HttpDownloader()
+        http_downloader = HttpDownloader(hydra_httpdl_bin)
         downloads[initial_download['game_id']] = http_downloader
         try:
             http_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'), initial_download.get("out"))
@@ -147,11 +148,11 @@ def action():
                 torrent_downloader.start_download(url, data['save_path'])
         else:
             if existing_downloader and isinstance(existing_downloader, HttpDownloader):
-                existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
+                existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'), data.get('allow_multiple_connections', False))
             else:
-                http_downloader = HttpDownloader()
+                http_downloader = HttpDownloader(hydra_httpdl_bin)
                 downloads[game_id] = http_downloader
-                http_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
+                http_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'), data.get('allow_multiple_connections', False))
         
         downloading_game_id = game_id
 

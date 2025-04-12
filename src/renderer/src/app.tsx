@@ -138,6 +138,7 @@ export function App() {
   }, [fetchUserDetails, updateUserDetails, dispatch]);
 
   const syncDownloadSources = useCallback(async () => {
+    console.log("SYNC CALLED");
     const downloadSources = await window.electron.getDownloadSources();
 
     const existingDownloadSources: DownloadSource[] =

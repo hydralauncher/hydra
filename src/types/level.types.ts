@@ -85,6 +85,7 @@ export interface UserPreferences {
   repackUpdatesNotificationsEnabled?: boolean;
   achievementNotificationsEnabled?: boolean;
   friendRequestNotificationsEnabled?: boolean;
+  showDownloadSpeedInMegabits?: boolean;
 }
 
 export interface ScreenState {
