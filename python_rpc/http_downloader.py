@@ -16,6 +16,7 @@ class HttpDownloader:
         cmd.extend([
             "--chunk-size", "10",
             "--buffer-size", "16",
+            "--force-download",
             "--log",
             "--silent"
         ])
@@ -40,6 +41,7 @@ class HttpDownloader:
             )
         except Exception as e:
             print(f"error running hydra-httpdl: {e}")
+            return None
 
 
     def get_download_status(self):
