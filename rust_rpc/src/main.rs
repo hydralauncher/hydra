@@ -527,6 +527,20 @@ impl Downloader {
         progress.finish();
 
         if let Some((log_handle, log_cancel_tx)) = log_progress {
+            let _ = log_cancel_tx.send(());
+            let _ = log_handle.await;
+        }
+
+        let manager = resume_manager.lock().await;
+        if manager.is_download_complete() {
+            if self.config.should_log() {
+                println!("Download complete, finalizing file...");
+            }
+            manager.finalize_download()?;
+
+            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            // bitch shut the fuck up
+
             if self.config.should_log_stats() {
                 let json_output = json!({
                     "progress": 1.0,
@@ -539,17 +553,6 @@ impl Downloader {
                 });
                 println!("{}", json_output);
             }
-
-            let _ = log_cancel_tx.send(());
-            let _ = log_handle.await;
-        }
-
-        let manager = resume_manager.lock().await;
-        if manager.is_download_complete() {
-            if self.config.should_log() {
-                println!("Download complete, finalizing file...");
-            }
-            manager.finalize_download()?;
         }
 
         Ok(())
