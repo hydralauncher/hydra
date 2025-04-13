@@ -1,7 +1,7 @@
 import type { Cracker, DownloadSourceStatus, Downloader } from "@shared";
 import type { SteamAppDetails } from "./steam.types";
 import type { Download, Game, Subscription } from "./level.types";
-import type { GameShop } from "./game.types";
+import type { GameShop, UnlockedAchievement } from "./game.types";
 
 export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
 
@@ -235,6 +235,12 @@ export interface UserStats {
   totalPlayTimeInSeconds: UserStatsPercentile;
   achievementsPointsEarnedSum?: UserStatsPercentile;
   unlockedAchievementSum?: number;
+}
+
+export interface UpdatedUnlockedAchievements {
+  objectId: string;
+  shop: GameShop;
+  achievements: UnlockedAchievement[];
 }
 
 export interface AchievementFile {
