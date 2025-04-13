@@ -25,7 +25,7 @@ import "./sidebar.scss";
 const achievementsPlaceholder: UserAchievement[] = [
   {
     displayName: "Timber!!",
-    name: "",
+    name: "1",
     hidden: false,
     description: "Chop down your first tree.",
     icon: "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/105600/0fbb33098c9da39d1d4771d8209afface9c46e81.jpg",
@@ -36,7 +36,7 @@ const achievementsPlaceholder: UserAchievement[] = [
   },
   {
     displayName: "Supreme Helper Minion!",
-    name: "",
+    name: "2",
     hidden: false,
     icon: "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/105600/0a6ff6a36670c96ceb4d30cf6fd69d2fdf55f38e.jpg",
     icongray:
@@ -46,7 +46,7 @@ const achievementsPlaceholder: UserAchievement[] = [
   },
   {
     displayName: "Feast of Midas",
-    name: "",
+    name: "3",
     hidden: false,
     icon: "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/105600/2d10311274fe7c92ab25cc29afdca86b019ad472.jpg",
     icongray:
