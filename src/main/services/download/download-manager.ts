@@ -23,6 +23,7 @@ import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { sortBy } from "lodash-es";
 import { TorBoxClient } from "./torbox";
 import { GameFilesManager } from "../game-files-manager";
+import { HydraDebridClient } from "./hydra-debrid";
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
@@ -313,6 +314,8 @@ export class DownloadManager {
           url: downloadLink,
           save_path: download.downloadPath,
           header: `Cookie: accountToken=${token}`,
+          allow_multiple_connections: true,
+          connections_limit: 8,
         };
       }
       case Downloader.PixelDrain: {
@@ -371,6 +374,7 @@ export class DownloadManager {
           game_id: downloadId,
           url: downloadUrl,
           save_path: download.downloadPath,
+          allow_multiple_connections: true,
         };
       }
       case Downloader.TorBox: {
@@ -383,6 +387,22 @@ export class DownloadManager {
           url,
           save_path: download.downloadPath,
           out: name,
+          allow_multiple_connections: true,
+        };
+      }
+      case Downloader.Hydra: {
+        const downloadUrl = await HydraDebridClient.getDownloadUrl(
+          download.uri
+        );
+
+        if (!downloadUrl) throw new Error(DownloadError.NotCachedInHydra);
+
+        return {
+          action: "start",
+          game_id: downloadId,
+          url: downloadUrl,
+          save_path: download.downloadPath,
+          allow_multiple_connections: true,
         };
       }
     }

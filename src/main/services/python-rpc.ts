@@ -21,6 +21,12 @@ const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
   win32: "hydra-python-rpc.exe",
 };
 
+const rustBinaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
+  darwin: "hydra-httpdl",
+  linux: "hydra-httpdl",
+  win32: "hydra-httpdl.exe",
+};
+
 export class PythonRPC {
   public static readonly BITTORRENT_PORT = "5881";
   public static readonly RPC_PORT = "8084";
@@ -52,6 +58,20 @@ export class PythonRPC {
       this.RPC_PASSWORD,
       initialDownload ? JSON.stringify(initialDownload) : "",
       initialSeeding ? JSON.stringify(initialSeeding) : "",
+      app.isPackaged
+        ? path.join(
+            process.resourcesPath,
+            rustBinaryNameByPlatform[process.platform]!
+          )
+        : path.join(
+            __dirname,
+            "..",
+            "..",
+            "rust_rpc",
+            "target",
+            "debug",
+            rustBinaryNameByPlatform[process.platform]!
+          ),
     ];
 
     if (app.isPackaged) {
