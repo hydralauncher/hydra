@@ -2,6 +2,7 @@ import type {
   Game,
   GameShop,
   UnlockedAchievement,
+  UpdatedUnlockedAchievements,
   UserPreferences,
 } from "@types";
 import { WindowManager } from "../window-manager";
@@ -26,6 +27,7 @@ const saveAchievementsOnLocal = async (
       await gameAchievementsSublevel.put(levelKey, {
         achievements: gameAchievement?.achievements ?? [],
         unlockedAchievements: unlockedAchievements,
+        cacheExpiresTimestamp: gameAchievement?.cacheExpiresTimestamp,
       });
 
       if (!sendUpdateEvent) return;
@@ -114,7 +116,7 @@ export const mergeAchievements = async (
   }
 
   if (game.remoteId) {
-    await HydraApi.put(
+    await HydraApi.put<UpdatedUnlockedAchievements | undefined>(
       "/profile/games/achievements",
       {
         id: game.remoteId,
@@ -123,10 +125,19 @@ export const mergeAchievements = async (
       { needsSubscription: !newAchievements.length }
     )
       .then((response) => {
+        if (response) {
+          return saveAchievementsOnLocal(
+            response.objectId,
+            response.shop,
+            response.achievements,
+            publishNotification
+          );
+        }
+
         return saveAchievementsOnLocal(
-          response.objectId,
-          response.shop,
-          response.achievements,
+          game.objectId,
+          game.shop,
+          mergedLocalAchievements,
           publishNotification
         );
       })
