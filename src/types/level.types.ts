@@ -67,6 +67,7 @@ export interface Download {
 export interface GameAchievement {
   achievements: SteamAchievement[];
   unlockedAchievements: UnlockedAchievement[];
+  cacheExpiresTimestamp: number | undefined;
 }
 
 export interface UserPreferences {

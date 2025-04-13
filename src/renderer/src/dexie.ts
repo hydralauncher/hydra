@@ -10,15 +10,6 @@ export interface HowLongToBeatEntry {
   updatedAt: Date;
 }
 
-export interface CatalogueCache {
-  id?: number;
-  category: string;
-  games: { objectId: string; shop: GameShop }[];
-  createdAt: Date;
-  updatedAt: Date;
-  expiresAt: Date;
-}
-
 export const db = new Dexie("Hydra");
 
 db.version(9).stores({

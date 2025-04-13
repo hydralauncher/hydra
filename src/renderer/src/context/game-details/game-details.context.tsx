@@ -86,7 +86,10 @@ export function GameDetailsContextProvider({
   const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
 
   const { getRepacksForObjectId } = useRepacks();
-  const repacks = getRepacksForObjectId(objectId);
+
+  const repacks = useMemo(() => {
+    return getRepacksForObjectId(objectId);
+  }, [getRepacksForObjectId, objectId]);
 
   const { i18n } = useTranslation("game_details");
 
