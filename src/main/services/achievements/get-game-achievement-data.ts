@@ -38,7 +38,7 @@ export const getGameAchievementData = async (
       await gameAchievementsSublevel.put(levelKeys.game(shop, objectId), {
         unlockedAchievements: cachedAchievements?.unlockedAchievements ?? [],
         achievements,
-        cacheExpiresTimestamp: Date.now() + 1000 * 60 * 10, // 10 minutes
+        cacheExpiresTimestamp: Date.now() + 1000 * 60 * 30, // 30 minutes
       });
 
       return achievements;
