@@ -238,7 +238,6 @@
     "options": "Управлять",
     "extract": "Распаковать файлы",
     "extracting": "Распаковка файлов…"
-    
   },
   "settings": {
     "downloads_path": "Путь загрузок",
@@ -358,7 +357,6 @@
     "install_common_redist": "Установить",
     "installing_common_redist": "Установка…",
     "show_download_speed_in_megabytes": "Показать скорость загрузки в мегабайтах в секунду"
-    
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
