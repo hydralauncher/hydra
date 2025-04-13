@@ -27,7 +27,7 @@ const DEFAULT_FORCE_DOWNLOAD: bool = false;
 const HEADER_SIZE: usize = 4096;
 const MAGIC_NUMBER: &[u8; 5] = b"HYDRA";
 const FORMAT_VERSION: u8 = 1;
-const FINALIZE_BUFFER_SIZE: usize = 1024 * 1024;
+// const FINALIZE_BUFFER_SIZE: usize = 1024 * 1024;
 
 #[derive(Parser)]
 #[command(name = "hydra-httpdl")]
@@ -891,27 +891,40 @@ impl ResumeManager {
             anyhow::bail!("Download is not complete");
         }
 
-        let temp_path = format!("{}.tmp", self.file_path);
-        let source = File::open(&self.file_path)?;
-        let dest = File::create(&temp_path)?;
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&self.file_path)?;
 
-        let mut reader = BufReader::with_capacity(FINALIZE_BUFFER_SIZE, source);
-        let mut writer = BufWriter::with_capacity(FINALIZE_BUFFER_SIZE, dest);
+        let file_size = self.header.file_size;
 
-        reader.seek(SeekFrom::Start(HEADER_SIZE as u64))?;
+        let buffer_size = 64 * 1024 * 1024;
+        let mut buffer = vec![0u8; buffer_size.min(file_size as usize)];
 
-        std::io::copy(&mut reader, &mut writer)?;
-        writer.flush()?;
-        drop(writer);
+        let mut file = BufReader::new(file);
+        let mut write_pos = 0;
+        let mut read_pos = HEADER_SIZE as u64;
 
-        match std::fs::rename(&temp_path, &self.file_path) {
-            Ok(_) => Ok(()),
-            Err(_) => {
-                let _ = std::fs::remove_file(&self.file_path);
-                std::fs::rename(&temp_path, &self.file_path)?;
-                Ok(())
+        while read_pos < (HEADER_SIZE as u64 + file_size) {
+            file.seek(SeekFrom::Start(read_pos))?;
+
+            let bytes_read = file.read(&mut buffer)?;
+            if bytes_read == 0 {
+                break;
             }
+
+            file.get_mut().seek(SeekFrom::Start(write_pos))?;
+
+            file.get_mut().write_all(&buffer[..bytes_read])?;
+
+            read_pos += bytes_read as u64;
+            write_pos += bytes_read as u64;
         }
+
+        file.get_mut().set_len(file_size)?;
+        file.get_mut().flush()?;
+
+        Ok(())
     }
 }
 
