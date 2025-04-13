@@ -44,7 +44,10 @@
     "downloading_metadata": "Загрузка метаданных {{title}}…",
     "downloading": "Загрузка {{title}}… ({{percentage}} завершено) - Окончание {{eta}} - {{speed}}",
     "calculating_eta": "Загрузка {{title}}… ({{percentage}} завершено) - Подсчёт оставшегося времени…",
-    "checking_files": "Проверка файлов {{title}}… ({{percentage}} завершено)"
+    "checking_files": "Проверка файлов {{title}}… ({{percentage}} завершено)",
+    "installing_common_redist": "{{log}}…",
+    "installation_complete": "Установка завершена",
+    "installation_complete_message": "Библиотеки успешно установлены"
   },
   "catalogue": {
     "search": "Фильтр…",
@@ -193,7 +196,8 @@
     "download_error_not_cached_in_real_debrid": "Эта загрузка недоступна на Real-Debrid, и получение статуса загрузки с Real-Debrid пока недоступно.",
     "download_error_not_cached_in_torbox": "Эта загрузка недоступна на Torbox, и получить статус загрузки с Torbox пока невозможно.",
     "game_added_to_favorites": "Игра добавлена в избранное",
-    "game_removed_from_favorites": "Игра удалена из избранного"
+    "game_removed_from_favorites": "Игра удалена из избранного",
+    "automatically_extract_downloaded_files": "Автоматическая распаковка загруженных файлов"
   },
   "activation": {
     "title": "Активировать Hydra",
@@ -230,7 +234,9 @@
     "seeding": "Раздача",
     "stop_seeding": "Остановить раздачу",
     "resume_seeding": "Продолжить раздачу",
-    "options": "Управлять"
+    "options": "Управлять",
+    "extract": "Распаковать файлы",
+    "extracting": "Распаковка файлов…"
   },
   "settings": {
     "downloads_path": "Путь загрузок",
@@ -344,7 +350,12 @@
     "error_importing_theme": "Ошибка при импорте темы",
     "theme_imported": "Тема успешно импортирована",
     "enable_friend_request_notifications": "При получении запроса на добавление в друзья",
-    "enable_auto_install": "Загружать обновления автоматически"
+    "enable_auto_install": "Загружать обновления автоматически",
+    "common_redist": "Библиотеки",
+    "common_redist_description": "Для запуска некоторых игр требуются библиотеки. Во избежание проблем рекомендуется установить их.",
+    "install_common_redist": "Установить",
+    "installing_common_redist": "Установка…",
+    "show_download_speed_in_megabytes": "Показать скорость загрузки в мегабайтах в секунду"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -357,7 +368,9 @@
     "notification_achievement_unlocked_title": "Достижение разблокировано для {{game}}",
     "notification_achievement_unlocked_body": "были разблокированы {{achievement}} и другие {{count}}",
     "new_friend_request_title": "Новый запрос на добавление в друзья",
-    "new_friend_request_description": "Вы получили новый запрос на добавление в друзья"
+    "new_friend_request_description": "Вы получили новый запрос на добавление в друзья",
+    "extraction_complete": "Распаковка завершена",
+    "game_extracted": "{{title}} успешно распакован"
   },
   "system_tray": {
     "open": "Открыть Hydra",
@@ -486,6 +499,7 @@
     "animated_profile_banner": "Анимированный баннер профиля",
     "hydra_cloud": "Hydra Cloud",
     "hydra_cloud_feature_found": "Вы только что открыли для себя функцию Hydra Cloud!",
-    "learn_more": "Подробнее"
+    "learn_more": "Подробнее",
+    "debrid_description": "Скачивайте в 4 раза быстрее с Nimbus"
   }
 }
