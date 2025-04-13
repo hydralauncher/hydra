@@ -1,48 +1,94 @@
-import aria2p
+import os
+import subprocess
+import json
 
 class HttpDownloader:
-    def __init__(self):
-        self.download = None
-        self.aria2 = aria2p.API(
-            aria2p.Client(
-                host="http://localhost",
-                port=6800,
-                secret=""
-            )
-        )
+    def __init__(self, hydra_httpdl_bin: str):
+        self.hydra_exe = hydra_httpdl_bin
+        self.process = None
+        self.last_status = None
 
-    def start_download(self, url: str, save_path: str, header: str, out: str = None):
-        if self.download:
-            self.aria2.resume([self.download])
+    def start_download(self, url: str, save_path: str, header: str = None, allow_multiple_connections: bool = False, connections_limit: int = 1):
+        cmd = [self.hydra_exe]
+        
+        cmd.append(url)
+        
+        cmd.extend([
+            "--chunk-size", "10",
+            "--buffer-size", "16",
+            "--force-download",
+            "--log",
+            "--silent"
+        ])
+        
+        if header:
+            cmd.extend(["--header", header])
+        
+        if allow_multiple_connections:
+            cmd.extend(["--connections", str(connections_limit)])
         else:
-            downloads = self.aria2.add(url, options={"header": header, "dir": save_path, "out": out})
-            
-            self.download = downloads[0]
-    
-    def pause_download(self):
-        if self.download:
-            self.aria2.pause([self.download])
-    
-    def cancel_download(self):
-        if self.download:
-            self.aria2.remove([self.download])
-            self.download = None
-
-    def get_download_status(self):
-        if self.download == None:
+            cmd.extend(["--connections", "1"])
+        
+        print(f"running hydra-httpdl: {' '.join(cmd)}")
+        
+        try:
+            self.process = subprocess.Popen(
+                cmd,
+                cwd=save_path,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            )
+        except Exception as e:
+            print(f"error running hydra-httpdl: {e}")
             return None
 
-        download = self.aria2.get_download(self.download.gid)
 
-        response = {
-            'folderName': download.name,
-            'fileSize': download.total_length,
-            'progress': download.completed_length / download.total_length if download.total_length else 0,
-            'downloadSpeed': download.download_speed,
-            'numPeers': 0,
-            'numSeeds': 0,
-            'status': download.status,
-            'bytesDownloaded': download.completed_length,
-        }
-
-        return response
+    def get_download_status(self):
+        
+        if not self.process:
+            return None
+        
+        try:
+            line = self.process.stdout.readline()
+            if line:
+                status = json.loads(line.strip())
+                self.last_status = status
+            elif self.last_status:
+                status = self.last_status
+            else:
+                return None
+            
+            response = {
+                "status": "active",
+                "progress": status["progress"],
+                "downloadSpeed": status["speed_bps"],
+                "numPeers": 0,
+                "numSeeds": 0,
+                "bytesDownloaded": status["downloaded_bytes"],
+                "fileSize": status["total_bytes"],
+                "folderName": status["filename"]
+            }
+            
+            if status["progress"] == 1:
+                response["status"] = "complete"
+            
+            return response
+            
+        except Exception as e:
+            print(f"error getting download status: {e}")
+            return None
+      
+      
+      
+    def stop_download(self):
+        if self.process:
+            self.process.terminate()
+            self.process = None
+            self.last_status = None
+            
+    def pause_download(self):
+        self.stop_download()
+        
+    def cancel_download(self):
+        self.stop_download()

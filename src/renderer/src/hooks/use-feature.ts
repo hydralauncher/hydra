@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 enum Feature {
   CheckDownloadWritePermission = "CHECK_DOWNLOAD_WRITE_PERMISSION",
   Torbox = "TORBOX",
+  Nimbus = "NIMBUS",
 }
 
 export function useFeature() {
@@ -15,14 +16,17 @@ export function useFeature() {
     });
   }, []);
 
-  const isFeatureEnabled = (feature: Feature) => {
-    if (!features) {
-      const features = JSON.parse(localStorage.getItem("features") ?? "[]");
-      return features.includes(feature);
-    }
+  const isFeatureEnabled = useCallback(
+    (feature: Feature) => {
+      if (!features) {
+        const features = JSON.parse(localStorage.getItem("features") ?? "[]");
+        return features.includes(feature);
+      }
 
-    return features.includes(feature);
-  };
+      return features.includes(feature);
+    },
+    [features]
+  );
 
   return {
     isFeatureEnabled,

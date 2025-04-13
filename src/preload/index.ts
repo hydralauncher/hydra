@@ -55,6 +55,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-seeding-status", listener);
     return () => ipcRenderer.removeListener("on-seeding-status", listener);
   },
+  checkDebridAvailability: (magnets: string[]) =>
+    ipcRenderer.invoke("checkDebridAvailability", magnets),
 
   /* Catalogue */
   searchGames: (payload: CatalogueSearchPayload, take: number, skip: number) =>

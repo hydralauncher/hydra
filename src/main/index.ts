@@ -8,7 +8,6 @@ import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { logger, WindowManager } from "@main/services";
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
-import { Aria2 } from "./services/aria2";
 import { db, levelKeys } from "./level";
 import { loadState } from "./main";
 
@@ -143,7 +142,6 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   /* Disconnects libtorrent */
   PythonRPC.kill();
-  Aria2.kill();
 });
 
 app.on("activate", () => {
