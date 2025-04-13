@@ -14,7 +14,7 @@ import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "@renderer/context";
 import { Downloader } from "@shared";
 import { orderBy } from "lodash-es";
-import { useDate } from "@renderer/hooks";
+import { useDate, useFeature } from "@renderer/hooks";
 import "./repacks-modal.scss";
 
 export interface RepacksModalProps {
@@ -58,7 +58,13 @@ export function RepacksModal({
     return match ? match[1].toLowerCase() : null;
   };
 
+  const { isFeatureEnabled, Feature } = useFeature();
+
   useEffect(() => {
+    if (!isFeatureEnabled(Feature.NimbusPreview)) {
+      return;
+    }
+
     const magnets = repacks.flatMap((repack) =>
       repack.uris.filter((uri) => uri.startsWith("magnet:"))
     );
@@ -66,7 +72,7 @@ export function RepacksModal({
     window.electron.checkDebridAvailability(magnets).then((availableHashes) => {
       setHashesInDebrid(availableHashes);
     });
-  }, [repacks]);
+  }, [repacks, isFeatureEnabled, Feature]);
 
   const sortedRepacks = useMemo(() => {
     return orderBy(
