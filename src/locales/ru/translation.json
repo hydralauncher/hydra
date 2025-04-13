@@ -48,7 +48,6 @@
     "installing_common_redist": "{{log}}…",
     "installation_complete": "Установка завершена",
     "installation_complete_message": "Библиотеки успешно установлены"
-    
   },
   "catalogue": {
     "search": "Фильтр…",
