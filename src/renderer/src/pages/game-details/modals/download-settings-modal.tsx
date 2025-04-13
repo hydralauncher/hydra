@@ -38,13 +38,13 @@ export function DownloadSettingsModal({
     (state) => state.userPreferences.value
   );
 
-  const getAutomaticExtractionValue = useCallback(() => {
+  const getAutomaticExtractionValue = () => {
     if (userPreferences?.extractFilesByDefault === undefined) {
       window.electron.updateUserPreferences({ extractFilesByDefault: true });
     }
 
     return userPreferences?.extractFilesByDefault ?? true;
-  }, [userPreferences?.extractFilesByDefault]);
+  };
 
   const { showErrorToast } = useToast();
 
@@ -138,6 +138,12 @@ export function DownloadSettingsModal({
     userPreferences?.realDebridApiToken,
     userPreferences?.torBoxApiToken,
   ]);
+
+  useEffect(() => {
+    if (userPreferences?.extractFilesByDefault === undefined) {
+      window.electron.updateUserPreferences({ extractFilesByDefault: true });
+    }
+  }, [userPreferences?.extractFilesByDefault]);
 
   const handleChooseDownloadsPath = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
