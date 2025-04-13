@@ -34,13 +34,26 @@ export function DownloadSettingsModal({
 }: Readonly<DownloadSettingsModalProps>) {
   const { t } = useTranslation("game_details");
 
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+
+  const getAutomaticExtractionValue = useCallback(() => {
+    if (userPreferences?.extractFilesByDefault === undefined) {
+      window.electron.updateUserPreferences({ extractFilesByDefault: true });
+    }
+
+    return userPreferences?.extractFilesByDefault ?? true;
+  }, [userPreferences?.extractFilesByDefault]);
+
   const { showErrorToast } = useToast();
 
   const [diskFreeSpace, setDiskFreeSpace] = useState<number | null>(null);
   const [selectedPath, setSelectedPath] = useState("");
   const [downloadStarting, setDownloadStarting] = useState(false);
-  const [automaticExtractionEnabled, setAutomaticExtractionEnabled] =
-    useState(true);
+  const [automaticExtractionEnabled, setAutomaticExtractionEnabled] = useState(
+    getAutomaticExtractionValue()
+  );
   const [selectedDownloader, setSelectedDownloader] =
     useState<Downloader | null>(null);
   const [hasWritePermission, setHasWritePermission] = useState<boolean | null>(
@@ -48,10 +61,6 @@ export function DownloadSettingsModal({
   );
 
   const { isFeatureEnabled, Feature } = useFeature();
-
-  const userPreferences = useAppSelector(
-    (state) => state.userPreferences.value
-  );
 
   const getDiskFreeSpace = async (path: string) => {
     const result = await window.electron.getDiskFreeSpace(path);

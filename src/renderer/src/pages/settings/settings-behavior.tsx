@@ -24,6 +24,7 @@ export function SettingsBehavior() {
     seedAfterDownloadComplete: false,
     showHiddenAchievementsDescription: false,
     showDownloadSpeedInMegabytes: false,
+    extractFilesByDefault: false,
   });
 
   const { t } = useTranslation("settings");
@@ -43,6 +44,7 @@ export function SettingsBehavior() {
           userPreferences.showHiddenAchievementsDescription ?? false,
         showDownloadSpeedInMegabytes:
           userPreferences.showDownloadSpeedInMegabytes ?? false,
+        extractFilesByDefault: userPreferences.extractFilesByDefault ?? false,
       });
     }
   }, [userPreferences]);
@@ -149,6 +151,16 @@ export function SettingsBehavior() {
         onChange={() =>
           handleChange({
             showDownloadSpeedInMegabytes: !form.showDownloadSpeedInMegabytes,
+          })
+        }
+      />
+
+      <CheckboxField
+        label={t("extract_files_by_default")}
+        checked={form.extractFilesByDefault}
+        onChange={() =>
+          handleChange({
+            extractFilesByDefault: !form.extractFilesByDefault,
           })
         }
       />
