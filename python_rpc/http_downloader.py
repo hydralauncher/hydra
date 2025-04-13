@@ -14,7 +14,7 @@ class HttpDownloader:
         cmd.append(url)
         
         cmd.extend([
-            "--chunk-size", "10",
+            "--chunk-size", "42",
             "--buffer-size", "16",
             "--force-download",
             "--log",
