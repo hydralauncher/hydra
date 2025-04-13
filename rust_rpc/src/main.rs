@@ -539,7 +539,6 @@ impl Downloader {
             manager.finalize_download()?;
 
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-            // bitch shut the fuck up
 
             if self.config.should_log_stats() {
                 let json_output = json!({
