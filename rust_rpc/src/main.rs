@@ -364,7 +364,8 @@ impl Downloader {
 
                 if let Some(pb) = &progress.bar {
                     let downloaded = file_size * completed_chunks as u64 / total_chunks as u64;
-                    pb.inc(downloaded);
+                    pb.set_position(downloaded);
+                    pb.reset_elapsed();
                 }
             }
 
