@@ -59,6 +59,9 @@ declare global {
       cb: (value: SeedingStatus[]) => void
     ) => () => Electron.IpcRenderer;
     onHardDelete: (cb: () => void) => () => Electron.IpcRenderer;
+    checkDebridAvailability: (
+      magnets: string[]
+    ) => Promise<Record<string, boolean>>;
 
     /* Catalogue */
     searchGames: (

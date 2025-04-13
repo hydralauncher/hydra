@@ -83,6 +83,10 @@ export function DownloadSettingsModal({
 
   const getDefaultDownloader = useCallback(
     (availableDownloaders: Downloader[]) => {
+      if (availableDownloaders.includes(Downloader.Hydra)) {
+        return Downloader.Hydra;
+      }
+
       if (availableDownloaders.includes(Downloader.TorBox)) {
         return Downloader.TorBox;
       }
@@ -110,11 +114,15 @@ export function DownloadSettingsModal({
         return userPreferences?.realDebridApiToken;
       if (downloader === Downloader.TorBox)
         return userPreferences?.torBoxApiToken;
+      if (downloader === Downloader.Hydra)
+        return isFeatureEnabled(Feature.Nimbus);
       return true;
     });
 
     setSelectedDownloader(getDefaultDownloader(filteredDownloaders));
   }, [
+    Feature,
+    isFeatureEnabled,
     getDefaultDownloader,
     userPreferences?.downloadsPath,
     downloaders,
@@ -181,7 +189,9 @@ export function DownloadSettingsModal({
                 (downloader === Downloader.RealDebrid &&
                   !userPreferences?.realDebridApiToken) ||
                 (downloader === Downloader.TorBox &&
-                  !userPreferences?.torBoxApiToken);
+                  !userPreferences?.torBoxApiToken) ||
+                (downloader === Downloader.Hydra &&
+                  !isFeatureEnabled(Feature.Nimbus));
 
               return (
                 <Button
