@@ -122,8 +122,8 @@ export function Sidebar() {
             <h3>{t("sign_in_to_see_achievements")}</h3>
           </div>
           <ul className="list achievements-placeholder__blur">
-            {achievementsPlaceholder.map((achievement, index) => (
-              <li key={index}>
+            {achievementsPlaceholder.map((achievement) => (
+              <li key={achievement.name}>
                 <div className="list__item">
                   <img
                     className={`list__item-image achievements-placeholder__blur ${

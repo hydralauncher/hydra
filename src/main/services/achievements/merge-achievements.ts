@@ -26,6 +26,7 @@ const saveAchievementsOnLocal = async (
       await gameAchievementsSublevel.put(levelKey, {
         achievements: gameAchievement?.achievements ?? [],
         unlockedAchievements: unlockedAchievements,
+        cacheExpiresTimestamp: gameAchievement?.cacheExpiresTimestamp,
       });
 
       if (!sendUpdateEvent) return;
