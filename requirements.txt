@@ -5,3 +5,4 @@ pywin32; sys_platform == 'win32'
 psutil
 Pillow
 flask
+requests
