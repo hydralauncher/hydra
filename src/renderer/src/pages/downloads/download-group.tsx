@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 
 import type { GameShop, LibraryGame, SeedingStatus } from "@types";
+import cn from "classnames";
 
 import { Badge, Button } from "@renderer/components";
 import {
@@ -31,8 +32,6 @@ import {
   UnlinkIcon,
   XCircleIcon,
 } from "@primer/octicons-react";
-
-import torBoxLogo from "@renderer/assets/icons/torbox.webp";
 
 export interface DownloadGroupProps {
   library: LibraryGame[];
@@ -310,7 +309,13 @@ export function DownloadGroup({
       <ul className="download-group__downloads">
         {library.map((game) => {
           return (
-            <li key={game.id} className="download-group__item">
+            <li
+              key={game.id}
+              className={cn("download-group__item", {
+                "download-group__item--hydra-debrid":
+                  game.download?.downloader === Downloader.Hydra,
+              })}
+            >
               <div className="download-group__cover">
                 <div className="download-group__cover-backdrop">
                   <img
@@ -320,20 +325,7 @@ export function DownloadGroup({
                   />
 
                   <div className="download-group__cover-content">
-                    {game.download?.downloader === Downloader.TorBox ? (
-                      <Badge>
-                        <img
-                          src={torBoxLogo}
-                          alt="TorBox"
-                          style={{ width: 13 }}
-                        />
-                        <span>TorBox</span>
-                      </Badge>
-                    ) : (
-                      <Badge>
-                        {DOWNLOADER_NAME[game.download!.downloader]}
-                      </Badge>
-                    )}
+                    <Badge>{DOWNLOADER_NAME[game.download!.downloader]}</Badge>
                   </div>
                 </div>
               </div>

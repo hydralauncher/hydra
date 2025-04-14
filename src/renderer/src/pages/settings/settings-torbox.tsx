@@ -16,7 +16,7 @@ const TORBOX_URL = torBoxReferralCode
   : "https://torbox.app";
 const TORBOX_API_TOKEN_URL = "https://torbox.app/settings";
 
-export function SettingsTorbox() {
+export function SettingsTorBox() {
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );

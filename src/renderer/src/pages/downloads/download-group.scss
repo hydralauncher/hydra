@@ -73,6 +73,10 @@
     min-height: 140px;
     max-height: 140px;
     position: relative;
+
+    &--hydra-debrid {
+      box-shadow: 0px 0px 16px 0px rgba(12, 241, 202, 0.15);
+    }
   }
 
   &__cover {
