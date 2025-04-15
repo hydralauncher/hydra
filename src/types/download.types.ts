@@ -22,7 +22,7 @@ export interface DownloadProgress {
   download: Download;
 }
 
-/* Torbox */
+/* TorBox */
 export interface TorBoxUser {
   id: number;
   email: string;

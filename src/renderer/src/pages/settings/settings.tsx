@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { SettingsRealDebrid } from "./settings-real-debrid";
 import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
-import torBoxLogo from "@renderer/assets/icons/torbox.webp";
 import { SettingsDownloadSources } from "./settings-download-sources";
 import {
   SettingsContextConsumer,
@@ -14,7 +13,7 @@ import { useFeature, useUserDetails } from "@renderer/hooks";
 import { useMemo } from "react";
 import "./settings.scss";
 import { SettingsAppearance } from "./aparence/settings-appearance";
-import { SettingsTorbox } from "./settings-torbox";
+import { SettingsTorBox } from "./settings-torbox";
 
 export default function Settings() {
   const { t } = useTranslation("settings");
@@ -23,7 +22,7 @@ export default function Settings() {
 
   const { isFeatureEnabled, Feature } = useFeature();
 
-  const isTorboxEnabled = isFeatureEnabled(Feature.Torbox);
+  const isTorBoxEnabled = isFeatureEnabled(Feature.TorBox);
 
   const categories = useMemo(() => {
     const categories = [
@@ -34,19 +33,10 @@ export default function Settings() {
         tabLabel: t("appearance"),
         contentTitle: t("appearance"),
       },
-      ...(isTorboxEnabled
+      ...(isTorBoxEnabled
         ? [
             {
-              tabLabel: (
-                <>
-                  <img
-                    src={torBoxLogo}
-                    alt="TorBox"
-                    style={{ width: 13, height: 13 }}
-                  />{" "}
-                  Torbox
-                </>
-              ),
+              tabLabel: "TorBox",
               contentTitle: "TorBox",
             },
           ]
@@ -60,7 +50,7 @@ export default function Settings() {
         { tabLabel: t("account"), contentTitle: t("account") },
       ];
     return categories;
-  }, [userDetails, t, isTorboxEnabled]);
+  }, [userDetails, t, isTorBoxEnabled]);
 
   return (
     <SettingsContextProvider>
@@ -84,7 +74,7 @@ export default function Settings() {
             }
 
             if (currentCategoryIndex === 4) {
-              return <SettingsTorbox />;
+              return <SettingsTorBox />;
             }
 
             if (currentCategoryIndex === 5) {
