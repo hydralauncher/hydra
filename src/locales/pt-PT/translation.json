@@ -175,8 +175,8 @@
     "no_write_permission": "Não é possível descarregar neste diretório. Clique aqui para saber mais.",
     "download_error_gofile_quota_exceeded": "Você excedeu sua cota mensal do Gofile. Por favor, aguarde o reset da cota.",
     "download_error_real_debrid_account_not_authorized": "A sua conta do Real-Debrid não está autorizada a fazer novos downloads. Por favor, verifique a sua assinatura e tente novamente.",
-    "download_error_not_cached_in_real_debrid": "Este download não está disponível no Real-Debrid e a verificação do status do download não está disponível.",
-    "download_error_not_cached_in_torbox": "Este download não está disponível no TorBox e a verificação do status do download não está disponível.",
+    "download_error_not_cached_on_real_debrid": "Este download não está disponível no Real-Debrid e a verificação do status do download não está disponível.",
+    "download_error_not_cached_on_torbox": "Este download não está disponível no TorBox e a verificação do status do download não está disponível.",
     "game_removed_from_favorites": "Jogo removido dos favoritos",
     "game_added_to_favorites": "Jogo adicionado aos favoritos"
   },

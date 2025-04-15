@@ -193,8 +193,8 @@
     "reset_achievements_error": "Nepodařilo se resetovat achievementy",
     "download_error_gofile_quota_exceeded": "Překročili jste vaši měsíční GoFile kvótu. Prosím vyčkejte na resetování kvóty.",
     "download_error_real_debrid_account_not_authorized": "Váš Real-Debrid účet není autorizován pro vytváření nových stahování. Prosím zkontrolujte nastavení vašeho účtu a zkuste to znovu.",
-    "download_error_not_cached_in_real_debrid": "Toto stahování není dostupné na Real-Debrid a získávání informací o stahování z Real-Debrid není zatím dostupné.",
-    "download_error_not_cached_in_torbox": "Toto stahování není dostupné na TorBox a získávání informací o stahování z TorBox není zatím dostupné.",
+    "download_error_not_cached_on_real_debrid": "Toto stahování není dostupné na Real-Debrid a získávání informací o stahování z Real-Debrid není zatím dostupné.",
+    "download_error_not_cached_on_torbox": "Toto stahování není dostupné na TorBox a získávání informací o stahování z TorBox není zatím dostupné.",
     "game_removed_from_favorites": "Hra odebrána z oblíbených",
     "game_added_to_favorites": "Hra přidána do oblíbených",
     "automatically_extract_downloaded_files": "Automaticky rozbalit stažené soubory"
