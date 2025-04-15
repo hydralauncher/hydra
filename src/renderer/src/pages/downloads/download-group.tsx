@@ -32,8 +32,6 @@ import {
   XCircleIcon,
 } from "@primer/octicons-react";
 
-import torBoxLogo from "@renderer/assets/icons/torbox.webp";
-
 export interface DownloadGroupProps {
   library: LibraryGame[];
   title: string;
@@ -320,20 +318,7 @@ export function DownloadGroup({
                   />
 
                   <div className="download-group__cover-content">
-                    {game.download?.downloader === Downloader.TorBox ? (
-                      <Badge>
-                        <img
-                          src={torBoxLogo}
-                          alt="TorBox"
-                          style={{ width: 13 }}
-                        />
-                        <span>TorBox</span>
-                      </Badge>
-                    ) : (
-                      <Badge>
-                        {DOWNLOADER_NAME[game.download!.downloader]}
-                      </Badge>
-                    )}
+                    <Badge>{DOWNLOADER_NAME[game.download!.downloader]}</Badge>
                   </div>
                 </div>
               </div>

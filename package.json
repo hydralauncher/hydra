@@ -1,6 +1,6 @@
 {
   "name": "hydralauncher",
-  "version": "3.4.2",
+  "version": "3.4.3",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
@@ -21,7 +21,7 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "start": "electron-vite preview",
-    "dev": "cargo build --manifest-path=rust_rpc/Cargo.toml && electron-vite dev",
+    "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps && node ./scripts/postinstall.cjs",
     "build:unpack": "npm run build && electron-builder --dir",

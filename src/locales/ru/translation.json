@@ -194,7 +194,7 @@
     "download_error_gofile_quota_exceeded": "Вы превысили месячную квоту Gofile. Пожалуйста, подождите, пока квота не будет восстановлена.",
     "download_error_real_debrid_account_not_authorized": "Ваш аккаунт Real-Debrid не авторизован для осуществления новых загрузок. Пожалуйста, проверьте настройки учетной записи и повторите попытку.",
     "download_error_not_cached_in_real_debrid": "Эта загрузка недоступна на Real-Debrid, и получение статуса загрузки с Real-Debrid пока недоступно.",
-    "download_error_not_cached_in_torbox": "Эта загрузка недоступна на Torbox, и получить статус загрузки с Torbox пока невозможно.",
+    "download_error_not_cached_in_torbox": "Эта загрузка недоступна на TorBox, и получить статус загрузки с TorBox пока невозможно.",
     "game_added_to_favorites": "Игра добавлена в избранное",
     "game_removed_from_favorites": "Игра удалена из избранного",
     "automatically_extract_downloaded_files": "Автоматическая распаковка загруженных файлов"
@@ -338,7 +338,7 @@
     "delete_theme_description": "Это приведет к удалению темы {{theme}}",
     "cancel": "Отменить",
     "appearance": "Внешний вид",
-    "enable_torbox": "Включить Torbox",
+    "enable_torbox": "Включить TorBox",
     "torbox_description": "TorBox - это ваш премиум-сервис, конкурирующий даже с лучшими серверами на рынке.",
     "torbox_account_linked": "Аккаунт TorBox привязан",
     "real_debrid_account_linked": "Аккаунт Real-Debrid привязан",

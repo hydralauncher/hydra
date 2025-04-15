@@ -26,22 +26,12 @@ jobs:
           node-version: 20.18.0
 
       - name: Install dependencies
-        run: yarn
+        run: yarn --frozen-lockfile
 
       - name: Install Python
         uses: actions/setup-python@v5
         with:
           python-version: 3.9
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          components: rustfmt
-
-      - name: Build Rust
-        run: cargo build --release
-        working-directory: ./rust_rpc
 
       - name: Install dependencies
         run: pip install -r requirements.txt
