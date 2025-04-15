@@ -73,8 +73,11 @@
     min-height: 140px;
     max-height: 140px;
     position: relative;
-  }
 
+    &--hydra {
+      box-shadow: 0px 0px 16px 0px rgba(12, 241, 202, 0.15);
+    }
+  }
   &__cover {
     width: 280px;
     min-width: 280px;
@@ -144,5 +147,15 @@
     border: none;
     padding: 8px;
     min-height: unset;
+  }
+
+  &__hydra-gradient {
+    background: linear-gradient(90deg, #01483c 0%, #0cf1ca 50%, #01483c 100%);
+    box-shadow: 0px 0px 8px 0px rgba(12, 241, 202, 0.15);
+    width: 100%;
+    position: absolute;
+    bottom: 0;
+    height: 2px;
+    z-index: 1;
   }
 }

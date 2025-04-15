@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import cn from "classnames";
 
 import type { GameShop, LibraryGame, SeedingStatus } from "@types";
 
@@ -308,7 +309,13 @@ export function DownloadGroup({
       <ul className="download-group__downloads">
         {library.map((game) => {
           return (
-            <li key={game.id} className="download-group__item">
+            <li
+              key={game.id}
+              className={cn("download-group__item", {
+                "download-group__item--hydra":
+                  game.download?.downloader === Downloader.Hydra,
+              })}
+            >
               <div className="download-group__cover">
                 <div className="download-group__cover-backdrop">
                   <img
@@ -361,18 +368,7 @@ export function DownloadGroup({
               </div>
 
               {game.download?.downloader === Downloader.Hydra && (
-                <div
-                  style={{
-                    background:
-                      "linear-gradient(90deg, #01483C 0%, #0CF1CA 50%, #01483C 100%)",
-                    boxShadow: "0px 0px 8px 0px rgba(12, 241, 202, 0.15)",
-                    width: "100%",
-                    position: "absolute",
-                    bottom: 0,
-                    height: 2,
-                    zIndex: 1,
-                  }}
-                />
+                <div className="download-group__hydra-gradient" />
               )}
             </li>
           );
