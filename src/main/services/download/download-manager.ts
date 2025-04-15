@@ -367,7 +367,7 @@ export class DownloadManager {
       case Downloader.RealDebrid: {
         const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
 
-        if (!downloadUrl) throw new Error(DownloadError.NotCachedInRealDebrid);
+        if (!downloadUrl) throw new Error(DownloadError.NotCachedOnRealDebrid);
 
         return {
           action: "start",
@@ -395,7 +395,7 @@ export class DownloadManager {
           download.uri
         );
 
-        if (!downloadUrl) throw new Error(DownloadError.NotCachedInHydra);
+        if (!downloadUrl) throw new Error(DownloadError.NotCachedOnHydra);
 
         return {
           action: "start",
