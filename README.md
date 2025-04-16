@@ -115,7 +115,7 @@ Ensure you have Node.js installed on your machine. If not, download and install 
 
 ### Install Yarn
 
-Yarn is a package manager for Node.js. If you haven't installed Yarn yet, you can do so by following the instructions on [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/).
+Yarn is a package manager for Node.js. If you haven't installed Yarn yet, you can do so by following the instructions on [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/). Use version >= 22.0.0.
 
 ### Install Node Dependencies
 
@@ -133,6 +133,19 @@ yarn
 ### Install Python 3.9
 
 Ensure you have Python 3.9 installed on your machine. You can download and install it from [python.org](https://www.python.org/downloads/release/python-3913/).
+
+**On MacOS**:
+
+1. When the installation completes, it will open up the Python folder. Double click on `Install Certificates.command` and install it.
+2. Open the terminal to install pip and run the commands one at a time
+
+```
+python3 -m ensurepip --upgrade
+
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+
+python3 get-pip.py
+```
 
 ### Install Python Dependencies
 
@@ -162,8 +175,16 @@ yarn dev
 
 Build the bittorrent client by using this command:
 
+On Mac:
+
 ```bash
-python torrent-client/setup.py build
+python3 python_rpc/setup.py build
+```
+
+On other system:
+
+```bash
+python python_rpc/setup.py build
 ```
 
 ### Build the Electron application
@@ -180,6 +201,12 @@ On Linux:
 
 ```bash
 yarn build:linux
+```
+
+On MacOS:
+
+```bash
+yarn build:mac
 ```
 
 ## Contributors
