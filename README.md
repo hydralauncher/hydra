@@ -115,7 +115,8 @@ Ensure you have Node.js installed on your machine. If not, download and install 
 
 ### Install Yarn
 
-Yarn is a package manager for Node.js. If you haven't installed Yarn yet, you can do so by following the instructions on [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/). Use version >= 22.0.0.
+Yarn is a package manager for Node.js. If you haven't installed Yarn yet, you can do so by following the instructions on [yarnpkg.com](https://classic.yarnpkg.com/lang/en/docs/install/).
+_Use version >= 20.0.0_
 
 ### Install Node Dependencies
 
