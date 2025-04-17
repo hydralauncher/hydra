@@ -34,7 +34,6 @@ const downloadLudusavi = async () => {
     console.log(`Downloaded ${file}, extracting...`);
 
     const pwd = process.cwd();
-
     const targetPath = path.join(pwd, "ludusavi");
 
     await fs.promises.mkdir(targetPath, { recursive: true });
