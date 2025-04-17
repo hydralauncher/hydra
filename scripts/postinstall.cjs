@@ -10,7 +10,7 @@ const exec = util.promisify(require("node:child_process").exec);
 const ludusaviVersion = "0.29.0";
 
 const fileName = {
-  win32: `ludusavi-v${ludusaviVersion}-win64.tar.gz`,
+  win32: `ludusavi-v${ludusaviVersion}-win64.zip`,
   linux: `ludusavi-v${ludusaviVersion}-linux.tar.gz`,
   darwin: `ludusavi-v${ludusaviVersion}-mac.tar.gz`,
 };
@@ -38,10 +38,14 @@ const downloadLudusavi = async () => {
 
     await fs.promises.mkdir(targetPath, { recursive: true });
 
-    await tar.x({
-      file: file,
-      cwd: targetPath,
-    });
+    if (process.platform === "win32") {
+      await exec(`npx extract-zip ${file} ${targetPath}`);
+    } else {
+      await tar.x({
+        file: file,
+        cwd: targetPath,
+      });
+    }
 
     if (process.platform !== "win32") {
       fs.chmodSync(path.join(targetPath, "ludusavi"), 0o755);
