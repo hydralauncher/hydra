@@ -1,4 +1,5 @@
 const { default: axios } = require("axios");
+const tar = require("tar");
 const util = require("node:util");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -6,10 +7,12 @@ const { spawnSync } = require("node:child_process");
 
 const exec = util.promisify(require("node:child_process").exec);
 
+const ludusaviVersion = "0.29.0";
+
 const fileName = {
-  win32: "ludusavi-v0.25.0-win64.zip",
-  linux: "ludusavi-v0.25.0-linux.zip",
-  darwin: "ludusavi-v0.25.0-mac.zip",
+  win32: `ludusavi-v${ludusaviVersion}-win64.tar.gz`,
+  linux: `ludusavi-v${ludusaviVersion}-linux.tar.gz`,
+  darwin: `ludusavi-v${ludusaviVersion}-mac.tar.gz`,
 };
 
 const downloadLudusavi = async () => {
@@ -19,7 +22,7 @@ const downloadLudusavi = async () => {
   }
 
   const file = fileName[process.platform];
-  const downloadUrl = `https://github.com/mtkennerly/ludusavi/releases/download/v0.25.0/${file}`;
+  const downloadUrl = `https://github.com/mtkennerly/ludusavi/releases/download/v${ludusaviVersion}/${file}`;
 
   console.log(`Downloading ${file}...`);
 
@@ -34,7 +37,12 @@ const downloadLudusavi = async () => {
 
     const targetPath = path.join(pwd, "ludusavi");
 
-    await exec(`npx extract-zip ${file} ${targetPath}`);
+    await fs.promises.mkdir(targetPath, { recursive: true });
+
+    await tar.x({
+      file: file,
+      cwd: targetPath,
+    });
 
     if (process.platform !== "win32") {
       fs.chmodSync(path.join(targetPath, "ludusavi"), 0o755);
