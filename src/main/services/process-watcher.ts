@@ -6,7 +6,7 @@ import axios from "axios";
 import { exec } from "child_process";
 import { ProcessPayload } from "./download/types";
 import { gamesSublevel, levelKeys } from "@main/level";
-import i18next, { t } from "i18next";
+import { t } from "i18next";
 import { CloudSync } from "./cloud-sync";
 import { formatDate } from "date-fns";
 
@@ -229,8 +229,6 @@ function onOpenGame(game: Game) {
   if (game.remoteId) {
     updateGamePlaytime(game, 0, new Date()).catch(() => {});
 
-    const { language } = i18next;
-
     if (game.automaticCloudSync) {
       CloudSync.uploadSaveGame(
         game.objectId,
@@ -238,7 +236,7 @@ function onOpenGame(game: Game) {
         null,
         t("automatic_backup_from", {
           ns: "game_details",
-          date: formatDate(new Date(), language),
+          date: formatDate(new Date(), "yyyy-MM-dd"),
         })
       );
     }
@@ -298,8 +296,6 @@ const onCloseGame = (game: Game) => {
   )!;
   gamesPlaytime.delete(levelKeys.game(game.shop, game.objectId));
 
-  const { language } = i18next;
-
   if (game.remoteId) {
     updateGamePlaytime(
       game,
@@ -314,7 +310,7 @@ const onCloseGame = (game: Game) => {
         null,
         t("automatic_backup_from", {
           ns: "game_details",
-          date: formatDate(new Date(), language),
+          date: formatDate(new Date(), "yyyy-MM-dd"),
         })
       );
     }
