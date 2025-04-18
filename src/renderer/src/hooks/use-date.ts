@@ -1,7 +1,6 @@
 import { formatDate, getDateLocale } from "@shared";
 import { format, formatDistance, subMilliseconds } from "date-fns";
 import type { FormatDistanceOptions } from "date-fns";
-import { enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 
 export function useDate() {
@@ -41,10 +40,10 @@ export function useDate() {
     },
 
     formatDateTime: (date: number | Date | string): string => {
-      const locale = getDateLocale(language);
       return format(
         date,
-        locale == enUS ? "MM/dd/yyyy - HH:mm" : "dd/MM/yyyy HH:mm"
+        language == "en" ? "MM-dd-yyyy - hh:mm a" : "dd/MM/yyyy HH:mm",
+        { locale: getDateLocale(language) }
       );
     },
 
