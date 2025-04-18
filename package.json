@@ -48,7 +48,7 @@
     "classnames": "^2.5.1",
     "color": "^4.2.3",
     "color.js": "^1.2.0",
-    "create-desktop-shortcuts": "^1.11.0",
+    "create-desktop-shortcuts": "^1.11.1",
     "date-fns": "^3.6.0",
     "dexie": "^4.0.10",
     "diskusage": "^1.2.0",
