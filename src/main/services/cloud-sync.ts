@@ -13,9 +13,28 @@ import { logger } from "./logger";
 import { WindowManager } from "./window-manager";
 import axios from "axios";
 import { Ludusavi } from "./ludusavi";
-import { SubscriptionRequiredError } from "@shared";
+import { formatDate, SubscriptionRequiredError } from "@shared";
+import i18next, { t } from "i18next";
 
 export class CloudSync {
+  public static getBackupLabel(automatic: boolean) {
+    const language = i18next.language;
+
+    const date = formatDate(new Date(), language);
+
+    if (automatic) {
+      return t("automatic_backup_from", {
+        ns: "game_details",
+        date,
+      });
+    }
+
+    return t("backup_from", {
+      ns: "game_details",
+      date,
+    });
+  }
+
   private static async bundleBackup(
     shop: GameShop,
     objectId: string,
@@ -25,7 +44,11 @@ export class CloudSync {
 
     // Remove existing backup
     if (fs.existsSync(backupPath)) {
-      fs.rmSync(backupPath, { recursive: true });
+      try {
+        await fs.promises.rm(backupPath, { recursive: true });
+      } catch (error) {
+        logger.error("Failed to remove backup path", error);
+      }
     }
 
     await Ludusavi.backupGame(shop, objectId, backupPath, winePrefix);
@@ -101,11 +124,10 @@ export class CloudSync {
       true
     );
 
-    fs.rm(bundleLocation, (err) => {
-      if (err) {
-        logger.error("Failed to remove tar file", err);
-        throw err;
-      }
-    });
+    try {
+      await fs.promises.unlink(bundleLocation);
+    } catch (error) {
+      logger.error("Failed to remove tar file", error);
+    }
   }
 }
