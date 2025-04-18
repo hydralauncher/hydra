@@ -32,7 +32,7 @@ export const loadState = async () => {
 
   Ludusavi.addManifestToLudusaviConfig();
 
-  HydraApi.setupApi().then(() => {
+  await HydraApi.setupApi().then(() => {
     uploadGamesBatch();
   });
 
