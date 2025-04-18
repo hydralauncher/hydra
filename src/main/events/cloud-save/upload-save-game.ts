@@ -1,8 +1,6 @@
 import { CloudSync } from "@main/services";
 import { registerEvent } from "../register-event";
 import type { GameShop } from "@types";
-import { t } from "i18next";
-import { formatDate } from "date-fns";
 
 const uploadSaveGame = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -14,10 +12,7 @@ const uploadSaveGame = async (
     objectId,
     shop,
     downloadOptionTitle,
-    t("backup_from", {
-      ns: "game_details",
-      date: formatDate(new Date(), "yyyy-MM-dd"),
-    })
+    CloudSync.getBackupLabel(false)
   );
 };
 

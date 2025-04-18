@@ -173,7 +173,5 @@ export const formatDate = (
   language: string
 ): string => {
   if (isNaN(new Date(date).getDate())) return "N/A";
-
-  const locale = getDateLocale(language);
-  return format(date, locale == enUS ? "MM/dd/yyyy" : "dd/MM/yyyy");
+  return format(date, language == "en" ? "MM-dd-yyyy" : "dd/MM/yyyy");
 };

@@ -6,9 +6,7 @@ import axios from "axios";
 import { exec } from "child_process";
 import { ProcessPayload } from "./download/types";
 import { gamesSublevel, levelKeys } from "@main/level";
-import { t } from "i18next";
 import { CloudSync } from "./cloud-sync";
-import { formatDate } from "date-fns";
 
 const commands = {
   findWineDir: `lsof -c wine 2>/dev/null | grep '/drive_c/windows$' | head -n 1 | awk '{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}'`,
@@ -234,10 +232,7 @@ function onOpenGame(game: Game) {
         game.objectId,
         game.shop,
         null,
-        t("automatic_backup_from", {
-          ns: "game_details",
-          date: formatDate(new Date(), "yyyy-MM-dd"),
-        })
+        CloudSync.getBackupLabel(true)
       );
     }
   } else {
@@ -308,10 +303,7 @@ const onCloseGame = (game: Game) => {
         game.objectId,
         game.shop,
         null,
-        t("automatic_backup_from", {
-          ns: "game_details",
-          date: formatDate(new Date(), "yyyy-MM-dd"),
-        })
+        CloudSync.getBackupLabel(true)
       );
     }
   } else {
