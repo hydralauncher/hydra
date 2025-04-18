@@ -33,9 +33,9 @@ body:
     attributes:
       label: Additional information and data
       description: |
-        Add screenshots and upload your logs file here.
-        Logs location on Windows: "%appdata%/hydra"
-        Logs location on Linux: "~/.config/hydra/"
+        Add screenshots and upload your all logs file here.
+        Logs location on Windows: "%appdata%/hydralauncher/logs"
+        Logs location on Linux: "~/.config/hydralauncher/logs"
     validations:
       required: true
   - type: input
