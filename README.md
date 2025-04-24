@@ -103,9 +103,9 @@ We concentrate our discussions on our [Telegram](https://t.me/hydralauncher) cha
 
 ### Project Structure
 
-- torrent-client: We use libtorrent, a Python library, to manage torrent downloads
-- src/renderer: the UI of the application
-- src/main: all the logic rests here.
+- Torrent-client: We use libtorrent, a Python library, to manage torrent downloads
+- Src/renderer: the UI of the application
+- Src/main: all the logic rests here.
 
 ## Build from source
 
