@@ -380,7 +380,7 @@
   "game_card": {
     "no_downloads": "Немає доступних завантажень",
     "available_one": "Доступний",
-    "available_other": "Доступні",
+    "available_other": "Доступні"
   },
   "binary_not_found_modal": {
     "title": "Програми не встановлені",
