@@ -208,6 +208,19 @@ const processSkidrow = (unlockedAchievements: any): UnlockedAchievement[] => {
 const processGoldberg = (unlockedAchievements: any): UnlockedAchievement[] => {
   const newUnlockedAchievements: UnlockedAchievement[] = [];
 
+  if (Array.isArray(unlockedAchievements)) {
+    for (const achievement of unlockedAchievements) {
+      if (achievement?.earned) {
+        newUnlockedAchievements.push({
+          name: achievement.name,
+          unlockTime: achievement.earned_time * 1000,
+        });
+      }
+    }
+
+    return newUnlockedAchievements;
+  }
+
   for (const achievement of Object.keys(unlockedAchievements)) {
     const unlockedAchievement = unlockedAchievements[achievement];
 
