@@ -123,7 +123,7 @@
     "options": "Options",
     "executable_section_title": "Exécutable",
     "executable_section_description": "Chemin du fichier lancé quand \"Jouer\" est cliqué",
-    "downloads_secion_title": "Téléchargements",
+    "downloads_section_title": "Téléchargements",
     "downloads_section_description": "Découvrez les mises à jour ou autres versions de ce jeu",
     "danger_zone_section_title": "Zone de danger",
     "danger_zone_section_description": "Supprimez ce jeu de votre bibliothèque ou les fichiers téléchargés par Hydra",
