@@ -123,7 +123,7 @@
     "options": "Seçenekler",
     "executable_section_title": "Çalıştırılabilir dosya",
     "executable_section_description": "\"Oyna\" butonuna tıklandığında çalıştırılacak dosyanın yolu",
-    "downloads_secion_title": "İndirmeler",
+    "downloads_section_title": "İndirmeler",
     "downloads_section_description": "Bu oyun için güncellemeleri veya diğer sürümleri kontrol edin",
     "danger_zone_section_title": "Tehlike bölgesi",
     "danger_zone_section_description": "Bu oyunu kütüphanenizden kaldırın veya Hydra tarafından indirilen dosyaları silin.",
@@ -193,8 +193,9 @@
     "reset_achievements_error": "Başarımlar sıfırlanamadı",
     "download_error_gofile_quota_exceeded": "Gofile aylık kotanızı doldurdunuz. Kotanın yenilenmesini bekleyin.",
     "download_error_real_debrid_account_not_authorized": "Real-Debrid hesabınız yeni indirme işlemleri yapmak için yetkilendirilmemiş. Lütfen hesap ayarlarınızı kontrol edip tekrar deneyin.",
-    "download_error_not_cached_in_real_debrid": "Bu indirme Real-Debrid üzerinde mevcut değil ve Real-Debrid'den indirme durumu henüz sorgulanamıyor.",
-    "download_error_not_cached_in_torbox": "Bu indirme Torbox'ta mevcut değil ve Torbox'tan indirme durumu henüz sorgulanamıyor.",
+    "download_error_not_cached_on_real_debrid": "Bu indirme Real-Debrid üzerinde mevcut değil ve Real-Debrid'den indirme durumu henüz sorgulanamıyor.",
+    "download_error_not_cached_on_torbox": "Bu indirme TorBox'ta mevcut değil ve TorBox'tan indirme durumu henüz sorgulanamıyor.",
+    "download_error_not_cached_on_hydra": "Bu indirme Nimbus'ta mevcut değil.",
     "game_removed_from_favorites": "Oyun favorilerden silindi",
     "game_added_to_favorites": "Oyun favorilere eklendi",
     "automatically_extract_downloaded_files": "Yüklenmiş dosyaları otomatik olarak çıkart"
@@ -338,7 +339,7 @@
     "delete_theme_description": "Bu {{theme}} temasını silecektir",
     "cancel": "İptal",
     "appearance": "Görünüm",
-    "enable_torbox": "Torbox'u etkinleştir",
+    "enable_torbox": "TorBox'u etkinleştir",
     "torbox_description": "TorBox, piyasadaki en iyi sunucularla bile rekabet edebilen premium seedbox hizmetinizdir.",
     "torbox_account_linked": "TorBox hesabı bağlandı",
     "create_real_debrid_account": "Henüz bir Real-Debrid hesabınız yoksa buraya tıklayın",
@@ -354,7 +355,8 @@
     "common_redist": "Ortak bağımlılıklar",
     "common_redist_description": "Bazı oyunların çalışabilmesi için genel bağımlılıklar gereklidir. Sorun yaşamamak için bunların yüklenmesi önerilir.",
     "install_common_redist": "Yükle",
-    "installing_common_redist": "Yükleniyor…"
+    "installing_common_redist": "Yükleniyor…",
+    "show_download_speed_in_megabytes": "İndirme hızını megabayt/saniye (MB/s) cinsinden göster"
   },
   "notifications": {
     "download_complete": "İndirme tamamlandı",
@@ -498,6 +500,7 @@
     "animated_profile_banner": "Animasyonlu profil afişi",
     "hydra_cloud": "Hydra Cloud",
     "hydra_cloud_feature_found": "Bir Hydra Cloud özelliği keşfettiniz!",
-    "learn_more": "Daha Fazla Bilgi Edinin"
+    "learn_more": "Daha Fazla Bilgi Edinin",
+    "debrid_description": "Nimbus ile 4 kata kadar daha hızlı indirin"
   }
 }

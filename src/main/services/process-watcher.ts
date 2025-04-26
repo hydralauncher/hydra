@@ -6,9 +6,7 @@ import axios from "axios";
 import { exec } from "child_process";
 import { ProcessPayload } from "./download/types";
 import { gamesSublevel, levelKeys } from "@main/level";
-import i18next, { t } from "i18next";
 import { CloudSync } from "./cloud-sync";
-import { formatDate } from "date-fns";
 
 const commands = {
   findWineDir: `lsof -c wine 2>/dev/null | grep '/drive_c/windows$' | head -n 1 | awk '{for(i=9;i<=NF;i++) printf "%s ", $i; print ""}'`,
@@ -229,17 +227,12 @@ function onOpenGame(game: Game) {
   if (game.remoteId) {
     updateGamePlaytime(game, 0, new Date()).catch(() => {});
 
-    const { language } = i18next;
-
     if (game.automaticCloudSync) {
       CloudSync.uploadSaveGame(
         game.objectId,
         game.shop,
         null,
-        t("automatic_backup_from", {
-          ns: "game_details",
-          date: formatDate(new Date(), language),
-        })
+        CloudSync.getBackupLabel(true)
       );
     }
   } else {
@@ -298,8 +291,6 @@ const onCloseGame = (game: Game) => {
   )!;
   gamesPlaytime.delete(levelKeys.game(game.shop, game.objectId));
 
-  const { language } = i18next;
-
   if (game.remoteId) {
     updateGamePlaytime(
       game,
@@ -312,10 +303,7 @@ const onCloseGame = (game: Game) => {
         game.objectId,
         game.shop,
         null,
-        t("automatic_backup_from", {
-          ns: "game_details",
-          date: formatDate(new Date(), language),
-        })
+        CloudSync.getBackupLabel(true)
       );
     }
   } else {

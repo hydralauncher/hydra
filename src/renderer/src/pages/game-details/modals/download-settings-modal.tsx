@@ -96,12 +96,12 @@ export function DownloadSettingsModal({
         return Downloader.Hydra;
       }
 
-      if (availableDownloaders.includes(Downloader.TorBox)) {
-        return Downloader.TorBox;
-      }
-
       if (availableDownloaders.includes(Downloader.RealDebrid)) {
         return Downloader.RealDebrid;
+      }
+
+      if (availableDownloaders.includes(Downloader.TorBox)) {
+        return Downloader.TorBox;
       }
 
       return availableDownloaders[0];
