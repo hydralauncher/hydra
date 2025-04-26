@@ -84,6 +84,8 @@ export function DownloadSettingsModal({
 
   const getDefaultDownloader = useCallback(
     (availableDownloaders: Downloader[]) => {
+      if (availableDownloaders.length === 0) return null;
+
       if (availableDownloaders.includes(Downloader.Hydra)) {
         return Downloader.Hydra;
       }
