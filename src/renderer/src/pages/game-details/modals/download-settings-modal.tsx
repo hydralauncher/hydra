@@ -38,21 +38,13 @@ export function DownloadSettingsModal({
     (state) => state.userPreferences.value
   );
 
-  const getAutomaticExtractionValue = () => {
-    if (userPreferences?.extractFilesByDefault === undefined) {
-      window.electron.updateUserPreferences({ extractFilesByDefault: true });
-    }
-
-    return userPreferences?.extractFilesByDefault ?? true;
-  };
-
   const { showErrorToast } = useToast();
 
   const [diskFreeSpace, setDiskFreeSpace] = useState<number | null>(null);
   const [selectedPath, setSelectedPath] = useState("");
   const [downloadStarting, setDownloadStarting] = useState(false);
   const [automaticExtractionEnabled, setAutomaticExtractionEnabled] = useState(
-    getAutomaticExtractionValue()
+    userPreferences?.extractFilesByDefault ?? true
   );
   const [selectedDownloader, setSelectedDownloader] =
     useState<Downloader | null>(null);
