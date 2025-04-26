@@ -139,12 +139,6 @@ export function DownloadSettingsModal({
     userPreferences?.torBoxApiToken,
   ]);
 
-  useEffect(() => {
-    if (userPreferences?.extractFilesByDefault === undefined) {
-      window.electron.updateUserPreferences({ extractFilesByDefault: true });
-    }
-  }, [userPreferences?.extractFilesByDefault]);
-
   const handleChooseDownloadsPath = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
       defaultPath: selectedPath,
