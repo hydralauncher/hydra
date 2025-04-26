@@ -107,7 +107,7 @@
     "options": "Opcions",
     "executable_section_title": "Executable",
     "executable_section_description": "Directori del fitxer des d'on s'executarà quan es cliqui a \"Executar\"",
-    "downloads_secion_title": "Descàrregues",
+    "downloads_section_title": "Descàrregues",
     "downloads_section_description": "Comprova actualitzacions o altres versions del videojoc",
     "danger_zone_section_title": "Zona de perill",
     "danger_zone_section_description": "Elimina aquest videojoc del teu catàleg o els fitxers descarregats per Hydra",

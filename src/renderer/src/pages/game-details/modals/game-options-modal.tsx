@@ -362,7 +362,7 @@ export function GameOptionsModal({
 
           <div className="game-options-modal__downloads">
             <div className="game-options-modal__header">
-              <h2>{t("downloads_secion_title")}</h2>
+              <h2>{t("downloads_section_title")}</h2>
               <h4 className="game-options-modal__header-description">
                 {t("downloads_section_description")}
               </h4>

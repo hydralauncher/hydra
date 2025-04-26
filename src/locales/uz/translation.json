@@ -94,7 +94,7 @@
     "options": "Sozlamalar",
     "executable_section_title": "Fayl",
     "executable_section_description": "\"O'ynash\" tugmasi bosilganda ishga tushiriladigan fayl yo'li",
-    "downloads_secion_title": "Yuklab olishlar",
+    "downloads_section_title": "Yuklab olishlar",
     "downloads_section_description": "Yangilanishlar yoki o'yinning boshqa versiyalarini tekshirish",
     "danger_zone_section_title": "Xavfli zona",
     "danger_zone_section_description": "Bu o'yinni kutubxonangizdan yoki Hydradan yuklab olingan fayllarni o'chirishingiz mumkin",
