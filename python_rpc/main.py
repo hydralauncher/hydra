@@ -13,7 +13,6 @@ http_port = sys.argv[2]
 rpc_password = sys.argv[3]
 start_download_payload = sys.argv[4]
 start_seeding_payload = sys.argv[5]
-hydra_httpdl_bin = sys.argv[6]
 
 downloads = {}
 # This can be streamed down from Node
@@ -33,10 +32,10 @@ if start_download_payload:
         except Exception as e:
             print("Error starting torrent download", e)
     else:
-        http_downloader = HttpDownloader(hydra_httpdl_bin)
+        http_downloader = HttpDownloader()
         downloads[initial_download['game_id']] = http_downloader
         try:
-            http_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'), initial_download.get('allow_multiple_connections', False), initial_download.get('connections_limit', 24))
+            http_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'), initial_download.get('out'))
         except Exception as e:
             print("Error starting http download", e)
 
@@ -148,11 +147,11 @@ def action():
                 torrent_downloader.start_download(url, data['save_path'])
         else:
             if existing_downloader and isinstance(existing_downloader, HttpDownloader):
-                existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('allow_multiple_connections', False), data.get('connections_limit', 24))
+                existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
             else:
-                http_downloader = HttpDownloader(hydra_httpdl_bin)
+                http_downloader = HttpDownloader()
                 downloads[game_id] = http_downloader
-                http_downloader.start_download(url, data['save_path'], data.get('header'), data.get('allow_multiple_connections', False), data.get('connections_limit', 24))
+                http_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
         
         downloading_game_id = game_id
 
@@ -183,4 +182,3 @@ def action():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(http_port))
-    

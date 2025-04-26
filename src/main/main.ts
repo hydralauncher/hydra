@@ -1,4 +1,4 @@
-import { DownloadManager, Ludusavi, startMainLoop } from "./services";
+import { Aria2, DownloadManager, Ludusavi, startMainLoop } from "./services";
 import { RealDebridClient } from "./services/download/real-debrid";
 import { HydraApi } from "./services/hydra-api";
 import { uploadGamesBatch } from "./services/library-sync";
@@ -20,6 +20,8 @@ export const loadState = async () => {
 
   await import("./events");
 
+  Aria2.spawn();
+
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences.realDebridApiToken);
   }
@@ -30,7 +32,7 @@ export const loadState = async () => {
 
   Ludusavi.addManifestToLudusaviConfig();
 
-  HydraApi.setupApi().then(() => {
+  await HydraApi.setupApi().then(() => {
     uploadGamesBatch();
   });
 
