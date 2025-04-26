@@ -21,7 +21,7 @@
     "paused": "{{title}} (En pause)",
     "downloading": "{{title}} ({{percentage}} - Téléchargement…)",
     "filter": "Filtrer la bibliothèque",
-    "home": "Page d’accueil",
+    "home": "Page d'accueil",
     "queued": "{{title}} (En file d'attente)",
     "game_has_no_executable": "Aucun exécutable sélectionné pour ce jeu",
     "sign_in": "Se connecter",
