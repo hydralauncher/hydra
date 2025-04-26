@@ -111,7 +111,7 @@
     "options": "选项",
     "executable_section_title": "可执行文件",
     "executable_section_description": "点击 \"Play\" 时将执行的文件的路径",
-    "downloads_secion_title": "下载",
+    "downloads_section_title": "下载",
     "downloads_section_description": "查看此游戏的更新或其他版本",
     "danger_zone_section_title": "危险操作",
     "danger_zone_section_description": "从您的库或Hydra下载的文件中删除此游戏",

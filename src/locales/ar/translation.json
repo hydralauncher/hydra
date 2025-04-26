@@ -120,7 +120,7 @@
     "options": "خيارات",
     "executable_section_title": "ملف التشغيل",
     "executable_section_description": "مسار الملف الذي سيتم تشغيله عند النقر على \"تشغيل\"",
-    "downloads_secion_title": "التنزيلات",
+    "downloads_section_title": "التنزيلات",
     "downloads_section_description": "تحقق من التحديثات أو الإصدارات الأخرى لهذه اللعبة",
     "danger_zone_section_title": "منطقة الخطر",
     "danger_zone_section_description": "إزالة هذه اللعبة من مكتبتك أو الملفات التي تم تنزيلها بواسطة Hydra",
