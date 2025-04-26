@@ -106,7 +106,7 @@
     "options": "Параметрлер",
     "executable_section_title": "Файл",
     "executable_section_description": "\"Ойнау\" батырмасын басқанда іске қосылатын файл жолы",
-    "downloads_secion_title": "Жүктеулер",
+    "downloads_section_title": "Жүктеулер",
     "downloads_section_description": "Ойынның жаңартулары немесе басқа нұсқалары бар-жоғын тексеру",
     "danger_zone_section_title": "Қауіпті аймақ",
     "danger_zone_section_description": "Осы ойынды кітапханаңыздан жою немесе Hydra жүктеген файлдарды жою",

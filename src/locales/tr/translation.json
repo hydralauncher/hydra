@@ -123,7 +123,7 @@
     "options": "Seçenekler",
     "executable_section_title": "Çalıştırılabilir dosya",
     "executable_section_description": "\"Oyna\" butonuna tıklandığında çalıştırılacak dosyanın yolu",
-    "downloads_secion_title": "İndirmeler",
+    "downloads_section_title": "İndirmeler",
     "downloads_section_description": "Bu oyun için güncellemeleri veya diğer sürümleri kontrol edin",
     "danger_zone_section_title": "Tehlike bölgesi",
     "danger_zone_section_description": "Bu oyunu kütüphanenizden kaldırın veya Hydra tarafından indirilen dosyaları silin.",
