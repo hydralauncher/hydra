@@ -123,7 +123,7 @@
     "options": "Možnosti",
     "executable_section_title": "Spustitelné",
     "executable_section_description": "Umístění souboru který bude spuštěn při kliknutí na \"Hrát\"",
-    "downloads_secion_title": "Stažené soubory",
+    "downloads_section_title": "Stažené soubory",
     "downloads_section_description": "Zkontrolovat jestli není nová / odlišná verze hry",
     "danger_zone_section_title": "Nebezpečná zóna",
     "danger_zone_section_description": "Odebrat hru z knihovny / soubory stažené Hydrou",

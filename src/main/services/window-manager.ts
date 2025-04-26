@@ -372,12 +372,12 @@ export class WindowManager {
 
           const sortedGames = sortBy(filteredGames, "lastTimePlayed", "DESC");
 
-          return slice(sortedGames, 5);
+          return slice(sortedGames, 0, 5);
         });
 
       const recentlyPlayedGames: Array<MenuItemConstructorOptions | MenuItem> =
         games.map(({ title, executablePath }) => ({
-          label: title.length > 15 ? `${title.slice(0, 15)}…` : title,
+          label: title.length > 18 ? `${title.slice(0, 18)}…` : title,
           type: "normal",
           click: async () => {
             if (!executablePath) return;
@@ -418,7 +418,10 @@ export class WindowManager {
         },
       ]);
 
-      tray.setContextMenu(contextMenu);
+      if (process.platform === "linux") {
+        tray.setContextMenu(contextMenu);
+      }
+
       return contextMenu;
     };
 

@@ -122,7 +122,7 @@
     "options": "Опции",
     "executable_section_title": "Стартиращ файл",
     "executable_section_description": "Пътят на файла, който ще се изпълни, когато се щракне върху \"Пускане\"",
-    "downloads_secion_title": "Свалени",
+    "downloads_section_title": "Свалени",
     "downloads_section_description": "Вижте актуализации или други версии на тази игра",
     "danger_zone_section_title": "Опасна зона",
     "danger_zone_section_description": "Премахнете тази игра от библиотеката си или от файловете, изтеглени от Hydra",
