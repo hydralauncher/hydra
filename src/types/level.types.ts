@@ -88,7 +88,7 @@ export interface UserPreferences {
   achievementNotificationsEnabled?: boolean;
   friendRequestNotificationsEnabled?: boolean;
   showDownloadSpeedInMegabytes?: boolean;
-  extractFilesByDefault?: boolean;
+  extractFilesByDefault?: boolean | undefined;
 }
 
 export interface ScreenState {
