@@ -9,6 +9,7 @@ import { levelKeys, db } from "./level";
 import type { UserPreferences } from "@types";
 import { TorBoxClient } from "./services/download/torbox";
 import { CommonRedistManager } from "./services/common-redist-manager";
+import { WSManager } from "./services/ws-manager";
 
 export const loadState = async () => {
   const userPreferences = await db.get<string, UserPreferences | null>(
@@ -34,6 +35,7 @@ export const loadState = async () => {
 
   await HydraApi.setupApi().then(() => {
     uploadGamesBatch();
+    WSManager.connect();
   });
 
   const downloads = await downloadsSublevel
