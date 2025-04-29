@@ -33,12 +33,3 @@ jobs:
 
       - name: Format check
         run: yarn format-check
-
-      - name: test action
-        id: get-version
-        uses: beaconbrigade/package-json-version@v0.3.2
-        with:
-          path: .
-
-      - name: Print the version
-        run: echo "The version was ${{ steps.get-version.outputs.version }}"
