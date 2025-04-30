@@ -9,8 +9,11 @@ import { levelKeys, db } from "./level";
 import type { UserPreferences } from "@types";
 import { TorBoxClient } from "./services/download/torbox";
 import { CommonRedistManager } from "./services/common-redist-manager";
+import { SystemPath } from "./services/system-path";
 
 export const loadState = async () => {
+  SystemPath.checkIfPathsAreAvailable();
+
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {

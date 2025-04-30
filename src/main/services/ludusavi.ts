@@ -8,9 +8,13 @@ import YAML from "yaml";
 
 import ludusaviWorkerPath from "../workers/ludusavi.worker?modulePath";
 import { LUDUSAVI_MANIFEST_URL } from "@main/constants";
+import { SystemPath } from "./system-path";
 
 export class Ludusavi {
-  private static ludusaviPath = path.join(app.getPath("appData"), "ludusavi");
+  private static ludusaviPath = path.join(
+    SystemPath.getPath("appData"),
+    "ludusavi"
+  );
   private static ludusaviConfigPath = path.join(
     this.ludusaviPath,
     "config.yaml"
