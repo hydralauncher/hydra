@@ -4,9 +4,10 @@ import { app } from "electron";
 import path from "path";
 import fs from "node:fs";
 import { logger } from "@main/services";
+import { SystemPath } from "@main/services/system-path";
 
 const windowsStartupPath = path.join(
-  app.getPath("appData"),
+  SystemPath.getPath("appData"),
   "Microsoft",
   "Windows",
   "Start Menu",

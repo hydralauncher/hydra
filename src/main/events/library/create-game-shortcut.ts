@@ -5,6 +5,7 @@ import { app } from "electron";
 import { removeSymbolsFromName } from "@shared";
 import { GameShop } from "@types";
 import { gamesSublevel, levelKeys } from "@main/level";
+import { SystemPath } from "@main/services/system-path";
 
 const createGameShortcut = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -24,7 +25,7 @@ const createGameShortcut = async (
     const options = {
       filePath,
       name: removeSymbolsFromName(game.title),
-      outputPath: app.getPath("desktop"),
+      outputPath: SystemPath.getPath("desktop"),
     };
 
     return createDesktopShortcut({

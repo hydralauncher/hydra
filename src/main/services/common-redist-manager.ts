@@ -4,8 +4,8 @@ import fs from "node:fs";
 import cp from "node:child_process";
 import path from "node:path";
 import { logger } from "./logger";
-import { app } from "electron";
 import { WindowManager } from "./window-manager";
+import { SystemPath } from "./system-path";
 
 export class CommonRedistManager {
   private static readonly redistributables = [
@@ -18,7 +18,7 @@ export class CommonRedistManager {
   ];
   private static readonly installationTimeout = 1000 * 60 * 5; // 5 minutes
   private static readonly installationLog = path.join(
-    app.getPath("temp"),
+    SystemPath.getPath("temp"),
     "common_redist_install.log"
   );
 
