@@ -10,14 +10,11 @@ import { WindowManager } from "./window-manager";
 export class CommonRedistManager {
   private static readonly redistributables = [
     "dotNetFx40_Full_setup.exe",
-    "dxwebsetup.exe",
+    "directx_Jun2010_redist.exe",
     "oalinst.exe",
     "install.bat",
-    "vcredist_2015-2019_x64.exe",
-    "vcredist_2015-2019_x86.exe",
-    "vcredist_x64.exe",
-    "vcredist_x86.exe",
     "xnafx40_redist.msi",
+    "VisualCppRedist_AIO_x86_x64.exe",
   ];
   private static readonly installationTimeout = 1000 * 60 * 5; // 5 minutes
   private static readonly installationLog = path.join(
@@ -46,6 +43,8 @@ export class CommonRedistManager {
     fs.watch(this.installationLog, { signal: abortController.signal }, () => {
       fs.readFile(this.installationLog, "utf-8", (err, data) => {
         if (err) return logger.error("Error reading log file:", err);
+
+        logger.log("Redist log file updated:", data);
 
         const tail = data.split("\n").at(-2)?.trim();
 
