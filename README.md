@@ -15,12 +15,6 @@
 
 </div>
 
-## About
-
-**Hydra** is a **Game Launcher** with its own embedded **BitTorrent Client**.
-<br>
-The launcher is written in TypeScript (Electron) and Python, which handles the torrenting system by using libtorrent.
-
 ## Features
 
 - Add games that you own to your library
