@@ -148,6 +148,12 @@ You'll need an SteamGridDB API Key in order to fetch the game icons on installat
 
 Once you have it, you can copy or rename the `.env.example` file to `.env` and put it on`STEAMGRIDDB_API_KEY`.
 
+Access [Hydra Docs](https://docs.hydralauncher.gg/getting-started) and pick one environment `production` or `staging`to use in and put in your `.env` file.
+
+### Which environment should you use?
+
+If you are running Hydra from main branch, you are good to go with production for the most part. If you are running on any other branch, you better off with staging.
+
 ## Running
 
 Once you've got all things set up, you can run the following command to start both the Electron process and the bittorrent client:
