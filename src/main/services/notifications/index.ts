@@ -1,4 +1,4 @@
-import { Notification, app } from "electron";
+import { Notification } from "electron";
 import { t } from "i18next";
 import trayIcon from "@resources/tray-icon.png?asset";
 import fs from "node:fs";
@@ -13,13 +13,14 @@ import { WindowManager } from "../window-manager";
 import type { Game, UserPreferences } from "@types";
 import { db, levelKeys } from "@main/level";
 import { restartAndInstallUpdate } from "@main/events/autoupdater/restart-and-install-update";
+import { SystemPath } from "../system-path";
 
 async function downloadImage(url: string | null) {
   if (!url) return undefined;
   if (!url.startsWith("http")) return undefined;
 
   const fileName = url.split("/").pop()!;
-  const outputPath = path.join(app.getPath("temp"), fileName);
+  const outputPath = path.join(SystemPath.getPath("temp"), fileName);
   const writer = fs.createWriteStream(outputPath);
 
   const response = await axios.get(url, {
