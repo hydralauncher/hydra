@@ -15,3 +15,4 @@ export * from "./badge/badge";
 export * from "./confirmation-modal/confirmation-modal";
 export * from "./suspense-wrapper/suspense-wrapper";
 export * from "./debrid-badge/debrid-badge";
+export * from "./search-bar/search-bar";

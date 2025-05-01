@@ -30,6 +30,7 @@ import Settings from "./pages/settings/settings";
 import Profile from "./pages/profile/profile";
 import Achievements from "./pages/achievements/achievements";
 import ThemeEditor from "./pages/theme-editor/theme-editor";
+import Collections from "./pages/collections";
 
 Sentry.init({
   dsn: import.meta.env.RENDERER_VITE_SENTRY_DSN,
@@ -81,6 +82,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="/settings" element={<Settings />} />
             <Route path="/profile/:userId" element={<Profile />} />
             <Route path="/achievements" element={<Achievements />} />
+            <Route path="/collections" element={<Collections />} />
           </Route>
 
           <Route path="/theme-editor" element={<ThemeEditor />} />

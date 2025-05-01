@@ -1,0 +1,144 @@
+.collections {
+    display: flex;
+    height: 100%;
+
+    &__sidebar {
+        width: 280px;
+        min-width: 280px;
+        background-color: rgba(0, 0, 0, 0.2);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    &__sidebar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+
+        h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+    }
+
+    &__search {
+        margin-bottom: 20px;
+    }
+
+    &__list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex: 1;
+    }
+
+    &__list-item {
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        &.active {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    }
+
+    &__list-item-info {
+        h3 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        span {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+    }
+
+    &__list-item-actions {
+        display: flex;
+        gap: 6px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+
+        .collections__list-item:hover & {
+            opacity: 1;
+        }
+    }
+
+    &__action-button {
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    }
+
+    &__empty {
+        color: rgba(255, 255, 255, 0.5);
+        text-align: center;
+        padding: 20px 0;
+    }
+
+    &__content {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    &__content-header {
+        margin-bottom: 20px;
+
+        h2 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+    }
+
+    &__description {
+        color: rgba(255, 255, 255, 0.7);
+        margin: 0;
+    }
+
+    &__games {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 20px;
+    }
+
+    &__empty-collection,
+    &__select-prompt {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 300px;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.7);
+
+        p {
+            margin-bottom: 20px;
+        }
+    }
+}

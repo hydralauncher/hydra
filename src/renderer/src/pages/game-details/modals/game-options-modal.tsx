@@ -7,8 +7,9 @@ import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import { useDownload, useToast, useUserDetails } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
-import { FileDirectoryIcon, FileIcon } from "@primer/octicons-react";
+import { FileDirectoryIcon, FileIcon, BookmarkIcon } from "@primer/octicons-react";
 import { debounce } from "lodash-es";
+import { CollectionModal } from "./collection-modal";
 import "./game-options-modal.scss";
 
 export interface GameOptionsModalProps {
@@ -45,6 +46,7 @@ export function GameOptionsModal({
   const [automaticCloudSync, setAutomaticCloudSync] = useState(
     game.automaticCloudSync ?? false
   );
+  const [showCollectionModal, setShowCollectionModal] = useState(false);
 
   const {
     removeGameInstaller,
@@ -225,6 +227,13 @@ export function GameOptionsModal({
         game={game}
       />
 
+      {showCollectionModal && (
+        <CollectionModal
+          gameId={game.id}
+          onClose={() => setShowCollectionModal(false)}
+        />
+      )}
+
       <Modal
         visible={visible}
         title={game.title}
@@ -284,6 +293,24 @@ export function GameOptionsModal({
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="game-options-modal__section">
+            <div className="game-options-modal__header">
+              <h2>{t("collections:manage_collections")}</h2>
+              <h4 className="game-options-modal__header-description">
+                {t("collections:add_to_collection")}
+              </h4>
+            </div>
+
+            <Button
+              onClick={() => setShowCollectionModal(true)}
+              theme="outline"
+              className="game-options-modal__button"
+            >
+              <BookmarkIcon />
+              {t("collections:manage_collections")}
+            </Button>
           </div>
 
           <CheckboxField
