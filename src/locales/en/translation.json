@@ -198,7 +198,8 @@
     "download_error_not_cached_on_hydra": "This download is not available on Nimbus.",
     "game_removed_from_favorites": "Game removed from favorites",
     "game_added_to_favorites": "Game added to favorites",
-    "automatically_extract_downloaded_files": "Automatically extract downloaded files"
+    "automatically_extract_downloaded_files": "Automatically extract downloaded files",
+    "create_start_menu_shortcut": "Create Start Menu shortcut"
   },
   "activation": {
     "title": "Activate Hydra",
