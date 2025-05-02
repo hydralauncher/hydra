@@ -91,7 +91,7 @@ export class CommonRedistManager {
     for (const redist of this.redistributables) {
       const filePath = path.join(commonRedistPath, redist);
 
-      if (fs.existsSync(filePath)) {
+      if (fs.existsSync(filePath) && redist !== "install.bat") {
         continue;
       }
 
