@@ -187,7 +187,8 @@
     "download_error_not_cached_on_hydra": "Este download não está disponível no Nimbus.",
     "game_removed_from_favorites": "Jogo removido dos favoritos",
     "game_added_to_favorites": "Jogo adicionado aos favoritos",
-    "automatically_extract_downloaded_files": "Extrair automaticamente os arquivos baixados"
+    "automatically_extract_downloaded_files": "Extrair automaticamente os arquivos baixados",
+    "create_start_menu_shortcut": "Criar atalho no Menu Iniciar"
   },
   "activation": {
     "title": "Ativação",

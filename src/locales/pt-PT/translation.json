@@ -178,7 +178,8 @@
     "download_error_not_cached_on_real_debrid": "Este download não está disponível no Real-Debrid e a verificação do status do download não está disponível.",
     "download_error_not_cached_on_torbox": "Este download não está disponível no TorBox e a verificação do status do download não está disponível.",
     "game_removed_from_favorites": "Jogo removido dos favoritos",
-    "game_added_to_favorites": "Jogo adicionado aos favoritos"
+    "game_added_to_favorites": "Jogo adicionado aos favoritos",
+    "create_start_menu_shortcut": "Criar atalho no Menu Iniciar"
   },
   "activation": {
     "title": "Ativação",

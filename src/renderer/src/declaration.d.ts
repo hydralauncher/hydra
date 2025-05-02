@@ -32,6 +32,7 @@ import type {
   Theme,
   Badge,
   Auth,
+  ShortcutLocation,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -101,7 +102,11 @@ declare global {
       objectId: string,
       title: string
     ) => Promise<void>;
-    createGameShortcut: (shop: GameShop, objectId: string) => Promise<boolean>;
+    createGameShortcut: (
+      shop: GameShop,
+      objectId: string,
+      location: ShortcutLocation
+    ) => Promise<boolean>;
     updateExecutablePath: (
       shop: GameShop,
       objectId: string,
