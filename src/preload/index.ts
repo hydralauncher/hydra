@@ -16,6 +16,7 @@ import type {
   GameAchievement,
   Theme,
   FriendRequestSync,
+  ShortcutLocation,
 } from "@types";
 import type { AuthPage, CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -122,8 +123,11 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   addGameToLibrary: (shop: GameShop, objectId: string, title: string) =>
     ipcRenderer.invoke("addGameToLibrary", shop, objectId, title),
-  createGameShortcut: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("createGameShortcut", shop, objectId),
+  createGameShortcut: (
+    shop: GameShop,
+    objectId: string,
+    location: ShortcutLocation
+  ) => ipcRenderer.invoke("createGameShortcut", shop, objectId, location),
   updateExecutablePath: (
     shop: GameShop,
     objectId: string,

@@ -8,6 +8,14 @@ export const defaultDownloadsPath = SystemPath.getPath("downloads");
 
 export const isStaging = import.meta.env.MAIN_VITE_API_URL.includes("staging");
 
+export const windowsStartMenuPath = path.join(
+  SystemPath.getPath("appData"),
+  "Microsoft",
+  "Windows",
+  "Start Menu",
+  "Programs"
+);
+
 export const levelDatabasePath = path.join(
   SystemPath.getPath("userData"),
   `hydra-db${isStaging ? "-staging" : ""}`
