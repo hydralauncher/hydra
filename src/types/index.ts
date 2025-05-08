@@ -240,6 +240,7 @@ export interface DownloadSourceValidationResult {
 export interface GameStats {
   downloadCount: number;
   playerCount: number;
+  assets: ShopAssets | null;
 }
 
 export interface TrendingGame extends ShopAssets {

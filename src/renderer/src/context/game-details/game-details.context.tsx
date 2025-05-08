@@ -120,7 +120,7 @@ export function GameDetailsContextProvider({
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 
-    window.electron
+    const shopDetailsPromise = window.electron
       .getGameShopDetails(objectId, shop, getSteamLanguage(i18n.language))
       .then((result) => {
         if (abortController.signal.aborted) return;
@@ -135,15 +135,18 @@ export function GameDetailsContextProvider({
         ) {
           setHasNSFWContentBlocked(true);
         }
-      })
-      .finally(() => {
-        if (abortController.signal.aborted) return;
-        setIsLoading(false);
       });
 
-    window.electron.getGameStats(objectId, shop).then((result) => {
+    const statsPromise = window.electron
+      .getGameStats(objectId, shop)
+      .then((result) => {
+        if (abortController.signal.aborted) return;
+        setStats(result);
+      });
+
+    Promise.all([shopDetailsPromise, statsPromise]).finally(() => {
       if (abortController.signal.aborted) return;
-      setStats(result);
+      setIsLoading(false);
     });
 
     if (userDetails) {
