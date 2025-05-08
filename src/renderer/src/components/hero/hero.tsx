@@ -43,7 +43,7 @@ export function Hero() {
         <div className="hero__backdrop">
           <img
             src={game.background}
-            alt={game.description}
+            alt={game.description ?? ""}
             className="hero__media"
           />
 
@@ -52,7 +52,7 @@ export function Hero() {
               <img
                 src={game.logo}
                 width="250px"
-                alt={game.description}
+                alt={game.description ?? ""}
                 loading="eager"
               />
             )}

@@ -11,12 +11,12 @@ const getTrendingGames = async (_event: Electron.IpcMainInvokeEvent) => {
     .then((language) => language || "en");
 
   const trendingGames = await HydraApi.get<TrendingGame[]>(
-    "/games/trending",
+    "/games/featured",
     { language },
     { needsAuth: false }
   ).catch(() => []);
 
-  return trendingGames;
+  return trendingGames.slice(0, 1);
 };
 
 registerEvent("getTrendingGames", getTrendingGames);
