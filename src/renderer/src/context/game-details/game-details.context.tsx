@@ -79,7 +79,7 @@ export function GameDetailsContextProvider({
 
   const [stats, setStats] = useState<GameStats | null>(null);
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [gameColor, setGameColor] = useState("");
   const [isGameRunning, setIsGameRunning] = useState(false);
   const [showRepacksModal, setShowRepacksModal] = useState(false);
@@ -137,6 +137,7 @@ export function GameDetailsContextProvider({
         }
       })
       .finally(() => {
+        if (abortController.signal.aborted) return;
         setIsLoading(false);
       });
 
