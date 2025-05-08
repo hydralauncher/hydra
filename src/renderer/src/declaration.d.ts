@@ -33,6 +33,7 @@ import type {
   Badge,
   Auth,
   ShortcutLocation,
+  CatalogueSearchResult,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -69,7 +70,7 @@ declare global {
       payload: CatalogueSearchPayload,
       take: number,
       skip: number
-    ) => Promise<{ edges: any[]; count: number }>;
+    ) => Promise<{ edges: CatalogueSearchResult[]; count: number }>;
     getCatalogue: (category: CatalogueCategory) => Promise<any[]>;
     getGameShopDetails: (
       objectId: string,

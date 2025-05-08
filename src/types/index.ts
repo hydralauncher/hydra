@@ -50,7 +50,10 @@ export interface UserGame {
   shop: GameShop;
   title: string;
   iconUrl: string | null;
-  cover: string;
+  libraryHeroImageUrl: string;
+  libraryImageUrl: string;
+  logoImageUrl: string;
+  coverImageUrl: string;
   playTimeInSeconds: number;
   lastTimePlayed: Date | null;
   unlockedAchievementCount: number;
@@ -103,6 +106,10 @@ export interface UserFriend {
   currentGame: {
     title: string;
     iconUrl: string;
+    libraryHeroImageUrl: string;
+    libraryImageUrl: string;
+    logoImageUrl: string;
+    coverImageUrl: string;
     objectId: string;
     shop: GameShop;
     sessionDurationInSeconds: number;
@@ -141,6 +148,10 @@ export interface UserRelation {
 export interface UserProfileCurrentGame extends Omit<GameRunning, "objectId"> {
   objectId: string;
   sessionDurationInSeconds: number;
+  libraryHeroImageUrl: string;
+  libraryImageUrl: string;
+  logoImageUrl: string;
+  coverImageUrl: string;
 }
 
 export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
@@ -218,10 +229,14 @@ export interface GameStats {
 }
 
 export interface TrendingGame {
-  uri: string;
-  description: string;
+  objectId: string;
+  shop: GameShop;
+  title: string;
+  description: string | null;
   background: string;
-  logo: string | null;
+  logo: string;
+  logoPosition: string | null;
+  uri: string;
 }
 
 export interface UserStatsPercentile {
@@ -300,6 +315,25 @@ export interface CatalogueSearchPayload {
   publishers: string[];
   genres: string[];
   developers: string[];
+}
+
+export interface CatalogueSearchResult {
+  id: string;
+  tags: string[];
+  genres: string[];
+  objectId: string;
+  shop: GameShop;
+  createdAt: Date;
+  updatedAt: Date;
+  title: string;
+  installCount: number;
+  achievementCount: number;
+  iconUrl: string;
+  libraryHeroImageUrl: string;
+  libraryImageUrl: string;
+  logoImageUrl: string;
+  coverImageUrl: string;
+  shopData: string;
 }
 
 export interface LibraryGame extends Game {

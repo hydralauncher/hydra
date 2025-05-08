@@ -1,6 +1,4 @@
 import { HydraApi } from "../hydra-api";
-import { steamGamesWorker } from "@main/workers";
-import { steamUrlBuilder } from "@shared";
 import { gamesSublevel, levelKeys } from "@main/level";
 
 export const mergeWithRemoteGames = async () => {
@@ -31,20 +29,12 @@ export const mergeWithRemoteGames = async () => {
             playTimeInMilliseconds: updatedPlayTime,
           });
         } else {
-          const steamGame = await steamGamesWorker.run(Number(game.objectId), {
-            name: "getById",
-          });
-
-          const iconUrl = steamGame?.clientIcon
-            ? steamUrlBuilder.icon(game.objectId, steamGame.clientIcon)
-            : null;
-
           await gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
             objectId: game.objectId,
-            title: steamGame?.name,
+            title: game.title,
             remoteId: game.id,
             shop: game.shop,
-            iconUrl,
+            iconUrl: game.iconUrl,
             lastTimePlayed: game.lastTimePlayed,
             playTimeInMilliseconds: game.playTimeInMilliseconds,
             isDeleted: false,

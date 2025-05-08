@@ -9,7 +9,6 @@ import { useTranslation } from "react-i18next";
 import { Badge } from "../badge/badge";
 import { useCallback, useState, useMemo } from "react";
 import { useFormat, useRepacks } from "@renderer/hooks";
-import { steamUrlBuilder } from "@shared";
 
 export interface GameCardProps
   extends React.DetailedHTMLProps<
@@ -63,7 +62,7 @@ export function GameCard({ game, ...props }: GameCardProps) {
     >
       <div className="game-card__backdrop">
         <img
-          src={steamUrlBuilder.library(game.objectId)}
+          src={game.libraryImageUrl}
           alt={game.title}
           className="game-card__cover"
           loading="lazy"
