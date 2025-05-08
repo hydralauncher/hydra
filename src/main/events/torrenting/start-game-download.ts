@@ -40,7 +40,7 @@ const startGameDownload = async (
   /* Delete any previous download */
   await downloadsSublevel.del(gameKey);
 
-  if (game?.isDeleted) {
+  if (game) {
     await gamesSublevel.put(gameKey, {
       ...game,
       isDeleted: false,
