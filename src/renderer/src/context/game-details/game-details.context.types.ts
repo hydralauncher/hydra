@@ -3,13 +3,13 @@ import type {
   GameShop,
   GameStats,
   LibraryGame,
-  ShopDetails,
+  ShopDetailsWithAssets,
   UserAchievement,
 } from "@types";
 
 export interface GameDetailsContext {
   game: LibraryGame | null;
-  shopDetails: ShopDetails | null;
+  shopDetails: ShopDetailsWithAssets | null;
   repacks: GameRepack[];
   shop: GameShop;
   gameTitle: string;
