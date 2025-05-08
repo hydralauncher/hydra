@@ -3,7 +3,6 @@ import type {
   AppUpdaterEvent,
   GameShop,
   HowLongToBeatCategory,
-  ShopDetails,
   Steam250Game,
   DownloadProgress,
   SeedingStatus,
@@ -34,6 +33,8 @@ import type {
   Auth,
   ShortcutLocation,
   CatalogueSearchResult,
+  ShopAssets,
+  ShopDetailsWithAssets,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -71,12 +72,17 @@ declare global {
       take: number,
       skip: number
     ) => Promise<{ edges: CatalogueSearchResult[]; count: number }>;
-    getCatalogue: (category: CatalogueCategory) => Promise<any[]>;
+    getCatalogue: (category: CatalogueCategory) => Promise<ShopAssets[]>;
+    saveGameShopAssets: (
+      objectId: string,
+      shop: GameShop,
+      assets: ShopAssets
+    ) => Promise<void>;
     getGameShopDetails: (
       objectId: string,
       shop: GameShop,
       language: string
-    ) => Promise<ShopDetails | null>;
+    ) => Promise<ShopDetailsWithAssets | null>;
     getRandomGame: () => Promise<Steam250Game>;
     getHowLongToBeat: (
       objectId: string,

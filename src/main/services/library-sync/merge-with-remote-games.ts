@@ -1,8 +1,15 @@
+import { ShopAssets } from "@types";
 import { HydraApi } from "../hydra-api";
-import { gamesSublevel, levelKeys } from "@main/level";
+import { gamesShopAssetsSublevel, gamesSublevel, levelKeys } from "@main/level";
+
+type ProfileGame = {
+  id: string;
+  lastTimePlayed: Date | null;
+  playTimeInMilliseconds: number;
+} & ShopAssets;
 
 export const mergeWithRemoteGames = async () => {
-  return HydraApi.get("/profile/games")
+  return HydraApi.get<ProfileGame[]>("/profile/games")
     .then(async (response) => {
       for (const game of response) {
         const localGame = await gamesSublevel.get(
@@ -40,6 +47,21 @@ export const mergeWithRemoteGames = async () => {
             isDeleted: false,
           });
         }
+
+        await gamesShopAssetsSublevel.put(
+          levelKeys.game(game.shop, game.objectId),
+          {
+            shop: game.shop,
+            objectId: game.objectId,
+            title: game.title,
+            coverImageUrl: game.coverImageUrl,
+            libraryHeroImageUrl: game.libraryHeroImageUrl,
+            libraryImageUrl: game.libraryImageUrl,
+            logoImageUrl: game.logoImageUrl,
+            iconUrl: game.iconUrl,
+            logoPosition: game.logoPosition,
+          }
+        );
       }
     })
     .catch(() => {});

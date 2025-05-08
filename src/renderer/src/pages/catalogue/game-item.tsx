@@ -43,11 +43,19 @@ export function GameItem({ game }: GameItemProps) {
     });
   }, [game.genres, language, steamGenres]);
 
+  const handleNavigateToGameDetails = async () => {
+    await window.electron.saveGameShopAssets(game.objectId, game.shop, {
+      ...game,
+    });
+
+    navigate(buildGameDetailsPath(game));
+  };
+
   return (
     <button
       type="button"
       className="game-item"
-      onClick={() => navigate(buildGameDetailsPath(game))}
+      onClick={handleNavigateToGameDetails}
     >
       <img
         className="game-item__cover"

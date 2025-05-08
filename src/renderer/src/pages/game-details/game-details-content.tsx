@@ -9,7 +9,7 @@ import { Sidebar } from "./sidebar/sidebar";
 
 import { useTranslation } from "react-i18next";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
-import { AuthPage, steamUrlBuilder } from "@shared";
+import { AuthPage } from "@shared";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import { useUserDetails } from "@renderer/hooks";
@@ -59,7 +59,7 @@ export function GameDetailsContent() {
   const [backdropOpacity, setBackdropOpacity] = useState(1);
 
   const handleHeroLoad = async () => {
-    const output = await average(steamUrlBuilder.libraryHero(objectId!), {
+    const output = await average(shopDetails?.libraryHeroImageUrl ?? "", {
       amount: 1,
       format: "hex",
     });
@@ -100,7 +100,7 @@ export function GameDetailsContent() {
       <section className="game-details__container">
         <div ref={heroRef} className="game-details__hero">
           <img
-            src={steamUrlBuilder.libraryHero(objectId!)}
+            src={shopDetails?.libraryHeroImageUrl ?? ""}
             className="game-details__hero-image"
             alt={game?.title}
             onLoad={handleHeroLoad}
@@ -119,7 +119,7 @@ export function GameDetailsContent() {
           >
             <div className="game-details__hero-content">
               <img
-                src={steamUrlBuilder.logo(objectId!)}
+                src={shopDetails?.logoImageUrl ?? ""}
                 className="game-details__game-logo"
                 alt={game?.title}
               />

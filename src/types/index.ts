@@ -36,9 +36,23 @@ export interface DownloadSource {
   updatedAt: Date;
 }
 
+export interface ShopAssets {
+  objectId: string;
+  shop: GameShop;
+  title: string;
+  coverImageUrl: string;
+  libraryHeroImageUrl: string;
+  libraryImageUrl: string;
+  logoImageUrl: string;
+  iconUrl: string | null;
+  logoPosition: string | null;
+}
+
 export type ShopDetails = SteamAppDetails & {
   objectId: string;
 };
+
+export type ShopDetailsWithAssets = ShopDetails & Partial<ShopAssets>;
 
 export interface TorrentFile {
   path: string;
@@ -228,14 +242,8 @@ export interface GameStats {
   playerCount: number;
 }
 
-export interface TrendingGame {
-  objectId: string;
-  shop: GameShop;
-  title: string;
+export interface TrendingGame extends ShopAssets {
   description: string | null;
-  background: string;
-  logo: string;
-  logoPosition: string | null;
   uri: string;
 }
 
@@ -329,17 +337,19 @@ export interface CatalogueSearchResult {
   installCount: number;
   achievementCount: number;
   iconUrl: string;
+  coverImageUrl: string;
   libraryHeroImageUrl: string;
   libraryImageUrl: string;
   logoImageUrl: string;
-  coverImageUrl: string;
+  logoPosition: string | null;
   shopData: string;
 }
 
-export interface LibraryGame extends Game {
-  id: string;
-  download: Download | null;
-}
+export type LibraryGame = Game &
+  Partial<ShopAssets> & {
+    id: string;
+    download: Download | null;
+  };
 
 export * from "./game.types";
 export * from "./steam.types";

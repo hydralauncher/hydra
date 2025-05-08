@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
 import { Button, GameCard, Hero } from "@renderer/components";
-import type { Steam250Game } from "@types";
+import type { ShopAssets, Steam250Game } from "@types";
 
 import flameIconStatic from "@renderer/assets/icons/flame-static.png";
 import flameIconAnimated from "@renderer/assets/icons/flame-animated.gif";
@@ -27,7 +27,9 @@ export default function Home() {
     CatalogueCategory.Hot
   );
 
-  const [catalogue, setCatalogue] = useState<Record<CatalogueCategory, any[]>>({
+  const [catalogue, setCatalogue] = useState<
+    Record<CatalogueCategory, ShopAssets[]>
+  >({
     [CatalogueCategory.Hot]: [],
     [CatalogueCategory.Weekly]: [],
     [CatalogueCategory.Achievements]: [],
@@ -90,6 +92,12 @@ export default function Home() {
     if (category === CatalogueCategory.Hot) {
       setAnimateFlame(false);
     }
+  };
+
+  const handleClickGameCard = async (game: ShopAssets) => {
+    await window.electron.saveGameShopAssets(game.objectId, game.shop, game);
+
+    navigate(buildGameDetailsPath(game));
   };
 
   return (
@@ -175,7 +183,7 @@ export default function Home() {
                 <GameCard
                   key={result.objectId}
                   game={result}
-                  onClick={() => navigate(buildGameDetailsPath(result))}
+                  onClick={() => handleClickGameCard(result)}
                 />
               ))}
         </section>
