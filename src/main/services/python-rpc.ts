@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from "axios";
+import axios from "axios";
 
 import cp from "node:child_process";
 import fs from "node:fs";
@@ -31,7 +31,9 @@ const rustBinaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
 export class PythonRPC {
   public static readonly BITTORRENT_PORT = "5881";
   public static readonly RPC_PORT = "8084";
-  public static rpc: AxiosInstance;
+  public static readonly rpc = axios.create({
+    baseURL: `http://localhost:${this.RPC_PORT}`,
+  });
 
   private static pythonProcess: cp.ChildProcess | null = null;
 
@@ -134,12 +136,7 @@ export class PythonRPC {
       this.pythonProcess = childProcess;
     }
 
-    this.rpc = axios.create({
-      baseURL: `http://localhost:${this.RPC_PORT}`,
-      headers: {
-        "x-hydra-rpc-password": rpcPassword,
-      },
-    });
+    this.rpc.defaults.headers.common["x-hydra-rpc-password"] = rpcPassword;
   }
 
   public static kill() {
