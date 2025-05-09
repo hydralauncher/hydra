@@ -25,7 +25,7 @@ export const getGameAchievementData = async (
 
   const language = await db
     .get<string, string>(levelKeys.language, {
-      valueEncoding: "utf-8",
+      valueEncoding: "utf8",
     })
     .then((language) => language || "en");
 

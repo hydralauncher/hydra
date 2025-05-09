@@ -6,7 +6,7 @@ import { db, levelKeys } from "@main/level";
 const getBadges = async (_event: Electron.IpcMainInvokeEvent) => {
   const language = await db
     .get<string, string>(levelKeys.language, {
-      valueEncoding: "utf-8",
+      valueEncoding: "utf8",
     })
     .then((language) => language || "en");
 
