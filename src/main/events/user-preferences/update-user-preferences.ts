@@ -16,7 +16,7 @@ const updateUserPreferences = async (
 
   if (preferences.language) {
     await db.put<string, string>(levelKeys.language, preferences.language, {
-      valueEncoding: "utf-8",
+      valueEncoding: "utf8",
     });
 
     i18next.changeLanguage(preferences.language);
