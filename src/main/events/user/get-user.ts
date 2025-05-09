@@ -6,22 +6,7 @@ const getUser = async (
   _event: Electron.IpcMainInvokeEvent,
   userId: string
 ): Promise<UserProfile | null> => {
-  try {
-    const profile = await HydraApi.get<UserProfile | null>(`/users/${userId}`);
-
-    if (!profile) return null;
-
-    const recentGames = profile.recentGames.filter((game) => game);
-    const libraryGames = profile.libraryGames.filter((game) => game);
-
-    return {
-      ...profile,
-      libraryGames,
-      recentGames,
-    };
-  } catch (err) {
-    return null;
-  }
+  return HydraApi.get<UserProfile>(`/users/${userId}`).catch(() => null);
 };
 
 registerEvent("getUser", getUser);
