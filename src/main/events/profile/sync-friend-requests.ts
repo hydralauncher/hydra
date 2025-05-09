@@ -1,4 +1,3 @@
-import { MAIN_LOOP_INTERVAL } from "@main/constants";
 import { registerEvent } from "../register-event";
 import { HydraApi, WindowManager } from "@main/services";
 import { publishNewFriendRequestNotification } from "@main/services/notifications";
@@ -10,14 +9,12 @@ interface SyncState {
   tick: number;
 }
 
-const ticksToUpdate = (2 * 60 * 1000) / MAIN_LOOP_INTERVAL; // 2 minutes
-
 const syncState: SyncState = {
   friendRequestCount: null,
   tick: 0,
 };
 
-const syncFriendRequests = async () => {
+export const syncFriendRequests = async () => {
   return HydraApi.get<FriendRequestSync>(`/profile/friend-requests/sync`)
     .then((res) => {
       if (
@@ -44,16 +41,4 @@ const syncFriendRequests = async () => {
     });
 };
 
-const syncFriendRequestsEvent = async (_event: Electron.IpcMainInvokeEvent) => {
-  return syncFriendRequests();
-};
-
-export const watchFriendRequests = async () => {
-  if (syncState.tick % ticksToUpdate === 0) {
-    await syncFriendRequests();
-  }
-
-  syncState.tick++;
-};
-
-registerEvent("syncFriendRequests", syncFriendRequestsEvent);
+registerEvent("syncFriendRequests", syncFriendRequests);

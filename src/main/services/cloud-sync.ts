@@ -1,5 +1,4 @@
 import { levelKeys, gamesSublevel, db } from "@main/level";
-import { app } from "electron";
 import path from "node:path";
 import * as tar from "tar";
 import crypto from "node:crypto";
@@ -15,6 +14,7 @@ import axios from "axios";
 import { Ludusavi } from "./ludusavi";
 import { formatDate, SubscriptionRequiredError } from "@shared";
 import i18next, { t } from "i18next";
+import { SystemPath } from "./system-path";
 
 export class CloudSync {
   public static getBackupLabel(automatic: boolean) {
@@ -102,7 +102,7 @@ export class CloudSync {
       shop,
       objectId,
       hostname: os.hostname(),
-      homeDir: normalizePath(app.getPath("home")),
+      homeDir: normalizePath(SystemPath.getPath("home")),
       downloadOptionTitle,
       platform: os.platform(),
       label,

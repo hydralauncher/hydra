@@ -1,6 +1,6 @@
 import { registerEvent } from "../register-event";
 
-import type { Game, GameShop } from "@types";
+import type { GameShop } from "@types";
 
 import { steamGamesWorker } from "@main/workers";
 import { createGame } from "@main/services/library-sync";
@@ -15,15 +15,14 @@ const addGameToLibrary = async (
   title: string
 ) => {
   const gameKey = levelKeys.game(shop, objectId);
-  const game = await gamesSublevel.get(gameKey);
+  let game = await gamesSublevel.get(gameKey);
 
   if (game) {
     await downloadsSublevel.del(gameKey);
 
-    await gamesSublevel.put(gameKey, {
-      ...game,
-      isDeleted: false,
-    });
+    game.isDeleted = false;
+
+    await gamesSublevel.put(gameKey, game);
   } else {
     const steamGame = await steamGamesWorker.run(Number(objectId), {
       name: "getById",
@@ -33,7 +32,7 @@ const addGameToLibrary = async (
       ? steamUrlBuilder.icon(objectId, steamGame.clientIcon)
       : null;
 
-    const game: Game = {
+    game = {
       title,
       iconUrl,
       objectId,
@@ -44,12 +43,12 @@ const addGameToLibrary = async (
       lastTimePlayed: null,
     };
 
-    await gamesSublevel.put(levelKeys.game(shop, objectId), game);
-
-    await createGame(game).catch(() => {});
-
-    updateLocalUnlockedAchievements(game);
+    await gamesSublevel.put(gameKey, game);
   }
+
+  await createGame(game).catch(() => {});
+
+  updateLocalUnlockedAchievements(game);
 };
 
 registerEvent("addGameToLibrary", addGameToLibrary);

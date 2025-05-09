@@ -1,6 +1,6 @@
 {
   "name": "hydralauncher",
-  "version": "3.4.4",
+  "version": "3.4.9",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
@@ -28,7 +28,8 @@
     "build:win": "electron-vite build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
-    "prepare": "husky"
+    "prepare": "husky",
+    "protoc": "npx protoc --ts_out src/main/generated --proto_path proto proto/*.proto"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.0",
@@ -37,6 +38,7 @@
     "@hookform/resolvers": "^3.9.1",
     "@monaco-editor/react": "^4.6.0",
     "@primer/octicons-react": "^19.9.0",
+    "@protobuf-ts/plugin": "^2.10.0",
     "@radix-ui/react-dropdown-menu": "^2.1.2",
     "@reduxjs/toolkit": "^2.2.3",
     "@sentry/react": "^8.47.0",

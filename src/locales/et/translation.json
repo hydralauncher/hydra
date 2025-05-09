@@ -111,7 +111,7 @@
     "options": "Valikud",
     "executable_section_title": "Käivitusfail",
     "executable_section_description": "Faili tee, mida käivitatakse \"Mängi\" nupule vajutades",
-    "downloads_secion_title": "Allalaadimised",
+    "downloads_section_title": "Allalaadimised",
     "downloads_section_description": "Vaata uuendusi või selle mängu teisi versioone",
     "danger_zone_section_title": "Ohutsoon",
     "danger_zone_section_description": "Eemalda see mäng oma kogust või Hydra poolt allalaaditud failid",

@@ -2004,6 +2004,42 @@
   resolved "https://registry.npmjs.org/@primer/octicons-react/-/octicons-react-19.9.0.tgz"
   integrity sha512-Uk4XrHyfylyfzZN9d8VFjF8FpfYHEyT4sabw+9+oP+GWAJHhPvNPTz6gXvUzJZmoblAvgcTrDslIPjz8zMh76w==
 
+"@protobuf-ts/plugin-framework@^2.10.0":
+  version "2.10.0"
+  resolved "https://registry.yarnpkg.com/@protobuf-ts/plugin-framework/-/plugin-framework-2.10.0.tgz#e716a4b7fdb8710527101d145a000e254731abbb"
+  integrity sha512-EuW9irbt+w7Ml1CaAxK6xyl7pSuWVbNy0rsChxJEthMrAVTN5EPdJ3whNWvsRBa+HwRImEl8KHNnRoq/vGOHbg==
+  dependencies:
+    "@protobuf-ts/runtime" "^2.10.0"
+    typescript "^3.9"
+
+"@protobuf-ts/plugin@^2.10.0":
+  version "2.10.0"
+  resolved "https://registry.yarnpkg.com/@protobuf-ts/plugin/-/plugin-2.10.0.tgz#dc91af30aeecf2a9debe2d0abf5b2a07a25156c5"
+  integrity sha512-iMX4C4TVfMNRLn2msK0cVg5jmizjtu5FYiy8EK5Lg6EgyR9TVHeK2rzmufWKYM2Pcg1jSwC0cFcXHQnCoeFxUg==
+  dependencies:
+    "@protobuf-ts/plugin-framework" "^2.10.0"
+    "@protobuf-ts/protoc" "^2.10.0"
+    "@protobuf-ts/runtime" "^2.10.0"
+    "@protobuf-ts/runtime-rpc" "^2.10.0"
+    typescript "^3.9"
+
+"@protobuf-ts/protoc@^2.10.0":
+  version "2.10.0"
+  resolved "https://registry.yarnpkg.com/@protobuf-ts/protoc/-/protoc-2.10.0.tgz#4a280ead9d5b143b6ef863339980050184bcac49"
+  integrity sha512-S4BtGBh22+uL5E6qLVxV0QNY6tiLVB8QL7RIkvo+KYknipZfSNwubdKy5CPkrwVXzJn4s3cx7bKx1w6BxkBIPg==
+
+"@protobuf-ts/runtime-rpc@^2.10.0":
+  version "2.10.0"
+  resolved "https://registry.yarnpkg.com/@protobuf-ts/runtime-rpc/-/runtime-rpc-2.10.0.tgz#68de8dcc369e56579569a4deafd394cf4683dc66"
+  integrity sha512-8CS/XPv3+pMK4v8UKhtCdvbS4h9l7aqlteKdRt0/UbIKZ8n0qHj6hX8cBhz2ngvohxCOS0N08zPr9aCLBNhW3Q==
+  dependencies:
+    "@protobuf-ts/runtime" "^2.10.0"
+
+"@protobuf-ts/runtime@^2.10.0":
+  version "2.10.0"
+  resolved "https://registry.yarnpkg.com/@protobuf-ts/runtime/-/runtime-2.10.0.tgz#bc90f632647ff2ae72887546ddf3d193f3f43d98"
+  integrity sha512-ypYwGg9Pn3W/2lZ7/HW60hONGuSdzphvOY8Dq7LeNttymDe0y3LaTUUMRpuGqOT6FfrWEMnfQbyqU8AAreo8wA==
+
 "@radix-ui/primitive@1.1.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@radix-ui/primitive/-/primitive-1.1.0.tgz#42ef83b3b56dccad5d703ae8c42919a68798bbe2"
@@ -9135,6 +9171,11 @@ typed-array-length@^1.0.7:
     is-typed-array "^1.1.13"
     possible-typed-array-names "^1.0.0"
     reflect.getprototypeof "^1.0.6"
+
+typescript@^3.9:
+  version "3.9.10"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.9.10.tgz#70f3910ac7a51ed6bef79da7800690b19bf778b8"
+  integrity sha512-w6fIxVE/H1PkLKcCPsFqKE7Kv7QUwhU8qQY2MueZXWx5cPZdwFupLgKK3vntcK98BtNHZtAF4LA/yl2a7k8R6Q==
 
 typescript@^5.3.3, typescript@^5.4.3:
   version "5.6.2"

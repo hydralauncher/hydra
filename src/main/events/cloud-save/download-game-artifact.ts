@@ -4,13 +4,13 @@ import * as tar from "tar";
 import { registerEvent } from "../register-event";
 import axios from "axios";
 import os from "node:os";
-import { app } from "electron";
 import path from "node:path";
 import { backupsPath } from "@main/constants";
 import type { GameShop } from "@types";
 
 import YAML from "yaml";
 import { normalizePath } from "@main/helpers";
+import { SystemPath } from "@main/services/system-path";
 
 export interface LudusaviBackup {
   files: {
@@ -35,7 +35,7 @@ const replaceLudusaviBackupWithCurrentUser = (
     drives: Record<string, string>;
   };
 
-  const currentHomeDir = normalizePath(app.getPath("home"));
+  const currentHomeDir = normalizePath(SystemPath.getPath("home"));
 
   /* Renaming logic */
   if (os.platform() === "win32") {
@@ -84,7 +84,7 @@ const downloadGameArtifact = async (
       homeDir: string;
     }>(`/profile/games/artifacts/${gameArtifactId}/download`);
 
-    const zipLocation = path.join(app.getPath("userData"), objectKey);
+    const zipLocation = path.join(SystemPath.getPath("userData"), objectKey);
     const backupPath = path.join(backupsPath, `${shop}-${objectId}`);
 
     if (fs.existsSync(backupPath)) {

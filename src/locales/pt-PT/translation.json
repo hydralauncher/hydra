@@ -107,7 +107,7 @@
     "remove_from_library_title": "Tens a certeza?",
     "executable_section_title": "Executável",
     "executable_section_description": "O caminho do ficheiro que vai ser executado ao clicar em \"Jogar\"",
-    "downloads_secion_title": "Transferências",
+    "downloads_section_title": "Transferências",
     "downloads_section_description": "Encontra atualizações ou versões diferentes para este mesmo título",
     "danger_zone_section_title": "Zona de perigo",
     "danger_zone_section_description": "Remove o jogo da tua biblioteca ou os ficheiros que foram transferidos pelo Hydra",
@@ -178,7 +178,8 @@
     "download_error_not_cached_on_real_debrid": "Este download não está disponível no Real-Debrid e a verificação do status do download não está disponível.",
     "download_error_not_cached_on_torbox": "Este download não está disponível no TorBox e a verificação do status do download não está disponível.",
     "game_removed_from_favorites": "Jogo removido dos favoritos",
-    "game_added_to_favorites": "Jogo adicionado aos favoritos"
+    "game_added_to_favorites": "Jogo adicionado aos favoritos",
+    "create_start_menu_shortcut": "Criar atalho no Menu Iniciar"
   },
   "activation": {
     "title": "Ativação",

@@ -123,7 +123,7 @@
     "options": "Options",
     "executable_section_title": "Executable",
     "executable_section_description": "Path of the file that will be executed when \"Play\" is clicked",
-    "downloads_secion_title": "Downloads",
+    "downloads_section_title": "Downloads",
     "downloads_section_description": "Check out updates or other versions of this game",
     "danger_zone_section_title": "Danger zone",
     "danger_zone_section_description": "Remove this game from your library or the files downloaded by Hydra",
@@ -198,7 +198,8 @@
     "download_error_not_cached_on_hydra": "This download is not available on Nimbus.",
     "game_removed_from_favorites": "Game removed from favorites",
     "game_added_to_favorites": "Game added to favorites",
-    "automatically_extract_downloaded_files": "Automatically extract downloaded files"
+    "automatically_extract_downloaded_files": "Automatically extract downloaded files",
+    "create_start_menu_shortcut": "Create Start Menu shortcut"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -356,7 +357,8 @@
     "common_redist_description": "Common redistributables are required to run some games. Installing them is recommended to avoid issues.",
     "install_common_redist": "Install",
     "installing_common_redist": "Installing…",
-    "show_download_speed_in_megabytes": "Show download speed in megabytes per second"
+    "show_download_speed_in_megabytes": "Show download speed in megabytes per second",
+    "extract_files_by_default": "Extract files by default after download"
   },
   "notifications": {
     "download_complete": "Download complete",

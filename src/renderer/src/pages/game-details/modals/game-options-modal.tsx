@@ -1,7 +1,7 @@
 import { useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, CheckboxField, Modal, TextField } from "@renderer/components";
-import type { LibraryGame } from "@types";
+import type { LibraryGame, ShortcutLocation } from "@types";
 import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import { useDownload, useToast, useUserDetails } from "@renderer/hooks";
@@ -107,15 +107,18 @@ export function GameOptionsModal({
     }
   };
 
-  const handleCreateShortcut = async () => {
+  const handleCreateShortcut = async (location: ShortcutLocation) => {
     window.electron
-      .createGameShortcut(game.shop, game.objectId)
+      .createGameShortcut(game.shop, game.objectId, location)
       .then((success) => {
         if (success) {
           showSuccessToast(t("create_shortcut_success"));
         } else {
           showErrorToast(t("create_shortcut_error"));
         }
+      })
+      .catch(() => {
+        showErrorToast(t("create_shortcut_error"));
       });
   };
 
@@ -175,6 +178,9 @@ export function GameOptionsModal({
 
   const shouldShowWinePrefixConfiguration =
     window.electron.platform === "linux";
+
+  const shouldShowCreateStartMenuShortcut =
+    window.electron.platform === "win32";
 
   const handleResetAchievements = async () => {
     setIsDeletingAchievements(true);
@@ -278,9 +284,20 @@ export function GameOptionsModal({
                   >
                     {t("open_folder")}
                   </Button>
-                  <Button onClick={handleCreateShortcut} theme="outline">
+                  <Button
+                    onClick={() => handleCreateShortcut("desktop")}
+                    theme="outline"
+                  >
                     {t("create_shortcut")}
                   </Button>
+                  {shouldShowCreateStartMenuShortcut && (
+                    <Button
+                      onClick={() => handleCreateShortcut("start_menu")}
+                      theme="outline"
+                    >
+                      {t("create_start_menu_shortcut")}
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
@@ -362,7 +379,7 @@ export function GameOptionsModal({
 
           <div className="game-options-modal__downloads">
             <div className="game-options-modal__header">
-              <h2>{t("downloads_secion_title")}</h2>
+              <h2>{t("downloads_section_title")}</h2>
               <h4 className="game-options-modal__header-description">
                 {t("downloads_section_description")}
               </h4>
