@@ -94,12 +94,6 @@ export default function Home() {
     }
   };
 
-  const handleClickGameCard = async (game: ShopAssets) => {
-    await window.electron.saveGameShopAssets(game.objectId, game.shop, game);
-
-    navigate(buildGameDetailsPath(game));
-  };
-
   return (
     <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
       <section className="home__content">
@@ -183,7 +177,7 @@ export default function Home() {
                 <GameCard
                   key={result.objectId}
                   game={result}
-                  onClick={() => handleClickGameCard(result)}
+                  onClick={() => navigate(buildGameDetailsPath(result))}
                 />
               ))}
         </section>

@@ -137,10 +137,13 @@ export function AchievementsContent({
   }, [dispatch, gameTitle]);
 
   const handleHeroLoad = async () => {
-    const output = await average(shopDetails?.libraryHeroImageUrl ?? "", {
-      amount: 1,
-      format: "hex",
-    });
+    const output = await average(
+      shopDetails?.assets?.libraryHeroImageUrl ?? "",
+      {
+        amount: 1,
+        format: "hex",
+      }
+    );
 
     const backgroundColor = output
       ? (new Color(output).darken(0.7).toString() as string)
@@ -185,7 +188,7 @@ export function AchievementsContent({
   return (
     <div className="achievements-content__achievements-list">
       <img
-        src={shopDetails?.libraryHeroImageUrl ?? ""}
+        src={shopDetails?.assets?.libraryHeroImageUrl ?? ""}
         className="achievements-content__achievements-list__image"
         alt={gameTitle}
         onLoad={handleHeroLoad}
@@ -211,7 +214,7 @@ export function AchievementsContent({
                 to={buildGameDetailsPath({ shop, objectId, title: gameTitle })}
               >
                 <img
-                  src={shopDetails?.logoImageUrl ?? ""}
+                  src={shopDetails?.assets?.logoImageUrl ?? ""}
                   className="achievements-content__achievements-list__section__container__hero__content__game-logo"
                   alt={gameTitle}
                 />

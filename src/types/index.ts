@@ -52,7 +52,9 @@ export type ShopDetails = SteamAppDetails & {
   objectId: string;
 };
 
-export type ShopDetailsWithAssets = ShopDetails & Partial<ShopAssets>;
+export type ShopDetailsWithAssets = ShopDetails & {
+  assets: ShopAssets | null;
+};
 
 export interface TorrentFile {
   path: string;
