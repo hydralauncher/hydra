@@ -8,9 +8,7 @@ const saveGameShopAssets = async (
   shop: GameShop,
   assets: ShopAssets
 ): Promise<void> => {
-  if (shop === "steam") {
-    await gamesShopAssetsSublevel.put(levelKeys.game(shop, objectId), assets);
-  }
+  return gamesShopAssetsSublevel.put(levelKeys.game(shop, objectId), assets);
 };
 
 registerEvent("saveGameShopAssets", saveGameShopAssets);
