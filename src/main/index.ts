@@ -60,7 +60,7 @@ app.whenReady().then(async () => {
   await loadState();
 
   const language = await db.get<string, string>(levelKeys.language, {
-    valueEncoding: "utf-8",
+    valueEncoding: "utf8",
   });
 
   if (language) i18n.changeLanguage(language);

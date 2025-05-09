@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosInstance } from "axios";
 
 import cp from "node:child_process";
 import fs from "node:fs";
@@ -7,7 +7,8 @@ import crypto from "node:crypto";
 
 import { pythonRpcLogger } from "./logger";
 import { Readable } from "node:stream";
-import { app, dialog } from "electron";
+import { app, dialog, safeStorage } from "electron";
+import { db, levelKeys } from "@main/level";
 
 interface GamePayload {
   game_id: string;
@@ -30,16 +31,9 @@ const rustBinaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
 export class PythonRPC {
   public static readonly BITTORRENT_PORT = "5881";
   public static readonly RPC_PORT = "8084";
-  private static readonly RPC_PASSWORD = crypto.randomBytes(32).toString("hex");
+  public static rpc: AxiosInstance;
 
   private static pythonProcess: cp.ChildProcess | null = null;
-
-  public static readonly rpc = axios.create({
-    baseURL: `http://localhost:${this.RPC_PORT}`,
-    headers: {
-      "x-hydra-rpc-password": this.RPC_PASSWORD,
-    },
-  });
 
   private static logStderr(readable: Readable | null) {
     if (!readable) return;
@@ -48,14 +42,37 @@ export class PythonRPC {
     readable.on("data", pythonRpcLogger.log);
   }
 
-  public static spawn(
+  private static async getRPCPassword() {
+    const existingPassword = await db.get(levelKeys.rpcPassword, {
+      valueEncoding: "utf8",
+    });
+
+    if (existingPassword)
+      return safeStorage.decryptString(Buffer.from(existingPassword, "hex"));
+
+    const newPassword = crypto.randomBytes(32).toString("hex");
+
+    await db.put(
+      levelKeys.rpcPassword,
+      safeStorage.encryptString(newPassword).toString("hex"),
+      {
+        valueEncoding: "utf8",
+      }
+    );
+
+    return newPassword;
+  }
+
+  public static async spawn(
     initialDownload?: GamePayload,
     initialSeeding?: GamePayload[]
   ) {
+    const rpcPassword = await this.getRPCPassword();
+
     const commonArgs = [
       this.BITTORRENT_PORT,
       this.RPC_PORT,
-      this.RPC_PASSWORD,
+      rpcPassword,
       initialDownload ? JSON.stringify(initialDownload) : "",
       initialSeeding ? JSON.stringify(initialSeeding) : "",
       app.isPackaged
@@ -116,6 +133,13 @@ export class PythonRPC {
 
       this.pythonProcess = childProcess;
     }
+
+    this.rpc = axios.create({
+      baseURL: `http://localhost:${this.RPC_PORT}`,
+      headers: {
+        "x-hydra-rpc-password": rpcPassword,
+      },
+    });
   }
 
   public static kill() {
