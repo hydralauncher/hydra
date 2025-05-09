@@ -23,10 +23,9 @@ const addGameToLibrary = async (
   if (game) {
     await downloadsSublevel.del(gameKey);
 
-    await gamesSublevel.put(gameKey, {
-      ...game,
-      isDeleted: false,
-    });
+    game.isDeleted = false;
+
+    await gamesSublevel.put(gameKey, game);
   } else {
     game = {
       title,
@@ -39,7 +38,7 @@ const addGameToLibrary = async (
       lastTimePlayed: null,
     };
 
-    await gamesSublevel.put(levelKeys.game(shop, objectId), game);
+    await gamesSublevel.put(gameKey, game);
   }
 
   await createGame(game).catch(() => {});
