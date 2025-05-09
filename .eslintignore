@@ -4,3 +4,4 @@ out
 .gitignore
 migration.stub
 hydra-python-rpc/
+src/generated/
