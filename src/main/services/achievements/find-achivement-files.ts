@@ -1,26 +1,26 @@
 import path from "node:path";
 import fs from "node:fs";
-import { app } from "electron";
 import type { Game, AchievementFile } from "@types";
 import { Cracker } from "@shared";
 import { achievementsLogger } from "../logger";
+import { SystemPath } from "../system-path";
 
 const getAppDataPath = () => {
   if (process.platform === "win32") {
-    return app.getPath("appData");
+    return SystemPath.getPath("appData");
   }
 
-  const user = app.getPath("home").split("/").pop();
+  const user = SystemPath.getPath("home").split("/").pop();
 
   return path.join("drive_c", "users", user || "", "AppData", "Roaming");
 };
 
 const getDocumentsPath = () => {
   if (process.platform === "win32") {
-    return app.getPath("documents");
+    return SystemPath.getPath("documents");
   }
 
-  const user = app.getPath("home").split("/").pop();
+  const user = SystemPath.getPath("home").split("/").pop();
 
   return path.join("drive_c", "users", user || "", "Documents");
 };
@@ -38,7 +38,7 @@ const getLocalAppDataPath = () => {
     return path.join(appData, "..", "Local");
   }
 
-  const user = app.getPath("home").split("/").pop();
+  const user = SystemPath.getPath("home").split("/").pop();
 
   return path.join("drive_c", "users", user || "", "AppData", "Local");
 };

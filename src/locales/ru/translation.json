@@ -123,7 +123,7 @@
     "options": "Настройки",
     "executable_section_title": "Файл",
     "executable_section_description": "Путь к файлу, который будет запущен при нажатии на \"Play\"",
-    "downloads_secion_title": "Загрузки",
+    "downloads_section_title": "Загрузки",
     "downloads_section_description": "Проверить наличие обновлений или других версий игры",
     "danger_zone_section_title": "Опасная зона",
     "danger_zone_section_description": "Вы можете удалить эту игру из вашей библиотеки или файлы скачанные из Hydra",

@@ -25,6 +25,7 @@ import cs from "./cs/translation.json";
 import nb from "./nb/translation.json";
 import et from "./et/translation.json";
 import bg from "./bg/translation.json";
+import uz from "./uz/translation.json";
 
 export default {
   "pt-BR": ptBR,
@@ -54,4 +55,5 @@ export default {
   cs,
   nb,
   et,
+  uz,
 };

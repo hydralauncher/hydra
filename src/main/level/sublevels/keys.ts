@@ -14,4 +14,5 @@ export const levelKeys = {
   userPreferences: "userPreferences",
   language: "language",
   screenState: "screenState",
+  rpcPassword: "rpcPassword",
 };

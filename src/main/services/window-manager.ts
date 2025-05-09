@@ -16,7 +16,7 @@ import trayIcon from "@resources/tray-icon.png?asset";
 import { HydraApi } from "./hydra-api";
 import UserAgent from "user-agents";
 import { db, gamesSublevel, levelKeys } from "@main/level";
-import { slice, sortBy } from "lodash-es";
+import { orderBy, slice } from "lodash-es";
 import type { ScreenState, UserPreferences } from "@types";
 import { AuthPage } from "@shared";
 import { isStaging } from "@main/constants";
@@ -370,14 +370,14 @@ export class WindowManager {
               !game.isDeleted && game.executablePath && game.lastTimePlayed
           );
 
-          const sortedGames = sortBy(filteredGames, "lastTimePlayed", "DESC");
+          const sortedGames = orderBy(filteredGames, "lastTimePlayed", "desc");
 
-          return slice(sortedGames, 5);
+          return slice(sortedGames, 0, 6);
         });
 
       const recentlyPlayedGames: Array<MenuItemConstructorOptions | MenuItem> =
         games.map(({ title, executablePath }) => ({
-          label: title.length > 15 ? `${title.slice(0, 15)}…` : title,
+          label: title.length > 18 ? `${title.slice(0, 18)}…` : title,
           type: "normal",
           click: async () => {
             if (!executablePath) return;
@@ -418,7 +418,10 @@ export class WindowManager {
         },
       ]);
 
-      tray.setContextMenu(contextMenu);
+      if (process.platform === "linux") {
+        tray.setContextMenu(contextMenu);
+      }
+
       return contextMenu;
     };
 

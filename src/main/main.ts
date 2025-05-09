@@ -10,8 +10,11 @@ import type { UserPreferences } from "@types";
 import { TorBoxClient } from "./services/download/torbox";
 import { CommonRedistManager } from "./services/common-redist-manager";
 import { WSManager } from "./services/ws-manager";
+import { SystemPath } from "./services/system-path";
 
 export const loadState = async () => {
+  SystemPath.checkIfPathsAreAvailable();
+
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {

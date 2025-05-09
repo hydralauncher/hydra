@@ -111,7 +111,7 @@
     "remove_from_library_title": "Tem certeza?",
     "executable_section_title": "Executável",
     "executable_section_description": "O caminho do arquivo que será executado ao clicar em \"Jogar\"",
-    "downloads_secion_title": "Downloads",
+    "downloads_section_title": "Downloads",
     "downloads_section_description": "Confira atualizações ou versões diferentes para este mesmo título",
     "danger_zone_section_title": "Zona de perigo",
     "danger_zone_section_description": "Remova o jogo da sua biblioteca ou os arquivos que foram baixados pelo Hydra",
@@ -187,7 +187,8 @@
     "download_error_not_cached_on_hydra": "Este download não está disponível no Nimbus.",
     "game_removed_from_favorites": "Jogo removido dos favoritos",
     "game_added_to_favorites": "Jogo adicionado aos favoritos",
-    "automatically_extract_downloaded_files": "Extrair automaticamente os arquivos baixados"
+    "automatically_extract_downloaded_files": "Extrair automaticamente os arquivos baixados",
+    "create_start_menu_shortcut": "Criar atalho no Menu Iniciar"
   },
   "activation": {
     "title": "Ativação",
@@ -343,7 +344,8 @@
     "common_redist_description": "Componentes recomendados são necessários para executar alguns jogos. A instalação deles é recomendada para evitar problemas.",
     "install_common_redist": "Instalar",
     "installing_common_redist": "Instalando…",
-    "show_download_speed_in_megabytes": "Exibir taxas de download em megabytes por segundo"
+    "show_download_speed_in_megabytes": "Exibir taxas de download em megabytes por segundo",
+    "extract_files_by_default": "Extrair arquivos automaticamente após o download"
   },
   "notifications": {
     "download_complete": "Download concluído",

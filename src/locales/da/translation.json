@@ -111,7 +111,7 @@
     "options": "Valgmuligheder",
     "executable_section_title": "Eksekverbar fil",
     "executable_section_description": "Sti til filen som skal bruges når \"Spil\" bliver klikket",
-    "downloads_secion_title": "Downloads",
+    "downloads_section_title": "Downloads",
     "downloads_section_description": "Undersøg opdateringer eller andre versioner af dette spil",
     "danger_zone_section_title": "Farezonen",
     "danger_zone_section_description": "Fjern dette spil fra dit bibliotek eller filerne der er blevet downloadet af Hydra",

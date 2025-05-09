@@ -124,7 +124,7 @@
     "options": "Opciones",
     "executable_section_title": "Ejecutable",
     "executable_section_description": "Ruta del archivo que se ejecutará cuando se presione \"Jugar\"",
-    "downloads_secion_title": "Descargas",
+    "downloads_section_title": "Descargas",
     "downloads_section_description": "Buscar actualizaciones u otras versiones de este juego",
     "danger_zone_section_title": "Opciones Avanzadas",
     "danger_zone_section_description": "Eliminar este juego de tu librería o los archivos descargados por Hydra (Esto solo eliminará los archivos de instalación y no el juego instalado)",
