@@ -34,8 +34,8 @@ const getGameShopDetails = async (
       gamesShopAssetsSublevel.get(levelKeys.game(shop, objectId)),
     ]);
 
-    const appDetails: Promise<ShopDetailsWithAssets | null> =
-      getLocalizedSteamAppDetails(objectId, language).then((result) => {
+    const appDetails = getLocalizedSteamAppDetails(objectId, language).then(
+      (result) => {
         if (result) {
           result.name = cachedAssets?.title ?? result.name;
 
@@ -47,21 +47,22 @@ const getGameShopDetails = async (
 
           return {
             ...result,
-            ...cachedAssets,
+            assets: cachedAssets ?? null,
           };
         }
 
         return null;
-      });
+      }
+    );
 
     if (cachedData) {
       return {
         ...cachedData,
-        ...cachedAssets,
+        assets: cachedAssets ?? null,
       };
     }
 
-    return Promise.resolve(appDetails);
+    return appDetails;
   }
 
   throw new Error("Not implemented");

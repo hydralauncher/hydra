@@ -28,12 +28,6 @@ export function Hero() {
       });
   }, [i18n.language]);
 
-  const handleClick = async (game: TrendingGame) => {
-    await window.electron.saveGameShopAssets(game.objectId, game.shop, game);
-
-    navigate(game.uri);
-  };
-
   if (isLoading) {
     return <Skeleton className="hero" />;
   }
@@ -42,7 +36,7 @@ export function Hero() {
     return featuredGameDetails.map((game) => (
       <button
         type="button"
-        onClick={() => handleClick(game)}
+        onClick={() => navigate(game.uri)}
         className="hero"
         key={game.uri}
       >

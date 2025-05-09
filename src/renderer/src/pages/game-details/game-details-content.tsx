@@ -24,7 +24,6 @@ export function GameDetailsContent() {
   const {
     objectId,
     shopDetails,
-    stats,
     game,
     gameColor,
     setGameColor,
@@ -60,10 +59,13 @@ export function GameDetailsContent() {
   const [backdropOpacity, setBackdropOpacity] = useState(1);
 
   const handleHeroLoad = async () => {
-    const output = await average(stats?.assets?.libraryHeroImageUrl ?? "", {
-      amount: 1,
-      format: "hex",
-    });
+    const output = await average(
+      shopDetails?.assets?.libraryHeroImageUrl ?? "",
+      {
+        amount: 1,
+        format: "hex",
+      }
+    );
 
     const backgroundColor = output
       ? new Color(output).darken(0.7).toString()
@@ -101,7 +103,7 @@ export function GameDetailsContent() {
       <section className="game-details__container">
         <div ref={heroRef} className="game-details__hero">
           <img
-            src={stats?.assets?.libraryHeroImageUrl ?? ""}
+            src={shopDetails?.assets?.libraryHeroImageUrl ?? ""}
             className="game-details__hero-image"
             alt={game?.title}
             onLoad={handleHeroLoad}
@@ -120,7 +122,7 @@ export function GameDetailsContent() {
           >
             <div className="game-details__hero-content">
               <img
-                src={stats?.assets?.logoImageUrl ?? ""}
+                src={shopDetails?.assets?.logoImageUrl ?? ""}
                 className="game-details__game-logo"
                 alt={game?.title}
               />

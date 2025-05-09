@@ -21,7 +21,7 @@ import type {
   GameShop,
   GameStats,
   LibraryGame,
-  ShopDetails,
+  ShopDetailsWithAssets,
   UserAchievement,
 } from "@types";
 
@@ -69,7 +69,9 @@ export function GameDetailsContextProvider({
   gameTitle,
   shop,
 }: Readonly<GameDetailsContextProps>) {
-  const [shopDetails, setShopDetails] = useState<ShopDetails | null>(null);
+  const [shopDetails, setShopDetails] = useState<ShopDetailsWithAssets | null>(
+    null
+  );
   const [achievements, setAchievements] = useState<UserAchievement[] | null>(
     null
   );
@@ -135,19 +137,42 @@ export function GameDetailsContextProvider({
         ) {
           setHasNSFWContentBlocked(true);
         }
+
+        if (result?.assets) {
+          setIsLoading(false);
+        }
       });
 
     const statsPromise = window.electron
       .getGameStats(objectId, shop)
       .then((result) => {
-        if (abortController.signal.aborted) return;
+        if (abortController.signal.aborted) return null;
         setStats(result);
+        return result;
       });
 
-    Promise.all([shopDetailsPromise, statsPromise]).finally(() => {
-      if (abortController.signal.aborted) return;
-      setIsLoading(false);
-    });
+    Promise.all([shopDetailsPromise, statsPromise])
+      .then(([_, stats]) => {
+        if (stats) {
+          const assets = stats.assets;
+          if (assets) {
+            window.electron.saveGameShopAssets(objectId, shop, assets);
+
+            setShopDetails((prev) => {
+              if (!prev) return null;
+              console.log("assets", assets);
+              return {
+                ...prev,
+                assets,
+              };
+            });
+          }
+        }
+      })
+      .finally(() => {
+        if (abortController.signal.aborted) return;
+        setIsLoading(false);
+      });
 
     if (userDetails) {
       window.electron
