@@ -40,12 +40,12 @@ export interface ShopAssets {
   objectId: string;
   shop: GameShop;
   title: string;
-  coverImageUrl: string;
+  iconUrl: string | null;
   libraryHeroImageUrl: string;
   libraryImageUrl: string;
   logoImageUrl: string;
-  iconUrl: string | null;
   logoPosition: string | null;
+  coverImageUrl: string;
 }
 
 export type ShopDetails = SteamAppDetails & {
@@ -61,21 +61,16 @@ export interface TorrentFile {
   length: number;
 }
 
-export interface UserGame {
+export type UserGame = {
   objectId: string;
   shop: GameShop;
   title: string;
-  iconUrl: string | null;
-  libraryHeroImageUrl: string;
-  libraryImageUrl: string;
-  logoImageUrl: string;
-  coverImageUrl: string;
   playTimeInSeconds: number;
   lastTimePlayed: Date | null;
   unlockedAchievementCount: number;
   achievementCount: number;
   achievementsPointsEarnedSum: number;
-}
+} & ShopAssets;
 
 export interface GameRunning {
   id: string;
@@ -119,17 +114,11 @@ export interface UserFriend {
   profileImageUrl: string | null;
   createdAt: string;
   updatedAt: string;
-  currentGame: {
-    title: string;
-    iconUrl: string;
-    libraryHeroImageUrl: string;
-    libraryImageUrl: string;
-    logoImageUrl: string;
-    coverImageUrl: string;
-    objectId: string;
-    shop: GameShop;
-    sessionDurationInSeconds: number;
-  } | null;
+  currentGame:
+    | (ShopAssets & {
+        sessionDurationInSeconds: number;
+      })
+    | null;
 }
 
 export interface UserFriends {
@@ -161,14 +150,10 @@ export interface UserRelation {
   updatedAt: string;
 }
 
-export interface UserProfileCurrentGame extends Omit<GameRunning, "objectId"> {
-  objectId: string;
-  sessionDurationInSeconds: number;
-  libraryHeroImageUrl: string;
-  libraryImageUrl: string;
-  logoImageUrl: string;
-  coverImageUrl: string;
-}
+export type UserProfileCurrentGame = GameRunning &
+  ShopAssets & {
+    sessionDurationInSeconds: number;
+  };
 
 export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
 
@@ -328,7 +313,7 @@ export interface CatalogueSearchPayload {
   developers: string[];
 }
 
-export interface CatalogueSearchResult {
+export type CatalogueSearchResult = {
   id: string;
   tags: string[];
   genres: string[];
@@ -339,14 +324,8 @@ export interface CatalogueSearchResult {
   title: string;
   installCount: number;
   achievementCount: number;
-  iconUrl: string;
-  coverImageUrl: string;
-  libraryHeroImageUrl: string;
-  libraryImageUrl: string;
-  logoImageUrl: string;
-  logoPosition: string | null;
   shopData: string;
-}
+} & ShopAssets;
 
 export type LibraryGame = Game &
   Partial<ShopAssets> & {
