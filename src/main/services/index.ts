@@ -12,3 +12,6 @@ export * from "./7zip";
 export * from "./game-files-manager";
 export * from "./common-redist-manager";
 export * from "./aria2";
+export * from "./ws";
+export * from "./system-path";
+export * from "./library-sync";

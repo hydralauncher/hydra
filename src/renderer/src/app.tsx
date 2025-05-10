@@ -20,7 +20,6 @@ import {
   setUserDetails,
   setProfileBackground,
   setGameRunning,
-  setFriendRequestCount,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
@@ -154,16 +153,6 @@ export function App() {
       }
     });
   }, [fetchUserDetails, t, showSuccessToast, updateUserDetails]);
-
-  useEffect(() => {
-    const unsubscribe = window.electron.onSyncFriendRequests((result) => {
-      dispatch(setFriendRequestCount(result.friendRequestCount));
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [dispatch]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {

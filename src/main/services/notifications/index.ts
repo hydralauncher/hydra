@@ -10,7 +10,7 @@ import icon from "@resources/icon.png?asset";
 import { NotificationOptions, toXmlString } from "./xml";
 import { logger } from "../logger";
 import { WindowManager } from "../window-manager";
-import type { Game, UserPreferences } from "@types";
+import type { Game, GameStats, UserPreferences, UserProfile } from "@types";
 import { db, levelKeys } from "@main/level";
 import { restartAndInstallUpdate } from "@main/events/autoupdater/restart-and-install-update";
 import { SystemPath } from "../system-path";
@@ -81,7 +81,9 @@ export const publishNotificationUpdateReadyToInstall = async (
     .show();
 };
 
-export const publishNewFriendRequestNotification = async () => {
+export const publishNewFriendRequestNotification = async (
+  user: UserProfile
+) => {
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {
@@ -97,8 +99,27 @@ export const publishNewFriendRequestNotification = async () => {
     }),
     body: t("new_friend_request_description", {
       ns: "notifications",
+      displayName: user.displayName,
     }),
-    icon: trayIcon,
+    icon: user?.profileImageUrl
+      ? await downloadImage(user.profileImageUrl)
+      : trayIcon,
+  }).show();
+};
+
+export const publishFriendStartedPlayingGameNotification = async (
+  friend: UserProfile,
+  game: GameStats
+) => {
+  new Notification({
+    title: t("friend_started_playing_game", {
+      ns: "notifications",
+      displayName: friend.displayName,
+    }),
+    body: game.assets?.title,
+    icon: friend?.profileImageUrl
+      ? await downloadImage(friend.profileImageUrl)
+      : trayIcon,
   }).show();
 };
 

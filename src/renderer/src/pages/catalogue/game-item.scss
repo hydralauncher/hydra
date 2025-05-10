@@ -25,6 +25,21 @@
     border-right: 1px solid globals.$border-color;
   }
 
+  &__cover-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: globals.$body-color;
+    width: 200px;
+    height: 103px;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.05) 50%,
+      rgba(255, 255, 255, 0.1) 100%
+    );
+  }
+
   &__details {
     display: flex;
     flex-direction: column;

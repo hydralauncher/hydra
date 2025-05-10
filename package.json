@@ -28,7 +28,8 @@
     "build:win": "electron-vite build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
-    "prepare": "husky"
+    "prepare": "husky",
+    "protoc": "npx protoc --ts_out src/main/generated --proto_path proto proto/*.proto"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.0",
@@ -74,6 +75,7 @@
     "tar": "^7.4.3",
     "tough-cookie": "^5.1.1",
     "user-agents": "^1.1.387",
+    "ws": "^8.18.1",
     "yaml": "^2.6.1",
     "yup": "^1.5.0",
     "zod": "^3.24.1"
@@ -85,6 +87,7 @@
     "@electron-toolkit/eslint-config-prettier": "^2.0.0",
     "@electron-toolkit/eslint-config-ts": "^2.0.0",
     "@electron-toolkit/tsconfig": "^1.0.1",
+    "@protobuf-ts/plugin": "^2.10.0",
     "@swc/core": "^1.4.16",
     "@types/auto-launch": "^5.0.5",
     "@types/color": "^3.0.6",
@@ -97,6 +100,7 @@
     "@types/react-dom": "^18.2.18",
     "@types/sound-play": "^1.1.3",
     "@types/user-agents": "^1.0.4",
+    "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.2.1",
     "electron": "^31.7.7",
     "electron-builder": "^26.0.12",
