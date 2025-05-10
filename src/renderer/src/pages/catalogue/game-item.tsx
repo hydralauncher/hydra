@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import "./game-item.scss";
 import { useTranslation } from "react-i18next";
 import { CatalogueSearchResult } from "@types";
+import { QuestionIcon } from "@primer/octicons-react";
 
 export interface GameItemProps {
   game: CatalogueSearchResult;
@@ -43,18 +44,32 @@ export function GameItem({ game }: GameItemProps) {
     });
   }, [game.genres, language, steamGenres]);
 
+  const libraryImage = useMemo(() => {
+    if (game.libraryImageUrl) {
+      return (
+        <img
+          className="game-item__cover"
+          src={game.libraryImageUrl}
+          alt={game.title}
+          loading="lazy"
+        />
+      );
+    }
+
+    return (
+      <div className="game-item__cover-placeholder">
+        <QuestionIcon size={28} />
+      </div>
+    );
+  }, [game.libraryImageUrl, game.title]);
+
   return (
     <button
       type="button"
       className="game-item"
       onClick={() => navigate(buildGameDetailsPath(game))}
     >
-      <img
-        className="game-item__cover"
-        src={game.libraryImageUrl}
-        alt={game.title}
-        loading="lazy"
-      />
+      {libraryImage}
 
       <div className="game-item__details">
         <span>{game.title}</span>
