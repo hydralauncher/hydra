@@ -14,104 +14,140 @@ import { MessageType } from "@protobuf-ts/runtime";
  * @generated from protobuf message FriendRequest
  */
 export interface FriendRequest {
-    /**
-     * @generated from protobuf field: int32 friend_request_count = 1;
-     */
-    friendRequestCount: number;
-    /**
-     * @generated from protobuf field: optional string sender_id = 2;
-     */
-    senderId?: string;
+  /**
+   * @generated from protobuf field: int32 friend_request_count = 1;
+   */
+  friendRequestCount: number;
+  /**
+   * @generated from protobuf field: optional string sender_id = 2;
+   */
+  senderId?: string;
 }
 /**
  * @generated from protobuf message FriendGameSession
  */
 export interface FriendGameSession {
-    /**
-     * @generated from protobuf field: string object_id = 1;
-     */
-    objectId: string;
-    /**
-     * @generated from protobuf field: string shop = 2;
-     */
-    shop: string;
-    /**
-     * @generated from protobuf field: string friend_id = 3;
-     */
-    friendId: string;
+  /**
+   * @generated from protobuf field: string object_id = 1;
+   */
+  objectId: string;
+  /**
+   * @generated from protobuf field: string shop = 2;
+   */
+  shop: string;
+  /**
+   * @generated from protobuf field: string friend_id = 3;
+   */
+  friendId: string;
 }
 /**
  * @generated from protobuf message Envelope
  */
 export interface Envelope {
-    /**
-     * @generated from protobuf oneof: payload
-     */
-    payload: {
+  /**
+   * @generated from protobuf oneof: payload
+   */
+  payload:
+    | {
         oneofKind: "friendRequest";
         /**
          * @generated from protobuf field: FriendRequest friend_request = 1;
          */
         friendRequest: FriendRequest;
-    } | {
+      }
+    | {
         oneofKind: "friendGameSession";
         /**
          * @generated from protobuf field: FriendGameSession friend_game_session = 2;
          */
         friendGameSession: FriendGameSession;
-    } | {
+      }
+    | {
         oneofKind: undefined;
-    };
+      };
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class FriendRequest$Type extends MessageType<FriendRequest> {
-    constructor() {
-        super("FriendRequest", [
-            { no: 1, name: "friend_request_count", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 2, name: "sender_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
-        ]);
+  constructor() {
+    super("FriendRequest", [
+      {
+        no: 1,
+        name: "friend_request_count",
+        kind: "scalar",
+        T: 5 /*ScalarType.INT32*/,
+      },
+      {
+        no: 2,
+        name: "sender_id",
+        kind: "scalar",
+        opt: true,
+        T: 9 /*ScalarType.STRING*/,
+      },
+    ]);
+  }
+  create(value?: PartialMessage<FriendRequest>): FriendRequest {
+    const message = globalThis.Object.create(this.messagePrototype!);
+    message.friendRequestCount = 0;
+    if (value !== undefined)
+      reflectionMergePartial<FriendRequest>(this, message, value);
+    return message;
+  }
+  internalBinaryRead(
+    reader: IBinaryReader,
+    length: number,
+    options: BinaryReadOptions,
+    target?: FriendRequest
+  ): FriendRequest {
+    let message = target ?? this.create(),
+      end = reader.pos + length;
+    while (reader.pos < end) {
+      let [fieldNo, wireType] = reader.tag();
+      switch (fieldNo) {
+        case /* int32 friend_request_count */ 1:
+          message.friendRequestCount = reader.int32();
+          break;
+        case /* optional string sender_id */ 2:
+          message.senderId = reader.string();
+          break;
+        default:
+          let u = options.readUnknownField;
+          if (u === "throw")
+            throw new globalThis.Error(
+              `Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`
+            );
+          let d = reader.skip(wireType);
+          if (u !== false)
+            (u === true ? UnknownFieldHandler.onRead : u)(
+              this.typeName,
+              message,
+              fieldNo,
+              wireType,
+              d
+            );
+      }
     }
-    create(value?: PartialMessage<FriendRequest>): FriendRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.friendRequestCount = 0;
-        if (value !== undefined)
-            reflectionMergePartial<FriendRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: FriendRequest): FriendRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* int32 friend_request_count */ 1:
-                    message.friendRequestCount = reader.int32();
-                    break;
-                case /* optional string sender_id */ 2:
-                    message.senderId = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: FriendRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* int32 friend_request_count = 1; */
-        if (message.friendRequestCount !== 0)
-            writer.tag(1, WireType.Varint).int32(message.friendRequestCount);
-        /* optional string sender_id = 2; */
-        if (message.senderId !== undefined)
-            writer.tag(2, WireType.LengthDelimited).string(message.senderId);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
+    return message;
+  }
+  internalBinaryWrite(
+    message: FriendRequest,
+    writer: IBinaryWriter,
+    options: BinaryWriteOptions
+  ): IBinaryWriter {
+    /* int32 friend_request_count = 1; */
+    if (message.friendRequestCount !== 0)
+      writer.tag(1, WireType.Varint).int32(message.friendRequestCount);
+    /* optional string sender_id = 2; */
+    if (message.senderId !== undefined)
+      writer.tag(2, WireType.LengthDelimited).string(message.senderId);
+    let u = options.writeUnknownFields;
+    if (u !== false)
+      (u == true ? UnknownFieldHandler.onWrite : u)(
+        this.typeName,
+        message,
+        writer
+      );
+    return writer;
+  }
 }
 /**
  * @generated MessageType for protobuf message FriendRequest
@@ -119,62 +155,84 @@ class FriendRequest$Type extends MessageType<FriendRequest> {
 export const FriendRequest = new FriendRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class FriendGameSession$Type extends MessageType<FriendGameSession> {
-    constructor() {
-        super("FriendGameSession", [
-            { no: 1, name: "object_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "shop", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "friend_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
+  constructor() {
+    super("FriendGameSession", [
+      { no: 1, name: "object_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+      { no: 2, name: "shop", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+      { no: 3, name: "friend_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+    ]);
+  }
+  create(value?: PartialMessage<FriendGameSession>): FriendGameSession {
+    const message = globalThis.Object.create(this.messagePrototype!);
+    message.objectId = "";
+    message.shop = "";
+    message.friendId = "";
+    if (value !== undefined)
+      reflectionMergePartial<FriendGameSession>(this, message, value);
+    return message;
+  }
+  internalBinaryRead(
+    reader: IBinaryReader,
+    length: number,
+    options: BinaryReadOptions,
+    target?: FriendGameSession
+  ): FriendGameSession {
+    let message = target ?? this.create(),
+      end = reader.pos + length;
+    while (reader.pos < end) {
+      let [fieldNo, wireType] = reader.tag();
+      switch (fieldNo) {
+        case /* string object_id */ 1:
+          message.objectId = reader.string();
+          break;
+        case /* string shop */ 2:
+          message.shop = reader.string();
+          break;
+        case /* string friend_id */ 3:
+          message.friendId = reader.string();
+          break;
+        default:
+          let u = options.readUnknownField;
+          if (u === "throw")
+            throw new globalThis.Error(
+              `Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`
+            );
+          let d = reader.skip(wireType);
+          if (u !== false)
+            (u === true ? UnknownFieldHandler.onRead : u)(
+              this.typeName,
+              message,
+              fieldNo,
+              wireType,
+              d
+            );
+      }
     }
-    create(value?: PartialMessage<FriendGameSession>): FriendGameSession {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.objectId = "";
-        message.shop = "";
-        message.friendId = "";
-        if (value !== undefined)
-            reflectionMergePartial<FriendGameSession>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: FriendGameSession): FriendGameSession {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string object_id */ 1:
-                    message.objectId = reader.string();
-                    break;
-                case /* string shop */ 2:
-                    message.shop = reader.string();
-                    break;
-                case /* string friend_id */ 3:
-                    message.friendId = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: FriendGameSession, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string object_id = 1; */
-        if (message.objectId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.objectId);
-        /* string shop = 2; */
-        if (message.shop !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.shop);
-        /* string friend_id = 3; */
-        if (message.friendId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.friendId);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
+    return message;
+  }
+  internalBinaryWrite(
+    message: FriendGameSession,
+    writer: IBinaryWriter,
+    options: BinaryWriteOptions
+  ): IBinaryWriter {
+    /* string object_id = 1; */
+    if (message.objectId !== "")
+      writer.tag(1, WireType.LengthDelimited).string(message.objectId);
+    /* string shop = 2; */
+    if (message.shop !== "")
+      writer.tag(2, WireType.LengthDelimited).string(message.shop);
+    /* string friend_id = 3; */
+    if (message.friendId !== "")
+      writer.tag(3, WireType.LengthDelimited).string(message.friendId);
+    let u = options.writeUnknownFields;
+    if (u !== false)
+      (u == true ? UnknownFieldHandler.onWrite : u)(
+        this.typeName,
+        message,
+        writer
+      );
+    return writer;
+  }
 }
 /**
  * @generated MessageType for protobuf message FriendGameSession
@@ -182,59 +240,111 @@ class FriendGameSession$Type extends MessageType<FriendGameSession> {
 export const FriendGameSession = new FriendGameSession$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class Envelope$Type extends MessageType<Envelope> {
-    constructor() {
-        super("Envelope", [
-            { no: 1, name: "friend_request", kind: "message", oneof: "payload", T: () => FriendRequest },
-            { no: 2, name: "friend_game_session", kind: "message", oneof: "payload", T: () => FriendGameSession }
-        ]);
+  constructor() {
+    super("Envelope", [
+      {
+        no: 1,
+        name: "friend_request",
+        kind: "message",
+        oneof: "payload",
+        T: () => FriendRequest,
+      },
+      {
+        no: 2,
+        name: "friend_game_session",
+        kind: "message",
+        oneof: "payload",
+        T: () => FriendGameSession,
+      },
+    ]);
+  }
+  create(value?: PartialMessage<Envelope>): Envelope {
+    const message = globalThis.Object.create(this.messagePrototype!);
+    message.payload = { oneofKind: undefined };
+    if (value !== undefined)
+      reflectionMergePartial<Envelope>(this, message, value);
+    return message;
+  }
+  internalBinaryRead(
+    reader: IBinaryReader,
+    length: number,
+    options: BinaryReadOptions,
+    target?: Envelope
+  ): Envelope {
+    let message = target ?? this.create(),
+      end = reader.pos + length;
+    while (reader.pos < end) {
+      let [fieldNo, wireType] = reader.tag();
+      switch (fieldNo) {
+        case /* FriendRequest friend_request */ 1:
+          message.payload = {
+            oneofKind: "friendRequest",
+            friendRequest: FriendRequest.internalBinaryRead(
+              reader,
+              reader.uint32(),
+              options,
+              (message.payload as any).friendRequest
+            ),
+          };
+          break;
+        case /* FriendGameSession friend_game_session */ 2:
+          message.payload = {
+            oneofKind: "friendGameSession",
+            friendGameSession: FriendGameSession.internalBinaryRead(
+              reader,
+              reader.uint32(),
+              options,
+              (message.payload as any).friendGameSession
+            ),
+          };
+          break;
+        default:
+          let u = options.readUnknownField;
+          if (u === "throw")
+            throw new globalThis.Error(
+              `Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`
+            );
+          let d = reader.skip(wireType);
+          if (u !== false)
+            (u === true ? UnknownFieldHandler.onRead : u)(
+              this.typeName,
+              message,
+              fieldNo,
+              wireType,
+              d
+            );
+      }
     }
-    create(value?: PartialMessage<Envelope>): Envelope {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.payload = { oneofKind: undefined };
-        if (value !== undefined)
-            reflectionMergePartial<Envelope>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: Envelope): Envelope {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* FriendRequest friend_request */ 1:
-                    message.payload = {
-                        oneofKind: "friendRequest",
-                        friendRequest: FriendRequest.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).friendRequest)
-                    };
-                    break;
-                case /* FriendGameSession friend_game_session */ 2:
-                    message.payload = {
-                        oneofKind: "friendGameSession",
-                        friendGameSession: FriendGameSession.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).friendGameSession)
-                    };
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: Envelope, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* FriendRequest friend_request = 1; */
-        if (message.payload.oneofKind === "friendRequest")
-            FriendRequest.internalBinaryWrite(message.payload.friendRequest, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* FriendGameSession friend_game_session = 2; */
-        if (message.payload.oneofKind === "friendGameSession")
-            FriendGameSession.internalBinaryWrite(message.payload.friendGameSession, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
+    return message;
+  }
+  internalBinaryWrite(
+    message: Envelope,
+    writer: IBinaryWriter,
+    options: BinaryWriteOptions
+  ): IBinaryWriter {
+    /* FriendRequest friend_request = 1; */
+    if (message.payload.oneofKind === "friendRequest")
+      FriendRequest.internalBinaryWrite(
+        message.payload.friendRequest,
+        writer.tag(1, WireType.LengthDelimited).fork(),
+        options
+      ).join();
+    /* FriendGameSession friend_game_session = 2; */
+    if (message.payload.oneofKind === "friendGameSession")
+      FriendGameSession.internalBinaryWrite(
+        message.payload.friendGameSession,
+        writer.tag(2, WireType.LengthDelimited).fork(),
+        options
+      ).join();
+    let u = options.writeUnknownFields;
+    if (u !== false)
+      (u == true ? UnknownFieldHandler.onWrite : u)(
+        this.typeName,
+        message,
+        writer
+      );
+    return writer;
+  }
 }
 /**
  * @generated MessageType for protobuf message Envelope
