@@ -1,15 +1,15 @@
 import { Badge } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { useAppSelector, useRepacks } from "@renderer/hooks";
-import { steamUrlBuilder } from "@shared";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 import "./game-item.scss";
 import { useTranslation } from "react-i18next";
+import { CatalogueSearchResult } from "@types";
 
 export interface GameItemProps {
-  game: any;
+  game: CatalogueSearchResult;
 }
 
 export function GameItem({ game }: GameItemProps) {
@@ -51,7 +51,7 @@ export function GameItem({ game }: GameItemProps) {
     >
       <img
         className="game-item__cover"
-        src={steamUrlBuilder.library(game.objectId)}
+        src={game.libraryImageUrl}
         alt={game.title}
         loading="lazy"
       />
