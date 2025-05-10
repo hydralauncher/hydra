@@ -23,6 +23,8 @@ import { sortBy } from "lodash-es";
 import cn from "classnames";
 import { CommentDiscussionIcon } from "@primer/octicons-react";
 import { SidebarGameItem } from "./sidebar-game-item";
+import { setFriendRequestCount } from "@renderer/features/user-details-slice";
+import { useDispatch } from "react-redux";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -32,6 +34,8 @@ const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 
 export function Sidebar() {
   const filterRef = useRef<HTMLInputElement>(null);
+
+  const dispatch = useDispatch();
 
   const { t } = useTranslation("sidebar");
   const { library, updateLibrary } = useLibrary();
@@ -59,6 +63,16 @@ export function Sidebar() {
   useEffect(() => {
     updateLibrary();
   }, [lastPacket?.gameId, updateLibrary]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onSyncFriendRequests((result) => {
+      dispatch(setFriendRequestCount(result.friendRequestCount));
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [dispatch]);
 
   const sidebarRef = useRef<HTMLElement>(null);
 

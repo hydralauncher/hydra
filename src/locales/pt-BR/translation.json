@@ -356,9 +356,10 @@
     "new_update_available": "Versão {{version}} disponível",
     "restart_to_install_update": "Reinicie o Hydra para instalar a nova versão",
     "new_friend_request_title": "Novo pedido de amizade",
-    "new_friend_request_description": "Você recebeu um novo pedido de amizade",
+    "new_friend_request_description": "{{displayName}} te enviou um pedido de amizade",
     "extraction_complete": "Extração concluída",
-    "game_extracted": "{{title}} extraído com sucesso"
+    "game_extracted": "{{title}} extraído com sucesso",
+    "friend_started_playing_game": "{{displayName}} começou a jogar"
   },
   "system_tray": {
     "open": "Abrir Hydra",

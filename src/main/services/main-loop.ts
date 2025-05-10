@@ -3,7 +3,6 @@ import { DownloadManager } from "./download";
 import { watchProcesses } from "./process-watcher";
 import { AchievementWatcherManager } from "./achievements/achievement-watcher-manager";
 import { UpdateManager } from "./update-manager";
-import { watchFriendRequests } from "@main/events/profile/sync-friend-requests";
 import { MAIN_LOOP_INTERVAL } from "@main/constants";
 
 export const startMainLoop = async () => {
@@ -11,7 +10,6 @@ export const startMainLoop = async () => {
   while (true) {
     await Promise.allSettled([
       watchProcesses(),
-      watchFriendRequests(),
       DownloadManager.watchDownloads(),
       AchievementWatcherManager.watchAchievements(),
       DownloadManager.getSeedStatus(),

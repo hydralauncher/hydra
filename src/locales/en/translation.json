@@ -370,10 +370,11 @@
     "restart_to_install_update": "Restart Hydra to install the update",
     "notification_achievement_unlocked_title": "Achievement unlocked for {{game}}",
     "notification_achievement_unlocked_body": "{{achievement}} and other {{count}} were unlocked",
-    "new_friend_request_description": "You have received a new friend request",
+    "new_friend_request_description": "{{displayName}} sent you a friend request",
     "new_friend_request_title": "New friend request",
     "extraction_complete": "Extraction complete",
-    "game_extracted": "{{title}} extracted successfully"
+    "game_extracted": "{{title}} extracted successfully",
+    "friend_started_playing_game": "{{displayName}} started playing a game"
   },
   "system_tray": {
     "open": "Open Hydra",

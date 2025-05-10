@@ -1,15 +1,21 @@
-import { Aria2, DownloadManager, Ludusavi, startMainLoop } from "./services";
-import { RealDebridClient } from "./services/download/real-debrid";
-import { HydraApi } from "./services/hydra-api";
-import { uploadGamesBatch } from "./services/library-sync";
 import { downloadsSublevel } from "./level/sublevels/downloads";
 import { sortBy } from "lodash-es";
 import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
 import type { UserPreferences } from "@types";
-import { TorBoxClient } from "./services/download/torbox";
-import { CommonRedistManager } from "./services/common-redist-manager";
-import { SystemPath } from "./services/system-path";
+import {
+  WSClient,
+  SystemPath,
+  CommonRedistManager,
+  TorBoxClient,
+  RealDebridClient,
+  Aria2,
+  DownloadManager,
+  Ludusavi,
+  HydraApi,
+  uploadGamesBatch,
+  startMainLoop,
+} from "@main/services";
 
 export const loadState = async () => {
   SystemPath.checkIfPathsAreAvailable();
@@ -37,6 +43,7 @@ export const loadState = async () => {
 
   await HydraApi.setupApi().then(() => {
     uploadGamesBatch();
+    WSClient.connect();
   });
 
   const downloads = await downloadsSublevel
