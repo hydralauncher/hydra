@@ -1,6 +1,5 @@
 import { setHeaderTitle } from "@renderer/features";
 import { useAppDispatch, useUserDetails } from "@renderer/hooks";
-import { steamUrlBuilder } from "@shared";
 import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -120,8 +119,15 @@ export function AchievementsContent({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isHeaderStuck, setIsHeaderStuck] = useState(false);
 
-  const { gameTitle, objectId, shop, achievements, gameColor, setGameColor } =
-    useContext(gameDetailsContext);
+  const {
+    gameTitle,
+    objectId,
+    shop,
+    shopDetails,
+    achievements,
+    gameColor,
+    setGameColor,
+  } = useContext(gameDetailsContext);
 
   const dispatch = useAppDispatch();
 
@@ -131,10 +137,13 @@ export function AchievementsContent({
   }, [dispatch, gameTitle]);
 
   const handleHeroLoad = async () => {
-    const output = await average(steamUrlBuilder.libraryHero(objectId!), {
-      amount: 1,
-      format: "hex",
-    });
+    const output = await average(
+      shopDetails?.assets?.libraryHeroImageUrl ?? "",
+      {
+        amount: 1,
+        format: "hex",
+      }
+    );
 
     const backgroundColor = output
       ? (new Color(output).darken(0.7).toString() as string)
@@ -179,7 +188,7 @@ export function AchievementsContent({
   return (
     <div className="achievements-content__achievements-list">
       <img
-        src={steamUrlBuilder.libraryHero(objectId)}
+        src={shopDetails?.assets?.libraryHeroImageUrl ?? ""}
         className="achievements-content__achievements-list__image"
         alt={gameTitle}
         onLoad={handleHeroLoad}
@@ -205,7 +214,7 @@ export function AchievementsContent({
                 to={buildGameDetailsPath({ shop, objectId, title: gameTitle })}
               >
                 <img
-                  src={steamUrlBuilder.logo(objectId)}
+                  src={shopDetails?.assets?.logoImageUrl ?? ""}
                   className="achievements-content__achievements-list__section__container__hero__content__game-logo"
                   alt={gameTitle}
                 />
