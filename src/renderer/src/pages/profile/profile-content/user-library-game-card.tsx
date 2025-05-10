@@ -12,7 +12,6 @@ import { userProfileContext } from "@renderer/context";
 import { ClockIcon, TrophyIcon } from "@primer/octicons-react";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { useTranslation } from "react-i18next";
-import { steamUrlBuilder } from "@shared";
 import "./user-library-game-card.scss";
 
 interface UserLibraryGameCardProps {
@@ -150,7 +149,7 @@ export function UserLibraryGameCard({
         </div>
 
         <img
-          src={steamUrlBuilder.cover(game.objectId)}
+          src={game.coverImageUrl}
           alt={game.title}
           className="user-library-game__game-image"
         />

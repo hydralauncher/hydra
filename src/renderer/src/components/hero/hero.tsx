@@ -33,29 +33,27 @@ export function Hero() {
   }
 
   if (featuredGameDetails?.length) {
-    return featuredGameDetails.map((game, index) => (
+    return featuredGameDetails.map((game) => (
       <button
         type="button"
         onClick={() => navigate(game.uri)}
         className="hero"
-        key={index}
+        key={game.uri}
       >
         <div className="hero__backdrop">
           <img
-            src={game.background}
-            alt={game.description}
+            src={game.libraryHeroImageUrl}
+            alt={game.description ?? ""}
             className="hero__media"
           />
 
           <div className="hero__content">
-            {game.logo && (
-              <img
-                src={game.logo}
-                width="250px"
-                alt={game.description}
-                loading="eager"
-              />
-            )}
+            <img
+              src={game.logoImageUrl}
+              width="250px"
+              alt={game.description ?? ""}
+              loading="eager"
+            />
             <p className="hero__description">{game.description}</p>
           </div>
         </div>

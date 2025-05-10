@@ -9,7 +9,7 @@ import {
   formatDownloadProgress,
 } from "@renderer/helpers";
 
-import { Downloader, formatBytes, steamUrlBuilder } from "@shared";
+import { Downloader, formatBytes } from "@shared";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
 
@@ -319,7 +319,7 @@ export function DownloadGroup({
               <div className="download-group__cover">
                 <div className="download-group__cover-backdrop">
                   <img
-                    src={steamUrlBuilder.library(game.objectId)}
+                    src={game.libraryImageUrl ?? ""}
                     className="download-group__cover-image"
                     alt={game.title}
                   />

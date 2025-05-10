@@ -17,6 +17,7 @@ import type {
   Theme,
   FriendRequestSync,
   ShortcutLocation,
+  ShopAssets,
 } from "@types";
 import type { AuthPage, CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -64,6 +65,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("searchGames", payload, take, skip),
   getCatalogue: (category: CatalogueCategory) =>
     ipcRenderer.invoke("getCatalogue", category),
+  saveGameShopAssets: (objectId: string, shop: GameShop, assets: ShopAssets) =>
+    ipcRenderer.invoke("saveGameShopAssets", objectId, shop, assets),
   getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
     ipcRenderer.invoke("getGameShopDetails", objectId, shop, language),
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),

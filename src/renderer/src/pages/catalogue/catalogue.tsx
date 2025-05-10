@@ -1,4 +1,4 @@
-import type { DownloadSource } from "@types";
+import type { CatalogueSearchResult, DownloadSource } from "@types";
 
 import {
   useAppDispatch,
@@ -44,7 +44,7 @@ export default function Catalogue() {
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<CatalogueSearchResult[]>([]);
 
   const [itemsCount, setItemsCount] = useState(0);
 
