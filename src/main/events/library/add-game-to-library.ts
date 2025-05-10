@@ -1,12 +1,13 @@
 import { registerEvent } from "../register-event";
-
 import type { GameShop } from "@types";
-
-import { steamGamesWorker } from "@main/workers";
 import { createGame } from "@main/services/library-sync";
-import { steamUrlBuilder } from "@shared";
 import { updateLocalUnlockedAchievements } from "@main/services/achievements/update-local-unlocked-achivements";
-import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import {
+  downloadsSublevel,
+  gamesShopAssetsSublevel,
+  gamesSublevel,
+  levelKeys,
+} from "@main/level";
 
 const addGameToLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -17,6 +18,8 @@ const addGameToLibrary = async (
   const gameKey = levelKeys.game(shop, objectId);
   let game = await gamesSublevel.get(gameKey);
 
+  const gameAssets = await gamesShopAssetsSublevel.get(gameKey);
+
   if (game) {
     await downloadsSublevel.del(gameKey);
 
@@ -24,17 +27,9 @@ const addGameToLibrary = async (
 
     await gamesSublevel.put(gameKey, game);
   } else {
-    const steamGame = await steamGamesWorker.run(Number(objectId), {
-      name: "getById",
-    });
-
-    const iconUrl = steamGame?.clientIcon
-      ? steamUrlBuilder.icon(objectId, steamGame.clientIcon)
-      : null;
-
     game = {
       title,
-      iconUrl,
+      iconUrl: gameAssets?.iconUrl ?? null,
       objectId,
       shop,
       remoteId: null,
