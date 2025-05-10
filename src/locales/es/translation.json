@@ -371,7 +371,8 @@
     "notification_achievement_unlocked_title": "Logro desbloqueado de {{game}}",
     "notification_achievement_unlocked_body": "{{achievement}} y otros {{count}} fueron desbloqueados",
     "new_friend_request_title": "Nueva solicitud de amistad",
-    "new_friend_request_description": "Has recibido una nueva solicitud de amistad"
+    "new_friend_request_description": "{{displayName}} te envió una solicitud de amistad",
+    "friend_started_playing_game": "{{displayName}} está jugando"
   },
   "system_tray": {
     "open": "Abrir Hydra",
