@@ -147,12 +147,16 @@ export function GameOptionsModal({
     });
 
     if (filePaths && filePaths.length > 0) {
-      await window.electron.selectGameWinePrefix(
-        game.shop,
-        game.objectId,
-        filePaths[0]
-      );
-      await updateGame();
+      try {
+        await window.electron.selectGameWinePrefix(
+          game.shop,
+          game.objectId,
+          filePaths[0]
+        );
+        await updateGame();
+      } catch (error) {
+        showErrorToast(t("invalid_wine_prefix_path"));
+      }
     }
   };
 

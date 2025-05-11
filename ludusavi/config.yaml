@@ -1,0 +1,6 @@
+manifest:
+  enable: false
+  secondary:
+    - url: https://cdn.losbroxas.org/manifest.yaml
+      enable: true
+customGames: []

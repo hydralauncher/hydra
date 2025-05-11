@@ -160,7 +160,6 @@ export function GameDetailsContextProvider({
 
             setShopDetails((prev) => {
               if (!prev) return null;
-              console.log("assets", assets);
               return {
                 ...prev,
                 assets,

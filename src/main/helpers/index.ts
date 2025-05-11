@@ -32,3 +32,5 @@ export const isPortableVersion = () => {
 
 export const normalizePath = (str: string) =>
   path.posix.normalize(str).replace(/\\/g, "/");
+
+export * from "./reg-parser";
