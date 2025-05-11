@@ -15,3 +15,4 @@ export * from "./aria2";
 export * from "./ws";
 export * from "./system-path";
 export * from "./library-sync";
+export * from "./wine";

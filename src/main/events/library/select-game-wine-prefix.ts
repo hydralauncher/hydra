@@ -1,5 +1,6 @@
 import { registerEvent } from "../register-event";
 import { levelKeys, gamesSublevel } from "@main/level";
+import { Wine } from "@main/services";
 import type { GameShop } from "@types";
 
 const selectGameWinePrefix = async (
@@ -8,6 +9,10 @@ const selectGameWinePrefix = async (
   objectId: string,
   winePrefixPath: string | null
 ) => {
+  if (winePrefixPath && !Wine.validatePrefix(winePrefixPath)) {
+    throw new Error("Invalid wine prefix path");
+  }
+
   const gameKey = levelKeys.game(shop, objectId);
 
   const game = await gamesSublevel.get(gameKey);

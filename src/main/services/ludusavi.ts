@@ -1,70 +1,83 @@
 import type { GameShop, LudusaviBackup, LudusaviConfig } from "@types";
-import Piscina from "piscina";
 
 import { app } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import YAML from "yaml";
-
-import ludusaviWorkerPath from "../workers/ludusavi.worker?modulePath";
-import { LUDUSAVI_MANIFEST_URL } from "@main/constants";
+import cp from "node:child_process";
 import { SystemPath } from "./system-path";
 
 export class Ludusavi {
-  private static ludusaviPath = path.join(
-    SystemPath.getPath("appData"),
-    "ludusavi"
-  );
-  private static ludusaviConfigPath = path.join(
-    this.ludusaviPath,
+  private static ludusaviPath = app.isPackaged
+    ? path.join(process.resourcesPath, "ludusavi")
+    : path.join(__dirname, "..", "..", "ludusavi");
+
+  private static binaryPath = path.join(this.ludusaviPath, "ludusavi");
+  private static configPath = path.join(
+    SystemPath.getPath("userData"),
     "config.yaml"
   );
-  private static binaryPath = app.isPackaged
-    ? path.join(process.resourcesPath, "ludusavi", "ludusavi")
-    : path.join(__dirname, "..", "..", "ludusavi", "ludusavi");
 
-  private static worker = new Piscina({
-    filename: ludusaviWorkerPath,
-    workerData: {
-      binaryPath: this.binaryPath,
-    },
-    maxThreads: 1,
-  });
-
-  static async getConfig() {
-    if (!fs.existsSync(this.ludusaviConfigPath)) {
-      await this.worker.run(undefined, { name: "generateConfig" });
-    }
-
+  public static async getConfig() {
     const config = YAML.parse(
-      fs.readFileSync(this.ludusaviConfigPath, "utf-8")
+      fs.readFileSync(this.configPath, "utf-8")
     ) as LudusaviConfig;
 
     return config;
   }
 
-  static async backupGame(
-    _shop: GameShop,
-    objectId: string,
-    backupPath: string,
-    winePrefix?: string | null
-  ): Promise<LudusaviBackup> {
-    return this.worker.run(
-      { title: objectId, backupPath, winePrefix },
-      { name: "backupGame" }
-    );
+  public static async copyConfigFileToUserData() {
+    fs.cpSync(path.join(this.ludusaviPath, "config.yaml"), this.configPath);
   }
 
-  static async getBackupPreview(
+  public static async backupGame(
+    _shop: GameShop,
+    objectId: string,
+    backupPath?: string | null,
+    winePrefix?: string | null,
+    preview?: boolean
+  ): Promise<LudusaviBackup> {
+    return new Promise((resolve, reject) => {
+      const args = [
+        "--config",
+        this.ludusaviPath,
+        "backup",
+        objectId,
+        "--api",
+        "--force",
+      ];
+
+      if (preview) args.push("--preview");
+      if (backupPath) args.push("--path", backupPath);
+      if (winePrefix) args.push("--wine-prefix", winePrefix);
+
+      cp.execFile(
+        this.binaryPath,
+        args,
+        (err: cp.ExecFileException | null, stdout: string) => {
+          if (err) {
+            return reject(err);
+          }
+
+          return resolve(JSON.parse(stdout) as LudusaviBackup);
+        }
+      );
+    });
+  }
+
+  public static async getBackupPreview(
     _shop: GameShop,
     objectId: string,
     winePrefix?: string | null
   ): Promise<LudusaviBackup | null> {
     const config = await this.getConfig();
 
-    const backupData = await this.worker.run(
-      { title: objectId, winePrefix, preview: true },
-      { name: "backupGame" }
+    const backupData = await this.backupGame(
+      _shop,
+      objectId,
+      null,
+      winePrefix,
+      true
     );
 
     const customGame = config.customGames.find(
@@ -75,19 +88,6 @@ export class Ludusavi {
       ...backupData,
       customBackupPath: customGame?.files[0] || null,
     };
-  }
-
-  static async restoreBackup(backupPath: string) {
-    return this.worker.run(backupPath, { name: "restoreBackup" });
-  }
-
-  static async addManifestToLudusaviConfig() {
-    const config = await this.getConfig();
-
-    config.manifest.enable = false;
-    config.manifest.secondary = [{ url: LUDUSAVI_MANIFEST_URL, enable: true }];
-
-    fs.writeFileSync(this.ludusaviConfigPath, YAML.stringify(config));
   }
 
   static async addCustomGame(title: string, savePath: string | null) {
@@ -105,6 +105,10 @@ export class Ludusavi {
     }
 
     config.customGames = filteredGames;
-    fs.writeFileSync(this.ludusaviConfigPath, YAML.stringify(config));
+
+    fs.writeFileSync(
+      path.join(this.ludusaviPath, "config.yaml"),
+      YAML.stringify(config)
+    );
   }
 }

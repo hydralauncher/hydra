@@ -11,10 +11,10 @@ import {
   RealDebridClient,
   Aria2,
   DownloadManager,
-  Ludusavi,
   HydraApi,
   uploadGamesBatch,
   startMainLoop,
+  Ludusavi,
 } from "@main/services";
 
 export const loadState = async () => {
@@ -39,7 +39,7 @@ export const loadState = async () => {
     TorBoxClient.authorize(userPreferences.torBoxApiToken);
   }
 
-  Ludusavi.addManifestToLudusaviConfig();
+  Ludusavi.copyConfigFileToUserData();
 
   await HydraApi.setupApi().then(() => {
     uploadGamesBatch();
