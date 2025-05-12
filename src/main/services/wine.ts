@@ -14,8 +14,15 @@ export class Wine {
     for (const file of requiredFiles) {
       const filePath = path.join(winePrefixPath, file.name);
 
-      if (file.type === "file") return !fs.existsSync(filePath);
-      if (file.type === "dir") return !fs.lstatSync(filePath).isDirectory();
+      if (file.type === "file" && !fs.existsSync(filePath)) {
+        return false;
+      }
+
+      if (file.type === "dir") {
+        if (!fs.existsSync(filePath) || !fs.lstatSync(filePath).isDirectory()) {
+          return false;
+        }
+      }
     }
 
     return true;
