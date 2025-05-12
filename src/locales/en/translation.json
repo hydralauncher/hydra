@@ -199,7 +199,10 @@
     "game_removed_from_favorites": "Game removed from favorites",
     "game_added_to_favorites": "Game added to favorites",
     "automatically_extract_downloaded_files": "Automatically extract downloaded files",
-    "create_start_menu_shortcut": "Create Start Menu shortcut"
+    "create_start_menu_shortcut": "Create Start Menu shortcut",
+    "invalid_wine_prefix_path": "Invalid Wine prefix path",
+    "invalid_wine_prefix_path_description": "The path to the Wine prefix is invalid. Please check the path and try again.",
+    "missing_wine_prefix": "Wine prefix is required to create a backup on Linux"
   },
   "activation": {
     "title": "Activate Hydra",
