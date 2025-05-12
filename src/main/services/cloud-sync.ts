@@ -41,7 +41,7 @@ export class CloudSync {
       const userProfile = String(values["USERPROFILE"]);
 
       if (userProfile) {
-        return normalizePath(userProfile.replace("C:", "drive_c"));
+        return normalizePath(userProfile);
       } else {
         throw new Error("User profile not found in user.reg");
       }
