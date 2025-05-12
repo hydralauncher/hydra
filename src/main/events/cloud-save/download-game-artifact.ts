@@ -23,7 +23,8 @@ const restoreLudusaviBackup = (
   backupPath: string,
   title: string,
   homeDir: string,
-  winePrefixPath?: string | null
+  winePrefixPath?: string | null,
+  artifactWinePrefixPath?: string | null
 ) => {
   const gameBackupPath = path.join(backupPath, title);
   const mappingYamlPath = path.join(gameBackupPath, "mapping.yaml");
@@ -52,7 +53,7 @@ const restoreLudusaviBackup = (
 
       const destinationPath = transformLudusaviBackupPathIntoWindowsPath(
         key,
-        null
+        artifactWinePrefixPath
       )
         .replace(homeDir, userProfilePath)
         .replace("C:/Users/Public", publicProfilePath);
@@ -79,10 +80,16 @@ const downloadGameArtifact = async (
   try {
     const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
 
-    const { downloadUrl, objectKey, homeDir } = await HydraApi.post<{
+    const {
+      downloadUrl,
+      objectKey,
+      homeDir,
+      winePrefixPath: artifactWinePrefixPath,
+    } = await HydraApi.post<{
       downloadUrl: string;
       objectKey: string;
       homeDir: string;
+      winePrefixPath: string | null;
     }>(`/profile/games/artifacts/${gameArtifactId}/download`);
 
     const zipLocation = path.join(SystemPath.getPath("userData"), objectKey);
@@ -126,7 +133,8 @@ const downloadGameArtifact = async (
         backupPath,
         objectId,
         normalizePath(homeDir),
-        game?.winePrefixPath
+        game?.winePrefixPath,
+        artifactWinePrefixPath
       );
 
       WindowManager.mainWindow?.webContents.send(

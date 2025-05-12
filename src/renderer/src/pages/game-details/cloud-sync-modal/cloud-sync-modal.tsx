@@ -43,7 +43,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     getGameBackupPreview,
   } = useContext(cloudSyncContext);
 
-  const { objectId, shop, gameTitle, lastDownloadedOption } =
+  const { objectId, shop, gameTitle, game, lastDownloadedOption } =
     useContext(gameDetailsContext);
 
   const { showSuccessToast, showErrorToast } = useToast();
@@ -148,6 +148,8 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
   ]);
 
   const disableActions = uploadingBackup || restoringBackup || deletingArtifact;
+  const isMissingWinePrefix =
+    window.electron.platform === "linux" && !game?.winePrefixPath;
 
   return (
     <Modal
@@ -175,10 +177,13 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
         <Button
           type="button"
           onClick={() => uploadSaveGame(lastDownloadedOption?.title ?? null)}
+          tooltip={isMissingWinePrefix ? t("missing_wine_prefix") : undefined}
+          tooltipPlace="left"
           disabled={
             disableActions ||
             !backupPreview?.overall.totalGames ||
-            artifacts.length >= backupsPerGameLimit
+            artifacts.length >= backupsPerGameLimit ||
+            isMissingWinePrefix
           }
         >
           {uploadingBackup ? (

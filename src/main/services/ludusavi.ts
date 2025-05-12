@@ -15,19 +15,25 @@ export class Ludusavi {
   private static binaryPath = path.join(this.ludusaviPath, "ludusavi");
   private static configPath = path.join(
     SystemPath.getPath("userData"),
-    "config.yaml"
+    "ludusavi"
   );
 
   public static async getConfig() {
     const config = YAML.parse(
-      fs.readFileSync(this.configPath, "utf-8")
+      fs.readFileSync(path.join(this.ludusaviPath, "config.yaml"), "utf-8")
     ) as LudusaviConfig;
 
     return config;
   }
 
   public static async copyConfigFileToUserData() {
-    fs.cpSync(path.join(this.ludusaviPath, "config.yaml"), this.configPath);
+    if (!fs.existsSync(this.configPath)) {
+      fs.mkdirSync(this.configPath, { recursive: true });
+      fs.cpSync(
+        path.join(this.ludusaviPath, "config.yaml"),
+        path.join(this.configPath, "config.yaml")
+      );
+    }
   }
 
   public static async backupGame(
@@ -40,7 +46,7 @@ export class Ludusavi {
     return new Promise((resolve, reject) => {
       const args = [
         "--config",
-        this.ludusaviPath,
+        this.configPath,
         "backup",
         objectId,
         "--api",
@@ -106,6 +112,9 @@ export class Ludusavi {
 
     config.customGames = filteredGames;
 
-    fs.writeFileSync(this.configPath, YAML.stringify(config));
+    fs.writeFileSync(
+      path.join(this.configPath, "config.yaml"),
+      YAML.stringify(config)
+    );
   }
 }

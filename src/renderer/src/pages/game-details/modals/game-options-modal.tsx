@@ -144,6 +144,7 @@ export function GameOptionsModal({
   const handleChangeWinePrefixPath = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
       properties: ["openDirectory"],
+      defaultPath: await window.electron.getDefaultWinePrefixSelectionPath(),
     });
 
     if (filePaths && filePaths.length > 0) {
@@ -155,7 +156,10 @@ export function GameOptionsModal({
         );
         await updateGame();
       } catch (error) {
-        showErrorToast(t("invalid_wine_prefix_path"));
+        showErrorToast(
+          t("invalid_wine_prefix_path"),
+          t("invalid_wine_prefix_path_description")
+        );
       }
     }
   };
