@@ -14,6 +14,8 @@ export const windowsStartMenuPath = path.join(
   "Programs"
 );
 
+export const publicProfilePath = "C:/Users/Public";
+
 export const levelDatabasePath = path.join(
   SystemPath.getPath("userData"),
   `hydra-db${isStaging ? "-staging" : ""}`

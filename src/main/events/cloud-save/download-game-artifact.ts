@@ -4,7 +4,7 @@ import * as tar from "tar";
 import { registerEvent } from "../register-event";
 import axios from "axios";
 import path from "node:path";
-import { backupsPath } from "@main/constants";
+import { backupsPath, publicProfilePath } from "@main/constants";
 import type { GameShop, LudusaviBackupMapping } from "@types";
 
 import YAML from "yaml";
@@ -19,6 +19,17 @@ export const transformLudusaviBackupPathIntoWindowsPath = (
   return backupPath
     .replace(winePrefixPath ? addTrailingSlash(winePrefixPath) : "", "")
     .replace("drive_c", "C:");
+};
+
+export const addWinePrefixToWindowsPath = (
+  windowsPath: string,
+  winePrefixPath?: string | null
+) => {
+  if (!winePrefixPath) {
+    return windowsPath;
+  }
+
+  return path.join(winePrefixPath, windowsPath.replace("C:", "drive_c"));
 };
 
 const restoreLudusaviBackup = (
@@ -56,7 +67,15 @@ const restoreLudusaviBackup = (
       const destinationPath = transformLudusaviBackupPathIntoWindowsPath(
         key,
         artifactWinePrefixPath
-      ).replace(homeDir, userProfilePath);
+      )
+        .replace(
+          homeDir,
+          addWinePrefixToWindowsPath(userProfilePath, winePrefixPath)
+        )
+        .replace(
+          publicProfilePath,
+          addWinePrefixToWindowsPath(publicProfilePath, winePrefixPath)
+        );
 
       logger.info(`Moving ${sourcePath} to ${destinationPath}`);
 
