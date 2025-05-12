@@ -99,4 +99,4 @@ jobs:
             dist/*.yml
             dist/*.blockmap
             dist/*.pacman
-            dist/*.appimage
+            dist/*.AppImage
