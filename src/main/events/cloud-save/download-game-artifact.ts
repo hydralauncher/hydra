@@ -8,7 +8,7 @@ import { backupsPath } from "@main/constants";
 import type { GameShop, LudusaviBackupMapping } from "@types";
 
 import YAML from "yaml";
-import { normalizePath } from "@main/helpers";
+import { addTrailingSlash, normalizePath } from "@main/helpers";
 import { SystemPath } from "@main/services/system-path";
 import { gamesSublevel, levelKeys } from "@main/level";
 
@@ -16,7 +16,9 @@ export const transformLudusaviBackupPathIntoWindowsPath = (
   backupPath: string,
   winePrefixPath?: string | null
 ) => {
-  return backupPath.replace(winePrefixPath ?? "", "").replace("drive_c", "C:");
+  return backupPath
+    .replace(winePrefixPath ? addTrailingSlash(winePrefixPath) : "", "")
+    .replace("drive_c", "C:");
 };
 
 const restoreLudusaviBackup = (
@@ -35,8 +37,8 @@ const restoreLudusaviBackup = (
     drives: Record<string, string>;
   };
 
-  const { userProfilePath, publicProfilePath } =
-    CloudSync.getProfilePaths(winePrefixPath);
+  const userProfilePath =
+    CloudSync.getWindowsLikeUserProfilePath(winePrefixPath);
 
   manifest.backups.forEach((backup) => {
     Object.keys(backup.files).forEach((key) => {
@@ -54,9 +56,7 @@ const restoreLudusaviBackup = (
       const destinationPath = transformLudusaviBackupPathIntoWindowsPath(
         key,
         artifactWinePrefixPath
-      )
-        .replace(homeDir, userProfilePath)
-        .replace("C:/Users/Public", publicProfilePath);
+      ).replace(homeDir, userProfilePath);
 
       logger.info(`Moving ${sourcePath} to ${destinationPath}`);
 
