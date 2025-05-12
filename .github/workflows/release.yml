@@ -118,6 +118,5 @@ jobs:
             dist/*.yml
             dist/*.blockmap
             dist/*.pacman
-            dist/*.appimage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
