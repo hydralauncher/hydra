@@ -15,8 +15,18 @@ const fileName = {
   darwin: `ludusavi-v${ludusaviVersion}-mac.tar.gz`,
 };
 
+const ludusaviBinaryName = {
+  win32: "ludusavi.exe",
+  linux: "ludusavi",
+  darwin: "ludusavi",
+};
+
 const downloadLudusavi = async () => {
-  if (fs.existsSync("ludusavi")) {
+  if (
+    fs.existsSync(
+      path.join(process.cwd(), "ludusavi", ludusaviBinaryName[process.platform])
+    )
+  ) {
     console.log("Ludusavi already exists, skipping download...");
     return;
   }

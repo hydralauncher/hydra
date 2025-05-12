@@ -4,18 +4,18 @@ import path from "node:path";
 export class Wine {
   public static validatePrefix(winePrefixPath: string) {
     const requiredFiles = [
-      "system.reg",
-      "user.reg",
-      "userdef.reg",
-      "dosdevices",
-      "drive_c",
+      { name: "system.reg", type: "file" },
+      { name: "user.reg", type: "file" },
+      { name: "userdef.reg", type: "file" },
+      { name: "dosdevices", type: "dir" },
+      { name: "drive_c", type: "dir" },
     ];
 
     for (const file of requiredFiles) {
-      const filePath = path.join(winePrefixPath, file);
-      if (!fs.existsSync(filePath)) {
-        return false;
-      }
+      const filePath = path.join(winePrefixPath, file.name);
+
+      if (file.type === "file") return !fs.existsSync(filePath);
+      if (file.type === "dir") return !fs.lstatSync(filePath).isDirectory();
     }
 
     return true;
