@@ -135,10 +135,12 @@ export class CloudSync {
       shop,
       objectId,
       hostname: os.hostname(),
-      winePrefixPath: game?.winePrefixPath ?? null,
+      winePrefixPath: game?.winePrefixPath
+        ? fs.realpathSync(game.winePrefixPath)
+        : null,
       homeDir: this.getWindowsLikeUserProfilePath(game?.winePrefixPath ?? null),
       downloadOptionTitle,
-      platform: os.platform(),
+      platform: process.platform,
       label,
     });
 
