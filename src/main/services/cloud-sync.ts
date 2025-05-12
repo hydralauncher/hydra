@@ -17,9 +17,7 @@ import i18next, { t } from "i18next";
 import { SystemPath } from "./system-path";
 
 export class CloudSync {
-  public static getProfilePaths(winePrefixPath?: string | null) {
-    const currentHomeDir = normalizePath(SystemPath.getPath("home"));
-
+  public static getWindowsLikeUserProfilePath(winePrefixPath?: string | null) {
     if (process.platform === "linux") {
       if (!winePrefixPath) {
         throw new Error("Wine prefix path is required");
@@ -43,25 +41,13 @@ export class CloudSync {
       const userProfile = String(values["USERPROFILE"]);
 
       if (userProfile) {
-        return {
-          userProfilePath: path.join(
-            winePrefixPath,
-            normalizePath(userProfile.replace("C:", "drive_c"))
-          ),
-          publicProfilePath: path.join(
-            winePrefixPath,
-            "drive_c",
-            "users",
-            "Public"
-          ),
-        };
+        return normalizePath(userProfile.replace("C:", "drive_c"));
+      } else {
+        throw new Error("User profile not found in user.reg");
       }
     }
 
-    return {
-      userProfilePath: currentHomeDir,
-      publicProfilePath: path.join("C:", "Users", "Public"),
-    };
+    return normalizePath(SystemPath.getPath("home"));
   }
 
   public static getBackupLabel(automatic: boolean) {
@@ -150,8 +136,7 @@ export class CloudSync {
       objectId,
       hostname: os.hostname(),
       winePrefixPath: game?.winePrefixPath ?? null,
-      homeDir: this.getProfilePaths(game?.winePrefixPath ?? null)
-        .userProfilePath,
+      homeDir: this.getWindowsLikeUserProfilePath(game?.winePrefixPath ?? null),
       downloadOptionTitle,
       platform: os.platform(),
       label,
