@@ -179,6 +179,7 @@ declare global {
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
+    getDefaultWinePrefixSelectionPath: () => Promise<string | null>;
 
     /* Download sources */
     putDownloadSource: (
