@@ -106,9 +106,6 @@ export class Ludusavi {
 
     config.customGames = filteredGames;
 
-    fs.writeFileSync(
-      path.join(this.ludusaviPath, "config.yaml"),
-      YAML.stringify(config)
-    );
+    fs.writeFileSync(this.configPath, YAML.stringify(config));
   }
 }
