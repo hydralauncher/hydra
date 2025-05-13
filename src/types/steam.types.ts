@@ -53,3 +53,22 @@ export interface SteamAppDetails {
     ids: number[];
   };
 }
+
+export interface SteamShortcut {
+  appid: number;
+  appname: string;
+  Exe: string;
+  StartDir: string;
+  icon: string;
+  ShortcutPath: string;
+  LaunchOptions: string;
+  IsHidden: boolean;
+  AllowDesktopConfig: boolean;
+  AllowOverlay: boolean;
+  OpenVR: boolean;
+  Devkit: boolean;
+  DevkitGameID: string;
+  DevkitOverrideAppID: boolean;
+  LastPlayTime: boolean;
+  FlatpakAppID: string;
+}

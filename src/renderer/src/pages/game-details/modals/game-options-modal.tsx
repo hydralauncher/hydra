@@ -8,8 +8,10 @@ import { useDownload, useToast, useUserDetails } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { FileDirectoryIcon, FileIcon } from "@primer/octicons-react";
+import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { debounce } from "lodash-es";
 import "./game-options-modal.scss";
+import { logger } from "@renderer/logger";
 
 export interface GameOptionsModalProps {
   visible: boolean;
@@ -104,6 +106,20 @@ export function GameOptionsModal({
       window.electron
         .updateExecutablePath(game.shop, game.objectId, path)
         .then(updateGame);
+    }
+  };
+
+  const handleCreateSteamShortcut = async () => {
+    try {
+      await window.electron.createSteamShortcut(game.shop, game.objectId);
+
+      showSuccessToast(
+        t("create_shortcut_success"),
+        t("you_might_need_to_restart_steam")
+      );
+    } catch (error: unknown) {
+      logger.error("Failed to create Steam shortcut", error);
+      showErrorToast(t("create_shortcut_error"));
     }
   };
 
@@ -297,6 +313,10 @@ export function GameOptionsModal({
                     theme="outline"
                   >
                     {t("create_shortcut")}
+                  </Button>
+                  <Button onClick={handleCreateSteamShortcut} theme="outline">
+                    <SteamLogo className="game-card__shop-icon" />
+                    {t("create_steam_shortcut")}
                   </Button>
                   {shouldShowCreateStartMenuShortcut && (
                     <Button
