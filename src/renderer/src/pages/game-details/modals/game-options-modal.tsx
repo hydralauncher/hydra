@@ -318,7 +318,11 @@ export function GameOptionsModal({
                   >
                     {t("create_shortcut")}
                   </Button>
-                  <Button onClick={handleCreateSteamShortcut} theme="outline">
+                  <Button
+                    onClick={handleCreateSteamShortcut}
+                    theme="outline"
+                    disabled={creatingSteamShortcut}
+                  >
                     <SteamLogo className="game-card__shop-icon" />
                     {t("create_steam_shortcut")}
                   </Button>
