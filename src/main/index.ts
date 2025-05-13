@@ -23,7 +23,9 @@ autoUpdater.logger = logger;
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
 
-app.commandLine.appendSwitch("--no-sandbox");
+if (process.platform !== "linux") {
+  app.commandLine.appendSwitch("--no-sandbox");
+}
 
 i18n.init({
   resources,

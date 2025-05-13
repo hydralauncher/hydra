@@ -34,6 +34,7 @@ import "./library/remove-game-from-library";
 import "./library/select-game-wine-prefix";
 import "./library/reset-game-achievements";
 import "./library/toggle-automatic-cloud-sync";
+import "./library/get-default-wine-prefix-selection-path";
 import "./misc/open-checkout";
 import "./misc/open-external";
 import "./misc/show-open-dialog";

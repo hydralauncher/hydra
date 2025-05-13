@@ -3,7 +3,6 @@ productName: Hydra
 directories:
   buildResources: build
 extraResources:
-  - aria2
   - ludusavi
   - hydra-python-rpc
   - seeds
@@ -21,6 +20,7 @@ asarUnpack:
 win:
   executableName: Hydra
   extraResources:
+    - from: binaries/aria2c.exe
     - from: binaries/7z.exe
     - from: binaries/7z.dll
   target:
@@ -51,6 +51,7 @@ dmg:
 linux:
   extraResources:
     - from: binaries/7zzs
+    - from: binaries/aria2c
   target:
     - AppImage
     - snap

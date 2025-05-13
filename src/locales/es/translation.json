@@ -198,7 +198,10 @@
     "download_error_not_cached_on_real_debrid": "Esta descarga no está disponible en Real-Debrid y el estado de descarga del sondeo de Real-Debrid aún no está disponible.",
     "download_error_not_cached_on_torbox": "Esta descarga no está disponible en TorBox y el estado de descarga del sondeo aún no está disponible.",
     "game_added_to_favorites": "Juego añadido a favoritos",
-    "game_removed_from_favorites": "Juego removido de favoritos"
+    "game_removed_from_favorites": "Juego removido de favoritos",
+    "invalid_wine_prefix_path": "Ruta de prefixo Wine inválida",
+    "invalid_wine_prefix_path_description": "La ruta al prefixo Wine es inválida. Por favor, verifica la ruta y vuelve a intentarlo.",
+    "missing_wine_prefix": ""
   },
   "activation": {
     "title": "Activar Hydra",

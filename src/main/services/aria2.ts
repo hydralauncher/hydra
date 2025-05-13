@@ -7,8 +7,8 @@ export class Aria2 {
 
   public static spawn() {
     const binaryPath = app.isPackaged
-      ? path.join(process.resourcesPath, "aria2", "aria2c")
-      : path.join(__dirname, "..", "..", "aria2", "aria2c");
+      ? path.join(process.resourcesPath, "aria2c")
+      : path.join(__dirname, "..", "..", "binaries", "aria2c");
 
     this.process = cp.spawn(
       binaryPath,
