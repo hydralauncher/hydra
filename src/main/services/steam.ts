@@ -77,14 +77,12 @@ export const getSteamAppDetails = async (
     });
 };
 
-export const getSteamUserId = () => {
-  const userDataPath = path.join(
-    SystemPath.getPath("appData"),
-    "Steam",
-    "userdata"
-  );
+export const getSteamUserId = async () => {
+  const userDataPath = await getSteamLocation();
 
-  const userIds = fs.readdirSync(userDataPath, { withFileTypes: true });
+  const userIds = fs.readdirSync(path.join(userDataPath, "userdata"), {
+    withFileTypes: true,
+  });
 
   const [steamUserId] = userIds.filter((dir) => dir.isDirectory());
   if (!steamUserId) {

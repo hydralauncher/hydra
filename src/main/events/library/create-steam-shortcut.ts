@@ -54,7 +54,7 @@ const createSteamShortcut = async (
       `/games/stats?objectId=${objectId}&shop=${shop}`
     );
 
-    const steamUserId = getSteamUserId();
+    const steamUserId = await getSteamUserId();
 
     if (!steamUserId) {
       logger.error("No Steam user ID found");
