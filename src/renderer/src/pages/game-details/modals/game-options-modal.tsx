@@ -47,6 +47,7 @@ export function GameOptionsModal({
   const [automaticCloudSync, setAutomaticCloudSync] = useState(
     game.automaticCloudSync ?? false
   );
+  const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
 
   const {
     removeGameInstaller,
@@ -111,6 +112,7 @@ export function GameOptionsModal({
 
   const handleCreateSteamShortcut = async () => {
     try {
+      setCreatingSteamShortcut(true);
       await window.electron.createSteamShortcut(game.shop, game.objectId);
 
       showSuccessToast(
@@ -120,6 +122,8 @@ export function GameOptionsModal({
     } catch (error: unknown) {
       logger.error("Failed to create Steam shortcut", error);
       showErrorToast(t("create_shortcut_error"));
+    } finally {
+      setCreatingSteamShortcut(false);
     }
   };
 

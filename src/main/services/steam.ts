@@ -77,33 +77,32 @@ export const getSteamAppDetails = async (
     });
 };
 
-export const getSteamUserId = async () => {
+export const getSteamUsersIds = async () => {
   const userDataPath = await getSteamLocation();
 
   const userIds = fs.readdirSync(path.join(userDataPath, "userdata"), {
     withFileTypes: true,
   });
 
-  const [steamUserId] = userIds.filter((dir) => dir.isDirectory());
-  if (!steamUserId) {
-    return null;
-  }
-
-  return Number(steamUserId.name);
+  return userIds
+    .filter((dir) => dir.isDirectory())
+    .map((dir) => Number(dir.name));
 };
 
 export const getSteamShortcuts = async (steamUserId: number) => {
-  const shortcuts = parseBuffer(
-    fs.readFileSync(
-      path.join(
-        await getSteamLocation(),
-        "userdata",
-        steamUserId.toString(),
-        "config",
-        "shortcuts.vdf"
-      )
-    )
+  const shortcutsPath = path.join(
+    await getSteamLocation(),
+    "userdata",
+    steamUserId.toString(),
+    "config",
+    "shortcuts.vdf"
   );
+
+  if (!fs.existsSync(shortcutsPath)) {
+    return [];
+  }
+
+  const shortcuts = parseBuffer(fs.readFileSync(shortcutsPath));
 
   return shortcuts.shortcuts as SteamShortcut[];
 };
@@ -126,8 +125,8 @@ export const composeSteamShortcut = (
   return {
     appid: generateSteamShortcutAppId(executablePath, title),
     appname: title,
-    Exe: executablePath,
-    StartDir: path.dirname(executablePath),
+    Exe: `"${executablePath}"`,
+    StartDir: `"${path.dirname(executablePath)}"`,
     icon: iconPath ?? "",
     ShortcutPath: "",
     LaunchOptions: "",
