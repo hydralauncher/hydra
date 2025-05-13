@@ -7,7 +7,7 @@ import crypto from "node:crypto";
 
 import { pythonRpcLogger } from "./logger";
 import { Readable } from "node:stream";
-import { app, dialog, safeStorage } from "electron";
+import { app, dialog } from "electron";
 import { db, levelKeys } from "@main/level";
 
 interface GamePayload {
@@ -49,18 +49,13 @@ export class PythonRPC {
       valueEncoding: "utf8",
     });
 
-    if (existingPassword)
-      return safeStorage.decryptString(Buffer.from(existingPassword, "hex"));
+    if (existingPassword) return existingPassword;
 
     const newPassword = crypto.randomBytes(32).toString("hex");
 
-    await db.put(
-      levelKeys.rpcPassword,
-      safeStorage.encryptString(newPassword).toString("hex"),
-      {
-        valueEncoding: "utf8",
-      }
-    );
+    await db.put(levelKeys.rpcPassword, newPassword, {
+      valueEncoding: "utf8",
+    });
 
     return newPassword;
   }
