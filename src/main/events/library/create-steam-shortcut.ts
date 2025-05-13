@@ -5,7 +5,7 @@ import {
   composeSteamShortcut,
   getSteamLocation,
   getSteamShortcuts,
-  getSteamUserId,
+  getSteamUsersIds,
   HydraApi,
   logger,
   SystemPath,
@@ -54,77 +54,79 @@ const createSteamShortcut = async (
       `/games/stats?objectId=${objectId}&shop=${shop}`
     );
 
-    const steamUserId = await getSteamUserId();
+    const steamUserIds = await getSteamUsersIds();
 
-    if (!steamUserId) {
+    if (!steamUserIds.length) {
       logger.error("No Steam user ID found");
       return;
     }
 
-    logger.info("Got Steam user id", steamUserId);
+    for (const steamUserId of steamUserIds) {
+      logger.info("Adding shortcut for Steam user", steamUserId);
 
-    const steamShortcuts = await getSteamShortcuts(steamUserId);
+      const steamShortcuts = await getSteamShortcuts(steamUserId);
 
-    if (
-      steamShortcuts.some(
-        (shortcut) =>
-          shortcut.Exe === game.executablePath &&
-          shortcut.appname === game.title
-      )
-    ) {
-      return;
+      if (
+        steamShortcuts.some(
+          (shortcut) =>
+            shortcut.Exe === game.executablePath &&
+            shortcut.appname === game.title
+        )
+      ) {
+        continue;
+      }
+
+      const icon = await downloadAsset(
+        path.join(
+          SystemPath.getPath("userData"),
+          "Icons",
+          `${game.shop}-${game.objectId}.ico`
+        ),
+        assets?.iconUrl
+      );
+
+      const newShortcut = composeSteamShortcut(
+        game.title,
+        game.executablePath,
+        icon
+      );
+
+      const gridPath = path.join(
+        await getSteamLocation(),
+        "userdata",
+        steamUserId.toString(),
+        "config",
+        "grid"
+      );
+
+      fs.mkdirSync(gridPath, { recursive: true });
+
+      await Promise.allSettled([
+        downloadAsset(
+          path.join(gridPath, `${newShortcut.appid}_hero.jpg`),
+          assets?.libraryHeroImageUrl
+        ),
+        downloadAsset(
+          path.join(gridPath, `${newShortcut.appid}_logo.png`),
+          assets?.logoImageUrl
+        ),
+        downloadAsset(
+          path.join(gridPath, `${newShortcut.appid}p.jpg`),
+          assets?.coverImageUrl
+        ),
+        downloadAsset(
+          path.join(gridPath, `${newShortcut.appid}.jpg`),
+          assets?.libraryImageUrl
+        ),
+      ]);
+
+      steamShortcuts.push(newShortcut);
+
+      logger.info(newShortcut);
+      logger.info("Writing Steam shortcuts", steamShortcuts);
+
+      await writeSteamShortcuts(steamUserId, steamShortcuts);
     }
-
-    const icon = await downloadAsset(
-      path.join(
-        SystemPath.getPath("userData"),
-        "Icons",
-        `${game.shop}-${game.objectId}.ico`
-      ),
-      assets?.iconUrl
-    );
-
-    const newShortcut = composeSteamShortcut(
-      game.title,
-      game.executablePath,
-      icon
-    );
-
-    const gridPath = path.join(
-      await getSteamLocation(),
-      "userdata",
-      steamUserId.toString(),
-      "config",
-      "grid"
-    );
-
-    fs.mkdirSync(gridPath, { recursive: true });
-
-    await Promise.allSettled([
-      downloadAsset(
-        path.join(gridPath, `${newShortcut.appid}_hero.jpg`),
-        assets?.libraryHeroImageUrl
-      ),
-      downloadAsset(
-        path.join(gridPath, `${newShortcut.appid}_logo.png`),
-        assets?.logoImageUrl
-      ),
-      downloadAsset(
-        path.join(gridPath, `${newShortcut.appid}p.jpg`),
-        assets?.coverImageUrl
-      ),
-      downloadAsset(
-        path.join(gridPath, `${newShortcut.appid}.jpg`),
-        assets?.libraryImageUrl
-      ),
-    ]);
-
-    steamShortcuts.push(newShortcut);
-
-    logger.info(newShortcut);
-    logger.info("Writing Steam shortcuts", steamShortcuts);
-
-    return writeSteamShortcuts(steamUserId, steamShortcuts);
   }
 };
 
