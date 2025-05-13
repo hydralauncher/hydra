@@ -61,35 +61,29 @@ const createSteamShortcut = async (
       return;
     }
 
+    const icon = await downloadAsset(
+      path.join(
+        SystemPath.getPath("userData"),
+        "Icons",
+        `${game.shop}-${game.objectId}.ico`
+      ),
+      assets?.iconUrl
+    );
+
+    const newShortcut = composeSteamShortcut(
+      game.title,
+      game.executablePath,
+      icon
+    );
+
     for (const steamUserId of steamUserIds) {
       logger.info("Adding shortcut for Steam user", steamUserId);
 
       const steamShortcuts = await getSteamShortcuts(steamUserId);
 
-      if (
-        steamShortcuts.some(
-          (shortcut) =>
-            shortcut.Exe === game.executablePath &&
-            shortcut.appname === game.title
-        )
-      ) {
+      if (steamShortcuts.some((shortcut) => shortcut.appname === game.title)) {
         continue;
       }
-
-      const icon = await downloadAsset(
-        path.join(
-          SystemPath.getPath("userData"),
-          "Icons",
-          `${game.shop}-${game.objectId}.ico`
-        ),
-        assets?.iconUrl
-      );
-
-      const newShortcut = composeSteamShortcut(
-        game.title,
-        game.executablePath,
-        icon
-      );
 
       const gridPath = path.join(
         await getSteamLocation(),
@@ -126,6 +120,26 @@ const createSteamShortcut = async (
       logger.info("Writing Steam shortcuts", steamShortcuts);
 
       await writeSteamShortcuts(steamUserId, steamShortcuts);
+    }
+
+    if (process.platform === "linux" && !game.winePrefixPath) {
+      const steamWinePrefixes = path.join(
+        SystemPath.getPath("home"),
+        ".local",
+        "share",
+        "Steam",
+        "steamapps",
+        "compatdata"
+      );
+
+      await gamesSublevel.put(gameKey, {
+        ...game,
+        winePrefixPath: path.join(
+          steamWinePrefixes,
+          newShortcut.appid.toString(),
+          "pfx"
+        ),
+      });
     }
   }
 };

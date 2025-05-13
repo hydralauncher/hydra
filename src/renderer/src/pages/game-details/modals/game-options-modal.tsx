@@ -119,6 +119,8 @@ export function GameOptionsModal({
         t("create_shortcut_success"),
         t("you_might_need_to_restart_steam")
       );
+
+      updateGame();
     } catch (error: unknown) {
       logger.error("Failed to create Steam shortcut", error);
       showErrorToast(t("create_shortcut_error"));
@@ -162,9 +164,12 @@ export function GameOptionsModal({
   };
 
   const handleChangeWinePrefixPath = async () => {
+    const defaultPath =
+      await window.electron.getDefaultWinePrefixSelectionPath();
+
     const { filePaths } = await window.electron.showOpenDialog({
       properties: ["openDirectory"],
-      defaultPath: await window.electron.getDefaultWinePrefixSelectionPath(),
+      defaultPath: defaultPath ?? game?.winePrefixPath ?? "",
     });
 
     if (filePaths && filePaths.length > 0) {
