@@ -40,3 +40,12 @@ export interface LudusaviConfig {
     registry: [];
   }[];
 }
+
+export interface LudusaviBackupMapping {
+  files: {
+    [key: string]: {
+      hash: string;
+      size: number;
+    };
+  };
+}

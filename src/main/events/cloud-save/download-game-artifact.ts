@@ -1,74 +1,93 @@
-import { HydraApi, logger, Ludusavi, WindowManager } from "@main/services";
+import { CloudSync, HydraApi, logger, WindowManager } from "@main/services";
 import fs from "node:fs";
 import * as tar from "tar";
 import { registerEvent } from "../register-event";
 import axios from "axios";
-import os from "node:os";
 import path from "node:path";
-import { backupsPath } from "@main/constants";
-import type { GameShop } from "@types";
+import { backupsPath, publicProfilePath } from "@main/constants";
+import type { GameShop, LudusaviBackupMapping } from "@types";
 
 import YAML from "yaml";
-import { normalizePath } from "@main/helpers";
+import { addTrailingSlash, normalizePath } from "@main/helpers";
 import { SystemPath } from "@main/services/system-path";
+import { gamesSublevel, levelKeys } from "@main/level";
 
-export interface LudusaviBackup {
-  files: {
-    [key: string]: {
-      hash: string;
-      size: number;
-    };
-  };
-}
+export const transformLudusaviBackupPathIntoWindowsPath = (
+  backupPath: string,
+  winePrefixPath?: string | null
+) => {
+  return backupPath
+    .replace(winePrefixPath ? addTrailingSlash(winePrefixPath) : "", "")
+    .replace("drive_c", "C:");
+};
 
-const replaceLudusaviBackupWithCurrentUser = (
+export const addWinePrefixToWindowsPath = (
+  windowsPath: string,
+  winePrefixPath?: string | null
+) => {
+  if (!winePrefixPath) {
+    return windowsPath;
+  }
+
+  return path.join(winePrefixPath, windowsPath.replace("C:", "drive_c"));
+};
+
+const restoreLudusaviBackup = (
   backupPath: string,
   title: string,
-  homeDir: string
+  homeDir: string,
+  winePrefixPath?: string | null,
+  artifactWinePrefixPath?: string | null
 ) => {
   const gameBackupPath = path.join(backupPath, title);
   const mappingYamlPath = path.join(gameBackupPath, "mapping.yaml");
 
   const data = fs.readFileSync(mappingYamlPath, "utf8");
   const manifest = YAML.parse(data) as {
-    backups: LudusaviBackup[];
+    backups: LudusaviBackupMapping[];
     drives: Record<string, string>;
   };
 
-  const currentHomeDir = normalizePath(SystemPath.getPath("home"));
+  const userProfilePath =
+    CloudSync.getWindowsLikeUserProfilePath(winePrefixPath);
 
-  /* Renaming logic */
-  if (os.platform() === "win32") {
-    const mappedHomeDir = path.join(
-      gameBackupPath,
-      path.join("drive-C", homeDir.replace("C:", ""))
-    );
-
-    if (fs.existsSync(mappedHomeDir)) {
-      fs.renameSync(
-        mappedHomeDir,
-        path.join(gameBackupPath, "drive-C", currentHomeDir.replace("C:", ""))
+  manifest.backups.forEach((backup) => {
+    Object.keys(backup.files).forEach((key) => {
+      const sourcePathWithDrives = Object.entries(manifest.drives).reduce(
+        (prev, [driveKey, driveValue]) => {
+          return prev.replace(driveValue, driveKey);
+        },
+        key
       );
-    }
-  }
 
-  const backups = manifest.backups.map((backup: LudusaviBackup) => {
-    const files = Object.entries(backup.files).reduce((prev, [key, value]) => {
-      const updatedKey = key.replace(homeDir, currentHomeDir);
+      const sourcePath = path.join(gameBackupPath, sourcePathWithDrives);
 
-      return {
-        ...prev,
-        [updatedKey]: value,
-      };
-    }, {});
+      logger.info(`Source path: ${sourcePath}`);
 
-    return {
-      ...backup,
-      files,
-    };
+      const destinationPath = transformLudusaviBackupPathIntoWindowsPath(
+        key,
+        artifactWinePrefixPath
+      )
+        .replace(
+          homeDir,
+          addWinePrefixToWindowsPath(userProfilePath, winePrefixPath)
+        )
+        .replace(
+          publicProfilePath,
+          addWinePrefixToWindowsPath(publicProfilePath, winePrefixPath)
+        );
+
+      logger.info(`Moving ${sourcePath} to ${destinationPath}`);
+
+      fs.mkdirSync(path.dirname(destinationPath), { recursive: true });
+
+      if (fs.existsSync(destinationPath)) {
+        fs.unlinkSync(destinationPath);
+      }
+
+      fs.renameSync(sourcePath, destinationPath);
+    });
   });
-
-  fs.writeFileSync(mappingYamlPath, YAML.stringify({ ...manifest, backups }));
 };
 
 const downloadGameArtifact = async (
@@ -78,10 +97,18 @@ const downloadGameArtifact = async (
   gameArtifactId: string
 ) => {
   try {
-    const { downloadUrl, objectKey, homeDir } = await HydraApi.post<{
+    const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
+
+    const {
+      downloadUrl,
+      objectKey,
+      homeDir,
+      winePrefixPath: artifactWinePrefixPath,
+    } = await HydraApi.post<{
       downloadUrl: string;
       objectKey: string;
       homeDir: string;
+      winePrefixPath: string | null;
     }>(`/profile/games/artifacts/${gameArtifactId}/download`);
 
     const zipLocation = path.join(SystemPath.getPath("userData"), objectKey);
@@ -109,34 +136,34 @@ const downloadGameArtifact = async (
     response.data.pipe(writer);
 
     writer.on("error", (err) => {
-      logger.error("Failed to write zip", err);
+      logger.error("Failed to write tar file", err);
       throw err;
     });
 
     fs.mkdirSync(backupPath, { recursive: true });
 
-    writer.on("close", () => {
-      tar
-        .x({
-          file: zipLocation,
-          cwd: backupPath,
-        })
-        .then(async () => {
-          replaceLudusaviBackupWithCurrentUser(
-            backupPath,
-            objectId,
-            normalizePath(homeDir)
-          );
+    writer.on("close", async () => {
+      await tar.x({
+        file: zipLocation,
+        cwd: backupPath,
+      });
 
-          Ludusavi.restoreBackup(backupPath).then(() => {
-            WindowManager.mainWindow?.webContents.send(
-              `on-backup-download-complete-${objectId}-${shop}`,
-              true
-            );
-          });
-        });
+      restoreLudusaviBackup(
+        backupPath,
+        objectId,
+        normalizePath(homeDir),
+        game?.winePrefixPath,
+        artifactWinePrefixPath
+      );
+
+      WindowManager.mainWindow?.webContents.send(
+        `on-backup-download-complete-${objectId}-${shop}`,
+        true
+      );
     });
   } catch (err) {
+    logger.error("Failed to download game artifact", err);
+
     WindowManager.mainWindow?.webContents.send(
       `on-backup-download-complete-${objectId}-${shop}`,
       false

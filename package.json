@@ -62,7 +62,6 @@
     "jsonwebtoken": "^9.0.2",
     "lodash-es": "^4.17.21",
     "parse-torrent": "^11.0.17",
-    "piscina": "^4.7.0",
     "rc-virtual-list": "^3.16.1",
     "react-hook-form": "^7.53.0",
     "react-i18next": "^14.1.0",

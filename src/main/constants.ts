@@ -2,8 +2,6 @@ import { app } from "electron";
 import path from "node:path";
 import { SystemPath } from "./services/system-path";
 
-export const LUDUSAVI_MANIFEST_URL = "https://cdn.losbroxas.org/manifest.yaml";
-
 export const defaultDownloadsPath = SystemPath.getPath("downloads");
 
 export const isStaging = import.meta.env.MAIN_VITE_API_URL.includes("staging");
@@ -15,6 +13,8 @@ export const windowsStartMenuPath = path.join(
   "Start Menu",
   "Programs"
 );
+
+export const publicProfilePath = "C:/Users/Public";
 
 export const levelDatabasePath = path.join(
   SystemPath.getPath("userData"),

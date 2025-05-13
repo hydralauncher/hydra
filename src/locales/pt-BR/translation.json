@@ -188,7 +188,9 @@
     "game_removed_from_favorites": "Jogo removido dos favoritos",
     "game_added_to_favorites": "Jogo adicionado aos favoritos",
     "automatically_extract_downloaded_files": "Extrair automaticamente os arquivos baixados",
-    "create_start_menu_shortcut": "Criar atalho no Menu Iniciar"
+    "create_start_menu_shortcut": "Criar atalho no Menu Iniciar",
+    "invalid_wine_prefix_path": "Caminho do prefixo Wine inválido",
+    "invalid_wine_prefix_path_description": "O caminho para o prefixo Wine é inválido. Por favor, verifique o caminho e tente novamente."
   },
   "activation": {
     "title": "Ativação",
