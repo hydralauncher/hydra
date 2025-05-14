@@ -70,6 +70,14 @@ export interface GameAchievement {
   cacheExpiresTimestamp: number | undefined;
 }
 
+export type AchievementCustomNotificationPosition =
+  | "top_left"
+  | "top_center"
+  | "top_right"
+  | "bottom_left"
+  | "bottom_center"
+  | "bottom_right";
+
 export interface UserPreferences {
   downloadsPath?: string | null;
   language?: string;
@@ -86,6 +94,8 @@ export interface UserPreferences {
   downloadNotificationsEnabled?: boolean;
   repackUpdatesNotificationsEnabled?: boolean;
   achievementNotificationsEnabled?: boolean;
+  achievementCustomNotificationsEnabled?: boolean;
+  achievementCustomNotificationPosition?: AchievementCustomNotificationPosition;
   friendRequestNotificationsEnabled?: boolean;
   showDownloadSpeedInMegabytes?: boolean;
   extractFilesByDefault?: boolean;

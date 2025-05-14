@@ -6,6 +6,7 @@ import {
   Tray,
   app,
   nativeImage,
+  screen,
   shell,
 } from "electron";
 import { is } from "@electron-toolkit/utils";
@@ -275,7 +276,74 @@ export class WindowManager {
     }
   }
 
-  public static createNotificationWindow() {
+  private static readonly NOTIFICATION_WINDOW_WIDTH = 350;
+  private static readonly NOTIFICATION_WINDOW_HEIGHT = 104;
+
+  public static async getNotificationWindowPosition() {
+    const userPreferences = await db.get<string, UserPreferences>(
+      levelKeys.userPreferences,
+      {
+        valueEncoding: "json",
+      }
+    );
+
+    const display = screen.getPrimaryDisplay();
+    const { width, height } = display.workAreaSize;
+
+    if (
+      userPreferences?.achievementCustomNotificationPosition === "bottom_center"
+    ) {
+      return {
+        x: (width - this.NOTIFICATION_WINDOW_WIDTH) / 2,
+        y: height - this.NOTIFICATION_WINDOW_HEIGHT,
+      };
+    }
+
+    if (
+      userPreferences?.achievementCustomNotificationPosition === "bottom_right"
+    ) {
+      return {
+        x: width - this.NOTIFICATION_WINDOW_WIDTH,
+        y: height - this.NOTIFICATION_WINDOW_HEIGHT,
+      };
+    }
+
+    if (
+      userPreferences?.achievementCustomNotificationPosition === "top_center"
+    ) {
+      return {
+        x: (width - this.NOTIFICATION_WINDOW_WIDTH) / 2,
+        y: 0,
+      };
+    }
+
+    if (
+      userPreferences?.achievementCustomNotificationPosition === "bottom_left"
+    ) {
+      return {
+        x: 0,
+        y: height - this.NOTIFICATION_WINDOW_HEIGHT,
+      };
+    }
+
+    if (
+      userPreferences?.achievementCustomNotificationPosition === "top_right"
+    ) {
+      return {
+        x: width - this.NOTIFICATION_WINDOW_WIDTH,
+        y: 0,
+      };
+    }
+
+    return {
+      x: 0,
+      y: 0,
+    };
+  }
+
+  public static async createNotificationWindow() {
+    const { x, y } = await this.getNotificationWindowPosition();
+
     this.notificationWindow = new BrowserWindow({
       transparent: true,
       maximizable: false,
@@ -284,10 +352,10 @@ export class WindowManager {
       focusable: false,
       skipTaskbar: true,
       frame: false,
-      width: 350,
-      height: 104,
-      x: 0,
-      y: 0,
+      width: this.NOTIFICATION_WINDOW_WIDTH,
+      height: this.NOTIFICATION_WINDOW_HEIGHT,
+      x,
+      y,
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.mjs"),
         sandbox: false,
@@ -299,6 +367,12 @@ export class WindowManager {
     // });
     this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
     this.loadNotificationWindowURL();
+
+    this.notificationWindow.once("ready-to-show", () => {
+      if (isStaging) {
+        this.notificationWindow?.webContents.openDevTools();
+      }
+    });
   }
 
   public static openEditorWindow(themeId: string) {

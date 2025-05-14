@@ -175,16 +175,6 @@ declare global {
       minimized: boolean;
     }) => Promise<void>;
     extractGameDownload: (shop: GameShop, objectId: string) => Promise<boolean>;
-    onAchievementUnlocked: (
-      cb: (
-        objectId: string,
-        shop: GameShop,
-        achievements?: { displayName: string; iconUrl: string }[]
-      ) => void
-    ) => () => Electron.IpcRenderer;
-    onCombinedAchievementsUnlocked: (
-      cb: (gameCount: number, achievementCount: number) => void
-    ) => () => Electron.IpcRenderer;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
@@ -331,6 +321,18 @@ declare global {
 
     /* Notifications */
     publishNewRepacksNotification: (newRepacksCount: number) => Promise<void>;
+    onAchievementUnlocked: (
+      cb: (
+        objectId: string,
+        shop: GameShop,
+        achievements?: { displayName: string; iconUrl: string }[]
+      ) => void
+    ) => () => Electron.IpcRenderer;
+    onCombinedAchievementsUnlocked: (
+      cb: (gameCount: number, achievementCount: number) => void
+    ) => () => Electron.IpcRenderer;
+    onTestAchievementNotification: (cb: () => void) => Electron.IpcRenderer;
+    updateAchievementCustomNotificationWindowPosition: () => Promise<void>;
 
     /* Themes */
     addCustomTheme: (theme: Theme) => Promise<void>;

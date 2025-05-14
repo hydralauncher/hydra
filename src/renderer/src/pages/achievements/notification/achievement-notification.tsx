@@ -72,6 +72,26 @@ export function AchievementNotification() {
     };
   }, [playAudio]);
 
+  useEffect(() => {
+    const unsubscribe = window.electron.onTestAchievementNotification(() => {
+      setAchievements((ach) =>
+        ach.concat([
+          {
+            displayName: "Test Achievement",
+            iconUrl:
+              "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fc.tenor.com%2FRwKr7hVnXREAAAAC%2Fnyan-cat.gif&f=1&nofb=1&ipt=706fd8b00cbfb5b2d2621603834d5f32c0f34cce7113de228d2fcc2247a80318",
+          },
+        ])
+      );
+
+      playAudio();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [playAudio]);
+
   const hasAchievementsPending = achievements.length > 0;
 
   const startAnimateClosing = useCallback(() => {

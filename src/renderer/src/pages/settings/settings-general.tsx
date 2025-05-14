@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import {
   TextField,
   Button,
@@ -14,6 +14,7 @@ import { settingsContext } from "@renderer/context";
 import "./settings-general.scss";
 import { DesktopDownloadIcon } from "@primer/octicons-react";
 import { logger } from "@renderer/logger";
+import { AchievementCustomNotificationPosition } from "@types";
 
 interface LanguageOption {
   option: string;
@@ -36,10 +37,12 @@ export function SettingsGeneral() {
     downloadsPath: "",
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
-    achievementNotificationsEnabled: false,
     friendRequestNotificationsEnabled: false,
+    achievementNotificationsEnabled: false,
+    achievementCustomNotificationsEnabled: true,
+    achievementCustomNotificationPosition:
+      "top_left" as AchievementCustomNotificationPosition,
     language: "",
-
     customStyles: window.localStorage.getItem("customStyles") || "",
   });
 
@@ -102,12 +105,31 @@ export function SettingsGeneral() {
           userPreferences.repackUpdatesNotificationsEnabled ?? false,
         achievementNotificationsEnabled:
           userPreferences.achievementNotificationsEnabled ?? false,
+        achievementCustomNotificationsEnabled:
+          userPreferences.achievementCustomNotificationsEnabled ?? true,
+        achievementCustomNotificationPosition:
+          userPreferences.achievementCustomNotificationPosition ?? "top_left",
         friendRequestNotificationsEnabled:
           userPreferences.friendRequestNotificationsEnabled ?? false,
         language: language ?? "en",
       }));
     }
   }, [userPreferences, defaultDownloadsPath]);
+
+  const achievementCustomNotificationPositionOptions = useMemo(() => {
+    return [
+      "top_left",
+      "top_right",
+      "bottom_left",
+      "bottom_right",
+      "top_center",
+      "bottom_center",
+    ].map((position) => ({
+      key: position,
+      value: position,
+      label: t(position),
+    }));
+  }, [t]);
 
   const handleLanguageChange = (
     event: React.ChangeEvent<HTMLSelectElement>
@@ -118,9 +140,19 @@ export function SettingsGeneral() {
     changeLanguage(value);
   };
 
-  const handleChange = (values: Partial<typeof form>) => {
+  const handleChange = async (values: Partial<typeof form>) => {
     setForm((prev) => ({ ...prev, ...values }));
-    updateUserPreferences(values);
+    await updateUserPreferences(values);
+  };
+
+  const handleChangeAchievementCustomNotificationPosition = async (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const value = event.target.value as AchievementCustomNotificationPosition;
+
+    await handleChange({ achievementCustomNotificationPosition: value });
+
+    window.electron.updateAchievementCustomNotificationWindowPosition();
   };
 
   const handleChooseDownloadsPath = async () => {
@@ -206,6 +238,17 @@ export function SettingsGeneral() {
       />
 
       <CheckboxField
+        label={t("enable_friend_request_notifications")}
+        checked={form.friendRequestNotificationsEnabled}
+        onChange={() =>
+          handleChange({
+            friendRequestNotificationsEnabled:
+              !form.friendRequestNotificationsEnabled,
+          })
+        }
+      />
+
+      <CheckboxField
         label={t("enable_achievement_notifications")}
         checked={form.achievementNotificationsEnabled}
         onChange={() =>
@@ -217,15 +260,26 @@ export function SettingsGeneral() {
       />
 
       <CheckboxField
-        label={t("enable_friend_request_notifications")}
-        checked={form.friendRequestNotificationsEnabled}
+        label={t("enable_achievement_custom_notifications")}
+        checked={form.achievementCustomNotificationsEnabled}
+        disabled={!form.achievementNotificationsEnabled}
         onChange={() =>
           handleChange({
-            friendRequestNotificationsEnabled:
-              !form.friendRequestNotificationsEnabled,
+            achievementCustomNotificationsEnabled:
+              !form.achievementCustomNotificationsEnabled,
           })
         }
       />
+
+      {form.achievementNotificationsEnabled &&
+        form.achievementCustomNotificationsEnabled && (
+          <SelectField
+            label={t("achievement_custom_notification_position")}
+            value={form.achievementCustomNotificationPosition}
+            onChange={handleChangeAchievementCustomNotificationPosition}
+            options={achievementCustomNotificationPositionOptions}
+          />
+        )}
 
       <h2 className="settings-general__section-title">{t("common_redist")}</h2>
 
