@@ -30,7 +30,7 @@ jobs:
           python-version: 3.9
 
       - name: Install dependencies
-        run: yarn 
+        run: yarn
 
       - name: Install dependencies
         run: pip install -r requirements.txt
@@ -67,6 +67,21 @@ jobs:
           RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
           MAIN_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
           MAIN_VITE_WS_URL: ${{ vars.MAIN_VITE_WS_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          RENDERER_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
+          RENDERER_VITE_REAL_DEBRID_REFERRAL_ID: ${{ vars.RENDERER_VITE_REAL_DEBRID_REFERRAL_ID }}
+          RENDERER_VITE_TORBOX_REFERRAL_CODE: ${{ vars.RENDERER_VITE_TORBOX_REFERRAL_CODE }}
+
+      - name: Build macOS
+        if: matrix.os == 'macos-latest'
+        run: yarn build:mac
+        env:
+          MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
+          MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
+          MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_STAGING_CHECKOUT_URL }}
+          RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
+          MAIN_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           RENDERER_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
