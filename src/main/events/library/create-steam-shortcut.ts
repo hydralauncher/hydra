@@ -68,6 +68,7 @@ const copyAssetIfExists = async (
   destinationPath: string
 ) => {
   if (sourcePath && fs.existsSync(sourcePath)) {
+    logger.info("Copying Steam asset", sourcePath, destinationPath);
     await fs.promises.cp(sourcePath, destinationPath);
   }
 };
@@ -142,8 +143,6 @@ const createSteamShortcut = async (
           path.join(gridPath, `${newShortcut.appid}.jpg`)
         ),
       ]);
-
-      fs.mkdirSync(gridPath, { recursive: true });
 
       steamShortcuts.push(newShortcut);
 
