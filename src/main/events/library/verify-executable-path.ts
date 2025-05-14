@@ -7,11 +7,11 @@ const verifyExecutablePathInUse = async (
 ) => {
   for await (const game of gamesSublevel.values()) {
     if (game.executablePath === executablePath) {
-      return true;
+      return game;
     }
   }
 
-  return false;
+  return null;
 };
 
 registerEvent("verifyExecutablePathInUse", verifyExecutablePathInUse);
