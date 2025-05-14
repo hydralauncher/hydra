@@ -14,6 +14,7 @@ import {
 import fs from "node:fs";
 import axios from "axios";
 import path from "node:path";
+import { ASSETS_PATH } from "@main/constants";
 
 const downloadAsset = async (downloadPath: string, url?: string | null) => {
   try {
@@ -34,6 +35,40 @@ const downloadAsset = async (downloadPath: string, url?: string | null) => {
   } catch (error) {
     logger.error("Failed to download asset", error);
     return null;
+  }
+};
+
+const downloadAssetsFromSteam = async (
+  shop: GameShop,
+  objectId: string,
+  assets: GameStats["assets"]
+) => {
+  const gameAssetsPath = path.join(ASSETS_PATH, `${shop}-${objectId}`);
+
+  return await Promise.all([
+    downloadAsset(path.join(gameAssetsPath, "icon.ico"), assets?.iconUrl),
+    downloadAsset(
+      path.join(gameAssetsPath, "hero.jpg"),
+      assets?.libraryHeroImageUrl
+    ),
+    downloadAsset(path.join(gameAssetsPath, "logo.png"), assets?.logoImageUrl),
+    downloadAsset(
+      path.join(gameAssetsPath, "cover.jpg"),
+      assets?.coverImageUrl
+    ),
+    downloadAsset(
+      path.join(gameAssetsPath, "library.jpg"),
+      assets?.libraryImageUrl
+    ),
+  ]);
+};
+
+const copyAssetIfExists = async (
+  sourcePath: string | null,
+  destinationPath: string
+) => {
+  if (sourcePath && fs.existsSync(sourcePath)) {
+    await fs.promises.cp(sourcePath, destinationPath);
   }
 };
 
@@ -61,19 +96,13 @@ const createSteamShortcut = async (
       return;
     }
 
-    const icon = await downloadAsset(
-      path.join(
-        SystemPath.getPath("userData"),
-        "Icons",
-        `${game.shop}-${game.objectId}.ico`
-      ),
-      assets?.iconUrl
-    );
+    const [iconImage, heroImage, logoImage, coverImage, libraryImage] =
+      await downloadAssetsFromSteam(game.shop, game.objectId, assets);
 
     const newShortcut = composeSteamShortcut(
       game.title,
       game.executablePath,
-      icon
+      iconImage
     );
 
     for (const steamUserId of steamUserIds) {
@@ -93,26 +122,28 @@ const createSteamShortcut = async (
         "grid"
       );
 
-      fs.mkdirSync(gridPath, { recursive: true });
+      await fs.promises.mkdir(gridPath, { recursive: true });
 
-      await Promise.allSettled([
-        downloadAsset(
-          path.join(gridPath, `${newShortcut.appid}_hero.jpg`),
-          assets?.libraryHeroImageUrl
+      await Promise.all([
+        copyAssetIfExists(
+          heroImage,
+          path.join(gridPath, `${newShortcut.appid}_hero.jpg`)
         ),
-        downloadAsset(
-          path.join(gridPath, `${newShortcut.appid}_logo.png`),
-          assets?.logoImageUrl
+        copyAssetIfExists(
+          logoImage,
+          path.join(gridPath, `${newShortcut.appid}_logo.png`)
         ),
-        downloadAsset(
-          path.join(gridPath, `${newShortcut.appid}p.jpg`),
-          assets?.coverImageUrl
+        copyAssetIfExists(
+          coverImage,
+          path.join(gridPath, `${newShortcut.appid}p.jpg`)
         ),
-        downloadAsset(
-          path.join(gridPath, `${newShortcut.appid}.jpg`),
-          assets?.libraryImageUrl
+        copyAssetIfExists(
+          libraryImage,
+          path.join(gridPath, `${newShortcut.appid}.jpg`)
         ),
       ]);
+
+      fs.mkdirSync(gridPath, { recursive: true });
 
       steamShortcuts.push(newShortcut);
 
@@ -132,13 +163,17 @@ const createSteamShortcut = async (
         "compatdata"
       );
 
+      const winePrefixPath = path.join(
+        steamWinePrefixes,
+        newShortcut.appid.toString(),
+        "pfx"
+      );
+
+      await fs.promises.mkdir(winePrefixPath, { recursive: true });
+
       await gamesSublevel.put(gameKey, {
         ...game,
-        winePrefixPath: path.join(
-          steamWinePrefixes,
-          newShortcut.appid.toString(),
-          "pfx"
-        ),
+        winePrefixPath,
       });
     }
   }
