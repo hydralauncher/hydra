@@ -328,7 +328,7 @@ export function GameOptionsModal({
                     theme="outline"
                     disabled={creatingSteamShortcut}
                   >
-                    <SteamLogo className="game-card__shop-icon" />
+                    <SteamLogo />
                     {t("create_steam_shortcut")}
                   </Button>
                   {shouldShowCreateStartMenuShortcut && (
