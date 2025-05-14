@@ -207,35 +207,6 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-library-batch-complete", listener);
   },
-  onAchievementUnlocked: (
-    cb: (
-      objectId: string,
-      shop: GameShop,
-      achievements?: { displayName: string; iconUrl: string }[]
-    ) => void
-  ) => {
-    const listener = (
-      _event: Electron.IpcRendererEvent,
-      objectId: string,
-      shop: GameShop,
-      achievements?: { displayName: string; iconUrl: string }[]
-    ) => cb(objectId, shop, achievements);
-    ipcRenderer.on("on-achievement-unlocked", listener);
-    return () =>
-      ipcRenderer.removeListener("on-achievement-unlocked", listener);
-  },
-  onCombinedAchievementsUnlocked: (
-    cb: (gameCount: number, achievementsCount: number) => void
-  ) => {
-    const listener = (
-      _event: Electron.IpcRendererEvent,
-      gameCount: number,
-      achievementCount: number
-    ) => cb(gameCount, achievementCount);
-    ipcRenderer.on("on-combined-achievements-unlocked", listener);
-    return () =>
-      ipcRenderer.removeListener("on-combined-achievements-unlocked", listener);
-  },
   onExtractionComplete: (cb: (shop: GameShop, objectId: string) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
@@ -433,6 +404,43 @@ contextBridge.exposeInMainWorld("electron", {
   /* Notifications */
   publishNewRepacksNotification: (newRepacksCount: number) =>
     ipcRenderer.invoke("publishNewRepacksNotification", newRepacksCount),
+  onAchievementUnlocked: (
+    cb: (
+      objectId: string,
+      shop: GameShop,
+      achievements?: { displayName: string; iconUrl: string }[]
+    ) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      objectId: string,
+      shop: GameShop,
+      achievements?: { displayName: string; iconUrl: string }[]
+    ) => cb(objectId, shop, achievements);
+    ipcRenderer.on("on-achievement-unlocked", listener);
+    return () =>
+      ipcRenderer.removeListener("on-achievement-unlocked", listener);
+  },
+  onCombinedAchievementsUnlocked: (
+    cb: (gameCount: number, achievementsCount: number) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      gameCount: number,
+      achievementCount: number
+    ) => cb(gameCount, achievementCount);
+    ipcRenderer.on("on-combined-achievements-unlocked", listener);
+    return () =>
+      ipcRenderer.removeListener("on-combined-achievements-unlocked", listener);
+  },
+  onTestAchievementNotification: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-test-achievement-notification", listener);
+    return () =>
+      ipcRenderer.removeListener("on-test-achievement-notification", listener);
+  },
+  updateAchievementCustomNotificationWindowPosition: () =>
+    ipcRenderer.invoke("updateAchievementCustomNotificationWindowPosition"),
 
   /* Themes */
   addCustomTheme: (theme: Theme) => ipcRenderer.invoke("addCustomTheme", theme),

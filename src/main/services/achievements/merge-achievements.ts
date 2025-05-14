@@ -66,7 +66,7 @@ export const mergeAchievements = async (
 
   const newAchievements = [...newAchievementsMap.values()]
     .filter((achievement) => {
-      return !unlockedAchievements.slice(1).some((localAchievement) => {
+      return !unlockedAchievements.some((localAchievement) => {
         return (
           localAchievement.name.toUpperCase() === achievement.name.toUpperCase()
         );
