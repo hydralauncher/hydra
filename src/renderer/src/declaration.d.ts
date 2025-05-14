@@ -179,6 +179,7 @@ declare global {
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
     getDefaultWinePrefixSelectionPath: () => Promise<string | null>;
+    createSteamShortcut: (shop: GameShop, objectId: string) => Promise<void>;
 
     /* Download sources */
     putDownloadSource: (
