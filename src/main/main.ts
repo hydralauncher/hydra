@@ -18,8 +18,6 @@ import {
 } from "@main/services";
 
 export const loadState = async () => {
-  SystemPath.checkIfPathsAreAvailable();
-
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {
@@ -79,4 +77,6 @@ export const loadState = async () => {
   startMainLoop();
 
   CommonRedistManager.downloadCommonRedist();
+
+  SystemPath.checkIfPathsAreAvailable();
 };
