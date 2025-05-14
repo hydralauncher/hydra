@@ -15,7 +15,7 @@ export const uploadGamesBatch = async () => {
       );
     });
 
-  const gamesChunks = chunk(games, 50);
+  const gamesChunks = chunk(games, 30);
 
   for (const chunk of gamesChunks) {
     await HydraApi.post(
