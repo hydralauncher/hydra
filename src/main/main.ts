@@ -27,7 +27,9 @@ export const loadState = async () => {
 
   await import("./events");
 
-  Aria2.spawn();
+  if (process.platform !== "darwin") {
+    Aria2.spawn();
+  }
 
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences.realDebridApiToken);
