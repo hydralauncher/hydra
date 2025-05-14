@@ -12,6 +12,8 @@ import { achievementsLogger } from "../logger";
 import { Cracker } from "@shared";
 import { publishCombinedNewAchievementNotification } from "../notifications";
 import { gamesSublevel } from "@main/level";
+import { WindowManager } from "../window-manager";
+import { sleep } from "@main/helpers";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
@@ -231,6 +233,8 @@ export class AchievementWatcherManager {
   };
 
   public static async preSearchAchievements() {
+    await sleep(5000);
+
     try {
       const newAchievementsCount =
         process.platform === "win32"
@@ -246,6 +250,12 @@ export class AchievementWatcherManager {
       );
 
       if (totalNewAchievements > 0) {
+        WindowManager.notificationWindow?.webContents.send(
+          "on-combined-achievements-unlocked",
+          totalNewGamesWithAchievements,
+          totalNewAchievements
+        );
+
         publishCombinedNewAchievementNotification(
           totalNewAchievements,
           totalNewGamesWithAchievements

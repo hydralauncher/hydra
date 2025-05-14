@@ -1,0 +1,43 @@
+@use "../../../scss/globals.scss";
+
+@keyframes achievement-in {
+  0% {
+    transform: translateY(-240px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes achievement-out {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-240px);
+  }
+}
+
+.achievement-notification {
+  margin-top: 24px;
+  margin-left: 24px;
+  animation-duration: 1s;
+  height: 60px;
+  display: flex;
+  animation-name: achievement-in;
+  transform: translateY(0);
+
+  &.closing {
+    animation-name: achievement-out;
+    transform: translateY(-240px);
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+    background: globals.$background-color;
+    padding-right: 8px;
+  }
+}

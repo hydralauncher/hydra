@@ -66,7 +66,7 @@ export const mergeAchievements = async (
 
   const newAchievements = [...newAchievementsMap.values()]
     .filter((achievement) => {
-      return !unlockedAchievements.some((localAchievement) => {
+      return !unlockedAchievements.slice(1).some((localAchievement) => {
         return (
           localAchievement.name.toUpperCase() === achievement.name.toUpperCase()
         );
@@ -105,6 +105,13 @@ export const mergeAchievements = async (
           iconUrl: achievement!.icon,
         };
       });
+
+    WindowManager.notificationWindow?.webContents.send(
+      "on-achievement-unlocked",
+      game.objectId,
+      game.shop,
+      achievementsInfo
+    );
 
     publishNewAchievementNotification({
       achievements: achievementsInfo,

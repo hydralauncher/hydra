@@ -175,7 +175,16 @@ declare global {
       minimized: boolean;
     }) => Promise<void>;
     extractGameDownload: (shop: GameShop, objectId: string) => Promise<boolean>;
-    onAchievementUnlocked: (cb: () => void) => () => Electron.IpcRenderer;
+    onAchievementUnlocked: (
+      cb: (
+        objectId: string,
+        shop: GameShop,
+        achievements?: { displayName: string; iconUrl: string }[]
+      ) => void
+    ) => () => Electron.IpcRenderer;
+    onCombinedAchievementsUnlocked: (
+      cb: (gameCount: number, achievementCount: number) => void
+    ) => () => Electron.IpcRenderer;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
