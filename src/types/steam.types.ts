@@ -69,6 +69,6 @@ export interface SteamShortcut {
   Devkit: boolean;
   DevkitGameID: string;
   DevkitOverrideAppID: boolean;
-  LastPlayTime: boolean;
+  LastPlayTime: number;
   FlatpakAppID: string;
 }

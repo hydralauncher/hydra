@@ -134,7 +134,7 @@
     "create_shortcut_success": "Shortcut created successfully",
     "you_might_need_to_restart_steam": "You might need to restart Steam to see the changes",
     "create_shortcut_error": "Error creating shortcut",
-    "nsfw_content_title": "This game contains innapropriate content",
+    "nsfw_content_title": "This game contains inappropriate content",
     "nsfw_content_description": "{{title}} contains content that may not be suitable for all ages. Are you sure you want to continue?",
     "allow_nsfw_content": "Continue",
     "refuse_nsfw_content": "Go back",

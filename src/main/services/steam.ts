@@ -17,7 +17,7 @@ export interface SteamAppDetailsResponse {
   };
 }
 
-export const getSteamLocation = async (): Promise<string> => {
+export const getSteamLocation = async () => {
   if (process.platform === "linux") {
     return path.join(SystemPath.getPath("home"), ".local", "share", "Steam");
   }
@@ -36,7 +36,7 @@ export const getSteamLocation = async (): Promise<string> => {
     key: "\\Software\\Valve\\Steam",
   });
 
-  return new Promise((resolve, reject) => {
+  return new Promise<string>((resolve, reject) => {
     regKey.get("SteamPath", (err, value) => {
       if (err) {
         reject(err);
@@ -137,7 +137,7 @@ export const composeSteamShortcut = (
     Devkit: false,
     DevkitGameID: "",
     DevkitOverrideAppID: false,
-    LastPlayTime: false,
+    LastPlayTime: 0,
     FlatpakAppID: "",
   };
 };
@@ -148,7 +148,7 @@ export const writeSteamShortcuts = async (
 ) => {
   const buffer = writeBuffer({ shortcuts });
 
-  fs.writeFileSync(
+  return fs.promises.writeFile(
     path.join(
       await getSteamLocation(),
       "userdata",
