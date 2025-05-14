@@ -23,6 +23,7 @@ import { isStaging } from "@main/constants";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
+  public static notificationWindow: Electron.BrowserWindow | null = null;
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
 
@@ -259,6 +260,47 @@ export class WindowManager {
     }
   }
 
+  private static loadNotificationWindowURL() {
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+      this.notificationWindow?.loadURL(
+        `${process.env["ELECTRON_RENDERER_URL"]}#/achievement-notification`
+      );
+    } else {
+      this.notificationWindow?.loadFile(
+        path.join(__dirname, "../renderer/index.html"),
+        {
+          hash: "achievement-notification",
+        }
+      );
+    }
+  }
+
+  public static createNotificationWindow() {
+    this.notificationWindow = new BrowserWindow({
+      transparent: true,
+      maximizable: false,
+      autoHideMenuBar: true,
+      minimizable: false,
+      focusable: false,
+      skipTaskbar: true,
+      frame: false,
+      width: 350,
+      height: 104,
+      x: 0,
+      y: 0,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+    });
+    this.notificationWindow.setIgnoreMouseEvents(true);
+    // this.notificationWindow.setVisibleOnAllWorkspaces(true, {
+    //   visibleOnFullScreen: true,
+    // });
+    this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
+    this.loadNotificationWindowURL();
+  }
+
   public static openEditorWindow(themeId: string) {
     if (this.mainWindow) {
       const existingWindow = this.editorWindows.get(themeId);
@@ -277,7 +319,7 @@ export class WindowManager {
         minHeight: 540,
         backgroundColor: "#1c1c1c",
         titleBarStyle: process.platform === "linux" ? "default" : "hidden",
-        ...(process.platform === "linux" ? { icon } : {}),
+        icon,
         trafficLightPosition: { x: 16, y: 16 },
         titleBarOverlay: {
           symbolColor: "#DADBE1",
