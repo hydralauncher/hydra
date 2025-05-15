@@ -119,10 +119,10 @@ export function SettingsGeneral() {
   const achievementCustomNotificationPositionOptions = useMemo(() => {
     return [
       "top_left",
+      "top_center",
       "top_right",
       "bottom_left",
       "bottom_right",
-      "top_center",
       "bottom_center",
     ].map((position) => ({
       key: position,
@@ -152,7 +152,7 @@ export function SettingsGeneral() {
 
     await handleChange({ achievementCustomNotificationPosition: value });
 
-    window.electron.updateAchievementCustomNotificationWindowPosition();
+    window.electron.updateAchievementCustomNotificationWindow();
   };
 
   const handleChooseDownloadsPath = async () => {
@@ -251,24 +251,28 @@ export function SettingsGeneral() {
       <CheckboxField
         label={t("enable_achievement_notifications")}
         checked={form.achievementNotificationsEnabled}
-        onChange={() =>
-          handleChange({
+        onChange={async () => {
+          await handleChange({
             achievementNotificationsEnabled:
               !form.achievementNotificationsEnabled,
-          })
-        }
+          });
+
+          window.electron.updateAchievementCustomNotificationWindow();
+        }}
       />
 
       <CheckboxField
         label={t("enable_achievement_custom_notifications")}
         checked={form.achievementCustomNotificationsEnabled}
         disabled={!form.achievementNotificationsEnabled}
-        onChange={() =>
-          handleChange({
+        onChange={async () => {
+          await handleChange({
             achievementCustomNotificationsEnabled:
               !form.achievementCustomNotificationsEnabled,
-          })
-        }
+          });
+
+          window.electron.updateAchievementCustomNotificationWindow();
+        }}
       />
 
       {form.achievementNotificationsEnabled &&

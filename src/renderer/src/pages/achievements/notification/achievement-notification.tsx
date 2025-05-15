@@ -3,6 +3,7 @@ import achievementSound from "@renderer/assets/audio/achievement.wav";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import "./achievement-notification.scss";
+import { AchievementCustomNotificationPosition } from "@types";
 
 interface AchievementInfo {
   displayName: string;
@@ -16,6 +17,8 @@ export function AchievementNotification() {
 
   const [isClosing, setIsClosing] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [position, setPosition] =
+    useState<AchievementCustomNotificationPosition>("top_left");
 
   const [achievements, setAchievements] = useState<AchievementInfo[]>([]);
   const [currentAchievement, setCurrentAchievement] =
@@ -33,8 +36,10 @@ export function AchievementNotification() {
 
   useEffect(() => {
     const unsubscribe = window.electron.onCombinedAchievementsUnlocked(
-      (gameCount, achievementCount) => {
+      (gameCount, achievementCount, position) => {
         if (gameCount === 0 || achievementCount === 0) return;
+
+        setPosition(position);
 
         setAchievements([
           {
@@ -58,9 +63,10 @@ export function AchievementNotification() {
 
   useEffect(() => {
     const unsubscribe = window.electron.onAchievementUnlocked(
-      (_object, _shop, achievements) => {
+      (_object, _shop, position, achievements) => {
         if (!achievements?.length) return;
 
+        setPosition(position);
         setAchievements((ach) => ach.concat(achievements));
 
         playAudio();
@@ -73,19 +79,22 @@ export function AchievementNotification() {
   }, [playAudio]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onTestAchievementNotification(() => {
-      setAchievements((ach) =>
-        ach.concat([
-          {
-            displayName: "Test Achievement",
-            iconUrl:
-              "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fc.tenor.com%2FRwKr7hVnXREAAAAC%2Fnyan-cat.gif&f=1&nofb=1&ipt=706fd8b00cbfb5b2d2621603834d5f32c0f34cce7113de228d2fcc2247a80318",
-          },
-        ])
-      );
+    const unsubscribe = window.electron.onTestAchievementNotification(
+      (position) => {
+        setPosition(position);
+        setAchievements((ach) =>
+          ach.concat([
+            {
+              displayName: "Test Achievement",
+              iconUrl:
+                "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fc.tenor.com%2FRwKr7hVnXREAAAAC%2Fnyan-cat.gif&f=1&nofb=1&ipt=706fd8b00cbfb5b2d2621603834d5f32c0f34cce7113de228d2fcc2247a80318",
+            },
+          ])
+        );
 
-      playAudio();
-    });
+        playAudio();
+      }
+    );
 
     return () => {
       unsubscribe();
@@ -104,7 +113,7 @@ export function AchievementNotification() {
     const zero = performance.now();
     closingAnimation.current = requestAnimationFrame(
       function animateClosing(time) {
-        if (time - zero <= 1000) {
+        if (time - zero <= 450) {
           closingAnimation.current = requestAnimationFrame(animateClosing);
         } else {
           setIsVisible(false);
@@ -147,18 +156,30 @@ export function AchievementNotification() {
   return (
     <div
       className={cn("achievement-notification", {
+        [position]: true,
         closing: isClosing,
       })}
     >
-      <div className="achievement-notification__content">
-        <img
-          src={currentAchievement.iconUrl}
-          alt={currentAchievement.displayName}
-          style={{ flex: 1, width: "60px" }}
-        />
-        <div>
-          <p>{t("achievement_unlocked")}</p>
-          <p>{currentAchievement.displayName}</p>
+      <div
+        className={cn("achievement-notification__container", {
+          closing: isClosing,
+          [position]: true,
+        })}
+      >
+        <div className="achievement-notification__content">
+          <img
+            src={currentAchievement.iconUrl}
+            alt={currentAchievement.displayName}
+            className="achievement-notification__icon"
+          />
+          <div className="achievement-notification__text-container">
+            <p className="achievement-notification__title">
+              {t("achievement_unlocked")}
+            </p>
+            <p className="achievement-notification__description">
+              {currentAchievement.displayName}
+            </p>
+          </div>
         </div>
       </div>
     </div>

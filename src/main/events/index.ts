@@ -87,7 +87,7 @@ import "./cloud-save/upload-save-game";
 import "./cloud-save/delete-game-artifact";
 import "./cloud-save/select-game-backup-path";
 import "./notifications/publish-new-repacks-notification";
-import "./notifications/update-achievement-notification-window-position";
+import "./notifications/update-achievement-notification-window";
 import "./themes/add-custom-theme";
 import "./themes/delete-custom-theme";
 import "./themes/get-all-custom-themes";

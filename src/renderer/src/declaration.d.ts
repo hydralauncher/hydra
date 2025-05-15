@@ -35,6 +35,7 @@ import type {
   CatalogueSearchResult,
   ShopAssets,
   ShopDetailsWithAssets,
+  AchievementCustomNotificationPosition,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -326,14 +327,27 @@ declare global {
       cb: (
         objectId: string,
         shop: GameShop,
-        achievements?: { displayName: string; iconUrl: string }[]
+        position: AchievementCustomNotificationPosition,
+        achievements?: {
+          displayName: string;
+          iconUrl: string;
+          isHidden: boolean;
+          isRare: boolean;
+          isPlatinum: boolean;
+        }[]
       ) => void
     ) => () => Electron.IpcRenderer;
     onCombinedAchievementsUnlocked: (
-      cb: (gameCount: number, achievementCount: number) => void
+      cb: (
+        gameCount: number,
+        achievementCount: number,
+        position: AchievementCustomNotificationPosition
+      ) => void
     ) => () => Electron.IpcRenderer;
-    onTestAchievementNotification: (cb: () => void) => Electron.IpcRenderer;
-    updateAchievementCustomNotificationWindowPosition: () => Promise<void>;
+    onTestAchievementNotification: (
+      cb: (position: AchievementCustomNotificationPosition) => void
+    ) => Electron.IpcRenderer;
+    updateAchievementCustomNotificationWindow: () => Promise<void>;
 
     /* Themes */
     addCustomTheme: (theme: Theme) => Promise<void>;

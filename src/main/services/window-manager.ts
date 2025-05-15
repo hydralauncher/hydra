@@ -18,7 +18,11 @@ import { HydraApi } from "./hydra-api";
 import UserAgent from "user-agents";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { orderBy, slice } from "lodash-es";
-import type { ScreenState, UserPreferences } from "@types";
+import type {
+  AchievementCustomNotificationPosition,
+  ScreenState,
+  UserPreferences,
+} from "@types";
 import { AuthPage } from "@shared";
 import { isStaging } from "@main/constants";
 
@@ -276,59 +280,44 @@ export class WindowManager {
     }
   }
 
-  private static readonly NOTIFICATION_WINDOW_WIDTH = 350;
-  private static readonly NOTIFICATION_WINDOW_HEIGHT = 104;
+  private static readonly NOTIFICATION_WINDOW_WIDTH = 360;
+  private static readonly NOTIFICATION_WINDOW_HEIGHT = 140;
 
-  public static async getNotificationWindowPosition() {
-    const userPreferences = await db.get<string, UserPreferences>(
-      levelKeys.userPreferences,
-      {
-        valueEncoding: "json",
-      }
-    );
-
+  private static async getNotificationWindowPosition(
+    position: AchievementCustomNotificationPosition | undefined
+  ) {
     const display = screen.getPrimaryDisplay();
     const { width, height } = display.workAreaSize;
 
-    if (
-      userPreferences?.achievementCustomNotificationPosition === "bottom_center"
-    ) {
+    if (position === "bottom_center") {
       return {
         x: (width - this.NOTIFICATION_WINDOW_WIDTH) / 2,
         y: height - this.NOTIFICATION_WINDOW_HEIGHT,
       };
     }
 
-    if (
-      userPreferences?.achievementCustomNotificationPosition === "bottom_right"
-    ) {
+    if (position === "bottom_right") {
       return {
         x: width - this.NOTIFICATION_WINDOW_WIDTH,
         y: height - this.NOTIFICATION_WINDOW_HEIGHT,
       };
     }
 
-    if (
-      userPreferences?.achievementCustomNotificationPosition === "top_center"
-    ) {
+    if (position === "top_center") {
       return {
         x: (width - this.NOTIFICATION_WINDOW_WIDTH) / 2,
         y: 0,
       };
     }
 
-    if (
-      userPreferences?.achievementCustomNotificationPosition === "bottom_left"
-    ) {
+    if (position === "bottom_left") {
       return {
         x: 0,
         y: height - this.NOTIFICATION_WINDOW_HEIGHT,
       };
     }
 
-    if (
-      userPreferences?.achievementCustomNotificationPosition === "top_right"
-    ) {
+    if (position === "top_right") {
       return {
         x: width - this.NOTIFICATION_WINDOW_WIDTH,
         y: 0,
@@ -341,8 +330,16 @@ export class WindowManager {
     };
   }
 
-  public static async createNotificationWindow() {
-    const { x, y } = await this.getNotificationWindowPosition();
+  public static async createNotificationWindow(showTestNotification = false) {
+    const userPreferences = await db.get<string, UserPreferences>(
+      levelKeys.userPreferences,
+      {
+        valueEncoding: "json",
+      }
+    );
+    const { x, y } = await this.getNotificationWindowPosition(
+      userPreferences.achievementCustomNotificationPosition
+    );
 
     this.notificationWindow = new BrowserWindow({
       transparent: true,
@@ -372,7 +369,23 @@ export class WindowManager {
       if (isStaging) {
         this.notificationWindow?.webContents.openDevTools();
       }
+
+      if (showTestNotification) {
+        setTimeout(() => {
+          this.notificationWindow?.webContents.send(
+            "on-test-achievement-notification",
+            userPreferences.achievementCustomNotificationPosition ?? "top_left"
+          );
+        }, 1000);
+      }
     });
+  }
+
+  public static async closeNotificationWindow() {
+    if (this.notificationWindow) {
+      this.notificationWindow.close();
+      this.notificationWindow = null;
+    }
   }
 
   public static openEditorWindow(themeId: string) {
