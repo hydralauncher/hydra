@@ -16,11 +16,7 @@ const getDefaultWinePrefixSelectionPath = async (
       "compatdata"
     );
 
-    if (fs.existsSync(steamWinePrefixes)) {
-      return fs.promises.realpath(steamWinePrefixes);
-    }
-
-    return null;
+    return await fs.promises.realpath(steamWinePrefixes);
   } catch (err) {
     logger.error("Failed to get default wine prefix selection path", err);
 
