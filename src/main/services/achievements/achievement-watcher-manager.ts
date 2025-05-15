@@ -7,11 +7,16 @@ import {
   findAllAchievementFiles,
   getAlternativeObjectIds,
 } from "./find-achivement-files";
-import type { AchievementFile, Game, UnlockedAchievement } from "@types";
+import type {
+  AchievementFile,
+  Game,
+  UnlockedAchievement,
+  UserPreferences,
+} from "@types";
 import { achievementsLogger } from "../logger";
 import { Cracker } from "@shared";
 import { publishCombinedNewAchievementNotification } from "../notifications";
-import { gamesSublevel } from "@main/level";
+import { db, gamesSublevel, levelKeys } from "@main/level";
 import { WindowManager } from "../window-manager";
 import { sleep } from "@main/helpers";
 
@@ -186,7 +191,7 @@ export class AchievementWatcherManager {
     return mergeAchievements(game, unlockedAchievements, false);
   }
 
-  private static preSearchAchievementsWindows = async () => {
+  private static async getGameAchievementFilesWindows() {
     const games = await gamesSublevel
       .values()
       .all()
@@ -196,24 +201,24 @@ export class AchievementWatcherManager {
 
     return Promise.all(
       games.map((game) => {
-        const gameAchievementFiles: AchievementFile[] = [];
+        const achievementFiles: AchievementFile[] = [];
 
         for (const objectId of getAlternativeObjectIds(game.objectId)) {
-          gameAchievementFiles.push(
+          achievementFiles.push(
             ...(gameAchievementFilesMap.get(objectId) || [])
           );
 
-          gameAchievementFiles.push(
+          achievementFiles.push(
             ...findAchievementFileInExecutableDirectory(game)
           );
         }
 
-        return this.preProcessGameAchievementFiles(game, gameAchievementFiles);
+        return { game, achievementFiles };
       })
     );
-  };
+  }
 
-  private static preSearchAchievementsWithWine = async () => {
+  private static async getGameAchievementFilesLinux() {
     const games = await gamesSublevel
       .values()
       .all()
@@ -221,45 +226,70 @@ export class AchievementWatcherManager {
 
     return Promise.all(
       games.map((game) => {
-        const gameAchievementFiles = findAchievementFiles(game);
+        const achievementFiles = findAchievementFiles(game);
         const achievementFileInsideDirectory =
           findAchievementFileInExecutableDirectory(game);
 
-        gameAchievementFiles.push(...achievementFileInsideDirectory);
+        achievementFiles.push(...achievementFileInsideDirectory);
 
-        return this.preProcessGameAchievementFiles(game, gameAchievementFiles);
+        return { game, achievementFiles };
       })
     );
-  };
+  }
 
   public static async preSearchAchievements() {
-    await sleep(5000);
+    await sleep(2000);
 
     try {
-      const newAchievementsCount =
+      const gameAchievementFiles =
         process.platform === "win32"
-          ? await this.preSearchAchievementsWindows()
-          : await this.preSearchAchievementsWithWine();
+          ? await this.getGameAchievementFilesWindows()
+          : await this.getGameAchievementFilesLinux();
+
+      const newAchievementsCount: number[] = [];
+
+      for (const { game, achievementFiles } of gameAchievementFiles) {
+        const result = await this.preProcessGameAchievementFiles(
+          game,
+          achievementFiles
+        );
+
+        newAchievementsCount.push(result);
+      }
 
       const totalNewGamesWithAchievements = newAchievementsCount.filter(
         (achievements) => achievements
       ).length;
+
       const totalNewAchievements = newAchievementsCount.reduce(
         (acc, val) => acc + val,
         0
       );
 
       if (totalNewAchievements > 0) {
-        WindowManager.notificationWindow?.webContents.send(
-          "on-combined-achievements-unlocked",
-          totalNewGamesWithAchievements,
-          totalNewAchievements
+        const userPreferences = await db.get<string, UserPreferences>(
+          levelKeys.userPreferences,
+          {
+            valueEncoding: "json",
+          }
         );
 
-        publishCombinedNewAchievementNotification(
-          totalNewAchievements,
-          totalNewGamesWithAchievements
-        );
+        if (userPreferences.achievementNotificationsEnabled) {
+          if (userPreferences.achievementCustomNotificationsEnabled !== false) {
+            WindowManager.notificationWindow?.webContents.send(
+              "on-combined-achievements-unlocked",
+              totalNewGamesWithAchievements,
+              totalNewAchievements,
+              userPreferences.achievementCustomNotificationPosition ??
+                "top_left"
+            );
+          } else {
+            publishCombinedNewAchievementNotification(
+              totalNewAchievements,
+              totalNewGamesWithAchievements
+            );
+          }
+        }
       }
     } catch (err) {
       achievementsLogger.error("Error on preSearchAchievements", err);

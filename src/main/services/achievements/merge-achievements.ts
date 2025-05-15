@@ -106,20 +106,23 @@ export const mergeAchievements = async (
         };
       });
 
-    WindowManager.notificationWindow?.webContents.send(
-      "on-achievement-unlocked",
-      game.objectId,
-      game.shop,
-      achievementsInfo
-    );
-
-    publishNewAchievementNotification({
-      achievements: achievementsInfo,
-      unlockedAchievementCount: mergedLocalAchievements.length,
-      totalAchievementCount: achievementsData.length,
-      gameTitle: game.title,
-      gameIcon: game.iconUrl,
-    });
+    if (userPreferences?.achievementCustomNotificationsEnabled !== false) {
+      WindowManager.notificationWindow?.webContents.send(
+        "on-achievement-unlocked",
+        game.objectId,
+        game.shop,
+        userPreferences.achievementCustomNotificationPosition ?? "top_left",
+        achievementsInfo
+      );
+    } else {
+      publishNewAchievementNotification({
+        achievements: achievementsInfo,
+        unlockedAchievementCount: mergedLocalAchievements.length,
+        totalAchievementCount: achievementsData.length,
+        gameTitle: game.title,
+        gameIcon: game.iconUrl,
+      });
+    }
   }
 
   if (game.remoteId) {

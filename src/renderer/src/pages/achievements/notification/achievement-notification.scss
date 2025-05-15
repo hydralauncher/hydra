@@ -1,35 +1,221 @@
 @use "../../../scss/globals.scss";
 
-@keyframes achievement-in {
+$margin-horizontal: 40px;
+$margin-vertical: 52px;
+
+@keyframes content-in {
   0% {
-    transform: translateY(-240px);
+    width: 80px;
+    opacity: 0;
+    transform: scale(0);
   }
   100% {
-    transform: translateY(0);
+    width: 80px;
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
-@keyframes achievement-out {
+@keyframes content-wait {
   0% {
-    transform: translateY(0);
+    width: 80px;
   }
   100% {
-    transform: translateY(-240px);
+    width: 80px;
+  }
+}
+
+@keyframes trophy-out {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes ellipses-stand-by {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes ellipses-out {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.5;
+  }
+}
+
+@keyframes content-expand {
+  0% {
+    width: 80px;
+  }
+  100% {
+    width: calc(360px - $margin-horizontal);
+  }
+}
+
+@keyframes title-in {
+  0% {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes description-in {
+  0% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes dark-overlay {
+  0% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes content-out {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-20px);
+    opacity: 0;
   }
 }
 
 .achievement-notification {
-  margin-top: 24px;
-  margin-left: 24px;
-  animation-duration: 1s;
-  height: 60px;
-  display: flex;
-  animation-name: achievement-in;
-  transform: translateY(0);
+  position: relative;
+  display: grid;
+  width: calc(360px - $margin-horizontal);
+  height: 140px;
+  overflow: hidden;
+  animation:
+    content-in 450ms ease-in-out,
+    content-wait 450ms ease-in-out 450ms,
+    content-expand 450ms ease-in-out 900ms;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 64px;
+    height: 64px;
+    opacity: 0;
+    z-index: 1;
+    background: url("/src/assets/icons/ellipses.png");
+    background-size: contain;
+    animation: ellipses-out 900ms ease-in-out;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0px;
+    width: 80px;
+    height: 80px;
+    opacity: 0;
+    background: url("/src/assets/icons/trophy.png") no-repeat center;
+    animation: trophy-out 900ms ease-in-out;
+  }
+
+  &.top_left {
+    margin: $margin-vertical 0 0 $margin-horizontal;
+  }
+
+  &.top_center {
+    margin: $margin-vertical 0 0 $margin-horizontal;
+  }
+
+  &.top_right {
+    margin: $margin-vertical $margin-horizontal 0 0;
+    align-self: end;
+  }
+
+  &.bottom_left {
+    margin: 0 0 $margin-vertical $margin-horizontal;
+  }
+
+  &.bottom_center {
+    margin: 0 0 $margin-vertical $margin-horizontal;
+  }
+
+  &.bottom_right {
+    margin: 0 $margin-horizontal $margin-vertical 0;
+    align-self: end;
+  }
 
   &.closing {
-    animation-name: achievement-out;
-    transform: translateY(-240px);
+    transform: translateY(-20px);
+    opacity: 0;
+    animation: content-out 450ms ease-in-out;
+  }
+
+  &__container {
+    width: calc(360px - $margin-horizontal);
+    max-width: 100%;
+    border: 1px solid #ffffff1a;
+    display: flex;
+    padding: 8px 16px 8px 8px;
+    background: globals.$background-color;
+    transform: translateY(0);
+    box-shadow: 0px 2px 16px 0px rgba(0, 0, 0, 0.25);
+
+    &.top_left {
+      align-self: flex-start;
+      justify-self: flex-start;
+    }
+
+    &.top_center {
+      align-self: flex-start;
+      justify-self: center;
+    }
+
+    &.top_right {
+      align-self: flex-start;
+      justify-self: flex-end;
+    }
+
+    &.bottom_left {
+      align-self: flex-end;
+      justify-self: flex-start;
+    }
+
+    &.bottom_center {
+      align-self: flex-end;
+      justify-self: center;
+    }
+
+    &.bottom_right {
+      align-self: flex-end;
+      justify-self: flex-end;
+    }
   }
 
   &__content {
@@ -37,7 +223,51 @@
     flex-direction: row;
     gap: 8px;
     align-items: center;
-    background: globals.$background-color;
-    padding-right: 8px;
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+
+    &::after {
+      content: "";
+      position: absolute;
+      width: 64px;
+      height: 64px;
+      background: #000;
+      opacity: 0;
+      animation: dark-overlay 900ms ease-in-out;
+    }
+  }
+
+  &__icon {
+    min-width: 64px;
+    min-height: 64px;
+    border-radius: 2px;
+    flex: 1;
+    position: relative;
+  }
+
+  &__text-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    color: globals.$muted-color;
+    animation: title-in 450ms ease-in-out 900ms;
+  }
+
+  &__description {
+    font-size: 14px;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    color: globals.$body-color;
+    animation: description-in 450ms ease-in-out 900ms;
   }
 }
