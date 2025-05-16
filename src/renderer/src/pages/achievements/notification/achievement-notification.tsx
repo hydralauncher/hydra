@@ -155,7 +155,7 @@ export function AchievementNotification() {
 
   return (
     <AchievementNotificationItem
-      currentAchievement={currentAchievement}
+      achievement={currentAchievement}
       isClosing={isClosing}
       position={position}
     />

@@ -158,7 +158,7 @@ export default function ThemeEditor() {
 
             <AchievementNotificationItem
               position={achievementPreview.position}
-              currentAchievement={achievementPreview.achievement}
+              achievement={achievementPreview.achievement}
               isClosing={isClosingNotifications}
             />
           </div>
