@@ -363,7 +363,14 @@
     "install_common_redist": "Install",
     "installing_common_redist": "Installing…",
     "show_download_speed_in_megabytes": "Show download speed in megabytes per second",
-    "extract_files_by_default": "Extract files by default after download"
+    "extract_files_by_default": "Extract files by default after download",
+    "achievement_custom_notification_position": "Enable achievements custom notification",
+    "top_left": "Top left",
+    "top_center": "Top center",
+    "top_right": "Top right",
+    "bottom_left": "Bottom left",
+    "bottom_center": "Bottom center",
+    "bottom_right": "Bottom right"
   },
   "notifications": {
     "download_complete": "Download complete",
@@ -379,7 +386,9 @@
     "new_friend_request_title": "New friend request",
     "extraction_complete": "Extraction complete",
     "game_extracted": "{{title}} extracted successfully",
-    "friend_started_playing_game": "{{displayName}} started playing a game"
+    "friend_started_playing_game": "{{displayName}} started playing a game",
+    "test_achievement_notification_title": "This is a test notification",
+    "test_achievement_notification_description": "Pretty cool, huh?"
   },
   "system_tray": {
     "open": "Open Hydra",

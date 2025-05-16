@@ -3,14 +3,12 @@ import achievementSound from "@renderer/assets/audio/achievement.wav";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import "./achievement-notification.scss";
-import { AchievementCustomNotificationPosition } from "@types";
+import {
+  AchievementCustomNotificationPosition,
+  AchievementNotificationInfo,
+} from "@types";
 
-interface AchievementInfo {
-  displayName: string;
-  iconUrl: string;
-}
-
-const NOTIFICATION_TIMEOUT = 4000;
+const NOTIFICATION_TIMEOUT = 6000;
 
 export function AchievementNotification() {
   const { t } = useTranslation("achievement");
@@ -20,9 +18,11 @@ export function AchievementNotification() {
   const [position, setPosition] =
     useState<AchievementCustomNotificationPosition>("top_left");
 
-  const [achievements, setAchievements] = useState<AchievementInfo[]>([]);
+  const [achievements, setAchievements] = useState<
+    AchievementNotificationInfo[]
+  >([]);
   const [currentAchievement, setCurrentAchievement] =
-    useState<AchievementInfo | null>(null);
+    useState<AchievementNotificationInfo | null>(null);
 
   const achievementAnimation = useRef(-1);
   const closingAnimation = useRef(-1);
@@ -43,10 +43,14 @@ export function AchievementNotification() {
 
         setAchievements([
           {
-            displayName: t("new_achievements_unlocked", {
+            title: t("new_achievements_unlocked", {
               gameCount,
               achievementCount,
             }),
+            isHidden: false,
+            isRare: false,
+            isPlatinum: false,
+            points: 0,
             iconUrl:
               "https://avatars.githubusercontent.com/u/164102380?s=400&u=01a13a7b4f0c642f7e547b8e1d70440ea06fa750&v=4",
           },
@@ -63,34 +67,13 @@ export function AchievementNotification() {
 
   useEffect(() => {
     const unsubscribe = window.electron.onAchievementUnlocked(
-      (_object, _shop, position, achievements) => {
+      (position, achievements) => {
         if (!achievements?.length) return;
+        if (position) {
+          setPosition(position);
+        }
 
-        setPosition(position);
         setAchievements((ach) => ach.concat(achievements));
-
-        playAudio();
-      }
-    );
-
-    return () => {
-      unsubscribe();
-    };
-  }, [playAudio]);
-
-  useEffect(() => {
-    const unsubscribe = window.electron.onTestAchievementNotification(
-      (position) => {
-        setPosition(position);
-        setAchievements((ach) =>
-          ach.concat([
-            {
-              displayName: "Test Achievement",
-              iconUrl:
-                "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fc.tenor.com%2FRwKr7hVnXREAAAAC%2Fnyan-cat.gif&f=1&nofb=1&ipt=706fd8b00cbfb5b2d2621603834d5f32c0f34cce7113de228d2fcc2247a80318",
-            },
-          ])
-        );
 
         playAudio();
       }
@@ -169,15 +152,15 @@ export function AchievementNotification() {
         <div className="achievement-notification__content">
           <img
             src={currentAchievement.iconUrl}
-            alt={currentAchievement.displayName}
+            alt={currentAchievement.title}
             className="achievement-notification__icon"
           />
           <div className="achievement-notification__text-container">
             <p className="achievement-notification__title">
-              {t("achievement_unlocked")}
+              {currentAchievement.title}
             </p>
             <p className="achievement-notification__description">
-              {currentAchievement.displayName}
+              {currentAchievement.description}
             </p>
           </div>
         </div>

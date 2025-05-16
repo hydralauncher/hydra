@@ -122,8 +122,8 @@ export function SettingsGeneral() {
       "top_center",
       "top_right",
       "bottom_left",
-      "bottom_right",
       "bottom_center",
+      "bottom_right",
     ].map((position) => ({
       key: position,
       value: position,

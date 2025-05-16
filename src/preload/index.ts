@@ -19,6 +19,7 @@ import type {
   ShortcutLocation,
   ShopAssets,
   AchievementCustomNotificationPosition,
+  AchievementNotificationInfo,
 } from "@types";
 import type { AuthPage, CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -409,31 +410,15 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("publishNewRepacksNotification", newRepacksCount),
   onAchievementUnlocked: (
     cb: (
-      objectId: string,
-      shop: GameShop,
-      position: AchievementCustomNotificationPosition,
-      achievements?: {
-        displayName: string;
-        iconUrl: string;
-        isHidden: boolean;
-        isRare: boolean;
-        isPlatinum: boolean;
-      }[]
+      position?: AchievementCustomNotificationPosition,
+      achievements?: AchievementNotificationInfo[]
     ) => void
   ) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      objectId: string,
-      shop: GameShop,
-      position: AchievementCustomNotificationPosition,
-      achievements?: {
-        displayName: string;
-        iconUrl: string;
-        isHidden: boolean;
-        isRare: boolean;
-        isPlatinum: boolean;
-      }[]
-    ) => cb(objectId, shop, position, achievements);
+      position?: AchievementCustomNotificationPosition,
+      achievements?: AchievementNotificationInfo[]
+    ) => cb(position, achievements);
     ipcRenderer.on("on-achievement-unlocked", listener);
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked", listener);
@@ -454,17 +439,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-combined-achievements-unlocked", listener);
     return () =>
       ipcRenderer.removeListener("on-combined-achievements-unlocked", listener);
-  },
-  onTestAchievementNotification: (
-    cb: (position: AchievementCustomNotificationPosition) => void
-  ) => {
-    const listener = (
-      _event: Electron.IpcRendererEvent,
-      position: AchievementCustomNotificationPosition
-    ) => cb(position);
-    ipcRenderer.on("on-test-achievement-notification", listener);
-    return () =>
-      ipcRenderer.removeListener("on-test-achievement-notification", listener);
   },
   updateAchievementCustomNotificationWindow: () =>
     ipcRenderer.invoke("updateAchievementCustomNotificationWindow"),
