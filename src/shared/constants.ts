@@ -1,3 +1,8 @@
+import {
+  AchievementCustomNotificationPosition,
+  AchievementNotificationInfo,
+} from "@types";
+
 export enum Downloader {
   RealDebrid,
   Torrent,

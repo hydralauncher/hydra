@@ -21,6 +21,7 @@ const updateCustomTheme = async (
 
   if (theme.isActive) {
     WindowManager.mainWindow?.webContents.send("css-injected", code);
+    WindowManager.notificationWindow?.webContents.send("css-injected", code);
   }
 };
 

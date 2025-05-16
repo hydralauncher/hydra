@@ -22,35 +22,43 @@ interface FormValues {
   name: string;
 }
 
-const DEFAULT_THEME_CODE = `
-  /*
-    Here you can edit CSS for your theme and apply it on Hydra.
-    There are a few classes already in place, you can use them to style the launcher.
+const DEFAULT_THEME_CODE = `/*
+  Here you can edit CSS for your theme and apply it on Hydra.
+  There are a few classes already in place, you can use them to style the launcher.
 
-    If you want to learn more about how to run Hydra in dev mode (which will allow you to inspect the DOM and view the classes)
-    or how to publish your theme in the theme store, you can check the docs:
-    https://docs.hydralauncher.gg/
+  If you want to learn more about how to run Hydra in dev mode (which will allow you to inspect the DOM and view the classes)
+  or how to publish your theme in the theme store, you can check the docs:
+  https://docs.hydralauncher.gg/themes.html
 
-    Happy hacking!
-  */
+  Happy hacking!
+*/
 
-  /* Header */
-  .header {}
+/* Header */
+.header {}
 
-  /* Sidebar */
-  .sidebar {}
+/* Sidebar */
+.sidebar {}
 
-  /* Main content */
-  .container__content {}
+/* Main content */
+.container__content {}
 
-  /* Bottom panel */
-  .bottom-panel {}
+/* Bottom panel */
+.bottom-panel {}
 
-  /* Toast */
-  .toast {}
+/* Toast */
+.toast {}
 
-  /* Button */
-  .button {}
+/* Button */
+.button {}
+
+/* Custom Achievement Notification */
+.achievement-notification {}
+.achievement-notification__container {}
+.achievement-notification__content {}
+.achievement-notification__icon {}
+.achievement-notification__text-container {}
+.achievement-notification__title {}
+.achievement-notification__description {}
 
 `;
 
