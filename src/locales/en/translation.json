@@ -364,13 +364,14 @@
     "installing_common_redist": "Installing…",
     "show_download_speed_in_megabytes": "Show download speed in megabytes per second",
     "extract_files_by_default": "Extract files by default after download",
-    "achievement_custom_notification_position": "Enable achievements custom notification",
+    "achievement_custom_notification_position": "Achievement custom notification position",
     "top_left": "Top left",
     "top_center": "Top center",
     "top_right": "Top right",
     "bottom_left": "Bottom left",
     "bottom_center": "Bottom center",
-    "bottom_right": "Bottom right"
+    "bottom_right": "Bottom right",
+    "enable_achievement_custom_notifications": "Enable achievement custom notifications"
   },
   "notifications": {
     "download_complete": "Download complete",
