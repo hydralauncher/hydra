@@ -36,6 +36,7 @@ import type {
   ShopAssets,
   ShopDetailsWithAssets,
   AchievementCustomNotificationPosition,
+  AchievementNotificationInfo,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -325,16 +326,8 @@ declare global {
     publishNewRepacksNotification: (newRepacksCount: number) => Promise<void>;
     onAchievementUnlocked: (
       cb: (
-        objectId: string,
-        shop: GameShop,
-        position: AchievementCustomNotificationPosition,
-        achievements?: {
-          displayName: string;
-          iconUrl: string;
-          isHidden: boolean;
-          isRare: boolean;
-          isPlatinum: boolean;
-        }[]
+        position?: AchievementCustomNotificationPosition,
+        achievements?: AchievementNotificationInfo[]
       ) => void
     ) => () => Electron.IpcRenderer;
     onCombinedAchievementsUnlocked: (
@@ -344,9 +337,6 @@ declare global {
         position: AchievementCustomNotificationPosition
       ) => void
     ) => () => Electron.IpcRenderer;
-    onTestAchievementNotification: (
-      cb: (position: AchievementCustomNotificationPosition) => void
-    ) => Electron.IpcRenderer;
     updateAchievementCustomNotificationWindow: () => Promise<void>;
 
     /* Themes */

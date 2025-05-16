@@ -20,6 +20,7 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import { orderBy, slice } from "lodash-es";
 import type {
   AchievementCustomNotificationPosition,
+  AchievementNotificationInfo,
   ScreenState,
   UserPreferences,
 } from "@types";
@@ -371,10 +372,28 @@ export class WindowManager {
       }
 
       if (showTestNotification) {
+        const language = userPreferences.language ?? "en";
         setTimeout(() => {
           this.notificationWindow?.webContents.send(
-            "on-test-achievement-notification",
-            userPreferences.achievementCustomNotificationPosition ?? "top_left"
+            "on-achievement-unlocked",
+            userPreferences.achievementCustomNotificationPosition ?? "top_left",
+            [
+              {
+                title: t("test_achievement_notification_title", {
+                  ns: "notifications",
+                  lng: language,
+                }),
+                description: t("test_achievement_notification_description", {
+                  ns: "notifications",
+                  lng: language,
+                }),
+                iconUrl: "https://cdn.losbroxas.org/favicon.svg",
+                points: 100,
+                isHidden: false,
+                isRare: false,
+                isPlatinum: false,
+              },
+            ] as AchievementNotificationInfo[]
           );
         }, 1000);
       }

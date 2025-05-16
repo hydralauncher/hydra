@@ -1,4 +1,5 @@
 import type {
+  AchievementNotificationInfo,
   Game,
   GameShop,
   UnlockedAchievement,
@@ -86,7 +87,7 @@ export const mergeAchievements = async (
     publishNotification &&
     userPreferences?.achievementNotificationsEnabled
   ) {
-    const achievementsInfo = newAchievements
+    const achievementsInfo: AchievementNotificationInfo[] = newAchievements
       .toSorted((a, b) => {
         return a.unlockTime - b.unlockTime;
       })
@@ -101,7 +102,12 @@ export const mergeAchievements = async (
       .filter((achievement) => Boolean(achievement))
       .map((achievement) => {
         return {
-          displayName: achievement!.displayName,
+          title: achievement!.displayName,
+          description: achievement!.description,
+          points: achievement!.points,
+          isHidden: achievement!.hidden,
+          isRare: false,
+          isPlatinum: false,
           iconUrl: achievement!.icon,
         };
       });
@@ -109,8 +115,6 @@ export const mergeAchievements = async (
     if (userPreferences?.achievementCustomNotificationsEnabled !== false) {
       WindowManager.notificationWindow?.webContents.send(
         "on-achievement-unlocked",
-        game.objectId,
-        game.shop,
         userPreferences.achievementCustomNotificationPosition ?? "top_left",
         achievementsInfo
       );
