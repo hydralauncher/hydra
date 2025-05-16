@@ -251,6 +251,7 @@ $margin-vertical: 52px;
     flex-direction: column;
     gap: 4px;
     width: 100%;
+    overflow: hidden;
   }
 
   &__title {
@@ -258,6 +259,7 @@ $margin-vertical: 52px;
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
     color: globals.$muted-color;
     animation: title-in 450ms ease-in-out 900ms;
   }
@@ -267,6 +269,7 @@ $margin-vertical: 52px;
     font-weight: 400;
     white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
     color: globals.$body-color;
     animation: description-in 450ms ease-in-out 900ms;
   }

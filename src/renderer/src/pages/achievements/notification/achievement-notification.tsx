@@ -8,7 +8,7 @@ import {
   AchievementNotificationInfo,
 } from "@types";
 
-const NOTIFICATION_TIMEOUT = 6000;
+const NOTIFICATION_TIMEOUT = 4000;
 
 export function AchievementNotification() {
   const { t } = useTranslation("achievement");
@@ -100,6 +100,7 @@ export function AchievementNotification() {
           closingAnimation.current = requestAnimationFrame(animateClosing);
         } else {
           setIsVisible(false);
+          setAchievements((ach) => ach.slice(1));
         }
       }
     );
@@ -118,15 +119,13 @@ export function AchievementNotification() {
         function animateLock(time) {
           if (time - zero > NOTIFICATION_TIMEOUT) {
             zero = performance.now();
-            setAchievements((ach) => ach.slice(1));
+            startAnimateClosing();
           }
           achievementAnimation.current = requestAnimationFrame(animateLock);
         }
       );
-    } else {
-      startAnimateClosing();
     }
-  }, [hasAchievementsPending, startAnimateClosing]);
+  }, [hasAchievementsPending, startAnimateClosing, currentAchievement]);
 
   useEffect(() => {
     if (achievements.length) {
@@ -145,8 +144,8 @@ export function AchievementNotification() {
     >
       <div
         className={cn("achievement-notification__container", {
-          closing: isClosing,
           [position]: true,
+          closing: isClosing,
         })}
       >
         <div className="achievement-notification__content">
