@@ -20,11 +20,10 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import { orderBy, slice } from "lodash-es";
 import type {
   AchievementCustomNotificationPosition,
-  AchievementNotificationInfo,
   ScreenState,
   UserPreferences,
 } from "@types";
-import { AuthPage } from "@shared";
+import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
 import { isStaging } from "@main/constants";
 
 export class WindowManager {
@@ -377,23 +376,7 @@ export class WindowManager {
           this.notificationWindow?.webContents.send(
             "on-achievement-unlocked",
             userPreferences.achievementCustomNotificationPosition ?? "top_left",
-            [
-              {
-                title: t("test_achievement_notification_title", {
-                  ns: "notifications",
-                  lng: language,
-                }),
-                description: t("test_achievement_notification_description", {
-                  ns: "notifications",
-                  lng: language,
-                }),
-                iconUrl: "https://cdn.losbroxas.org/favicon.svg",
-                points: 100,
-                isHidden: false,
-                isRare: false,
-                isPlatinum: false,
-              },
-            ] as AchievementNotificationInfo[]
+            [generateAchievementCustomNotificationTest(t, language)]
           );
         }, 1000);
       }
@@ -419,7 +402,7 @@ export class WindowManager {
       }
 
       const editorWindow = new BrowserWindow({
-        width: 600,
+        width: 720,
         height: 720,
         minWidth: 600,
         minHeight: 540,

@@ -16,6 +16,7 @@ import {
 import { charMap } from "./char-map";
 import { Downloader } from "./constants";
 import { format } from "date-fns";
+import { AchievementNotificationInfo } from "@types";
 
 export * from "./constants";
 
@@ -174,4 +175,25 @@ export const formatDate = (
 ): string => {
   if (isNaN(new Date(date).getDate())) return "N/A";
   return format(date, language == "en" ? "MM-dd-yyyy" : "dd/MM/yyyy");
+};
+
+export const generateAchievementCustomNotificationTest = (
+  t: any,
+  language?: string
+): AchievementNotificationInfo => {
+  return {
+    title: t("test_achievement_notification_title", {
+      ns: "notifications",
+      lng: language ?? "en",
+    }),
+    description: t("test_achievement_notification_description", {
+      ns: "notifications",
+      lng: language ?? "en",
+    }),
+    iconUrl: "https://cdn.losbroxas.org/favicon.svg",
+    points: 100,
+    isHidden: false,
+    isRare: false,
+    isPlatinum: false,
+  };
 };

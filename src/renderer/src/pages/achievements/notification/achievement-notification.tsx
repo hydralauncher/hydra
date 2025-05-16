@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import achievementSound from "@renderer/assets/audio/achievement.wav";
 import { useTranslation } from "react-i18next";
-import cn from "classnames";
-import "./achievement-notification.scss";
 import {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
 } from "@types";
+import { injectCustomCss } from "@renderer/helpers";
+import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
 
-const NOTIFICATION_TIMEOUT = 4000;
+const NOTIFICATION_TIMEOUT = 40000;
 
 export function AchievementNotification() {
   const { t } = useTranslation("achievement");
@@ -51,8 +51,7 @@ export function AchievementNotification() {
             isRare: false,
             isPlatinum: false,
             points: 0,
-            iconUrl:
-              "https://avatars.githubusercontent.com/u/164102380?s=400&u=01a13a7b4f0c642f7e547b8e1d70440ea06fa750&v=4",
+            iconUrl: "https://cdn.losbroxas.org/favicon.svg",
           },
         ]);
 
@@ -133,37 +132,32 @@ export function AchievementNotification() {
     }
   }, [achievements]);
 
+  useEffect(() => {
+    const loadAndApplyTheme = async () => {
+      const activeTheme = await window.electron.getActiveCustomTheme();
+      console.log("activeTheme", activeTheme);
+      if (activeTheme?.code) {
+        injectCustomCss(activeTheme.code);
+      }
+    };
+    loadAndApplyTheme();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onCssInjected((cssString) => {
+      injectCustomCss(cssString);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   if (!isVisible || !currentAchievement) return null;
 
   return (
-    <div
-      className={cn("achievement-notification", {
-        [position]: true,
-        closing: isClosing,
-      })}
-    >
-      <div
-        className={cn("achievement-notification__container", {
-          [position]: true,
-          closing: isClosing,
-        })}
-      >
-        <div className="achievement-notification__content">
-          <img
-            src={currentAchievement.iconUrl}
-            alt={currentAchievement.title}
-            className="achievement-notification__icon"
-          />
-          <div className="achievement-notification__text-container">
-            <p className="achievement-notification__title">
-              {currentAchievement.title}
-            </p>
-            <p className="achievement-notification__description">
-              {currentAchievement.description}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <AchievementNotificationItem
+      currentAchievement={currentAchievement}
+      isClosing={isClosing}
+      position={position}
+    />
   );
 }
