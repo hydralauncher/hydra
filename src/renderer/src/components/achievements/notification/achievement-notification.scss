@@ -274,40 +274,83 @@ $margin-bottom: 28px;
     left: 0;
     width: 80px;
     height: 80px;
+  }
 
-    &__dark {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      width: 64px;
-      height: 64px;
-      background: #000;
-      opacity: 0;
-      z-index: 1;
-      animation: dark-overlay 900ms ease-in-out;
-    }
+  &__dark-overlay {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 64px;
+    height: 64px;
+    background: #000;
+    opacity: 0;
+    z-index: 1;
+    animation: dark-overlay 900ms ease-in-out;
+  }
 
-    &__trophy {
-      position: absolute;
-      top: 22px;
-      left: 22px;
-      width: 36px;
-      height: 36px;
-      opacity: 0;
-      z-index: 1;
-      animation: trophy-out 900ms ease-in-out;
-    }
+  &__trophy-overlay {
+    position: absolute;
+    mask-image: url("/src/assets/icons/trophy.svg");
+    top: 22px;
+    left: 22px;
+    width: 36px;
+    height: 36px;
+    opacity: 0;
+    z-index: 1;
+    animation: trophy-out 900ms ease-in-out;
+    background: #fff;
+  }
 
-    &__ellipses {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      width: 64px;
-      height: 64px;
-      z-index: 2;
-      opacity: 0;
-      animation: ellipses-out 900ms ease-in-out;
-    }
+  &--rare &__trophy-overlay {
+    background: linear-gradient(
+        118deg,
+        #e8ad15 18.96%,
+        #d5900f 26.41%,
+        #e8ad15 29.99%,
+        #e4aa15 38.89%,
+        #ca890e 42.43%,
+        #ca880e 46.59%,
+        #ecbe1a 50.08%,
+        #ecbd1a 53.48%,
+        #b3790d 57.39%,
+        #66470a 75.64%,
+        #a37a13 78.2%,
+        #987112 79.28%,
+        #503808 83.6%,
+        #3e2d08 85.77%
+      ),
+      #fff;
+  }
+
+  &--platinum &__trophy-overlay {
+    background: linear-gradient(
+      118deg,
+      #15e8d6 18.96%,
+      #0fd5a7 26.41%,
+      #15e8b7 29.99%,
+      #15e4b4 38.89%,
+      #0eca7f 42.43%,
+      #0eca9e 46.59%,
+      #1aecbb 50.08%,
+      #1aecb0 53.48%,
+      #0db392 57.39%,
+      #0a6648 75.64%,
+      #13a38b 78.2%,
+      #129862 79.28%,
+      #085042 83.6%,
+      #083e31 85.77%
+    );
+  }
+
+  &__ellipses-overlay {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 64px;
+    height: 64px;
+    z-index: 2;
+    opacity: 0;
+    animation: ellipses-out 900ms ease-in-out;
   }
 
   &__text-container {
