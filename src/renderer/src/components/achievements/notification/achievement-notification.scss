@@ -129,12 +129,23 @@ $margin-vertical: 52px;
   }
 }
 
+@keyframes shine {
+  from {
+    transform: translateX(0px) rotate(36deg);
+  }
+  to {
+    transform: translateX(420px) rotate(36deg);
+  }
+}
+
 .achievement-notification {
   width: 360px;
   height: 192px;
 
-  &.closing * {
-    animation: none;
+  &.closing *,
+  &.closing *::before,
+  &.closing *::after {
+    animation: none !important;
   }
 
   .achievement-notification__outer-container {
@@ -219,7 +230,23 @@ $margin-vertical: 52px;
   }
 
   &.isPlatinum &__container {
-    background: linear-gradient(94deg, #1c1c1c 0.38%, #044838 99.62%), #1c1c1c;
+    background: linear-gradient(94deg, #1c1c1c -25%, #044838 100%);
+  }
+
+  &.isRare &__container {
+    &::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -60px;
+      width: 29px;
+      height: 134px;
+      transform: translateX(0px) rotate(36deg);
+      opacity: 0.2;
+      background: #d9d9d9;
+      filter: blur(8px);
+      animation: shine 450ms ease-in-out 1350ms;
+    }
   }
 
   &__content {
@@ -228,15 +255,27 @@ $margin-vertical: 52px;
     gap: 8px;
     align-items: center;
     width: 100%;
+    z-index: 1;
   }
 
   &__icon {
+    box-sizing: border-box;
     min-width: 64px;
     min-height: 64px;
-    max-width: 64px;
-    max-height: 64px;
+    width: 64px;
+    height: 64px;
     border-radius: 2px;
     flex: 1;
+  }
+
+  &.isRare &__icon {
+    outline: 1px solid #f4a510;
+    box-shadow: 0px 0px 12px 0px rgba(244, 165, 16, 0.25);
+  }
+
+  &.isPlatinum &__icon {
+    outline: 1px solid #0cf1ca;
+    box-shadow: 0px 0px 12px 0px rgba(12, 241, 202, 0.25);
   }
 
   &__text-container {
@@ -257,12 +296,19 @@ $margin-vertical: 52px;
     animation: title-in 450ms ease-in-out 900ms;
   }
 
+  &__hidden-icon {
+    margin-right: 4px;
+    opacity: 0.5;
+  }
+
   &__description {
     font-size: 14px;
     font-weight: 400;
-    white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
+    -webkit-line-clamp: 2; /* number of lines to show */
+    line-clamp: 2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
     color: globals.$body-color;
     animation: description-in 450ms ease-in-out 900ms;
   }
