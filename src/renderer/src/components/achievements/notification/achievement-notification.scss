@@ -133,6 +133,10 @@ $margin-vertical: 52px;
   width: 360px;
   height: 192px;
 
+  &.closing * {
+    animation: none;
+  }
+
   .achievement-notification__outer-container {
     position: relative;
     display: grid;
@@ -144,31 +148,6 @@ $margin-vertical: 52px;
       content-wait 450ms ease-in-out 450ms,
       content-expand 450ms ease-in-out 900ms;
     box-shadow: 0px 2px 16px 0px rgba(0, 0, 0, 0.25);
-
-    &::before {
-      content: "";
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      width: 64px;
-      height: 64px;
-      z-index: 2;
-      opacity: 0;
-      background: url("/src/assets/icons/ellipses.png");
-      background-size: contain;
-      animation: ellipses-out 900ms ease-in-out;
-    }
-
-    &::after {
-      content: "";
-      position: absolute;
-      top: 0px;
-      width: 80px;
-      height: 80px;
-      opacity: 0;
-      background: url("/src/assets/icons/trophy.png") no-repeat center;
-      animation: trophy-out 900ms ease-in-out;
-    }
 
     &.top_left {
       margin: $margin-vertical 0 0 $margin-horizontal;
@@ -199,14 +178,6 @@ $margin-vertical: 52px;
     &.closing {
       animation: content-out 450ms ease-in-out;
       animation-fill-mode: forwards;
-
-      &::before {
-        animation: none;
-      }
-
-      &::after {
-        animation: none;
-      }
     }
   }
 
@@ -247,29 +218,23 @@ $margin-vertical: 52px;
     }
   }
 
+  &.isPlatinum &__container {
+    background: linear-gradient(94deg, #1c1c1c 0.38%, #044838 99.62%), #1c1c1c;
+  }
+
   &__content {
     display: flex;
     flex-direction: row;
     gap: 8px;
     align-items: center;
     width: 100%;
-    overflow: hidden;
-    position: relative;
-
-    &::after {
-      content: "";
-      position: absolute;
-      width: 64px;
-      height: 64px;
-      background: #000;
-      opacity: 0;
-      animation: dark-overlay 900ms ease-in-out;
-    }
   }
 
   &__icon {
     min-width: 64px;
     min-height: 64px;
+    max-width: 64px;
+    max-height: 64px;
     border-radius: 2px;
     flex: 1;
   }
@@ -340,6 +305,46 @@ $margin-vertical: 52px;
     }
   }
 
+  &__additional-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 80px;
+    height: 80px;
+
+    &__dark {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      width: 64px;
+      height: 64px;
+      background: #000;
+      opacity: 0;
+      animation: dark-overlay 900ms ease-in-out;
+    }
+
+    &__trophy {
+      position: absolute;
+      top: 22px;
+      left: 22px;
+      width: 36px;
+      height: 36px;
+      opacity: 0;
+      animation: trophy-out 900ms ease-in-out;
+    }
+
+    &__ellipses {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      width: 64px;
+      height: 64px;
+      z-index: 2;
+      opacity: 0;
+      animation: ellipses-out 900ms ease-in-out;
+    }
+  }
+
   &__chip {
     position: absolute;
     top: -12px;
@@ -367,5 +372,61 @@ $margin-vertical: 52px;
       color: globals.$background-color;
       font-weight: 700;
     }
+  }
+
+  &.isRare &__chip {
+    &__icon {
+      path {
+        fill: #fff;
+      }
+    }
+    &__label {
+      color: #fff;
+    }
+    background: linear-gradient(
+      118deg,
+      #e8ad15 18.96%,
+      #d5900f 26.41%,
+      #e8ad15 29.99%,
+      #e4aa15 38.89%,
+      #ca890e 42.43%,
+      #ca880e 46.59%,
+      #ecbe1a 50.08%,
+      #ecbd1a 53.48%,
+      #b3790d 57.39%,
+      #66470a 75.64%,
+      #a37a13 78.2%,
+      #987112 79.28%,
+      #503808 83.6%,
+      #3e2d08 85.77%
+    );
+  }
+
+  &.isPlatinum &__chip {
+    &__icon {
+      path {
+        fill: #fff;
+      }
+    }
+    &__label {
+      color: #fff;
+    }
+    background: linear-gradient(
+      118deg,
+      #15e8d6 18.96%,
+      #0fd5a7 26.41%,
+      #15e8b7 29.99%,
+      #15e4b4 38.89%,
+      #0eca7f 42.43%,
+      #0eca9e 46.59%,
+      #1aecbb 50.08%,
+      #1aecb0 53.48%,
+      #0db392 57.39%,
+      #0a6648 75.64%,
+      #13a38b 78.2%,
+      #129862 79.28%,
+      #085042 83.6%,
+      #083e31 85.77%
+    );
   }
 }

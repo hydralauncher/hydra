@@ -22,6 +22,9 @@ export function AchievementNotificationItem({
       className={cn("achievement-notification", {
         [position]: true,
         closing: isClosing,
+        isHidden: achievement.isHidden,
+        isRare: achievement.isRare,
+        isPlatinum: achievement.isPlatinum,
       })}
     >
       {achievement.points && (
@@ -53,6 +56,7 @@ export function AchievementNotificationItem({
           })}
         >
           <div className="achievement-notification__content">
+            <div className="achievement-notification__icon-border"></div>
             <img
               src={achievement.iconUrl}
               alt={achievement.title}
@@ -66,6 +70,20 @@ export function AchievementNotificationItem({
                 {achievement.description}
               </p>
             </div>
+          </div>
+
+          <div className="achievement-notification__additional-overlay">
+            <div className="achievement-notification__additional-overlay__dark"></div>
+            <img
+              className="achievement-notification__additional-overlay__ellipses"
+              src="/src/assets/icons/ellipses.png"
+              alt="Ellipses effect"
+            />
+            <img
+              className="achievement-notification__additional-overlay__trophy"
+              src="/src/assets/icons/trophy.png"
+              alt="Trophy effect"
+            />
           </div>
         </div>
       </div>
