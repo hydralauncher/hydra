@@ -277,12 +277,24 @@ export function SettingsGeneral() {
 
       {form.achievementNotificationsEnabled &&
         form.achievementCustomNotificationsEnabled && (
-          <SelectField
-            label={t("achievement_custom_notification_position")}
-            value={form.achievementCustomNotificationPosition}
-            onChange={handleChangeAchievementCustomNotificationPosition}
-            options={achievementCustomNotificationPositionOptions}
-          />
+          <>
+            <SelectField
+              className="settings-general__achievement-custom-notification-position__select-variation"
+              label={t("achievement_custom_notification_position")}
+              value={form.achievementCustomNotificationPosition}
+              onChange={handleChangeAchievementCustomNotificationPosition}
+              options={achievementCustomNotificationPositionOptions}
+            />
+
+            <Button
+              className="settings-general__test-achievement-notification-button"
+              onClick={() =>
+                window.electron.updateAchievementCustomNotificationWindow()
+              }
+            >
+              Test Notification
+            </Button>
+          </>
         )}
 
       <h2 className="settings-general__section-title">{t("common_redist")}</h2>
