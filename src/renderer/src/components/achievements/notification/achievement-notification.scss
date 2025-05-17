@@ -1,7 +1,8 @@
 @use "../../../scss/globals.scss";
 
 $margin-horizontal: 40px;
-$margin-vertical: 52px;
+$margin-top: 52px;
+$margin-bottom: 28px;
 
 @keyframes content-in {
   0% {
@@ -141,11 +142,41 @@ $margin-vertical: 52px;
 .achievement-notification {
   width: 360px;
   height: 192px;
+  display: flex;
 
-  &.closing *,
+  &.closing * {
+    animation: none;
+  }
+
   &.closing *::before,
   &.closing *::after {
     animation: none !important;
+  }
+
+  &.top_left {
+    align-items: start;
+  }
+
+  &.top_center {
+    align-items: start;
+  }
+
+  &.top_right {
+    justify-content: end;
+    align-items: start;
+  }
+
+  &.bottom_left {
+    align-items: end;
+  }
+
+  &.bottom_center {
+    align-items: end;
+  }
+
+  &.bottom_right {
+    justify-content: end;
+    align-items: end;
   }
 
   .achievement-notification__outer-container {
@@ -161,35 +192,33 @@ $margin-vertical: 52px;
     box-shadow: 0px 2px 16px 0px rgba(0, 0, 0, 0.25);
 
     &.top_left {
-      margin: $margin-vertical 0 0 $margin-horizontal;
+      margin: $margin-top 0 0 $margin-horizontal;
     }
 
     &.top_center {
-      margin: $margin-vertical 0 0 $margin-horizontal;
+      margin: $margin-top 0 0 $margin-horizontal;
     }
 
     &.top_right {
-      margin: $margin-vertical $margin-horizontal 0 0;
-      align-self: end;
+      margin: $margin-top $margin-horizontal 0 0;
     }
 
     &.bottom_left {
-      margin: 0 0 $margin-vertical $margin-horizontal;
+      margin: 0 0 $margin-bottom $margin-horizontal;
     }
 
     &.bottom_center {
-      margin: 0 0 $margin-vertical $margin-horizontal;
+      margin: 0 0 $margin-bottom $margin-horizontal;
     }
 
     &.bottom_right {
-      margin: 0 $margin-horizontal $margin-vertical 0;
-      align-self: end;
+      margin: 0 $margin-horizontal $margin-bottom 0;
     }
+  }
 
-    &.closing {
-      animation: content-out 450ms ease-in-out;
-      animation-fill-mode: forwards;
-    }
+  &.closing .achievement-notification__outer-container {
+    animation: content-out 450ms ease-in-out;
+    animation-fill-mode: forwards;
   }
 
   &__container {
@@ -278,79 +307,6 @@ $margin-vertical: 52px;
     box-shadow: 0px 0px 12px 0px rgba(12, 241, 202, 0.25);
   }
 
-  &__text-container {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    width: 100%;
-    overflow: hidden;
-  }
-
-  &__title {
-    font-size: 14px;
-    font-weight: 700;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: globals.$muted-color;
-    animation: title-in 450ms ease-in-out 900ms;
-  }
-
-  &__hidden-icon {
-    margin-right: 4px;
-    opacity: 0.5;
-  }
-
-  &__description {
-    font-size: 14px;
-    font-weight: 400;
-    overflow: hidden;
-    -webkit-line-clamp: 2; /* number of lines to show */
-    line-clamp: 2;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    color: globals.$body-color;
-    animation: description-in 450ms ease-in-out 900ms;
-  }
-
-  &__chip-container {
-    position: relative;
-    z-index: 2;
-
-    animation:
-      chip-stand-by 900ms,
-      chip-in 300ms ease-in-out 900ms;
-
-    &.closing {
-      animation: content-out 450ms ease-in-out;
-      animation-fill-mode: forwards;
-    }
-
-    &.top_left {
-      margin: $margin-vertical 0 0 $margin-horizontal;
-    }
-
-    &.top_center {
-      margin: $margin-vertical 0 0 $margin-horizontal;
-    }
-
-    &.top_right {
-      margin: $margin-vertical $margin-horizontal 0 0;
-    }
-
-    &.bottom_left {
-      margin: 0 0 $margin-vertical $margin-horizontal;
-    }
-
-    &.bottom_center {
-      margin: 0 0 $margin-vertical $margin-horizontal;
-    }
-
-    &.bottom_right {
-      margin: 0 $margin-horizontal $margin-vertical 0;
-    }
-  }
-
   &__additional-overlay {
     position: absolute;
     top: 0;
@@ -391,9 +347,49 @@ $margin-vertical: 52px;
     }
   }
 
+  &__text-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: globals.$muted-color;
+    animation: title-in 450ms ease-in-out 900ms;
+  }
+
+  &__hidden-icon {
+    margin-right: 4px;
+    opacity: 0.5;
+  }
+
+  &__description {
+    font-size: 14px;
+    font-weight: 400;
+    overflow: hidden;
+    -webkit-line-clamp: 2; /* number of lines to show */
+    line-clamp: 2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    color: globals.$body-color;
+    animation: description-in 450ms ease-in-out 900ms;
+  }
+
+  &.closing &__chip {
+    animation: content-out 450ms ease-in-out;
+    animation-fill-mode: forwards;
+  }
+
   &__chip {
     position: absolute;
-    top: -12px;
+
     right: 8px;
     display: flex;
     gap: 4px;
@@ -405,6 +401,37 @@ $margin-vertical: 52px;
     animation:
       chip-stand-by 900ms ease-in-out,
       chip-in 450ms ease-in-out 900ms;
+    z-index: 2;
+
+    &.top_left {
+      top: -12px;
+      margin: $margin-top 0 0 $margin-horizontal;
+    }
+
+    &.top_center {
+      top: -12px;
+      margin: $margin-top 0 0 $margin-horizontal;
+    }
+
+    &.top_right {
+      top: -12px;
+      margin: $margin-top $margin-horizontal 0 0;
+    }
+
+    &.bottom_left {
+      bottom: 70px;
+      margin: 0 0 $margin-bottom $margin-horizontal;
+    }
+
+    &.bottom_center {
+      bottom: 70px;
+      margin: 0 0 $margin-bottom $margin-horizontal;
+    }
+
+    &.bottom_right {
+      bottom: 70px;
+      margin: 0 $margin-horizontal $margin-bottom 0;
+    }
 
     &__icon {
       width: 16px;
