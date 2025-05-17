@@ -16,7 +16,7 @@ const updateAchievementCustomNotificationWindow = async (
   WindowManager.closeNotificationWindow();
 
   if (
-    userPreferences.achievementNotificationsEnabled &&
+    userPreferences.achievementNotificationsEnabled !== false &&
     userPreferences.achievementCustomNotificationsEnabled !== false
   ) {
     WindowManager.createNotificationWindow();

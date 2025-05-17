@@ -38,7 +38,7 @@ export function SettingsGeneral() {
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
     friendRequestNotificationsEnabled: false,
-    achievementNotificationsEnabled: false,
+    achievementNotificationsEnabled: true,
     achievementCustomNotificationsEnabled: true,
     achievementCustomNotificationPosition:
       "top-left" as AchievementCustomNotificationPosition,
@@ -104,7 +104,7 @@ export function SettingsGeneral() {
         repackUpdatesNotificationsEnabled:
           userPreferences.repackUpdatesNotificationsEnabled ?? false,
         achievementNotificationsEnabled:
-          userPreferences.achievementNotificationsEnabled ?? false,
+          userPreferences.achievementNotificationsEnabled ?? true,
         achievementCustomNotificationsEnabled:
           userPreferences.achievementCustomNotificationsEnabled ?? true,
         achievementCustomNotificationPosition:

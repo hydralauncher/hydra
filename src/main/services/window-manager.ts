@@ -333,14 +333,22 @@ export class WindowManager {
   public static async createNotificationWindow() {
     if (this.notificationWindow) return;
 
-    const userPreferences = await db.get<string, UserPreferences>(
+    const userPreferences = await db.get<string, UserPreferences | undefined>(
       levelKeys.userPreferences,
       {
         valueEncoding: "json",
       }
     );
+
+    if (
+      userPreferences?.achievementNotificationsEnabled === false ||
+      userPreferences?.achievementCustomNotificationsEnabled === false
+    ) {
+      return;
+    }
+
     const { x, y } = await this.getNotificationWindowPosition(
-      userPreferences.achievementCustomNotificationPosition
+      userPreferences?.achievementCustomNotificationPosition
     );
 
     this.notificationWindow = new BrowserWindow({
