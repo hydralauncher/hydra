@@ -144,12 +144,12 @@ $margin-bottom: 28px;
   height: 192px;
   display: flex;
 
-  &.closing * {
+  &--closing * {
     animation: none;
   }
 
-  &.closing *::before,
-  &.closing *::after {
+  &--closing *::before,
+  &--closing *::after {
     animation: none !important;
   }
 
@@ -179,7 +179,7 @@ $margin-bottom: 28px;
     align-items: end;
   }
 
-  .achievement-notification__outer-container {
+  &__outer-container {
     position: relative;
     display: grid;
     width: calc(360px - $margin-horizontal);
@@ -190,33 +190,33 @@ $margin-bottom: 28px;
       content-wait 450ms ease-in-out 450ms,
       content-expand 450ms ease-in-out 900ms;
     box-shadow: 0px 2px 16px 0px rgba(0, 0, 0, 0.25);
-
-    &.top_left {
-      margin: $margin-top 0 0 $margin-horizontal;
-    }
-
-    &.top_center {
-      margin: $margin-top 0 0 $margin-horizontal;
-    }
-
-    &.top_right {
-      margin: $margin-top $margin-horizontal 0 0;
-    }
-
-    &.bottom_left {
-      margin: 0 0 $margin-bottom $margin-horizontal;
-    }
-
-    &.bottom_center {
-      margin: 0 0 $margin-bottom $margin-horizontal;
-    }
-
-    &.bottom_right {
-      margin: 0 $margin-horizontal $margin-bottom 0;
-    }
   }
 
-  &.closing .achievement-notification__outer-container {
+  &.top_left &__outer-container {
+    margin: $margin-top 0 0 $margin-horizontal;
+  }
+
+  &.top_center &__outer-container {
+    margin: $margin-top 0 0 $margin-horizontal;
+  }
+
+  &.top_right &__outer-container {
+    margin: $margin-top $margin-horizontal 0 0;
+  }
+
+  &.bottom_left &__outer-container {
+    margin: 0 0 $margin-bottom $margin-horizontal;
+  }
+
+  &.bottom_center &__outer-container {
+    margin: 0 0 $margin-bottom $margin-horizontal;
+  }
+
+  &.bottom_right &__outer-container {
+    margin: 0 $margin-horizontal $margin-bottom 0;
+  }
+
+  &--closing .achievement-notification__outer-container {
     animation: content-out 450ms ease-in-out;
     animation-fill-mode: forwards;
   }
@@ -226,43 +226,13 @@ $margin-bottom: 28px;
     display: flex;
     padding: 8px 16px 8px 8px;
     background: globals.$background-color;
-
-    &.top_left {
-      align-self: flex-start;
-      justify-self: flex-start;
-    }
-
-    &.top_center {
-      align-self: flex-start;
-      justify-self: center;
-    }
-
-    &.top_right {
-      align-self: flex-start;
-      justify-self: flex-end;
-    }
-
-    &.bottom_left {
-      align-self: flex-end;
-      justify-self: flex-start;
-    }
-
-    &.bottom_center {
-      align-self: flex-end;
-      justify-self: center;
-    }
-
-    &.bottom_right {
-      align-self: flex-end;
-      justify-self: flex-end;
-    }
   }
 
-  &.isPlatinum &__container {
+  &--platinum &__container {
     background: linear-gradient(94deg, #1c1c1c -25%, #044838 100%);
   }
 
-  &.isRare &__container {
+  &--rare &__container {
     &::before {
       content: "";
       position: absolute;
@@ -297,12 +267,12 @@ $margin-bottom: 28px;
     flex: 1;
   }
 
-  &.isRare &__icon {
+  &--rare &__icon {
     outline: 1px solid #f4a510;
     box-shadow: 0px 0px 12px 0px rgba(244, 165, 16, 0.25);
   }
 
-  &.isPlatinum &__icon {
+  &--platinum &__icon {
     outline: 1px solid #0cf1ca;
     box-shadow: 0px 0px 12px 0px rgba(12, 241, 202, 0.25);
   }
@@ -382,7 +352,7 @@ $margin-bottom: 28px;
     animation: description-in 450ms ease-in-out 900ms;
   }
 
-  &.closing &__chip {
+  &--closing &__chip {
     animation: content-out 450ms ease-in-out;
     animation-fill-mode: forwards;
   }
@@ -403,36 +373,6 @@ $margin-bottom: 28px;
       chip-in 450ms ease-in-out 900ms;
     z-index: 2;
 
-    &.top_left {
-      top: -12px;
-      margin: $margin-top 0 0 $margin-horizontal;
-    }
-
-    &.top_center {
-      top: -12px;
-      margin: $margin-top 0 0 $margin-horizontal;
-    }
-
-    &.top_right {
-      top: -12px;
-      margin: $margin-top $margin-horizontal 0 0;
-    }
-
-    &.bottom_left {
-      bottom: 70px;
-      margin: 0 0 $margin-bottom $margin-horizontal;
-    }
-
-    &.bottom_center {
-      bottom: 70px;
-      margin: 0 0 $margin-bottom $margin-horizontal;
-    }
-
-    &.bottom_right {
-      bottom: 70px;
-      margin: 0 $margin-horizontal $margin-bottom 0;
-    }
-
     &__icon {
       width: 16px;
       height: 16px;
@@ -447,7 +387,37 @@ $margin-bottom: 28px;
     }
   }
 
-  &.isRare &__chip {
+  &.top_left &__chip {
+    top: -12px;
+    margin: $margin-top 0 0 $margin-horizontal;
+  }
+
+  &.top_center &__chip {
+    top: -12px;
+    margin: $margin-top 0 0 $margin-horizontal;
+  }
+
+  &.top_right &__chip {
+    top: -12px;
+    margin: $margin-top $margin-horizontal 0 0;
+  }
+
+  &.bottom_left &__chip {
+    bottom: 70px;
+    margin: 0 0 $margin-bottom $margin-horizontal;
+  }
+
+  &.bottom_center &__chip {
+    bottom: 70px;
+    margin: 0 0 $margin-bottom $margin-horizontal;
+  }
+
+  &.bottom_right &__chip {
+    bottom: 70px;
+    margin: 0 $margin-horizontal $margin-bottom 0;
+  }
+
+  &--rare &__chip {
     &__icon {
       path {
         fill: #fff;
@@ -475,7 +445,7 @@ $margin-bottom: 28px;
     );
   }
 
-  &.isPlatinum &__chip {
+  &--platinum &__chip {
     &__icon {
       path {
         fill: #fff;

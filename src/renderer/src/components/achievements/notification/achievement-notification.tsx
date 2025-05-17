@@ -18,22 +18,20 @@ export function AchievementNotificationItem({
   achievement,
   isClosing,
 }: Readonly<AchievementNotificationProps>) {
+  const baseClassName = "achievement-notification";
+
   return (
     <div
       className={cn("achievement-notification", {
         [position]: true,
-        closing: isClosing,
-        isHidden: achievement.isHidden,
-        isRare: achievement.isRare,
-        isPlatinum: achievement.isPlatinum,
+        [`${baseClassName}--closing`]: isClosing,
+        [`${baseClassName}--hidden`]: achievement.isHidden,
+        [`${baseClassName}--rare`]: achievement.isRare,
+        [`${baseClassName}--platinum`]: achievement.isPlatinum,
       })}
     >
       {achievement.points && (
-        <div
-          className={cn("achievement-notification__chip", {
-            [position]: true,
-          })}
-        >
+        <div className="achievement-notification__chip">
           <HydraIcon className="achievement-notification__chip__icon" />
           <span className="achievement-notification__chip__label">
             +{achievement.points}
@@ -41,16 +39,8 @@ export function AchievementNotificationItem({
         </div>
       )}
 
-      <div
-        className={cn("achievement-notification__outer-container", {
-          [position]: true,
-        })}
-      >
-        <div
-          className={cn("achievement-notification__container", {
-            [position]: true,
-          })}
-        >
+      <div className="achievement-notification__outer-container">
+        <div className="achievement-notification__container">
           <div className="achievement-notification__content">
             <img
               src={achievement.iconUrl}
