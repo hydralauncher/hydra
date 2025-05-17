@@ -41,7 +41,7 @@ export function SettingsGeneral() {
     achievementNotificationsEnabled: false,
     achievementCustomNotificationsEnabled: true,
     achievementCustomNotificationPosition:
-      "top_left" as AchievementCustomNotificationPosition,
+      "top-left" as AchievementCustomNotificationPosition,
     language: "",
     customStyles: window.localStorage.getItem("customStyles") || "",
   });
@@ -108,7 +108,7 @@ export function SettingsGeneral() {
         achievementCustomNotificationsEnabled:
           userPreferences.achievementCustomNotificationsEnabled ?? true,
         achievementCustomNotificationPosition:
-          userPreferences.achievementCustomNotificationPosition ?? "top_left",
+          userPreferences.achievementCustomNotificationPosition ?? "top-left",
         friendRequestNotificationsEnabled:
           userPreferences.friendRequestNotificationsEnabled ?? false,
         language: language ?? "en",
@@ -118,12 +118,12 @@ export function SettingsGeneral() {
 
   const achievementCustomNotificationPositionOptions = useMemo(() => {
     return [
-      "top_left",
-      "top_center",
-      "top_right",
-      "bottom_left",
-      "bottom_center",
-      "bottom_right",
+      "top-left",
+      "top-center",
+      "top-right",
+      "bottom-left",
+      "bottom-center",
+      "bottom-right",
     ].map((position) => ({
       key: position,
       value: position,

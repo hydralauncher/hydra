@@ -281,7 +281,7 @@ export class AchievementWatcherManager {
               totalNewGamesWithAchievements,
               totalNewAchievements,
               userPreferences.achievementCustomNotificationPosition ??
-                "top_left"
+                "top-left"
             );
           } else {
             publishCombinedNewAchievementNotification(

@@ -34,7 +34,7 @@ export default function ThemeEditor() {
   const [notificationVariation, setNotificationVariation] =
     useState<keyof typeof notificationVariations>("default");
   const [notificationAlignment, setNotificationAlignment] =
-    useState<AchievementCustomNotificationPosition>("top_left");
+    useState<AchievementCustomNotificationPosition>("top-left");
 
   const achievementPreview = useMemo(() => {
     return {
@@ -99,12 +99,12 @@ export default function ThemeEditor() {
 
   const achievementCustomNotificationPositionOptions = useMemo(() => {
     return [
-      "top_left",
-      "top_center",
-      "top_right",
-      "bottom_left",
-      "bottom_center",
-      "bottom_right",
+      "top-left",
+      "top-center",
+      "top-right",
+      "bottom-left",
+      "bottom-center",
+      "bottom-right",
     ].map((position) => ({
       key: position,
       value: position,

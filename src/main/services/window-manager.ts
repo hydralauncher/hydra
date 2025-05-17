@@ -289,35 +289,35 @@ export class WindowManager {
     const display = screen.getPrimaryDisplay();
     const { width, height } = display.workAreaSize;
 
-    if (position === "bottom_center") {
+    if (position === "bottom-center") {
       return {
         x: (width - this.NOTIFICATION_WINDOW_WIDTH) / 2,
         y: height - this.NOTIFICATION_WINDOW_HEIGHT,
       };
     }
 
-    if (position === "bottom_right") {
+    if (position === "bottom-right") {
       return {
         x: width - this.NOTIFICATION_WINDOW_WIDTH,
         y: height - this.NOTIFICATION_WINDOW_HEIGHT,
       };
     }
 
-    if (position === "top_center") {
+    if (position === "top-center") {
       return {
         x: (width - this.NOTIFICATION_WINDOW_WIDTH) / 2,
         y: 0,
       };
     }
 
-    if (position === "bottom_left") {
+    if (position === "bottom-left") {
       return {
         x: 0,
         y: height - this.NOTIFICATION_WINDOW_HEIGHT,
       };
     }
 
-    if (position === "top_right") {
+    if (position === "top-right") {
       return {
         x: width - this.NOTIFICATION_WINDOW_WIDTH,
         y: 0,
@@ -375,7 +375,7 @@ export class WindowManager {
         setTimeout(() => {
           this.notificationWindow?.webContents.send(
             "on-achievement-unlocked",
-            userPreferences.achievementCustomNotificationPosition ?? "top_left",
+            userPreferences.achievementCustomNotificationPosition ?? "top-left",
             [generateAchievementCustomNotificationTest(t, language)]
           );
         }, 1000);

@@ -71,12 +71,12 @@ export interface GameAchievement {
 }
 
 export type AchievementCustomNotificationPosition =
-  | "top_left"
-  | "top_center"
-  | "top_right"
-  | "bottom_left"
-  | "bottom_center"
-  | "bottom_right";
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right";
 
 export interface UserPreferences {
   downloadsPath?: string | null;

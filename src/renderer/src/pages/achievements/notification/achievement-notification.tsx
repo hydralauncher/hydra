@@ -16,7 +16,7 @@ export function AchievementNotification() {
   const [isClosing, setIsClosing] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] =
-    useState<AchievementCustomNotificationPosition>("top_left");
+    useState<AchievementCustomNotificationPosition>("top-left");
 
   const [achievements, setAchievements] = useState<
     AchievementNotificationInfo[]
