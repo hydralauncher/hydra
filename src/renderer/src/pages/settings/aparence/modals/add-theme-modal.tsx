@@ -50,16 +50,6 @@ const DEFAULT_THEME_CODE = `/*
 
 /* Button */
 .button {}
-
-/* Custom Achievement Notification */
-.achievement-notification {}
-.achievement-notification__container {}
-.achievement-notification__content {}
-.achievement-notification__icon {}
-.achievement-notification__text-container {}
-.achievement-notification__title {}
-.achievement-notification__description {}
-
 `;
 
 export function AddThemeModal({

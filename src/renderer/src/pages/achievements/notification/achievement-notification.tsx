@@ -8,7 +8,7 @@ import {
 import { injectCustomCss } from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
 
-const NOTIFICATION_TIMEOUT = 40000;
+const NOTIFICATION_TIMEOUT = 4000;
 
 export function AchievementNotification() {
   const { t } = useTranslation("achievement");
