@@ -371,7 +371,13 @@
     "bottom_left": "Bottom left",
     "bottom_center": "Bottom center",
     "bottom_right": "Bottom right",
-    "enable_achievement_custom_notifications": "Enable achievement custom notifications"
+    "enable_achievement_custom_notifications": "Enable achievement custom notifications",
+    "alignment": "Alignment",
+    "variation": "Variation",
+    "default": "Default",
+    "rare": "Rare",
+    "platinum": "Platinum",
+    "hidden": "Hidden"
   },
   "notifications": {
     "download_complete": "Download complete",
