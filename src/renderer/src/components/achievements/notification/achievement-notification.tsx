@@ -6,7 +6,6 @@ import cn from "classnames";
 import "./achievement-notification.scss";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { EyeClosedIcon } from "@primer/octicons-react";
-import Trophy from "@renderer/assets/icons/trophy.png";
 import Ellipses from "@renderer/assets/icons/ellipses.png";
 
 interface AchievementNotificationProps {
@@ -65,17 +64,13 @@ export function AchievementNotificationItem({
           </div>
 
           <div className="achievement-notification__additional-overlay">
-            <div className="achievement-notification__additional-overlay__dark"></div>
+            <div className="achievement-notification__dark-overlay"></div>
             <img
-              className="achievement-notification__additional-overlay__ellipses"
+              className="achievement-notification__ellipses-overlay"
               src={Ellipses}
               alt="Ellipses effect"
             />
-            <img
-              className="achievement-notification__additional-overlay__trophy"
-              src={Trophy}
-              alt="Trophy effect"
-            />
+            <div className="achievement-notification__trophy-overlay"></div>
           </div>
         </div>
       </div>
