@@ -144,28 +144,28 @@ $margin-bottom: 28px;
   height: 192px;
   display: flex;
 
-  &.top_left {
+  &--top-left {
     align-items: start;
   }
 
-  &.top_center {
+  &--top-center {
     align-items: start;
   }
 
-  &.top_right {
+  &--top-right {
     justify-content: end;
     align-items: start;
   }
 
-  &.bottom_left {
+  &--bottom-left {
     align-items: end;
   }
 
-  &.bottom_center {
+  &--bottom-center {
     align-items: end;
   }
 
-  &.bottom_right {
+  &--bottom-right {
     justify-content: end;
     align-items: end;
   }
@@ -183,27 +183,27 @@ $margin-bottom: 28px;
     box-shadow: 0px 2px 16px 0px rgba(0, 0, 0, 0.25);
   }
 
-  &.top_left &__outer-container {
+  &--top-left &__outer-container {
     margin: $margin-top 0 0 $margin-horizontal;
   }
 
-  &.top_center &__outer-container {
+  &--top-center &__outer-container {
     margin: $margin-top 0 0 $margin-horizontal;
   }
 
-  &.top_right &__outer-container {
+  &--top-right &__outer-container {
     margin: $margin-top $margin-horizontal 0 0;
   }
 
-  &.bottom_left &__outer-container {
+  &--bottom-left &__outer-container {
     margin: 0 0 $margin-bottom $margin-horizontal;
   }
 
-  &.bottom_center &__outer-container {
+  &--bottom-center &__outer-container {
     margin: 0 0 $margin-bottom $margin-horizontal;
   }
 
-  &.bottom_right &__outer-container {
+  &--bottom-right &__outer-container {
     margin: 0 $margin-horizontal $margin-bottom 0;
   }
 
@@ -423,32 +423,32 @@ $margin-bottom: 28px;
     }
   }
 
-  &.top_left &__chip {
+  &--top-left &__chip {
     top: -12px;
     margin: $margin-top 0 0 $margin-horizontal;
   }
 
-  &.top_center &__chip {
+  &--top-center &__chip {
     top: -12px;
     margin: $margin-top 0 0 $margin-horizontal;
   }
 
-  &.top_right &__chip {
+  &--top-right &__chip {
     top: -12px;
     margin: $margin-top $margin-horizontal 0 0;
   }
 
-  &.bottom_left &__chip {
+  &--bottom-left &__chip {
     bottom: 70px;
     margin: 0 0 $margin-bottom $margin-horizontal;
   }
 
-  &.bottom_center &__chip {
+  &--bottom-center &__chip {
     bottom: 70px;
     margin: 0 0 $margin-bottom $margin-horizontal;
   }
 
-  &.bottom_right &__chip {
+  &--bottom-right &__chip {
     bottom: 70px;
     margin: 0 $margin-horizontal $margin-bottom 0;
   }

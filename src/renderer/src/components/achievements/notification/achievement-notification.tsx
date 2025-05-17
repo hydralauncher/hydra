@@ -24,7 +24,7 @@ export function AchievementNotificationItem({
   return (
     <div
       className={cn("achievement-notification", {
-        [position]: true,
+        [`${baseClassName}--${position}`]: true,
         [`${baseClassName}--closing`]: isClosing,
         [`${baseClassName}--hidden`]: achievement.isHidden,
         [`${baseClassName}--rare`]: achievement.isRare,

@@ -128,7 +128,7 @@ export const mergeAchievements = async (
     if (userPreferences?.achievementCustomNotificationsEnabled !== false) {
       WindowManager.notificationWindow?.webContents.send(
         "on-achievement-unlocked",
-        userPreferences.achievementCustomNotificationPosition ?? "top_left",
+        userPreferences.achievementCustomNotificationPosition ?? "top-left",
         achievementsInfo
       );
     } else {
