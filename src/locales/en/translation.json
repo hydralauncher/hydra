@@ -363,7 +363,23 @@
     "install_common_redist": "Install",
     "installing_common_redist": "Installing…",
     "show_download_speed_in_megabytes": "Show download speed in megabytes per second",
-    "extract_files_by_default": "Extract files by default after download"
+    "extract_files_by_default": "Extract files by default after download",
+    "achievement_custom_notification_position": "Achievement custom notification position",
+    "top-left": "Top left",
+    "top-center": "Top center",
+    "top-right": "Top right",
+    "bottom-left": "Bottom left",
+    "bottom-center": "Bottom center",
+    "bottom-right": "Bottom right",
+    "enable_achievement_custom_notifications": "Enable achievement custom notifications",
+    "alignment": "Alignment",
+    "variation": "Variation",
+    "default": "Default",
+    "rare": "Rare",
+    "platinum": "Platinum",
+    "hidden": "Hidden",
+    "test_notification": "Test notification",
+    "notification_preview": "Achievement Notification Preview"
   },
   "notifications": {
     "download_complete": "Download complete",
@@ -379,7 +395,9 @@
     "new_friend_request_title": "New friend request",
     "extraction_complete": "Extraction complete",
     "game_extracted": "{{title}} extracted successfully",
-    "friend_started_playing_game": "{{displayName}} started playing a game"
+    "friend_started_playing_game": "{{displayName}} started playing a game",
+    "test_achievement_notification_title": "This is a test notification",
+    "test_achievement_notification_description": "Pretty cool, huh?"
   },
   "system_tray": {
     "open": "Open Hydra",

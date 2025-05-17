@@ -18,6 +18,8 @@ import type {
   FriendRequestSync,
   ShortcutLocation,
   ShopAssets,
+  AchievementCustomNotificationPosition,
+  AchievementNotificationInfo,
 } from "@types";
 import type { AuthPage, CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -208,12 +210,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-library-batch-complete", listener);
     return () =>
       ipcRenderer.removeListener("on-library-batch-complete", listener);
-  },
-  onAchievementUnlocked: (cb: () => void) => {
-    const listener = (_event: Electron.IpcRendererEvent) => cb();
-    ipcRenderer.on("on-achievement-unlocked", listener);
-    return () =>
-      ipcRenderer.removeListener("on-achievement-unlocked", listener);
   },
   onExtractionComplete: (cb: (shop: GameShop, objectId: string) => void) => {
     const listener = (
@@ -412,6 +408,42 @@ contextBridge.exposeInMainWorld("electron", {
   /* Notifications */
   publishNewRepacksNotification: (newRepacksCount: number) =>
     ipcRenderer.invoke("publishNewRepacksNotification", newRepacksCount),
+  onAchievementUnlocked: (
+    cb: (
+      position?: AchievementCustomNotificationPosition,
+      achievements?: AchievementNotificationInfo[]
+    ) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      position?: AchievementCustomNotificationPosition,
+      achievements?: AchievementNotificationInfo[]
+    ) => cb(position, achievements);
+    ipcRenderer.on("on-achievement-unlocked", listener);
+    return () =>
+      ipcRenderer.removeListener("on-achievement-unlocked", listener);
+  },
+  onCombinedAchievementsUnlocked: (
+    cb: (
+      gameCount: number,
+      achievementsCount: number,
+      position: AchievementCustomNotificationPosition
+    ) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      gameCount: number,
+      achievementCount: number,
+      position: AchievementCustomNotificationPosition
+    ) => cb(gameCount, achievementCount, position);
+    ipcRenderer.on("on-combined-achievements-unlocked", listener);
+    return () =>
+      ipcRenderer.removeListener("on-combined-achievements-unlocked", listener);
+  },
+  updateAchievementCustomNotificationWindow: () =>
+    ipcRenderer.invoke("updateAchievementCustomNotificationWindow"),
+  showAchievementTestNotification: () =>
+    ipcRenderer.invoke("showAchievementTestNotification"),
 
   /* Themes */
   addCustomTheme: (theme: Theme) => ipcRenderer.invoke("addCustomTheme", theme),

@@ -30,6 +30,7 @@ import Settings from "./pages/settings/settings";
 import Profile from "./pages/profile/profile";
 import Achievements from "./pages/achievements/achievements";
 import ThemeEditor from "./pages/theme-editor/theme-editor";
+import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
 
 Sentry.init({
   dsn: import.meta.env.RENDERER_VITE_SENTRY_DSN,
@@ -84,6 +85,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           </Route>
 
           <Route path="/theme-editor" element={<ThemeEditor />} />
+          <Route
+            path="/achievement-notification"
+            element={<AchievementNotification />}
+          />
         </Routes>
       </HashRouter>
     </Provider>

@@ -162,7 +162,7 @@ export const publishExtractionCompleteNotification = async (game: Game) => {
 };
 
 export const publishNewAchievementNotification = async (info: {
-  achievements: { displayName: string; iconUrl: string }[];
+  achievements: { title: string; iconUrl: string }[];
   unlockedAchievementCount: number;
   totalAchievementCount: number;
   gameTitle: string;
@@ -176,12 +176,12 @@ export const publishNewAchievementNotification = async (info: {
             gameTitle: info.gameTitle,
             achievementCount: info.achievements.length,
           }),
-          body: info.achievements.map((a) => a.displayName).join(", "),
+          body: info.achievements.map((a) => a.title).join(", "),
           icon: (await downloadImage(info.gameIcon)) ?? icon,
         }
       : {
           title: t("achievement_unlocked", { ns: "achievement" }),
-          body: info.achievements[0].displayName,
+          body: info.achievements[0].title,
           icon: (await downloadImage(info.achievements[0].iconUrl)) ?? icon,
         };
 

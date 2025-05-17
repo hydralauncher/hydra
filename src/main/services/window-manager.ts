@@ -6,6 +6,7 @@ import {
   Tray,
   app,
   nativeImage,
+  screen,
   shell,
 } from "electron";
 import { is } from "@electron-toolkit/utils";
@@ -17,12 +18,17 @@ import { HydraApi } from "./hydra-api";
 import UserAgent from "user-agents";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { orderBy, slice } from "lodash-es";
-import type { ScreenState, UserPreferences } from "@types";
-import { AuthPage } from "@shared";
+import type {
+  AchievementCustomNotificationPosition,
+  ScreenState,
+  UserPreferences,
+} from "@types";
+import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
 import { isStaging } from "@main/constants";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
+  public static notificationWindow: Electron.BrowserWindow | null = null;
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
 
@@ -259,6 +265,133 @@ export class WindowManager {
     }
   }
 
+  private static loadNotificationWindowURL() {
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+      this.notificationWindow?.loadURL(
+        `${process.env["ELECTRON_RENDERER_URL"]}#/achievement-notification`
+      );
+    } else {
+      this.notificationWindow?.loadFile(
+        path.join(__dirname, "../renderer/index.html"),
+        {
+          hash: "achievement-notification",
+        }
+      );
+    }
+  }
+
+  private static readonly NOTIFICATION_WINDOW_WIDTH = 360;
+  private static readonly NOTIFICATION_WINDOW_HEIGHT = 140;
+
+  private static async getNotificationWindowPosition(
+    position: AchievementCustomNotificationPosition | undefined
+  ) {
+    const display = screen.getPrimaryDisplay();
+    const { width, height } = display.workAreaSize;
+
+    if (position === "bottom-center") {
+      return {
+        x: (width - this.NOTIFICATION_WINDOW_WIDTH) / 2,
+        y: height - this.NOTIFICATION_WINDOW_HEIGHT,
+      };
+    }
+
+    if (position === "bottom-right") {
+      return {
+        x: width - this.NOTIFICATION_WINDOW_WIDTH,
+        y: height - this.NOTIFICATION_WINDOW_HEIGHT,
+      };
+    }
+
+    if (position === "top-center") {
+      return {
+        x: (width - this.NOTIFICATION_WINDOW_WIDTH) / 2,
+        y: 0,
+      };
+    }
+
+    if (position === "bottom-left") {
+      return {
+        x: 0,
+        y: height - this.NOTIFICATION_WINDOW_HEIGHT,
+      };
+    }
+
+    if (position === "top-right") {
+      return {
+        x: width - this.NOTIFICATION_WINDOW_WIDTH,
+        y: 0,
+      };
+    }
+
+    return {
+      x: 0,
+      y: 0,
+    };
+  }
+
+  public static async createNotificationWindow() {
+    if (this.notificationWindow) return;
+
+    const userPreferences = await db.get<string, UserPreferences>(
+      levelKeys.userPreferences,
+      {
+        valueEncoding: "json",
+      }
+    );
+    const { x, y } = await this.getNotificationWindowPosition(
+      userPreferences.achievementCustomNotificationPosition
+    );
+
+    this.notificationWindow = new BrowserWindow({
+      transparent: true,
+      maximizable: false,
+      autoHideMenuBar: true,
+      minimizable: false,
+      focusable: false,
+      skipTaskbar: true,
+      frame: false,
+      width: this.NOTIFICATION_WINDOW_WIDTH,
+      height: this.NOTIFICATION_WINDOW_HEIGHT,
+      x,
+      y,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+    });
+    this.notificationWindow.setIgnoreMouseEvents(true);
+    // this.notificationWindow.setVisibleOnAllWorkspaces(true, {
+    //   visibleOnFullScreen: true,
+    // });
+    this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
+    this.loadNotificationWindowURL();
+  }
+
+  public static async showAchievementTestNotification() {
+    const userPreferences = await db.get<string, UserPreferences>(
+      levelKeys.userPreferences,
+      {
+        valueEncoding: "json",
+      }
+    );
+
+    const language = userPreferences.language ?? "en";
+
+    this.notificationWindow?.webContents.send(
+      "on-achievement-unlocked",
+      userPreferences.achievementCustomNotificationPosition ?? "top-left",
+      [generateAchievementCustomNotificationTest(t, language)]
+    );
+  }
+
+  public static async closeNotificationWindow() {
+    if (this.notificationWindow) {
+      this.notificationWindow.close();
+      this.notificationWindow = null;
+    }
+  }
+
   public static openEditorWindow(themeId: string) {
     if (this.mainWindow) {
       const existingWindow = this.editorWindows.get(themeId);
@@ -271,13 +404,13 @@ export class WindowManager {
       }
 
       const editorWindow = new BrowserWindow({
-        width: 600,
+        width: 720,
         height: 720,
         minWidth: 600,
         minHeight: 540,
         backgroundColor: "#1c1c1c",
         titleBarStyle: process.platform === "linux" ? "default" : "hidden",
-        ...(process.platform === "linux" ? { icon } : {}),
+        icon,
         trafficLightPosition: { x: 16, y: 16 },
         titleBarOverlay: {
           symbolColor: "#DADBE1",

@@ -263,6 +263,15 @@ export type GameAchievementFiles = {
   [id: string]: AchievementFile[];
 };
 
+export interface AchievementNotificationInfo {
+  title: string;
+  description?: string;
+  iconUrl: string;
+  isHidden: boolean;
+  isRare: boolean;
+  isPlatinum: boolean;
+  points?: number;
+}
 export interface GameArtifact {
   id: string;
   artifactLengthInBytes: number;

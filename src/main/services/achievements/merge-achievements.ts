@@ -1,4 +1,5 @@
 import type {
+  AchievementNotificationInfo,
   Game,
   GameShop,
   UnlockedAchievement,
@@ -12,6 +13,12 @@ import { publishNewAchievementNotification } from "../notifications";
 import { SubscriptionRequiredError } from "@shared";
 import { achievementsLogger } from "../logger";
 import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
+
+const isRareAchievement = (points: number) => {
+  const rawPercentage = (50 - Math.sqrt(points)) * 2;
+
+  return rawPercentage < 10;
+};
 
 const saveAchievementsOnLocal = async (
   objectId: string,
@@ -86,7 +93,7 @@ export const mergeAchievements = async (
     publishNotification &&
     userPreferences?.achievementNotificationsEnabled
   ) {
-    const achievementsInfo = newAchievements
+    const filteredAchievements = newAchievements
       .toSorted((a, b) => {
         return a.unlockTime - b.unlockTime;
       })
@@ -98,21 +105,41 @@ export const mergeAchievements = async (
           );
         });
       })
-      .filter((achievement) => Boolean(achievement))
-      .map((achievement) => {
+      .filter((achievement) => !!achievement);
+
+    const achievementsInfo: AchievementNotificationInfo[] =
+      filteredAchievements.map((achievement, index) => {
         return {
-          displayName: achievement!.displayName,
-          iconUrl: achievement!.icon,
+          title: achievement.displayName,
+          description: achievement.description,
+          points: achievement.points,
+          isHidden: achievement.hidden,
+          isRare: achievement.points
+            ? isRareAchievement(achievement.points)
+            : false,
+          isPlatinum:
+            index === filteredAchievements.length - 1 &&
+            newAchievements.length + unlockedAchievements.length ===
+              achievementsData.length,
+          iconUrl: achievement.icon,
         };
       });
 
-    publishNewAchievementNotification({
-      achievements: achievementsInfo,
-      unlockedAchievementCount: mergedLocalAchievements.length,
-      totalAchievementCount: achievementsData.length,
-      gameTitle: game.title,
-      gameIcon: game.iconUrl,
-    });
+    if (userPreferences?.achievementCustomNotificationsEnabled !== false) {
+      WindowManager.notificationWindow?.webContents.send(
+        "on-achievement-unlocked",
+        userPreferences.achievementCustomNotificationPosition ?? "top-left",
+        achievementsInfo
+      );
+    } else {
+      publishNewAchievementNotification({
+        achievements: achievementsInfo,
+        unlockedAchievementCount: mergedLocalAchievements.length,
+        totalAchievementCount: achievementsData.length,
+        gameTitle: game.title,
+        gameIcon: game.iconUrl,
+      });
+    }
   }
 
   if (game.remoteId) {
