@@ -156,13 +156,13 @@ export default function ThemeEditor() {
           <div className="theme-editor__notification-preview">
             <SelectField
               className="theme-editor__notification-preview__select-variation"
-              label="Variation"
+              label={t("variation")}
               options={Object.values(notificationVariations).map(
                 (variation) => {
                   return {
                     key: variation,
                     value: variation,
-                    label: variation,
+                    label: t(variation),
                   };
                 }
               )}
@@ -174,7 +174,7 @@ export default function ThemeEditor() {
             />
 
             <SelectField
-              label={"alignment"}
+              label={t("alignment")}
               value={notificationAlignment}
               onChange={(e) =>
                 setNotificationAlignment(

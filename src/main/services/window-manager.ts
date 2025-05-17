@@ -366,21 +366,29 @@ export class WindowManager {
     this.loadNotificationWindowURL();
 
     this.notificationWindow.once("ready-to-show", () => {
-      if (isStaging) {
-        this.notificationWindow?.webContents.openDevTools();
-      }
-
       if (showTestNotification) {
-        const language = userPreferences.language ?? "en";
         setTimeout(() => {
-          this.notificationWindow?.webContents.send(
-            "on-achievement-unlocked",
-            userPreferences.achievementCustomNotificationPosition ?? "top_left",
-            [generateAchievementCustomNotificationTest(t, language)]
-          );
+          this.showTestNotification();
         }, 1000);
       }
     });
+  }
+
+  public static async showTestNotification() {
+    const userPreferences = await db.get<string, UserPreferences>(
+      levelKeys.userPreferences,
+      {
+        valueEncoding: "json",
+      }
+    );
+
+    const language = userPreferences.language ?? "en";
+
+    this.notificationWindow?.webContents.send(
+      "on-achievement-unlocked",
+      userPreferences.achievementCustomNotificationPosition ?? "top_left",
+      [generateAchievementCustomNotificationTest(t, language)]
+    );
   }
 
   public static async closeNotificationWindow() {
