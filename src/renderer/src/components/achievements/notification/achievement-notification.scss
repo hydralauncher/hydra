@@ -454,16 +454,8 @@ $margin-bottom: 28px;
   }
 
   &--rare &__chip {
-    &__icon {
-      path {
-        fill: #fff;
-      }
-    }
-    &__label {
-      color: #fff;
-    }
     background: linear-gradient(
-      118deg,
+      160deg,
       #e8ad15 18.96%,
       #d5900f 26.41%,
       #e8ad15 29.99%,
@@ -479,9 +471,6 @@ $margin-bottom: 28px;
       #503808 83.6%,
       #3e2d08 85.77%
     );
-  }
-
-  &--platinum &__chip {
     &__icon {
       path {
         fill: #fff;
@@ -490,6 +479,9 @@ $margin-bottom: 28px;
     &__label {
       color: #fff;
     }
+  }
+
+  &--platinum &__chip {
     background: linear-gradient(
       118deg,
       #15e8d6 18.96%,
@@ -507,6 +499,14 @@ $margin-bottom: 28px;
       #085042 83.6%,
       #083e31 85.77%
     );
+    &__icon {
+      path {
+        fill: #fff;
+      }
+    }
+    &__label {
+      color: #fff;
+    }
   }
 
   &--closing * {

@@ -191,7 +191,7 @@ export const generateAchievementCustomNotificationTest = (
       lng: language ?? "en",
     }),
     iconUrl: "https://cdn.losbroxas.org/favicon.svg",
-    points: 100,
+    points: 2440,
     isHidden: false,
     isRare: false,
     isPlatinum: false,

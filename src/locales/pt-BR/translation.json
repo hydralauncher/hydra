@@ -357,7 +357,13 @@
     "bottom_left": "Inferior esquerdo",
     "bottom_right": "Inferior direito",
     "bottom_center": "Inferior central",
-    "achievement_custom_notification_position": "Posição das notificações customizadas de conquista"
+    "achievement_custom_notification_position": "Posição das notificações customizadas de conquista",
+    "alignment": "Alinhamento",
+    "variation": "Variação",
+    "default": "Padrão",
+    "rare": "Rara",
+    "platinum": "Platina",
+    "hidden": "Oculta"
   },
   "notifications": {
     "download_complete": "Download concluído",
