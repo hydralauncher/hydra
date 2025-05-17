@@ -33,6 +33,8 @@ export default function ThemeEditor() {
 
   const [notificationVariation, setNotificationVariation] =
     useState<keyof typeof notificationVariations>("default");
+  const [notificationAlignment, setNotificationAlignment] =
+    useState<AchievementCustomNotificationPosition>("top_left");
 
   const achievementPreview = useMemo(() => {
     return {
@@ -42,9 +44,9 @@ export default function ThemeEditor() {
         isHidden: notificationVariation === "hidden",
         isPlatinum: notificationVariation === "platinum",
       },
-      position: "top_center" as AchievementCustomNotificationPosition,
+      position: notificationAlignment,
     };
-  }, [t, i18n.language, notificationVariation]);
+  }, [t, i18n.language, notificationVariation, notificationAlignment]);
 
   useEffect(() => {
     window.document.title = "Hydra - Theme Editor";
@@ -95,6 +97,21 @@ export default function ThemeEditor() {
     }
   };
 
+  const achievementCustomNotificationPositionOptions = useMemo(() => {
+    return [
+      "top_left",
+      "top_center",
+      "top_right",
+      "bottom_left",
+      "bottom_center",
+      "bottom_right",
+    ].map((position) => ({
+      key: position,
+      value: position,
+      label: t(position),
+    }));
+  }, [t]);
+
   return (
     <div className="theme-editor">
       <div
@@ -139,7 +156,7 @@ export default function ThemeEditor() {
           <div className="theme-editor__notification-preview">
             <SelectField
               className="theme-editor__notification-preview__select-variation"
-              label="Notification Variation"
+              label="Variation"
               options={Object.values(notificationVariations).map(
                 (variation) => {
                   return {
@@ -156,11 +173,24 @@ export default function ThemeEditor() {
               }
             />
 
-            <AchievementNotificationItem
-              position={achievementPreview.position}
-              achievement={achievementPreview.achievement}
-              isClosing={isClosingNotifications}
+            <SelectField
+              label={"alignment"}
+              value={notificationAlignment}
+              onChange={(e) =>
+                setNotificationAlignment(
+                  e.target.value as AchievementCustomNotificationPosition
+                )
+              }
+              options={achievementCustomNotificationPositionOptions}
             />
+
+            <div style={{ border: "1px solid #444" }}>
+              <AchievementNotificationItem
+                position={achievementPreview.position}
+                achievement={achievementPreview.achievement}
+                isClosing={isClosingNotifications}
+              />
+            </div>
           </div>
         </CollapsedMenu>
 

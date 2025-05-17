@@ -30,30 +30,25 @@ export function AchievementNotificationItem({
     >
       {achievement.points && (
         <div
-          className={cn("achievement-notification__chip-container", {
+          className={cn("achievement-notification__chip", {
             [position]: true,
-            closing: isClosing,
           })}
         >
-          <div className="achievement-notification__chip">
-            <HydraIcon className="achievement-notification__chip__icon" />
-            <span className="achievement-notification__chip__label">
-              +{achievement.points}
-            </span>
-          </div>
+          <HydraIcon className="achievement-notification__chip__icon" />
+          <span className="achievement-notification__chip__label">
+            +{achievement.points}
+          </span>
         </div>
       )}
 
       <div
         className={cn("achievement-notification__outer-container", {
           [position]: true,
-          closing: isClosing,
         })}
       >
         <div
           className={cn("achievement-notification__container", {
             [position]: true,
-            closing: isClosing,
           })}
         >
           <div className="achievement-notification__content">
