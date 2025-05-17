@@ -5,6 +5,7 @@ import {
 import cn from "classnames";
 import "./achievement-notification.scss";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
+import { EyeClosedIcon } from "@primer/octicons-react";
 
 interface AchievementNotificationProps {
   position: AchievementCustomNotificationPosition;
@@ -56,7 +57,6 @@ export function AchievementNotificationItem({
           })}
         >
           <div className="achievement-notification__content">
-            <div className="achievement-notification__icon-border"></div>
             <img
               src={achievement.iconUrl}
               alt={achievement.title}
@@ -64,6 +64,11 @@ export function AchievementNotificationItem({
             />
             <div className="achievement-notification__text-container">
               <p className="achievement-notification__title">
+                {achievement.isHidden && (
+                  <span className="achievement-notification__hidden-icon">
+                    <EyeClosedIcon size={16} />
+                  </span>
+                )}
                 {achievement.title}
               </p>
               <p className="achievement-notification__description">
