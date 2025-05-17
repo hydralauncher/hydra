@@ -43,6 +43,12 @@
     flex: 1;
   }
 
+  &__notification-preview-wrapper {
+    position: relative;
+    border: 1px solid globals.$muted-color;
+    border-radius: 2px;
+  }
+
   &__footer {
     display: flex;
     flex-direction: column;

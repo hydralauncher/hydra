@@ -378,7 +378,8 @@
     "rare": "Rare",
     "platinum": "Platinum",
     "hidden": "Hidden",
-    "test_notification": "Test notification"
+    "test_notification": "Test notification",
+    "notification_preview": "Achievement Notification Preview"
   },
   "notifications": {
     "download_complete": "Download complete",

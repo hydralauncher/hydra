@@ -152,7 +152,7 @@ export default function ThemeEditor() {
       </div>
 
       <div className="theme-editor__footer">
-        <CollapsedMenu title="Notification Preview">
+        <CollapsedMenu title={t("notification_preview")}>
           <div className="theme-editor__notification-preview">
             <SelectField
               className="theme-editor__notification-preview__select-variation"
@@ -184,7 +184,7 @@ export default function ThemeEditor() {
               options={achievementCustomNotificationPositionOptions}
             />
 
-            <div style={{ border: "1px solid #444" }}>
+            <div className="theme-editor__notification-preview-wrapper">
               <AchievementNotificationItem
                 position={achievementPreview.position}
                 achievement={achievementPreview.achievement}
