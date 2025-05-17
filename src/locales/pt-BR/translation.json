@@ -363,7 +363,8 @@
     "default": "Padrão",
     "rare": "Rara",
     "platinum": "Platina",
-    "hidden": "Oculta"
+    "hidden": "Oculta",
+    "test_notification": "Testar notificação"
   },
   "notifications": {
     "download_complete": "Download concluído",

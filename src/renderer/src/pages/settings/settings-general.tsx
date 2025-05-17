@@ -290,7 +290,7 @@ export function SettingsGeneral() {
               className="settings-general__test-achievement-notification-button"
               onClick={() => window.electron.showAchievementTestNotification()}
             >
-              Test Notification
+              {t("test_notification")}
             </Button>
           </>
         )}
