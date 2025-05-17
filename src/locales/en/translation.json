@@ -377,7 +377,8 @@
     "default": "Default",
     "rare": "Rare",
     "platinum": "Platinum",
-    "hidden": "Hidden"
+    "hidden": "Hidden",
+    "test_notification": "Test notification"
   },
   "notifications": {
     "download_complete": "Download complete",
