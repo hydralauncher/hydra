@@ -14,6 +14,12 @@ import { SubscriptionRequiredError } from "@shared";
 import { achievementsLogger } from "../logger";
 import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
 
+const isRareAchievement = (points: number) => {
+  const rawPercentage = (50 - Math.sqrt(points)) * 2;
+
+  return rawPercentage < 10;
+};
+
 const saveAchievementsOnLocal = async (
   objectId: string,
   shop: GameShop,
@@ -87,7 +93,7 @@ export const mergeAchievements = async (
     publishNotification &&
     userPreferences?.achievementNotificationsEnabled
   ) {
-    const achievementsInfo: AchievementNotificationInfo[] = newAchievements
+    const filteredAchievements = newAchievements
       .toSorted((a, b) => {
         return a.unlockTime - b.unlockTime;
       })
@@ -99,16 +105,23 @@ export const mergeAchievements = async (
           );
         });
       })
-      .filter((achievement) => Boolean(achievement))
-      .map((achievement) => {
+      .filter((achievement) => !!achievement);
+
+    const achievementsInfo: AchievementNotificationInfo[] =
+      filteredAchievements.map((achievement, index) => {
         return {
-          title: achievement!.displayName,
-          description: achievement!.description,
-          points: achievement!.points,
-          isHidden: achievement!.hidden,
-          isRare: false,
-          isPlatinum: false,
-          iconUrl: achievement!.icon,
+          title: achievement.displayName,
+          description: achievement.description,
+          points: achievement.points,
+          isHidden: achievement.hidden,
+          isRare: achievement.points
+            ? isRareAchievement(achievement.points)
+            : false,
+          isPlatinum:
+            index === filteredAchievements.length - 1 &&
+            newAchievements.length + unlockedAchievements.length ===
+              achievementsData.length,
+          iconUrl: achievement.icon,
         };
       });
 
