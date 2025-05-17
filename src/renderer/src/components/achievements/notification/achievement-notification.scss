@@ -144,15 +144,6 @@ $margin-bottom: 28px;
   height: 192px;
   display: flex;
 
-  &--closing * {
-    animation: none;
-  }
-
-  &--closing *::before,
-  &--closing *::after {
-    animation: none !important;
-  }
-
   &.top_left {
     align-items: start;
   }
@@ -292,6 +283,7 @@ $margin-bottom: 28px;
       height: 64px;
       background: #000;
       opacity: 0;
+      z-index: 1;
       animation: dark-overlay 900ms ease-in-out;
     }
 
@@ -302,6 +294,7 @@ $margin-bottom: 28px;
       width: 36px;
       height: 36px;
       opacity: 0;
+      z-index: 1;
       animation: trophy-out 900ms ease-in-out;
     }
 
@@ -471,5 +464,14 @@ $margin-bottom: 28px;
       #085042 83.6%,
       #083e31 85.77%
     );
+  }
+
+  &--closing * {
+    animation: none;
+  }
+
+  &--closing *::before,
+  &--closing *::after {
+    animation: none !important;
   }
 }
