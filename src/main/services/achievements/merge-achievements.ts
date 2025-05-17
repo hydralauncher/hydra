@@ -13,6 +13,7 @@ import { publishNewAchievementNotification } from "../notifications";
 import { SubscriptionRequiredError } from "@shared";
 import { achievementsLogger } from "../logger";
 import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
+import { getGameAchievementData } from "./get-game-achievement-data";
 
 const isRareAchievement = (points: number) => {
   const rawPercentage = (50 - Math.sqrt(points)) * 2;
@@ -55,12 +56,22 @@ export const mergeAchievements = async (
   achievements: UnlockedAchievement[],
   publishNotification: boolean
 ) => {
-  const [localGameAchievement, userPreferences] = await Promise.all([
-    gameAchievementsSublevel.get(levelKeys.game(game.shop, game.objectId)),
-    db.get<string, UserPreferences>(levelKeys.userPreferences, {
+  let localGameAchievement = await gameAchievementsSublevel.get(
+    levelKeys.game(game.shop, game.objectId)
+  );
+  const userPreferences = await db.get<string, UserPreferences>(
+    levelKeys.userPreferences,
+    {
       valueEncoding: "json",
-    }),
-  ]);
+    }
+  );
+
+  if (!localGameAchievement) {
+    await getGameAchievementData(game.objectId, game.shop, true);
+    localGameAchievement = await gameAchievementsSublevel.get(
+      levelKeys.game(game.shop, game.objectId)
+    );
+  }
 
   const achievementsData = localGameAchievement?.achievements ?? [];
   const unlockedAchievements = localGameAchievement?.unlockedAchievements ?? [];
@@ -91,7 +102,7 @@ export const mergeAchievements = async (
   if (
     newAchievements.length &&
     publishNotification &&
-    userPreferences?.achievementNotificationsEnabled
+    userPreferences.achievementNotificationsEnabled !== false
   ) {
     const filteredAchievements = newAchievements
       .toSorted((a, b) => {
@@ -125,7 +136,7 @@ export const mergeAchievements = async (
         };
       });
 
-    if (userPreferences?.achievementCustomNotificationsEnabled !== false) {
+    if (userPreferences.achievementCustomNotificationsEnabled !== false) {
       WindowManager.notificationWindow?.webContents.send(
         "on-achievement-unlocked",
         userPreferences.achievementCustomNotificationPosition ?? "top-left",

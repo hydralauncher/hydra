@@ -135,7 +135,6 @@ export function AchievementNotification() {
   useEffect(() => {
     const loadAndApplyTheme = async () => {
       const activeTheme = await window.electron.getActiveCustomTheme();
-      console.log("activeTheme", activeTheme);
       if (activeTheme?.code) {
         injectCustomCss(activeTheme.code);
       }

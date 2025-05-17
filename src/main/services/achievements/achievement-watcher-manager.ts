@@ -274,7 +274,7 @@ export class AchievementWatcherManager {
           }
         );
 
-        if (userPreferences.achievementNotificationsEnabled) {
+        if (userPreferences.achievementNotificationsEnabled !== false) {
           if (userPreferences.achievementCustomNotificationsEnabled !== false) {
             WindowManager.notificationWindow?.webContents.send(
               "on-combined-achievements-unlocked",
