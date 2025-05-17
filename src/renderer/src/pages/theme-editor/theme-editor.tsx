@@ -1,12 +1,23 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import "./theme-editor.scss";
 import Editor from "@monaco-editor/react";
-import { Theme } from "@types";
+import { AchievementCustomNotificationPosition, Theme } from "@types";
 import { useSearchParams } from "react-router-dom";
-import { Button } from "@renderer/components";
+import { Button, SelectField } from "@renderer/components";
 import { CheckIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
+import { injectCustomCss } from "@renderer/helpers";
+import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
+import { generateAchievementCustomNotificationTest } from "@shared";
+import { CollapsedMenu } from "@renderer/components/collapsed-menu/collapsed-menu";
+
+const notificationVariations = {
+  default: "default",
+  rare: "rare",
+  platinum: "platinum",
+  hidden: "hidden",
+};
 
 export default function ThemeEditor() {
   const [searchParams] = useSearchParams();
@@ -14,9 +25,32 @@ export default function ThemeEditor() {
   const [code, setCode] = useState("");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  const [isClosingNotifications, setIsClosingNotifications] = useState(false);
+
   const themeId = searchParams.get("themeId");
 
-  const { t } = useTranslation("settings");
+  const { t, i18n } = useTranslation("settings");
+
+  const [notificationVariation, setNotificationVariation] =
+    useState<keyof typeof notificationVariations>("default");
+  const [notificationAlignment, setNotificationAlignment] =
+    useState<AchievementCustomNotificationPosition>("top-left");
+
+  const achievementPreview = useMemo(() => {
+    return {
+      achievement: {
+        ...generateAchievementCustomNotificationTest(t, i18n.language),
+        isRare: notificationVariation === "rare",
+        isHidden: notificationVariation === "hidden",
+        isPlatinum: notificationVariation === "platinum",
+      },
+      position: notificationAlignment,
+    };
+  }, [t, i18n.language, notificationVariation, notificationAlignment]);
+
+  useEffect(() => {
+    window.document.title = "Hydra - Theme Editor";
+  }, []);
 
   useEffect(() => {
     if (themeId) {
@@ -33,12 +67,17 @@ export default function ThemeEditor() {
     if (theme) {
       await window.electron.updateCustomTheme(theme.id, code);
       setHasUnsavedChanges(false);
+      setIsClosingNotifications(true);
+      setTimeout(() => {
+        injectCustomCss(code);
+        setIsClosingNotifications(false);
+      }, 450);
     }
   }, [code, theme]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
         handleSave();
       }
@@ -58,6 +97,21 @@ export default function ThemeEditor() {
     }
   };
 
+  const achievementCustomNotificationPositionOptions = useMemo(() => {
+    return [
+      "top-left",
+      "top-center",
+      "top-right",
+      "bottom-left",
+      "bottom-center",
+      "bottom-right",
+    ].map((position) => ({
+      key: position,
+      value: position,
+      label: t(position),
+    }));
+  }, [t]);
+
   return (
     <div className="theme-editor">
       <div
@@ -71,21 +125,75 @@ export default function ThemeEditor() {
         )}
       </div>
 
-      <Editor
-        theme="vs-dark"
-        defaultLanguage="css"
-        value={code}
-        onChange={handleEditorChange}
-        options={{
-          minimap: { enabled: false },
-          fontSize: 14,
-          lineNumbers: "on",
-          wordWrap: "on",
-          automaticLayout: true,
-        }}
-      />
+      <div className="theme-editor__editor">
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        >
+          <Editor
+            theme="vs-dark"
+            defaultLanguage="css"
+            value={code}
+            onChange={handleEditorChange}
+            options={{
+              minimap: { enabled: false },
+              fontSize: 14,
+              lineNumbers: "on",
+              wordWrap: "on",
+              automaticLayout: true,
+            }}
+          />
+        </div>
+      </div>
 
       <div className="theme-editor__footer">
+        <CollapsedMenu title={t("notification_preview")}>
+          <div className="theme-editor__notification-preview">
+            <SelectField
+              className="theme-editor__notification-preview__select-variation"
+              label={t("variation")}
+              options={Object.values(notificationVariations).map(
+                (variation) => {
+                  return {
+                    key: variation,
+                    value: variation,
+                    label: t(variation),
+                  };
+                }
+              )}
+              onChange={(value) =>
+                setNotificationVariation(
+                  value.target.value as keyof typeof notificationVariations
+                )
+              }
+            />
+
+            <SelectField
+              label={t("alignment")}
+              value={notificationAlignment}
+              onChange={(e) =>
+                setNotificationAlignment(
+                  e.target.value as AchievementCustomNotificationPosition
+                )
+              }
+              options={achievementCustomNotificationPositionOptions}
+            />
+
+            <div className="theme-editor__notification-preview-wrapper">
+              <AchievementNotificationItem
+                position={achievementPreview.position}
+                achievement={achievementPreview.achievement}
+                isClosing={isClosingNotifications}
+              />
+            </div>
+          </div>
+        </CollapsedMenu>
+
         <div className="theme-editor__footer-actions">
           <Button onClick={handleSave}>
             <CheckIcon />
