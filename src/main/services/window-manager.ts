@@ -330,7 +330,9 @@ export class WindowManager {
     };
   }
 
-  public static async createNotificationWindow(showTestNotification = false) {
+  public static async createNotificationWindow() {
+    if (this.notificationWindow) return;
+
     const userPreferences = await db.get<string, UserPreferences>(
       levelKeys.userPreferences,
       {
@@ -364,17 +366,9 @@ export class WindowManager {
     // });
     this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
     this.loadNotificationWindowURL();
-
-    this.notificationWindow.once("ready-to-show", () => {
-      if (showTestNotification) {
-        setTimeout(() => {
-          this.showTestNotification();
-        }, 1000);
-      }
-    });
   }
 
-  public static async showTestNotification() {
+  public static async showAchievementTestNotification() {
     const userPreferences = await db.get<string, UserPreferences>(
       levelKeys.userPreferences,
       {
@@ -386,7 +380,7 @@ export class WindowManager {
 
     this.notificationWindow?.webContents.send(
       "on-achievement-unlocked",
-      userPreferences.achievementCustomNotificationPosition ?? "top_left",
+      userPreferences.achievementCustomNotificationPosition ?? "top-left",
       [generateAchievementCustomNotificationTest(t, language)]
     );
   }

@@ -288,9 +288,7 @@ export function SettingsGeneral() {
 
             <Button
               className="settings-general__test-achievement-notification-button"
-              onClick={() =>
-                window.electron.updateAchievementCustomNotificationWindow()
-              }
+              onClick={() => window.electron.showAchievementTestNotification()}
             >
               Test Notification
             </Button>
