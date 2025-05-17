@@ -364,7 +364,8 @@
     "rare": "Rara",
     "platinum": "Platina",
     "hidden": "Oculta",
-    "test_notification": "Testar notificação"
+    "test_notification": "Testar notificação",
+    "notification_preview": "Prévia da Notificação de Conquistas"
   },
   "notifications": {
     "download_complete": "Download concluído",
