@@ -5,8 +5,11 @@ import {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
 } from "@types";
-import { injectCustomCss } from "@renderer/helpers";
+import { injectCustomCss, removeCustomCss } from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
+import app from "../../../app.scss?inline";
+import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";
+import root from "react-shadow";
 
 const NOTIFICATION_TIMEOUT = 4000;
 
@@ -27,6 +30,8 @@ export function AchievementNotification() {
   const achievementAnimation = useRef(-1);
   const closingAnimation = useRef(-1);
   const visibleAnimation = useRef(-1);
+
+  const [shadowRootRef, setShadowRootRef] = useState<HTMLElement | null>(null);
 
   const playAudio = useCallback(() => {
     const audio = new Audio(achievementSound);
@@ -132,31 +137,42 @@ export function AchievementNotification() {
     }
   }, [achievements]);
 
-  useEffect(() => {
-    const loadAndApplyTheme = async () => {
-      const activeTheme = await window.electron.getActiveCustomTheme();
-      if (activeTheme?.code) {
-        injectCustomCss(activeTheme.code);
-      }
-    };
-    loadAndApplyTheme();
-  }, []);
+  const loadAndApplyTheme = useCallback(async () => {
+    if (!shadowRootRef) return;
+    const activeTheme = await window.electron.getActiveCustomTheme();
+    if (activeTheme?.code) {
+      injectCustomCss(activeTheme.code, shadowRootRef);
+    } else {
+      removeCustomCss(shadowRootRef);
+    }
+  }, [shadowRootRef]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onCssInjected((cssString) => {
-      injectCustomCss(cssString);
+    loadAndApplyTheme();
+  }, [loadAndApplyTheme]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onCustomThemeUpdated(() => {
+      loadAndApplyTheme();
     });
 
     return () => unsubscribe();
-  }, []);
-
-  if (!isVisible || !currentAchievement) return null;
+  }, [loadAndApplyTheme]);
 
   return (
-    <AchievementNotificationItem
-      achievement={currentAchievement}
-      isClosing={isClosing}
-      position={position}
-    />
+    <root.div>
+      <style type="text/css">
+        {app} {styles}
+      </style>
+      <section ref={(ref) => setShadowRootRef(ref)}>
+        {isVisible && currentAchievement && (
+          <AchievementNotificationItem
+            achievement={currentAchievement}
+            isClosing={isClosing}
+            position={position}
+          />
+        )}
+      </section>
+    </root.div>
   );
 }

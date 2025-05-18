@@ -40,7 +40,7 @@ export function SettingsAppearance({
   }, [loadThemes]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onCssInjected(() => {
+    const unsubscribe = window.electron.onCustomThemeUpdated(() => {
       loadThemes();
     });
 
