@@ -141,10 +141,8 @@ export function AchievementNotification() {
     if (!shadowRootRef) return;
     const activeTheme = await window.electron.getActiveCustomTheme();
     if (activeTheme?.code) {
-      console.log("injecting custom css");
       injectCustomCss(activeTheme.code, shadowRootRef);
     } else {
-      console.log("removing custom css");
       removeCustomCss(shadowRootRef);
     }
   }, [shadowRootRef]);
@@ -155,7 +153,6 @@ export function AchievementNotification() {
 
   useEffect(() => {
     const unsubscribe = window.electron.onCustomThemeUpdated(() => {
-      console.log("onCustomThemeUpdated");
       loadAndApplyTheme();
     });
 
