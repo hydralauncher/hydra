@@ -8,9 +8,9 @@
     "surprise_me": "Överraska mig",
     "no_results": "Inga resultat hittades",
     "start_typing": "Börja skriva för att söka...",
-	"hot": "Hetast just nu",
-	"weekly": "📅 Veckans topplista",
-	"achievements": "🏆 Spel att klara av"
+	  "hot": "Hetast just nu",
+	  "weekly": "📅 Veckans topplista",
+	  "achievements": "🏆 Spel att klara av"
   },
   "sidebar": {
     "catalogue": "Katalog",
