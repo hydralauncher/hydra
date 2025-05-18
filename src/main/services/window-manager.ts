@@ -289,14 +289,6 @@ export class WindowManager {
     const display = screen.getPrimaryDisplay();
     const { width, height } = display.workAreaSize;
 
-    console.log(
-      width,
-      height,
-      this.NOTIFICATION_WINDOW_HEIGHT,
-      this.NOTIFICATION_WINDOW_WIDTH,
-      position
-    );
-
     if (position === "bottom-left") {
       return {
         x: 0,
@@ -364,6 +356,7 @@ export class WindowManager {
       maximizable: false,
       autoHideMenuBar: true,
       minimizable: false,
+      backgroundColor: "#00000000",
       focusable: false,
       skipTaskbar: true,
       frame: false,
