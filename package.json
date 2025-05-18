@@ -1,6 +1,6 @@
 {
   "name": "hydralauncher",
-  "version": "3.5.0",
+  "version": "3.5.1",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
@@ -69,6 +69,7 @@
     "react-loading-skeleton": "^3.4.0",
     "react-redux": "^9.1.1",
     "react-router-dom": "^6.22.3",
+    "react-shadow": "^20.6.0",
     "react-tooltip": "^5.28.0",
     "sound-play": "^1.1.0",
     "steam-shortcut-editor": "https://github.com/hydralauncher/steam-shortcut-editor",

@@ -3,10 +3,10 @@ import {
   AchievementNotificationInfo,
 } from "@types";
 import cn from "classnames";
-import "./achievement-notification.scss";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { EyeClosedIcon } from "@primer/octicons-react";
 import Ellipses from "@renderer/assets/icons/ellipses.png";
+import "./achievement-notification.scss";
 
 interface AchievementNotificationProps {
   position: AchievementCustomNotificationPosition;

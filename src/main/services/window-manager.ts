@@ -289,6 +289,13 @@ export class WindowManager {
     const display = screen.getPrimaryDisplay();
     const { width, height } = display.workAreaSize;
 
+    if (position === "bottom-left") {
+      return {
+        x: 0,
+        y: height - this.NOTIFICATION_WINDOW_HEIGHT,
+      };
+    }
+
     if (position === "bottom-center") {
       return {
         x: (width - this.NOTIFICATION_WINDOW_WIDTH) / 2,
@@ -307,13 +314,6 @@ export class WindowManager {
       return {
         x: (width - this.NOTIFICATION_WINDOW_WIDTH) / 2,
         y: 0,
-      };
-    }
-
-    if (position === "bottom-left") {
-      return {
-        x: 0,
-        y: height - this.NOTIFICATION_WINDOW_HEIGHT,
       };
     }
 
@@ -356,6 +356,7 @@ export class WindowManager {
       maximizable: false,
       autoHideMenuBar: true,
       minimizable: false,
+      backgroundColor: "#00000000",
       focusable: false,
       skipTaskbar: true,
       frame: false,
@@ -372,8 +373,13 @@ export class WindowManager {
     // this.notificationWindow.setVisibleOnAllWorkspaces(true, {
     //   visibleOnFullScreen: true,
     // });
+
     this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
     this.loadNotificationWindowURL();
+
+    if (isStaging) {
+      this.notificationWindow.webContents.openDevTools();
+    }
   }
 
   public static async showAchievementTestNotification() {
