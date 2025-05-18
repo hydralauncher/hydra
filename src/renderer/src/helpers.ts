@@ -55,35 +55,32 @@ export const buildGameAchievementPath = (
 export const darkenColor = (color: string, amount: number, alpha: number = 1) =>
   new Color(color).darken(amount).alpha(alpha).toString();
 
-export const injectCustomCss = (css: string) => {
+export const injectCustomCss = (
+  css: string,
+  target: HTMLElement = document.head
+) => {
   try {
-    const currentCustomCss = document.getElementById("custom-css");
-    if (currentCustomCss) {
-      currentCustomCss.remove();
-    }
+    target.querySelector("#custom-css")?.remove();
 
     if (css.startsWith(THEME_WEB_STORE_URL)) {
       const link = document.createElement("link");
       link.id = "custom-css";
       link.rel = "stylesheet";
       link.href = css;
-      document.head.appendChild(link);
+      target.appendChild(link);
     } else {
       const style = document.createElement("style");
       style.id = "custom-css";
       style.textContent = `
         ${css}
       `;
-      document.head.appendChild(style);
+      target.appendChild(style);
     }
   } catch (error) {
     console.error("failed to inject custom css:", error);
   }
 };
 
-export const removeCustomCss = () => {
-  const currentCustomCss = document.getElementById("custom-css");
-  if (currentCustomCss) {
-    currentCustomCss.remove();
-  }
+export const removeCustomCss = (target: HTMLElement = document.head) => {
+  target.querySelector("#custom-css")?.remove();
 };

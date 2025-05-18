@@ -462,11 +462,11 @@ contextBridge.exposeInMainWorld("electron", {
   /* Editor */
   openEditorWindow: (themeId: string) =>
     ipcRenderer.invoke("openEditorWindow", themeId),
-  onCssInjected: (cb: (cssString: string) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, cssString: string) =>
-      cb(cssString);
-    ipcRenderer.on("css-injected", listener);
-    return () => ipcRenderer.removeListener("css-injected", listener);
+  onCustomThemeUpdated: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-custom-theme-updated", listener);
+    return () =>
+      ipcRenderer.removeListener("on-custom-theme-updated", listener);
   },
   closeEditorWindow: (themeId?: string) =>
     ipcRenderer.invoke("closeEditorWindow", themeId),

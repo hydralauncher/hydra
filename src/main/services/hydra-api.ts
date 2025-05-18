@@ -29,7 +29,7 @@ export class HydraApi {
   private static instance: AxiosInstance;
 
   private static readonly EXPIRATION_OFFSET_IN_MS = 1000 * 60 * 5; // 5 minutes
-  private static readonly ADD_LOG_INTERCEPTOR = true;
+  private static readonly ADD_LOG_INTERCEPTOR = false;
 
   private static secondsToMilliseconds(seconds: number) {
     return seconds * 1000;

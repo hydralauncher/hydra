@@ -352,9 +352,7 @@ declare global {
 
     /* Editor */
     openEditorWindow: (themeId: string) => Promise<void>;
-    onCssInjected: (
-      cb: (cssString: string) => void
-    ) => () => Electron.IpcRenderer;
+    onCustomThemeUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     closeEditorWindow: (themeId?: string) => Promise<void>;
   }
 
