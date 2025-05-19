@@ -469,9 +469,8 @@ export class WindowManager {
         }
       });
 
-      editorWindow.webContents.on("before-input-event", (event, input) => {
+      editorWindow.webContents.on("before-input-event", (_event, input) => {
         if (input.key === "F12") {
-          event.preventDefault();
           this.mainWindow?.webContents.toggleDevTools();
         }
       });
