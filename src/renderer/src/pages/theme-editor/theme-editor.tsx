@@ -199,7 +199,7 @@ export default function ThemeEditor() {
                 <style type="text/css">
                   {app} {styles}
                 </style>
-                <section ref={(ref) => setShadowRootRef(ref)}>
+                <section ref={setShadowRootRef}>
                   <AchievementNotificationItem
                     position={achievementPreview.position}
                     achievement={achievementPreview.achievement}
