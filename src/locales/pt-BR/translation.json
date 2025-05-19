@@ -365,7 +365,8 @@
     "platinum": "Platina",
     "hidden": "Oculta",
     "test_notification": "Testar notificação",
-    "notification_preview": "Prévia da Notificação de Conquistas"
+    "notification_preview": "Prévia da Notificação de Conquistas",
+    "enable_friend_start_game_notifications": "Quando um amigo iniciar um jogo"
   },
   "notifications": {
     "download_complete": "Download concluído",
