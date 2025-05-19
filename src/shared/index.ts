@@ -179,7 +179,8 @@ export const formatDate = (
 
 export const generateAchievementCustomNotificationTest = (
   t: any,
-  language?: string
+  language?: string,
+  options: { isHidden?: boolean; isRare?: boolean; isPlatinum?: boolean } = {}
 ): AchievementNotificationInfo => {
   return {
     title: t("test_achievement_notification_title", {
@@ -192,8 +193,8 @@ export const generateAchievementCustomNotificationTest = (
     }),
     iconUrl: "https://cdn.losbroxas.org/favicon.svg",
     points: 2440,
-    isHidden: false,
-    isRare: false,
-    isPlatinum: false,
+    isHidden: options.isHidden ?? false,
+    isRare: options.isRare ?? false,
+    isPlatinum: options.isPlatinum ?? false,
   };
 };
