@@ -248,9 +248,22 @@ export function Sidebar() {
           )}
 
           <section className="sidebar__section">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <small className="sidebar__section-title">{t("my_library")}</small>
-              <button type="button" className={`sidebar__play-button ${showPlayableOnly ? 'sidebar__play-button--active' : ''}`} title={t("playable_button_title")} onClick={handlePlayButtonClick}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <small className="sidebar__section-title">
+                {t("my_library")}
+              </small>
+              <button
+                type="button"
+                className={`sidebar__play-button ${showPlayableOnly ? "sidebar__play-button--active" : ""}`}
+                title={t("playable_button_title")}
+                onClick={handlePlayButtonClick}
+              >
                 <PlayIcon size={16} />
               </button>
             </div>
@@ -265,7 +278,9 @@ export function Sidebar() {
             <ul className="sidebar__menu">
               {filteredLibrary
                 .filter((game) => !game.favorite)
-                .filter((game) => !showPlayableOnly || Boolean(game.executablePath))
+                .filter(
+                  (game) => !showPlayableOnly || Boolean(game.executablePath)
+                )
                 .map((game) => (
                   <SidebarGameItem
                     key={game.id}
