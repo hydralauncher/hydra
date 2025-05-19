@@ -486,7 +486,7 @@
     "no_blocked_users": "Engellenen kullanıcı yok",
     "friend_code_copied": "Arkadaş kodu kopyalandı",
     "undo_friendship_modal_text": "Bu işlemle {{displayName}} ile arkadaşlığınız kaldırılacak",
-    "privacy_hint": "Bunu kimlerin görebileceğini <0>Ayarlar0> bölümünden değiştirebilirsiniz",
+    "privacy_hint": "Bunu kimlerin görebileceğini <0>Ayarlar</0> bölümünden değiştirebilirsiniz",
     "locked_profile": "Bu profil gizli",
     "image_process_failure": "Resim işlenirken hata oluştu",
     "required_field": "Bu alan gereklidir",
