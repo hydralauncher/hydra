@@ -27,7 +27,8 @@
     "sign_in": "Войти",
     "friends": "Друзья",
     "need_help": "Нужна помощь?",
-    "favorites": "Избранное"
+    "favorites": "Избранное",
+    "playable_button_title": "Показать только игры, в которые можно играть сейчас"
   },
   "header": {
     "search": "Поиск",

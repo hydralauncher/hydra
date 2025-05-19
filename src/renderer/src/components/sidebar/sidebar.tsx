@@ -21,7 +21,7 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import { SidebarProfile } from "./sidebar-profile";
 import { sortBy } from "lodash-es";
 import cn from "classnames";
-import { CommentDiscussionIcon } from "@primer/octicons-react";
+import { CommentDiscussionIcon, PlayIcon } from "@primer/octicons-react";
 import { SidebarGameItem } from "./sidebar-game-item";
 import { setFriendRequestCount } from "@renderer/features/user-details-slice";
 import { useDispatch } from "react-redux";
@@ -59,6 +59,12 @@ export function Sidebar() {
   const { lastPacket, progress } = useDownload();
 
   const { showWarningToast } = useToast();
+
+  const [showPlayableOnly, setShowPlayableOnly] = useState(false);
+
+  const handlePlayButtonClick = () => {
+    setShowPlayableOnly(!showPlayableOnly);
+  };
 
   useEffect(() => {
     updateLibrary();
@@ -242,7 +248,12 @@ export function Sidebar() {
           )}
 
           <section className="sidebar__section">
-            <small className="sidebar__section-title">{t("my_library")}</small>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <small className="sidebar__section-title">{t("my_library")}</small>
+              <button type="button" className={`sidebar__play-button ${showPlayableOnly ? 'sidebar__play-button--active' : ''}`} title={t("playable_button_title")} onClick={handlePlayButtonClick}>
+                <PlayIcon size={16} />
+              </button>
+            </div>
 
             <TextField
               ref={filterRef}
@@ -254,6 +265,7 @@ export function Sidebar() {
             <ul className="sidebar__menu">
               {filteredLibrary
                 .filter((game) => !game.favorite)
+                .filter((game) => !showPlayableOnly || Boolean(game.executablePath))
                 .map((game) => (
                   <SidebarGameItem
                     key={game.id}

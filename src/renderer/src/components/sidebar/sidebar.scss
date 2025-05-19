@@ -143,3 +143,23 @@
     border-radius: 50%;
   }
 }
+
+.sidebar__play-button {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0;
+
+  &:active {
+    color: gray;
+  }
+
+  &--active {
+    color: #16b195;
+  }
+
+  svg {
+    display: block;
+  }
+}
