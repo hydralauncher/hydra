@@ -1,10 +1,8 @@
 {
   "language_name": "Türkçe",
-
   "app": {
     "successfully_signed_in": "Başarıyla giriş yapıldı"
   },
-
   "home": {
     "featured": "Öne Çıkanlar",
     "surprise_me": "Beni Şaşırt",
@@ -14,7 +12,6 @@
     "weekly": "📅 Haftanın En İyi Oyunları",
     "achievements": "🏆 Bitirilecek Oyunlar"
   },
-
   "sidebar": {
     "catalogue": "Katalog",
     "downloads": "İndirilenler",
@@ -32,7 +29,6 @@
     "need_help": "Yardıma mı ihtiyacınız var?",
     "favorites": "Favoriler"
   },
-
   "header": {
     "search": "Oyunlarda Ara",
     "home": "Ana Sayfa",
@@ -43,7 +39,6 @@
     "version_available_install": "{{version}} sürümü mevcut. Yeniden başlatıp yüklemek için tıklayın.",
     "version_available_download": "{{version}} sürümü mevcut. İndirmek için tıklayın."
   },
-
   "bottom_panel": {
     "no_downloads_in_progress": "Devam eden indirme yok",
     "downloading_metadata": "{{title}} meta verileri indiriliyor…",
@@ -54,7 +49,6 @@
     "installation_complete": "Kurulum tamamlandı",
     "installation_complete_message": "Gerekli paketler başarıyla yüklendi"
   },
-
   "catalogue": {
     "search": "Filtrele…",
     "developers": "Geliştiriciler",
@@ -66,7 +60,6 @@
     "filter_count": "{{filterCount}} mevcut",
     "clear_filters": "{{filterCount}} seçiliyi temizle"
   },
-
   "game_details": {
     "open_download_options": "İndirme seçeneklerini aç",
     "download_options_zero": "İndirme seçeneği yok",
@@ -213,7 +206,6 @@
     "invalid_wine_prefix_path_description": "Wine ön ek yolu hatalı. Lütfen yolu kontrol edin ve tekrar deneyin.",
     "missing_wine_prefix": "Linux'ta yedekleme oluşturmak için Wine ön eki gereklidir"
   },
-
   "activation": {
     "title": "Hydra'yı Etkinleştir",
     "installation_id": "Kurulum ID:",
@@ -222,7 +214,6 @@
     "activate": "Etkinleştir",
     "loading": "Yükleniyor…"
   },
-
   "downloads": {
     "resume": "Devam Et",
     "pause": "Duraklat",
@@ -254,7 +245,6 @@
     "extract": "Dosyaları çıkart",
     "extracting": "Dosyalar çıkartılıyor…"
   },
-
   "settings": {
     "downloads_path": "İndirme yolu",
     "change": "Güncelle",
@@ -392,7 +382,6 @@
     "notification_preview": "Başarı Bildirimi Önizlemesi",
     "enable_friend_start_game_notifications": "Bir arkadaşınız oyun oynamaya başladığında"
   },
-
   "notifications": {
     "download_complete": "İndirme tamamlandı",
     "game_ready_to_install": "{{title}} yüklenmeye hazır",
@@ -411,32 +400,26 @@
     "test_achievement_notification_title": "Bu bir test bildirimi",
     "test_achievement_notification_description": "Oldukça havalı, değil mi?"
   },
-
   "system_tray": {
     "open": "Hydra'yı Aç",
     "quit": "Çık"
   },
-
   "game_card": {
     "available_one": "Mevcut",
     "available_other": "Mevcut",
     "no_downloads": "İndirme mevcut değil"
   },
-
   "binary_not_found_modal": {
     "title": "Programlar Yüklü Değil",
     "description": "Sisteminizde Wine veya Lutris çalıştırılabilir dosyaları bulunamadı",
     "instructions": "Oyunun sorunsuz çalışması için Linux dağıtımınızda bunların nasıl kurulacağını kontrol edin"
   },
-
   "modal": {
     "close": "Kapat düğmesi"
   },
-
   "forms": {
     "toggle_password_visibility": "Şifreyi göster/gizle"
   },
-
   "user_profile": {
     "amount_hours": "{{amount}} saat",
     "amount_minutes": "{{amount}} dakika",
@@ -518,7 +501,6 @@
     "show_achievements_on_profile": "Başarımlarını profilinde göster",
     "show_points_on_profile": "Kazanılan puanlarını profilinde göster"
   },
-
   "achievement": {
     "achievement_unlocked": "Başarım açıldı",
     "user_achievements": "{{displayName}}'nın Başarımları",
@@ -534,7 +516,6 @@
     "available_points": "Mevcut puanlar:",
     "how_to_earn_achievements_points": "Başarı puanları nasıl kazanılır?"
   },
-
   "hydra_cloud": {
     "subscription_tour_title": "Hydra Cloud Aboneliği",
     "subscribe_now": "Şimdi abone ol",
