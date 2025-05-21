@@ -27,7 +27,8 @@
     "sign_in": "Войти",
     "friends": "Друзья",
     "need_help": "Нужна помощь?",
-    "favorites": "Избранное"
+    "favorites": "Избранное",
+    "playable_button_title": "Показать только игры, в которые можно играть сейчас"
   },
   "header": {
     "search": "Поиск",
@@ -197,7 +198,14 @@
     "download_error_not_cached_on_torbox": "Эта загрузка недоступна на TorBox, и получить статус загрузки с TorBox пока невозможно.",
     "game_added_to_favorites": "Игра добавлена в избранное",
     "game_removed_from_favorites": "Игра удалена из избранного",
-    "automatically_extract_downloaded_files": "Автоматическая распаковка загруженных файлов"
+    "automatically_extract_downloaded_files": "Автоматическая распаковка загруженных файлов",
+    "create_steam_shortcut": "Создать ярлык Steam",
+    "you_might_need_to_restart_steam": "Возможно, вам потребуется перезапустить Steam, чтобы увидеть изменения",
+    "create_start_menu_shortcut": "Создать ярлык в меню «Пуск»",
+    "invalid_wine_prefix_path": "Недопустимый путь префикса Wine",
+    "invalid_wine_prefix_path_description": "Путь к префиксу Wine недействителен. Пожалуйста, проверьте путь и попробуйте снова.",
+    "missing_wine_prefix": "Префикс Wine необходим для создания резервной копии в Linux",
+    "download_error_not_cached_on_hydra": "Эта загрузка недоступна на Nimbus."
   },
   "activation": {
     "title": "Активировать Hydra",
@@ -355,7 +363,25 @@
     "common_redist_description": "Для запуска некоторых игр требуются библиотеки. Во избежание проблем рекомендуется установить их.",
     "install_common_redist": "Установить",
     "installing_common_redist": "Установка…",
-    "show_download_speed_in_megabytes": "Показать скорость загрузки в мегабайтах в секунду"
+    "show_download_speed_in_megabytes": "Показать скорость загрузки в мегабайтах в секунду",
+    "extract_files_by_default": "Извлекать файлы по умолчанию после загрузки",
+    "achievement_custom_notification_position": "Позиция настраиваемых уведомлений о достижениях",
+    "top-left": "Верхний левый угол",
+    "top-center": "Верхний центр",
+    "top-right": "Верхний правый угол",
+    "bottom-left": "Нижний левый угол",
+    "bottom-center": "Нижний центр",
+    "bottom-right": "Нижний правый угол",
+    "enable_achievement_custom_notifications": "Включить настраиваемые уведомления о достижениях",
+    "alignment": "Выравнивание",
+    "variation": "Вариация",
+    "default": "По умолчанию",
+    "rare": "Редкое",
+    "platinum": "Платиновый",
+    "hidden": "Скрытый",
+    "test_notification": "Тестовое уведомление",
+    "notification_preview": "Предварительный просмотр уведомления о достижении",
+    "enable_friend_start_game_notifications": "Когда друг начинает играть в игру"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -370,7 +396,10 @@
     "new_friend_request_title": "Новый запрос на добавление в друзья",
     "new_friend_request_description": "Вы получили новый запрос на добавление в друзья",
     "extraction_complete": "Распаковка завершена",
-    "game_extracted": "{{title}} успешно распакован"
+    "game_extracted": "{{title}} успешно распакован",
+    "friend_started_playing_game": "{{displayName}} начал играть в игру",
+    "test_achievement_notification_title": "Это тестовое уведомление",
+    "test_achievement_notification_description": "Довольно круто, да?"
   },
   "system_tray": {
     "open": "Открыть Hydra",
