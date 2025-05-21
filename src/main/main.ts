@@ -40,6 +40,7 @@ export const loadState = async () => {
   }
 
   Ludusavi.copyConfigFileToUserData();
+  Ludusavi.copyBinaryToUserData();
 
   await HydraApi.setupApi().then(() => {
     uploadGamesBatch();
