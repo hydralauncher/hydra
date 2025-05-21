@@ -238,9 +238,9 @@
     "no_downloads_title": "Så tomt",
     "no_downloads_description": "Du har inte laddat ner något med Hydra än, men det är aldrig för sent att börja.",
     "checking_files": "Kontrollerar filer…",
-    "seeding": "Delar",
-    "stop_seeding": "Sluta dela",
-    "resume_seeding": "Fortsätt dela",
+    "seeding": "Seedar",
+    "stop_seeding": "Sluta seeda",
+    "resume_seeding": "Fortsätt seeda",
     "options": "Hantera",
     "extract": "Packa upp filer",
     "extracting": "Packar upp filer…"
@@ -307,7 +307,7 @@
     "enable_achievement_notifications": "När en prestation låses upp",
     "launch_minimized": "Starta Hydra minimerad",
     "disable_nsfw_alert": "Inaktivera NSFW-varning",
-    "seed_after_download_complete": "Dela efter att nedladdningen är klar",
+    "seed_after_download_complete": "Seeda efter att nedladdningen är klar",
     "show_hidden_achievement_description": "Visa beskrivning av dolda prestationer innan de låses upp",
     "account": "Konto",
     "no_users_blocked": "Du har inga blockerade användare",
@@ -379,7 +379,8 @@
     "platinum": "Platina",
     "hidden": "Dold",
     "test_notification": "Testa meddelande",
-    "notification_preview": "Förhandsvisning av prestationmeddelande"
+    "notification_preview": "Förhandsvisning av prestationmeddelande",
+    "enable_friend_start_game_notifications": "När en vän börjar spela ett spel"
   },
   "notifications": {
     "download_complete": "Nedladdning klar",
