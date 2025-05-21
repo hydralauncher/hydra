@@ -139,7 +139,11 @@
   }
 
   &__help-button-icon {
-    background: linear-gradient(0deg, globals.$brand-teal 50%, globals.$brand-blue 100%);
+    background: linear-gradient(
+      0deg,
+      globals.$brand-teal 50%,
+      globals.$brand-blue 100%
+    );
     width: 24px;
     height: 24px;
     display: flex;
