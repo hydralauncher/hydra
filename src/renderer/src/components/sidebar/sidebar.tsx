@@ -251,11 +251,13 @@ export function Sidebar() {
 
           <section className="sidebar__section">
             <div className="sidebar__section-header">
-              <small className="sidebar__section-title">{t("my_library")}</small>
+              <small className="sidebar__section-title">
+                {t("my_library")}
+              </small>
               <button
                 type="button"
                 className={cn("sidebar__play-button", {
-                  "sidebar__play-button--active": showPlayableOnly
+                  "sidebar__play-button--active": showPlayableOnly,
                 })}
                 onClick={handlePlayButtonClick}
               >
