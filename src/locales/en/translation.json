@@ -379,7 +379,8 @@
     "platinum": "Platinum",
     "hidden": "Hidden",
     "test_notification": "Test notification",
-    "notification_preview": "Achievement Notification Preview"
+    "notification_preview": "Achievement Notification Preview",
+    "enable_friend_start_game_notifications": "When a friend starts playing a game"
   },
   "notifications": {
     "download_complete": "Download complete",

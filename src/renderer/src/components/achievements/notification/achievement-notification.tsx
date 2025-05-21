@@ -31,7 +31,7 @@ export function AchievementNotificationItem({
         [`${baseClassName}--platinum`]: achievement.isPlatinum,
       })}
     >
-      {achievement.points && (
+      {achievement.points !== undefined && (
         <div className="achievement-notification__chip">
           <HydraIcon className="achievement-notification__chip__icon" />
           <span className="achievement-notification__chip__label">

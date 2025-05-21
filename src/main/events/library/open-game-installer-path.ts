@@ -12,16 +12,14 @@ const openGameInstallerPath = async (
 ) => {
   const download = await downloadsSublevel.get(levelKeys.game(shop, objectId));
 
-  if (!download || !download.folderName || !download.downloadPath) return true;
+  if (!download?.folderName || !download.downloadPath) return;
 
   const gamePath = path.join(
     download.downloadPath ?? (await getDownloadsPath()),
-    download.folderName!
+    download.folderName
   );
 
   shell.showItemInFolder(gamePath);
-
-  return true;
 };
 
 registerEvent("openGameInstallerPath", openGameInstallerPath);

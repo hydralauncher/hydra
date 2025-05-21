@@ -38,6 +38,7 @@ export function SettingsGeneral() {
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
     friendRequestNotificationsEnabled: false,
+    friendStartGameNotificationsEnabled: true,
     achievementNotificationsEnabled: true,
     achievementCustomNotificationsEnabled: true,
     achievementCustomNotificationPosition:
@@ -111,6 +112,8 @@ export function SettingsGeneral() {
           userPreferences.achievementCustomNotificationPosition ?? "top-left",
         friendRequestNotificationsEnabled:
           userPreferences.friendRequestNotificationsEnabled ?? false,
+        friendStartGameNotificationsEnabled:
+          userPreferences.friendStartGameNotificationsEnabled ?? true,
         language: language ?? "en",
       }));
     }
@@ -244,6 +247,17 @@ export function SettingsGeneral() {
           handleChange({
             friendRequestNotificationsEnabled:
               !form.friendRequestNotificationsEnabled,
+          })
+        }
+      />
+
+      <CheckboxField
+        label={t("enable_friend_start_game_notifications")}
+        checked={form.friendStartGameNotificationsEnabled}
+        onChange={() =>
+          handleChange({
+            friendStartGameNotificationsEnabled:
+              !form.friendStartGameNotificationsEnabled,
           })
         }
       />

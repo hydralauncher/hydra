@@ -11,6 +11,9 @@ import { injectCustomCss } from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
 import { generateAchievementCustomNotificationTest } from "@shared";
 import { CollapsedMenu } from "@renderer/components/collapsed-menu/collapsed-menu";
+import app from "../../app.scss?inline";
+import styles from "../../components/achievements/notification/achievement-notification.scss?inline";
+import root from "react-shadow";
 
 const notificationVariations = {
   default: "default",
@@ -36,14 +39,15 @@ export default function ThemeEditor() {
   const [notificationAlignment, setNotificationAlignment] =
     useState<AchievementCustomNotificationPosition>("top-left");
 
+  const [shadowRootRef, setShadowRootRef] = useState<HTMLElement | null>(null);
+
   const achievementPreview = useMemo(() => {
     return {
-      achievement: {
-        ...generateAchievementCustomNotificationTest(t, i18n.language),
+      achievement: generateAchievementCustomNotificationTest(t, i18n.language, {
         isRare: notificationVariation === "rare",
         isHidden: notificationVariation === "hidden",
         isPlatinum: notificationVariation === "platinum",
-      },
+      }),
       position: notificationAlignment,
     };
   }, [t, i18n.language, notificationVariation, notificationAlignment]);
@@ -58,10 +62,13 @@ export default function ThemeEditor() {
         if (loadedTheme) {
           setTheme(loadedTheme);
           setCode(loadedTheme.code);
+          if (shadowRootRef) {
+            injectCustomCss(loadedTheme.code, shadowRootRef);
+          }
         }
       });
     }
-  }, [themeId]);
+  }, [themeId, shadowRootRef]);
 
   const handleSave = useCallback(async () => {
     if (theme) {
@@ -69,11 +76,14 @@ export default function ThemeEditor() {
       setHasUnsavedChanges(false);
       setIsClosingNotifications(true);
       setTimeout(() => {
-        injectCustomCss(code);
+        if (shadowRootRef) {
+          injectCustomCss(code, shadowRootRef);
+        }
+
         setIsClosingNotifications(false);
       }, 450);
     }
-  }, [code, theme]);
+  }, [code, theme, shadowRootRef]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -185,11 +195,18 @@ export default function ThemeEditor() {
             />
 
             <div className="theme-editor__notification-preview-wrapper">
-              <AchievementNotificationItem
-                position={achievementPreview.position}
-                achievement={achievementPreview.achievement}
-                isClosing={isClosingNotifications}
-              />
+              <root.div>
+                <style type="text/css">
+                  {app} {styles}
+                </style>
+                <section ref={setShadowRootRef}>
+                  <AchievementNotificationItem
+                    position={achievementPreview.position}
+                    achievement={achievementPreview.achievement}
+                    isClosing={isClosingNotifications}
+                  />
+                </section>
+              </root.div>
             </div>
           </div>
         </CollapsedMenu>

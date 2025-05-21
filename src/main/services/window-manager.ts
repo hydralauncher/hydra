@@ -395,7 +395,16 @@ export class WindowManager {
     this.notificationWindow?.webContents.send(
       "on-achievement-unlocked",
       userPreferences.achievementCustomNotificationPosition ?? "top-left",
-      [generateAchievementCustomNotificationTest(t, language)]
+      [
+        generateAchievementCustomNotificationTest(t, language),
+        generateAchievementCustomNotificationTest(t, language, {
+          isRare: true,
+          isHidden: true,
+        }),
+        generateAchievementCustomNotificationTest(t, language, {
+          isPlatinum: true,
+        }),
+      ]
     );
   }
 
@@ -460,9 +469,8 @@ export class WindowManager {
         }
       });
 
-      editorWindow.webContents.on("before-input-event", (event, input) => {
+      editorWindow.webContents.on("before-input-event", (_event, input) => {
         if (input.key === "F12") {
-          event.preventDefault();
           this.mainWindow?.webContents.toggleDevTools();
         }
       });
