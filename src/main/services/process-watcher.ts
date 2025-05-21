@@ -254,12 +254,6 @@ function onTickGame(game: Game) {
     lastTimePlayed: new Date(),
   });
 
-  gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
-    ...game,
-    playTimeInMilliseconds: game.playTimeInMilliseconds + delta,
-    lastTimePlayed: new Date(),
-  });
-
   gamesPlaytime.set(levelKeys.game(game.shop, game.objectId), {
     ...gamePlaytime,
     lastTick: now,
