@@ -27,7 +27,8 @@
     "sign_in": "Sign in",
     "friends": "Friends",
     "need_help": "Need help?",
-    "favorites": "Favorites"
+    "favorites": "Favorites",
+    "playable_button_title": "Show only games you can play now"
   },
   "header": {
     "search": "Search games",
