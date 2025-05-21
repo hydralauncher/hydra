@@ -98,6 +98,12 @@
     background-size: cover;
   }
 
+  &__section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
   &__section-title {
     text-transform: uppercase;
     font-weight: bold;
@@ -133,7 +139,7 @@
   }
 
   &__help-button-icon {
-    background: linear-gradient(0deg, #16b195 50%, #3e62c0 100%);
+    background: linear-gradient(0deg, globals.$brand-teal 50%, globals.$brand-blue 100%);
     width: 24px;
     height: 24px;
     display: flex;
@@ -142,24 +148,24 @@
     color: #fff;
     border-radius: 50%;
   }
-}
 
-.sidebar__play-button {
-  background: none;
-  border: none;
-  color: white;
-  cursor: pointer;
-  padding: 0;
+  &__play-button {
+    background: none;
+    border: none;
+    color: globals.$muted-color;
+    cursor: pointer;
+    padding: 0;
 
-  &:active {
-    color: gray;
-  }
+    &:active {
+      color: rgba(255, 255, 255, 0.5);
+    }
 
-  &--active {
-    color: #16b195;
-  }
+    &--active {
+      color: globals.$brand-teal;
+    }
 
-  svg {
-    display: block;
+    svg {
+      display: block;
+    }
   }
 }
