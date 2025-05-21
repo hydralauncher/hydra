@@ -272,6 +272,7 @@ export interface AchievementNotificationInfo {
   isPlatinum: boolean;
   points?: number;
 }
+
 export interface GameArtifact {
   id: string;
   artifactLengthInBytes: number;
