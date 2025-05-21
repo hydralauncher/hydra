@@ -15,7 +15,8 @@
     "downloading": "{{title}} ({{percentage}} - Download…)",
     "filter": "Filtra libreria",
     "home": "Home",
-    "favorites": "Preferiti"
+    "favorites": "Preferiti",
+    "playable_button_title": "Mostra solo i giochi che puoi giocare ora"
   },
   "header": {
     "search": "Cerca",
