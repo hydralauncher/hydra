@@ -32,6 +32,8 @@ const SIDEBAR_MAX_WIDTH = 450;
 
 const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 
+const isGamePlayable = (game: LibraryGame) => Boolean(game.executablePath);
+
 export function Sidebar() {
   const filterRef = useRef<HTMLInputElement>(null);
 
@@ -248,20 +250,13 @@ export function Sidebar() {
           )}
 
           <section className="sidebar__section">
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <small className="sidebar__section-title">
-                {t("my_library")}
-              </small>
+            <div className="sidebar__section-header">
+              <small className="sidebar__section-title">{t("my_library")}</small>
               <button
                 type="button"
-                className={`sidebar__play-button ${showPlayableOnly ? "sidebar__play-button--active" : ""}`}
-                title={t("playable_button_title")}
+                className={cn("sidebar__play-button", {
+                  "sidebar__play-button--active": showPlayableOnly
+                })}
                 onClick={handlePlayButtonClick}
               >
                 <PlayIcon size={16} />
@@ -278,9 +273,7 @@ export function Sidebar() {
             <ul className="sidebar__menu">
               {filteredLibrary
                 .filter((game) => !game.favorite)
-                .filter(
-                  (game) => !showPlayableOnly || Boolean(game.executablePath)
-                )
+                .filter((game) => !showPlayableOnly || isGamePlayable(game))
                 .map((game) => (
                   <SidebarGameItem
                     key={game.id}

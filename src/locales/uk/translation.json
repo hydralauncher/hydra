@@ -25,10 +25,10 @@
     "game_has_no_executable": "Не було вибрано файл для запуску гри",
     "queued": "{{title}} в черзі",
     "sign_in": "Увійти",
-    "favorites": "Избранное",
+    "favorites": "Улюблені",
     "friends": "Друзі",
     "need_help": "Потрібна допомога?",
-    "playable_button_title": "Показать только игры, в которые можно играть сейчас"
+    "playable_button_title": "Показати лише ігри, які можна грати зараз"
   },
   "header": {
     "search": "Пошук",

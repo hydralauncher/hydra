@@ -13,7 +13,7 @@
     "downloading_metadata": "{{title}} (Pobieranie metadata…)",
     "paused": "{{title}} (Zatrzymano)",
     "downloading": "{{title}} ({{percentage}} - Pobieranie…)",
-    "filter": "Filtruj biblioteke",
+    "filter": "Filtruj bibliotekę",
     "home": "Główna",
     "favorites": "Ulubione",
     "playable_button_title": "Pokaż tylko gry, w które możesz grać teraz"
