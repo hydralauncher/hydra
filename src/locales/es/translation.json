@@ -27,7 +27,8 @@
     "sign_in": "Iniciar sesión",
     "friends": "Amigos",
     "need_help": "¿Necesitas ayuda?",
-    "favorites": "Favoritos"
+    "favorites": "Favoritos",
+    "playable_button_title": "Mostrar solo juegos que puedes jugar ahora"
   },
   "header": {
     "search": "Buscar juegos",

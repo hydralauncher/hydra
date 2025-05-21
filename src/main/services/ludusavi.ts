@@ -33,6 +33,8 @@ export class Ludusavi {
         path.join(this.ludusaviPath, "config.yaml"),
         path.join(this.configPath, "config.yaml")
       );
+
+      fs.cpSync(this.binaryPath, path.join(this.configPath, "ludusavi"));
     }
   }
 
