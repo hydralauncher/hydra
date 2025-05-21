@@ -8,19 +8,19 @@ import cp from "node:child_process";
 import { SystemPath } from "./system-path";
 
 export class Ludusavi {
-  private static ludusaviPath = app.isPackaged
+  private static ludusaviResourcesPath = app.isPackaged
     ? path.join(process.resourcesPath, "ludusavi")
     : path.join(__dirname, "..", "..", "ludusavi");
 
-  private static binaryPath = path.join(this.ludusaviPath, "ludusavi");
   private static configPath = path.join(
     SystemPath.getPath("userData"),
     "ludusavi"
   );
+  private static binaryPath = path.join(this.configPath, "ludusavi");
 
   public static async getConfig() {
     const config = YAML.parse(
-      fs.readFileSync(path.join(this.ludusaviPath, "config.yaml"), "utf-8")
+      fs.readFileSync(path.join(this.configPath, "config.yaml"), "utf-8")
     ) as LudusaviConfig;
 
     return config;
@@ -29,12 +29,20 @@ export class Ludusavi {
   public static async copyConfigFileToUserData() {
     if (!fs.existsSync(this.configPath)) {
       fs.mkdirSync(this.configPath, { recursive: true });
+
       fs.cpSync(
-        path.join(this.ludusaviPath, "config.yaml"),
+        path.join(this.ludusaviResourcesPath, "config.yaml"),
         path.join(this.configPath, "config.yaml")
       );
+    }
+  }
 
-      fs.cpSync(this.binaryPath, path.join(this.configPath, "ludusavi"));
+  public static async copyBinaryToUserData() {
+    if (!fs.existsSync(this.binaryPath)) {
+      fs.cpSync(
+        path.join(this.ludusaviResourcesPath, "ludusavi"),
+        this.binaryPath
+      );
     }
   }
 
