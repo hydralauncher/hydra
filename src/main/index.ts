@@ -4,7 +4,7 @@ import i18n from "i18next";
 import path from "node:path";
 import url from "node:url";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
-import { logger, WindowManager } from "@main/services";
+import { logger, clearGamesPlaytime, WindowManager } from "@main/services";
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
 import { db, levelKeys } from "./level";
@@ -143,9 +143,17 @@ app.on("window-all-closed", () => {
   WindowManager.mainWindow = null;
 });
 
-app.on("before-quit", () => {
-  /* Disconnects libtorrent */
-  PythonRPC.kill();
+let canAppBeClosed = false;
+
+app.on("before-quit", async (e) => {
+  if (!canAppBeClosed) {
+    e.preventDefault();
+    /* Disconnects libtorrent */
+    PythonRPC.kill();
+    await clearGamesPlaytime();
+    canAppBeClosed = true;
+    app.quit();
+  }
 });
 
 app.on("activate", () => {

@@ -34,6 +34,7 @@ export interface Game {
   title: string;
   iconUrl: string | null;
   playTimeInMilliseconds: number;
+  unsyncedDeltaPlayTimeInMilliseconds?: number;
   lastTimePlayed: Date | null;
   objectId: string;
   shop: GameShop;
