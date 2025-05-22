@@ -28,7 +28,7 @@ interface GameExecutables {
   [key: string]: ExecutableInfo[];
 }
 
-const TICKS_TO_UPDATE_API = 120;
+const TICKS_TO_UPDATE_API = 80;
 let currentTick = 1;
 
 const isWindowsPlatform = process.platform === "win32";
