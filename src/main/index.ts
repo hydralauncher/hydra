@@ -143,15 +143,15 @@ app.on("window-all-closed", () => {
   WindowManager.mainWindow = null;
 });
 
-let canAppBeClose = false;
+let canAppBeClosed = false;
 
 app.on("before-quit", async (e) => {
-  if (!canAppBeClose) {
+  if (!canAppBeClosed) {
     e.preventDefault();
     /* Disconnects libtorrent */
     PythonRPC.kill();
     await clearGamesPlaytime();
-    canAppBeClose = true;
+    canAppBeClosed = true;
     app.quit();
   }
 });
