@@ -357,7 +357,17 @@
     "common_redist_description": "Certains jeux nécessitent les redistribuables communs. L'installation est recommandée.",
     "install_common_redist": "Installer",
     "installing_common_redist": "Installation…",
-    "show_download_speed_in_megabytes": "Afficher la vitesse de téléchargement en mégaoctets par seconde"
+    "show_download_speed_in_megabytes": "Afficher la vitesse de téléchargement en mégaoctets par seconde",
+    "extract_files_by_default": "Extraire les fichiers par défaut après le téléchargement",
+    "enable_achievement_custom_notifications": "Activer les notifications personnalisées de succès",
+    "achievement_custom_notification_position": "Position de la notification personnalisée de succès",
+    "top-left": "En haut à gauche",
+    "top-center": "En haut au centre",
+    "top-right": "En haut à droite",
+    "bottom-left": "En bas à gauche",
+    "bottom-center": "En bas au centre",
+    "bottom-right": "En bas à droite",
+    "enable_friend_start_game_notifications": "Quand un ami commence à jouer à un jeu"
   },
   "notifications": {
     "download_complete": "Téléchargement terminé",
