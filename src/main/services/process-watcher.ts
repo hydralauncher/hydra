@@ -340,3 +340,15 @@ const onCloseGame = (game: Game) => {
     return createGame(game).catch(() => {});
   }
 };
+
+export const clearGamesPlaytime = async () => {
+  for (const game of gamesPlaytime.keys()) {
+    const gameData = await gamesSublevel.get(game);
+
+    if (gameData) {
+      await onCloseGame(gameData);
+    }
+  }
+
+  gamesPlaytime.clear();
+};

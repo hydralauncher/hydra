@@ -143,9 +143,17 @@ app.on("window-all-closed", () => {
   WindowManager.mainWindow = null;
 });
 
-app.on("before-quit", () => {
-  /* Disconnects libtorrent */
-  PythonRPC.kill();
+let canAppBeClose = false;
+
+app.on("before-quit", async (e) => {
+  if (!canAppBeClose) {
+    e.preventDefault();
+    /* Disconnects libtorrent */
+    PythonRPC.kill();
+    await clearGamesPlaytime();
+    canAppBeClose = true;
+    app.quit();
+  }
 });
 
 app.on("activate", () => {
