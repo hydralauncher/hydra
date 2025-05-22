@@ -4,7 +4,7 @@ import i18n from "i18next";
 import path from "node:path";
 import url from "node:url";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
-import { logger, WindowManager } from "@main/services";
+import { logger, clearGamesPlaytime, WindowManager } from "@main/services";
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
 import { db, levelKeys } from "./level";
