@@ -225,7 +225,18 @@ function onOpenGame(game: Game) {
   });
 
   if (game.remoteId) {
-    updateGamePlaytime(game, 0, new Date()).catch(() => {});
+    updateGamePlaytime(
+      game,
+      game.unsyncedDeltaPlayTimeInMilliseconds ?? 0,
+      new Date()
+    )
+      .then(() => {
+        gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+          ...game,
+          unsyncedDeltaPlayTimeInMilliseconds: 0,
+        });
+      })
+      .catch(() => {});
 
     if (game.automaticCloudSync) {
       CloudSync.uploadSaveGame(
@@ -260,22 +271,34 @@ function onTickGame(game: Game) {
   });
 
   if (currentTick % TICKS_TO_UPDATE_API === 0) {
+    const deltaToSync =
+      now -
+      gamePlaytime.lastSyncTick +
+      (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0);
+
     const gamePromise = game.remoteId
-      ? updateGamePlaytime(
-          game,
-          now - gamePlaytime.lastSyncTick,
-          game.lastTimePlayed!
-        )
+      ? updateGamePlaytime(game, deltaToSync, game.lastTimePlayed!)
       : createGame(game);
 
     gamePromise
       .then(() => {
+        gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+          ...game,
+          unsyncedDeltaPlayTimeInMilliseconds: 0,
+        });
+      })
+      .catch(() => {
+        gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+          ...game,
+          unsyncedDeltaPlayTimeInMilliseconds: deltaToSync,
+        });
+      })
+      .finally(() => {
         gamesPlaytime.set(levelKeys.game(game.shop, game.objectId), {
           ...gamePlaytime,
           lastSyncTick: now,
         });
-      })
-      .catch(() => {});
+      });
   }
 }
 
@@ -286,12 +309,6 @@ const onCloseGame = (game: Game) => {
   gamesPlaytime.delete(levelKeys.game(game.shop, game.objectId));
 
   if (game.remoteId) {
-    updateGamePlaytime(
-      game,
-      performance.now() - gamePlaytime.lastSyncTick,
-      game.lastTimePlayed!
-    ).catch(() => {});
-
     if (game.automaticCloudSync) {
       CloudSync.uploadSaveGame(
         game.objectId,
@@ -300,7 +317,26 @@ const onCloseGame = (game: Game) => {
         CloudSync.getBackupLabel(true)
       );
     }
+
+    const deltaToSync =
+      performance.now() -
+      gamePlaytime.lastSyncTick +
+      (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0);
+
+    return updateGamePlaytime(game, deltaToSync, game.lastTimePlayed!)
+      .then(() => {
+        return gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+          ...game,
+          unsyncedDeltaPlayTimeInMilliseconds: 0,
+        });
+      })
+      .catch(() => {
+        return gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+          ...game,
+          unsyncedDeltaPlayTimeInMilliseconds: deltaToSync,
+        });
+      });
   } else {
-    createGame(game).catch(() => {});
+    return createGame(game).catch(() => {});
   }
 };

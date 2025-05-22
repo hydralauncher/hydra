@@ -4,7 +4,8 @@ import { SystemPath } from "./services/system-path";
 
 export const defaultDownloadsPath = SystemPath.getPath("downloads");
 
-export const isStaging = import.meta.env.MAIN_VITE_API_URL.includes("staging");
+export const isStaging =
+  true || import.meta.env.MAIN_VITE_API_URL.includes("staging");
 
 export const windowsStartMenuPath = path.join(
   SystemPath.getPath("appData"),
@@ -26,11 +27,10 @@ export const commonRedistPath = path.join(
   "CommonRedist"
 );
 
-export const logsPath = path.join(SystemPath.getPath("userData"), "logs");
-
-export const seedsPath = app.isPackaged
-  ? path.join(process.resourcesPath, "seeds")
-  : path.join(__dirname, "..", "..", "seeds");
+export const logsPath = path.join(
+  SystemPath.getPath("userData"),
+  `logs${isStaging ? "-staging" : ""}`
+);
 
 export const achievementSoundPath = app.isPackaged
   ? path.join(process.resourcesPath, "achievement.wav")
