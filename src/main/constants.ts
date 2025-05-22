@@ -26,11 +26,10 @@ export const commonRedistPath = path.join(
   "CommonRedist"
 );
 
-export const logsPath = path.join(SystemPath.getPath("userData"), "logs");
-
-export const seedsPath = app.isPackaged
-  ? path.join(process.resourcesPath, "seeds")
-  : path.join(__dirname, "..", "..", "seeds");
+export const logsPath = path.join(
+  SystemPath.getPath("userData"),
+  `logs${isStaging ? "-staging" : ""}`
+);
 
 export const achievementSoundPath = app.isPackaged
   ? path.join(process.resourcesPath, "achievement.wav")
