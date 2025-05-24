@@ -77,6 +77,9 @@ export default function Catalogue() {
     }, 500)
   ).current;
 
+  const decodeHTML = (s: string) =>
+    s.replaceAll("&amp;", "&").replaceAll("&lt;", "<").replaceAll("&gt;", ">");
+
   useEffect(() => {
     setResults([]);
     setIsLoading(true);
@@ -165,7 +168,7 @@ export default function Catalogue() {
       })),
 
       ...filters.publishers.map((publisher) => ({
-        label: publisher,
+        label: decodeHTML(publisher),
         orbColor: filterCategoryColors.publishers,
         key: "publishers",
         value: publisher,
@@ -208,7 +211,7 @@ export default function Catalogue() {
       {
         title: t("publishers"),
         items: steamPublishers.map((publisher) => ({
-          label: publisher,
+          label: decodeHTML(publisher),
           value: publisher,
           checked: filters.publishers.includes(publisher),
         })),
