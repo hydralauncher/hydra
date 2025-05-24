@@ -112,7 +112,7 @@ export class WSClient {
   private static startHeartbeat() {
     this.heartbeatInterval = setInterval(() => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.ws.ping();
+        this.ws.send("PING");
       }
     }, 15_000);
   }
