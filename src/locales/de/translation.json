@@ -506,7 +506,7 @@
   },
   "achievement": {
     "achievement_unlocked": "Erfolg freigeschaltet",
-    "user_achievements": "{{displayName}}s Erfolge",
+    "user_achievements": "{{displayName}}'s Erfolge",
     "your_achievements": "Deine Erfolge",
     "unlocked_at": "Freigeschaltet am: {{date}}",
     "subscription_needed": "Ein Hydra Cloud-Abonnement ist erforderlich, um diesen Inhalt zu sehen",
