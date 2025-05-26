@@ -343,6 +343,23 @@ export type LibraryGame = Game &
     download: Download | null;
   };
 
+export type UserGameDetails = ShopAssets & {
+  userId: string;
+  playTimeInMilliseconds: number;
+  unlockedAchievementCount: number;
+  achievementsPointsEarnedSum: number;
+  lastTimePlayed: Date | null;
+  isDeleted: boolean;
+  isFavorite: boolean;
+  friendsWhoPlayed: {
+    id: string;
+    displayName: string;
+    profileImageUrl: string | null;
+    lastTimePlayed: Date | null;
+    playTimeInSeconds: number;
+  }[];
+};
+
 export * from "./game.types";
 export * from "./steam.types";
 export * from "./download.types";
