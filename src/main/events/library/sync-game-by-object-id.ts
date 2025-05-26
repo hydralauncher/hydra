@@ -11,12 +11,12 @@ const syncGameByObjectId = async (
   return HydraApi.get<UserGameDetails>(
     `/profile/games/${shop}/${objectId}`
   ).then(async (res) => {
+    const { id, playTimeInSeconds, ...rest } = res;
+
     const gameKey = levelKeys.game(shop, objectId);
     const game = await gamesSublevel.get(gameKey);
 
-    const { id, playTimeInSeconds, ...rest } = res;
-
-    gamesSublevel.put(gameKey, {
+    await gamesSublevel.put(gameKey, {
       ...game,
       ...rest,
       remoteId: id,
