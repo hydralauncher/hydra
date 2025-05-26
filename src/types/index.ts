@@ -344,8 +344,8 @@ export type LibraryGame = Game &
   };
 
 export type UserGameDetails = ShopAssets & {
-  userId: string;
-  playTimeInMilliseconds: number;
+  id: string;
+  playTimeInSeconds: number;
   unlockedAchievementCount: number;
   achievementsPointsEarnedSum: number;
   lastTimePlayed: Date | null;
