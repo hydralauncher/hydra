@@ -14,10 +14,8 @@ const syncGameByObjectId = async (
     const { id, playTimeInSeconds, ...rest } = res;
 
     const gameKey = levelKeys.game(shop, objectId);
-    const game = await gamesSublevel.get(gameKey);
 
     await gamesSublevel.put(gameKey, {
-      ...game,
       ...rest,
       remoteId: id,
       playTimeInMilliseconds: playTimeInSeconds * 1000,
