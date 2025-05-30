@@ -500,7 +500,8 @@
     "achievements_unlocked": "Achievements Unlocked",
     "earned_points": "Earned points",
     "show_achievements_on_profile": "Show your achievements on your profile",
-    "show_points_on_profile": "Show your earned points on your profile"
+    "show_points_on_profile": "Show your earned points on your profile",
+    "error_adding_friend": "Could not send friend request. Please check friend code"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",
