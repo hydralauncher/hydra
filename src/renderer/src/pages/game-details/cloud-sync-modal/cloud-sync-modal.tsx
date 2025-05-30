@@ -7,10 +7,13 @@ import { formatBytes } from "@shared";
 import {
   ClockIcon,
   DeviceDesktopIcon,
-  HistoryIcon,
+  DownloadIcon,
   InfoIcon,
+  LockIcon,
+  PencilIcon,
   SyncIcon,
   TrashIcon,
+  UnlockIcon,
   UploadIcon,
 } from "@primer/octicons-react";
 import { useAppSelector, useDate, useToast } from "@renderer/hooks";
@@ -36,9 +39,11 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     uploadingBackup,
     restoringBackup,
     loadingPreview,
+    freezingArtifact,
     uploadSaveGame,
     downloadGameArtifact,
     deleteGameArtifact,
+    toggleArtifactFreeze,
     setShowCloudSyncFilesModal,
     getGameBackupPreview,
   } = useContext(cloudSyncContext);
@@ -80,6 +85,13 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
   const handleBackupInstallClick = async (artifactId: string) => {
     setBackupDownloadProgress(null);
     downloadGameArtifact(artifactId);
+  };
+
+  const handleFreezeArtifactClick = async (artifactId: string) => {
+    await toggleArtifactFreeze(
+      artifactId,
+      !artifacts.find((artifact) => artifact.id === artifactId)?.isFrozen
+    );
   };
 
   useEffect(() => {
@@ -147,7 +159,8 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     t,
   ]);
 
-  const disableActions = uploadingBackup || restoringBackup || deletingArtifact;
+  const disableActions =
+    uploadingBackup || restoringBackup || deletingArtifact || freezingArtifact;
   const isMissingWinePrefix =
     window.electron.platform === "linux" && !game?.winePrefixPath;
 
@@ -208,12 +221,14 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
             <li key={artifact.id} className="cloud-sync-modal__artifact">
               <div className="cloud-sync-modal__artifact-info">
                 <div className="cloud-sync-modal__artifact-header">
-                  <h3>
+                  <button type="button">
                     {artifact.label ??
                       t("backup_from", {
                         date: formatDate(artifact.createdAt),
                       })}
-                  </h3>
+
+                    <PencilIcon />
+                  </button>
                   <small>{formatBytes(artifact.artifactLengthInBytes)}</small>
                 </div>
 
@@ -236,21 +251,35 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
               <div className="cloud-sync-modal__artifact-actions">
                 <Button
                   type="button"
+                  tooltip={
+                    artifact.isFrozen
+                      ? t("unfreeze_backup")
+                      : t("freeze_backup")
+                  }
+                  theme={artifact.isFrozen ? "danger" : "outline"}
+                  onClick={() => handleFreezeArtifactClick(artifact.id)}
+                  disabled={disableActions}
+                >
+                  {artifact.isFrozen ? <UnlockIcon /> : <LockIcon />}
+                </Button>
+                <Button
+                  type="button"
                   onClick={() => handleBackupInstallClick(artifact.id)}
                   disabled={disableActions}
+                  tooltip={t("install_backup")}
+                  theme="outline"
                 >
                   {restoringBackup ? (
                     <SyncIcon className="cloud-sync-modal__sync-icon" />
                   ) : (
-                    <HistoryIcon />
+                    <DownloadIcon />
                   )}
-                  {t("install_backup")}
                 </Button>
                 <Button
                   type="button"
                   onClick={() => handleDeleteArtifactClick(artifact.id)}
                   theme="danger"
-                  disabled={disableActions}
+                  disabled={disableActions || artifact.isFrozen}
                 >
                   <TrashIcon />
                   {t("delete_backup")}

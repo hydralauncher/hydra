@@ -272,6 +272,7 @@ export interface GameArtifact {
   hostname: string;
   downloadCount: number;
   label?: string;
+  isFrozen: boolean;
 }
 
 export interface ComparedAchievements {
