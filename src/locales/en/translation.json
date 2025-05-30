@@ -205,7 +205,19 @@
     "create_start_menu_shortcut": "Create Start Menu shortcut",
     "invalid_wine_prefix_path": "Invalid Wine prefix path",
     "invalid_wine_prefix_path_description": "The path to the Wine prefix is invalid. Please check the path and try again.",
-    "missing_wine_prefix": "Wine prefix is required to create a backup on Linux"
+    "missing_wine_prefix": "Wine prefix is required to create a backup on Linux",
+    "artifact_renamed": "Backup renamed successfully",
+    "rename_artifact": "Rename Backup",
+    "rename_artifact_description": "Rename the backup to a more descriptive name",
+    "artifact_name_label": "Backup name",
+    "artifact_name_placeholder": "Enter a name for the backup",
+    "save_changes": "Save changes",
+    "required_field": "This field is required",
+    "max_length_field": "This field must be less than {{lenght}} characters",
+    "freeze_backup": "Pin it so it's not overwritten by automatic backups",
+    "unfreeze_backup": "Unpin it",
+    "backup_frozen": "Backup pinned",
+    "backup_unfrozen": "Backup unpinned"
   },
   "activation": {
     "title": "Activate Hydra",

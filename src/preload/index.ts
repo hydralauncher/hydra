@@ -238,6 +238,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("uploadSaveGame", objectId, shop, downloadOptionTitle),
   toggleArtifactFreeze: (gameArtifactId: string, freeze: boolean) =>
     ipcRenderer.invoke("toggleArtifactFreeze", gameArtifactId, freeze),
+  renameGameArtifact: (gameArtifactId: string, label: string) =>
+    ipcRenderer.invoke("renameGameArtifact", gameArtifactId, label),
   downloadGameArtifact: (
     objectId: string,
     shop: GameShop,

@@ -31,6 +31,23 @@
     gap: globals.$spacing-unit;
   }
 
+  &__artifact-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: globals.$body-color;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: left;
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
   &__artifacts {
     display: flex;
     gap: globals.$spacing-unit;

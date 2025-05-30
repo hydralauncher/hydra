@@ -205,6 +205,10 @@ declare global {
       gameArtifactId: string,
       freeze: boolean
     ) => Promise<void>;
+    renameGameArtifact: (
+      gameArtifactId: string,
+      label: string
+    ) => Promise<void>;
     downloadGameArtifact: (
       objectId: string,
       shop: GameShop,
