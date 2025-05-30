@@ -213,7 +213,7 @@
     "artifact_name_placeholder": "Enter a name for the backup",
     "save_changes": "Save changes",
     "required_field": "This field is required",
-    "max_length_field": "This field must be less than {{lenght}} characters",
+    "max_length_field": "This field must be less than {{length}} characters",
     "freeze_backup": "Pin it so it's not overwritten by automatic backups",
     "unfreeze_backup": "Unpin it",
     "backup_frozen": "Backup pinned",
