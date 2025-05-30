@@ -20,6 +20,7 @@ import "./library/create-game-shortcut";
 import "./library/close-game";
 import "./library/delete-game-folder";
 import "./library/get-game-by-object-id";
+import "./library/sync-game-by-object-id";
 import "./library/get-library";
 import "./library/extract-game-download";
 import "./library/open-game";
