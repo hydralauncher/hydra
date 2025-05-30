@@ -16,7 +16,10 @@ export class Ludusavi {
     SystemPath.getPath("userData"),
     "ludusavi"
   );
-  private static binaryPath = path.join(this.configPath, "ludusavi");
+  private static binaryName =
+    process.platform === "win32" ? "ludusavi.exe" : "ludusavi";
+
+  private static binaryPath = path.join(this.configPath, this.binaryName);
 
   public static async getConfig() {
     const config = YAML.parse(
@@ -40,7 +43,7 @@ export class Ludusavi {
   public static async copyBinaryToUserData() {
     if (!fs.existsSync(this.binaryPath)) {
       fs.cpSync(
-        path.join(this.ludusaviResourcesPath, "ludusavi"),
+        path.join(this.ludusaviResourcesPath, this.binaryName),
         this.binaryPath
       );
     }
