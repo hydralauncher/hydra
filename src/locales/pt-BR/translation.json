@@ -507,7 +507,8 @@
     "achievements_unlocked": "Conquistas desbloqueadas",
     "earned_points": "Pontos ganhos",
     "show_achievements_on_profile": "Exiba suas conquistas no perfil",
-    "show_points_on_profile": "Exiba seus pontos ganhos no perfil"
+    "show_points_on_profile": "Exiba seus pontos ganhos no perfil",
+    "error_adding_friend": "Não foi possível enviar o pedido de amizade. Verifique o código de amizade inserido"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",
