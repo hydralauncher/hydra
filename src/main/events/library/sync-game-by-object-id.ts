@@ -18,6 +18,7 @@ const syncGameByObjectId = async (
     const currentData = await gamesSublevel.get(gameKey);
 
     await gamesSublevel.put(gameKey, {
+      ...currentData,
       ...rest,
       remoteId: id,
       playTimeInMilliseconds: playTimeInSeconds * 1000,
