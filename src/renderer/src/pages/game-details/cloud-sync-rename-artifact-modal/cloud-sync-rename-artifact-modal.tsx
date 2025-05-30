@@ -21,7 +21,7 @@ export function CloudSyncRenameArtifactModal({
   visible,
   onClose,
   artifact,
-}: CloudSyncRenameArtifactModalProps) {
+}: Readonly<CloudSyncRenameArtifactModalProps>) {
   const { t } = useTranslation("game_details");
 
   const validationSchema = yup.object({
