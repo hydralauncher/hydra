@@ -20,7 +20,10 @@ const updateCustomTheme = async (
   });
 
   if (theme.isActive) {
-    WindowManager.mainWindow?.webContents.send("css-injected", code);
+    WindowManager.mainWindow?.webContents.send("on-custom-theme-updated");
+    WindowManager.notificationWindow?.webContents.send(
+      "on-custom-theme-updated"
+    );
   }
 };
 

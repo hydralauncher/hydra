@@ -42,7 +42,7 @@ export class HydraApi {
     subscription: null,
   };
 
-  private static isLoggedIn() {
+  public static isLoggedIn() {
     return this.userAuth.authToken !== "";
   }
 
