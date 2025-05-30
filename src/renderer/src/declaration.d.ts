@@ -35,6 +35,8 @@ import type {
   CatalogueSearchResult,
   ShopAssets,
   ShopDetailsWithAssets,
+  AchievementCustomNotificationPosition,
+  AchievementNotificationInfo,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -137,10 +139,7 @@ declare global {
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
     getLibrary: () => Promise<LibraryGame[]>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
-    openGameInstallerPath: (
-      shop: GameShop,
-      objectId: string
-    ) => Promise<boolean>;
+    openGameInstallerPath: (shop: GameShop, objectId: string) => Promise<void>;
     openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
     openGame: (
       shop: GameShop,
@@ -156,6 +155,7 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<LibraryGame | null>;
+    syncGameByObjectId: (shop: GameShop, objectId: string) => Promise<void>;
     onGamesRunning: (
       cb: (
         gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
@@ -175,7 +175,6 @@ declare global {
       minimized: boolean;
     }) => Promise<void>;
     extractGameDownload: (shop: GameShop, objectId: string) => Promise<boolean>;
-    onAchievementUnlocked: (cb: () => void) => () => Electron.IpcRenderer;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
@@ -327,6 +326,21 @@ declare global {
 
     /* Notifications */
     publishNewRepacksNotification: (newRepacksCount: number) => Promise<void>;
+    onAchievementUnlocked: (
+      cb: (
+        position?: AchievementCustomNotificationPosition,
+        achievements?: AchievementNotificationInfo[]
+      ) => void
+    ) => () => Electron.IpcRenderer;
+    onCombinedAchievementsUnlocked: (
+      cb: (
+        gameCount: number,
+        achievementCount: number,
+        position: AchievementCustomNotificationPosition
+      ) => void
+    ) => () => Electron.IpcRenderer;
+    updateAchievementCustomNotificationWindow: () => Promise<void>;
+    showAchievementTestNotification: () => Promise<void>;
 
     /* Themes */
     addCustomTheme: (theme: Theme) => Promise<void>;
@@ -340,9 +354,7 @@ declare global {
 
     /* Editor */
     openEditorWindow: (themeId: string) => Promise<void>;
-    onCssInjected: (
-      cb: (cssString: string) => void
-    ) => () => Electron.IpcRenderer;
+    onCustomThemeUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     closeEditorWindow: (themeId?: string) => Promise<void>;
   }
 

@@ -28,7 +28,7 @@ import { downloadSourcesTable } from "./dexie";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 
-import { injectCustomCss } from "./helpers";
+import { injectCustomCss, removeCustomCss } from "./helpers";
 import "./app.scss";
 
 export interface AppProps {
@@ -246,16 +246,26 @@ export function App() {
     };
   }, [updateRepacks]);
 
-  useEffect(() => {
-    const loadAndApplyTheme = async () => {
-      const activeTheme = await window.electron.getActiveCustomTheme();
-
-      if (activeTheme?.code) {
-        injectCustomCss(activeTheme.code);
-      }
-    };
-    loadAndApplyTheme();
+  const loadAndApplyTheme = useCallback(async () => {
+    const activeTheme = await window.electron.getActiveCustomTheme();
+    if (activeTheme?.code) {
+      injectCustomCss(activeTheme.code);
+    } else {
+      removeCustomCss();
+    }
   }, []);
+
+  useEffect(() => {
+    loadAndApplyTheme();
+  }, [loadAndApplyTheme]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onCustomThemeUpdated(() => {
+      loadAndApplyTheme();
+    });
+
+    return () => unsubscribe();
+  }, [loadAndApplyTheme]);
 
   const playAudio = useCallback(() => {
     const audio = new Audio(achievementSound);
@@ -272,14 +282,6 @@ export function App() {
       unsubscribe();
     };
   }, [playAudio]);
-
-  useEffect(() => {
-    const unsubscribe = window.electron.onCssInjected((cssString) => {
-      injectCustomCss(cssString);
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   const handleToastClose = useCallback(() => {
     dispatch(closeToast());

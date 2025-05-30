@@ -263,6 +263,16 @@ export type GameAchievementFiles = {
   [id: string]: AchievementFile[];
 };
 
+export interface AchievementNotificationInfo {
+  title: string;
+  description?: string;
+  iconUrl: string;
+  isHidden: boolean;
+  isRare: boolean;
+  isPlatinum: boolean;
+  points?: number;
+}
+
 export interface GameArtifact {
   id: string;
   artifactLengthInBytes: number;
@@ -333,6 +343,23 @@ export type LibraryGame = Game &
     id: string;
     download: Download | null;
   };
+
+export type UserGameDetails = ShopAssets & {
+  id: string;
+  playTimeInSeconds: number;
+  unlockedAchievementCount: number;
+  achievementsPointsEarnedSum: number;
+  lastTimePlayed: Date | null;
+  isDeleted: boolean;
+  isFavorite: boolean;
+  friendsWhoPlayed: {
+    id: string;
+    displayName: string;
+    profileImageUrl: string | null;
+    lastTimePlayed: Date | null;
+    playTimeInSeconds: number;
+  }[];
+};
 
 export * from "./game.types";
 export * from "./steam.types";

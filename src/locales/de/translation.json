@@ -21,7 +21,8 @@
     "queued": "{{title}} (In Warteschlange)",
     "game_has_no_executable": "Spiel hat keine ausführbare Datei gewählt",
     "sign_in": "Anmelden",
-    "favorites": "Favoriten"
+    "favorites": "Favoriten",
+    "playable_button_title": "Nur Spiele anzeigen, die du jetzt spielen kannst"
   },
   "header": {
     "search": "Spiele suchen",

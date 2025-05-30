@@ -349,7 +349,24 @@
     "install_common_redist": "Instalar",
     "installing_common_redist": "Instalando…",
     "show_download_speed_in_megabytes": "Exibir taxas de download em megabytes por segundo",
-    "extract_files_by_default": "Extrair arquivos automaticamente após o download"
+    "extract_files_by_default": "Extrair arquivos automaticamente após o download",
+    "enable_achievement_custom_notifications": "Habilitar notificações customizadas de conquistas",
+    "top-left": "Superior esquerdo",
+    "top-center": "Superior central",
+    "top-right": "Superior direito",
+    "bottom-left": "Inferior esquerdo",
+    "bottom-right": "Inferior direito",
+    "bottom-center": "Inferior central",
+    "achievement_custom_notification_position": "Posição das notificações customizadas de conquista",
+    "alignment": "Alinhamento",
+    "variation": "Variação",
+    "default": "Padrão",
+    "rare": "Rara",
+    "platinum": "Platina",
+    "hidden": "Oculta",
+    "test_notification": "Testar notificação",
+    "notification_preview": "Prévia da Notificação de Conquistas",
+    "enable_friend_start_game_notifications": "Quando um amigo iniciar um jogo"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -363,7 +380,9 @@
     "new_friend_request_description": "{{displayName}} te enviou um pedido de amizade",
     "extraction_complete": "Extração concluída",
     "game_extracted": "{{title}} extraído com sucesso",
-    "friend_started_playing_game": "{{displayName}} começou a jogar"
+    "friend_started_playing_game": "{{displayName}} começou a jogar",
+    "test_achievement_notification_title": "Esta é uma notificação de teste",
+    "test_achievement_notification_description": "Bem legal, né?"
   },
   "system_tray": {
     "open": "Abrir Hydra",

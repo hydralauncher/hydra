@@ -34,6 +34,7 @@ export interface Game {
   title: string;
   iconUrl: string | null;
   playTimeInMilliseconds: number;
+  unsyncedDeltaPlayTimeInMilliseconds?: number;
   lastTimePlayed: Date | null;
   objectId: string;
   shop: GameShop;
@@ -70,6 +71,14 @@ export interface GameAchievement {
   cacheExpiresTimestamp: number | undefined;
 }
 
+export type AchievementCustomNotificationPosition =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right";
+
 export interface UserPreferences {
   downloadsPath?: string | null;
   language?: string;
@@ -86,7 +95,10 @@ export interface UserPreferences {
   downloadNotificationsEnabled?: boolean;
   repackUpdatesNotificationsEnabled?: boolean;
   achievementNotificationsEnabled?: boolean;
+  achievementCustomNotificationsEnabled?: boolean;
+  achievementCustomNotificationPosition?: AchievementCustomNotificationPosition;
   friendRequestNotificationsEnabled?: boolean;
+  friendStartGameNotificationsEnabled?: boolean;
   showDownloadSpeedInMegabytes?: boolean;
   extractFilesByDefault?: boolean;
 }

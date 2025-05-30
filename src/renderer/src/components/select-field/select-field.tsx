@@ -18,12 +18,13 @@ export function SelectField({
   options = [{ key: "-", value: value?.toString() || "-", label: "-" }],
   theme = "primary",
   onChange,
-}: SelectProps) {
+  className,
+}: Readonly<SelectProps>) {
   const [isFocused, setIsFocused] = useState(false);
   const id = useId();
 
   return (
-    <div className="select-field__container">
+    <div className={cn("select-field__container", className)}>
       {label && (
         <label htmlFor={id} className="select-field__label">
           {label}

@@ -1,15 +1,25 @@
 import type { FriendGameSession } from "@main/generated/envelope";
+import { db, levelKeys } from "@main/level";
 import { HydraApi } from "@main/services/hydra-api";
 import { publishFriendStartedPlayingGameNotification } from "@main/services/notifications";
-import { GameStats } from "@types";
+import type { GameStats, UserPreferences, UserProfile } from "@types";
 
 export const friendGameSessionEvent = async (payload: FriendGameSession) => {
+  const userPreferences = await db.get<string, UserPreferences | null>(
+    levelKeys.userPreferences,
+    {
+      valueEncoding: "json",
+    }
+  );
+
+  if (userPreferences?.friendStartGameNotificationsEnabled === false) return;
+
   const [friend, gameStats] = await Promise.all([
-    HydraApi.get(`/users/${payload.friendId}`),
+    HydraApi.get<UserProfile>(`/users/${payload.friendId}`),
     HydraApi.get<GameStats>(
       `/games/stats?objectId=${payload.objectId}&shop=steam`
     ),
-  ]);
+  ]).catch(() => [null, null]);
 
   if (friend && gameStats) {
     publishFriendStartedPlayingGameNotification(friend, gameStats);
