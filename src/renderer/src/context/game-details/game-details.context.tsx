@@ -108,7 +108,7 @@ export function GameDetailsContextProvider({
     return window.electron
       .getGameByObjectId(shop, objectId)
       .then((result) => setGame(result));
-  }, [setGame, shop, objectId]);
+  }, [shop, objectId]);
 
   const isGameDownloading =
     lastPacket?.gameId === game?.id && game?.download?.status === "active";
@@ -183,11 +183,13 @@ export function GameDetailsContextProvider({
         .catch(() => {});
     }
 
-    updateGame();
+    window.electron.syncGameByObjectId(shop, objectId).then(() => {
+      if (abortController.signal.aborted) return;
+      updateGame();
+    });
   }, [
     updateGame,
     dispatch,
-    gameTitle,
     objectId,
     shop,
     i18n.language,
