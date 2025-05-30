@@ -26,6 +26,7 @@ export const uploadGamesBatch = async () => {
           playTimeInMilliseconds: Math.trunc(game.playTimeInMilliseconds),
           shop: game.shop,
           lastTimePlayed: game.lastTimePlayed,
+          isFavorite: game.favorite,
         };
       })
     ).catch(() => {});

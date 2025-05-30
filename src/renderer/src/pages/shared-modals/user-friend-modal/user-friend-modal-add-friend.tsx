@@ -29,11 +29,10 @@ export const UserFriendModalAddFriend = ({
     setIsAddingFriend(true);
     sendFriendRequest(friendCode)
       .then(() => {
-        // TODO: add validation for this input?
         setFriendCode("");
       })
       .catch(() => {
-        showErrorToast("Não foi possível enviar o pedido de amizade");
+        showErrorToast(t("error_adding_friend"));
       })
       .finally(() => {
         setIsAddingFriend(false);
@@ -46,8 +45,8 @@ export const UserFriendModalAddFriend = ({
   };
 
   const handleClickSeeProfile = () => {
-    closeModal();
     if (friendCode.length === 8) {
+      closeModal();
       navigate(`/profile/${friendCode}`);
     }
   };
@@ -74,16 +73,19 @@ export const UserFriendModalAddFriend = ({
     });
   };
 
+  const handleChangeFriendCode = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const friendCode = e.target.value.trim().slice(0, 8);
+    setFriendCode(friendCode);
+  };
+
   return (
     <>
       <div className="user-friend-modal-add-friend__actions">
         <TextField
           label={t("friend_code")}
           value={friendCode}
-          minLength={8}
-          maxLength={8}
           containerProps={{ style: { width: "100%" } }}
-          onChange={(e) => setFriendCode(e.target.value)}
+          onChange={handleChangeFriendCode}
         />
         <Button
           disabled={isAddingFriend}
