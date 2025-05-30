@@ -6,6 +6,7 @@ type ProfileGame = {
   id: string;
   lastTimePlayed: Date | null;
   playTimeInMilliseconds: number;
+  isFavorite?: boolean;
 } & ShopAssets;
 
 export const mergeWithRemoteGames = async () => {
@@ -34,6 +35,7 @@ export const mergeWithRemoteGames = async () => {
             remoteId: game.id,
             lastTimePlayed: updatedLastTimePlayed,
             playTimeInMilliseconds: updatedPlayTime,
+            favorite: game.isFavorite ?? localGame.favorite,
           });
         } else {
           await gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
@@ -45,6 +47,7 @@ export const mergeWithRemoteGames = async () => {
             lastTimePlayed: game.lastTimePlayed,
             playTimeInMilliseconds: game.playTimeInMilliseconds,
             isDeleted: false,
+            favorite: game.isFavorite ?? false,
           });
         }
 
