@@ -7,19 +7,21 @@ import { formatBytes } from "@shared";
 import {
   ClockIcon,
   DeviceDesktopIcon,
-  DownloadIcon,
+  HistoryIcon,
   InfoIcon,
-  LockIcon,
   PencilIcon,
+  PinIcon,
+  PinSlashIcon,
   SyncIcon,
   TrashIcon,
-  UnlockIcon,
   UploadIcon,
 } from "@primer/octicons-react";
 import { useAppSelector, useDate, useToast } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
 import { AxiosProgressEvent } from "axios";
 import { formatDownloadProgress } from "@renderer/helpers";
+import { CloudSyncRenameArtifactModal } from "../cloud-sync-rename-artifact-modal/cloud-sync-rename-artifact-modal";
+import { GameArtifact } from "@types";
 
 export interface CloudSyncModalProps
   extends Omit<ModalProps, "children" | "title"> {}
@@ -28,6 +30,9 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
   const [deletingArtifact, setDeletingArtifact] = useState(false);
   const [backupDownloadProgress, setBackupDownloadProgress] =
     useState<AxiosProgressEvent | null>(null);
+  const [artifactToRename, setArtifactToRename] = useState<GameArtifact | null>(
+    null
+  );
 
   const { t } = useTranslation("game_details");
 
@@ -87,11 +92,17 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     downloadGameArtifact(artifactId);
   };
 
-  const handleFreezeArtifactClick = async (artifactId: string) => {
-    await toggleArtifactFreeze(
-      artifactId,
-      !artifacts.find((artifact) => artifact.id === artifactId)?.isFrozen
-    );
+  const handleFreezeArtifactClick = async (
+    artifactId: string,
+    isFrozen: boolean
+  ) => {
+    await toggleArtifactFreeze(artifactId, isFrozen);
+
+    if (isFrozen) {
+      showSuccessToast(t("backup_frozen"));
+    } else {
+      showSuccessToast(t("backup_unfrozen"));
+    }
   };
 
   useEffect(() => {
@@ -165,132 +176,147 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     window.electron.platform === "linux" && !game?.winePrefixPath;
 
   return (
-    <Modal
-      visible={visible}
-      title={t("cloud_save")}
-      description={t("cloud_save_description")}
-      onClose={onClose}
-      large
-    >
-      <div className="cloud-sync-modal__header">
-        <div className="cloud-sync-modal__title-container">
-          <h2>{gameTitle}</h2>
-          <p>{backupStateLabel}</p>
+    <>
+      <CloudSyncRenameArtifactModal
+        visible={!!artifactToRename}
+        onClose={() => setArtifactToRename(null)}
+        artifact={artifactToRename}
+      />
 
-          <button
+      <Modal
+        visible={visible}
+        title={t("cloud_save")}
+        description={t("cloud_save_description")}
+        onClose={onClose}
+        large
+      >
+        <div className="cloud-sync-modal__header">
+          <div className="cloud-sync-modal__title-container">
+            <h2>{gameTitle}</h2>
+            <p>{backupStateLabel}</p>
+
+            <button
+              type="button"
+              className="cloud-sync-modal__manage-files-button"
+              onClick={() => setShowCloudSyncFilesModal(true)}
+              disabled={disableActions}
+            >
+              {t("manage_files")}
+            </button>
+          </div>
+
+          <Button
             type="button"
-            className="cloud-sync-modal__manage-files-button"
-            onClick={() => setShowCloudSyncFilesModal(true)}
-            disabled={disableActions}
+            onClick={() => uploadSaveGame(lastDownloadedOption?.title ?? null)}
+            tooltip={isMissingWinePrefix ? t("missing_wine_prefix") : undefined}
+            tooltipPlace="left"
+            disabled={
+              disableActions ||
+              !backupPreview?.overall.totalGames ||
+              artifacts.length >= backupsPerGameLimit ||
+              isMissingWinePrefix
+            }
           >
-            {t("manage_files")}
-          </button>
+            {uploadingBackup ? (
+              <SyncIcon className="cloud-sync-modal__sync-icon" />
+            ) : (
+              <UploadIcon />
+            )}
+            {t("create_backup")}
+          </Button>
         </div>
 
-        <Button
-          type="button"
-          onClick={() => uploadSaveGame(lastDownloadedOption?.title ?? null)}
-          tooltip={isMissingWinePrefix ? t("missing_wine_prefix") : undefined}
-          tooltipPlace="left"
-          disabled={
-            disableActions ||
-            !backupPreview?.overall.totalGames ||
-            artifacts.length >= backupsPerGameLimit ||
-            isMissingWinePrefix
-          }
-        >
-          {uploadingBackup ? (
-            <SyncIcon className="cloud-sync-modal__sync-icon" />
-          ) : (
-            <UploadIcon />
-          )}
-          {t("create_backup")}
-        </Button>
-      </div>
+        <div className="cloud-sync-modal__backups-header">
+          <h2>{t("backups")}</h2>
+          <small>
+            {artifacts.length} / {backupsPerGameLimit}
+          </small>
+        </div>
 
-      <div className="cloud-sync-modal__backups-header">
-        <h2>{t("backups")}</h2>
-        <small>
-          {artifacts.length} / {backupsPerGameLimit}
-        </small>
-      </div>
+        {artifacts.length > 0 ? (
+          <ul className="cloud-sync-modal__artifacts">
+            {artifacts.map((artifact) => (
+              <li key={artifact.id} className="cloud-sync-modal__artifact">
+                <div className="cloud-sync-modal__artifact-info">
+                  <div className="cloud-sync-modal__artifact-header">
+                    <button
+                      type="button"
+                      className="cloud-sync-modal__artifact-label"
+                      onClick={() => setArtifactToRename(artifact)}
+                    >
+                      {artifact.label ??
+                        t("backup_from", {
+                          date: formatDate(artifact.createdAt),
+                        })}
 
-      {artifacts.length > 0 ? (
-        <ul className="cloud-sync-modal__artifacts">
-          {artifacts.map((artifact) => (
-            <li key={artifact.id} className="cloud-sync-modal__artifact">
-              <div className="cloud-sync-modal__artifact-info">
-                <div className="cloud-sync-modal__artifact-header">
-                  <button type="button">
-                    {artifact.label ??
-                      t("backup_from", {
-                        date: formatDate(artifact.createdAt),
-                      })}
+                      <PencilIcon />
+                    </button>
+                    <small>{formatBytes(artifact.artifactLengthInBytes)}</small>
+                  </div>
 
-                    <PencilIcon />
-                  </button>
-                  <small>{formatBytes(artifact.artifactLengthInBytes)}</small>
+                  <span className="cloud-sync-modal__artifact-meta">
+                    <DeviceDesktopIcon size={14} />
+                    {artifact.hostname}
+                  </span>
+
+                  <span className="cloud-sync-modal__artifact-meta">
+                    <InfoIcon size={14} />
+                    {artifact.downloadOptionTitle ??
+                      t("no_download_option_info")}
+                  </span>
+
+                  <span className="cloud-sync-modal__artifact-meta">
+                    <ClockIcon size={14} />
+                    {formatDateTime(artifact.createdAt)}
+                  </span>
                 </div>
 
-                <span className="cloud-sync-modal__artifact-meta">
-                  <DeviceDesktopIcon size={14} />
-                  {artifact.hostname}
-                </span>
-
-                <span className="cloud-sync-modal__artifact-meta">
-                  <InfoIcon size={14} />
-                  {artifact.downloadOptionTitle ?? t("no_download_option_info")}
-                </span>
-
-                <span className="cloud-sync-modal__artifact-meta">
-                  <ClockIcon size={14} />
-                  {formatDateTime(artifact.createdAt)}
-                </span>
-              </div>
-
-              <div className="cloud-sync-modal__artifact-actions">
-                <Button
-                  type="button"
-                  tooltip={
-                    artifact.isFrozen
-                      ? t("unfreeze_backup")
-                      : t("freeze_backup")
-                  }
-                  theme={artifact.isFrozen ? "danger" : "outline"}
-                  onClick={() => handleFreezeArtifactClick(artifact.id)}
-                  disabled={disableActions}
-                >
-                  {artifact.isFrozen ? <UnlockIcon /> : <LockIcon />}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => handleBackupInstallClick(artifact.id)}
-                  disabled={disableActions}
-                  tooltip={t("install_backup")}
-                  theme="outline"
-                >
-                  {restoringBackup ? (
-                    <SyncIcon className="cloud-sync-modal__sync-icon" />
-                  ) : (
-                    <DownloadIcon />
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => handleDeleteArtifactClick(artifact.id)}
-                  theme="danger"
-                  disabled={disableActions || artifact.isFrozen}
-                >
-                  <TrashIcon />
-                  {t("delete_backup")}
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>{t("no_backups_created")}</p>
-      )}
-    </Modal>
+                <div className="cloud-sync-modal__artifact-actions">
+                  <Button
+                    type="button"
+                    tooltip={
+                      artifact.isFrozen
+                        ? t("unfreeze_backup")
+                        : t("freeze_backup")
+                    }
+                    theme={artifact.isFrozen ? "primary" : "outline"}
+                    onClick={() =>
+                      handleFreezeArtifactClick(artifact.id, !artifact.isFrozen)
+                    }
+                    disabled={disableActions}
+                  >
+                    {artifact.isFrozen ? <PinSlashIcon /> : <PinIcon />}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => handleBackupInstallClick(artifact.id)}
+                    disabled={disableActions}
+                    theme="outline"
+                  >
+                    {restoringBackup ? (
+                      <SyncIcon className="cloud-sync-modal__sync-icon" />
+                    ) : (
+                      <HistoryIcon />
+                    )}
+                    {t("install_backup")}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => handleDeleteArtifactClick(artifact.id)}
+                    disabled={disableActions || artifact.isFrozen}
+                    theme="outline"
+                    tooltip={t("delete_backup")}
+                  >
+                    <TrashIcon />
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>{t("no_backups_created")}</p>
+        )}
+      </Modal>
+    </>
   );
 }

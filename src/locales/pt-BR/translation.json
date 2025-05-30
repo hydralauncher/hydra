@@ -192,7 +192,19 @@
     "automatically_extract_downloaded_files": "Extrair automaticamente os arquivos baixados",
     "create_start_menu_shortcut": "Criar atalho no Menu Iniciar",
     "invalid_wine_prefix_path": "Caminho do prefixo Wine inválido",
-    "invalid_wine_prefix_path_description": "O caminho para o prefixo Wine é inválido. Por favor, verifique o caminho e tente novamente."
+    "invalid_wine_prefix_path_description": "O caminho para o prefixo Wine é inválido. Por favor, verifique o caminho e tente novamente.",
+    "artifact_renamed": "Backup renomeado com sucesso",
+    "rename_artifact": "Renomear Backup",
+    "rename_artifact_description": "Renomeie o backup para um nome mais descritivo",
+    "artifact_name_label": "Nome do backup",
+    "artifact_name_placeholder": "Insira um nome para o backup",
+    "save_changes": "Salvar mudanças",
+    "required_field": "Este campo é obrigatório",
+    "max_length_field": "Este campo deve ter menos de {{lenght}} caracteres",
+    "freeze_backup": "Fixar para não ser apagado por backups automáticos",
+    "unfreeze_backup": "Remover dos fixados",
+    "backup_frozen": "Backup fixado",
+    "backup_unfrozen": "Backup removido dos fixados"
   },
   "activation": {
     "title": "Ativação",

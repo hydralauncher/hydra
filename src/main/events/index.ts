@@ -88,6 +88,7 @@ import "./cloud-save/upload-save-game";
 import "./cloud-save/delete-game-artifact";
 import "./cloud-save/select-game-backup-path";
 import "./cloud-save/toggle-artifact-freeze";
+import "./cloud-save/rename-game-artifact";
 import "./notifications/publish-new-repacks-notification";
 import "./notifications/update-achievement-notification-window";
 import "./notifications/show-achievement-test-notification";
