@@ -28,7 +28,7 @@ export function CloudSyncRenameArtifactModal({
     label: yup
       .string()
       .required(t("required_field"))
-      .max(255, t("max_length_field", { lenght: 255 })),
+      .max(255, t("max_length_field", { length: 255 })),
   });
 
   const { getGameArtifacts } = useContext(cloudSyncContext);

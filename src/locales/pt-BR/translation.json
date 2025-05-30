@@ -200,7 +200,7 @@
     "artifact_name_placeholder": "Insira um nome para o backup",
     "save_changes": "Salvar mudanças",
     "required_field": "Este campo é obrigatório",
-    "max_length_field": "Este campo deve ter menos de {{lenght}} caracteres",
+    "max_length_field": "Este campo deve ter menos de {{length}} caracteres",
     "freeze_backup": "Fixar para não ser apagado por backups automáticos",
     "unfreeze_backup": "Remover dos fixados",
     "backup_frozen": "Backup fixado",
