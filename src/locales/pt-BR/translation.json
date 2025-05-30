@@ -204,7 +204,9 @@
     "freeze_backup": "Fixar para não ser apagado por backups automáticos",
     "unfreeze_backup": "Remover dos fixados",
     "backup_frozen": "Backup fixado",
-    "backup_unfrozen": "Backup removido dos fixados"
+    "backup_unfrozen": "Backup removido dos fixados",
+    "backup_freeze_failed": "Falha ao fixar backup",
+    "backup_freeze_failed_description": "Você deve deixar pelo menos um espaço livre para backups automáticos"
   },
   "activation": {
     "title": "Ativação",
