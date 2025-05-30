@@ -135,6 +135,7 @@ export function CloudSyncContextProvider({
         getGameArtifacts();
       } catch (err) {
         logger.error("Failed to toggle artifact freeze", objectId, shop, err);
+        throw err;
       } finally {
         setFreezingArtifact(false);
       }

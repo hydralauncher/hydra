@@ -217,7 +217,9 @@
     "freeze_backup": "Pin it so it's not overwritten by automatic backups",
     "unfreeze_backup": "Unpin it",
     "backup_frozen": "Backup pinned",
-    "backup_unfrozen": "Backup unpinned"
+    "backup_unfrozen": "Backup unpinned",
+    "backup_freeze_failed": "Failed to freeze backup",
+    "backup_freeze_failed_description": "You must leave at least one free slot for automatic backups"
   },
   "activation": {
     "title": "Activate Hydra",
