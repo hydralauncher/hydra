@@ -16,3 +16,4 @@ export * from "./ws";
 export * from "./system-path";
 export * from "./library-sync";
 export * from "./wine";
+export * from "./lock";
