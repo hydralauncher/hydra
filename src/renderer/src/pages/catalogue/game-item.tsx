@@ -26,7 +26,7 @@ export function GameItem({ game }: GameItemProps) {
 
   const repacks = getRepacksForObjectId(game.objectId);
 
-  const [_plusDisabled, setPlusDisabled] = useState(false);
+  const [isAddingToLibrary, setIsAddingToLibrary] = useState(false);
 
   const [added, setAdded] = useState(false);
 
@@ -37,15 +37,14 @@ export function GameItem({ game }: GameItemProps) {
       (libItem) =>
         libItem.shop === game.shop && libItem.objectId === game.objectId
     );
-    if (exists) {
-      setAdded(true);
-    }
+    setAdded(exists);
   }, [library, game.shop, game.objectId]);
 
   const addGameToLibrary = async (event: React.MouseEvent | React.KeyboardEvent) => {
     event.stopPropagation();
-    if (added || _plusDisabled) return;
-    setPlusDisabled(true);
+    if (added || isAddingToLibrary) return;
+
+    setIsAddingToLibrary(true);
 
     try {
       await window.electron.addGameToLibrary(
@@ -54,11 +53,10 @@ export function GameItem({ game }: GameItemProps) {
         game.title
       );
       updateLibrary();
-      setAdded(true);
     } catch (error) {
       console.error(error);
     } finally {
-      setPlusDisabled(false);
+      setIsAddingToLibrary(false);
     }
   };
 
