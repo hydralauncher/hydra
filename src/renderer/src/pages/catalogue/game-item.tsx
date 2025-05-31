@@ -26,7 +26,7 @@ export function GameItem({ game }: GameItemProps) {
 
   const repacks = getRepacksForObjectId(game.objectId);
 
-  const [plusDisabled, setPlusDisabled] = useState(false);
+  const [_plusDisabled, setPlusDisabled] = useState(false);
 
   const [added, setAdded] = useState(false);
 
@@ -42,9 +42,9 @@ export function GameItem({ game }: GameItemProps) {
     }
   }, [library, game.shop, game.objectId]);
 
-  const addGameToLibrary = async (event: React.MouseEvent) => {
+  const addGameToLibrary = async (event: React.MouseEvent | React.KeyboardEvent) => {
     event.stopPropagation();
-    if (added) return;
+    if (added || _plusDisabled) return;
     setPlusDisabled(true);
 
     try {
@@ -72,7 +72,7 @@ export function GameItem({ game }: GameItemProps) {
         (steamGenre) => steamGenre === genre
       );
 
-      if (index && steamGenres[language] && steamGenres[language][index]) {
+      if (index !== undefined && steamGenres[language] && steamGenres[language][index]) {
         return steamGenres[language][index];
       }
 
@@ -119,7 +119,15 @@ export function GameItem({ game }: GameItemProps) {
       </div>
       <div
         className={"game-item__plus-wrapper" + (added ? " added" : "")}
+        role="button"
+        tabIndex={0}
         onClick={addGameToLibrary}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            addGameToLibrary(e);
+          }
+        }}
         title={added ? t("already_in_library") : t("add_to_library")}
       >
         {added ? <CheckIcon size={16} /> : <PlusIcon size={16} />}
