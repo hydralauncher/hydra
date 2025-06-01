@@ -1,4 +1,4 @@
-import { app, BrowserWindow, net, protocol } from "electron";
+import { app, BrowserWindow, net, protocol, ipcMain } from "electron";
 import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
@@ -139,6 +139,30 @@ app.on("second-instance", (_event, commandLine) => {
 
 app.on("open-url", (_event, url) => {
   handleDeepLinkPath(url);
+});
+
+ipcMain.handle("get-system-info", async () => {
+  const os = require("os");
+  const osInfo = `${os.type()} ${os.arch()} ${os.release()}`;
+  const cpuModel = os.cpus()[0]?.model || "-";
+  const ramMB = Math.round(os.totalmem() / 1024 / 1024);
+  let gpuModel = "Não disponível";
+  try {
+    const gpuInfo: any = await (app as any).getGPUInfo("basic");
+    if (
+      gpuInfo.graphics &&
+      gpuInfo.graphics.length > 0 &&
+      gpuInfo.graphics[0].device
+    ) {
+      gpuModel = gpuInfo.graphics[0].device;
+    }
+  } catch {}
+  return {
+    os: osInfo,
+    cpu: cpuModel,
+    ram: `${ramMB} MB`,
+    gpu: gpuModel,
+  };
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

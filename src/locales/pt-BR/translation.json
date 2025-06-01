@@ -67,6 +67,7 @@
     "requirements": "Requisitos de sistema",
     "minimum": "Mínimos",
     "recommended": "Recomendados",
+    "your_system": "Seu Sistema",
     "paused": "Pausado",
     "release_date": "Lançado em {{date}}",
     "publisher": "Publicado por {{publisher}}",

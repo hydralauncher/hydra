@@ -24,11 +24,44 @@
   }
 
   &__button {
-    border: solid 1px globals.$border-color;
-    border-left: none;
-    border-right: none;
+    flex: 1;
+    border: 1px solid globals.$border-color;
     border-radius: 0;
-    width: 100%;
+    background-color: globals.$background-color;
+    color: globals.$body-color;
+    font-weight: bold;
+    font-size: globals.$body-font-size;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: calc(globals.$spacing-unit * 2);
+
+    &:first-child {
+      border-right: none;
+    }
+    &:last-child {
+      border-left: none;
+    }
+
+    transition: background-color 0.2s ease, color 0.2s ease;
+    outline: none;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.15);;
+    }
+    &:active {
+      opacity: globals.$active-opacity;
+    }
+
+    &[aria-pressed="true"] {
+      background-color: globals.$muted-color;
+      color: globals.$dark-background-color;
+      border-color: globals.$muted-color;
+
+      &:hover {
+        background-color: globals.$muted-color;
+      }
+    }
   }
 
   &__details {
@@ -193,4 +226,21 @@
 
 .achievements-placeholder__blur {
   filter: blur(4px);
+}
+
+.system-subtitle {
+  margin: 0.5rem 0 0.25rem;
+  padding-left: calc(globals.$spacing-unit * 2);
+  font-size: globals.$body-font-size;
+  font-weight: bold;
+  color: globals.$body-color;
+}
+
+.system-info {
+  list-style: none;
+  margin-top: 0.75rem;
+}
+
+.system-info li {
+  margin-bottom: 0.25rem;
 }

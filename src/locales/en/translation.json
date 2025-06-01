@@ -80,6 +80,7 @@
     "requirements": "System requirements",
     "minimum": "Minimum",
     "recommended": "Recommended",
+    "your_system": "Your System",
     "paused": "Paused",
     "release_date": "Released on {{date}}",
     "publisher": "Published by {{publisher}}",

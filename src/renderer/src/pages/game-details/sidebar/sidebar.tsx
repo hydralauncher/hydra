@@ -1,12 +1,10 @@
 import { useContext, useEffect, useState } from "react";
 import type {
   HowLongToBeatCategory,
-  SteamAppDetails,
   UserAchievement,
 } from "@types";
 import { useTranslation } from "react-i18next";
-import { Button, Link } from "@renderer/components";
-
+import { Link } from "@renderer/components";
 import { gameDetailsContext } from "@renderer/context";
 import { useDate, useFormat, useUserDetails } from "@renderer/hooks";
 import {
@@ -20,6 +18,7 @@ import { howLongToBeatEntriesTable } from "@renderer/dexie";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import { CanYouRunItSection } from "./can-you-run-it-section";
 import "./sidebar.scss";
 
 const achievementsPlaceholder: UserAchievement[] = [
@@ -62,20 +61,17 @@ export function Sidebar() {
     data: HowLongToBeatCategory[] | null;
   }>({ isLoading: true, data: null });
 
-  const { userDetails, hasActiveSubscription } = useUserDetails();
-  const [activeRequirement, setActiveRequirement] =
-    useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
-
-  const { gameTitle, shopDetails, objectId, shop, stats, achievements } =
-    useContext(gameDetailsContext);
-
-  const { showHydraCloudModal } = useSubscription();
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
   const { numberFormatter } = useFormat();
 
+  const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { gameTitle, objectId, shop, stats, achievements } =
+    useContext(gameDetailsContext);
+  const { showHydraCloudModal } = useSubscription();
+
   useEffect(() => {
-    if (objectId) {
+    if (!objectId) return;
       setHowLongToBeat({ isLoading: true, data: null });
 
       howLongToBeatEntriesTable
@@ -111,7 +107,7 @@ export function Sidebar() {
           }
         });
     }
-  }, [objectId, shop, gameTitle]);
+  , [objectId, shop]);
 
   return (
     <aside className="content-sidebar">
@@ -168,7 +164,7 @@ export function Sidebar() {
               <li key={achievement.displayName}>
                 <Link
                   to={buildGameAchievementPath({
-                    shop: shop,
+                    shop,
                     objectId: objectId!,
                     title: gameTitle,
                   })}
@@ -233,36 +229,7 @@ export function Sidebar() {
         isLoading={howLongToBeat.isLoading}
       />
 
-      <SidebarSection title={t("requirements")}>
-        <div className="requirement__button-container">
-          <Button
-            className="requirement__button"
-            onClick={() => setActiveRequirement("minimum")}
-            theme={activeRequirement === "minimum" ? "primary" : "outline"}
-          >
-            {t("minimum")}
-          </Button>
-
-          <Button
-            className="requirement__button"
-            onClick={() => setActiveRequirement("recommended")}
-            theme={activeRequirement === "recommended" ? "primary" : "outline"}
-          >
-            {t("recommended")}
-          </Button>
-        </div>
-
-        <div
-          className="requirement__details"
-          dangerouslySetInnerHTML={{
-            __html:
-              shopDetails?.pc_requirements?.[activeRequirement] ??
-              t(`no_${activeRequirement}_requirements`, {
-                gameTitle,
-              }),
-          }}
-        />
-      </SidebarSection>
+      <CanYouRunItSection />
     </aside>
   );
 }
