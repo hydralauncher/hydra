@@ -156,7 +156,9 @@ ipcMain.handle("get-system-info", async () => {
     ) {
       gpuModel = gpuInfo.graphics[0].device;
     }
-  } catch {}
+  } catch (error){
+    console.error(error);
+  }
   return {
     os: osInfo,
     cpu: cpuModel,
