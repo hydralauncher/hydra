@@ -135,6 +135,12 @@ export const mergeAchievements = async (
         };
       });
 
+    achievementsLogger.log(
+      "Publishing achievement notification",
+      game.objectId,
+      game.title
+    );
+
     if (userPreferences.achievementCustomNotificationsEnabled !== false) {
       WindowManager.notificationWindow?.webContents.send(
         "on-achievement-unlocked",

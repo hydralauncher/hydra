@@ -34,9 +34,7 @@ export const uploadGamesBatch = async () => {
 
   await mergeWithRemoteGames();
 
-  if (HydraApi.isLoggedIn()) {
-    AchievementWatcherManager.preSearchAchievements();
-  }
+  AchievementWatcherManager.preSearchAchievements();
 
   if (WindowManager.mainWindow)
     WindowManager.mainWindow.webContents.send("on-library-batch-complete");
