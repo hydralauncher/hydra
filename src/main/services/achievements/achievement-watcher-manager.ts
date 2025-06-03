@@ -192,7 +192,15 @@ export class AchievementWatcherManager {
 
     this.alreadySyncedGames.set(gameKey, true);
 
-    return mergeAchievements(game, unlockedAchievements, false);
+    const newAchievements = await mergeAchievements(
+      game,
+      unlockedAchievements,
+      false
+    );
+
+    if (newAchievements > 0) {
+      this.notifyCombinedAchievementsUnlocked(1, newAchievements);
+    }
   }
 
   public static watchAchievements() {
@@ -288,6 +296,32 @@ export class AchievementWatcherManager {
     );
   }
 
+  private static async notifyCombinedAchievementsUnlocked(
+    totalNewGamesWithAchievements: number,
+    totalNewAchievements: number
+  ) {
+    const userPreferences = await db.get<string, UserPreferences>(
+      levelKeys.userPreferences,
+      {
+        valueEncoding: "json",
+      }
+    );
+
+    if (userPreferences.achievementCustomNotificationsEnabled !== false) {
+      WindowManager.notificationWindow?.webContents.send(
+        "on-combined-achievements-unlocked",
+        totalNewGamesWithAchievements,
+        totalNewAchievements,
+        userPreferences.achievementCustomNotificationPosition ?? "top-left"
+      );
+    } else {
+      publishCombinedNewAchievementNotification(
+        totalNewAchievements,
+        totalNewGamesWithAchievements
+      );
+    }
+  }
+
   public static async preSearchAchievements() {
     try {
       const gameAchievementFiles =
@@ -311,31 +345,11 @@ export class AchievementWatcherManager {
       );
 
       if (totalNewAchievements > 0) {
-        const userPreferences = await db.get<string, UserPreferences>(
-          levelKeys.userPreferences,
-          {
-            valueEncoding: "json",
-          }
+        await setTimeout(4000);
+        this.notifyCombinedAchievementsUnlocked(
+          totalNewGamesWithAchievements,
+          totalNewAchievements
         );
-
-        if (userPreferences.achievementNotificationsEnabled !== false) {
-          await setTimeout(4000);
-
-          if (userPreferences.achievementCustomNotificationsEnabled !== false) {
-            WindowManager.notificationWindow?.webContents.send(
-              "on-combined-achievements-unlocked",
-              totalNewGamesWithAchievements,
-              totalNewAchievements,
-              userPreferences.achievementCustomNotificationPosition ??
-                "top-left"
-            );
-          } else {
-            publishCombinedNewAchievementNotification(
-              totalNewAchievements,
-              totalNewGamesWithAchievements
-            );
-          }
-        }
       }
     } catch (err) {
       achievementsLogger.error("Error on preSearchAchievements", err);
