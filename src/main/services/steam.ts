@@ -17,18 +17,30 @@ export interface SteamAppDetailsResponse {
   };
 }
 
-export const getSteamLocation = async () => {
+export const getSteamLocation = async (): Promise<string> => {
+  const home = SystemPath.getPath("home");
+
   if (process.platform === "linux") {
-    return path.join(SystemPath.getPath("home"), ".local", "share", "Steam");
+    const candidates = [
+      path.join(home, ".local", "share", "Steam"),
+      path.join(home, ".steam", "steam"),
+      path.join(home, ".steam", "root"),
+    ];
+
+    for (const candidate of candidates) {
+      try {
+        fs.accessSync(candidate, fs.constants.F_OK);
+        return candidate;
+      } catch {
+        continue;
+      }
+    }
+
+    throw new Error("Steam installation not found on Linux");
   }
 
   if (process.platform === "darwin") {
-    return path.join(
-      SystemPath.getPath("home"),
-      "Library",
-      "Application Support",
-      "Steam"
-    );
+    return path.join(home, "Library", "Application Support", "Steam");
   }
 
   const regKey = new WinReg({
@@ -39,7 +51,7 @@ export const getSteamLocation = async () => {
   return new Promise<string>((resolve, reject) => {
     regKey.get("SteamPath", (err, value) => {
       if (err) {
-        reject(err);
+        return reject(err);
       }
 
       resolve(value.value);
