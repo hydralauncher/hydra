@@ -289,24 +289,17 @@ export class AchievementWatcherManager {
   }
 
   public static async preSearchAchievements() {
-    await setTimeout(4000);
-
     try {
       const gameAchievementFiles =
         process.platform === "win32"
           ? await this.getGameAchievementFilesWindows()
           : await this.getGameAchievementFilesLinux();
 
-      const newAchievementsCount: number[] = [];
-
-      for (const { game, achievementFiles } of gameAchievementFiles) {
-        const result = await this.preProcessGameAchievementFiles(
-          game,
-          achievementFiles
-        );
-
-        newAchievementsCount.push(result);
-      }
+      const newAchievementsCount = await Promise.all(
+        gameAchievementFiles.map(({ game, achievementFiles }) => {
+          return this.preProcessGameAchievementFiles(game, achievementFiles);
+        })
+      );
 
       const totalNewGamesWithAchievements = newAchievementsCount.filter(
         (achievements) => achievements
@@ -326,6 +319,8 @@ export class AchievementWatcherManager {
         );
 
         if (userPreferences.achievementNotificationsEnabled !== false) {
+          await setTimeout(4000);
+
           if (userPreferences.achievementCustomNotificationsEnabled !== false) {
             WindowManager.notificationWindow?.webContents.send(
               "on-combined-achievements-unlocked",
