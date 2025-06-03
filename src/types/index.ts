@@ -322,15 +322,11 @@ export interface CatalogueSearchPayload {
 
 export type CatalogueSearchResult = {
   id: string;
-  tags: string[];
-  genres: string[];
   objectId: string;
-  shop: GameShop;
   title: string;
-  installCount: number;
-  achievementCount: number;
-  shopData: string;
-} & ShopAssets;
+  shop: GameShop;
+  genres: string[];
+} & Pick<ShopAssets, "libraryImageUrl">;
 
 export type LibraryGame = Game &
   Partial<ShopAssets> & {
