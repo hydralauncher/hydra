@@ -19,6 +19,7 @@ import { Cracker } from "@shared";
 import { publishCombinedNewAchievementNotification } from "../notifications";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { WindowManager } from "../window-manager";
+import { setTimeout } from "node:timers/promises";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
@@ -142,7 +143,7 @@ const processAchievementFileDiff = async (
   file: AchievementFile
 ) => {
   const unlockedAchievements = parseAchievementFile(file.filePath, file.type);
-
+  console.log("achievements length", unlockedAchievements.length);
   if (unlockedAchievements.length) {
     return mergeAchievements(game, unlockedAchievements, true);
   }
@@ -288,6 +289,8 @@ export class AchievementWatcherManager {
   }
 
   public static async preSearchAchievements() {
+    await setTimeout(4000);
+
     try {
       const gameAchievementFiles =
         process.platform === "win32"
