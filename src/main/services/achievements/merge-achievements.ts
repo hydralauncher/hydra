@@ -14,6 +14,7 @@ import { SubscriptionRequiredError } from "@shared";
 import { achievementsLogger } from "../logger";
 import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
 import { getGameAchievementData } from "./get-game-achievement-data";
+import { AchievementWatcherManager } from "./achievement-watcher-manager";
 
 const isRareAchievement = (points: number) => {
   const rawPercentage = (50 - Math.sqrt(points)) * 2;
@@ -56,9 +57,9 @@ export const mergeAchievements = async (
   achievements: UnlockedAchievement[],
   publishNotification: boolean
 ) => {
-  let localGameAchievement = await gameAchievementsSublevel.get(
-    levelKeys.game(game.shop, game.objectId)
-  );
+  const gameKey = levelKeys.game(game.shop, game.objectId);
+
+  let localGameAchievement = await gameAchievementsSublevel.get(gameKey);
   const userPreferences = await db.get<string, UserPreferences>(
     levelKeys.userPreferences,
     {
@@ -68,9 +69,7 @@ export const mergeAchievements = async (
 
   if (!localGameAchievement) {
     await getGameAchievementData(game.objectId, game.shop, true);
-    localGameAchievement = await gameAchievementsSublevel.get(
-      levelKeys.game(game.shop, game.objectId)
-    );
+    localGameAchievement = await gameAchievementsSublevel.get(gameKey);
   }
 
   const achievementsData = localGameAchievement?.achievements ?? [];
@@ -153,7 +152,12 @@ export const mergeAchievements = async (
     }
   }
 
-  if (game.remoteId) {
+  const shouldSyncWithRemote =
+    game.remoteId &&
+    (newAchievements.length ||
+      AchievementWatcherManager.hasFinishedMergingWithRemote);
+
+  if (shouldSyncWithRemote) {
     await HydraApi.put<UpdatedUnlockedAchievements | undefined>(
       "/profile/games/achievements",
       {
@@ -194,8 +198,11 @@ export const mergeAchievements = async (
           mergedLocalAchievements,
           publishNotification
         );
+      })
+      .finally(() => {
+        AchievementWatcherManager.alreadySyncedGames.set(gameKey, true);
       });
-  } else {
+  } else if (newAchievements.length) {
     await saveAchievementsOnLocal(
       game.objectId,
       game.shop,

@@ -10,6 +10,7 @@ import {
 import type {
   AchievementFile,
   Game,
+  GameShop,
   UnlockedAchievement,
   UserPreferences,
 } from "@types";
@@ -146,7 +147,48 @@ const processAchievementFileDiff = async (
 };
 
 export class AchievementWatcherManager {
-  private static hasFinishedMergingWithRemote = false;
+  private static _hasFinishedMergingWithRemote = false;
+
+  public static get hasFinishedMergingWithRemote() {
+    return this._hasFinishedMergingWithRemote;
+  }
+
+  public static readonly alreadySyncedGames: Map<string, boolean> = new Map();
+
+  public static async firstSyncWithRemoteIfNeeded(
+    shop: GameShop,
+    objectId: string
+  ) {
+    const gameKey = levelKeys.game(shop, objectId);
+    if (this.alreadySyncedGames.get(gameKey)) return;
+
+    const game = await gamesSublevel.get(gameKey).catch(() => null);
+    if (!game) return;
+
+    const gameAchievementFiles = findAchievementFiles(game);
+
+    const achievementFileInsideDirectory =
+      findAchievementFileInExecutableDirectory(game);
+
+    gameAchievementFiles.push(...achievementFileInsideDirectory);
+
+    const unlockedAchievements: UnlockedAchievement[] = [];
+
+    for (const achievementFile of gameAchievementFiles) {
+      const localAchievementFile = parseAchievementFile(
+        achievementFile.filePath,
+        achievementFile.type
+      );
+
+      if (localAchievementFile.length) {
+        unlockedAchievements.push(...localAchievementFile);
+      }
+    }
+
+    this.alreadySyncedGames.set(gameKey, true);
+
+    return mergeAchievements(game, unlockedAchievements, false);
+  }
 
   public static watchAchievements() {
     if (!this.hasFinishedMergingWithRemote) return;
@@ -295,6 +337,6 @@ export class AchievementWatcherManager {
       achievementsLogger.error("Error on preSearchAchievements", err);
     }
 
-    this.hasFinishedMergingWithRemote = true;
+    this._hasFinishedMergingWithRemote = true;
   }
 }
