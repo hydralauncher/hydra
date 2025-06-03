@@ -142,10 +142,10 @@ const processAchievementFileDiff = async (
   game: Game,
   file: AchievementFile
 ) => {
-  const unlockedAchievements = parseAchievementFile(file.filePath, file.type);
-  console.log("achievements length", unlockedAchievements.length);
-  if (unlockedAchievements.length) {
-    return mergeAchievements(game, unlockedAchievements, true);
+  const parsedAchievements = parseAchievementFile(file.filePath, file.type);
+
+  if (parsedAchievements.length) {
+    return mergeAchievements(game, parsedAchievements, true);
   }
 
   return 0;
