@@ -168,7 +168,7 @@ export class AchievementWatcherManager {
     if (this.alreadySyncedGames.get(gameKey)) return;
 
     const game = await gamesSublevel.get(gameKey).catch(() => null);
-    if (!game) return;
+    if (!game || game.isDeleted) return;
 
     const gameAchievementFiles = findAchievementFiles(game);
 
