@@ -19,7 +19,6 @@ import { Cracker } from "@shared";
 import { publishCombinedNewAchievementNotification } from "../notifications";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { WindowManager } from "../window-manager";
-import { sleep } from "@main/helpers";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
@@ -38,7 +37,7 @@ const watchAchievementsWindows = async () => {
     const gameAchievementFiles: AchievementFile[] = [];
 
     for (const objectId of getAlternativeObjectIds(game.objectId)) {
-      gameAchievementFiles.push(...(achievementFiles.get(objectId) || []));
+      gameAchievementFiles.push(...(achievementFiles.get(objectId) ?? []));
 
       gameAchievementFiles.push(
         ...findAchievementFileInExecutableDirectory(game)
@@ -128,6 +127,11 @@ const compareFile = (game: Game, file: AchievementFile) => {
     );
     return processAchievementFileDiff(game, file);
   } catch (err) {
+    achievementsLogger.error(
+      "Error reading file",
+      file.filePath,
+      err instanceof Error ? err.message : err
+    );
     fileStats.set(file.filePath, -1);
     return;
   }
@@ -147,10 +151,10 @@ const processAchievementFileDiff = async (
 };
 
 export class AchievementWatcherManager {
-  private static _hasFinishedMergingWithRemote = false;
+  private static _hasFinishedPreSearch = false;
 
-  public static get hasFinishedMergingWithRemote() {
-    return this._hasFinishedMergingWithRemote;
+  public static get hasFinishedPreSearch() {
+    return this._hasFinishedPreSearch;
   }
 
   public static readonly alreadySyncedGames: Map<string, boolean> = new Map();
@@ -191,7 +195,7 @@ export class AchievementWatcherManager {
   }
 
   public static watchAchievements() {
-    if (!this.hasFinishedMergingWithRemote) return;
+    if (!this.hasFinishedPreSearch) return;
 
     if (process.platform === "win32") {
       return watchAchievementsWindows();
@@ -230,7 +234,11 @@ export class AchievementWatcherManager {
       }
     }
 
-    return mergeAchievements(game, unlockedAchievements, false);
+    if (unlockedAchievements.length) {
+      return mergeAchievements(game, unlockedAchievements, false);
+    }
+
+    return 0;
   }
 
   private static async getGameAchievementFilesWindows() {
@@ -280,8 +288,6 @@ export class AchievementWatcherManager {
   }
 
   public static async preSearchAchievements() {
-    await sleep(2000);
-
     try {
       const gameAchievementFiles =
         process.platform === "win32"
@@ -337,6 +343,6 @@ export class AchievementWatcherManager {
       achievementsLogger.error("Error on preSearchAchievements", err);
     }
 
-    this._hasFinishedMergingWithRemote = true;
+    this._hasFinishedPreSearch = true;
   }
 }

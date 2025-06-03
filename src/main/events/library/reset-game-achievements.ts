@@ -16,7 +16,8 @@ const resetGameAchievements = async (
   objectId: string
 ) => {
   try {
-    const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
+    const levelKey = levelKeys.game(shop, objectId);
+    const game = await gamesSublevel.get(levelKey);
 
     if (!game) return;
 
@@ -28,8 +29,6 @@ const resetGameAchievements = async (
         await fs.promises.rm(achievementFile.filePath);
       }
     }
-
-    const levelKey = levelKeys.game(game.shop, game.objectId);
 
     await gameAchievementsSublevel
       .get(levelKey)
