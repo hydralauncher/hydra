@@ -370,14 +370,11 @@ export class WindowManager {
       },
     });
     this.notificationWindow.setIgnoreMouseEvents(true);
-    // this.notificationWindow.setVisibleOnAllWorkspaces(true, {
-    //   visibleOnFullScreen: true,
-    // });
 
     this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
     this.loadNotificationWindowURL();
 
-    if (isStaging) {
+    if (!app.isPackaged || isStaging) {
       this.notificationWindow.webContents.openDevTools();
     }
   }
@@ -464,7 +461,7 @@ export class WindowManager {
       editorWindow.once("ready-to-show", () => {
         editorWindow.show();
         this.mainWindow?.webContents.openDevTools();
-        if (isStaging) {
+        if (!app.isPackaged || isStaging) {
           editorWindow.webContents.openDevTools();
         }
       });
