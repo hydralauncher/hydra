@@ -68,7 +68,7 @@ export const mergeAchievements = async (
   );
 
   if (!localGameAchievement) {
-    await getGameAchievementData(game.objectId, game.shop, true);
+    await getGameAchievementData(game.objectId, game.shop, false);
     localGameAchievement = await gameAchievementsSublevel.get(gameKey);
   }
 
@@ -154,8 +154,7 @@ export const mergeAchievements = async (
 
   const shouldSyncWithRemote =
     game.remoteId &&
-    (newAchievements.length ||
-      AchievementWatcherManager.hasFinishedMergingWithRemote);
+    (newAchievements.length || AchievementWatcherManager.hasFinishedPreSearch);
 
   if (shouldSyncWithRemote) {
     await HydraApi.put<UpdatedUnlockedAchievements | undefined>(

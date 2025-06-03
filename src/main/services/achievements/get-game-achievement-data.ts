@@ -9,15 +9,15 @@ export const getGameAchievementData = async (
   shop: GameShop,
   useCachedData: boolean
 ) => {
-  const cachedAchievements = await gameAchievementsSublevel.get(
-    levelKeys.game(shop, objectId)
-  );
+  const gameKey = levelKeys.game(shop, objectId);
 
-  if (cachedAchievements && useCachedData)
+  const cachedAchievements = await gameAchievementsSublevel.get(gameKey);
+
+  if (cachedAchievements?.achievements && useCachedData)
     return cachedAchievements.achievements;
 
   if (
-    cachedAchievements &&
+    cachedAchievements?.achievements &&
     Date.now() < (cachedAchievements.cacheExpiresTimestamp ?? 0)
   ) {
     return cachedAchievements.achievements;
@@ -35,7 +35,7 @@ export const getGameAchievementData = async (
     language,
   })
     .then(async (achievements) => {
-      await gameAchievementsSublevel.put(levelKeys.game(shop, objectId), {
+      await gameAchievementsSublevel.put(gameKey, {
         unlockedAchievements: cachedAchievements?.unlockedAchievements ?? [],
         achievements,
         cacheExpiresTimestamp: achievements.length

@@ -9,8 +9,6 @@ export const getUnlockedAchievements = async (
   shop: GameShop,
   useCachedData: boolean
 ): Promise<UserAchievement[]> => {
-  AchievementWatcherManager.firstSyncWithRemoteIfNeeded(shop, objectId);
-
   const cachedAchievements = await gameAchievementsSublevel.get(
     levelKeys.game(shop, objectId)
   );
@@ -65,7 +63,7 @@ export const getUnlockedAchievements = async (
           !achievementData.hidden || showHiddenAchievementsDescription
             ? achievementData.description
             : undefined,
-      } as UserAchievement;
+      };
     })
     .sort((a, b) => {
       if (a.unlocked && !b.unlocked) return -1;
@@ -82,6 +80,7 @@ const getUnlockedAchievementsEvent = async (
   objectId: string,
   shop: GameShop
 ): Promise<UserAchievement[]> => {
+  AchievementWatcherManager.firstSyncWithRemoteIfNeeded(shop, objectId);
   return getUnlockedAchievements(objectId, shop, false);
 };
 
