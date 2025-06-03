@@ -15,9 +15,12 @@ import {
   uploadGamesBatch,
   startMainLoop,
   Ludusavi,
+  Lock,
 } from "@main/services";
 
 export const loadState = async () => {
+  await Lock.acquireLock();
+
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {

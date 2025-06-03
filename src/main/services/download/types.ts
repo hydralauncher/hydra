@@ -31,6 +31,8 @@ export interface ProcessPayload {
   exe: string | null;
   pid: number;
   name: string;
+  environ: Record<string, string> | null;
+  cwd: string | null;
 }
 
 export interface PauseSeedingPayload {
