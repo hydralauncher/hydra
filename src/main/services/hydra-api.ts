@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosInstance } from "axios";
+import axios, { AxiosError, AxiosHeaders, AxiosInstance } from "axios";
 import { WindowManager } from "./window-manager";
 import url from "url";
 import { uploadGamesBatch } from "./library-sync";
@@ -16,6 +16,7 @@ import { WSClient } from "./ws/ws-client";
 interface HydraApiOptions {
   needsAuth?: boolean;
   needsSubscription?: boolean;
+  ifModifiedSince?: Date;
 }
 
 interface HydraApiUserAuth {
@@ -337,8 +338,13 @@ export class HydraApi {
   ) {
     await this.validateOptions(options);
 
+    const headers = {
+      ...this.getAxiosConfig().headers,
+      "If-Modified-Since": options?.ifModifiedSince?.toUTCString(),
+    };
+
     return this.instance
-      .get<T>(url, { params, ...this.getAxiosConfig() })
+      .get<T>(url, { params, ...this.getAxiosConfig(), headers })
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
