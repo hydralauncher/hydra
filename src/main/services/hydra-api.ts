@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosHeaders, AxiosInstance } from "axios";
+import axios, { AxiosError, AxiosInstance } from "axios";
 import { WindowManager } from "./window-manager";
 import url from "url";
 import { uploadGamesBatch } from "./library-sync";
