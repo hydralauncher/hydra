@@ -25,7 +25,7 @@ export function useUserDetails() {
     friendRequestCount,
     isFriendsModalVisible,
     friendModalUserId,
-    friendRequetsModalTab,
+    friendRequestsModalTab,
   } = useAppSelector((state) => state.userDetails);
 
   const clearUserDetails = useCallback(async () => {
@@ -144,7 +144,7 @@ export function useUserDetails() {
     profileBackground,
     friendRequests,
     friendRequestCount,
-    friendRequetsModalTab,
+    friendRequestsModalTab,
     isFriendsModalVisible,
     friendModalUserId,
     hasActiveSubscription,

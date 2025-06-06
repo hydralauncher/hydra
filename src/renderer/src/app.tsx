@@ -49,7 +49,7 @@ export function App() {
     userDetails,
     hasActiveSubscription,
     isFriendsModalVisible,
-    friendRequetsModalTab,
+    friendRequestsModalTab,
     friendModalUserId,
     hideFriendsModal,
     fetchUserDetails,
@@ -318,7 +318,7 @@ export function App() {
       {userDetails && (
         <UserFriendModal
           visible={isFriendsModalVisible}
-          initialTab={friendRequetsModalTab}
+          initialTab={friendRequestsModalTab}
           onClose={hideFriendsModal}
           userId={friendModalUserId}
         />

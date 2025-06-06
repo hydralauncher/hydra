@@ -8,7 +8,7 @@ export interface UserDetailsState {
   friendRequests: FriendRequest[];
   friendRequestCount: number;
   isFriendsModalVisible: boolean;
-  friendRequetsModalTab: UserFriendModalTab | null;
+  friendRequestsModalTab: UserFriendModalTab | null;
   friendModalUserId: string;
 }
 
@@ -18,7 +18,7 @@ const initialState: UserDetailsState = {
   friendRequests: [],
   friendRequestCount: 0,
   isFriendsModalVisible: false,
-  friendRequetsModalTab: null,
+  friendRequestsModalTab: null, 
   friendModalUserId: "",
 };
 
@@ -43,12 +43,12 @@ export const userDetailsSlice = createSlice({
       action: PayloadAction<{ initialTab: UserFriendModalTab; userId: string }>
     ) => {
       state.isFriendsModalVisible = true;
-      state.friendRequetsModalTab = action.payload.initialTab;
+      state.friendRequestsModalTab = action.payload.initialTab;
       state.friendModalUserId = action.payload.userId;
     },
     setFriendsModalHidden: (state) => {
       state.isFriendsModalVisible = false;
-      state.friendRequetsModalTab = null;
+      state.friendRequestsModalTab = null; 
     },
   },
 });
