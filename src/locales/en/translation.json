@@ -515,7 +515,8 @@
     "earned_points": "Earned points",
     "show_achievements_on_profile": "Show your achievements on your profile",
     "show_points_on_profile": "Show your earned points on your profile",
-    "error_adding_friend": "Could not send friend request. Please check friend code"
+    "error_adding_friend": "Could not send friend request. Please check friend code",
+    "friend_code_length_error": "Friend code must have 8 characters"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",

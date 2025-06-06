@@ -3,6 +3,7 @@ import { registerEvent } from "../register-event";
 
 import { HydraApi } from "@main/services";
 import { db, levelKeys } from "@main/level";
+import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 
 const getComparedUnlockedAchievements = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -10,6 +11,8 @@ const getComparedUnlockedAchievements = async (
   shop: GameShop,
   userId: string
 ) => {
+  await AchievementWatcherManager.firstSyncWithRemoteIfNeeded(shop, objectId);
+
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {

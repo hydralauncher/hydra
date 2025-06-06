@@ -8,6 +8,7 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import { CloudSync } from "./cloud-sync";
 import { logger } from "./logger";
 import path from "path";
+import { AchievementWatcherManager } from "./achievements/achievement-watcher-manager";
 
 export const gamesPlaytime = new Map<
   string,
@@ -189,6 +190,11 @@ export const watchProcesses = async () => {
 
 function onOpenGame(game: Game) {
   const now = performance.now();
+
+  AchievementWatcherManager.firstSyncWithRemoteIfNeeded(
+    game.shop,
+    game.objectId
+  );
 
   gamesPlaytime.set(levelKeys.game(game.shop, game.objectId), {
     lastTick: now,
