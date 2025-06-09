@@ -75,6 +75,11 @@ export const parseAchievementFile = (
       return processRazor1911(filePath);
     }
 
+    if (type === Cracker.Steam) {
+      const parsed = jsonParse(filePath);
+      return processSteamCacheAchievement(parsed);
+    }
+
     achievementsLogger.log(
       `Unprocessed ${type} achievements found on ${filePath}`
     );
@@ -231,6 +236,35 @@ const processGoldberg = (unlockedAchievements: any): UnlockedAchievement[] => {
       });
     }
   }
+  return newUnlockedAchievements;
+};
+
+const processSteamCacheAchievement = (
+  unlockedAchievements: any[]
+): UnlockedAchievement[] => {
+  const newUnlockedAchievements: UnlockedAchievement[] = [];
+
+  const achievementIndex = unlockedAchievements.findIndex(
+    (element) => element[0] === "achievements"
+  );
+
+  if (achievementIndex === -1) {
+    achievementsLogger.info("No achievements found in Steam cache file");
+    return [];
+  }
+
+  const unlockedAchievementsData =
+    unlockedAchievements[achievementIndex][1]["data"]["vecHighlight"];
+
+  for (const achievement of unlockedAchievementsData) {
+    if (achievement.bAchieved) {
+      newUnlockedAchievements.push({
+        name: achievement.strID,
+        unlockTime: achievement.rtUnlocked * 1000,
+      });
+    }
+  }
+
   return newUnlockedAchievements;
 };
 
