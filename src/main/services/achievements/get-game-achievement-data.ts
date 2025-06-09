@@ -19,32 +19,6 @@ const getModifiedSinceHeader = (
     : undefined;
 };
 
-const getModifiedSinceHeader = async (
-  cachedAchievements: GameAchievement | undefined
-): Promise<Date | undefined> => {
-  const hasActiveSubscription = await db
-    .get<string, User>(levelKeys.user, { valueEncoding: "json" })
-    .then((user) => {
-      const expiresAt = new Date(user?.subscription?.expiresAt ?? 0);
-      return expiresAt > new Date();
-    });
-
-  if (!cachedAchievements) {
-    return undefined;
-  }
-
-  const hasAchievementsPoints =
-    cachedAchievements.achievements[0].points != undefined;
-
-  if (hasActiveSubscription !== hasAchievementsPoints) {
-    return undefined;
-  }
-
-  return cachedAchievements.updatedAt
-    ? new Date(cachedAchievements.updatedAt)
-    : undefined;
-};
-
 export const getGameAchievementData = async (
   objectId: string,
   shop: GameShop,
