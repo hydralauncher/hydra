@@ -158,8 +158,8 @@ $logo-max-width: 200px;
     &-points {
       display: flex;
       align-items: center;
+      justify-content: end;
       gap: 4px;
-      margin-right: 4px;
       font-weight: 600;
 
       &--locked {
