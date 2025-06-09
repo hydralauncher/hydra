@@ -271,7 +271,10 @@ export const findAchievementFiles = (game: Game) => {
     }
   }
 
-  return achievementFiles;
+  const achievementFileInsideDirectory =
+    findAchievementFileInExecutableDirectory(game);
+
+  return achievementFiles.concat(achievementFileInsideDirectory);
 };
 
 const steamUserIds = await getSteamUsersIds();

@@ -66,10 +66,6 @@ const watchAchievementsWithWine = async () => {
 
   for (const game of games) {
     const gameAchievementFiles = findAchievementFiles(game);
-    const achievementFileInsideDirectory =
-      findAchievementFileInExecutableDirectory(game);
-
-    gameAchievementFiles.push(...achievementFileInsideDirectory);
 
     gameAchievementFiles.push(...(await findAchievementFileInSteamPath(game)));
 
@@ -180,11 +176,6 @@ export class AchievementWatcherManager {
     if (!game || game.isDeleted) return;
 
     const gameAchievementFiles = findAchievementFiles(game);
-
-    const achievementFileInsideDirectory =
-      findAchievementFileInExecutableDirectory(game);
-
-    gameAchievementFiles.push(...achievementFileInsideDirectory);
 
     gameAchievementFiles.push(...(await findAchievementFileInSteamPath(game)));
 
@@ -299,10 +290,6 @@ export class AchievementWatcherManager {
     return Promise.all(
       games.map(async (game) => {
         const achievementFiles = findAchievementFiles(game);
-        const achievementFileInsideDirectory =
-          findAchievementFileInExecutableDirectory(game);
-
-        achievementFiles.push(...achievementFileInsideDirectory);
 
         achievementFiles.push(...(await findAchievementFileInSteamPath(game)));
 
