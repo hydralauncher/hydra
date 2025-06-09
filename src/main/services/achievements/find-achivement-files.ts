@@ -4,6 +4,7 @@ import type { Game, AchievementFile } from "@types";
 import { Cracker } from "@shared";
 import { achievementsLogger } from "../logger";
 import { SystemPath } from "../system-path";
+import { getSteamLocation, getSteamUsersIds } from "../steam";
 
 const getAppDataPath = () => {
   if (process.platform === "win32") {
@@ -267,6 +268,37 @@ export const findAchievementFiles = (game: Game) => {
           });
         }
       }
+    }
+  }
+
+  return achievementFiles;
+};
+
+const steamUserIds = await getSteamUsersIds();
+const steamPath = await getSteamLocation();
+
+export const findAchievementFileInSteamPath = async (game: Game) => {
+  if (!steamUserIds.length) {
+    return [];
+  }
+
+  const achievementFiles: AchievementFile[] = [];
+
+  for (const steamUserId of steamUserIds) {
+    const gameAchievementPath = path.join(
+      steamPath,
+      "userdata",
+      steamUserId.toString(),
+      "config",
+      "librarycache",
+      `${game.objectId}.json`
+    );
+
+    if (fs.existsSync(gameAchievementPath)) {
+      achievementFiles.push({
+        type: Cracker.Steam,
+        filePath: gameAchievementPath,
+      });
     }
   }
 
