@@ -1,11 +1,23 @@
 import { HydraApi } from "../hydra-api";
-import type { GameShop, SteamAchievement } from "@types";
+import type { GameAchievement, GameShop, SteamAchievement } from "@types";
 import { UserNotLoggedInError } from "@shared";
 import { logger } from "../logger";
 import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
 import { AxiosError } from "axios";
 
 const LOCAL_CACHE_EXPIRATION = 1000 * 60 * 30; // 30 minutes
+
+const getModifiedSinceHeader = (
+  cachedAchievements: GameAchievement | undefined
+): Date | undefined => {
+  if (!cachedAchievements) {
+    return undefined;
+  }
+
+  return cachedAchievements.updatedAt
+    ? new Date(cachedAchievements.updatedAt)
+    : undefined;
+};
 
 export const getGameAchievementData = async (
   objectId: string,
@@ -40,9 +52,7 @@ export const getGameAchievementData = async (
       language,
     },
     {
-      ifModifiedSince: cachedAchievements?.updatedAt
-        ? new Date(cachedAchievements?.updatedAt)
-        : undefined,
+      ifModifiedSince: getModifiedSinceHeader(cachedAchievements),
     }
   )
     .then(async (achievements) => {
