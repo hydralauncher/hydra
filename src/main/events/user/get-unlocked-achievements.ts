@@ -2,6 +2,7 @@ import type { GameShop, UserAchievement, UserPreferences } from "@types";
 import { registerEvent } from "../register-event";
 import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
 import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
+import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 
 export const getUnlockedAchievements = async (
   objectId: string,
@@ -62,7 +63,7 @@ export const getUnlockedAchievements = async (
           !achievementData.hidden || showHiddenAchievementsDescription
             ? achievementData.description
             : undefined,
-      } as UserAchievement;
+      };
     })
     .sort((a, b) => {
       if (a.unlocked && !b.unlocked) return -1;
@@ -79,6 +80,7 @@ const getUnlockedAchievementsEvent = async (
   objectId: string,
   shop: GameShop
 ): Promise<UserAchievement[]> => {
+  AchievementWatcherManager.firstSyncWithRemoteIfNeeded(shop, objectId);
   return getUnlockedAchievements(objectId, shop, false);
 };
 
