@@ -340,7 +340,7 @@ export class HydraApi {
 
     const headers = {
       ...this.getAxiosConfig().headers,
-      "If-Modified-Since": options?.ifModifiedSince?.toUTCString(),
+      "Hydra-If-Modified-Since": options?.ifModifiedSince?.toUTCString(),
     };
 
     return this.instance
