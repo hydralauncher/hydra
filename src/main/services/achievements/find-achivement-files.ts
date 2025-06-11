@@ -303,7 +303,7 @@ export const findAchievementFileInExecutableDirectory = (
         "achievements.ini"
       ),
     },
-  ];
+  ].filter((file) => fs.existsSync(file.filePath)) as AchievementFile[];
 };
 
 const mapFileLocationWithObjectId = (

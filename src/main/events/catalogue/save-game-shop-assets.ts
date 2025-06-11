@@ -8,7 +8,9 @@ const saveGameShopAssets = async (
   shop: GameShop,
   assets: ShopAssets
 ): Promise<void> => {
-  return gamesShopAssetsSublevel.put(levelKeys.game(shop, objectId), assets);
+  const key = levelKeys.game(shop, objectId);
+  const existingAssets = await gamesShopAssetsSublevel.get(key);
+  return gamesShopAssetsSublevel.put(key, { ...existingAssets, ...assets });
 };
 
 registerEvent("saveGameShopAssets", saveGameShopAssets);

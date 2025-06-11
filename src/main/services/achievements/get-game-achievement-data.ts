@@ -1,24 +1,39 @@
 import { HydraApi } from "../hydra-api";
-import type { GameShop, SteamAchievement } from "@types";
+import type { GameAchievement, GameShop, SteamAchievement } from "@types";
 import { UserNotLoggedInError } from "@shared";
 import { logger } from "../logger";
 import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
+import { AxiosError } from "axios";
+
+const LOCAL_CACHE_EXPIRATION = 1000 * 60 * 30; // 30 minutes
+
+const getModifiedSinceHeader = (
+  cachedAchievements: GameAchievement | undefined
+): Date | undefined => {
+  if (!cachedAchievements) {
+    return undefined;
+  }
+
+  return cachedAchievements.updatedAt
+    ? new Date(cachedAchievements.updatedAt)
+    : undefined;
+};
 
 export const getGameAchievementData = async (
   objectId: string,
   shop: GameShop,
   useCachedData: boolean
 ) => {
-  const cachedAchievements = await gameAchievementsSublevel.get(
-    levelKeys.game(shop, objectId)
-  );
+  const gameKey = levelKeys.game(shop, objectId);
 
-  if (cachedAchievements && useCachedData)
+  const cachedAchievements = await gameAchievementsSublevel.get(gameKey);
+
+  if (cachedAchievements?.achievements && useCachedData)
     return cachedAchievements.achievements;
 
   if (
-    cachedAchievements &&
-    Date.now() < (cachedAchievements.cacheExpiresTimestamp ?? 0)
+    cachedAchievements?.achievements &&
+    Date.now() < (cachedAchievements.updatedAt ?? 0) + LOCAL_CACHE_EXPIRATION
   ) {
     return cachedAchievements.achievements;
   }
@@ -29,18 +44,22 @@ export const getGameAchievementData = async (
     })
     .then((language) => language || "en");
 
-  return HydraApi.get<SteamAchievement[]>("/games/achievements", {
-    shop,
-    objectId,
-    language,
-  })
+  return HydraApi.get<SteamAchievement[]>(
+    "/games/achievements",
+    {
+      shop,
+      objectId,
+      language,
+    },
+    {
+      ifModifiedSince: getModifiedSinceHeader(cachedAchievements),
+    }
+  )
     .then(async (achievements) => {
-      await gameAchievementsSublevel.put(levelKeys.game(shop, objectId), {
+      await gameAchievementsSublevel.put(gameKey, {
         unlockedAchievements: cachedAchievements?.unlockedAchievements ?? [],
         achievements,
-        cacheExpiresTimestamp: achievements.length
-          ? Date.now() + 1000 * 60 * 30 // 30 minutes
-          : undefined,
+        updatedAt: Date.now() + LOCAL_CACHE_EXPIRATION,
       });
 
       return achievements;
@@ -50,8 +69,14 @@ export const getGameAchievementData = async (
         throw err;
       }
 
+      const isNotModified = (err as AxiosError)?.response?.status === 304;
+
+      if (isNotModified) {
+        return cachedAchievements?.achievements ?? [];
+      }
+
       logger.error("Failed to get game achievements for", objectId, err);
 
-      return [];
+      return cachedAchievements?.achievements ?? [];
     });
 };

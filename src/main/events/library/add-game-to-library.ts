@@ -1,13 +1,13 @@
 import { registerEvent } from "../register-event";
 import type { GameShop } from "@types";
 import { createGame } from "@main/services/library-sync";
-import { updateLocalUnlockedAchievements } from "@main/services/achievements/update-local-unlocked-achivements";
 import {
   downloadsSublevel,
   gamesShopAssetsSublevel,
   gamesSublevel,
   levelKeys,
 } from "@main/level";
+import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 
 const addGameToLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -43,7 +43,10 @@ const addGameToLibrary = async (
 
   await createGame(game).catch(() => {});
 
-  updateLocalUnlockedAchievements(game);
+  AchievementWatcherManager.firstSyncWithRemoteIfNeeded(
+    game.shop,
+    game.objectId
+  );
 };
 
 registerEvent("addGameToLibrary", addGameToLibrary);

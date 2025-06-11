@@ -13,9 +13,8 @@ export const mergeWithRemoteGames = async () => {
   return HydraApi.get<ProfileGame[]>("/profile/games")
     .then(async (response) => {
       for (const game of response) {
-        const localGame = await gamesSublevel.get(
-          levelKeys.game(game.shop, game.objectId)
-        );
+        const gameKey = levelKeys.game(game.shop, game.objectId);
+        const localGame = await gamesSublevel.get(gameKey);
 
         if (localGame) {
           const updatedLastTimePlayed =
@@ -30,7 +29,7 @@ export const mergeWithRemoteGames = async () => {
               ? game.playTimeInMilliseconds
               : localGame.playTimeInMilliseconds;
 
-          await gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+          await gamesSublevel.put(gameKey, {
             ...localGame,
             remoteId: game.id,
             lastTimePlayed: updatedLastTimePlayed,
@@ -38,7 +37,7 @@ export const mergeWithRemoteGames = async () => {
             favorite: game.isFavorite ?? localGame.favorite,
           });
         } else {
-          await gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+          await gamesSublevel.put(gameKey, {
             objectId: game.objectId,
             title: game.title,
             remoteId: game.id,
@@ -51,20 +50,17 @@ export const mergeWithRemoteGames = async () => {
           });
         }
 
-        await gamesShopAssetsSublevel.put(
-          levelKeys.game(game.shop, game.objectId),
-          {
-            shop: game.shop,
-            objectId: game.objectId,
-            title: game.title,
-            coverImageUrl: game.coverImageUrl,
-            libraryHeroImageUrl: game.libraryHeroImageUrl,
-            libraryImageUrl: game.libraryImageUrl,
-            logoImageUrl: game.logoImageUrl,
-            iconUrl: game.iconUrl,
-            logoPosition: game.logoPosition,
-          }
-        );
+        await gamesShopAssetsSublevel.put(gameKey, {
+          shop: game.shop,
+          objectId: game.objectId,
+          title: game.title,
+          coverImageUrl: game.coverImageUrl,
+          libraryHeroImageUrl: game.libraryHeroImageUrl,
+          libraryImageUrl: game.libraryImageUrl,
+          logoImageUrl: game.logoImageUrl,
+          iconUrl: game.iconUrl,
+          logoPosition: game.logoPosition,
+        });
       }
     })
     .catch(() => {});
