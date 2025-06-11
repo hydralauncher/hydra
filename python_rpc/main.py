@@ -4,6 +4,7 @@ from torrent_downloader import TorrentDownloader
 from http_downloader import HttpDownloader
 from profile_image_processor import ProfileImageProcessor
 import libtorrent as lt
+import os
 
 app = Flask(__name__)
 
@@ -102,8 +103,26 @@ def process_list():
     if auth_error:
         return auth_error
 
-    process_list = [proc.info for proc in psutil.process_iter(['exe', 'cwd', 'pid', 'name', 'environ'])]
-    return jsonify(process_list), 200
+    processes = []
+
+    for proc in psutil.process_iter(['exe', 'cwd', 'pid', 'cmdline']):
+        try:
+            info = proc.info
+            cmdline = info.get('cmdline') or []
+            wine_launched_exe = None
+
+            for arg in cmdline:
+                if isinstance(arg, str) and arg.lower().endswith(".exe"):
+                    wine_launched_exe = os.path.basename(arg)
+                    break
+
+            exe_path = info.get('exe') or ''
+            info['name'] = wine_launched_exe or os.path.basename(exe_path)
+            processes.append(info)
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            continue
+
+    return jsonify(processes), 200
 
 @app.route("/profile-image", methods=["POST"])
 def profile_image():
