@@ -77,6 +77,6 @@ export const getGameAchievementData = async (
 
       logger.error("Failed to get game achievements for", objectId, err);
 
-      return [];
+      return cachedAchievements?.achievements ?? [];
     });
 };
