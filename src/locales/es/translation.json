@@ -202,7 +202,7 @@
     "download_error_not_cached_on_torbox": "Esta descarga no está disponible en TorBox y aún no se puede verificar el estado de la descarga.",
     "game_added_to_favorites": "Juego añadido a favoritos",
     "game_removed_from_favorites": "Juego removido de favoritos",
-    "invalid_wine_prefix_path": "Ruta de prefijo Wine inválida",
+    "invalid_wine_prefix_path": "Ruta de prefijo de Wine inválida",
     "invalid_wine_prefix_path_description": "La ruta del prefijo Wine es inválida. Por favor, checa la ruta y vuelve a intentarlo.",
     "missing_wine_prefix": "Se requiere el prefijo Wine para crear una copia de seguridad en Linux"
   },
