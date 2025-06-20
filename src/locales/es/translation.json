@@ -141,7 +141,7 @@
     "allow_nsfw_content": "Continuar",
     "refuse_nsfw_content": "No, gracias",
     "stats": "Estadísticas",
-    "download_count": "Downloads",
+    "download_count": "Descargas",
     "player_count": "Jugadores activos",
     "download_error": "Esta opción de descarga no está disponible.",
     "download": "Descargar",
@@ -199,12 +199,12 @@
     "download_error_gofile_quota_exceeded": "Has excedido la cuota mensual de Gofile. Por favor espera a que se reinicie la cuota.",
     "download_error_real_debrid_account_not_authorized": "Tu cuenta de Real-Debrid no está autorizada para nueva descargas. Por favor, revisa los ajustes de tu cuenta e intenta de nuevo.",
     "download_error_not_cached_on_real_debrid": "Esta descarga no está disponible en Real-Debrid y el estado de descarga del sondeo de Real-Debrid aún no está disponible.",
-    "download_error_not_cached_on_torbox": "Esta descarga no está disponible en TorBox y el estado de descarga del sondeo aún no está disponible.",
+    "download_error_not_cached_on_torbox": "Esta descarga no está disponible en TorBox y aún no se puede verificar el estado de la descarga.",
     "game_added_to_favorites": "Juego añadido a favoritos",
     "game_removed_from_favorites": "Juego removido de favoritos",
-    "invalid_wine_prefix_path": "Ruta de prefixo Wine inválida",
-    "invalid_wine_prefix_path_description": "La ruta al prefixo Wine es inválida. Por favor, verifica la ruta y vuelve a intentarlo.",
-    "missing_wine_prefix": ""
+    "invalid_wine_prefix_path": "Ruta de prefijo Wine inválida",
+    "invalid_wine_prefix_path_description": "La ruta del prefijo Wine es inválida. Por favor, checa la ruta y vuelve a intentarlo.",
+    "missing_wine_prefix": "Se requiere el prefijo Wine para crear una copia de seguridad en Linux"
   },
   "activation": {
     "title": "Activar Hydra",
