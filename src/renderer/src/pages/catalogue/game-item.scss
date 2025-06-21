@@ -16,6 +16,11 @@
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.05);
+
+    .game-item__plus-wrapper {
+      opacity: 1;
+      pointer-events: auto;
+    }
   }
 
   &__plus-wrapper {
@@ -28,16 +33,7 @@
     cursor: pointer;
   }
 
-  &:hover .game-item__plus-wrapper {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  &__plus-wrapper.added {
-    opacity: 0.5;
-  }
-
-  &:hover .game-item__plus-wrapper.added {
+  &__plus-wrapper--added {
     opacity: 0.5;
   }
 
