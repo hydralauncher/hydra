@@ -8,6 +8,7 @@ import "./game-item.scss";
 import { useTranslation } from "react-i18next";
 import { CatalogueSearchResult } from "@types";
 import { QuestionIcon, PlusIcon, CheckIcon } from "@primer/octicons-react";
+import cn from "classnames";
 
 export interface GameItemProps {
   game: CatalogueSearchResult;
@@ -116,7 +117,9 @@ export function GameItem({ game }: GameItemProps) {
         </div>
       </div>
       <div
-        className={"game-item__plus-wrapper" + (added ? " added" : "")}
+        className={cn("game-item__plus-wrapper", {
+          "game-item__plus-wrapper--added": added,
+        })}
         role="button"
         tabIndex={0}
         onClick={addGameToLibrary}
