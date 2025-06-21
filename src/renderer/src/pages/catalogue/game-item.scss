@@ -16,6 +16,25 @@
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.05);
+
+    .game-item__plus-wrapper {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  &__plus-wrapper {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-in-out;
+    cursor: pointer;
+  }
+
+  &__plus-wrapper--added {
+    opacity: 0.5;
   }
 
   &__cover {
