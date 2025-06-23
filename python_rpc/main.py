@@ -4,6 +4,7 @@ from torrent_downloader import TorrentDownloader
 from http_downloader import HttpDownloader
 from profile_image_processor import ProfileImageProcessor
 import libtorrent as lt
+from fichier_downloader import get_fichier_download_info
 
 app = Flask(__name__)
 
@@ -23,7 +24,7 @@ torrent_session = lt.session({'listen_interfaces': '0.0.0.0:{port}'.format(port=
 if start_download_payload:
     initial_download = json.loads(urllib.parse.unquote(start_download_payload))
     downloading_game_id = initial_download['game_id']
-    
+
     if initial_download['url'].startswith('magnet'):
         torrent_downloader = TorrentDownloader(torrent_session)
         downloads[initial_download['game_id']] = torrent_downloader
@@ -73,17 +74,17 @@ def seed_status():
     auth_error = validate_rpc_password()
     if auth_error:
         return auth_error
-    
+
     seed_status = []
 
     for game_id, downloader in downloads.items():
         if not downloader:
             continue
-        
+
         response = downloader.get_download_status()
         if response is None:
             continue
-        
+
         if response.get('status') == 5:
             seed_status.append({
                 'gameId': game_id,
@@ -152,14 +153,14 @@ def action():
                 http_downloader = HttpDownloader()
                 downloads[game_id] = http_downloader
                 http_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
-        
+
         downloading_game_id = game_id
 
     elif action == 'pause':
         downloader = downloads.get(game_id)
         if downloader:
             downloader.pause_download()
-        
+
         if downloading_game_id == game_id:
             downloading_game_id = -1
     elif action == 'cancel':
@@ -179,6 +180,16 @@ def action():
         return jsonify({"error": "Invalid action"}), 400
 
     return "", 200
+
+@app.route("/fichier/get-download-info", methods=["POST"])
+def get_fichier_download_info_endpoint():
+    auth_error = validate_rpc_password()
+    if auth_error:
+        return auth_error
+
+    data = request.get_json()
+    url = data.get("url")
+    return jsonify(get_fichier_download_info(url)), 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(http_port))

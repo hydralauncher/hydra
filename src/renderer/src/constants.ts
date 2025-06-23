@@ -12,6 +12,7 @@ export const DOWNLOADER_NAME = {
   [Downloader.Mediafire]: "Mediafire",
   [Downloader.TorBox]: "TorBox",
   [Downloader.Hydra]: "Nimbus",
+  [Downloader.Fichier]: "1fichier",
 };
 
 export const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;

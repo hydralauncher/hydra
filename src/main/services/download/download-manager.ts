@@ -8,6 +8,7 @@ import {
   DatanodesApi,
   MediafireApi,
   PixelDrainApi,
+  FichierApi,
 } from "../hosters";
 import { PythonRPC } from "../python-rpc";
 import {
@@ -355,6 +356,19 @@ export class DownloadManager {
           game_id: downloadId,
           url: downloadUrl,
           save_path: download.downloadPath,
+        };
+      }
+      case Downloader.Fichier: {
+        const { url, header, referer } = await FichierApi.getDownloadInfo(download.uri);
+
+        return {
+          action: "start",
+          game_id: downloadId,
+          url: url,
+          save_path: download.downloadPath,
+          header: header,
+          referer: referer,
+          allow_multiple_connections: true,
         };
       }
       case Downloader.Torrent:

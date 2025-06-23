@@ -103,7 +103,7 @@ export const formatName = pipe<string>(
   (str) => str.trim()
 );
 
-const realDebridHosts = ["https://1fichier.com", "https://mediafire.com"];
+const realDebridHosts = ["https://mediafire.com"];
 
 export const getDownloadersForUri = (uri: string) => {
   if (uri.startsWith("https://gofile.io")) return [Downloader.Gofile];
@@ -113,6 +113,8 @@ export const getDownloadersForUri = (uri: string) => {
   if (uri.startsWith("https://datanodes.to")) return [Downloader.Datanodes];
   if (uri.startsWith("https://www.mediafire.com"))
     return [Downloader.Mediafire];
+  if (uri.startsWith("https://1fichier.com"))
+    return [Downloader.Fichier];
 
   if (realDebridHosts.some((host) => uri.startsWith(host)))
     return [Downloader.RealDebrid];

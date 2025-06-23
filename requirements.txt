@@ -6,3 +6,5 @@ psutil
 Pillow
 flask
 aria2p
+git+https://github.com/SnarkyDeveloper/torpy.git@master#egg=torpy
+requests[socks]
