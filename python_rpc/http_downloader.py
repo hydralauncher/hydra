@@ -11,18 +11,32 @@ class HttpDownloader:
             )
         )
 
-    def start_download(self, url: str, save_path: str, header: str, out: str = None):
+    def start_download(self, url: str, save_path: str, header: str, out: str = None, allow_multiple_connections: bool = False, connections_limit: int = 8):
         if self.download:
             self.aria2.resume([self.download])
         else:
-            downloads = self.aria2.add(url, options={"header": header, "dir": save_path, "out": out})
-            
+            options = {"dir": save_path}
+
+            if header:
+                options["header"] = header
+
+            if out:
+                options["out"] = out
+
+            # Configurações para conexões múltiplas
+            if allow_multiple_connections:
+                options["split"] = str(connections_limit)
+                options["max-connection-per-server"] = str(connections_limit)
+                options["continue"] = "true"
+
+            downloads = self.aria2.add(url, options=options)
+
             self.download = downloads[0]
-    
+
     def pause_download(self):
         if self.download:
             self.aria2.pause([self.download])
-    
+
     def cancel_download(self):
         if self.download:
             self.aria2.remove([self.download])

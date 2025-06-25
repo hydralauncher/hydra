@@ -23,7 +23,7 @@ torrent_session = lt.session({'listen_interfaces': '0.0.0.0:{port}'.format(port=
 if start_download_payload:
     initial_download = json.loads(urllib.parse.unquote(start_download_payload))
     downloading_game_id = initial_download['game_id']
-    
+
     if initial_download['url'].startswith('magnet'):
         torrent_downloader = TorrentDownloader(torrent_session)
         downloads[initial_download['game_id']] = torrent_downloader
@@ -32,12 +32,19 @@ if start_download_payload:
         except Exception as e:
             print("Error starting torrent download", e)
     else:
-        http_downloader = HttpDownloader()
-        downloads[initial_download['game_id']] = http_downloader
-        try:
-            http_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'), initial_download.get('out'))
-        except Exception as e:
-            print("Error starting http download", e)
+            http_downloader = HttpDownloader()
+            downloads[initial_download['game_id']] = http_downloader
+            try:
+                http_downloader.start_download(
+                    initial_download['url'],
+                    initial_download['save_path'],
+                    initial_download.get('header'),
+                    initial_download.get('out'),
+                    initial_download.get('allow_multiple_connections', False),
+                    initial_download.get('connections_limit', 8)
+                )
+            except Exception as e:
+                print("Error starting http download", e)
 
 if start_seeding_payload:
     initial_seeding = json.loads(urllib.parse.unquote(start_seeding_payload))
@@ -73,17 +80,17 @@ def seed_status():
     auth_error = validate_rpc_password()
     if auth_error:
         return auth_error
-    
+
     seed_status = []
 
     for game_id, downloader in downloads.items():
         if not downloader:
             continue
-        
+
         response = downloader.get_download_status()
         if response is None:
             continue
-        
+
         if response.get('status') == 5:
             seed_status.append({
                 'gameId': game_id,
@@ -147,19 +154,33 @@ def action():
                 torrent_downloader.start_download(url, data['save_path'])
         else:
             if existing_downloader and isinstance(existing_downloader, HttpDownloader):
-                existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
+                existing_downloader.start_download(
+                    url,
+                    data['save_path'],
+                    data.get('header'),
+                    data.get('out'),
+                    data.get('allow_multiple_connections', False),
+                    data.get('connections_limit', 8)
+                )
             else:
                 http_downloader = HttpDownloader()
                 downloads[game_id] = http_downloader
-                http_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
-        
+                http_downloader.start_download(
+                    url,
+                    data['save_path'],
+                    data.get('header'),
+                    data.get('out'),
+                    data.get('allow_multiple_connections', False),
+                    data.get('connections_limit', 8)
+                )
+
         downloading_game_id = game_id
 
     elif action == 'pause':
         downloader = downloads.get(game_id)
         if downloader:
             downloader.pause_download()
-        
+
         if downloading_game_id == game_id:
             downloading_game_id = -1
     elif action == 'cancel':

@@ -327,6 +327,8 @@ export class DownloadManager {
           game_id: downloadId,
           url: downloadUrl,
           save_path: download.downloadPath,
+          allow_multiple_connections: true,
+          connections_limit: 8,
         };
       }
       case Downloader.Qiwi: {
