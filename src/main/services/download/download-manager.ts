@@ -1,4 +1,5 @@
 import { Downloader, DownloadError, FILE_EXTENSIONS_TO_EXTRACT } from "@shared";
+const DEFAULT_CONNECTIONS_LIMIT = 8;
 import { WindowManager } from "../window-manager";
 import { publishDownloadCompleteNotification } from "../notifications";
 import type { Download, DownloadProgress, UserPreferences } from "@types";
@@ -315,7 +316,7 @@ export class DownloadManager {
           save_path: download.downloadPath,
           header: `Cookie: accountToken=${token}`,
           allow_multiple_connections: true,
-          connections_limit: 8,
+          connections_limit: DEFAULT_CONNECTIONS_LIMIT,
         };
       }
       case Downloader.PixelDrain: {
@@ -328,7 +329,7 @@ export class DownloadManager {
           url: downloadUrl,
           save_path: download.downloadPath,
           allow_multiple_connections: true,
-          connections_limit: 8,
+          connections_limit: DEFAULT_CONNECTIONS_LIMIT,
         };
       }
       case Downloader.Qiwi: {

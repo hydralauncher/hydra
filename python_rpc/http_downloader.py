@@ -1,5 +1,7 @@
 import aria2p
 
+DEFAULT_CONNECTIONS_LIMIT = 8
+
 class HttpDownloader:
     def __init__(self):
         self.download = None
@@ -11,7 +13,7 @@ class HttpDownloader:
             )
         )
 
-    def start_download(self, url: str, save_path: str, header: str, out: str = None, allow_multiple_connections: bool = False, connections_limit: int = 8):
+    def start_download(self, url: str, save_path: str, header: str, out: str = None, allow_multiple_connections: bool = False, connections_limit: int = DEFAULT_CONNECTIONS_LIMIT):
         if self.download:
             self.aria2.resume([self.download])
         else:
@@ -23,7 +25,6 @@ class HttpDownloader:
             if out:
                 options["out"] = out
 
-            # Configurações para conexões múltiplas
             if allow_multiple_connections:
                 options["split"] = str(connections_limit)
                 options["max-connection-per-server"] = str(connections_limit)

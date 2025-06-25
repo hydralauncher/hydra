@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import sys, json, urllib.parse, psutil
 from torrent_downloader import TorrentDownloader
-from http_downloader import HttpDownloader
+from http_downloader import HttpDownloader, DEFAULT_CONNECTIONS_LIMIT
 from profile_image_processor import ProfileImageProcessor
 import libtorrent as lt
 
@@ -35,16 +35,20 @@ if start_download_payload:
             http_downloader = HttpDownloader()
             downloads[initial_download['game_id']] = http_downloader
             try:
-                http_downloader.start_download(
-                    initial_download['url'],
-                    initial_download['save_path'],
-                    initial_download.get('header'),
-                    initial_download.get('out'),
-                    initial_download.get('allow_multiple_connections', False),
-                    initial_download.get('connections_limit', 8)
-                )
+                start_http_download(http_downloader, initial_download['url'], initial_download)
             except Exception as e:
                 print("Error starting http download", e)
+
+def start_http_download(downloader, url, data):
+    """Helper function to start HTTP download with consistent parameters."""
+    downloader.start_download(
+        url,
+        data['save_path'],
+        data.get('header'),
+        data.get('out'),
+        data.get('allow_multiple_connections', False),
+        data.get('connections_limit', DEFAULT_CONNECTIONS_LIMIT)
+    )
 
 if start_seeding_payload:
     initial_seeding = json.loads(urllib.parse.unquote(start_seeding_payload))
@@ -154,25 +158,11 @@ def action():
                 torrent_downloader.start_download(url, data['save_path'])
         else:
             if existing_downloader and isinstance(existing_downloader, HttpDownloader):
-                existing_downloader.start_download(
-                    url,
-                    data['save_path'],
-                    data.get('header'),
-                    data.get('out'),
-                    data.get('allow_multiple_connections', False),
-                    data.get('connections_limit', 8)
-                )
+                start_http_download(existing_downloader, url, data)
             else:
                 http_downloader = HttpDownloader()
                 downloads[game_id] = http_downloader
-                http_downloader.start_download(
-                    url,
-                    data['save_path'],
-                    data.get('header'),
-                    data.get('out'),
-                    data.get('allow_multiple_connections', False),
-                    data.get('connections_limit', 8)
-                )
+                start_http_download(http_downloader, url, data)
 
         downloading_game_id = game_id
 
