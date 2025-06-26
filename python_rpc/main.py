@@ -101,8 +101,13 @@ def process_list():
     auth_error = validate_rpc_password()
     if auth_error:
         return auth_error
+    
+    iter_list  = ['exe', 'pid', 'name']
+    if sys.platform != 'win32':
+        iter_list.append('cwd')
+        iter_list.append('environ')
 
-    process_list = [proc.info for proc in psutil.process_iter(['exe', 'cwd', 'pid', 'name', 'environ'])]
+    process_list = [proc.info for proc in psutil.process_iter(iter_list)]
     return jsonify(process_list), 200
 
 @app.route("/profile-image", methods=["POST"])

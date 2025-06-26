@@ -5,7 +5,7 @@ import { logger } from "../logger";
 import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
 import { AxiosError } from "axios";
 
-const LOCAL_CACHE_EXPIRATION = 1000 * 60 * 30; // 30 minutes
+const LOCAL_CACHE_EXPIRATION = 1000 * 60 * 60; // 1 hour
 
 const getModifiedSinceHeader = (
   cachedAchievements: GameAchievement | undefined
