@@ -25,7 +25,7 @@ interface GameExecutables {
   [key: string]: ExecutableInfo[];
 }
 
-const TICKS_TO_UPDATE_API = 80;
+const TICKS_TO_UPDATE_API = 120;
 let currentTick = 1;
 
 const platform = process.platform;
