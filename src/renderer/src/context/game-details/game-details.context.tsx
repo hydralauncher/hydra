@@ -182,14 +182,6 @@ export function GameDetailsContextProvider({
         })
         .catch(() => {});
     }
-
-    window.electron
-      .syncGameByObjectId(shop, objectId)
-      .then(() => {
-        if (abortController.signal.aborted) return;
-        updateGame();
-      })
-      .catch(() => {});
   }, [
     updateGame,
     dispatch,
