@@ -46,7 +46,7 @@ const watchAchievementsWindows = async () => {
     }
 
     for (const file of gameAchievementFiles) {
-      compareFile(game, file);
+      await compareFile(game, file);
     }
   }
 };
@@ -67,7 +67,7 @@ const watchAchievementsWithWine = async () => {
     gameAchievementFiles.push(...achievementFileInsideDirectory);
 
     for (const file of gameAchievementFiles) {
-      compareFile(game, file);
+      await compareFile(game, file);
     }
   }
 };
