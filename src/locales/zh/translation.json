@@ -1,5 +1,5 @@
 {
-  "language_name": "中文",
+  "language_name": "简体中文",
   "app": {
     "successfully_signed_in": "已成功登录"
   },
@@ -497,7 +497,7 @@
     "report_description": "额外信息",
     "report_description_placeholder": "额外信息",
     "report": "举报",
-    "report_reason_hate": "Hate speech",
+    "report_reason_hate": "仇恨言论",
     "report_reason_sexual_content": "色情内容",
     "report_reason_violence": "暴力",
     "report_reason_spam": "骚扰",
