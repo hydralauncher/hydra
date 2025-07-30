@@ -300,7 +300,6 @@ export class DownloadManager {
 
   private static async getDownloadPayload(download: Download) {
     const downloadId = levelKeys.game(download.shop, download.objectId);
-    
     switch (download.downloader) {
       case Downloader.Gofile: {
         const id = download.uri.split("/").pop();
