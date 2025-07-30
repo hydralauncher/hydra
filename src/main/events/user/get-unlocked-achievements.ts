@@ -80,7 +80,7 @@ const getUnlockedAchievementsEvent = async (
   objectId: string,
   shop: GameShop
 ): Promise<UserAchievement[]> => {
-  AchievementWatcherManager.firstSyncWithRemoteIfNeeded(shop, objectId);
+  await AchievementWatcherManager.firstSyncWithRemoteIfNeeded(shop, objectId);
   return getUnlockedAchievements(objectId, shop, false);
 };
 

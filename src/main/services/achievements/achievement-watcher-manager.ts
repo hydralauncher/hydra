@@ -167,6 +167,8 @@ export class AchievementWatcherManager {
     const gameKey = levelKeys.game(shop, objectId);
     if (this.alreadySyncedGames.get(gameKey)) return;
 
+    this.alreadySyncedGames.set(gameKey, true);
+
     const game = await gamesSublevel.get(gameKey).catch(() => null);
     if (!game || game.isDeleted) return;
 
@@ -189,8 +191,6 @@ export class AchievementWatcherManager {
         unlockedAchievements.push(...localAchievementFile);
       }
     }
-
-    this.alreadySyncedGames.set(gameKey, true);
 
     const newAchievements = await mergeAchievements(
       game,
