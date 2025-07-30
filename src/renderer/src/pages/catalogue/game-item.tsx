@@ -36,7 +36,11 @@ export function GameItem({ game }: GameItemProps) {
         (steamGenre) => steamGenre === genre
       );
 
-      if (index && steamGenres[language] && steamGenres[language][index]) {
+      if (
+        index !== undefined &&
+        steamGenres[language] &&
+        steamGenres[language][index]
+      ) {
         return steamGenres[language][index];
       }
 
