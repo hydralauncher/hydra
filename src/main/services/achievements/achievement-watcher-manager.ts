@@ -3,6 +3,7 @@ import { mergeAchievements } from "./merge-achievements";
 import fs, { readdirSync } from "node:fs";
 import {
   findAchievementFileInExecutableDirectory,
+  findAchievementFileInSteamPath,
   findAchievementFiles,
   findAllAchievementFiles,
   getAlternativeObjectIds,
@@ -43,6 +44,10 @@ const watchAchievementsWindows = async () => {
       gameAchievementFiles.push(
         ...findAchievementFileInExecutableDirectory(game)
       );
+
+      gameAchievementFiles.push(
+        ...(await findAchievementFileInSteamPath(game))
+      );
     }
 
     for (const file of gameAchievementFiles) {
@@ -61,10 +66,8 @@ const watchAchievementsWithWine = async () => {
 
   for (const game of games) {
     const gameAchievementFiles = findAchievementFiles(game);
-    const achievementFileInsideDirectory =
-      findAchievementFileInExecutableDirectory(game);
 
-    gameAchievementFiles.push(...achievementFileInsideDirectory);
+    gameAchievementFiles.push(...(await findAchievementFileInSteamPath(game)));
 
     for (const file of gameAchievementFiles) {
       await compareFile(game, file);
@@ -174,10 +177,7 @@ export class AchievementWatcherManager {
 
     const gameAchievementFiles = findAchievementFiles(game);
 
-    const achievementFileInsideDirectory =
-      findAchievementFileInExecutableDirectory(game);
-
-    gameAchievementFiles.push(...achievementFileInsideDirectory);
+    gameAchievementFiles.push(...(await findAchievementFileInSteamPath(game)));
 
     const unlockedAchievements: UnlockedAchievement[] = [];
 
@@ -259,7 +259,7 @@ export class AchievementWatcherManager {
     const gameAchievementFilesMap = findAllAchievementFiles();
 
     return Promise.all(
-      games.map((game) => {
+      games.map(async (game) => {
         const achievementFiles: AchievementFile[] = [];
 
         for (const objectId of getAlternativeObjectIds(game.objectId)) {
@@ -269,6 +269,10 @@ export class AchievementWatcherManager {
 
           achievementFiles.push(
             ...findAchievementFileInExecutableDirectory(game)
+          );
+
+          achievementFiles.push(
+            ...(await findAchievementFileInSteamPath(game))
           );
         }
 
@@ -284,12 +288,10 @@ export class AchievementWatcherManager {
       .then((games) => games.filter((game) => !game.isDeleted));
 
     return Promise.all(
-      games.map((game) => {
+      games.map(async (game) => {
         const achievementFiles = findAchievementFiles(game);
-        const achievementFileInsideDirectory =
-          findAchievementFileInExecutableDirectory(game);
 
-        achievementFiles.push(...achievementFileInsideDirectory);
+        achievementFiles.push(...(await findAchievementFileInSteamPath(game)));
 
         return { game, achievementFiles };
       })

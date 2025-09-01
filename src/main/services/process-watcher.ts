@@ -9,6 +9,7 @@ import { CloudSync } from "./cloud-sync";
 import { logger } from "./logger";
 import path from "path";
 import { AchievementWatcherManager } from "./achievements/achievement-watcher-manager";
+import { MAIN_LOOP_INTERVAL } from "@main/constants";
 
 export const gamesPlaytime = new Map<
   string,
@@ -25,7 +26,7 @@ interface GameExecutables {
   [key: string]: ExecutableInfo[];
 }
 
-const TICKS_TO_UPDATE_API = 120;
+const TICKS_TO_UPDATE_API = (3 * 60 * 1000) / MAIN_LOOP_INTERVAL; // 3 minutes
 let currentTick = 1;
 
 const platform = process.platform;
