@@ -72,6 +72,11 @@ export function GameItem({ game }: GameItemProps) {
       );
 
       if (index !== undefined && steamGenres[language] && steamGenres[language][index]) {
+      if (
+        index !== undefined &&
+        steamGenres[language] &&
+        steamGenres[language][index]
+      ) {
         return steamGenres[language][index];
       }
 

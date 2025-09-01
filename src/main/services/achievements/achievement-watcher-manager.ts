@@ -3,6 +3,7 @@ import { mergeAchievements } from "./merge-achievements";
 import fs, { readdirSync } from "node:fs";
 import {
   findAchievementFileInExecutableDirectory,
+  findAchievementFileInSteamPath,
   findAchievementFiles,
   findAllAchievementFiles,
   getAlternativeObjectIds,
@@ -10,6 +11,7 @@ import {
 import type {
   AchievementFile,
   Game,
+  GameShop,
   UnlockedAchievement,
   UserPreferences,
 } from "@types";
@@ -18,7 +20,7 @@ import { Cracker } from "@shared";
 import { publishCombinedNewAchievementNotification } from "../notifications";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { WindowManager } from "../window-manager";
-import { sleep } from "@main/helpers";
+import { setTimeout } from "node:timers/promises";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
@@ -37,15 +39,19 @@ const watchAchievementsWindows = async () => {
     const gameAchievementFiles: AchievementFile[] = [];
 
     for (const objectId of getAlternativeObjectIds(game.objectId)) {
-      gameAchievementFiles.push(...(achievementFiles.get(objectId) || []));
+      gameAchievementFiles.push(...(achievementFiles.get(objectId) ?? []));
 
       gameAchievementFiles.push(
         ...findAchievementFileInExecutableDirectory(game)
       );
+
+      gameAchievementFiles.push(
+        ...(await findAchievementFileInSteamPath(game))
+      );
     }
 
     for (const file of gameAchievementFiles) {
-      compareFile(game, file);
+      await compareFile(game, file);
     }
   }
 };
@@ -60,13 +66,11 @@ const watchAchievementsWithWine = async () => {
 
   for (const game of games) {
     const gameAchievementFiles = findAchievementFiles(game);
-    const achievementFileInsideDirectory =
-      findAchievementFileInExecutableDirectory(game);
 
-    gameAchievementFiles.push(...achievementFileInsideDirectory);
+    gameAchievementFiles.push(...(await findAchievementFileInSteamPath(game)));
 
     for (const file of gameAchievementFiles) {
-      compareFile(game, file);
+      await compareFile(game, file);
     }
   }
 };
@@ -127,6 +131,11 @@ const compareFile = (game: Game, file: AchievementFile) => {
     );
     return processAchievementFileDiff(game, file);
   } catch (err) {
+    achievementsLogger.error(
+      "Error reading file",
+      file.filePath,
+      err instanceof Error ? err.message : err
+    );
     fileStats.set(file.filePath, -1);
     return;
   }
@@ -136,20 +145,66 @@ const processAchievementFileDiff = async (
   game: Game,
   file: AchievementFile
 ) => {
-  const unlockedAchievements = parseAchievementFile(file.filePath, file.type);
+  const parsedAchievements = parseAchievementFile(file.filePath, file.type);
 
-  if (unlockedAchievements.length) {
-    return mergeAchievements(game, unlockedAchievements, true);
+  if (parsedAchievements.length) {
+    return mergeAchievements(game, parsedAchievements, true);
   }
 
   return 0;
 };
 
 export class AchievementWatcherManager {
-  private static hasFinishedMergingWithRemote = false;
+  private static _hasFinishedPreSearch = false;
+
+  public static get hasFinishedPreSearch() {
+    return this._hasFinishedPreSearch;
+  }
+
+  public static readonly alreadySyncedGames: Map<string, boolean> = new Map();
+
+  public static async firstSyncWithRemoteIfNeeded(
+    shop: GameShop,
+    objectId: string
+  ) {
+    const gameKey = levelKeys.game(shop, objectId);
+    if (this.alreadySyncedGames.get(gameKey)) return;
+
+    this.alreadySyncedGames.set(gameKey, true);
+
+    const game = await gamesSublevel.get(gameKey).catch(() => null);
+    if (!game || game.isDeleted) return;
+
+    const gameAchievementFiles = findAchievementFiles(game);
+
+    gameAchievementFiles.push(...(await findAchievementFileInSteamPath(game)));
+
+    const unlockedAchievements: UnlockedAchievement[] = [];
+
+    for (const achievementFile of gameAchievementFiles) {
+      const localAchievementFile = parseAchievementFile(
+        achievementFile.filePath,
+        achievementFile.type
+      );
+
+      if (localAchievementFile.length) {
+        unlockedAchievements.push(...localAchievementFile);
+      }
+    }
+
+    const newAchievements = await mergeAchievements(
+      game,
+      unlockedAchievements,
+      false
+    );
+
+    if (newAchievements > 0) {
+      this.notifyCombinedAchievementsUnlocked(1, newAchievements);
+    }
+  }
 
   public static watchAchievements() {
-    if (!this.hasFinishedMergingWithRemote) return;
+    if (!this.hasFinishedPreSearch) return;
 
     if (process.platform === "win32") {
       return watchAchievementsWindows();
@@ -188,7 +243,11 @@ export class AchievementWatcherManager {
       }
     }
 
-    return mergeAchievements(game, unlockedAchievements, false);
+    if (unlockedAchievements.length) {
+      return mergeAchievements(game, unlockedAchievements, false);
+    }
+
+    return 0;
   }
 
   private static async getGameAchievementFilesWindows() {
@@ -200,7 +259,7 @@ export class AchievementWatcherManager {
     const gameAchievementFilesMap = findAllAchievementFiles();
 
     return Promise.all(
-      games.map((game) => {
+      games.map(async (game) => {
         const achievementFiles: AchievementFile[] = [];
 
         for (const objectId of getAlternativeObjectIds(game.objectId)) {
@@ -210,6 +269,10 @@ export class AchievementWatcherManager {
 
           achievementFiles.push(
             ...findAchievementFileInExecutableDirectory(game)
+          );
+
+          achievementFiles.push(
+            ...(await findAchievementFileInSteamPath(game))
           );
         }
 
@@ -225,37 +288,54 @@ export class AchievementWatcherManager {
       .then((games) => games.filter((game) => !game.isDeleted));
 
     return Promise.all(
-      games.map((game) => {
+      games.map(async (game) => {
         const achievementFiles = findAchievementFiles(game);
-        const achievementFileInsideDirectory =
-          findAchievementFileInExecutableDirectory(game);
 
-        achievementFiles.push(...achievementFileInsideDirectory);
+        achievementFiles.push(...(await findAchievementFileInSteamPath(game)));
 
         return { game, achievementFiles };
       })
     );
   }
 
-  public static async preSearchAchievements() {
-    await sleep(2000);
+  private static async notifyCombinedAchievementsUnlocked(
+    totalNewGamesWithAchievements: number,
+    totalNewAchievements: number
+  ) {
+    const userPreferences = await db.get<string, UserPreferences>(
+      levelKeys.userPreferences,
+      {
+        valueEncoding: "json",
+      }
+    );
 
+    if (userPreferences.achievementCustomNotificationsEnabled !== false) {
+      WindowManager.notificationWindow?.webContents.send(
+        "on-combined-achievements-unlocked",
+        totalNewGamesWithAchievements,
+        totalNewAchievements,
+        userPreferences.achievementCustomNotificationPosition ?? "top-left"
+      );
+    } else {
+      publishCombinedNewAchievementNotification(
+        totalNewAchievements,
+        totalNewGamesWithAchievements
+      );
+    }
+  }
+
+  public static async preSearchAchievements() {
     try {
       const gameAchievementFiles =
         process.platform === "win32"
           ? await this.getGameAchievementFilesWindows()
           : await this.getGameAchievementFilesLinux();
 
-      const newAchievementsCount: number[] = [];
-
-      for (const { game, achievementFiles } of gameAchievementFiles) {
-        const result = await this.preProcessGameAchievementFiles(
-          game,
-          achievementFiles
-        );
-
-        newAchievementsCount.push(result);
-      }
+      const newAchievementsCount = await Promise.all(
+        gameAchievementFiles.map(({ game, achievementFiles }) => {
+          return this.preProcessGameAchievementFiles(game, achievementFiles);
+        })
+      );
 
       const totalNewGamesWithAchievements = newAchievementsCount.filter(
         (achievements) => achievements
@@ -267,34 +347,16 @@ export class AchievementWatcherManager {
       );
 
       if (totalNewAchievements > 0) {
-        const userPreferences = await db.get<string, UserPreferences>(
-          levelKeys.userPreferences,
-          {
-            valueEncoding: "json",
-          }
+        await setTimeout(4000);
+        this.notifyCombinedAchievementsUnlocked(
+          totalNewGamesWithAchievements,
+          totalNewAchievements
         );
-
-        if (userPreferences.achievementNotificationsEnabled !== false) {
-          if (userPreferences.achievementCustomNotificationsEnabled !== false) {
-            WindowManager.notificationWindow?.webContents.send(
-              "on-combined-achievements-unlocked",
-              totalNewGamesWithAchievements,
-              totalNewAchievements,
-              userPreferences.achievementCustomNotificationPosition ??
-                "top-left"
-            );
-          } else {
-            publishCombinedNewAchievementNotification(
-              totalNewAchievements,
-              totalNewGamesWithAchievements
-            );
-          }
-        }
       }
     } catch (err) {
       achievementsLogger.error("Error on preSearchAchievements", err);
     }
 
-    this.hasFinishedMergingWithRemote = true;
+    this._hasFinishedPreSearch = true;
   }
 }

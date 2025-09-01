@@ -380,6 +380,7 @@
     "installing_common_redist": "Installing…",
     "show_download_speed_in_megabytes": "Show download speed in megabytes per second",
     "extract_files_by_default": "Extract files by default after download",
+    "enable_steam_achievements": "Enable search for Steam achievements",
     "achievement_custom_notification_position": "Achievement custom notification position",
     "top-left": "Top left",
     "top-center": "Top center",
@@ -516,7 +517,8 @@
     "earned_points": "Earned points",
     "show_achievements_on_profile": "Show your achievements on your profile",
     "show_points_on_profile": "Show your earned points on your profile",
-    "error_adding_friend": "Could not send friend request. Please check friend code"
+    "error_adding_friend": "Could not send friend request. Please check friend code",
+    "friend_code_length_error": "Friend code must have 8 characters"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",

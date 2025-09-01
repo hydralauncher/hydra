@@ -8,6 +8,8 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import { CloudSync } from "./cloud-sync";
 import { logger } from "./logger";
 import path from "path";
+import { AchievementWatcherManager } from "./achievements/achievement-watcher-manager";
+import { MAIN_LOOP_INTERVAL } from "@main/constants";
 
 export const gamesPlaytime = new Map<
   string,
@@ -24,7 +26,7 @@ interface GameExecutables {
   [key: string]: ExecutableInfo[];
 }
 
-const TICKS_TO_UPDATE_API = 80;
+const TICKS_TO_UPDATE_API = (3 * 60 * 1000) / MAIN_LOOP_INTERVAL; // 3 minutes
 let currentTick = 1;
 
 const platform = process.platform;
@@ -189,6 +191,11 @@ export const watchProcesses = async () => {
 
 function onOpenGame(game: Game) {
   const now = performance.now();
+
+  AchievementWatcherManager.firstSyncWithRemoteIfNeeded(
+    game.shop,
+    game.objectId
+  );
 
   gamesPlaytime.set(levelKeys.game(game.shop, game.objectId), {
     lastTick: now,
