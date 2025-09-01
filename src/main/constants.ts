@@ -41,4 +41,4 @@ export const appVersion = app.getVersion() + (isStaging ? "-staging" : "");
 
 export const ASSETS_PATH = path.join(SystemPath.getPath("userData"), "Assets");
 
-export const MAIN_LOOP_INTERVAL = 1500;
+export const MAIN_LOOP_INTERVAL = 2000;
