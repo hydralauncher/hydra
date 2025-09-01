@@ -89,6 +89,7 @@
     "amount_minutes": "{{amount}} minutes",
     "accuracy": "{{accuracy}}% accuracy",
     "add_to_library": "Add to library",
+    "already_in_library": "Already in library",
     "remove_from_library": "Remove from library",
     "no_downloads": "No downloads available",
     "play_time": "Played for {{amount}}",
