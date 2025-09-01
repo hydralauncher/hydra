@@ -582,7 +582,7 @@ export class WindowManager {
       tray.popUpContextMenu(contextMenu);
     };
 
-    tray.setToolTip("Hydra");
+    tray.setToolTip("Hydra Launcher");
 
     if (process.platform !== "darwin") {
       await updateSystemTray();
