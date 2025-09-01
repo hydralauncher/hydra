@@ -379,6 +379,7 @@
     "installing_common_redist": "Installing…",
     "show_download_speed_in_megabytes": "Show download speed in megabytes per second",
     "extract_files_by_default": "Extract files by default after download",
+    "enable_steam_achievements": "Enable search for Steam achievements",
     "achievement_custom_notification_position": "Achievement custom notification position",
     "top-left": "Top left",
     "top-center": "Top center",

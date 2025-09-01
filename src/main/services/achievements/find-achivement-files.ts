@@ -1,10 +1,11 @@
 import path from "node:path";
 import fs from "node:fs";
-import type { Game, AchievementFile } from "@types";
+import type { Game, AchievementFile, UserPreferences } from "@types";
 import { Cracker } from "@shared";
 import { achievementsLogger } from "../logger";
 import { SystemPath } from "../system-path";
 import { getSteamLocation, getSteamUsersIds } from "../steam";
+import { db, levelKeys } from "@main/level";
 
 const getAppDataPath = () => {
   if (process.platform === "win32") {
@@ -282,6 +283,17 @@ const steamPath = await getSteamLocation();
 
 export const findAchievementFileInSteamPath = async (game: Game) => {
   if (!steamUserIds.length) {
+    return [];
+  }
+
+  const userPreferences = await db.get<string, UserPreferences | null>(
+    levelKeys.userPreferences,
+    {
+      valueEncoding: "json",
+    }
+  );
+
+  if (!userPreferences?.enableSteamAchievements) {
     return [];
   }
 

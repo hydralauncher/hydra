@@ -364,6 +364,7 @@
     "installing_common_redist": "Instalando…",
     "show_download_speed_in_megabytes": "Exibir taxas de download em megabytes por segundo",
     "extract_files_by_default": "Extrair arquivos automaticamente após o download",
+    "enable_steam_achievements": "Habilitar busca por conquistas da Steam",
     "enable_achievement_custom_notifications": "Habilitar notificações customizadas de conquistas",
     "top-left": "Superior esquerdo",
     "top-center": "Superior central",
