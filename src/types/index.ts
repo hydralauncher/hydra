@@ -112,8 +112,6 @@ export interface UserFriend {
   id: string;
   displayName: string;
   profileImageUrl: string | null;
-  createdAt: string;
-  updatedAt: string;
   currentGame:
     | (ShopAssets & {
         sessionDurationInSeconds: number;
@@ -146,8 +144,6 @@ export interface UserRelation {
   AId: string;
   BId: string;
   status: "ACCEPTED" | "PENDING";
-  createdAt: string;
-  updatedAt: string;
 }
 
 export type UserProfileCurrentGame = GameRunning &
@@ -326,17 +322,11 @@ export interface CatalogueSearchPayload {
 
 export type CatalogueSearchResult = {
   id: string;
-  tags: string[];
-  genres: string[];
   objectId: string;
-  shop: GameShop;
-  createdAt: Date;
-  updatedAt: Date;
   title: string;
-  installCount: number;
-  achievementCount: number;
-  shopData: string;
-} & ShopAssets;
+  shop: GameShop;
+  genres: string[];
+} & Pick<ShopAssets, "libraryImageUrl">;
 
 export type LibraryGame = Game &
   Partial<ShopAssets> & {

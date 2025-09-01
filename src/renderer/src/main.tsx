@@ -21,7 +21,6 @@ import resources from "@locales";
 
 import { logger } from "./logger";
 import { addCookieInterceptor } from "./cookies";
-import * as Sentry from "@sentry/react";
 import Catalogue from "./pages/catalogue/catalogue";
 import Home from "./pages/home/home";
 import Downloads from "./pages/downloads/downloads";
@@ -31,18 +30,6 @@ import Profile from "./pages/profile/profile";
 import Achievements from "./pages/achievements/achievements";
 import ThemeEditor from "./pages/theme-editor/theme-editor";
 import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
-
-Sentry.init({
-  dsn: import.meta.env.RENDERER_VITE_SENTRY_DSN,
-  integrations: [
-    Sentry.browserTracingIntegration(),
-    Sentry.replayIntegration(),
-  ],
-  tracesSampleRate: 1.0,
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1.0,
-  release: await window.electron.getVersion(),
-});
 
 console.log = logger.log;
 

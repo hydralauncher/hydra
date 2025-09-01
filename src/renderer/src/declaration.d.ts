@@ -155,7 +155,6 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<LibraryGame | null>;
-    syncGameByObjectId: (shop: GameShop, objectId: string) => Promise<void>;
     onGamesRunning: (
       cb: (
         gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]

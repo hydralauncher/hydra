@@ -51,6 +51,14 @@ export const UserFriendModalAddFriend = ({
     }
   };
 
+  const validateFriendCode = (callback: () => void) => {
+    if (friendCode.length === 8) {
+      return callback();
+    }
+
+    showErrorToast(t("friend_code_length_error"));
+  };
+
   const handleCancelFriendRequest = (userId: string) => {
     updateFriendRequestState(userId, "CANCEL").catch(() => {
       showErrorToast(t("try_again"));
@@ -91,13 +99,13 @@ export const UserFriendModalAddFriend = ({
           disabled={isAddingFriend}
           className="user-friend-modal-add-friend__button"
           type="button"
-          onClick={handleClickAddFriend}
+          onClick={() => validateFriendCode(handleClickAddFriend)}
         >
           {isAddingFriend ? t("sending") : t("add")}
         </Button>
 
         <Button
-          onClick={handleClickSeeProfile}
+          onClick={() => validateFriendCode(handleClickSeeProfile)}
           disabled={isAddingFriend}
           className="user-friend-modal-add-friend__button"
           type="button"

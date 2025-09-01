@@ -68,7 +68,7 @@ export interface Download {
 export interface GameAchievement {
   achievements: SteamAchievement[];
   unlockedAchievements: UnlockedAchievement[];
-  cacheExpiresTimestamp: number | undefined;
+  updatedAt: number | undefined;
 }
 
 export type AchievementCustomNotificationPosition =
@@ -101,6 +101,7 @@ export interface UserPreferences {
   friendStartGameNotificationsEnabled?: boolean;
   showDownloadSpeedInMegabytes?: boolean;
   extractFilesByDefault?: boolean;
+  enableSteamAchievements?: boolean;
 }
 
 export interface ScreenState {
