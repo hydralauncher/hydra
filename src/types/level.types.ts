@@ -101,6 +101,7 @@ export interface UserPreferences {
   friendStartGameNotificationsEnabled?: boolean;
   showDownloadSpeedInMegabytes?: boolean;
   extractFilesByDefault?: boolean;
+  enableSteamAchievements?: boolean;
 }
 
 export interface ScreenState {

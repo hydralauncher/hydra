@@ -35,6 +35,7 @@ export enum Cracker {
   onlineFix = "OnlineFix",
   goldberg = "Goldberg",
   userstats = "user_stats",
+  Steam = "Steam",
   rld = "RLD!",
   empress = "EMPRESS",
   skidrow = "SKIDROW",
