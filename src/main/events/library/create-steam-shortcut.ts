@@ -94,7 +94,7 @@ const createSteamShortcut = async (
 
     if (!steamUserIds.length) {
       logger.error("No Steam user ID found");
-      return;
+      throw new Error("No Steam user ID found");
     }
 
     const [iconImage, heroImage, logoImage, coverImage, libraryImage] =

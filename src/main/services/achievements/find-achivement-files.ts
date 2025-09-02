@@ -279,10 +279,14 @@ export const findAchievementFiles = (game: Game) => {
 };
 
 const steamUserIds = await getSteamUsersIds();
-const steamPath = await getSteamLocation();
+const steamPath = await getSteamLocation().catch(() => null);
 
 export const findAchievementFileInSteamPath = async (game: Game) => {
   if (!steamUserIds.length) {
+    return [];
+  }
+
+  if (!steamPath) {
     return [];
   }
 
