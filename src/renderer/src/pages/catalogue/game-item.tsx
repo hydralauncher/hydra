@@ -41,7 +41,9 @@ export function GameItem({ game }: GameItemProps) {
     setAdded(exists);
   }, [library, game.shop, game.objectId]);
 
-  const addGameToLibrary = async (event: React.MouseEvent | React.KeyboardEvent) => {
+  const addGameToLibrary = async (
+    event: React.MouseEvent | React.KeyboardEvent
+  ) => {
     event.stopPropagation();
     if (added || isAddingToLibrary) return;
 

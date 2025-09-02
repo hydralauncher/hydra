@@ -42,6 +42,10 @@ export const getSteamLocation = async () => {
         reject(err);
       }
 
+      if (!value) {
+        reject(new Error("SteamPath not found in registry"));
+      }
+
       resolve(value.value);
     });
   });
@@ -78,7 +82,11 @@ export const getSteamAppDetails = async (
 };
 
 export const getSteamUsersIds = async () => {
-  const userDataPath = await getSteamLocation();
+  const userDataPath = await getSteamLocation().catch(() => null);
+
+  if (!userDataPath) {
+    return [];
+  }
 
   const userIds = fs.readdirSync(path.join(userDataPath, "userdata"), {
     withFileTypes: true,
