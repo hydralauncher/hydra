@@ -88,6 +88,10 @@ export const getSteamUsersIds = async () => {
     return [];
   }
 
+  if (!fs.existsSync(userDataPath)) {
+    return [];
+  }
+
   const userIds = fs.readdirSync(path.join(userDataPath, "userdata"), {
     withFileTypes: true,
   });
