@@ -1,0 +1,26 @@
+name: Trigger AUR Package Update
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  aur-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract version
+        id: extract_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+        env:
+          GITHUB_REF: ${{ github.ref }}
+
+      - name: Publish AUR package
+        uses: aksh1618/update-aur-package@v1.0.5
+        with:
+          dry_run: true
+          version: "$VERSION"
+          package_name: hydra-launcher-bin
+          commit_username: "Hydra Launcher"
+          commit_email: hydralaucher@proton.me
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
