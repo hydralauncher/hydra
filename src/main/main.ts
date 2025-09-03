@@ -4,7 +4,6 @@ import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
 import type { UserPreferences } from "@types";
 import {
-  WSClient,
   SystemPath,
   CommonRedistManager,
   TorBoxClient,
@@ -47,7 +46,7 @@ export const loadState = async () => {
 
   await HydraApi.setupApi().then(() => {
     uploadGamesBatch();
-    WSClient.connect();
+    // WSClient.connect();
   });
 
   const downloads = await downloadsSublevel
