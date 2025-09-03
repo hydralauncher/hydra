@@ -584,10 +584,22 @@ export class WindowManager {
 
     tray.setToolTip("Hydra Launcher");
 
-    if (process.platform !== "darwin") {
+    if (process.platform === "win32") {
       await updateSystemTray();
 
       tray.addListener("double-click", () => {
+        if (this.mainWindow) {
+          this.mainWindow.show();
+        } else {
+          this.createMainWindow();
+        }
+      });
+
+      tray.addListener("right-click", showContextMenu);
+    } else if (process.platform === "linux") {
+      await updateSystemTray();
+
+      tray.addListener("click", () => {
         if (this.mainWindow) {
           this.mainWindow.show();
         } else {
