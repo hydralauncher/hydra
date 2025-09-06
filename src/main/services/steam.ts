@@ -82,17 +82,19 @@ export const getSteamAppDetails = async (
 };
 
 export const getSteamUsersIds = async () => {
-  const userDataPath = await getSteamLocation().catch(() => null);
+  const steamLocation = await getSteamLocation().catch(() => null);
 
-  if (!userDataPath) {
+  if (!steamLocation) {
     return [];
   }
+
+  const userDataPath = path.join(steamLocation, "userdata");
 
   if (!fs.existsSync(userDataPath)) {
     return [];
   }
 
-  const userIds = fs.readdirSync(path.join(userDataPath, "userdata"), {
+  const userIds = fs.readdirSync(userDataPath, {
     withFileTypes: true,
   });
 
