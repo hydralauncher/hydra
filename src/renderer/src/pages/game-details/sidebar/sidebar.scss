@@ -200,7 +200,8 @@
   border-collapse: collapse;
   text-align: left;
 
-  th, td {
+  th,
+  td {
     padding: globals.$spacing-unit;
     border-bottom: solid 1px globals.$border-color;
   }

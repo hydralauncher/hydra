@@ -5,7 +5,9 @@ import { gameDetailsContext } from "@renderer/context/game-details/game-details.
 import { useAppSelector } from "@renderer/hooks";
 
 export function GamePricesSection() {
-  const userPreferences = useAppSelector((state) => state.userPreferences.value);
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
   const { t } = useTranslation("game_details");
   const [priceData, setPriceData] = useState<any>(null);
   const [isLoadingPrices, setIsLoadingPrices] = useState(false);
@@ -14,7 +16,8 @@ export function GamePricesSection() {
   const fetchGamePrices = useCallback(async (steamAppId: string) => {
     setIsLoadingPrices(true);
     try {
-      const apiKey = userPreferences?.ggDealsApiKey || import.meta.env.VITE_GG_DEALS_API_KEY;
+      const apiKey =
+        userPreferences?.ggDealsApiKey || import.meta.env.VITE_GG_DEALS_API_KEY;
       if (!apiKey) {
         setPriceData(null);
         setIsLoadingPrices(false);
@@ -47,11 +50,32 @@ export function GamePricesSection() {
       ) : priceData ? (
         <div>
           <ul className="">
-            <li><b>{t("retail_price")}</b>: {t("currency_symbol")}{priceData.prices.currentRetail}</li>
-            <li><b>{t("keyshop_price")}</b>: {t("currency_symbol")}{priceData.prices.currentKeyshops}</li>
-            <li><b>{t("historical_retail")}</b>: {t("currency_symbol")}{priceData.prices.historicalRetail}</li>
-            <li><b>{t("historical_keyshop")}</b>: {t("currency_symbol")}{priceData.prices.historicalKeyshops}</li>
-            <li><a href={priceData.url} target="_blank" rel="noopener noreferrer" className="list__item">clique para ver todos os preços</a></li>
+            <li>
+              <b>{t("retail_price")}</b>: {t("currency_symbol")}
+              {priceData.prices.currentRetail}
+            </li>
+            <li>
+              <b>{t("keyshop_price")}</b>: {t("currency_symbol")}
+              {priceData.prices.currentKeyshops}
+            </li>
+            <li>
+              <b>{t("historical_retail")}</b>: {t("currency_symbol")}
+              {priceData.prices.historicalRetail}
+            </li>
+            <li>
+              <b>{t("historical_keyshop")}</b>: {t("currency_symbol")}
+              {priceData.prices.historicalKeyshops}
+            </li>
+            <li>
+              <a
+                href={priceData.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="list__item"
+              >
+                clique para ver todos os preços
+              </a>
+            </li>
           </ul>
         </div>
       ) : (

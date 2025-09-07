@@ -10,22 +10,26 @@ export function GameLanguageSection() {
   const getLanguages = () => {
     let languages = shopDetails?.supported_languages;
     if (!languages) return [];
-    languages = languages?.split('<br>')[0];
-    let arrayIdiomas = languages?.split(',')
-    let listLanguages: { language: string; caption: string; audio: string }[] = [];
+    languages = languages?.split("<br>")[0];
+    const arrayIdiomas = languages?.split(",");
+    const listLanguages: {
+      language: string;
+      caption: string;
+      audio: string;
+    }[] = [];
     arrayIdiomas?.forEach((lang) => {
-      const objectLanguage = { 
-        language: lang.replace("<strong>*</strong>", ""), 
-        caption: "✔", 
-        audio: lang.includes("*") ? "✔" : "" };
+      const objectLanguage = {
+        language: lang.replace("<strong>*</strong>", ""),
+        caption: "✔",
+        audio: lang.includes("*") ? "✔" : "",
+      };
       listLanguages.push(objectLanguage);
-    })
+    });
     return listLanguages;
-  }
-
+  };
 
   return (
-        <SidebarSection title={t("language")}>
+    <SidebarSection title={t("language")}>
       <div>
         <h4>{t("supported_languages")}</h4>
         <table className="table-languages">
@@ -48,7 +52,14 @@ export function GameLanguageSection() {
         </table>
       </div>
       <div>
-        <a target="_blank" rel="noopener noreferrer" className="list__item" href={`https://store.steampowered.com/app/${objectId}`}>Link Steam</a>
+        <a
+          target="_blank"
+          rel="noopener noreferrer"
+          className="list__item"
+          href={`https://store.steampowered.com/app/${objectId}`}
+        >
+          Link Steam
+        </a>
       </div>
     </SidebarSection>
   );
