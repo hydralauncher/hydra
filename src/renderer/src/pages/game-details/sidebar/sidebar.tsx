@@ -58,7 +58,7 @@ const achievementsPlaceholder: UserAchievement[] = [
   },
 ];
 
-export function Sidebar() {  
+export function Sidebar() {
   const [howLongToBeat, setHowLongToBeat] = useState<{
     isLoading: boolean;
     data: HowLongToBeatCategory[] | null;
@@ -119,7 +119,7 @@ export function Sidebar() {
     <aside className="content-sidebar">
       <GameLanguageSection />
       <GamePricesSection />
-    
+
       {userDetails === null && (
         <SidebarSection title={t("achievements")}>
           <div className="achievements-placeholder">
