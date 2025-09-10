@@ -73,7 +73,7 @@ export function GamePricesSection() {
                 rel="noopener noreferrer"
                 className="list__item"
               >
-                clique para ver todos os preços
+                {t("view_all_prices")}
               </a>
             </li>
           </ul>
