@@ -27,7 +27,8 @@
     "sign_in": "Login",
     "friends": "Amigos",
     "need_help": "Precisa de ajuda?",
-    "favorites": "Favoritos"
+    "favorites": "Favoritos",
+    "installed": "Instalados"
   },
   "header": {
     "search": "Buscar jogos",

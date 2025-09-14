@@ -4,7 +4,14 @@ import { Button, CheckboxField, Modal, TextField } from "@renderer/components";
 import type { LibraryGame, ShortcutLocation } from "@types";
 import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
-import { useDownload, useToast, useUserDetails } from "@renderer/hooks";
+
+import {
+  useDownload,
+  useToast,
+  useLibrary,
+  useUserDetails,
+} from "@renderer/hooks";
+
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { FileDirectoryIcon, FileIcon } from "@primer/octicons-react";
@@ -64,6 +71,8 @@ export function GameOptionsModal({
 
   const deleting = isGameDeleting(game.id);
 
+  const { updateLibrary } = useLibrary();
+
   const { lastPacket } = useDownload();
 
   const isGameDownloading =
@@ -104,9 +113,14 @@ export function GameOptionsModal({
         return;
       }
 
-      window.electron
-        .updateExecutablePath(game.shop, game.objectId, path)
-        .then(updateGame);
+      await window.electron.updateExecutablePath(
+        game.shop,
+        game.objectId,
+        path
+      );
+
+      updateGame();
+      updateLibrary();
     }
   };
 
@@ -161,6 +175,7 @@ export function GameOptionsModal({
     await window.electron.updateExecutablePath(game.shop, game.objectId, null);
 
     updateGame();
+    updateLibrary();
   };
 
   const handleChangeWinePrefixPath = async () => {

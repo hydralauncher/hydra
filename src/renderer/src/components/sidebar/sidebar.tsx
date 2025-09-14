@@ -189,6 +189,10 @@ export function Sidebar() {
     }
   };
 
+  const installedGames = useMemo(() => {
+    return sortedLibrary.filter((game) => Boolean(game.executablePath));
+  }, [sortedLibrary]);
+
   const favoriteGames = useMemo(() => {
     return sortedLibrary.filter((game) => game.favorite);
   }, [sortedLibrary]);
@@ -231,6 +235,23 @@ export function Sidebar() {
               ))}
             </ul>
           </section>
+
+          {installedGames.length > 0 && (
+            <section className="sidebar__section">
+              <small className="sidebar__section-title">{t("installed")}</small>
+
+              <ul className="sidebar__menu">
+                {installedGames.map((game) => (
+                  <SidebarGameItem
+                    key={game.id}
+                    game={game}
+                    handleSidebarGameClick={handleSidebarGameClick}
+                    getGameTitle={getGameTitle}
+                  />
+                ))}
+              </ul>
+            </section>
+          )}
 
           {favoriteGames.length > 0 && (
             <section className="sidebar__section">
