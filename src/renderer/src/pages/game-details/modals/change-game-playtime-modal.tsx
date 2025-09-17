@@ -69,11 +69,11 @@ export function ChangeGamePlaytimeModal({
     setIsSubmitting(true);
     try {
       await changePlaytime(totalSeconds);
-      onSuccess?.(t("change_playtime_success"));
+      onSuccess?.(t("update_playtime_success"));
       onClose();
     } catch (error) {
-      onError?.(t("change_playtime_error"));
-    } finally {
+      console.log(error);
+      onError?.(t("update_playtime_error")); } finally {
       setIsSubmitting(false);
     }
   };
@@ -112,8 +112,8 @@ export function ChangeGamePlaytimeModal({
     <Modal
       visible={visible}
       onClose={onClose}
-      title={t("change_playtime_title")}
-      description={t("change_playtime_description", {
+      title={t("update_playtime_title")}
+      description={t("update_playtime_description", {
         game: game.title,
       })}
     >
@@ -154,7 +154,7 @@ export function ChangeGamePlaytimeModal({
             theme="outline"
             disabled={!isValid || isSubmitting}
           >
-            {t("change_playtime")}
+            {t("update_playtime")}
           </Button>
 
           <Button onClick={onClose} theme="primary">
