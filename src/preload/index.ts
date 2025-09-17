@@ -189,6 +189,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGameByObjectId", shop, objectId),
   resetGameAchievements: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("resetGameAchievements", shop, objectId),
+  changeGamePlayTime: (shop: GameShop, objectId: string, playtime: number) =>
+    ipcRenderer.invoke("changeGamePlayTime", shop, objectId, playtime),
   extractGameDownload: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("extractGameDownload", shop, objectId),
   getDefaultWinePrefixSelectionPath: () =>

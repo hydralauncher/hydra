@@ -162,6 +162,11 @@ declare global {
     ) => () => Electron.IpcRenderer;
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
     resetGameAchievements: (shop: GameShop, objectId: string) => Promise<void>;
+    changeGamePlayTime: (
+      shop: GameShop,
+      objectId: string,
+      playtimeInSeconds: number
+    ) => Promise<void>;
     /* User preferences */
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
     authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
