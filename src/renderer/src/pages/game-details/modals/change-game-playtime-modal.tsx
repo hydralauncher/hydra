@@ -27,7 +27,6 @@ export function ChangeGamePlaytimeModal({
   const [minutes, setMinutes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Prefill current playtime when modal becomes visible
   useEffect(() => {
     if (visible && game.playTimeInMilliseconds) {
       const totalMinutes = Math.floor(
@@ -39,20 +38,16 @@ export function ChangeGamePlaytimeModal({
       setHours(currentHours.toString());
       setMinutes(currentMinutes.toString());
     } else if (visible) {
-      // Reset to empty if no playtime
       setHours("");
       setMinutes("");
     }
   }, [visible, game.playTimeInMilliseconds]);
 
-  // Maximum allowed hours (10,000)
   const MAX_TOTAL_HOURS = 10000;
 
-  // Calculate current total hours including minutes as fractional hours
   const currentHours = parseInt(hours) || 0;
   const currentMinutes = parseInt(minutes) || 0;
 
-  // Calculate maximum allowed values based on current input
   const maxAllowedHours = Math.min(
     MAX_TOTAL_HOURS,
     Math.floor(MAX_TOTAL_HOURS - currentMinutes / 60)
@@ -69,7 +64,6 @@ export function ChangeGamePlaytimeModal({
 
     if (totalSeconds < 0) return;
 
-    // Prevent exceeding 10,000 hours total
     if (hoursNum + minutesNum / 60 > MAX_TOTAL_HOURS) return;
 
     setIsSubmitting(true);
@@ -78,7 +72,6 @@ export function ChangeGamePlaytimeModal({
       onSuccess?.(t("change_playtime_success"));
       onClose();
     } catch (error) {
-      console.log(error);
       onError?.(t("change_playtime_error"));
     } finally {
       setIsSubmitting(false);
@@ -88,14 +81,12 @@ export function ChangeGamePlaytimeModal({
   const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
 
-    // Remove leading zeros and prevent multiple zeros
     if (value.length > 1 && value.startsWith("0")) {
       value = value.replace(/^0+/, "") || "0";
     }
 
     const numValue = parseInt(value) || 0;
 
-    // Don't allow more than the calculated maximum
     if (numValue <= maxAllowedHours) {
       setHours(value);
     }
@@ -104,14 +95,12 @@ export function ChangeGamePlaytimeModal({
   const handleMinutesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
 
-    // Remove leading zeros and prevent multiple zeros
     if (value.length > 1 && value.startsWith("0")) {
       value = value.replace(/^0+/, "") || "0";
     }
 
     const numValue = parseInt(value) || 0;
 
-    // Don't allow more than the calculated maximum
     if (numValue <= maxAllowedMinutes) {
       setMinutes(value);
     }
