@@ -45,6 +45,7 @@ export interface Game {
   launchOptions?: string | null;
   favorite?: boolean;
   automaticCloudSync?: boolean;
+  hasManuallyUpdatedPlaytime?: boolean;
 }
 
 export interface Download {

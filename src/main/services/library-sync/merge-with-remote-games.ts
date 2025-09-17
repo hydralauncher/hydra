@@ -6,6 +6,7 @@ type ProfileGame = {
   id: string;
   lastTimePlayed: Date | null;
   playTimeInMilliseconds: number;
+  hasManuallyUpdatedPlaytime: boolean;
   isFavorite?: boolean;
 } & ShopAssets;
 
@@ -45,6 +46,7 @@ export const mergeWithRemoteGames = async () => {
             iconUrl: game.iconUrl,
             lastTimePlayed: game.lastTimePlayed,
             playTimeInMilliseconds: game.playTimeInMilliseconds,
+            hasManuallyUpdatedPlaytime: game.hasManuallyUpdatedPlaytime,
             isDeleted: false,
             favorite: game.isFavorite ?? false,
           });

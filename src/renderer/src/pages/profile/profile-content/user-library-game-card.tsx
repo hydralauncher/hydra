@@ -2,15 +2,16 @@ import { UserGame } from "@types";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useFormat } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
-import { useCallback, useContext } from "react";
+import { useCallback, useContext, useState } from "react";
 import {
   buildGameAchievementPath,
   buildGameDetailsPath,
   formatDownloadProgress,
 } from "@renderer/helpers";
 import { userProfileContext } from "@renderer/context";
-import { ClockIcon, TrophyIcon } from "@primer/octicons-react";
+import { ClockIcon, TrophyIcon, AlertFillIcon} from "@primer/octicons-react";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
+import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
 import "./user-library-game-card.scss";
 
@@ -31,6 +32,7 @@ export function UserLibraryGameCard({
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
   const navigate = useNavigate();
+  const [isTooltipHovered, setIsTooltipHovered] = useState(false);
 
   const getStatsItemCount = useCallback(() => {
     let statsCount = 1;
@@ -83,11 +85,13 @@ export function UserLibraryGameCard({
   );
 
   return (
+   <>
+   
     <li
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className="user-library-game__wrapper"
-      title={game.title}
+      title={isTooltipHovered ? undefined : game.title}
     >
       <button
         type="button"
@@ -95,9 +99,17 @@ export function UserLibraryGameCard({
         onClick={() => navigate(buildUserGameDetailsPath(game))}
       >
         <div className="user-library-game__overlay">
-          <small className="user-library-game__playtime">
-            <ClockIcon size={11} />
+          
+          <small className="user-library-game__playtime" data-tooltip-place="top"
+                          data-tooltip-content={game.hasManuallyUpdatedPlaytime ? t("manual_playtime_tooltip") : undefined}
+                          data-tooltip-id={game.objectId} >
+            {game.hasManuallyUpdatedPlaytime ? (
+              <AlertFillIcon size={11} className="user-library-game__manual-playtime" />
+            ) : (
+              <ClockIcon size={11} />
+            )}
             {formatPlayTime(game.playTimeInSeconds)}
+            
           </small>
 
           {userProfile?.hasActiveSubscription && game.achievementCount > 0 && (
@@ -155,5 +167,16 @@ export function UserLibraryGameCard({
         />
       </button>
     </li>
+    <Tooltip 
+      id={game.objectId} 
+      style={{
+        zIndex: 9999,
+      }}
+      openOnClick={false}
+      afterShow={() => setIsTooltipHovered(true)}
+      afterHide={() => setIsTooltipHovered(false)}
+    />
+    </>
   );
 }
+
