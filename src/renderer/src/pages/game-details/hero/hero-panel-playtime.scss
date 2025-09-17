@@ -12,4 +12,15 @@
     color: globals.$body-color;
     text-decoration: underline;
   }
+
+  &__play-time {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__manual-warning {
+    color: #f59e0b; // Warning amber color
+    flex-shrink: 0;
+  }
 }
