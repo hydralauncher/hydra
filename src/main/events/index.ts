@@ -33,6 +33,7 @@ import "./library/remove-game";
 import "./library/remove-game-from-library";
 import "./library/select-game-wine-prefix";
 import "./library/reset-game-achievements";
+import "./library/change-game-playtime";
 import "./library/toggle-automatic-cloud-sync";
 import "./library/get-default-wine-prefix-selection-path";
 import "./library/create-steam-shortcut";
