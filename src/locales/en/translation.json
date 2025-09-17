@@ -205,6 +205,7 @@
     "update_playtime_error": "Failed to update playtime",
     "update_game_playtime": "Update game playtime",
     "manual_playtime_warning": "Your hours will be marked as manually updated, and this cannot be undone.",
+    "manual_playtime_tooltip": "This playtime has been manually updated",
     "download_error_not_cached_on_torbox": "This download is not available on TorBox and polling download status from TorBox is not yet available.",
     "download_error_not_cached_on_hydra": "This download is not available on Nimbus.",
     "game_removed_from_favorites": "Game removed from favorites",

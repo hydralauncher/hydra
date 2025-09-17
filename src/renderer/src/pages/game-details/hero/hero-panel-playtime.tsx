@@ -5,10 +5,14 @@ import { useDate, useDownload, useFormat } from "@renderer/hooks";
 import { Link } from "@renderer/components";
 import { gameDetailsContext } from "@renderer/context";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
+import { AlertFillIcon } from "@primer/octicons-react";
+import { Tooltip } from "react-tooltip";
 import "./hero-panel-playtime.scss";
 
 export function HeroPanelPlaytime() {
   const [lastTimePlayed, setLastTimePlayed] = useState("");
+  
+
   const { game, isGameRunning } = useContext(gameDetailsContext);
   const { t } = useTranslation("game_details");
   const { numberFormatter } = useFormat();
@@ -85,7 +89,22 @@ export function HeroPanelPlaytime() {
 
   return (
     <>
-      <p>
+      <p 
+        className="hero-panel-playtime__play-time"
+        data-tooltip-place="top"
+        data-tooltip-content={
+          game.hasManuallyUpdatedPlaytime
+            ? t("manual_playtime_tooltip")
+            : undefined
+        }
+        data-tooltip-id={game.hasManuallyUpdatedPlaytime ? "manual-playtime-warning" : undefined}
+      >
+        {game.hasManuallyUpdatedPlaytime && (
+          <AlertFillIcon 
+            size={16} 
+            className="hero-panel-playtime__manual-warning"
+          />
+        )}
         {t("play_time", {
           amount: formattedPlayTime,
         })}
@@ -99,6 +118,17 @@ export function HeroPanelPlaytime() {
             period: lastTimePlayed,
           })}
         </p>
+      )}
+      
+      {game.hasManuallyUpdatedPlaytime && (
+        <Tooltip
+          id="manual-playtime-warning"
+          style={{
+            zIndex: 9999,
+          }}
+          openOnClick={false}
+
+        />
       )}
     </>
   );
