@@ -238,9 +238,9 @@ export function GameOptionsModal({
         playtimeInSeconds
       );
       await updateGame();
-      showSuccessToast(t("change_playtime_success"));
+      showSuccessToast(t("update_playtime_success"));
     } catch (error) {
-      showErrorToast(t("change_playtime_error"));
+      showErrorToast(t("update_playtime_error"));
     }
   };
 
@@ -503,7 +503,7 @@ export function GameOptionsModal({
                 onClick={() => setShowChangePlaytimeModal(true)}
                 theme="danger"
               >
-                {t("change_game_playtime")}
+                {t("update_game_playtime")}
               </Button>
 
               <Button
