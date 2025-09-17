@@ -232,7 +232,11 @@ export function GameOptionsModal({
 
   const handleChangePlaytime = async (playtimeInSeconds: number) => {
     try {
-      await window.electron.changeGamePlayTime(game.shop, game.objectId, playtimeInSeconds);
+      await window.electron.changeGamePlayTime(
+        game.shop,
+        game.objectId,
+        playtimeInSeconds
+      );
       await updateGame();
       showSuccessToast(t("change_playtime_success"));
     } catch (error) {
@@ -498,7 +502,6 @@ export function GameOptionsModal({
               <Button
                 onClick={() => setShowChangePlaytimeModal(true)}
                 theme="danger"
-                
               >
                 {t("change_game_playtime")}
               </Button>

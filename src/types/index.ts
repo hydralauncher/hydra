@@ -70,6 +70,7 @@ export type UserGame = {
   unlockedAchievementCount: number;
   achievementCount: number;
   achievementsPointsEarnedSum: number;
+  hasManuallyUpdatedPlaytime: boolean;
 } & ShopAssets;
 
 export interface GameRunning {
