@@ -21,7 +21,7 @@ export function ChangeGamePlaytimeModal({
   changePlaytime,
   onSuccess,
   onError,
-}: ChangeGamePlaytimeModalProps) {
+}: Readonly<ChangeGamePlaytimeModalProps>) {
   const { t } = useTranslation("game_details");
   const [hours, setHours] = useState("");
   const [minutes, setMinutes] = useState("");
