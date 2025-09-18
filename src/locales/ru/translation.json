@@ -225,7 +225,8 @@
     "backup_frozen": "Резервная копия закреплена",
     "backup_unfrozen": "Резервная копия откреплена",
     "backup_freeze_failed": "Не удалось закрепить резервную копию",
-    "backup_freeze_failed_description": "Вы должны оставить как минимум один свободный слот для автоматических резервных копий"
+    "backup_freeze_failed_description": "Вы должны оставить как минимум один свободный слот для автоматических резервных копий",
+    "manual_playtime_tooltip": "Это время игры было обновлено вручную"
   },
   "activation": {
     "title": "Активировать Hydra",
@@ -414,8 +415,7 @@
     "restart_to_install_update": "Перезапустите Hydra для установки обновления",
     "notification_achievement_unlocked_title": "Достижение разблокировано для {{game}}",
     "notification_achievement_unlocked_body": "были разблокированы {{achievement}} и другие {{count}}",
-    "new_friend_request_title": "Новый запрос на добавление в друзья",
-    "new_friend_request_description": "Вы получили новый запрос на добавление в друзья",
+    "new_friend_request_title": "Новый запрос на добавление в друзья", 
     "extraction_complete": "Распаковка завершена",
     "game_extracted": "{{title}} успешно распакован",
     "friend_started_playing_game": "{{displayName}} начал играть в игру",
