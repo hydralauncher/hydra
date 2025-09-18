@@ -92,6 +92,8 @@ export function CreateGamesFolder({
             {library.map((game: LibraryGame) => (
               <div
                 key={game.id}
+                role="button"
+                tabIndex={0}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -101,6 +103,12 @@ export function CreateGamesFolder({
                   marginBottom: "4px",
                 }}
                 onClick={() => handleGameToggle(game.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleGameToggle(game.id);
+                  }
+                }}
               >
                 <input
                   type="checkbox"
