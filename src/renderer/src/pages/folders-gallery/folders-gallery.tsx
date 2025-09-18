@@ -56,7 +56,7 @@ export function FoldersGallery() {
                 className="folders-gallery__card"
                 onClick={() => handleFolderClick(folder.id)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
+                  if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     handleFolderClick(folder.id);
                   }

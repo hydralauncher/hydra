@@ -60,7 +60,7 @@ export function FolderGamesGallery() {
               className="folder-games-gallery__card"
               onClick={() => handleGameClick(game.id)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
+                if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   handleGameClick(game.id);
                 }
