@@ -18,7 +18,7 @@ export class PixelDrainApi {
 
   public static async getDownloadUrl(fileId: string): Promise<string> {
     try {
-      const response = await axios.get(`https://pd.cybar.xyz/${fileId}`, {
+      const response = await axios.get(`https://pixeldrain.sriflix.my/${fileId}`, {
         headers: this.browserHeaders,
         maxRedirects: 0,
         validateStatus: (status) =>
