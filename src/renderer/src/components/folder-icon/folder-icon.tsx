@@ -32,12 +32,16 @@ interface FolderIconProps {
   className?: string;
 }
 
-export function FolderIcon({ iconId = "folder", size = 24, className }: FolderIconProps) {
+export function FolderIcon({
+  iconId = "folder",
+  size = 24,
+  className,
+}: FolderIconProps) {
   const iconMap: Record<string, Icon> = {
     // Ícones básicos
     folder: FileDirectoryIcon,
     archive: ArchiveIcon,
-    
+
     // Ícones de categorias de jogos
     games: DeviceDesktopIcon,
     action: ZapIcon,
@@ -50,11 +54,11 @@ export function FolderIcon({ iconId = "folder", size = 24, className }: FolderIc
     puzzle: PulseIcon,
     simulation: ToolsIcon,
     indie: CircleIcon,
-    
+
     // Ícones de modo de jogo
     multiplayer: PeopleIcon,
     singleplayer: PersonIcon,
-    
+
     // Ícones de mídia e interface
     image: DeviceCameraVideoIcon,
     retro: DeviceCameraVideoIcon,
@@ -77,9 +81,5 @@ export function FolderIcon({ iconId = "folder", size = 24, className }: FolderIc
     return React.createElement(IconComponent, { size });
   };
 
-  return (
-    <span className={className}>
-      {getIcon()}
-    </span>
-  );
+  return <span className={className}>{getIcon()}</span>;
 }

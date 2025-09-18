@@ -31,85 +31,85 @@ export interface FolderImageSelectorProps {
 
 // Ícones pré-definidos disponíveis
 const PREDEFINED_ICONS = [
-  { 
-    id: "folder", 
+  {
+    id: "folder",
     icon: <FileDirectoryIcon size={24} />,
-    name: "Pasta" 
+    name: "Pasta",
   },
-  { 
-    id: "games", 
-    icon: <DeviceDesktopIcon size={24} />, 
-    name: "Jogos" 
+  {
+    id: "games",
+    icon: <DeviceDesktopIcon size={24} />,
+    name: "Jogos",
   },
-  { 
-    id: "action", 
-    icon: <ZapIcon size={24} />, 
-    name: "Ação" 
+  {
+    id: "action",
+    icon: <ZapIcon size={24} />,
+    name: "Ação",
   },
-  { 
-    id: "adventure", 
-    icon: <LocationIcon size={24} />, 
-    name: "Aventura" 
+  {
+    id: "adventure",
+    icon: <LocationIcon size={24} />,
+    name: "Aventura",
   },
-  { 
-    id: "racing", 
-    icon: <RocketIcon size={24} />, 
-    name: "Corrida" 
+  {
+    id: "racing",
+    icon: <RocketIcon size={24} />,
+    name: "Corrida",
   },
-  { 
-    id: "sports", 
-    icon: <TrophyIcon size={24} />, 
-    name: "Esportes" 
+  {
+    id: "sports",
+    icon: <TrophyIcon size={24} />,
+    name: "Esportes",
   },
-  { 
-    id: "strategy", 
-    icon: <ProjectIcon size={24} />, 
-    name: "Estratégia" 
+  {
+    id: "strategy",
+    icon: <ProjectIcon size={24} />,
+    name: "Estratégia",
   },
-  { 
-    id: "rpg", 
-    icon: <FlameIcon size={24} />, 
-    name: "RPG" 
+  {
+    id: "rpg",
+    icon: <FlameIcon size={24} />,
+    name: "RPG",
   },
-  { 
-    id: "horror", 
-    icon: <EyeClosedIcon size={24} />, 
-    name: "Terror" 
+  {
+    id: "horror",
+    icon: <EyeClosedIcon size={24} />,
+    name: "Terror",
   },
-  { 
-    id: "puzzle", 
-    icon: <PulseIcon size={24} />, 
-    name: "Puzzle" 
+  {
+    id: "puzzle",
+    icon: <PulseIcon size={24} />,
+    name: "Puzzle",
   },
-  { 
-    id: "simulation", 
-    icon: <ToolsIcon size={24} />, 
-    name: "Simulação" 
+  {
+    id: "simulation",
+    icon: <ToolsIcon size={24} />,
+    name: "Simulação",
   },
-  { 
-    id: "indie", 
-    icon: <CircleIcon size={24} />, 
-    name: "Indie" 
+  {
+    id: "indie",
+    icon: <CircleIcon size={24} />,
+    name: "Indie",
   },
-  { 
-    id: "multiplayer", 
-    icon: <PeopleIcon size={24} />, 
-    name: "Multiplayer" 
+  {
+    id: "multiplayer",
+    icon: <PeopleIcon size={24} />,
+    name: "Multiplayer",
   },
-  { 
-    id: "singleplayer", 
-    icon: <PersonIcon size={24} />, 
-    name: "Singleplayer" 
+  {
+    id: "singleplayer",
+    icon: <PersonIcon size={24} />,
+    name: "Singleplayer",
   },
-  { 
-    id: "retro", 
-    icon: <DeviceCameraVideoIcon size={24} />, 
-    name: "Retro" 
+  {
+    id: "retro",
+    icon: <DeviceCameraVideoIcon size={24} />,
+    name: "Retro",
   },
-  { 
-    id: "favorite", 
-    icon: <StarIcon size={24} />, 
-    name: "Favoritos" 
+  {
+    id: "favorite",
+    icon: <StarIcon size={24} />,
+    name: "Favoritos",
   },
 ];
 

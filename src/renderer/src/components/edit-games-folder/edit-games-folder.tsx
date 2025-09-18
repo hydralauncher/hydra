@@ -175,21 +175,28 @@ export function EditGamesFolder({
         </div>
 
         <div className="edit-games-folder__actions">
-          <Button 
-            onClick={handleDeleteFolder} 
-            theme="danger" 
+          <Button
+            onClick={handleDeleteFolder}
+            theme="danger"
             disabled={isDeleting || isUpdating}
           >
             {isDeleting ? t("deleting") : t("delete_folder")}
           </Button>
           <div className="edit-games-folder__actions-right">
-            <Button onClick={handleClose} theme="outline" disabled={isUpdating || isDeleting}>
+            <Button
+              onClick={handleClose}
+              theme="outline"
+              disabled={isUpdating || isDeleting}
+            >
               {t("cancel")}
             </Button>
             <Button
               onClick={handleUpdateFolder}
               disabled={
-                !folderName.trim() || selectedGames.size === 0 || isUpdating || isDeleting
+                !folderName.trim() ||
+                selectedGames.size === 0 ||
+                isUpdating ||
+                isDeleting
               }
             >
               {isUpdating ? t("updating") : t("update_folder")}
