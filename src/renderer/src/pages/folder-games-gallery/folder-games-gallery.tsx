@@ -59,6 +59,14 @@ export function FolderGamesGallery() {
               key={game.id}
               className="folder-games-gallery__card"
               onClick={() => handleGameClick(game.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleGameClick(game.id);
+                }
+              }}
+              role="button"
+              tabIndex={0}
             >
               <div className="folder-games-gallery__card-image">
                 {game.coverImageUrl || game.libraryImageUrl || game.iconUrl ? (

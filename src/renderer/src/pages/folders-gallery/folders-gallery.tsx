@@ -55,6 +55,14 @@ export function FoldersGallery() {
                 key={folder.id}
                 className="folders-gallery__card"
                 onClick={() => handleFolderClick(folder.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleFolderClick(folder.id);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
               >
                 <div className="folders-gallery__card-image">
                   {folder.customImage ? (
