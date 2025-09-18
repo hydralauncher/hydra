@@ -1,0 +1,36 @@
+@use "../../scss/globals.scss";
+
+.settings-folder-configuration {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+
+  &__option {
+    display: flex;
+    align-items: center;
+    padding: calc(globals.$spacing-unit * 0.5);
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: rgba(globals.$muted-color, 0.05);
+    }
+  }
+
+  h3 {
+    margin: 0 0 calc(globals.$spacing-unit * 1.5) 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: globals.$muted-color;
+    border-bottom: 1px solid globals.$border-color;
+    padding-bottom: calc(globals.$spacing-unit * 0.5);
+  }
+}
+
+/* Classes específicas para personalização de temas */
+/* 
+  As seguintes classes estão disponíveis para personalização pelos temas:
+  - .settings-section: Classe geral para seções de configurações
+  - .settings-folder-configuration: Classe principal do componente
+  - .settings-folder-configuration__option: Classe para cada opção individual
+*/

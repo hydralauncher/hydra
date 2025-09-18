@@ -22,9 +22,31 @@
   &__list {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
     border: 1px solid globals.$border-color;
     border-radius: 4px;
     max-height: 400px;
+
+    // Scrollbar customizada
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+    }
   }
 
   &__empty {

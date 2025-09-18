@@ -50,6 +50,13 @@ const DEFAULT_THEME_CODE = `/*
 
 /* Button */
 .button {}
+
+/* Settings */
+.settings-section {}
+
+/* Folder Configuration Settings */
+.settings-folder-configuration {}
+.settings-folder-configuration__option {}
 `;
 
 export function AddThemeModal({

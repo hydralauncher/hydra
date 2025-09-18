@@ -14,6 +14,7 @@ import { useMemo } from "react";
 import "./settings.scss";
 import { SettingsAppearance } from "./aparence/settings-appearance";
 import { SettingsTorBox } from "./settings-torbox";
+import { SettingsLibraryOrganization } from "./settings-library-organization";
 
 export default function Settings() {
   const { t } = useTranslation("settings");
@@ -28,6 +29,10 @@ export default function Settings() {
     const categories = [
       { tabLabel: t("general"), contentTitle: t("general") },
       { tabLabel: t("behavior"), contentTitle: t("behavior") },
+      {
+        tabLabel: t("library_organization"),
+        contentTitle: t("library_organization"),
+      },
       { tabLabel: t("download_sources"), contentTitle: t("download_sources") },
       {
         tabLabel: t("appearance"),
@@ -66,18 +71,22 @@ export default function Settings() {
             }
 
             if (currentCategoryIndex === 2) {
-              return <SettingsDownloadSources />;
+              return <SettingsLibraryOrganization />;
             }
 
             if (currentCategoryIndex === 3) {
-              return <SettingsAppearance appearance={appearance} />;
+              return <SettingsDownloadSources />;
             }
 
             if (currentCategoryIndex === 4) {
-              return <SettingsTorBox />;
+              return <SettingsAppearance appearance={appearance} />;
             }
 
             if (currentCategoryIndex === 5) {
+              return <SettingsTorBox />;
+            }
+
+            if (currentCategoryIndex === 6) {
               return <SettingsRealDebrid />;
             }
 

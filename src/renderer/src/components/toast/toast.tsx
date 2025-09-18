@@ -120,7 +120,7 @@ export function Toast({
             </button>
           </div>
 
-          {message && <p>{message}</p>}
+          {message && <p style={{ whiteSpace: "pre-line" }}>{message}</p>}
         </div>
       </div>
 

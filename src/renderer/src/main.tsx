@@ -29,6 +29,8 @@ import GameDetails from "./pages/game-details/game-details";
 import Settings from "./pages/settings/settings";
 import Profile from "./pages/profile/profile";
 import Achievements from "./pages/achievements/achievements";
+import { FoldersGallery } from "./pages/folders-gallery";
+import { FolderGamesGallery } from "./pages/folder-games-gallery";
 
 import ThemeEditor from "./pages/theme-editor/theme-editor";
 import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
@@ -118,6 +120,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               <Route path="/catalogue" element={<Catalogue />} />
               <Route path="/downloads" element={<Downloads />} />
               <Route path="/game/:shop/:objectId" element={<GameDetails />} />
+              <Route path="/folders-gallery" element={<FoldersGallery />} />
+              <Route
+                path="/folders-gallery/:folderId"
+                element={<FolderGamesGallery />}
+              />
 
               <Route path="/settings" element={<Settings />} />
               <Route path="/profile/:userId" element={<Profile />} />

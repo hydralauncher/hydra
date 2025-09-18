@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import type { LibraryGame } from "@types";
 
-import { TextField } from "@renderer/components";
+import { TextField, FolderIcon } from "@renderer/components";
 import { CreateGamesFolder } from "@renderer/components/create-games-folder";
 import {
   useDownload,
@@ -28,6 +28,7 @@ import {
   CommentDiscussionIcon,
   PlayIcon,
   FileDirectoryIcon,
+  AppsIcon,
 } from "@primer/octicons-react";
 import { SidebarGameItem } from "./sidebar-game-item";
 import { setFriendRequestCount } from "@renderer/features/user-details-slice";
@@ -81,6 +82,7 @@ export function Sidebar() {
     new Set()
   );
   const [draggedGameId, setDraggedGameId] = useState<string | null>(null);
+  const [isCustomFoldersExpanded, setIsCustomFoldersExpanded] = useState(true);
 
   const handlePlayButtonClick = () => {
     setShowPlayableOnly(!showPlayableOnly);
@@ -223,6 +225,10 @@ export function Sidebar() {
     setExpandedFolders(newExpanded);
   };
 
+  const toggleCustomFoldersExpansion = () => {
+    setIsCustomFoldersExpanded(!isCustomFoldersExpanded);
+  };
+
   const getGamesByFolder = (gameIds: string[]) => {
     return gameIds
       .map((id) => library.find((game) => game.id === id))
@@ -231,8 +237,20 @@ export function Sidebar() {
 
   const unorganizedGameIds = useMemo(() => {
     const allGameIds = library.map((game) => game.id);
-    return getUnorganizedGameIds(allGameIds);
-  }, [library, getUnorganizedGameIds]);
+    const unorganized = getUnorganizedGameIds(allGameIds);
+
+    // Se a configuração de mostrar jogos duplicados estiver ativa,
+    // incluir todos os jogos na biblioteca principal
+    if (userPreferences?.showGamesInBothFoldersAndLibrary) {
+      return allGameIds;
+    }
+
+    return unorganized;
+  }, [
+    library,
+    getUnorganizedGameIds,
+    userPreferences?.showGamesInBothFoldersAndLibrary,
+  ]);
 
   const handleDragStart = (gameId: string) => {
     setDraggedGameId(gameId);
@@ -280,6 +298,14 @@ export function Sidebar() {
 
     setDraggedGameId(null);
   };
+
+  // Aplicar CSS custom property para a largura da sidebar no documento
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--sidebar-width",
+      `${sidebarWidth}px`
+    );
+  }, [sidebarWidth]);
 
   return (
     <aside
@@ -340,60 +366,91 @@ export function Sidebar() {
 
           {folders.length > 0 && (
             <section className="sidebar__section">
-              <small className="sidebar__section-title">
-                {t("custom_folders")}
-              </small>
+              <div className="sidebar__section-header">
+                <button
+                  type="button"
+                  className="sidebar__section-title-button"
+                  onClick={toggleCustomFoldersExpansion}
+                >
+                  <small className="sidebar__section-title">
+                    {t("custom_folders")}
+                  </small>
+                  <span style={{ marginLeft: "8px", fontSize: "10px" }}>
+                    {isCustomFoldersExpanded ? "▼" : "▶"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="sidebar__play-button"
+                  onClick={() => navigate("/folders-gallery")}
+                  title="Visualização em Banners"
+                >
+                  <AppsIcon size={16} />
+                </button>
+              </div>
 
-              <ul className="sidebar__menu">
-                {folders.map((folder) => {
-                  const folderGames = getGamesByFolder(folder.gameIds);
-                  const isExpanded = expandedFolders.has(folder.id);
+              {isCustomFoldersExpanded && (
+                <ul className="sidebar__menu">
+                  {folders.map((folder) => {
+                    const folderGames = getGamesByFolder(folder.gameIds);
+                    const isExpanded = expandedFolders.has(folder.id);
 
-                  return (
-                    <li key={folder.id}>
-                      <button
-                        type="button"
-                        className="sidebar__menu-item-button sidebar__folder-button"
-                        onClick={() => toggleFolderExpansion(folder.id)}
-                        onDragOver={handleDragOver}
-                        onDrop={(event) => handleDropOnFolder(event, folder.id)}
-                        style={{
-                          fontWeight: "500",
-                        }}
-                      >
-                        <FileDirectoryIcon size={16} />
-                        <span>
-                          {folder.name}
-                          {userPreferences?.showGameCountInFolders !== false &&
-                            ` (${folderGames.length})`}
-                        </span>
-                        <span style={{ marginLeft: "auto", fontSize: "12px" }}>
-                          {isExpanded ? "▼" : "▶"}
-                        </span>
-                      </button>
+                    return (
+                      <li key={folder.id}>
+                        <button
+                          type="button"
+                          className="sidebar__menu-item-button sidebar__folder-button"
+                          onClick={() => toggleFolderExpansion(folder.id)}
+                          onDragOver={handleDragOver}
+                          onDrop={(event) =>
+                            handleDropOnFolder(event, folder.id)
+                          }
+                          style={{
+                            fontWeight: "500",
+                          }}
+                        >
+                          {folder.icon && folder.icon !== "folder" ? (
+                            <FolderIcon iconId={folder.icon} size={16} />
+                          ) : (
+                            <FileDirectoryIcon size={16} />
+                          )}
+                          <span>
+                            {folder.name}
+                            {userPreferences?.showGameCountInFolders !==
+                              false && ` (${folderGames.length})`}
+                          </span>
+                          <span
+                            style={{ marginLeft: "auto", fontSize: "12px" }}
+                          >
+                            {isExpanded ? "▼" : "▶"}
+                          </span>
+                        </button>
 
-                      {isExpanded && (
-                        <ul className="sidebar__submenu">
-                          {folderGames
-                            .filter(
-                              (game) =>
-                                !showPlayableOnly || isGamePlayable(game)
-                            )
-                            .map((game) => (
-                              <SidebarGameItem
-                                key={game.id}
-                                game={game}
-                                handleSidebarGameClick={handleSidebarGameClick}
-                                getGameTitle={getGameTitle}
-                                onDragStart={handleDragStart}
-                              />
-                            ))}
-                        </ul>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
+                        {isExpanded && (
+                          <ul className="sidebar__submenu">
+                            {folderGames
+                              .filter(
+                                (game) =>
+                                  !showPlayableOnly || isGamePlayable(game)
+                              )
+                              .map((game) => (
+                                <SidebarGameItem
+                                  key={game.id}
+                                  game={game}
+                                  handleSidebarGameClick={
+                                    handleSidebarGameClick
+                                  }
+                                  getGameTitle={getGameTitle}
+                                  onDragStart={handleDragStart}
+                                />
+                              ))}
+                          </ul>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </section>
           )}
 

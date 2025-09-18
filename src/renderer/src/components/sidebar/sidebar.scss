@@ -27,7 +27,29 @@
     padding: calc(globals.$spacing-unit * 2);
     gap: calc(globals.$spacing-unit * 2);
     width: 100%;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+
+    // Scrollbar customizada
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+    }
   }
 
   &__handle {
@@ -105,8 +127,38 @@
   }
 
   &__section-title {
+    color: globals.$body-color;
+    font-weight: 500;
     text-transform: uppercase;
-    font-weight: bold;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    margin: 0;
+    display: block;
+  }
+
+  &__section-title-button {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    transition: opacity ease 0.2s;
+
+    &:hover {
+      opacity: 0.8;
+    }
+
+    .sidebar__section-title {
+      color: globals.$body-color;
+      font-weight: 500;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+      margin: 0;
+      display: block;
+    }
   }
 
   &__container {
@@ -168,6 +220,11 @@
     span {
       text-decoration: none;
     }
+
+    // Ícone da pasta branco como os outros ícones
+    svg {
+      color: white;
+    }
   }
 
   &__submenu {
@@ -212,7 +269,7 @@
   &__play-button {
     background: none;
     border: none;
-    color: globals.$muted-color;
+    color: white;
     cursor: pointer;
     padding: 0;
 

@@ -15,6 +15,7 @@ const pathTitle: Record<string, string> = {
   "/catalogue": "catalogue",
   "/downloads": "downloads",
   "/settings": "settings",
+  "/folders-gallery": "folders",
 };
 
 export function Header() {
@@ -42,6 +43,7 @@ export function Header() {
     if (location.pathname.startsWith("/achievements")) return headerTitle;
     if (location.pathname.startsWith("/profile")) return headerTitle;
     if (location.pathname.startsWith("/search")) return t("search_results");
+    if (location.pathname.startsWith("/folders-gallery")) return t("folders");
 
     return t(pathTitle[location.pathname]);
   }, [location.pathname, headerTitle, t]);

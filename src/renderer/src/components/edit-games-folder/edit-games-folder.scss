@@ -1,0 +1,90 @@
+@use "../../scss/globals.scss";
+
+.edit-games-folder {
+  &__content {
+    padding: globals.$spacing-unit * 2.5;
+  }
+
+  &__field {
+    margin-bottom: globals.$spacing-unit * 2.5;
+  }
+
+  &__section-title {
+    margin: 0 0 globals.$spacing-unit * 1.5 0;
+    font-size: 1rem;
+    font-weight: 500;
+    color: globals.$muted-color;
+  }
+
+  &__games-section {
+    margin-bottom: globals.$spacing-unit * 2.5;
+  }
+
+  &__games-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    padding: globals.$spacing-unit * 1.25;
+    background: globals.$dark-background-color;
+  }
+
+  &__game-item {
+    display: flex;
+    align-items: center;
+    padding: globals.$spacing-unit;
+    cursor: pointer;
+    border-radius: 6px;
+    margin-bottom: calc(#{globals.$spacing-unit} / 2);
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: globals.$background-color;
+    }
+
+    &:focus {
+      outline: 2px solid globals.$brand-teal;
+      outline-offset: 2px;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  &__game-checkbox {
+    margin-right: globals.$spacing-unit * 1.25;
+    cursor: pointer;
+  }
+
+  &__game-icon {
+    width: 32px;
+    height: 32px;
+    margin-right: globals.$spacing-unit * 1.25;
+    border-radius: 4px;
+    object-fit: cover;
+  }
+
+  &__game-title {
+    flex: 1;
+    color: globals.$body-color;
+    font-size: 0.9rem;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: globals.$spacing-unit * 1.25;
+    margin-top: globals.$spacing-unit * 2;
+    padding-top: globals.$spacing-unit * 2;
+    border-top: 1px solid globals.$border-color;
+  }
+
+  &__actions-right {
+    display: flex;
+    gap: globals.$spacing-unit * 1.25;
+  }
+}

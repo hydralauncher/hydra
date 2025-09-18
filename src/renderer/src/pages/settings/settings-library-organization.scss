@@ -1,0 +1,7 @@
+@use "../../scss/globals.scss";
+
+.settings-library-organization {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+}

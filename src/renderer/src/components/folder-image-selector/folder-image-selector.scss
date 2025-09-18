@@ -1,0 +1,172 @@
+@use "../../scss/globals.scss";
+
+.folder-image-selector {
+  width: 100%;
+
+  &__tabs {
+    display: flex;
+    border-bottom: 1px solid globals.$border-color;
+    margin-bottom: 16px;
+  }
+
+  &__tab {
+    background: none;
+    border: none;
+    padding: 12px 16px;
+    cursor: pointer;
+    color: globals.$muted-color;
+    font-size: 14px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: globals.$body-color;
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    &--active {
+      color: globals.$brand-teal;
+      border-bottom-color: globals.$brand-teal;
+    }
+  }
+
+  &__content {
+    min-height: 200px;
+  }
+
+  &__icons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 8px;
+    padding: 4px 0;
+  }
+
+  &__icon-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    background: globals.$background-color;
+    border: 2px solid globals.$border-color;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 60px;
+    aspect-ratio: 1;
+
+    &:hover {
+      border-color: globals.$brand-teal;
+      background-color: rgba(255, 255, 255, 0.05);
+      transform: translateY(-2px);
+    }
+
+    &--selected {
+      border-color: globals.$brand-teal;
+      background-color: rgba(22, 177, 149, 0.1);
+      box-shadow: 0 0 0 2px rgba(22, 177, 149, 0.1);
+    }
+  }
+
+  &__icon-svg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    
+    svg {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+    }
+  }
+
+  &__upload-area {
+    border: 2px dashed globals.$border-color;
+    border-radius: 8px;
+    padding: 32px;
+    text-align: center;
+    transition: border-color 0.2s ease;
+
+    &:hover {
+      border-color: globals.$brand-teal;
+    }
+  }
+
+  &__upload-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__upload-icon {
+    font-size: 48px;
+    opacity: 0.6;
+  }
+
+  &__upload-text {
+    font-size: 16px;
+    font-weight: 500;
+    color: globals.$body-color;
+    margin: 0;
+  }
+
+  &__upload-hint {
+    font-size: 12px;
+    color: globals.$muted-color;
+    margin: 0;
+  }
+
+  &__preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  &__preview-image {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid globals.$border-color;
+  }
+
+  &__preview-actions {
+    display: flex;
+    gap: 8px;
+  }
+}
+
+// Responsividade
+@media (max-width: 768px) {
+  .folder-image-selector {
+    &__icons-grid {
+      grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+      gap: 6px;
+    }
+
+    &__icon-button {
+      min-height: 50px;
+      padding: 6px;
+    }
+
+    &__icon-emoji {
+      font-size: 20px;
+    }
+
+    &__upload-area {
+      padding: 24px 16px;
+    }
+
+    &__upload-icon {
+      font-size: 36px;
+    }
+
+    &__preview-image {
+      width: 100px;
+      height: 100px;
+    }
+  }
+}

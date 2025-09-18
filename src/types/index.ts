@@ -382,6 +382,7 @@ export interface GameFolder {
   name: string;
   color?: string;
   icon?: string;
+  customImage?: string;
   gameIds: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -391,6 +392,7 @@ export interface GameFolderCreate {
   name: string;
   color?: string;
   icon?: string;
+  customImage?: string;
   gameIds: string[];
 }
 
@@ -398,5 +400,6 @@ export interface GameFolderUpdate {
   name?: string;
   color?: string;
   icon?: string;
+  customImage?: string;
   gameIds?: string[];
 }

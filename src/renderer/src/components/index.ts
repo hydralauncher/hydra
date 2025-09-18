@@ -15,3 +15,6 @@ export * from "./badge/badge";
 export * from "./confirmation-modal/confirmation-modal";
 export * from "./suspense-wrapper/suspense-wrapper";
 export * from "./debrid-badge/debrid-badge";
+export * from "./folder-image-selector/folder-image-selector";
+export * from "./edit-games-folder/edit-games-folder";
+export * from "./folder-icon/folder-icon";

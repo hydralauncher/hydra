@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Modal, TextField } from "@renderer/components";
+import {
+  Button,
+  Modal,
+  TextField,
+  FolderImageSelector,
+} from "@renderer/components";
 import { useLibrary } from "@renderer/hooks";
 import { useGameFolders } from "@renderer/hooks/use-game-folders";
 import type { LibraryGame } from "@types";
@@ -20,6 +25,10 @@ export function CreateGamesFolder({
 
   const [folderName, setFolderName] = useState("");
   const [selectedGames, setSelectedGames] = useState<Set<string>>(new Set());
+  const [selectedImage, setSelectedImage] = useState<string | undefined>(
+    undefined
+  );
+  const [selectedIcon, setSelectedIcon] = useState<string>("folder");
   const [isCreating, setIsCreating] = useState(false);
 
   const handleGameToggle = (gameId: string) => {
@@ -42,11 +51,15 @@ export function CreateGamesFolder({
         name: folderName.trim(),
         gameIds: Array.from(selectedGames),
         color: "#3b82f6", // Cor padrão azul
+        icon: selectedIcon || undefined,
+        customImage: selectedImage || undefined,
       });
 
       // Reset form
       setFolderName("");
       setSelectedGames(new Set());
+      setSelectedImage("");
+      setSelectedIcon("folder");
       onClose();
     } catch (error) {
       console.error("Erro ao criar pasta virtual:", error);
@@ -58,6 +71,8 @@ export function CreateGamesFolder({
   const handleClose = () => {
     setFolderName("");
     setSelectedGames(new Set());
+    setSelectedImage("");
+    setSelectedIcon("folder");
     onClose();
   };
 
@@ -75,6 +90,18 @@ export function CreateGamesFolder({
             value={folderName}
             onChange={(e) => setFolderName(e.target.value)}
             placeholder={t("folder_name_placeholder")}
+          />
+        </div>
+
+        <div style={{ marginBottom: "20px" }}>
+          <h3>{t("folder_image")}</h3>
+          <FolderImageSelector
+            selectedIcon={selectedIcon}
+            selectedImage={selectedImage}
+            onIconChange={(icon: string | undefined) =>
+              setSelectedIcon(icon || "folder")
+            }
+            onImageChange={setSelectedImage}
           />
         </div>
 
