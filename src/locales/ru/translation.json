@@ -415,7 +415,7 @@
     "restart_to_install_update": "Перезапустите Hydra для установки обновления",
     "notification_achievement_unlocked_title": "Достижение разблокировано для {{game}}",
     "notification_achievement_unlocked_body": "были разблокированы {{achievement}} и другие {{count}}",
-    "new_friend_request_title": "Новый запрос на добавление в друзья", 
+    "new_friend_request_title": "Новый запрос на добавление в друзья",
     "extraction_complete": "Распаковка завершена",
     "game_extracted": "{{title}} успешно распакован",
     "friend_started_playing_game": "{{displayName}} начал играть в игру",
