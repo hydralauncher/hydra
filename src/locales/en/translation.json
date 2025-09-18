@@ -15,6 +15,7 @@
   "sidebar": {
     "catalogue": "Catalogue",
     "downloads": "Downloads",
+    "games_organizer": "Games Organizer",
     "settings": "Settings",
     "my_library": "My library",
     "downloading_metadata": "{{title}} (Downloading metadata…)",
@@ -28,6 +29,23 @@
     "friends": "Friends",
     "need_help": "Need help?",
     "favorites": "Favorites",
+    "create_games_folder": "Create games folder",
+    "custom_folders": "Custom Folders",
+    "create_folder": "Create Folder",
+    "folder_name": "Folder name",
+    "edit_folder": "Edit folder",
+    "delete_folder": "Delete folder",
+    "manage_games": "Manage games",
+    "manage_folder_games": "Manage games - {{folderName}}",
+    "select_games_for_folder": "Select games for this folder",
+    "search_games": "Search games",
+    "select_all": "Select all",
+    "deselect_all": "Deselect all",
+    "no_games_found": "No games found",
+    "no_games_in_library": "No games in library",
+    "selected_games_count": "{{count}} of {{total}} games selected",
+    "cancel": "Cancel",
+    "save": "Save",
     "playable_button_title": "Show only games you can play now"
   },
   "header": {
@@ -389,6 +407,7 @@
     "show_download_speed_in_megabytes": "Show download speed in megabytes per second",
     "extract_files_by_default": "Extract files by default after download",
     "enable_steam_achievements": "Enable search for Steam achievements",
+    "show_game_count_in_folders": "Show game count in folders",
     "achievement_custom_notification_position": "Achievement custom notification position",
     "top-left": "Top left",
     "top-center": "Top center",
@@ -555,7 +574,20 @@
     "animated_profile_banner": "Animated profile banner",
     "hydra_cloud": "Hydra Cloud",
     "hydra_cloud_feature_found": "You've just discovered a Hydra Cloud feature!",
-    "learn_more": "Learn More",
+    "learn_more": "Learn more",
     "debrid_description": "Download up to 4x faster with Nimbus"
+  },
+  "games_folder": {
+    "create_games_folder": "Create Games Folder",
+    "folder_name": "Folder name",
+    "folder_name_placeholder": "Enter folder name...",
+    "select_games": "Select games",
+    "cancel": "Cancel",
+    "create_folder": "Create folder",
+    "creating": "Creating...",
+    "folder_created_successfully": "Folder created successfully!",
+    "error_creating_folder": "Error creating folder",
+    "select_at_least_one_game": "Select at least one game",
+    "enter_folder_name": "Enter a folder name"
   }
 }

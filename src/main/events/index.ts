@@ -37,6 +37,7 @@ import "./library/change-game-playtime";
 import "./library/toggle-automatic-cloud-sync";
 import "./library/get-default-wine-prefix-selection-path";
 import "./library/create-steam-shortcut";
+import "./library/create-games-folder";
 import "./misc/open-checkout";
 import "./misc/open-external";
 import "./misc/show-open-dialog";

@@ -1,0 +1,132 @@
+@use "../../scss/globals.scss";
+
+.manage-folder-games {
+  display: flex;
+  flex-direction: column;
+  gap: globals.$spacing-unit;
+  max-height: 70vh;
+  min-width: 500px;
+
+  &__header {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__actions {
+    display: flex;
+    gap: calc(globals.$spacing-unit / 2);
+    justify-content: flex-end;
+  }
+
+  &__list {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid globals.$border-color;
+    border-radius: 4px;
+    max-height: 400px;
+  }
+
+  &__empty {
+    padding: calc(globals.$spacing-unit * 2);
+    text-align: center;
+    color: globals.$muted-color;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: globals.$spacing-unit;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition: all ease 0.1s;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    &--selected {
+      background-color: rgba(globals.$brand-teal, 0.1);
+      border-color: rgba(globals.$brand-teal, 0.2);
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__game-info {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__game-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  &__game-details {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__game-title {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__game-shop {
+    font-size: globals.$small-font-size;
+    color: globals.$muted-color;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__checkbox {
+    width: 20px;
+    height: 20px;
+    border: 2px solid globals.$border-color;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all ease 0.1s;
+
+    .manage-folder-games__item--selected & {
+      border-color: globals.$brand-teal;
+      background-color: globals.$brand-teal;
+      color: #fff;
+    }
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: globals.$spacing-unit;
+    border-top: 1px solid globals.$border-color;
+  }
+
+  &__count {
+    font-size: globals.$small-font-size;
+    color: globals.$muted-color;
+  }
+
+  &__buttons {
+    display: flex;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+}

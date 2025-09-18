@@ -15,6 +15,7 @@
   "sidebar": {
     "catalogue": "Catálogo",
     "downloads": "Downloads",
+    "games_organizer": "Organizador de Jogos",
     "settings": "Ajustes",
     "my_library": "Biblioteca",
     "downloading_metadata": "{{title}} (Baixando metadados…)",
@@ -27,7 +28,24 @@
     "sign_in": "Login",
     "friends": "Amigos",
     "need_help": "Precisa de ajuda?",
-    "favorites": "Favoritos"
+    "favorites": "Favoritos",
+    "create_games_folder": "Criar pasta de jogos",
+    "custom_folders": "Pastas Personalizadas",
+    "create_folder": "Criar Pasta",
+    "folder_name": "Nome da pasta",
+    "edit_folder": "Editar pasta",
+    "delete_folder": "Excluir pasta",
+    "manage_games": "Gerenciar jogos",
+    "manage_folder_games": "Gerenciar jogos - {{folderName}}",
+    "select_games_for_folder": "Selecione os jogos para esta pasta",
+    "search_games": "Buscar jogos",
+    "select_all": "Selecionar todos",
+    "deselect_all": "Desmarcar todos",
+    "no_games_found": "Nenhum jogo encontrado",
+    "no_games_in_library": "Nenhum jogo na biblioteca",
+    "selected_games_count": "{{count}} de {{total}} jogos selecionados",
+    "cancel": "Cancelar",
+    "save": "Salvar"
   },
   "header": {
     "search": "Buscar jogos",
@@ -366,6 +384,7 @@
     "show_download_speed_in_megabytes": "Exibir taxas de download em megabytes por segundo",
     "extract_files_by_default": "Extrair arquivos automaticamente após o download",
     "enable_steam_achievements": "Habilitar busca por conquistas da Steam",
+    "show_game_count_in_folders": "Mostrar número de jogos nas pastas",
     "enable_achievement_custom_notifications": "Habilitar notificações customizadas de conquistas",
     "top-left": "Superior esquerdo",
     "top-center": "Superior central",
@@ -541,5 +560,18 @@
     "hydra_cloud_feature_found": "Você descobriu uma funcionalidade Hydra Cloud!",
     "learn_more": "Saiba mais",
     "debrid_description": "Baixe até 4x mais rápido com Nimbus"
+  },
+  "games_folder": {
+    "create_games_folder": "Criar Pasta de Jogos",
+    "folder_name": "Nome da pasta",
+    "folder_name_placeholder": "Digite o nome da pasta...",
+    "select_games": "Selecionar jogos",
+    "cancel": "Cancelar",
+    "create_folder": "Criar pasta",
+    "creating": "Criando...",
+    "folder_created_successfully": "Pasta criada com sucesso!",
+    "error_creating_folder": "Erro ao criar pasta",
+    "select_at_least_one_game": "Selecione pelo menos um jogo",
+    "enter_folder_name": "Digite um nome para a pasta"
   }
 }

@@ -20,6 +20,7 @@ import type {
   ShopAssets,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  GameRef,
 } from "@types";
 import type { AuthPage, CatalogueCategory } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -197,6 +198,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
   createSteamShortcut: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("createSteamShortcut", shop, objectId),
+  createGamesFolder: (folderName: string, gameRefs: GameRef[]) =>
+    ipcRenderer.invoke("createGamesFolder", folderName, gameRefs),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]

@@ -27,6 +27,7 @@ export function SettingsBehavior() {
     showDownloadSpeedInMegabytes: false,
     extractFilesByDefault: true,
     enableSteamAchievements: false,
+    showGameCountInFolders: true,
   });
 
   const { t } = useTranslation("settings");
@@ -49,6 +50,7 @@ export function SettingsBehavior() {
         extractFilesByDefault: userPreferences.extractFilesByDefault ?? true,
         enableSteamAchievements:
           userPreferences.enableSteamAchievements ?? false,
+        showGameCountInFolders: userPreferences.showGameCountInFolders ?? true,
       });
     }
   }, [userPreferences]);
@@ -165,6 +167,16 @@ export function SettingsBehavior() {
         onChange={() =>
           handleChange({
             extractFilesByDefault: !form.extractFilesByDefault,
+          })
+        }
+      />
+
+      <CheckboxField
+        label={t("show_game_count_in_folders")}
+        checked={form.showGameCountInFolders}
+        onChange={() =>
+          handleChange({
+            showGameCountInFolders: !form.showGameCountInFolders,
           })
         }
       />

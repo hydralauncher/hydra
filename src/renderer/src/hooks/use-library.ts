@@ -7,6 +7,8 @@ export function useLibrary() {
   const library = useAppSelector((state) => state.library.value);
 
   const updateLibrary = useCallback(async () => {
+    if (!window.electron) return;
+
     return window.electron
       .getLibrary()
       .then((updatedLibrary) => dispatch(setLibrary(updatedLibrary)));

@@ -60,6 +60,8 @@ export default function Catalogue() {
 
   const debouncedSearch = useRef(
     debounce(async (filters, pageSize, offset) => {
+      if (!window.electron) return;
+
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 

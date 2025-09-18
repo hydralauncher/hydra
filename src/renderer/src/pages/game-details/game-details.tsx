@@ -44,9 +44,11 @@ export default function GameDetails() {
 
   useEffect(() => {
     setRandomGame(null);
-    window.electron.getRandomGame().then((randomGame) => {
-      setRandomGame(randomGame);
-    });
+    if (window.electron) {
+      window.electron.getRandomGame().then((randomGame) => {
+        setRandomGame(randomGame);
+      });
+    }
   }, [objectId]);
 
   const handleRandomizerClick = () => {

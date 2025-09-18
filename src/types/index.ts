@@ -359,3 +359,44 @@ export * from "./ludusavi.types";
 export * from "./how-long-to-beat.types";
 export * from "./level.types";
 export * from "./theme.types";
+
+// Games Organizer types
+export interface GameRef {
+  shop: GameShop;
+  objectId: string;
+}
+
+export interface GamesOrganizerResult {
+  folderPath: string;
+  createdFolder: boolean;
+  shortcutsCreated: number;
+  failures: Array<{
+    game: GameRef;
+    reason: string;
+  }>;
+  skipped: number;
+}
+
+export interface GameFolder {
+  id: string;
+  name: string;
+  color?: string;
+  icon?: string;
+  gameIds: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface GameFolderCreate {
+  name: string;
+  color?: string;
+  icon?: string;
+  gameIds: string[];
+}
+
+export interface GameFolderUpdate {
+  name?: string;
+  color?: string;
+  icon?: string;
+  gameIds?: string[];
+}

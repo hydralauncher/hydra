@@ -5,7 +5,9 @@ import "./link.scss";
 export function Link({ children, to, className, ...props }: LinkProps) {
   const openExternal = (event: React.MouseEvent) => {
     event.preventDefault();
-    window.electron.openExternal(to as string);
+    if (window.electron) {
+      window.electron.openExternal(to as string);
+    }
   };
 
   if (typeof to === "string" && to.startsWith("http")) {

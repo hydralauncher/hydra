@@ -81,7 +81,7 @@
     cursor: pointer;
     overflow: hidden;
     width: 100%;
-    padding: 9px globals.$spacing-unit;
+    padding: 9px calc(globals.$spacing-unit * 1.5);
   }
 
   &__menu-item-button-label {
@@ -151,6 +151,62 @@
     justify-content: center;
     color: #fff;
     border-radius: 50%;
+  }
+
+  &__folder-button {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    color: white !important;
+    text-decoration: none;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    span {
+      text-decoration: none;
+    }
+  }
+
+  &__submenu {
+    margin-left: 10px;
+    border-left: 2px solid rgba(255, 255, 255, 0.1);
+
+    .sidebar__menu-item {
+      margin-left: 4px;
+    }
+
+    .sidebar__menu-item-button {
+      padding: 9px calc(globals.$spacing-unit * 2);
+    }
+  }
+
+  &__menu-item-button {
+    &[draggable="true"] {
+      cursor: grab;
+
+      &:active {
+        cursor: grabbing;
+      }
+    }
+  }
+
+  &__section {
+    &[data-drop-target="true"] {
+      background-color: rgba(59, 130, 246, 0.1);
+      border: 2px dashed rgba(59, 130, 246, 0.5);
+      border-radius: 4px;
+    }
+  }
+
+  &__folder-button {
+    &[data-drop-target="true"] {
+      background-color: rgba(59, 130, 246, 0.2) !important;
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      border-radius: 4px;
+    }
   }
 
   &__play-button {
