@@ -20,7 +20,7 @@ export function EditCustomGameModal({
   onClose,
   game,
   onGameUpdated,
-}: EditCustomGameModalProps) {
+}: Readonly<EditCustomGameModalProps>) {
   const { t } = useTranslation("sidebar");
   const { showSuccessToast, showErrorToast } = useToast();
 
