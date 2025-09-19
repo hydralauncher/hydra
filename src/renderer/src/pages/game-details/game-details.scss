@@ -121,6 +121,20 @@ $hero-height: 300px;
     align-self: flex-end;
   }
 
+  &__game-logo-text {
+    width: 300px;
+    align-self: flex-end;
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    text-align: left;
+    line-height: 1.2;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
   &__hero-image-skeleton {
     height: 300px;
 

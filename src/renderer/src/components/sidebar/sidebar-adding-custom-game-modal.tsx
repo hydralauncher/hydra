@@ -143,8 +143,8 @@ export function SidebarAddingCustomGameModal({
           />
 
           <TextField
-            label={t("custom_game_modal_game_name")}
-            placeholder={t("custom_game_modal_enter_name")}
+            label={t("custom_game_modal_title")}
+            placeholder={t("custom_game_modal_enter_title")}
             value={gameName}
             onChange={handleGameNameChange}
             theme="dark"
