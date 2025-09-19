@@ -92,7 +92,7 @@ export function GameOptionsModal({
     await removeGameFromLibrary(game.shop, game.objectId);
     updateGame();
     onClose();
-    
+
     // Redirect to home page if it's a custom game
     if (game.shop === "custom" && onNavigateHome) {
       onNavigateHome();
