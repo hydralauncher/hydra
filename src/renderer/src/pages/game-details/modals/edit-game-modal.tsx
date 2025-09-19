@@ -515,9 +515,8 @@ export function EditGameModal({
             </div>
 
             {(iconPath || (game && !isCustomGame(game) && defaultIconUrl)) && (
-              <div
-                role="button"
-                tabIndex={0}
+              <button
+                type="button"
                 aria-label={t("edit_game_modal_icon_drop_zone")}
                 className={`edit-game-modal__image-preview edit-game-modal__icon-preview ${
                   dragOverTarget === "icon"
@@ -529,12 +528,6 @@ export function EditGameModal({
                 onDragLeave={handleDragLeave}
                 onDrop={handleIconDrop}
                 onClick={handleSelectIcon}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleSelectIcon();
-                  }
-                }}
               >
                 <img
                   src={getIconPreviewUrl()}
@@ -546,13 +539,12 @@ export function EditGameModal({
                     <span>Drop to replace icon</span>
                   </div>
                 )}
-              </div>
+              </button>
             )}
 
             {!iconPath && !(game && !isCustomGame(game) && defaultIconUrl) && (
-              <div
-                role="button"
-                tabIndex={0}
+              <button
+                type="button"
                 aria-label={t("edit_game_modal_icon_drop_zone_empty")}
                 className={`edit-game-modal__image-preview edit-game-modal__icon-preview edit-game-modal__drop-zone ${
                   dragOverTarget === "icon"
@@ -564,18 +556,12 @@ export function EditGameModal({
                 onDragLeave={handleDragLeave}
                 onDrop={handleIconDrop}
                 onClick={handleSelectIcon}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleSelectIcon();
-                  }
-                }}
               >
                 <div className="edit-game-modal__drop-zone-content">
                   <ImageIcon />
                   <span>Drop icon image here</span>
                 </div>
-              </div>
+              </button>
             )}
           </div>
 
@@ -616,9 +602,8 @@ export function EditGameModal({
             </div>
 
             {(logoPath || (game && !isCustomGame(game) && defaultLogoUrl)) && (
-              <div
-                role="button"
-                tabIndex={0}
+              <button
+                type="button"
                 aria-label={t("edit_game_modal_logo_drop_zone")}
                 className={`edit-game-modal__image-preview ${
                   dragOverTarget === "logo"
@@ -630,12 +615,6 @@ export function EditGameModal({
                 onDragLeave={handleDragLeave}
                 onDrop={handleLogoDrop}
                 onClick={handleSelectLogo}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleSelectLogo();
-                  }
-                }}
               >
                 <img
                   src={getLogoPreviewUrl()}
@@ -647,11 +626,13 @@ export function EditGameModal({
                     <span>Drop to replace logo</span>
                   </div>
                 )}
-              </div>
+              </button>
             )}
 
             {!logoPath && !(game && !isCustomGame(game) && defaultLogoUrl) && (
-              <div
+              <button
+                type="button"
+                aria-label={t("edit_game_modal_logo_drop_zone_empty")}
                 className={`edit-game-modal__image-preview edit-game-modal__drop-zone ${
                   dragOverTarget === "logo"
                     ? "edit-game-modal__drop-zone--active"
@@ -661,12 +642,13 @@ export function EditGameModal({
                 onDragEnter={(e) => handleDragEnter(e, "logo")}
                 onDragLeave={handleDragLeave}
                 onDrop={handleLogoDrop}
+                onClick={handleSelectLogo}
               >
                 <div className="edit-game-modal__drop-zone-content">
                   <ImageIcon />
                   <span>Drop logo image here</span>
                 </div>
-              </div>
+              </button>
             )}
           </div>
 
@@ -707,7 +689,9 @@ export function EditGameModal({
             </div>
 
             {(heroPath || (game && !isCustomGame(game) && defaultHeroUrl)) && (
-              <div
+              <button
+                type="button"
+                aria-label={t("edit_game_modal_hero_drop_zone")}
                 className={`edit-game-modal__image-preview ${
                   dragOverTarget === "hero"
                     ? "edit-game-modal__drop-zone--active"
@@ -717,6 +701,7 @@ export function EditGameModal({
                 onDragEnter={(e) => handleDragEnter(e, "hero")}
                 onDragLeave={handleDragLeave}
                 onDrop={handleHeroDrop}
+                onClick={handleSelectHero}
               >
                 <img
                   src={getHeroPreviewUrl()}
@@ -728,11 +713,13 @@ export function EditGameModal({
                     <span>Drop to replace hero image</span>
                   </div>
                 )}
-              </div>
+              </button>
             )}
 
             {!heroPath && !(game && !isCustomGame(game) && defaultHeroUrl) && (
-              <div
+              <button
+                type="button"
+                aria-label={t("edit_game_modal_hero_drop_zone_empty")}
                 className={`edit-game-modal__image-preview edit-game-modal__drop-zone ${
                   dragOverTarget === "hero"
                     ? "edit-game-modal__drop-zone--active"
@@ -742,12 +729,13 @@ export function EditGameModal({
                 onDragEnter={(e) => handleDragEnter(e, "hero")}
                 onDragLeave={handleDragLeave}
                 onDrop={handleHeroDrop}
+                onClick={handleSelectHero}
               >
                 <div className="edit-game-modal__drop-zone-content">
                   <ImageIcon />
                   <span>Drop hero image here</span>
                 </div>
-              </div>
+              </button>
             )}
           </div>
         </div>
