@@ -21,6 +21,7 @@ export const routes = [
     nameKey: "downloads",
     render: () => <DownloadIcon />,
   },
+
   {
     path: "/settings",
     nameKey: "settings",

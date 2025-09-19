@@ -16,7 +16,7 @@ import { CatalogueCategory } from "@shared";
 import "./home.scss";
 
 export default function Home() {
-  const { t } = useTranslation("home");
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [animateFlame, setAnimateFlame] = useState(false);
@@ -36,6 +36,8 @@ export default function Home() {
   });
 
   const getCatalogue = useCallback(async (category: CatalogueCategory) => {
+    if (!window.electron) return;
+
     try {
       setCurrentCatalogueCategory(category);
       setIsLoading(true);
@@ -49,6 +51,8 @@ export default function Home() {
   }, []);
 
   const getRandomGame = useCallback(() => {
+    if (!window.electron) return;
+
     window.electron.getRandomGame().then((game) => {
       if (game) setRandomGame(game);
     });
@@ -97,7 +101,7 @@ export default function Home() {
   return (
     <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
       <section className="home__content">
-        <h2>{t("featured")}</h2>
+        <h2>{t("home.featured")}</h2>
 
         <Hero />
 
@@ -132,7 +136,7 @@ export default function Home() {
                     </div>
                   )}
 
-                  {t(category)}
+                  {t(`home.${category}`)}
                 </Button>
               </li>
             ))}
@@ -150,7 +154,7 @@ export default function Home() {
                 className="home__stars-icon"
               />
             </div>
-            {t("surprise_me")}
+            {t("home.surprise_me")}
           </Button>
         </section>
 
@@ -165,7 +169,7 @@ export default function Home() {
             </div>
           )}
 
-          {t(currentCatalogueCategory)}
+          {t(`home.${currentCatalogueCategory}`)}
         </h2>
 
         <section className="home__cards">

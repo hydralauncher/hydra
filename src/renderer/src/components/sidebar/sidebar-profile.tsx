@@ -21,7 +21,9 @@ export function SidebarProfile() {
 
   const handleProfileClick = () => {
     if (userDetails === null) {
-      window.electron.openAuthWindow(AuthPage.SignIn);
+      if (window.electron) {
+        window.electron.openAuthWindow(AuthPage.SignIn);
+      }
       return;
     }
 

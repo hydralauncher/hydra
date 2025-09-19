@@ -33,10 +33,14 @@ export function BottomPanel() {
   );
 
   useEffect(() => {
-    window.electron.getVersion().then((result) => setVersion(result));
+    if (window.electron) {
+      window.electron.getVersion().then((result) => setVersion(result));
+    }
   }, []);
 
   useEffect(() => {
+    if (!window.electron) return;
+
     const unlisten = window.electron.onCommonRedistProgress(
       ({ log, complete }) => {
         if (log === "Installation timed out" || complete) {
@@ -60,7 +64,9 @@ export function BottomPanel() {
   }, [t, showSuccessToast]);
 
   useEffect(() => {
-    window.electron.getSessionHash().then((result) => setSessionHash(result));
+    if (window.electron) {
+      window.electron.getSessionHash().then((result) => setSessionHash(result));
+    }
   }, [userDetails?.id]);
 
   const status = useMemo(() => {

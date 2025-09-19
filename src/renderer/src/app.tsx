@@ -39,7 +39,7 @@ export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library } = useLibrary();
 
-  const { t } = useTranslation("app");
+  const { t } = useTranslation();
 
   const { updateRepacks } = useRepacks();
 
@@ -74,14 +74,20 @@ export function App() {
   const { showSuccessToast } = useToast();
 
   useEffect(() => {
-    Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
-      ([preferences]) => {
-        dispatch(setUserPreferences(preferences));
-      }
-    );
+    if (window.electron) {
+      Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
+        ([preferences]) => {
+          dispatch(setUserPreferences(preferences));
+        }
+      );
+    } else {
+      updateLibrary();
+    }
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   useEffect(() => {
+    if (!window.electron) return;
+
     const unsubscribe = window.electron.onDownloadProgress(
       (downloadProgress) => {
         if (downloadProgress?.progress === 1) {
@@ -100,6 +106,8 @@ export function App() {
   }, [clearDownload, setLastPacket, updateLibrary]);
 
   useEffect(() => {
+    if (!window.electron) return;
+
     const unsubscribe = window.electron.onHardDelete(() => {
       updateLibrary();
     });
@@ -118,43 +126,86 @@ export function App() {
       dispatch(setProfileBackground(profileBackground));
     }
 
-    fetchUserDetails()
-      .then((response) => {
-        if (response) {
-          updateUserDetails(response);
-          window.electron.syncFriendRequests();
-        }
-      })
-      .finally(() => {
-        if (document.getElementById("external-resources")) return;
+    // Aguarda o window.electron estar disponível antes de buscar detalhes do usuário
+    const waitForElectronAndFetchUserDetails = async () => {
+      // Aguarda até que window.electron esteja disponível
+      let attempts = 0;
+      const maxAttempts = 50; // máximo 5 segundos (50 * 100ms)
 
-        const $script = document.createElement("script");
-        $script.id = "external-resources";
-        $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
-        document.head.appendChild($script);
-      });
+      while (!window.electron && attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        attempts++;
+      }
+
+      if (window.electron) {
+        try {
+          const response = await fetchUserDetails();
+          if (response) {
+            updateUserDetails(response);
+            if (window.electron.syncFriendRequests) {
+              window.electron.syncFriendRequests();
+            }
+          }
+        } catch (error) {
+          console.warn(
+            "Erro ao buscar detalhes do usuário na inicialização:",
+            error
+          );
+        }
+      } else {
+        console.warn("window.electron não está disponível após aguardar");
+      }
+    };
+
+    waitForElectronAndFetchUserDetails().finally(() => {
+      if (document.getElementById("external-resources")) return;
+
+      const $script = document.createElement("script");
+      $script.id = "external-resources";
+      $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
+      document.head.appendChild($script);
+    });
   }, [fetchUserDetails, updateUserDetails, dispatch]);
 
-  const onSignIn = useCallback(() => {
-    window.electron.getDownloadSources().then((sources) => {
-      sources.forEach((source) => {
-        downloadSourcesWorker.postMessage([
-          "IMPORT_DOWNLOAD_SOURCE",
-          source.url,
-        ]);
-      });
-    });
+  const onSignIn = useCallback(async () => {
+    // Aguarda o window.electron estar disponível
+    let attempts = 0;
+    const maxAttempts = 50; // máximo 5 segundos (50 * 100ms)
 
-    fetchUserDetails().then((response) => {
-      if (response) {
-        updateUserDetails(response);
-        window.electron.syncFriendRequests();
-        showSuccessToast(t("successfully_signed_in"));
+    while (!window.electron && attempts < maxAttempts) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      attempts++;
+    }
+
+    if (window.electron) {
+      try {
+        const sources = await window.electron.getDownloadSources();
+        sources.forEach((source) => {
+          downloadSourcesWorker.postMessage([
+            "IMPORT_DOWNLOAD_SOURCE",
+            source.url,
+          ]);
+        });
+
+        const response = await fetchUserDetails();
+        if (response) {
+          updateUserDetails(response);
+          if (window.electron.syncFriendRequests) {
+            window.electron.syncFriendRequests();
+          }
+          showSuccessToast(t("app.successfully_signed_in"));
+        }
+      } catch (error) {
+        console.warn("Erro durante o sign in:", error);
       }
-    });
+    } else {
+      console.warn("window.electron não está disponível para sign in");
+    }
   }, [fetchUserDetails, t, showSuccessToast, updateUserDetails]);
 
   useEffect(() => {
+    if (!window.electron) return;
+
     const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
       if (gamesRunning.length) {
         const lastGame = gamesRunning[gamesRunning.length - 1];
@@ -181,6 +232,8 @@ export function App() {
   }, [dispatch, library]);
 
   useEffect(() => {
+    if (!window.electron) return;
+
     const listeners = [
       window.electron.onSignIn(onSignIn),
       window.electron.onLibraryBatchComplete(() => {
@@ -217,24 +270,28 @@ export function App() {
 
     channel.onmessage = async (event: MessageEvent<number>) => {
       const newRepacksCount = event.data;
-      window.electron.publishNewRepacksNotification(newRepacksCount);
+      if (window.electron) {
+        window.electron.publishNewRepacksNotification(newRepacksCount);
+      }
       updateRepacks();
 
       const downloadSources = await downloadSourcesTable.toArray();
 
-      await Promise.all(
-        downloadSources
-          .filter((source) => !source.fingerprint)
-          .map(async (downloadSource) => {
-            const { fingerprint } = await window.electron.putDownloadSource(
-              downloadSource.objectIds
-            );
+      if (window.electron) {
+        await Promise.all(
+          downloadSources
+            .filter((source) => !source.fingerprint)
+            .map(async (downloadSource) => {
+              const { fingerprint } = await window.electron.putDownloadSource(
+                downloadSource.objectIds
+              );
 
-            return downloadSourcesTable.update(downloadSource.id, {
-              fingerprint,
-            });
-          })
-      );
+              return downloadSourcesTable.update(downloadSource.id, {
+                fingerprint,
+              });
+            })
+        );
+      }
 
       channel.close();
     };
@@ -247,11 +304,13 @@ export function App() {
   }, [updateRepacks]);
 
   const loadAndApplyTheme = useCallback(async () => {
-    const activeTheme = await window.electron.getActiveCustomTheme();
-    if (activeTheme?.code) {
-      injectCustomCss(activeTheme.code);
-    } else {
-      removeCustomCss();
+    if (window.electron) {
+      const activeTheme = await window.electron.getActiveCustomTheme();
+      if (activeTheme?.code) {
+        injectCustomCss(activeTheme.code);
+      } else {
+        removeCustomCss();
+      }
     }
   }, []);
 
@@ -260,6 +319,8 @@ export function App() {
   }, [loadAndApplyTheme]);
 
   useEffect(() => {
+    if (!window.electron) return;
+
     const unsubscribe = window.electron.onCustomThemeUpdated(() => {
       loadAndApplyTheme();
     });
@@ -274,6 +335,8 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (!window.electron) return;
+
     const unsubscribe = window.electron.onAchievementUnlocked(() => {
       playAudio();
     });
@@ -289,7 +352,7 @@ export function App() {
 
   return (
     <>
-      {window.electron.platform === "win32" && (
+      {window.electron?.platform === "win32" && (
         <div className="title-bar">
           <h4>
             Hydra

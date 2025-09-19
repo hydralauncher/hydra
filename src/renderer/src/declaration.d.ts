@@ -37,6 +37,8 @@ import type {
   ShopDetailsWithAssets,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  GameRef,
+  GamesOrganizerResult,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -167,6 +169,10 @@ declare global {
       objectId: string,
       playtimeInSeconds: number
     ) => Promise<void>;
+    createGamesFolder: (
+      folderPath: string,
+      games: GameRef[]
+    ) => Promise<GamesOrganizerResult>;
     /* User preferences */
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
     authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;

@@ -103,6 +103,8 @@ export interface UserPreferences {
   showDownloadSpeedInMegabytes?: boolean;
   extractFilesByDefault?: boolean;
   enableSteamAchievements?: boolean;
+  showGameCountInFolders?: boolean;
+  showGamesInBothFoldersAndLibrary?: boolean;
 }
 
 export interface ScreenState {

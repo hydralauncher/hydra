@@ -7,14 +7,26 @@ interface SidebarGameItemProps {
   game: LibraryGame;
   handleSidebarGameClick: (event: React.MouseEvent, game: LibraryGame) => void;
   getGameTitle: (game: LibraryGame) => string;
+  isDraggable?: boolean;
+  onDragStart?: (gameId: string) => void;
 }
 
 export function SidebarGameItem({
   game,
   handleSidebarGameClick,
   getGameTitle,
+  isDraggable = true,
+  onDragStart,
 }: Readonly<SidebarGameItemProps>) {
   const location = useLocation();
+
+  const handleDragStart = (event: React.DragEvent) => {
+    if (onDragStart) {
+      onDragStart(game.id);
+    }
+    event.dataTransfer.setData("text/plain", game.id);
+    event.dataTransfer.effectAllowed = "move";
+  };
 
   return (
     <li
@@ -29,6 +41,8 @@ export function SidebarGameItem({
         type="button"
         className="sidebar__menu-item-button"
         onClick={(event) => handleSidebarGameClick(event, game)}
+        draggable={isDraggable}
+        onDragStart={handleDragStart}
       >
         {game.iconUrl ? (
           <img

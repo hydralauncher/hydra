@@ -16,10 +16,14 @@ export function AutoUpdateSubHeader() {
   const { t } = useTranslation("header");
 
   const handleClickInstallUpdate = () => {
-    window.electron.restartAndInstallUpdate();
+    if (window.electron) {
+      window.electron.restartAndInstallUpdate();
+    }
   };
 
   useEffect(() => {
+    if (!window.electron) return;
+
     const unsubscribe = window.electron.onAutoUpdaterEvent(
       (event: AppUpdaterEvent) => {
         if (event.type == "update-available") {

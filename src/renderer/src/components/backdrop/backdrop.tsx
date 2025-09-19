@@ -14,7 +14,7 @@ export function Backdrop({
     <div
       className={cn("backdrop", {
         "backdrop--closing": isClosing,
-        "backdrop--windows": window.electron.platform === "win32",
+        "backdrop--windows": window.electron?.platform === "win32",
       })}
     >
       {children}

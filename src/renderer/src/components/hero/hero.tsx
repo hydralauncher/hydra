@@ -16,6 +16,8 @@ export function Hero() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!window.electron) return;
+
     setIsLoading(true);
 
     window.electron

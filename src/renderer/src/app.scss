@@ -90,10 +90,12 @@ img {
 
 progress[value] {
   -webkit-appearance: none;
+  appearance: none;
 }
 
 .container {
-  width: 100%;
+  width: calc(100% - var(--sidebar-width, 250px));
+  min-width: 300px; // Garante largura mínima para evitar layout quebrado
   height: 100%;
   overflow: hidden;
   display: flex;
@@ -113,6 +115,21 @@ progress[value] {
       globals.$dark-background-color 50%,
       globals.$background-color 100%
     );
+  }
+}
+
+// Media queries para janelas pequenas
+@media (max-width: 768px) {
+  .container {
+    width: calc(100% - var(--sidebar-width, 200px));
+    min-width: 250px;
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    width: calc(100% - var(--sidebar-width, 180px));
+    min-width: 200px;
   }
 }
 
