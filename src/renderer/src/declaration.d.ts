@@ -130,7 +130,10 @@ declare global {
       sourcePath: string,
       assetType: "icon" | "logo" | "hero"
     ) => Promise<string>;
-    cleanupUnusedAssets: () => Promise<{ deletedCount: number; errors: string[] }>;
+    cleanupUnusedAssets: () => Promise<{
+      deletedCount: number;
+      errors: string[];
+    }>;
     updateGameCustomAssets: (
       shop: GameShop,
       objectId: string,

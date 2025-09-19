@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { ImageIcon } from "@primer/octicons-react";
+import { ImageIcon, ReplyIcon } from "@primer/octicons-react";
 
 import { Modal, TextField, Button } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
-import type { LibraryGame, Game } from "@types";
+import type { LibraryGame, Game, ShopDetailsWithAssets } from "@types";
 
 import "./edit-game-modal.scss";
 
@@ -12,6 +12,7 @@ export interface EditGameModalProps {
   visible: boolean;
   onClose: () => void;
   game: LibraryGame | Game | null;
+  shopDetails?: ShopDetailsWithAssets | null;
   onGameUpdated: (updatedGame: any) => void;
 }
 
@@ -19,6 +20,7 @@ export function EditGameModal({
   visible,
   onClose,
   game,
+  shopDetails,
   onGameUpdated,
 }: Readonly<EditGameModalProps>) {
   const { t } = useTranslation("sidebar");
@@ -29,6 +31,11 @@ export function EditGameModal({
   const [logoPath, setLogoPath] = useState("");
   const [heroPath, setHeroPath] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Store default image URLs for non-custom games
+  const [defaultIconUrl, setDefaultIconUrl] = useState<string | null>(null);
+  const [defaultLogoUrl, setDefaultLogoUrl] = useState<string | null>(null);
+  const [defaultHeroUrl, setDefaultHeroUrl] = useState<string | null>(null);
 
   // Helper function to check if game is a custom game
   const isCustomGame = (game: LibraryGame | Game): boolean => {
@@ -52,6 +59,11 @@ export function EditGameModal({
     setIconPath(extractLocalPath(game.customIconUrl));
     setLogoPath(extractLocalPath(game.customLogoImageUrl));
     setHeroPath(extractLocalPath(game.customHeroImageUrl));
+    
+    // Store default URLs for restore functionality from shopDetails.assets
+    setDefaultIconUrl(shopDetails?.assets?.iconUrl || game.iconUrl || null);
+    setDefaultLogoUrl(shopDetails?.assets?.logoImageUrl || game.logoImageUrl || null);
+    setDefaultHeroUrl(shopDetails?.assets?.libraryHeroImageUrl || game.libraryHeroImageUrl || null);
   };
 
   useEffect(() => {
@@ -64,7 +76,7 @@ export function EditGameModal({
         setNonCustomGameAssets(game as LibraryGame);
       }
     }
-  }, [game, visible]);
+  }, [game, visible, shopDetails]);
 
   const handleGameNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setGameName(event.target.value);
@@ -151,6 +163,19 @@ export function EditGameModal({
     }
   };
 
+  // Helper functions to restore default images for non-custom games
+  const handleRestoreDefaultIcon = () => {
+    setIconPath("");
+  };
+
+  const handleRestoreDefaultLogo = () => {
+    setLogoPath("");
+  };
+
+  const handleRestoreDefaultHero = () => {
+    setHeroPath("");
+  };
+
   // Helper function to prepare custom game assets
   const prepareCustomGameAssets = (game: LibraryGame | Game) => {
     const iconUrl = iconPath ? `local:${iconPath}` : game.iconUrl;
@@ -235,6 +260,10 @@ export function EditGameModal({
 
     if (isCustomGame(game)) {
       setCustomGameAssets(game);
+      // Clear default URLs for custom games
+      setDefaultIconUrl(null);
+      setDefaultLogoUrl(null);
+      setDefaultHeroUrl(null);
     } else {
       setNonCustomGameAssets(game as LibraryGame);
     }
@@ -250,14 +279,26 @@ export function EditGameModal({
   const isFormValid = gameName.trim();
 
   const getIconPreviewUrl = (): string | undefined => {
+    if (!isCustomGame(game!)) {
+      // For non-custom games, show custom image if set, otherwise show default
+      return iconPath ? `local:${iconPath}` : defaultIconUrl || undefined;
+    }
     return iconPath ? `local:${iconPath}` : undefined;
   };
 
   const getLogoPreviewUrl = (): string | undefined => {
+    if (!isCustomGame(game!)) {
+      // For non-custom games, show custom image if set, otherwise show default
+      return logoPath ? `local:${logoPath}` : defaultLogoUrl || undefined;
+    }
     return logoPath ? `local:${logoPath}` : undefined;
   };
 
   const getHeroPreviewUrl = (): string | undefined => {
+    if (!isCustomGame(game!)) {
+      // For non-custom games, show custom image if set, otherwise show default
+      return heroPath ? `local:${heroPath}` : defaultHeroUrl || undefined;
+    }
     return heroPath ? `local:${heroPath}` : undefined;
   };
 
@@ -287,19 +328,32 @@ export function EditGameModal({
               readOnly
               theme="dark"
               rightContent={
-                <Button
-                  type="button"
-                  theme="outline"
-                  onClick={handleSelectIcon}
-                  disabled={isUpdating}
-                >
-                  <ImageIcon />
-                  {t("edit_custom_game_modal_browse")}
-                </Button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <Button
+                    type="button"
+                    theme="outline"
+                    onClick={handleSelectIcon}
+                    disabled={isUpdating}
+                  >
+                    <ImageIcon />
+                    {t("edit_custom_game_modal_browse")}
+                  </Button>
+                  {!isCustomGame(game!) && iconPath && (
+                    <Button
+                      type="button"
+                      theme="outline"
+                      onClick={handleRestoreDefaultIcon}
+                      disabled={isUpdating}
+                      title="Restore default icon"
+                    >
+                      <ReplyIcon />
+                    </Button>
+                  )}
+                </div>
               }
             />
 
-            {iconPath && (
+            {(iconPath || (!isCustomGame(game!) && defaultIconUrl)) && (
               <div className="edit-game-modal__image-preview">
                 <img
                   src={getIconPreviewUrl()}
@@ -318,19 +372,32 @@ export function EditGameModal({
               readOnly
               theme="dark"
               rightContent={
-                <Button
-                  type="button"
-                  theme="outline"
-                  onClick={handleSelectLogo}
-                  disabled={isUpdating}
-                >
-                  <ImageIcon />
-                  {t("edit_custom_game_modal_browse")}
-                </Button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <Button
+                    type="button"
+                    theme="outline"
+                    onClick={handleSelectLogo}
+                    disabled={isUpdating}
+                  >
+                    <ImageIcon />
+                    {t("edit_custom_game_modal_browse")}
+                  </Button>
+                  {!isCustomGame(game!) && logoPath && (
+                    <Button
+                      type="button"
+                      theme="outline"
+                      onClick={handleRestoreDefaultLogo}
+                      disabled={isUpdating}
+                      title="Restore default logo"
+                    >
+                      <ReplyIcon />
+                    </Button>
+                  )}
+                </div>
               }
             />
 
-            {logoPath && (
+            {(logoPath || (!isCustomGame(game!) && defaultLogoUrl)) && (
               <div className="edit-game-modal__image-preview">
                 <img
                   src={getLogoPreviewUrl()}
@@ -349,19 +416,32 @@ export function EditGameModal({
               readOnly
               theme="dark"
               rightContent={
-                <Button
-                  type="button"
-                  theme="outline"
-                  onClick={handleSelectHero}
-                  disabled={isUpdating}
-                >
-                  <ImageIcon />
-                  {t("edit_custom_game_modal_browse")}
-                </Button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <Button
+                    type="button"
+                    theme="outline"
+                    onClick={handleSelectHero}
+                    disabled={isUpdating}
+                  >
+                    <ImageIcon />
+                    {t("edit_custom_game_modal_browse")}
+                  </Button>
+                  {!isCustomGame(game!) && heroPath && (
+                    <Button
+                      type="button"
+                      theme="outline"
+                      onClick={handleRestoreDefaultHero}
+                      disabled={isUpdating}
+                      title="Restore default hero image"
+                    >
+                      <ReplyIcon />
+                    </Button>
+                  )}
+                </div>
               }
             />
 
-            {heroPath && (
+            {(heroPath || (!isCustomGame(game!) && defaultHeroUrl)) && (
               <div className="edit-game-modal__image-preview">
                 <img
                   src={getHeroPreviewUrl()}

@@ -528,7 +528,9 @@ export function GameOptionsModal({
                   }}
                   theme="danger"
                   disabled={
-                    isGameDownloading || deleting || !game.download?.downloadPath
+                    isGameDownloading ||
+                    deleting ||
+                    !game.download?.downloadPath
                   }
                 >
                   {t("remove_files")}
