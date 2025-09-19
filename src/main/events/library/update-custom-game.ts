@@ -1,9 +1,5 @@
 import { registerEvent } from "../register-event";
-import {
-  gamesSublevel,
-  gamesShopAssetsSublevel,
-  levelKeys,
-} from "@main/level";
+import { gamesSublevel, gamesShopAssetsSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
 
 const updateCustomGame = async (
@@ -16,7 +12,7 @@ const updateCustomGame = async (
   libraryHeroImageUrl?: string
 ) => {
   const gameKey = levelKeys.game(shop, objectId);
-  
+
   const existingGame = await gamesSublevel.get(gameKey);
   if (!existingGame) {
     throw new Error("Game not found");

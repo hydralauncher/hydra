@@ -87,9 +87,9 @@ export const removeCustomCss = (target: HTMLElement = document.head) => {
 
 export const generateRandomGradient = (): string => {
   // Use a single consistent gradient with softer colors for custom games as placeholder
-  const color1 = '#2c3e50'; // Dark blue-gray
-  const color2 = '#34495e'; // Darker slate
-  
+  const color1 = "#2c3e50"; // Dark blue-gray
+  const color2 = "#34495e"; // Darker slate
+
   // Create SVG data URL that works in img tags
   const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
     <defs>
@@ -100,7 +100,7 @@ export const generateRandomGradient = (): string => {
     </defs>
     <rect width="100%" height="100%" fill="url(#grad)" />
   </svg>`;
-  
+
   // Return as data URL that works in img tags
   return `data:image/svg+xml;base64,${btoa(svgContent)}`;
 };

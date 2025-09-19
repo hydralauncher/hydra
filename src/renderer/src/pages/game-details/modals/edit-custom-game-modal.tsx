@@ -33,17 +33,17 @@ export function EditCustomGameModal({
   useEffect(() => {
     if (game && visible) {
       setGameName(game.title || "");
-      
-      const currentIconPath = game.iconUrl?.startsWith("local:") 
-        ? game.iconUrl.replace("local:", "") 
+
+      const currentIconPath = game.iconUrl?.startsWith("local:")
+        ? game.iconUrl.replace("local:", "")
         : "";
-      const currentLogoPath = game.logoImageUrl?.startsWith("local:") 
-        ? game.logoImageUrl.replace("local:", "") 
+      const currentLogoPath = game.logoImageUrl?.startsWith("local:")
+        ? game.logoImageUrl.replace("local:", "")
         : "";
-      const currentHeroPath = game.libraryHeroImageUrl?.startsWith("local:") 
-        ? game.libraryHeroImageUrl.replace("local:", "") 
+      const currentHeroPath = game.libraryHeroImageUrl?.startsWith("local:")
+        ? game.libraryHeroImageUrl.replace("local:", "")
         : "";
-        
+
       setIconPath(currentIconPath);
       setLogoPath(currentLogoPath);
       setHeroPath(currentHeroPath);
@@ -114,8 +114,10 @@ export function EditCustomGameModal({
       // Preserve existing image URLs if not changed
       const iconUrl = iconPath ? `local:${iconPath}` : game.iconUrl;
       const logoImageUrl = logoPath ? `local:${logoPath}` : game.logoImageUrl;
-      const libraryHeroImageUrl = heroPath ? `local:${heroPath}` : game.libraryHeroImageUrl;
-      
+      const libraryHeroImageUrl = heroPath
+        ? `local:${heroPath}`
+        : game.libraryHeroImageUrl;
+
       const updatedGame = await window.electron.updateCustomGame(
         game.shop,
         game.objectId,
@@ -131,8 +133,8 @@ export function EditCustomGameModal({
     } catch (error) {
       console.error("Failed to update custom game:", error);
       showErrorToast(
-        error instanceof Error 
-          ? error.message 
+        error instanceof Error
+          ? error.message
           : t("edit_custom_game_modal_failed")
       );
     } finally {
@@ -143,17 +145,17 @@ export function EditCustomGameModal({
   const handleClose = () => {
     if (!isUpdating) {
       setGameName(game?.title || "");
-      
-      const currentIconPath = game?.iconUrl?.startsWith("local:") 
-        ? game.iconUrl.replace("local:", "") 
+
+      const currentIconPath = game?.iconUrl?.startsWith("local:")
+        ? game.iconUrl.replace("local:", "")
         : "";
-      const currentLogoPath = game?.logoImageUrl?.startsWith("local:") 
-        ? game.logoImageUrl.replace("local:", "") 
+      const currentLogoPath = game?.logoImageUrl?.startsWith("local:")
+        ? game.logoImageUrl.replace("local:", "")
         : "";
-      const currentHeroPath = game?.libraryHeroImageUrl?.startsWith("local:") 
-        ? game.libraryHeroImageUrl.replace("local:", "") 
+      const currentHeroPath = game?.libraryHeroImageUrl?.startsWith("local:")
+        ? game.libraryHeroImageUrl.replace("local:", "")
         : "";
-        
+
       setIconPath(currentIconPath);
       setLogoPath(currentLogoPath);
       setHeroPath(currentHeroPath);
@@ -212,7 +214,7 @@ export function EditCustomGameModal({
                 </Button>
               }
             />
-            
+
             {iconPath && (
               <div className="edit-custom-game-modal__image-preview">
                 <img
@@ -243,7 +245,7 @@ export function EditCustomGameModal({
                 </Button>
               }
             />
-            
+
             {logoPath && (
               <div className="edit-custom-game-modal__image-preview">
                 <img
@@ -274,7 +276,7 @@ export function EditCustomGameModal({
                 </Button>
               }
             />
-            
+
             {heroPath && (
               <div className="edit-custom-game-modal__image-preview">
                 <img
@@ -288,21 +290,23 @@ export function EditCustomGameModal({
         </div>
 
         <div className="edit-custom-game-modal__actions">
-          <Button 
-            type="button" 
-            theme="outline" 
+          <Button
+            type="button"
+            theme="outline"
             onClick={handleClose}
             disabled={isUpdating}
           >
             {t("edit_custom_game_modal_cancel")}
           </Button>
-          <Button 
-            type="button" 
-            theme="primary" 
+          <Button
+            type="button"
+            theme="primary"
             onClick={handleUpdateGame}
             disabled={!isFormValid || isUpdating}
           >
-            {isUpdating ? t("edit_custom_game_modal_updating") : t("edit_custom_game_modal_update")}
+            {isUpdating
+              ? t("edit_custom_game_modal_updating")
+              : t("edit_custom_game_modal_update")}
           </Button>
         </div>
       </div>

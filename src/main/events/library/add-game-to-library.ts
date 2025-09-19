@@ -30,6 +30,8 @@ const addGameToLibrary = async (
     game = {
       title,
       iconUrl: gameAssets?.iconUrl ?? null,
+      libraryHeroImageUrl: gameAssets?.libraryHeroImageUrl ?? null,
+      logoImageUrl: gameAssets?.logoImageUrl ?? null,
       objectId,
       shop,
       remoteId: null,

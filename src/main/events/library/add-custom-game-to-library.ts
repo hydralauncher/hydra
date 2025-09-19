@@ -1,12 +1,7 @@
 import { registerEvent } from "../register-event";
-import {
-  gamesSublevel,
-  gamesShopAssetsSublevel,
-  levelKeys,
-} from "@main/level";
+import { gamesSublevel, gamesShopAssetsSublevel, levelKeys } from "@main/level";
 import { randomUUID } from "crypto";
 import type { GameShop } from "@types";
-
 
 const addCustomGameToLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -21,12 +16,14 @@ const addCustomGameToLibrary = async (
   const gameKey = levelKeys.game(shop, objectId);
 
   const existingGames = await gamesSublevel.iterator().all();
-  const existingGame = existingGames.find(([_key, game]) =>
-    game.executablePath === executablePath && !game.isDeleted
+  const existingGame = existingGames.find(
+    ([_key, game]) => game.executablePath === executablePath && !game.isDeleted
   );
 
   if (existingGame) {
-    throw new Error("A game with this executable path already exists in your library");
+    throw new Error(
+      "A game with this executable path already exists in your library"
+    );
   }
 
   const assets = {
