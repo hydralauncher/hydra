@@ -31,7 +31,7 @@ export function EditGameModal({
   const [logoPath, setLogoPath] = useState("");
   const [heroPath, setHeroPath] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
-  
+
   // Store default image URLs for non-custom games
   const [defaultIconUrl, setDefaultIconUrl] = useState<string | null>(null);
   const [defaultLogoUrl, setDefaultLogoUrl] = useState<string | null>(null);
@@ -59,11 +59,17 @@ export function EditGameModal({
     setIconPath(extractLocalPath(game.customIconUrl));
     setLogoPath(extractLocalPath(game.customLogoImageUrl));
     setHeroPath(extractLocalPath(game.customHeroImageUrl));
-    
+
     // Store default URLs for restore functionality from shopDetails.assets
     setDefaultIconUrl(shopDetails?.assets?.iconUrl || game.iconUrl || null);
-    setDefaultLogoUrl(shopDetails?.assets?.logoImageUrl || game.logoImageUrl || null);
-    setDefaultHeroUrl(shopDetails?.assets?.libraryHeroImageUrl || game.libraryHeroImageUrl || null);
+    setDefaultLogoUrl(
+      shopDetails?.assets?.logoImageUrl || game.logoImageUrl || null
+    );
+    setDefaultHeroUrl(
+      shopDetails?.assets?.libraryHeroImageUrl ||
+        game.libraryHeroImageUrl ||
+        null
+    );
   };
 
   useEffect(() => {
@@ -235,7 +241,7 @@ export function EditGameModal({
     setIsUpdating(true);
 
     try {
-      const updatedGame = isCustomGame(game)
+      const updatedGame = game && isCustomGame(game)
         ? await updateCustomGame(game)
         : await updateNonCustomGame(game as LibraryGame);
 
@@ -279,7 +285,7 @@ export function EditGameModal({
   const isFormValid = gameName.trim();
 
   const getIconPreviewUrl = (): string | undefined => {
-    if (!isCustomGame(game!)) {
+    if (game && !isCustomGame(game)) {
       // For non-custom games, show custom image if set, otherwise show default
       return iconPath ? `local:${iconPath}` : defaultIconUrl || undefined;
     }
@@ -287,7 +293,7 @@ export function EditGameModal({
   };
 
   const getLogoPreviewUrl = (): string | undefined => {
-    if (!isCustomGame(game!)) {
+    if (game && !isCustomGame(game)) {
       // For non-custom games, show custom image if set, otherwise show default
       return logoPath ? `local:${logoPath}` : defaultLogoUrl || undefined;
     }
@@ -295,7 +301,7 @@ export function EditGameModal({
   };
 
   const getHeroPreviewUrl = (): string | undefined => {
-    if (!isCustomGame(game!)) {
+    if (game && !isCustomGame(game)) {
       // For non-custom games, show custom image if set, otherwise show default
       return heroPath ? `local:${heroPath}` : defaultHeroUrl || undefined;
     }
@@ -328,7 +334,7 @@ export function EditGameModal({
               readOnly
               theme="dark"
               rightContent={
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: "flex", gap: "8px" }}>
                   <Button
                     type="button"
                     theme="outline"
@@ -338,7 +344,7 @@ export function EditGameModal({
                     <ImageIcon />
                     {t("edit_custom_game_modal_browse")}
                   </Button>
-                  {!isCustomGame(game!) && iconPath && (
+                  {game && !isCustomGame(game) && iconPath && (
                     <Button
                       type="button"
                       theme="outline"
@@ -353,7 +359,7 @@ export function EditGameModal({
               }
             />
 
-            {(iconPath || (!isCustomGame(game!) && defaultIconUrl)) && (
+            {(iconPath || (game && !isCustomGame(game) && defaultIconUrl)) && (
               <div className="edit-game-modal__image-preview">
                 <img
                   src={getIconPreviewUrl()}
@@ -372,7 +378,7 @@ export function EditGameModal({
               readOnly
               theme="dark"
               rightContent={
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: "flex", gap: "8px" }}>
                   <Button
                     type="button"
                     theme="outline"
@@ -382,7 +388,7 @@ export function EditGameModal({
                     <ImageIcon />
                     {t("edit_custom_game_modal_browse")}
                   </Button>
-                  {!isCustomGame(game!) && logoPath && (
+                  {game && !isCustomGame(game) && logoPath && (
                     <Button
                       type="button"
                       theme="outline"
@@ -397,7 +403,7 @@ export function EditGameModal({
               }
             />
 
-            {(logoPath || (!isCustomGame(game!) && defaultLogoUrl)) && (
+            {(logoPath || (game && !isCustomGame(game) && defaultLogoUrl)) && (
               <div className="edit-game-modal__image-preview">
                 <img
                   src={getLogoPreviewUrl()}
@@ -416,7 +422,7 @@ export function EditGameModal({
               readOnly
               theme="dark"
               rightContent={
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: "flex", gap: "8px" }}>
                   <Button
                     type="button"
                     theme="outline"
@@ -426,7 +432,7 @@ export function EditGameModal({
                     <ImageIcon />
                     {t("edit_custom_game_modal_browse")}
                   </Button>
-                  {!isCustomGame(game!) && heroPath && (
+                  {game && !isCustomGame(game) && heroPath && (
                     <Button
                       type="button"
                       theme="outline"
@@ -441,7 +447,7 @@ export function EditGameModal({
               }
             />
 
-            {(heroPath || (!isCustomGame(game!) && defaultHeroUrl)) && (
+            {(heroPath || (game && !isCustomGame(game) && defaultHeroUrl)) && (
               <div className="edit-game-modal__image-preview">
                 <img
                   src={getHeroPreviewUrl()}
