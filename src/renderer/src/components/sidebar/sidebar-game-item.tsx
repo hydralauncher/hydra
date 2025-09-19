@@ -1,4 +1,5 @@
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
+import PlayLogo from "@renderer/assets/play-logo.svg?react";
 import { LibraryGame } from "@types";
 import cn from "classnames";
 import { useLocation } from "react-router-dom";
@@ -16,6 +17,11 @@ export function SidebarGameItem({
 }: Readonly<SidebarGameItemProps>) {
   const location = useLocation();
 
+  const isCustomGame = game.shop === "custom";
+  const sidebarIcon = isCustomGame
+    ? game.libraryImageUrl || game.iconUrl
+    : game.iconUrl;
+
   return (
     <li
       key={game.id}
@@ -30,13 +36,15 @@ export function SidebarGameItem({
         className="sidebar__menu-item-button"
         onClick={(event) => handleSidebarGameClick(event, game)}
       >
-        {game.iconUrl ? (
+        {sidebarIcon ? (
           <img
             className="sidebar__game-icon"
-            src={game.iconUrl}
+            src={sidebarIcon}
             alt={game.title}
             loading="lazy"
           />
+        ) : isCustomGame ? (
+          <PlayLogo className="sidebar__game-icon" />
         ) : (
           <SteamLogo className="sidebar__game-icon" />
         )}

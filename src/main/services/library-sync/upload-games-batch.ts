@@ -11,7 +11,7 @@ export const uploadGamesBatch = async () => {
     .all()
     .then((results) => {
       return results.filter(
-        (game) => !game.isDeleted && game.remoteId === null
+        (game) => !game.isDeleted && game.remoteId === null && game.shop !== "custom"
       );
     });
 

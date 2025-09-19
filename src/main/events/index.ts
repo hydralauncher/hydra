@@ -14,6 +14,8 @@ import "./catalogue/get-developers";
 import "./hardware/get-disk-free-space";
 import "./hardware/check-folder-write-permission";
 import "./library/add-game-to-library";
+import "./library/add-custom-game-to-library";
+import "./library/update-custom-game";
 import "./library/add-game-to-favorites";
 import "./library/remove-game-from-favorites";
 import "./library/create-game-shortcut";

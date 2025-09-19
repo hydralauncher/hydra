@@ -111,6 +111,21 @@ declare global {
       objectId: string,
       title: string
     ) => Promise<void>;
+    addCustomGameToLibrary: (
+      title: string,
+      executablePath: string,
+      iconUrl?: string,
+      logoImageUrl?: string,
+      libraryHeroImageUrl?: string
+    ) => Promise<Game>;
+    updateCustomGame: (
+      shop: GameShop,
+      objectId: string,
+      title: string,
+      iconUrl?: string,
+      logoImageUrl?: string,
+      libraryHeroImageUrl?: string
+    ) => Promise<Game>;
     createGameShortcut: (
       shop: GameShop,
       objectId: string,

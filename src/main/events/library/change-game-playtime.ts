@@ -13,16 +13,20 @@ const changeGamePlaytime = async (
     const gameKey = levelKeys.game(shop, objectId);
     const game = await gamesSublevel.get(gameKey);
     if (!game) return;
-    await HydraApi.put(`/profile/games/${shop}/${objectId}/playtime`, {
-      playTimeInSeconds,
-    });
+    
+    if (game.remoteId) {
+      await HydraApi.put(`/profile/games/${shop}/${objectId}/playtime`, {
+        playTimeInSeconds,
+      });
+    }
+    
     await gamesSublevel.put(gameKey, {
       ...game,
       playTimeInMilliseconds: playTimeInSeconds * 1000,
       hasManuallyUpdatedPlaytime: true,
     });
   } catch (error) {
-    throw new Error(`Failed to update game favorite status: ${error}`);
+    throw new Error(`Failed to update game playtime: ${error}`);
   }
 };
 
