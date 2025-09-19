@@ -17,10 +17,10 @@ export interface SidebarAddingCustomGameModalProps {
   onClose: () => void;
 }
 
-export function SidebarAddingCustomGameModal ({
+export function SidebarAddingCustomGameModal({
   visible,
   onClose,
-}: Readonly<SidebarAddingCustomGameModalProps>) { 
+}: Readonly<SidebarAddingCustomGameModalProps>) {
   const { t } = useTranslation("sidebar");
   const { updateLibrary } = useLibrary();
   const { showSuccessToast, showErrorToast } = useToast();
