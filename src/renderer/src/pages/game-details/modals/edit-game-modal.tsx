@@ -207,74 +207,92 @@ export function EditGameModal({
   };
 
   const validateImageFile = (file: File): boolean => {
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const validTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+    ];
     return validTypes.includes(file.type);
   };
 
-  const processDroppedFile = async (file: File, assetType: 'icon' | 'logo' | 'hero') => {
+  const processDroppedFile = async (
+    file: File,
+    assetType: "icon" | "logo" | "hero"
+  ) => {
     setDragOverTarget(null);
-    
+
     if (!validateImageFile(file)) {
-      showErrorToast('Invalid file type. Please select an image file.');
+      showErrorToast("Invalid file type. Please select an image file.");
       return;
     }
 
     try {
       // In Electron, we need to get the file path differently
       let filePath: string;
-      
+
       // Try to get the path from the file object (Electron specific)
-      if ('path' in file && typeof (file as any).path === 'string') {
+      if ("path" in file && typeof (file as any).path === "string") {
         filePath = (file as any).path;
       } else {
         // Fallback: create a temporary file from the file data
         const arrayBuffer = await file.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
-        
+
         // Use a temporary file approach
         const tempFileName = `temp_${Date.now()}_${file.name}`;
-        const tempPath = await window.electron.saveTempFile?.(tempFileName, uint8Array);
-        
+        const tempPath = await window.electron.saveTempFile?.(
+          tempFileName,
+          uint8Array
+        );
+
         if (!tempPath) {
-          throw new Error('Unable to process file. Drag and drop may not be fully supported.');
+          throw new Error(
+            "Unable to process file. Drag and drop may not be fully supported."
+          );
         }
-        
+
         filePath = tempPath;
       }
-      
+
       // Copy the asset to the app's assets folder using the file path
       const copiedAssetUrl = await window.electron.copyCustomGameAsset(
         filePath,
         assetType
       );
-      
+
       const assetPath = copiedAssetUrl.replace("local:", "");
-      
+
       switch (assetType) {
-        case 'icon':
+        case "icon":
           setIconPath(assetPath);
           break;
-        case 'logo':
+        case "logo":
           setLogoPath(assetPath);
           break;
-        case 'hero':
+        case "hero":
           setHeroPath(assetPath);
           break;
       }
-      
-      showSuccessToast(`${assetType.charAt(0).toUpperCase() + assetType.slice(1)} updated successfully!`);
-      
+
+      showSuccessToast(
+        `${assetType.charAt(0).toUpperCase() + assetType.slice(1)} updated successfully!`
+      );
+
       // Clean up temporary file if we created one
-      if (!('path' in file) && filePath) {
+      if (!("path" in file) && filePath) {
         try {
           await window.electron.deleteTempFile?.(filePath);
         } catch (cleanupError) {
-          console.warn('Failed to clean up temporary file:', cleanupError);
+          console.warn("Failed to clean up temporary file:", cleanupError);
         }
       }
     } catch (error) {
       console.error(`Failed to process dropped ${assetType}:`, error);
-      showErrorToast(`Failed to process dropped ${assetType}. Please try again.`);
+      showErrorToast(
+        `Failed to process dropped ${assetType}. Please try again.`
+      );
     }
   };
 
@@ -282,12 +300,12 @@ export function EditGameModal({
     e.preventDefault();
     e.stopPropagation();
     setDragOverTarget(null);
-    
+
     if (isUpdating) return;
-    
+
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
-      await processDroppedFile(files[0], 'icon');
+      await processDroppedFile(files[0], "icon");
     }
   };
 
@@ -295,12 +313,12 @@ export function EditGameModal({
     e.preventDefault();
     e.stopPropagation();
     setDragOverTarget(null);
-    
+
     if (isUpdating) return;
-    
+
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
-      await processDroppedFile(files[0], 'logo');
+      await processDroppedFile(files[0], "logo");
     }
   };
 
@@ -308,12 +326,12 @@ export function EditGameModal({
     e.preventDefault();
     e.stopPropagation();
     setDragOverTarget(null);
-    
+
     if (isUpdating) return;
-    
+
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
-      await processDroppedFile(files[0], 'hero');
+      await processDroppedFile(files[0], "hero");
     }
   };
 
@@ -387,9 +405,7 @@ export function EditGameModal({
     } catch (error) {
       console.error("Failed to update game:", error);
       showErrorToast(
-        error instanceof Error
-          ? error.message
-          : t("edit_game_modal_failed")
+        error instanceof Error ? error.message : t("edit_game_modal_failed")
       );
     } finally {
       setIsUpdating(false);
@@ -499,21 +515,33 @@ export function EditGameModal({
             </div>
 
             {(iconPath || (game && !isCustomGame(game) && defaultIconUrl)) && (
-              <div 
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label={t("edit_game_modal_icon_drop_zone")}
                 className={`edit-game-modal__image-preview edit-game-modal__icon-preview ${
-                  dragOverTarget === 'icon' ? 'edit-game-modal__drop-zone--active' : ''
+                  dragOverTarget === "icon"
+                    ? "edit-game-modal__drop-zone--active"
+                    : ""
                 }`}
                 onDragOver={handleDragOver}
-                onDragEnter={(e) => handleDragEnter(e, 'icon')}
+                onDragEnter={(e) => handleDragEnter(e, "icon")}
                 onDragLeave={handleDragLeave}
                 onDrop={handleIconDrop}
+                onClick={handleSelectIcon}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleSelectIcon();
+                  }
+                }}
               >
                 <img
                   src={getIconPreviewUrl()}
                   alt={t("edit_game_modal_icon_preview")}
                   className="edit-game-modal__preview-image"
                 />
-                {dragOverTarget === 'icon' && (
+                {dragOverTarget === "icon" && (
                   <div className="edit-game-modal__drop-overlay">
                     <span>Drop to replace icon</span>
                   </div>
@@ -521,15 +549,27 @@ export function EditGameModal({
               </div>
             )}
 
-            {(!iconPath && !(game && !isCustomGame(game) && defaultIconUrl)) && (
-              <div 
+            {!iconPath && !(game && !isCustomGame(game) && defaultIconUrl) && (
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label={t("edit_game_modal_icon_drop_zone_empty")}
                 className={`edit-game-modal__image-preview edit-game-modal__icon-preview edit-game-modal__drop-zone ${
-                  dragOverTarget === 'icon' ? 'edit-game-modal__drop-zone--active' : ''
+                  dragOverTarget === "icon"
+                    ? "edit-game-modal__drop-zone--active"
+                    : ""
                 }`}
                 onDragOver={handleDragOver}
-                onDragEnter={(e) => handleDragEnter(e, 'icon')}
+                onDragEnter={(e) => handleDragEnter(e, "icon")}
                 onDragLeave={handleDragLeave}
                 onDrop={handleIconDrop}
+                onClick={handleSelectIcon}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleSelectIcon();
+                  }
+                }}
               >
                 <div className="edit-game-modal__drop-zone-content">
                   <ImageIcon />
@@ -576,21 +616,33 @@ export function EditGameModal({
             </div>
 
             {(logoPath || (game && !isCustomGame(game) && defaultLogoUrl)) && (
-              <div 
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label={t("edit_game_modal_logo_drop_zone")}
                 className={`edit-game-modal__image-preview ${
-                  dragOverTarget === 'logo' ? 'edit-game-modal__drop-zone--active' : ''
+                  dragOverTarget === "logo"
+                    ? "edit-game-modal__drop-zone--active"
+                    : ""
                 }`}
                 onDragOver={handleDragOver}
-                onDragEnter={(e) => handleDragEnter(e, 'logo')}
+                onDragEnter={(e) => handleDragEnter(e, "logo")}
                 onDragLeave={handleDragLeave}
                 onDrop={handleLogoDrop}
+                onClick={handleSelectLogo}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleSelectLogo();
+                  }
+                }}
               >
                 <img
                   src={getLogoPreviewUrl()}
                   alt={t("edit_game_modal_logo_preview")}
                   className="edit-game-modal__preview-image"
                 />
-                {dragOverTarget === 'logo' && (
+                {dragOverTarget === "logo" && (
                   <div className="edit-game-modal__drop-overlay">
                     <span>Drop to replace logo</span>
                   </div>
@@ -598,13 +650,15 @@ export function EditGameModal({
               </div>
             )}
 
-            {(!logoPath && !(game && !isCustomGame(game) && defaultLogoUrl)) && (
-              <div 
+            {!logoPath && !(game && !isCustomGame(game) && defaultLogoUrl) && (
+              <div
                 className={`edit-game-modal__image-preview edit-game-modal__drop-zone ${
-                  dragOverTarget === 'logo' ? 'edit-game-modal__drop-zone--active' : ''
+                  dragOverTarget === "logo"
+                    ? "edit-game-modal__drop-zone--active"
+                    : ""
                 }`}
                 onDragOver={handleDragOver}
-                onDragEnter={(e) => handleDragEnter(e, 'logo')}
+                onDragEnter={(e) => handleDragEnter(e, "logo")}
                 onDragLeave={handleDragLeave}
                 onDrop={handleLogoDrop}
               >
@@ -653,12 +707,14 @@ export function EditGameModal({
             </div>
 
             {(heroPath || (game && !isCustomGame(game) && defaultHeroUrl)) && (
-              <div 
+              <div
                 className={`edit-game-modal__image-preview ${
-                  dragOverTarget === 'hero' ? 'edit-game-modal__drop-zone--active' : ''
+                  dragOverTarget === "hero"
+                    ? "edit-game-modal__drop-zone--active"
+                    : ""
                 }`}
                 onDragOver={handleDragOver}
-                onDragEnter={(e) => handleDragEnter(e, 'hero')}
+                onDragEnter={(e) => handleDragEnter(e, "hero")}
                 onDragLeave={handleDragLeave}
                 onDrop={handleHeroDrop}
               >
@@ -667,7 +723,7 @@ export function EditGameModal({
                   alt={t("edit_game_modal_hero_preview")}
                   className="edit-game-modal__preview-image"
                 />
-                {dragOverTarget === 'hero' && (
+                {dragOverTarget === "hero" && (
                   <div className="edit-game-modal__drop-overlay">
                     <span>Drop to replace hero image</span>
                   </div>
@@ -675,13 +731,15 @@ export function EditGameModal({
               </div>
             )}
 
-            {(!heroPath && !(game && !isCustomGame(game) && defaultHeroUrl)) && (
-              <div 
+            {!heroPath && !(game && !isCustomGame(game) && defaultHeroUrl) && (
+              <div
                 className={`edit-game-modal__image-preview edit-game-modal__drop-zone ${
-                  dragOverTarget === 'hero' ? 'edit-game-modal__drop-zone--active' : ''
+                  dragOverTarget === "hero"
+                    ? "edit-game-modal__drop-zone--active"
+                    : ""
                 }`}
                 onDragOver={handleDragOver}
-                onDragEnter={(e) => handleDragEnter(e, 'hero')}
+                onDragEnter={(e) => handleDragEnter(e, "hero")}
                 onDragLeave={handleDragLeave}
                 onDrop={handleHeroDrop}
               >
