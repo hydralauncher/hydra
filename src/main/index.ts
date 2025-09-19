@@ -110,6 +110,7 @@ app.whenReady().then(async () => {
       x2 = "0%";
       y2 = "0%";
     }
+    // Note: "135deg" case removed as it uses all default values
 
     const svgContent = `
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">

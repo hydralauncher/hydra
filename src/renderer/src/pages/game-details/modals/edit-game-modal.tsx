@@ -4,14 +4,14 @@ import { ImageIcon } from "@primer/octicons-react";
 
 import { Modal, TextField, Button } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
-import type { LibraryGame } from "@types";
+import type { LibraryGame, Game } from "@types";
 
 import "./edit-game-modal.scss";
 
 export interface EditGameModalProps {
   visible: boolean;
   onClose: () => void;
-  game: LibraryGame | null;
+  game: LibraryGame | Game | null;
   onGameUpdated: (updatedGame: any) => void;
 }
 
@@ -20,7 +20,7 @@ export function EditGameModal({
   onClose,
   game,
   onGameUpdated,
-}: EditGameModalProps) {
+}: Readonly<EditGameModalProps>) {
   const { t } = useTranslation("sidebar");
   const { showSuccessToast, showErrorToast } = useToast();
 
@@ -30,13 +30,18 @@ export function EditGameModal({
   const [heroPath, setHeroPath] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // Helper function to check if game is a custom game
+  const isCustomGame = (game: LibraryGame | Game): boolean => {
+    return game.shop === "custom";
+  };
+
   // Helper function to extract local path from URL
   const extractLocalPath = (url: string | null | undefined): string => {
     return url?.startsWith("local:") ? url.replace("local:", "") : "";
   };
 
   // Helper function to set asset paths for custom games
-  const setCustomGameAssets = (game: LibraryGame) => {
+  const setCustomGameAssets = (game: LibraryGame | Game) => {
     setIconPath(extractLocalPath(game.iconUrl));
     setLogoPath(extractLocalPath(game.logoImageUrl));
     setHeroPath(extractLocalPath(game.libraryHeroImageUrl));
@@ -53,10 +58,10 @@ export function EditGameModal({
     if (game && visible) {
       setGameName(game.title || "");
 
-      if (game.shop === "custom") {
+      if (isCustomGame(game)) {
         setCustomGameAssets(game);
       } else {
-        setNonCustomGameAssets(game);
+        setNonCustomGameAssets(game as LibraryGame);
       }
     }
   }, [game, visible]);
@@ -114,7 +119,7 @@ export function EditGameModal({
   };
 
   // Helper function to prepare custom game assets
-  const prepareCustomGameAssets = (game: LibraryGame) => {
+  const prepareCustomGameAssets = (game: LibraryGame | Game) => {
     const iconUrl = iconPath ? `local:${iconPath}` : game.iconUrl;
     const logoImageUrl = logoPath ? `local:${logoPath}` : game.logoImageUrl;
     const libraryHeroImageUrl = heroPath
@@ -134,7 +139,7 @@ export function EditGameModal({
   };
 
   // Helper function to update custom game
-  const updateCustomGame = async (game: LibraryGame) => {
+  const updateCustomGame = async (game: LibraryGame | Game) => {
     const { iconUrl, logoImageUrl, libraryHeroImageUrl } =
       prepareCustomGameAssets(game);
 
@@ -173,9 +178,9 @@ export function EditGameModal({
 
     try {
       const updatedGame =
-        game.shop === "custom"
+        isCustomGame(game)
           ? await updateCustomGame(game)
-          : await updateNonCustomGame(game);
+          : await updateNonCustomGame(game as LibraryGame);
 
       showSuccessToast(t("edit_custom_game_modal_success"));
       onGameUpdated(updatedGame);
@@ -193,13 +198,13 @@ export function EditGameModal({
   };
 
   // Helper function to reset form to initial state
-  const resetFormToInitialState = (game: LibraryGame) => {
+  const resetFormToInitialState = (game: LibraryGame | Game) => {
     setGameName(game.title || "");
 
-    if (game.shop === "custom") {
+    if (isCustomGame(game)) {
       setCustomGameAssets(game);
     } else {
-      setNonCustomGameAssets(game);
+      setNonCustomGameAssets(game as LibraryGame);
     }
   };
 
@@ -212,16 +217,16 @@ export function EditGameModal({
 
   const isFormValid = gameName.trim();
 
-  const getIconPreviewUrl = () => {
-    return iconPath ? `local:${iconPath}` : null;
+  const getIconPreviewUrl = (): string | undefined => {
+    return iconPath ? `local:${iconPath}` : undefined;
   };
 
-  const getLogoPreviewUrl = () => {
-    return logoPath ? `local:${logoPath}` : null;
+  const getLogoPreviewUrl = (): string | undefined => {
+    return logoPath ? `local:${logoPath}` : undefined;
   };
 
-  const getHeroPreviewUrl = () => {
-    return heroPath ? `local:${heroPath}` : null;
+  const getHeroPreviewUrl = (): string | undefined => {
+    return heroPath ? `local:${heroPath}` : undefined;
   };
 
   return (
@@ -265,7 +270,7 @@ export function EditGameModal({
             {iconPath && (
               <div className="edit-game-modal__image-preview">
                 <img
-                  src={getIconPreviewUrl()!}
+                  src={getIconPreviewUrl()}
                   alt={t("edit_custom_game_modal_icon_preview")}
                   className="edit-game-modal__preview-image"
                 />
@@ -296,7 +301,7 @@ export function EditGameModal({
             {logoPath && (
               <div className="edit-game-modal__image-preview">
                 <img
-                  src={getLogoPreviewUrl()!}
+                  src={getLogoPreviewUrl()}
                   alt={t("edit_custom_game_modal_logo_preview")}
                   className="edit-game-modal__preview-image"
                 />
@@ -327,7 +332,7 @@ export function EditGameModal({
             {heroPath && (
               <div className="edit-game-modal__image-preview">
                 <img
-                  src={getHeroPreviewUrl()!}
+                  src={getHeroPreviewUrl()}
                   alt={t("edit_custom_game_modal_hero_preview")}
                   className="edit-game-modal__preview-image"
                 />

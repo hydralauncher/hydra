@@ -7,7 +7,7 @@ import { HeroPanel } from "./hero";
 import { DescriptionHeader } from "./description-header/description-header";
 import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
-import { EditCustomGameModal, EditGameModal } from "./modals";
+import { EditGameModal } from "./modals";
 
 import { useTranslation } from "react-i18next";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
@@ -65,7 +65,6 @@ export function GameDetailsContent() {
   }, [shopDetails, t, game?.shop]);
 
   const [backdropOpacity, setBackdropOpacity] = useState(1);
-  const [showEditCustomGameModal, setShowEditCustomGameModal] = useState(false);
   const [showEditGameModal, setShowEditGameModal] = useState(false);
 
   const handleHeroLoad = async () => {
@@ -100,10 +99,6 @@ export function GameDetailsContent() {
     }
 
     setShowCloudSyncModal(true);
-  };
-
-  const handleEditCustomGameClick = () => {
-    setShowEditCustomGameModal(true);
   };
 
   const handleEditGameClick = () => {
@@ -181,11 +176,7 @@ export function GameDetailsContent() {
                 <button
                   type="button"
                   className="game-details__edit-custom-game-button"
-                  onClick={
-                    game?.shop === "custom"
-                      ? handleEditCustomGameClick
-                      : handleEditGameClick
-                  }
+                  onClick={handleEditGameClick}
                   title={t("edit_custom_game")}
                 >
                   <PencilIcon size={16} />
@@ -231,23 +222,12 @@ export function GameDetailsContent() {
         </div>
       </section>
 
-      {game?.shop === "custom" && (
-        <EditCustomGameModal
-          visible={showEditCustomGameModal}
-          onClose={() => setShowEditCustomGameModal(false)}
-          game={game}
-          onGameUpdated={handleGameUpdated}
-        />
-      )}
-
-      {game?.shop !== "custom" && (
-        <EditGameModal
-          visible={showEditGameModal}
-          onClose={() => setShowEditGameModal(false)}
-          game={game}
-          onGameUpdated={handleGameUpdated}
-        />
-      )}
+      <EditGameModal
+        visible={showEditGameModal}
+        onClose={() => setShowEditGameModal(false)}
+        game={game}
+        onGameUpdated={handleGameUpdated}
+      />
     </div>
   );
 }
