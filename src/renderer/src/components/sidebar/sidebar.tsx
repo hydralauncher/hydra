@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Tooltip } from "react-tooltip";
 
 import type { LibraryGame } from "@types";
 
@@ -21,8 +22,9 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import { SidebarProfile } from "./sidebar-profile";
 import { sortBy } from "lodash-es";
 import cn from "classnames";
-import { CommentDiscussionIcon, PlayIcon } from "@primer/octicons-react";
+import { CommentDiscussionIcon, PlayIcon, PlusIcon } from "@primer/octicons-react";
 import { SidebarGameItem } from "./sidebar-game-item";
+import { SidebarAddingCustomGameModal } from "./sidebar-adding-custom-game-modal";
 import { setFriendRequestCount } from "@renderer/features/user-details-slice";
 import { useDispatch } from "react-redux";
 
@@ -63,9 +65,18 @@ export function Sidebar() {
   const { showWarningToast } = useToast();
 
   const [showPlayableOnly, setShowPlayableOnly] = useState(false);
+  const [showAddGameModal, setShowAddGameModal] = useState(false);
 
   const handlePlayButtonClick = () => {
     setShowPlayableOnly(!showPlayableOnly);
+  };
+
+  const handleAddGameButtonClick = () => {
+    setShowAddGameModal(true);
+  };
+
+  const handleCloseAddGameModal = () => {
+    setShowAddGameModal(false);
   };
 
   useEffect(() => {
@@ -254,15 +265,30 @@ export function Sidebar() {
               <small className="sidebar__section-title">
                 {t("my_library")}
               </small>
-              <button
-                type="button"
-                className={cn("sidebar__play-button", {
-                  "sidebar__play-button--active": showPlayableOnly,
-                })}
-                onClick={handlePlayButtonClick}
-              >
-                <PlayIcon size={16} />
-              </button>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="sidebar__add-button"
+                  onClick={handleAddGameButtonClick}
+                  data-tooltip-id="add-custom-game-tooltip"
+                  data-tooltip-content={t("add_custom_game_tooltip")}
+                  data-tooltip-place="top"
+                >
+                  <PlusIcon size={16} />
+                </button>
+                <button
+                  type="button"
+                  className={cn("sidebar__play-button", {
+                    "sidebar__play-button--active": showPlayableOnly,
+                  })}
+                  onClick={handlePlayButtonClick}
+                  data-tooltip-id="show-playable-only-tooltip"
+                  data-tooltip-content={t("show_playable_only_tooltip")}
+                  data-tooltip-place="top"
+                >
+                  <PlayIcon size={16} />
+                </button>
+              </div>
             </div>
 
             <TextField
@@ -307,6 +333,14 @@ export function Sidebar() {
         className="sidebar__handle"
         onMouseDown={handleMouseDown}
       />
+
+      <SidebarAddingCustomGameModal
+        visible={showAddGameModal}
+        onClose={handleCloseAddGameModal}
+      />
+
+      <Tooltip id="add-custom-game-tooltip" />
+      <Tooltip id="show-playable-only-tooltip" />
     </aside>
   );
 }

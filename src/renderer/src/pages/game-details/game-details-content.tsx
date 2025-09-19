@@ -1,18 +1,20 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { average } from "color.js";
 import Color from "color";
+import { PencilIcon } from "@primer/octicons-react";
 
 import { HeroPanel } from "./hero";
 import { DescriptionHeader } from "./description-header/description-header";
 import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
+import { EditCustomGameModal } from "./modals";
 
 import { useTranslation } from "react-i18next";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import { AuthPage } from "@shared";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
-import { useUserDetails } from "@renderer/hooks";
+import { useUserDetails, useLibrary } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./game-details.scss";
 
@@ -28,11 +30,13 @@ export function GameDetailsContent() {
     gameColor,
     setGameColor,
     hasNSFWContentBlocked,
+    updateGame,
   } = useContext(gameDetailsContext);
 
   const { showHydraCloudModal } = useSubscription();
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { updateLibrary } = useLibrary();
 
   const { setShowCloudSyncModal, getGameArtifacts } =
     useContext(cloudSyncContext);
@@ -53,10 +57,15 @@ export function GameDetailsContent() {
       return document.body.outerHTML;
     }
 
+    if (game?.shop === "custom") {
+      return "";
+    }
+
     return t("no_shop_details");
-  }, [shopDetails, t]);
+  }, [shopDetails, t, game?.shop]);
 
   const [backdropOpacity, setBackdropOpacity] = useState(1);
+  const [showEditCustomGameModal, setShowEditCustomGameModal] = useState(false);
 
   const handleHeroLoad = async () => {
     const output = await average(
@@ -92,9 +101,26 @@ export function GameDetailsContent() {
     setShowCloudSyncModal(true);
   };
 
+  const handleEditCustomGameClick = () => {
+    setShowEditCustomGameModal(true);
+  };
+
+  const handleGameUpdated = (_updatedGame: any) => {
+    updateGame();
+    updateLibrary();
+  };
+
   useEffect(() => {
     getGameArtifacts();
   }, [getGameArtifacts]);
+
+  const isCustomGame = game?.shop === "custom";
+  const heroImage = isCustomGame
+    ? game?.libraryHeroImageUrl || game?.iconUrl || ""
+    : shopDetails?.assets?.libraryHeroImageUrl || "";
+  const logoImage = isCustomGame
+    ? game?.logoImageUrl || ""  // Don't use icon as fallback for custom games
+    : shopDetails?.assets?.logoImageUrl || "";
 
   return (
     <div
@@ -103,7 +129,7 @@ export function GameDetailsContent() {
       <section className="game-details__container">
         <div ref={heroRef} className="game-details__hero">
           <img
-            src={shopDetails?.assets?.libraryHeroImageUrl ?? ""}
+            src={heroImage}
             className="game-details__hero-image"
             alt={game?.title}
             onLoad={handleHeroLoad}
@@ -121,26 +147,43 @@ export function GameDetailsContent() {
             style={{ opacity: backdropOpacity }}
           >
             <div className="game-details__hero-content">
-              <img
-                src={shopDetails?.assets?.logoImageUrl ?? ""}
-                className="game-details__game-logo"
-                alt={game?.title}
-              />
+              {logoImage && (
+                <img
+                  src={logoImage}
+                  className="game-details__game-logo"
+                  alt={game?.title}
+                />
+              )}
 
-              <button
-                type="button"
-                className="game-details__cloud-sync-button"
-                onClick={handleCloudSaveButtonClick}
-              >
-                <div className="game-details__cloud-icon-container">
-                  <img
-                    src={cloudIconAnimated}
-                    alt="Cloud icon"
-                    className="game-details__cloud-icon"
-                  />
-                </div>
-                {t("cloud_save")}
-              </button>
+              <div className="game-details__hero-buttons game-details__hero-buttons--right">
+                {game?.shop === "custom" && (
+                  <button
+                    type="button"
+                    className="game-details__edit-custom-game-button"
+                    onClick={handleEditCustomGameClick}
+                    title={t("edit_custom_game")}
+                  >
+                    <PencilIcon size={16} />
+                  </button>
+                )}
+
+                {game?.shop !== "custom" && (
+                  <button
+                    type="button"
+                    className="game-details__cloud-sync-button"
+                    onClick={handleCloudSaveButtonClick}
+                  >
+                    <div className="game-details__cloud-icon-container">
+                      <img
+                        src={cloudIconAnimated}
+                        alt="Cloud icon"
+                        className="game-details__cloud-icon"
+                      />
+                    </div>
+                    {t("cloud_save")}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -160,9 +203,18 @@ export function GameDetailsContent() {
             />
           </div>
 
-          <Sidebar />
+          {game?.shop !== "custom" && <Sidebar />}
         </div>
       </section>
+
+      {game?.shop === "custom" && (
+        <EditCustomGameModal
+          visible={showEditCustomGameModal}
+          onClose={() => setShowEditCustomGameModal(false)}
+          game={game}
+          onGameUpdated={handleGameUpdated}
+        />
+      )}
     </div>
   );
 }

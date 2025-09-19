@@ -1,0 +1,46 @@
+@use "../../../scss/globals.scss";
+
+.edit-custom-game-modal {
+  &__container {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__image-section {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__image-preview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: globals.$spacing-unit;
+    border: 1px dashed globals.$border-color;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  &__preview-image {
+    max-width: 120px;
+    max-height: 80px;
+    border-radius: 8px;
+    object-fit: cover;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  &__actions {
+    display: flex;
+    gap: globals.$spacing-unit;
+    justify-content: flex-end;
+    margin-top: globals.$spacing-unit;
+  }
+}

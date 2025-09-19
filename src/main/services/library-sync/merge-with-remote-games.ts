@@ -44,6 +44,8 @@ export const mergeWithRemoteGames = async () => {
             remoteId: game.id,
             shop: game.shop,
             iconUrl: game.iconUrl,
+            libraryHeroImageUrl: game.libraryHeroImageUrl,
+            logoImageUrl: game.logoImageUrl,
             lastTimePlayed: game.lastTimePlayed,
             playTimeInMilliseconds: game.playTimeInMilliseconds,
             hasManuallyUpdatedPlaytime: game.hasManuallyUpdatedPlaytime,
