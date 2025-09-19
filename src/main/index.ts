@@ -95,30 +95,15 @@ app.whenReady().then(async () => {
       y2 = "100%";
 
     if (direction === "to right") {
-      // x1 = "0%"; // Already set to default value
-      // y1 = "0%"; // Already set to default value
-      x2 = "100%";
       y2 = "0%";
     } else if (direction === "to bottom") {
-      // x1 = "0%"; // Already set to default value
-      // y1 = "0%"; // Already set to default value
       x2 = "0%";
-      y2 = "100%";
     } else if (direction === "45deg") {
-      // x1 = "0%"; // Already set to default value
       y1 = "100%";
-      x2 = "100%";
       y2 = "0%";
-    } else if (direction === "135deg") {
-      // x1 = "0%"; // Already set to default value
-      // y1 = "0%"; // Already set to default value
-      x2 = "100%";
-      // y2 = "100%"; // Already set to default value
     } else if (direction === "225deg") {
       x1 = "100%";
-      // y1 = "0%"; // Already set to default value
       x2 = "0%";
-      // y2 = "100%"; // Already set to default value
     } else if (direction === "315deg") {
       x1 = "100%";
       y1 = "100%";

@@ -22,6 +22,14 @@ export function SidebarGameItem({
     ? game.libraryImageUrl || game.iconUrl
     : game.customIconUrl || game.iconUrl;
 
+  // Determine fallback icon based on game type
+  const getFallbackIcon = () => {
+    if (isCustomGame) {
+      return <PlayLogo className="sidebar__game-icon" />;
+    }
+    return <SteamLogo className="sidebar__game-icon" />;
+  };
+
   return (
     <li
       key={game.id}
@@ -43,10 +51,8 @@ export function SidebarGameItem({
             alt={game.title}
             loading="lazy"
           />
-        ) : isCustomGame ? (
-          <PlayLogo className="sidebar__game-icon" />
         ) : (
-          <SteamLogo className="sidebar__game-icon" />
+          getFallbackIcon()
         )}
 
         <span className="sidebar__menu-item-button-label">
