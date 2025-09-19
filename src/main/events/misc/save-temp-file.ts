@@ -10,11 +10,14 @@ const saveTempFile = async (
 ): Promise<string> => {
   try {
     const tempDir = app.getPath("temp");
-    const tempFilePath = path.join(tempDir, `hydra-temp-${Date.now()}-${fileName}`);
-    
+    const tempFilePath = path.join(
+      tempDir,
+      `hydra-temp-${Date.now()}-${fileName}`
+    );
+
     // Write the file data to temp directory
     fs.writeFileSync(tempFilePath, fileData);
-    
+
     return tempFilePath;
   } catch (error) {
     throw new Error(`Failed to save temp file: ${error}`);
