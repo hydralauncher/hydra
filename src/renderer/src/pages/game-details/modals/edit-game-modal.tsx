@@ -117,7 +117,9 @@ export function EditGameModal({
   const prepareCustomGameAssets = (game: LibraryGame) => {
     const iconUrl = iconPath ? `local:${iconPath}` : game.iconUrl;
     const logoImageUrl = logoPath ? `local:${logoPath}` : game.logoImageUrl;
-    const libraryHeroImageUrl = heroPath ? `local:${heroPath}` : game.libraryHeroImageUrl;
+    const libraryHeroImageUrl = heroPath
+      ? `local:${heroPath}`
+      : game.libraryHeroImageUrl;
 
     return { iconUrl, logoImageUrl, libraryHeroImageUrl };
   };
@@ -133,8 +135,9 @@ export function EditGameModal({
 
   // Helper function to update custom game
   const updateCustomGame = async (game: LibraryGame) => {
-    const { iconUrl, logoImageUrl, libraryHeroImageUrl } = prepareCustomGameAssets(game);
-    
+    const { iconUrl, logoImageUrl, libraryHeroImageUrl } =
+      prepareCustomGameAssets(game);
+
     return window.electron.updateCustomGame(
       game.shop,
       game.objectId,
@@ -147,8 +150,9 @@ export function EditGameModal({
 
   // Helper function to update non-custom game
   const updateNonCustomGame = async (game: LibraryGame) => {
-    const { customIconUrl, customLogoImageUrl, customHeroImageUrl } = prepareNonCustomGameAssets();
-    
+    const { customIconUrl, customLogoImageUrl, customHeroImageUrl } =
+      prepareNonCustomGameAssets();
+
     return window.electron.updateGameCustomAssets(
       game.shop,
       game.objectId,
@@ -168,9 +172,10 @@ export function EditGameModal({
     setIsUpdating(true);
 
     try {
-      const updatedGame = game.shop === "custom" 
-        ? await updateCustomGame(game)
-        : await updateNonCustomGame(game);
+      const updatedGame =
+        game.shop === "custom"
+          ? await updateCustomGame(game)
+          : await updateNonCustomGame(game);
 
       showSuccessToast(t("edit_custom_game_modal_success"));
       onGameUpdated(updatedGame);
