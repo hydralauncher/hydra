@@ -5,7 +5,10 @@ import { FileDirectoryIcon } from "@primer/octicons-react";
 
 import { Modal, TextField, Button } from "@renderer/components";
 import { useLibrary, useToast } from "@renderer/hooks";
-import { buildGameDetailsPath, generateRandomGradient } from "@renderer/helpers";
+import {
+  buildGameDetailsPath,
+  generateRandomGradient,
+} from "@renderer/helpers";
 
 import "./sidebar-adding-custom-game-modal.scss";
 
@@ -41,7 +44,7 @@ export function SidebarAddingCustomGameModal({
     if (filePaths && filePaths.length > 0) {
       const selectedPath = filePaths[0];
       setExecutablePath(selectedPath);
-      
+
       if (!gameName.trim()) {
         const fileName = selectedPath.split(/[\\/]/).pop() || "";
         const gameNameFromFile = fileName.replace(/\.[^/.]+$/, "");
@@ -53,8 +56,6 @@ export function SidebarAddingCustomGameModal({
   const handleGameNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setGameName(event.target.value);
   };
-
-
 
   const handleAddGame = async () => {
     if (!gameName.trim() || !executablePath.trim()) {
@@ -70,7 +71,7 @@ export function SidebarAddingCustomGameModal({
       const iconUrl = ""; // Don't use gradient for icon
       const logoImageUrl = ""; // Don't use gradient for logo
       const libraryHeroImageUrl = generateRandomGradient(); // Only use gradient for hero
-      
+
       const newGame = await window.electron.addCustomGameToLibrary(
         gameNameForSeed,
         executablePath,
@@ -81,24 +82,22 @@ export function SidebarAddingCustomGameModal({
 
       showSuccessToast(t("custom_game_modal_success"));
       updateLibrary();
-      
+
       const gameDetailsPath = buildGameDetailsPath({
         shop: "custom",
         objectId: newGame.objectId,
-        title: newGame.title
+        title: newGame.title,
       });
-      
+
       navigate(gameDetailsPath);
-      
+
       setGameName("");
       setExecutablePath("");
       onClose();
     } catch (error) {
       console.error("Failed to add custom game:", error);
       showErrorToast(
-        error instanceof Error 
-          ? error.message 
-          : t("custom_game_modal_failed")
+        error instanceof Error ? error.message : t("custom_game_modal_failed")
       );
     } finally {
       setIsAdding(false);
@@ -114,8 +113,6 @@ export function SidebarAddingCustomGameModal({
   };
 
   const isFormValid = gameName.trim() && executablePath.trim();
-
-
 
   return (
     <Modal
@@ -153,28 +150,26 @@ export function SidebarAddingCustomGameModal({
             theme="dark"
             disabled={isAdding}
           />
-
-
-
-
         </div>
 
         <div className="sidebar-adding-custom-game-modal__actions">
-          <Button 
-            type="button" 
-            theme="outline" 
+          <Button
+            type="button"
+            theme="outline"
             onClick={handleClose}
             disabled={isAdding}
           >
             {t("custom_game_modal_cancel")}
           </Button>
-          <Button 
-            type="button" 
-            theme="primary" 
+          <Button
+            type="button"
+            theme="primary"
             onClick={handleAddGame}
             disabled={!isFormValid || isAdding}
           >
-            {isAdding ? t("custom_game_modal_adding") : t("custom_game_modal_add")}
+            {isAdding
+              ? t("custom_game_modal_adding")
+              : t("custom_game_modal_add")}
           </Button>
         </div>
       </div>

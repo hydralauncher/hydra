@@ -135,7 +135,14 @@ contextBridge.exposeInMainWorld("electron", {
     logoImageUrl?: string,
     libraryHeroImageUrl?: string
   ) =>
-    ipcRenderer.invoke("addCustomGameToLibrary", title, executablePath, iconUrl, logoImageUrl, libraryHeroImageUrl),
+    ipcRenderer.invoke(
+      "addCustomGameToLibrary",
+      title,
+      executablePath,
+      iconUrl,
+      logoImageUrl,
+      libraryHeroImageUrl
+    ),
   updateCustomGame: (
     shop: GameShop,
     objectId: string,
@@ -144,7 +151,15 @@ contextBridge.exposeInMainWorld("electron", {
     logoImageUrl?: string,
     libraryHeroImageUrl?: string
   ) =>
-    ipcRenderer.invoke("updateCustomGame", shop, objectId, title, iconUrl, logoImageUrl, libraryHeroImageUrl),
+    ipcRenderer.invoke(
+      "updateCustomGame",
+      shop,
+      objectId,
+      title,
+      iconUrl,
+      logoImageUrl,
+      libraryHeroImageUrl
+    ),
   createGameShortcut: (
     shop: GameShop,
     objectId: string,
@@ -493,6 +508,4 @@ contextBridge.exposeInMainWorld("electron", {
   },
   closeEditorWindow: (themeId?: string) =>
     ipcRenderer.invoke("closeEditorWindow", themeId),
-    
-  
 });

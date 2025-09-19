@@ -119,7 +119,7 @@ export function GameDetailsContent() {
     ? game?.libraryHeroImageUrl || game?.iconUrl || ""
     : shopDetails?.assets?.libraryHeroImageUrl || "";
   const logoImage = isCustomGame
-    ? game?.logoImageUrl || ""  // Don't use icon as fallback for custom games
+    ? game?.logoImageUrl || "" // Don't use icon as fallback for custom games
     : shopDetails?.assets?.logoImageUrl || "";
 
   return (

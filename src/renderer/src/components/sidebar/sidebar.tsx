@@ -22,7 +22,11 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import { SidebarProfile } from "./sidebar-profile";
 import { sortBy } from "lodash-es";
 import cn from "classnames";
-import { CommentDiscussionIcon, PlayIcon, PlusIcon } from "@primer/octicons-react";
+import {
+  CommentDiscussionIcon,
+  PlayIcon,
+  PlusIcon,
+} from "@primer/octicons-react";
 import { SidebarGameItem } from "./sidebar-game-item";
 import { SidebarAddingCustomGameModal } from "./sidebar-adding-custom-game-modal";
 import { setFriendRequestCount } from "@renderer/features/user-details-slice";
@@ -265,7 +269,9 @@ export function Sidebar() {
               <small className="sidebar__section-title">
                 {t("my_library")}
               </small>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div
+                style={{ display: "flex", gap: "8px", alignItems: "center" }}
+              >
                 <button
                   type="button"
                   className="sidebar__add-button"

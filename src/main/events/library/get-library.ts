@@ -18,11 +18,17 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
             const download = await downloadsSublevel.get(key);
             const gameAssets = await gamesShopAssetsSublevel.get(key);
 
+            // 确保返回的对象符合 LibraryGame 类型
             return {
               id: key,
               ...game,
               download: download ?? null,
-              ...gameAssets,
+              // 确保 gameAssets 中的可能为 null 的字段转换为 undefined
+              libraryHeroImageUrl: gameAssets?.libraryHeroImageUrl ?? undefined,
+              libraryImageUrl: gameAssets?.libraryImageUrl ?? undefined,
+              logoImageUrl: gameAssets?.logoImageUrl ?? undefined,
+              logoPosition: gameAssets?.logoPosition ?? undefined,
+              coverImageUrl: gameAssets?.coverImageUrl ?? undefined,
             };
           })
       );
