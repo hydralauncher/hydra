@@ -69,8 +69,9 @@ app.whenReady().then(async () => {
       request.url.slice("gradient:".length)
     );
 
+    // Fixed regex to prevent ReDoS - removed nested quantifiers and backtracking
     const match = gradientCss.match(
-      /linear-gradient\(([^,]+),\s*([^,]+),\s*([^)]+)\)/
+      /^linear-gradient\(([^,()]+),\s*([^,()]+),\s*([^,()]+)\)$/
     );
 
     let direction = "45deg";

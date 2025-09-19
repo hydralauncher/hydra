@@ -120,7 +120,7 @@ export function GameDetailsContent() {
   }, [getGameArtifacts]);
 
   const isCustomGame = game?.shop === "custom";
-  
+
   // Helper function to get image with custom asset priority
   const getImageWithCustomPriority = (
     customUrl: string | null | undefined,
@@ -136,7 +136,7 @@ export function GameDetailsContent() {
         game?.customHeroImageUrl,
         shopDetails?.assets?.libraryHeroImageUrl
       );
-      
+
   const logoImage = isCustomGame
     ? game?.logoImageUrl || ""
     : getImageWithCustomPriority(
@@ -181,7 +181,11 @@ export function GameDetailsContent() {
                 <button
                   type="button"
                   className="game-details__edit-custom-game-button"
-                  onClick={game?.shop === "custom" ? handleEditCustomGameClick : handleEditGameClick}
+                  onClick={
+                    game?.shop === "custom"
+                      ? handleEditCustomGameClick
+                      : handleEditGameClick
+                  }
                   title={t("edit_custom_game")}
                 >
                   <PencilIcon size={16} />
