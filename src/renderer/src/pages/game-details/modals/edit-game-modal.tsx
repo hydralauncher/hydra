@@ -30,40 +30,33 @@ export function EditGameModal({
   const [heroPath, setHeroPath] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // Helper function to extract local path from URL
+  const extractLocalPath = (url: string | null | undefined): string => {
+    return url?.startsWith("local:") ? url.replace("local:", "") : "";
+  };
+
+  // Helper function to set asset paths for custom games
+  const setCustomGameAssets = (game: LibraryGame) => {
+    setIconPath(extractLocalPath(game.iconUrl));
+    setLogoPath(extractLocalPath(game.logoImageUrl));
+    setHeroPath(extractLocalPath(game.libraryHeroImageUrl));
+  };
+
+  // Helper function to set asset paths for non-custom games
+  const setNonCustomGameAssets = (game: LibraryGame) => {
+    setIconPath(extractLocalPath(game.customIconUrl));
+    setLogoPath(extractLocalPath(game.customLogoImageUrl));
+    setHeroPath(extractLocalPath(game.customHeroImageUrl));
+  };
+
   useEffect(() => {
     if (game && visible) {
       setGameName(game.title || "");
 
-      // For custom games, use existing logic
       if (game.shop === "custom") {
-        const currentIconPath = game.iconUrl?.startsWith("local:")
-          ? game.iconUrl.replace("local:", "")
-          : "";
-        const currentLogoPath = game.logoImageUrl?.startsWith("local:")
-          ? game.logoImageUrl.replace("local:", "")
-          : "";
-        const currentHeroPath = game.libraryHeroImageUrl?.startsWith("local:")
-          ? game.libraryHeroImageUrl.replace("local:", "")
-          : "";
-
-        setIconPath(currentIconPath);
-        setLogoPath(currentLogoPath);
-        setHeroPath(currentHeroPath);
+        setCustomGameAssets(game);
       } else {
-        // For non-custom games, use custom asset paths if they exist
-        const currentIconPath = game.customIconUrl?.startsWith("local:")
-          ? game.customIconUrl.replace("local:", "")
-          : "";
-        const currentLogoPath = game.customLogoImageUrl?.startsWith("local:")
-          ? game.customLogoImageUrl.replace("local:", "")
-          : "";
-        const currentHeroPath = game.customHeroImageUrl?.startsWith("local:")
-          ? game.customHeroImageUrl.replace("local:", "")
-          : "";
-
-        setIconPath(currentIconPath);
-        setLogoPath(currentLogoPath);
-        setHeroPath(currentHeroPath);
+        setNonCustomGameAssets(game);
       }
     }
   }, [game, visible]);
@@ -120,6 +113,52 @@ export function EditGameModal({
     }
   };
 
+  // Helper function to prepare custom game assets
+  const prepareCustomGameAssets = (game: LibraryGame) => {
+    const iconUrl = iconPath ? `local:${iconPath}` : game.iconUrl;
+    const logoImageUrl = logoPath ? `local:${logoPath}` : game.logoImageUrl;
+    const libraryHeroImageUrl = heroPath ? `local:${heroPath}` : game.libraryHeroImageUrl;
+
+    return { iconUrl, logoImageUrl, libraryHeroImageUrl };
+  };
+
+  // Helper function to prepare non-custom game assets
+  const prepareNonCustomGameAssets = () => {
+    return {
+      customIconUrl: iconPath ? `local:${iconPath}` : null,
+      customLogoImageUrl: logoPath ? `local:${logoPath}` : null,
+      customHeroImageUrl: heroPath ? `local:${heroPath}` : null,
+    };
+  };
+
+  // Helper function to update custom game
+  const updateCustomGame = async (game: LibraryGame) => {
+    const { iconUrl, logoImageUrl, libraryHeroImageUrl } = prepareCustomGameAssets(game);
+    
+    return window.electron.updateCustomGame(
+      game.shop,
+      game.objectId,
+      gameName.trim(),
+      iconUrl || undefined,
+      logoImageUrl || undefined,
+      libraryHeroImageUrl || undefined
+    );
+  };
+
+  // Helper function to update non-custom game
+  const updateNonCustomGame = async (game: LibraryGame) => {
+    const { customIconUrl, customLogoImageUrl, customHeroImageUrl } = prepareNonCustomGameAssets();
+    
+    return window.electron.updateGameCustomAssets(
+      game.shop,
+      game.objectId,
+      gameName.trim(),
+      customIconUrl,
+      customLogoImageUrl,
+      customHeroImageUrl
+    );
+  };
+
   const handleUpdateGame = async () => {
     if (!game || !gameName.trim()) {
       showErrorToast(t("edit_custom_game_modal_fill_required"));
@@ -129,39 +168,9 @@ export function EditGameModal({
     setIsUpdating(true);
 
     try {
-      let updatedGame;
-
-      if (game.shop === "custom") {
-        // For custom games, use existing logic
-        const iconUrl = iconPath ? `local:${iconPath}` : game.iconUrl;
-        const logoImageUrl = logoPath ? `local:${logoPath}` : game.logoImageUrl;
-        const libraryHeroImageUrl = heroPath
-          ? `local:${heroPath}`
-          : game.libraryHeroImageUrl;
-
-        updatedGame = await window.electron.updateCustomGame(
-          game.shop,
-          game.objectId,
-          gameName.trim(),
-          iconUrl || undefined,
-          logoImageUrl || undefined,
-          libraryHeroImageUrl || undefined
-        );
-      } else {
-        // For non-custom games, update custom assets
-        const customIconUrl = iconPath ? `local:${iconPath}` : null;
-        const customLogoImageUrl = logoPath ? `local:${logoPath}` : null;
-        const customHeroImageUrl = heroPath ? `local:${heroPath}` : null;
-
-        updatedGame = await window.electron.updateGameCustomAssets(
-          game.shop,
-          game.objectId,
-          gameName.trim(),
-          customIconUrl,
-          customLogoImageUrl,
-          customHeroImageUrl
-        );
-      }
+      const updatedGame = game.shop === "custom" 
+        ? await updateCustomGame(game)
+        : await updateNonCustomGame(game);
 
       showSuccessToast(t("edit_custom_game_modal_success"));
       onGameUpdated(updatedGame);
@@ -178,39 +187,20 @@ export function EditGameModal({
     }
   };
 
+  // Helper function to reset form to initial state
+  const resetFormToInitialState = (game: LibraryGame) => {
+    setGameName(game.title || "");
+
+    if (game.shop === "custom") {
+      setCustomGameAssets(game);
+    } else {
+      setNonCustomGameAssets(game);
+    }
+  };
+
   const handleClose = () => {
     if (!isUpdating && game) {
-      setGameName(game.title || "");
-
-      if (game.shop === "custom") {
-        const currentIconPath = game.iconUrl?.startsWith("local:")
-          ? game.iconUrl.replace("local:", "")
-          : "";
-        const currentLogoPath = game.logoImageUrl?.startsWith("local:")
-          ? game.logoImageUrl.replace("local:", "")
-          : "";
-        const currentHeroPath = game.libraryHeroImageUrl?.startsWith("local:")
-          ? game.libraryHeroImageUrl.replace("local:", "")
-          : "";
-
-        setIconPath(currentIconPath);
-        setLogoPath(currentLogoPath);
-        setHeroPath(currentHeroPath);
-      } else {
-        const currentIconPath = game.customIconUrl?.startsWith("local:")
-          ? game.customIconUrl.replace("local:", "")
-          : "";
-        const currentLogoPath = game.customLogoImageUrl?.startsWith("local:")
-          ? game.customLogoImageUrl.replace("local:", "")
-          : "";
-        const currentHeroPath = game.customHeroImageUrl?.startsWith("local:")
-          ? game.customHeroImageUrl.replace("local:", "")
-          : "";
-
-        setIconPath(currentIconPath);
-        setLogoPath(currentLogoPath);
-        setHeroPath(currentHeroPath);
-      }
+      resetFormToInitialState(game);
       onClose();
     }
   };

@@ -69,19 +69,21 @@ app.whenReady().then(async () => {
       request.url.slice("gradient:".length)
     );
 
-    // Fixed regex to prevent ReDoS - removed nested quantifiers and backtracking
-    const match = gradientCss.match(
-      /^linear-gradient\(([^,()]+),\s*([^,()]+),\s*([^,()]+)\)$/
-    );
-
+    // Parse gradient CSS safely without regex to prevent ReDoS
     let direction = "45deg";
     let color1 = "#4a90e2";
     let color2 = "#7b68ee";
 
-    if (match) {
-      direction = match[1].trim();
-      color1 = match[2].trim();
-      color2 = match[3].trim();
+    // Simple string parsing approach - more secure than regex
+    if (gradientCss.startsWith("linear-gradient(") && gradientCss.endsWith(")")) {
+      const content = gradientCss.slice(16, -1); // Remove "linear-gradient(" and ")"
+      const parts = content.split(",").map(part => part.trim());
+      
+      if (parts.length >= 3) {
+        direction = parts[0];
+        color1 = parts[1];
+        color2 = parts[2];
+      }
     }
 
     let x1 = "0%",
