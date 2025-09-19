@@ -21,16 +21,9 @@ const updateGameCustomAssets = async (
   const updatedGame = {
     ...existingGame,
     title,
-    customIconUrl:
-      customIconUrl !== undefined ? customIconUrl : existingGame.customIconUrl,
-    customLogoImageUrl:
-      customLogoImageUrl !== undefined
-        ? customLogoImageUrl
-        : existingGame.customLogoImageUrl,
-    customHeroImageUrl:
-      customHeroImageUrl !== undefined
-        ? customHeroImageUrl
-        : existingGame.customHeroImageUrl,
+    customIconUrl: customIconUrl ?? existingGame.customIconUrl,
+    customLogoImageUrl: customLogoImageUrl ?? existingGame.customLogoImageUrl,
+    customHeroImageUrl: customHeroImageUrl ?? existingGame.customHeroImageUrl,
   };
 
   await gamesSublevel.put(gameKey, updatedGame);
