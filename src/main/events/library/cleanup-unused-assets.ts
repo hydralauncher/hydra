@@ -9,27 +9,27 @@ const getCustomGamesAssetsPath = () => {
 
 const getAllCustomGameAssets = async (): Promise<string[]> => {
   const assetsPath = getCustomGamesAssetsPath();
-  
+
   if (!fs.existsSync(assetsPath)) {
     return [];
   }
 
   const files = await fs.promises.readdir(assetsPath);
-  return files.map(file => path.join(assetsPath, file));
+  return files.map((file) => path.join(assetsPath, file));
 };
 
 const getUsedAssetPaths = async (): Promise<Set<string>> => {
   // Get all custom games from the level database
   const { gamesSublevel } = await import("@main/level");
   const allGames = await gamesSublevel.iterator().all();
-  
+
   const customGames = allGames
     .map(([_key, game]) => game)
-    .filter(game => game.shop === "custom" && !game.isDeleted);
+    .filter((game) => game.shop === "custom" && !game.isDeleted);
 
   const usedPaths = new Set<string>();
 
-  customGames.forEach(game => {
+  customGames.forEach((game) => {
     // Extract file paths from local URLs
     if (game.iconUrl?.startsWith("local:")) {
       usedPaths.add(game.iconUrl.replace("local:", ""));
@@ -45,11 +45,14 @@ const getUsedAssetPaths = async (): Promise<Set<string>> => {
   return usedPaths;
 };
 
-export const cleanupUnusedAssets = async (): Promise<{ deletedCount: number; errors: string[] }> => {
+export const cleanupUnusedAssets = async (): Promise<{
+  deletedCount: number;
+  errors: string[];
+}> => {
   try {
     const allAssets = await getAllCustomGameAssets();
     const usedAssets = await getUsedAssetPaths();
-    
+
     const errors: string[] = [];
     let deletedCount = 0;
 

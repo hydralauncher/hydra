@@ -26,7 +26,7 @@ const copyCustomGameAsset = async (
 
   // Get file extension
   const fileExtension = path.extname(sourcePath);
-  
+
   // Generate unique filename
   const uniqueId = randomUUID();
   const fileName = `${assetType}-${uniqueId}${fileExtension}`;

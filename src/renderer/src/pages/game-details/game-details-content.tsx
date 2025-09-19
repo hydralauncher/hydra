@@ -232,6 +232,7 @@ export function GameDetailsContent() {
         visible={showEditGameModal}
         onClose={() => setShowEditGameModal(false)}
         game={game}
+        shopDetails={shopDetails}
         onGameUpdated={handleGameUpdated}
       />
     </div>
