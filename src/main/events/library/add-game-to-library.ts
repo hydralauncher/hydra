@@ -43,12 +43,14 @@ const addGameToLibrary = async (
     await gamesSublevel.put(gameKey, game);
   }
 
-  await createGame(game).catch(() => {});
+  if (game) {
+    await createGame(game).catch(() => {});
 
-  AchievementWatcherManager.firstSyncWithRemoteIfNeeded(
-    game.shop,
-    game.objectId
-  );
+    AchievementWatcherManager.firstSyncWithRemoteIfNeeded(
+      game.shop,
+      game.objectId
+    );
+  }
 };
 
 registerEvent("addGameToLibrary", addGameToLibrary);

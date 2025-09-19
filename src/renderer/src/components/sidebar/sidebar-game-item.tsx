@@ -20,7 +20,7 @@ export function SidebarGameItem({
   const isCustomGame = game.shop === "custom";
   const sidebarIcon = isCustomGame
     ? game.libraryImageUrl || game.iconUrl
-    : game.iconUrl;
+    : game.customIconUrl || game.iconUrl;
 
   return (
     <li

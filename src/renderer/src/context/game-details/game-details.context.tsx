@@ -202,10 +202,10 @@ export function GameDetailsContextProvider({
   }, [objectId, gameTitle, dispatch]);
 
   useEffect(() => {
-    if (game?.title && game.shop === "custom") {
+    if (game?.title) {
       dispatch(setHeaderTitle(game.title));
     }
-  }, [game?.title, game?.shop, dispatch]);
+  }, [game?.title, dispatch]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesIds) => {

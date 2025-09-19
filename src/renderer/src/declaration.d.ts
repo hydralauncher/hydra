@@ -126,6 +126,14 @@ declare global {
       logoImageUrl?: string,
       libraryHeroImageUrl?: string
     ) => Promise<Game>;
+    updateGameCustomAssets: (
+      shop: GameShop,
+      objectId: string,
+      title: string,
+      customIconUrl?: string | null,
+      customLogoImageUrl?: string | null,
+      customHeroImageUrl?: string | null
+    ) => Promise<Game>;
     createGameShortcut: (
       shop: GameShop,
       objectId: string,
