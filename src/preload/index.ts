@@ -143,6 +143,11 @@ contextBridge.exposeInMainWorld("electron", {
       logoImageUrl,
       libraryHeroImageUrl
     ),
+  copyCustomGameAsset: (
+    sourcePath: string,
+    assetType: "icon" | "logo" | "hero"
+  ) => ipcRenderer.invoke("copyCustomGameAsset", sourcePath, assetType),
+  cleanupUnusedAssets: () => ipcRenderer.invoke("cleanupUnusedAssets"),
   updateCustomGame: (
     shop: GameShop,
     objectId: string,

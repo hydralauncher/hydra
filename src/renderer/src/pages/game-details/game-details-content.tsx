@@ -77,13 +77,10 @@ export function GameDetailsContent() {
           shopDetails?.assets?.libraryHeroImageUrl
         );
 
-    const output = await average(
-      heroImageUrl,
-      {
-        amount: 1,
-        format: "hex",
-      }
-    );
+    const output = await average(heroImageUrl, {
+      amount: 1,
+      format: "hex",
+    });
 
     const backgroundColor = output
       ? new Color(output).darken(0.7).toString()

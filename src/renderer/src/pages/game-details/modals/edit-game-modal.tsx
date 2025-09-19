@@ -82,7 +82,18 @@ export function EditGameModal({
     });
 
     if (filePaths && filePaths.length > 0) {
-      setIconPath(filePaths[0]);
+      try {
+        // Copy the asset to the app's assets folder
+        const copiedAssetUrl = await window.electron.copyCustomGameAsset(
+          filePaths[0],
+          "icon"
+        );
+        setIconPath(copiedAssetUrl.replace("local:", ""));
+      } catch (error) {
+        console.error("Failed to copy icon asset:", error);
+        // Fallback to original behavior
+        setIconPath(filePaths[0]);
+      }
     }
   };
 
@@ -98,7 +109,18 @@ export function EditGameModal({
     });
 
     if (filePaths && filePaths.length > 0) {
-      setLogoPath(filePaths[0]);
+      try {
+        // Copy the asset to the app's assets folder
+        const copiedAssetUrl = await window.electron.copyCustomGameAsset(
+          filePaths[0],
+          "logo"
+        );
+        setLogoPath(copiedAssetUrl.replace("local:", ""));
+      } catch (error) {
+        console.error("Failed to copy logo asset:", error);
+        // Fallback to original behavior
+        setLogoPath(filePaths[0]);
+      }
     }
   };
 
@@ -114,7 +136,18 @@ export function EditGameModal({
     });
 
     if (filePaths && filePaths.length > 0) {
-      setHeroPath(filePaths[0]);
+      try {
+        // Copy the asset to the app's assets folder
+        const copiedAssetUrl = await window.electron.copyCustomGameAsset(
+          filePaths[0],
+          "hero"
+        );
+        setHeroPath(copiedAssetUrl.replace("local:", ""));
+      } catch (error) {
+        console.error("Failed to copy hero asset:", error);
+        // Fallback to original behavior
+        setHeroPath(filePaths[0]);
+      }
     }
   };
 
