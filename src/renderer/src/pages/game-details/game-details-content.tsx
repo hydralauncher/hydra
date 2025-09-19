@@ -68,8 +68,17 @@ export function GameDetailsContent() {
   const [showEditGameModal, setShowEditGameModal] = useState(false);
 
   const handleHeroLoad = async () => {
+    // Use the same logic as heroImage to get the correct URL for both custom and non-custom games
+    const isCustomGame = game?.shop === "custom";
+    const heroImageUrl = isCustomGame
+      ? game?.libraryHeroImageUrl || game?.iconUrl || ""
+      : getImageWithCustomPriority(
+          game?.customHeroImageUrl,
+          shopDetails?.assets?.libraryHeroImageUrl
+        );
+
     const output = await average(
-      shopDetails?.assets?.libraryHeroImageUrl ?? "",
+      heroImageUrl,
       {
         amount: 1,
         format: "hex",
