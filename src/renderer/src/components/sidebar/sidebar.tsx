@@ -40,8 +40,6 @@ const SIDEBAR_MAX_WIDTH = 450;
 
 const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 
-const isGamePlayable = (game: LibraryGame) => Boolean(game.executablePath);
-
 export function Sidebar() {
   const filterRef = useRef<HTMLInputElement>(null);
 
@@ -76,17 +74,12 @@ export function Sidebar() {
 
   const { showWarningToast } = useToast();
 
-  const [showPlayableOnly, setShowPlayableOnly] = useState(false);
   const [showCreateGamesFolder, setShowCreateGamesFolder] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
     new Set()
   );
   const [draggedGameId, setDraggedGameId] = useState<string | null>(null);
   const [isCustomFoldersExpanded, setIsCustomFoldersExpanded] = useState(true);
-
-  const handlePlayButtonClick = () => {
-    setShowPlayableOnly(!showPlayableOnly);
-  };
 
   useEffect(() => {
     updateLibrary();
@@ -428,22 +421,15 @@ export function Sidebar() {
 
                         {isExpanded && (
                           <ul className="sidebar__submenu">
-                            {folderGames
-                              .filter(
-                                (game) =>
-                                  !showPlayableOnly || isGamePlayable(game)
-                              )
-                              .map((game) => (
-                                <SidebarGameItem
-                                  key={game.id}
-                                  game={game}
-                                  handleSidebarGameClick={
-                                    handleSidebarGameClick
-                                  }
-                                  getGameTitle={getGameTitle}
-                                  onDragStart={handleDragStart}
-                                />
-                              ))}
+                            {folderGames.map((game) => (
+                              <SidebarGameItem
+                                key={game.id}
+                                game={game}
+                                handleSidebarGameClick={handleSidebarGameClick}
+                                getGameTitle={getGameTitle}
+                                onDragStart={handleDragStart}
+                              />
+                            ))}
                           </ul>
                         )}
                       </li>
@@ -460,28 +446,14 @@ export function Sidebar() {
             onDrop={handleDropOnLibrary}
           >
             <div className="sidebar__section-header">
-              <small className="sidebar__section-title">
-                {t("my_library")}
-              </small>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button
-                  type="button"
-                  className="sidebar__play-button"
-                  onClick={() => setShowCreateGamesFolder(true)}
-                  title={t("create_games_folder")}
-                >
-                  <FileDirectoryIcon size={16} />
-                </button>
-                <button
-                  type="button"
-                  className={cn("sidebar__play-button", {
-                    "sidebar__play-button--active": showPlayableOnly,
-                  })}
-                  onClick={handlePlayButtonClick}
-                >
-                  <PlayIcon size={16} />
-                </button>
-              </div>
+              <h3>{t("my_library")}</h3>
+              <button
+                type="button"
+                className="sidebar__play-button"
+                title={t("play_all_games")}
+              >
+                <PlayIcon size={12} />
+              </button>
             </div>
 
             <TextField
@@ -495,7 +467,6 @@ export function Sidebar() {
               {filteredLibrary
                 .filter((game) => !game.favorite)
                 .filter((game) => unorganizedGameIds.includes(game.id))
-                .filter((game) => !showPlayableOnly || isGamePlayable(game))
                 .map((game) => (
                   <SidebarGameItem
                     key={game.id}

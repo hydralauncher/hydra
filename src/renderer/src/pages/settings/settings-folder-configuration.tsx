@@ -16,7 +16,7 @@ export function SettingsFolderConfiguration() {
 
   const [form, setForm] = useState({
     showGameCountInFolders: true,
-    showGamesInBothFoldersAndLibrary: false,
+    showGamesInBothFoldersAndLibrary: true,
   });
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export function SettingsFolderConfiguration() {
       setForm({
         showGameCountInFolders: userPreferences.showGameCountInFolders ?? true,
         showGamesInBothFoldersAndLibrary:
-          userPreferences.showGamesInBothFoldersAndLibrary ?? false,
+          userPreferences.showGamesInBothFoldersAndLibrary ?? true,
       });
     }
   }, [userPreferences]);

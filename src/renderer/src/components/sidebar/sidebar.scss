@@ -228,15 +228,15 @@
   }
 
   &__submenu {
-    margin-left: 10px;
+    margin-left: 8px;
     border-left: 2px solid rgba(255, 255, 255, 0.1);
 
     .sidebar__menu-item {
-      margin-left: 4px;
+      margin-left: 2px;
     }
 
     .sidebar__menu-item-button {
-      padding: 9px calc(globals.$spacing-unit * 2);
+      padding: 6px calc(globals.$spacing-unit * 1.5);
     }
   }
 
@@ -272,6 +272,11 @@
     color: white;
     cursor: pointer;
     padding: 0;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: globals.$brand-teal;
+    }
 
     &:active {
       color: rgba(255, 255, 255, 0.5);
