@@ -53,6 +53,21 @@
     transform 0.2s ease;
   position: relative;
 
+  /* Reset button styles when used as button element */
+  &[type="button"] {
+    font: inherit;
+    color: inherit;
+    text-align: inherit;
+    text-decoration: none;
+    outline: none;
+    cursor: pointer;
+    
+    &:focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+  }
+
   &:hover {
     border-color: var(--color-primary);
   }
