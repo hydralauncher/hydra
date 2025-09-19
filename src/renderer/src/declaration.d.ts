@@ -298,6 +298,8 @@ declare global {
     onCommonRedistProgress: (
       cb: (value: { log: string; complete: boolean }) => void
     ) => () => Electron.IpcRenderer;
+    saveTempFile: (fileName: string, fileData: Uint8Array) => Promise<string>;
+    deleteTempFile: (filePath: string) => Promise<void>;
     platform: NodeJS.Platform;
 
     /* Auto update */

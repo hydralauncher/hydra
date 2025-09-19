@@ -170,12 +170,28 @@ export function GameDetailsContent() {
             style={{ opacity: backdropOpacity }}
           >
             <div className="game-details__hero-content">
-              {logoImage && (
-                <img
-                  src={logoImage}
-                  className="game-details__game-logo"
-                  alt={game?.title}
-                />
+              {isCustomGame ? (
+                // For custom games, show logo image if available, otherwise show game title as text
+                logoImage ? (
+                  <img
+                    src={logoImage}
+                    className="game-details__game-logo"
+                    alt={game?.title}
+                  />
+                ) : (
+                  <div className="game-details__game-logo-text">
+                    {game?.title}
+                  </div>
+                )
+              ) : (
+                // For non-custom games, show logo image if available
+                logoImage && (
+                  <img
+                    src={logoImage}
+                    className="game-details__game-logo"
+                    alt={game?.title}
+                  />
+                )
               )}
 
               <div className="game-details__hero-buttons game-details__hero-buttons--right">

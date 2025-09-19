@@ -50,6 +50,8 @@ import "./misc/show-item-in-folder";
 import "./misc/get-badges";
 import "./misc/install-common-redist";
 import "./misc/can-install-common-redist";
+import "./misc/save-temp-file";
+import "./misc/delete-temp-file";
 import "./torrenting/cancel-game-download";
 import "./torrenting/pause-game-download";
 import "./torrenting/resume-game-download";

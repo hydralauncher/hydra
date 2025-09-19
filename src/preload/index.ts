@@ -147,6 +147,10 @@ contextBridge.exposeInMainWorld("electron", {
     sourcePath: string,
     assetType: "icon" | "logo" | "hero"
   ) => ipcRenderer.invoke("copyCustomGameAsset", sourcePath, assetType),
+  saveTempFile: (fileName: string, fileData: Uint8Array) =>
+    ipcRenderer.invoke("saveTempFile", fileName, fileData),
+  deleteTempFile: (filePath: string) =>
+    ipcRenderer.invoke("deleteTempFile", filePath),
   cleanupUnusedAssets: () => ipcRenderer.invoke("cleanupUnusedAssets"),
   updateCustomGame: (
     shop: GameShop,
