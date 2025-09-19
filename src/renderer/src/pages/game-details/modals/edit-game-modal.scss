@@ -1,0 +1,47 @@
+.edit-game-modal__container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.edit-game-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.edit-game-modal__image-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-game-modal__image-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background-color: var(--color-background-secondary);
+}
+
+.edit-game-modal__preview-image {
+  max-width: 100%;
+  max-height: 120px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.edit-game-modal__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.edit-game-modal__actions button {
+  min-width: 100px;
+}

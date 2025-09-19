@@ -57,7 +57,7 @@ export const mergeWithRemoteGames = async () => {
         await gamesShopAssetsSublevel.put(gameKey, {
           shop: game.shop,
           objectId: game.objectId,
-          title: game.title,
+          title: localGame?.title || game.title, // Preserve local title if it exists
           coverImageUrl: game.coverImageUrl,
           libraryHeroImageUrl: game.libraryHeroImageUrl,
           libraryImageUrl: game.libraryImageUrl,

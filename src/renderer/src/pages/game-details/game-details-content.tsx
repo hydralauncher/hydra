@@ -7,7 +7,7 @@ import { HeroPanel } from "./hero";
 import { DescriptionHeader } from "./description-header/description-header";
 import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
-import { EditCustomGameModal } from "./modals";
+import { EditCustomGameModal, EditGameModal } from "./modals";
 
 import { useTranslation } from "react-i18next";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
@@ -66,6 +66,7 @@ export function GameDetailsContent() {
 
   const [backdropOpacity, setBackdropOpacity] = useState(1);
   const [showEditCustomGameModal, setShowEditCustomGameModal] = useState(false);
+  const [showEditGameModal, setShowEditGameModal] = useState(false);
 
   const handleHeroLoad = async () => {
     const output = await average(
@@ -105,6 +106,10 @@ export function GameDetailsContent() {
     setShowEditCustomGameModal(true);
   };
 
+  const handleEditGameClick = () => {
+    setShowEditGameModal(true);
+  };
+
   const handleGameUpdated = (_updatedGame: any) => {
     updateGame();
     updateLibrary();
@@ -115,12 +120,29 @@ export function GameDetailsContent() {
   }, [getGameArtifacts]);
 
   const isCustomGame = game?.shop === "custom";
+  
+  // Helper function to get image with custom asset priority
+  const getImageWithCustomPriority = (
+    customUrl: string | null | undefined,
+    originalUrl: string | null | undefined,
+    fallbackUrl?: string | null | undefined
+  ) => {
+    return customUrl || originalUrl || fallbackUrl || "";
+  };
+
   const heroImage = isCustomGame
     ? game?.libraryHeroImageUrl || game?.iconUrl || ""
-    : shopDetails?.assets?.libraryHeroImageUrl || "";
+    : getImageWithCustomPriority(
+        game?.customHeroImageUrl,
+        shopDetails?.assets?.libraryHeroImageUrl
+      );
+      
   const logoImage = isCustomGame
-    ? game?.logoImageUrl || "" // Don't use icon as fallback for custom games
-    : shopDetails?.assets?.logoImageUrl || "";
+    ? game?.logoImageUrl || ""
+    : getImageWithCustomPriority(
+        game?.customLogoImageUrl,
+        shopDetails?.assets?.logoImageUrl
+      );
 
   return (
     <div
@@ -156,16 +178,14 @@ export function GameDetailsContent() {
               )}
 
               <div className="game-details__hero-buttons game-details__hero-buttons--right">
-                {game?.shop === "custom" && (
-                  <button
-                    type="button"
-                    className="game-details__edit-custom-game-button"
-                    onClick={handleEditCustomGameClick}
-                    title={t("edit_custom_game")}
-                  >
-                    <PencilIcon size={16} />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="game-details__edit-custom-game-button"
+                  onClick={game?.shop === "custom" ? handleEditCustomGameClick : handleEditGameClick}
+                  title={t("edit_custom_game")}
+                >
+                  <PencilIcon size={16} />
+                </button>
 
                 {game?.shop !== "custom" && (
                   <button
@@ -211,6 +231,15 @@ export function GameDetailsContent() {
         <EditCustomGameModal
           visible={showEditCustomGameModal}
           onClose={() => setShowEditCustomGameModal(false)}
+          game={game}
+          onGameUpdated={handleGameUpdated}
+        />
+      )}
+
+      {game?.shop !== "custom" && (
+        <EditGameModal
+          visible={showEditGameModal}
+          onClose={() => setShowEditGameModal(false)}
           game={game}
           onGameUpdated={handleGameUpdated}
         />

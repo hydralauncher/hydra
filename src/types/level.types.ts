@@ -35,6 +35,9 @@ export interface Game {
   iconUrl: string | null;
   libraryHeroImageUrl: string | null;
   logoImageUrl: string | null;
+  customIconUrl?: string | null;
+  customLogoImageUrl?: string | null;
+  customHeroImageUrl?: string | null;
   playTimeInMilliseconds: number;
   unsyncedDeltaPlayTimeInMilliseconds?: number;
   lastTimePlayed: Date | null;
