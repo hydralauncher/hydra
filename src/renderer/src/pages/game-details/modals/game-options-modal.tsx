@@ -353,14 +353,16 @@ export function GameOptionsModal({
                   >
                     {t("create_shortcut")}
                   </Button>
-                  <Button
-                    onClick={handleCreateSteamShortcut}
-                    theme="outline"
-                    disabled={creatingSteamShortcut}
-                  >
-                    <SteamLogo />
-                    {t("create_steam_shortcut")}
-                  </Button>
+                  {game.shop !== "custom" && (
+                    <Button
+                      onClick={handleCreateSteamShortcut}
+                      theme="outline"
+                      disabled={creatingSteamShortcut}
+                    >
+                      <SteamLogo />
+                      {t("create_steam_shortcut")}
+                    </Button>
+                  )}
                   {shouldShowCreateStartMenuShortcut && (
                     <Button
                       onClick={() => handleCreateShortcut("start_menu")}
@@ -374,19 +376,21 @@ export function GameOptionsModal({
             </div>
           </div>
 
-          <CheckboxField
-            label={
-              <div className="game-options-modal__cloud-sync-label">
-                {t("enable_automatic_cloud_sync")}
-                <span className="game-options-modal__cloud-sync-hydra-cloud">
-                  Hydra Cloud
-                </span>
-              </div>
-            }
-            checked={automaticCloudSync}
-            disabled={!hasActiveSubscription || !game.executablePath}
-            onChange={handleToggleAutomaticCloudSync}
-          />
+          {game.shop !== "custom" && (
+            <CheckboxField
+              label={
+                <div className="game-options-modal__cloud-sync-label">
+                  {t("enable_automatic_cloud_sync")}
+                  <span className="game-options-modal__cloud-sync-hydra-cloud">
+                    Hydra Cloud
+                  </span>
+                </div>
+              }
+              checked={automaticCloudSync}
+              disabled={!hasActiveSubscription || !game.executablePath}
+              onChange={handleToggleAutomaticCloudSync}
+            />
+          )}
 
           {shouldShowWinePrefixConfiguration && (
             <div className="game-options-modal__wine-prefix">
@@ -448,33 +452,35 @@ export function GameOptionsModal({
             />
           </div>
 
-          <div className="game-options-modal__downloads">
-            <div className="game-options-modal__header">
-              <h2>{t("downloads_section_title")}</h2>
-              <h4 className="game-options-modal__header-description">
-                {t("downloads_section_description")}
-              </h4>
-            </div>
+          {game.shop !== "custom" && (
+            <div className="game-options-modal__downloads">
+              <div className="game-options-modal__header">
+                <h2>{t("downloads_section_title")}</h2>
+                <h4 className="game-options-modal__header-description">
+                  {t("downloads_section_description")}
+                </h4>
+              </div>
 
-            <div className="game-options-modal__row">
-              <Button
-                onClick={() => setShowRepacksModal(true)}
-                theme="outline"
-                disabled={deleting || isGameDownloading || !repacks.length}
-              >
-                {t("open_download_options")}
-              </Button>
-              {game.download?.downloadPath && (
+              <div className="game-options-modal__row">
                 <Button
-                  onClick={handleOpenDownloadFolder}
+                  onClick={() => setShowRepacksModal(true)}
                   theme="outline"
-                  disabled={deleting}
+                  disabled={deleting || isGameDownloading || !repacks.length}
                 >
-                  {t("open_download_location")}
+                  {t("open_download_options")}
                 </Button>
-              )}
+                {game.download?.downloadPath && (
+                  <Button
+                    onClick={handleOpenDownloadFolder}
+                    theme="outline"
+                    disabled={deleting}
+                  >
+                    {t("open_download_location")}
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="game-options-modal__danger-zone">
             <div className="game-options-modal__header">
@@ -493,18 +499,20 @@ export function GameOptionsModal({
                 {t("remove_from_library")}
               </Button>
 
-              <Button
-                onClick={() => setShowResetAchievementsModal(true)}
-                theme="danger"
-                disabled={
-                  deleting ||
-                  isDeletingAchievements ||
-                  !hasAchievements ||
-                  !userDetails
-                }
-              >
-                {t("reset_achievements")}
-              </Button>
+              {game.shop !== "custom" && (
+                <Button
+                  onClick={() => setShowResetAchievementsModal(true)}
+                  theme="danger"
+                  disabled={
+                    deleting ||
+                    isDeletingAchievements ||
+                    !hasAchievements ||
+                    !userDetails
+                  }
+                >
+                  {t("reset_achievements")}
+                </Button>
+              )}
 
               <Button
                 onClick={() => setShowChangePlaytimeModal(true)}
@@ -513,17 +521,19 @@ export function GameOptionsModal({
                 {t("update_game_playtime")}
               </Button>
 
-              <Button
-                onClick={() => {
-                  setShowDeleteModal(true);
-                }}
-                theme="danger"
-                disabled={
-                  isGameDownloading || deleting || !game.download?.downloadPath
-                }
-              >
-                {t("remove_files")}
-              </Button>
+              {game.shop !== "custom" && (
+                <Button
+                  onClick={() => {
+                    setShowDeleteModal(true);
+                  }}
+                  theme="danger"
+                  disabled={
+                    isGameDownloading || deleting || !game.download?.downloadPath
+                  }
+                >
+                  {t("remove_files")}
+                </Button>
+              )}
             </div>
           </div>
         </div>
