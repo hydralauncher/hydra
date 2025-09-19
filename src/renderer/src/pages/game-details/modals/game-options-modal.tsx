@@ -18,12 +18,14 @@ export interface GameOptionsModalProps {
   visible: boolean;
   game: LibraryGame;
   onClose: () => void;
+  onNavigateHome?: () => void;
 }
 
 export function GameOptionsModal({
   visible,
   game,
   onClose,
+  onNavigateHome,
 }: Readonly<GameOptionsModalProps>) {
   const { t } = useTranslation("game_details");
 
@@ -90,6 +92,11 @@ export function GameOptionsModal({
     await removeGameFromLibrary(game.shop, game.objectId);
     updateGame();
     onClose();
+    
+    // Redirect to home page if it's a custom game
+    if (game.shop === "custom" && onNavigateHome) {
+      onNavigateHome();
+    }
   };
 
   const handleChangeExecutableLocation = async () => {

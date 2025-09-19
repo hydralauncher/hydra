@@ -177,10 +177,9 @@ export function EditGameModal({
     setIsUpdating(true);
 
     try {
-      const updatedGame =
-        isCustomGame(game)
-          ? await updateCustomGame(game)
-          : await updateNonCustomGame(game as LibraryGame);
+      const updatedGame = isCustomGame(game)
+        ? await updateCustomGame(game)
+        : await updateNonCustomGame(game as LibraryGame);
 
       showSuccessToast(t("edit_custom_game_modal_success"));
       onGameUpdated(updatedGame);
