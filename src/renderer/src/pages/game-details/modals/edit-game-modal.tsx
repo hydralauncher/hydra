@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ImageIcon, ReplyIcon } from "@primer/octicons-react";
 
@@ -13,7 +13,7 @@ export interface EditGameModalProps {
   onClose: () => void;
   game: LibraryGame | Game | null;
   shopDetails?: ShopDetailsWithAssets | null;
-  onGameUpdated: (updatedGame: any) => void;
+  onGameUpdated: (updatedGame: LibraryGame | Game) => void;
 }
 
 export function EditGameModal({
@@ -48,29 +48,32 @@ export function EditGameModal({
   };
 
   // Helper function to set asset paths for custom games
-  const setCustomGameAssets = (game: LibraryGame | Game) => {
+  const setCustomGameAssets = useCallback((game: LibraryGame | Game) => {
     setIconPath(extractLocalPath(game.iconUrl));
     setLogoPath(extractLocalPath(game.logoImageUrl));
     setHeroPath(extractLocalPath(game.libraryHeroImageUrl));
-  };
+  }, []);
 
   // Helper function to set asset paths for non-custom games
-  const setNonCustomGameAssets = (game: LibraryGame) => {
-    setIconPath(extractLocalPath(game.customIconUrl));
-    setLogoPath(extractLocalPath(game.customLogoImageUrl));
-    setHeroPath(extractLocalPath(game.customHeroImageUrl));
+  const setNonCustomGameAssets = useCallback(
+    (game: LibraryGame) => {
+      setIconPath(extractLocalPath(game.customIconUrl));
+      setLogoPath(extractLocalPath(game.customLogoImageUrl));
+      setHeroPath(extractLocalPath(game.customHeroImageUrl));
 
-    // Store default URLs for restore functionality from shopDetails.assets
-    setDefaultIconUrl(shopDetails?.assets?.iconUrl || game.iconUrl || null);
-    setDefaultLogoUrl(
-      shopDetails?.assets?.logoImageUrl || game.logoImageUrl || null
-    );
-    setDefaultHeroUrl(
-      shopDetails?.assets?.libraryHeroImageUrl ||
-        game.libraryHeroImageUrl ||
-        null
-    );
-  };
+      // Store default URLs for restore functionality from shopDetails.assets
+      setDefaultIconUrl(shopDetails?.assets?.iconUrl || game.iconUrl || null);
+      setDefaultLogoUrl(
+        shopDetails?.assets?.logoImageUrl || game.logoImageUrl || null
+      );
+      setDefaultHeroUrl(
+        shopDetails?.assets?.libraryHeroImageUrl ||
+          game.libraryHeroImageUrl ||
+          null
+      );
+    },
+    [shopDetails]
+  );
 
   useEffect(() => {
     if (game && visible) {
@@ -82,7 +85,7 @@ export function EditGameModal({
         setNonCustomGameAssets(game as LibraryGame);
       }
     }
-  }, [game, visible, shopDetails]);
+  }, [game, visible, shopDetails, setCustomGameAssets, setNonCustomGameAssets]);
 
   const handleGameNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setGameName(event.target.value);
@@ -233,8 +236,13 @@ export function EditGameModal({
       let filePath: string;
 
       // Try to get the path from the file object (Electron specific)
-      if ("path" in file && typeof (file as any).path === "string") {
-        filePath = (file as any).path;
+      // In Electron, File objects have a path property
+      interface ElectronFile extends File {
+        path?: string;
+      }
+
+      if ("path" in file && typeof (file as ElectronFile).path === "string") {
+        filePath = (file as ElectronFile).path!;
       } else {
         // Fallback: create a temporary file from the file data
         const arrayBuffer = await file.arrayBuffer();
