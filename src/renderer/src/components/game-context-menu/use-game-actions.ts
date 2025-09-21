@@ -12,21 +12,23 @@ export function useGameActions(game: LibraryGame) {
   const { updateLibrary } = useLibrary();
   const navigate = useNavigate();
   const location = useLocation();
-  const { 
-    removeGameInstaller, 
-    removeGameFromLibrary, 
+  const {
+    removeGameInstaller,
+    removeGameFromLibrary,
     isGameDeleting,
     lastPacket,
-    cancelDownload
+    cancelDownload,
   } = useDownload();
 
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
 
   const canPlay = Boolean(game.executablePath);
   const isDeleting = isGameDeleting(game.id);
-  const isGameDownloading = game.download?.status === "active" && lastPacket?.gameId === game.id;
+  const isGameDownloading =
+    game.download?.status === "active" && lastPacket?.gameId === game.id;
   const hasRepacks = true;
-  const shouldShowCreateStartMenuShortcut = window.electron.platform === "win32";
+  const shouldShowCreateStartMenuShortcut =
+    window.electron.platform === "win32";
 
   const handlePlayGame = async () => {
     if (!canPlay) {
@@ -37,17 +39,25 @@ export function useGameActions(game: LibraryGame) {
       if (location.pathname === path) {
         try {
           window.dispatchEvent(
-            new CustomEvent("hydra:openRepacks", { detail: { objectId: game.objectId } })
+            new CustomEvent("hydra:openRepacks", {
+              detail: { objectId: game.objectId },
+            })
           );
-        } catch (e) {}
+        } catch (e) {
+          void e;
+        }
       } else {
         navigate(path, { state: { openRepacks: true } });
 
         try {
           window.dispatchEvent(
-            new CustomEvent("hydra:openRepacks", { detail: { objectId: game.objectId } })
+            new CustomEvent("hydra:openRepacks", {
+              detail: { objectId: game.objectId },
+            })
           );
-        } catch (e) {}
+        } catch (e) {
+          void e;
+        }
       }
       return;
     }
@@ -76,10 +86,16 @@ export function useGameActions(game: LibraryGame) {
       }
       updateLibrary();
       try {
-        window.dispatchEvent(new CustomEvent("hydra:game-favorite-toggled", { detail: { shop: game.shop, objectId: game.objectId } }));
-      } catch (e) {}
+        window.dispatchEvent(
+          new CustomEvent("hydra:game-favorite-toggled", {
+            detail: { shop: game.shop, objectId: game.objectId },
+          })
+        );
+      } catch (e) {
+        void e;
+      }
     } catch (error) {
-  showErrorToast(t("failed_update_favorites"));
+      showErrorToast(t("failed_update_favorites"));
       logger.error("Failed to toggle favorite", error);
     }
   };
@@ -91,7 +107,7 @@ export function useGameActions(game: LibraryGame) {
         game.objectId,
         location
       );
-      
+
       if (success) {
         showSuccessToast(t("create_shortcut_success"));
       } else {
@@ -138,9 +154,12 @@ export function useGameActions(game: LibraryGame) {
 
     try {
       window.dispatchEvent(
-        new CustomEvent("hydra:openRepacks", { detail: { objectId: game.objectId } })
+        new CustomEvent("hydra:openRepacks", {
+          detail: { objectId: game.objectId },
+        })
       );
     } catch (e) {
+      void e;
     }
   };
 
@@ -154,9 +173,12 @@ export function useGameActions(game: LibraryGame) {
 
     try {
       window.dispatchEvent(
-        new CustomEvent("hydra:openGameOptions", { detail: { objectId: game.objectId } })
+        new CustomEvent("hydra:openGameOptions", {
+          detail: { objectId: game.objectId },
+        })
       );
     } catch (e) {
+      void e;
     }
   };
 
@@ -179,8 +201,14 @@ export function useGameActions(game: LibraryGame) {
       updateLibrary();
       showSuccessToast(t("game_removed_from_library"));
       try {
-        window.dispatchEvent(new CustomEvent("hydra:game-removed-from-library", { detail: { shop: game.shop, objectId: game.objectId } }));
-      } catch (e) {}
+        window.dispatchEvent(
+          new CustomEvent("hydra:game-removed-from-library", {
+            detail: { shop: game.shop, objectId: game.objectId },
+          })
+        );
+      } catch (e) {
+        void e;
+      }
     } catch (error) {
       showErrorToast(t("failed_remove_from_library"));
       logger.error("Failed to remove from library", error);
@@ -193,8 +221,14 @@ export function useGameActions(game: LibraryGame) {
       updateLibrary();
       showSuccessToast(t("files_removed_success"));
       try {
-        window.dispatchEvent(new CustomEvent("hydra:game-files-removed", { detail: { shop: game.shop, objectId: game.objectId } }));
-      } catch (e) {}
+        window.dispatchEvent(
+          new CustomEvent("hydra:game-files-removed", {
+            detail: { shop: game.shop, objectId: game.objectId },
+          })
+        );
+      } catch (e) {
+        void e;
+      }
     } catch (error) {
       showErrorToast(t("failed_remove_files"));
       logger.error("Failed to remove files", error);

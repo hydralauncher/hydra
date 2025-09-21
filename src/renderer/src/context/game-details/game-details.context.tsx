@@ -182,7 +182,7 @@ export function GameDetailsContextProvider({
           if (abortController.signal.aborted) return;
           setAchievements(achievements);
         })
-        .catch(() => {});
+        .catch(() => void 0);
     }
   }, [
     updateGame,
@@ -204,12 +204,15 @@ export function GameDetailsContextProvider({
   }, [objectId, gameTitle, dispatch]);
 
   useEffect(() => {
-    const state: any = (location && (location.state as any)) || {};
+    const state =
+      (location && (location.state as Record<string, unknown>)) || {};
     if (state.openRepacks) {
       setShowRepacksModal(true);
       try {
         window.history.replaceState({}, document.title, location.pathname);
-      } catch (_e) {}
+      } catch (_e) {
+        void _e;
+      }
     }
   }, [location]);
 
@@ -239,6 +242,7 @@ export function GameDetailsContextProvider({
           setShowRepacksModal(true);
         }
       } catch (e) {
+        void e;
       }
     };
 
@@ -257,24 +261,31 @@ export function GameDetailsContextProvider({
           setShowGameOptionsModal(true);
         }
       } catch (e) {
+        void e;
       }
     };
 
     window.addEventListener("hydra:openGameOptions", handler as EventListener);
 
     return () => {
-      window.removeEventListener("hydra:openGameOptions", handler as EventListener);
+      window.removeEventListener(
+        "hydra:openGameOptions",
+        handler as EventListener
+      );
     };
   }, [objectId]);
 
   useEffect(() => {
-    const state: any = (location && (location.state as any)) || {};
+    const state =
+      (location && (location.state as Record<string, unknown>)) || {};
     if (state.openGameOptions) {
       setShowGameOptionsModal(true);
 
       try {
         window.history.replaceState({}, document.title, location.pathname);
-      } catch (_e) {}
+      } catch (_e) {
+        void _e;
+      }
     }
   }, [location]);
 

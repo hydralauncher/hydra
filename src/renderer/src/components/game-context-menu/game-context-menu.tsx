@@ -18,7 +18,7 @@ import { ContextMenu, ContextMenuItemData, ContextMenuProps } from "..";
 import { ConfirmModal } from "@renderer/components/confirm-modal/confirm-modal";
 import { useGameActions } from "..";
 
-interface GameContextMenuProps extends Omit<ContextMenuProps, 'items'> {
+interface GameContextMenuProps extends Omit<ContextMenuProps, "items"> {
   game: LibraryGame;
 }
 
@@ -29,7 +29,8 @@ export function GameContextMenu({
   onClose,
 }: GameContextMenuProps) {
   const { t } = useTranslation("game_details");
-  const [showConfirmRemoveLibrary, setShowConfirmRemoveLibrary] = useState(false);
+  const [showConfirmRemoveLibrary, setShowConfirmRemoveLibrary] =
+    useState(false);
   const [showConfirmRemoveFiles, setShowConfirmRemoveFiles] = useState(false);
   const {
     canPlay,
@@ -54,14 +55,22 @@ export function GameContextMenu({
       id: "play",
       label: canPlay ? t("play") : t("download"),
       icon: canPlay ? <PlayIcon size={16} /> : <DownloadIcon size={16} />,
-      onClick: handlePlayGame,
+      onClick: () => {
+        void handlePlayGame();
+      },
       disabled: isDeleting,
     },
     {
       id: "favorite",
       label: game.favorite ? t("remove_from_favorites") : t("add_to_favorites"),
-      icon: game.favorite ? <HeartFillIcon size={16} /> : <HeartIcon size={16} />,
-      onClick: handleToggleFavorite,
+      icon: game.favorite ? (
+        <HeartFillIcon size={16} />
+      ) : (
+        <HeartIcon size={16} />
+      ),
+      onClick: () => {
+        void handleToggleFavorite();
+      },
       disabled: isDeleting,
     },
     ...(game.executablePath
@@ -181,7 +190,9 @@ export function GameContextMenu({
         visible={visible}
         position={position}
         onClose={onClose}
-        className={!game.executablePath ? "context-menu--game-not-installed" : undefined}
+        className={
+          !game.executablePath ? "context-menu--game-not-installed" : undefined
+        }
       />
 
       <ConfirmModal
