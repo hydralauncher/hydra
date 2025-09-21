@@ -36,7 +36,9 @@ export function ContextMenu({
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const submenuCloseTimeout = useRef<number | null>(null);
   const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
-  const [submenuStyles, setSubmenuStyles] = useState<Record<string, React.CSSProperties>>({});
+  const [submenuStyles, setSubmenuStyles] = useState<
+    Record<string, React.CSSProperties>
+  >({});
 
   useEffect(() => {
     if (!visible) return;
@@ -127,7 +129,9 @@ export function ContextMenu({
     const parentEl = itemRefs.current[activeSubmenu];
     if (!parentEl) return;
 
-    const submenuEl = parentEl.querySelector(".context-menu__submenu") as HTMLElement | null;
+    const submenuEl = parentEl.querySelector(
+      ".context-menu__submenu"
+    ) as HTMLElement | null;
     if (!submenuEl) return;
 
     const parentRect = parentEl.getBoundingClientRect();
@@ -174,7 +178,9 @@ export function ContextMenu({
             key={item.id}
             ref={(el) => (itemRefs.current[item.id] = el)}
             className="context-menu__item-container"
-            onMouseEnter={() => item.submenu && handleSubmenuMouseEnter(item.id)}
+            onMouseEnter={() =>
+              item.submenu && handleSubmenuMouseEnter(item.id)
+            }
             onMouseLeave={() => item.submenu && handleSubmenuMouseLeave()}
           >
             {item.separator && <div className="context-menu__separator" />}
@@ -198,7 +204,7 @@ export function ContextMenu({
               )}
             </button>
 
-              {item.submenu && activeSubmenu === item.id && (
+            {item.submenu && activeSubmenu === item.id && (
               <div
                 className="context-menu__submenu"
                 style={submenuStyles[item.id] || undefined}
@@ -207,8 +213,13 @@ export function ContextMenu({
               >
                 <ul className="context-menu__list">
                   {item.submenu.map((subItem) => (
-                    <li key={subItem.id} className="context-menu__item-container">
-                      {subItem.separator && <div className="context-menu__separator" />}
+                    <li
+                      key={subItem.id}
+                      className="context-menu__item-container"
+                    >
+                      {subItem.separator && (
+                        <div className="context-menu__separator" />
+                      )}
                       <button
                         type="button"
                         className={cn("context-menu__item", {
