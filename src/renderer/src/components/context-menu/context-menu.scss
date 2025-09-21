@@ -1,0 +1,154 @@
+@use "../../scss/globals.scss";
+
+.context-menu {
+  position: fixed;
+  z-index: 1000;
+  background-color: globals.$background-color;
+  border: 1px solid globals.$border-color;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  padding: 4px 0;
+  min-width: 180px;
+  backdrop-filter: blur(8px);
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  &__item-container {
+    position: relative;
+    padding-right: 8px;
+  }
+
+  &__item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    color: globals.$body-color;
+    cursor: pointer;
+    font-size: globals.$body-font-size;
+    text-align: left;
+    transition: background-color 0.15s ease;
+
+    &:hover:not(&--disabled) {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    &:active:not(&--disabled) {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    &--disabled {
+      color: globals.$muted-color;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    &--danger {
+      color: globals.$danger-color;
+
+      &:hover:not(.context-menu__item--disabled) {
+        background-color: rgba(128, 29, 30, 0.1);
+      }
+
+      .context-menu__item-icon {
+        color: globals.$danger-color;
+      }
+    }
+
+    &--has-submenu {
+      position: relative;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+    }
+
+    &--active {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  &__item-label {
+    flex: 1;
+    white-space: nowrap;
+  }
+
+  &__item-arrow {
+    font-size: 10px;
+    color: globals.$muted-color;
+    margin-left: auto;
+  }
+
+  &__submenu {
+    position: absolute;
+    left: calc(100% - 2px);
+    top: 0;
+    background-color: globals.$background-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    padding: 4px 0;
+    min-width: 160px;
+    backdrop-filter: blur(8px);
+    margin-left: 0;
+    z-index: 1200;
+   
+    pointer-events: auto;
+
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  &__content {
+    border-top: 1px solid globals.$border-color;
+    padding: 8px 12px;
+    margin-top: 4px;
+  }
+
+  &__item + &__item {
+    border-top: 1px solid transparent;
+  }
+
+  &__item--danger:first-of-type {
+    border-top: 1px solid globals.$border-color;
+    margin-top: 4px;
+  }
+
+  &__separator {
+    height: 1px;
+    background: globals.$border-color;
+    margin: 6px 8px;
+    border-radius: 1px;
+  }
+}
+
+.context-menu {
+  animation: contextMenuFadeIn 0.15s ease-out;
+}
+
+@keyframes contextMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
