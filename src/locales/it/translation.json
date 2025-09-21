@@ -82,7 +82,17 @@
     "previous_screenshot": "Screenshot precedente",
     "next_screenshot": "Screenshot successivo",
     "screenshot": "Screenshot {{number}}",
-    "open_screenshot": "Apri screenshot {{number}}"
+    "open_screenshot": "Apri screenshot {{number}}",
+    "no_repacks_found": "Nessuna fonte trovata per questo gioco",
+    "properties": "Proprietà",
+    "filter_by_source": "Filtra per fonte:",
+    "add_to_favorites": "Aggiungi ai preferiti",
+    "remove_from_favorites": "Rimuovi dai preferiti",
+    "failed_update_favorites": "Impossibile aggiornare i preferiti",
+    "game_removed_from_library": "Gioco rimosso dalla libreria",
+    "failed_remove_from_library": "Impossibile rimuovere dalla libreria",
+    "files_removed_success": "File rimossi con successo",
+    "failed_remove_files": "Impossibile rimuovere i file"
   },
   "activation": {
     "title": "Attiva Hydra",
