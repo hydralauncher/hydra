@@ -2,7 +2,11 @@
 
 .repacks-modal {
   &__filter-container {
-    margin-bottom: calc(globals.$spacing-unit * 2);
+    margin-bottom: 1rem;
+  }
+
+  &__filter-top {
+    margin-bottom: 1rem;
   }
 
   &__repacks {
@@ -63,27 +67,50 @@
   }
 
   &__download-sources {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: calc(globals.$spacing-unit / 2);
-    margin-top: calc(globals.$spacing-unit * 1);
-    max-height: 200px;
-    overflow: auto;
-    padding-right: 8px;
-  }
-
-  &__source-item {
-    display: block;
-    flex: 1 1 auto;
-    min-width: 150px;
+    padding: 0.75rem;
+    background-color: var(--color-background-light);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    margin-top: calc(globals.$spacing-unit * 0.5);
   }
 
   &__filter-label {
     font-size: globals.$small-font-size;
-    font-weight: 500;
-    margin-bottom: calc(globals.$spacing-unit / 2);
-    color: globals.$body-color;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--color-text-secondary);
     width: 100%;
+  }
+
+  &__source-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    max-height: 200px;
+    overflow-y: auto;
+    align-items: start;
+  }
+
+  &__source-item {
+    padding: 0.35rem 0.75rem;
+    background: var(--color-surface, rgba(0, 0, 0, 0.03));
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    min-height: 38px;
+    box-sizing: border-box;
+  }
+
+  // Ajustes para o label do checkbox
+  &__source-item :global(.checkbox-field) {
+    width: 100%;
+  }
+
+  &__source-item :global(.checkbox-field__label) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
   }
 }

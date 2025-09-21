@@ -181,15 +181,20 @@ export function RepacksModal({
 
           <div className="repacks-modal__download-sources">
             <p className="repacks-modal__filter-label">{t("filter_by_source")}</p>
-            {downloadSources.map((source) => (
-              <div key={source.fingerprint} className="repacks-modal__source-item">
-                <CheckboxField
-                  label={source.name || source.url}
-                  checked={selectedFingerprints.includes(source.fingerprint)}
-                  onChange={() => toggleFingerprint(source.fingerprint)}
-                />
-              </div>
-            ))}
+            <div className="repacks-modal__source-grid">
+              {downloadSources.map((source) => (
+                <div 
+                  key={source.fingerprint} 
+                  className="repacks-modal__source-item"
+                >
+                  <CheckboxField
+                    label={source.name || source.url}
+                    checked={selectedFingerprints.includes(source.fingerprint)}
+                    onChange={() => toggleFingerprint(source.fingerprint)}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 

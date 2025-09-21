@@ -20,6 +20,7 @@ export interface ContextMenuProps {
   position: { x: number; y: number };
   onClose: () => void;
   children?: React.ReactNode;
+  className?: string;
 }
 
 export function ContextMenu({
@@ -28,6 +29,7 @@ export function ContextMenu({
   position,
   onClose,
   children,
+  className,
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
@@ -160,7 +162,7 @@ export function ContextMenu({
   const menuContent = (
     <div
       ref={menuRef}
-      className="context-menu"
+      className={cn("context-menu", className)}
       style={{
         left: adjustedPosition.x,
         top: adjustedPosition.y,
