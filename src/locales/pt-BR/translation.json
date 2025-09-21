@@ -107,6 +107,7 @@
     "open_folder": "Abrir pasta",
     "open_download_location": "Ver arquivos baixados",
     "create_shortcut": "Criar atalho na área de trabalho",
+    "create_shortcut_simple": "Criar atalho",
     "remove_files": "Remover arquivos",
     "options": "Gerenciar",
   "properties": "Propriedades",

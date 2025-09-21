@@ -68,7 +68,7 @@ export function GameContextMenu({
       ? [
           {
             id: "shortcuts",
-            label: t("create_shortcut"),
+            label: t("create_shortcut_simple"),
             icon: <LinkIcon size={16} />,
             disabled: isDeleting,
             submenu: [
@@ -181,6 +181,7 @@ export function GameContextMenu({
         visible={visible}
         position={position}
         onClose={onClose}
+        className={!game.executablePath ? "context-menu--game-not-installed" : undefined}
       />
 
       <ConfirmModal

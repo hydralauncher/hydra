@@ -130,6 +130,11 @@
     margin-top: 4px;
   }
 
+  &--game-not-installed &__submenu &__item--danger:first-of-type {
+    border-top: none;
+    margin-top: 0;
+  }
+
   &__separator {
     height: 1px;
     background: globals.$border-color;
