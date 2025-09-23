@@ -44,6 +44,7 @@ export interface Game {
   executablePath?: string | null;
   launchOptions?: string | null;
   favorite?: boolean;
+  pinned?: boolean;
   automaticCloudSync?: boolean;
   hasManuallyUpdatedPlaytime?: boolean;
 }

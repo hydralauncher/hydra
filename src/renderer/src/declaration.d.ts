@@ -126,6 +126,11 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<void>;
+    addGameToPinned: (shop: GameShop, objectId: string) => Promise<void>;
+    removeGameFromPinned: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<void>;
     updateLaunchOptions: (
       shop: GameShop,
       objectId: string,

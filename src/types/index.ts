@@ -71,6 +71,8 @@ export type UserGame = {
   achievementCount: number;
   achievementsPointsEarnedSum: number;
   hasManuallyUpdatedPlaytime: boolean;
+  isFavorite: boolean;
+  isPinned: boolean;
 } & ShopAssets;
 
 export interface GameRunning {
