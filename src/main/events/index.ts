@@ -16,6 +16,8 @@ import "./hardware/check-folder-write-permission";
 import "./library/add-game-to-library";
 import "./library/add-game-to-favorites";
 import "./library/remove-game-from-favorites";
+import "./library/add-game-to-pinned";
+import "./library/remove-game-from-pinned";
 import "./library/create-game-shortcut";
 import "./library/close-game";
 import "./library/delete-game-folder";

@@ -68,6 +68,14 @@ export function ProfileContent() {
     return userProfile?.relation?.status === "ACCEPTED";
   }, [userProfile]);
 
+  const pinnedGames = useMemo(() => {
+    return userProfile?.libraryGames?.filter((game) => game.isPinned) || [];
+  }, [userProfile]);
+
+  const libraryGames = useMemo(() => {
+    return userProfile?.libraryGames || [];
+  }, [userProfile]);
+
   const content = useMemo(() => {
     if (!userProfile) return null;
 
@@ -80,6 +88,7 @@ export function ProfileContent() {
     }
 
     const hasGames = userProfile?.libraryGames.length > 0;
+    const hasPinnedGames = pinnedGames.length > 0;
 
     const shouldShowRightContent = hasGames || userProfile.friends.length > 0;
 
@@ -98,16 +107,36 @@ export function ProfileContent() {
 
           {hasGames && (
             <>
+              {hasPinnedGames && (
+                <div style={{ marginBottom: '2rem' }}>
+                  <div className="profile-content__section-header">
+                    <h2>{t("pinned")}</h2>
+                    <span>{pinnedGames.length}</span>
+                  </div>
+
+                  <ul className="profile-content__games-grid">
+                    {pinnedGames?.map((game) => (
+                      <UserLibraryGameCard
+                        game={game}
+                        key={game.objectId}
+                        statIndex={statsIndex}
+                        onMouseEnter={handleOnMouseEnterGameCard}
+                        onMouseLeave={handleOnMouseLeaveGameCard}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div className="profile-content__section-header">
                 <h2>{t("library")}</h2>
-
                 {userStats && (
                   <span>{numberFormatter.format(userStats.libraryCount)}</span>
                 )}
               </div>
 
               <ul className="profile-content__games-grid">
-                {userProfile?.libraryGames?.map((game) => (
+                {libraryGames?.map((game) => (
                   <UserLibraryGameCard
                     game={game}
                     key={game.objectId}

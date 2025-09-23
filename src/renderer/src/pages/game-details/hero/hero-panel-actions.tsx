@@ -3,6 +3,8 @@ import {
   GearIcon,
   HeartFillIcon,
   HeartIcon,
+  PinIcon,
+  PinSlashIcon,
   PlayIcon,
   PlusCircleIcon,
 } from "@primer/octicons-react";
@@ -72,6 +74,31 @@ export function HeroPanelActions() {
 
         await window.electron.addGameToFavorites(shop, objectId).then(() => {
           showSuccessToast(t("game_added_to_favorites"));
+        });
+      }
+
+      updateLibrary();
+      updateGame();
+    } finally {
+      setToggleLibraryGameDisabled(false);
+    }
+  };
+
+  const toggleGamePinned = async () => {
+    setToggleLibraryGameDisabled(true);
+
+    try {
+      if (game?.pinned && objectId) {
+        await window.electron
+          .removeGameFromPinned(shop, objectId)
+          .then(() => {
+            showSuccessToast(t("game_removed_from_pinned"));
+          });
+      } else {
+        if (!objectId) return;
+
+        await window.electron.addGameToPinned(shop, objectId).then(() => {
+          showSuccessToast(t("game_added_to_pinned"));
         });
       }
 
@@ -196,6 +223,15 @@ export function HeroPanelActions() {
           className="hero-panel-actions__action"
         >
           {game.favorite ? <HeartFillIcon /> : <HeartIcon />}
+        </Button>
+
+        <Button
+          onClick={toggleGamePinned}
+          theme="outline"
+          disabled={deleting}
+          className="hero-panel-actions__action"
+        >
+          {game.pinned ? <PinSlashIcon /> : <PinIcon />}
         </Button>
 
         <Button
