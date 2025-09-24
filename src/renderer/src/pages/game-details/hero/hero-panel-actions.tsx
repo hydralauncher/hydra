@@ -9,7 +9,12 @@ import {
   PlusCircleIcon,
 } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
-import { useDownload, useLibrary, useToast, useUserDetails } from "@renderer/hooks";
+import {
+  useDownload,
+  useLibrary,
+  useToast,
+  useUserDetails,
+} from "@renderer/hooks";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { gameDetailsContext } from "@renderer/context";
