@@ -1,7 +1,7 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { PlusCircleIcon } from "@primer/octicons-react";
+import { PlusCircleIcon, ChevronDownIcon, ChevronUpIcon } from "@primer/octicons-react";
 
 import {
   Badge,
@@ -159,6 +159,8 @@ export function RepacksModal({
     return repack.uris.some((uri) => uri.includes(game.download!.uri));
   };
 
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+
   return (
     <>
       <DownloadSettingsModal
@@ -177,10 +179,18 @@ export function RepacksModal({
         <div className="repacks-modal__filter-container">
           <div className="repacks-modal__filter-top">
             <TextField placeholder={t("filter")} onChange={handleFilter} />
+            <Button
+              type="button"
+              theme="outline"
+              onClick={() => setIsFilterDrawerOpen(!isFilterDrawerOpen)}
+              className="repacks-modal__filter-toggle"
+            >
+              {t("filter_by_source")}
+              {isFilterDrawerOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+            </Button>
           </div>
 
-          <div className="repacks-modal__download-sources">
-            <p className="repacks-modal__filter-label">{t("filter_by_source")}</p>
+          <div className={`repacks-modal__download-sources ${isFilterDrawerOpen ? 'repacks-modal__download-sources--open' : ''}`}>
             <div className="repacks-modal__source-grid">
               {downloadSources.map((source) => (
                 <div 
