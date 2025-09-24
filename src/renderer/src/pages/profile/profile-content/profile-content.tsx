@@ -16,7 +16,13 @@ import "./profile-content.scss";
 const GAME_STATS_ANIMATION_DURATION_IN_MS = 3500;
 
 export function ProfileContent() {
-  const { userProfile, isMe, userStats } = useContext(userProfileContext);
+  const {
+    userProfile,
+    isMe,
+    userStats,
+    libraryGames,
+    pinnedGames,
+  } = useContext(userProfileContext);
   const [statsIndex, setStatsIndex] = useState(0);
   const [isAnimationRunning, setIsAnimationRunning] = useState(true);
   const statsAnimation = useRef(-1);
@@ -68,13 +74,7 @@ export function ProfileContent() {
     return userProfile?.relation?.status === "ACCEPTED";
   }, [userProfile]);
 
-  const pinnedGames = useMemo(() => {
-    return userProfile?.libraryGames?.filter((game) => game.isPinned) || [];
-  }, [userProfile]);
 
-  const libraryGames = useMemo(() => {
-    return userProfile?.libraryGames || [];
-  }, [userProfile]);
 
   const content = useMemo(() => {
     if (!userProfile) return null;
@@ -87,7 +87,7 @@ export function ProfileContent() {
       return <LockedProfile />;
     }
 
-    const hasGames = userProfile?.libraryGames.length > 0;
+    const hasGames = libraryGames.length > 0;
     const hasPinnedGames = pinnedGames.length > 0;
 
     const shouldShowRightContent = hasGames || userProfile.friends.length > 0;
@@ -108,7 +108,7 @@ export function ProfileContent() {
           {hasGames && (
             <>
               {hasPinnedGames && (
-                <div style={{ marginBottom: '2rem' }}>
+                <div style={{ marginBottom: "2rem" }}>
                   <div className="profile-content__section-header">
                     <h2>{t("pinned")}</h2>
                     <span>{pinnedGames.length}</span>
@@ -168,6 +168,8 @@ export function ProfileContent() {
     numberFormatter,
     t,
     statsIndex,
+    libraryGames,
+    pinnedGames,
   ]);
 
   return (

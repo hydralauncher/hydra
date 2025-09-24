@@ -19,6 +19,7 @@ const removeGameFromPinned = async (
     await gamesSublevel.put(gameKey, {
       ...game,
       pinned: false,
+      pinnedDate: null,
     });
   } catch (error) {
     throw new Error(`Failed to update game pinned status: ${error}`);

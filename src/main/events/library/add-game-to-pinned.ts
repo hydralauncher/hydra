@@ -19,6 +19,7 @@ const addGameToPinned = async (
     await gamesSublevel.put(gameKey, {
       ...game,
       pinned: true,
+      pinnedDate: new Date(),
     });
   } catch (error) {
     throw new Error(`Failed to update game pinned status: ${error}`);
