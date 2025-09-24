@@ -9,18 +9,18 @@ const getUserLibrary = async (
   skip?: number
 ): Promise<UserLibraryResponse | null> => {
   const params = new URLSearchParams();
-  
+
   if (take !== undefined) {
-    params.append('take', take.toString());
+    params.append("take", take.toString());
   }
-  
+
   if (skip !== undefined) {
-    params.append('skip', skip.toString());
+    params.append("skip", skip.toString());
   }
-  
+
   const queryString = params.toString();
-  const url = `/users/${userId}/library${queryString ? `?${queryString}` : ''}`;
-  
+  const url = `/users/${userId}/library${queryString ? `?${queryString}` : ""}`;
+
   return HydraApi.get<UserLibraryResponse>(url).catch(() => null);
 };
 

@@ -37,7 +37,6 @@ import type {
   ShopDetailsWithAssets,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
-  UserGame,
   UserLibraryResponse,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
@@ -291,7 +290,11 @@ declare global {
 
     /* User */
     getUser: (userId: string) => Promise<UserProfile | null>;
-    getUserLibrary: (userId: string, take?: number, skip?: number) => Promise<UserLibraryResponse>;
+    getUserLibrary: (
+      userId: string,
+      take?: number,
+      skip?: number
+    ) => Promise<UserLibraryResponse>;
     blockUser: (userId: string) => Promise<void>;
     unblockUser: (userId: string) => Promise<void>;
     getUserFriends: (

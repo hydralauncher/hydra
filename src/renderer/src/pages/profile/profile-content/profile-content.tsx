@@ -16,13 +16,8 @@ import "./profile-content.scss";
 const GAME_STATS_ANIMATION_DURATION_IN_MS = 3500;
 
 export function ProfileContent() {
-  const {
-    userProfile,
-    isMe,
-    userStats,
-    libraryGames,
-    pinnedGames,
-  } = useContext(userProfileContext);
+  const { userProfile, isMe, userStats, libraryGames, pinnedGames } =
+    useContext(userProfileContext);
   const [statsIndex, setStatsIndex] = useState(0);
   const [isAnimationRunning, setIsAnimationRunning] = useState(true);
   const statsAnimation = useRef(-1);
@@ -73,8 +68,6 @@ export function ProfileContent() {
   const usersAreFriends = useMemo(() => {
     return userProfile?.relation?.status === "ACCEPTED";
   }, [userProfile]);
-
-
 
   const content = useMemo(() => {
     if (!userProfile) return null;

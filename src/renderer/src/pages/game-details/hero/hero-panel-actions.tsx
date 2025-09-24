@@ -9,7 +9,7 @@ import {
   PlusCircleIcon,
 } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
-import { useDownload, useLibrary, useToast } from "@renderer/hooks";
+import { useDownload, useLibrary, useToast, useUserDetails } from "@renderer/hooks";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { gameDetailsContext } from "@renderer/context";
@@ -21,6 +21,7 @@ export function HeroPanelActions() {
     useState(false);
 
   const { isGameDeleting } = useDownload();
+  const { userDetails } = useUserDetails();
 
   const {
     game,
@@ -223,14 +224,16 @@ export function HeroPanelActions() {
           {game.favorite ? <HeartFillIcon /> : <HeartIcon />}
         </Button>
 
-        <Button
-          onClick={toggleGamePinned}
-          theme="outline"
-          disabled={deleting}
-          className="hero-panel-actions__action"
-        >
-          {game.pinned ? <PinSlashIcon /> : <PinIcon />}
-        </Button>
+        {userDetails && (
+          <Button
+            onClick={toggleGamePinned}
+            theme="outline"
+            disabled={deleting}
+            className="hero-panel-actions__action"
+          >
+            {game.pinned ? <PinSlashIcon /> : <PinIcon />}
+          </Button>
+        )}
 
         <Button
           onClick={() => setShowGameOptionsModal(true)}
