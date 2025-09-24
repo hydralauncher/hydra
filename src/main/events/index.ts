@@ -66,6 +66,7 @@ import "./auth/sign-out";
 import "./auth/open-auth-window";
 import "./auth/get-session-hash";
 import "./user/get-user";
+import "./user/get-user-library";
 import "./user/get-blocked-users";
 import "./user/block-user";
 import "./user/unblock-user";

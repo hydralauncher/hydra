@@ -89,11 +89,9 @@ export function HeroPanelActions() {
 
     try {
       if (game?.pinned && objectId) {
-        await window.electron
-          .removeGameFromPinned(shop, objectId)
-          .then(() => {
-            showSuccessToast(t("game_removed_from_pinned"));
-          });
+        await window.electron.removeGameFromPinned(shop, objectId).then(() => {
+          showSuccessToast(t("game_removed_from_pinned"));
+        });
       } else {
         if (!objectId) return;
 

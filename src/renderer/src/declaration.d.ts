@@ -37,6 +37,8 @@ import type {
   ShopDetailsWithAssets,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  UserGame,
+  UserLibraryResponse,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -127,10 +129,7 @@ declare global {
       objectId: string
     ) => Promise<void>;
     addGameToPinned: (shop: GameShop, objectId: string) => Promise<void>;
-    removeGameFromPinned: (
-      shop: GameShop,
-      objectId: string
-    ) => Promise<void>;
+    removeGameFromPinned: (shop: GameShop, objectId: string) => Promise<void>;
     updateLaunchOptions: (
       shop: GameShop,
       objectId: string,
@@ -292,6 +291,7 @@ declare global {
 
     /* User */
     getUser: (userId: string) => Promise<UserProfile | null>;
+    getUserLibrary: (userId: string, take?: number, skip?: number) => Promise<UserLibraryResponse>;
     blockUser: (userId: string) => Promise<void>;
     unblockUser: (userId: string) => Promise<void>;
     getUserFriends: (
