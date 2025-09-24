@@ -7,6 +7,22 @@
 
   &__filter-top {
     margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  &__filter-toggle {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
   }
 
   &__repacks {
@@ -67,14 +83,23 @@
   }
 
   &__download-sources {
-    padding: 0.75rem;
+    padding: 0;
     background-color: var(--color-background-light);
     border-radius: 8px;
     margin-bottom: 1rem;
     margin-top: calc(globals.$spacing-unit * 0.5);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+
+    &--open {
+      padding: 0.75rem;
+      max-height: 250px; /* Ajuste baseado no conteúdo esperado */
+    }
   }
 
   &__filter-label {
+    display: none; /* Escondido pois agora está no botão toggle */
     font-size: globals.$small-font-size;
     font-weight: 600;
     margin-bottom: 0.75rem;
@@ -84,15 +109,17 @@
 
   &__source-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 0.5rem;
     max-height: 200px;
     overflow-y: auto;
+    overflow-x: hidden;
     align-items: start;
+    padding-right: 0.25rem; /* Espaço para a barra de rolagem */
   }
 
   &__source-item {
-    padding: 0.35rem 0.75rem;
+    padding: 0.35rem 0.5rem;
     background: var(--color-surface, rgba(0, 0, 0, 0.03));
     border: 1px solid var(--color-border);
     border-radius: 6px;
@@ -100,11 +127,13 @@
     align-items: center;
     min-height: 38px;
     box-sizing: border-box;
+    width: 100%;
   }
 
   // Ajustes para o label do checkbox
   &__source-item :global(.checkbox-field) {
     width: 100%;
+    min-width: 0; /* Permite que o flex item encolha abaixo da largura do conteúdo */
   }
 
   &__source-item :global(.checkbox-field__label) {
@@ -112,5 +141,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;
+    font-size: 0.85rem; /* Fonte levemente menor para caber melhor */
+    width: 100%;
   }
 }
