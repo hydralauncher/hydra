@@ -19,7 +19,8 @@ const getUserLibrary = async (
   }
 
   const queryString = params.toString();
-  const url = `/users/${userId}/library${queryString ? `?${queryString}` : ""}`;
+  const baseUrl = `/users/${userId}/library`;
+  const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
 
   return HydraApi.get<UserLibraryResponse>(url).catch(() => null);
 };
