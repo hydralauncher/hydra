@@ -13,13 +13,13 @@ const addGameToPinned = async (
   const game = await gamesSublevel.get(gameKey);
   if (!game) return;
 
-  HydraApi.put(`/profile/games/${shop}/${objectId}/pin`).catch(() => {});
+  const response = await HydraApi.put(`/profile/games/${shop}/${objectId}/pin`);
 
   try {
     await gamesSublevel.put(gameKey, {
       ...game,
       pinned: true,
-      pinnedDate: new Date(),
+      pinnedDate: new Date(response.pinnedDate),
     });
   } catch (error) {
     throw new Error(`Failed to update game pinned status: ${error}`);
