@@ -1,6 +1,6 @@
 import { UserGame } from "@types";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
-import { useFormat } from "@renderer/hooks";
+import { useFormat, useToast } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
 import { useCallback, useContext, useState } from "react";
 import {
@@ -14,6 +14,8 @@ import {
   TrophyIcon,
   AlertFillIcon,
   HeartFillIcon,
+  PinIcon,
+  PinSlashIcon,
 } from "@primer/octicons-react";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
@@ -33,11 +35,14 @@ export function UserLibraryGameCard({
   onMouseEnter,
   onMouseLeave,
 }: UserLibraryGameCardProps) {
-  const { userProfile } = useContext(userProfileContext);
+  const { userProfile, isMe, getUserLibraryGames } = useContext(userProfileContext);
   const { t } = useTranslation("user_profile");
+  const { t: tGame } = useTranslation("game_details");
   const { numberFormatter } = useFormat();
+  const { showSuccessToast } = useToast();
   const navigate = useNavigate();
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
+  const [isPinning, setIsPinning] = useState(false);
 
   const getStatsItemCount = useCallback(() => {
     let statsCount = 1;
@@ -89,6 +94,30 @@ export function UserLibraryGameCard({
     [numberFormatter, t]
   );
 
+  const toggleGamePinned = async () => {
+    setIsPinning(true);
+
+    try {
+      if (game.isPinned) {
+        await window.electron.removeGameFromPinned(game.shop, game.objectId).then(() => {
+          showSuccessToast(tGame("game_removed_from_pinned"));
+        });
+      } else {
+        await window.electron.addGameToPinned(game.shop, game.objectId).then(() => {
+          showSuccessToast(tGame("game_added_to_pinned"));
+        });
+      }
+      
+      // Add a small delay to allow server synchronization before refreshing
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Refresh the library games to update the UI
+      await getUserLibraryGames();
+    } finally {
+      setIsPinning(false);
+    }
+  };
+
   return (
     <>
       <li
@@ -103,9 +132,26 @@ export function UserLibraryGameCard({
           onClick={() => navigate(buildUserGameDetailsPath(game))}
         >
           <div className="user-library-game__overlay">
-            {game.isFavorite && (
-              <div className="user-library-game__favorite-icon">
-                <HeartFillIcon size={14} />
+            {(game.isFavorite || isMe) && (
+              <div className="user-library-game__actions-container">
+                {game.isFavorite && (
+                  <div className="user-library-game__favorite-icon">
+                    <HeartFillIcon size={12} />
+                  </div>
+                )}
+                {isMe && (
+                  <button
+                    type="button"
+                    className="user-library-game__pin-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleGamePinned();
+                    }}
+                    disabled={isPinning}
+                  >
+                    {game.isPinned ? <PinSlashIcon size={12} /> : <PinIcon size={12} />}
+                  </button>
+                )}
               </div>
             )}
             <small

@@ -14,6 +14,7 @@ export interface UserProfileContext {
   isMe: boolean;
   userStats: UserStats | null;
   getUserProfile: () => Promise<void>;
+  getUserLibraryGames: () => Promise<void>;
   setSelectedBackgroundImage: React.Dispatch<React.SetStateAction<string>>;
   backgroundImage: string;
   badges: Badge[];
@@ -29,6 +30,7 @@ export const userProfileContext = createContext<UserProfileContext>({
   isMe: false,
   userStats: null,
   getUserProfile: async () => {},
+  getUserLibraryGames: async () => {},
   setSelectedBackgroundImage: () => {},
   backgroundImage: "",
   badges: [],
@@ -149,6 +151,7 @@ export function UserProfileContextProvider({
         heroBackground,
         isMe,
         getUserProfile,
+        getUserLibraryGames,
         setSelectedBackgroundImage,
         backgroundImage: getBackgroundImageUrl(),
         userStats,
