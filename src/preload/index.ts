@@ -143,6 +143,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("addGameToFavorites", shop, objectId),
   removeGameFromFavorites: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("removeGameFromFavorites", shop, objectId),
+  addGameToPinned: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("addGameToPinned", shop, objectId),
+  removeGameFromPinned: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("removeGameFromPinned", shop, objectId),
   updateLaunchOptions: (
     shop: GameShop,
     objectId: string,
@@ -366,6 +370,8 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* User */
   getUser: (userId: string) => ipcRenderer.invoke("getUser", userId),
+  getUserLibrary: (userId: string, take?: number, skip?: number) =>
+    ipcRenderer.invoke("getUserLibrary", userId, take, skip),
   blockUser: (userId: string) => ipcRenderer.invoke("blockUser", userId),
   unblockUser: (userId: string) => ipcRenderer.invoke("unblockUser", userId),
   getUserFriends: (userId: string, take: number, skip: number) =>

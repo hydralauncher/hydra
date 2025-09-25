@@ -11,7 +11,6 @@ import "./hero-panel-playtime.scss";
 
 export function HeroPanelPlaytime() {
   const [lastTimePlayed, setLastTimePlayed] = useState("");
-  
 
   const { game, isGameRunning } = useContext(gameDetailsContext);
   const { t } = useTranslation("game_details");
@@ -89,7 +88,7 @@ export function HeroPanelPlaytime() {
 
   return (
     <>
-      <p 
+      <p
         className="hero-panel-playtime__play-time"
         data-tooltip-place="top"
         data-tooltip-content={
@@ -97,11 +96,15 @@ export function HeroPanelPlaytime() {
             ? t("manual_playtime_tooltip")
             : undefined
         }
-        data-tooltip-id={game.hasManuallyUpdatedPlaytime ? "manual-playtime-warning" : undefined}
+        data-tooltip-id={
+          game.hasManuallyUpdatedPlaytime
+            ? "manual-playtime-warning"
+            : undefined
+        }
       >
         {game.hasManuallyUpdatedPlaytime && (
-          <AlertFillIcon 
-            size={16} 
+          <AlertFillIcon
+            size={16}
             className="hero-panel-playtime__manual-warning"
           />
         )}
@@ -119,7 +122,7 @@ export function HeroPanelPlaytime() {
           })}
         </p>
       )}
-      
+
       {game.hasManuallyUpdatedPlaytime && (
         <Tooltip
           id="manual-playtime-warning"
@@ -127,7 +130,6 @@ export function HeroPanelPlaytime() {
             zIndex: 9999,
           }}
           openOnClick={false}
-
         />
       )}
     </>
