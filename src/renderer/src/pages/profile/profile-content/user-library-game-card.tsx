@@ -9,7 +9,12 @@ import {
   formatDownloadProgress,
 } from "@renderer/helpers";
 import { userProfileContext } from "@renderer/context";
-import { ClockIcon, TrophyIcon, AlertFillIcon } from "@primer/octicons-react";
+import {
+  ClockIcon,
+  TrophyIcon,
+  AlertFillIcon,
+  HeartFillIcon,
+} from "@primer/octicons-react";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
@@ -98,6 +103,11 @@ export function UserLibraryGameCard({
           onClick={() => navigate(buildUserGameDetailsPath(game))}
         >
           <div className="user-library-game__overlay">
+            {game.isFavorite && (
+              <div className="user-library-game__favorite-icon">
+                <HeartFillIcon size={14} />
+              </div>
+            )}
             <small
               className="user-library-game__playtime"
               data-tooltip-place="top"
