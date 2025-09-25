@@ -84,7 +84,8 @@ export function ProfileContent() {
     const hasPinnedGames = pinnedGames.length > 0;
     const hasAnyGames = hasGames || hasPinnedGames;
 
-    const shouldShowRightContent = hasAnyGames || userProfile.friends.length > 0;
+    const shouldShowRightContent =
+      hasAnyGames || userProfile.friends.length > 0;
 
     return (
       <section className="profile-content__section">
@@ -127,7 +128,9 @@ export function ProfileContent() {
                   <div className="profile-content__section-header">
                     <h2>{t("library")}</h2>
                     {userStats && (
-                      <span>{numberFormatter.format(userStats.libraryCount)}</span>
+                      <span>
+                        {numberFormatter.format(userStats.libraryCount)}
+                      </span>
                     )}
                   </div>
 
