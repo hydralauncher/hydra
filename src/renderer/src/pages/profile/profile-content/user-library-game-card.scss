@@ -65,6 +65,20 @@
     padding: 8px;
   }
 
+  &__favorite-icon {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    color: #ff6b6b;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+
   &__playtime {
     background-color: globals.$background-color;
     color: globals.$muted-color;
@@ -75,7 +89,9 @@
     gap: 4px;
     padding: 4px;
   }
-
+  &__manual-playtime {
+    color: globals.$warning-color;
+  }
   &__stats {
     width: 100%;
     display: flex;

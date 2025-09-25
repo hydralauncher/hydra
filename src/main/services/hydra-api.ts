@@ -11,7 +11,6 @@ import { getUserData } from "./user/get-user-data";
 import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 import type { Auth, User } from "@types";
-import { WSClient } from "./ws/ws-client";
 
 interface HydraApiOptions {
   needsAuth?: boolean;
@@ -103,8 +102,8 @@ export class HydraApi {
       WindowManager.mainWindow.webContents.send("on-signin");
       await clearGamesRemoteIds();
       uploadGamesBatch();
-      WSClient.close();
-      WSClient.connect();
+      // WSClient.close();
+      // WSClient.connect();
     }
   }
 

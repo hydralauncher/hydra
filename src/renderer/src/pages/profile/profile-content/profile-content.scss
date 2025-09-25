@@ -58,6 +58,34 @@
     margin-bottom: calc(globals.$spacing-unit * 2);
   }
 
+  &__tabs {
+    display: flex;
+    gap: calc(globals.$spacing-unit);
+    margin-bottom: calc(globals.$spacing-unit * 2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  &__tab {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    padding: calc(globals.$spacing-unit) calc(globals.$spacing-unit * 2);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all ease 0.2s;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    &--active {
+      color: white;
+      border-bottom-color: #c9aa71;
+    }
+  }
+
   &__games-grid {
     list-style: none;
     margin: 0;

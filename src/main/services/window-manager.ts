@@ -181,6 +181,9 @@ export class WindowManager {
     });
 
     this.mainWindow.on("close", async () => {
+      const mainWindow = this.mainWindow;
+      this.mainWindow = null;
+
       const userPreferences = await db.get<string, UserPreferences>(
         levelKeys.userPreferences,
         {
@@ -188,9 +191,11 @@ export class WindowManager {
         }
       );
 
-      if (this.mainWindow) {
-        const lastBounds = this.mainWindow.getBounds();
-        const isMaximized = this.mainWindow.isMaximized() ?? false;
+      if (mainWindow) {
+        mainWindow.setProgressBar(-1);
+
+        const lastBounds = mainWindow.getBounds();
+        const isMaximized = mainWindow.isMaximized() ?? false;
         const screenConfig = isMaximized
           ? {
               x: undefined,
@@ -207,9 +212,6 @@ export class WindowManager {
       if (userPreferences?.preferQuitInsteadOfHiding) {
         app.quit();
       }
-
-      WindowManager.mainWindow?.setProgressBar(-1);
-      WindowManager.mainWindow = null;
     });
 
     this.mainWindow.webContents.setWindowOpenHandler((handler) => {
@@ -582,12 +584,24 @@ export class WindowManager {
       tray.popUpContextMenu(contextMenu);
     };
 
-    tray.setToolTip("Hydra");
+    tray.setToolTip("Hydra Launcher");
 
-    if (process.platform !== "darwin") {
+    if (process.platform === "win32") {
       await updateSystemTray();
 
       tray.addListener("double-click", () => {
+        if (this.mainWindow) {
+          this.mainWindow.show();
+        } else {
+          this.createMainWindow();
+        }
+      });
+
+      tray.addListener("right-click", showContextMenu);
+    } else if (process.platform === "linux") {
+      await updateSystemTray();
+
+      tray.addListener("click", () => {
         if (this.mainWindow) {
           this.mainWindow.show();
         } else {

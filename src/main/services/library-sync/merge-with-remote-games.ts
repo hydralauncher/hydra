@@ -6,7 +6,9 @@ type ProfileGame = {
   id: string;
   lastTimePlayed: Date | null;
   playTimeInMilliseconds: number;
+  hasManuallyUpdatedPlaytime: boolean;
   isFavorite?: boolean;
+  isPinned?: boolean;
 } & ShopAssets;
 
 export const mergeWithRemoteGames = async () => {
@@ -35,6 +37,7 @@ export const mergeWithRemoteGames = async () => {
             lastTimePlayed: updatedLastTimePlayed,
             playTimeInMilliseconds: updatedPlayTime,
             favorite: game.isFavorite ?? localGame.favorite,
+            pinned: game.isPinned ?? localGame.pinned,
           });
         } else {
           await gamesSublevel.put(gameKey, {
@@ -45,8 +48,10 @@ export const mergeWithRemoteGames = async () => {
             iconUrl: game.iconUrl,
             lastTimePlayed: game.lastTimePlayed,
             playTimeInMilliseconds: game.playTimeInMilliseconds,
+            hasManuallyUpdatedPlaytime: game.hasManuallyUpdatedPlaytime,
             isDeleted: false,
             favorite: game.isFavorite ?? false,
+            pinned: game.isPinned ?? false,
           });
         }
 
