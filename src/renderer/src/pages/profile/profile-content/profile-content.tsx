@@ -82,13 +82,14 @@ export function ProfileContent() {
 
     const hasGames = libraryGames.length > 0;
     const hasPinnedGames = pinnedGames.length > 0;
+    const hasAnyGames = hasGames || hasPinnedGames;
 
-    const shouldShowRightContent = hasGames || userProfile.friends.length > 0;
+    const shouldShowRightContent = hasAnyGames || userProfile.friends.length > 0;
 
     return (
       <section className="profile-content__section">
         <div className="profile-content__main">
-          {!hasGames && (
+          {!hasAnyGames && (
             <div className="profile-content__no-games">
               <div className="profile-content__telescope-icon">
                 <TelescopeIcon size={24} />
@@ -98,7 +99,7 @@ export function ProfileContent() {
             </div>
           )}
 
-          {hasGames && (
+          {hasAnyGames && (
             <>
               {hasPinnedGames && (
                 <div style={{ marginBottom: "2rem" }}>
@@ -121,24 +122,28 @@ export function ProfileContent() {
                 </div>
               )}
 
-              <div className="profile-content__section-header">
-                <h2>{t("library")}</h2>
-                {userStats && (
-                  <span>{numberFormatter.format(userStats.libraryCount)}</span>
-                )}
-              </div>
+              {hasGames && (
+                <div>
+                  <div className="profile-content__section-header">
+                    <h2>{t("library")}</h2>
+                    {userStats && (
+                      <span>{numberFormatter.format(userStats.libraryCount)}</span>
+                    )}
+                  </div>
 
-              <ul className="profile-content__games-grid">
-                {libraryGames?.map((game) => (
-                  <UserLibraryGameCard
-                    game={game}
-                    key={game.objectId}
-                    statIndex={statsIndex}
-                    onMouseEnter={handleOnMouseEnterGameCard}
-                    onMouseLeave={handleOnMouseLeaveGameCard}
-                  />
-                ))}
-              </ul>
+                  <ul className="profile-content__games-grid">
+                    {libraryGames?.map((game) => (
+                      <UserLibraryGameCard
+                        game={game}
+                        key={game.objectId}
+                        statIndex={statsIndex}
+                        onMouseEnter={handleOnMouseEnterGameCard}
+                        onMouseLeave={handleOnMouseLeaveGameCard}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              )}
             </>
           )}
         </div>
