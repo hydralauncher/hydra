@@ -3,11 +3,18 @@ import {
   GearIcon,
   HeartFillIcon,
   HeartIcon,
+  PinIcon,
+  PinSlashIcon,
   PlayIcon,
   PlusCircleIcon,
 } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
-import { useDownload, useLibrary, useToast } from "@renderer/hooks";
+import {
+  useDownload,
+  useLibrary,
+  useToast,
+  useUserDetails,
+} from "@renderer/hooks";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { gameDetailsContext } from "@renderer/context";
@@ -20,6 +27,7 @@ export function HeroPanelActions() {
     useState(false);
 
   const { isGameDeleting } = useDownload();
+  const { userDetails } = useUserDetails();
 
   const {
     game,
@@ -100,6 +108,29 @@ export function HeroPanelActions() {
 
         await window.electron.addGameToFavorites(shop, objectId).then(() => {
           showSuccessToast(t("game_added_to_favorites"));
+        });
+      }
+
+      updateLibrary();
+      updateGame();
+    } finally {
+      setToggleLibraryGameDisabled(false);
+    }
+  };
+
+  const toggleGamePinned = async () => {
+    setToggleLibraryGameDisabled(true);
+
+    try {
+      if (game?.pinned && objectId) {
+        await window.electron.removeGameFromPinned(shop, objectId).then(() => {
+          showSuccessToast(t("game_removed_from_pinned"));
+        });
+      } else {
+        if (!objectId) return;
+
+        await window.electron.addGameToPinned(shop, objectId).then(() => {
+          showSuccessToast(t("game_added_to_pinned"));
         });
       }
 
@@ -225,6 +256,17 @@ export function HeroPanelActions() {
         >
           {game.favorite ? <HeartFillIcon /> : <HeartIcon />}
         </Button>
+
+        {userDetails && (
+          <Button
+            onClick={toggleGamePinned}
+            theme="outline"
+            disabled={deleting}
+            className="hero-panel-actions__action"
+          >
+            {game.pinned ? <PinSlashIcon /> : <PinIcon />}
+          </Button>
+        )}
 
         <Button
           onClick={() => setShowGameOptionsModal(true)}
