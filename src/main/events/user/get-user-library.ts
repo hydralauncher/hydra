@@ -5,18 +5,13 @@ import type { UserLibraryResponse } from "@types";
 const getUserLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
   userId: string,
-  take?: number,
-  skip?: number
+  take: number = 12,
+  skip: number = 0
 ): Promise<UserLibraryResponse | null> => {
   const params = new URLSearchParams();
 
-  if (take !== undefined) {
-    params.append("take", take.toString());
-  }
-
-  if (skip !== undefined) {
-    params.append("skip", skip.toString());
-  }
+  params.append("take", take.toString());
+  params.append("skip", skip.toString());
 
   const queryString = params.toString();
   const baseUrl = `/users/${userId}/library`;

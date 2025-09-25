@@ -93,8 +93,7 @@ export function UserProfileContextProvider({
 
   const getUserLibraryGames = useCallback(async () => {
     try {
-      // Example usage with pagination: take=24, skip=0
-      const response = await window.electron.getUserLibrary(userId, 24, 0);
+      const response = await window.electron.getUserLibrary(userId);
       if (response) {
         setLibraryGames(response.library);
         setPinnedGames(response.pinnedGames);
