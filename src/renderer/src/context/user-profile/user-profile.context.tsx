@@ -102,7 +102,6 @@ export function UserProfileContextProvider({
         setPinnedGames([]);
       }
     } catch (error) {
-      console.error("Failed to fetch user library games:", error);
       setLibraryGames([]);
       setPinnedGames([]);
     }
