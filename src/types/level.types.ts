@@ -44,7 +44,10 @@ export interface Game {
   executablePath?: string | null;
   launchOptions?: string | null;
   favorite?: boolean;
+  pinned?: boolean;
+  pinnedDate?: Date | null;
   automaticCloudSync?: boolean;
+  hasManuallyUpdatedPlaytime?: boolean;
 }
 
 export interface Download {

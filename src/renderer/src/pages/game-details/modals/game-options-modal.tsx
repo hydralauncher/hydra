@@ -14,6 +14,7 @@ import {
 
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
+import { ChangeGamePlaytimeModal } from "./change-game-playtime-modal";
 import { FileDirectoryIcon, FileIcon } from "@primer/octicons-react";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { debounce } from "lodash-es";
@@ -50,6 +51,7 @@ export function GameOptionsModal({
   const [launchOptions, setLaunchOptions] = useState(game.launchOptions ?? "");
   const [showResetAchievementsModal, setShowResetAchievementsModal] =
     useState(false);
+  const [showChangePlaytimeModal, setShowChangePlaytimeModal] = useState(false);
   const [isDeletingAchievements, setIsDeletingAchievements] = useState(false);
   const [automaticCloudSync, setAutomaticCloudSync] = useState(
     game.automaticCloudSync ?? false
@@ -243,6 +245,20 @@ export function GameOptionsModal({
     }
   };
 
+  const handleChangePlaytime = async (playtimeInSeconds: number) => {
+    try {
+      await window.electron.changeGamePlayTime(
+        game.shop,
+        game.objectId,
+        playtimeInSeconds
+      );
+      await updateGame();
+      showSuccessToast(t("update_playtime_success"));
+    } catch (error) {
+      showErrorToast(t("update_playtime_error"));
+    }
+  };
+
   const handleToggleAutomaticCloudSync = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -276,6 +292,13 @@ export function GameOptionsModal({
         visible={showResetAchievementsModal}
         onClose={() => setShowResetAchievementsModal(false)}
         resetAchievements={handleResetAchievements}
+        game={game}
+      />
+
+      <ChangeGamePlaytimeModal
+        visible={showChangePlaytimeModal}
+        onClose={() => setShowChangePlaytimeModal(false)}
+        changePlaytime={handleChangePlaytime}
         game={game}
       />
 
@@ -489,6 +512,13 @@ export function GameOptionsModal({
                 }
               >
                 {t("reset_achievements")}
+              </Button>
+
+              <Button
+                onClick={() => setShowChangePlaytimeModal(true)}
+                theme="danger"
+              >
+                {t("update_game_playtime")}
               </Button>
 
               <Button
