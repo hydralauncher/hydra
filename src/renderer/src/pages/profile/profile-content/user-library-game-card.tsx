@@ -35,7 +35,8 @@ export function UserLibraryGameCard({
   onMouseEnter,
   onMouseLeave,
 }: UserLibraryGameCardProps) {
-  const { userProfile, isMe, getUserLibraryGames } = useContext(userProfileContext);
+  const { userProfile, isMe, getUserLibraryGames } =
+    useContext(userProfileContext);
   const { t } = useTranslation("user_profile");
   const { t: tGame } = useTranslation("game_details");
   const { numberFormatter } = useFormat();
@@ -99,17 +100,21 @@ export function UserLibraryGameCard({
 
     try {
       if (game.isPinned) {
-        await window.electron.removeGameFromPinned(game.shop, game.objectId).then(() => {
-          showSuccessToast(tGame("game_removed_from_pinned"));
-        });
+        await window.electron
+          .removeGameFromPinned(game.shop, game.objectId)
+          .then(() => {
+            showSuccessToast(tGame("game_removed_from_pinned"));
+          });
       } else {
-        await window.electron.addGameToPinned(game.shop, game.objectId).then(() => {
-          showSuccessToast(tGame("game_added_to_pinned"));
-        });
+        await window.electron
+          .addGameToPinned(game.shop, game.objectId)
+          .then(() => {
+            showSuccessToast(tGame("game_added_to_pinned"));
+          });
       }
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       await getUserLibraryGames();
     } finally {
       setIsPinning(false);
@@ -147,7 +152,11 @@ export function UserLibraryGameCard({
                     }}
                     disabled={isPinning}
                   >
-                    {game.isPinned ? <PinSlashIcon size={12} /> : <PinIcon size={12} />}
+                    {game.isPinned ? (
+                      <PinSlashIcon size={12} />
+                    ) : (
+                      <PinIcon size={12} />
+                    )}
                   </button>
                 )}
               </div>
