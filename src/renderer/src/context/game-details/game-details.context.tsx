@@ -26,6 +26,7 @@ import type {
 } from "@types";
 
 import { useTranslation } from "react-i18next";
+import { useLocation } from "react-router-dom";
 import { GameDetailsContext } from "./game-details.context.types";
 import { SteamContentDescriptor } from "@shared";
 
@@ -94,6 +95,7 @@ export function GameDetailsContextProvider({
   }, [getRepacksForObjectId, objectId]);
 
   const { i18n } = useTranslation("game_details");
+  const location = useLocation();
 
   const dispatch = useAppDispatch();
 
@@ -180,7 +182,7 @@ export function GameDetailsContextProvider({
           if (abortController.signal.aborted) return;
           setAchievements(achievements);
         })
-        .catch(() => {});
+        .catch(() => void 0);
     }
   }, [
     updateGame,
@@ -202,6 +204,19 @@ export function GameDetailsContextProvider({
   }, [objectId, gameTitle, dispatch]);
 
   useEffect(() => {
+    const state =
+      (location && (location.state as Record<string, unknown>)) || {};
+    if (state.openRepacks) {
+      setShowRepacksModal(true);
+      try {
+        window.history.replaceState({}, document.title, location.pathname);
+      } catch (_e) {
+        void _e;
+      }
+    }
+  }, [location]);
+
+  useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesIds) => {
       const updatedIsGameRunning =
         !!game?.id &&
@@ -218,6 +233,61 @@ export function GameDetailsContextProvider({
       unsubscribe();
     };
   }, [game?.id, isGameRunning, updateGame]);
+
+  useEffect(() => {
+    const handler = (ev: Event) => {
+      try {
+        const detail = (ev as CustomEvent).detail || {};
+        if (detail.objectId && detail.objectId === objectId) {
+          setShowRepacksModal(true);
+        }
+      } catch (e) {
+        void e;
+      }
+    };
+
+    window.addEventListener("hydra:openRepacks", handler as EventListener);
+
+    return () => {
+      window.removeEventListener("hydra:openRepacks", handler as EventListener);
+    };
+  }, [objectId]);
+
+  useEffect(() => {
+    const handler = (ev: Event) => {
+      try {
+        const detail = (ev as CustomEvent).detail || {};
+        if (detail.objectId && detail.objectId === objectId) {
+          setShowGameOptionsModal(true);
+        }
+      } catch (e) {
+        void e;
+      }
+    };
+
+    window.addEventListener("hydra:openGameOptions", handler as EventListener);
+
+    return () => {
+      window.removeEventListener(
+        "hydra:openGameOptions",
+        handler as EventListener
+      );
+    };
+  }, [objectId]);
+
+  useEffect(() => {
+    const state =
+      (location && (location.state as Record<string, unknown>)) || {};
+    if (state.openGameOptions) {
+      setShowGameOptionsModal(true);
+
+      try {
+        window.history.replaceState({}, document.title, location.pathname);
+      } catch (_e) {
+        void _e;
+      }
+    }
+  }, [location]);
 
   const lastDownloadedOption = useMemo(() => {
     if (game?.download) {

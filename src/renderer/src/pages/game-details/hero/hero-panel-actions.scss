@@ -3,6 +3,10 @@
 .hero-panel-actions {
   &__action {
     border: solid 1px globals.$muted-color;
+
+    &--disabled {
+      opacity: 0.5;
+    }
   }
 
   &__container {

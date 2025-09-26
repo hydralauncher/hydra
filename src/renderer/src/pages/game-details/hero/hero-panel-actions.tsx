@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { gameDetailsContext } from "@renderer/context";
 
 import "./hero-panel-actions.scss";
+import { useEffect } from "react";
 
 export function HeroPanelActions() {
   const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
@@ -51,6 +52,33 @@ export function HeroPanelActions() {
   const { showSuccessToast } = useToast();
 
   const { t } = useTranslation("game_details");
+
+  useEffect(() => {
+    const onFavoriteToggled = () => {
+      updateLibrary();
+      updateGame();
+    };
+
+    const onGameRemoved = () => {
+      updateLibrary();
+      updateGame();
+    };
+
+    const onFilesRemoved = () => {
+      updateLibrary();
+      updateGame();
+    };
+
+    window.addEventListener("hydra:game-favorite-toggled", onFavoriteToggled as EventListener);
+    window.addEventListener("hydra:game-removed-from-library", onGameRemoved as EventListener);
+    window.addEventListener("hydra:game-files-removed", onFilesRemoved as EventListener);
+
+    return () => {
+      window.removeEventListener("hydra:game-favorite-toggled", onFavoriteToggled as EventListener);
+      window.removeEventListener("hydra:game-removed-from-library", onGameRemoved as EventListener);
+      window.removeEventListener("hydra:game-files-removed", onFilesRemoved as EventListener);
+    };
+  }, [updateLibrary, updateGame]);
 
   const addGameToLibrary = async () => {
     setToggleLibraryGameDisabled(true);
@@ -197,8 +225,8 @@ export function HeroPanelActions() {
       <Button
         onClick={() => setShowRepacksModal(true)}
         theme="outline"
-        disabled={isGameDownloading || !repacks.length}
-        className="hero-panel-actions__action"
+        disabled={isGameDownloading}
+        className={`hero-panel-actions__action ${!repacks.length ? 'hero-panel-actions__action--disabled' : ''}`}
       >
         <DownloadIcon />
         {t("download")}

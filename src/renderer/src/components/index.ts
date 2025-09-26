@@ -15,3 +15,6 @@ export * from "./badge/badge";
 export * from "./confirmation-modal/confirmation-modal";
 export * from "./suspense-wrapper/suspense-wrapper";
 export * from "./debrid-badge/debrid-badge";
+export * from "./context-menu/context-menu";
+export * from "./game-context-menu/game-context-menu";
+export * from "./game-context-menu/use-game-actions";
