@@ -11,15 +11,12 @@ export function useSectionCollapse() {
     library: false,
   });
 
-  const toggleSection = useCallback(
-    (section: keyof SectionCollapseState) => {
-      setCollapseState(prevState => ({
-        ...prevState,
-        [section]: !prevState[section],
-      }));
-    },
-    []
-  );
+  const toggleSection = useCallback((section: keyof SectionCollapseState) => {
+    setCollapseState((prevState) => ({
+      ...prevState,
+      [section]: !prevState[section],
+    }));
+  }, []);
 
   return {
     collapseState,

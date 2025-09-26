@@ -27,8 +27,8 @@ const sectionVariants = {
       ease: [0.25, 0.1, 0.25, 1],
       opacity: { duration: 0.1 },
       y: { duration: 0.1 },
-      height: { duration: 0.2 }
-    }
+      height: { duration: 0.2 },
+    },
   },
   expanded: {
     opacity: 1,
@@ -39,16 +39,16 @@ const sectionVariants = {
       ease: [0.25, 0.1, 0.25, 1],
       opacity: { duration: 0.2, delay: 0.1 },
       y: { duration: 0.3 },
-      height: { duration: 0.3 }
-    }
-  }
+      height: { duration: 0.3 },
+    },
+  },
 };
 
 const gameCardVariants = {
   hidden: {
     opacity: 0,
     y: 20,
-    scale: 0.95
+    scale: 0.95,
   },
   visible: {
     opacity: 1,
@@ -56,9 +56,9 @@ const gameCardVariants = {
     scale: 1,
     transition: {
       duration: 0.4,
-      ease: [0.25, 0.1, 0.25, 1]
-    }
-  }
+      ease: [0.25, 0.1, 0.25, 1],
+    },
+  },
 };
 
 const chevronVariants = {
@@ -66,16 +66,16 @@ const chevronVariants = {
     rotate: 0,
     transition: {
       duration: 0.2,
-      ease: "easeInOut"
-    }
+      ease: "easeInOut",
+    },
   },
   expanded: {
     rotate: 90,
     transition: {
       duration: 0.2,
-      ease: "easeInOut"
-    }
-  }
+      ease: "easeInOut",
+    },
+  },
 };
 
 export function ProfileContent() {
@@ -167,16 +167,18 @@ export function ProfileContent() {
           {hasAnyGames && (
             <div>
               {hasPinnedGames && (
-                <div 
-                  style={{ marginBottom: "2rem" }}
-                >
+                <div style={{ marginBottom: "2rem" }}>
                   <div className="profile-content__section-header">
                     <div className="profile-content__section-title-group">
                       <button
                         type="button"
                         className="profile-content__collapse-button"
                         onClick={() => toggleSection("pinned")}
-                        aria-label={isPinnedCollapsed ? "Expand pinned section" : "Collapse pinned section"}
+                        aria-label={
+                          isPinnedCollapsed
+                            ? "Expand pinned section"
+                            : "Collapse pinned section"
+                        }
                       >
                         <motion.div
                           variants={chevronVariants}
@@ -187,9 +189,7 @@ export function ProfileContent() {
                       </button>
                       <h2>{t("pinned")}</h2>
                     </div>
-                    <span 
-                      className="profile-content__section-count"
-                    >
+                    <span className="profile-content__section-count">
                       {pinnedGames.length}
                     </span>
                   </div>
@@ -212,7 +212,7 @@ export function ProfileContent() {
                               initial="hidden"
                               animate="visible"
                               transition={{ delay: index * 0.1 }}
-                              style={{ listStyle: 'none' }}
+                              style={{ listStyle: "none" }}
                             >
                               <UserLibraryGameCard
                                 game={game}
@@ -236,9 +236,7 @@ export function ProfileContent() {
                       <h2>{t("library")}</h2>
                     </div>
                     {userStats && (
-                      <span 
-                        className="profile-content__section-count"
-                      >
+                      <span className="profile-content__section-count">
                         {numberFormatter.format(userStats.libraryCount)}
                       </span>
                     )}
@@ -252,7 +250,7 @@ export function ProfileContent() {
                         initial="hidden"
                         animate="visible"
                         transition={{ delay: index * 0.1 }}
-                        style={{ listStyle: 'none' }}
+                        style={{ listStyle: "none" }}
                       >
                         <UserLibraryGameCard
                           game={game}
