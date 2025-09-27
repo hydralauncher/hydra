@@ -90,7 +90,7 @@ export function HeroPanelPlaytime() {
     <>
       <p
         className="hero-panel-playtime__play-time"
-        data-tooltip-place="top"
+        data-tooltip-place="right"
         data-tooltip-content={
           game.hasManuallyUpdatedPlaytime
             ? t("manual_playtime_tooltip")

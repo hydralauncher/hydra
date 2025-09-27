@@ -30,6 +30,8 @@ const addGameToLibrary = async (
     game = {
       title,
       iconUrl: gameAssets?.iconUrl ?? null,
+      libraryHeroImageUrl: gameAssets?.libraryHeroImageUrl ?? null,
+      logoImageUrl: gameAssets?.logoImageUrl ?? null,
       objectId,
       shop,
       remoteId: null,
@@ -41,12 +43,14 @@ const addGameToLibrary = async (
     await gamesSublevel.put(gameKey, game);
   }
 
-  await createGame(game).catch(() => {});
+  if (game) {
+    await createGame(game).catch(() => {});
 
-  AchievementWatcherManager.firstSyncWithRemoteIfNeeded(
-    game.shop,
-    game.objectId
-  );
+    AchievementWatcherManager.firstSyncWithRemoteIfNeeded(
+      game.shop,
+      game.objectId
+    );
+  }
 };
 
 registerEvent("addGameToLibrary", addGameToLibrary);
