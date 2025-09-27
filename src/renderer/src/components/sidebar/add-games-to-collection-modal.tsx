@@ -163,10 +163,14 @@ export function AddGamesToCollectionModal({
                         "add-games-modal-game-item--already-in":
                           isAlreadyInCollection,
                       })}
-                      onClick={() =>
-                        !isAlreadyInCollection && handleGameToggle(game)
-                      }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isAlreadyInCollection) {
+                          handleGameToggle(game);
+                        }
+                      }}
                       onKeyDown={(e) => {
+                        e.stopPropagation();
                         if (
                           (e.key === "Enter" || e.key === " ") &&
                           !isAlreadyInCollection
