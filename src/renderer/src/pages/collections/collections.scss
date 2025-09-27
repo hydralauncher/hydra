@@ -1,0 +1,412 @@
+@use "../../scss/globals.scss";
+
+.collections-page {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  // Padding específico para páginas de coleção individual
+  &:not(.collections-page--main) {
+    padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 6);
+  }
+}
+
+.collections-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 3);
+  padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 6);
+  flex: 1;
+  overflow-y: auto;
+}
+
+.collections-header {
+  display: flex;
+  flex-direction: column;
+  gap: globals.$spacing-unit;
+}
+
+.collections-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: white;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: globals.$spacing-unit;
+}
+
+.collections-count {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: normal;
+}
+
+.collections-subtitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.collections-filters {
+  display: flex;
+  gap: calc(globals.$spacing-unit * 2);
+  align-items: center;
+  margin-bottom: calc(globals.$spacing-unit * 3);
+  padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 6);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.collections-search {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+}
+
+.collections-search svg {
+  position: absolute;
+  left: calc(globals.$spacing-unit * 1.5);
+  top: 50%;
+  transform: translateY(-50%);
+  color: globals.$muted-color;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.collections-search-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: calc(globals.$spacing-unit * 1.2) calc(globals.$spacing-unit * 1.5)
+    calc(globals.$spacing-unit * 1.2) calc(globals.$spacing-unit * 4);
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  &:focus {
+    outline: none;
+    border-color: globals.$brand-teal;
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 0 0 3px rgba(globals.$brand-teal, 0.2),
+      0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+  }
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 400;
+  }
+
+  &:hover:not(:focus) {
+    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.collections-sort {
+  display: flex;
+  align-items: center;
+  gap: calc(globals.$spacing-unit * 1.5);
+  background: rgba(255, 255, 255, 0.05);
+  padding: calc(globals.$spacing-unit * 0.8) calc(globals.$spacing-unit * 1.5);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.collections-sort label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.collections-sort-select {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: calc(globals.$spacing-unit * 0.8) calc(globals.$spacing-unit * 1.2);
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+
+  &:focus {
+    outline: none;
+    border-color: globals.$brand-teal;
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 3px rgba(globals.$brand-teal, 0.2);
+  }
+
+  &:hover:not(:focus) {
+    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  option {
+    background: globals.$background-color;
+    color: white;
+    padding: calc(globals.$spacing-unit / 2);
+  }
+}
+
+.collections-back-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: globals.$spacing-unit;
+  transition: all 0.2s ease;
+  width: fit-content;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.collections-create-section {
+  margin-bottom: calc(globals.$spacing-unit * 2);
+  max-width: 300px;
+}
+
+// Grid similar ao da página inicial
+.collections-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: calc(globals.$spacing-unit * 2);
+  transition: all ease 0.2s;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 1250px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (min-width: 1600px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+// Grid para jogos dentro das coleções
+.collections-games-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: calc(globals.$spacing-unit * 2);
+  transition: all ease 0.2s;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 1250px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (min-width: 1600px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.collections-card {
+  width: 100%;
+  height: 180px;
+  box-shadow: 0px 0px 15px 0px #000000;
+  overflow: hidden;
+  border-radius: 4px;
+  transition: all ease 0.2s;
+  border: solid 1px globals.$border-color;
+  cursor: pointer;
+  z-index: 1;
+  position: relative;
+
+  &:active {
+    opacity: globals.$active-opacity;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0px 8px 25px 0px rgba(0, 0, 0, 0.5);
+  }
+
+  &:hover &__cover {
+    transform: scale(1.05);
+  }
+}
+
+.collections-card-config-button {
+  position: absolute;
+  top: globals.$spacing-unit;
+  right: globals.$spacing-unit;
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+  color: white;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.9);
+    transform: scale(1.1);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.collections-card-backdrop {
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.8) 50%, transparent 100%);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: flex-end;
+  flex-direction: column;
+  position: relative;
+}
+
+.collections-card-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  position: absolute;
+  z-index: -1;
+  transition: all ease 0.2s;
+}
+
+.collections-card-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.3);
+  position: absolute;
+  z-index: -1;
+}
+
+.collections-card-content {
+  color: #dadbe1;
+  padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+  display: flex;
+  align-items: flex-start;
+  gap: calc(globals.$spacing-unit / 2);
+  flex-direction: column;
+  transition: all ease 0.2s;
+  transform: translateY(24px);
+}
+
+.collections-card-title-container {
+  display: flex;
+  align-items: center;
+  gap: globals.$spacing-unit;
+  color: globals.$muted-color;
+}
+
+.collections-card-title {
+  font-size: 16px;
+  font-weight: bold;
+  text-align: left;
+  margin: 0;
+  color: white;
+}
+
+.collections-card-count {
+  color: globals.$brand-teal;
+  font-weight: 500;
+  margin: 0;
+  font-size: 14px;
+}
+
+.collections-card-preview {
+  display: flex;
+  gap: calc(globals.$spacing-unit / 2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.collections-card-preview-item {
+  width: 28px;
+  height: 28px;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.collections-card-preview-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.1);
+  }
+}
+
+.collections-card-preview-icon-placeholder {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.collections-card-preview-more {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 3px;
+  min-width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.collections-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: calc(globals.$spacing-unit * 6);
+  color: rgba(255, 255, 255, 0.7);
+
+  h3 {
+    font-size: 1.5rem;
+    margin: globals.$spacing-unit 0 calc(globals.$spacing-unit / 2);
+    color: white;
+  }
+
+  p {
+    font-size: 1rem;
+    margin: 0;
+  }
+}

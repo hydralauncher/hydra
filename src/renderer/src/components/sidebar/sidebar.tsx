@@ -10,6 +10,7 @@ import {
   useLibrary,
   useToast,
   useUserDetails,
+  useCollections,
 } from "@renderer/hooks";
 
 import { routes } from "./routes";
@@ -23,6 +24,8 @@ import { sortBy } from "lodash-es";
 import cn from "classnames";
 import { CommentDiscussionIcon, PlayIcon } from "@primer/octicons-react";
 import { SidebarGameItem } from "./sidebar-game-item";
+import { SidebarCollectionItem } from "./sidebar-collection-item";
+// CreateCollectionButton removed - now only available in dedicated page
 import { setFriendRequestCount } from "@renderer/features/user-details-slice";
 import { useDispatch } from "react-redux";
 
@@ -41,6 +44,7 @@ export function Sidebar() {
 
   const { t } = useTranslation("sidebar");
   const { library, updateLibrary } = useLibrary();
+  const { collections, getCollections } = useCollections();
   const navigate = useNavigate();
 
   const [filteredLibrary, setFilteredLibrary] = useState<LibraryGame[]>([]);
@@ -63,6 +67,7 @@ export function Sidebar() {
   const { showWarningToast } = useToast();
 
   const [showPlayableOnly, setShowPlayableOnly] = useState(false);
+  // Collection filtering removed - now handled by dedicated pages
 
   const handlePlayButtonClick = () => {
     setShowPlayableOnly(!showPlayableOnly);
@@ -70,7 +75,10 @@ export function Sidebar() {
 
   useEffect(() => {
     updateLibrary();
-  }, [lastPacket?.gameId, updateLibrary]);
+    getCollections();
+  }, [lastPacket?.gameId, updateLibrary, getCollections]);
+
+  // Collections loaded successfully
 
   useEffect(() => {
     const unsubscribe = window.electron.onSyncFriendRequests((result) => {
@@ -193,6 +201,8 @@ export function Sidebar() {
     return sortedLibrary.filter((game) => game.favorite);
   }, [sortedLibrary]);
 
+  // Collection filtering removed - now handled by dedicated pages
+
   return (
     <aside
       ref={sidebarRef}
@@ -251,9 +261,31 @@ export function Sidebar() {
 
           <section className="sidebar__section">
             <div className="sidebar__section-header">
-              <small className="sidebar__section-title">
+              <small className="sidebar__section-title">Coleções</small>
+            </div>
+
+            {collections.length > 0 && (
+              <ul className="sidebar__menu">
+                {collections.map((collection) => (
+                  <SidebarCollectionItem
+                    key={collection.id}
+                    collection={collection}
+                    onSelectCollection={() => {}} // No longer needed
+                    selectedCollectionId={undefined} // No longer needed
+                  />
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="sidebar__section">
+            <div className="sidebar__section-header">
+              <button
+                type="button"
+                className="sidebar__section-title sidebar__library-title"
+              >
                 {t("my_library")}
-              </small>
+              </button>
               <button
                 type="button"
                 className={cn("sidebar__play-button", {

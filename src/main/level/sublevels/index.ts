@@ -6,3 +6,4 @@ export * from "./game-stats-cache";
 export * from "./game-achievements";
 export * from "./keys";
 export * from "./themes";
+export * from "./collections";

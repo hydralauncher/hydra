@@ -1,0 +1,268 @@
+@use "../../scss/globals.scss";
+
+.collection-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: globals.$spacing-unit;
+}
+
+.collection-modal {
+  background: globals.$background-color;
+  border: 1px solid globals.$border-color;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.collection-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(globals.$spacing-unit * 2);
+  border-bottom: 1px solid globals.$border-color;
+}
+
+.collection-modal-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: white;
+  margin: 0;
+}
+
+.collection-modal-close {
+  background: transparent;
+  border: none;
+  color: globals.$muted-color;
+  cursor: pointer;
+  padding: calc(globals.$spacing-unit / 2);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+}
+
+.collection-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: calc(globals.$spacing-unit * 2);
+}
+
+.collection-modal-info {
+  margin-bottom: calc(globals.$spacing-unit * 2);
+}
+
+.collection-modal-name-section {
+  margin-bottom: calc(globals.$spacing-unit * 2);
+}
+
+.collection-modal-label {
+  display: block;
+  color: globals.$muted-color;
+  font-size: 0.875rem;
+  margin-bottom: calc(globals.$spacing-unit / 2);
+}
+
+.collection-modal-name-display {
+  display: flex;
+  align-items: center;
+  gap: globals.$spacing-unit;
+}
+
+.collection-modal-name {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: white;
+}
+
+.collection-modal-edit-button {
+  background: transparent;
+  border: none;
+  color: globals.$muted-color;
+  cursor: pointer;
+  padding: calc(globals.$spacing-unit / 2);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: globals.$brand-teal;
+  }
+}
+
+.collection-modal-name-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid globals.$border-color;
+  border-radius: 4px;
+  padding: calc(globals.$spacing-unit / 2);
+  color: white;
+  font-size: 1.125rem;
+  font-weight: 500;
+
+  &:focus {
+    outline: none;
+    border-color: globals.$brand-teal;
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  &--error {
+    border-color: globals.$error-color;
+
+    &:focus {
+      border-color: globals.$error-color;
+    }
+  }
+}
+
+.collection-modal-error {
+  color: globals.$error-color;
+  font-size: 0.875rem;
+  margin-top: calc(globals.$spacing-unit / 2);
+  padding: 0 calc(globals.$spacing-unit / 2);
+}
+
+.collection-modal-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: globals.$spacing-unit;
+}
+
+.collection-modal-stat {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit / 4);
+}
+
+.collection-modal-stat-label {
+  color: globals.$muted-color;
+  font-size: 0.875rem;
+}
+
+.collection-modal-stat-value {
+  color: white;
+  font-weight: 500;
+}
+
+.collection-modal-games {
+  border-top: 1px solid globals.$border-color;
+  padding-top: calc(globals.$spacing-unit * 2);
+}
+
+.collection-modal-games-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  margin: 0 0 globals.$spacing-unit 0;
+}
+
+.collection-modal-empty {
+  text-align: center;
+  padding: calc(globals.$spacing-unit * 3);
+  color: globals.$muted-color;
+}
+
+.collection-modal-games-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit / 2);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.collection-modal-game-item {
+  display: flex;
+  align-items: center;
+  gap: globals.$spacing-unit;
+  padding: calc(globals.$spacing-unit / 2);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.collection-modal-game-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.collection-modal-game-icon-placeholder {
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.collection-modal-game-info {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit / 4);
+  flex: 1;
+  min-width: 0;
+}
+
+.collection-modal-game-title {
+  color: white;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collection-modal-game-shop {
+  color: globals.$muted-color;
+  font-size: 0.875rem;
+  text-transform: capitalize;
+}
+
+.collection-modal-actions {
+  padding: calc(globals.$spacing-unit * 2);
+  border-top: 1px solid globals.$border-color;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.collection-modal-delete-button {
+  background: #dc3545;
+  border: none;
+  color: white;
+  padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: calc(globals.$spacing-unit / 2);
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #c82333;
+  }
+
+  &:active {
+    opacity: globals.$active-opacity;
+  }
+}

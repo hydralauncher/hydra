@@ -372,6 +372,25 @@ declare global {
     openEditorWindow: (themeId: string) => Promise<void>;
     onCustomThemeUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     closeEditorWindow: (themeId?: string) => Promise<void>;
+
+    /* Collections */
+    getCollections: () => Promise<import("@types").Collection[]>;
+    createCollection: (name: string) => Promise<import("@types").Collection>;
+    updateCollection: (
+      collectionId: string,
+      updates: { name?: string; gameIds?: string[] }
+    ) => Promise<import("@types").Collection>;
+    deleteCollection: (collectionId: string) => Promise<void>;
+    addGameToCollection: (
+      collectionId: string,
+      shop: import("@types").GameShop,
+      objectId: string
+    ) => Promise<void>;
+    removeGameFromCollection: (
+      collectionId: string,
+      shop: import("@types").GameShop,
+      objectId: string
+    ) => Promise<void>;
   }
 
   interface Window {

@@ -74,7 +74,7 @@ app.whenReady().then(async () => {
 
   if (language) i18n.changeLanguage(language);
 
-  if (!process.argv.includes("--hidden")) {
+  if (!process.argv?.includes("--hidden")) {
     WindowManager.createMainWindow();
   }
 

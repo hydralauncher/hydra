@@ -8,3 +8,4 @@ export * from "./game-running.slice";
 export * from "./subscription-slice";
 export * from "./repacks-slice";
 export * from "./catalogue-search";
+export * from "./collections-slice";
