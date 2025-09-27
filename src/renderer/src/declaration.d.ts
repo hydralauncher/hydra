@@ -127,8 +127,11 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<void>;
-    addGameToPinned: (shop: GameShop, objectId: string) => Promise<void>;
-    removeGameFromPinned: (shop: GameShop, objectId: string) => Promise<void>;
+    toggleGamePin: (
+      shop: GameShop,
+      objectId: string,
+      pinned: boolean
+    ) => Promise<void>;
     updateLaunchOptions: (
       shop: GameShop,
       objectId: string,
@@ -293,7 +296,8 @@ declare global {
     getUserLibrary: (
       userId: string,
       take?: number,
-      skip?: number
+      skip?: number,
+      sortBy?: string
     ) => Promise<UserLibraryResponse>;
     blockUser: (userId: string) => Promise<void>;
     unblockUser: (userId: string) => Promise<void>;
