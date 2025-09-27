@@ -94,14 +94,14 @@ export function HeroPanelActions() {
     setToggleLibraryGameDisabled(true);
 
     try {
-      if (game?.pinned && objectId) {
-        await window.electron.removeGameFromPinned(shop, objectId).then(() => {
+      if (game?.isPinned && objectId) {
+        await window.electron.toggleGamePin(shop, objectId, false).then(() => {
           showSuccessToast(t("game_removed_from_pinned"));
         });
       } else {
         if (!objectId) return;
 
-        await window.electron.addGameToPinned(shop, objectId).then(() => {
+        await window.electron.toggleGamePin(shop, objectId, true).then(() => {
           showSuccessToast(t("game_added_to_pinned"));
         });
       }
@@ -236,7 +236,7 @@ export function HeroPanelActions() {
             disabled={deleting}
             className="hero-panel-actions__action"
           >
-            {game.pinned ? <PinSlashIcon /> : <PinIcon />}
+            {game.isPinned ? <PinSlashIcon /> : <PinIcon />}
           </Button>
         )}
 

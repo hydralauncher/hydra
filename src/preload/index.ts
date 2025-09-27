@@ -143,10 +143,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("addGameToFavorites", shop, objectId),
   removeGameFromFavorites: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("removeGameFromFavorites", shop, objectId),
-  addGameToPinned: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("addGameToPinned", shop, objectId),
-  removeGameFromPinned: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("removeGameFromPinned", shop, objectId),
+  toggleGamePin: (shop: GameShop, objectId: string, pinned: boolean) =>
+    ipcRenderer.invoke("toggleGamePin", shop, objectId, pinned),
   updateLaunchOptions: (
     shop: GameShop,
     objectId: string,
@@ -370,8 +368,12 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* User */
   getUser: (userId: string) => ipcRenderer.invoke("getUser", userId),
-  getUserLibrary: (userId: string, take?: number, skip?: number) =>
-    ipcRenderer.invoke("getUserLibrary", userId, take, skip),
+  getUserLibrary: (
+    userId: string,
+    take?: number,
+    skip?: number,
+    sortBy?: string
+  ) => ipcRenderer.invoke("getUserLibrary", userId, take, skip, sortBy),
   blockUser: (userId: string) => ipcRenderer.invoke("blockUser", userId),
   unblockUser: (userId: string) => ipcRenderer.invoke("unblockUser", userId),
   getUserFriends: (userId: string, take: number, skip: number) =>
