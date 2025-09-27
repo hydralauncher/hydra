@@ -3,13 +3,7 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ProfileHero } from "../profile-hero/profile-hero";
 import { useAppDispatch, useFormat } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
-import {
-  TelescopeIcon,
-  ChevronRightIcon,
-  TrophyIcon,
-  ClockIcon,
-  HistoryIcon,
-} from "@primer/octicons-react";
+import { TelescopeIcon, ChevronRightIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { UserGame } from "@types";
 import { LockedProfile } from "./locked-profile";
@@ -18,101 +12,17 @@ import { FriendsBox } from "./friends-box";
 import { RecentGamesBox } from "./recent-games-box";
 import { UserStatsBox } from "./user-stats-box";
 import { UserLibraryGameCard } from "./user-library-game-card";
+import { SortOptions } from "./sort-options";
 import { useSectionCollapse } from "@renderer/hooks/use-section-collapse";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  sectionVariants,
+  gameCardVariants,
+  gameGridVariants,
+  chevronVariants,
+  GAME_STATS_ANIMATION_DURATION_IN_MS,
+} from "./profile-animations";
 import "./profile-content.scss";
-
-const GAME_STATS_ANIMATION_DURATION_IN_MS = 3500;
-
-const sectionVariants = {
-  collapsed: {
-    opacity: 0,
-    y: -20,
-    height: 0,
-    transition: {
-      duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1],
-      opacity: { duration: 0.1 },
-      y: { duration: 0.1 },
-      height: { duration: 0.2 },
-    },
-  },
-  expanded: {
-    opacity: 1,
-    y: 0,
-    height: "auto",
-    transition: {
-      duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1],
-      opacity: { duration: 0.2, delay: 0.1 },
-      y: { duration: 0.3 },
-      height: { duration: 0.3 },
-    },
-  },
-};
-
-const gameCardVariants = {
-  hidden: {
-    opacity: 0,
-    y: 20,
-    scale: 0.95,
-  },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      duration: 0.4,
-      ease: [0.25, 0.1, 0.25, 1],
-    },
-  },
-  exit: {
-    opacity: 0,
-    y: -20,
-    scale: 0.95,
-    transition: {
-      duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1],
-    },
-  },
-};
-
-const gameGridVariants = {
-  hidden: {
-    opacity: 0,
-  },
-  visible: {
-    opacity: 1,
-    transition: {
-      duration: 0.3,
-      staggerChildren: 0.1,
-      delayChildren: 0.1,
-    },
-  },
-  exit: {
-    opacity: 0,
-    transition: {
-      duration: 0.2,
-    },
-  },
-};
-
-const chevronVariants = {
-  collapsed: {
-    rotate: 0,
-    transition: {
-      duration: 0.2,
-      ease: "easeInOut",
-    },
-  },
-  expanded: {
-    rotate: 90,
-    transition: {
-      duration: 0.2,
-      ease: "easeInOut",
-    },
-  },
-};
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
 
@@ -128,7 +38,6 @@ export function ProfileContent() {
   const [statsIndex, setStatsIndex] = useState(0);
   const [isAnimationRunning, setIsAnimationRunning] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
-  const [isLoadingSort, setIsLoadingSort] = useState(false);
   const [prevLibraryGames, setPrevLibraryGames] = useState<UserGame[]>([]);
   const [prevPinnedGames, setPrevPinnedGames] = useState<UserGame[]>([]);
   const statsAnimation = useRef(-1);
@@ -148,10 +57,7 @@ export function ProfileContent() {
 
   useEffect(() => {
     if (userProfile) {
-      setIsLoadingSort(true);
-      getUserLibraryGames(sortBy).finally(() => {
-        setIsLoadingSort(false);
-      });
+      getUserLibraryGames(sortBy);
     }
   }, [sortBy, getUserLibraryGames, userProfile]);
 
@@ -186,7 +92,6 @@ export function ProfileContent() {
 
   const { numberFormatter } = useFormat();
 
-  // Function to check if game lists have changed
   const gamesHaveChanged = (
     current: UserGame[],
     previous: UserGame[]
@@ -197,11 +102,9 @@ export function ProfileContent() {
     );
   };
 
-  // Check if animations should run
   const shouldAnimateLibrary = gamesHaveChanged(libraryGames, prevLibraryGames);
   const shouldAnimatePinned = gamesHaveChanged(pinnedGames, prevPinnedGames);
 
-  // Update previous games when lists change
   useEffect(() => {
     setPrevLibraryGames(libraryGames);
   }, [libraryGames]);
@@ -213,40 +116,6 @@ export function ProfileContent() {
   const usersAreFriends = useMemo(() => {
     return userProfile?.relation?.status === "ACCEPTED";
   }, [userProfile]);
-
-  const SortOptions = () => (
-    <div className="profile-content__sort-container">
-      <span className="profile-content__sort-label">Sort by:</span>
-      <div className="profile-content__sort-options">
-        <button
-          className={`profile-content__sort-option ${sortBy === "achievementCount" ? "active" : ""} ${isLoadingSort && sortBy === "achievementCount" ? "loading" : ""}`}
-          onClick={() => setSortBy("achievementCount")}
-          disabled={isLoadingSort}
-        >
-          <TrophyIcon size={16} />
-          <span>{t("achievements_earned")}</span>
-        </button>
-        <span className="profile-content__sort-separator">|</span>
-        <button
-          className={`profile-content__sort-option ${sortBy === "playedRecently" ? "active" : ""} ${isLoadingSort && sortBy === "playedRecently" ? "loading" : ""}`}
-          onClick={() => setSortBy("playedRecently")}
-          disabled={isLoadingSort}
-        >
-          <HistoryIcon size={16} />
-          <span>{t("played_recently")}</span>
-        </button>
-        <span className="profile-content__sort-separator">|</span>
-        <button
-          className={`profile-content__sort-option ${sortBy === "playtime" ? "active" : ""} ${isLoadingSort && sortBy === "playtime" ? "loading" : ""}`}
-          onClick={() => setSortBy("playtime")}
-          disabled={isLoadingSort}
-        >
-          <ClockIcon size={16} />
-          <span>{t("playtime")}</span>
-        </button>
-      </div>
-    </div>
-  );
 
   const content = useMemo(() => {
     if (!userProfile) return null;
@@ -269,7 +138,9 @@ export function ProfileContent() {
     return (
       <section className="profile-content__section">
         <div className="profile-content__main">
-          {hasAnyGames && <SortOptions />}
+          {hasAnyGames && (
+            <SortOptions sortBy={sortBy} onSortChange={setSortBy} />
+          )}
 
           {!hasAnyGames && (
             <div className="profile-content__no-games">
@@ -467,6 +338,9 @@ export function ProfileContent() {
     pinnedGames,
     isPinnedCollapsed,
     toggleSection,
+    shouldAnimateLibrary,
+    shouldAnimatePinned,
+    sortBy,
   ]);
 
   return (
