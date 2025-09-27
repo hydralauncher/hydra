@@ -85,7 +85,8 @@
   background: rgba(255, 255, 255, 0.08);
   border: 2px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
-  padding: calc(globals.$spacing-unit * 1.2) calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 1.2) calc(globals.$spacing-unit * 4);
+  padding: calc(globals.$spacing-unit * 1.2) calc(globals.$spacing-unit * 1.5)
+    calc(globals.$spacing-unit * 1.2) calc(globals.$spacing-unit * 4);
   color: white;
   font-size: 0.95rem;
   font-weight: 500;
@@ -309,7 +310,8 @@
 
 .collections-card-content {
   color: #dadbe1;
-  padding: globals.$spacing-unit calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
+  padding: globals.$spacing-unit calc(globals.$spacing-unit * 2)
+    calc(globals.$spacing-unit * 1.5);
   display: flex;
   align-items: flex-start;
   gap: calc(globals.$spacing-unit / 2);
