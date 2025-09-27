@@ -32,6 +32,7 @@ export interface SteamAppDetails {
   publishers: string[];
   genres: SteamGenre[];
   movies?: SteamMovies[];
+  supported_languages: string;
   screenshots?: SteamScreenshot[];
   pc_requirements: {
     minimum: string;
