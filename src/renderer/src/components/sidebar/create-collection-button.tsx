@@ -116,6 +116,12 @@ export function CreateCollectionButton() {
     setCreatedCollection(null);
   };
 
+  const handleGamesAdded = () => {
+    // Games were successfully added, close modal and reset state
+    setShowAddGamesModal(false);
+    setCreatedCollection(null);
+  };
+
   return (
     <>
       <button
@@ -131,6 +137,7 @@ export function CreateCollectionButton() {
         collection={createdCollection}
         isOpen={showAddGamesModal}
         onClose={handleCloseModal}
+        onGamesAdded={handleGamesAdded}
       />
     </>
   );

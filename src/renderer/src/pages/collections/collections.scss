@@ -27,6 +27,7 @@
   display: flex;
   flex-direction: column;
   gap: globals.$spacing-unit;
+  margin-bottom: calc(globals.$spacing-unit * 4);
 }
 
 .collections-title {
@@ -84,8 +85,7 @@
   background: rgba(255, 255, 255, 0.08);
   border: 2px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
-  padding: calc(globals.$spacing-unit * 1.2) calc(globals.$spacing-unit * 1.5)
-    calc(globals.$spacing-unit * 1.2) calc(globals.$spacing-unit * 4);
+  padding: calc(globals.$spacing-unit * 1.2) calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 1.2) calc(globals.$spacing-unit * 4);
   color: white;
   font-size: 0.95rem;
   font-weight: 500;
@@ -224,7 +224,7 @@
 
 .collections-card {
   width: 100%;
-  height: 180px;
+  height: 220px;
   box-shadow: 0px 0px 15px 0px #000000;
   overflow: hidden;
   border-radius: 4px;
@@ -309,13 +309,13 @@
 
 .collections-card-content {
   color: #dadbe1;
-  padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+  padding: globals.$spacing-unit calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
   display: flex;
   align-items: flex-start;
   gap: calc(globals.$spacing-unit / 2);
   flex-direction: column;
   transition: all ease 0.2s;
-  transform: translateY(24px);
+  margin-top: auto;
 }
 
 .collections-card-title-container {
@@ -348,9 +348,9 @@
 }
 
 .collections-card-preview-item {
-  width: 28px;
-  height: 28px;
-  border-radius: 3px;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
@@ -380,12 +380,12 @@
 .collections-card-preview-more {
   background: rgba(255, 255, 255, 0.2);
   color: white;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: bold;
   padding: 2px 6px;
-  border-radius: 3px;
-  min-width: 28px;
-  height: 28px;
+  border-radius: 4px;
+  min-width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;

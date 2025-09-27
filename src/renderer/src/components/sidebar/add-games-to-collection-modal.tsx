@@ -8,12 +8,14 @@ interface AddGamesToCollectionModalProps {
   collection: Collection | null;
   isOpen: boolean;
   onClose: () => void;
+  onGamesAdded?: () => void;
 }
 
 export function AddGamesToCollectionModal({
   collection,
   isOpen,
   onClose,
+  onGamesAdded,
 }: AddGamesToCollectionModalProps) {
   const { addGameToCollection } = useCollections();
   const { library } = useLibrary();
@@ -21,11 +23,14 @@ export function AddGamesToCollectionModal({
   const [selectedGames, setSelectedGames] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (collection) {
+    if (collection && isOpen) {
       // Pre-select games that are already in the collection
       setSelectedGames(new Set(collection.gameIds));
+    } else if (!isOpen) {
+      // Clear selection when modal is closed
+      setSelectedGames(new Set());
     }
-  }, [collection]);
+  }, [collection, isOpen]);
 
   if (!isOpen || !collection) return null;
 
@@ -54,14 +59,24 @@ export function AddGamesToCollectionModal({
       (gameId) => !collection.gameIds.includes(gameId)
     );
 
+    console.log("Games to add:", gamesToAdd);
+    console.log("Selected games:", Array.from(selectedGames));
+    console.log("Collection gameIds:", collection.gameIds);
+
     try {
       // Add all games sequentially to avoid race conditions
       for (const gameId of gamesToAdd) {
+        console.log("Adding game:", gameId);
         await addGameToCollection(collection.id, gameId);
       }
 
-      // Only close after all games are successfully added
-      onClose();
+      console.log("All games added successfully");
+      // Call success callback if provided, otherwise just close
+      if (onGamesAdded) {
+        onGamesAdded();
+      } else {
+        onClose();
+      }
     } catch (error) {
       console.error("Error adding games to collection:", error);
       // Don't close modal if there was an error
@@ -86,7 +101,12 @@ export function AddGamesToCollectionModal({
       role="button"
       tabIndex={0}
     >
-      <div className="add-games-modal" role="dialog" tabIndex={-1}>
+      <div
+        className="add-games-modal"
+        role="dialog"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="add-games-modal-header">
           <h2 className="add-games-modal-title">
             🎮 Adicionar Jogos à Coleção
