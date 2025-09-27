@@ -14,6 +14,7 @@ export interface UserProfileContext {
   isMe: boolean;
   userStats: UserStats | null;
   getUserProfile: () => Promise<void>;
+  getUserLibraryGames: (sortBy?: string) => Promise<void>;
   setSelectedBackgroundImage: React.Dispatch<React.SetStateAction<string>>;
   backgroundImage: string;
   badges: Badge[];
@@ -29,6 +30,7 @@ export const userProfileContext = createContext<UserProfileContext>({
   isMe: false,
   userStats: null,
   getUserProfile: async () => {},
+  getUserLibraryGames: async (_sortBy?: string) => {},
   setSelectedBackgroundImage: () => {},
   backgroundImage: "",
   badges: [],
@@ -91,21 +93,30 @@ export function UserProfileContextProvider({
     });
   }, [userId]);
 
-  const getUserLibraryGames = useCallback(async () => {
-    try {
-      const response = await window.electron.getUserLibrary(userId);
-      if (response) {
-        setLibraryGames(response.library);
-        setPinnedGames(response.pinnedGames);
-      } else {
+  const getUserLibraryGames = useCallback(
+    async (sortBy?: string) => {
+      try {
+        const response = await window.electron.getUserLibrary(
+          userId,
+          12,
+          0,
+          sortBy
+        );
+
+        if (response) {
+          setLibraryGames(response.library);
+          setPinnedGames(response.pinnedGames);
+        } else {
+          setLibraryGames([]);
+          setPinnedGames([]);
+        }
+      } catch (error) {
         setLibraryGames([]);
         setPinnedGames([]);
       }
-    } catch (error) {
-      setLibraryGames([]);
-      setPinnedGames([]);
-    }
-  }, [userId]);
+    },
+    [userId]
+  );
 
   const getUserProfile = useCallback(async () => {
     getUserStats();
@@ -149,6 +160,7 @@ export function UserProfileContextProvider({
         heroBackground,
         isMe,
         getUserProfile,
+        getUserLibraryGames,
         setSelectedBackgroundImage,
         backgroundImage: getBackgroundImageUrl(),
         userStats,

@@ -72,7 +72,6 @@ export function ChangeGamePlaytimeModal({
       onSuccess?.(t("update_playtime_success"));
       onClose();
     } catch (error) {
-      console.log(error);
       onError?.(t("update_playtime_error"));
     } finally {
       setIsSubmitting(false);
