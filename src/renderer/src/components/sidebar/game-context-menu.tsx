@@ -28,17 +28,33 @@ export function GameContextMenu({
 
   return (
     <>
-      <div className="sidebar__context-menu-overlay" onClick={onClose} />
+      <div
+        className="sidebar__context-menu-overlay"
+        onClick={onClose}
+        onKeyDown={(e) => e.key === "Escape" && onClose()}
+        role="button"
+        tabIndex={0}
+      />
       <div
         className="sidebar__context-menu"
         style={{
           left: position.x,
           top: position.y,
         }}
+        role="menu"
+        tabIndex={-1}
       >
         <div
           className="sidebar__context-menu-item"
           onClick={() => setShowCollections(!showCollections)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setShowCollections(!showCollections);
+            }
+          }}
+          role="menuitem"
+          tabIndex={0}
         >
           <FileDirectoryIcon size={12} />
           <span>Adicionar à Coleção</span>
@@ -57,14 +73,24 @@ export function GameContextMenu({
                 return (
                   <div
                     key={collection.id}
-                    className={`sidebar__context-menu-item ${
-                      isInCollection
+                    className={`sidebar__context-menu-item ${isInCollection
                         ? "sidebar__context-menu-item--checked"
                         : ""
-                    }`}
+                      }`}
                     onClick={() =>
                       !isInCollection && handleAddToCollection(collection.id)
                     }
+                    onKeyDown={(e) => {
+                      if (
+                        (e.key === "Enter" || e.key === " ") &&
+                        !isInCollection
+                      ) {
+                        e.preventDefault();
+                        handleAddToCollection(collection.id);
+                      }
+                    }}
+                    role="menuitem"
+                    tabIndex={isInCollection ? -1 : 0}
                   >
                     <span>📂</span>
                     <span>{collection.name}</span>

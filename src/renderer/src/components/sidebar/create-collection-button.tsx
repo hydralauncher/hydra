@@ -79,7 +79,6 @@ export function CreateCollectionButton() {
             onKeyDown={handleKeyPress}
             placeholder="Digite o nome da coleção"
             className={`sidebar__create-collection-input ${errorMessage ? "sidebar__create-collection-input--error" : ""}`}
-            autoFocus
             autoComplete="off"
             spellCheck="false"
           />

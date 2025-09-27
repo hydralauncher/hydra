@@ -96,8 +96,14 @@ export function CollectionInfoModal({
   };
 
   return (
-    <div className="collection-modal-overlay" onClick={onClose}>
-      <div className="collection-modal" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="collection-modal-overlay"
+      onClick={onClose}
+      onKeyDown={(e) => e.key === "Escape" && onClose()}
+      role="button"
+      tabIndex={0}
+    >
+      <div className="collection-modal" role="dialog" tabIndex={-1}>
         <div className="collection-modal-header">
           <h2 className="collection-modal-title">📂 Informações da Coleção</h2>
           <button className="collection-modal-close" onClick={onClose}>
@@ -108,16 +114,21 @@ export function CollectionInfoModal({
         <div className="collection-modal-content">
           <div className="collection-modal-info">
             <div className="collection-modal-name-section">
-              <label className="collection-modal-label">Nome da Coleção:</label>
+              <label
+                htmlFor="collection-name-input"
+                className="collection-modal-label"
+              >
+                Nome da Coleção:
+              </label>
               {isEditing ? (
                 <input
+                  id="collection-name-input"
                   type="text"
                   value={editName}
                   onChange={handleEditNameChange}
                   onBlur={handleRename}
                   onKeyDown={handleKeyPress}
                   className={`collection-modal-name-input ${renameError ? "collection-modal-name-input--error" : ""}`}
-                  autoFocus
                 />
               ) : (
                 <div className="collection-modal-name-display">

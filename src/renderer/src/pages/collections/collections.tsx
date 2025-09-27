@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCollections, useLibrary } from "@renderer/hooks";
 import {
@@ -42,17 +42,20 @@ export default function Collections() {
     }
   }, [collectionId, collections]);
 
-  const getCollectionGames = (collection: Collection): LibraryGame[] => {
-    return collection.gameIds
-      .map((gameId) => {
-        // Parse gameId to find the game
-        const [shop, objectId] = gameId.split(":");
-        return library.find(
-          (game) => game.shop === shop && game.objectId === objectId
-        );
-      })
-      .filter((game): game is LibraryGame => game !== undefined);
-  };
+  const getCollectionGames = useCallback(
+    (collection: Collection): LibraryGame[] => {
+      return collection.gameIds
+        .map((gameId) => {
+          // Parse gameId to find the game
+          const [shop, objectId] = gameId.split(":");
+          return library.find(
+            (game) => game.shop === shop && game.objectId === objectId
+          );
+        })
+        .filter((game): game is LibraryGame => game !== undefined);
+    },
+    [library]
+  );
 
   const filteredAndSortedGames = useMemo(() => {
     if (!selectedCollection) return [];
@@ -84,7 +87,7 @@ export default function Collections() {
     });
 
     return games;
-  }, [selectedCollection, searchTerm, sortBy, library]);
+  }, [selectedCollection, searchTerm, sortBy, getCollectionGames]);
 
   const filteredAndSortedCollections = useMemo(() => {
     let filteredCollections = [...collections]; // Create a copy to avoid readonly error
@@ -288,6 +291,14 @@ export default function Collections() {
                   key={collection.id}
                   className="collections-card"
                   onClick={() => handleCollectionClick(collection)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleCollectionClick(collection);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                 >
                   <button
                     className="collections-card-config-button"
@@ -299,7 +310,7 @@ export default function Collections() {
 
                   <div className="collections-card-backdrop">
                     {previewGames.length > 0 &&
-                    previewGames[0].libraryImageUrl ? (
+                      previewGames[0].libraryImageUrl ? (
                       <img
                         src={previewGames[0].libraryImageUrl}
                         alt={collection.name}

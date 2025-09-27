@@ -79,8 +79,14 @@ export function AddGamesToCollectionModal({
   ).length;
 
   return (
-    <div className="add-games-modal-overlay" onClick={handleClose}>
-      <div className="add-games-modal" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="add-games-modal-overlay"
+      onClick={handleClose}
+      onKeyDown={(e) => e.key === "Escape" && handleClose()}
+      role="button"
+      tabIndex={0}
+    >
+      <div className="add-games-modal" role="dialog" tabIndex={-1}>
         <div className="add-games-modal-header">
           <h2 className="add-games-modal-title">
             🎮 Adicionar Jogos à Coleção
@@ -145,6 +151,17 @@ export function AddGamesToCollectionModal({
                       onClick={() =>
                         !isAlreadyInCollection && handleGameToggle(game)
                       }
+                      onKeyDown={(e) => {
+                        if (
+                          (e.key === "Enter" || e.key === " ") &&
+                          !isAlreadyInCollection
+                        ) {
+                          e.preventDefault();
+                          handleGameToggle(game);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={isAlreadyInCollection ? -1 : 0}
                     >
                       {game.iconUrl ? (
                         <img
