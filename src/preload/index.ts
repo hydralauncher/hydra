@@ -162,6 +162,33 @@ contextBridge.exposeInMainWorld("electron", {
   verifyExecutablePathInUse: (executablePath: string) =>
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
+
+  /* Collections */
+  getCollections: () => ipcRenderer.invoke("getCollections"),
+  createCollection: (name: string) =>
+    ipcRenderer.invoke("createCollection", name),
+  updateCollection: (
+    collectionId: string,
+    updates: { name?: string; gameIds?: string[] }
+  ) => ipcRenderer.invoke("updateCollection", collectionId, updates),
+  deleteCollection: (collectionId: string) =>
+    ipcRenderer.invoke("deleteCollection", collectionId),
+  addGameToCollection: (
+    collectionId: string,
+    shop: GameShop,
+    objectId: string
+  ) => ipcRenderer.invoke("addGameToCollection", collectionId, shop, objectId),
+  removeGameFromCollection: (
+    collectionId: string,
+    shop: GameShop,
+    objectId: string
+  ) =>
+    ipcRenderer.invoke(
+      "removeGameFromCollection",
+      collectionId,
+      shop,
+      objectId
+    ),
   openGameInstaller: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstaller", shop, objectId),
   openGameInstallerPath: (shop: GameShop, objectId: string) =>

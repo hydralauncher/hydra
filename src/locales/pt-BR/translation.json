@@ -15,6 +15,7 @@
   "sidebar": {
     "catalogue": "Catálogo",
     "downloads": "Downloads",
+    "collections": "Coleções",
     "settings": "Ajustes",
     "my_library": "Biblioteca",
     "downloading_metadata": "{{title}} (Baixando metadados…)",
