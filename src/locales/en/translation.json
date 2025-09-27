@@ -454,6 +454,9 @@
     "activity": "Recent Activity",
     "library": "Library",
     "pinned": "Pinned",
+    "achievements_earned": "Achievements earned",
+    "played_recently": "Played recently",
+    "playtime": "Playtime",
     "total_play_time": "Total playtime",
     "manual_playtime_tooltip": "This playtime has been manually updated",
     "no_recent_activity_title": "Hmmm… nothing here",
@@ -530,7 +533,9 @@
     "show_achievements_on_profile": "Show your achievements on your profile",
     "show_points_on_profile": "Show your earned points on your profile",
     "error_adding_friend": "Could not send friend request. Please check friend code",
-    "friend_code_length_error": "Friend code must have 8 characters"
+    "friend_code_length_error": "Friend code must have 8 characters",
+    "game_removed_from_pinned": "Game removed from pinned",
+    "game_added_to_pinned": "Game added to pinned"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",
