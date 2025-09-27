@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { PlusIcon } from "@primer/octicons-react";
 import { useCollections } from "@renderer/hooks";
 import { AddGamesToCollectionModal } from "./add-games-to-collection-modal";
 import type { Collection } from "@types";
 
 export function CreateCollectionButton() {
+  const { t } = useTranslation("collections");
   const { createCollection, collections } = useCollections();
   const [isCreating, setIsCreating] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");
@@ -18,7 +20,7 @@ export function CreateCollectionButton() {
     const trimmedName = newCollectionName.trim();
 
     if (!trimmedName) {
-      setErrorMessage("Nome da coleção não pode estar vazio");
+      setErrorMessage(t("collection_name_empty_error"));
       return;
     }
 
@@ -29,7 +31,7 @@ export function CreateCollectionButton() {
     );
 
     if (nameExists) {
-      setErrorMessage("Já existe uma coleção com este nome");
+      setErrorMessage(t("collection_name_exists_error"));
       return;
     }
 
@@ -45,7 +47,7 @@ export function CreateCollectionButton() {
         setShowAddGamesModal(true);
       }
     } catch (error) {
-      setErrorMessage("Erro ao criar coleção. Tente novamente.");
+      setErrorMessage(t("create_collection_error"));
       console.error("Error creating collection:", error);
     }
   };
@@ -77,7 +79,7 @@ export function CreateCollectionButton() {
             value={newCollectionName}
             onChange={handleInputChange}
             onKeyDown={handleKeyPress}
-            placeholder="Digite o nome da coleção"
+            placeholder={t("collection_name_placeholder")}
             className={`sidebar__create-collection-input ${errorMessage ? "sidebar__create-collection-input--error" : ""}`}
             autoComplete="off"
             spellCheck="false"
@@ -92,7 +94,7 @@ export function CreateCollectionButton() {
                 setErrorMessage("");
               }}
             >
-              Cancelar
+              {t("cancel")}
             </button>
             <button
               type="button"
@@ -100,7 +102,7 @@ export function CreateCollectionButton() {
               onClick={handleCreate}
               disabled={!newCollectionName.trim()}
             >
-              Criar Coleção
+              {t("create_collection")}
             </button>
           </div>
         </div>
@@ -130,7 +132,7 @@ export function CreateCollectionButton() {
         onClick={() => setIsCreating(true)}
       >
         <PlusIcon size={14} />
-        <span>Nova Coleção</span>
+        <span>{t("new_collection")}</span>
       </button>
 
       <AddGamesToCollectionModal

@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useCollections, useLibrary } from "@renderer/hooks";
 import {
   FileDirectoryIcon,
@@ -15,6 +16,7 @@ import "./collections.scss";
 export default function Collections() {
   const navigate = useNavigate();
   const { collectionId } = useParams();
+  const { t } = useTranslation("collections");
   const { collections, getCollections } = useCollections();
   const { library } = useLibrary();
   const [selectedCollection, setSelectedCollection] =
@@ -154,9 +156,9 @@ export default function Collections() {
       <div className="collections-page">
         <div className="collections-header">
           <h1 className="collections-title">
-            📂 {selectedCollection.name}
+            📂 {t("collection_title", { name: selectedCollection.name })}
             <span className="collections-count">
-              ({collectionGames.length} jogos)
+              {t("collection_count", { count: collectionGames.length })}
             </span>
           </h1>
         </div>
@@ -166,7 +168,7 @@ export default function Collections() {
             <SearchIcon size={16} />
             <input
               type="text"
-              placeholder="Buscar jogos..."
+              placeholder={t("search_games_placeholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="collections-search-input"
@@ -174,7 +176,7 @@ export default function Collections() {
           </div>
 
           <div className="collections-sort">
-            <label htmlFor="sort-select">Ordenar por:</label>
+            <label htmlFor="sort-select">{t("sort_by")}</label>
             <select
               id="sort-select"
               value={sortBy}
@@ -183,9 +185,9 @@ export default function Collections() {
               }
               className="collections-sort-select"
             >
-              <option value="name">Nome</option>
-              <option value="year">Título</option>
-              <option value="shop">Loja</option>
+              <option value="name">{t("sort_name")}</option>
+              <option value="year">{t("sort_title")}</option>
+              <option value="shop">{t("sort_shop")}</option>
             </select>
           </div>
         </div>
@@ -196,13 +198,13 @@ export default function Collections() {
               <FileDirectoryIcon size={48} />
               <h3>
                 {searchTerm
-                  ? "Nenhum jogo encontrado"
-                  : "Nenhum jogo nesta coleção"}
+                  ? t("no_games_found")
+                  : t("no_games_in_collection")}
               </h3>
               <p>
                 {searchTerm
-                  ? "Tente ajustar os filtros de busca"
-                  : "Adicione jogos à coleção através da biblioteca"}
+                  ? t("no_games_search_hint")
+                  : t("no_games_add_hint")}
               </p>
             </div>
           ) : (
@@ -224,9 +226,9 @@ export default function Collections() {
     <div className="collections-page collections-page--main">
       <section className="collections-content">
         <div className="collections-header">
-          <h1 className="collections-title">📁 Minhas Coleções</h1>
+          <h1 className="collections-title">📁 {t("title")}</h1>
           <p className="collections-subtitle">
-            Organize seus jogos em coleções personalizadas
+            {t("subtitle")}
           </p>
         </div>
 
@@ -235,7 +237,7 @@ export default function Collections() {
             <SearchIcon size={16} />
             <input
               type="text"
-              placeholder="Buscar coleções..."
+              placeholder={t("search_collections_placeholder")}
               value={collectionSearchTerm}
               onChange={(e) => setCollectionSearchTerm(e.target.value)}
               className="collections-search-input"
@@ -243,7 +245,7 @@ export default function Collections() {
           </div>
 
           <div className="collections-sort">
-            <label htmlFor="collection-sort-select">Ordenar por:</label>
+            <label htmlFor="collection-sort-select">{t("sort_by")}</label>
             <select
               id="collection-sort-select"
               value={collectionSortBy}
@@ -254,9 +256,9 @@ export default function Collections() {
               }
               className="collections-sort-select"
             >
-              <option value="name">Nome</option>
-              <option value="createdAt">Data de Criação</option>
-              <option value="gameCount">Quantidade de Jogos</option>
+              <option value="name">{t("sort_name")}</option>
+              <option value="createdAt">{t("sort_created_at")}</option>
+              <option value="gameCount">{t("sort_game_count")}</option>
             </select>
           </div>
         </div>
@@ -271,13 +273,13 @@ export default function Collections() {
               <FileDirectoryIcon size={48} />
               <h3>
                 {collectionSearchTerm
-                  ? "Nenhuma coleção encontrada"
-                  : "Nenhuma coleção criada"}
+                  ? t("no_collections_found")
+                  : t("no_collections_created")}
               </h3>
               <p>
                 {collectionSearchTerm
-                  ? "Tente ajustar os filtros de busca"
-                  : "Crie sua primeira coleção para organizar seus jogos"}
+                  ? t("no_collections_search_hint")
+                  : t("no_collections_create_hint")}
               </p>
             </div>
           ) : (
@@ -303,14 +305,14 @@ export default function Collections() {
                   <button
                     className="collections-card-config-button"
                     onClick={(e) => handleCollectionConfigClick(e, collection)}
-                    title="Configurações da coleção"
+                    title={t("collection_settings")}
                   >
                     <GearIcon size={16} />
                   </button>
 
                   <div className="collections-card-backdrop">
                     {previewGames.length > 0 &&
-                    previewGames[0].libraryImageUrl ? (
+                      previewGames[0].libraryImageUrl ? (
                       <img
                         src={previewGames[0].libraryImageUrl}
                         alt={collection.name}
@@ -332,7 +334,7 @@ export default function Collections() {
                       </div>
 
                       <p className="collections-card-count">
-                        {gameCount} {gameCount === 1 ? "jogo" : "jogos"}
+                        {t("games_count", { count: gameCount })}
                       </p>
 
                       {previewGames.length > 1 && (

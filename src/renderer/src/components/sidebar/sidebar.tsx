@@ -261,7 +261,7 @@ export function Sidebar() {
 
           <section className="sidebar__section">
             <div className="sidebar__section-header">
-              <small className="sidebar__section-title">Coleções</small>
+              <small className="sidebar__section-title">{t("collections")}</small>
             </div>
 
             {collections.length > 0 && (
@@ -270,7 +270,7 @@ export function Sidebar() {
                   <SidebarCollectionItem
                     key={collection.id}
                     collection={collection}
-                    onSelectCollection={() => {}} // No longer needed
+                    onSelectCollection={() => { }} // No longer needed
                     selectedCollectionId={undefined} // No longer needed
                   />
                 ))}

@@ -7,6 +7,7 @@
   },
   "sidebar": {
     "catalogue": "Catalogo",
+    "collections": "Collezioni",
     "downloads": "Download",
     "settings": "Impostazioni",
     "my_library": "La mia libreria",
@@ -20,12 +21,12 @@
   },
   "header": {
     "search": "Cerca",
-
     "home": "Home",
     "catalogue": "Catalogo",
     "downloads": "Download",
     "search_results": "Risultati della ricerca",
-    "settings": "Impostazioni"
+    "settings": "Impostazioni",
+    "collections": "Collezioni"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Nessun download in corso",
@@ -151,5 +152,55 @@
   },
   "modal": {
     "close": "Pulsante Chiudi"
+  },
+  "collections": {
+    "title": "Le Mie Collezioni",
+    "subtitle": "Organizza i tuoi giochi in collezioni personalizzate",
+    "collection_title": "{{name}}",
+    "collection_count": "({{count}} giochi)",
+    "search_games_placeholder": "Cerca giochi...",
+    "search_collections_placeholder": "Cerca collezioni...",
+    "sort_by": "Ordina per:",
+    "sort_name": "Nome",
+    "sort_title": "Titolo",
+    "sort_shop": "Negozio",
+    "sort_created_at": "Data di Creazione",
+    "sort_game_count": "Numero di Giochi",
+    "no_games_found": "Nessun gioco trovato",
+    "no_games_in_collection": "Nessun gioco in questa collezione",
+    "no_games_search_hint": "Prova ad aggiustare i filtri di ricerca",
+    "no_games_add_hint": "Aggiungi giochi alla collezione tramite la libreria",
+    "no_collections_found": "Nessuna collezione trovata",
+    "no_collections_created": "Nessuna collezione creata",
+    "no_collections_search_hint": "Prova ad aggiustare i filtri di ricerca",
+    "no_collections_create_hint": "Crea la tua prima collezione per organizzare i tuoi giochi",
+    "collection_settings": "Impostazioni della collezione",
+    "games_count": "{{count}} gioco",
+    "new_collection": "Nuova Collezione",
+    "create_collection": "Crea Collezione",
+    "collection_name_placeholder": "Inserisci il nome della collezione",
+    "collection_name_empty_error": "Il nome della collezione non può essere vuoto",
+    "collection_name_exists_error": "Esiste già una collezione con questo nome",
+    "create_collection_error": "Errore nella creazione della collezione. Riprova.",
+    "cancel": "Annulla",
+    "add_games_title": "🎮 Aggiungi Giochi alla Collezione",
+    "add_games_description": "Seleziona i giochi che vuoi aggiungere alla tua nuova collezione",
+    "games_available": "{{count}} giochi disponibili",
+    "games_selected": "{{count}} selezionati",
+    "no_games_available": "Nessun gioco trovato",
+    "already_in_collection": "Già nella collezione",
+    "add_games": "Aggiungi {{count}} giochi",
+    "add_games_single": "Aggiungi giochi",
+    "collection_info_title": "📂 Informazioni sulla Collezione",
+    "collection_name_label": "Nome della Collezione:",
+    "total_games": "Totale Giochi:",
+    "created_at": "Creato il:",
+    "last_updated": "Ultimo aggiornamento:",
+    "games_in_collection": "Giochi in questa Collezione:",
+    "no_games_in_collection_info": "Nessun gioco aggiunto a questa collezione ancora.",
+    "delete_collection": "Elimina Collezione",
+    "delete_collection_confirm": "Sei sicuro di voler eliminare la collezione \"{{name}}\"?",
+    "rename_error": "Errore nel rinominare la collezione. Riprova.",
+    "collection_name_required": "Il nome della collezione è richiesto"
   }
 }

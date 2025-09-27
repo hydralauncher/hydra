@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { PencilIcon, TrashIcon, XIcon } from "@primer/octicons-react";
 import { useCollections, useLibrary } from "@renderer/hooks";
 import type { Collection } from "@types";
@@ -15,6 +16,7 @@ export function CollectionInfoModal({
   isOpen,
   onClose,
 }: CollectionInfoModalProps) {
+  const { t } = useTranslation("collections");
   const { updateCollection, deleteCollection, collections } = useCollections();
   const { library } = useLibrary();
   const [isEditing, setIsEditing] = useState(false);
@@ -37,7 +39,7 @@ export function CollectionInfoModal({
     const trimmedName = editName.trim();
 
     if (!trimmedName) {
-      setRenameError("Nome da coleção não pode estar vazio");
+      setRenameError(t("collection_name_required"));
       return;
     }
 
@@ -54,7 +56,7 @@ export function CollectionInfoModal({
     );
 
     if (nameExists) {
-      setRenameError("Já existe uma coleção com este nome");
+      setRenameError(t("collection_name_exists_error"));
       return;
     }
 
@@ -63,14 +65,14 @@ export function CollectionInfoModal({
       await updateCollection(collection.id, { name: trimmedName });
       setIsEditing(false);
     } catch (error) {
-      setRenameError("Erro ao renomear coleção. Tente novamente.");
+      setRenameError(t("rename_error"));
       console.error("Error renaming collection:", error);
     }
   };
 
   const handleDelete = async () => {
     if (
-      confirm(`Tem certeza que deseja excluir a coleção "${collection.name}"?`)
+      confirm(t("delete_collection_confirm", { name: collection.name }))
     ) {
       await deleteCollection(collection.id);
       onClose();
@@ -105,7 +107,7 @@ export function CollectionInfoModal({
     >
       <div className="collection-modal" role="dialog" tabIndex={-1}>
         <div className="collection-modal-header">
-          <h2 className="collection-modal-title">📂 Informações da Coleção</h2>
+          <h2 className="collection-modal-title">{t("collection_info_title")}</h2>
           <button className="collection-modal-close" onClick={onClose}>
             <XIcon size={20} />
           </button>
@@ -118,7 +120,7 @@ export function CollectionInfoModal({
                 htmlFor="collection-name-input"
                 className="collection-modal-label"
               >
-                Nome da Coleção:
+                {t("collection_name_label")}
               </label>
               {isEditing ? (
                 <input
@@ -151,24 +153,24 @@ export function CollectionInfoModal({
             <div className="collection-modal-stats">
               <div className="collection-modal-stat">
                 <span className="collection-modal-stat-label">
-                  Total de Jogos:
+                  {t("total_games")}
                 </span>
                 <span className="collection-modal-stat-value">
                   {collectionGames.length}
                 </span>
               </div>
               <div className="collection-modal-stat">
-                <span className="collection-modal-stat-label">Criada em:</span>
+                <span className="collection-modal-stat-label">{t("created_at")}</span>
                 <span className="collection-modal-stat-value">
-                  {new Date(collection.createdAt).toLocaleDateString("pt-BR")}
+                  {new Date(collection.createdAt).toLocaleDateString()}
                 </span>
               </div>
               <div className="collection-modal-stat">
                 <span className="collection-modal-stat-label">
-                  Última atualização:
+                  {t("last_updated")}
                 </span>
                 <span className="collection-modal-stat-value">
-                  {new Date(collection.updatedAt).toLocaleDateString("pt-BR")}
+                  {new Date(collection.updatedAt).toLocaleDateString()}
                 </span>
               </div>
             </div>
@@ -176,11 +178,11 @@ export function CollectionInfoModal({
 
           <div className="collection-modal-games">
             <h3 className="collection-modal-games-title">
-              Jogos nesta Coleção:
+              {t("games_in_collection")}
             </h3>
             {collectionGames.length === 0 ? (
               <div className="collection-modal-empty">
-                <p>Nenhum jogo adicionado a esta coleção ainda.</p>
+                <p>{t("no_games_in_collection_info")}</p>
               </div>
             ) : (
               <div className="collection-modal-games-list">
@@ -218,7 +220,7 @@ export function CollectionInfoModal({
             onClick={handleDelete}
           >
             <TrashIcon size={16} />
-            Excluir Coleção
+            {t("delete_collection")}
           </button>
         </div>
       </div>

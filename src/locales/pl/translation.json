@@ -7,6 +7,7 @@
   },
   "sidebar": {
     "catalogue": "Katalog",
+    "collections": "Kolekcje",
     "downloads": "Pobrane",
     "settings": "Ustawienia",
     "my_library": "Moja biblioteka",
@@ -20,12 +21,12 @@
   },
   "header": {
     "search": "Szukaj",
-
     "home": "Główna",
     "catalogue": "Katalog",
     "downloads": "Pobrane",
     "search_results": "Wyniki wyszukiwania",
-    "settings": "Ustawienia"
+    "settings": "Ustawienia",
+    "collections": "Kolekcje"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Brak pobierań w toku",
@@ -151,5 +152,55 @@
   },
   "modal": {
     "close": "Zamknij"
+  },
+  "collections": {
+    "title": "Moje Kolekcje",
+    "subtitle": "Organizuj swoje gry w niestandardowe kolekcje",
+    "collection_title": "{{name}}",
+    "collection_count": "({{count}} gier)",
+    "search_games_placeholder": "Szukaj gier...",
+    "search_collections_placeholder": "Szukaj kolekcji...",
+    "sort_by": "Sortuj według:",
+    "sort_name": "Nazwa",
+    "sort_title": "Tytuł",
+    "sort_shop": "Sklep",
+    "sort_created_at": "Data Utworzenia",
+    "sort_game_count": "Liczba Gier",
+    "no_games_found": "Nie znaleziono gier",
+    "no_games_in_collection": "Brak gier w tej kolekcji",
+    "no_games_search_hint": "Spróbuj dostosować filtry wyszukiwania",
+    "no_games_add_hint": "Dodaj gry do kolekcji przez bibliotekę",
+    "no_collections_found": "Nie znaleziono kolekcji",
+    "no_collections_created": "Nie utworzono kolekcji",
+    "no_collections_search_hint": "Spróbuj dostosować filtry wyszukiwania",
+    "no_collections_create_hint": "Utwórz swoją pierwszą kolekcję, aby zorganizować gry",
+    "collection_settings": "Ustawienia kolekcji",
+    "games_count": "{{count}} gra",
+    "new_collection": "Nowa Kolekcja",
+    "create_collection": "Utwórz Kolekcję",
+    "collection_name_placeholder": "Wprowadź nazwę kolekcji",
+    "collection_name_empty_error": "Nazwa kolekcji nie może być pusta",
+    "collection_name_exists_error": "Kolekcja o tej nazwie już istnieje",
+    "create_collection_error": "Błąd tworzenia kolekcji. Spróbuj ponownie.",
+    "cancel": "Anuluj",
+    "add_games_title": "🎮 Dodaj Gry do Kolekcji",
+    "add_games_description": "Wybierz gry, które chcesz dodać do nowej kolekcji",
+    "games_available": "{{count}} gier dostępnych",
+    "games_selected": "{{count}} wybranych",
+    "no_games_available": "Nie znaleziono gier",
+    "already_in_collection": "Już w kolekcji",
+    "add_games": "Dodaj {{count}} gier",
+    "add_games_single": "Dodaj gry",
+    "collection_info_title": "📂 Informacje o Kolekcji",
+    "collection_name_label": "Nazwa Kolekcji:",
+    "total_games": "Łącznie Gier:",
+    "created_at": "Utworzono:",
+    "last_updated": "Ostatnia aktualizacja:",
+    "games_in_collection": "Gry w tej Kolekcji:",
+    "no_games_in_collection_info": "Do tej kolekcji nie dodano jeszcze żadnych gier.",
+    "delete_collection": "Usuń Kolekcję",
+    "delete_collection_confirm": "Czy na pewno chcesz usunąć kolekcję \"{{name}}\"?",
+    "rename_error": "Błąd zmiany nazwy kolekcji. Spróbuj ponownie.",
+    "collection_name_required": "Nazwa kolekcji jest wymagana"
   }
 }

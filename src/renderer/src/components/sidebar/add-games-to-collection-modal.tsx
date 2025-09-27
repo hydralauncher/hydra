@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { XIcon, PlusIcon } from "@primer/octicons-react";
 import { useCollections, useLibrary } from "@renderer/hooks";
 import type { Collection, LibraryGame } from "@types";
@@ -17,6 +18,7 @@ export function AddGamesToCollectionModal({
   onClose,
   onGamesAdded,
 }: AddGamesToCollectionModalProps) {
+  const { t } = useTranslation("collections");
   const { addGameToCollection } = useCollections();
   const { library } = useLibrary();
   const [searchTerm, setSearchTerm] = useState("");
@@ -104,7 +106,7 @@ export function AddGamesToCollectionModal({
       <div className="add-games-modal" role="dialog" tabIndex={-1}>
         <div className="add-games-modal-header">
           <h2 className="add-games-modal-title">
-            🎮 Adicionar Jogos à Coleção
+            {t("add_games_title")}
           </h2>
           <button className="add-games-modal-close" onClick={handleClose}>
             <XIcon size={20} />
@@ -117,14 +119,14 @@ export function AddGamesToCollectionModal({
               {collection.name}
             </h3>
             <p className="add-games-modal-description">
-              Selecione os jogos que deseja adicionar à sua nova coleção
+              {t("add_games_description")}
             </p>
           </div>
 
           <div className="add-games-modal-search">
             <input
               type="text"
-              placeholder="Buscar jogos..."
+              placeholder={t("search_games_placeholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="add-games-modal-search-input"
@@ -134,11 +136,11 @@ export function AddGamesToCollectionModal({
           <div className="add-games-modal-games">
             <div className="add-games-modal-games-header">
               <span className="add-games-modal-games-count">
-                {availableGames.length} jogos disponíveis
+                {t("games_available", { count: availableGames.length })}
               </span>
               {newGamesCount > 0 && (
                 <span className="add-games-modal-selected-count">
-                  {newGamesCount} selecionados
+                  {t("games_selected", { count: newGamesCount })}
                 </span>
               )}
             </div>
@@ -146,7 +148,7 @@ export function AddGamesToCollectionModal({
             <div className="add-games-modal-games-list">
               {availableGames.length === 0 ? (
                 <div className="add-games-modal-empty">
-                  <p>Nenhum jogo encontrado</p>
+                  <p>{t("no_games_available")}</p>
                 </div>
               ) : (
                 availableGames.map((game) => {
@@ -206,7 +208,7 @@ export function AddGamesToCollectionModal({
                       <div className="add-games-modal-game-status">
                         {isAlreadyInCollection ? (
                           <span className="add-games-modal-game-status-text">
-                            Já na coleção
+                            {t("already_in_collection")}
                           </span>
                         ) : isSelected ? (
                           <PlusIcon
@@ -228,7 +230,7 @@ export function AddGamesToCollectionModal({
             className="add-games-modal-cancel-button"
             onClick={handleClose}
           >
-            Cancelar
+            {t("cancel")}
           </button>
           <button
             className="add-games-modal-add-button"
@@ -236,7 +238,7 @@ export function AddGamesToCollectionModal({
             disabled={newGamesCount === 0}
           >
             <PlusIcon size={16} />
-            Adicionar {newGamesCount > 0 ? `${newGamesCount} jogos` : "jogos"}
+            {newGamesCount > 0 ? t("add_games", { count: newGamesCount }) : t("add_games_single")}
           </button>
         </div>
       </div>
