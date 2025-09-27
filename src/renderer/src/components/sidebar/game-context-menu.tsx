@@ -73,10 +73,11 @@ export function GameContextMenu({
                 return (
                   <div
                     key={collection.id}
-                    className={`sidebar__context-menu-item ${isInCollection
+                    className={`sidebar__context-menu-item ${
+                      isInCollection
                         ? "sidebar__context-menu-item--checked"
                         : ""
-                      }`}
+                    }`}
                     onClick={() =>
                       !isInCollection && handleAddToCollection(collection.id)
                     }

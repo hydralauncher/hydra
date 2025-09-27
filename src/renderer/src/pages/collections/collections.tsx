@@ -310,7 +310,7 @@ export default function Collections() {
 
                   <div className="collections-card-backdrop">
                     {previewGames.length > 0 &&
-                      previewGames[0].libraryImageUrl ? (
+                    previewGames[0].libraryImageUrl ? (
                       <img
                         src={previewGames[0].libraryImageUrl}
                         alt={collection.name}
