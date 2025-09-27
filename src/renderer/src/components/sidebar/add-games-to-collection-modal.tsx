@@ -101,12 +101,7 @@ export function AddGamesToCollectionModal({
       role="button"
       tabIndex={0}
     >
-      <div
-        className="add-games-modal"
-        role="dialog"
-        tabIndex={-1}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="add-games-modal" role="dialog" tabIndex={-1}>
         <div className="add-games-modal-header">
           <h2 className="add-games-modal-title">
             🎮 Adicionar Jogos à Coleção
