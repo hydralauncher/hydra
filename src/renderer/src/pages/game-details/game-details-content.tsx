@@ -1,6 +1,4 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { average } from "color.js";
-import Color from "color";
 import { PencilIcon } from "@primer/octicons-react";
 
 import { HeroPanel } from "./hero";
@@ -23,15 +21,8 @@ export function GameDetailsContent() {
 
   const { t } = useTranslation("game_details");
 
-  const {
-    objectId,
-    shopDetails,
-    game,
-    gameColor,
-    setGameColor,
-    hasNSFWContentBlocked,
-    updateGame,
-  } = useContext(gameDetailsContext);
+  const { objectId, shopDetails, game, hasNSFWContentBlocked, updateGame } =
+    useContext(gameDetailsContext);
 
   const { showHydraCloudModal } = useSubscription();
 
@@ -66,28 +57,6 @@ export function GameDetailsContent() {
 
   const [backdropOpacity, setBackdropOpacity] = useState(1);
   const [showEditGameModal, setShowEditGameModal] = useState(false);
-
-  const handleHeroLoad = async () => {
-    // Use the same logic as heroImage to get the correct URL for both custom and non-custom games
-    const isCustomGame = game?.shop === "custom";
-    const heroImageUrl = isCustomGame
-      ? game?.libraryHeroImageUrl || game?.iconUrl || ""
-      : getImageWithCustomPriority(
-          game?.customHeroImageUrl,
-          shopDetails?.assets?.libraryHeroImageUrl
-        );
-
-    const output = await average(heroImageUrl, {
-      amount: 1,
-      format: "hex",
-    });
-
-    const backgroundColor = output
-      ? new Color(output).darken(0.7).toString()
-      : "";
-
-    setGameColor(backgroundColor);
-  };
 
   useEffect(() => {
     setBackdropOpacity(1);
