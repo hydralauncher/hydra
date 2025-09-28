@@ -199,6 +199,12 @@ export function GameDetailsContextProvider({
   }, [objectId, gameTitle, dispatch]);
 
   useEffect(() => {
+    if (game?.title) {
+      dispatch(setHeaderTitle(game.title));
+    }
+  }, [game?.title, dispatch]);
+
+  useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesIds) => {
       const updatedIsGameRunning =
         !!game?.id &&

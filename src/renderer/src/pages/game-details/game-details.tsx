@@ -178,6 +178,7 @@ export default function GameDetails() {
                     onClose={() => {
                       setShowGameOptionsModal(false);
                     }}
+                    onNavigateHome={() => navigate("/")}
                   />
                 )}
 
