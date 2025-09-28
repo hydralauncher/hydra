@@ -1,0 +1,56 @@
+@use "../../../scss/globals.scss";
+
+.sort-options {
+  &__container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: calc(globals.$spacing-unit);
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
+  &__label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  &__options {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit);
+    font-size: 14px;
+  }
+
+  &__option {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    padding: 4px 0;
+    font-size: 14px;
+    font-weight: 300;
+    transition: all ease 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    &:hover:not(:disabled) {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    &.active {
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 500;
+    }
+
+    span {
+      display: inline-block;
+    }
+  }
+
+  &__separator {
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 14px;
+  }
+}

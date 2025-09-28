@@ -183,12 +183,10 @@ export function GameDetailsContent() {
             src={heroImage}
             className="game-details__hero-image"
             alt={game?.title}
-            onLoad={handleHeroLoad}
           />
           <div
             className="game-details__hero-backdrop"
             style={{
-              backgroundColor: gameColor,
               flex: 1,
             }}
           />

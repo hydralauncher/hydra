@@ -37,6 +37,7 @@ import type {
   ShopDetailsWithAssets,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  UserLibraryResponse,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -156,6 +157,11 @@ declare global {
     removeGameFromFavorites: (
       shop: GameShop,
       objectId: string
+    ) => Promise<void>;
+    toggleGamePin: (
+      shop: GameShop,
+      objectId: string,
+      pinned: boolean
     ) => Promise<void>;
     updateLaunchOptions: (
       shop: GameShop,
@@ -320,6 +326,12 @@ declare global {
 
     /* User */
     getUser: (userId: string) => Promise<UserProfile | null>;
+    getUserLibrary: (
+      userId: string,
+      take?: number,
+      skip?: number,
+      sortBy?: string
+    ) => Promise<UserLibraryResponse>;
     blockUser: (userId: string) => Promise<void>;
     unblockUser: (userId: string) => Promise<void>;
     getUserFriends: (
