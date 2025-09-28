@@ -9,8 +9,6 @@ import {
 import { LockIcon, PersonIcon, TrophyIcon } from "@primer/octicons-react";
 import { gameDetailsContext } from "@renderer/context";
 import type { ComparedAchievements } from "@types";
-import { average } from "color.js";
-import Color from "color";
 import { Link } from "@renderer/components";
 import { ComparedAchievementList } from "./compared-achievement-list";
 import { AchievementList } from "./achievement-list";
