@@ -3,17 +3,30 @@
 .content-sidebar {
   border-left: solid 1px globals.$border-color;
   background-color: globals.$dark-background-color;
-  width: 100%;
   height: 100%;
+  flex-shrink: 0;
+  width: 280px;
 
   @media (min-width: 1024px) {
-    max-width: 300px;
-    width: 100%;
+    width: 320px;
   }
 
   @media (min-width: 1280px) {
-    width: 100%;
-    max-width: 400px;
+    width: 380px;
+  }
+
+  @media (min-width: 1440px) {
+    width: 420px;
+  }
+
+  @media (max-width: 768px) {
+    width: 35%;
+    min-width: 220px;
+  }
+
+  @media (max-width: 480px) {
+    width: 40%;
+    min-width: 200px;
   }
 }
 
@@ -193,26 +206,4 @@
 
 .achievements-placeholder__blur {
   filter: blur(4px);
-}
-
-.table-languages {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-
-  th,
-  td {
-    padding: globals.$spacing-unit;
-    border-bottom: solid 1px globals.$border-color;
-  }
-
-  th {
-    font-size: globals.$small-font-size;
-    color: globals.$muted-color;
-    font-weight: normal;
-  }
-
-  td {
-    font-size: globals.$body-font-size;
-  }
 }

@@ -31,10 +31,14 @@ export function FriendsBox() {
   return (
     <div>
       <div className="friends-box__section-header">
-        <h2>{t("friends")}</h2>
-        {userStats && (
-          <span>{numberFormatter.format(userStats.friendsCount)}</span>
-        )}
+        <div className="profile-content__section-title-group">
+          <h2>{t("friends")}</h2>
+          {userStats && (
+            <span className="profile-content__section-badge">
+              {numberFormatter.format(userStats.friendsCount)}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="friends-box__box">
