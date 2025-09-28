@@ -18,7 +18,6 @@ $hero-height: 300px;
   &__wrapper {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
     width: 100%;
     height: 100%;
     transition: all ease 0.3s;
@@ -101,8 +100,8 @@ $hero-height: 300px;
 
   &__hero-image {
     width: 100%;
-    height: $hero-height;
-    min-height: $hero-height;
+    height: calc($hero-height + 72px);
+    min-height: calc($hero-height + 72px);
     object-fit: cover;
     object-position: top;
     transition: all ease 0.2s;
@@ -111,8 +110,8 @@ $hero-height: 300px;
 
     @media (min-width: 1250px) {
       object-position: center;
-      height: 350px;
-      min-height: 350px;
+      height: calc(350px + 72px);
+      min-height: calc(350px + 72px);
     }
   }
 
@@ -148,7 +147,6 @@ $hero-height: 300px;
     height: 100%;
     display: flex;
     flex-direction: column;
-    overflow: auto;
     z-index: 1;
   }
 
@@ -156,6 +154,7 @@ $hero-height: 300px;
     display: flex;
     width: 100%;
     flex: 1;
+    min-width: 0;
     background: linear-gradient(
       0deg,
       globals.$background-color 50%,
@@ -166,6 +165,8 @@ $hero-height: 300px;
   &__description-content {
     width: 100%;
     height: 100%;
+    min-width: 0;
+    flex: 1;
   }
 
   &__description {
