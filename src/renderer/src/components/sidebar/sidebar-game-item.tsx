@@ -1,4 +1,5 @@
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
+import PlayLogo from "@renderer/assets/play-logo.svg?react";
 import { LibraryGame } from "@types";
 import cn from "classnames";
 import { useLocation } from "react-router-dom";
@@ -16,6 +17,19 @@ export function SidebarGameItem({
 }: Readonly<SidebarGameItemProps>) {
   const location = useLocation();
 
+  const isCustomGame = game.shop === "custom";
+  const sidebarIcon = isCustomGame
+    ? game.libraryImageUrl || game.iconUrl
+    : game.customIconUrl || game.iconUrl;
+
+  // Determine fallback icon based on game type
+  const getFallbackIcon = () => {
+    if (isCustomGame) {
+      return <PlayLogo className="sidebar__game-icon" />;
+    }
+    return <SteamLogo className="sidebar__game-icon" />;
+  };
+
   return (
     <li
       key={game.id}
@@ -30,15 +44,15 @@ export function SidebarGameItem({
         className="sidebar__menu-item-button"
         onClick={(event) => handleSidebarGameClick(event, game)}
       >
-        {game.iconUrl ? (
+        {sidebarIcon ? (
           <img
             className="sidebar__game-icon"
-            src={game.iconUrl}
+            src={sidebarIcon}
             alt={game.title}
             loading="lazy"
           />
         ) : (
-          <SteamLogo className="sidebar__game-icon" />
+          getFallbackIcon()
         )}
 
         <span className="sidebar__menu-item-button-label">
