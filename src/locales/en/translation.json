@@ -272,6 +272,7 @@
     "backup_unfrozen": "Backup unpinned",
     "backup_freeze_failed": "Failed to freeze backup",
     "backup_freeze_failed_description": "You must leave at least one free slot for automatic backups",
+    "edit_game_modal_button": "Customize game assets",
     "game_details": "Game Details",
     "currency_symbol": "$",
     "currency_country": "us",

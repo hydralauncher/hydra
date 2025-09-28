@@ -172,7 +172,7 @@ export function GameDetailsContent() {
                   type="button"
                   className="game-details__edit-custom-game-button"
                   onClick={handleEditGameClick}
-                  title={t("edit_custom_game")}
+                  title={t("edit_game_modal_button")}
                 >
                   <PencilIcon size={16} />
                 </button>
