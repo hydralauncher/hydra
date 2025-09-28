@@ -221,7 +221,8 @@
     "supported_languages": "Idiomas suportados",
     "language": "Idioma",
     "caption": "Legenda",
-    "audio": "Áudio"
+    "audio": "Áudio",
+    "filter_by_source": "Filtrar por fonte"
   },
   "activation": {
     "title": "Ativação",
