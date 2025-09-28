@@ -27,6 +27,7 @@ export const uploadGamesBatch = async () => {
           shop: game.shop,
           lastTimePlayed: game.lastTimePlayed,
           isFavorite: game.favorite,
+          isPinned: game.isPinned ?? false,
         };
       })
     ).catch(() => {});
