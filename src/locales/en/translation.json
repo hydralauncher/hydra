@@ -4,7 +4,6 @@
     "successfully_signed_in": "Successfully signed in"
   },
   "home": {
-    "featured": "Featured",
     "surprise_me": "Surprise me",
     "no_results": "No results found",
     "start_typing": "Starting typing to search...",
@@ -250,7 +249,6 @@
     "keyshop_price": "Keyshop price",
     "historical_retail": "Historical retail",
     "historical_keyshop": "Historical keyshop",
-    "supported_languages": "Supported languages",
     "language": "Language",
     "caption": "Caption",
     "audio": "Audio"
@@ -299,7 +297,6 @@
     "change": "Update",
     "notifications": "Notifications",
     "enable_download_notifications": "When a download is complete",
-    "gg_deals_api_key_description": "gg deals api key. Used to show the lowest price. (https://gg.deals/api/)",
     "enable_repack_list_notifications": "When a new repack is added",
     "real_debrid_api_token_label": "Real-Debrid API token",
     "quit_app_instead_hiding": "Don't hide Hydra when closing",

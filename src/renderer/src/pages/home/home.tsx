@@ -97,8 +97,6 @@ export default function Home() {
   return (
     <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
       <section className="home__content">
-        <h2>{t("featured")}</h2>
-
         <Hero />
 
         <section className="home__header">

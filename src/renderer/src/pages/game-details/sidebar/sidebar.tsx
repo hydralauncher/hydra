@@ -21,7 +21,6 @@ import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./sidebar.scss";
-import { GamePricesSection } from "./game-prices-section";
 import { GameLanguageSection } from "./game-language-section";
 
 const achievementsPlaceholder: UserAchievement[] = [
@@ -117,9 +116,6 @@ export function Sidebar() {
 
   return (
     <aside className="content-sidebar">
-      <GameLanguageSection />
-      <GamePricesSection />
-
       {userDetails === null && (
         <SidebarSection title={t("achievements")}>
           <div className="achievements-placeholder">
@@ -268,6 +264,8 @@ export function Sidebar() {
           }}
         />
       </SidebarSection>
+
+      <GameLanguageSection />
     </aside>
   );
 }

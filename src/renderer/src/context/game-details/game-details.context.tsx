@@ -39,14 +39,12 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   isGameRunning: false,
   isLoading: false,
   objectId: undefined,
-  gameColor: "",
   showRepacksModal: false,
   showGameOptionsModal: false,
   stats: null,
   achievements: null,
   hasNSFWContentBlocked: false,
   lastDownloadedOption: null,
-  setGameColor: () => {},
   selectGameExecutable: async () => null,
   updateGame: async () => {},
   setShowGameOptionsModal: () => {},
@@ -83,7 +81,6 @@ export function GameDetailsContextProvider({
   const [stats, setStats] = useState<GameStats | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
-  const [gameColor, setGameColor] = useState("");
   const [isGameRunning, setIsGameRunning] = useState(false);
   const [showRepacksModal, setShowRepacksModal] = useState(false);
   const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
@@ -356,7 +353,6 @@ export function GameDetailsContextProvider({
         isGameRunning,
         isLoading,
         objectId,
-        gameColor,
         showGameOptionsModal,
         showRepacksModal,
         stats,
@@ -364,7 +360,6 @@ export function GameDetailsContextProvider({
         hasNSFWContentBlocked,
         lastDownloadedOption,
         setHasNSFWContentBlocked,
-        setGameColor,
         selectGameExecutable,
         updateGame,
         setShowRepacksModal,
