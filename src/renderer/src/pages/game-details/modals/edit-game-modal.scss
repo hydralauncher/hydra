@@ -12,6 +12,28 @@
   gap: 16px;
 }
 
+.edit-game-modal__asset-selector {
+  margin-bottom: 8px;
+}
+
+.edit-game-modal__asset-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+
+  button {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.edit-game-modal__asset-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
 .edit-game-modal__image-section {
   display: flex;
   flex-direction: column;

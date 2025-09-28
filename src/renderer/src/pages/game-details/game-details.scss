@@ -43,12 +43,16 @@ $hero-height: 300px;
   }
 
   &__hero-content {
-    padding: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 1.5);
     height: 100%;
     width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
+
+    @media (min-width: 768px) {
+      padding: calc(globals.$spacing-unit * 2);
+    }
   }
 
   &__hero-buttons {
@@ -116,14 +120,22 @@ $hero-height: 300px;
   }
 
   &__game-logo {
-    width: 300px;
+    width: 200px;
     align-self: flex-end;
+
+    @media (min-width: 768px) {
+      width: 250px;
+    }
+
+    @media (min-width: 1024px) {
+      width: 300px;
+    }
   }
 
   &__game-logo-text {
-    width: 300px;
+    width: 200px;
     align-self: flex-end;
-    font-size: 2.5rem;
+    font-size: 1.8rem;
     font-weight: bold;
     color: #ffffff;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
@@ -132,6 +144,16 @@ $hero-height: 300px;
     word-wrap: break-word;
     overflow-wrap: break-word;
     hyphens: auto;
+
+    @media (min-width: 768px) {
+      width: 250px;
+      font-size: 2.2rem;
+    }
+
+    @media (min-width: 1024px) {
+      width: 300px;
+      font-size: 2.5rem;
+    }
   }
 
   &__hero-image-skeleton {
@@ -173,10 +195,18 @@ $hero-height: 300px;
     user-select: text;
     line-height: 22px;
     font-size: globals.$body-font-size;
-    padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
     width: 100%;
     margin-left: auto;
     margin-right: auto;
+
+    @media (min-width: 768px) {
+      padding: calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 2);
+    }
+
+    @media (min-width: 1024px) {
+      padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
+    }
 
     @media (min-width: 1280px) {
       width: 60%;
@@ -206,10 +236,18 @@ $hero-height: 300px;
     display: flex;
     flex-direction: column;
     gap: globals.$spacing-unit;
-    padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
     width: 100%;
     margin-left: auto;
     margin-right: auto;
+
+    @media (min-width: 768px) {
+      padding: calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 2);
+    }
+
+    @media (min-width: 1024px) {
+      padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
+    }
 
     @media (min-width: 1280px) {
       width: 60%;
