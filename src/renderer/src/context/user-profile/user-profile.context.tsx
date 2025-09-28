@@ -1,6 +1,6 @@
 import { darkenColor } from "@renderer/helpers";
 import { useAppSelector, useToast } from "@renderer/hooks";
-import type { Badge, UserProfile, UserStats } from "@types";
+import type { Badge, UserProfile, UserStats, UserGame } from "@types";
 import { average } from "color.js";
 
 import { createContext, useCallback, useEffect, useState } from "react";
@@ -14,9 +14,12 @@ export interface UserProfileContext {
   isMe: boolean;
   userStats: UserStats | null;
   getUserProfile: () => Promise<void>;
+  getUserLibraryGames: (sortBy?: string) => Promise<void>;
   setSelectedBackgroundImage: React.Dispatch<React.SetStateAction<string>>;
   backgroundImage: string;
   badges: Badge[];
+  libraryGames: UserGame[];
+  pinnedGames: UserGame[];
 }
 
 export const DEFAULT_USER_PROFILE_BACKGROUND = "#151515B3";
@@ -27,9 +30,12 @@ export const userProfileContext = createContext<UserProfileContext>({
   isMe: false,
   userStats: null,
   getUserProfile: async () => {},
+  getUserLibraryGames: async (_sortBy?: string) => {},
   setSelectedBackgroundImage: () => {},
   backgroundImage: "",
   badges: [],
+  libraryGames: [],
+  pinnedGames: [],
 });
 
 const { Provider } = userProfileContext;
@@ -49,6 +55,8 @@ export function UserProfileContextProvider({
   const [userStats, setUserStats] = useState<UserStats | null>(null);
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [libraryGames, setLibraryGames] = useState<UserGame[]>([]);
+  const [pinnedGames, setPinnedGames] = useState<UserGame[]>([]);
   const [badges, setBadges] = useState<Badge[]>([]);
   const [heroBackground, setHeroBackground] = useState(
     DEFAULT_USER_PROFILE_BACKGROUND
@@ -85,8 +93,34 @@ export function UserProfileContextProvider({
     });
   }, [userId]);
 
+  const getUserLibraryGames = useCallback(
+    async (sortBy?: string) => {
+      try {
+        const response = await window.electron.getUserLibrary(
+          userId,
+          12,
+          0,
+          sortBy
+        );
+
+        if (response) {
+          setLibraryGames(response.library);
+          setPinnedGames(response.pinnedGames);
+        } else {
+          setLibraryGames([]);
+          setPinnedGames([]);
+        }
+      } catch (error) {
+        setLibraryGames([]);
+        setPinnedGames([]);
+      }
+    },
+    [userId]
+  );
+
   const getUserProfile = useCallback(async () => {
     getUserStats();
+    getUserLibraryGames();
 
     return window.electron.getUser(userId).then((userProfile) => {
       if (userProfile) {
@@ -102,7 +136,7 @@ export function UserProfileContextProvider({
         navigate(-1);
       }
     });
-  }, [navigate, getUserStats, showErrorToast, userId, t]);
+  }, [navigate, getUserStats, getUserLibraryGames, showErrorToast, userId, t]);
 
   const getBadges = useCallback(async () => {
     const badges = await window.electron.getBadges();
@@ -111,6 +145,8 @@ export function UserProfileContextProvider({
 
   useEffect(() => {
     setUserProfile(null);
+    setLibraryGames([]);
+    setPinnedGames([]);
     setHeroBackground(DEFAULT_USER_PROFILE_BACKGROUND);
 
     getUserProfile();
@@ -124,10 +160,13 @@ export function UserProfileContextProvider({
         heroBackground,
         isMe,
         getUserProfile,
+        getUserLibraryGames,
         setSelectedBackgroundImage,
         backgroundImage: getBackgroundImageUrl(),
         userStats,
         badges,
+        libraryGames,
+        pinnedGames,
       }}
     >
       {children}
