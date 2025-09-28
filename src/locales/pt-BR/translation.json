@@ -4,7 +4,6 @@
     "successfully_signed_in": "Autenticado com sucesso"
   },
   "home": {
-    "featured": "Destaques",
     "hot": "Populares",
     "weekly": "📅 Mais baixados da semana",
     "achievements": "🏆 Pra platinar",
@@ -218,7 +217,6 @@
     "keyshop_price": "Preço em keyshops",
     "historical_retail": "Preço histórico de lojas oficiais",
     "historical_keyshop": "Preço histórico em keyshops",
-    "supported_languages": "Idiomas suportados",
     "language": "Idioma",
     "caption": "Legenda",
     "audio": "Áudio",
@@ -269,7 +267,6 @@
     "change": "Explorar...",
     "notifications": "Notificações",
     "enable_download_notifications": "Quando um download for concluído",
-    "gg_deals_api_key_description": "gg deals api key. Usado para mostrar o menor preço. (https://gg.deals/api/)",
     "enable_repack_list_notifications": "Quando a lista de repacks for atualizada",
     "real_debrid_api_token_label": "Token de API do Real-Debrid",
     "quit_app_instead_hiding": "Encerrar o Hydra em vez de apenas minimizá-lo ao fechar",

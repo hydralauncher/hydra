@@ -38,12 +38,12 @@ export const DeleteAllThemesModal = ({
       onClose={onClose}
     >
       <div className="delete-all-themes-modal__container">
-        <Button theme="outline" onClick={handleDeleteAllThemes}>
-          {t("delete_all_themes")}
+        <Button theme="outline" onClick={onClose}>
+          {t("cancel")}
         </Button>
 
-        <Button theme="primary" onClick={onClose}>
-          {t("cancel")}
+        <Button theme="primary" onClick={handleDeleteAllThemes}>
+          {t("delete_all_themes")}
         </Button>
       </div>
     </Modal>

@@ -6,8 +6,8 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 3);
-    padding: calc(globals.$spacing-unit * 3);
+    gap: calc(globals.$spacing-unit * 2);
+    padding: 0;
     flex: 1;
     overflow-y: auto;
   }
@@ -17,6 +17,7 @@
     gap: globals.$spacing-unit;
     justify-content: space-between;
     align-items: center;
+    padding: calc(globals.$spacing-unit * 3);
   }
 
   &__buttons-list {
@@ -25,25 +26,6 @@
     margin: 0;
     padding: 0;
     gap: globals.$spacing-unit;
-  }
-
-  &__cards {
-    display: grid;
-    grid-template-columns: repeat(1, 1fr);
-    gap: calc(globals.$spacing-unit * 2);
-    transition: all ease 0.2s;
-
-    @media (min-width: 768px) {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    @media (min-width: 1250px) {
-      grid-template-columns: repeat(3, 1fr);
-    }
-
-    @media (min-width: 1600px) {
-      grid-template-columns: repeat(4, 1fr);
-    }
   }
 
   &__card-skeleton {
@@ -99,5 +81,26 @@
   &__title {
     display: flex;
     gap: globals.$spacing-unit;
+    padding: 0 calc(globals.$spacing-unit * 3);
+  }
+
+  &__cards {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: calc(globals.$spacing-unit * 2);
+    transition: all ease 0.2s;
+    padding: 0 calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 3);
+
+    @media (min-width: 768px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (min-width: 1250px) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    @media (min-width: 1600px) {
+      grid-template-columns: repeat(4, 1fr);
+    }
   }
 }

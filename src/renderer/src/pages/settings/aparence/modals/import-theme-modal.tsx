@@ -77,12 +77,12 @@ export const ImportThemeModal = ({
       onClose={onClose}
     >
       <div className="delete-all-themes-modal__container">
-        <Button theme="outline" onClick={handleImportTheme}>
-          {t("import_theme")}
+        <Button theme="outline" onClick={onClose}>
+          {t("cancel")}
         </Button>
 
-        <Button theme="primary" onClick={onClose}>
-          {t("cancel")}
+        <Button theme="primary" onClick={handleImportTheme}>
+          {t("import_theme")}
         </Button>
       </div>
     </Modal>
