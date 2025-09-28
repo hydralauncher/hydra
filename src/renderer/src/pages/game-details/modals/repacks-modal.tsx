@@ -1,7 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
-import { PlusCircleIcon, ChevronDownIcon, ChevronUpIcon } from "@primer/octicons-react";
 
 import {
   Badge,
@@ -9,10 +7,7 @@ import {
   DebridBadge,
   Modal,
   TextField,
-  CheckboxField,
 } from "@renderer/components";
-import { downloadSourcesTable } from "@renderer/dexie";
-import type { DownloadSource } from "@types";
 import type { GameRepack } from "@types";
 
 import { DownloadSettingsModal } from "./download-settings-modal";
@@ -41,13 +36,6 @@ export function RepacksModal({
   const [filteredRepacks, setFilteredRepacks] = useState<GameRepack[]>([]);
   const [repack, setRepack] = useState<GameRepack | null>(null);
   const [showSelectFolderModal, setShowSelectFolderModal] = useState(false);
-  const [downloadSources, setDownloadSources] = useState<DownloadSource[]>(
-    []
-  );
-  const [selectedFingerprints, setSelectedFingerprints] = useState<string[]>(
-    []
-  );
-  const [filterTerm, setFilterTerm] = useState("");
 
   const [hashesInDebrid, setHashesInDebrid] = useState<Record<string, boolean>>(
     {}
@@ -58,7 +46,6 @@ export function RepacksModal({
   const { t } = useTranslation("game_details");
 
   const { formatDate } = useDate();
-  const navigate = useNavigate();
 
   const getHashFromMagnet = (magnet: string) => {
     if (!magnet || typeof magnet !== "string") {
@@ -103,39 +90,8 @@ export function RepacksModal({
   }, [repacks, hashesInDebrid]);
 
   useEffect(() => {
-    downloadSourcesTable.toArray().then((sources) => {
-      const uniqueRepackers = new Set(sortedRepacks.map((r) => r.repacker));
-      const filteredSources = sources.filter(
-        (s) => s.name && uniqueRepackers.has(s.name) && !!s.fingerprint
-      );
-      setDownloadSources(filteredSources);
-    });
-  }, [sortedRepacks]);
-
-  useEffect(() => {
-    const term = filterTerm.trim().toLowerCase();
-
-    const byTerm = sortedRepacks.filter((repack) => {
-      if (!term) return true;
-      const lowerTitle = repack.title.toLowerCase();
-      const lowerRepacker = repack.repacker.toLowerCase();
-      return (
-        lowerTitle.includes(term) || lowerRepacker.includes(term)
-      );
-    });
-
-    const bySource = byTerm.filter((repack) => {
-      if (selectedFingerprints.length === 0) return true;
-
-      return downloadSources.some(
-        (src) =>
-          selectedFingerprints.includes(src.fingerprint) &&
-          src.name === repack.repacker
-      );
-    });
-
-    setFilteredRepacks(bySource);
-  }, [sortedRepacks, filterTerm, selectedFingerprints, downloadSources]);
+    setFilteredRepacks(sortedRepacks);
+  }, [sortedRepacks, visible, game]);
 
   const handleRepackClick = (repack: GameRepack) => {
     setRepack(repack);
@@ -143,14 +99,17 @@ export function RepacksModal({
   };
 
   const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
-    setFilterTerm(event.target.value);
-  };
+    const term = event.target.value.toLocaleLowerCase();
 
-  const toggleFingerprint = (fingerprint: string) => {
-    setSelectedFingerprints((prev) =>
-      prev.includes(fingerprint)
-        ? prev.filter((f) => f !== fingerprint)
-        : [...prev, fingerprint]
+    setFilteredRepacks(
+      sortedRepacks.filter((repack) => {
+        const lowerCaseTitle = repack.title.toLowerCase();
+        const lowerCaseRepacker = repack.repacker.toLowerCase();
+
+        return [lowerCaseTitle, lowerCaseRepacker].some((value) =>
+          value.includes(term)
+        );
+      })
     );
   };
 
@@ -158,8 +117,6 @@ export function RepacksModal({
     if (!game?.download) return false;
     return repack.uris.some((uri) => uri.includes(game.download!.uri));
   };
-
-  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
   return (
     <>
@@ -177,86 +134,37 @@ export function RepacksModal({
         onClose={onClose}
       >
         <div className="repacks-modal__filter-container">
-          <div className="repacks-modal__filter-top">
-            <TextField placeholder={t("filter")} onChange={handleFilter} />
-            <Button
-              type="button"
-              theme="outline"
-              onClick={() => setIsFilterDrawerOpen(!isFilterDrawerOpen)}
-              className="repacks-modal__filter-toggle"
-            >
-              {t("filter_by_source")}
-              {isFilterDrawerOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-            </Button>
-          </div>
-
-          <div className={`repacks-modal__download-sources ${isFilterDrawerOpen ? 'repacks-modal__download-sources--open' : ''}`}>
-            <div className="repacks-modal__source-grid">
-              {downloadSources.map((source) => (
-                <div 
-                  key={source.fingerprint} 
-                  className="repacks-modal__source-item"
-                >
-                  <CheckboxField
-                    label={source.name || source.url}
-                    checked={selectedFingerprints.includes(source.fingerprint)}
-                    onChange={() => toggleFingerprint(source.fingerprint)}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+          <TextField placeholder={t("filter")} onChange={handleFilter} />
         </div>
 
         <div className="repacks-modal__repacks">
-          {filteredRepacks.length === 0 ? (
-            <div className="repacks-modal__no-results">
-              <div className="repacks-modal__no-results-content">
-                <div className="repacks-modal__no-results-text">{t("no_repacks_found")}</div>
-                <div className="repacks-modal__no-results-button">
-                  <Button
-                    type="button"
-                    theme="primary"
-                    onClick={() => {
-                      onClose();
-                      navigate("/settings?tab=2");
-                    }}
-                  >
-                    <PlusCircleIcon />
-                    {t("add_download_source", { ns: "settings" })}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            filteredRepacks.map((repack) => {
-              const isLastDownloadedOption = checkIfLastDownloadedOption(repack);
+          {filteredRepacks.map((repack) => {
+            const isLastDownloadedOption = checkIfLastDownloadedOption(repack);
 
-              return (
-                <Button
-                  key={repack.id}
-                  theme="dark"
-                  onClick={() => handleRepackClick(repack)}
-                  className="repacks-modal__repack-button"
-                >
-                  <p className="repacks-modal__repack-title">{repack.title}</p>
+            return (
+              <Button
+                key={repack.id}
+                theme="dark"
+                onClick={() => handleRepackClick(repack)}
+                className="repacks-modal__repack-button"
+              >
+                <p className="repacks-modal__repack-title">{repack.title}</p>
 
-                  {isLastDownloadedOption && (
-                    <Badge>{t("last_downloaded_option")}</Badge>
-                  )}
+                {isLastDownloadedOption && (
+                  <Badge>{t("last_downloaded_option")}</Badge>
+                )}
 
-                  <p className="repacks-modal__repack-info">
-                    {repack.fileSize} - {repack.repacker} - {" "}
-                    {repack.uploadDate ? formatDate(repack.uploadDate) : ""}
-                  </p>
+                <p className="repacks-modal__repack-info">
+                  {repack.fileSize} - {repack.repacker} -{" "}
+                  {repack.uploadDate ? formatDate(repack.uploadDate) : ""}
+                </p>
 
-                  {hashesInDebrid[getHashFromMagnet(repack.uris[0]) ?? ""] && (
-                    <DebridBadge />
-                  )}
-                </Button>
-              );
-            })
-          )}
+                {hashesInDebrid[getHashFromMagnet(repack.uris[0]) ?? ""] && (
+                  <DebridBadge />
+                )}
+              </Button>
+            );
+          })}
         </div>
       </Modal>
     </>

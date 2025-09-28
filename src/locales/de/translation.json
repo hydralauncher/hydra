@@ -207,17 +207,7 @@
     "create_start_menu_shortcut": "Startmenü-Verknüpfung erstellen",
     "invalid_wine_prefix_path": "Ungültiger Wine-Präfix-Pfad",
     "invalid_wine_prefix_path_description": "Der Pfad zum Wine-Präfix ist ungültig. Bitte überprüfe den Pfad und versuche es erneut.",
-    "missing_wine_prefix": "Wine-Präfix ist erforderlich, um eine Sicherung unter Linux zu erstellen",
-    "properties": "Eigenschaften",
-    "filter_by_source": "Filtern nach Quelle:",
-    "add_to_favorites": "Zu Favoriten hinzufügen",
-    "remove_from_favorites": "Aus Favoriten entfernen",
-    "failed_update_favorites": "Favoriten konnten nicht aktualisiert werden",
-    "game_removed_from_library": "Spiel aus Bibliothek entfernt",
-    "failed_remove_from_library": "Entfernen aus Bibliothek fehlgeschlagen",
-    "files_removed_success": "Dateien erfolgreich entfernt",
-    "failed_remove_files": "Dateien konnten nicht entfernt werden",
-    "no_repacks_found": "Keine Quellen für dieses Spiel gefunden"
+    "missing_wine_prefix": "Wine-Präfix ist erforderlich, um eine Sicherung unter Linux zu erstellen"
   },
   "activation": {
     "title": "Hydra aktivieren",

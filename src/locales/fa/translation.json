@@ -74,17 +74,7 @@
     "change": "تغییر",
     "repacks_modal_description": "ریپک مورد نظر برای دانلود را انتخاب کنید",
     "select_folder_hint": "برای تغییر پوشه‌ی پیش‌فرض به <0>Settings</0> بروید",
-    "download_now": "الان دانلود کن",
-    "no_repacks_found": "هیچ منبعی برای این بازی پیدا نشد",
-    "properties": "ویژگی‌ها",
-    "filter_by_source": "فیلتر بر اساس منبع:",
-    "add_to_favorites": "افزودن به علاقه‌مندی‌ها",
-    "remove_from_favorites": "حذف از علاقه‌مندی‌ها",
-    "failed_update_favorites": "به‌روزرسانی علاقه‌مندی‌ها ناموفق بود",
-    "game_removed_from_library": "بازی از کتابخانه حذف شد",
-    "failed_remove_from_library": "حذف از کتابخانه ناموفق بود",
-    "files_removed_success": "فایل‌ها با موفقیت حذف شدند",
-    "failed_remove_files": "حذف فایل‌ها ناموفق بود"
+    "download_now": "الان دانلود کن"
   },
   "activation": {
     "title": "فعال کردن هایدرا",

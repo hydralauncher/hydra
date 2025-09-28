@@ -114,17 +114,7 @@
     "download_paused": "Жүктеу тоқтатылды",
     "last_downloaded_option": "Соңғы жүктеу нұсқасы",
     "create_shortcut_success": "Жарлық жасалды",
-    "create_shortcut_error": "Жарлық жасау мүмкін болмады",
-    "no_repacks_found": "Бұл ойын үшін дереккөздер табылмады",
-    "properties": "Қасиеттер",
-    "filter_by_source": "Дереккөз бойынша сүзу:",
-    "add_to_favorites": "Таңдаулыларға қосу",
-    "remove_from_favorites": "Таңдаулылардан жою",
-    "failed_update_favorites": "Таңдаулыларды жаңарту сәтсіз аяқталды",
-    "game_removed_from_library": "Ойын кітапханадан жойылды",
-    "failed_remove_from_library": "Кітапханадан жою сәтсіз аяқталды",
-    "files_removed_success": "Файлдар сәтті жойылды",
-    "failed_remove_files": "Файлдарды жою сәтсіз аяқталды"
+    "create_shortcut_error": "Жарлық жасау мүмкін болмады"
   },
   "activation": {
     "title": "Hydra-ны белсендіру",

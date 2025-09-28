@@ -131,17 +131,7 @@
     "download": "Last ned",
     "executable_path_in_use": "Kjørbar fil blir allerede brukt av \"{{game}}\"",
     "warning": "Advarsel:",
-    "hydra_needs_to_remain_open": "Hydra skal forbli åpent for at denne nedlastingen kan gjennomføres. I tilfelle av at Hydra lukker før nedlastingen er ferdig, mister du fremskrittet ditt.",
-    "properties": "Egenskaper",
-    "filter_by_source": "Filtrer etter kilde:",
-    "add_to_favorites": "Legg til i favoritter",
-    "remove_from_favorites": "Fjern fra favoritter",
-    "failed_update_favorites": "Kunne ikke oppdatere favoritter",
-    "game_removed_from_library": "Spillet er fjernet fra biblioteket",
-    "failed_remove_from_library": "Kunne ikke fjerne fra biblioteket",
-    "files_removed_success": "Filer fjernet",
-    "failed_remove_files": "Kunne ikke fjerne filer",
-    "no_repacks_found": "Ingen kilder funnet for dette spillet"
+    "hydra_needs_to_remain_open": "Hydra skal forbli åpent for at denne nedlastingen kan gjennomføres. I tilfelle av at Hydra lukker før nedlastingen er ferdig, mister du fremskrittet ditt."
   },
   "activation": {
     "title": "Aktivér Hydra",
