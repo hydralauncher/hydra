@@ -10,6 +10,14 @@ export type HydraCloudFeature =
   | "backup"
   | "achievements-points";
 
+export interface Collection {
+  id: string;
+  name: string;
+  gameIds: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface GameRepack {
   id: number;
   title: string;

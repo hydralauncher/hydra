@@ -10,6 +10,7 @@
   },
   "sidebar": {
     "catalogue": "Каталог",
+    "collections": "Жинақтар",
     "downloads": "Жүктеулер",
     "settings": "Параметрлер",
     "my_library": "Кітапхана",
@@ -23,7 +24,6 @@
     "sign_in": "Кіру",
     "favorites": "Таңдаулылар"
   },
-
   "header": {
     "search": "Іздеу",
     "home": "Басты бет",
@@ -32,7 +32,8 @@
     "search_results": "Іздеу нәтижелері",
     "settings": "Параметрлер",
     "version_available_install": "Қол жетімді нұсқа {{version}}. Қайта іске қосу және орнату үшін мұнда басыңыз.",
-    "version_available_download": "Қол жетімді нұсқа {{version}}. Жүктеу үшін мұнда басыңыз."
+    "version_available_download": "Қол жетімді нұсқа {{version}}. Жүктеу үшін мұнда басыңыз.",
+    "collections": "Жинақтар"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Белсенді жүктеулер жоқ",
@@ -243,5 +244,55 @@
     "sign_out": "Шығу",
     "playing_for": "Ойнаған {{amount}}",
     "sign_out_modal_text": "Сіздің кітапханаңыз ағымдағы аккаунтпен байланысты. Жүйеден шыққанда сіздің кітапханаңыз қол жетімсіз болады және прогресс сақталмайды. Шығу?"
+  },
+  "collections": {
+    "title": "My Collections",
+    "subtitle": "Organize your games in custom collections",
+    "collection_title": "{{name}}",
+    "collection_count": "({{count}} games)",
+    "search_games_placeholder": "Search games...",
+    "search_collections_placeholder": "Search collections...",
+    "sort_by": "Sort by:",
+    "sort_name": "Name",
+    "sort_title": "Title",
+    "sort_shop": "Store",
+    "sort_created_at": "Creation Date",
+    "sort_game_count": "Number of Games",
+    "no_games_found": "No games found",
+    "no_games_in_collection": "No games in this collection",
+    "no_games_search_hint": "Try adjusting the search filters",
+    "no_games_add_hint": "Add games to the collection through the library",
+    "no_collections_found": "No collections found",
+    "no_collections_created": "No collections created",
+    "no_collections_search_hint": "Try adjusting the search filters",
+    "no_collections_create_hint": "Create your first collection to organize your games",
+    "collection_settings": "Collection settings",
+    "new_collection": "New Collection",
+    "create_collection": "Create Collection",
+    "collection_name_placeholder": "Enter collection name",
+    "collection_name_empty_error": "Collection name cannot be empty",
+    "collection_name_exists_error": "A collection with this name already exists",
+    "create_collection_error": "Error creating collection. Please try again.",
+    "cancel": "Cancel",
+    "add_games_title": "🎮 Add Games to Collection",
+    "add_games_description": "Select the games you want to add to your new collection",
+    "games_available": "{{count}} games available",
+    "games_selected": "{{count}} selected",
+    "no_games_available": "No games found",
+    "already_in_collection": "Already in collection",
+    "add_games": "Add {{count}} games",
+    "add_games_single": "Add games",
+    "collection_info_title": "📂 Collection Information",
+    "collection_name_label": "Collection Name:",
+    "total_games": "Total Games:",
+    "created_at": "Created on:",
+    "last_updated": "Last updated:",
+    "games_in_collection": "Games in this Collection:",
+    "no_games_in_collection_info": "No games added to this collection yet.",
+    "delete_collection": "Delete Collection",
+    "delete_collection_confirm": "Are you sure you want to delete the collection \"{{name}}\"?",
+    "rename_error": "Error renaming collection. Please try again.",
+    "collection_name_required": "Collection name is required",
+    "games_count": "{{count}} game"
   }
 }

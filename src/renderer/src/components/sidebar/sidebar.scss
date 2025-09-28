@@ -1,4 +1,5 @@
 @use "../../scss/globals.scss";
+@use "sass:color";
 
 .sidebar {
   background-color: globals.$dark-background-color;
@@ -171,5 +172,380 @@
     svg {
       display: block;
     }
+  }
+
+  // Estilos para as coleções
+  &__create-collection-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 0.5rem;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+      color: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  &__create-collection {
+    margin-bottom: 0.5rem;
+  }
+
+  &__create-collection-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    color: white;
+    font-size: 0.875rem;
+
+    &:focus {
+      outline: none;
+      border-color: #007acc;
+    }
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  &__collection-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+
+    .sidebar__menu-item-button {
+      flex: 1;
+      min-width: 0; // Para permitir que o texto seja truncado
+    }
+
+    &--drag-over {
+      background-color: rgba(76, 175, 80, 0.2) !important;
+      border: 2px dashed #4caf50;
+      border-radius: 4px;
+    }
+  }
+
+  &__collection-icon {
+    font-size: 0.875rem;
+    margin-right: 0.5rem;
+  }
+
+  &__collection-name-input {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    color: white;
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+    width: 100%;
+
+    &:focus {
+      outline: none;
+      border-color: #007acc;
+    }
+  }
+
+  &__collection-menu {
+    position: relative;
+    margin-left: 0.25rem;
+  }
+
+  &__collection-menu-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: transparent;
+    border: none;
+    border-radius: 2px;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+
+  &__collection-context-menu {
+    position: fixed;
+    top: auto;
+    right: auto;
+    z-index: 9999;
+    min-width: 120px;
+    background: #2d2d2d;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    padding: 0.25rem 0;
+  }
+
+  &__collection-context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    &--danger {
+      color: #ff4757;
+
+      &:hover {
+        background: rgba(255, 71, 87, 0.1);
+      }
+    }
+  }
+
+  &__library-title {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+
+    &:hover,
+    &--active {
+      color: rgba(255, 255, 255, 0.9);
+    }
+  }
+
+  // Estilos para menus de contexto dos jogos
+  &__context-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999;
+    background: transparent;
+  }
+
+  &__context-menu {
+    position: fixed;
+    z-index: 1000;
+    min-width: 180px;
+    background: #2d2d2d;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    padding: 0.25rem 0;
+  }
+
+  &__context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    text-align: left;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    &--disabled {
+      color: rgba(255, 255, 255, 0.5);
+      cursor: not-allowed;
+
+      &:hover {
+        background: transparent;
+      }
+    }
+
+    &--checked {
+      background: rgba(76, 175, 80, 0.1);
+      color: #4caf50;
+
+      &:hover {
+        background: rgba(76, 175, 80, 0.2);
+      }
+    }
+  }
+
+  &__context-submenu {
+    background: #1a1a1a;
+    border-left: 2px solid rgba(255, 255, 255, 0.1);
+    margin-left: 1rem;
+
+    .sidebar__context-menu-item {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.8125rem;
+    }
+  }
+}
+
+// Create collection styles
+.sidebar__create-collection {
+  display: flex;
+  flex-direction: column;
+  gap: globals.$spacing-unit;
+  margin-bottom: globals.$spacing-unit;
+  padding: calc(globals.$spacing-unit * 1.5);
+  background: globals.$dark-background-color;
+  border-radius: 8px;
+  border: 1px solid globals.$border-color;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.sidebar__create-collection-form {
+  display: flex;
+  flex-direction: column;
+  gap: globals.$spacing-unit;
+}
+
+.sidebar__create-collection-input {
+  background: globals.$background-color;
+  border: 1px solid globals.$border-color;
+  border-radius: 8px;
+  padding: calc(globals.$spacing-unit * 1.25) globals.$spacing-unit;
+  color: #dadbe1;
+  font-size: 14px;
+  font-family: inherit;
+  width: 100%;
+  min-height: 40px;
+  transition: all ease 0.2s;
+  outline: none;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  &:focus {
+    border-color: #dadbe1;
+    box-shadow: 0 0 0 2px rgba(218, 219, 225, 0.1);
+  }
+
+  &::placeholder {
+    color: globals.$body-color;
+    font-size: 14px;
+  }
+
+  &--error {
+    border-color: globals.$error-color;
+
+    &:focus {
+      border-color: globals.$error-color;
+      box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.1);
+    }
+  }
+}
+
+.sidebar__create-collection-buttons {
+  display: flex;
+  gap: globals.$spacing-unit;
+  justify-content: flex-end;
+  margin-top: calc(globals.$spacing-unit / 2);
+}
+
+.sidebar__create-collection-cancel {
+  background: transparent;
+  border: 1px solid globals.$border-color;
+  border-radius: 8px;
+  padding: calc(globals.$spacing-unit * 1.25) calc(globals.$spacing-unit * 2);
+  color: globals.$muted-color;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all ease 0.2s;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #dadbe1;
+  }
+
+  &:active {
+    opacity: globals.$active-opacity;
+  }
+}
+
+.sidebar__create-collection-submit {
+  background: globals.$brand-teal;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: calc(globals.$spacing-unit * 1.25) calc(globals.$spacing-unit * 2);
+  color: white;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all ease 0.2s;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover:not(:disabled) {
+    background: color.adjust(globals.$brand-teal, $lightness: -8%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(22, 177, 149, 0.3);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+    opacity: globals.$active-opacity;
+  }
+
+  &:disabled {
+    background: globals.$muted-color;
+    cursor: not-allowed;
+    opacity: globals.$disabled-opacity;
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+.sidebar__create-collection-error {
+  color: globals.$error-color;
+  font-size: 12px;
+  margin-top: calc(globals.$spacing-unit / 2);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: calc(globals.$spacing-unit / 2);
+  font-family: inherit;
+
+  &::before {
+    content: "⚠";
+    font-size: 14px;
+    opacity: 0.8;
   }
 }

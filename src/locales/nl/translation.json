@@ -7,6 +7,7 @@
   },
   "sidebar": {
     "catalogue": "catalogus",
+    "collections": "Collecties",
     "downloads": "Downloads",
     "settings": "Instellingen",
     "my_library": "Mijn Bibliotheek",
@@ -19,12 +20,12 @@
   },
   "header": {
     "search": "Zoek spellen",
-
     "home": "Home",
     "catalogue": "Bibliotheek",
     "downloads": "Downloads",
     "search_results": "Zoek resultaten",
-    "settings": "Instellingen"
+    "settings": "Instellingen",
+    "collections": "Collecties"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Geen Downloads bezig",
@@ -143,5 +144,55 @@
   },
   "modal": {
     "close": "Knop Sluiten"
+  },
+  "collections": {
+    "title": "Mijn Collecties",
+    "subtitle": "Organiseer je games in aangepaste collecties",
+    "collection_title": "{{name}}",
+    "collection_count": "({{count}} games)",
+    "search_games_placeholder": "Zoek games...",
+    "search_collections_placeholder": "Zoek collecties...",
+    "sort_by": "Sorteren op:",
+    "sort_name": "Naam",
+    "sort_title": "Titel",
+    "sort_shop": "Winkel",
+    "sort_created_at": "Aanmaakdatum",
+    "sort_game_count": "Aantal Games",
+    "no_games_found": "Geen games gevonden",
+    "no_games_in_collection": "Geen games in deze collectie",
+    "no_games_search_hint": "Probeer de zoekfilters aan te passen",
+    "no_games_add_hint": "Voeg games toe aan de collectie via de bibliotheek",
+    "no_collections_found": "Geen collecties gevonden",
+    "no_collections_created": "Geen collecties aangemaakt",
+    "no_collections_search_hint": "Probeer de zoekfilters aan te passen",
+    "no_collections_create_hint": "Maak je eerste collectie om je games te organiseren",
+    "collection_settings": "Collectie-instellingen",
+    "games_count": "{{count}} game",
+    "new_collection": "Nieuwe Collectie",
+    "create_collection": "Collectie Aanmaken",
+    "collection_name_placeholder": "Voer collectienaam in",
+    "collection_name_empty_error": "Collectienaam mag niet leeg zijn",
+    "collection_name_exists_error": "Een collectie met deze naam bestaat al",
+    "create_collection_error": "Fout bij het aanmaken van collectie. Probeer opnieuw.",
+    "cancel": "Annuleren",
+    "add_games_title": "🎮 Games toevoegen aan Collectie",
+    "add_games_description": "Selecteer de games die je wilt toevoegen aan je nieuwe collectie",
+    "games_available": "{{count}} games beschikbaar",
+    "games_selected": "{{count}} geselecteerd",
+    "no_games_available": "Geen games gevonden",
+    "already_in_collection": "Al in collectie",
+    "add_games": "{{count}} games toevoegen",
+    "add_games_single": "Games toevoegen",
+    "collection_info_title": "📂 Collectie-informatie",
+    "collection_name_label": "Collectienaam:",
+    "total_games": "Totaal Games:",
+    "created_at": "Aangemaakt op:",
+    "last_updated": "Laatst bijgewerkt:",
+    "games_in_collection": "Games in deze Collectie:",
+    "no_games_in_collection_info": "Nog geen games toegevoegd aan deze collectie.",
+    "delete_collection": "Collectie Verwijderen",
+    "delete_collection_confirm": "Weet je zeker dat je de collectie \"{{name}}\" wilt verwijderen?",
+    "rename_error": "Fout bij hernoemen van collectie. Probeer opnieuw.",
+    "collection_name_required": "Collectienaam is vereist"
   }
 }

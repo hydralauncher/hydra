@@ -1,0 +1,272 @@
+@use "../../scss/globals.scss";
+@use "sass:color";
+
+.add-games-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: globals.$spacing-unit;
+}
+
+.add-games-modal {
+  background: globals.$background-color;
+  border: 1px solid globals.$border-color;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 700px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.add-games-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(globals.$spacing-unit * 2);
+  border-bottom: 1px solid globals.$border-color;
+}
+
+.add-games-modal-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: white;
+  margin: 0;
+}
+
+.add-games-modal-close {
+  background: transparent;
+  border: none;
+  color: globals.$muted-color;
+  cursor: pointer;
+  padding: calc(globals.$spacing-unit / 2);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+}
+
+.add-games-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: calc(globals.$spacing-unit * 2);
+}
+
+.add-games-modal-info {
+  margin-bottom: calc(globals.$spacing-unit * 2);
+}
+
+.add-games-modal-collection-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: globals.$brand-teal;
+  margin: 0 0 calc(globals.$spacing-unit / 2) 0;
+}
+
+.add-games-modal-description {
+  color: globals.$muted-color;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.add-games-modal-search {
+  margin-bottom: calc(globals.$spacing-unit * 2);
+}
+
+.add-games-modal-search-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid globals.$border-color;
+  border-radius: 4px;
+  padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
+  color: white;
+  font-size: 0.875rem;
+
+  &:focus {
+    outline: none;
+    border-color: globals.$brand-teal;
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  &::placeholder {
+    color: globals.$muted-color;
+  }
+}
+
+.add-games-modal-games {
+  border-top: 1px solid globals.$border-color;
+  padding-top: calc(globals.$spacing-unit * 2);
+}
+
+.add-games-modal-games-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: globals.$spacing-unit;
+}
+
+.add-games-modal-games-count {
+  color: globals.$muted-color;
+  font-size: 0.875rem;
+}
+
+.add-games-modal-selected-count {
+  color: globals.$brand-teal;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.add-games-modal-games-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit / 2);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.add-games-modal-game-item {
+  display: flex;
+  align-items: center;
+  gap: globals.$spacing-unit;
+  padding: calc(globals.$spacing-unit / 2);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:hover:not(.add-games-modal-game-item--already-in) {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  &--selected {
+    background: rgba(globals.$brand-teal, 0.2);
+    border: 1px solid globals.$brand-teal;
+  }
+
+  &--already-in {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.add-games-modal-game-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.add-games-modal-game-icon-placeholder {
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.add-games-modal-game-info {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit / 4);
+  flex: 1;
+  min-width: 0;
+}
+
+.add-games-modal-game-title {
+  color: white;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.add-games-modal-game-shop {
+  color: globals.$muted-color;
+  font-size: 0.875rem;
+  text-transform: capitalize;
+}
+
+.add-games-modal-game-status {
+  display: flex;
+  align-items: center;
+  min-width: 80px;
+  justify-content: flex-end;
+}
+
+.add-games-modal-game-status-text {
+  color: globals.$muted-color;
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+.add-games-modal-game-check {
+  color: globals.$brand-teal;
+}
+
+.add-games-modal-empty {
+  text-align: center;
+  padding: calc(globals.$spacing-unit * 3);
+  color: globals.$muted-color;
+}
+
+.add-games-modal-actions {
+  padding: calc(globals.$spacing-unit * 2);
+  border-top: 1px solid globals.$border-color;
+  display: flex;
+  justify-content: flex-end;
+  gap: globals.$spacing-unit;
+}
+
+.add-games-modal-cancel-button {
+  background: transparent;
+  border: 1px solid globals.$border-color;
+  color: globals.$muted-color;
+  padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+}
+
+.add-games-modal-add-button {
+  background: globals.$brand-teal;
+  border: none;
+  color: white;
+  padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: calc(globals.$spacing-unit / 2);
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: color.adjust(globals.$brand-teal, $lightness: 10%);
+  }
+
+  &:disabled {
+    background: rgba(255, 255, 255, 0.1);
+    color: globals.$muted-color;
+    cursor: not-allowed;
+  }
+}

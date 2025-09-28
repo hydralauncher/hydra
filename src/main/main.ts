@@ -20,6 +20,9 @@ import {
 export const loadState = async () => {
   await Lock.acquireLock();
 
+  // Ensure database is open before accessing it
+  await db.open();
+
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {
