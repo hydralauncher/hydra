@@ -149,16 +149,16 @@ export function ChangeGamePlaytimeModal({
         </div>
 
         <div className="change-game-playtime-modal__actions">
+          <Button onClick={onClose} theme="outline">
+            {t("cancel")}
+          </Button>
+
           <Button
             onClick={handleChangePlaytime}
-            theme="outline"
+            theme="primary"
             disabled={!isValid || isSubmitting}
           >
             {t("update_playtime")}
-          </Button>
-
-          <Button onClick={onClose} theme="primary">
-            {t("cancel")}
           </Button>
         </div>
       </div>
