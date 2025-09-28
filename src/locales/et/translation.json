@@ -166,17 +166,7 @@
     "manage_files_description": "Hallake, millised failid varundatakse ja taastatakse",
     "select_folder": "Vali kaust",
     "backup_from": "Varundamine kuupäevast {{date}}",
-    "custom_backup_location_set": "Kohandatud varundamise asukoht määratud",
-    "properties": "Omadused",
-    "filter_by_source": "Filtreeri allika järgi:",
-    "add_to_favorites": "Lisa lemmikutesse",
-    "remove_from_favorites": "Eemalda lemmikutest",
-    "failed_update_favorites": "Lemmikute uuendamine ebaõnnestus",
-    "game_removed_from_library": "Mäng eemaldati kogust",
-    "failed_remove_from_library": "Eemaldamine kogust ebaõnnestus",
-    "files_removed_success": "Failid edukalt eemaldatud",
-    "failed_remove_files": "Failide eemaldamine ebaõnnestus",
-    "no_repacks_found": "Sellele mängule ei leitud allikaid"
+    "custom_backup_location_set": "Kohandatud varundamise asukoht määratud"
   },
   "activation": {
     "title": "Aktiveeri Hydra",
