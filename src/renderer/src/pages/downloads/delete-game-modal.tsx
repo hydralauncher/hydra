@@ -28,12 +28,12 @@ export function DeleteGameModal({
       onClose={onClose}
     >
       <div className="delete-game-modal__actions">
-        <Button onClick={handleDeleteGame} theme="outline">
-          {t("delete")}
+        <Button onClick={onClose} theme="outline">
+          {t("cancel")}
         </Button>
 
-        <Button onClick={onClose} theme="primary">
-          {t("cancel")}
+        <Button onClick={handleDeleteGame} theme="primary">
+          {t("delete")}
         </Button>
       </div>
     </Modal>
