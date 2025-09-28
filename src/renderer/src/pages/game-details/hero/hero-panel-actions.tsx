@@ -257,7 +257,7 @@ export function HeroPanelActions() {
           {game.favorite ? <HeartFillIcon /> : <HeartIcon />}
         </Button>
 
-        {userDetails && (
+        {userDetails && game.shop !== "custom" && (
           <Button
             onClick={toggleGamePinned}
             theme="outline"
