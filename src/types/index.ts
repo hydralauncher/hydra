@@ -71,7 +71,16 @@ export type UserGame = {
   achievementCount: number;
   achievementsPointsEarnedSum: number;
   hasManuallyUpdatedPlaytime: boolean;
+  isFavorite: boolean;
+  isPinned: boolean;
+  pinnedDate?: Date | null;
 } & ShopAssets;
+
+export interface UserLibraryResponse {
+  totalCount: number;
+  library: UserGame[];
+  pinnedGames: UserGame[];
+}
 
 export interface GameRunning {
   id: string;

@@ -54,8 +54,75 @@
   &__section-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     margin-bottom: calc(globals.$spacing-unit * 2);
+    gap: calc(globals.$spacing-unit);
+  }
+
+  &__section-title-group {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit);
+    flex: 1;
+  }
+
+  &__section-badge {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+
+  &__collapse-button {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all ease 0.2s;
+    flex-shrink: 0;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.9);
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__tabs {
+    display: flex;
+    gap: calc(globals.$spacing-unit);
+    margin-bottom: calc(globals.$spacing-unit * 2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  &__tab {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    padding: calc(globals.$spacing-unit) calc(globals.$spacing-unit * 2);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all ease 0.2s;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    &--active {
+      color: white;
+      border-bottom-color: #c9aa71;
+    }
   }
 
   &__games-grid {
