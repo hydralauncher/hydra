@@ -222,7 +222,8 @@
     "language": "Idioma",
     "caption": "Legenda",
     "audio": "Áudio",
-    "filter_by_source": "Filtrar por fonte"
+    "filter_by_source": "Filtrar por fonte",
+    "no_repacks_found": "Nenhuma fonte encontrada para este jogo"
   },
   "activation": {
     "title": "Ativação",
