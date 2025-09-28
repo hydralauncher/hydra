@@ -14,7 +14,7 @@ export function HeroPanel() {
 
   const { formatDate } = useDate();
 
-  const { game, repacks, gameColor } = useContext(gameDetailsContext);
+  const { game, repacks } = useContext(gameDetailsContext);
 
   const { lastPacket } = useDownload();
 
@@ -50,7 +50,7 @@ export function HeroPanel() {
     game?.download?.status === "paused";
 
   return (
-    <div style={{ backgroundColor: gameColor }} className="hero-panel">
+    <div className="hero-panel">
       <div className="hero-panel__content">{getInfo()}</div>
       <div className="hero-panel__actions">
         <HeroPanelActions />
