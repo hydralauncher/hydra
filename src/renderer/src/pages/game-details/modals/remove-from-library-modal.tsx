@@ -31,12 +31,12 @@ export function RemoveGameFromLibraryModal({
       onClose={onClose}
     >
       <div className="remove-from-library-modal__actions">
-        <Button onClick={handleRemoveGame} theme="outline">
-          {t("remove")}
+        <Button onClick={onClose} theme="outline">
+          {t("cancel")}
         </Button>
 
-        <Button onClick={onClose} theme="primary">
-          {t("cancel")}
+        <Button onClick={handleRemoveGame} theme="primary">
+          {t("remove")}
         </Button>
       </div>
     </Modal>
