@@ -119,15 +119,8 @@ export function AchievementsContent({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isHeaderStuck, setIsHeaderStuck] = useState(false);
 
-  const {
-    gameTitle,
-    objectId,
-    shop,
-    shopDetails,
-    achievements,
-    gameColor,
-    setGameColor,
-  } = useContext(gameDetailsContext);
+  const { gameTitle, objectId, shop, shopDetails, achievements } =
+    useContext(gameDetailsContext);
 
   const dispatch = useAppDispatch();
 
@@ -135,22 +128,6 @@ export function AchievementsContent({
   useEffect(() => {
     dispatch(setHeaderTitle(gameTitle));
   }, [dispatch, gameTitle]);
-
-  const handleHeroLoad = async () => {
-    const output = await average(
-      shopDetails?.assets?.libraryHeroImageUrl ?? "",
-      {
-        amount: 1,
-        format: "hex",
-      }
-    );
-
-    const backgroundColor = output
-      ? (new Color(output).darken(0.7).toString() as string)
-      : "";
-
-    setGameColor(backgroundColor);
-  };
 
   const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
     const heroHeight = heroRef.current?.clientHeight ?? 150;
@@ -191,7 +168,6 @@ export function AchievementsContent({
         src={shopDetails?.assets?.libraryHeroImageUrl ?? ""}
         className="achievements-content__achievements-list__image"
         alt={gameTitle}
-        onLoad={handleHeroLoad}
       />
 
       <section
@@ -199,12 +175,7 @@ export function AchievementsContent({
         onScroll={onScroll}
         className="achievements-content__achievements-list__section"
       >
-        <div
-          className="achievements-content__achievements-list__section__container"
-          style={{
-            background: `linear-gradient(0deg, #151515 0%, ${gameColor} 100%)`,
-          }}
-        >
+        <div className="achievements-content__achievements-list__section__container">
           <div
             ref={heroRef}
             className="achievements-content__achievements-list__section__container__hero"

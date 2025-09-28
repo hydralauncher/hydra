@@ -1,6 +1,4 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { average } from "color.js";
-import Color from "color";
 
 import { HeroPanel } from "./hero";
 import { DescriptionHeader } from "./description-header/description-header";
@@ -21,14 +19,8 @@ export function GameDetailsContent() {
 
   const { t } = useTranslation("game_details");
 
-  const {
-    objectId,
-    shopDetails,
-    game,
-    gameColor,
-    setGameColor,
-    hasNSFWContentBlocked,
-  } = useContext(gameDetailsContext);
+  const { objectId, shopDetails, game, hasNSFWContentBlocked } =
+    useContext(gameDetailsContext);
 
   const { showHydraCloudModal } = useSubscription();
 
@@ -57,22 +49,6 @@ export function GameDetailsContent() {
   }, [shopDetails, t]);
 
   const [backdropOpacity, setBackdropOpacity] = useState(1);
-
-  const handleHeroLoad = async () => {
-    const output = await average(
-      shopDetails?.assets?.libraryHeroImageUrl ?? "",
-      {
-        amount: 1,
-        format: "hex",
-      }
-    );
-
-    const backgroundColor = output
-      ? new Color(output).darken(0.7).toString()
-      : "";
-
-    setGameColor(backgroundColor);
-  };
 
   useEffect(() => {
     setBackdropOpacity(1);
@@ -106,12 +82,10 @@ export function GameDetailsContent() {
             src={shopDetails?.assets?.libraryHeroImageUrl ?? ""}
             className="game-details__hero-image"
             alt={game?.title}
-            onLoad={handleHeroLoad}
           />
           <div
             className="game-details__hero-backdrop"
             style={{
-              backgroundColor: gameColor,
               flex: 1,
             }}
           />
