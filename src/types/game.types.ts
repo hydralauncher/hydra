@@ -1,4 +1,4 @@
-export type GameShop = "steam" | "epic";
+export type GameShop = "steam" | "epic" | "custom";
 
 export type ShortcutLocation = "desktop" | "start_menu";
 

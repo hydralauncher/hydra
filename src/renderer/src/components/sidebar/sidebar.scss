@@ -172,4 +172,24 @@
       display: block;
     }
   }
+
+  &__add-button {
+    background: none;
+    border: none;
+    color: globals.$muted-color;
+    cursor: pointer;
+    padding: 0;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    &:active {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    svg {
+      display: block;
+    }
+  }
 }

@@ -128,6 +128,64 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   addGameToLibrary: (shop: GameShop, objectId: string, title: string) =>
     ipcRenderer.invoke("addGameToLibrary", shop, objectId, title),
+  addCustomGameToLibrary: (
+    title: string,
+    executablePath: string,
+    iconUrl?: string,
+    logoImageUrl?: string,
+    libraryHeroImageUrl?: string
+  ) =>
+    ipcRenderer.invoke(
+      "addCustomGameToLibrary",
+      title,
+      executablePath,
+      iconUrl,
+      logoImageUrl,
+      libraryHeroImageUrl
+    ),
+  copyCustomGameAsset: (
+    sourcePath: string,
+    assetType: "icon" | "logo" | "hero"
+  ) => ipcRenderer.invoke("copyCustomGameAsset", sourcePath, assetType),
+  saveTempFile: (fileName: string, fileData: Uint8Array) =>
+    ipcRenderer.invoke("saveTempFile", fileName, fileData),
+  deleteTempFile: (filePath: string) =>
+    ipcRenderer.invoke("deleteTempFile", filePath),
+  cleanupUnusedAssets: () => ipcRenderer.invoke("cleanupUnusedAssets"),
+  updateCustomGame: (
+    shop: GameShop,
+    objectId: string,
+    title: string,
+    iconUrl?: string,
+    logoImageUrl?: string,
+    libraryHeroImageUrl?: string
+  ) =>
+    ipcRenderer.invoke(
+      "updateCustomGame",
+      shop,
+      objectId,
+      title,
+      iconUrl,
+      logoImageUrl,
+      libraryHeroImageUrl
+    ),
+  updateGameCustomAssets: (
+    shop: GameShop,
+    objectId: string,
+    title: string,
+    customIconUrl?: string | null,
+    customLogoImageUrl?: string | null,
+    customHeroImageUrl?: string | null
+  ) =>
+    ipcRenderer.invoke(
+      "updateGameCustomAssets",
+      shop,
+      objectId,
+      title,
+      customIconUrl,
+      customLogoImageUrl,
+      customHeroImageUrl
+    ),
   createGameShortcut: (
     shop: GameShop,
     objectId: string,

@@ -10,7 +10,16 @@ const saveGameShopAssets = async (
 ): Promise<void> => {
   const key = levelKeys.game(shop, objectId);
   const existingAssets = await gamesShopAssetsSublevel.get(key);
-  return gamesShopAssetsSublevel.put(key, { ...existingAssets, ...assets });
+
+  // Preserve existing title if it differs from the incoming title (indicating it was customized)
+  const shouldPreserveTitle =
+    existingAssets?.title && existingAssets.title !== assets.title;
+
+  return gamesShopAssetsSublevel.put(key, {
+    ...existingAssets,
+    ...assets,
+    title: shouldPreserveTitle ? existingAssets.title : assets.title,
+  });
 };
 
 registerEvent("saveGameShopAssets", saveGameShopAssets);
