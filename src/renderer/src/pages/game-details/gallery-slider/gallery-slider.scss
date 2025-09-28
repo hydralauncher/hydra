@@ -2,7 +2,7 @@
 
 .gallery-slider {
   &__container {
-    padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 1);
     width: 100%;
     display: flex;
     flex-direction: column;
