@@ -35,6 +35,7 @@ export function SettingsGeneral() {
 
   const [form, setForm] = useState({
     downloadsPath: "",
+    ggDealsApiKey: "",
     downloadNotificationsEnabled: false,
     repackUpdatesNotificationsEnabled: false,
     friendRequestNotificationsEnabled: false,
@@ -100,6 +101,7 @@ export function SettingsGeneral() {
       setForm((prev) => ({
         ...prev,
         downloadsPath: userPreferences.downloadsPath ?? defaultDownloadsPath,
+        ggDealsApiKey: userPreferences.ggDealsApiKey ?? "",
         downloadNotificationsEnabled:
           userPreferences.downloadNotificationsEnabled ?? false,
         repackUpdatesNotificationsEnabled:
@@ -204,6 +206,12 @@ export function SettingsGeneral() {
             {t("change")}
           </Button>
         }
+      />
+
+      <TextField
+        label={t("gg_deals_api_key_description")}
+        value={form.ggDealsApiKey}
+        onChange={(e) => handleChange({ ggDealsApiKey: e.target.value })}
       />
 
       <SelectField
