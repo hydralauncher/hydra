@@ -53,6 +53,7 @@ export function Hero() {
               width="250px"
               alt={game.description ?? ""}
               loading="eager"
+              className="hero__logo"
             />
             <p className="hero__description">{game.description}</p>
           </div>

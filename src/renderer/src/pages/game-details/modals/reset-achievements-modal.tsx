@@ -36,12 +36,12 @@ export function ResetAchievementsModal({
       })}
     >
       <div className="reset-achievements-modal__actions">
-        <Button onClick={handleResetAchievements} theme="outline">
-          {t("reset_achievements")}
+        <Button onClick={onClose} theme="outline">
+          {t("cancel")}
         </Button>
 
-        <Button onClick={onClose} theme="primary">
-          {t("cancel")}
+        <Button onClick={handleResetAchievements} theme="primary">
+          {t("reset_achievements")}
         </Button>
       </div>
     </Modal>

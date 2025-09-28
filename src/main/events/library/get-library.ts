@@ -23,7 +23,10 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               ...game,
               download: download ?? null,
               ...gameAssets,
-            };
+              // Ensure compatibility with LibraryGame type
+              libraryHeroImageUrl:
+                game.libraryHeroImageUrl ?? gameAssets?.libraryHeroImageUrl,
+            } as LibraryGame;
           })
       );
     });

@@ -16,14 +16,12 @@ export interface GameDetailsContext {
   isGameRunning: boolean;
   isLoading: boolean;
   objectId: string | undefined;
-  gameColor: string;
   showRepacksModal: boolean;
   showGameOptionsModal: boolean;
   stats: GameStats | null;
   achievements: UserAchievement[] | null;
   hasNSFWContentBlocked: boolean;
   lastDownloadedOption: GameRepack | null;
-  setGameColor: React.Dispatch<React.SetStateAction<string>>;
   selectGameExecutable: () => Promise<string | null>;
   updateGame: () => Promise<void>;
   setShowRepacksModal: React.Dispatch<React.SetStateAction<boolean>>;
