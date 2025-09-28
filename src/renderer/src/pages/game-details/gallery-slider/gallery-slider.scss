@@ -145,7 +145,7 @@
       left: globals.$spacing-unit;
       transform: translateY(-50%) translateX(-100px);
       opacity: 0;
-      
+
       .gallery-slider__viewport:hover & {
         transform: translateY(-50%) translateX(0);
         opacity: 1;
@@ -156,7 +156,7 @@
       right: globals.$spacing-unit;
       transform: translateY(-50%) translateX(100px);
       opacity: 0;
-      
+
       .gallery-slider__viewport:hover & {
         transform: translateY(-50%) translateX(0);
         opacity: 1;
