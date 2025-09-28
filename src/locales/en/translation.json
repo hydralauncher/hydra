@@ -57,7 +57,7 @@
     "edit_game_modal_logo": "Logo",
     "edit_game_modal_select_logo": "Select logo",
     "edit_game_modal_logo_preview": "Logo preview",
-    "edit_game_modal_hero": "Library Hero Image",
+    "edit_game_modal_hero": "Library Hero",
     "edit_game_modal_select_hero": "Select library hero image",
     "edit_game_modal_hero_preview": "Library hero image preview",
     "edit_game_modal_cancel": "Cancel",
@@ -69,7 +69,8 @@
     "edit_game_modal_image_filter": "Image",
     "edit_game_modal_icon_resolution": "Recommended resolution: 256x256px",
     "edit_game_modal_logo_resolution": "Recommended resolution: 640x360px",
-    "edit_game_modal_hero_resolution": "Recommended resolution: 1920x620px"
+    "edit_game_modal_hero_resolution": "Recommended resolution: 1920x620px",
+    "edit_game_modal_assets": "Assets"
   },
   "header": {
     "search": "Search games",
