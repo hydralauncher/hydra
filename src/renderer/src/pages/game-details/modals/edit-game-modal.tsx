@@ -157,6 +157,24 @@ export function EditGameModal({
     setAssetPath(assetType, "");
   };
 
+  const getOriginalTitle = (): string => {
+    if (!game) return "";
+
+    // For non-custom games, the original title is from shopDetails assets
+    return shopDetails?.assets?.title || game.title || "";
+  };
+
+  const handleRestoreDefaultTitle = () => {
+    const originalTitle = getOriginalTitle();
+    setGameName(originalTitle);
+  };
+
+  const isTitleChanged = (): boolean => {
+    if (!game || isCustomGame(game)) return false;
+    const originalTitle = getOriginalTitle();
+    return gameName.trim() !== originalTitle.trim();
+  };
+
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -489,6 +507,19 @@ export function EditGameModal({
             onChange={handleGameNameChange}
             theme="dark"
             disabled={isUpdating}
+            rightContent={
+              isTitleChanged() && (
+                <Button
+                  type="button"
+                  theme="outline"
+                  onClick={handleRestoreDefaultTitle}
+                  disabled={isUpdating}
+                  title="Restore default title"
+                >
+                  <XIcon />
+                </Button>
+              )
+            }
           />
 
           <div className="edit-game-modal__asset-selector">
