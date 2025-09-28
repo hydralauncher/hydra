@@ -26,7 +26,8 @@
     "game_has_no_executable": "O jogo não tem um executável selecionado",
     "sign_in": "Iniciar sessão",
     "friends": "Amigos",
-    "favorites": "Favoritos"
+    "favorites": "Favoritos",
+    "installed": "Instalados"
   },
   "header": {
     "search": "Procurar jogos",
