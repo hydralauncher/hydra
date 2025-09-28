@@ -28,22 +28,6 @@
     padding: 0.5rem 0.75rem;
     border-radius: 6px;
     transition: background-color 0.2s ease;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  &__filter-toggle {
-    align-self: flex-start;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: globals.$small-font-size;
-    font-weight: 600;
-    color: var(--color-text-secondary);
-    padding: 0.5rem 0.75rem;
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
   }
 
   &__repacks {
