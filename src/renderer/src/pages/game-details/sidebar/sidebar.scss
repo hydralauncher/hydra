@@ -194,3 +194,25 @@
 .achievements-placeholder__blur {
   filter: blur(4px);
 }
+
+.table-languages {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+
+  th,
+  td {
+    padding: globals.$spacing-unit;
+    border-bottom: solid 1px globals.$border-color;
+  }
+
+  th {
+    font-size: globals.$small-font-size;
+    color: globals.$muted-color;
+    font-weight: normal;
+  }
+
+  td {
+    font-size: globals.$body-font-size;
+  }
+}
