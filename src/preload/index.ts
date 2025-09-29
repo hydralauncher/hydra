@@ -152,40 +152,28 @@ contextBridge.exposeInMainWorld("electron", {
   deleteTempFile: (filePath: string) =>
     ipcRenderer.invoke("deleteTempFile", filePath),
   cleanupUnusedAssets: () => ipcRenderer.invoke("cleanupUnusedAssets"),
-  updateCustomGame: (
-    shop: GameShop,
-    objectId: string,
-    title: string,
-    iconUrl?: string,
-    logoImageUrl?: string,
-    libraryHeroImageUrl?: string
-  ) =>
-    ipcRenderer.invoke(
-      "updateCustomGame",
-      shop,
-      objectId,
-      title,
-      iconUrl,
-      logoImageUrl,
-      libraryHeroImageUrl
-    ),
-  updateGameCustomAssets: (
-    shop: GameShop,
-    objectId: string,
-    title: string,
-    customIconUrl?: string | null,
-    customLogoImageUrl?: string | null,
-    customHeroImageUrl?: string | null
-  ) =>
-    ipcRenderer.invoke(
-      "updateGameCustomAssets",
-      shop,
-      objectId,
-      title,
-      customIconUrl,
-      customLogoImageUrl,
-      customHeroImageUrl
-    ),
+  updateCustomGame: (params: {
+    shop: GameShop;
+    objectId: string;
+    title: string;
+    iconUrl?: string;
+    logoImageUrl?: string;
+    libraryHeroImageUrl?: string;
+    originalIconPath?: string;
+    originalLogoPath?: string;
+    originalHeroPath?: string;
+  }) => ipcRenderer.invoke("updateCustomGame", params),
+  updateGameCustomAssets: (params: {
+    shop: GameShop;
+    objectId: string;
+    title: string;
+    customIconUrl?: string | null;
+    customLogoImageUrl?: string | null;
+    customHeroImageUrl?: string | null;
+    customOriginalIconPath?: string | null;
+    customOriginalLogoPath?: string | null;
+    customOriginalHeroPath?: string | null;
+  }) => ipcRenderer.invoke("updateGameCustomAssets", params),
   createGameShortcut: (
     shop: GameShop,
     objectId: string,
