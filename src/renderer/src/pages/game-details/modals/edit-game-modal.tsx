@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { ImageIcon, XIcon } from "@primer/octicons-react";
 
@@ -32,6 +32,9 @@ export function EditGameModal({
   const [iconPath, setIconPath] = useState("");
   const [logoPath, setLogoPath] = useState("");
   const [heroPath, setHeroPath] = useState("");
+  const [iconDisplayPath, setIconDisplayPath] = useState("");
+  const [logoDisplayPath, setLogoDisplayPath] = useState("");
+  const [heroDisplayPath, setHeroDisplayPath] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedAssetType, setSelectedAssetType] = useState<AssetType>("icon");
 
@@ -51,6 +54,10 @@ export function EditGameModal({
     setIconPath(extractLocalPath(game.iconUrl));
     setLogoPath(extractLocalPath(game.logoImageUrl));
     setHeroPath(extractLocalPath(game.libraryHeroImageUrl));
+    // For existing assets, show the asset path as display path since we don't have the original
+    setIconDisplayPath(extractLocalPath(game.iconUrl));
+    setLogoDisplayPath(extractLocalPath(game.logoImageUrl));
+    setHeroDisplayPath(extractLocalPath(game.libraryHeroImageUrl));
   }, []);
 
   const setNonCustomGameAssets = useCallback(
@@ -58,6 +65,10 @@ export function EditGameModal({
       setIconPath(extractLocalPath(game.customIconUrl));
       setLogoPath(extractLocalPath(game.customLogoImageUrl));
       setHeroPath(extractLocalPath(game.customHeroImageUrl));
+      // For existing assets, show the asset path as display path since we don't have the original
+      setIconDisplayPath(extractLocalPath(game.customIconUrl));
+      setLogoDisplayPath(extractLocalPath(game.customLogoImageUrl));
+      setHeroDisplayPath(extractLocalPath(game.customHeroImageUrl));
 
       setDefaultIconUrl(shopDetails?.assets?.iconUrl || game.iconUrl || null);
       setDefaultLogoUrl(
@@ -103,6 +114,17 @@ export function EditGameModal({
     }
   };
 
+  const getAssetDisplayPath = (assetType: AssetType): string => {
+    switch (assetType) {
+      case "icon":
+        return iconDisplayPath;
+      case "logo":
+        return logoDisplayPath;
+      case "hero":
+        return heroDisplayPath;
+    }
+  };
+
   const setAssetPath = (assetType: AssetType, path: string): void => {
     switch (assetType) {
       case "icon":
@@ -113,6 +135,20 @@ export function EditGameModal({
         break;
       case "hero":
         setHeroPath(path);
+        break;
+    }
+  };
+
+  const setAssetDisplayPath = (assetType: AssetType, path: string): void => {
+    switch (assetType) {
+      case "icon":
+        setIconDisplayPath(path);
+        break;
+      case "logo":
+        setLogoDisplayPath(path);
+        break;
+      case "hero":
+        setHeroDisplayPath(path);
         break;
     }
   };
@@ -140,21 +176,25 @@ export function EditGameModal({
     });
 
     if (filePaths && filePaths.length > 0) {
+      const originalPath = filePaths[0];
       try {
         const copiedAssetUrl = await window.electron.copyCustomGameAsset(
-          filePaths[0],
+          originalPath,
           assetType
         );
         setAssetPath(assetType, copiedAssetUrl.replace("local:", ""));
+        setAssetDisplayPath(assetType, originalPath);
       } catch (error) {
         console.error(`Failed to copy ${assetType} asset:`, error);
-        setAssetPath(assetType, filePaths[0]);
+        setAssetPath(assetType, originalPath);
+        setAssetDisplayPath(assetType, originalPath);
       }
     }
   };
 
   const handleRestoreDefault = (assetType: AssetType) => {
     setAssetPath(assetType, "");
+    setAssetDisplayPath(assetType, "");
   };
 
   const getOriginalTitle = (): string => {
@@ -169,11 +209,11 @@ export function EditGameModal({
     setGameName(originalTitle);
   };
 
-  const isTitleChanged = (): boolean => {
+  const isTitleChanged = useMemo((): boolean => {
     if (!game || isCustomGame(game)) return false;
     const originalTitle = getOriginalTitle();
     return gameName.trim() !== originalTitle.trim();
-  };
+  }, [game, gameName, shopDetails]);
 
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
 
@@ -250,6 +290,7 @@ export function EditGameModal({
 
       const assetPath = copiedAssetUrl.replace("local:", "");
       setAssetPath(assetType, assetPath);
+      setAssetDisplayPath(assetType, filePath);
 
       showSuccessToast(
         `${assetType.charAt(0).toUpperCase() + assetType.slice(1)} updated successfully!`
@@ -361,7 +402,7 @@ export function EditGameModal({
   };
 
   // Helper function to reset form to initial state
-  const resetFormToInitialState = (game: LibraryGame | Game) => {
+  const resetFormToInitialState = useCallback((game: LibraryGame | Game) => {
     setGameName(game.title || "");
 
     if (isCustomGame(game)) {
@@ -373,7 +414,7 @@ export function EditGameModal({
     } else {
       setNonCustomGameAssets(game as LibraryGame);
     }
-  };
+  }, [setCustomGameAssets, setNonCustomGameAssets]);
 
   const handleClose = () => {
     if (!isUpdating && game) {
@@ -396,6 +437,7 @@ export function EditGameModal({
 
   const renderImageSection = (assetType: AssetType) => {
     const assetPath = getAssetPath(assetType);
+    const assetDisplayPath = getAssetDisplayPath(assetType);
     const defaultUrl = getDefaultUrl(assetType);
     const hasImage = assetPath || (game && !isCustomGame(game) && defaultUrl);
     const isDragOver = dragOverTarget === assetType;
@@ -408,7 +450,7 @@ export function EditGameModal({
       <div className="edit-game-modal__image-section">
         <TextField
           placeholder={t(`edit_game_modal_select_${assetType}`)}
-          value={assetPath}
+          value={assetDisplayPath}
           readOnly
           theme="dark"
           rightContent={
@@ -508,7 +550,7 @@ export function EditGameModal({
             theme="dark"
             disabled={isUpdating}
             rightContent={
-              isTitleChanged() && (
+              isTitleChanged && (
                 <Button
                   type="button"
                   theme="outline"

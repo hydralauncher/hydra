@@ -51,7 +51,7 @@ const updateGameCustomAssets = async (
   if (existingAssets) {
     const updatedAssets = {
       ...existingAssets,
-      title, 
+      title,
     };
 
     await gamesShopAssetsSublevel.put(gameKey, updatedAssets);
