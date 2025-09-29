@@ -1,6 +1,8 @@
 import { registerEvent } from "../register-event";
 import { gamesSublevel, gamesShopAssetsSublevel, levelKeys } from "@main/level";
 import type { GameShop, Game } from "@types";
+import fs from "node:fs";
+import { logger } from "@main/services";
 
 const collectOldAssetPaths = (
   existingGame: Game,
@@ -64,14 +66,13 @@ const updateShopAssets = async (gameKey: string, title: string): Promise<void> =
 const deleteOldAssetFiles = async (oldAssetPaths: string[]): Promise<void> => {
   if (oldAssetPaths.length === 0) return;
 
-  const fs = await import("node:fs");
   for (const assetPath of oldAssetPaths) {
     try {
       if (fs.existsSync(assetPath)) {
         await fs.promises.unlink(assetPath);
       }
     } catch (error) {
-      console.warn(`Failed to delete old custom asset ${assetPath}:`, error);
+      logger.warn(`Failed to delete old custom asset ${assetPath}:`, error);
     }
   }
 };
