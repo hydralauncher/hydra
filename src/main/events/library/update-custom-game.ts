@@ -4,18 +4,33 @@ import type { GameShop } from "@types";
 import fs from "node:fs";
 import { logger } from "@main/services";
 
+interface UpdateCustomGameParams {
+  shop: GameShop;
+  objectId: string;
+  title: string;
+  iconUrl?: string;
+  logoImageUrl?: string;
+  libraryHeroImageUrl?: string;
+  originalIconPath?: string;
+  originalLogoPath?: string;
+  originalHeroPath?: string;
+}
+
 const updateCustomGame = async (
   _event: Electron.IpcMainInvokeEvent,
-  shop: GameShop,
-  objectId: string,
-  title: string,
-  iconUrl?: string,
-  logoImageUrl?: string,
-  libraryHeroImageUrl?: string,
-  originalIconPath?: string,
-  originalLogoPath?: string,
-  originalHeroPath?: string
+  params: UpdateCustomGameParams
 ) => {
+  const {
+    shop,
+    objectId,
+    title,
+    iconUrl,
+    logoImageUrl,
+    libraryHeroImageUrl,
+    originalIconPath,
+    originalLogoPath,
+    originalHeroPath,
+  } = params;
   const gameKey = levelKeys.game(shop, objectId);
 
   const existingGame = await gamesSublevel.get(gameKey);
