@@ -1,9 +1,8 @@
 import { registerEvent } from "../register-event";
-import { HydraApi } from "@main/services";
+import { HydraApi, logger } from "@main/services";
 import { gamesSublevel, gamesShopAssetsSublevel, levelKeys } from "@main/level";
 import type { GameShop, Game } from "@types";
 import fs from "node:fs";
-import { logger } from "@main/services";
 
 const collectAssetPathsToDelete = (game: Game): string[] => {
   const assetPathsToDelete: string[] = [];
