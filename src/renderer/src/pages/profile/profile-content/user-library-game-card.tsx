@@ -2,7 +2,7 @@ import { UserGame } from "@types";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useFormat, useToast } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
-import { useCallback, useContext, useState } from "react";
+import { useCallback, useContext, useState, useEffect, useRef } from "react";
 import {
   buildGameAchievementPath,
   buildGameDetailsPath,
@@ -43,6 +43,9 @@ export function UserLibraryGameCard({
   const navigate = useNavigate();
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
   const [isPinning, setIsPinning] = useState(false);
+  const [useShortFormat, setUseShortFormat] = useState(false);
+  const cardRef = useRef<HTMLLIElement>(null);
+  const playtimeRef = useRef<HTMLElement>(null);
 
   const getStatsItemCount = useCallback(() => {
     let statsCount = 1;
@@ -94,6 +97,50 @@ export function UserLibraryGameCard({
     [numberFormatter, t]
   );
 
+  const formatPlayTimeShort = useCallback(
+    (playTimeInSeconds = 0) => {
+      const minutes = playTimeInSeconds / 60;
+
+      if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
+        return t("amount_minutes_short", {
+          amount: minutes.toFixed(0),
+        });
+      }
+
+      const hours = minutes / 60;
+      return t("amount_hours_short", { amount: Math.floor(hours) });
+    },
+    [t]
+  );
+
+  const checkForOverlap = useCallback(() => {
+    if (!cardRef.current || !playtimeRef.current) return;
+
+    const cardWidth = cardRef.current.offsetWidth;
+    const hasButtons = game.isFavorite || isMe;
+    
+    if (hasButtons && cardWidth < 180) {
+      setUseShortFormat(true);
+    } else {
+      setUseShortFormat(false);
+    }
+  }, [game.isFavorite, isMe]);
+
+  useEffect(() => {
+    checkForOverlap();
+    
+    const handleResize = () => {
+      checkForOverlap();
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [checkForOverlap]);
+
+  useEffect(() => {
+    checkForOverlap();
+  }, [game.isFavorite, isMe, checkForOverlap]);
+
   const toggleGamePinned = async () => {
     setIsPinning(true);
 
@@ -119,6 +166,7 @@ export function UserLibraryGameCard({
   return (
     <>
       <li
+        ref={cardRef}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         className="user-library-game__wrapper"
@@ -157,6 +205,7 @@ export function UserLibraryGameCard({
               </div>
             )}
             <small
+              ref={playtimeRef}
               className="user-library-game__playtime"
               data-tooltip-place="top"
               data-tooltip-content={
@@ -174,7 +223,10 @@ export function UserLibraryGameCard({
               ) : (
                 <ClockIcon size={11} />
               )}
-              {formatPlayTime(game.playTimeInSeconds)}
+              {useShortFormat 
+                ? formatPlayTimeShort(game.playTimeInSeconds)
+                : formatPlayTime(game.playTimeInSeconds)
+              }
             </small>
 
             {userProfile?.hasActiveSubscription &&
