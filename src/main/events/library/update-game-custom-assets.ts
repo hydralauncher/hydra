@@ -52,7 +52,10 @@ const updateGameData = async (
   return updatedGame;
 };
 
-const updateShopAssets = async (gameKey: string, title: string): Promise<void> => {
+const updateShopAssets = async (
+  gameKey: string,
+  title: string
+): Promise<void> => {
   const existingAssets = await gamesShopAssetsSublevel.get(gameKey);
   if (existingAssets) {
     const updatedAssets = {
