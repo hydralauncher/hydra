@@ -8,6 +8,7 @@
     display: flex;
     transition: all ease 0.2s;
     cursor: grab;
+    container-type: inline-size;
 
     &:hover {
       transform: scale(1.05);
@@ -86,7 +87,7 @@
     top: 8px;
     right: 8px;
     display: flex;
-    gap: 6px;
+    gap: 4px;
     z-index: 2;
   }
 
@@ -159,6 +160,25 @@
       border-color: rgba(255, 255, 255, 0.25);
       transform: translateY(-1px);
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    &-long {
+      display: inline;
+    }
+
+    &-short {
+      display: none;
+    }
+
+    // When the card is narrow (less than 180px), show short format
+    @container (max-width: 180px) {
+      &-long {
+        display: none;
+      }
+
+      &-short {
+        display: inline;
+      }
     }
   }
   &__manual-playtime {

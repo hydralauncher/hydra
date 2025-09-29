@@ -44,6 +44,7 @@ export function UserLibraryGameCard({
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
   const [isPinning, setIsPinning] = useState(false);
 
+
   const getStatsItemCount = useCallback(() => {
     let statsCount = 1;
     if (game.achievementsPointsEarnedSum > 0) statsCount++;
@@ -79,20 +80,25 @@ export function UserLibraryGameCard({
   };
 
   const formatPlayTime = useCallback(
-    (playTimeInSeconds = 0) => {
+    (playTimeInSeconds = 0, isShort = false) => {
       const minutes = playTimeInSeconds / 60;
 
       if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
-        return t("amount_minutes", {
+        return t(isShort ? "amount_minutes_short" : "amount_minutes", {
           amount: minutes.toFixed(0),
         });
       }
 
       const hours = minutes / 60;
-      return t("amount_hours", { amount: numberFormatter.format(hours) });
+      const hoursKey = isShort ? "amount_hours_short" : "amount_hours";
+      const hoursAmount = isShort ? Math.floor(hours) : numberFormatter.format(hours);
+      
+      return t(hoursKey, { amount: hoursAmount });
     },
     [numberFormatter, t]
   );
+
+
 
   const toggleGamePinned = async () => {
     setIsPinning(true);
@@ -156,7 +162,7 @@ export function UserLibraryGameCard({
                 )}
               </div>
             )}
-            <small
+            <div 
               className="user-library-game__playtime"
               data-tooltip-place="top"
               data-tooltip-content={
@@ -174,8 +180,13 @@ export function UserLibraryGameCard({
               ) : (
                 <ClockIcon size={11} />
               )}
-              {formatPlayTime(game.playTimeInSeconds)}
-            </small>
+              <span className="user-library-game__playtime-long">
+                {formatPlayTime(game.playTimeInSeconds)}
+              </span>
+              <span className="user-library-game__playtime-short">
+                {formatPlayTime(game.playTimeInSeconds, true)}
+              </span>
+            </div>
 
             {userProfile?.hasActiveSubscription &&
               game.achievementCount > 0 && (
