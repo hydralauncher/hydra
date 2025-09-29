@@ -29,18 +29,23 @@ export function EditGameModal({
   const { showSuccessToast, showErrorToast } = useToast();
 
   const [gameName, setGameName] = useState("");
-  const [iconPath, setIconPath] = useState("");
-  const [logoPath, setLogoPath] = useState("");
-  const [heroPath, setHeroPath] = useState("");
-  const [iconDisplayPath, setIconDisplayPath] = useState("");
-  const [logoDisplayPath, setLogoDisplayPath] = useState("");
-  const [heroDisplayPath, setHeroDisplayPath] = useState("");
+  const [assetPaths, setAssetPaths] = useState({
+    icon: "",
+    logo: "",
+    hero: "",
+  });
+  const [assetDisplayPaths, setAssetDisplayPaths] = useState({
+    icon: "",
+    logo: "",
+    hero: "",
+  });
+  const [defaultUrls, setDefaultUrls] = useState({
+    icon: null as string | null,
+    logo: null as string | null,
+    hero: null as string | null,
+  });
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedAssetType, setSelectedAssetType] = useState<AssetType>("icon");
-
-  const [defaultIconUrl, setDefaultIconUrl] = useState<string | null>(null);
-  const [defaultLogoUrl, setDefaultLogoUrl] = useState<string | null>(null);
-  const [defaultHeroUrl, setDefaultHeroUrl] = useState<string | null>(null);
 
   const isCustomGame = (game: LibraryGame | Game): boolean => {
     return game.shop === "custom";
@@ -51,32 +56,36 @@ export function EditGameModal({
   };
 
   const setCustomGameAssets = useCallback((game: LibraryGame | Game) => {
-    setIconPath(extractLocalPath(game.iconUrl));
-    setLogoPath(extractLocalPath(game.logoImageUrl));
-    setHeroPath(extractLocalPath(game.libraryHeroImageUrl));
-    setIconDisplayPath(extractLocalPath(game.iconUrl));
-    setLogoDisplayPath(extractLocalPath(game.logoImageUrl));
-    setHeroDisplayPath(extractLocalPath(game.libraryHeroImageUrl));
+    setAssetPaths({
+      icon: extractLocalPath(game.iconUrl),
+      logo: extractLocalPath(game.logoImageUrl),
+      hero: extractLocalPath(game.libraryHeroImageUrl),
+    });
+    setAssetDisplayPaths({
+      icon: extractLocalPath(game.iconUrl),
+      logo: extractLocalPath(game.logoImageUrl),
+      hero: extractLocalPath(game.libraryHeroImageUrl),
+    });
   }, []);
 
   const setNonCustomGameAssets = useCallback(
     (game: LibraryGame) => {
-      setIconPath(extractLocalPath(game.customIconUrl));
-      setLogoPath(extractLocalPath(game.customLogoImageUrl));
-      setHeroPath(extractLocalPath(game.customHeroImageUrl));
-      setIconDisplayPath(extractLocalPath(game.customIconUrl));
-      setLogoDisplayPath(extractLocalPath(game.customLogoImageUrl));
-      setHeroDisplayPath(extractLocalPath(game.customHeroImageUrl));
+      setAssetPaths({
+        icon: extractLocalPath(game.customIconUrl),
+        logo: extractLocalPath(game.customLogoImageUrl),
+        hero: extractLocalPath(game.customHeroImageUrl),
+      });
+      setAssetDisplayPaths({
+        icon: extractLocalPath(game.customIconUrl),
+        logo: extractLocalPath(game.customLogoImageUrl),
+        hero: extractLocalPath(game.customHeroImageUrl),
+      });
 
-      setDefaultIconUrl(shopDetails?.assets?.iconUrl || game.iconUrl || null);
-      setDefaultLogoUrl(
-        shopDetails?.assets?.logoImageUrl || game.logoImageUrl || null
-      );
-      setDefaultHeroUrl(
-        shopDetails?.assets?.libraryHeroImageUrl ||
-          game.libraryHeroImageUrl ||
-          null
-      );
+      setDefaultUrls({
+        icon: shopDetails?.assets?.iconUrl || game.iconUrl || null,
+        logo: shopDetails?.assets?.logoImageUrl || game.logoImageUrl || null,
+        hero: shopDetails?.assets?.libraryHeroImageUrl || game.libraryHeroImageUrl || null,
+      });
     },
     [shopDetails]
   );
@@ -102,64 +111,23 @@ export function EditGameModal({
   };
 
   const getAssetPath = (assetType: AssetType): string => {
-    switch (assetType) {
-      case "icon":
-        return iconPath;
-      case "logo":
-        return logoPath;
-      case "hero":
-        return heroPath;
-    }
+    return assetPaths[assetType];
   };
 
   const getAssetDisplayPath = (assetType: AssetType): string => {
-    switch (assetType) {
-      case "icon":
-        return iconDisplayPath;
-      case "logo":
-        return logoDisplayPath;
-      case "hero":
-        return heroDisplayPath;
-    }
+    return assetDisplayPaths[assetType];
   };
 
   const setAssetPath = (assetType: AssetType, path: string): void => {
-    switch (assetType) {
-      case "icon":
-        setIconPath(path);
-        break;
-      case "logo":
-        setLogoPath(path);
-        break;
-      case "hero":
-        setHeroPath(path);
-        break;
-    }
+    setAssetPaths(prev => ({ ...prev, [assetType]: path }));
   };
 
   const setAssetDisplayPath = (assetType: AssetType, path: string): void => {
-    switch (assetType) {
-      case "icon":
-        setIconDisplayPath(path);
-        break;
-      case "logo":
-        setLogoDisplayPath(path);
-        break;
-      case "hero":
-        setHeroDisplayPath(path);
-        break;
-    }
+    setAssetDisplayPaths(prev => ({ ...prev, [assetType]: path }));
   };
 
   const getDefaultUrl = (assetType: AssetType): string | null => {
-    switch (assetType) {
-      case "icon":
-        return defaultIconUrl;
-      case "logo":
-        return defaultLogoUrl;
-      case "hero":
-        return defaultHeroUrl;
-    }
+    return defaultUrls[assetType];
   };
 
   const handleSelectAsset = async (assetType: AssetType) => {
@@ -324,10 +292,10 @@ export function EditGameModal({
 
   // Helper function to prepare custom game assets
   const prepareCustomGameAssets = (game: LibraryGame | Game) => {
-    const iconUrl = iconPath ? `local:${iconPath}` : game.iconUrl;
-    const logoImageUrl = logoPath ? `local:${logoPath}` : game.logoImageUrl;
-    const libraryHeroImageUrl = heroPath
-      ? `local:${heroPath}`
+    const iconUrl = assetPaths.icon ? `local:${assetPaths.icon}` : game.iconUrl;
+    const logoImageUrl = assetPaths.logo ? `local:${assetPaths.logo}` : game.logoImageUrl;
+    const libraryHeroImageUrl = assetPaths.hero
+      ? `local:${assetPaths.hero}`
       : game.libraryHeroImageUrl;
 
     return { iconUrl, logoImageUrl, libraryHeroImageUrl };
@@ -336,9 +304,9 @@ export function EditGameModal({
   // Helper function to prepare non-custom game assets
   const prepareNonCustomGameAssets = () => {
     return {
-      customIconUrl: iconPath ? `local:${iconPath}` : null,
-      customLogoImageUrl: logoPath ? `local:${logoPath}` : null,
-      customHeroImageUrl: heroPath ? `local:${heroPath}` : null,
+      customIconUrl: assetPaths.icon ? `local:${assetPaths.icon}` : null,
+      customLogoImageUrl: assetPaths.logo ? `local:${assetPaths.logo}` : null,
+      customHeroImageUrl: assetPaths.hero ? `local:${assetPaths.hero}` : null,
     };
   };
 
@@ -407,9 +375,11 @@ export function EditGameModal({
       if (isCustomGame(game)) {
         setCustomGameAssets(game);
         // Clear default URLs for custom games
-        setDefaultIconUrl(null);
-        setDefaultLogoUrl(null);
-        setDefaultHeroUrl(null);
+        setDefaultUrls({
+          icon: null,
+          logo: null,
+          hero: null,
+        });
       } else {
         setNonCustomGameAssets(game as LibraryGame);
       }
