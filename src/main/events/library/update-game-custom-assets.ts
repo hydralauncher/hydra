@@ -44,9 +44,7 @@ interface UpdateGameDataParams {
   customOriginalHeroPath?: string | null;
 }
 
-const updateGameData = async (
-  params: UpdateGameDataParams
-): Promise<Game> => {
+const updateGameData = async (params: UpdateGameDataParams): Promise<Game> => {
   const {
     gameKey,
     existingGame,

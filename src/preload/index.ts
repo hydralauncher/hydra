@@ -164,16 +164,16 @@ contextBridge.exposeInMainWorld("electron", {
     originalHeroPath?: string;
   }) => ipcRenderer.invoke("updateCustomGame", params),
   updateGameCustomAssets: (params: {
-      shop: GameShop;
-      objectId: string;
-      title: string;
-      customIconUrl?: string | null;
-      customLogoImageUrl?: string | null;
-      customHeroImageUrl?: string | null;
-      customOriginalIconPath?: string | null;
-      customOriginalLogoPath?: string | null;
-      customOriginalHeroPath?: string | null;
-    }) => ipcRenderer.invoke("updateGameCustomAssets", params),
+    shop: GameShop;
+    objectId: string;
+    title: string;
+    customIconUrl?: string | null;
+    customLogoImageUrl?: string | null;
+    customHeroImageUrl?: string | null;
+    customOriginalIconPath?: string | null;
+    customOriginalLogoPath?: string | null;
+    customOriginalHeroPath?: string | null;
+  }) => ipcRenderer.invoke("updateGameCustomAssets", params),
   createGameShortcut: (
     shop: GameShop,
     objectId: string,
