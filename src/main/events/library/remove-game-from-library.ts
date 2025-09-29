@@ -14,17 +14,21 @@ const removeGameFromLibrary = async (
   if (game) {
     // Collect asset paths that need to be cleaned up before marking as deleted
     const assetPathsToDelete: string[] = [];
-    
-    const assetUrls = game.shop === "custom" 
-      ? [game.iconUrl, game.logoImageUrl, game.libraryHeroImageUrl]
-      : [game.customIconUrl, game.customLogoImageUrl, game.customHeroImageUrl];
-    
-    assetUrls.forEach(url => {
+
+    const assetUrls =
+      game.shop === "custom"
+        ? [game.iconUrl, game.logoImageUrl, game.libraryHeroImageUrl]
+        : [
+            game.customIconUrl,
+            game.customLogoImageUrl,
+            game.customHeroImageUrl,
+          ];
+
+    assetUrls.forEach((url) => {
       if (url?.startsWith("local:")) {
         assetPathsToDelete.push(url.replace("local:", ""));
       }
     });
-
 
     const updatedGame = {
       ...game,
@@ -39,13 +43,12 @@ const removeGameFromLibrary = async (
 
     await gamesSublevel.put(gameKey, updatedGame);
 
-
     if (game.shop !== "custom") {
       const existingAssets = await gamesShopAssetsSublevel.get(gameKey);
       if (existingAssets) {
         const resetAssets = {
           ...existingAssets,
-          title: existingAssets.title, 
+          title: existingAssets.title,
         };
         await gamesShopAssetsSublevel.put(gameKey, resetAssets);
       }
@@ -54,7 +57,6 @@ const removeGameFromLibrary = async (
     if (game?.remoteId) {
       HydraApi.delete(`/profile/games/${game.remoteId}`).catch(() => {});
     }
-
 
     if (assetPathsToDelete.length > 0) {
       const fs = await import("fs");

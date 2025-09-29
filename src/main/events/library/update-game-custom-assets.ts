@@ -18,17 +18,21 @@ const updateGameCustomAssets = async (
     throw new Error("Game not found");
   }
 
-  // Collect old custom asset paths that will be replaced
   const oldAssetPaths: string[] = [];
-  
+
   const assetPairs = [
     { existing: existingGame.customIconUrl, new: customIconUrl },
     { existing: existingGame.customLogoImageUrl, new: customLogoImageUrl },
-    { existing: existingGame.customHeroImageUrl, new: customHeroImageUrl }
+    { existing: existingGame.customHeroImageUrl, new: customHeroImageUrl },
   ];
-  
+
   assetPairs.forEach(({ existing, new: newUrl }) => {
-    if (existing && newUrl !== undefined && existing !== newUrl && existing.startsWith("local:")) {
+    if (
+      existing &&
+      newUrl !== undefined &&
+      existing !== newUrl &&
+      existing.startsWith("local:")
+    ) {
       oldAssetPaths.push(existing.replace("local:", ""));
     }
   });
@@ -43,18 +47,16 @@ const updateGameCustomAssets = async (
 
   await gamesSublevel.put(gameKey, updatedGame);
 
-  // Also update the shop assets for non-custom games
   const existingAssets = await gamesShopAssetsSublevel.get(gameKey);
   if (existingAssets) {
     const updatedAssets = {
       ...existingAssets,
-      title, // Update the title in shop assets as well
+      title, 
     };
 
     await gamesShopAssetsSublevel.put(gameKey, updatedAssets);
   }
 
-  // Manually delete specific old custom asset files instead of running full cleanup
   if (oldAssetPaths.length > 0) {
     const fs = await import("fs");
     for (const assetPath of oldAssetPaths) {
