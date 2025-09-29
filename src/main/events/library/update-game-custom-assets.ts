@@ -51,14 +51,14 @@ const updateGameCustomAssets = async (
   if (existingAssets) {
     const updatedAssets = {
       ...existingAssets,
-      title, 
+      title,
     };
 
     await gamesShopAssetsSublevel.put(gameKey, updatedAssets);
   }
 
   if (oldAssetPaths.length > 0) {
-    const fs = await import("fs");
+    const fs = await import("node:fs");
     for (const assetPath of oldAssetPaths) {
       try {
         if (fs.existsSync(assetPath)) {

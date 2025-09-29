@@ -400,19 +400,22 @@ export function EditGameModal({
   };
 
   // Helper function to reset form to initial state
-  const resetFormToInitialState = useCallback((game: LibraryGame | Game) => {
-    setGameName(game.title || "");
+  const resetFormToInitialState = useCallback(
+    (game: LibraryGame | Game) => {
+      setGameName(game.title || "");
 
-    if (isCustomGame(game)) {
-      setCustomGameAssets(game);
-      // Clear default URLs for custom games
-      setDefaultIconUrl(null);
-      setDefaultLogoUrl(null);
-      setDefaultHeroUrl(null);
-    } else {
-      setNonCustomGameAssets(game as LibraryGame);
-    }
-  }, [setCustomGameAssets, setNonCustomGameAssets]);
+      if (isCustomGame(game)) {
+        setCustomGameAssets(game);
+        // Clear default URLs for custom games
+        setDefaultIconUrl(null);
+        setDefaultLogoUrl(null);
+        setDefaultHeroUrl(null);
+      } else {
+        setNonCustomGameAssets(game as LibraryGame);
+      }
+    },
+    [setCustomGameAssets, setNonCustomGameAssets]
+  );
 
   const handleClose = () => {
     if (!isUpdating && game) {

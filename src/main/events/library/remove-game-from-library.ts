@@ -59,7 +59,7 @@ const removeGameFromLibrary = async (
     }
 
     if (assetPathsToDelete.length > 0) {
-      const fs = await import("fs");
+      const fs = await import("node:fs");
       for (const assetPath of assetPathsToDelete) {
         try {
           if (fs.existsSync(assetPath)) {
