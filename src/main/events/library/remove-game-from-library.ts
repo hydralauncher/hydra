@@ -24,11 +24,11 @@ const removeGameFromLibrary = async (
             game.customHeroImageUrl,
           ];
 
-    assetUrls.forEach((url) => {
+    for (const url of assetUrls) {
       if (url?.startsWith("local:")) {
         assetPathsToDelete.push(url.replace("local:", ""));
       }
-    });
+    }
 
     const updatedGame = {
       ...game,

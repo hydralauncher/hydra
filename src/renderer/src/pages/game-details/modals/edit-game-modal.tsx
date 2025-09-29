@@ -54,7 +54,6 @@ export function EditGameModal({
     setIconPath(extractLocalPath(game.iconUrl));
     setLogoPath(extractLocalPath(game.logoImageUrl));
     setHeroPath(extractLocalPath(game.libraryHeroImageUrl));
-    // For existing assets, show the asset path as display path since we don't have the original
     setIconDisplayPath(extractLocalPath(game.iconUrl));
     setLogoDisplayPath(extractLocalPath(game.logoImageUrl));
     setHeroDisplayPath(extractLocalPath(game.libraryHeroImageUrl));
@@ -65,7 +64,6 @@ export function EditGameModal({
       setIconPath(extractLocalPath(game.customIconUrl));
       setLogoPath(extractLocalPath(game.customLogoImageUrl));
       setHeroPath(extractLocalPath(game.customHeroImageUrl));
-      // For existing assets, show the asset path as display path since we don't have the original
       setIconDisplayPath(extractLocalPath(game.customIconUrl));
       setLogoDisplayPath(extractLocalPath(game.customLogoImageUrl));
       setHeroDisplayPath(extractLocalPath(game.customHeroImageUrl));

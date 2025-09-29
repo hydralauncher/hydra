@@ -19,18 +19,18 @@ const updateCustomGame = async (
   }
 
   const oldAssetPaths: string[] = [];
-  
+
   const assetPairs = [
     { existing: existingGame.iconUrl, new: iconUrl },
     { existing: existingGame.logoImageUrl, new: logoImageUrl },
-    { existing: existingGame.libraryHeroImageUrl, new: libraryHeroImageUrl }
+    { existing: existingGame.libraryHeroImageUrl, new: libraryHeroImageUrl },
   ];
-  
-  assetPairs.forEach(({ existing, new: newUrl }) => {
+
+  for (const { existing, new: newUrl } of assetPairs) {
     if (existing?.startsWith("local:") && (!newUrl || existing !== newUrl)) {
       oldAssetPaths.push(existing.replace("local:", ""));
     }
-  });
+  }
 
   const updatedGame = {
     ...existingGame,
