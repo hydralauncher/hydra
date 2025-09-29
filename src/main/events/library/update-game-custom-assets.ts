@@ -38,7 +38,10 @@ const updateGameData = async (
   title: string,
   customIconUrl?: string | null,
   customLogoImageUrl?: string | null,
-  customHeroImageUrl?: string | null
+  customHeroImageUrl?: string | null,
+  customOriginalIconPath?: string | null,
+  customOriginalLogoPath?: string | null,
+  customOriginalHeroPath?: string | null
 ): Promise<Game> => {
   const updatedGame = {
     ...existingGame,
@@ -46,6 +49,9 @@ const updateGameData = async (
     ...(customIconUrl !== undefined && { customIconUrl }),
     ...(customLogoImageUrl !== undefined && { customLogoImageUrl }),
     ...(customHeroImageUrl !== undefined && { customHeroImageUrl }),
+    ...(customOriginalIconPath !== undefined && { customOriginalIconPath }),
+    ...(customOriginalLogoPath !== undefined && { customOriginalLogoPath }),
+    ...(customOriginalHeroPath !== undefined && { customOriginalHeroPath }),
   };
 
   await gamesSublevel.put(gameKey, updatedGame);
@@ -87,7 +93,10 @@ const updateGameCustomAssets = async (
   title: string,
   customIconUrl?: string | null,
   customLogoImageUrl?: string | null,
-  customHeroImageUrl?: string | null
+  customHeroImageUrl?: string | null,
+  customOriginalIconPath?: string | null,
+  customOriginalLogoPath?: string | null,
+  customOriginalHeroPath?: string | null
 ) => {
   const gameKey = levelKeys.game(shop, objectId);
 
@@ -109,7 +118,10 @@ const updateGameCustomAssets = async (
     title,
     customIconUrl,
     customLogoImageUrl,
-    customHeroImageUrl
+    customHeroImageUrl,
+    customOriginalIconPath,
+    customOriginalLogoPath,
+    customOriginalHeroPath
   );
 
   await updateShopAssets(gameKey, title);

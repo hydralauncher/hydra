@@ -39,6 +39,11 @@ export function EditGameModal({
     logo: "",
     hero: "",
   });
+  const [originalAssetPaths, setOriginalAssetPaths] = useState({
+    icon: "",
+    logo: "",
+    hero: "",
+  });
   const [defaultUrls, setDefaultUrls] = useState({
     icon: null as string | null,
     logo: null as string | null,
@@ -66,6 +71,11 @@ export function EditGameModal({
       logo: extractLocalPath(game.logoImageUrl),
       hero: extractLocalPath(game.libraryHeroImageUrl),
     });
+    setOriginalAssetPaths({
+      icon: (game as any).originalIconPath || extractLocalPath(game.iconUrl),
+      logo: (game as any).originalLogoPath || extractLocalPath(game.logoImageUrl),
+      hero: (game as any).originalHeroPath || extractLocalPath(game.libraryHeroImageUrl),
+    });
   }, []);
 
   const setNonCustomGameAssets = useCallback(
@@ -79,6 +89,11 @@ export function EditGameModal({
         icon: extractLocalPath(game.customIconUrl),
         logo: extractLocalPath(game.customLogoImageUrl),
         hero: extractLocalPath(game.customHeroImageUrl),
+      });
+      setOriginalAssetPaths({
+        icon: (game as any).customOriginalIconPath || extractLocalPath(game.customIconUrl),
+        logo: (game as any).customOriginalLogoPath || extractLocalPath(game.customLogoImageUrl),
+        hero: (game as any).customOriginalHeroPath || extractLocalPath(game.customHeroImageUrl),
       });
 
       setDefaultUrls({
@@ -118,7 +133,8 @@ export function EditGameModal({
   };
 
   const getAssetDisplayPath = (assetType: AssetType): string => {
-    return assetDisplayPaths[assetType];
+    // Use original path if available, otherwise fall back to display path
+    return originalAssetPaths[assetType] || assetDisplayPaths[assetType];
   };
 
   const setAssetPath = (assetType: AssetType, path: string): void => {
@@ -153,10 +169,13 @@ export function EditGameModal({
         );
         setAssetPath(assetType, copiedAssetUrl.replace("local:", ""));
         setAssetDisplayPath(assetType, originalPath);
+        // Store the original path for display purposes
+        setOriginalAssetPaths((prev) => ({ ...prev, [assetType]: originalPath }));
       } catch (error) {
         console.error(`Failed to copy ${assetType} asset:`, error);
         setAssetPath(assetType, originalPath);
         setAssetDisplayPath(assetType, originalPath);
+        setOriginalAssetPaths((prev) => ({ ...prev, [assetType]: originalPath }));
       }
     }
   };
@@ -164,6 +183,7 @@ export function EditGameModal({
   const handleRestoreDefault = (assetType: AssetType) => {
     setAssetPath(assetType, "");
     setAssetDisplayPath(assetType, "");
+    setOriginalAssetPaths((prev) => ({ ...prev, [assetType]: "" }));
   };
 
   const getOriginalTitle = (): string => {
@@ -326,7 +346,10 @@ export function EditGameModal({
       gameName.trim(),
       iconUrl || undefined,
       logoImageUrl || undefined,
-      libraryHeroImageUrl || undefined
+      libraryHeroImageUrl || undefined,
+      originalAssetPaths.icon || undefined,
+      originalAssetPaths.logo || undefined,
+      originalAssetPaths.hero || undefined
     );
   };
 
@@ -341,7 +364,10 @@ export function EditGameModal({
       gameName.trim(),
       customIconUrl,
       customLogoImageUrl,
-      customHeroImageUrl
+      customHeroImageUrl,
+      originalAssetPaths.icon || undefined,
+      originalAssetPaths.logo || undefined,
+      originalAssetPaths.hero || undefined
     );
   };
 
