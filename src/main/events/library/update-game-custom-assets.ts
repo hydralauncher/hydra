@@ -32,17 +32,32 @@ const collectOldAssetPaths = (
   return oldAssetPaths;
 };
 
+interface UpdateGameDataParams {
+  gameKey: string;
+  existingGame: Game;
+  title: string;
+  customIconUrl?: string | null;
+  customLogoImageUrl?: string | null;
+  customHeroImageUrl?: string | null;
+  customOriginalIconPath?: string | null;
+  customOriginalLogoPath?: string | null;
+  customOriginalHeroPath?: string | null;
+}
+
 const updateGameData = async (
-  gameKey: string,
-  existingGame: Game,
-  title: string,
-  customIconUrl?: string | null,
-  customLogoImageUrl?: string | null,
-  customHeroImageUrl?: string | null,
-  customOriginalIconPath?: string | null,
-  customOriginalLogoPath?: string | null,
-  customOriginalHeroPath?: string | null
+  params: UpdateGameDataParams
 ): Promise<Game> => {
+  const {
+    gameKey,
+    existingGame,
+    title,
+    customIconUrl,
+    customLogoImageUrl,
+    customHeroImageUrl,
+    customOriginalIconPath,
+    customOriginalLogoPath,
+    customOriginalHeroPath,
+  } = params;
   const updatedGame = {
     ...existingGame,
     title,
@@ -86,18 +101,33 @@ const deleteOldAssetFiles = async (oldAssetPaths: string[]): Promise<void> => {
   }
 };
 
+interface UpdateGameCustomAssetsParams {
+  shop: GameShop;
+  objectId: string;
+  title: string;
+  customIconUrl?: string | null;
+  customLogoImageUrl?: string | null;
+  customHeroImageUrl?: string | null;
+  customOriginalIconPath?: string | null;
+  customOriginalLogoPath?: string | null;
+  customOriginalHeroPath?: string | null;
+}
+
 const updateGameCustomAssets = async (
   _event: Electron.IpcMainInvokeEvent,
-  shop: GameShop,
-  objectId: string,
-  title: string,
-  customIconUrl?: string | null,
-  customLogoImageUrl?: string | null,
-  customHeroImageUrl?: string | null,
-  customOriginalIconPath?: string | null,
-  customOriginalLogoPath?: string | null,
-  customOriginalHeroPath?: string | null
+  params: UpdateGameCustomAssetsParams
 ) => {
+  const {
+    shop,
+    objectId,
+    title,
+    customIconUrl,
+    customLogoImageUrl,
+    customHeroImageUrl,
+    customOriginalIconPath,
+    customOriginalLogoPath,
+    customOriginalHeroPath,
+  } = params;
   const gameKey = levelKeys.game(shop, objectId);
 
   const existingGame = await gamesSublevel.get(gameKey);
@@ -112,7 +142,7 @@ const updateGameCustomAssets = async (
     customHeroImageUrl
   );
 
-  const updatedGame = await updateGameData(
+  const updatedGame = await updateGameData({
     gameKey,
     existingGame,
     title,
@@ -121,8 +151,8 @@ const updateGameCustomAssets = async (
     customHeroImageUrl,
     customOriginalIconPath,
     customOriginalLogoPath,
-    customOriginalHeroPath
-  );
+    customOriginalHeroPath,
+  });
 
   await updateShopAssets(gameKey, title);
 

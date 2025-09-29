@@ -73,8 +73,11 @@ export function EditGameModal({
     });
     setOriginalAssetPaths({
       icon: (game as any).originalIconPath || extractLocalPath(game.iconUrl),
-      logo: (game as any).originalLogoPath || extractLocalPath(game.logoImageUrl),
-      hero: (game as any).originalHeroPath || extractLocalPath(game.libraryHeroImageUrl),
+      logo:
+        (game as any).originalLogoPath || extractLocalPath(game.logoImageUrl),
+      hero:
+        (game as any).originalHeroPath ||
+        extractLocalPath(game.libraryHeroImageUrl),
     });
   }, []);
 
@@ -91,9 +94,15 @@ export function EditGameModal({
         hero: extractLocalPath(game.customHeroImageUrl),
       });
       setOriginalAssetPaths({
-        icon: (game as any).customOriginalIconPath || extractLocalPath(game.customIconUrl),
-        logo: (game as any).customOriginalLogoPath || extractLocalPath(game.customLogoImageUrl),
-        hero: (game as any).customOriginalHeroPath || extractLocalPath(game.customHeroImageUrl),
+        icon:
+          (game as any).customOriginalIconPath ||
+          extractLocalPath(game.customIconUrl),
+        logo:
+          (game as any).customOriginalLogoPath ||
+          extractLocalPath(game.customLogoImageUrl),
+        hero:
+          (game as any).customOriginalHeroPath ||
+          extractLocalPath(game.customHeroImageUrl),
       });
 
       setDefaultUrls({
@@ -170,12 +179,18 @@ export function EditGameModal({
         setAssetPath(assetType, copiedAssetUrl.replace("local:", ""));
         setAssetDisplayPath(assetType, originalPath);
         // Store the original path for display purposes
-        setOriginalAssetPaths((prev) => ({ ...prev, [assetType]: originalPath }));
+        setOriginalAssetPaths((prev) => ({
+          ...prev,
+          [assetType]: originalPath,
+        }));
       } catch (error) {
         console.error(`Failed to copy ${assetType} asset:`, error);
         setAssetPath(assetType, originalPath);
         setAssetDisplayPath(assetType, originalPath);
-        setOriginalAssetPaths((prev) => ({ ...prev, [assetType]: originalPath }));
+        setOriginalAssetPaths((prev) => ({
+          ...prev,
+          [assetType]: originalPath,
+        }));
       }
     }
   };
@@ -340,17 +355,17 @@ export function EditGameModal({
     const { iconUrl, logoImageUrl, libraryHeroImageUrl } =
       prepareCustomGameAssets(game);
 
-    return window.electron.updateCustomGame(
-      game.shop,
-      game.objectId,
-      gameName.trim(),
-      iconUrl || undefined,
-      logoImageUrl || undefined,
-      libraryHeroImageUrl || undefined,
-      originalAssetPaths.icon || undefined,
-      originalAssetPaths.logo || undefined,
-      originalAssetPaths.hero || undefined
-    );
+    return window.electron.updateCustomGame({
+      shop: game.shop,
+      objectId: game.objectId,
+      title: gameName.trim(),
+      iconUrl: iconUrl || undefined,
+      logoImageUrl: logoImageUrl || undefined,
+      libraryHeroImageUrl: libraryHeroImageUrl || undefined,
+      originalIconPath: originalAssetPaths.icon || undefined,
+      originalLogoPath: originalAssetPaths.logo || undefined,
+      originalHeroPath: originalAssetPaths.hero || undefined,
+    });
   };
 
   // Helper function to update non-custom game
@@ -358,17 +373,17 @@ export function EditGameModal({
     const { customIconUrl, customLogoImageUrl, customHeroImageUrl } =
       prepareNonCustomGameAssets();
 
-    return window.electron.updateGameCustomAssets(
-      game.shop,
-      game.objectId,
-      gameName.trim(),
+    return window.electron.updateGameCustomAssets({
+      shop: game.shop,
+      objectId: game.objectId,
+      title: gameName.trim(),
       customIconUrl,
       customLogoImageUrl,
       customHeroImageUrl,
-      originalAssetPaths.icon || undefined,
-      originalAssetPaths.logo || undefined,
-      originalAssetPaths.hero || undefined
-    );
+      customOriginalIconPath: originalAssetPaths.icon || undefined,
+      customOriginalLogoPath: originalAssetPaths.logo || undefined,
+      customOriginalHeroPath: originalAssetPaths.hero || undefined,
+    });
   };
 
   const handleUpdateGame = async () => {
