@@ -84,7 +84,10 @@ export function EditGameModal({
       setDefaultUrls({
         icon: shopDetails?.assets?.iconUrl || game.iconUrl || null,
         logo: shopDetails?.assets?.logoImageUrl || game.logoImageUrl || null,
-        hero: shopDetails?.assets?.libraryHeroImageUrl || game.libraryHeroImageUrl || null,
+        hero:
+          shopDetails?.assets?.libraryHeroImageUrl ||
+          game.libraryHeroImageUrl ||
+          null,
       });
     },
     [shopDetails]
@@ -119,11 +122,11 @@ export function EditGameModal({
   };
 
   const setAssetPath = (assetType: AssetType, path: string): void => {
-    setAssetPaths(prev => ({ ...prev, [assetType]: path }));
+    setAssetPaths((prev) => ({ ...prev, [assetType]: path }));
   };
 
   const setAssetDisplayPath = (assetType: AssetType, path: string): void => {
-    setAssetDisplayPaths(prev => ({ ...prev, [assetType]: path }));
+    setAssetDisplayPaths((prev) => ({ ...prev, [assetType]: path }));
   };
 
   const getDefaultUrl = (assetType: AssetType): string | null => {
@@ -293,7 +296,9 @@ export function EditGameModal({
   // Helper function to prepare custom game assets
   const prepareCustomGameAssets = (game: LibraryGame | Game) => {
     const iconUrl = assetPaths.icon ? `local:${assetPaths.icon}` : game.iconUrl;
-    const logoImageUrl = assetPaths.logo ? `local:${assetPaths.logo}` : game.logoImageUrl;
+    const logoImageUrl = assetPaths.logo
+      ? `local:${assetPaths.logo}`
+      : game.logoImageUrl;
     const libraryHeroImageUrl = assetPaths.hero
       ? `local:${assetPaths.hero}`
       : game.libraryHeroImageUrl;

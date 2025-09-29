@@ -44,7 +44,6 @@ export function UserLibraryGameCard({
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
   const [isPinning, setIsPinning] = useState(false);
 
-
   const getStatsItemCount = useCallback(() => {
     let statsCount = 1;
     if (game.achievementsPointsEarnedSum > 0) statsCount++;
@@ -91,14 +90,14 @@ export function UserLibraryGameCard({
 
       const hours = minutes / 60;
       const hoursKey = isShort ? "amount_hours_short" : "amount_hours";
-      const hoursAmount = isShort ? Math.floor(hours) : numberFormatter.format(hours);
-      
+      const hoursAmount = isShort
+        ? Math.floor(hours)
+        : numberFormatter.format(hours);
+
       return t(hoursKey, { amount: hoursAmount });
     },
     [numberFormatter, t]
   );
-
-
 
   const toggleGamePinned = async () => {
     setIsPinning(true);
@@ -162,7 +161,7 @@ export function UserLibraryGameCard({
                 )}
               </div>
             )}
-            <div 
+            <div
               className="user-library-game__playtime"
               data-tooltip-place="top"
               data-tooltip-content={
