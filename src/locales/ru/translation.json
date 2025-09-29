@@ -486,6 +486,8 @@
   "user_profile": {
     "amount_hours": "{{amount}} часов",
     "amount_minutes": "{{amount}} минут",
+    "amount_hours_short": "{{amount}}ч",
+    "amount_minutes_short": "{{amount}}м",
     "last_time_played": "Последняя игра {{period}}",
     "activity": "Недавняя активность",
     "library": "Библиотека",
