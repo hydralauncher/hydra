@@ -125,7 +125,10 @@ declare global {
       title: string,
       iconUrl?: string,
       logoImageUrl?: string,
-      libraryHeroImageUrl?: string
+      libraryHeroImageUrl?: string,
+      originalIconPath?: string,
+      originalLogoPath?: string,
+      originalHeroPath?: string
     ) => Promise<Game>;
     copyCustomGameAsset: (
       sourcePath: string,
@@ -141,7 +144,10 @@ declare global {
       title: string,
       customIconUrl?: string | null,
       customLogoImageUrl?: string | null,
-      customHeroImageUrl?: string | null
+      customHeroImageUrl?: string | null,
+      customOriginalIconPath?: string | null,
+      customOriginalLogoPath?: string | null,
+      customOriginalHeroPath?: string | null
     ) => Promise<Game>;
     createGameShortcut: (
       shop: GameShop,

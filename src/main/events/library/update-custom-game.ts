@@ -11,7 +11,10 @@ const updateCustomGame = async (
   title: string,
   iconUrl?: string,
   logoImageUrl?: string,
-  libraryHeroImageUrl?: string
+  libraryHeroImageUrl?: string,
+  originalIconPath?: string,
+  originalLogoPath?: string,
+  originalHeroPath?: string
 ) => {
   const gameKey = levelKeys.game(shop, objectId);
 
@@ -40,6 +43,9 @@ const updateCustomGame = async (
     iconUrl: iconUrl || null,
     logoImageUrl: logoImageUrl || null,
     libraryHeroImageUrl: libraryHeroImageUrl || null,
+    originalIconPath: originalIconPath || existingGame.originalIconPath || null,
+    originalLogoPath: originalLogoPath || existingGame.originalLogoPath || null,
+    originalHeroPath: originalHeroPath || existingGame.originalHeroPath || null,
   };
 
   await gamesSublevel.put(gameKey, updatedGame);
