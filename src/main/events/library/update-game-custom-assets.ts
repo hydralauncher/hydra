@@ -1,23 +1,13 @@
 import { registerEvent } from "../register-event";
 import { gamesSublevel, gamesShopAssetsSublevel, levelKeys } from "@main/level";
-import type { GameShop } from "@types";
+import type { GameShop, Game } from "@types";
 
-const updateGameCustomAssets = async (
-  _event: Electron.IpcMainInvokeEvent,
-  shop: GameShop,
-  objectId: string,
-  title: string,
+const collectOldAssetPaths = (
+  existingGame: Game,
   customIconUrl?: string | null,
   customLogoImageUrl?: string | null,
   customHeroImageUrl?: string | null
-) => {
-  const gameKey = levelKeys.game(shop, objectId);
-
-  const existingGame = await gamesSublevel.get(gameKey);
-  if (!existingGame) {
-    throw new Error("Game not found");
-  }
-
+): string[] => {
   const oldAssetPaths: string[] = [];
 
   const assetPairs = [
@@ -37,6 +27,17 @@ const updateGameCustomAssets = async (
     }
   }
 
+  return oldAssetPaths;
+};
+
+const updateGameData = async (
+  gameKey: string,
+  existingGame: Game,
+  title: string,
+  customIconUrl?: string | null,
+  customLogoImageUrl?: string | null,
+  customHeroImageUrl?: string | null
+): Promise<Game> => {
   const updatedGame = {
     ...existingGame,
     title,
@@ -46,29 +47,70 @@ const updateGameCustomAssets = async (
   };
 
   await gamesSublevel.put(gameKey, updatedGame);
+  return updatedGame;
+};
 
+const updateShopAssets = async (gameKey: string, title: string): Promise<void> => {
   const existingAssets = await gamesShopAssetsSublevel.get(gameKey);
   if (existingAssets) {
     const updatedAssets = {
       ...existingAssets,
       title,
     };
-
     await gamesShopAssetsSublevel.put(gameKey, updatedAssets);
   }
+};
 
-  if (oldAssetPaths.length > 0) {
-    const fs = await import("node:fs");
-    for (const assetPath of oldAssetPaths) {
-      try {
-        if (fs.existsSync(assetPath)) {
-          await fs.promises.unlink(assetPath);
-        }
-      } catch (error) {
-        console.warn(`Failed to delete old custom asset ${assetPath}:`, error);
+const deleteOldAssetFiles = async (oldAssetPaths: string[]): Promise<void> => {
+  if (oldAssetPaths.length === 0) return;
+
+  const fs = await import("node:fs");
+  for (const assetPath of oldAssetPaths) {
+    try {
+      if (fs.existsSync(assetPath)) {
+        await fs.promises.unlink(assetPath);
       }
+    } catch (error) {
+      console.warn(`Failed to delete old custom asset ${assetPath}:`, error);
     }
   }
+};
+
+const updateGameCustomAssets = async (
+  _event: Electron.IpcMainInvokeEvent,
+  shop: GameShop,
+  objectId: string,
+  title: string,
+  customIconUrl?: string | null,
+  customLogoImageUrl?: string | null,
+  customHeroImageUrl?: string | null
+) => {
+  const gameKey = levelKeys.game(shop, objectId);
+
+  const existingGame = await gamesSublevel.get(gameKey);
+  if (!existingGame) {
+    throw new Error("Game not found");
+  }
+
+  const oldAssetPaths = collectOldAssetPaths(
+    existingGame,
+    customIconUrl,
+    customLogoImageUrl,
+    customHeroImageUrl
+  );
+
+  const updatedGame = await updateGameData(
+    gameKey,
+    existingGame,
+    title,
+    customIconUrl,
+    customLogoImageUrl,
+    customHeroImageUrl
+  );
+
+  await updateShopAssets(gameKey, title);
+
+  await deleteOldAssetFiles(oldAssetPaths);
 
   return updatedGame;
 };
