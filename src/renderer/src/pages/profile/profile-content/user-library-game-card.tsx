@@ -13,7 +13,6 @@ import {
   ClockIcon,
   TrophyIcon,
   AlertFillIcon,
-  HeartFillIcon,
   PinIcon,
   PinSlashIcon,
 } from "@primer/octicons-react";
@@ -135,30 +134,23 @@ export function UserLibraryGameCard({
           onClick={() => navigate(buildUserGameDetailsPath(game))}
         >
           <div className="user-library-game__overlay">
-            {(game.isFavorite || isMe) && (
+            {isMe && (
               <div className="user-library-game__actions-container">
-                {game.isFavorite && (
-                  <div className="user-library-game__favorite-icon">
-                    <HeartFillIcon size={12} />
-                  </div>
-                )}
-                {isMe && (
-                  <button
-                    type="button"
-                    className="user-library-game__pin-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleGamePinned();
-                    }}
-                    disabled={isPinning}
-                  >
-                    {game.isPinned ? (
-                      <PinSlashIcon size={12} />
-                    ) : (
-                      <PinIcon size={12} />
-                    )}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="user-library-game__pin-button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleGamePinned();
+                  }}
+                  disabled={isPinning}
+                >
+                  {game.isPinned ? (
+                    <PinSlashIcon size={12} />
+                  ) : (
+                    <PinIcon size={12} />
+                  )}
+                </button>
               </div>
             )}
             <div
