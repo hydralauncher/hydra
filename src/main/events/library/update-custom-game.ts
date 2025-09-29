@@ -18,6 +18,30 @@ const updateCustomGame = async (
     throw new Error("Game not found");
   }
 
+  // Collect old asset paths that will be replaced
+  const oldAssetPaths: string[] = [];
+  
+  if (existingGame.iconUrl && iconUrl && existingGame.iconUrl !== iconUrl && existingGame.iconUrl.startsWith("local:")) {
+    oldAssetPaths.push(existingGame.iconUrl.replace("local:", ""));
+  }
+  if (existingGame.iconUrl && !iconUrl && existingGame.iconUrl.startsWith("local:")) {
+    oldAssetPaths.push(existingGame.iconUrl.replace("local:", ""));
+  }
+  
+  if (existingGame.logoImageUrl && logoImageUrl && existingGame.logoImageUrl !== logoImageUrl && existingGame.logoImageUrl.startsWith("local:")) {
+    oldAssetPaths.push(existingGame.logoImageUrl.replace("local:", ""));
+  }
+  if (existingGame.logoImageUrl && !logoImageUrl && existingGame.logoImageUrl.startsWith("local:")) {
+    oldAssetPaths.push(existingGame.logoImageUrl.replace("local:", ""));
+  }
+  
+  if (existingGame.libraryHeroImageUrl && libraryHeroImageUrl && existingGame.libraryHeroImageUrl !== libraryHeroImageUrl && existingGame.libraryHeroImageUrl.startsWith("local:")) {
+    oldAssetPaths.push(existingGame.libraryHeroImageUrl.replace("local:", ""));
+  }
+  if (existingGame.libraryHeroImageUrl && !libraryHeroImageUrl && existingGame.libraryHeroImageUrl.startsWith("local:")) {
+    oldAssetPaths.push(existingGame.libraryHeroImageUrl.replace("local:", ""));
+  }
+
   const updatedGame = {
     ...existingGame,
     title,
@@ -41,6 +65,20 @@ const updateCustomGame = async (
     };
 
     await gamesShopAssetsSublevel.put(gameKey, updatedAssets);
+  }
+
+  // Manually delete specific old asset files instead of running full cleanup
+  if (oldAssetPaths.length > 0) {
+    const fs = await import("fs");
+    for (const assetPath of oldAssetPaths) {
+      try {
+        if (fs.existsSync(assetPath)) {
+          await fs.promises.unlink(assetPath);
+        }
+      } catch (error) {
+        console.warn(`Failed to delete old asset ${assetPath}:`, error);
+      }
+    }
   }
 
   return updatedGame;
