@@ -1,6 +1,8 @@
 import { registerEvent } from "../register-event";
 import { gamesSublevel, gamesShopAssetsSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
+import fs from "node:fs";
+import { logger } from "@main/services";
 
 const updateCustomGame = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -58,14 +60,13 @@ const updateCustomGame = async (
   }
 
   if (oldAssetPaths.length > 0) {
-    const fs = await import("node:fs");
     for (const assetPath of oldAssetPaths) {
       try {
         if (fs.existsSync(assetPath)) {
           await fs.promises.unlink(assetPath);
         }
       } catch (error) {
-        console.warn(`Failed to delete old asset ${assetPath}:`, error);
+        logger.warn(`Failed to delete old asset ${assetPath}:`, error);
       }
     }
   }
