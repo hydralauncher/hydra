@@ -26,7 +26,7 @@ const updateGameCustomAssets = async (
     { existing: existingGame.customHeroImageUrl, new: customHeroImageUrl },
   ];
 
-  assetPairs.forEach(({ existing, new: newUrl }) => {
+  for (const { existing, new: newUrl } of assetPairs) {
     if (
       existing &&
       newUrl !== undefined &&
@@ -35,7 +35,7 @@ const updateGameCustomAssets = async (
     ) {
       oldAssetPaths.push(existing.replace("local:", ""));
     }
-  });
+  }
 
   const updatedGame = {
     ...existingGame,
@@ -51,7 +51,7 @@ const updateGameCustomAssets = async (
   if (existingAssets) {
     const updatedAssets = {
       ...existingAssets,
-      title,
+      title, 
     };
 
     await gamesShopAssetsSublevel.put(gameKey, updatedAssets);
