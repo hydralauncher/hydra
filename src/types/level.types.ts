@@ -38,6 +38,12 @@ export interface Game {
   customIconUrl?: string | null;
   customLogoImageUrl?: string | null;
   customHeroImageUrl?: string | null;
+  originalIconPath?: string | null;
+  originalLogoPath?: string | null;
+  originalHeroPath?: string | null;
+  customOriginalIconPath?: string | null;
+  customOriginalLogoPath?: string | null;
+  customOriginalHeroPath?: string | null;
   playTimeInMilliseconds: number;
   unsyncedDeltaPlayTimeInMilliseconds?: number;
   lastTimePlayed: Date | null;
