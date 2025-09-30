@@ -508,6 +508,8 @@
   "user_profile": {
     "amount_hours": "{{amount}} hours",
     "amount_minutes": "{{amount}} minutes",
+    "amount_hours_short": "{{amount}}h",
+    "amount_minutes_short": "{{amount}}m",
     "last_time_played": "Last played {{period}}",
     "activity": "Recent Activity",
     "library": "Library",

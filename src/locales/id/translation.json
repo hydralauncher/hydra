@@ -4,7 +4,6 @@
     "successfully_signed_in": "Berhasil masuk"
   },
   "home": {
-    "featured": "Unggulan",
     "surprise_me": "Kejutkan saya",
     "no_results": "Tidak ada hasil ditemukan"
   },
@@ -25,7 +24,6 @@
   },
   "header": {
     "search": "Cari game",
-
     "home": "Beranda",
     "catalogue": "Katalog",
     "downloads": "Unduhan",
@@ -41,10 +39,7 @@
     "calculating_eta": "Mengunduh {{title}}… ({{percentage}} selesai) - Menghitung waktu yang tersisa…",
     "checking_files": "Memeriksa file {{title}}… ({{percentage}} selesai)"
   },
-  "catalogue": {
-    "next_page": "Halaman Berikutnya",
-    "previous_page": "Halaman Sebelumnya"
-  },
+  "catalogue": {},
   "game_details": {
     "open_download_options": "Buka opsi unduhan",
     "download_options_zero": "Tidak ada opsi unduhan",

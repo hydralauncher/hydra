@@ -1,7 +1,6 @@
 {
   "language_name": "Nederlands",
   "home": {
-    "featured": "Uitgelicht",
     "surprise_me": "Verrasing",
     "no_results": "Geen resultaten gevonden"
   },
@@ -19,7 +18,6 @@
   },
   "header": {
     "search": "Zoek spellen",
-
     "home": "Home",
     "catalogue": "Bibliotheek",
     "downloads": "Downloads",
@@ -31,10 +29,7 @@
     "downloading_metadata": "Downloading {{title}} metadata…",
     "downloading": "Downloading {{title}}… ({{percentage}} complete) - Conclusion {{eta}} - {{speed}}"
   },
-  "catalogue": {
-    "next_page": "Volgende Pagina",
-    "previous_page": "Vorige Pagina"
-  },
+  "catalogue": {},
   "game_details": {
     "open_download_options": "Open download Instellingen",
     "download_options_zero": "Geen download Instellingen",

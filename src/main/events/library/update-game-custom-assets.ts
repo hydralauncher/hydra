@@ -1,16 +1,131 @@
 import { registerEvent } from "../register-event";
 import { gamesSublevel, gamesShopAssetsSublevel, levelKeys } from "@main/level";
-import type { GameShop } from "@types";
+import type { GameShop, Game } from "@types";
+import fs from "node:fs";
+import { logger } from "@main/services";
 
-const updateGameCustomAssets = async (
-  _event: Electron.IpcMainInvokeEvent,
-  shop: GameShop,
-  objectId: string,
-  title: string,
+const collectOldAssetPaths = (
+  existingGame: Game,
   customIconUrl?: string | null,
   customLogoImageUrl?: string | null,
   customHeroImageUrl?: string | null
+): string[] => {
+  const oldAssetPaths: string[] = [];
+
+  const assetPairs = [
+    { existing: existingGame.customIconUrl, new: customIconUrl },
+    { existing: existingGame.customLogoImageUrl, new: customLogoImageUrl },
+    { existing: existingGame.customHeroImageUrl, new: customHeroImageUrl },
+  ];
+
+  for (const { existing, new: newUrl } of assetPairs) {
+    if (
+      existing &&
+      newUrl !== undefined &&
+      existing !== newUrl &&
+      existing.startsWith("local:")
+    ) {
+      oldAssetPaths.push(existing.replace("local:", ""));
+    }
+  }
+
+  return oldAssetPaths;
+};
+
+interface UpdateGameDataParams {
+  gameKey: string;
+  existingGame: Game;
+  title: string;
+  customIconUrl?: string | null;
+  customLogoImageUrl?: string | null;
+  customHeroImageUrl?: string | null;
+  customOriginalIconPath?: string | null;
+  customOriginalLogoPath?: string | null;
+  customOriginalHeroPath?: string | null;
+}
+
+const updateGameData = async (params: UpdateGameDataParams): Promise<Game> => {
+  const {
+    gameKey,
+    existingGame,
+    title,
+    customIconUrl,
+    customLogoImageUrl,
+    customHeroImageUrl,
+    customOriginalIconPath,
+    customOriginalLogoPath,
+    customOriginalHeroPath,
+  } = params;
+  const updatedGame = {
+    ...existingGame,
+    title,
+    ...(customIconUrl !== undefined && { customIconUrl }),
+    ...(customLogoImageUrl !== undefined && { customLogoImageUrl }),
+    ...(customHeroImageUrl !== undefined && { customHeroImageUrl }),
+    ...(customOriginalIconPath !== undefined && { customOriginalIconPath }),
+    ...(customOriginalLogoPath !== undefined && { customOriginalLogoPath }),
+    ...(customOriginalHeroPath !== undefined && { customOriginalHeroPath }),
+  };
+
+  await gamesSublevel.put(gameKey, updatedGame);
+  return updatedGame;
+};
+
+const updateShopAssets = async (
+  gameKey: string,
+  title: string
+): Promise<void> => {
+  const existingAssets = await gamesShopAssetsSublevel.get(gameKey);
+  if (existingAssets) {
+    const updatedAssets = {
+      ...existingAssets,
+      title,
+    };
+    await gamesShopAssetsSublevel.put(gameKey, updatedAssets);
+  }
+};
+
+const deleteOldAssetFiles = async (oldAssetPaths: string[]): Promise<void> => {
+  if (oldAssetPaths.length === 0) return;
+
+  for (const assetPath of oldAssetPaths) {
+    try {
+      if (fs.existsSync(assetPath)) {
+        await fs.promises.unlink(assetPath);
+      }
+    } catch (error) {
+      logger.warn(`Failed to delete old custom asset ${assetPath}:`, error);
+    }
+  }
+};
+
+interface UpdateGameCustomAssetsParams {
+  shop: GameShop;
+  objectId: string;
+  title: string;
+  customIconUrl?: string | null;
+  customLogoImageUrl?: string | null;
+  customHeroImageUrl?: string | null;
+  customOriginalIconPath?: string | null;
+  customOriginalLogoPath?: string | null;
+  customOriginalHeroPath?: string | null;
+}
+
+const updateGameCustomAssets = async (
+  _event: Electron.IpcMainInvokeEvent,
+  params: UpdateGameCustomAssetsParams
 ) => {
+  const {
+    shop,
+    objectId,
+    title,
+    customIconUrl,
+    customLogoImageUrl,
+    customHeroImageUrl,
+    customOriginalIconPath,
+    customOriginalLogoPath,
+    customOriginalHeroPath,
+  } = params;
   const gameKey = levelKeys.game(shop, objectId);
 
   const existingGame = await gamesSublevel.get(gameKey);
@@ -18,26 +133,28 @@ const updateGameCustomAssets = async (
     throw new Error("Game not found");
   }
 
-  const updatedGame = {
-    ...existingGame,
+  const oldAssetPaths = collectOldAssetPaths(
+    existingGame,
+    customIconUrl,
+    customLogoImageUrl,
+    customHeroImageUrl
+  );
+
+  const updatedGame = await updateGameData({
+    gameKey,
+    existingGame,
     title,
-    ...(customIconUrl !== undefined && { customIconUrl }),
-    ...(customLogoImageUrl !== undefined && { customLogoImageUrl }),
-    ...(customHeroImageUrl !== undefined && { customHeroImageUrl }),
-  };
+    customIconUrl,
+    customLogoImageUrl,
+    customHeroImageUrl,
+    customOriginalIconPath,
+    customOriginalLogoPath,
+    customOriginalHeroPath,
+  });
 
-  await gamesSublevel.put(gameKey, updatedGame);
+  await updateShopAssets(gameKey, title);
 
-  // Also update the shop assets for non-custom games
-  const existingAssets = await gamesShopAssetsSublevel.get(gameKey);
-  if (existingAssets) {
-    const updatedAssets = {
-      ...existingAssets,
-      title, // Update the title in shop assets as well
-    };
-
-    await gamesShopAssetsSublevel.put(gameKey, updatedAssets);
-  }
+  await deleteOldAssetFiles(oldAssetPaths);
 
   return updatedGame;
 };
