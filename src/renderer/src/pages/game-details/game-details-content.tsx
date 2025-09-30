@@ -191,14 +191,16 @@ export function GameDetailsContent() {
               {renderGameLogo()}
 
               <div className="game-details__hero-buttons game-details__hero-buttons--right">
-                <button
-                  type="button"
-                  className="game-details__edit-custom-game-button"
-                  onClick={handleEditGameClick}
-                  title={t("edit_game_modal_button")}
-                >
-                  <PencilIcon size={16} />
-                </button>
+                {game && (
+                  <button
+                    type="button"
+                    className="game-details__edit-custom-game-button"
+                    onClick={handleEditGameClick}
+                    title={t("edit_game_modal_button")}
+                  >
+                    <PencilIcon size={16} />
+                  </button>
+                )}
 
                 {game?.shop !== "custom" && (
                   <button
@@ -240,13 +242,15 @@ export function GameDetailsContent() {
         </div>
       </section>
 
-      <EditGameModal
-        visible={showEditGameModal}
-        onClose={() => setShowEditGameModal(false)}
-        game={game}
-        shopDetails={shopDetails}
-        onGameUpdated={handleGameUpdated}
-      />
+      {game && (
+        <EditGameModal
+          visible={showEditGameModal}
+          onClose={() => setShowEditGameModal(false)}
+          game={game}
+          shopDetails={shopDetails}
+          onGameUpdated={handleGameUpdated}
+        />
+      )}
     </div>
   );
 }
