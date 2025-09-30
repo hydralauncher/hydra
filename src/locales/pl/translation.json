@@ -1,7 +1,6 @@
 {
   "language_name": "Polski",
   "home": {
-    "featured": "Wyróżnione",
     "surprise_me": "Zaskocz mnie",
     "no_results": "Nie znaleziono wyników"
   },
@@ -20,7 +19,6 @@
   },
   "header": {
     "search": "Szukaj",
-
     "home": "Główna",
     "catalogue": "Katalog",
     "downloads": "Pobrane",
@@ -32,10 +30,7 @@
     "downloading_metadata": "Pobieranie {{title}} metadata…",
     "downloading": "Pobieranie {{title}}… (ukończone w {{percentage}}) - Podsumowanie {{eta}} - {{speed}}"
   },
-  "catalogue": {
-    "next_page": "Następna strona",
-    "previous_page": "Poprzednia strona"
-  },
+  "catalogue": {},
   "game_details": {
     "open_download_options": "Otwórz opcje pobierania",
     "download_options_zero": "Brak opcji pobierania",

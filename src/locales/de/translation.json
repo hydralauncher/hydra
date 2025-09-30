@@ -4,7 +4,6 @@
     "successfully_signed_in": "Erfolgreich angemeldet"
   },
   "home": {
-    "featured": "Empfohlen",
     "surprise_me": "Überrasche mich",
     "no_results": "Keine Ergebnisse gefunden",
     "start_typing": "Tippe, um zu suchen...",
@@ -59,9 +58,7 @@
     "download_sources": "Download-Quellen",
     "result_count": "{{resultCount}} Ergebnisse",
     "filter_count": "{{filterCount}} verfügbar",
-    "clear_filters": "{{filterCount}} ausgewählte löschen",
-    "next_page": "Nächste Seite",
-    "previous_page": "Vorherige Seite"
+    "clear_filters": "{{filterCount}} ausgewählte löschen"
   },
   "game_details": {
     "open_download_options": "Download-Optionen öffnen",

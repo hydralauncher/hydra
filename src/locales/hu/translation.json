@@ -1,7 +1,6 @@
 {
   "language_name": "Magyar",
   "home": {
-    "featured": "Featured",
     "surprise_me": "Lepj meg",
     "no_results": "Nem található"
   },
@@ -19,7 +18,6 @@
   },
   "header": {
     "search": "Keresés",
-
     "home": "Főoldal",
     "catalogue": "Katalógus",
     "downloads": "Letöltések",
@@ -31,10 +29,7 @@
     "downloading_metadata": "{{title}} metaadatainak letöltése…",
     "downloading": "{{title}} letöltése… ({{percentage}} kész) - Befejezés {{eta}} - {{speed}}"
   },
-  "catalogue": {
-    "next_page": "Következő olda",
-    "previous_page": "Előző olda"
-  },
+  "catalogue": {},
   "game_details": {
     "open_download_options": "Letöltési lehetőségek",
     "download_options_zero": "Nincs letöltési lehetőség",

@@ -5,7 +5,6 @@ import { useAppDispatch, useFormat } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { TelescopeIcon, ChevronRightIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
-import { UserGame } from "@types";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
 import { FriendsBox } from "./friends-box";
@@ -17,8 +16,6 @@ import { useSectionCollapse } from "@renderer/hooks/use-section-collapse";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   sectionVariants,
-  gameCardVariants,
-  gameGridVariants,
   chevronVariants,
   GAME_STATS_ANIMATION_DURATION_IN_MS,
 } from "./profile-animations";
@@ -38,8 +35,6 @@ export function ProfileContent() {
   const [statsIndex, setStatsIndex] = useState(0);
   const [isAnimationRunning, setIsAnimationRunning] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
-  const [prevLibraryGames, setPrevLibraryGames] = useState<UserGame[]>([]);
-  const [prevPinnedGames, setPrevPinnedGames] = useState<UserGame[]>([]);
   const statsAnimation = useRef(-1);
   const { toggleSection, isPinnedCollapsed } = useSectionCollapse();
 
@@ -91,27 +86,6 @@ export function ProfileContent() {
   }, [setStatsIndex, isAnimationRunning]);
 
   const { numberFormatter } = useFormat();
-
-  const gamesHaveChanged = (
-    current: UserGame[],
-    previous: UserGame[]
-  ): boolean => {
-    if (current.length !== previous.length) return true;
-    return current.some(
-      (game, index) => game.objectId !== previous[index]?.objectId
-    );
-  };
-
-  const shouldAnimateLibrary = gamesHaveChanged(libraryGames, prevLibraryGames);
-  const shouldAnimatePinned = gamesHaveChanged(pinnedGames, prevPinnedGames);
-
-  useEffect(() => {
-    setPrevLibraryGames(libraryGames);
-  }, [libraryGames]);
-
-  useEffect(() => {
-    setPrevPinnedGames(pinnedGames);
-  }, [pinnedGames]);
 
   const usersAreFriends = useMemo(() => {
     return userProfile?.relation?.status === "ACCEPTED";
@@ -192,57 +166,22 @@ export function ProfileContent() {
                         exit="collapsed"
                         layout
                       >
-                        <motion.ul
-                          className="profile-content__games-grid"
-                          variants={
-                            shouldAnimatePinned ? gameGridVariants : undefined
-                          }
-                          initial={shouldAnimatePinned ? "hidden" : undefined}
-                          animate={shouldAnimatePinned ? "visible" : undefined}
-                          exit={shouldAnimatePinned ? "exit" : undefined}
-                          key={
-                            shouldAnimatePinned
-                              ? `pinned-${sortBy}`
-                              : `pinned-static`
-                          }
-                        >
-                          {shouldAnimatePinned ? (
-                            <AnimatePresence mode="wait">
-                              {pinnedGames?.map((game, index) => (
-                                <motion.li
-                                  key={game.objectId}
-                                  variants={gameCardVariants}
-                                  initial="hidden"
-                                  animate="visible"
-                                  exit="exit"
-                                  transition={{ delay: index * 0.1 }}
-                                  style={{ listStyle: "none" }}
-                                >
-                                  <UserLibraryGameCard
-                                    game={game}
-                                    statIndex={statsIndex}
-                                    onMouseEnter={handleOnMouseEnterGameCard}
-                                    onMouseLeave={handleOnMouseLeaveGameCard}
-                                  />
-                                </motion.li>
-                              ))}
-                            </AnimatePresence>
-                          ) : (
-                            pinnedGames?.map((game) => (
-                              <li
-                                key={game.objectId}
-                                style={{ listStyle: "none" }}
-                              >
-                                <UserLibraryGameCard
-                                  game={game}
-                                  statIndex={statsIndex}
-                                  onMouseEnter={handleOnMouseEnterGameCard}
-                                  onMouseLeave={handleOnMouseLeaveGameCard}
-                                />
-                              </li>
-                            ))
-                          )}
-                        </motion.ul>
+                        <ul className="profile-content__games-grid">
+                          {pinnedGames?.map((game) => (
+                            <li
+                              key={game.objectId}
+                              style={{ listStyle: "none" }}
+                            >
+                              <UserLibraryGameCard
+                                game={game}
+                                statIndex={statsIndex}
+                                onMouseEnter={handleOnMouseEnterGameCard}
+                                onMouseLeave={handleOnMouseLeaveGameCard}
+                                sortBy={sortBy}
+                              />
+                            </li>
+                          ))}
+                        </ul>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -262,54 +201,19 @@ export function ProfileContent() {
                     </div>
                   </div>
 
-                  <motion.ul
-                    className="profile-content__games-grid"
-                    variants={
-                      shouldAnimateLibrary ? gameGridVariants : undefined
-                    }
-                    initial={shouldAnimateLibrary ? "hidden" : undefined}
-                    animate={shouldAnimateLibrary ? "visible" : undefined}
-                    exit={shouldAnimateLibrary ? "exit" : undefined}
-                    key={
-                      shouldAnimateLibrary
-                        ? `library-${sortBy}`
-                        : `library-static`
-                    }
-                  >
-                    {shouldAnimateLibrary ? (
-                      <AnimatePresence mode="wait">
-                        {libraryGames?.map((game, index) => (
-                          <motion.li
-                            key={game.objectId}
-                            variants={gameCardVariants}
-                            initial="hidden"
-                            animate="visible"
-                            exit="exit"
-                            transition={{ delay: index * 0.1 }}
-                            style={{ listStyle: "none" }}
-                          >
-                            <UserLibraryGameCard
-                              game={game}
-                              statIndex={statsIndex}
-                              onMouseEnter={handleOnMouseEnterGameCard}
-                              onMouseLeave={handleOnMouseLeaveGameCard}
-                            />
-                          </motion.li>
-                        ))}
-                      </AnimatePresence>
-                    ) : (
-                      libraryGames?.map((game) => (
-                        <li key={game.objectId} style={{ listStyle: "none" }}>
-                          <UserLibraryGameCard
-                            game={game}
-                            statIndex={statsIndex}
-                            onMouseEnter={handleOnMouseEnterGameCard}
-                            onMouseLeave={handleOnMouseLeaveGameCard}
-                          />
-                        </li>
-                      ))
-                    )}
-                  </motion.ul>
+                  <ul className="profile-content__games-grid">
+                    {libraryGames?.map((game) => (
+                      <li key={game.objectId} style={{ listStyle: "none" }}>
+                        <UserLibraryGameCard
+                          game={game}
+                          statIndex={statsIndex}
+                          onMouseEnter={handleOnMouseEnterGameCard}
+                          onMouseLeave={handleOnMouseLeaveGameCard}
+                          sortBy={sortBy}
+                        />
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>
@@ -338,8 +242,6 @@ export function ProfileContent() {
     pinnedGames,
     isPinnedCollapsed,
     toggleSection,
-    shouldAnimateLibrary,
-    shouldAnimatePinned,
     sortBy,
   ]);
 

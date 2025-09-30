@@ -76,6 +76,15 @@
     width: 24px;
     height: 24px;
     position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__title-flame-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
   }
 
   &__title {
