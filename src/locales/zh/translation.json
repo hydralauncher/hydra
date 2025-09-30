@@ -4,7 +4,6 @@
     "successfully_signed_in": "已成功登录"
   },
   "home": {
-    "featured": "特色推荐",
     "surprise_me": "向我推荐",
     "no_results": "没有找到结果",
     "start_typing": "键入以开始搜素...",
@@ -51,8 +50,6 @@
     "installing_common_redist": "{{log}}…"
   },
   "catalogue": {
-    "next_page": "下一页",
-    "previous_page": "上一页",
     "clear_filters": "清除已选的 {{filterCount}} 项",
     "developers": "开发商",
     "download_sources": "下载源",

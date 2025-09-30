@@ -4,7 +4,6 @@
     "successfully_signed_in": "Loggede ind successfuldt"
   },
   "home": {
-    "featured": "Anbefalet",
     "surprise_me": "Overrask mig",
     "no_results": "Ingen resultater fundet",
     "start_typing": "Begynd at skrive for at søge...",
@@ -29,7 +28,6 @@
   },
   "header": {
     "search": "Søg efter spil",
-
     "home": "Hjem",
     "catalogue": "Katalog",
     "downloads": "Downloads",
@@ -45,10 +43,7 @@
     "calculating_eta": "Downloader {{title}}… ({{percentage}} færdig) - Udregner resterende tid…",
     "checking_files": "Checker {{title}} filer… ({{percentage}} færdig)"
   },
-  "catalogue": {
-    "next_page": "Næste side",
-    "previous_page": "Forrige side"
-  },
+  "catalogue": {},
   "game_details": {
     "open_download_options": "Åben download muligheder",
     "download_options_zero": "Ingen download mulighed",
