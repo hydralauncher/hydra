@@ -587,7 +587,7 @@ export function EditGameModal({
             />
             {isDragOver && (
               <div className="edit-game-modal__drop-overlay">
-                <span>Drop to replace {assetType}</span>
+                <span>{t(`edit_game_modal_drop_to_replace_${assetType}`)}</span>
               </div>
             )}
           </button>
@@ -610,7 +610,7 @@ export function EditGameModal({
           >
             <div className="edit-game-modal__drop-zone-content">
               <ImageIcon />
-              <span>Drop {assetType} image here</span>
+              <span>{t(`edit_game_modal_drop_${assetType}_image_here`)}</span>
             </div>
           </button>
         )}
