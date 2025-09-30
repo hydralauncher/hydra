@@ -181,15 +181,17 @@ export function RepacksModal({
         >
           <div className="repacks-modal__filter-top">
             <TextField placeholder={t("filter")} onChange={handleFilter} />
-            <Button
-              type="button"
-              theme="outline"
-              onClick={() => setIsFilterDrawerOpen(!isFilterDrawerOpen)}
-              className="repacks-modal__filter-toggle"
-            >
-              {t("filter_by_source")}
-              {isFilterDrawerOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-            </Button>
+            {downloadSources.length > 0 && (
+              <Button
+                type="button"
+                theme="outline"
+                onClick={() => setIsFilterDrawerOpen(!isFilterDrawerOpen)}
+                className="repacks-modal__filter-toggle"
+              >
+                {t("filter_by_source")}
+                {isFilterDrawerOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+              </Button>
+            )}
           </div>
 
           <div

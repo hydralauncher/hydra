@@ -2,37 +2,33 @@
 
 .repacks-modal {
   &__filter-container {
-    margin-bottom: 1rem;
-    transition: min-height 0.3s ease;
-
-    &--drawer-open {
-      min-height: 250px;
-    }
+    transition: all 0.3s ease;
   }
 
   &__filter-top {
-    margin-bottom: 1rem;
+    margin-bottom: calc(globals.$spacing-unit * 2);
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    flex-direction: row;
+    gap: calc(globals.$spacing-unit * 1);
+    align-items: center;
   }
 
   &__filter-toggle {
-    align-self: flex-start;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: calc(globals.$spacing-unit * 1);
     font-size: globals.$small-font-size;
     font-weight: 600;
     color: var(--color-text-secondary);
-    padding: 0.5rem 0.75rem;
+    padding: calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 1.5);
     border-radius: 6px;
     transition: background-color 0.2s ease;
+    white-space: nowrap;
   }
 
   &__repacks {
     display: flex;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 2);
     flex-direction: column;
   }
 
@@ -41,7 +37,7 @@
     text-align: left;
     flex-direction: column;
     align-items: flex-start;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 1);
     color: globals.$body-color;
     padding: calc(globals.$spacing-unit * 2);
   }
@@ -91,8 +87,8 @@
     padding: 0;
     background-color: var(--color-background-light);
     border-radius: 8px;
-    margin-bottom: 1rem;
-    margin-top: calc(globals.$spacing-unit * 0.5);
+    margin-bottom: calc(globals.$spacing-unit * 2);
+    margin-top: calc(globals.$spacing-unit * 1);
     max-height: 0;
     overflow: hidden;
     transition:
@@ -100,8 +96,7 @@
       padding 0.3s ease;
 
     &--open {
-      padding: 0.75rem;
-      max-height: 250px;
+      max-height: 280px;
     }
   }
 
@@ -117,24 +112,30 @@
   &__source-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
+    gap: calc(globals.$spacing-unit * 1);
     max-height: 200px;
     overflow-y: auto;
     overflow-x: hidden;
     align-items: start;
-    padding-right: 0.25rem;
+    padding: calc(globals.$spacing-unit * 0.5) calc(globals.$spacing-unit * 0.5)
+      calc(globals.$spacing-unit * 0.5) 0;
   }
 
   &__source-item {
-    padding: 0.35rem 0.5rem;
+    padding: calc(globals.$spacing-unit * 0.75) calc(globals.$spacing-unit * 1);
     background: var(--color-surface, rgba(0, 0, 0, 0.03));
-    border: 1px solid var(--color-border);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 6px;
     display: flex;
     align-items: center;
-    min-height: auto;
+    min-height: calc(globals.$spacing-unit * 5);
     box-sizing: border-box;
     width: 100%;
+    transition: border-color 0.2s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+    }
   }
 
   &__source-item :global(.checkbox-field) {
