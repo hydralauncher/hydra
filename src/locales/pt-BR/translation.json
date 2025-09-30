@@ -26,7 +26,22 @@
     "sign_in": "Login",
     "friends": "Amigos",
     "need_help": "Precisa de ajuda?",
-    "favorites": "Favoritos"
+    "favorites": "Favoritos",
+    "add_custom_game_tooltip": "Adicionar jogo personalizado",
+    "custom_game_modal": "Adicionar jogo personalizado",
+    "edit_game_modal_title": "Título",
+    "playable_button_title": "",
+    "custom_game_modal_add": "Adicionar Jogo",
+    "custom_game_modal_adding": "Adicionando...",
+    "custom_game_modal_browse": "Buscar",
+    "custom_game_modal_cancel": "Cancelar",
+    "edit_game_modal_assets": "Imagens",
+    "edit_game_modal_icon": "Ícone",
+    "edit_game_modal_browse": "Buscar",
+    "edit_game_modal_cancel": "Cancelar",
+    "edit_game_modal_enter_title": "Insira o título",
+    "edit_game_modal_logo": "Logo",
+    "edit_game_modal": "Personalizar detalhes"
   },
   "header": {
     "search": "Buscar jogos",
@@ -219,7 +234,18 @@
     "historical_keyshop": "Preço histórico em keyshops",
     "language": "Idioma",
     "caption": "Legenda",
-    "audio": "Áudio"
+    "audio": "Áudio",
+    "edit_game_modal_button": "Alterar detalhes do jogo",
+    "game_added_to_pinned": "Jogo adicionado aos fixados",
+    "game_removed_from_pinned": "Jogo removido dos fixados",
+    "manual_playtime_tooltip": "Este tempo de jogo foi atualizado manualmente",
+    "manual_playtime_warning": "As suas horas de jogo serão marcadas como atualizadas manualmente. Esta ação não pode ser desfeita.",
+    "missing_wine_prefix": "Um prefixo Wine é necessário para criar um backup no Linux",
+    "update_game_playtime": "Modificar tempo de jogo",
+    "update_playtime": "Modificar tempo de jogo",
+    "update_playtime_description": "Atualizar manualmente o tempo de jogo de {{game}}",
+    "update_playtime_error": "Falha ao atualizar tempo de jogo",
+    "update_playtime_title": "Atualizar tempo de jogo"
   },
   "activation": {
     "title": "Ativação",
@@ -394,7 +420,8 @@
     "hidden": "Oculta",
     "test_notification": "Testar notificação",
     "notification_preview": "Prévia da Notificação de Conquistas",
-    "enable_friend_start_game_notifications": "Quando um amigo iniciar um jogo"
+    "enable_friend_start_game_notifications": "Quando um amigo iniciar um jogo",
+    "editor_tab_code": "Código"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -523,7 +550,15 @@
     "show_achievements_on_profile": "Exiba suas conquistas no perfil",
     "show_points_on_profile": "Exiba seus pontos ganhos no perfil",
     "error_adding_friend": "Não foi possível enviar o pedido de amizade. Verifique o código de amizade inserido",
-    "friend_code_length_error": "Código de amigo deve ter 8 caracteres"
+    "friend_code_length_error": "Código de amigo deve ter 8 caracteres",
+    "top_percentile": "Top {{percentile}}%",
+    "playtime": "Tempo de jogo",
+    "played_recently": "Jogado recentemente",
+    "pinned": "Fixado",
+    "amount_minutes_short": "{{amount}}h",
+    "amount_hours_short": "{{amount}}h",
+    "game_added_to_pinned": "Jogo adicionado aos fixados",
+    "achievements_earned": "Conquistas recebidas"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",

@@ -1,7 +1,6 @@
 {
   "language_name": "فارسی",
   "home": {
-    "featured": "پیشنهادی",
     "surprise_me": "سوپرایزم کن",
     "no_results": "اتمام‌ای پیدا نشد"
   },
@@ -17,7 +16,6 @@
     "home": "خانه",
     "favorites": "علاقه‌مندی‌ها"
   },
-
   "header": {
     "search": "جستجوی  بازی‌ها",
     "home": "خانه",
@@ -31,10 +29,7 @@
     "downloading_metadata": "درحال دانلود متادیتاهای {{title}}…",
     "downloading": "در حال دانلود {{title}}… ({{percentage}} تکمیل شده) - اتمام {{eta}} - {{speed}}"
   },
-  "catalogue": {
-    "next_page": "صفحه‌ی بعدی",
-    "previous_page": "صفحه‌ی قبلی"
-  },
+  "catalogue": {},
   "game_details": {
     "open_download_options": "بازکردن آپشن‌های دانلود",
     "download_options_zero": "هیچ آپشن دانلودی وجود ندارد",

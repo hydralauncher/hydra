@@ -158,7 +158,7 @@ export default function Home() {
               <img
                 src={flameIconAnimated}
                 alt="Flame animation"
-                className="home__flame-icon"
+                className="home__title-flame-icon"
               />
             </div>
           )}

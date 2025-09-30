@@ -4,7 +4,6 @@
     "successfully_signed_in": "Сәтті кіру"
   },
   "home": {
-    "featured": "Ұсынылған",
     "surprise_me": "Таңқалдыр",
     "no_results": "Ештеңе табылмады"
   },
@@ -23,7 +22,6 @@
     "sign_in": "Кіру",
     "favorites": "Таңдаулылар"
   },
-
   "header": {
     "search": "Іздеу",
     "home": "Басты бет",
@@ -40,10 +38,7 @@
     "downloading": "Жүктеу {{title}}… ({{percentage}} аяқталды) - Аяқтау {{eta}} - {{speed}}",
     "calculating_eta": "Жүктеу {{title}}… ({{percentage}} аяқталды) - Қалған уақытты есептеу…"
   },
-  "catalogue": {
-    "next_page": "Келесі бет",
-    "previous_page": "Алдыңғы бет"
-  },
+  "catalogue": {},
   "game_details": {
     "open_download_options": "Жүктеу нұсқаларын ашу",
     "download_options_zero": "Жүктеу нұсқалары жоқ",
