@@ -1,7 +1,6 @@
 {
   "language_name": "беларуская мова",
   "home": {
-    "featured": "Рэкамэндаванае",
     "surprise_me": "Здзіві мяне",
     "no_results": "Няма вынікаў"
   },
@@ -17,7 +16,6 @@
     "home": "Галоўная",
     "favorites": "Улюбленыя"
   },
-
   "header": {
     "search": "Пошук",
     "home": "Галоўная",
@@ -31,10 +29,7 @@
     "downloading_metadata": "Сцягванне мэтаданых {{title}}…",
     "downloading": "Сцягванне {{title}}… ({{percentage}} скончана) - Канчатак {{eta}} - {{speed}}"
   },
-  "catalogue": {
-    "next_page": "Наступная старонка",
-    "previous_page": "Папярэдняя старонка"
-  },
+  "catalogue": {},
   "game_details": {
     "open_download_options": "Адкрыць варыянты сцягвання",
     "download_options_zero": "Няма варыянтаў сцягвання",

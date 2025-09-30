@@ -92,6 +92,7 @@
     "installation_complete": "Telepítés befejezve",
     "installation_complete_message": "A(z) Alapvető segédprogramok sikeresen telepítve"
   },
+<<<<<<< HEAD
   "catalogue": {
     "search": "Szűrés…",
     "developers": "Fejlesztők",
@@ -103,6 +104,9 @@
     "filter_count": "{{filterCount}} elérhető",
     "clear_filters": "{{filterCount}} kiválaszott szűrő törlése"
   },
+=======
+  "catalogue": {},
+>>>>>>> 4f5c345c421b7447ea4aa4a01706e485f5f641e7
   "game_details": {
     "open_download_options": "Letöltési opciók megnyitása",
     "download_options_zero": "Nincs letöltési opció",

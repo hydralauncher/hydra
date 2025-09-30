@@ -119,14 +119,17 @@ declare global {
       logoImageUrl?: string,
       libraryHeroImageUrl?: string
     ) => Promise<Game>;
-    updateCustomGame: (
-      shop: GameShop,
-      objectId: string,
-      title: string,
-      iconUrl?: string,
-      logoImageUrl?: string,
-      libraryHeroImageUrl?: string
-    ) => Promise<Game>;
+    updateCustomGame: (params: {
+      shop: GameShop;
+      objectId: string;
+      title: string;
+      iconUrl?: string;
+      logoImageUrl?: string;
+      libraryHeroImageUrl?: string;
+      originalIconPath?: string;
+      originalLogoPath?: string;
+      originalHeroPath?: string;
+    }) => Promise<Game>;
     copyCustomGameAsset: (
       sourcePath: string,
       assetType: "icon" | "logo" | "hero"
@@ -135,14 +138,17 @@ declare global {
       deletedCount: number;
       errors: string[];
     }>;
-    updateGameCustomAssets: (
-      shop: GameShop,
-      objectId: string,
-      title: string,
-      customIconUrl?: string | null,
-      customLogoImageUrl?: string | null,
-      customHeroImageUrl?: string | null
-    ) => Promise<Game>;
+    updateGameCustomAssets: (params: {
+      shop: GameShop;
+      objectId: string;
+      title: string;
+      customIconUrl?: string | null;
+      customLogoImageUrl?: string | null;
+      customHeroImageUrl?: string | null;
+      customOriginalIconPath?: string | null;
+      customOriginalLogoPath?: string | null;
+      customOriginalHeroPath?: string | null;
+    }) => Promise<Game>;
     createGameShortcut: (
       shop: GameShop,
       objectId: string,

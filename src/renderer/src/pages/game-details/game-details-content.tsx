@@ -43,6 +43,29 @@ export function GameDetailsContent() {
       const $images = Array.from(document.querySelectorAll("img"));
       $images.forEach(($image) => {
         $image.loading = "lazy";
+        // Remove any inline width/height styles that might cause overflow
+        $image.removeAttribute("width");
+        $image.removeAttribute("height");
+        $image.removeAttribute("style");
+        // Set max-width to prevent overflow
+        $image.style.maxWidth = "100%";
+        $image.style.width = "auto";
+        $image.style.height = "auto";
+        $image.style.boxSizing = "border-box";
+      });
+
+      // Handle videos the same way
+      const $videos = Array.from(document.querySelectorAll("video"));
+      $videos.forEach(($video) => {
+        // Remove any inline width/height styles that might cause overflow
+        $video.removeAttribute("width");
+        $video.removeAttribute("height");
+        $video.removeAttribute("style");
+        // Set max-width to prevent overflow
+        $video.style.maxWidth = "100%";
+        $video.style.width = "auto";
+        $video.style.height = "auto";
+        $video.style.boxSizing = "border-box";
       });
 
       return document.body.outerHTML;
