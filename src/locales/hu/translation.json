@@ -27,8 +27,8 @@
     "friends": "Barátok",
     "need_help": "Elakadtál?",
     "favorites": "Kedvenc játékok",
-    "playable_button_title": "Csak az azonnal játszható játékokat mutasd"
-	"add_custom_game_tooltip": "Saját játék hozzáadása",
+    "playable_button_title": "Csak az azonnal játszható játékokat mutasd",
+    "add_custom_game_tooltip": "Saját játék hozzáadása",
     "show_playable_only_tooltip": "Csak játszható játék mutatása",
     "custom_game_modal": "Saját játék hozzáadása",
     "custom_game_modal_description": "Saját játék hozzáadása egy futtatható fájl által",
