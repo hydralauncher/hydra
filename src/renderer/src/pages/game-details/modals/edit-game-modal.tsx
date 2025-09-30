@@ -4,6 +4,7 @@ import { ImageIcon, XIcon } from "@primer/octicons-react";
 
 import { Modal, TextField, Button } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
+import { generateRandomGradient } from "@renderer/helpers";
 import type { LibraryGame, Game, ShopDetailsWithAssets } from "@types";
 
 import "./edit-game-modal.scss";
@@ -43,6 +44,11 @@ export function EditGameModal({
     icon: "",
     logo: "",
     hero: "",
+  });
+  const [removedAssets, setRemovedAssets] = useState({
+    icon: false,
+    logo: false,
+    hero: false,
   });
   const [defaultUrls, setDefaultUrls] = useState({
     icon: null as string | null,
@@ -158,6 +164,21 @@ export function EditGameModal({
     return defaultUrls[assetType];
   };
 
+  const getOriginalAssetUrl = (assetType: AssetType): string | null => {
+    if (!game || !isCustomGame(game)) return null;
+    
+    switch (assetType) {
+      case "icon":
+        return game.iconUrl;
+      case "logo":
+        return game.logoImageUrl;
+      case "hero":
+        return game.libraryHeroImageUrl;
+      default:
+        return null;
+    }
+  };
+
   const handleSelectAsset = async (assetType: AssetType) => {
     const { filePaths } = await window.electron.showOpenDialog({
       properties: ["openFile"],
@@ -183,6 +204,8 @@ export function EditGameModal({
           ...prev,
           [assetType]: originalPath,
         }));
+        // Clear the removed flag when a new asset is selected
+        setRemovedAssets((prev) => ({ ...prev, [assetType]: false }));
       } catch (error) {
         console.error(`Failed to copy ${assetType} asset:`, error);
         setAssetPath(assetType, originalPath);
@@ -191,14 +214,25 @@ export function EditGameModal({
           ...prev,
           [assetType]: originalPath,
         }));
+        // Clear the removed flag when a new asset is selected
+        setRemovedAssets((prev) => ({ ...prev, [assetType]: false }));
       }
     }
   };
 
   const handleRestoreDefault = (assetType: AssetType) => {
-    setAssetPath(assetType, "");
-    setAssetDisplayPath(assetType, "");
-    setOriginalAssetPaths((prev) => ({ ...prev, [assetType]: "" }));
+    if (game && isCustomGame(game)) {
+      // For custom games, mark asset as removed and clear paths
+      setRemovedAssets((prev) => ({ ...prev, [assetType]: true }));
+      setAssetPath(assetType, "");
+      setAssetDisplayPath(assetType, "");
+      setOriginalAssetPaths((prev) => ({ ...prev, [assetType]: "" }));
+    } else {
+      // For non-custom games, clear custom assets (restore to shop defaults)
+      setAssetPath(assetType, "");
+      setAssetDisplayPath(assetType, "");
+      setOriginalAssetPaths((prev) => ({ ...prev, [assetType]: "" }));
+    }
   };
 
   const getOriginalTitle = (): string => {
@@ -330,13 +364,19 @@ export function EditGameModal({
 
   // Helper function to prepare custom game assets
   const prepareCustomGameAssets = (game: LibraryGame | Game) => {
-    const iconUrl = assetPaths.icon ? `local:${assetPaths.icon}` : game.iconUrl;
-    const logoImageUrl = assetPaths.logo
-      ? `local:${assetPaths.logo}`
-      : game.logoImageUrl;
-    const libraryHeroImageUrl = assetPaths.hero
-      ? `local:${assetPaths.hero}`
-      : game.libraryHeroImageUrl;
+    // For custom games, check if asset was explicitly removed
+    const iconUrl = removedAssets.icon ? null : (assetPaths.icon ? `local:${assetPaths.icon}` : game.iconUrl);
+    const logoImageUrl = removedAssets.logo ? null : (assetPaths.logo ? `local:${assetPaths.logo}` : game.logoImageUrl);
+    
+    // For hero image, if removed, restore to the original gradient or keep the original
+    let libraryHeroImageUrl;
+    if (removedAssets.hero) {
+      // If the original hero was a gradient (data URL), keep it, otherwise generate a new one
+      const originalHero = game.libraryHeroImageUrl;
+      libraryHeroImageUrl = originalHero?.startsWith('data:image/svg+xml') ? originalHero : generateRandomGradient();
+    } else {
+      libraryHeroImageUrl = assetPaths.hero ? `local:${assetPaths.hero}` : game.libraryHeroImageUrl;
+    }
 
     return { iconUrl, logoImageUrl, libraryHeroImageUrl };
   };
@@ -418,6 +458,13 @@ export function EditGameModal({
     (game: LibraryGame | Game) => {
       setGameName(game.title || "");
 
+      // Reset removed assets state
+      setRemovedAssets({
+        icon: false,
+        logo: false,
+        hero: false,
+      });
+
       if (isCustomGame(game)) {
         setCustomGameAssets(game);
         // Clear default URLs for custom games
@@ -481,7 +528,7 @@ export function EditGameModal({
                 <ImageIcon />
                 {t("edit_game_modal_browse")}
               </Button>
-              {game && !isCustomGame(game) && assetPath && (
+              {game && (assetPath || (isCustomGame(game) && getOriginalAssetUrl(assetType))) && (
                 <Button
                   type="button"
                   theme="outline"
