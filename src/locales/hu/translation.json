@@ -515,7 +515,7 @@
     "pinned": "Kitűzve",
     "achievements_earned": "Elért achievementek",
     "played_recently": "Nemrég játszva",
-    "playtime": "Játszottidő",								 														   
+    "playtime": "Játszottidő",
     "total_play_time": "Teljes játszottidő",
     "manual_playtime_tooltip": "Ez a játszottidő manuálisan lett frissítve",
     "no_recent_activity_title": "Hmmm… itt semmi sincs",
@@ -565,7 +565,7 @@
     "image_process_failure": "Hiba a kép feldolgozása közben",
     "required_field": "Ez a mező kötelező",
     "displayname_min_length": "A megjelenített névnek legalább 3 karakter hosszúnak kell lennie",
-    "displayname_max_length"	: "A megjelenített név hossza legfeljebb 50 karakter lehet",
+    "displayname_max_length": "A megjelenített név hossza legfeljebb 50 karakter lehet",
     "report_profile": "Profil bejelentése",
     "report_reason": "Miért jelented ezt a profilt?",
     "report_description": "További információ",
@@ -594,7 +594,7 @@
     "error_adding_friend": "Hiba, barátfelkérés sikertelen. Kérlek ellenőrízd a barát kódot",
     "friend_code_length_error": "A barát kódnak 8 karakterből kell állnia",
     "game_removed_from_pinned": "Játék eltávolítva a kitűzöttek közül",
-    "game_added_to_pinned": "Játék hozzáadva a kitűzöttekhez"														   								  
+    "game_added_to_pinned": "Játék hozzáadva a kitűzöttekhez"
   },
   "achievement": {
     "achievement_unlocked": "Achievement feloldva",
