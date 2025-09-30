@@ -166,7 +166,7 @@ export function EditGameModal({
 
   const getOriginalAssetUrl = (assetType: AssetType): string | null => {
     if (!game || !isCustomGame(game)) return null;
-    
+
     switch (assetType) {
       case "icon":
         return game.iconUrl;
@@ -365,17 +365,36 @@ export function EditGameModal({
   // Helper function to prepare custom game assets
   const prepareCustomGameAssets = (game: LibraryGame | Game) => {
     // For custom games, check if asset was explicitly removed
-    const iconUrl = removedAssets.icon ? null : (assetPaths.icon ? `local:${assetPaths.icon}` : game.iconUrl);
-    const logoImageUrl = removedAssets.logo ? null : (assetPaths.logo ? `local:${assetPaths.logo}` : game.logoImageUrl);
-    
+    let iconUrl;
+    if (removedAssets.icon) {
+      iconUrl = null;
+    } else if (assetPaths.icon) {
+      iconUrl = `local:${assetPaths.icon}`;
+    } else {
+      iconUrl = game.iconUrl;
+    }
+
+    let logoImageUrl;
+    if (removedAssets.logo) {
+      logoImageUrl = null;
+    } else if (assetPaths.logo) {
+      logoImageUrl = `local:${assetPaths.logo}`;
+    } else {
+      logoImageUrl = game.logoImageUrl;
+    }
+
     // For hero image, if removed, restore to the original gradient or keep the original
     let libraryHeroImageUrl;
     if (removedAssets.hero) {
       // If the original hero was a gradient (data URL), keep it, otherwise generate a new one
       const originalHero = game.libraryHeroImageUrl;
-      libraryHeroImageUrl = originalHero?.startsWith('data:image/svg+xml') ? originalHero : generateRandomGradient();
+      libraryHeroImageUrl = originalHero?.startsWith("data:image/svg+xml")
+        ? originalHero
+        : generateRandomGradient();
     } else {
-      libraryHeroImageUrl = assetPaths.hero ? `local:${assetPaths.hero}` : game.libraryHeroImageUrl;
+      libraryHeroImageUrl = assetPaths.hero
+        ? `local:${assetPaths.hero}`
+        : game.libraryHeroImageUrl;
     }
 
     return { iconUrl, logoImageUrl, libraryHeroImageUrl };
@@ -528,17 +547,19 @@ export function EditGameModal({
                 <ImageIcon />
                 {t("edit_game_modal_browse")}
               </Button>
-              {game && (assetPath || (isCustomGame(game) && getOriginalAssetUrl(assetType))) && (
-                <Button
-                  type="button"
-                  theme="outline"
-                  onClick={() => handleRestoreDefault(assetType)}
-                  disabled={isUpdating}
-                  title={`Remove ${assetType}`}
-                >
-                  <XIcon />
-                </Button>
-              )}
+              {game &&
+                (assetPath ||
+                  (isCustomGame(game) && getOriginalAssetUrl(assetType))) && (
+                  <Button
+                    type="button"
+                    theme="outline"
+                    onClick={() => handleRestoreDefault(assetType)}
+                    disabled={isUpdating}
+                    title={`Remove ${assetType}`}
+                  >
+                    <XIcon />
+                  </Button>
+                )}
             </div>
           }
         />
