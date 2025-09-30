@@ -33,7 +33,7 @@
     "custom_game_modal": "Saját játék hozzáadása:",
     "custom_game_modal_description": "Adj meg egy futtatható fájlt",
     "custom_game_modal_executable_path": "A fájl útvonala",
-    "custom_game_modal_select_executable": "Futtatható fájl helye",
+    "custom_game_modal_select_executable": "Az útvonal",
     "custom_game_modal_title": "Játékcím",
     "custom_game_modal_enter_title": "Játék elnevezése",
     "custom_game_modal_browse": "Tallózás",
@@ -103,7 +103,6 @@
     "filter_count": "{{filterCount}} elérhető",
     "clear_filters": "{{filterCount}} kiválaszott szűrő törlése"
   },
-  "catalogue": {},
   "game_details": {
     "open_download_options": "Letöltési opciók megnyitása",
     "download_options_zero": "Nincs letöltési opció",
