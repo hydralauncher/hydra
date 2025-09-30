@@ -13,7 +13,6 @@ import {
   ClockIcon,
   TrophyIcon,
   AlertFillIcon,
-  HeartFillIcon,
   PinIcon,
   PinSlashIcon,
 } from "@primer/octicons-react";
@@ -79,17 +78,22 @@ export function UserLibraryGameCard({
   };
 
   const formatPlayTime = useCallback(
-    (playTimeInSeconds = 0) => {
+    (playTimeInSeconds = 0, isShort = false) => {
       const minutes = playTimeInSeconds / 60;
 
       if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
-        return t("amount_minutes", {
+        return t(isShort ? "amount_minutes_short" : "amount_minutes", {
           amount: minutes.toFixed(0),
         });
       }
 
       const hours = minutes / 60;
-      return t("amount_hours", { amount: numberFormatter.format(hours) });
+      const hoursKey = isShort ? "amount_hours_short" : "amount_hours";
+      const hoursAmount = isShort
+        ? Math.floor(hours)
+        : numberFormatter.format(hours);
+
+      return t(hoursKey, { amount: hoursAmount });
     },
     [numberFormatter, t]
   );
@@ -130,33 +134,26 @@ export function UserLibraryGameCard({
           onClick={() => navigate(buildUserGameDetailsPath(game))}
         >
           <div className="user-library-game__overlay">
-            {(game.isFavorite || isMe) && (
+            {isMe && (
               <div className="user-library-game__actions-container">
-                {game.isFavorite && (
-                  <div className="user-library-game__favorite-icon">
-                    <HeartFillIcon size={12} />
-                  </div>
-                )}
-                {isMe && (
-                  <button
-                    type="button"
-                    className="user-library-game__pin-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleGamePinned();
-                    }}
-                    disabled={isPinning}
-                  >
-                    {game.isPinned ? (
-                      <PinSlashIcon size={12} />
-                    ) : (
-                      <PinIcon size={12} />
-                    )}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="user-library-game__pin-button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleGamePinned();
+                  }}
+                  disabled={isPinning}
+                >
+                  {game.isPinned ? (
+                    <PinSlashIcon size={12} />
+                  ) : (
+                    <PinIcon size={12} />
+                  )}
+                </button>
               </div>
             )}
-            <small
+            <div
               className="user-library-game__playtime"
               data-tooltip-place="top"
               data-tooltip-content={
@@ -174,8 +171,13 @@ export function UserLibraryGameCard({
               ) : (
                 <ClockIcon size={11} />
               )}
-              {formatPlayTime(game.playTimeInSeconds)}
-            </small>
+              <span className="user-library-game__playtime-long">
+                {formatPlayTime(game.playTimeInSeconds)}
+              </span>
+              <span className="user-library-game__playtime-short">
+                {formatPlayTime(game.playTimeInSeconds, true)}
+              </span>
+            </div>
 
             {userProfile?.hasActiveSubscription &&
               game.achievementCount > 0 && (

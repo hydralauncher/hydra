@@ -1,0 +1,181 @@
+.edit-game-modal__container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.edit-game-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.edit-game-modal__asset-selector {
+  margin-bottom: 8px;
+}
+
+.edit-game-modal__asset-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+
+  button {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.edit-game-modal__asset-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.edit-game-modal__image-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-game-modal__resolution-info {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-top: -4px;
+  margin-bottom: 4px;
+}
+
+.edit-game-modal__image-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background-color: var(--color-background-secondary);
+  background-image: linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.1) 25%,
+      transparent 25%
+    ),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.1) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.1) 75%);
+  background-size: 16px 16px;
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0px;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+  position: relative;
+
+  /* Reset button styles when used as button element */
+  &[type="button"] {
+    font: inherit;
+    color: inherit;
+    text-align: inherit;
+    text-decoration: none;
+    outline: none;
+    cursor: pointer;
+
+    &:focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+  }
+
+  &:hover {
+    border-color: var(--color-primary);
+  }
+}
+
+.edit-game-modal__drop-zone {
+  min-height: 120px;
+  cursor: pointer;
+  border-style: dashed !important;
+
+  &:hover {
+    border-color: var(--color-primary);
+    background-color: rgba(var(--color-primary-rgb), 0.05);
+  }
+
+  &--active {
+    border-color: var(--color-primary) !important;
+    background-color: rgba(var(--color-primary-rgb), 0.1) !important;
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
+  }
+}
+
+.edit-game-modal__drop-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(var(--color-primary-rgb), 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.edit-game-modal__drop-zone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+
+  svg {
+    width: 24px;
+    height: 24px;
+    opacity: 0.6;
+  }
+}
+
+.edit-game-modal__icon-preview {
+  max-width: 200px;
+  margin: 0 auto;
+}
+
+.edit-game-modal__preview-image {
+  max-width: 100%;
+  max-height: 120px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.edit-game-modal__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.edit-game-modal__actions button {
+  min-width: 100px;
+}

@@ -43,12 +43,53 @@ $hero-height: 300px;
   }
 
   &__hero-content {
-    padding: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 1.5);
     height: 100%;
     width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
+
+    @media (min-width: 768px) {
+      padding: calc(globals.$spacing-unit * 2);
+    }
+  }
+
+  &__hero-buttons {
+    display: flex;
+    gap: globals.$spacing-unit;
+    align-items: center;
+
+    &--right {
+      margin-left: auto;
+    }
+  }
+
+  &__edit-custom-game-button {
+    padding: calc(globals.$spacing-unit * 1.5);
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(20px);
+    border-radius: 8px;
+    transition: all ease 0.2s;
+    cursor: pointer;
+    min-height: 40px;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: globals.$muted-color;
+    border: solid 1px globals.$border-color;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.8);
+    animation: slide-in 0.3s cubic-bezier(0.33, 1, 0.68, 1);
+
+    &:active {
+      opacity: 0.9;
+    }
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.5);
+      color: globals.$body-color;
+    }
   }
 
   &__hero-logo-backdrop {
@@ -79,8 +120,40 @@ $hero-height: 300px;
   }
 
   &__game-logo {
-    width: 300px;
+    width: 200px;
     align-self: flex-end;
+
+    @media (min-width: 768px) {
+      width: 250px;
+    }
+
+    @media (min-width: 1024px) {
+      width: 300px;
+    }
+  }
+
+  &__game-logo-text {
+    width: 200px;
+    align-self: flex-end;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    text-align: left;
+    line-height: 1.2;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+
+    @media (min-width: 768px) {
+      width: 250px;
+      font-size: 2.2rem;
+    }
+
+    @media (min-width: 1024px) {
+      width: 300px;
+      font-size: 2.5rem;
+    }
   }
 
   &__hero-image-skeleton {
@@ -113,32 +186,53 @@ $hero-height: 300px;
 
   &__description-content {
     width: 100%;
-    height: 100%;
+    min-height: 100%;
     min-width: 0;
     flex: 1;
+    overflow-x: hidden;
   }
 
   &__description {
     user-select: text;
     line-height: 22px;
     font-size: globals.$body-font-size;
-    padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
     width: 100%;
     margin-left: auto;
     margin-right: auto;
+    overflow-x: auto;
+    min-height: auto;
+
+    @media (min-width: 768px) {
+      padding: calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 2);
+    }
+
+    @media (min-width: 1024px) {
+      padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
+      width: 80%;
+    }
 
     @media (min-width: 1280px) {
       width: 60%;
     }
 
-    img {
+    @media (min-width: 1536px) {
+      width: 50%;
+    }
+
+    img,
+    video {
       border-radius: 5px;
       margin-top: globals.$spacing-unit;
       margin-bottom: calc(globals.$spacing-unit * 3);
-      display: block;
-      width: 100%;
-      height: auto;
-      object-fit: cover;
+      display: block !important;
+      max-width: 100% !important;
+      width: auto !important;
+      height: auto !important;
+      object-fit: contain !important;
+      box-sizing: border-box !important;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
 
     a {
@@ -155,14 +249,27 @@ $hero-height: 300px;
     display: flex;
     flex-direction: column;
     gap: globals.$spacing-unit;
-    padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
     width: 100%;
     margin-left: auto;
     margin-right: auto;
 
+    @media (min-width: 768px) {
+      padding: calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 2);
+    }
+
+    @media (min-width: 1024px) {
+      padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
+      width: 80%;
+    }
+
     @media (min-width: 1280px) {
       width: 60%;
       line-height: 22px;
+    }
+
+    @media (min-width: 1536px) {
+      width: 50%;
     }
   }
 

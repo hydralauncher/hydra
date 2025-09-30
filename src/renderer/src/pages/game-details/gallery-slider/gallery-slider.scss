@@ -2,11 +2,20 @@
 
 .gallery-slider {
   &__container {
-    padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 1);
     width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
+    max-height: 80vh;
+
+    @media (min-width: 1024px) {
+      max-height: 70vh;
+    }
+
+    @media (min-width: 1280px) {
+      max-height: 60vh;
+    }
   }
 
   &__viewport {
@@ -16,8 +25,19 @@
     overflow: hidden;
     border-radius: 8px;
 
+    @media (min-width: 1024px) {
+      width: 80%;
+      max-height: 400px;
+    }
+
     @media (min-width: 1280px) {
       width: 60%;
+      max-height: 500px;
+    }
+
+    @media (min-width: 1536px) {
+      width: 50%;
+      max-height: 600px;
     }
   }
 
@@ -52,8 +72,16 @@
     overflow-y: hidden;
     gap: calc(globals.$spacing-unit / 2);
 
+    @media (min-width: 1024px) {
+      width: 80%;
+    }
+
     @media (min-width: 1280px) {
       width: 60%;
+    }
+
+    @media (min-width: 1536px) {
+      width: 50%;
     }
 
     &::-webkit-scrollbar-thumb {
@@ -79,6 +107,19 @@
     border: solid 1px globals.$border-color;
     overflow: hidden;
     position: relative;
+    aspect-ratio: 16/9;
+
+    @media (min-width: 1024px) {
+      width: 15%;
+    }
+
+    @media (min-width: 1280px) {
+      width: 12%;
+    }
+
+    @media (min-width: 1536px) {
+      width: 10%;
+    }
 
     &:hover {
       opacity: 0.8;
