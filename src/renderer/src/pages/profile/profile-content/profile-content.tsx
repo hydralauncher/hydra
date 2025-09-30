@@ -177,6 +177,7 @@ export function ProfileContent() {
                                 statIndex={statsIndex}
                                 onMouseEnter={handleOnMouseEnterGameCard}
                                 onMouseLeave={handleOnMouseLeaveGameCard}
+                                sortBy={sortBy}
                               />
                             </li>
                           ))}
@@ -208,6 +209,7 @@ export function ProfileContent() {
                           statIndex={statsIndex}
                           onMouseEnter={handleOnMouseEnterGameCard}
                           onMouseLeave={handleOnMouseLeaveGameCard}
+                          sortBy={sortBy}
                         />
                       </li>
                     ))}
