@@ -272,9 +272,9 @@
     "backup_frozen": "Biztonsági mentés rögzítve",
     "backup_unfrozen": "Biztonsági mentés leválasztva",
     "backup_freeze_failed": "Biztonsági mentés rögzítése sikertelen",
-    "backup_freeze_failed_description": "Legalább egy szabad helyet kell hagyni az automatikus biztonsági mentéseknek."
-	"edit_game_modal_button": "Játékadatok testreszabása",
-	"game_details": "Játék leírása",
+    "backup_freeze_failed_description": "Legalább egy szabad helyet kell hagyni az automatikus biztonsági mentéseknek.",
+    "edit_game_modal_button": "Játékadatok testreszabása",
+    "game_details": "Játék leírása",
     "currency_symbol": "Ft",
     "currency_country": "hu",
     "prices": "Árak",
