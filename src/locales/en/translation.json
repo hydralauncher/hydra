@@ -292,7 +292,9 @@
     "historical_keyshop": "Historical keyshop",
     "language": "Language",
     "caption": "Caption",
-    "audio": "Audio"
+    "audio": "Audio",
+    "filter_by_source": "Filter by source",
+    "no_repacks_found": "No sources found for this game"
   },
   "activation": {
     "title": "Activate Hydra",

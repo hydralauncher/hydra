@@ -235,6 +235,8 @@
     "language": "Idioma",
     "caption": "Legenda",
     "audio": "Áudio",
+    "filter_by_source": "Filtrar por fonte",
+    "no_repacks_found": "Nenhuma fonte encontrada para este jogo",
     "edit_game_modal_button": "Alterar detalhes do jogo",
     "game_added_to_pinned": "Jogo adicionado aos fixados",
     "game_removed_from_pinned": "Jogo removido dos fixados",
