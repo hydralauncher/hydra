@@ -91,28 +91,6 @@
     z-index: 2;
   }
 
-  &__favorite-icon {
-    color: rgba(255, 255, 255, 0.8);
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: solid 1px rgba(255, 255, 255, 0.15);
-    border-radius: 50%;
-    padding: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: all ease 0.2s;
-
-    &:hover {
-      background: rgba(0, 0, 0, 0.5);
-      border-color: rgba(255, 255, 255, 0.25);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    }
-  }
-
   &__pin-button {
     color: rgba(255, 255, 255, 0.8);
     background: rgba(0, 0, 0, 0.4);
@@ -173,7 +151,7 @@
     }
 
     // When the card is narrow (less than 180px), show short format
-    @container (max-width: 180px) {
+    @container (max-width: 140px) {
       &-long {
         display: none;
       }
