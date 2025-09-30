@@ -67,7 +67,14 @@
     "edit_game_modal_image_filter": "Изображение",
     "edit_game_modal_icon_resolution": "Рекомендуемое разрешение: 256x256px",
     "edit_game_modal_logo_resolution": "Рекомендуемое разрешение: 640x360px",
-    "edit_game_modal_hero_resolution": "Рекомендуемое разрешение: 1920x620px"
+    "edit_game_modal_hero_resolution": "Рекомендуемое разрешение: 1920x620px",
+    "edit_game_modal_assets": "Ресурсы",
+    "edit_game_modal_drop_icon_image_here": "Перетащите изображение иконки сюда",
+    "edit_game_modal_drop_logo_image_here": "Перетащите изображение логотипа сюда",
+    "edit_game_modal_drop_hero_image_here": "Перетащите изображение обложки сюда",
+    "edit_game_modal_drop_to_replace_icon": "Перетащите для замены иконки",
+    "edit_game_modal_drop_to_replace_logo": "Перетащите для замены логотипа",
+    "edit_game_modal_drop_to_replace_hero": "Перетащите для замены обложки"
   },
   "header": {
     "search": "Поиск",

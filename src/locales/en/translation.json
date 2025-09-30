@@ -70,7 +70,13 @@
     "edit_game_modal_icon_resolution": "Recommended resolution: 256x256px",
     "edit_game_modal_logo_resolution": "Recommended resolution: 640x360px",
     "edit_game_modal_hero_resolution": "Recommended resolution: 1920x620px",
-    "edit_game_modal_assets": "Assets"
+    "edit_game_modal_assets": "Assets",
+    "edit_game_modal_drop_icon_image_here": "Drop icon image here",
+    "edit_game_modal_drop_logo_image_here": "Drop logo image here",
+    "edit_game_modal_drop_hero_image_here": "Drop hero image here",
+    "edit_game_modal_drop_to_replace_icon": "Drop to replace icon",
+    "edit_game_modal_drop_to_replace_logo": "Drop to replace logo",
+    "edit_game_modal_drop_to_replace_hero": "Drop to replace hero"
   },
   "header": {
     "search": "Search games",
