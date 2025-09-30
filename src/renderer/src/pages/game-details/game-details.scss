@@ -182,6 +182,8 @@ $hero-height: 300px;
       globals.$background-color 50%,
       globals.$dark-background-color 100%
     );
+    padding: calc(globals.$spacing-unit * 1.5);
+    gap: calc(globals.$spacing-unit * 1.5);
   }
 
   &__description-content {
@@ -196,21 +198,11 @@ $hero-height: 300px;
     user-select: text;
     line-height: 22px;
     font-size: globals.$body-font-size;
-    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
     width: 100%;
     margin-left: auto;
     margin-right: auto;
     overflow-x: auto;
     min-height: auto;
-
-    @media (min-width: 768px) {
-      padding: calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 2);
-    }
-
-    @media (min-width: 1024px) {
-      padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
-      width: 80%;
-    }
 
     @media (min-width: 1280px) {
       width: 60%;
