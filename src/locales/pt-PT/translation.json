@@ -4,7 +4,6 @@
     "successfully_signed_in": "Sessão iniciada com sucesso"
   },
   "home": {
-    "featured": "Destaques",
     "hot": "Populares",
     "weekly": "📅 Mais descarregados esta semana",
     "achievements": "🏆 Para completar",
@@ -26,7 +25,8 @@
     "game_has_no_executable": "O jogo não tem um executável selecionado",
     "sign_in": "Iniciar sessão",
     "friends": "Amigos",
-    "favorites": "Favoritos"
+    "favorites": "Favoritos",
+    "edit_game_modal_cancel": "Cancelar"
   },
   "header": {
     "search": "Procurar jogos",
@@ -247,9 +247,6 @@
     "download_count_zero": "Sem downloads na lista",
     "download_count_one": "{{countFormatted}} download na lista",
     "download_count_other": "{{countFormatted}} downloads na lista",
-    "download_options_zero": "Sem downloads disponíveis",
-    "download_options_one": "{{countFormatted}} download disponível",
-    "download_options_other": "{{countFormatted}} downloads disponíveis",
     "download_source_url": "URL da fonte",
     "add_download_source_description": "Insere o URL que contém o ficheiro .json",
     "download_source_up_to_date": "Sincronizada",
@@ -359,8 +356,6 @@
     "instructions": "Verifica a forma correta de instalar algum deles na tua distribuição Linux, para garantir a execução normal do jogo"
   },
   "catalogue": {
-    "next_page": "Página seguinte",
-    "previous_page": "Página anterior",
     "search": "Filtrar…",
     "developers": "Desenvolvedores",
     "genres": "Géneros",
@@ -427,7 +422,6 @@
     "friend_code_copied": "Código de amigo copiado",
     "undo_friendship_modal_text": "Isto vai remover a tua amizade com {{displayName}}",
     "privacy_hint": "Para controlar quem pode ver o teu perfil, acede às <0>Definições</0>",
-    "profile_locked": "Este perfil é privado",
     "image_process_failure": "Falha ao processar a imagem",
     "required_field": "Este campo é obrigatório",
     "displayname_min_length": "O nome de apresentação deve ter pelo menos 3 caracteres",
