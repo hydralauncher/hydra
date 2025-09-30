@@ -26,6 +26,7 @@ interface UserLibraryGameCardProps {
   statIndex: number;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
+  sortBy?: string;
 }
 
 export function UserLibraryGameCard({
@@ -33,6 +34,7 @@ export function UserLibraryGameCard({
   statIndex,
   onMouseEnter,
   onMouseLeave,
+  sortBy,
 }: UserLibraryGameCardProps) {
   const { userProfile, isMe, getUserLibraryGames } =
     useContext(userProfileContext);
@@ -108,7 +110,7 @@ export function UserLibraryGameCard({
         !game.isPinned
       );
 
-      await getUserLibraryGames();
+      await getUserLibraryGames(sortBy);
 
       if (game.isPinned) {
         showSuccessToast(t("game_removed_from_pinned"));
