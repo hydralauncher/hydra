@@ -555,7 +555,7 @@
     "playtime": "Tempo de jogo",
     "played_recently": "Jogado recentemente",
     "pinned": "Fixado",
-    "amount_minutes_short": "{{amount}}h",
+    "amount_minutes_short": "{{amount}}m",
     "amount_hours_short": "{{amount}}h",
     "game_added_to_pinned": "Jogo adicionado aos fixados",
     "achievements_earned": "Conquistas recebidas"
