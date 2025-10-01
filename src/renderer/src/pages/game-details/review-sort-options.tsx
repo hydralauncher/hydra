@@ -1,8 +1,7 @@
 import {
-  CalendarIcon,
-  StarIcon,
   ThumbsupIcon,
-  ClockIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import "./review-sort-options.scss";
@@ -25,44 +24,46 @@ export function ReviewSortOptions({
 }: ReviewSortOptionsProps) {
   const { t } = useTranslation("game_details");
 
+  const handleDateToggle = () => {
+    const newSort = sortBy === "newest" ? "oldest" : "newest";
+    onSortChange(newSort);
+  };
+
+  const handleScoreToggle = () => {
+    const newSort = sortBy === "score_high" ? "score_low" : "score_high";
+    onSortChange(newSort);
+  };
+
+  const handleMostVotedClick = () => {
+    onSortChange("most_voted");
+  };
+
+  const isDateActive = sortBy === "newest" || sortBy === "oldest";
+  const isScoreActive = sortBy === "score_high" || sortBy === "score_low";
+  const isMostVotedActive = sortBy === "most_voted";
+
   return (
     <div className="review-sort-options__container">
       <div className="review-sort-options__options">
         <button
-          className={`review-sort-options__option ${sortBy === "newest" ? "active" : ""}`}
-          onClick={() => onSortChange("newest")}
+          className={`review-sort-options__option review-sort-options__toggle-option ${isDateActive ? "active" : ""}`}
+          onClick={handleDateToggle}
         >
-          <CalendarIcon size={16} />
-          <span>{t("sort_newest")}</span>
+          {sortBy === "newest" ? <ChevronDownIcon size={16} /> : <ChevronUpIcon size={16} />}
+          <span>{sortBy === "oldest" ? t("sort_oldest") : t("sort_newest")}</span>
         </button>
         <span className="review-sort-options__separator">|</span>
         <button
-          className={`review-sort-options__option ${sortBy === "oldest" ? "active" : ""}`}
-          onClick={() => onSortChange("oldest")}
+          className={`review-sort-options__option review-sort-options__toggle-option ${isScoreActive ? "active" : ""}`}
+          onClick={handleScoreToggle}
         >
-          <ClockIcon size={16} />
-          <span>{t("sort_oldest")}</span>
+          {sortBy === "score_high" ? <ChevronDownIcon size={16} /> : <ChevronUpIcon size={16} />}
+          <span>{sortBy === "score_low" ? t("sort_lowest_score") : t("sort_highest_score")}</span>
         </button>
         <span className="review-sort-options__separator">|</span>
         <button
-          className={`review-sort-options__option ${sortBy === "score_high" ? "active" : ""}`}
-          onClick={() => onSortChange("score_high")}
-        >
-          <StarIcon size={16} />
-          <span>{t("sort_highest_score")}</span>
-        </button>
-        <span className="review-sort-options__separator">|</span>
-        <button
-          className={`review-sort-options__option ${sortBy === "score_low" ? "active" : ""}`}
-          onClick={() => onSortChange("score_low")}
-        >
-          <StarIcon size={16} />
-          <span>{t("sort_lowest_score")}</span>
-        </button>
-        <span className="review-sort-options__separator">|</span>
-        <button
-          className={`review-sort-options__option ${sortBy === "most_voted" ? "active" : ""}`}
-          onClick={() => onSortChange("most_voted")}
+          className={`review-sort-options__option ${isMostVotedActive ? "active" : ""}`}
+          onClick={handleMostVotedClick}
         >
           <ThumbsupIcon size={16} />
           <span>{t("sort_most_voted")}</span>
