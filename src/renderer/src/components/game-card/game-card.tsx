@@ -1,4 +1,4 @@
-import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
+import { DownloadIcon, PeopleIcon, StarIcon } from "@primer/octicons-react";
 import type { GameStats } from "@types";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
@@ -107,6 +107,14 @@ export function GameCard({ game, ...props }: GameCardProps) {
                 {stats ? numberFormatter.format(stats.playerCount) : "…"}
               </span>
             </div>
+            {stats?.averageScore && (
+              <div className="game-card__specifics-item">
+                <StarIcon />
+                <span>
+                  {stats.averageScore.toFixed(1)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
