@@ -28,6 +28,7 @@ import type {
   LibraryGame,
   GameRunning,
   TorBoxUser,
+  AllDebridUser,
   Theme,
   Badge,
   Auth,
@@ -112,43 +113,6 @@ declare global {
       objectId: string,
       title: string
     ) => Promise<void>;
-    addCustomGameToLibrary: (
-      title: string,
-      executablePath: string,
-      iconUrl?: string,
-      logoImageUrl?: string,
-      libraryHeroImageUrl?: string
-    ) => Promise<Game>;
-    updateCustomGame: (params: {
-      shop: GameShop;
-      objectId: string;
-      title: string;
-      iconUrl?: string;
-      logoImageUrl?: string;
-      libraryHeroImageUrl?: string;
-      originalIconPath?: string;
-      originalLogoPath?: string;
-      originalHeroPath?: string;
-    }) => Promise<Game>;
-    copyCustomGameAsset: (
-      sourcePath: string,
-      assetType: "icon" | "logo" | "hero"
-    ) => Promise<string>;
-    cleanupUnusedAssets: () => Promise<{
-      deletedCount: number;
-      errors: string[];
-    }>;
-    updateGameCustomAssets: (params: {
-      shop: GameShop;
-      objectId: string;
-      title: string;
-      customIconUrl?: string | null;
-      customLogoImageUrl?: string | null;
-      customHeroImageUrl?: string | null;
-      customOriginalIconPath?: string | null;
-      customOriginalLogoPath?: string | null;
-      customOriginalHeroPath?: string | null;
-    }) => Promise<Game>;
     createGameShortcut: (
       shop: GameShop,
       objectId: string,
@@ -212,6 +176,9 @@ declare global {
     ) => Promise<void>;
     /* User preferences */
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
+    authenticateAllDebrid: (
+      apiKey: string
+    ) => Promise<AllDebridUser | { error_code: string }>;
     authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
     getUserPreferences: () => Promise<UserPreferences | null>;
     updateUserPreferences: (
@@ -310,8 +277,6 @@ declare global {
     onCommonRedistProgress: (
       cb: (value: { log: string; complete: boolean }) => void
     ) => () => Electron.IpcRenderer;
-    saveTempFile: (fileName: string, fileData: Uint8Array) => Promise<string>;
-    deleteTempFile: (filePath: string) => Promise<void>;
     platform: NodeJS.Platform;
 
     /* Auto update */

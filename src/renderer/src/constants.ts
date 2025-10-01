@@ -11,6 +11,7 @@ export const DOWNLOADER_NAME = {
   [Downloader.Datanodes]: "Datanodes",
   [Downloader.Mediafire]: "Mediafire",
   [Downloader.TorBox]: "TorBox",
+  [Downloader.AllDebrid]: "All-Debrid",
   [Downloader.Hydra]: "Nimbus",
 };
 
