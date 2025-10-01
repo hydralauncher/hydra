@@ -86,7 +86,9 @@ $hero-height: 300px;
     font-size: globals.$body-font-size;
     font-family: inherit;
     cursor: pointer;
-    transition: border-color 0.2s ease, background-color 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease;
 
     &:focus {
       outline: none;
@@ -126,7 +128,9 @@ $hero-height: 300px;
     font-size: globals.$body-font-size;
     font-family: inherit;
     cursor: pointer;
-    transition: border-color 0.2s ease, background-color 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease;
 
     &:focus {
       outline: none;
@@ -148,7 +152,8 @@ $hero-height: 300px;
     background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid globals.$border-color;
     color: globals.$body-color;
-    padding: calc(globals.$spacing-unit * 0.75) calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 0.75)
+      calc(globals.$spacing-unit * 1.5);
     border-radius: 6px;
     cursor: pointer;
     font-size: globals.$small-font-size;
@@ -631,9 +636,9 @@ $hero-height: 300px;
       max-height: 300px;
       overflow: hidden;
       position: relative;
-      
+
       &::after {
-        content: '';
+        content: "";
         position: absolute;
         bottom: 0;
         left: 0;
@@ -677,7 +682,8 @@ $hero-height: 300px;
     background: none;
     border: 1px solid globals.$border-color;
     color: globals.$body-color;
-    padding: calc(globals.$spacing-unit * 0.75) calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 0.75)
+      calc(globals.$spacing-unit * 1.5);
     border-radius: 4px;
     cursor: pointer;
     font-size: globals.$body-font-size;
@@ -883,8 +889,13 @@ $hero-height: 300px;
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit * 0.5);
-    padding: calc(globals.$spacing-unit * 0.75) calc(globals.$spacing-unit * 1.5);
-    background: linear-gradient(135deg, globals.$brand-teal, globals.$brand-blue);
+    padding: calc(globals.$spacing-unit * 0.75)
+      calc(globals.$spacing-unit * 1.5);
+    background: linear-gradient(
+      135deg,
+      globals.$brand-teal,
+      globals.$brand-blue
+    );
     color: white;
     border: none;
     border-radius: 8px;
@@ -980,7 +991,9 @@ $hero-height: 300px;
     font-family: inherit;
     line-height: 1.5;
     min-height: 100px;
-    transition: border-color 0.2s ease, background-color 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease;
 
     &:focus-within {
       outline: none;
@@ -995,7 +1008,7 @@ $hero-height: 300px;
     .ProseMirror {
       outline: none;
       min-height: 80px;
-      
+
       &:empty:before {
         content: attr(data-placeholder);
         color: rgba(208, 209, 215, 0.6);
@@ -1004,7 +1017,7 @@ $hero-height: 300px;
 
       p {
         margin: 0 0 8px 0;
-        
+
         &:last-child {
           margin-bottom: 0;
         }

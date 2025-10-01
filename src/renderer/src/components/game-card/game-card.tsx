@@ -110,9 +110,7 @@ export function GameCard({ game, ...props }: GameCardProps) {
             {stats?.averageScore && (
               <div className="game-card__specifics-item">
                 <StarIcon />
-                <span>
-                  {stats.averageScore.toFixed(1)}
-                </span>
+                <span>{stats.averageScore.toFixed(1)}</span>
               </div>
             )}
           </div>

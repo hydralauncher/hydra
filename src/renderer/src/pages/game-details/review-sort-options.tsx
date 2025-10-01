@@ -1,15 +1,28 @@
-import { CalendarIcon, StarIcon, ThumbsupIcon, ClockIcon } from "@primer/octicons-react";
+import {
+  CalendarIcon,
+  StarIcon,
+  ThumbsupIcon,
+  ClockIcon,
+} from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import "./review-sort-options.scss";
 
-type ReviewSortOption = "newest" | "oldest" | "score_high" | "score_low" | "most_voted";
+type ReviewSortOption =
+  | "newest"
+  | "oldest"
+  | "score_high"
+  | "score_low"
+  | "most_voted";
 
 interface ReviewSortOptionsProps {
   sortBy: ReviewSortOption;
   onSortChange: (sortBy: ReviewSortOption) => void;
 }
 
-export function ReviewSortOptions({ sortBy, onSortChange }: ReviewSortOptionsProps) {
+export function ReviewSortOptions({
+  sortBy,
+  onSortChange,
+}: ReviewSortOptionsProps) {
   const { t } = useTranslation("game_details");
 
   return (

@@ -7,9 +7,12 @@ const voteReview = async (
   shop: GameShop,
   objectId: string,
   reviewId: string,
-  voteType: 'upvote' | 'downvote'
+  voteType: "upvote" | "downvote"
 ) => {
-  return HydraApi.put(`/games/${shop}/${objectId}/reviews/${reviewId}/${voteType}`, {});
+  return HydraApi.put(
+    `/games/${shop}/${objectId}/reviews/${reviewId}/${voteType}`,
+    {}
+  );
 };
 
 registerEvent("voteReview", voteReview);

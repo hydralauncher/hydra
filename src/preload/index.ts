@@ -82,7 +82,8 @@ contextBridge.exposeInMainWorld("electron", {
     objectId: string,
     reviewHtml: string,
     score: number
-  ) => ipcRenderer.invoke("createGameReview", shop, objectId, reviewHtml, score),
+  ) =>
+    ipcRenderer.invoke("createGameReview", shop, objectId, reviewHtml, score),
   getGameReviews: (
     shop: GameShop,
     objectId: string,
@@ -96,11 +97,8 @@ contextBridge.exposeInMainWorld("electron", {
     reviewId: string,
     voteType: "upvote" | "downvote"
   ) => ipcRenderer.invoke("voteReview", shop, objectId, reviewId, voteType),
-  deleteReview: (
-    shop: GameShop,
-    objectId: string,
-    reviewId: string
-  ) => ipcRenderer.invoke("deleteReview", shop, objectId, reviewId),
+  deleteReview: (shop: GameShop, objectId: string, reviewId: string) =>
+    ipcRenderer.invoke("deleteReview", shop, objectId, reviewId),
   checkGameReview: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("checkGameReview", shop, objectId),
   onUpdateAchievements: (

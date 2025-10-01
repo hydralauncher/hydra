@@ -7,11 +7,9 @@ const checkGameReview = async (
   shop: GameShop,
   objectId: string
 ) => {
-  return HydraApi.get(
-    `/games/${shop}/${objectId}/reviews/check`,
-    null,
-    { needsAuth: true }
-  );
+  return HydraApi.get(`/games/${shop}/${objectId}/reviews/check`, null, {
+    needsAuth: true,
+  });
 };
 
 registerEvent("checkGameReview", checkGameReview);

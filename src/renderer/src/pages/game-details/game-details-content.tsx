@@ -2,11 +2,11 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { PencilIcon, TrashIcon, ClockIcon } from "@primer/octicons-react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Bold from '@tiptap/extension-bold';
-import Italic from '@tiptap/extension-italic';
-import Underline from '@tiptap/extension-underline';
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Bold from "@tiptap/extension-bold";
+import Italic from "@tiptap/extension-italic";
+import Underline from "@tiptap/extension-underline";
 import type { GameReview } from "@types";
 
 import { HeroPanel } from "./hero";
@@ -32,8 +32,14 @@ export function GameDetailsContent() {
 
   const { t } = useTranslation("game_details");
 
-  const { objectId, shopDetails, game, hasNSFWContentBlocked, updateGame, shop } =
-    useContext(gameDetailsContext);
+  const {
+    objectId,
+    shopDetails,
+    game,
+    hasNSFWContentBlocked,
+    updateGame,
+    shop,
+  } = useContext(gameDetailsContext);
 
   const { showHydraCloudModal } = useSubscription();
 
@@ -93,7 +99,7 @@ export function GameDetailsContent() {
   const [backdropOpacity, setBackdropOpacity] = useState(1);
   const [showEditGameModal, setShowEditGameModal] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  
+
   // Reviews state management
   const [reviews, setReviews] = useState<GameReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
@@ -102,10 +108,12 @@ export function GameDetailsContent() {
   const [reviewsSortBy, setReviewsSortBy] = useState("newest");
   const [reviewsPage, setReviewsPage] = useState(0);
   const [hasMoreReviews, setHasMoreReviews] = useState(true);
-  const [visibleBlockedReviews, setVisibleBlockedReviews] = useState<Set<string>>(new Set());
+  const [visibleBlockedReviews, setVisibleBlockedReviews] = useState<
+    Set<string>
+  >(new Set());
   const [totalReviewCount, setTotalReviewCount] = useState(0);
   const [showReviewForm, setShowReviewForm] = useState(false);
-  
+
   // Review prompt banner state
   const [showReviewPrompt, setShowReviewPrompt] = useState(false);
   const [hasUserReviewed, setHasUserReviewed] = useState(false);
@@ -113,17 +121,12 @@ export function GameDetailsContent() {
 
   // Tiptap editor for review input
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Bold,
-      Italic,
-      Underline,
-    ],
-    content: '',
+    extensions: [StarterKit, Bold, Italic, Underline],
+    content: "",
     editorProps: {
       attributes: {
-        class: 'game-details__review-editor',
-        'data-placeholder': t("write_review_placeholder"),
+        class: "game-details__review-editor",
+        "data-placeholder": t("write_review_placeholder"),
       },
     },
   });
@@ -164,15 +167,19 @@ export function GameDetailsContent() {
   // Reviews functions
   const checkUserReview = async () => {
     if (!objectId || !userDetails) return;
-    
+
     setReviewCheckLoading(true);
     try {
       const response = await window.electron.checkGameReview(shop, objectId);
       const hasReviewed = (response as any)?.hasReviewed || false;
       setHasUserReviewed(hasReviewed);
-      
+
       // Show prompt only if user hasn't reviewed and has played the game
-      if (!hasReviewed && game?.playTimeInMilliseconds && game.playTimeInMilliseconds > 0) {
+      if (
+        !hasReviewed &&
+        game?.playTimeInMilliseconds &&
+        game.playTimeInMilliseconds > 0
+      ) {
         setShowReviewPrompt(true);
       }
     } catch (error) {
@@ -184,7 +191,7 @@ export function GameDetailsContent() {
 
   const loadReviews = async (reset = false) => {
     if (!objectId) return;
-    
+
     setReviewsLoading(true);
     try {
       const skip = reset ? 0 : reviewsPage * 20;
@@ -195,19 +202,19 @@ export function GameDetailsContent() {
         skip,
         reviewsSortBy
       );
-      
+
       // Handle the response structure: { totalCount: number, reviews: Review[] }
       const reviewsData = (response as any)?.reviews || [];
       const reviewCount = (response as any)?.totalCount || 0;
-      
+
       if (reset) {
         setReviews(reviewsData);
         setReviewsPage(0);
         setTotalReviewCount(reviewCount);
       } else {
-        setReviews(prev => [...prev, ...reviewsData]);
+        setReviews((prev) => [...prev, ...reviewsData]);
       }
-      
+
       setHasMoreReviews(reviewsData.length === 20);
     } catch (error) {
       console.error("Failed to load reviews:", error);
@@ -216,9 +223,12 @@ export function GameDetailsContent() {
     }
   };
 
-  const handleVoteReview = async (reviewId: string, voteType: 'upvote' | 'downvote') => {
+  const handleVoteReview = async (
+    reviewId: string,
+    voteType: "upvote" | "downvote"
+  ) => {
     if (!objectId) return;
-    
+
     try {
       await window.electron.voteReview(shop, objectId, reviewId, voteType);
       // Reload reviews to get updated vote counts
@@ -230,13 +240,13 @@ export function GameDetailsContent() {
 
   const handleDeleteReview = async (reviewId: string) => {
     if (!objectId) return;
-    
+
     try {
       await window.electron.deleteReview(shop, objectId, reviewId);
       // Reload reviews after deletion
       loadReviews(true);
     } catch (error) {
-      console.error('Failed to delete review:', error);
+      console.error("Failed to delete review:", error);
     }
   };
 
@@ -244,17 +254,17 @@ export function GameDetailsContent() {
     console.log("handleSubmitReview called");
     console.log("game:", game);
     console.log("objectId:", objectId);
-    
-    const reviewHtml = editor?.getHTML() || '';
+
+    const reviewHtml = editor?.getHTML() || "";
     console.log("reviewHtml:", reviewHtml);
     console.log("reviewScore:", reviewScore);
     console.log("submittingReview:", submittingReview);
-    
+
     if (!objectId || !reviewHtml.trim() || submittingReview) {
       console.log("Early return - validation failed");
       return;
     }
-    
+
     console.log("Starting review submission...");
     setSubmittingReview(true);
     try {
@@ -265,7 +275,7 @@ export function GameDetailsContent() {
         reviewHtml,
         reviewScore
       );
-      
+
       console.log("Review submitted successfully");
       editor?.commands.clearContent();
       setReviewScore(5);
@@ -285,14 +295,16 @@ export function GameDetailsContent() {
   const handleReviewPromptYes = () => {
     setShowReviewPrompt(false);
     setShowReviewForm(true);
-    
+
     // Scroll to review form
     setTimeout(() => {
-      const reviewFormElement = document.querySelector('.game-details__review-form');
+      const reviewFormElement = document.querySelector(
+        ".game-details__review-form"
+      );
       if (reviewFormElement) {
-        reviewFormElement.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'start' 
+        reviewFormElement.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
         });
       }
     }, 100);
@@ -310,7 +322,7 @@ export function GameDetailsContent() {
   };
 
   const toggleBlockedReview = (reviewId: string) => {
-    setVisibleBlockedReviews(prev => {
+    setVisibleBlockedReviews((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(reviewId)) {
         newSet.delete(reviewId);
@@ -323,7 +335,7 @@ export function GameDetailsContent() {
 
   const loadMoreReviews = () => {
     if (!reviewsLoading && hasMoreReviews) {
-      setReviewsPage(prev => prev + 1);
+      setReviewsPage((prev) => prev + 1);
       loadReviews(false);
     }
   };
@@ -457,13 +469,17 @@ export function GameDetailsContent() {
         <div className="game-details__description-container">
           <div className="game-details__description-content">
             {/* Review Prompt Banner */}
-            {showReviewPrompt && userDetails && game?.playTimeInMilliseconds && !hasUserReviewed && !reviewCheckLoading && (
-              <ReviewPromptBanner
-                onYesClick={handleReviewPromptYes}
-                onLaterClick={handleReviewPromptLater}
-              />
-            )}
-            
+            {showReviewPrompt &&
+              userDetails &&
+              game?.playTimeInMilliseconds &&
+              !hasUserReviewed &&
+              !reviewCheckLoading && (
+                <ReviewPromptBanner
+                  onYesClick={handleReviewPromptYes}
+                  onLaterClick={handleReviewPromptLater}
+                />
+              )}
+
             <DescriptionHeader />
             <GallerySlider />
 
@@ -472,10 +488,12 @@ export function GameDetailsContent() {
                 __html: aboutTheGame,
               }}
               className={`game-details__description ${
-                isDescriptionExpanded ? 'game-details__description--expanded' : 'game-details__description--collapsed'
+                isDescriptionExpanded
+                  ? "game-details__description--expanded"
+                  : "game-details__description--collapsed"
               }`}
             />
-            
+
             {aboutTheGame && aboutTheGame.length > 500 && (
               <button
                 type="button"
@@ -490,74 +508,88 @@ export function GameDetailsContent() {
               {showReviewForm && (
                 <>
                   <div className="game-details__reviews-header">
-                    <h3 className="game-details__reviews-title">{t("leave_a_review")}</h3>
+                    <h3 className="game-details__reviews-title">
+                      {t("leave_a_review")}
+                    </h3>
                   </div>
-                  
+
                   <div className="game-details__review-form">
                     <div className="game-details__review-input-container">
-                      <EditorContent 
-                        editor={editor} 
+                      <EditorContent
+                        editor={editor}
                         className="game-details__review-input"
                       />
                       <div className="game-details__review-input-bottom">
                         <div className="game-details__review-editor-toolbar">
                           <button
                             type="button"
-                            onClick={() => editor?.chain().focus().toggleBold().run()}
-                            className={`game-details__editor-button ${editor?.isActive('bold') ? 'is-active' : ''}`}
+                            onClick={() =>
+                              editor?.chain().focus().toggleBold().run()
+                            }
+                            className={`game-details__editor-button ${editor?.isActive("bold") ? "is-active" : ""}`}
                             disabled={!editor}
                           >
                             <strong>B</strong>
                           </button>
                           <button
                             type="button"
-                            onClick={() => editor?.chain().focus().toggleItalic().run()}
-                            className={`game-details__editor-button ${editor?.isActive('italic') ? 'is-active' : ''}`}
+                            onClick={() =>
+                              editor?.chain().focus().toggleItalic().run()
+                            }
+                            className={`game-details__editor-button ${editor?.isActive("italic") ? "is-active" : ""}`}
                             disabled={!editor}
                           >
                             <em>I</em>
                           </button>
                           <button
                             type="button"
-                            onClick={() => editor?.chain().focus().toggleUnderline().run()}
-                            className={`game-details__editor-button ${editor?.isActive('underline') ? 'is-active' : ''}`}
+                            onClick={() =>
+                              editor?.chain().focus().toggleUnderline().run()
+                            }
+                            className={`game-details__editor-button ${editor?.isActive("underline") ? "is-active" : ""}`}
                             disabled={!editor}
                           >
                             <u>U</u>
                           </button>
                         </div>
-                        
+
                         <button
                           className="game-details__review-submit-button"
                           onClick={handleSubmitReview}
-                          disabled={!editor?.getHTML().trim() || submittingReview}
+                          disabled={
+                            !editor?.getHTML().trim() || submittingReview
+                          }
                         >
-                          {submittingReview ? t("submitting") : t("submit_review")}
+                          {submittingReview
+                            ? t("submitting")
+                            : t("submit_review")}
                         </button>
                       </div>
                     </div>
-                  
+
                     <div className="game-details__review-form-bottom">
                       <div className="game-details__review-score-container">
                         <label className="game-details__review-score-label">
                           {t("rating")}
                         </label>
-                      <select 
-                        className="game-details__review-score-select"
-                        value={reviewScore}
-                        onChange={(e) => setReviewScore(Number(e.target.value))}
-                      >
-                        <option value={1}>1/10</option>
-                        <option value={2}>2/10</option>
-                        <option value={3}>3/10</option>
-                        <option value={4}>4/10</option>
-                        <option value={5}>5/10</option>
-                        <option value={6}>6/10</option>
-                        <option value={7}>7/10</option>
-                        <option value={8}>8/10</option>
-                        <option value={9}>9/10</option>
-                        <option value={10}>10/10</option>
-                      </select>
+                        <select
+                          className="game-details__review-score-select"
+                          value={reviewScore}
+                          onChange={(e) =>
+                            setReviewScore(Number(e.target.value))
+                          }
+                        >
+                          <option value={1}>1/10</option>
+                          <option value={2}>2/10</option>
+                          <option value={3}>3/10</option>
+                          <option value={4}>4/10</option>
+                          <option value={5}>5/10</option>
+                          <option value={6}>6/10</option>
+                          <option value={7}>7/10</option>
+                          <option value={8}>8/10</option>
+                          <option value={9}>9/10</option>
+                          <option value={10}>10/10</option>
+                        </select>
                       </div>
                     </div>
                   </div>
@@ -578,7 +610,7 @@ export function GameDetailsContent() {
                       {totalReviewCount}
                     </span>
                   </div>
-                  <ReviewSortOptions 
+                  <ReviewSortOptions
                     sortBy={reviewsSortBy as any}
                     onSortChange={handleSortChange}
                   />
@@ -589,7 +621,7 @@ export function GameDetailsContent() {
                     {t("loading_reviews")}
                   </div>
                 )}
-                
+
                 {!reviewsLoading && reviews.length === 0 && (
                   <div className="game-details__reviews-empty">
                     <div className="game-details__reviews-empty-icon">📝</div>
@@ -601,13 +633,14 @@ export function GameDetailsContent() {
                     </p>
                   </div>
                 )}
-                
+
                 {reviews.map((review, index) => (
                   <div key={index} className="game-details__review-item">
-                    {review.isBlocked && !visibleBlockedReviews.has(review.id) ? (
+                    {review.isBlocked &&
+                    !visibleBlockedReviews.has(review.id) ? (
                       <div className="game-details__blocked-review-simple">
-                        Review from blocked user — 
-                        <button 
+                        Review from blocked user —
+                        <button
                           className="game-details__blocked-review-show-link"
                           onClick={() => toggleBlockedReview(review.id)}
                         >
@@ -619,22 +652,38 @@ export function GameDetailsContent() {
                         <div className="game-details__review-header">
                           <div className="game-details__review-user">
                             {review.user?.profileImageUrl && (
-                              <img 
-                                src={review.user.profileImageUrl} 
-                                alt={review.user.displayName || 'User'} 
+                              <img
+                                src={review.user.profileImageUrl}
+                                alt={review.user.displayName || "User"}
                                 className="game-details__review-avatar"
                               />
                             )}
                             <div className="game-details__review-user-info">
-                              <div 
+                              <div
                                 className="game-details__review-display-name game-details__review-display-name--clickable"
-                                onClick={() => review.user?.id && navigate(`/profile/${review.user.id}`)}
+                                onClick={() =>
+                                  review.user?.id &&
+                                  navigate(`/profile/${review.user.id}`)
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    review.user?.id &&
+                                      navigate(`/profile/${review.user.id}`);
+                                  }
+                                }}
+                                role="button"
+                                tabIndex={0}
                               >
-                                {review.user?.displayName || 'Anonymous'}
+                                {review.user?.displayName || "Anonymous"}
                               </div>
                               <div className="game-details__review-date">
                                 <ClockIcon size={12} />
-                                {formatDistance(new Date(review.createdAt), new Date(), { addSuffix: true })}
+                                {formatDistance(
+                                  new Date(review.createdAt),
+                                  new Date(),
+                                  { addSuffix: true }
+                                )}
                               </div>
                             </div>
                           </div>
@@ -642,29 +691,35 @@ export function GameDetailsContent() {
                             {review.score}/10
                           </div>
                         </div>
-                        <div 
+                        <div
                           className="game-details__review-content"
-                          dangerouslySetInnerHTML={{ __html: review.reviewHtml }}
+                          dangerouslySetInnerHTML={{
+                            __html: review.reviewHtml,
+                          }}
                         />
                         <div className="game-details__review-actions">
                           <div className="game-details__review-votes">
-                            <button 
-                              className={`game-details__vote-button game-details__vote-button--upvote ${review.hasUpvoted ? 'game-details__vote-button--active' : ''}`}
-                              onClick={() => handleVoteReview(review.id, 'upvote')}
+                            <button
+                              className={`game-details__vote-button game-details__vote-button--upvote ${review.hasUpvoted ? "game-details__vote-button--active" : ""}`}
+                              onClick={() =>
+                                handleVoteReview(review.id, "upvote")
+                              }
                             >
                               <ThumbsUp size={16} />
                               <span>{review.upvotes || 0}</span>
                             </button>
-                            <button 
-                              className={`game-details__vote-button game-details__vote-button--downvote ${review.hasDownvoted ? 'game-details__vote-button--active' : ''}`}
-                              onClick={() => handleVoteReview(review.id, 'downvote')}
+                            <button
+                              className={`game-details__vote-button game-details__vote-button--downvote ${review.hasDownvoted ? "game-details__vote-button--active" : ""}`}
+                              onClick={() =>
+                                handleVoteReview(review.id, "downvote")
+                              }
                             >
                               <ThumbsDown size={16} />
                               <span>{review.downvotes || 0}</span>
                             </button>
                           </div>
                           {userDetails?.id === review.user?.id && (
-                            <button 
+                            <button
                               className="game-details__delete-review-button"
                               onClick={() => handleDeleteReview(review.id)}
                               title={t("delete_review")}
@@ -672,20 +727,21 @@ export function GameDetailsContent() {
                               <TrashIcon size={16} />
                             </button>
                           )}
-                          {review.isBlocked && visibleBlockedReviews.has(review.id) && (
-                            <button 
-                              className="game-details__blocked-review-hide-link"
-                              onClick={() => toggleBlockedReview(review.id)}
-                            >
-                              Hide
-                            </button>
-                          )}
+                          {review.isBlocked &&
+                            visibleBlockedReviews.has(review.id) && (
+                              <button
+                                className="game-details__blocked-review-hide-link"
+                                onClick={() => toggleBlockedReview(review.id)}
+                              >
+                                Hide
+                              </button>
+                            )}
                         </div>
                       </>
                     )}
                   </div>
                 ))}
-                
+
                 {hasMoreReviews && !reviewsLoading && (
                   <button
                     className="game-details__load-more-reviews"
@@ -694,7 +750,7 @@ export function GameDetailsContent() {
                     {t("load_more_reviews")}
                   </button>
                 )}
-                
+
                 {reviewsLoading && reviews.length > 0 && (
                   <div className="game-details__reviews-loading">
                     {t("loading_more_reviews")}
