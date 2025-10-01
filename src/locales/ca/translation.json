@@ -4,7 +4,6 @@
     "successfully_signed_in": "Has entrat correctament"
   },
   "home": {
-    "featured": "Destacats",
     "surprise_me": "Sorprèn-me",
     "no_results": "No s'ha trobat res"
   },
@@ -25,7 +24,6 @@
   },
   "header": {
     "search": "Cerca jocs",
-
     "home": "Inici",
     "catalogue": "Catàleg",
     "downloads": "Baixades",
@@ -41,10 +39,7 @@
     "calculating_eta": "Descarregant {{title}}… ({{percentage}} completat) - Calculant el temps restant…",
     "checking_files": "Comprovant els fitxers de {{title}}… ({{percentage}} completat)"
   },
-  "catalogue": {
-    "next_page": "Pàgina següent",
-    "previous_page": "Pàgina anterior"
-  },
+  "catalogue": {},
   "game_details": {
     "open_download_options": "Obre les opcions de baixada",
     "download_options_zero": "No hi ha opcions de baixada",

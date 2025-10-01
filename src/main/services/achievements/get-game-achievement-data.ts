@@ -45,10 +45,8 @@ export const getGameAchievementData = async (
     .then((language) => language || "en");
 
   return HydraApi.get<SteamAchievement[]>(
-    "/games/achievements",
+    `/games/${shop}/${objectId}/achievements`,
     {
-      shop,
-      objectId,
       language,
     },
     {

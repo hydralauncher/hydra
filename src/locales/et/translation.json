@@ -4,7 +4,6 @@
     "successfully_signed_in": "Edukalt sisse logitud"
   },
   "home": {
-    "featured": "Esile toodud",
     "surprise_me": "Üllata mind",
     "no_results": "Tulemusi ei leitud",
     "start_typing": "Alusta otsimiseks kirjutamist...",
@@ -45,10 +44,7 @@
     "calculating_eta": "{{title}} allalaadimine… ({{percentage}} valmis) - Järelejäänud aja arvutamine…",
     "checking_files": "{{title}} failide kontrollimine… ({{percentage}} valmis)"
   },
-  "catalogue": {
-    "next_page": "Järgmine leht",
-    "previous_page": "Eelmine leht"
-  },
+  "catalogue": {},
   "game_details": {
     "open_download_options": "Ava allalaadimise valikud",
     "download_options_zero": "Allalaadimise valikuid pole",

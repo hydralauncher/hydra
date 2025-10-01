@@ -1,8 +1,7 @@
 @use "../../../scss/globals.scss";
 
 .description-header {
-  width: calc(100% - calc(globals.$spacing-unit * 2));
-  margin: calc(globals.$spacing-unit * 1) auto;
+  width: 100%;
   padding: calc(globals.$spacing-unit * 1.5);
   display: flex;
   justify-content: space-between;
@@ -10,8 +9,9 @@
   background-color: globals.$background-color;
   height: 72px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.03);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: calc(globals.$spacing-unit * 1);
 
   &__info {
     display: flex;

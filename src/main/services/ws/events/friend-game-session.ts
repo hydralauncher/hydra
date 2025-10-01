@@ -16,9 +16,7 @@ export const friendGameSessionEvent = async (payload: FriendGameSession) => {
 
   const [friend, gameStats] = await Promise.all([
     HydraApi.get<UserProfile>(`/users/${payload.friendId}`),
-    HydraApi.get<GameStats>(
-      `/games/stats?objectId=${payload.objectId}&shop=steam`
-    ),
+    HydraApi.get<GameStats>(`/games/steam/${payload.objectId}/stats`),
   ]).catch(() => [null, null]);
 
   if (friend && gameStats) {

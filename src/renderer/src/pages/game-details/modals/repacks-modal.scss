@@ -2,12 +2,33 @@
 
 .repacks-modal {
   &__filter-container {
+    transition: all 0.3s ease;
+  }
+
+  &__filter-top {
     margin-bottom: calc(globals.$spacing-unit * 2);
+    display: flex;
+    flex-direction: row;
+    gap: calc(globals.$spacing-unit * 1);
+    align-items: center;
+  }
+
+  &__filter-toggle {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1);
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    padding: calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 1.5);
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
   }
 
   &__repacks {
     display: flex;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 2);
     flex-direction: column;
   }
 
@@ -16,7 +37,7 @@
     text-align: left;
     flex-direction: column;
     align-items: flex-start;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 1);
     color: globals.$body-color;
     padding: calc(globals.$spacing-unit * 2);
   }
@@ -28,5 +49,107 @@
 
   &__repack-info {
     font-size: globals.$small-font-size;
+  }
+
+  &__no-results {
+    width: 100%;
+    padding: calc(globals.$spacing-unit * 4) 0;
+    text-align: center;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__no-results-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    max-width: 480px;
+    width: 100%;
+  }
+
+  &__no-results-text {
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    text-align: center;
+  }
+
+  &__no-results-button {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  &__download-sources {
+    padding: 0;
+    background-color: var(--color-background-light);
+    border-radius: 8px;
+    margin-bottom: calc(globals.$spacing-unit * 2);
+    margin-top: calc(globals.$spacing-unit * 1);
+    max-height: 0;
+    overflow: hidden;
+    transition:
+      max-height 0.3s ease,
+      padding 0.3s ease;
+
+    &--open {
+      max-height: 280px;
+    }
+  }
+
+  &__filter-label {
+    display: none;
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--color-text-secondary);
+    width: 100%;
+  }
+
+  &__source-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: calc(globals.$spacing-unit * 1);
+    max-height: 200px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-items: start;
+    padding: calc(globals.$spacing-unit * 0.5) calc(globals.$spacing-unit * 0.5)
+      calc(globals.$spacing-unit * 0.5) 0;
+  }
+
+  &__source-item {
+    padding: calc(globals.$spacing-unit * 0.75) calc(globals.$spacing-unit * 1);
+    background: var(--color-surface, rgba(0, 0, 0, 0.03));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    min-height: calc(globals.$spacing-unit * 5);
+    box-sizing: border-box;
+    width: 100%;
+    transition: border-color 0.2s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+  }
+
+  &__source-item :global(.checkbox-field) {
+    width: 100%;
+    min-width: 0;
+  }
+
+  &__source-item :global(.checkbox-field__label) {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    display: block;
+    font-size: 0.85rem;
+    width: 100%;
+    word-break: break-word;
   }
 }

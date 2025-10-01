@@ -70,7 +70,13 @@
     "edit_game_modal_icon_resolution": "Recommended resolution: 256x256px",
     "edit_game_modal_logo_resolution": "Recommended resolution: 640x360px",
     "edit_game_modal_hero_resolution": "Recommended resolution: 1920x620px",
-    "edit_game_modal_assets": "Assets"
+    "edit_game_modal_assets": "Assets",
+    "edit_game_modal_drop_icon_image_here": "Drop icon image here",
+    "edit_game_modal_drop_logo_image_here": "Drop logo image here",
+    "edit_game_modal_drop_hero_image_here": "Drop hero image here",
+    "edit_game_modal_drop_to_replace_icon": "Drop to replace icon",
+    "edit_game_modal_drop_to_replace_logo": "Drop to replace logo",
+    "edit_game_modal_drop_to_replace_hero": "Drop to replace hero"
   },
   "header": {
     "search": "Search games",
@@ -295,7 +301,9 @@
     "historical_keyshop": "Historical keyshop",
     "language": "Language",
     "caption": "Caption",
-    "audio": "Audio"
+    "audio": "Audio",
+    "filter_by_source": "Filter by source",
+    "no_repacks_found": "No sources found for this game"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -515,6 +523,8 @@
   "user_profile": {
     "amount_hours": "{{amount}} hours",
     "amount_minutes": "{{amount}} minutes",
+    "amount_hours_short": "{{amount}}h",
+    "amount_minutes_short": "{{amount}}m",
     "last_time_played": "Last played {{period}}",
     "activity": "Recent Activity",
     "library": "Library",

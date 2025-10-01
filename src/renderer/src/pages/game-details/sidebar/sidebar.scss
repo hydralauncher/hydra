@@ -1,11 +1,12 @@
 @use "../../../scss/globals.scss";
 
 .content-sidebar {
-  border-left: solid 1px globals.$border-color;
-  background-color: globals.$dark-background-color;
   height: 100%;
   flex-shrink: 0;
   width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 1.5);
 
   @media (min-width: 1024px) {
     width: 320px;
