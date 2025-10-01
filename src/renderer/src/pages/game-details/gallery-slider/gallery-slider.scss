@@ -65,7 +65,7 @@
   &__preview {
     width: 100%;
     padding: globals.$spacing-unit 0;
-    height: 100%;
+    height: auto;
     display: flex;
     position: relative;
     overflow-x: auto;

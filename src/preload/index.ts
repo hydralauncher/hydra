@@ -77,6 +77,32 @@ contextBridge.exposeInMainWorld("electron", {
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
   getTrendingGames: () => ipcRenderer.invoke("getTrendingGames"),
+  createGameReview: (
+    shop: GameShop,
+    objectId: string,
+    reviewHtml: string,
+    score: number
+  ) => ipcRenderer.invoke("createGameReview", shop, objectId, reviewHtml, score),
+  getGameReviews: (
+    shop: GameShop,
+    objectId: string,
+    take?: number,
+    skip?: number,
+    sortBy?: string
+  ) => ipcRenderer.invoke("getGameReviews", shop, objectId, take, skip, sortBy),
+  voteReview: (
+    shop: GameShop,
+    objectId: string,
+    reviewId: string,
+    voteType: "upvote" | "downvote"
+  ) => ipcRenderer.invoke("voteReview", shop, objectId, reviewId, voteType),
+  deleteReview: (
+    shop: GameShop,
+    objectId: string,
+    reviewId: string
+  ) => ipcRenderer.invoke("deleteReview", shop, objectId, reviewId),
+  checkGameReview: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("checkGameReview", shop, objectId),
   onUpdateAchievements: (
     objectId: string,
     shop: GameShop,

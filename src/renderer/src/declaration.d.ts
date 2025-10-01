@@ -93,6 +93,34 @@ declare global {
     ) => Promise<HowLongToBeatCategory[] | null>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getTrendingGames: () => Promise<TrendingGame[]>;
+    createGameReview: (
+      shop: GameShop,
+      objectId: string,
+      reviewHtml: string,
+      score: number
+    ) => Promise<void>;
+    getGameReviews: (
+      shop: GameShop,
+      objectId: string,
+      take?: number,
+      skip?: number,
+      sortBy?: string
+    ) => Promise<any[]>;
+    voteReview: (
+      shop: GameShop,
+      objectId: string,
+      reviewId: string,
+      voteType: 'upvote' | 'downvote'
+    ) => Promise<void>;
+    deleteReview: (
+      shop: GameShop,
+      objectId: string,
+      reviewId: string
+    ) => Promise<void>;
+    checkGameReview: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<{ hasReviewed: boolean }>;
     onUpdateAchievements: (
       objectId: string,
       shop: GameShop,
