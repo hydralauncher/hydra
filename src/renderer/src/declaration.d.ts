@@ -110,7 +110,7 @@ declare global {
       shop: GameShop,
       objectId: string,
       reviewId: string,
-      voteType: 'upvote' | 'downvote'
+      voteType: "upvote" | "downvote"
     ) => Promise<void>;
     deleteReview: (
       shop: GameShop,
