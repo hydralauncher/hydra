@@ -8,12 +8,7 @@ const getHowLongToBeat = async (
   objectId: string,
   shop: GameShop
 ): Promise<HowLongToBeatCategory[] | null> => {
-  const params = new URLSearchParams({
-    objectId,
-    shop,
-  });
-
-  return HydraApi.get(`/games/how-long-to-beat?${params.toString()}`, null, {
+  return HydraApi.get(`/games/${shop}/${objectId}/how-long-to-beat`, null, {
     needsAuth: false,
   });
 };

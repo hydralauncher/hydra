@@ -11,7 +11,7 @@ const getTrendingGames = async (_event: Electron.IpcMainInvokeEvent) => {
     .then((language) => language || "en");
 
   const trendingGames = await HydraApi.get<TrendingGame[]>(
-    "/games/featured",
+    "/catalogue/featured",
     { language },
     { needsAuth: false }
   ).catch(() => []);

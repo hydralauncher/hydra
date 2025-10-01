@@ -93,14 +93,9 @@ const startGameDownload = async (
 
     await Promise.all([
       createGame(updatedGame!).catch(() => {}),
-      HydraApi.post(
-        "/games/download",
-        {
-          objectId,
-          shop,
-        },
-        { needsAuth: false }
-      ).catch(() => {}),
+      HydraApi.post(`/games/${shop}/${objectId}/download`, null, {
+        needsAuth: false,
+      }).catch(() => {}),
     ]);
 
     return { ok: true };

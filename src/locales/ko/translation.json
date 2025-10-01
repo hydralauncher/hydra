@@ -1,7 +1,6 @@
 {
   "language_name": "한국어",
   "home": {
-    "featured": "추천",
     "surprise_me": "무작위 추천",
     "no_results": "결과 없음"
   },
@@ -17,7 +16,6 @@
     "home": "홈",
     "favorites": "즐겨찾기"
   },
-
   "header": {
     "search": "게임 검색하기",
     "home": "홈",
@@ -31,10 +29,7 @@
     "downloading_metadata": "{{title}}의 메타데이터를 다운로드 중…",
     "downloading": "{{title}}의 파일들을 다운로드 중… ({{percentage}} 완료) - 완료까지 {{eta}} - {{speed}}"
   },
-  "catalogue": {
-    "next_page": "다음 페이지",
-    "previous_page": "이전 페이지"
-  },
+  "catalogue": {},
   "game_details": {
     "open_download_options": "다운로드 선택지 열기",
     "download_options_zero": "다운로드 선택지 없음",

@@ -8,6 +8,7 @@
     display: flex;
     transition: all ease 0.2s;
     cursor: grab;
+    container-type: inline-size;
 
     &:hover {
       transform: scale(1.05);
@@ -86,30 +87,8 @@
     top: 8px;
     right: 8px;
     display: flex;
-    gap: 6px;
+    gap: 4px;
     z-index: 2;
-  }
-
-  &__favorite-icon {
-    color: rgba(255, 255, 255, 0.8);
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: solid 1px rgba(255, 255, 255, 0.15);
-    border-radius: 50%;
-    padding: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: all ease 0.2s;
-
-    &:hover {
-      background: rgba(0, 0, 0, 0.5);
-      border-color: rgba(255, 255, 255, 0.25);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    }
   }
 
   &__pin-button {
@@ -154,11 +133,25 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: all ease 0.2s;
 
-    &:hover {
-      background: rgba(0, 0, 0, 0.5);
-      border-color: rgba(255, 255, 255, 0.25);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    &-long {
+      display: inline;
+      font-size: 12px;
+    }
+
+    &-short {
+      display: none;
+      font-size: 12px;
+    }
+
+    // When the card is narrow (less than 180px), show short format
+    @container (max-width: 140px) {
+      &-long {
+        display: none;
+      }
+
+      &-short {
+        display: inline;
+      }
     }
   }
   &__manual-playtime {

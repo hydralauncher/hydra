@@ -87,7 +87,7 @@ const createSteamShortcut = async (
     }
 
     const { assets } = await HydraApi.get<GameStats>(
-      `/games/stats?objectId=${objectId}&shop=${shop}`
+      `/games/${shop}/${objectId}/stats`
     );
 
     const steamUserIds = await getSteamUsersIds();
