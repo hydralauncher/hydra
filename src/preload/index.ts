@@ -102,6 +102,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("autoLaunch", autoLaunchProps),
   authenticateRealDebrid: (apiToken: string) =>
     ipcRenderer.invoke("authenticateRealDebrid", apiToken),
+  authenticateAllDebrid: (apiKey: string) =>
+    ipcRenderer.invoke("authenticateAllDebrid", apiKey),
   authenticateTorBox: (apiToken: string) =>
     ipcRenderer.invoke("authenticateTorBox", apiToken),
 
@@ -128,52 +130,6 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   addGameToLibrary: (shop: GameShop, objectId: string, title: string) =>
     ipcRenderer.invoke("addGameToLibrary", shop, objectId, title),
-  addCustomGameToLibrary: (
-    title: string,
-    executablePath: string,
-    iconUrl?: string,
-    logoImageUrl?: string,
-    libraryHeroImageUrl?: string
-  ) =>
-    ipcRenderer.invoke(
-      "addCustomGameToLibrary",
-      title,
-      executablePath,
-      iconUrl,
-      logoImageUrl,
-      libraryHeroImageUrl
-    ),
-  copyCustomGameAsset: (
-    sourcePath: string,
-    assetType: "icon" | "logo" | "hero"
-  ) => ipcRenderer.invoke("copyCustomGameAsset", sourcePath, assetType),
-  saveTempFile: (fileName: string, fileData: Uint8Array) =>
-    ipcRenderer.invoke("saveTempFile", fileName, fileData),
-  deleteTempFile: (filePath: string) =>
-    ipcRenderer.invoke("deleteTempFile", filePath),
-  cleanupUnusedAssets: () => ipcRenderer.invoke("cleanupUnusedAssets"),
-  updateCustomGame: (params: {
-    shop: GameShop;
-    objectId: string;
-    title: string;
-    iconUrl?: string;
-    logoImageUrl?: string;
-    libraryHeroImageUrl?: string;
-    originalIconPath?: string;
-    originalLogoPath?: string;
-    originalHeroPath?: string;
-  }) => ipcRenderer.invoke("updateCustomGame", params),
-  updateGameCustomAssets: (params: {
-    shop: GameShop;
-    objectId: string;
-    title: string;
-    customIconUrl?: string | null;
-    customLogoImageUrl?: string | null;
-    customHeroImageUrl?: string | null;
-    customOriginalIconPath?: string | null;
-    customOriginalLogoPath?: string | null;
-    customOriginalHeroPath?: string | null;
-  }) => ipcRenderer.invoke("updateGameCustomAssets", params),
   createGameShortcut: (
     shop: GameShop,
     objectId: string,
