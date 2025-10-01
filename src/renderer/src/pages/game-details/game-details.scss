@@ -252,7 +252,7 @@ $hero-height: 300px;
   &__review-avatar {
     width: 32px;
     height: 32px;
-    border-radius: 50%;
+    border-radius: 4px;
     object-fit: cover;
     border: 2px solid rgba(255, 255, 255, 0.1);
   }

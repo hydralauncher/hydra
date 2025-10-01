@@ -666,7 +666,7 @@ export function GameDetailsContent() {
                                   navigate(`/profile/${review.user.id}`)
                                 }
                                 onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
+                                  if (e.key === "Enter" || e.key === " ") {
                                     e.preventDefault();
                                     review.user?.id &&
                                       navigate(`/profile/${review.user.id}`);
