@@ -182,6 +182,7 @@ export interface UserDetails {
   bio: string;
   featurebaseJwt: string;
   subscription: Subscription | null;
+  karma: number;
   quirks?: {
     backupsPerGameLimit: number;
   };

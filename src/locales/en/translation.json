@@ -317,7 +317,11 @@
     "caption": "Caption",
     "audio": "Audio",
     "filter_by_source": "Filter by source",
-    "no_repacks_found": "No sources found for this game"
+    "no_repacks_found": "No sources found for this game",
+"delete_review": "Delete review",
+    "delete_review_modal_title": "Delete Review",
+    "delete_review_modal_description": "Are you sure you want to delete your review? This action cannot be undone.",
+    "delete_review_karma_warning": "You will lose any karma points earned from this review."
   },
   "activation": {
     "title": "Activate Hydra",
@@ -624,7 +628,10 @@
     "error_adding_friend": "Could not send friend request. Please check friend code",
     "friend_code_length_error": "Friend code must have 8 characters",
     "game_removed_from_pinned": "Game removed from pinned",
-    "game_added_to_pinned": "Game added to pinned"
+    "game_added_to_pinned": "Game added to pinned",
+    "karma": "Karma",
+    "karma_count": "karma",
+    "karma_description": "Earned from positive likes on your reviews"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",
