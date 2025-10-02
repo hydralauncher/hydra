@@ -11,9 +11,13 @@ import { app, dialog } from "electron";
 import { db, levelKeys } from "@main/level";
 
 interface GamePayload {
+  action: string;
   game_id: string;
-  url: string;
+  url: string | string[];
   save_path: string;
+  header?: string;
+  out?: string;
+  total_size?: number;
 }
 
 const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
