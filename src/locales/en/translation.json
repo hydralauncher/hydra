@@ -319,8 +319,9 @@
     "filter_by_source": "Filter by source",
     "no_repacks_found": "No sources found for this game",
     "delete_review": "Delete review",
-    "delete_review_modal_title": "Delete Review",
-    "delete_review_modal_description": "Are you sure you want to delete your review? This action cannot be undone.",
+    "delete_review_modal_title": "Are you sure you want to delete your review?",
+    "delete_review_modal_description": "This action cannot be undone.",
+    "delete_review_button": "Delete",
     "delete_review_karma_warning": "You will lose any karma points earned from this review."
   },
   "activation": {
