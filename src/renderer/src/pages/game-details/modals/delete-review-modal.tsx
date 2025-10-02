@@ -27,17 +27,13 @@ export function DeleteReviewModal({
       description={t("delete_review_modal_description")}
       onClose={onClose}
     >
-      <div className="delete-review-modal__karma-warning">
-        {t("delete_review_karma_warning")}
-      </div>
-
       <div className="delete-review-modal__actions">
         <Button onClick={onClose} theme="outline">
           {t("cancel")}
         </Button>
 
-        <Button onClick={handleDeleteReview} theme="primary">
-          {t("delete")}
+        <Button onClick={handleDeleteReview} theme="danger">
+          {t("delete_review_button")}
         </Button>
       </div>
     </Modal>
