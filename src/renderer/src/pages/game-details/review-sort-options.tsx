@@ -49,16 +49,30 @@ export function ReviewSortOptions({
           className={`review-sort-options__option review-sort-options__toggle-option ${isDateActive ? "active" : ""}`}
           onClick={handleDateToggle}
         >
-          {sortBy === "newest" ? <ChevronDownIcon size={16} /> : <ChevronUpIcon size={16} />}
-          <span>{sortBy === "oldest" ? t("sort_oldest") : t("sort_newest")}</span>
+          {sortBy === "newest" ? (
+            <ChevronDownIcon size={16} />
+          ) : (
+            <ChevronUpIcon size={16} />
+          )}
+          <span>
+            {sortBy === "oldest" ? t("sort_oldest") : t("sort_newest")}
+          </span>
         </button>
         <span className="review-sort-options__separator">|</span>
         <button
           className={`review-sort-options__option review-sort-options__toggle-option ${isScoreActive ? "active" : ""}`}
           onClick={handleScoreToggle}
         >
-          {sortBy === "score_high" ? <ChevronDownIcon size={16} /> : <ChevronUpIcon size={16} />}
-          <span>{sortBy === "score_low" ? t("sort_lowest_score") : t("sort_highest_score")}</span>
+          {sortBy === "score_high" ? (
+            <ChevronDownIcon size={16} />
+          ) : (
+            <ChevronUpIcon size={16} />
+          )}
+          <span>
+            {sortBy === "score_low"
+              ? t("sort_lowest_score")
+              : t("sort_highest_score")}
+          </span>
         </button>
         <span className="review-sort-options__separator">|</span>
         <button

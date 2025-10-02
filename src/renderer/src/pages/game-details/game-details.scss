@@ -196,7 +196,6 @@ $hero-height: 300px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: calc(globals.$spacing-unit * 2);
     padding-bottom: calc(globals.$spacing-unit * 1);
   }
 
@@ -850,7 +849,6 @@ $hero-height: 300px;
     justify-content: space-between;
     align-items: center;
     margin-bottom: calc(globals.$spacing-unit * 2);
-    gap: calc(globals.$spacing-unit * 2);
 
     @media (max-width: 768px) {
       flex-direction: column;
