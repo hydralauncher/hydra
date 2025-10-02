@@ -25,7 +25,8 @@ export function UserKarmaBox() {
         <div className="user-karma__content">
           <div className="user-karma__stats-row">
             <p className="user-karma__description">
-              <Award size={20} /> {numberFormatter.format(userDetails.karma)} {t("karma_count")}
+              <Award size={20} /> {numberFormatter.format(userDetails.karma)}{" "}
+              {t("karma_count")}
             </p>
           </div>
           <div className="user-karma__info">

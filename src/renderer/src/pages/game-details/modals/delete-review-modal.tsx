@@ -30,7 +30,7 @@ export function DeleteReviewModal({
       <div className="delete-review-modal__karma-warning">
         {t("delete_review_karma_warning")}
       </div>
-      
+
       <div className="delete-review-modal__actions">
         <Button onClick={onClose} theme="outline">
           {t("cancel")}
