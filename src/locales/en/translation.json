@@ -213,7 +213,6 @@
     "leave_a_review": "Leave a Review",
     "write_review_placeholder": "Share your thoughts about this game...",
     "sort_newest": "Newest",
-    "sort_by": "Sort by",
     "no_reviews_yet": "No reviews yet",
     "be_first_to_review": "Be the first to share your thoughts about this game!",
     "sort_oldest": "Oldest",
@@ -226,7 +225,6 @@
     "loading_reviews": "Loading reviews...",
     "loading_more_reviews": "Loading more reviews...",
     "load_more_reviews": "Load More Reviews",
-    "youve_played_for_hours": "You've played for {{hours}} hours",
     "would_you_recommend_this_game": "Would you like to leave a review to this game?",
     "yes": "Yes",
     "maybe_later": "Maybe Later",
@@ -330,8 +328,8 @@
     "delete_review": "Delete review",
     "delete_review_modal_title": "Are you sure you want to delete your review?",
     "delete_review_modal_description": "This action cannot be undone.",
-    "delete_review_button": "Delete",
-    "delete_review_karma_warning": "You will lose any karma points earned from this review."
+    "delete_review_modal_delete_button": "Delete",
+    "delete_review_modal_cancel_button": "Cancel"
   },
   "activation": {
     "title": "Activate Hydra",

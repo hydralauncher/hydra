@@ -659,7 +659,7 @@ $hero-height: 300px;
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.1);
-      border-color: globals.$brand-teal;
+      border-color: rgba(255, 255, 255, 0.1);
     }
   }
 
@@ -945,20 +945,20 @@ $hero-height: 300px;
   &__review-input {
     min-height: 120px;
     padding: 12px;
-    
+
     .ProseMirror {
       outline: none;
       color: #ffffff;
       font-size: 14px;
       line-height: 1.5;
-      
+
       &:focus {
         outline: none;
       }
 
       p {
         margin: 0 0 8px 0;
-        
+
         &:last-child {
           margin-bottom: 0;
         }

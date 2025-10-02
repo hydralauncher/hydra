@@ -4,6 +4,7 @@ import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { motion } from "framer-motion";
 import type { GameReview } from "@types";
 
 import { HeroPanel } from "./hero";
@@ -131,10 +132,10 @@ export function GameDetailsContent() {
       },
       handlePaste: (view, event) => {
         // Strip formatting from pasted content to prevent overflow issues
-        const text = event.clipboardData?.getData('text/plain') || '';
+        const text = event.clipboardData?.getData("text/plain") || "";
         const currentText = view.state.doc.textContent;
         const remainingChars = MAX_REVIEW_CHARS - currentText.length;
-        
+
         if (text && remainingChars > 0) {
           event.preventDefault();
           const truncatedText = text.slice(0, remainingChars);
@@ -147,7 +148,7 @@ export function GameDetailsContent() {
     onUpdate: ({ editor }) => {
       const text = editor.getText();
       setReviewCharCount(text.length);
-      
+
       // Prevent typing beyond character limit
       if (text.length > MAX_REVIEW_CHARS) {
         const truncatedContent = text.slice(0, MAX_REVIEW_CHARS);
@@ -293,7 +294,12 @@ export function GameDetailsContent() {
     console.log("reviewScore:", reviewScore);
     console.log("submittingReview:", submittingReview);
 
-    if (!objectId || !reviewHtml.trim() || submittingReview || reviewCharCount > MAX_REVIEW_CHARS) {
+    if (
+      !objectId ||
+      !reviewHtml.trim() ||
+      submittingReview ||
+      reviewCharCount > MAX_REVIEW_CHARS
+    ) {
       console.log("Early return - validation failed");
       return;
     }
@@ -584,7 +590,13 @@ export function GameDetailsContent() {
                             </button>
                           </div>
                           <div className="game-details__review-char-counter">
-                            <span className={reviewCharCount > MAX_REVIEW_CHARS ? "over-limit" : ""}>
+                            <span
+                              className={
+                                reviewCharCount > MAX_REVIEW_CHARS
+                                  ? "over-limit"
+                                  : ""
+                              }
+                            >
                               {reviewCharCount}/{MAX_REVIEW_CHARS}
                             </span>
                           </div>
@@ -619,12 +631,14 @@ export function GameDetailsContent() {
                             <option value={10}>10/10</option>
                           </select>
                         </div>
-                        
+
                         <button
                           className="game-details__review-submit-button"
                           onClick={handleSubmitReview}
                           disabled={
-                            !editor?.getHTML().trim() || submittingReview || reviewCharCount > MAX_REVIEW_CHARS
+                            !editor?.getHTML().trim() ||
+                            submittingReview ||
+                            reviewCharCount > MAX_REVIEW_CHARS
                           }
                         >
                           {submittingReview
@@ -739,24 +753,56 @@ export function GameDetailsContent() {
                           />
                           <div className="game-details__review-actions">
                             <div className="game-details__review-votes">
-                              <button
+                              <motion.button
                                 className={`game-details__vote-button game-details__vote-button--upvote ${review.hasUpvoted ? "game-details__vote-button--active" : ""}`}
                                 onClick={() =>
                                   handleVoteReview(review.id, "upvote")
                                 }
+                                whileTap={{
+                                  scale: 0.9,
+                                  transition: { duration: 0.1 },
+                                }}
+                                whileHover={{
+                                  scale: 1.05,
+                                  transition: { duration: 0.2 },
+                                }}
+                                animate={
+                                  review.hasUpvoted
+                                    ? {
+                                        scale: [1, 1.2, 1],
+                                        transition: { duration: 0.3 },
+                                      }
+                                    : {}
+                                }
                               >
                                 <ThumbsUp size={16} />
                                 <span>{review.upvotes || 0}</span>
-                              </button>
-                              <button
+                              </motion.button>
+                              <motion.button
                                 className={`game-details__vote-button game-details__vote-button--downvote ${review.hasDownvoted ? "game-details__vote-button--active" : ""}`}
                                 onClick={() =>
                                   handleVoteReview(review.id, "downvote")
                                 }
+                                whileTap={{
+                                  scale: 0.9,
+                                  transition: { duration: 0.1 },
+                                }}
+                                whileHover={{
+                                  scale: 1.05,
+                                  transition: { duration: 0.2 },
+                                }}
+                                animate={
+                                  review.hasDownvoted
+                                    ? {
+                                        scale: [1, 1.2, 1],
+                                        transition: { duration: 0.3 },
+                                      }
+                                    : {}
+                                }
                               >
                                 <ThumbsDown size={16} />
                                 <span>{review.downvotes || 0}</span>
-                              </button>
+                              </motion.button>
                             </div>
                             {userDetails?.id === review.user?.id && (
                               <button
