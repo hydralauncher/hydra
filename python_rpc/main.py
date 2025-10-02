@@ -3,6 +3,7 @@ import sys, json, urllib.parse, psutil
 from torrent_downloader import TorrentDownloader
 from http_downloader import HttpDownloader
 from profile_image_processor import ProfileImageProcessor
+from http_multi_link_downloader import HttpMultiLinkDownloader
 import libtorrent as lt
 
 app = Flask(__name__)
@@ -24,7 +25,15 @@ if start_download_payload:
     initial_download = json.loads(urllib.parse.unquote(start_download_payload))
     downloading_game_id = initial_download['game_id']
     
-    if initial_download['url'].startswith('magnet'):
+    if isinstance(initial_download['url'], list):
+        # Handle multiple URLs using HttpMultiLinkDownloader
+        http_multi_downloader = HttpMultiLinkDownloader()
+        downloads[initial_download['game_id']] = http_multi_downloader
+        try:
+            http_multi_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'), initial_download.get("out"))
+        except Exception as e:
+            print("Error starting multi-link download", e)
+    elif initial_download['url'].startswith('magnet'):
         torrent_downloader = TorrentDownloader(torrent_session)
         downloads[initial_download['game_id']] = torrent_downloader
         try:
@@ -62,11 +71,22 @@ def status():
         return auth_error
 
     downloader = downloads.get(downloading_game_id)
-    if downloader:
-        status = downloads.get(downloading_game_id).get_download_status()
-        return jsonify(status), 200
-    else:
+    if not downloader:
         return jsonify(None)
+
+    status = downloader.get_download_status()
+    if not status:
+        return jsonify(None)
+
+    if isinstance(status, list):
+        if not status:  # Empty list
+            return jsonify(None)
+
+        # For multi-link downloader, use the aggregated status
+        # The status will already be aggregated by the HttpMultiLinkDownloader
+        return jsonify(status[0]), 200
+
+    return jsonify(status), 200
 
 @app.route("/seed-status", methods=["GET"])
 def seed_status():
@@ -81,10 +101,24 @@ def seed_status():
             continue
         
         response = downloader.get_download_status()
-        if response is None:
+        if not response:
             continue
         
-        if response.get('status') == 5:
+        if isinstance(response, list):
+            # For multi-link downloader, check if all files are complete
+            if response and all(item['status'] == 'complete' for item in response):
+                seed_status.append({
+                    'gameId': game_id,
+                    'status': 'complete',
+                    'folderName': response[0]['folderName'],
+                    'fileSize': sum(item['fileSize'] for item in response),
+                    'bytesDownloaded': sum(item['bytesDownloaded'] for item in response),
+                    'downloadSpeed': 0,
+                    'numPeers': 0,
+                    'numSeeds': 0,
+                    'progress': 1.0
+                })
+        elif response.get('status') == 5:  # Original torrent seeding check
             seed_status.append({
                 'gameId': game_id,
                 **response,
@@ -143,7 +177,15 @@ def action():
 
         existing_downloader = downloads.get(game_id)
 
-        if url.startswith('magnet'):
+        if isinstance(url, list):
+            # Handle multiple URLs using HttpMultiLinkDownloader
+            if existing_downloader and isinstance(existing_downloader, HttpMultiLinkDownloader):
+                existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
+            else:
+                http_multi_downloader = HttpMultiLinkDownloader()
+                downloads[game_id] = http_multi_downloader
+                http_multi_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
+        elif url.startswith('magnet'):
             if existing_downloader and isinstance(existing_downloader, TorrentDownloader):
                 existing_downloader.start_download(url, data['save_path'])
             else:

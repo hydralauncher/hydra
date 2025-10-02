@@ -95,9 +95,11 @@ export type AchievementCustomNotificationPosition =
 
 export interface UserPreferences {
   downloadsPath?: string | null;
+  ggDealsApiKey?: string | null;
   language?: string;
   realDebridApiToken?: string | null;
   torBoxApiToken?: string | null;
+  allDebridApiKey?: string | null;
   preferQuitInsteadOfHiding?: boolean;
   runAtStartup?: boolean;
   startMinimized?: boolean;
