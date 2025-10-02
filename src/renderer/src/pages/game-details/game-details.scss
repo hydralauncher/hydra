@@ -30,12 +30,8 @@ $hero-height: 300px;
   &__review-form {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
-    margin-bottom: calc(globals.$spacing-unit * 3);
-    padding: calc(globals.$spacing-unit * 2);
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 16px;
+    margin-bottom: 24px;
   }
 
   &__review-form-controls {
@@ -54,55 +50,35 @@ $hero-height: 300px;
   &__review-form-bottom {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
-    gap: calc(globals.$spacing-unit * 2);
-
-    @media (max-width: 768px) {
-      flex-direction: column;
-      align-items: stretch;
-      gap: calc(globals.$spacing-unit * 1.5);
-    }
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
   }
 
   &__review-score-container {
     display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 0.75);
-    min-width: 120px;
+    align-items: center;
+    gap: 8px;
   }
 
   &__review-score-label {
-    display: block;
-    font-size: globals.$body-font-size;
-    color: globals.$body-color;
+    font-size: 14px;
+    color: #ffffff;
+    font-weight: 500;
   }
 
   &__review-score-select {
-    background-color: rgba(255, 255, 255, 0.05);
-    border: 1px solid globals.$border-color;
+    background-color: #2a2a2a;
+    border: 1px solid #3a3a3a;
     border-radius: 4px;
-    padding: calc(globals.$spacing-unit * 0.75) calc(globals.$spacing-unit * 1);
-    color: globals.$body-color;
-    font-size: globals.$body-font-size;
-    font-family: inherit;
+    color: #ffffff;
+    padding: 6px 12px;
+    font-size: 14px;
     cursor: pointer;
-    transition:
-      border-color 0.2s ease,
-      background-color 0.2s ease;
 
     &:focus {
       outline: none;
-      background-color: rgba(255, 255, 255, 0.08);
-      border-color: globals.$brand-teal;
-    }
-
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.15);
-    }
-
-    option {
-      background-color: globals.$dark-background-color;
-      color: globals.$body-color;
+      border-color: #0078d4;
     }
   }
 
@@ -150,19 +126,14 @@ $hero-height: 300px;
 
   &__review-submit-button {
     background-color: rgba(255, 255, 255, 0.05);
-    border: 1px solid globals.$border-color;
-    color: globals.$body-color;
-    padding: calc(globals.$spacing-unit * 0.75)
-      calc(globals.$spacing-unit * 1.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
+    color: #ffffff;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
-    font-size: globals.$small-font-size;
-    font-family: inherit;
-    transition: all ease 0.2s;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    transition: all 0.2s ease;
     white-space: nowrap;
 
     &:hover:not(:disabled) {
@@ -170,12 +141,8 @@ $hero-height: 300px;
       border-color: rgba(255, 255, 255, 0.15);
     }
 
-    &:active {
-      opacity: 0.9;
-    }
-
     &:disabled {
-      background: rgba(255, 255, 255, 0.1);
+      background-color: rgba(255, 255, 255, 0.1);
       cursor: not-allowed;
       color: rgba(255, 255, 255, 0.5);
     }
@@ -918,111 +885,87 @@ $hero-height: 300px;
   }
 
   &__review-input-container {
-    width: 100%;
-    position: relative;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    background-color: #1e1e1e;
+    overflow: hidden;
   }
 
-  &__review-input-bottom {
-    position: absolute;
-    bottom: 8px;
-    left: 8px;
-    right: 8px;
+  &__review-input-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 8px;
-    z-index: 10;
+    padding: 8px 12px;
+    background-color: #2a2a2a;
+    border-bottom: 1px solid #3a3a3a;
   }
 
   &__review-editor-toolbar {
     display: flex;
     gap: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-    padding: 4px;
-    backdrop-filter: blur(10px);
-    background: rgba(0, 0, 0, 0.3);
   }
 
   &__editor-button {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    color: globals.$body-color;
-    padding: 4px 6px;
+    background: none;
+    border: 1px solid #4a4a4a;
+    border-radius: 4px;
+    color: #ffffff;
+    padding: 4px 8px;
     cursor: pointer;
     font-size: 12px;
-    font-weight: 600;
     transition: all 0.2s ease;
-    min-width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 
-    &:hover:not(:disabled) {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
+    &:hover {
+      background-color: #3a3a3a;
+      border-color: #5a5a5a;
+    }
+
+    &.is-active {
+      background-color: #0078d4;
+      border-color: #0078d4;
     }
 
     &:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
+  }
 
-    &.is-active {
-      background: globals.$brand-teal;
-      border-color: globals.$brand-teal;
-      color: white;
+  &__review-char-counter {
+    font-size: 12px;
+    color: #888888;
+
+    .over-limit {
+      color: #ff6b6b;
     }
   }
 
   &__review-input {
-    width: 100%;
-    background-color: rgba(255, 255, 255, 0.05);
-    border: 1px solid globals.$border-color;
-    border-radius: 6px;
-    padding: calc(globals.$spacing-unit * 1.5);
-    padding-bottom: calc(globals.$spacing-unit * 3.5);
-    color: globals.$body-color;
-    font-size: globals.$body-font-size;
-    font-family: inherit;
-    line-height: 1.5;
-    min-height: 100px;
-    transition:
-      border-color 0.2s ease,
-      background-color 0.2s ease;
-
-    &:focus-within {
-      outline: none;
-      background-color: rgba(255, 255, 255, 0.08);
-      border-color: globals.$brand-teal;
-    }
-
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.15);
-    }
-
+    min-height: 120px;
+    padding: 12px;
+    
     .ProseMirror {
       outline: none;
-      min-height: 80px;
-
-      &:empty:before {
-        content: attr(data-placeholder);
-        color: rgba(208, 209, 215, 0.6);
-        pointer-events: none;
+      color: #ffffff;
+      font-size: 14px;
+      line-height: 1.5;
+      
+      &:focus {
+        outline: none;
       }
 
       p {
         margin: 0 0 8px 0;
-
+        
         &:last-child {
           margin-bottom: 0;
         }
       }
 
       strong {
-        font-weight: 700;
+        font-weight: bold;
       }
 
       em {
