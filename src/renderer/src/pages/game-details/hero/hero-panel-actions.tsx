@@ -69,14 +69,32 @@ export function HeroPanelActions() {
       updateGame();
     };
 
-    window.addEventListener("hydra:game-favorite-toggled", onFavoriteToggled as EventListener);
-    window.addEventListener("hydra:game-removed-from-library", onGameRemoved as EventListener);
-    window.addEventListener("hydra:game-files-removed", onFilesRemoved as EventListener);
+    window.addEventListener(
+      "hydra:game-favorite-toggled",
+      onFavoriteToggled as EventListener
+    );
+    window.addEventListener(
+      "hydra:game-removed-from-library",
+      onGameRemoved as EventListener
+    );
+    window.addEventListener(
+      "hydra:game-files-removed",
+      onFilesRemoved as EventListener
+    );
 
     return () => {
-      window.removeEventListener("hydra:game-favorite-toggled", onFavoriteToggled as EventListener);
-      window.removeEventListener("hydra:game-removed-from-library", onGameRemoved as EventListener);
-      window.removeEventListener("hydra:game-files-removed", onFilesRemoved as EventListener);
+      window.removeEventListener(
+        "hydra:game-favorite-toggled",
+        onFavoriteToggled as EventListener
+      );
+      window.removeEventListener(
+        "hydra:game-removed-from-library",
+        onGameRemoved as EventListener
+      );
+      window.removeEventListener(
+        "hydra:game-files-removed",
+        onFilesRemoved as EventListener
+      );
     };
   }, [updateLibrary, updateGame]);
 
@@ -226,7 +244,7 @@ export function HeroPanelActions() {
         onClick={() => setShowRepacksModal(true)}
         theme="outline"
         disabled={isGameDownloading}
-        className={`hero-panel-actions__action ${!repacks.length ? 'hero-panel-actions__action--disabled' : ''}`}
+        className={`hero-panel-actions__action ${!repacks.length ? "hero-panel-actions__action--disabled" : ""}`}
       >
         <DownloadIcon />
         {t("download")}

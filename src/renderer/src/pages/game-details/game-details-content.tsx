@@ -104,6 +104,8 @@ export function GameDetailsContent() {
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewScore, setReviewScore] = useState(5);
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewCharCount, setReviewCharCount] = useState(0);
+  const MAX_REVIEW_CHARS = 1000;
   const [reviewsSortBy, setReviewsSortBy] = useState("newest");
   const [reviewsPage, setReviewsPage] = useState(0);
   const [hasMoreReviews, setHasMoreReviews] = useState(true);
@@ -127,6 +129,31 @@ export function GameDetailsContent() {
         class: "game-details__review-editor",
         "data-placeholder": t("write_review_placeholder"),
       },
+      handlePaste: (view, event) => {
+        // Strip formatting from pasted content to prevent overflow issues
+        const text = event.clipboardData?.getData('text/plain') || '';
+        const currentText = view.state.doc.textContent;
+        const remainingChars = MAX_REVIEW_CHARS - currentText.length;
+        
+        if (text && remainingChars > 0) {
+          event.preventDefault();
+          const truncatedText = text.slice(0, remainingChars);
+          view.dispatch(view.state.tr.insertText(truncatedText));
+          return true;
+        }
+        return false;
+      },
+    },
+    onUpdate: ({ editor }) => {
+      const text = editor.getText();
+      setReviewCharCount(text.length);
+      
+      // Prevent typing beyond character limit
+      if (text.length > MAX_REVIEW_CHARS) {
+        const truncatedContent = text.slice(0, MAX_REVIEW_CHARS);
+        editor.commands.setContent(truncatedContent);
+        setReviewCharCount(MAX_REVIEW_CHARS);
+      }
     },
   });
 
@@ -266,7 +293,7 @@ export function GameDetailsContent() {
     console.log("reviewScore:", reviewScore);
     console.log("submittingReview:", submittingReview);
 
-    if (!objectId || !reviewHtml.trim() || submittingReview) {
+    if (!objectId || !reviewHtml.trim() || submittingReview || reviewCharCount > MAX_REVIEW_CHARS) {
       console.log("Early return - validation failed");
       return;
     }
@@ -523,11 +550,7 @@ export function GameDetailsContent() {
 
                     <div className="game-details__review-form">
                       <div className="game-details__review-input-container">
-                        <EditorContent
-                          editor={editor}
-                          className="game-details__review-input"
-                        />
-                        <div className="game-details__review-input-bottom">
+                        <div className="game-details__review-input-header">
                           <div className="game-details__review-editor-toolbar">
                             <button
                               type="button"
@@ -560,19 +583,16 @@ export function GameDetailsContent() {
                               <u>U</u>
                             </button>
                           </div>
-
-                          <button
-                            className="game-details__review-submit-button"
-                            onClick={handleSubmitReview}
-                            disabled={
-                              !editor?.getHTML().trim() || submittingReview
-                            }
-                          >
-                            {submittingReview
-                              ? t("submitting")
-                              : t("submit_review")}
-                          </button>
+                          <div className="game-details__review-char-counter">
+                            <span className={reviewCharCount > MAX_REVIEW_CHARS ? "over-limit" : ""}>
+                              {reviewCharCount}/{MAX_REVIEW_CHARS}
+                            </span>
+                          </div>
                         </div>
+                        <EditorContent
+                          editor={editor}
+                          className="game-details__review-input"
+                        />
                       </div>
 
                       <div className="game-details__review-form-bottom">
@@ -599,6 +619,18 @@ export function GameDetailsContent() {
                             <option value={10}>10/10</option>
                           </select>
                         </div>
+                        
+                        <button
+                          className="game-details__review-submit-button"
+                          onClick={handleSubmitReview}
+                          disabled={
+                            !editor?.getHTML().trim() || submittingReview || reviewCharCount > MAX_REVIEW_CHARS
+                          }
+                        >
+                          {submittingReview
+                            ? t("submitting")
+                            : t("submit_review")}
+                        </button>
                       </div>
                     </div>
                   </>
