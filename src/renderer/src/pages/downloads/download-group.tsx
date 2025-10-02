@@ -114,6 +114,15 @@ export function DownloadGroup({
       return <p>{t("deleting")}</p>;
     }
 
+    if (download.downloader === Downloader.AllDebrid) {
+      return (
+        <>
+          <p>{progress}</p>
+          <p>{t("alldebrid_size_not_supported")}</p>
+        </>
+      );
+    }
+
     if (isGameDownloading) {
       if (lastPacket?.isDownloadingMetadata) {
         return <p>{t("downloading_metadata")}</p>;
@@ -181,6 +190,15 @@ export function DownloadGroup({
     }
 
     if (download.status === "active") {
+      if ((download.downloader as unknown as string) === "alldebrid") {
+        return (
+          <>
+            <p>{formatDownloadProgress(download.progress)}</p>
+            <p>{t("alldebrid_size_not_supported")}</p>
+          </>
+        );
+      }
+
       return (
         <>
           <p>{formatDownloadProgress(download.progress)}</p>
@@ -275,7 +293,9 @@ export function DownloadGroup({
       (download?.downloader === Downloader.RealDebrid &&
         !userPreferences?.realDebridApiToken) ||
       (download?.downloader === Downloader.TorBox &&
-        !userPreferences?.torBoxApiToken);
+        !userPreferences?.torBoxApiToken) ||
+      (download?.downloader === Downloader.AllDebrid &&
+        !userPreferences?.allDebridApiKey);
 
     return [
       {
