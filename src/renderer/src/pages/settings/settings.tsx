@@ -1,6 +1,7 @@
 import { Button } from "@renderer/components";
 import { useTranslation } from "react-i18next";
 import { SettingsRealDebrid } from "./settings-real-debrid";
+import { SettingsAllDebrid } from "./settings-all-debrid";
 import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
 import { SettingsDownloadSources } from "./settings-download-sources";
@@ -42,6 +43,7 @@ export default function Settings() {
           ]
         : []),
       { tabLabel: "Real-Debrid", contentTitle: "Real-Debrid" },
+      { tabLabel: "All-Debrid", contentTitle: "All-Debrid" },
     ];
 
     if (userDetails)
@@ -79,6 +81,10 @@ export default function Settings() {
 
             if (currentCategoryIndex === 5) {
               return <SettingsRealDebrid />;
+            }
+
+            if (currentCategoryIndex === 6) {
+              return <SettingsAllDebrid />;
             }
 
             return <SettingsAccount />;

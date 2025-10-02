@@ -8,6 +8,7 @@
     "src/locales/index.ts",
     "src/shared/**/*",
     "src/stories/**/*",
+    "src/types/**/*",
     ".storybook/**/*"
   ],
   "compilerOptions": {
