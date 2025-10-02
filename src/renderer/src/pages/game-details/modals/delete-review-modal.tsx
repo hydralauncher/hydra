@@ -29,11 +29,11 @@ export function DeleteReviewModal({
     >
       <div className="delete-review-modal__actions">
         <Button onClick={onClose} theme="outline">
-          {t("cancel")}
+          {t("delete_review_modal_cancel_button")}
         </Button>
 
         <Button onClick={handleDeleteReview} theme="danger">
-          {t("delete_review_button")}
+          {t("delete_review_modal_delete_button")}
         </Button>
       </div>
     </Modal>
