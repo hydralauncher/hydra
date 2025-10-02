@@ -13,6 +13,7 @@ export const DOWNLOADER_NAME = {
   [Downloader.TorBox]: "TorBox",
   [Downloader.AllDebrid]: "All-Debrid",
   [Downloader.Hydra]: "Nimbus",
+  [Downloader.Direct]: "Direct",
 };
 
 export const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
