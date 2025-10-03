@@ -21,12 +21,31 @@ function decodeHtmlEntities(text: string): string {
   });
 }
 
+function removeHtmlTags(html: string): string {
+  let result = "";
+  let inTag = false;
+  
+  for (let i = 0; i < html.length; i++) {
+    const char = html[i];
+    
+    if (char === "<") {
+      inTag = true;
+    } else if (char === ">") {
+      inTag = false;
+    } else if (!inTag) {
+      result += char;
+    }
+  }
+  
+  return result;
+}
+
 export function sanitizeHtml(html: string): string {
   if (!html || typeof html !== "string") {
     return "";
   }
 
-  let cleanText = html.replace(/<[^>]*>/g, "");
+  let cleanText = removeHtmlTags(html);
 
   cleanText = decodeHtmlEntities(cleanText);
 
