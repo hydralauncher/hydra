@@ -693,7 +693,7 @@ export function GameDetailsContent() {
                       {review.isBlocked &&
                       !visibleBlockedReviews.has(review.id) ? (
                         <div className="game-details__blocked-review-simple">
-                          Review from blocked user —
+                          Review from blocked user —{" "}
                           <button
                             className="game-details__blocked-review-show-link"
                             onClick={() => toggleBlockedReview(review.id)}
