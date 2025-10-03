@@ -1,0 +1,41 @@
+function removeZalgoText(text: string): string {
+  const zalgoRegex = /[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]/g;
+  
+  return text.replace(zalgoRegex, '');
+}
+
+export function sanitizeHtml(html: string): string {
+  if (!html || typeof html !== 'string') {
+    return '';
+  }
+
+  let cleanText = html.replace(/<[^>]*>/g, '');
+  
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = cleanText;
+  cleanText = tempDiv.textContent || tempDiv.innerText || '';
+  
+  cleanText = removeZalgoText(cleanText);
+  
+  cleanText = cleanText.replace(/\s+/g, ' ').trim();
+  
+  if (!cleanText || cleanText.length === 0) {
+    return '';
+  }
+  
+  return cleanText;
+}
+
+export function stripHtml(html: string): string {
+  if (!html || typeof html !== 'string') {
+    return '';
+  }
+
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  let cleanText = tempDiv.textContent || tempDiv.innerText || '';
+  
+  cleanText = removeZalgoText(cleanText);
+  
+  return cleanText;
+}
