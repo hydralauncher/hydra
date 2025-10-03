@@ -21,7 +21,7 @@ interface ReviewSortOptionsProps {
 export function ReviewSortOptions({
   sortBy,
   onSortChange,
-}: ReviewSortOptionsProps) {
+}: Readonly<ReviewSortOptionsProps>) {
   const { t } = useTranslation("game_details");
 
   const handleDateToggle = () => {
