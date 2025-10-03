@@ -15,6 +15,7 @@ import { EditGameModal, DeleteReviewModal } from "./modals";
 import { ReviewSortOptions } from "./review-sort-options";
 import { ReviewPromptBanner } from "./review-prompt-banner";
 
+import { sanitizeHtml } from "@shared";
 import { useTranslation } from "react-i18next";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import { AuthPage } from "@shared";
@@ -123,7 +124,12 @@ export function GameDetailsContent() {
 
   // Tiptap editor for review input
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit.configure({
+        // Disable link extension to prevent automatic link rendering and XSS
+        link: false,
+      }),
+    ],
     content: "",
     editorProps: {
       attributes: {
@@ -739,7 +745,7 @@ export function GameDetailsContent() {
                           <div
                             className="game-details__review-content"
                             dangerouslySetInnerHTML={{
-                              __html: review.reviewHtml,
+                              __html: sanitizeHtml(review.reviewHtml),
                             }}
                           />
                           <div className="game-details__review-actions">

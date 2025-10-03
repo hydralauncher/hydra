@@ -200,6 +200,8 @@ $hero-height: 300px;
     border-radius: 6px;
     padding: calc(globals.$spacing-unit * 2);
     margin-bottom: calc(globals.$spacing-unit * 2);
+    overflow: hidden;
+    word-wrap: break-word;
   }
 
   &__review-header {
@@ -233,6 +235,7 @@ $hero-height: 300px;
     color: rgba(255, 255, 255, 0.9);
     font-size: globals.$small-font-size;
     font-weight: 600;
+    display: inline-flex;
 
     &--clickable {
       cursor: pointer;
@@ -383,6 +386,11 @@ $hero-height: 300px;
   &__review-content {
     color: globals.$body-color;
     line-height: 1.5;
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    max-width: 100%;
   }
 
   &__reviews-loading {
