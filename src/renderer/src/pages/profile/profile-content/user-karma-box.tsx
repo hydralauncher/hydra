@@ -1,9 +1,8 @@
 import { useContext } from "react";
 import { userProfileContext } from "@renderer/context";
 import { useTranslation } from "react-i18next";
-import { useFormat } from "@renderer/hooks";
+import { useFormat, useUserDetails } from "@renderer/hooks";
 import { Award } from "lucide-react";
-import { useUserDetails } from "@renderer/hooks";
 import "./user-karma-box.scss";
 
 export function UserKarmaBox() {
