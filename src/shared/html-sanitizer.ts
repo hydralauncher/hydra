@@ -6,6 +6,21 @@ function removeZalgoText(text: string): string {
   return text.replace(zalgoRegex, "");
 }
 
+function decodeHtmlEntities(text: string): string {
+  const entityMap: { [key: string]: string } = {
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#39;': "'",
+    '&nbsp;': ' ',
+  };
+  
+  return text.replace(/&[#\w]+;/g, (entity) => {
+    return entityMap[entity] || entity;
+  });
+}
+
 export function sanitizeHtml(html: string): string {
   if (!html || typeof html !== "string") {
     return "";
@@ -13,9 +28,7 @@ export function sanitizeHtml(html: string): string {
 
   let cleanText = html.replace(/<[^>]*>/g, "");
 
-  const tempDiv = document.createElement("div");
-  tempDiv.innerHTML = cleanText;
-  cleanText = tempDiv.textContent || tempDiv.innerText || "";
+  cleanText = decodeHtmlEntities(cleanText);
 
   cleanText = removeZalgoText(cleanText);
 
