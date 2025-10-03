@@ -3,7 +3,7 @@ function removeZalgoText(text: string): string {
     // eslint-disable-next-line no-misleading-character-class
     /[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]/g;
 
-  return text.replace(zalgoRegex, "");
+  return text.replaceAll(zalgoRegex, "");
 }
 
 function decodeHtmlEntities(text: string): string {
@@ -16,7 +16,7 @@ function decodeHtmlEntities(text: string): string {
     "&nbsp;": " ",
   };
 
-  return text.replace(/&[#\w]+;/g, (entity) => {
+  return text.replaceAll(/&[#\w]+;/g, (entity) => {
     return entityMap[entity] || entity;
   });
 }
@@ -25,9 +25,7 @@ function removeHtmlTags(html: string): string {
   let result = "";
   let inTag = false;
   
-  for (let i = 0; i < html.length; i++) {
-    const char = html[i];
-    
+  for (const char of html) {
     if (char === "<") {
       inTag = true;
     } else if (char === ">") {
@@ -51,7 +49,7 @@ export function sanitizeHtml(html: string): string {
 
   cleanText = removeZalgoText(cleanText);
 
-  cleanText = cleanText.replace(/\s+/g, " ").trim();
+  cleanText = cleanText.replaceAll(/\s+/g, " ").trim();
 
   if (!cleanText || cleanText.length === 0) {
     return "";

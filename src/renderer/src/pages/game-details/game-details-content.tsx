@@ -15,10 +15,9 @@ import { EditGameModal, DeleteReviewModal } from "./modals";
 import { ReviewSortOptions } from "./review-sort-options";
 import { ReviewPromptBanner } from "./review-prompt-banner";
 
-import { sanitizeHtml } from "@shared";
+import { sanitizeHtml, AuthPage } from "@shared";
 import { useTranslation } from "react-i18next";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
-import { AuthPage } from "@shared";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import { useUserDetails, useLibrary, useDate } from "@renderer/hooks";
