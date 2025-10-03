@@ -688,8 +688,8 @@ export function GameDetailsContent() {
                     </div>
                   )}
 
-                  {reviews.map((review, index) => (
-                    <div key={index} className="game-details__review-item">
+                  {reviews.map((review) => (
+                    <div key={review.id} className="game-details__review-item">
                       {review.isBlocked &&
                       !visibleBlockedReviews.has(review.id) ? (
                         <div className="game-details__blocked-review-simple">
@@ -713,24 +713,15 @@ export function GameDetailsContent() {
                                 />
                               )}
                               <div className="game-details__review-user-info">
-                                <div
+                                <button
                                   className="game-details__review-display-name game-details__review-display-name--clickable"
                                   onClick={() =>
                                     review.user?.id &&
                                     navigate(`/profile/${review.user.id}`)
                                   }
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" || e.key === " ") {
-                                      e.preventDefault();
-                                      review.user?.id &&
-                                        navigate(`/profile/${review.user.id}`);
-                                    }
-                                  }}
-                                  role="button"
-                                  tabIndex={0}
                                 >
                                   {review.user?.displayName || "Anonymous"}
-                                </div>
+                                </button>
                                 <div className="game-details__review-date">
                                   <ClockIcon size={12} />
                                   {formatDistance(

@@ -10,7 +10,7 @@ interface ReviewPromptBannerProps {
 export function ReviewPromptBanner({
   onYesClick,
   onLaterClick,
-}: ReviewPromptBannerProps) {
+}: Readonly<ReviewPromptBannerProps>) {
   const { t } = useTranslation("game_details");
 
   return (

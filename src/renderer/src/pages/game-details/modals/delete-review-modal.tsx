@@ -12,7 +12,7 @@ export function DeleteReviewModal({
   visible,
   onClose,
   onConfirm,
-}: DeleteReviewModalProps) {
+}: Readonly<DeleteReviewModalProps>) {
   const { t } = useTranslation("game_details");
 
   const handleDeleteReview = () => {
