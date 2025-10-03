@@ -1,6 +1,6 @@
 function removeZalgoText(text: string): string {
-  // eslint-disable-next-line no-misleading-character-class
   const zalgoRegex =
+    // eslint-disable-next-line no-misleading-character-class
     /[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]/g;
 
   return text.replace(zalgoRegex, "");
@@ -8,14 +8,14 @@ function removeZalgoText(text: string): string {
 
 function decodeHtmlEntities(text: string): string {
   const entityMap: { [key: string]: string } = {
-    '&amp;': '&',
-    '&lt;': '<',
-    '&gt;': '>',
-    '&quot;': '"',
-    '&#39;': "'",
-    '&nbsp;': ' ',
+    "&amp;": "&",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&quot;": '"',
+    "&#39;": "'",
+    "&nbsp;": " ",
   };
-  
+
   return text.replace(/&[#\w]+;/g, (entity) => {
     return entityMap[entity] || entity;
   });
