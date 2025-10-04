@@ -1,0 +1,47 @@
+@use "../../../scss/globals.scss";
+
+.user-karma {
+  &__box {
+    background-color: globals.$background-color;
+    border-radius: 4px;
+    border: solid 1px globals.$border-color;
+    padding: calc(globals.$spacing-unit * 2);
+  }
+
+  &__section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__stats-row {
+    display: flex;
+    align-items: center;
+    color: globals.$body-color;
+  }
+
+  &__description {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+
+  &__info {
+    padding-top: calc(globals.$spacing-unit * 0.5);
+  }
+
+  &__info-text {
+    color: globals.$muted-color;
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+}

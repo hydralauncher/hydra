@@ -1,0 +1,73 @@
+function removeZalgoText(text: string): string {
+  const zalgoRegex =
+    // eslint-disable-next-line no-misleading-character-class
+    /[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]/g;
+
+  return text.replaceAll(zalgoRegex, "");
+}
+
+function decodeHtmlEntities(text: string): string {
+  const entityMap: { [key: string]: string } = {
+    "&amp;": "&",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&quot;": '"',
+    "&#39;": "'",
+    "&nbsp;": " ",
+  };
+
+  return text.replaceAll(/&[#\w]+;/g, (entity) => {
+    return entityMap[entity] || entity;
+  });
+}
+
+function removeHtmlTags(html: string): string {
+  let result = "";
+  let inTag = false;
+
+  for (const char of html) {
+    if (char === "<") {
+      inTag = true;
+    } else if (char === ">") {
+      inTag = false;
+    } else if (!inTag) {
+      result += char;
+    }
+  }
+
+  return result;
+}
+
+export function sanitizeHtml(html: string): string {
+  if (!html || typeof html !== "string") {
+    return "";
+  }
+
+  let cleanText = removeHtmlTags(html);
+
+  cleanText = decodeHtmlEntities(cleanText);
+
+  cleanText = removeZalgoText(cleanText);
+
+  cleanText = cleanText.replaceAll(/\s+/g, " ").trim();
+
+  if (!cleanText || cleanText.length === 0) {
+    return "";
+  }
+
+  return cleanText;
+}
+
+export function stripHtml(html: string): string {
+  if (!html || typeof html !== "string") {
+    return "";
+  }
+
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = html;
+  let cleanText = tempDiv.textContent || tempDiv.innerText || "";
+
+  cleanText = removeZalgoText(cleanText);
+
+  return cleanText;
+}

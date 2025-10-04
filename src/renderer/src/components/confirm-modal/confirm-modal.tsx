@@ -33,9 +33,18 @@ export function ConfirmModal({
   };
 
   return (
-    <Modal visible={visible} title={title} description={description} onClose={onClose}>
+    <Modal
+      visible={visible}
+      title={title}
+      description={description}
+      onClose={onClose}
+    >
       <div className="confirm-modal__actions">
-        <Button onClick={handleConfirm} theme={confirmTheme} disabled={confirmDisabled}>
+        <Button
+          onClick={handleConfirm}
+          theme={confirmTheme}
+          disabled={confirmDisabled}
+        >
           {confirmLabel || t("confirm")}
         </Button>
 

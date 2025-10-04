@@ -201,7 +201,8 @@ export function GameDetailsContextProvider({
   }, [objectId, gameTitle, dispatch]);
 
   useEffect(() => {
-    const state = (location && (location.state as Record<string, unknown>)) || {};
+    const state =
+      (location && (location.state as Record<string, unknown>)) || {};
     if (state.openRepacks) {
       setShowRepacksModal(true);
       try {
