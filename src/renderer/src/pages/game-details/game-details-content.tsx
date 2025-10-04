@@ -615,13 +615,20 @@ export function GameDetailsContent() {
                             </span>
                           </div>
                         </div>
-                        <div 
+                        <div
                           className="game-details__review-input"
                           onClick={() => editor?.commands.focus()}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              editor?.commands.focus();
+                            }
+                          }}
+                          role="textbox"
+                          tabIndex={0}
+                          aria-label={t("write_review_placeholder")}
                         >
-                          <EditorContent
-                            editor={editor}
-                          />
+                          <EditorContent editor={editor} />
                         </div>
                       </div>
 
@@ -632,17 +639,19 @@ export function GameDetailsContent() {
                           </label>
                           <select
                             className={`game-details__review-score-select ${
-                              reviewScore 
-                                ? reviewScore <= 3 
-                                  ? 'game-details__review-score-select--red'
+                              reviewScore
+                                ? reviewScore <= 3
+                                  ? "game-details__review-score-select--red"
                                   : reviewScore <= 7
-                                  ? 'game-details__review-score-select--yellow'
-                                  : 'game-details__review-score-select--green'
-                                : ''
+                                    ? "game-details__review-score-select--yellow"
+                                    : "game-details__review-score-select--green"
+                                : ""
                             }`}
                             value={reviewScore || ""}
                             onChange={(e) =>
-                              setReviewScore(e.target.value ? Number(e.target.value) : null)
+                              setReviewScore(
+                                e.target.value ? Number(e.target.value) : null
+                              )
                             }
                           >
                             <option value="" disabled>
@@ -762,7 +771,9 @@ export function GameDetailsContent() {
                                 </div>
                               </div>
                             </div>
-                            <div className={`game-details__review-score ${getScoreColorClass(review.score)}`}>
+                            <div
+                              className={`game-details__review-score ${getScoreColorClass(review.score)}`}
+                            >
                               {review.score}/10
                             </div>
                           </div>
