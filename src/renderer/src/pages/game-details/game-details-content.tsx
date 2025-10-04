@@ -32,6 +32,45 @@ const getScoreColorClass = (score: number): string => {
   return "";
 };
 
+// Helper function to process media elements for responsive display
+const processMediaElements = (document: Document) => {
+  const $images = Array.from(document.querySelectorAll("img"));
+  $images.forEach(($image) => {
+    $image.loading = "lazy";
+    // Remove any inline width/height styles that might cause overflow
+    $image.removeAttribute("width");
+    $image.removeAttribute("height");
+    $image.removeAttribute("style");
+    // Set max-width to prevent overflow
+    $image.style.maxWidth = "100%";
+    $image.style.width = "auto";
+    $image.style.height = "auto";
+    $image.style.boxSizing = "border-box";
+  });
+
+  // Handle videos the same way
+  const $videos = Array.from(document.querySelectorAll("video"));
+  $videos.forEach(($video) => {
+    // Remove any inline width/height styles that might cause overflow
+    $video.removeAttribute("width");
+    $video.removeAttribute("height");
+    $video.removeAttribute("style");
+    // Set max-width to prevent overflow
+    $video.style.maxWidth = "100%";
+    $video.style.width = "auto";
+    $video.style.height = "auto";
+    $video.style.boxSizing = "border-box";
+  });
+};
+
+// Helper function to get score color class for select element
+const getSelectScoreColorClass = (score: number): string => {
+  if (score >= 0 && score <= 3) return "game-details__review-score-select--red";
+  if (score >= 4 && score <= 7) return "game-details__review-score-select--yellow";
+  if (score >= 8 && score <= 10) return "game-details__review-score-select--green";
+  return "";
+};
+
 export function GameDetailsContent() {
   const heroRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
@@ -64,33 +103,7 @@ export function GameDetailsContent() {
         "text/html"
       );
 
-      const $images = Array.from(document.querySelectorAll("img"));
-      $images.forEach(($image) => {
-        $image.loading = "lazy";
-        // Remove any inline width/height styles that might cause overflow
-        $image.removeAttribute("width");
-        $image.removeAttribute("height");
-        $image.removeAttribute("style");
-        // Set max-width to prevent overflow
-        $image.style.maxWidth = "100%";
-        $image.style.width = "auto";
-        $image.style.height = "auto";
-        $image.style.boxSizing = "border-box";
-      });
-
-      // Handle videos the same way
-      const $videos = Array.from(document.querySelectorAll("video"));
-      $videos.forEach(($video) => {
-        // Remove any inline width/height styles that might cause overflow
-        $video.removeAttribute("width");
-        $video.removeAttribute("height");
-        $video.removeAttribute("style");
-        // Set max-width to prevent overflow
-        $video.style.maxWidth = "100%";
-        $video.style.width = "auto";
-        $video.style.height = "auto";
-        $video.style.boxSizing = "border-box";
-      });
+      processMediaElements(document);
 
       return document.body.outerHTML;
     }
@@ -619,14 +632,11 @@ export function GameDetailsContent() {
                           className="game-details__review-input"
                           onClick={() => editor?.commands.focus()}
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
+                            if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
                               editor?.commands.focus();
                             }
                           }}
-                          role="textbox"
-                          tabIndex={0}
-                          aria-label={t("write_review_placeholder")}
                         >
                           <EditorContent editor={editor} />
                         </div>
@@ -639,13 +649,7 @@ export function GameDetailsContent() {
                           </label>
                           <select
                             className={`game-details__review-score-select ${
-                              reviewScore
-                                ? reviewScore <= 3
-                                  ? "game-details__review-score-select--red"
-                                  : reviewScore <= 7
-                                    ? "game-details__review-score-select--yellow"
-                                    : "game-details__review-score-select--green"
-                                : ""
+                              reviewScore ? getSelectScoreColorClass(reviewScore) : ""
                             }`}
                             value={reviewScore || ""}
                             onChange={(e) =>
