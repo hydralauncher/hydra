@@ -630,19 +630,7 @@ export function GameDetailsContent() {
                             </span>
                           </div>
                         </div>
-                        <div
-                          className="game-details__review-input"
-                          onClick={() => editor?.commands.focus()}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              editor?.commands.focus();
-                            }
-                          }}
-                          role="button"
-                          tabIndex={0}
-                          aria-label="Click to focus review editor"
-                        >
+                        <div className="game-details__review-input">
                           <EditorContent editor={editor} />
                         </div>
                       </div>
