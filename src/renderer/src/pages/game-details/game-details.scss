@@ -75,10 +75,30 @@ $hero-height: 300px;
     padding: 6px 12px;
     font-size: 14px;
     cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
 
     &:focus {
       outline: none;
-      border-color: #0078d4;
+    }
+
+    &--red {
+      border-color: #e74c3c;
+      background-color: rgba(231, 76, 60, 0.1);
+    }
+
+    &--yellow {
+      border-color: #f39c12;
+      background-color: rgba(243, 156, 18, 0.1);
+    }
+
+    &--green {
+      border-color: #27ae60;
+      background-color: rgba(39, 174, 96, 0.1);
+    }
+
+    option {
+      background-color: #2a2a2a;
+      color: #ffffff;
     }
   }
 
@@ -373,6 +393,25 @@ $hero-height: 300px;
     font-size: globals.$small-font-size;
     font-weight: 600;
     border: 1px solid rgba(255, 255, 255, 0.15);
+
+    // Color variants based on score
+    &--red {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    &--yellow {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fcd34d;
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+
+    &--green {
+      background: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+      border-color: rgba(34, 197, 94, 0.4);
+    }
   }
 
   &__review-date {
@@ -953,12 +992,16 @@ $hero-height: 300px;
   &__review-input {
     min-height: 120px;
     padding: 12px;
+    cursor: text;
 
     .ProseMirror {
       outline: none;
       color: #ffffff;
       font-size: 14px;
       line-height: 1.5;
+      min-height: 96px; // 120px - 24px padding
+      width: 100%;
+      cursor: text;
 
       &:focus {
         outline: none;
