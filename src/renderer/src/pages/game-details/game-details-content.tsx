@@ -24,6 +24,14 @@ import { useUserDetails, useLibrary, useDate } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./game-details.scss";
 
+// Helper function to get score color class
+const getScoreColorClass = (score: number): string => {
+  if (score >= 0 && score <= 3) return "game-details__review-score--red";
+  if (score >= 4 && score <= 6) return "game-details__review-score--yellow";
+  if (score >= 7 && score <= 10) return "game-details__review-score--green";
+  return "";
+};
+
 export function GameDetailsContent() {
   const heroRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
@@ -103,7 +111,7 @@ export function GameDetailsContent() {
   // Reviews state management
   const [reviews, setReviews] = useState<GameReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [reviewScore, setReviewScore] = useState(5);
+  const [reviewScore, setReviewScore] = useState<number | null>(null);
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewCharCount, setReviewCharCount] = useState(0);
   const MAX_REVIEW_CHARS = 1000;
@@ -302,6 +310,7 @@ export function GameDetailsContent() {
     if (
       !objectId ||
       !reviewHtml.trim() ||
+      reviewScore === null ||
       submittingReview ||
       reviewCharCount > MAX_REVIEW_CHARS
     ) {
@@ -322,7 +331,7 @@ export function GameDetailsContent() {
 
       console.log("Review submitted successfully");
       editor?.commands.clearContent();
-      setReviewScore(5);
+      setReviewScore(null);
       await loadReviews(true); // Reload reviews after submission
       setShowReviewForm(false); // Hide the review form after successful submission
       setShowReviewPrompt(false); // Hide the prompt banner
@@ -606,10 +615,14 @@ export function GameDetailsContent() {
                             </span>
                           </div>
                         </div>
-                        <EditorContent
-                          editor={editor}
+                        <div 
                           className="game-details__review-input"
-                        />
+                          onClick={() => editor?.commands.focus()}
+                        >
+                          <EditorContent
+                            editor={editor}
+                          />
+                        </div>
                       </div>
 
                       <div className="game-details__review-form-bottom">
@@ -618,12 +631,23 @@ export function GameDetailsContent() {
                             {t("rating")}
                           </label>
                           <select
-                            className="game-details__review-score-select"
-                            value={reviewScore}
+                            className={`game-details__review-score-select ${
+                              reviewScore 
+                                ? reviewScore <= 3 
+                                  ? 'game-details__review-score-select--red'
+                                  : reviewScore <= 7
+                                  ? 'game-details__review-score-select--yellow'
+                                  : 'game-details__review-score-select--green'
+                                : ''
+                            }`}
+                            value={reviewScore || ""}
                             onChange={(e) =>
-                              setReviewScore(Number(e.target.value))
+                              setReviewScore(e.target.value ? Number(e.target.value) : null)
                             }
                           >
+                            <option value="" disabled>
+                              {t("select_rating")}
+                            </option>
                             <option value={1}>1/10</option>
                             <option value={2}>2/10</option>
                             <option value={3}>3/10</option>
@@ -642,6 +666,7 @@ export function GameDetailsContent() {
                           onClick={handleSubmitReview}
                           disabled={
                             !editor?.getHTML().trim() ||
+                            reviewScore === null ||
                             submittingReview ||
                             reviewCharCount > MAX_REVIEW_CHARS
                           }
@@ -737,7 +762,7 @@ export function GameDetailsContent() {
                                 </div>
                               </div>
                             </div>
-                            <div className="game-details__review-score">
+                            <div className={`game-details__review-score ${getScoreColorClass(review.score)}`}>
                               {review.score}/10
                             </div>
                           </div>

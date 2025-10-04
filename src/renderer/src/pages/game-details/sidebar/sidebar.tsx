@@ -14,6 +14,7 @@ import {
   DownloadIcon,
   LockIcon,
   PeopleIcon,
+  StarIcon,
 } from "@primer/octicons-react";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { howLongToBeatEntriesTable } from "@renderer/dexie";
@@ -225,6 +226,16 @@ export function Sidebar() {
               </p>
               <p>{numberFormatter.format(stats?.playerCount)}</p>
             </div>
+
+            {stats?.averageScore && (
+              <div className="stats__category">
+                <p className="stats__category-title">
+                  <StarIcon size={18} />
+                  {t("rating_count")}
+                </p>
+                <p>{stats.averageScore.toFixed(1)}/10</p>
+              </div>
+            )}
           </div>
         </SidebarSection>
       )}

@@ -106,7 +106,7 @@
 .stats {
   &__section {
     display: flex;
-    gap: calc(globals.$spacing-unit * 2);
+    gap: calc(globals.$spacing-unit * 1);
     padding: calc(globals.$spacing-unit * 2);
     justify-content: space-between;
     transition: max-height ease 0.5s;
@@ -116,9 +116,6 @@
       flex-direction: column;
     }
 
-    @media (min-width: 1280px) {
-      flex-direction: row;
-    }
   }
 
   &__category-title {

@@ -24,7 +24,7 @@ function decodeHtmlEntities(text: string): string {
 function removeHtmlTags(html: string): string {
   let result = "";
   let inTag = false;
-  
+
   for (const char of html) {
     if (char === "<") {
       inTag = true;
@@ -34,7 +34,7 @@ function removeHtmlTags(html: string): string {
       result += char;
     }
   }
-  
+
   return result;
 }
 
