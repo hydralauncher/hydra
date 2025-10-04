@@ -66,8 +66,10 @@ const processMediaElements = (document: Document) => {
 // Helper function to get score color class for select element
 const getSelectScoreColorClass = (score: number): string => {
   if (score >= 0 && score <= 3) return "game-details__review-score-select--red";
-  if (score >= 4 && score <= 7) return "game-details__review-score-select--yellow";
-  if (score >= 8 && score <= 10) return "game-details__review-score-select--green";
+  if (score >= 4 && score <= 7)
+    return "game-details__review-score-select--yellow";
+  if (score >= 8 && score <= 10)
+    return "game-details__review-score-select--green";
   return "";
 };
 
@@ -637,6 +639,9 @@ export function GameDetailsContent() {
                               editor?.commands.focus();
                             }
                           }}
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Click to focus review editor"
                         >
                           <EditorContent editor={editor} />
                         </div>
@@ -649,7 +654,9 @@ export function GameDetailsContent() {
                           </label>
                           <select
                             className={`game-details__review-score-select ${
-                              reviewScore ? getSelectScoreColorClass(reviewScore) : ""
+                              reviewScore
+                                ? getSelectScoreColorClass(reviewScore)
+                                : ""
                             }`}
                             value={reviewScore || ""}
                             onChange={(e) =>
