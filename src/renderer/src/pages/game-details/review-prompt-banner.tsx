@@ -18,7 +18,7 @@ export function ReviewPromptBanner({
       <div className="review-prompt-banner__content">
         <div className="review-prompt-banner__text">
           <span className="review-prompt-banner__playtime">
-            You&apos;ve seemed to enjoy this game
+            {t("you_seemed_to_enjoy_this_game")}
           </span>
           <span className="review-prompt-banner__question">
             {t("would_you_recommend_this_game")}

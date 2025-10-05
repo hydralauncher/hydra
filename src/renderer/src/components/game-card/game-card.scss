@@ -72,7 +72,12 @@
     display: flex;
     color: globals.$muted-color;
     font-size: 12px;
-    align-items: flex-end;
+    align-items: center;
+    
+    // Ensure star rating is properly aligned
+    .star-rating {
+      align-items: center;
+    }
   }
 
   &__title-container {

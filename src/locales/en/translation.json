@@ -222,12 +222,22 @@
     "sort_most_voted": "Most Voted",
     "rating": "Rating",
     "rating_stats": "Rating",
-    "select_rating": "Select Rating",
+    "rating_very_negative": "Very Negative",
+    "rating_negative": "Negative", 
+    "rating_neutral": "Neutral",
+    "rating_positive": "Positive",
+    "rating_very_positive": "Very Positive",
     "submit_review": "Submit Review",
     "submitting": "Submitting...",
+    "review_submitted_successfully": "Review submitted successfully!",
+    "review_submission_failed": "Failed to submit review. Please try again.",
+    "review_cannot_be_empty": "Review text field cannot be empty.",
+    "review_deleted_successfully": "Review deleted successfully.",
+    "review_deletion_failed": "Failed to delete review. Please try again.",
     "loading_reviews": "Loading reviews...",
     "loading_more_reviews": "Loading more reviews...",
     "load_more_reviews": "Load More Reviews",
+    "you_seemed_to_enjoy_this_game": "You've seemed to enjoy this game",
     "would_you_recommend_this_game": "Would you like to leave a review to this game?",
     "yes": "Yes",
     "maybe_later": "Maybe Later",
@@ -329,6 +339,7 @@
     "filter_by_source": "Filter by source",
     "no_repacks_found": "No sources found for this game",
     "delete_review": "Delete review",
+    "remove_review": "Remove Review",
     "delete_review_modal_title": "Are you sure you want to delete your review?",
     "delete_review_modal_description": "This action cannot be undone.",
     "delete_review_modal_delete_button": "Delete",
@@ -548,7 +559,8 @@
   "game_card": {
     "available_one": "Available",
     "available_other": "Available",
-    "no_downloads": "No downloads available"
+    "no_downloads": "No downloads available",
+    "calculating": "Calculating"
   },
   "binary_not_found_modal": {
     "title": "Programs not installed",
@@ -654,7 +666,7 @@
     "game_added_to_pinned": "Game added to pinned",
     "karma": "Karma",
     "karma_count": "karma",
-    "karma_description": "Earned from positive likes on your reviews"
+    "karma_description": "Earned from positive likes on reviews"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",

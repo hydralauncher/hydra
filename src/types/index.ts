@@ -203,6 +203,7 @@ export interface UserProfile {
   currentGame: UserProfileCurrentGame | null;
   bio: string;
   hasActiveSubscription: boolean;
+  karma: number;
   quirks: {
     backupsPerGameLimit: number;
   };

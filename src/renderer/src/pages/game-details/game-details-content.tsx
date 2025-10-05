@@ -1,6 +1,6 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { PencilIcon, TrashIcon, ClockIcon } from "@primer/octicons-react";
-import { ThumbsUp, ThumbsDown } from "lucide-react";
+import { PencilIcon, TrashIcon, ClockIcon, NoteIcon } from "@primer/octicons-react";
+import { ThumbsUp, ThumbsDown, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -20,28 +20,24 @@ import { useTranslation } from "react-i18next";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
-import { useUserDetails, useLibrary, useDate } from "@renderer/hooks";
+import { useUserDetails, useLibrary, useDate, useToast } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./game-details.scss";
 
-// Helper function to get score color class
 const getScoreColorClass = (score: number): string => {
-  if (score >= 0 && score <= 3) return "game-details__review-score--red";
-  if (score >= 4 && score <= 6) return "game-details__review-score--yellow";
-  if (score >= 7 && score <= 10) return "game-details__review-score--green";
+  if (score >= 1 && score <= 2) return "game-details__review-score--red";
+  if (score >= 3 && score <= 3) return "game-details__review-score--yellow";
+  if (score >= 4 && score <= 5) return "game-details__review-score--green";
   return "";
 };
 
-// Helper function to process media elements for responsive display
 const processMediaElements = (document: Document) => {
   const $images = Array.from(document.querySelectorAll("img"));
   $images.forEach(($image) => {
     $image.loading = "lazy";
-    // Remove any inline width/height styles that might cause overflow
     $image.removeAttribute("width");
     $image.removeAttribute("height");
     $image.removeAttribute("style");
-    // Set max-width to prevent overflow
     $image.style.maxWidth = "100%";
     $image.style.width = "auto";
     $image.style.height = "auto";
@@ -51,11 +47,9 @@ const processMediaElements = (document: Document) => {
   // Handle videos the same way
   const $videos = Array.from(document.querySelectorAll("video"));
   $videos.forEach(($video) => {
-    // Remove any inline width/height styles that might cause overflow
     $video.removeAttribute("width");
     $video.removeAttribute("height");
     $video.removeAttribute("style");
-    // Set max-width to prevent overflow
     $video.style.maxWidth = "100%";
     $video.style.width = "auto";
     $video.style.height = "auto";
@@ -63,14 +57,24 @@ const processMediaElements = (document: Document) => {
   });
 };
 
-// Helper function to get score color class for select element
 const getSelectScoreColorClass = (score: number): string => {
-  if (score >= 0 && score <= 3) return "game-details__review-score-select--red";
-  if (score >= 4 && score <= 7)
+  if (score >= 1 && score <= 2) return "game-details__review-score-select--red";
+  if (score >= 3 && score <= 3)
     return "game-details__review-score-select--yellow";
-  if (score >= 8 && score <= 10)
+  if (score >= 4 && score <= 5)
     return "game-details__review-score-select--green";
   return "";
+};
+
+const getRatingText = (score: number, t: (key: string) => string): string => {
+  switch (score) {
+    case 1: return t("rating_very_negative");
+    case 2: return t("rating_negative");
+    case 3: return t("rating_neutral");
+    case 4: return t("rating_positive");
+    case 5: return t("rating_very_positive");
+    default: return "";
+  }
 };
 
 export function GameDetailsContent() {
@@ -93,6 +97,7 @@ export function GameDetailsContent() {
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { updateLibrary } = useLibrary();
   const { formatDistance } = useDate();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const { setShowCloudSyncModal, getGameArtifacts } =
     useContext(cloudSyncContext);
@@ -139,16 +144,13 @@ export function GameDetailsContent() {
   const [totalReviewCount, setTotalReviewCount] = useState(0);
   const [showReviewForm, setShowReviewForm] = useState(false);
 
-  // Review prompt banner state
   const [showReviewPrompt, setShowReviewPrompt] = useState(false);
   const [hasUserReviewed, setHasUserReviewed] = useState(false);
   const [reviewCheckLoading, setReviewCheckLoading] = useState(false);
 
-  // Tiptap editor for review input
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        // Disable link extension to prevent automatic link rendering and XSS
         link: false,
       }),
     ],
@@ -159,14 +161,26 @@ export function GameDetailsContent() {
         "data-placeholder": t("write_review_placeholder"),
       },
       handlePaste: (view, event) => {
-        // Strip formatting from pasted content to prevent overflow issues
-        const text = event.clipboardData?.getData("text/plain") || "";
+        const htmlContent = event.clipboardData?.getData("text/html") || "";
+        const plainText = event.clipboardData?.getData("text/plain") || "";
+        
         const currentText = view.state.doc.textContent;
         const remainingChars = MAX_REVIEW_CHARS - currentText.length;
 
-        if (text && remainingChars > 0) {
+        if ((htmlContent || plainText) && remainingChars > 0) {
           event.preventDefault();
-          const truncatedText = text.slice(0, remainingChars);
+          
+          if (htmlContent) {
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = htmlContent;
+            const textLength = tempDiv.textContent?.length || 0;
+            
+            if (textLength <= remainingChars) {
+              return false; 
+            }
+          }
+          
+          const truncatedText = plainText.slice(0, remainingChars);
           view.dispatch(view.state.tr.insertText(truncatedText));
           return true;
         }
@@ -177,7 +191,6 @@ export function GameDetailsContent() {
       const text = editor.getText();
       setReviewCharCount(text.length);
 
-      // Prevent typing beyond character limit
       if (text.length > MAX_REVIEW_CHARS) {
         const truncatedContent = text.slice(0, MAX_REVIEW_CHARS);
         editor.commands.setContent(truncatedContent);
@@ -219,7 +232,6 @@ export function GameDetailsContent() {
 
   const isCustomGame = game?.shop === "custom";
 
-  // Reviews functions
   const checkUserReview = async () => {
     if (!objectId || !userDetails) return;
 
@@ -229,11 +241,9 @@ export function GameDetailsContent() {
       const hasReviewed = (response as any)?.hasReviewed || false;
       setHasUserReviewed(hasReviewed);
 
-      // Show prompt only if user hasn't reviewed and has played the game
       if (
         !hasReviewed &&
-        game?.playTimeInMilliseconds &&
-        game.playTimeInMilliseconds > 0
+        !sessionStorage.getItem(`reviewPromptDismissed_${objectId}`)
       ) {
         setShowReviewPrompt(true);
       }
@@ -258,7 +268,6 @@ export function GameDetailsContent() {
         reviewsSortBy
       );
 
-      // Handle the response structure: { totalCount: number, reviews: Review[] }
       const reviewsData = (response as any)?.reviews || [];
       const reviewCount = (response as any)?.totalCount || 0;
 
@@ -286,7 +295,6 @@ export function GameDetailsContent() {
 
     try {
       await window.electron.voteReview(shop, objectId, reviewId, voteType);
-      // Reload reviews to get updated vote counts
       loadReviews(true);
     } catch (error) {
       console.error(`Failed to ${voteType} review:`, error);
@@ -303,40 +311,40 @@ export function GameDetailsContent() {
 
     try {
       await window.electron.deleteReview(shop, objectId, reviewToDelete);
-      // Reload reviews after deletion
       loadReviews(true);
       setShowDeleteReviewModal(false);
       setReviewToDelete(null);
+      showSuccessToast(t("review_deleted_successfully"));
     } catch (error) {
       console.error("Failed to delete review:", error);
+      showErrorToast(t("review_deletion_failed"));
     }
   };
 
   const handleSubmitReview = async () => {
-    console.log("handleSubmitReview called");
-    console.log("game:", game);
-    console.log("objectId:", objectId);
-
     const reviewHtml = editor?.getHTML() || "";
-    console.log("reviewHtml:", reviewHtml);
-    console.log("reviewScore:", reviewScore);
-    console.log("submittingReview:", submittingReview);
+    const reviewText = editor?.getText() || "";
 
-    if (
-      !objectId ||
-      !reviewHtml.trim() ||
-      reviewScore === null ||
-      submittingReview ||
-      reviewCharCount > MAX_REVIEW_CHARS
-    ) {
-      console.log("Early return - validation failed");
+    if (!objectId) {
       return;
     }
 
-    console.log("Starting review submission...");
+    if (!reviewText.trim()) {
+      showErrorToast(t("review_cannot_be_empty"));
+      return;
+    }
+
+    if (submittingReview || reviewCharCount > MAX_REVIEW_CHARS) {
+      return;
+    }
+
+    if (reviewScore === null) {
+      return;
+    }
+
     setSubmittingReview(true);
+    
     try {
-      console.log("Calling window.electron.createGameReview...");
       await window.electron.createGameReview(
         shop,
         objectId,
@@ -344,27 +352,25 @@ export function GameDetailsContent() {
         reviewScore
       );
 
-      console.log("Review submitted successfully");
       editor?.commands.clearContent();
       setReviewScore(null);
-      await loadReviews(true); // Reload reviews after submission
-      setShowReviewForm(false); // Hide the review form after successful submission
-      setShowReviewPrompt(false); // Hide the prompt banner
-      setHasUserReviewed(true); // Update the review status
+      showSuccessToast(t("review_submitted_successfully"));
+      
+      await loadReviews(true); 
+      setShowReviewForm(false); 
+      setShowReviewPrompt(false); 
+      setHasUserReviewed(true);
     } catch (error) {
-      console.error("Failed to submit review:", error);
+      showErrorToast(t("review_submission_failed"));
     } finally {
       setSubmittingReview(false);
-      console.log("Review submission completed");
     }
   };
 
-  // Review prompt banner handlers
   const handleReviewPromptYes = () => {
     setShowReviewPrompt(false);
     setShowReviewForm(true);
 
-    // Scroll to review form
     setTimeout(() => {
       const reviewFormElement = document.querySelector(
         ".game-details__review-form"
@@ -380,13 +386,18 @@ export function GameDetailsContent() {
 
   const handleReviewPromptLater = () => {
     setShowReviewPrompt(false);
+    if (objectId) {
+      sessionStorage.setItem(`reviewPromptDismissed_${objectId}`, 'true');
+    }
   };
 
   const handleSortChange = (newSortBy: string) => {
-    setReviewsSortBy(newSortBy);
-    setReviewsPage(0);
-    setHasMoreReviews(true);
-    loadReviews(true);
+    if (newSortBy !== reviewsSortBy) {
+      setReviewsSortBy(newSortBy);
+      setReviewsPage(0);
+      setHasMoreReviews(true);
+      loadReviews(true);
+    }
   };
 
   const toggleBlockedReview = (reviewId: string) => {
@@ -408,22 +419,19 @@ export function GameDetailsContent() {
     }
   };
 
-  // Load reviews when component mounts or sort changes
   useEffect(() => {
     if (objectId && (game || shop)) {
       loadReviews(true);
-      checkUserReview(); // Check if user has reviewed this game
+      checkUserReview(); 
     }
   }, [game, shop, objectId, reviewsSortBy, userDetails]);
 
-  // Load more reviews when page changes
   useEffect(() => {
     if (reviewsPage > 0) {
       loadReviews(false);
     }
   }, [reviewsPage]);
 
-  // Helper function to get image with custom asset priority
   const getImageWithCustomPriority = (
     customUrl: string | null | undefined,
     originalUrl: string | null | undefined,
@@ -540,7 +548,6 @@ export function GameDetailsContent() {
             {game?.shop !== "custom" &&
               showReviewPrompt &&
               userDetails &&
-              game?.playTimeInMilliseconds &&
               !hasUserReviewed &&
               !reviewCheckLoading && (
                 <ReviewPromptBanner
@@ -637,36 +644,30 @@ export function GameDetailsContent() {
 
                       <div className="game-details__review-form-bottom">
                         <div className="game-details__review-score-container">
-                          <label className="game-details__review-score-label">
-                            {t("rating")}
-                          </label>
-                          <select
-                            className={`game-details__review-score-select ${
-                              reviewScore
-                                ? getSelectScoreColorClass(reviewScore)
-                                : ""
-                            }`}
-                            value={reviewScore || ""}
-                            onChange={(e) =>
-                              setReviewScore(
-                                e.target.value ? Number(e.target.value) : null
-                              )
-                            }
-                          >
-                            <option value="" disabled>
-                              {t("select_rating")}
-                            </option>
-                            <option value={1}>1/10</option>
-                            <option value={2}>2/10</option>
-                            <option value={3}>3/10</option>
-                            <option value={4}>4/10</option>
-                            <option value={5}>5/10</option>
-                            <option value={6}>6/10</option>
-                            <option value={7}>7/10</option>
-                            <option value={8}>8/10</option>
-                            <option value={9}>9/10</option>
-                            <option value={10}>10/10</option>
-                          </select>
+                          <div className="game-details__star-rating">
+                            {[1, 2, 3, 4, 5].map((starValue) => (
+                              <button
+                                key={starValue}
+                                type="button"
+                                className={`game-details__star ${
+                                  reviewScore && starValue <= reviewScore
+                                    ? "game-details__star--filled"
+                                    : "game-details__star--empty"
+                                } ${
+                                  reviewScore && starValue <= reviewScore
+                                    ? getSelectScoreColorClass(reviewScore)
+                                    : ""
+                                }`}
+                                onClick={() => setReviewScore(starValue)}
+                                title={getRatingText(starValue, t)}
+                              >
+                                <Star 
+                                  size={24} 
+                                  fill={reviewScore && starValue <= reviewScore ? "currentColor" : "none"}
+                                />
+                              </button>
+                            ))}
+                          </div>
                         </div>
 
                         <button
@@ -683,6 +684,7 @@ export function GameDetailsContent() {
                             ? t("submitting")
                             : t("submit_review")}
                         </button>
+
                       </div>
                     </div>
                   </>
@@ -716,7 +718,9 @@ export function GameDetailsContent() {
 
                   {!reviewsLoading && reviews.length === 0 && (
                     <div className="game-details__reviews-empty">
-                      <div className="game-details__reviews-empty-icon">📝</div>
+                      <div className="game-details__reviews-empty-icon">
+                        <NoteIcon size={48} />
+                      </div>
                       <h4 className="game-details__reviews-empty-title">
                         {t("no_reviews_yet")}
                       </h4>
@@ -770,10 +774,23 @@ export function GameDetailsContent() {
                                 </div>
                               </div>
                             </div>
-                            <div
-                              className={`game-details__review-score ${getScoreColorClass(review.score)}`}
-                            >
-                              {review.score}/10
+                            <div className="game-details__review-score-stars" title={getRatingText(review.score, t)}>
+                              {[1, 2, 3, 4, 5].map((starValue) => (
+                                <Star
+                                  key={starValue}
+                                  size={20}
+                                  fill={starValue <= review.score ? "currentColor" : "none"}
+                                  className={`game-details__review-star ${
+                                    starValue <= review.score
+                                      ? "game-details__review-star--filled"
+                                      : "game-details__review-star--empty"
+                                  } ${
+                                    starValue <= review.score
+                                      ? getScoreColorClass(review.score)
+                                      : ""
+                                  }`}
+                                />
+                              ))}
                             </div>
                           </div>
                           <div
@@ -842,6 +859,7 @@ export function GameDetailsContent() {
                                 title={t("delete_review")}
                               >
                                 <TrashIcon size={16} />
+                                <span>{t("remove_review")}</span>
                               </button>
                             )}
                             {review.isBlocked &&
