@@ -55,10 +55,31 @@ $hero-height: 300px;
     flex-wrap: wrap;
   }
 
+  &__review-message {
+    padding: calc(globals.$spacing-unit * 1);
+    border-radius: 4px;
+    font-size: globals.$small-font-size;
+    font-weight: 500;
+    margin-top: calc(globals.$spacing-unit * 1);
+    border: 1px solid;
+    
+    &--success {
+      background: rgba(34, 197, 94, 0.1);
+      color: #86efac;
+      border-color: rgba(34, 197, 94, 0.3);
+    }
+    
+    &--error {
+      background: rgba(239, 68, 68, 0.1);
+      color: #fca5a5;
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+  }
+
   &__review-score-container {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
   }
 
   &__review-score-label {
@@ -101,6 +122,59 @@ $hero-height: 300px;
     option {
       background-color: #2a2a2a;
       color: #ffffff;
+    }
+  }
+
+  &__star-rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__star {
+    background: none;
+    border: none;
+    color: #666666;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: #ffffff;
+      background-color: rgba(255, 255, 255, 0.1);
+      transform: scale(1.1);
+    }
+
+    &--filled {
+      color: #ffffff;
+
+      &.game-details__review-score-select--red {
+        color: #e74c3c;
+      }
+
+      &.game-details__review-score-select--yellow {
+        color: #f39c12;
+      }
+
+      &.game-details__review-score-select--green {
+        color: #27ae60;
+      }
+    }
+
+    &--empty {
+      color: #666666;
+
+      &:hover {
+        color: #ffffff;
+      }
+    }
+
+    svg {
+      fill: currentColor;
     }
   }
 
@@ -191,16 +265,13 @@ $hero-height: 300px;
   &__reviews-empty {
     text-align: center;
     padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 2);
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
     margin-bottom: calc(globals.$spacing-unit * 2);
   }
 
   &__reviews-empty-icon {
     font-size: 48px;
     margin-bottom: calc(globals.$spacing-unit * 2);
-    opacity: 0.6;
+    color: rgba(255, 255, 255, 0.6);
   }
 
   &__reviews-empty-title {
@@ -341,6 +412,7 @@ $hero-height: 300px;
     color: #f44336;
     cursor: pointer;
     transition: all 0.2s ease;
+    gap: 6px;
 
     &:hover {
       background: rgba(244, 67, 54, 0.2);
@@ -387,32 +459,39 @@ $hero-height: 300px;
     }
   }
 
-  &__review-score {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.9);
-    padding: calc(globals.$spacing-unit * 0.5) calc(globals.$spacing-unit * 1);
-    border-radius: 4px;
-    font-size: globals.$small-font-size;
-    font-weight: 600;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+  &__review-score-stars {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
 
-    // Color variants based on score
-    &--red {
-      background: rgba(239, 68, 68, 0.2);
-      color: #fca5a5;
-      border-color: rgba(239, 68, 68, 0.4);
+  &__review-star {
+    color: #666666;
+    transition: color 0.2s ease;
+    cursor: default;
+
+    &--filled {
+      color: #ffffff;
+
+      &.game-details__review-score--red {
+        color: #fca5a5;
+      }
+
+      &.game-details__review-score--yellow {
+        color: #fcd34d;
+      }
+
+      &.game-details__review-score--green {
+        color: #86efac;
+      }
     }
 
-    &--yellow {
-      background: rgba(245, 158, 11, 0.2);
-      color: #fcd34d;
-      border-color: rgba(245, 158, 11, 0.4);
+    &--empty {
+      color: #666666;
     }
 
-    &--green {
-      background: rgba(34, 197, 94, 0.2);
-      color: #86efac;
-      border-color: rgba(34, 197, 94, 0.4);
+    svg {
+      fill: currentColor;
     }
   }
 

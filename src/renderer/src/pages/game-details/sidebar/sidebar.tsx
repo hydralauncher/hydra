@@ -5,7 +5,7 @@ import type {
   UserAchievement,
 } from "@types";
 import { useTranslation } from "react-i18next";
-import { Button, Link } from "@renderer/components";
+import { Button, Link, StarRating } from "@renderer/components";
 
 import { gameDetailsContext } from "@renderer/context";
 import { useDate, useFormat, useUserDetails } from "@renderer/hooks";
@@ -227,15 +227,18 @@ export function Sidebar() {
               <p>{numberFormatter.format(stats?.playerCount)}</p>
             </div>
 
-            {stats?.averageScore && (
-              <div className="stats__category">
-                <p className="stats__category-title">
-                  <StarIcon size={18} />
-                  {t("rating_count")}
-                </p>
-                <p>{stats.averageScore.toFixed(1)}/10</p>
-              </div>
-            )}
+            <div className="stats__category">
+              <p className="stats__category-title">
+                <StarIcon size={18} />
+                {t("rating_count")}
+              </p>
+              <StarRating
+                rating={stats?.averageScore || 0}
+                size={16}
+                showCalculating={!!(stats && stats.averageScore === null)}
+                calculatingText={t("calculating", { ns: "game_card" })}
+              />
+            </div>
           </div>
         </SidebarSection>
       )}

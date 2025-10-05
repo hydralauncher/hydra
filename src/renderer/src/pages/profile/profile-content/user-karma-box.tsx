@@ -6,13 +6,16 @@ import { Award } from "lucide-react";
 import "./user-karma-box.scss";
 
 export function UserKarmaBox() {
-  const { isMe } = useContext(userProfileContext);
+  const { isMe, userProfile } = useContext(userProfileContext);
   const { userDetails } = useUserDetails();
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
 
-  // Only show karma for the current user (me)
-  if (!isMe || !userDetails) return null;
+  // Get karma from userDetails (for current user) or userProfile (for other users)
+  const karma = isMe ? userDetails?.karma : userProfile?.karma;
+
+  // Don't show if karma is not available
+  if (karma === undefined || karma === null) return null;
 
   return (
     <div>
@@ -24,7 +27,7 @@ export function UserKarmaBox() {
         <div className="user-karma__content">
           <div className="user-karma__stats-row">
             <p className="user-karma__description">
-              <Award size={20} /> {numberFormatter.format(userDetails.karma)}{" "}
+              <Award size={20} /> {numberFormatter.format(karma)}{" "}
               {t("karma_count")}
             </p>
           </div>

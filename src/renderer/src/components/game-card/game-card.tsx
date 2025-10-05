@@ -1,4 +1,4 @@
-import { DownloadIcon, PeopleIcon, StarIcon } from "@primer/octicons-react";
+import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
 import type { GameStats } from "@types";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
@@ -7,6 +7,7 @@ import "./game-card.scss";
 
 import { useTranslation } from "react-i18next";
 import { Badge } from "../badge/badge";
+import { StarRating } from "../star-rating/star-rating";
 import { useCallback, useState, useMemo } from "react";
 import { useFormat, useRepacks } from "@renderer/hooks";
 
@@ -107,12 +108,14 @@ export function GameCard({ game, ...props }: GameCardProps) {
                 {stats ? numberFormatter.format(stats.playerCount) : "…"}
               </span>
             </div>
-            {stats?.averageScore && (
-              <div className="game-card__specifics-item">
-                <StarIcon />
-                <span>{stats.averageScore.toFixed(1)}</span>
-              </div>
-            )}
+            <div className="game-card__specifics-item">
+              <StarRating 
+                rating={stats?.averageScore || null}
+                size={14}
+                showCalculating={!!(stats && stats.averageScore === null)}
+                calculatingText={t("calculating")}
+              />
+            </div>
           </div>
         </div>
       </div>

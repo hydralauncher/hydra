@@ -35,7 +35,9 @@ export function ReviewSortOptions({
   };
 
   const handleMostVotedClick = () => {
-    onSortChange("most_voted");
+    if (sortBy !== "most_voted") {
+      onSortChange("most_voted");
+    }
   };
 
   const isDateActive = sortBy === "newest" || sortBy === "oldest";
