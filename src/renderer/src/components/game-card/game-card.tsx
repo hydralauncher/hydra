@@ -109,7 +109,7 @@ export function GameCard({ game, ...props }: GameCardProps) {
               </span>
             </div>
             <div className="game-card__specifics-item">
-              <StarRating 
+              <StarRating
                 rating={stats?.averageScore || null}
                 size={14}
                 showCalculating={!!(stats && stats.averageScore === null)}

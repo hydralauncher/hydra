@@ -9,13 +9,13 @@ export interface StarRatingProps {
   calculatingText?: string;
 }
 
-export function StarRating({ 
-  rating, 
-  maxStars = 5, 
+export function StarRating({
+  rating,
+  maxStars = 5,
   size = 12,
   showCalculating = false,
-  calculatingText = "Calculating"
-}: StarRatingProps) {
+  calculatingText = "Calculating",
+}: Readonly<StarRatingProps>) {
   if (rating === null && showCalculating) {
     return (
       <div className="star-rating star-rating--calculating">
@@ -40,24 +40,35 @@ export function StarRating({
 
   return (
     <div className="star-rating">
-
       {Array.from({ length: filledStars }, (_, index) => (
-        <StarFillIcon key={`filled-${index}`} size={size} className="star-rating__star star-rating__star--filled" />
+        <StarFillIcon
+          key={`filled-${index}`}
+          size={size}
+          className="star-rating__star star-rating__star--filled"
+        />
       ))}
-      
 
       {hasHalfStar && (
         <div className="star-rating__half-star" key="half-star">
-          <StarIcon size={size} className="star-rating__star star-rating__star--empty" />
-          <StarFillIcon size={size} className="star-rating__star star-rating__star--half" />
+          <StarIcon
+            size={size}
+            className="star-rating__star star-rating__star--empty"
+          />
+          <StarFillIcon
+            size={size}
+            className="star-rating__star star-rating__star--half"
+          />
         </div>
       )}
-      
 
       {Array.from({ length: emptyStars }, (_, index) => (
-        <StarIcon key={`empty-${index}`} size={size} className="star-rating__star star-rating__star--empty" />
+        <StarIcon
+          key={`empty-${index}`}
+          size={size}
+          className="star-rating__star star-rating__star--empty"
+        />
       ))}
-      
+
       <span className="star-rating__value">{rating.toFixed(1)}</span>
     </div>
   );

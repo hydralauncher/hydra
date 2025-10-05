@@ -1,5 +1,10 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { PencilIcon, TrashIcon, ClockIcon, NoteIcon } from "@primer/octicons-react";
+import {
+  PencilIcon,
+  TrashIcon,
+  ClockIcon,
+  NoteIcon,
+} from "@primer/octicons-react";
 import { ThumbsUp, ThumbsDown, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -68,12 +73,18 @@ const getSelectScoreColorClass = (score: number): string => {
 
 const getRatingText = (score: number, t: (key: string) => string): string => {
   switch (score) {
-    case 1: return t("rating_very_negative");
-    case 2: return t("rating_negative");
-    case 3: return t("rating_neutral");
-    case 4: return t("rating_positive");
-    case 5: return t("rating_very_positive");
-    default: return "";
+    case 1:
+      return t("rating_very_negative");
+    case 2:
+      return t("rating_negative");
+    case 3:
+      return t("rating_neutral");
+    case 4:
+      return t("rating_positive");
+    case 5:
+      return t("rating_very_positive");
+    default:
+      return "";
   }
 };
 
@@ -163,23 +174,23 @@ export function GameDetailsContent() {
       handlePaste: (view, event) => {
         const htmlContent = event.clipboardData?.getData("text/html") || "";
         const plainText = event.clipboardData?.getData("text/plain") || "";
-        
+
         const currentText = view.state.doc.textContent;
         const remainingChars = MAX_REVIEW_CHARS - currentText.length;
 
         if ((htmlContent || plainText) && remainingChars > 0) {
           event.preventDefault();
-          
+
           if (htmlContent) {
             const tempDiv = document.createElement("div");
             tempDiv.innerHTML = htmlContent;
             const textLength = tempDiv.textContent?.length || 0;
-            
+
             if (textLength <= remainingChars) {
-              return false; 
+              return false;
             }
           }
-          
+
           const truncatedText = plainText.slice(0, remainingChars);
           view.dispatch(view.state.tr.insertText(truncatedText));
           return true;
@@ -343,7 +354,7 @@ export function GameDetailsContent() {
     }
 
     setSubmittingReview(true);
-    
+
     try {
       await window.electron.createGameReview(
         shop,
@@ -355,12 +366,13 @@ export function GameDetailsContent() {
       editor?.commands.clearContent();
       setReviewScore(null);
       showSuccessToast(t("review_submitted_successfully"));
-      
-      await loadReviews(true); 
-      setShowReviewForm(false); 
-      setShowReviewPrompt(false); 
+
+      await loadReviews(true);
+      setShowReviewForm(false);
+      setShowReviewPrompt(false);
       setHasUserReviewed(true);
     } catch (error) {
+      console.error("Failed to submit review:", error);
       showErrorToast(t("review_submission_failed"));
     } finally {
       setSubmittingReview(false);
@@ -387,7 +399,7 @@ export function GameDetailsContent() {
   const handleReviewPromptLater = () => {
     setShowReviewPrompt(false);
     if (objectId) {
-      sessionStorage.setItem(`reviewPromptDismissed_${objectId}`, 'true');
+      sessionStorage.setItem(`reviewPromptDismissed_${objectId}`, "true");
     }
   };
 
@@ -422,7 +434,7 @@ export function GameDetailsContent() {
   useEffect(() => {
     if (objectId && (game || shop)) {
       loadReviews(true);
-      checkUserReview(); 
+      checkUserReview();
     }
   }, [game, shop, objectId, reviewsSortBy, userDetails]);
 
@@ -661,9 +673,13 @@ export function GameDetailsContent() {
                                 onClick={() => setReviewScore(starValue)}
                                 title={getRatingText(starValue, t)}
                               >
-                                <Star 
-                                  size={24} 
-                                  fill={reviewScore && starValue <= reviewScore ? "currentColor" : "none"}
+                                <Star
+                                  size={24}
+                                  fill={
+                                    reviewScore && starValue <= reviewScore
+                                      ? "currentColor"
+                                      : "none"
+                                  }
                                 />
                               </button>
                             ))}
@@ -684,7 +700,6 @@ export function GameDetailsContent() {
                             ? t("submitting")
                             : t("submit_review")}
                         </button>
-
                       </div>
                     </div>
                   </>
@@ -774,12 +789,19 @@ export function GameDetailsContent() {
                                 </div>
                               </div>
                             </div>
-                            <div className="game-details__review-score-stars" title={getRatingText(review.score, t)}>
+                            <div
+                              className="game-details__review-score-stars"
+                              title={getRatingText(review.score, t)}
+                            >
                               {[1, 2, 3, 4, 5].map((starValue) => (
                                 <Star
                                   key={starValue}
                                   size={20}
-                                  fill={starValue <= review.score ? "currentColor" : "none"}
+                                  fill={
+                                    starValue <= review.score
+                                      ? "currentColor"
+                                      : "none"
+                                  }
                                   className={`game-details__review-star ${
                                     starValue <= review.score
                                       ? "game-details__review-star--filled"
