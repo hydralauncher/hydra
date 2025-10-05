@@ -62,13 +62,13 @@ $hero-height: 300px;
     font-weight: 500;
     margin-top: calc(globals.$spacing-unit * 1);
     border: 1px solid;
-    
+
     &--success {
       background: rgba(34, 197, 94, 0.1);
       color: #86efac;
       border-color: rgba(34, 197, 94, 0.3);
     }
-    
+
     &--error {
       background: rgba(239, 68, 68, 0.1);
       color: #fca5a5;
