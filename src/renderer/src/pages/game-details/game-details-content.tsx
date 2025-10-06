@@ -106,7 +106,7 @@ export function GameDetailsContent() {
   const { showHydraCloudModal } = useSubscription();
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
-  const { updateLibrary } = useLibrary();
+  const { updateLibrary, library } = useLibrary();
   const { formatDistance } = useDate();
   const { showSuccessToast, showErrorToast } = useToast();
 
@@ -158,6 +158,14 @@ export function GameDetailsContent() {
   const [showReviewPrompt, setShowReviewPrompt] = useState(false);
   const [hasUserReviewed, setHasUserReviewed] = useState(false);
   const [reviewCheckLoading, setReviewCheckLoading] = useState(false);
+
+  // Check if the current game is in the user's library
+  const isGameInLibrary = useMemo(() => {
+    if (!library || !shop || !objectId) return false;
+    return library.some(
+      (libItem) => libItem.shop === shop && libItem.objectId === objectId
+    );
+  }, [library, shop, objectId]);
 
   const editor = useEditor({
     extensions: [
@@ -561,7 +569,8 @@ export function GameDetailsContent() {
               showReviewPrompt &&
               userDetails &&
               !hasUserReviewed &&
-              !reviewCheckLoading && (
+              !reviewCheckLoading &&
+              isGameInLibrary && (
                 <ReviewPromptBanner
                   onYesClick={handleReviewPromptYes}
                   onLaterClick={handleReviewPromptLater}
