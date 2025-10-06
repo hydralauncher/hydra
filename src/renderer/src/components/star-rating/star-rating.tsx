@@ -7,6 +7,7 @@ export interface StarRatingProps {
   size?: number;
   showCalculating?: boolean;
   calculatingText?: string;
+  hideIcon?: boolean;
 }
 
 export function StarRating({
@@ -15,11 +16,12 @@ export function StarRating({
   size = 12,
   showCalculating = false,
   calculatingText = "Calculating",
+  hideIcon = false,
 }: Readonly<StarRatingProps>) {
   if (rating === null && showCalculating) {
     return (
       <div className="star-rating star-rating--calculating">
-        <StarIcon size={size} />
+        {!hideIcon && <StarIcon size={size} />}
         <span className="star-rating__calculating-text">{calculatingText}</span>
       </div>
     );
@@ -28,7 +30,7 @@ export function StarRating({
   if (rating === null || rating === undefined) {
     return (
       <div className="star-rating star-rating--no-rating">
-        <StarIcon size={size} />
+        {!hideIcon && <StarIcon size={size} />}
         <span className="star-rating__no-rating-text">…</span>
       </div>
     );
