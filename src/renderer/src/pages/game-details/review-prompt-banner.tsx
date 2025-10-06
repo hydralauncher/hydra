@@ -25,11 +25,11 @@ export function ReviewPromptBanner({
           </span>
         </div>
         <div className="review-prompt-banner__actions">
-          <Button theme="primary" onClick={onYesClick}>
-            {t("yes")}
-          </Button>
           <Button theme="outline" onClick={onLaterClick}>
             {t("maybe_later")}
+          </Button>
+          <Button theme="primary" onClick={onYesClick}>
+            {t("yes")}
           </Button>
         </div>
       </div>
