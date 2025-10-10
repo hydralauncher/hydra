@@ -219,6 +219,7 @@
     "uploading_backup": "Uploading backup…",
     "no_backups": "You haven't created any backups for this game yet",
     "backup_uploaded": "Backup uploaded",
+    "backup_failed": "Backup failed",
     "backup_deleted": "Backup deleted",
     "backup_restored": "Backup restored",
     "see_all_achievements": "See all achievements",
