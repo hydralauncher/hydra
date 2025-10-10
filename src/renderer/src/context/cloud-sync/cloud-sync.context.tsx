@@ -87,7 +87,7 @@ export function CloudSyncContextProvider({
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [freezingArtifact, setFreezingArtifact] = useState(false);
 
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const downloadGameArtifact = useCallback(
     async (gameArtifactId: string) => {
@@ -122,9 +122,15 @@ export function CloudSyncContextProvider({
   const uploadSaveGame = useCallback(
     async (downloadOptionTitle: string | null) => {
       setUploadingBackup(true);
-      window.electron.uploadSaveGame(objectId, shop, downloadOptionTitle);
+      window.electron
+        .uploadSaveGame(objectId, shop, downloadOptionTitle)
+        .catch((err) => {
+          setUploadingBackup(false);
+          logger.error("Failed to upload save game", { objectId, shop, err });
+          showErrorToast(t("backup_failed"));
+        });
     },
-    [objectId, shop]
+    [objectId, shop, t, showErrorToast]
   );
 
   const toggleArtifactFreeze = useCallback(

@@ -142,6 +142,7 @@
     "uploading_backup": "A criar backup…",
     "no_backups": "Ainda não fizeste nenhum backup deste jogo",
     "backup_uploaded": "Backup criado",
+    "backup_failed": "Falha ao criar backup",
     "backup_deleted": "Backup apagado",
     "backup_restored": "Backup restaurado",
     "see_all_achievements": "Ver todas as conquistas",
