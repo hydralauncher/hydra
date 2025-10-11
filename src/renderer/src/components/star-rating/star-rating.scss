@@ -1,0 +1,54 @@
+@use "../../scss/globals.scss";
+
+.star-rating {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+
+  &__star {
+    color: globals.$muted-color;
+    transition: color ease 0.2s;
+
+    &--filled {
+      color: #ffffff;
+    }
+
+    &--empty {
+      color: globals.$muted-color;
+    }
+
+    &--half {
+      color: #ffffff;
+      position: absolute;
+      top: 0;
+      left: 0;
+      clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);
+    }
+  }
+
+  &__half-star {
+    position: relative;
+    display: inline-block;
+  }
+
+  &__value {
+    margin-left: 4px;
+    font-size: 12px;
+    color: globals.$muted-color;
+    font-weight: 500;
+  }
+
+  &__calculating-text,
+  &__no-rating-text {
+    margin-left: 4px;
+    font-size: 12px;
+    color: globals.$muted-color;
+  }
+
+  &--calculating,
+  &--no-rating {
+    .star-rating__star {
+      color: globals.$muted-color;
+    }
+  }
+}

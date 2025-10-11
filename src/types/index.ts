@@ -182,6 +182,7 @@ export interface UserDetails {
   bio: string;
   featurebaseJwt: string;
   subscription: Subscription | null;
+  karma: number;
   quirks?: {
     backupsPerGameLimit: number;
   };
@@ -202,6 +203,7 @@ export interface UserProfile {
   currentGame: UserProfileCurrentGame | null;
   bio: string;
   hasActiveSubscription: boolean;
+  karma: number;
   quirks: {
     backupsPerGameLimit: number;
   };
@@ -234,6 +236,25 @@ export interface GameStats {
   downloadCount: number;
   playerCount: number;
   assets: ShopAssets | null;
+  averageScore: number | null;
+}
+
+export interface GameReview {
+  id: string;
+  reviewHtml: string;
+  score: number;
+  createdAt: string;
+  updatedAt: string;
+  upvotes: number;
+  downvotes: number;
+  isBlocked: boolean;
+  hasUpvoted: boolean;
+  hasDownvoted: boolean;
+  user: {
+    id: string;
+    displayName: string;
+    profileImageUrl: string | null;
+  } | null;
 }
 
 export interface TrendingGame extends ShopAssets {

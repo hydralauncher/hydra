@@ -35,6 +35,11 @@ export function GameDetailsSkeleton() {
             ))}
             <Skeleton className="game-details__hero-image-skeleton" />
             <Skeleton />
+            <Skeleton
+              width={120}
+              height={36}
+              className="game-details__description-toggle"
+            />
           </div>
         </div>
         <div className="content-sidebar">
