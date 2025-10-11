@@ -3,7 +3,6 @@ import { ipcMain } from "electron";
 
 import "./catalogue/get-catalogue";
 import "./catalogue/get-game-shop-details";
-import "./catalogue/save-game-shop-assets";
 import "./catalogue/get-how-long-to-beat";
 import "./catalogue/get-random-game";
 import "./catalogue/search-games";
