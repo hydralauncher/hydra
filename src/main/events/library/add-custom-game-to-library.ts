@@ -27,6 +27,7 @@ const addCustomGameToLibrary = async (
   }
 
   const assets = {
+    updatedAt: Date.now(),
     objectId,
     shop,
     title,
