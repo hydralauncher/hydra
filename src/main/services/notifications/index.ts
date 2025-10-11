@@ -10,7 +10,7 @@ import icon from "@resources/icon.png?asset";
 import { NotificationOptions, toXmlString } from "./xml";
 import { logger } from "../logger";
 import { WindowManager } from "../window-manager";
-import type { Game, GameStats, UserPreferences, UserProfile } from "@types";
+import type { Game, UserPreferences, UserProfile } from "@types";
 import { db, levelKeys } from "@main/level";
 import { restartAndInstallUpdate } from "@main/events/autoupdater/restart-and-install-update";
 import { SystemPath } from "../system-path";
@@ -108,15 +108,14 @@ export const publishNewFriendRequestNotification = async (
 };
 
 export const publishFriendStartedPlayingGameNotification = async (
-  friend: UserProfile,
-  game: GameStats
+  friend: UserProfile
 ) => {
   new Notification({
     title: t("friend_started_playing_game", {
       ns: "notifications",
       displayName: friend.displayName,
     }),
-    body: game.assets?.title,
+    body: friend?.currentGame?.title,
     icon: friend?.profileImageUrl
       ? await downloadImage(friend.profileImageUrl)
       : trayIcon,

@@ -1,12 +1,11 @@
 import { registerEvent } from "../register-event";
-import type { GameShop, GameStats } from "@types";
+import type { GameShop, ShopAssets } from "@types";
 import { gamesSublevel, levelKeys } from "@main/level";
 import {
   composeSteamShortcut,
   getSteamLocation,
   getSteamShortcuts,
   getSteamUsersIds,
-  HydraApi,
   logger,
   SystemPath,
   writeSteamShortcuts,
@@ -15,6 +14,7 @@ import fs from "node:fs";
 import axios from "axios";
 import path from "node:path";
 import { ASSETS_PATH } from "@main/constants";
+import { getGameAssets } from "../catalogue/get-game-assets";
 
 const downloadAsset = async (downloadPath: string, url?: string | null) => {
   try {
@@ -41,7 +41,7 @@ const downloadAsset = async (downloadPath: string, url?: string | null) => {
 const downloadAssetsFromSteam = async (
   shop: GameShop,
   objectId: string,
-  assets: GameStats["assets"]
+  assets: ShopAssets | null
 ) => {
   const gameAssetsPath = path.join(ASSETS_PATH, `${shop}-${objectId}`);
 
@@ -86,9 +86,7 @@ const createSteamShortcut = async (
       throw new Error("No executable path found for game");
     }
 
-    const { assets } = await HydraApi.get<GameStats>(
-      `/games/${shop}/${objectId}/stats`
-    );
+    const assets = await getGameAssets(objectId, shop);
 
     const steamUserIds = await getSteamUsersIds();
 

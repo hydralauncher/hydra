@@ -58,7 +58,11 @@ export const mergeWithRemoteGames = async () => {
           });
         }
 
+        const localGameShopAsset = await gamesShopAssetsSublevel.get(gameKey);
+
         await gamesShopAssetsSublevel.put(gameKey, {
+          updatedAt: Date.now(),
+          ...localGameShopAsset,
           shop: game.shop,
           objectId: game.objectId,
           title: localGame?.title || game.title, // Preserve local title if it exists
