@@ -386,6 +386,10 @@ contextBridge.exposeInMainWorld("electron", {
   getBadges: () => ipcRenderer.invoke("getBadges"),
   canInstallCommonRedist: () => ipcRenderer.invoke("canInstallCommonRedist"),
   installCommonRedist: () => ipcRenderer.invoke("installCommonRedist"),
+  installHydraDeckyPlugin: () => ipcRenderer.invoke("installHydraDeckyPlugin"),
+  getHydraDeckyPluginInfo: () => ipcRenderer.invoke("getHydraDeckyPluginInfo"),
+  checkHomebrewFolderExists: () =>
+    ipcRenderer.invoke("checkHomebrewFolderExists"),
   platform: process.platform,
 
   /* Auto update */

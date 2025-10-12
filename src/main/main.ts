@@ -16,6 +16,7 @@ import {
   startMainLoop,
   Ludusavi,
   Lock,
+  DeckyPlugin,
 } from "@main/services";
 
 export const loadState = async () => {
@@ -48,6 +49,10 @@ export const loadState = async () => {
 
   Ludusavi.copyConfigFileToUserData();
   Ludusavi.copyBinaryToUserData();
+
+  if (process.platform === "linux") {
+    DeckyPlugin.checkAndUpdateIfOutdated();
+  }
 
   await HydraApi.setupApi().then(() => {
     uploadGamesBatch();
