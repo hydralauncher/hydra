@@ -428,25 +428,22 @@ export function EditGameModal({
   // Helper function to prepare non-custom game assets
   const prepareNonCustomGameAssets = () => {
     const hasIconPath = assetPaths.icon;
-    const customIconUrl = removedAssets.icon
-      ? null
-      : hasIconPath
-        ? `local:${assetPaths.icon}`
-        : null;
+    let customIconUrl: string | null = null;
+    if (!removedAssets.icon && hasIconPath) {
+      customIconUrl = `local:${assetPaths.icon}`;
+    }
 
     const hasLogoPath = assetPaths.logo;
-    const customLogoImageUrl = removedAssets.logo
-      ? null
-      : hasLogoPath
-        ? `local:${assetPaths.logo}`
-        : null;
+    let customLogoImageUrl: string | null = null;
+    if (!removedAssets.logo && hasLogoPath) {
+      customLogoImageUrl = `local:${assetPaths.logo}`;
+    }
 
     const hasHeroPath = assetPaths.hero;
-    const customHeroImageUrl = removedAssets.hero
-      ? null
-      : hasHeroPath
-        ? `local:${assetPaths.hero}`
-        : null;
+    let customHeroImageUrl: string | null = null;
+    if (!removedAssets.hero && hasHeroPath) {
+      customHeroImageUrl = `local:${assetPaths.hero}`;
+    }
 
     return {
       customIconUrl,
