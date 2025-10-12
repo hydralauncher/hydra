@@ -1,6 +1,5 @@
 function removeZalgoText(text: string): string {
   const zalgoRegex =
-    // eslint-disable-next-line no-misleading-character-class
     /[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]/g;
 
   return text.replaceAll(zalgoRegex, "");
@@ -11,11 +10,9 @@ export function sanitizeHtml(html: string): string {
     return "";
   }
 
-  // Use DOM-based sanitization to preserve safe formatting while removing dangerous content.
   const tempDiv = document.createElement("div");
   tempDiv.innerHTML = html;
 
-  // Remove clearly unsafe elements entirely.
   const disallowedSelectors = [
     "script",
     "style",
@@ -25,29 +22,28 @@ export function sanitizeHtml(html: string): string {
     "link",
     "meta",
   ];
-  disallowedSelectors.forEach((sel) => {
-    tempDiv.querySelectorAll(sel).forEach((el) => el.remove());
-  });
+  for (const sel of disallowedSelectors) {
+    for (const el of tempDiv.querySelectorAll(sel)) {
+      el.remove();
+    }
+  }
 
-  // Strip potentially dangerous attributes from remaining elements.
-  tempDiv.querySelectorAll("*").forEach((el) => {
-    Array.from(el.attributes).forEach((attr) => {
+  for (const el of tempDiv.querySelectorAll("*")) {
+    for (const attr of Array.from(el.attributes)) {
       const name = attr.name.toLowerCase();
       if (
-        name.startsWith("on") || // Event handlers
+        name.startsWith("on") ||
         name === "style" ||
         name === "src" ||
-        name === "href" // Links disabled in editor; avoid javascript: URLs
+        name === "href"
       ) {
         el.removeAttribute(attr.name);
       }
-    });
-  });
+    }
+  }
 
-  // Clean Zalgo text characters within text nodes.
   const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT);
   let node: Node | null;
-  // eslint-disable-next-line no-cond-assign
   while ((node = walker.nextNode())) {
     const textNode = node as Text;
     const value = textNode.nodeValue || "";

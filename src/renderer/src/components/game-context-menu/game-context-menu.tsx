@@ -19,8 +19,8 @@ import {
   ContextMenuItemData,
   ContextMenuProps,
   ConfirmationModal,
+  useGameActions,
 } from "..";
-import { useGameActions } from "..";
 
 interface GameContextMenuProps extends Omit<ContextMenuProps, "items"> {
   game: LibraryGame;
