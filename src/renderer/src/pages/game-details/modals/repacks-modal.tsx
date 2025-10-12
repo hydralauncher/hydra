@@ -161,6 +161,14 @@ export function RepacksModal({
 
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
+  useEffect(() => {
+    if (!visible) {
+      setFilterTerm("");
+      setSelectedFingerprints([]);
+      setIsFilterDrawerOpen(false);
+    }
+  }, [visible]);
+
   return (
     <>
       <DownloadSettingsModal
@@ -180,7 +188,11 @@ export function RepacksModal({
           className={`repacks-modal__filter-container ${isFilterDrawerOpen ? "repacks-modal__filter-container--drawer-open" : ""}`}
         >
           <div className="repacks-modal__filter-top">
-            <TextField placeholder={t("filter")} onChange={handleFilter} />
+            <TextField
+              placeholder={t("filter")}
+              value={filterTerm}
+              onChange={handleFilter}
+            />
             {downloadSources.length > 0 && (
               <Button
                 type="button"
