@@ -152,6 +152,7 @@ export function GameDetailsContextProvider({
     Promise.all([shopDetailsPromise, assetsPromise])
       .then(([_, assets]) => {
         if (assets) {
+          if (abortController.signal.aborted) return;
           setShopDetails((prev) => {
             if (!prev) return null;
             return {
