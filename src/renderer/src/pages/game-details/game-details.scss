@@ -128,7 +128,7 @@ $hero-height: 300px;
   &__star-rating {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
   }
 
   &__star {
@@ -136,7 +136,7 @@ $hero-height: 300px;
     border: none;
     color: #666666;
     cursor: pointer;
-    padding: 4px;
+    padding: 2px;
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -220,30 +220,6 @@ $hero-height: 300px;
     }
   }
 
-  &__review-submit-button {
-    background-color: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    color: #ffffff;
-    padding: 10px 20px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-
-    &:hover:not(:disabled) {
-      background-color: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.15);
-    }
-
-    &:disabled {
-      background-color: rgba(255, 255, 255, 0.1);
-      cursor: not-allowed;
-      color: rgba(255, 255, 255, 0.5);
-    }
-  }
-
   &__reviews-list {
     margin-top: calc(globals.$spacing-unit * 3);
   }
@@ -288,7 +264,12 @@ $hero-height: 300px;
   }
 
   &__review-item {
-    background: rgba(255, 255, 255, 0.03);
+    background: linear-gradient(
+      to right,
+      globals.$dark-background-color 0%,
+      globals.$dark-background-color 30%,
+      globals.$background-color 100%
+    );
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 6px;
     padding: calc(globals.$spacing-unit * 2);
@@ -310,12 +291,29 @@ $hero-height: 300px;
     gap: calc(globals.$spacing-unit * 1);
   }
 
+  &__review-avatar-button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      opacity: 0.8;
+    }
+
+    &:active {
+      opacity: 0.6;
+    }
+  }
+
   &__review-avatar {
     width: 32px;
     height: 32px;
     border-radius: 4px;
     object-fit: cover;
     border: 2px solid rgba(255, 255, 255, 0.1);
+    display: block;
   }
 
   &__review-user-info {
@@ -370,16 +368,7 @@ $hero-height: 300px;
     &:hover {
       background: rgba(255, 255, 255, 0.1);
       border-color: rgba(255, 255, 255, 0.2);
-    }
-
-    &--upvote:hover {
-      color: #4caf50;
-      border-color: #4caf50;
-    }
-
-    &--downvote:hover {
-      color: #f44336;
-      border-color: #f44336;
+      color: #ffffff;
     }
 
     &--active {
@@ -398,6 +387,9 @@ $hero-height: 300px;
 
     span {
       font-weight: 500;
+      display: inline-block;
+      min-width: 1ch;
+      overflow: hidden;
     }
   }
 
@@ -1015,9 +1007,9 @@ $hero-height: 300px;
   &__review-input-container {
     display: flex;
     flex-direction: column;
-    border: 1px solid #3a3a3a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    background-color: #1e1e1e;
+    background-color: globals.$dark-background-color;
     overflow: hidden;
   }
 
@@ -1026,8 +1018,8 @@ $hero-height: 300px;
     justify-content: space-between;
     align-items: center;
     padding: 8px 12px;
-    background-color: #2a2a2a;
-    border-bottom: 1px solid #3a3a3a;
+    background-color: globals.$background-color;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   &__review-editor-toolbar {
@@ -1037,7 +1029,7 @@ $hero-height: 300px;
 
   &__editor-button {
     background: none;
-    border: 1px solid #4a4a4a;
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 4px;
     color: #ffffff;
     padding: 4px 8px;
@@ -1046,13 +1038,13 @@ $hero-height: 300px;
     transition: all 0.2s ease;
 
     &:hover {
-      background-color: #3a3a3a;
-      border-color: #5a5a5a;
+      background-color: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
     }
 
     &.is-active {
-      background-color: #0078d4;
-      border-color: #0078d4;
+      background-color: globals.$brand-blue;
+      border-color: globals.$brand-blue;
     }
 
     &:disabled {
