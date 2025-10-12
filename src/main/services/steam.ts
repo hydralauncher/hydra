@@ -19,7 +19,12 @@ export interface SteamAppDetailsResponse {
 
 export const getSteamLocation = async () => {
   if (process.platform === "linux") {
-    return path.join(SystemPath.getPath("home"), ".local", "share", "Steam");
+    const possiblePaths = [
+      path.join(SystemPath.getPath("home"), ".steam", "steam"),
+      path.join(SystemPath.getPath("home"), ".local", "share", "Steam"),
+    ];
+
+    return possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
   }
 
   if (process.platform === "darwin") {
@@ -76,7 +81,11 @@ export const getSteamAppDetails = async (
       return null;
     })
     .catch((err) => {
-      logger.error(err, { method: "getSteamAppDetails" });
+      logger.error("Error on getSteamAppDetails", {
+        message: err?.message,
+        code: err?.code,
+        name: err?.name,
+      });
       return null;
     });
 };

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { LibraryGame, ShortcutLocation } from "@types";
 import { useDownload, useLibrary, useToast } from "@renderer/hooks";
@@ -21,6 +21,7 @@ export function useGameActions(game: LibraryGame) {
   } = useDownload();
 
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
+  const [isGameRunning, setIsGameRunning] = useState(false);
 
   const canPlay = Boolean(game.executablePath);
   const isDeleting = isGameDeleting(game.id);
@@ -29,6 +30,20 @@ export function useGameActions(game: LibraryGame) {
   const hasRepacks = true;
   const shouldShowCreateStartMenuShortcut =
     window.electron.platform === "win32";
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onGamesRunning((gamesIds) => {
+      const updatedIsGameRunning =
+        !!game?.id &&
+        !!gamesIds.find((gameRunning) => gameRunning.id == game.id);
+
+      setIsGameRunning(updatedIsGameRunning);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [game?.id]);
 
   const handlePlayGame = async () => {
     if (!canPlay) {
@@ -72,6 +87,15 @@ export function useGameActions(game: LibraryGame) {
     } catch (error) {
       showErrorToast("Failed to start game");
       logger.error("Failed to start game", error);
+    }
+  };
+
+  const handleCloseGame = async () => {
+    try {
+      await window.electron.closeGame(game.shop, game.objectId);
+    } catch (error) {
+      showErrorToast("Failed to close game");
+      logger.error("Failed to close game", error);
     }
   };
 
@@ -239,10 +263,12 @@ export function useGameActions(game: LibraryGame) {
     canPlay,
     isDeleting,
     isGameDownloading,
+    isGameRunning,
     hasRepacks,
     shouldShowCreateStartMenuShortcut,
     creatingSteamShortcut,
     handlePlayGame,
+    handleCloseGame,
     handleToggleFavorite,
     handleCreateShortcut,
     handleCreateSteamShortcut,

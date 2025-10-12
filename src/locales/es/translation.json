@@ -204,6 +204,7 @@
     "uploading_backup": "Subiendo copia de seguridad…",
     "no_backups": "No has creado ninguna copia de seguridad para este juego todavía",
     "backup_uploaded": "Copia de seguridad subida",
+    "backup_failed": "Copia de seguridad fallida",
     "backup_deleted": "Copia de seguridad eliminada",
     "backup_restored": "Copia de seguridad restaurada",
     "see_all_achievements": "Ver todos los logros",

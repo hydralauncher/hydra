@@ -22,7 +22,8 @@ export const mergeWithRemoteGames = async () => {
           const updatedLastTimePlayed =
             localGame.lastTimePlayed == null ||
             (game.lastTimePlayed &&
-              new Date(game.lastTimePlayed) > localGame.lastTimePlayed)
+              new Date(game.lastTimePlayed) >
+                new Date(localGame.lastTimePlayed))
               ? game.lastTimePlayed
               : localGame.lastTimePlayed;
 
@@ -57,7 +58,11 @@ export const mergeWithRemoteGames = async () => {
           });
         }
 
+        const localGameShopAsset = await gamesShopAssetsSublevel.get(gameKey);
+
         await gamesShopAssetsSublevel.put(gameKey, {
+          updatedAt: Date.now(),
+          ...localGameShopAsset,
           shop: game.shop,
           objectId: game.objectId,
           title: localGame?.title || game.title, // Preserve local title if it exists

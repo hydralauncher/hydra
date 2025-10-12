@@ -5,7 +5,7 @@ import type {
   UserAchievement,
 } from "@types";
 import { useTranslation } from "react-i18next";
-import { Button, Link } from "@renderer/components";
+import { Button, Link, StarRating } from "@renderer/components";
 
 import { gameDetailsContext } from "@renderer/context";
 import { useDate, useFormat, useUserDetails } from "@renderer/hooks";
@@ -14,6 +14,7 @@ import {
   DownloadIcon,
   LockIcon,
   PeopleIcon,
+  StarIcon,
 } from "@primer/octicons-react";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { howLongToBeatEntriesTable } from "@renderer/dexie";
@@ -224,6 +225,29 @@ export function Sidebar() {
                 {t("player_count")}
               </p>
               <p>{numberFormatter.format(stats?.playerCount)}</p>
+            </div>
+
+            <div className="stats__category">
+              <p className="stats__category-title">
+                <StarIcon size={18} />
+                {t("rating_count")}
+              </p>
+              <StarRating
+                rating={
+                  stats?.averageScore === 0
+                    ? null
+                    : (stats?.averageScore ?? null)
+                }
+                size={16}
+                showCalculating={
+                  !!(
+                    stats &&
+                    (stats.averageScore === null || stats.averageScore === 0)
+                  )
+                }
+                calculatingText={t("calculating", { ns: "game_card" })}
+                hideIcon={true}
+              />
             </div>
           </div>
         </SidebarSection>

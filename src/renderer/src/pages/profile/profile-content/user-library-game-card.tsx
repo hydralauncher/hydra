@@ -234,7 +234,7 @@ export function UserLibraryGameCard({
           </div>
 
           <img
-            src={game.coverImageUrl}
+            src={game.coverImageUrl ?? undefined}
             alt={game.title}
             className="user-library-game__game-image"
           />
