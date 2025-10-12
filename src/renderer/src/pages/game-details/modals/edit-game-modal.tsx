@@ -70,7 +70,8 @@ export function EditGameModal({
     // Check if assets were removed (URLs are null but original paths exist)
     const iconRemoved = !game.iconUrl && (game as any).originalIconPath;
     const logoRemoved = !game.logoImageUrl && (game as any).originalLogoPath;
-    const heroRemoved = !game.libraryHeroImageUrl && (game as any).originalHeroPath;
+    const heroRemoved =
+      !game.libraryHeroImageUrl && (game as any).originalHeroPath;
 
     setAssetPaths({
       icon: extractLocalPath(game.iconUrl),
@@ -102,9 +103,12 @@ export function EditGameModal({
   const setNonCustomGameAssets = useCallback(
     (game: LibraryGame) => {
       // Check if assets were removed (custom URLs are null but original paths exist)
-      const iconRemoved = !game.customIconUrl && (game as any).customOriginalIconPath;
-      const logoRemoved = !game.customLogoImageUrl && (game as any).customOriginalLogoPath;
-      const heroRemoved = !game.customHeroImageUrl && (game as any).customOriginalHeroPath;
+      const iconRemoved =
+        !game.customIconUrl && (game as any).customOriginalIconPath;
+      const logoRemoved =
+        !game.customLogoImageUrl && (game as any).customOriginalLogoPath;
+      const heroRemoved =
+        !game.customHeroImageUrl && (game as any).customOriginalHeroPath;
 
       setAssetPaths({
         icon: extractLocalPath(game.customIconUrl),
@@ -249,19 +253,11 @@ export function EditGameModal({
   };
 
   const handleRestoreDefault = (assetType: AssetType) => {
-    if (game && isCustomGame(game)) {
-      // For custom games, mark asset as removed and clear paths
-      setRemovedAssets((prev) => ({ ...prev, [assetType]: true }));
-      setAssetPath(assetType, "");
-      setAssetDisplayPath(assetType, "");
-      // Don't clear originalAssetPaths - keep them for reference but don't use them for display
-    } else {
-      // For non-custom games, also mark asset as removed and clear paths (restore to shop defaults)
-      setRemovedAssets((prev) => ({ ...prev, [assetType]: true }));
-      setAssetPath(assetType, "");
-      setAssetDisplayPath(assetType, "");
-      // Don't clear originalAssetPaths - keep them for reference but don't use them for display
-    }
+    // Mark asset as removed and clear paths (for both custom and non-custom games)
+    setRemovedAssets((prev) => ({ ...prev, [assetType]: true }));
+    setAssetPath(assetType, "");
+    setAssetDisplayPath(assetType, "");
+    // Don't clear originalAssetPaths - keep them for reference but don't use them for display
   };
 
   const getOriginalTitle = (): string => {
@@ -432,9 +428,21 @@ export function EditGameModal({
   // Helper function to prepare non-custom game assets
   const prepareNonCustomGameAssets = () => {
     return {
-      customIconUrl: removedAssets.icon ? null : (assetPaths.icon ? `local:${assetPaths.icon}` : null),
-      customLogoImageUrl: removedAssets.logo ? null : (assetPaths.logo ? `local:${assetPaths.logo}` : null),
-      customHeroImageUrl: removedAssets.hero ? null : (assetPaths.hero ? `local:${assetPaths.hero}` : null),
+      customIconUrl: removedAssets.icon
+        ? null
+        : assetPaths.icon
+          ? `local:${assetPaths.icon}`
+          : null,
+      customLogoImageUrl: removedAssets.logo
+        ? null
+        : assetPaths.logo
+          ? `local:${assetPaths.logo}`
+          : null,
+      customHeroImageUrl: removedAssets.hero
+        ? null
+        : assetPaths.hero
+          ? `local:${assetPaths.hero}`
+          : null,
     };
   };
 
@@ -468,9 +476,15 @@ export function EditGameModal({
       customIconUrl,
       customLogoImageUrl,
       customHeroImageUrl,
-      customOriginalIconPath: removedAssets.icon ? undefined : (originalAssetPaths.icon || undefined),
-      customOriginalLogoPath: removedAssets.logo ? undefined : (originalAssetPaths.logo || undefined),
-      customOriginalHeroPath: removedAssets.hero ? undefined : (originalAssetPaths.hero || undefined),
+      customOriginalIconPath: removedAssets.icon
+        ? undefined
+        : originalAssetPaths.icon || undefined,
+      customOriginalLogoPath: removedAssets.logo
+        ? undefined
+        : originalAssetPaths.logo || undefined,
+      customOriginalHeroPath: removedAssets.hero
+        ? undefined
+        : originalAssetPaths.hero || undefined,
     });
   };
 
