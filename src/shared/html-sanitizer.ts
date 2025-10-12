@@ -1,10 +1,19 @@
 function removeZalgoText(text: string): string {
   // Match combining characters that are commonly used in Zalgo text
-  // Using alternation instead of character class to avoid misleading-character-class warning
-  const zalgoRegex =
-    /(\u0300-\u036F|\u1AB0-\u1AFF|\u1DC0-\u1DFF|\u20D0-\u20FF|\uFE20-\uFE2F)/g;
+  // Using a more explicit approach to avoid misleading-character-class warning
+  const combiningMarks = [
+    /\u0300-\u036F/g, // Combining Diacritical Marks
+    /\u1AB0-\u1AFF/g, // Combining Diacritical Marks Extended
+    /\u1DC0-\u1DFF/g, // Combining Diacritical Marks Supplement
+    /\u20D0-\u20FF/g, // Combining Diacritical Marks for Symbols
+    /\uFE20-\uFE2F/g, // Combining Half Marks
+  ];
 
-  return text.replaceAll(zalgoRegex, "");
+  let result = text;
+  for (const regex of combiningMarks) {
+    result = result.replace(regex, "");
+  }
+  return result;
 }
 
 export function sanitizeHtml(html: string): string {
