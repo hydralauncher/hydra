@@ -6,37 +6,7 @@ function removeZalgoText(text: string): string {
   return text.replaceAll(zalgoRegex, "");
 }
 
-function decodeHtmlEntities(text: string): string {
-  const entityMap: { [key: string]: string } = {
-    "&amp;": "&",
-    "&lt;": "<",
-    "&gt;": ">",
-    "&quot;": '"',
-    "&#39;": "'",
-    "&nbsp;": " ",
-  };
 
-  return text.replaceAll(/&[#\w]+;/g, (entity) => {
-    return entityMap[entity] || entity;
-  });
-}
-
-function removeHtmlTags(html: string): string {
-  let result = "";
-  let inTag = false;
-
-  for (const char of html) {
-    if (char === "<") {
-      inTag = true;
-    } else if (char === ">") {
-      inTag = false;
-    } else if (!inTag) {
-      result += char;
-    }
-  }
-
-  return result;
-}
 
 export function sanitizeHtml(html: string): string {
   if (!html || typeof html !== "string") {
