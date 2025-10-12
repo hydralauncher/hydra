@@ -40,9 +40,11 @@ export function GameContextMenu({
     canPlay,
     isDeleting,
     isGameDownloading,
+    isGameRunning,
     hasRepacks,
     shouldShowCreateStartMenuShortcut,
     handlePlayGame,
+    handleCloseGame,
     handleToggleFavorite,
     handleCreateShortcut,
     handleCreateSteamShortcut,
@@ -57,10 +59,20 @@ export function GameContextMenu({
   const items: ContextMenuItemData[] = [
     {
       id: "play",
-      label: canPlay ? t("play") : t("download"),
-      icon: canPlay ? <PlayIcon size={16} /> : <DownloadIcon size={16} />,
+      label: isGameRunning ? t("close") : canPlay ? t("play") : t("download"),
+      icon: isGameRunning ? (
+        <XIcon size={16} />
+      ) : canPlay ? (
+        <PlayIcon size={16} />
+      ) : (
+        <DownloadIcon size={16} />
+      ),
       onClick: () => {
-        void handlePlayGame();
+        if (isGameRunning) {
+          void handleCloseGame();
+        } else {
+          void handlePlayGame();
+        }
       },
       disabled: isDeleting,
     },
