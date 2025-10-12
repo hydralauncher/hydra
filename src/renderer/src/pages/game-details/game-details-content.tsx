@@ -9,7 +9,7 @@ import { ThumbsUp, ThumbsDown, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import type { GameReview } from "@types";
 
 import { HeroPanel } from "./hero";
@@ -27,6 +27,8 @@ import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import { useUserDetails, useLibrary, useDate, useToast } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import { formatNumber } from "@renderer/helpers";
+import { Button } from "@renderer/components";
 import "./game-details.scss";
 
 const getScoreColorClass = (score: number): string => {
@@ -147,6 +149,9 @@ export function GameDetailsContent() {
   const [reviewCharCount, setReviewCharCount] = useState(0);
   const MAX_REVIEW_CHARS = 1000;
   const [reviewsSortBy, setReviewsSortBy] = useState("newest");
+  const previousVotesRef = useRef<
+    Map<string, { upvotes: number; downvotes: number }>
+  >(new Map());
   const [reviewsPage, setReviewsPage] = useState(0);
   const [hasMoreReviews, setHasMoreReviews] = useState(true);
   const [visibleBlockedReviews, setVisibleBlockedReviews] = useState<
@@ -333,6 +338,8 @@ export function GameDetailsContent() {
       loadReviews(true);
       setShowDeleteReviewModal(false);
       setReviewToDelete(null);
+      setHasUserReviewed(false);
+      setShowReviewForm(true);
       showSuccessToast(t("review_deleted_successfully"));
     } catch (error) {
       console.error("Failed to delete review:", error);
@@ -451,6 +458,18 @@ export function GameDetailsContent() {
       loadReviews(false);
     }
   }, [reviewsPage]);
+
+  // Initialize previousVotesRef for new reviews
+  useEffect(() => {
+    reviews.forEach((review) => {
+      if (!previousVotesRef.current.has(review.id)) {
+        previousVotesRef.current.set(review.id, {
+          upvotes: review.upvotes || 0,
+          downvotes: review.downvotes || 0,
+        });
+      }
+    });
+  }, [reviews]);
 
   const getImageWithCustomPriority = (
     customUrl: string | null | undefined,
@@ -683,7 +702,7 @@ export function GameDetailsContent() {
                                 title={getRatingText(starValue, t)}
                               >
                                 <Star
-                                  size={24}
+                                  size={18}
                                   fill={
                                     reviewScore && starValue <= reviewScore
                                       ? "currentColor"
@@ -695,8 +714,8 @@ export function GameDetailsContent() {
                           </div>
                         </div>
 
-                        <button
-                          className="game-details__review-submit-button"
+                        <Button
+                          theme="primary"
                           onClick={handleSubmitReview}
                           disabled={
                             !editor?.getHTML().trim() ||
@@ -708,7 +727,7 @@ export function GameDetailsContent() {
                           {submittingReview
                             ? t("submitting")
                             : t("submit_review")}
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </>
@@ -772,11 +791,20 @@ export function GameDetailsContent() {
                           <div className="game-details__review-header">
                             <div className="game-details__review-user">
                               {review.user?.profileImageUrl && (
-                                <img
-                                  src={review.user.profileImageUrl}
-                                  alt={review.user.displayName || "User"}
-                                  className="game-details__review-avatar"
-                                />
+                                <button
+                                  className="game-details__review-avatar-button"
+                                  onClick={() =>
+                                    review.user?.id &&
+                                    navigate(`/profile/${review.user.id}`)
+                                  }
+                                  title={review.user.displayName || "User"}
+                                >
+                                  <img
+                                    src={review.user.profileImageUrl}
+                                    alt={review.user.displayName || "User"}
+                                    className="game-details__review-avatar"
+                                  />
+                                </button>
                               )}
                               <div className="game-details__review-user-info">
                                 <button
@@ -837,14 +865,6 @@ export function GameDetailsContent() {
                                 onClick={() =>
                                   handleVoteReview(review.id, "upvote")
                                 }
-                                whileTap={{
-                                  scale: 0.9,
-                                  transition: { duration: 0.1 },
-                                }}
-                                whileHover={{
-                                  scale: 1.05,
-                                  transition: { duration: 0.2 },
-                                }}
                                 animate={
                                   review.hasUpvoted
                                     ? {
@@ -855,21 +875,45 @@ export function GameDetailsContent() {
                                 }
                               >
                                 <ThumbsUp size={16} />
-                                <span>{review.upvotes || 0}</span>
+                                <AnimatePresence mode="wait">
+                                  <motion.span
+                                    key={review.upvotes || 0}
+                                    custom={
+                                      (review.upvotes || 0) >
+                                      (previousVotesRef.current.get(review.id)
+                                        ?.upvotes || 0)
+                                    }
+                                    variants={{
+                                      enter: (isIncreasing: boolean) => ({
+                                        y: isIncreasing ? 10 : -10,
+                                        opacity: 0,
+                                      }),
+                                      center: { y: 0, opacity: 1 },
+                                      exit: (isIncreasing: boolean) => ({
+                                        y: isIncreasing ? -10 : 10,
+                                        opacity: 0,
+                                      }),
+                                    }}
+                                    initial="enter"
+                                    animate="center"
+                                    exit="exit"
+                                    transition={{ duration: 0.2 }}
+                                    onAnimationComplete={() => {
+                                      previousVotesRef.current.set(review.id, {
+                                        upvotes: review.upvotes || 0,
+                                        downvotes: review.downvotes || 0,
+                                      });
+                                    }}
+                                  >
+                                    {formatNumber(review.upvotes || 0)}
+                                  </motion.span>
+                                </AnimatePresence>
                               </motion.button>
                               <motion.button
                                 className={`game-details__vote-button game-details__vote-button--downvote ${review.hasDownvoted ? "game-details__vote-button--active" : ""}`}
                                 onClick={() =>
                                   handleVoteReview(review.id, "downvote")
                                 }
-                                whileTap={{
-                                  scale: 0.9,
-                                  transition: { duration: 0.1 },
-                                }}
-                                whileHover={{
-                                  scale: 1.05,
-                                  transition: { duration: 0.2 },
-                                }}
                                 animate={
                                   review.hasDownvoted
                                     ? {
@@ -880,7 +924,39 @@ export function GameDetailsContent() {
                                 }
                               >
                                 <ThumbsDown size={16} />
-                                <span>{review.downvotes || 0}</span>
+                                <AnimatePresence mode="wait">
+                                  <motion.span
+                                    key={review.downvotes || 0}
+                                    custom={
+                                      (review.downvotes || 0) >
+                                      (previousVotesRef.current.get(review.id)
+                                        ?.downvotes || 0)
+                                    }
+                                    variants={{
+                                      enter: (isIncreasing: boolean) => ({
+                                        y: isIncreasing ? 10 : -10,
+                                        opacity: 0,
+                                      }),
+                                      center: { y: 0, opacity: 1 },
+                                      exit: (isIncreasing: boolean) => ({
+                                        y: isIncreasing ? -10 : 10,
+                                        opacity: 0,
+                                      }),
+                                    }}
+                                    initial="enter"
+                                    animate="center"
+                                    exit="exit"
+                                    transition={{ duration: 0.2 }}
+                                    onAnimationComplete={() => {
+                                      previousVotesRef.current.set(review.id, {
+                                        upvotes: review.upvotes || 0,
+                                        downvotes: review.downvotes || 0,
+                                      });
+                                    }}
+                                  >
+                                    {formatNumber(review.downvotes || 0)}
+                                  </motion.span>
+                                </AnimatePresence>
                               </motion.button>
                             </div>
                             {userDetails?.id === review.user?.id && (
