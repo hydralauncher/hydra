@@ -60,4 +60,3 @@ const getHydraDeckyPluginInfo = async (
 };
 
 registerEvent("getHydraDeckyPluginInfo", getHydraDeckyPluginInfo);
-
