@@ -1,6 +1,6 @@
 import { Downloader } from "@shared";
 
-export const VERSION_CODENAME = "Lumen";
+export const VERSION_CODENAME = "Supernova";
 
 export const DOWNLOADER_NAME = {
   [Downloader.RealDebrid]: "Real-Debrid",

@@ -2,20 +2,30 @@
 
 .description-header {
   width: 100%;
-  padding: calc(globals.$spacing-unit * 1.5);
+  padding: calc(globals.$spacing-unit * 2);
   display: flex;
   justify-content: space-between;
   align-items: center;
   background-color: globals.$background-color;
   height: 72px;
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  margin-bottom: calc(globals.$spacing-unit * 1);
+  margin-bottom: calc(globals.$spacing-unit * 1.5);
 
   &__info {
     display: flex;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 0.5);
     flex-direction: column;
+
+    p {
+      font-size: globals.$small-font-size;
+      color: globals.$muted-color;
+      font-weight: 400;
+
+      &:first-child {
+        font-weight: 600;
+      }
+    }
   }
 }

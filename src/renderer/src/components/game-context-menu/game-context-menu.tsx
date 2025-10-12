@@ -14,9 +14,13 @@ import {
 } from "@primer/octicons-react";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { LibraryGame } from "@types";
-import { ContextMenu, ContextMenuItemData, ContextMenuProps } from "..";
-import { ConfirmModal } from "@renderer/components/confirm-modal/confirm-modal";
-import { useGameActions } from "..";
+import {
+  ContextMenu,
+  ContextMenuItemData,
+  ContextMenuProps,
+  ConfirmationModal,
+  useGameActions,
+} from "..";
 
 interface GameContextMenuProps extends Omit<ContextMenuProps, "items"> {
   game: LibraryGame;
@@ -36,9 +40,11 @@ export function GameContextMenu({
     canPlay,
     isDeleting,
     isGameDownloading,
+    isGameRunning,
     hasRepacks,
     shouldShowCreateStartMenuShortcut,
     handlePlayGame,
+    handleCloseGame,
     handleToggleFavorite,
     handleCreateShortcut,
     handleCreateSteamShortcut,
@@ -53,10 +59,20 @@ export function GameContextMenu({
   const items: ContextMenuItemData[] = [
     {
       id: "play",
-      label: canPlay ? t("play") : t("download"),
-      icon: canPlay ? <PlayIcon size={16} /> : <DownloadIcon size={16} />,
+      label: isGameRunning ? t("close") : canPlay ? t("play") : t("download"),
+      icon: isGameRunning ? (
+        <XIcon size={16} />
+      ) : canPlay ? (
+        <PlayIcon size={16} />
+      ) : (
+        <DownloadIcon size={16} />
+      ),
       onClick: () => {
-        void handlePlayGame();
+        if (isGameRunning) {
+          void handleCloseGame();
+        } else {
+          void handlePlayGame();
+        }
       },
       disabled: isDeleting,
     },
@@ -195,36 +211,40 @@ export function GameContextMenu({
         }
       />
 
-      <ConfirmModal
+      <ConfirmationModal
         visible={showConfirmRemoveLibrary}
         title={t("remove_from_library_title")}
-        description={t("remove_from_library_description", { game: game.title })}
+        descriptionText={t("remove_from_library_description", {
+          game: game.title,
+        })}
         onClose={() => {
           setShowConfirmRemoveLibrary(false);
           onClose();
         }}
         onConfirm={async () => {
+          setShowConfirmRemoveLibrary(false);
+          onClose();
           await handleRemoveFromLibrary();
         }}
-        confirmLabel={t("remove")}
-        cancelLabel={t("cancel")}
-        confirmTheme="danger"
+        cancelButtonLabel={t("cancel")}
+        confirmButtonLabel={t("remove")}
       />
 
-      <ConfirmModal
+      <ConfirmationModal
         visible={showConfirmRemoveFiles}
         title={t("remove_files")}
-        description={t("delete_modal_description", { ns: "downloads" })}
+        descriptionText={t("delete_modal_description", { ns: "downloads" })}
         onClose={() => {
           setShowConfirmRemoveFiles(false);
           onClose();
         }}
         onConfirm={async () => {
+          setShowConfirmRemoveFiles(false);
+          onClose();
           await handleRemoveFiles();
         }}
-        confirmLabel={t("remove")}
-        cancelLabel={t("cancel")}
-        confirmTheme="danger"
+        cancelButtonLabel={t("cancel")}
+        confirmButtonLabel={t("remove")}
       />
     </>
   );
