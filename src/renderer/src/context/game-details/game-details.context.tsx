@@ -142,29 +142,23 @@ export function GameDetailsContextProvider({
         }
       });
 
-    const statsPromise = window.electron
-      .getGameStats(objectId, shop)
-      .then((result) => {
-        if (abortController.signal.aborted) return null;
-        setStats(result);
-        return result;
-      });
+    window.electron.getGameStats(objectId, shop).then((result) => {
+      if (abortController.signal.aborted) return;
+      setStats(result);
+    });
 
-    Promise.all([shopDetailsPromise, statsPromise])
-      .then(([_, stats]) => {
-        if (stats) {
-          const assets = stats.assets;
-          if (assets) {
-            window.electron.saveGameShopAssets(objectId, shop, assets);
+    const assetsPromise = window.electron.getGameAssets(objectId, shop);
 
-            setShopDetails((prev) => {
-              if (!prev) return null;
-              return {
-                ...prev,
-                assets,
-              };
-            });
-          }
+    Promise.all([shopDetailsPromise, assetsPromise])
+      .then(([_, assets]) => {
+        if (assets) {
+          setShopDetails((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              assets,
+            };
+          });
         }
       })
       .finally(() => {
@@ -207,8 +201,8 @@ export function GameDetailsContextProvider({
       setShowRepacksModal(true);
       try {
         window.history.replaceState({}, document.title, location.pathname);
-      } catch (_e) {
-        void _e;
+      } catch (e) {
+        console.error(e);
       }
     }
   }, [location]);
