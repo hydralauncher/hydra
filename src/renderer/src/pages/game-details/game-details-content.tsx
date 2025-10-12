@@ -1,4 +1,11 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   PencilIcon,
   TrashIcon,
@@ -164,6 +171,8 @@ export function GameDetailsContent() {
   const [hasUserReviewed, setHasUserReviewed] = useState(false);
   const [reviewCheckLoading, setReviewCheckLoading] = useState(false);
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   // Check if the current game is in the user's library
   const isGameInLibrary = useMemo(() => {
     if (!library || !shop || !objectId) return false;
@@ -225,6 +234,14 @@ export function GameDetailsContent() {
 
   useEffect(() => {
     setBackdropOpacity(1);
+
+    // Cleanup: abort any pending review requests when objectId changes
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
   }, [objectId]);
 
   const handleCloudSaveButtonClick = () => {
@@ -256,7 +273,7 @@ export function GameDetailsContent() {
 
   const isCustomGame = game?.shop === "custom";
 
-  const checkUserReview = async () => {
+  const checkUserReview = useCallback(async () => {
     if (!objectId || !userDetails) return;
 
     setReviewCheckLoading(true);
@@ -265,51 +282,77 @@ export function GameDetailsContent() {
       const hasReviewed = (response as any)?.hasReviewed || false;
       setHasUserReviewed(hasReviewed);
 
+      const twoHoursInMilliseconds = 2 * 60 * 60 * 1000;
+      const hasEnoughPlaytime =
+        game &&
+        game.playTimeInMilliseconds >= twoHoursInMilliseconds &&
+        !game.hasManuallyUpdatedPlaytime;
+
       if (
         !hasReviewed &&
+        hasEnoughPlaytime &&
         !sessionStorage.getItem(`reviewPromptDismissed_${objectId}`)
       ) {
         setShowReviewPrompt(true);
+        setShowReviewForm(true);
       }
     } catch (error) {
       console.error("Failed to check user review:", error);
     } finally {
       setReviewCheckLoading(false);
     }
-  };
+  }, [objectId, userDetails, shop, game]);
 
-  const loadReviews = async (reset = false) => {
-    if (!objectId) return;
+  const loadReviews = useCallback(
+    async (reset = false) => {
+      if (!objectId) return;
 
-    setReviewsLoading(true);
-    try {
-      const skip = reset ? 0 : reviewsPage * 20;
-      const response = await window.electron.getGameReviews(
-        shop,
-        objectId,
-        20,
-        skip,
-        reviewsSortBy
-      );
-
-      const reviewsData = (response as any)?.reviews || [];
-      const reviewCount = (response as any)?.totalCount || 0;
-
-      if (reset) {
-        setReviews(reviewsData);
-        setReviewsPage(0);
-        setTotalReviewCount(reviewCount);
-      } else {
-        setReviews((prev) => [...prev, ...reviewsData]);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
 
-      setHasMoreReviews(reviewsData.length === 20);
-    } catch (error) {
-      console.error("Failed to load reviews:", error);
-    } finally {
-      setReviewsLoading(false);
-    }
-  };
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      setReviewsLoading(true);
+      try {
+        const skip = reset ? 0 : reviewsPage * 20;
+        const response = await window.electron.getGameReviews(
+          shop,
+          objectId,
+          20,
+          skip,
+          reviewsSortBy
+        );
+
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        const reviewsData = (response as any)?.reviews || [];
+        const reviewCount = (response as any)?.totalCount || 0;
+
+        if (reset) {
+          setReviews(reviewsData);
+          setReviewsPage(0);
+          setTotalReviewCount(reviewCount);
+        } else {
+          setReviews((prev) => [...prev, ...reviewsData]);
+        }
+
+        setHasMoreReviews(reviewsData.length === 20);
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          console.error("Failed to load reviews:", error);
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setReviewsLoading(false);
+        }
+      }
+    },
+    [objectId, shop, reviewsPage, reviewsSortBy]
+  );
 
   const handleVoteReview = async (
     reviewId: string,
@@ -396,7 +439,6 @@ export function GameDetailsContent() {
 
   const handleReviewPromptYes = () => {
     setShowReviewPrompt(false);
-    setShowReviewForm(true);
 
     setTimeout(() => {
       const reviewFormElement = document.querySelector(
@@ -413,6 +455,7 @@ export function GameDetailsContent() {
 
   const handleReviewPromptLater = () => {
     setShowReviewPrompt(false);
+    setShowReviewForm(false);
     if (objectId) {
       sessionStorage.setItem(`reviewPromptDismissed_${objectId}`, "true");
     }
@@ -451,13 +494,13 @@ export function GameDetailsContent() {
       loadReviews(true);
       checkUserReview();
     }
-  }, [game, shop, objectId, reviewsSortBy, userDetails]);
+  }, [game, shop, objectId, loadReviews, checkUserReview]);
 
   useEffect(() => {
     if (reviewsPage > 0) {
       loadReviews(false);
     }
-  }, [reviewsPage]);
+  }, [reviewsPage, loadReviews]);
 
   // Initialize previousVotesRef for new reviews
   useEffect(() => {
@@ -773,216 +816,234 @@ export function GameDetailsContent() {
                     </div>
                   )}
 
-                  {reviews.map((review) => (
-                    <div key={review.id} className="game-details__review-item">
-                      {review.isBlocked &&
-                      !visibleBlockedReviews.has(review.id) ? (
-                        <div className="game-details__blocked-review-simple">
-                          Review from blocked user —{" "}
-                          <button
-                            className="game-details__blocked-review-show-link"
-                            onClick={() => toggleBlockedReview(review.id)}
-                          >
-                            Show
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="game-details__review-header">
-                            <div className="game-details__review-user">
-                              {review.user?.profileImageUrl && (
-                                <button
-                                  className="game-details__review-avatar-button"
-                                  onClick={() =>
-                                    review.user?.id &&
-                                    navigate(`/profile/${review.user.id}`)
-                                  }
-                                  title={review.user.displayName || "User"}
-                                >
-                                  <img
-                                    src={review.user.profileImageUrl}
-                                    alt={review.user.displayName || "User"}
-                                    className="game-details__review-avatar"
-                                  />
-                                </button>
-                              )}
-                              <div className="game-details__review-user-info">
-                                <button
-                                  className="game-details__review-display-name game-details__review-display-name--clickable"
-                                  onClick={() =>
-                                    review.user?.id &&
-                                    navigate(`/profile/${review.user.id}`)
-                                  }
-                                >
-                                  {review.user?.displayName || "Anonymous"}
-                                </button>
-                                <div className="game-details__review-date">
-                                  <ClockIcon size={12} />
-                                  {formatDistance(
-                                    new Date(review.createdAt),
-                                    new Date(),
-                                    { addSuffix: true }
-                                  )}
+                  <div
+                    style={{
+                      opacity: reviewsLoading && reviews.length > 0 ? 0.5 : 1,
+                      transition: "opacity 0.2s ease",
+                    }}
+                  >
+                    {reviews.map((review) => (
+                      <div
+                        key={review.id}
+                        className="game-details__review-item"
+                      >
+                        {review.isBlocked &&
+                        !visibleBlockedReviews.has(review.id) ? (
+                          <div className="game-details__blocked-review-simple">
+                            Review from blocked user —{" "}
+                            <button
+                              className="game-details__blocked-review-show-link"
+                              onClick={() => toggleBlockedReview(review.id)}
+                            >
+                              Show
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="game-details__review-header">
+                              <div className="game-details__review-user">
+                                {review.user?.profileImageUrl && (
+                                  <button
+                                    className="game-details__review-avatar-button"
+                                    onClick={() =>
+                                      review.user?.id &&
+                                      navigate(`/profile/${review.user.id}`)
+                                    }
+                                    title={review.user.displayName || "User"}
+                                  >
+                                    <img
+                                      src={review.user.profileImageUrl}
+                                      alt={review.user.displayName || "User"}
+                                      className="game-details__review-avatar"
+                                    />
+                                  </button>
+                                )}
+                                <div className="game-details__review-user-info">
+                                  <button
+                                    className="game-details__review-display-name game-details__review-display-name--clickable"
+                                    onClick={() =>
+                                      review.user?.id &&
+                                      navigate(`/profile/${review.user.id}`)
+                                    }
+                                  >
+                                    {review.user?.displayName || "Anonymous"}
+                                  </button>
+                                  <div className="game-details__review-date">
+                                    <ClockIcon size={12} />
+                                    {formatDistance(
+                                      new Date(review.createdAt),
+                                      new Date(),
+                                      { addSuffix: true }
+                                    )}
+                                  </div>
                                 </div>
+                              </div>
+                              <div
+                                className="game-details__review-score-stars"
+                                title={getRatingText(review.score, t)}
+                              >
+                                {[1, 2, 3, 4, 5].map((starValue) => (
+                                  <Star
+                                    key={starValue}
+                                    size={20}
+                                    fill={
+                                      starValue <= review.score
+                                        ? "currentColor"
+                                        : "none"
+                                    }
+                                    className={`game-details__review-star ${
+                                      starValue <= review.score
+                                        ? "game-details__review-star--filled"
+                                        : "game-details__review-star--empty"
+                                    } ${
+                                      starValue <= review.score
+                                        ? getScoreColorClass(review.score)
+                                        : ""
+                                    }`}
+                                  />
+                                ))}
                               </div>
                             </div>
                             <div
-                              className="game-details__review-score-stars"
-                              title={getRatingText(review.score, t)}
-                            >
-                              {[1, 2, 3, 4, 5].map((starValue) => (
-                                <Star
-                                  key={starValue}
-                                  size={20}
-                                  fill={
-                                    starValue <= review.score
-                                      ? "currentColor"
-                                      : "none"
+                              className="game-details__review-content"
+                              dangerouslySetInnerHTML={{
+                                __html: sanitizeHtml(review.reviewHtml),
+                              }}
+                            />
+                            <div className="game-details__review-actions">
+                              <div className="game-details__review-votes">
+                                <motion.button
+                                  className={`game-details__vote-button game-details__vote-button--upvote ${review.hasUpvoted ? "game-details__vote-button--active" : ""}`}
+                                  onClick={() =>
+                                    handleVoteReview(review.id, "upvote")
                                   }
-                                  className={`game-details__review-star ${
-                                    starValue <= review.score
-                                      ? "game-details__review-star--filled"
-                                      : "game-details__review-star--empty"
-                                  } ${
-                                    starValue <= review.score
-                                      ? getScoreColorClass(review.score)
-                                      : ""
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          <div
-                            className="game-details__review-content"
-                            dangerouslySetInnerHTML={{
-                              __html: sanitizeHtml(review.reviewHtml),
-                            }}
-                          />
-                          <div className="game-details__review-actions">
-                            <div className="game-details__review-votes">
-                              <motion.button
-                                className={`game-details__vote-button game-details__vote-button--upvote ${review.hasUpvoted ? "game-details__vote-button--active" : ""}`}
-                                onClick={() =>
-                                  handleVoteReview(review.id, "upvote")
-                                }
-                                animate={
-                                  review.hasUpvoted
-                                    ? {
-                                        scale: [1, 1.2, 1],
-                                        transition: { duration: 0.3 },
-                                      }
-                                    : {}
-                                }
-                              >
-                                <ThumbsUp size={16} />
-                                <AnimatePresence mode="wait">
-                                  <motion.span
-                                    key={review.upvotes || 0}
-                                    custom={
-                                      (review.upvotes || 0) >
-                                      (previousVotesRef.current.get(review.id)
-                                        ?.upvotes || 0)
-                                    }
-                                    variants={{
-                                      enter: (isIncreasing: boolean) => ({
-                                        y: isIncreasing ? 10 : -10,
-                                        opacity: 0,
-                                      }),
-                                      center: { y: 0, opacity: 1 },
-                                      exit: (isIncreasing: boolean) => ({
-                                        y: isIncreasing ? -10 : 10,
-                                        opacity: 0,
-                                      }),
-                                    }}
-                                    initial="enter"
-                                    animate="center"
-                                    exit="exit"
-                                    transition={{ duration: 0.2 }}
-                                    onAnimationComplete={() => {
-                                      previousVotesRef.current.set(review.id, {
-                                        upvotes: review.upvotes || 0,
-                                        downvotes: review.downvotes || 0,
-                                      });
-                                    }}
-                                  >
-                                    {formatNumber(review.upvotes || 0)}
-                                  </motion.span>
-                                </AnimatePresence>
-                              </motion.button>
-                              <motion.button
-                                className={`game-details__vote-button game-details__vote-button--downvote ${review.hasDownvoted ? "game-details__vote-button--active" : ""}`}
-                                onClick={() =>
-                                  handleVoteReview(review.id, "downvote")
-                                }
-                                animate={
-                                  review.hasDownvoted
-                                    ? {
-                                        scale: [1, 1.2, 1],
-                                        transition: { duration: 0.3 },
-                                      }
-                                    : {}
-                                }
-                              >
-                                <ThumbsDown size={16} />
-                                <AnimatePresence mode="wait">
-                                  <motion.span
-                                    key={review.downvotes || 0}
-                                    custom={
-                                      (review.downvotes || 0) >
-                                      (previousVotesRef.current.get(review.id)
-                                        ?.downvotes || 0)
-                                    }
-                                    variants={{
-                                      enter: (isIncreasing: boolean) => ({
-                                        y: isIncreasing ? 10 : -10,
-                                        opacity: 0,
-                                      }),
-                                      center: { y: 0, opacity: 1 },
-                                      exit: (isIncreasing: boolean) => ({
-                                        y: isIncreasing ? -10 : 10,
-                                        opacity: 0,
-                                      }),
-                                    }}
-                                    initial="enter"
-                                    animate="center"
-                                    exit="exit"
-                                    transition={{ duration: 0.2 }}
-                                    onAnimationComplete={() => {
-                                      previousVotesRef.current.set(review.id, {
-                                        upvotes: review.upvotes || 0,
-                                        downvotes: review.downvotes || 0,
-                                      });
-                                    }}
-                                  >
-                                    {formatNumber(review.downvotes || 0)}
-                                  </motion.span>
-                                </AnimatePresence>
-                              </motion.button>
-                            </div>
-                            {userDetails?.id === review.user?.id && (
-                              <button
-                                className="game-details__delete-review-button"
-                                onClick={() => handleDeleteReview(review.id)}
-                                title={t("delete_review")}
-                              >
-                                <TrashIcon size={16} />
-                                <span>{t("remove_review")}</span>
-                              </button>
-                            )}
-                            {review.isBlocked &&
-                              visibleBlockedReviews.has(review.id) && (
-                                <button
-                                  className="game-details__blocked-review-hide-link"
-                                  onClick={() => toggleBlockedReview(review.id)}
+                                  animate={
+                                    review.hasUpvoted
+                                      ? {
+                                          scale: [1, 1.2, 1],
+                                          transition: { duration: 0.3 },
+                                        }
+                                      : {}
+                                  }
                                 >
-                                  Hide
+                                  <ThumbsUp size={16} />
+                                  <AnimatePresence mode="wait">
+                                    <motion.span
+                                      key={review.upvotes || 0}
+                                      custom={
+                                        (review.upvotes || 0) >
+                                        (previousVotesRef.current.get(review.id)
+                                          ?.upvotes || 0)
+                                      }
+                                      variants={{
+                                        enter: (isIncreasing: boolean) => ({
+                                          y: isIncreasing ? 10 : -10,
+                                          opacity: 0,
+                                        }),
+                                        center: { y: 0, opacity: 1 },
+                                        exit: (isIncreasing: boolean) => ({
+                                          y: isIncreasing ? -10 : 10,
+                                          opacity: 0,
+                                        }),
+                                      }}
+                                      initial="enter"
+                                      animate="center"
+                                      exit="exit"
+                                      transition={{ duration: 0.2 }}
+                                      onAnimationComplete={() => {
+                                        previousVotesRef.current.set(
+                                          review.id,
+                                          {
+                                            upvotes: review.upvotes || 0,
+                                            downvotes: review.downvotes || 0,
+                                          }
+                                        );
+                                      }}
+                                    >
+                                      {formatNumber(review.upvotes || 0)}
+                                    </motion.span>
+                                  </AnimatePresence>
+                                </motion.button>
+                                <motion.button
+                                  className={`game-details__vote-button game-details__vote-button--downvote ${review.hasDownvoted ? "game-details__vote-button--active" : ""}`}
+                                  onClick={() =>
+                                    handleVoteReview(review.id, "downvote")
+                                  }
+                                  animate={
+                                    review.hasDownvoted
+                                      ? {
+                                          scale: [1, 1.2, 1],
+                                          transition: { duration: 0.3 },
+                                        }
+                                      : {}
+                                  }
+                                >
+                                  <ThumbsDown size={16} />
+                                  <AnimatePresence mode="wait">
+                                    <motion.span
+                                      key={review.downvotes || 0}
+                                      custom={
+                                        (review.downvotes || 0) >
+                                        (previousVotesRef.current.get(review.id)
+                                          ?.downvotes || 0)
+                                      }
+                                      variants={{
+                                        enter: (isIncreasing: boolean) => ({
+                                          y: isIncreasing ? 10 : -10,
+                                          opacity: 0,
+                                        }),
+                                        center: { y: 0, opacity: 1 },
+                                        exit: (isIncreasing: boolean) => ({
+                                          y: isIncreasing ? -10 : 10,
+                                          opacity: 0,
+                                        }),
+                                      }}
+                                      initial="enter"
+                                      animate="center"
+                                      exit="exit"
+                                      transition={{ duration: 0.2 }}
+                                      onAnimationComplete={() => {
+                                        previousVotesRef.current.set(
+                                          review.id,
+                                          {
+                                            upvotes: review.upvotes || 0,
+                                            downvotes: review.downvotes || 0,
+                                          }
+                                        );
+                                      }}
+                                    >
+                                      {formatNumber(review.downvotes || 0)}
+                                    </motion.span>
+                                  </AnimatePresence>
+                                </motion.button>
+                              </div>
+                              {userDetails?.id === review.user?.id && (
+                                <button
+                                  className="game-details__delete-review-button"
+                                  onClick={() => handleDeleteReview(review.id)}
+                                  title={t("delete_review")}
+                                >
+                                  <TrashIcon size={16} />
+                                  <span>{t("remove_review")}</span>
                                 </button>
                               )}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
+                              {review.isBlocked &&
+                                visibleBlockedReviews.has(review.id) && (
+                                  <button
+                                    className="game-details__blocked-review-hide-link"
+                                    onClick={() =>
+                                      toggleBlockedReview(review.id)
+                                    }
+                                  >
+                                    Hide
+                                  </button>
+                                )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
 
                   {hasMoreReviews && !reviewsLoading && (
                     <button
