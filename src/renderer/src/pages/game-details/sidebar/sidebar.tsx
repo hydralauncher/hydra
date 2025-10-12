@@ -233,9 +233,18 @@ export function Sidebar() {
                 {t("rating_count")}
               </p>
               <StarRating
-                rating={stats?.averageScore === 0 ? null : stats?.averageScore ?? null}
+                rating={
+                  stats?.averageScore === 0
+                    ? null
+                    : (stats?.averageScore ?? null)
+                }
                 size={16}
-                showCalculating={!!(stats && (stats.averageScore === null || stats.averageScore === 0))}
+                showCalculating={
+                  !!(
+                    stats &&
+                    (stats.averageScore === null || stats.averageScore === 0)
+                  )
+                }
                 calculatingText={t("calculating", { ns: "game_card" })}
                 hideIcon={true}
               />

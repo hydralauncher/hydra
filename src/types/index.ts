@@ -45,7 +45,7 @@ export interface ShopAssets {
   libraryImageUrl: string;
   logoImageUrl: string;
   logoPosition: string | null;
-  coverImageUrl: string;
+  coverImageUrl: string | null;
 }
 
 export type ShopDetails = SteamAppDetails & {
@@ -235,8 +235,8 @@ export interface DownloadSourceValidationResult {
 export interface GameStats {
   downloadCount: number;
   playerCount: number;
-  assets: ShopAssets | null;
   averageScore: number | null;
+  reviewCount: number;
 }
 
 export interface GameReview {
