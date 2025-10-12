@@ -76,7 +76,11 @@ export const getSteamAppDetails = async (
       return null;
     })
     .catch((err) => {
-      logger.error(err, { method: "getSteamAppDetails" });
+      logger.error("Error on getSteamAppDetails", {
+        message: err?.message,
+        code: err?.code,
+        name: err?.name,
+      });
       return null;
     });
 };
