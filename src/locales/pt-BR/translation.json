@@ -78,6 +78,7 @@
     "edit_game_modal_drop_to_replace_logo": "Solte para substituir o logo",
     "edit_game_modal_drop_to_replace_hero": "Solte para substituir o hero",
     "install_decky_plugin": "Instalar Plugin Decky",
+    "update_decky_plugin": "Atualizar Plugin Decky",
     "decky_plugin_installed_version": "Plugin Decky (v{{version}})",
     "install_decky_plugin_title": "Instalar Plugin Hydra Decky",
     "install_decky_plugin_message": "Isso irá baixar e instalar o plugin Hydra para Decky Loader. Pode ser necessário permissões elevadas. Continuar?",

@@ -51,7 +51,8 @@ export function Sidebar() {
   const [deckyPluginInfo, setDeckyPluginInfo] = useState<{
     installed: boolean;
     version: string | null;
-  }>({ installed: false, version: null });
+    outdated: boolean;
+  }>({ installed: false, version: null, outdated: false });
   const [homebrewFolderExists, setHomebrewFolderExists] = useState(false);
   const [showDeckyConfirmModal, setShowDeckyConfirmModal] = useState(false);
   const navigate = useNavigate();
@@ -102,6 +103,7 @@ export function Sidebar() {
       setDeckyPluginInfo({
         installed: info.installed,
         version: info.version,
+        outdated: info.outdated,
       });
       setHomebrewFolderExists(folderExists);
     } catch (error) {
@@ -110,6 +112,9 @@ export function Sidebar() {
   };
 
   const handleInstallHydraDeckyPlugin = () => {
+    if (deckyPluginInfo.installed && !deckyPluginInfo.outdated) {
+      return;
+    }
     setShowDeckyConfirmModal(true);
   };
 
@@ -318,11 +323,13 @@ export function Sidebar() {
                       style={{ width: 16, height: 16 }}
                     />
                     <span>
-                      {deckyPluginInfo.installed
+                      {deckyPluginInfo.installed && !deckyPluginInfo.outdated
                         ? t("decky_plugin_installed_version", {
                             version: deckyPluginInfo.version,
                           })
-                        : t("install_decky_plugin")}
+                        : deckyPluginInfo.installed && deckyPluginInfo.outdated
+                          ? t("update_decky_plugin")
+                          : t("install_decky_plugin")}
                     </span>
                   </button>
                 </li>
@@ -433,12 +440,12 @@ export function Sidebar() {
       <ConfirmationModal
         visible={showDeckyConfirmModal}
         title={
-          deckyPluginInfo.installed
+          deckyPluginInfo.installed && deckyPluginInfo.outdated
             ? t("update_decky_plugin_title")
             : t("install_decky_plugin_title")
         }
         descriptionText={
-          deckyPluginInfo.installed
+          deckyPluginInfo.installed && deckyPluginInfo.outdated
             ? t("update_decky_plugin_message")
             : t("install_decky_plugin_message")
         }

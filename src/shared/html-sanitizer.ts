@@ -6,8 +6,6 @@ function removeZalgoText(text: string): string {
   return text.replaceAll(zalgoRegex, "");
 }
 
-
-
 export function sanitizeHtml(html: string): string {
   if (!html || typeof html !== "string") {
     return "";

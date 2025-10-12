@@ -11,11 +11,35 @@ import {
 import { logger } from "./logger";
 import { SevenZip } from "./7zip";
 import { SystemPath } from "./system-path";
+import { HydraApi } from "./hydra-api";
+
+interface DeckyReleaseInfo {
+  version: string;
+  downloadUrl: string;
+}
 
 export class DeckyPlugin {
-  private static readonly EXPECTED_VERSION = "0.0.3";
-  private static readonly DOWNLOAD_URL =
-    "https://github.com/hydralauncher/decky-hydra-launcher/releases/download/0.0.3/Hydra.zip";
+  private static releaseInfo: DeckyReleaseInfo | null = null;
+
+  private static async getDeckyReleaseInfo(): Promise<DeckyReleaseInfo> {
+    if (this.releaseInfo) {
+      return this.releaseInfo;
+    }
+
+    try {
+      const response = await HydraApi.get<DeckyReleaseInfo>(
+        "/decky/release",
+        {},
+        { needsAuth: false }
+      );
+
+      this.releaseInfo = response;
+      return response;
+    } catch (error) {
+      logger.error("Failed to fetch Decky release info:", error);
+      throw error;
+    }
+  }
 
   private static getPackageJsonPath(): string {
     return path.join(HYDRA_DECKY_PLUGIN_LOCATION, "package.json");
@@ -24,10 +48,11 @@ export class DeckyPlugin {
   private static async downloadPlugin(): Promise<string> {
     logger.log("Downloading Hydra Decky plugin...");
 
+    const releaseInfo = await this.getDeckyReleaseInfo();
     const tempDir = SystemPath.getPath("temp");
     const zipPath = path.join(tempDir, "Hydra.zip");
 
-    const response = await axios.get(this.DOWNLOAD_URL, {
+    const response = await axios.get(releaseInfo.downloadUrl, {
       responseType: "arraybuffer",
     });
 
@@ -209,14 +234,15 @@ export class DeckyPlugin {
         return;
       }
 
+      const releaseInfo = await this.getDeckyReleaseInfo();
       const packageJsonContent = fs.readFileSync(packageJsonPath, "utf-8");
       const packageJson = JSON.parse(packageJsonContent);
       const currentVersion = packageJson.version;
-      const isOutdated = currentVersion !== this.EXPECTED_VERSION;
+      const isOutdated = currentVersion !== releaseInfo.version;
 
       if (isOutdated) {
         logger.log(
-          `Hydra Decky plugin is outdated. Current: ${currentVersion}, Expected: ${this.EXPECTED_VERSION}. Updating...`
+          `Hydra Decky plugin is outdated. Current: ${currentVersion}, Expected: ${releaseInfo.version}. Updating...`
         );
 
         await this.updatePlugin();
@@ -235,78 +261,139 @@ export class DeckyPlugin {
     currentVersion: string | null;
     expectedVersion: string;
   }> {
-    if (!fs.existsSync(HYDRA_DECKY_PLUGIN_LOCATION)) {
-      logger.log("Hydra Decky plugin folder not found, installing...");
+    try {
+      const releaseInfo = await this.getDeckyReleaseInfo();
+
+      if (!fs.existsSync(HYDRA_DECKY_PLUGIN_LOCATION)) {
+        logger.log("Hydra Decky plugin folder not found, installing...");
+
+        try {
+          await this.updatePlugin();
+
+          // Read the actual installed version from package.json
+          const packageJsonPath = this.getPackageJsonPath();
+          if (fs.existsSync(packageJsonPath)) {
+            const packageJsonContent = fs.readFileSync(
+              packageJsonPath,
+              "utf-8"
+            );
+            const packageJson = JSON.parse(packageJsonContent);
+            return {
+              exists: true,
+              outdated: false,
+              currentVersion: packageJson.version,
+              expectedVersion: releaseInfo.version,
+            };
+          }
+
+          return {
+            exists: true,
+            outdated: false,
+            currentVersion: releaseInfo.version,
+            expectedVersion: releaseInfo.version,
+          };
+        } catch (error) {
+          logger.error("Failed to install plugin:", error);
+          return {
+            exists: false,
+            outdated: true,
+            currentVersion: null,
+            expectedVersion: releaseInfo.version,
+          };
+        }
+      }
+
+      const packageJsonPath = this.getPackageJsonPath();
 
       try {
-        await this.updatePlugin();
+        if (!fs.existsSync(packageJsonPath)) {
+          logger.log(
+            "Hydra Decky plugin package.json not found, installing..."
+          );
+
+          await this.updatePlugin();
+
+          // Read the actual installed version from package.json
+          if (fs.existsSync(packageJsonPath)) {
+            const packageJsonContent = fs.readFileSync(
+              packageJsonPath,
+              "utf-8"
+            );
+            const packageJson = JSON.parse(packageJsonContent);
+            return {
+              exists: true,
+              outdated: false,
+              currentVersion: packageJson.version,
+              expectedVersion: releaseInfo.version,
+            };
+          }
+
+          return {
+            exists: true,
+            outdated: false,
+            currentVersion: releaseInfo.version,
+            expectedVersion: releaseInfo.version,
+          };
+        }
+
+        const packageJsonContent = fs.readFileSync(packageJsonPath, "utf-8");
+        const packageJson = JSON.parse(packageJsonContent);
+        const currentVersion = packageJson.version;
+        const isOutdated = currentVersion !== releaseInfo.version;
+
+        if (isOutdated) {
+          logger.log(
+            `Hydra Decky plugin is outdated. Current: ${currentVersion}, Expected: ${releaseInfo.version}`
+          );
+
+          await this.updatePlugin();
+
+          if (fs.existsSync(packageJsonPath)) {
+            const updatedPackageJsonContent = fs.readFileSync(
+              packageJsonPath,
+              "utf-8"
+            );
+            const updatedPackageJson = JSON.parse(updatedPackageJsonContent);
+            return {
+              exists: true,
+              outdated: false,
+              currentVersion: updatedPackageJson.version,
+              expectedVersion: releaseInfo.version,
+            };
+          }
+
+          return {
+            exists: true,
+            outdated: false,
+            currentVersion: releaseInfo.version,
+            expectedVersion: releaseInfo.version,
+          };
+        } else {
+          logger.log(`Hydra Decky plugin is up to date (${currentVersion})`);
+        }
+
         return {
           exists: true,
-          outdated: false,
-          currentVersion: this.EXPECTED_VERSION,
-          expectedVersion: this.EXPECTED_VERSION,
+          outdated: isOutdated,
+          currentVersion,
+          expectedVersion: releaseInfo.version,
         };
       } catch (error) {
-        logger.error("Failed to install plugin:", error);
+        logger.error(`Error checking Hydra Decky plugin version: ${error}`);
         return {
           exists: false,
           outdated: true,
           currentVersion: null,
-          expectedVersion: this.EXPECTED_VERSION,
+          expectedVersion: releaseInfo.version,
         };
       }
-    }
-
-    const packageJsonPath = this.getPackageJsonPath();
-
-    try {
-      if (!fs.existsSync(packageJsonPath)) {
-        logger.log("Hydra Decky plugin package.json not found, installing...");
-
-        await this.updatePlugin();
-        return {
-          exists: true,
-          outdated: false,
-          currentVersion: this.EXPECTED_VERSION,
-          expectedVersion: this.EXPECTED_VERSION,
-        };
-      }
-
-      const packageJsonContent = fs.readFileSync(packageJsonPath, "utf-8");
-      const packageJson = JSON.parse(packageJsonContent);
-      const currentVersion = packageJson.version;
-      const isOutdated = currentVersion !== this.EXPECTED_VERSION;
-
-      if (isOutdated) {
-        logger.log(
-          `Hydra Decky plugin is outdated. Current: ${currentVersion}, Expected: ${this.EXPECTED_VERSION}`
-        );
-
-        await this.updatePlugin();
-
-        return {
-          exists: true,
-          outdated: false,
-          currentVersion: this.EXPECTED_VERSION,
-          expectedVersion: this.EXPECTED_VERSION,
-        };
-      } else {
-        logger.log(`Hydra Decky plugin is up to date (${currentVersion})`);
-      }
-
-      return {
-        exists: true,
-        outdated: isOutdated,
-        currentVersion,
-        expectedVersion: this.EXPECTED_VERSION,
-      };
     } catch (error) {
-      logger.error(`Error checking Hydra Decky plugin version: ${error}`);
+      logger.error(`Error fetching release info: ${error}`);
       return {
         exists: false,
         outdated: true,
         currentVersion: null,
-        expectedVersion: this.EXPECTED_VERSION,
+        expectedVersion: "unknown",
       };
     }
   }

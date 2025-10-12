@@ -350,6 +350,8 @@ declare global {
       installed: boolean;
       version: string | null;
       path: string;
+      outdated: boolean;
+      expectedVersion: string | null;
     }>;
     checkHomebrewFolderExists: () => Promise<boolean>;
     onCommonRedistProgress: (
