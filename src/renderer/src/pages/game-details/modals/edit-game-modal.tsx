@@ -67,6 +67,12 @@ export function EditGameModal({
   };
 
   const setCustomGameAssets = useCallback((game: LibraryGame | Game) => {
+    // Check if assets were removed (URLs are null but original paths exist)
+    const iconRemoved = !game.iconUrl && (game as any).originalIconPath;
+    const logoRemoved = !game.logoImageUrl && (game as any).originalLogoPath;
+    const heroRemoved =
+      !game.libraryHeroImageUrl && (game as any).originalHeroPath;
+
     setAssetPaths({
       icon: extractLocalPath(game.iconUrl),
       logo: extractLocalPath(game.logoImageUrl),
@@ -85,10 +91,25 @@ export function EditGameModal({
         (game as any).originalHeroPath ||
         extractLocalPath(game.libraryHeroImageUrl),
     });
+
+    // Set removed assets state based on whether assets were explicitly removed
+    setRemovedAssets({
+      icon: iconRemoved,
+      logo: logoRemoved,
+      hero: heroRemoved,
+    });
   }, []);
 
   const setNonCustomGameAssets = useCallback(
     (game: LibraryGame) => {
+      // Check if assets were removed (custom URLs are null but original paths exist)
+      const iconRemoved =
+        !game.customIconUrl && (game as any).customOriginalIconPath;
+      const logoRemoved =
+        !game.customLogoImageUrl && (game as any).customOriginalLogoPath;
+      const heroRemoved =
+        !game.customHeroImageUrl && (game as any).customOriginalHeroPath;
+
       setAssetPaths({
         icon: extractLocalPath(game.customIconUrl),
         logo: extractLocalPath(game.customLogoImageUrl),
@@ -109,6 +130,13 @@ export function EditGameModal({
         hero:
           (game as any).customOriginalHeroPath ||
           extractLocalPath(game.customHeroImageUrl),
+      });
+
+      // Set removed assets state based on whether assets were explicitly removed
+      setRemovedAssets({
+        icon: iconRemoved,
+        logo: logoRemoved,
+        hero: heroRemoved,
       });
 
       setDefaultUrls({
@@ -148,8 +176,12 @@ export function EditGameModal({
   };
 
   const getAssetDisplayPath = (assetType: AssetType): string => {
-    // Use original path if available, otherwise fall back to display path
-    return originalAssetPaths[assetType] || assetDisplayPaths[assetType];
+    // If asset was removed, don't show any path
+    if (removedAssets[assetType]) {
+      return "";
+    }
+    // Use display path first, then fall back to original path
+    return assetDisplayPaths[assetType] || originalAssetPaths[assetType];
   };
 
   const setAssetPath = (assetType: AssetType, path: string): void => {
@@ -221,18 +253,11 @@ export function EditGameModal({
   };
 
   const handleRestoreDefault = (assetType: AssetType) => {
-    if (game && isCustomGame(game)) {
-      // For custom games, mark asset as removed and clear paths
-      setRemovedAssets((prev) => ({ ...prev, [assetType]: true }));
-      setAssetPath(assetType, "");
-      setAssetDisplayPath(assetType, "");
-      setOriginalAssetPaths((prev) => ({ ...prev, [assetType]: "" }));
-    } else {
-      // For non-custom games, clear custom assets (restore to shop defaults)
-      setAssetPath(assetType, "");
-      setAssetDisplayPath(assetType, "");
-      setOriginalAssetPaths((prev) => ({ ...prev, [assetType]: "" }));
-    }
+    // Mark asset as removed and clear paths (for both custom and non-custom games)
+    setRemovedAssets((prev) => ({ ...prev, [assetType]: true }));
+    setAssetPath(assetType, "");
+    setAssetDisplayPath(assetType, "");
+    // Don't clear originalAssetPaths - keep them for reference but don't use them for display
   };
 
   const getOriginalTitle = (): string => {
@@ -402,10 +427,28 @@ export function EditGameModal({
 
   // Helper function to prepare non-custom game assets
   const prepareNonCustomGameAssets = () => {
+    const hasIconPath = assetPaths.icon;
+    let customIconUrl: string | null = null;
+    if (!removedAssets.icon && hasIconPath) {
+      customIconUrl = `local:${assetPaths.icon}`;
+    }
+
+    const hasLogoPath = assetPaths.logo;
+    let customLogoImageUrl: string | null = null;
+    if (!removedAssets.logo && hasLogoPath) {
+      customLogoImageUrl = `local:${assetPaths.logo}`;
+    }
+
+    const hasHeroPath = assetPaths.hero;
+    let customHeroImageUrl: string | null = null;
+    if (!removedAssets.hero && hasHeroPath) {
+      customHeroImageUrl = `local:${assetPaths.hero}`;
+    }
+
     return {
-      customIconUrl: assetPaths.icon ? `local:${assetPaths.icon}` : null,
-      customLogoImageUrl: assetPaths.logo ? `local:${assetPaths.logo}` : null,
-      customHeroImageUrl: assetPaths.hero ? `local:${assetPaths.hero}` : null,
+      customIconUrl,
+      customLogoImageUrl,
+      customHeroImageUrl,
     };
   };
 
@@ -439,9 +482,15 @@ export function EditGameModal({
       customIconUrl,
       customLogoImageUrl,
       customHeroImageUrl,
-      customOriginalIconPath: originalAssetPaths.icon || undefined,
-      customOriginalLogoPath: originalAssetPaths.logo || undefined,
-      customOriginalHeroPath: originalAssetPaths.hero || undefined,
+      customOriginalIconPath: removedAssets.icon
+        ? undefined
+        : originalAssetPaths.icon || undefined,
+      customOriginalLogoPath: removedAssets.logo
+        ? undefined
+        : originalAssetPaths.logo || undefined,
+      customOriginalHeroPath: removedAssets.hero
+        ? undefined
+        : originalAssetPaths.hero || undefined,
     });
   };
 
@@ -482,6 +531,23 @@ export function EditGameModal({
         icon: false,
         logo: false,
         hero: false,
+      });
+
+      // Clear all asset paths to ensure clean state
+      setAssetPaths({
+        icon: "",
+        logo: "",
+        hero: "",
+      });
+      setAssetDisplayPaths({
+        icon: "",
+        logo: "",
+        hero: "",
+      });
+      setOriginalAssetPaths({
+        icon: "",
+        logo: "",
+        hero: "",
       });
 
       if (isCustomGame(game)) {
