@@ -574,8 +574,8 @@
   "game_card": {
     "available_one": "Elérhető",
     "available_other": "Elérhető",
-    "no_downloads": "Nincs elérhető letöltés"
-	"calculating": "Feldolgozás"							
+    "no_downloads": "Nincs elérhető letöltés",
+    "calculating": "Feldolgozás"							
   },
   "binary_not_found_modal": {
     "title": "A programok nincsenek telepítve",
