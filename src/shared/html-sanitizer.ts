@@ -1,4 +1,5 @@
 function removeZalgoText(text: string): string {
+  // eslint-disable-next-line no-misleading-character-class
   const zalgoRegex =
     /[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]/g;
 
