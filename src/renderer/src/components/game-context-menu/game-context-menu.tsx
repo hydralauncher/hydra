@@ -14,8 +14,12 @@ import {
 } from "@primer/octicons-react";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { LibraryGame } from "@types";
-import { ContextMenu, ContextMenuItemData, ContextMenuProps } from "..";
-import { ConfirmModal } from "@renderer/components/confirm-modal/confirm-modal";
+import {
+  ContextMenu,
+  ContextMenuItemData,
+  ContextMenuProps,
+  ConfirmationModal,
+} from "..";
 import { useGameActions } from "..";
 
 interface GameContextMenuProps extends Omit<ContextMenuProps, "items"> {
@@ -195,36 +199,40 @@ export function GameContextMenu({
         }
       />
 
-      <ConfirmModal
+      <ConfirmationModal
         visible={showConfirmRemoveLibrary}
         title={t("remove_from_library_title")}
-        description={t("remove_from_library_description", { game: game.title })}
+        descriptionText={t("remove_from_library_description", {
+          game: game.title,
+        })}
         onClose={() => {
           setShowConfirmRemoveLibrary(false);
           onClose();
         }}
         onConfirm={async () => {
+          setShowConfirmRemoveLibrary(false);
+          onClose();
           await handleRemoveFromLibrary();
         }}
-        confirmLabel={t("remove")}
-        cancelLabel={t("cancel")}
-        confirmTheme="danger"
+        cancelButtonLabel={t("cancel")}
+        confirmButtonLabel={t("remove")}
       />
 
-      <ConfirmModal
+      <ConfirmationModal
         visible={showConfirmRemoveFiles}
         title={t("remove_files")}
-        description={t("delete_modal_description", { ns: "downloads" })}
+        descriptionText={t("delete_modal_description", { ns: "downloads" })}
         onClose={() => {
           setShowConfirmRemoveFiles(false);
           onClose();
         }}
         onConfirm={async () => {
+          setShowConfirmRemoveFiles(false);
+          onClose();
           await handleRemoveFiles();
         }}
-        confirmLabel={t("remove")}
-        cancelLabel={t("cancel")}
-        confirmTheme="danger"
+        cancelButtonLabel={t("cancel")}
+        confirmButtonLabel={t("remove")}
       />
     </>
   );

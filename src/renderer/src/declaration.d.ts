@@ -339,6 +339,19 @@ declare global {
     getBadges: () => Promise<Badge[]>;
     canInstallCommonRedist: () => Promise<boolean>;
     installCommonRedist: () => Promise<void>;
+    installHydraDeckyPlugin: () => Promise<{
+      success: boolean;
+      path: string;
+      currentVersion: string | null;
+      expectedVersion: string;
+      error?: string;
+    }>;
+    getHydraDeckyPluginInfo: () => Promise<{
+      installed: boolean;
+      version: string | null;
+      path: string;
+    }>;
+    checkHomebrewFolderExists: () => Promise<boolean>;
     onCommonRedistProgress: (
       cb: (value: { log: string; complete: boolean }) => void
     ) => () => Electron.IpcRenderer;
