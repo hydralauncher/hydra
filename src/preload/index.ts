@@ -17,7 +17,6 @@ import type {
   Theme,
   FriendRequestSync,
   ShortcutLocation,
-  ShopAssets,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
 } from "@types";
@@ -67,8 +66,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("searchGames", payload, take, skip),
   getCatalogue: (category: CatalogueCategory) =>
     ipcRenderer.invoke("getCatalogue", category),
-  saveGameShopAssets: (objectId: string, shop: GameShop, assets: ShopAssets) =>
-    ipcRenderer.invoke("saveGameShopAssets", objectId, shop, assets),
   getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
     ipcRenderer.invoke("getGameShopDetails", objectId, shop, language),
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
@@ -76,6 +73,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getHowLongToBeat", objectId, shop),
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
+  getGameAssets: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("getGameAssets", objectId, shop),
   getTrendingGames: () => ipcRenderer.invoke("getTrendingGames"),
   createGameReview: (
     shop: GameShop,
