@@ -41,7 +41,7 @@ const installHydraDeckyPlugin = async (
       success: false,
       path: HYDRA_DECKY_PLUGIN_LOCATION,
       currentVersion: null,
-      expectedVersion: "0.0.3",
+      expectedVersion: "unknown",
       error: errorMessage,
     };
   }
