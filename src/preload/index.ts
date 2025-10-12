@@ -17,7 +17,6 @@ import type {
   Theme,
   FriendRequestSync,
   ShortcutLocation,
-  ShopAssets,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
 } from "@types";
@@ -67,8 +66,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("searchGames", payload, take, skip),
   getCatalogue: (category: CatalogueCategory) =>
     ipcRenderer.invoke("getCatalogue", category),
-  saveGameShopAssets: (objectId: string, shop: GameShop, assets: ShopAssets) =>
-    ipcRenderer.invoke("saveGameShopAssets", objectId, shop, assets),
   getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
     ipcRenderer.invoke("getGameShopDetails", objectId, shop, language),
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
@@ -76,7 +73,33 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getHowLongToBeat", objectId, shop),
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
+  getGameAssets: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("getGameAssets", objectId, shop),
   getTrendingGames: () => ipcRenderer.invoke("getTrendingGames"),
+  createGameReview: (
+    shop: GameShop,
+    objectId: string,
+    reviewHtml: string,
+    score: number
+  ) =>
+    ipcRenderer.invoke("createGameReview", shop, objectId, reviewHtml, score),
+  getGameReviews: (
+    shop: GameShop,
+    objectId: string,
+    take?: number,
+    skip?: number,
+    sortBy?: string
+  ) => ipcRenderer.invoke("getGameReviews", shop, objectId, take, skip, sortBy),
+  voteReview: (
+    shop: GameShop,
+    objectId: string,
+    reviewId: string,
+    voteType: "upvote" | "downvote"
+  ) => ipcRenderer.invoke("voteReview", shop, objectId, reviewId, voteType),
+  deleteReview: (shop: GameShop, objectId: string, reviewId: string) =>
+    ipcRenderer.invoke("deleteReview", shop, objectId, reviewId),
+  checkGameReview: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("checkGameReview", shop, objectId),
   onUpdateAchievements: (
     objectId: string,
     shop: GameShop,
@@ -362,6 +385,10 @@ contextBridge.exposeInMainWorld("electron", {
   getBadges: () => ipcRenderer.invoke("getBadges"),
   canInstallCommonRedist: () => ipcRenderer.invoke("canInstallCommonRedist"),
   installCommonRedist: () => ipcRenderer.invoke("installCommonRedist"),
+  installHydraDeckyPlugin: () => ipcRenderer.invoke("installHydraDeckyPlugin"),
+  getHydraDeckyPluginInfo: () => ipcRenderer.invoke("getHydraDeckyPluginInfo"),
+  checkHomebrewFolderExists: () =>
+    ipcRenderer.invoke("checkHomebrewFolderExists"),
   platform: process.platform,
 
   /* Auto update */

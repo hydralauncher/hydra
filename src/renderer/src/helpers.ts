@@ -104,3 +104,11 @@ export const generateRandomGradient = (): string => {
   // Return as data URL that works in img tags
   return `data:image/svg+xml;base64,${btoa(svgContent)}`;
 };
+
+export const formatNumber = (num: number): string => {
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    compactDisplay: "short",
+    maximumFractionDigits: 1,
+  }).format(num);
+};

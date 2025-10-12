@@ -1,0 +1,46 @@
+@use "../../scss/globals.scss";
+
+.review-prompt-banner {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  padding: calc(globals.$spacing-unit * 2);
+  margin-bottom: calc(globals.$spacing-unit * 1.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+
+  &__content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2.5);
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: calc(globals.$spacing-unit * 2);
+    }
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 0.5);
+  }
+
+  &__playtime {
+    font-size: globals.$body-font-size;
+    color: globals.$body-color;
+    font-weight: 600;
+  }
+
+  &__question {
+    font-size: globals.$small-font-size;
+    color: globals.$muted-color;
+    font-weight: 400;
+  }
+
+  &__actions {
+    display: flex;
+    gap: globals.$spacing-unit;
+    align-items: center;
+  }
+}
