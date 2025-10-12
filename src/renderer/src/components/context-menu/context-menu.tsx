@@ -144,9 +144,9 @@ export function ContextMenu({
 
     if (parentRect.right + submenuWidth > viewportWidth - 8) {
       styles.left = "auto";
-      styles.right = "calc(100% - 2px)";
+      styles.right = "100%";
     } else {
-      styles.left = "calc(100% - 2px)";
+      styles.left = "100%";
       styles.right = undefined;
     }
 
