@@ -43,19 +43,51 @@ export function sanitizeHtml(html: string): string {
     return "";
   }
 
-  let cleanText = removeHtmlTags(html);
+  // Use DOM-based sanitization to preserve safe formatting while removing dangerous content.
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = html;
 
-  cleanText = decodeHtmlEntities(cleanText);
+  // Remove clearly unsafe elements entirely.
+  const disallowedSelectors = [
+    "script",
+    "style",
+    "iframe",
+    "object",
+    "embed",
+    "link",
+    "meta",
+  ];
+  disallowedSelectors.forEach((sel) => {
+    tempDiv.querySelectorAll(sel).forEach((el) => el.remove());
+  });
 
-  cleanText = removeZalgoText(cleanText);
+  // Strip potentially dangerous attributes from remaining elements.
+  tempDiv.querySelectorAll("*").forEach((el) => {
+    Array.from(el.attributes).forEach((attr) => {
+      const name = attr.name.toLowerCase();
+      if (
+        name.startsWith("on") || // Event handlers
+        name === "style" ||
+        name === "src" ||
+        name === "href" // Links disabled in editor; avoid javascript: URLs
+      ) {
+        el.removeAttribute(attr.name);
+      }
+    });
+  });
 
-  cleanText = cleanText.replaceAll(/\s+/g, " ").trim();
-
-  if (!cleanText || cleanText.length === 0) {
-    return "";
+  // Clean Zalgo text characters within text nodes.
+  const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT);
+  let node: Node | null;
+  // eslint-disable-next-line no-cond-assign
+  while ((node = walker.nextNode())) {
+    const textNode = node as Text;
+    const value = textNode.nodeValue || "";
+    textNode.nodeValue = removeZalgoText(value);
   }
 
-  return cleanText;
+  const cleanHtml = tempDiv.innerHTML.trim();
+  return cleanHtml;
 }
 
 export function stripHtml(html: string): string {
