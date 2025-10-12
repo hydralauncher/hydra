@@ -39,6 +39,7 @@ import type {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
   UserLibraryResponse,
+  Game,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 import type disk from "diskusage";
@@ -77,11 +78,6 @@ declare global {
       skip: number
     ) => Promise<{ edges: CatalogueSearchResult[]; count: number }>;
     getCatalogue: (category: CatalogueCategory) => Promise<ShopAssets[]>;
-    saveGameShopAssets: (
-      objectId: string,
-      shop: GameShop,
-      assets: ShopAssets
-    ) => Promise<void>;
     getGameShopDetails: (
       objectId: string,
       shop: GameShop,
@@ -93,6 +89,10 @@ declare global {
       shop: GameShop
     ) => Promise<HowLongToBeatCategory[] | null>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
+    getGameAssets: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<ShopAssets | null>;
     getTrendingGames: () => Promise<TrendingGame[]>;
     createGameReview: (
       shop: GameShop,
