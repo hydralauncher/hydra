@@ -95,7 +95,7 @@ export function SettingsDownloadSources() {
   const handleRemoveAllDownloadSources = () => {
     setIsRemovingDownloadSource(true);
 
-    const id = crypto.randomUUID();
+    const id = `${Date.now()}-${Math.random()}`;
     const channel = new BroadcastChannel(`download_sources:delete_all:${id}`);
 
     downloadSourcesWorker.postMessage(["DELETE_ALL_DOWNLOAD_SOURCES", id]);
@@ -120,7 +120,7 @@ export function SettingsDownloadSources() {
   const syncDownloadSources = async () => {
     setIsSyncingDownloadSources(true);
 
-    const id = crypto.randomUUID();
+    const id = `${Date.now()}-${Math.random()}`;
     const channel = new BroadcastChannel(`download_sources:sync:${id}`);
 
     downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);

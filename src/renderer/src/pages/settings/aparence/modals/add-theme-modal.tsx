@@ -79,7 +79,7 @@ export function AddThemeModal({
   const onSubmit = useCallback(
     async (values: FormValues) => {
       const theme: Theme = {
-        id: crypto.randomUUID(),
+        id: `${Date.now()}-${Math.random()}`,
         name: values.name,
         isActive: false,
         author: userDetails?.id,
