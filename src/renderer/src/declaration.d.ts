@@ -30,9 +30,9 @@ import type {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
   Game,
+  DiskUsage,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
-import type disk from "diskusage";
 
 declare global {
   declare module "*.svg" {
@@ -220,7 +220,7 @@ declare global {
     >;
 
     /* Hardware */
-    getDiskFreeSpace: (path: string) => Promise<disk.DiskUsage>;
+    getDiskFreeSpace: (path: string) => Promise<DiskUsage>;
     checkFolderWritePermission: (path: string) => Promise<boolean>;
 
     /* Cloud save */

@@ -10,6 +10,11 @@ export type HydraCloudFeature =
   | "backup"
   | "achievements-points";
 
+export interface DiskUsage {
+  free: number;
+  total: number;
+}
+
 export interface GameRepack {
   id: number;
   title: string;
