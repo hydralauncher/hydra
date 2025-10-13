@@ -1,8 +1,7 @@
-import type { AuthPage, CatalogueCategory } from "@shared";
+import type { AuthPage } from "@shared";
 import type {
   AppUpdaterEvent,
   GameShop,
-  HowLongToBeatCategory,
   Steam250Game,
   DownloadProgress,
   SeedingStatus,
@@ -11,34 +10,25 @@ import type {
   RealDebridUser,
   AllDebridUser,
   UserProfile,
-  FriendRequest,
   FriendRequestAction,
-  UserFriends,
-  UserBlocks,
   UpdateProfileRequest,
   GameStats,
-  TrendingGame,
-  UserStats,
   UserDetails,
   FriendRequestSync,
   GameArtifact,
   LudusaviBackup,
   UserAchievement,
   ComparedAchievements,
-  CatalogueSearchPayload,
   LibraryGame,
   GameRunning,
   TorBoxUser,
   Theme,
-  Badge,
   Auth,
   ShortcutLocation,
-  CatalogueSearchResult,
   ShopAssets,
   ShopDetailsWithAssets,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
-  UserLibraryResponse,
   Game,
   DiskUsage,
 } from "@types";
@@ -72,63 +62,22 @@ declare global {
     ) => Promise<Record<string, boolean>>;
 
     /* Catalogue */
-    searchGames: (
-      payload: CatalogueSearchPayload,
-      take: number,
-      skip: number
-    ) => Promise<{ edges: CatalogueSearchResult[]; count: number }>;
-    getCatalogue: (category: CatalogueCategory) => Promise<ShopAssets[]>;
     getGameShopDetails: (
       objectId: string,
       shop: GameShop,
       language: string
     ) => Promise<ShopDetailsWithAssets | null>;
     getRandomGame: () => Promise<Steam250Game>;
-    getHowLongToBeat: (
-      objectId: string,
-      shop: GameShop
-    ) => Promise<HowLongToBeatCategory[] | null>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getGameAssets: (
       objectId: string,
       shop: GameShop
     ) => Promise<ShopAssets | null>;
-    getTrendingGames: () => Promise<TrendingGame[]>;
-    createGameReview: (
-      shop: GameShop,
-      objectId: string,
-      reviewHtml: string,
-      score: number
-    ) => Promise<void>;
-    getGameReviews: (
-      shop: GameShop,
-      objectId: string,
-      take?: number,
-      skip?: number,
-      sortBy?: string
-    ) => Promise<any[]>;
-    voteReview: (
-      shop: GameShop,
-      objectId: string,
-      reviewId: string,
-      voteType: "upvote" | "downvote"
-    ) => Promise<void>;
-    deleteReview: (
-      shop: GameShop,
-      objectId: string,
-      reviewId: string
-    ) => Promise<void>;
-    checkGameReview: (
-      shop: GameShop,
-      objectId: string
-    ) => Promise<{ hasReviewed: boolean }>;
     onUpdateAchievements: (
       objectId: string,
       shop: GameShop,
       cb: (achievements: UserAchievement[]) => void
     ) => () => Electron.IpcRenderer;
-    getPublishers: () => Promise<string[]>;
-    getDevelopers: () => Promise<string[]>;
 
     /* Library */
     toggleAutomaticCloudSync: (
@@ -280,14 +229,6 @@ declare global {
       shop: GameShop,
       downloadOptionTitle: string | null
     ) => Promise<void>;
-    toggleArtifactFreeze: (
-      gameArtifactId: string,
-      freeze: boolean
-    ) => Promise<void>;
-    renameGameArtifact: (
-      gameArtifactId: string,
-      label: string
-    ) => Promise<void>;
     downloadGameArtifact: (
       objectId: string,
       shop: GameShop,
@@ -301,7 +242,6 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<LudusaviBackup | null>;
-    deleteGameArtifact: (gameArtifactId: string) => Promise<{ ok: boolean }>;
     selectGameBackupPath: (
       shop: GameShop,
       objectId: string,
@@ -335,8 +275,48 @@ declare global {
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
     showItemInFolder: (path: string) => Promise<void>;
-    getFeatures: () => Promise<string[]>;
-    getBadges: () => Promise<Badge[]>;
+    hydraApi: {
+      get: <T = unknown>(
+        url: string,
+        options?: {
+          params?: unknown;
+          needsAuth?: boolean;
+          needsSubscription?: boolean;
+          ifModifiedSince?: Date;
+        }
+      ) => Promise<T>;
+      post: <T = unknown>(
+        url: string,
+        options?: {
+          data?: unknown;
+          needsAuth?: boolean;
+          needsSubscription?: boolean;
+        }
+      ) => Promise<T>;
+      put: <T = unknown>(
+        url: string,
+        options?: {
+          data?: unknown;
+          needsAuth?: boolean;
+          needsSubscription?: boolean;
+        }
+      ) => Promise<T>;
+      patch: <T = unknown>(
+        url: string,
+        options?: {
+          data?: unknown;
+          needsAuth?: boolean;
+          needsSubscription?: boolean;
+        }
+      ) => Promise<T>;
+      delete: <T = unknown>(
+        url: string,
+        options?: {
+          needsAuth?: boolean;
+          needsSubscription?: boolean;
+        }
+      ) => Promise<T>;
+    };
     canInstallCommonRedist: () => Promise<boolean>;
     installCommonRedist: () => Promise<void>;
     installHydraDeckyPlugin: () => Promise<{
@@ -378,27 +358,6 @@ declare global {
     onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* User */
-    getUser: (userId: string) => Promise<UserProfile | null>;
-    getUserLibrary: (
-      userId: string,
-      take?: number,
-      skip?: number,
-      sortBy?: string
-    ) => Promise<UserLibraryResponse>;
-    blockUser: (userId: string) => Promise<void>;
-    unblockUser: (userId: string) => Promise<void>;
-    getUserFriends: (
-      userId: string,
-      take: number,
-      skip: number
-    ) => Promise<UserFriends>;
-    getBlockedUsers: (take: number, skip: number) => Promise<UserBlocks>;
-    getUserStats: (userId: string) => Promise<UserStats>;
-    reportUser: (
-      userId: string,
-      reason: string,
-      description: string
-    ) => Promise<void>;
     getComparedUnlockedAchievements: (
       objectId: string,
       shop: GameShop,
@@ -411,7 +370,6 @@ declare global {
 
     /* Profile */
     getMe: () => Promise<UserDetails | null>;
-    undoFriendship: (userId: string) => Promise<void>;
     updateProfile: (
       updateProfile: UpdateProfileRequest
     ) => Promise<UserProfile>;
@@ -419,7 +377,6 @@ declare global {
     processProfileImage: (
       path: string
     ) => Promise<{ imagePath: string; mimeType: string }>;
-    getFriendRequests: () => Promise<FriendRequest[]>;
     syncFriendRequests: () => Promise<void>;
     onSyncFriendRequests: (
       cb: (friendRequests: FriendRequestSync) => void
@@ -428,7 +385,6 @@ declare global {
       userId: string,
       action: FriendRequestAction
     ) => Promise<void>;
-    sendFriendRequest: (userId: string) => Promise<void>;
 
     /* Notifications */
     publishNewRepacksNotification: (newRepacksCount: number) => Promise<void>;

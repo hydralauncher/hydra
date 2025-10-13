@@ -91,10 +91,11 @@ export function Sidebar() {
             });
           } else {
             try {
-              const howLongToBeat = await window.electron.getHowLongToBeat(
-                objectId,
-                shop
-              );
+              const howLongToBeat = await window.electron.hydraApi.get<
+                HowLongToBeatCategory[] | null
+              >(`/games/${shop}/${objectId}/how-long-to-beat`, {
+                needsAuth: false,
+              });
 
               if (howLongToBeat) {
                 howLongToBeatEntriesTable.add({

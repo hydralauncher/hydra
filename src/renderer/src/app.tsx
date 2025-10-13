@@ -27,6 +27,7 @@ import { downloadSourcesWorker } from "./workers";
 import { downloadSourcesTable } from "./dexie";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
+import { generateUUID } from "./helpers";
 
 import { injectCustomCss, removeCustomCss } from "./helpers";
 import "./app.scss";
@@ -212,7 +213,7 @@ export function App() {
   useEffect(() => {
     updateRepacks();
 
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     const channel = new BroadcastChannel(`download_sources:sync:${id}`);
 
     channel.onmessage = async (event: MessageEvent<number>) => {

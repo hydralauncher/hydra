@@ -1,49 +1,22 @@
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import {
-  PencilIcon,
-  TrashIcon,
-  ClockIcon,
-  NoteIcon,
-} from "@primer/octicons-react";
-import { ThumbsUp, ThumbsDown, Star } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { motion, AnimatePresence } from "framer-motion";
-import type { GameReview } from "@types";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { PencilIcon } from "@primer/octicons-react";
+import { useTranslation } from "react-i18next";
 
 import { HeroPanel } from "./hero";
 import { DescriptionHeader } from "./description-header/description-header";
 import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
-import { EditGameModal, DeleteReviewModal } from "./modals";
-import { ReviewSortOptions } from "./review-sort-options";
-import { ReviewPromptBanner } from "./review-prompt-banner";
+import { EditGameModal } from "./modals";
+import { GameReviews } from "./game-reviews";
+import { GameLogo } from "./game-logo";
 
-import { sanitizeHtml, AuthPage } from "@shared";
-import { useTranslation } from "react-i18next";
+import { AuthPage } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
-import { useUserDetails, useLibrary, useDate, useToast } from "@renderer/hooks";
+import { useUserDetails, useLibrary } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
-import { formatNumber } from "@renderer/helpers";
-import { Button } from "@renderer/components";
 import "./game-details.scss";
-
-const getScoreColorClass = (score: number): string => {
-  if (score >= 1 && score <= 2) return "game-details__review-score--red";
-  if (score >= 3 && score <= 3) return "game-details__review-score--yellow";
-  if (score >= 4 && score <= 5) return "game-details__review-score--green";
-  return "";
-};
 
 const processMediaElements = (document: Document) => {
   const $images = Array.from(document.querySelectorAll("img"));
@@ -71,35 +44,16 @@ const processMediaElements = (document: Document) => {
   });
 };
 
-const getSelectScoreColorClass = (score: number): string => {
-  if (score >= 1 && score <= 2) return "game-details__review-score-select--red";
-  if (score >= 3 && score <= 3)
-    return "game-details__review-score-select--yellow";
-  if (score >= 4 && score <= 5)
-    return "game-details__review-score-select--green";
-  return "";
-};
-
-const getRatingText = (score: number, t: (key: string) => string): string => {
-  switch (score) {
-    case 1:
-      return t("rating_very_negative");
-    case 2:
-      return t("rating_negative");
-    case 3:
-      return t("rating_neutral");
-    case 4:
-      return t("rating_positive");
-    case 5:
-      return t("rating_very_positive");
-    default:
-      return "";
-  }
+const getImageWithCustomPriority = (
+  customUrl: string | null | undefined,
+  originalUrl: string | null | undefined,
+  fallbackUrl?: string | null | undefined
+) => {
+  return customUrl || originalUrl || fallbackUrl || "";
 };
 
 export function GameDetailsContent() {
   const heroRef = useRef<HTMLDivElement | null>(null);
-  const navigate = useNavigate();
 
   const { t } = useTranslation("game_details");
 
@@ -116,8 +70,6 @@ export function GameDetailsContent() {
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { updateLibrary, library } = useLibrary();
-  const { formatDistance } = useDate();
-  const { showSuccessToast, showErrorToast } = useToast();
 
   const { setShowCloudSyncModal, getGameArtifacts } =
     useContext(cloudSyncContext);
@@ -144,34 +96,8 @@ export function GameDetailsContent() {
 
   const [backdropOpacity, setBackdropOpacity] = useState(1);
   const [showEditGameModal, setShowEditGameModal] = useState(false);
-  const [showDeleteReviewModal, setShowDeleteReviewModal] = useState(false);
-  const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-
-  // Reviews state management
-  const [reviews, setReviews] = useState<GameReview[]>([]);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [reviewScore, setReviewScore] = useState<number | null>(null);
-  const [submittingReview, setSubmittingReview] = useState(false);
-  const [reviewCharCount, setReviewCharCount] = useState(0);
-  const MAX_REVIEW_CHARS = 1000;
-  const [reviewsSortBy, setReviewsSortBy] = useState("newest");
-  const previousVotesRef = useRef<
-    Map<string, { upvotes: number; downvotes: number }>
-  >(new Map());
-  const [reviewsPage, setReviewsPage] = useState(0);
-  const [hasMoreReviews, setHasMoreReviews] = useState(true);
-  const [visibleBlockedReviews, setVisibleBlockedReviews] = useState<
-    Set<string>
-  >(new Set());
-  const [totalReviewCount, setTotalReviewCount] = useState(0);
-  const [showReviewForm, setShowReviewForm] = useState(false);
-
-  const [showReviewPrompt, setShowReviewPrompt] = useState(false);
   const [hasUserReviewed, setHasUserReviewed] = useState(false);
-  const [reviewCheckLoading, setReviewCheckLoading] = useState(false);
-
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Check if the current game is in the user's library
   const isGameInLibrary = useMemo(() => {
@@ -181,67 +107,8 @@ export function GameDetailsContent() {
     );
   }, [library, shop, objectId]);
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        link: false,
-      }),
-    ],
-    content: "",
-    editorProps: {
-      attributes: {
-        class: "game-details__review-editor",
-        "data-placeholder": t("write_review_placeholder"),
-      },
-      handlePaste: (view, event) => {
-        const htmlContent = event.clipboardData?.getData("text/html") || "";
-        const plainText = event.clipboardData?.getData("text/plain") || "";
-
-        const currentText = view.state.doc.textContent;
-        const remainingChars = MAX_REVIEW_CHARS - currentText.length;
-
-        if ((htmlContent || plainText) && remainingChars > 0) {
-          event.preventDefault();
-
-          if (htmlContent) {
-            const tempDiv = document.createElement("div");
-            tempDiv.innerHTML = htmlContent;
-            const textLength = tempDiv.textContent?.length || 0;
-
-            if (textLength <= remainingChars) {
-              return false;
-            }
-          }
-
-          const truncatedText = plainText.slice(0, remainingChars);
-          view.dispatch(view.state.tr.insertText(truncatedText));
-          return true;
-        }
-        return false;
-      },
-    },
-    onUpdate: ({ editor }) => {
-      const text = editor.getText();
-      setReviewCharCount(text.length);
-
-      if (text.length > MAX_REVIEW_CHARS) {
-        const truncatedContent = text.slice(0, MAX_REVIEW_CHARS);
-        editor.commands.setContent(truncatedContent);
-        setReviewCharCount(MAX_REVIEW_CHARS);
-      }
-    },
-  });
-
   useEffect(() => {
     setBackdropOpacity(1);
-
-    // Cleanup: abort any pending review requests when objectId changes
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
-    };
   }, [objectId]);
 
   const handleCloudSaveButtonClick = () => {
@@ -262,7 +129,7 @@ export function GameDetailsContent() {
     setShowEditGameModal(true);
   };
 
-  const handleGameUpdated = (_updatedGame: any) => {
+  const handleGameUpdated = () => {
     updateGame();
     updateLibrary();
   };
@@ -273,296 +140,12 @@ export function GameDetailsContent() {
 
   const isCustomGame = game?.shop === "custom";
 
-  const checkUserReview = useCallback(async () => {
-    if (!objectId || !userDetails) return;
-
-    setReviewCheckLoading(true);
-    try {
-      const response = await window.electron.checkGameReview(shop, objectId);
-      const hasReviewed = (response as any)?.hasReviewed || false;
-      setHasUserReviewed(hasReviewed);
-
-      const twoHoursInMilliseconds = 2 * 60 * 60 * 1000;
-      const hasEnoughPlaytime =
-        game &&
-        game.playTimeInMilliseconds >= twoHoursInMilliseconds &&
-        !game.hasManuallyUpdatedPlaytime;
-
-      if (
-        !hasReviewed &&
-        hasEnoughPlaytime &&
-        !sessionStorage.getItem(`reviewPromptDismissed_${objectId}`)
-      ) {
-        setShowReviewPrompt(true);
-        setShowReviewForm(true);
-      }
-    } catch (error) {
-      console.error("Failed to check user review:", error);
-    } finally {
-      setReviewCheckLoading(false);
-    }
-  }, [objectId, userDetails, shop, game]);
-
-  const loadReviews = useCallback(
-    async (reset = false) => {
-      if (!objectId) return;
-
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-
-      const abortController = new AbortController();
-      abortControllerRef.current = abortController;
-
-      setReviewsLoading(true);
-      try {
-        const skip = reset ? 0 : reviewsPage * 20;
-        const response = await window.electron.getGameReviews(
-          shop,
-          objectId,
-          20,
-          skip,
-          reviewsSortBy
-        );
-
-        if (abortController.signal.aborted) {
-          return;
-        }
-
-        const reviewsData = (response as any)?.reviews || [];
-        const reviewCount = (response as any)?.totalCount || 0;
-
-        if (reset) {
-          setReviews(reviewsData);
-          setReviewsPage(0);
-          setTotalReviewCount(reviewCount);
-        } else {
-          setReviews((prev) => [...prev, ...reviewsData]);
-        }
-
-        setHasMoreReviews(reviewsData.length === 20);
-      } catch (error) {
-        if (!abortController.signal.aborted) {
-          console.error("Failed to load reviews:", error);
-        }
-      } finally {
-        if (!abortController.signal.aborted) {
-          setReviewsLoading(false);
-        }
-      }
-    },
-    [objectId, shop, reviewsPage, reviewsSortBy]
-  );
-
-  const handleVoteReview = async (
-    reviewId: string,
-    voteType: "upvote" | "downvote"
-  ) => {
-    if (!objectId) return;
-
-    try {
-      await window.electron.voteReview(shop, objectId, reviewId, voteType);
-      loadReviews(true);
-    } catch (error) {
-      console.error(`Failed to ${voteType} review:`, error);
-    }
-  };
-
-  const handleDeleteReview = async (reviewId: string) => {
-    setReviewToDelete(reviewId);
-    setShowDeleteReviewModal(true);
-  };
-
-  const confirmDeleteReview = async () => {
-    if (!objectId || !reviewToDelete) return;
-
-    try {
-      await window.electron.deleteReview(shop, objectId, reviewToDelete);
-      loadReviews(true);
-      setShowDeleteReviewModal(false);
-      setReviewToDelete(null);
-      setHasUserReviewed(false);
-      setShowReviewForm(true);
-      showSuccessToast(t("review_deleted_successfully"));
-    } catch (error) {
-      console.error("Failed to delete review:", error);
-      showErrorToast(t("review_deletion_failed"));
-    }
-  };
-
-  const handleSubmitReview = async () => {
-    const reviewHtml = editor?.getHTML() || "";
-    const reviewText = editor?.getText() || "";
-
-    if (!objectId) {
-      return;
-    }
-
-    if (!reviewText.trim()) {
-      showErrorToast(t("review_cannot_be_empty"));
-      return;
-    }
-
-    if (submittingReview || reviewCharCount > MAX_REVIEW_CHARS) {
-      return;
-    }
-
-    if (reviewScore === null) {
-      return;
-    }
-
-    setSubmittingReview(true);
-
-    try {
-      await window.electron.createGameReview(
-        shop,
-        objectId,
-        reviewHtml,
-        reviewScore
-      );
-
-      editor?.commands.clearContent();
-      setReviewScore(null);
-      showSuccessToast(t("review_submitted_successfully"));
-
-      await loadReviews(true);
-      setShowReviewForm(false);
-      setShowReviewPrompt(false);
-      setHasUserReviewed(true);
-    } catch (error) {
-      console.error("Failed to submit review:", error);
-      showErrorToast(t("review_submission_failed"));
-    } finally {
-      setSubmittingReview(false);
-    }
-  };
-
-  const handleReviewPromptYes = () => {
-    setShowReviewPrompt(false);
-
-    setTimeout(() => {
-      const reviewFormElement = document.querySelector(
-        ".game-details__review-form"
-      );
-      if (reviewFormElement) {
-        reviewFormElement.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }
-    }, 100);
-  };
-
-  const handleReviewPromptLater = () => {
-    setShowReviewPrompt(false);
-    setShowReviewForm(false);
-    if (objectId) {
-      sessionStorage.setItem(`reviewPromptDismissed_${objectId}`, "true");
-    }
-  };
-
-  const handleSortChange = (newSortBy: string) => {
-    if (newSortBy !== reviewsSortBy) {
-      setReviewsSortBy(newSortBy);
-      setReviewsPage(0);
-      setHasMoreReviews(true);
-      loadReviews(true);
-    }
-  };
-
-  const toggleBlockedReview = (reviewId: string) => {
-    setVisibleBlockedReviews((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(reviewId)) {
-        newSet.delete(reviewId);
-      } else {
-        newSet.add(reviewId);
-      }
-      return newSet;
-    });
-  };
-
-  const loadMoreReviews = () => {
-    if (!reviewsLoading && hasMoreReviews) {
-      setReviewsPage((prev) => prev + 1);
-      loadReviews(false);
-    }
-  };
-
-  useEffect(() => {
-    if (objectId && (game || shop)) {
-      loadReviews(true);
-      checkUserReview();
-    }
-  }, [game, shop, objectId, loadReviews, checkUserReview]);
-
-  useEffect(() => {
-    if (reviewsPage > 0) {
-      loadReviews(false);
-    }
-  }, [reviewsPage, loadReviews]);
-
-  // Initialize previousVotesRef for new reviews
-  useEffect(() => {
-    reviews.forEach((review) => {
-      if (!previousVotesRef.current.has(review.id)) {
-        previousVotesRef.current.set(review.id, {
-          upvotes: review.upvotes || 0,
-          downvotes: review.downvotes || 0,
-        });
-      }
-    });
-  }, [reviews]);
-
-  const getImageWithCustomPriority = (
-    customUrl: string | null | undefined,
-    originalUrl: string | null | undefined,
-    fallbackUrl?: string | null | undefined
-  ) => {
-    return customUrl || originalUrl || fallbackUrl || "";
-  };
-
   const heroImage = isCustomGame
     ? game?.libraryHeroImageUrl || game?.iconUrl || ""
     : getImageWithCustomPriority(
         game?.customHeroImageUrl,
         shopDetails?.assets?.libraryHeroImageUrl
       );
-
-  const logoImage = isCustomGame
-    ? game?.logoImageUrl || ""
-    : getImageWithCustomPriority(
-        game?.customLogoImageUrl,
-        shopDetails?.assets?.logoImageUrl
-      );
-
-  const renderGameLogo = () => {
-    if (isCustomGame) {
-      // For custom games, show logo image if available, otherwise show game title as text
-      if (logoImage) {
-        return (
-          <img
-            src={logoImage}
-            className="game-details__game-logo"
-            alt={game?.title}
-          />
-        );
-      } else {
-        return (
-          <div className="game-details__game-logo-text">{game?.title}</div>
-        );
-      }
-    } else {
-      // For non-custom games, show logo image if available
-      return logoImage ? (
-        <img
-          src={logoImage}
-          className="game-details__game-logo"
-          alt={game?.title}
-        />
-      ) : null;
-    }
-  };
 
   return (
     <div
@@ -587,7 +170,7 @@ export function GameDetailsContent() {
             style={{ opacity: backdropOpacity }}
           >
             <div className="game-details__hero-content">
-              {renderGameLogo()}
+              <GameLogo game={game} shopDetails={shopDetails} />
 
               <div className="game-details__hero-buttons game-details__hero-buttons--right">
                 {game && (
@@ -626,19 +209,6 @@ export function GameDetailsContent() {
 
         <div className="game-details__description-container">
           <div className="game-details__description-content">
-            {/* Review Prompt Banner */}
-            {game?.shop !== "custom" &&
-              showReviewPrompt &&
-              userDetails &&
-              !hasUserReviewed &&
-              !reviewCheckLoading &&
-              isGameInLibrary && (
-                <ReviewPromptBanner
-                  onYesClick={handleReviewPromptYes}
-                  onLaterClick={handleReviewPromptLater}
-                />
-              )}
-
             <DescriptionHeader />
             <GallerySlider />
 
@@ -663,404 +233,16 @@ export function GameDetailsContent() {
               </button>
             )}
 
-            {game?.shop !== "custom" && (
-              <div className="game-details__reviews-section">
-                {showReviewForm && (
-                  <>
-                    <div className="game-details__reviews-header">
-                      <h3 className="game-details__reviews-title">
-                        {t("leave_a_review")}
-                      </h3>
-                    </div>
-
-                    <div className="game-details__review-form">
-                      <div className="game-details__review-input-container">
-                        <div className="game-details__review-input-header">
-                          <div className="game-details__review-editor-toolbar">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                editor?.chain().focus().toggleBold().run()
-                              }
-                              className={`game-details__editor-button ${editor?.isActive("bold") ? "is-active" : ""}`}
-                              disabled={!editor}
-                            >
-                              <strong>B</strong>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                editor?.chain().focus().toggleItalic().run()
-                              }
-                              className={`game-details__editor-button ${editor?.isActive("italic") ? "is-active" : ""}`}
-                              disabled={!editor}
-                            >
-                              <em>I</em>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                editor?.chain().focus().toggleUnderline().run()
-                              }
-                              className={`game-details__editor-button ${editor?.isActive("underline") ? "is-active" : ""}`}
-                              disabled={!editor}
-                            >
-                              <u>U</u>
-                            </button>
-                          </div>
-                          <div className="game-details__review-char-counter">
-                            <span
-                              className={
-                                reviewCharCount > MAX_REVIEW_CHARS
-                                  ? "over-limit"
-                                  : ""
-                              }
-                            >
-                              {reviewCharCount}/{MAX_REVIEW_CHARS}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="game-details__review-input">
-                          <EditorContent editor={editor} />
-                        </div>
-                      </div>
-
-                      <div className="game-details__review-form-bottom">
-                        <div className="game-details__review-score-container">
-                          <div className="game-details__star-rating">
-                            {[1, 2, 3, 4, 5].map((starValue) => (
-                              <button
-                                key={starValue}
-                                type="button"
-                                className={`game-details__star ${
-                                  reviewScore && starValue <= reviewScore
-                                    ? "game-details__star--filled"
-                                    : "game-details__star--empty"
-                                } ${
-                                  reviewScore && starValue <= reviewScore
-                                    ? getSelectScoreColorClass(reviewScore)
-                                    : ""
-                                }`}
-                                onClick={() => setReviewScore(starValue)}
-                                title={getRatingText(starValue, t)}
-                              >
-                                <Star
-                                  size={18}
-                                  fill={
-                                    reviewScore && starValue <= reviewScore
-                                      ? "currentColor"
-                                      : "none"
-                                  }
-                                />
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <Button
-                          theme="primary"
-                          onClick={handleSubmitReview}
-                          disabled={
-                            !editor?.getHTML().trim() ||
-                            reviewScore === null ||
-                            submittingReview ||
-                            reviewCharCount > MAX_REVIEW_CHARS
-                          }
-                        >
-                          {submittingReview
-                            ? t("submitting")
-                            : t("submit_review")}
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {showReviewForm && (
-                  <div className="game-details__reviews-separator"></div>
-                )}
-
-                <div className="game-details__reviews-list">
-                  <div className="game-details__reviews-list-header">
-                    <div className="game-details__reviews-title-group">
-                      <h3 className="game-details__reviews-title">
-                        {t("reviews")}
-                      </h3>
-                      <span className="game-details__reviews-badge">
-                        {totalReviewCount}
-                      </span>
-                    </div>
-                  </div>
-                  <ReviewSortOptions
-                    sortBy={reviewsSortBy as any}
-                    onSortChange={handleSortChange}
-                  />
-
-                  {reviewsLoading && reviews.length === 0 && (
-                    <div className="game-details__reviews-loading">
-                      {t("loading_reviews")}
-                    </div>
-                  )}
-
-                  {!reviewsLoading && reviews.length === 0 && (
-                    <div className="game-details__reviews-empty">
-                      <div className="game-details__reviews-empty-icon">
-                        <NoteIcon size={48} />
-                      </div>
-                      <h4 className="game-details__reviews-empty-title">
-                        {t("no_reviews_yet")}
-                      </h4>
-                      <p className="game-details__reviews-empty-message">
-                        {t("be_first_to_review")}
-                      </p>
-                    </div>
-                  )}
-
-                  <div
-                    style={{
-                      opacity: reviewsLoading && reviews.length > 0 ? 0.5 : 1,
-                      transition: "opacity 0.2s ease",
-                    }}
-                  >
-                    {reviews.map((review) => (
-                      <div
-                        key={review.id}
-                        className="game-details__review-item"
-                      >
-                        {review.isBlocked &&
-                        !visibleBlockedReviews.has(review.id) ? (
-                          <div className="game-details__blocked-review-simple">
-                            Review from blocked user —{" "}
-                            <button
-                              className="game-details__blocked-review-show-link"
-                              onClick={() => toggleBlockedReview(review.id)}
-                            >
-                              Show
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="game-details__review-header">
-                              <div className="game-details__review-user">
-                                {review.user?.profileImageUrl && (
-                                  <button
-                                    className="game-details__review-avatar-button"
-                                    onClick={() =>
-                                      review.user?.id &&
-                                      navigate(`/profile/${review.user.id}`)
-                                    }
-                                    title={review.user.displayName || "User"}
-                                  >
-                                    <img
-                                      src={review.user.profileImageUrl}
-                                      alt={review.user.displayName || "User"}
-                                      className="game-details__review-avatar"
-                                    />
-                                  </button>
-                                )}
-                                <div className="game-details__review-user-info">
-                                  <button
-                                    className="game-details__review-display-name game-details__review-display-name--clickable"
-                                    onClick={() =>
-                                      review.user?.id &&
-                                      navigate(`/profile/${review.user.id}`)
-                                    }
-                                  >
-                                    {review.user?.displayName || "Anonymous"}
-                                  </button>
-                                  <div className="game-details__review-date">
-                                    <ClockIcon size={12} />
-                                    {formatDistance(
-                                      new Date(review.createdAt),
-                                      new Date(),
-                                      { addSuffix: true }
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              <div
-                                className="game-details__review-score-stars"
-                                title={getRatingText(review.score, t)}
-                              >
-                                {[1, 2, 3, 4, 5].map((starValue) => (
-                                  <Star
-                                    key={starValue}
-                                    size={20}
-                                    fill={
-                                      starValue <= review.score
-                                        ? "currentColor"
-                                        : "none"
-                                    }
-                                    className={`game-details__review-star ${
-                                      starValue <= review.score
-                                        ? "game-details__review-star--filled"
-                                        : "game-details__review-star--empty"
-                                    } ${
-                                      starValue <= review.score
-                                        ? getScoreColorClass(review.score)
-                                        : ""
-                                    }`}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                            <div
-                              className="game-details__review-content"
-                              dangerouslySetInnerHTML={{
-                                __html: sanitizeHtml(review.reviewHtml),
-                              }}
-                            />
-                            <div className="game-details__review-actions">
-                              <div className="game-details__review-votes">
-                                <motion.button
-                                  className={`game-details__vote-button game-details__vote-button--upvote ${review.hasUpvoted ? "game-details__vote-button--active" : ""}`}
-                                  onClick={() =>
-                                    handleVoteReview(review.id, "upvote")
-                                  }
-                                  animate={
-                                    review.hasUpvoted
-                                      ? {
-                                          scale: [1, 1.2, 1],
-                                          transition: { duration: 0.3 },
-                                        }
-                                      : {}
-                                  }
-                                >
-                                  <ThumbsUp size={16} />
-                                  <AnimatePresence mode="wait">
-                                    <motion.span
-                                      key={review.upvotes || 0}
-                                      custom={
-                                        (review.upvotes || 0) >
-                                        (previousVotesRef.current.get(review.id)
-                                          ?.upvotes || 0)
-                                      }
-                                      variants={{
-                                        enter: (isIncreasing: boolean) => ({
-                                          y: isIncreasing ? 10 : -10,
-                                          opacity: 0,
-                                        }),
-                                        center: { y: 0, opacity: 1 },
-                                        exit: (isIncreasing: boolean) => ({
-                                          y: isIncreasing ? -10 : 10,
-                                          opacity: 0,
-                                        }),
-                                      }}
-                                      initial="enter"
-                                      animate="center"
-                                      exit="exit"
-                                      transition={{ duration: 0.2 }}
-                                      onAnimationComplete={() => {
-                                        previousVotesRef.current.set(
-                                          review.id,
-                                          {
-                                            upvotes: review.upvotes || 0,
-                                            downvotes: review.downvotes || 0,
-                                          }
-                                        );
-                                      }}
-                                    >
-                                      {formatNumber(review.upvotes || 0)}
-                                    </motion.span>
-                                  </AnimatePresence>
-                                </motion.button>
-                                <motion.button
-                                  className={`game-details__vote-button game-details__vote-button--downvote ${review.hasDownvoted ? "game-details__vote-button--active" : ""}`}
-                                  onClick={() =>
-                                    handleVoteReview(review.id, "downvote")
-                                  }
-                                  animate={
-                                    review.hasDownvoted
-                                      ? {
-                                          scale: [1, 1.2, 1],
-                                          transition: { duration: 0.3 },
-                                        }
-                                      : {}
-                                  }
-                                >
-                                  <ThumbsDown size={16} />
-                                  <AnimatePresence mode="wait">
-                                    <motion.span
-                                      key={review.downvotes || 0}
-                                      custom={
-                                        (review.downvotes || 0) >
-                                        (previousVotesRef.current.get(review.id)
-                                          ?.downvotes || 0)
-                                      }
-                                      variants={{
-                                        enter: (isIncreasing: boolean) => ({
-                                          y: isIncreasing ? 10 : -10,
-                                          opacity: 0,
-                                        }),
-                                        center: { y: 0, opacity: 1 },
-                                        exit: (isIncreasing: boolean) => ({
-                                          y: isIncreasing ? -10 : 10,
-                                          opacity: 0,
-                                        }),
-                                      }}
-                                      initial="enter"
-                                      animate="center"
-                                      exit="exit"
-                                      transition={{ duration: 0.2 }}
-                                      onAnimationComplete={() => {
-                                        previousVotesRef.current.set(
-                                          review.id,
-                                          {
-                                            upvotes: review.upvotes || 0,
-                                            downvotes: review.downvotes || 0,
-                                          }
-                                        );
-                                      }}
-                                    >
-                                      {formatNumber(review.downvotes || 0)}
-                                    </motion.span>
-                                  </AnimatePresence>
-                                </motion.button>
-                              </div>
-                              {userDetails?.id === review.user?.id && (
-                                <button
-                                  className="game-details__delete-review-button"
-                                  onClick={() => handleDeleteReview(review.id)}
-                                  title={t("delete_review")}
-                                >
-                                  <TrashIcon size={16} />
-                                  <span>{t("remove_review")}</span>
-                                </button>
-                              )}
-                              {review.isBlocked &&
-                                visibleBlockedReviews.has(review.id) && (
-                                  <button
-                                    className="game-details__blocked-review-hide-link"
-                                    onClick={() =>
-                                      toggleBlockedReview(review.id)
-                                    }
-                                  >
-                                    Hide
-                                  </button>
-                                )}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {hasMoreReviews && !reviewsLoading && (
-                    <button
-                      className="game-details__load-more-reviews"
-                      onClick={loadMoreReviews}
-                    >
-                      {t("load_more_reviews")}
-                    </button>
-                  )}
-
-                  {reviewsLoading && reviews.length > 0 && (
-                    <div className="game-details__reviews-loading">
-                      {t("loading_more_reviews")}
-                    </div>
-                  )}
-                </div>
-              </div>
+            {game?.shop !== "custom" && shop && objectId && (
+              <GameReviews
+                shop={shop}
+                objectId={objectId}
+                game={game}
+                userDetailsId={userDetails?.id}
+                isGameInLibrary={isGameInLibrary}
+                hasUserReviewed={hasUserReviewed}
+                onUserReviewedChange={setHasUserReviewed}
+              />
             )}
           </div>
 
@@ -1077,15 +259,6 @@ export function GameDetailsContent() {
           onGameUpdated={handleGameUpdated}
         />
       )}
-
-      <DeleteReviewModal
-        visible={showDeleteReviewModal}
-        onClose={() => {
-          setShowDeleteReviewModal(false);
-          setReviewToDelete(null);
-        }}
-        onConfirm={confirmDeleteReview}
-      />
     </div>
   );
 }

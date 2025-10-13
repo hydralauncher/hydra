@@ -259,7 +259,7 @@ export interface GameReview {
     id: string;
     displayName: string;
     profileImageUrl: string | null;
-  } | null;
+  };
 }
 
 export interface TrendingGame extends ShopAssets {
