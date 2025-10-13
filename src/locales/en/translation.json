@@ -356,7 +356,8 @@
     "delete_review_modal_title": "Are you sure you want to delete your review?",
     "delete_review_modal_description": "This action cannot be undone.",
     "delete_review_modal_delete_button": "Delete",
-    "delete_review_modal_cancel_button": "Cancel"
+    "delete_review_modal_cancel_button": "Cancel",
+    "vote_failed": "Failed to register your vote. Please try again."
   },
   "activation": {
     "title": "Activate Hydra",

@@ -116,7 +116,13 @@ export function SettingsContextProvider({
   }, []);
 
   const fetchBlockedUsers = useCallback(async () => {
-    const blockedUsers = await window.electron.getBlockedUsers(12, 0);
+    const blockedUsers = await window.electron.hydraApi
+      .get<UserBlocks>("/profile/blocks", {
+        params: { take: 12, skip: 0 },
+      })
+      .catch(() => {
+        return { blocks: [] };
+      });
     setBlockedUsers(blockedUsers.blocks);
   }, []);
 

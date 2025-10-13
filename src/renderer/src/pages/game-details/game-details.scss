@@ -291,31 +291,6 @@ $hero-height: 300px;
     gap: calc(globals.$spacing-unit * 1);
   }
 
-  &__review-avatar-button {
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    transition: opacity 0.2s ease;
-
-    &:hover {
-      opacity: 0.8;
-    }
-
-    &:active {
-      opacity: 0.6;
-    }
-  }
-
-  &__review-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 4px;
-    object-fit: cover;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    display: block;
-  }
-
   &__review-user-info {
     display: flex;
     flex-direction: column;

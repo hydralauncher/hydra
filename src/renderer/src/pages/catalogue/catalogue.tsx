@@ -63,11 +63,13 @@ export default function Catalogue() {
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
-      const response = await window.electron.searchGames(
-        filters,
-        pageSize,
-        offset
-      );
+      const response = await window.electron.hydraApi.post<{
+        edges: CatalogueSearchResult[];
+        count: number;
+      }>("/catalogue/search", {
+        data: { ...filters, take: pageSize, skip: offset },
+        needsAuth: false,
+      });
 
       if (abortController.signal.aborted) return;
 

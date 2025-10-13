@@ -11,6 +11,7 @@ import type {
   FriendRequestAction,
   UpdateProfileRequest,
   UserDetails,
+  FriendRequest,
 } from "@types";
 import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 
@@ -76,12 +77,13 @@ export function useUserDetails() {
       userDetails?.username,
       userDetails?.subscription,
       userDetails?.featurebaseJwt,
+      userDetails?.karma,
     ]
   );
 
   const fetchFriendRequests = useCallback(async () => {
-    return window.electron
-      .getFriendRequests()
+    return window.electron.hydraApi
+      .get<FriendRequest[]>("/profile/friend-requests")
       .then((friendRequests) => {
         window.electron.syncFriendRequests();
         dispatch(setFriendRequests(friendRequests));
@@ -103,8 +105,10 @@ export function useUserDetails() {
 
   const sendFriendRequest = useCallback(
     async (userId: string) => {
-      return window.electron
-        .sendFriendRequest(userId)
+      return window.electron.hydraApi
+        .post("/profile/friend-requests", {
+          data: { friendCode: userId },
+        })
         .then(() => fetchFriendRequests());
     },
     [fetchFriendRequests]
@@ -112,19 +116,31 @@ export function useUserDetails() {
 
   const updateFriendRequestState = useCallback(
     async (userId: string, action: FriendRequestAction) => {
-      return window.electron
-        .updateFriendRequest(userId, action)
+      if (action === "CANCEL") {
+        return window.electron.hydraApi
+          .delete(`/profile/friend-requests/${userId}`)
+          .then(() => fetchFriendRequests());
+      }
+
+      return window.electron.hydraApi
+        .patch(`/profile/friend-requests/${userId}`, {
+          data: {
+            requestState: action,
+          },
+        })
         .then(() => fetchFriendRequests());
     },
     [fetchFriendRequests]
   );
 
   const undoFriendship = (userId: string) =>
-    window.electron.undoFriendship(userId);
+    window.electron.hydraApi.delete(`/profile/friends/${userId}`);
 
-  const blockUser = (userId: string) => window.electron.blockUser(userId);
+  const blockUser = (userId: string) =>
+    window.electron.hydraApi.post(`/users/${userId}/block`);
 
-  const unblockUser = (userId: string) => window.electron.unblockUser(userId);
+  const unblockUser = (userId: string) =>
+    window.electron.hydraApi.post(`/users/${userId}/unblock`);
 
   const hasActiveSubscription = useMemo(() => {
     const expiresAt = new Date(userDetails?.subscription?.expiresAt ?? 0);
