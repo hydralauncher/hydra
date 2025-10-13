@@ -1,4 +1,4 @@
-name: Build
+name: Build Renderer
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -23,7 +23,7 @@ jobs:
         run: yarn --frozen-lockfile --ignore-scripts
 
       - name: Build Renderer
-        run: electron-vite build
+        run: yarn build
         env:
           RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
 
