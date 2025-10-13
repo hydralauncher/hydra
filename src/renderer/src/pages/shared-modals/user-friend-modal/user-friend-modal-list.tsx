@@ -34,8 +34,13 @@ export const UserFriendModalList = ({
   const loadNextPage = () => {
     if (page > maxPage) return;
     setIsLoading(true);
-    window.electron
-      .getUserFriends(userId, pageSize, page * pageSize)
+
+    const url = isMe ? "/profile/friends" : `/users/${userId}/friends`;
+
+    window.electron.hydraApi
+      .get<{ totalFriends: number; friends: UserFriend[] }>(url, {
+        params: { take: pageSize, skip: page * pageSize },
+      })
       .then((newPage) => {
         if (page === 0) {
           setMaxPage(newPage.totalFriends / pageSize);

@@ -62,12 +62,16 @@ export class WindowManager {
         `${process.env["ELECTRON_RENDERER_URL"]}#/${hash}`
       );
     } else {
-      this.mainWindow?.loadFile(
-        path.join(__dirname, "../renderer/index.html"),
-        {
-          hash,
-        }
-      );
+      this.mainWindow
+        ?.loadURL(`https://staging.hydralauncher.gg/#/${hash}`)
+        .catch(() => {
+          this.mainWindow?.loadFile(
+            path.join(__dirname, "../renderer/index.html"),
+            {
+              hash,
+            }
+          );
+        });
     }
   }
 
