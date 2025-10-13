@@ -1,6 +1,7 @@
 import type { GameShop } from "@types";
 
 import Color from "color";
+import { v4 as uuidv4 } from "uuid";
 import { THEME_WEB_STORE_URL } from "./constants";
 
 export const formatDownloadProgress = (
@@ -111,4 +112,12 @@ export const formatNumber = (num: number): string => {
     compactDisplay: "short",
     maximumFractionDigits: 1,
   }).format(num);
+};
+
+/**
+ * Generates a UUID v4
+ * @returns A random UUID string
+ */
+export const generateUUID = (): string => {
+  return uuidv4();
 };
