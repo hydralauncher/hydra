@@ -13,3 +13,11 @@ RUN yarn install --frozen-lockfile --ignore-scripts
 COPY . .
 
 RUN yarn electron-vite build
+
+FROM nginx:alpine
+
+COPY --from=builder /app/out/renderer /usr/share/nginx/html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
