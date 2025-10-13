@@ -126,6 +126,7 @@ export function BottomPanel() {
         className="bottom-panel__version-button"
       >
         <small data-featurebase-changelog>
+          HACKEADO PELO SPECTRE
           {sessionHash ? `${sessionHash} -` : ""} v{version} &quot;
           {VERSION_CODENAME}&quot;
         </small>
