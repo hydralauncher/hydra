@@ -54,20 +54,37 @@ export class WindowManager {
       show: false,
     };
 
-  private static loadMainWindowURL(hash = "") {
+  private static async loadWindowURL(window: BrowserWindow, hash: string = "") {
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
     if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      this.mainWindow?.loadURL(
-        `${process.env["ELECTRON_RENDERER_URL"]}#/${hash}`
-      );
-    } else {
-      this.mainWindow?.loadFile(
-        path.join(__dirname, "../renderer/index.html"),
-        {
+      window.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}#/${hash}`);
+    } else if (process.env["MAIN_VITE_RENDERER_URL"]) {
+      // Try to load from remote URL in production
+      try {
+        await window.loadURL(
+          `${import.meta.env.MAIN_VITE_RENDERER_URL}#/${hash}`
+        );
+      } catch (error) {
+        // Fall back to local file if remote URL fails
+        console.error(
+          "Failed to load from MAIN_VITE_RENDERER_URL, falling back to local file:",
+          error
+        );
+        window.loadFile(path.join(__dirname, "../renderer/index.html"), {
           hash,
-        }
-      );
+        });
+      }
+    } else {
+      window.loadFile(path.join(__dirname, "../renderer/index.html"), {
+        hash,
+      });
+    }
+  }
+
+  private static async loadMainWindowURL(hash: string = "") {
+    if (this.mainWindow) {
+      await this.loadWindowURL(this.mainWindow, hash);
     }
   }
 
@@ -268,17 +285,8 @@ export class WindowManager {
   }
 
   private static loadNotificationWindowURL() {
-    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      this.notificationWindow?.loadURL(
-        `${process.env["ELECTRON_RENDERER_URL"]}#/achievement-notification`
-      );
-    } else {
-      this.notificationWindow?.loadFile(
-        path.join(__dirname, "../renderer/index.html"),
-        {
-          hash: "achievement-notification",
-        }
-      );
+    if (this.notificationWindow) {
+      this.loadWindowURL(this.notificationWindow, "achievement-notification");
     }
   }
 
@@ -450,19 +458,10 @@ export class WindowManager {
 
       editorWindow.removeMenu();
 
-      if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-        editorWindow.loadURL(
-          `${process.env["ELECTRON_RENDERER_URL"]}#/theme-editor?themeId=${themeId}`
-        );
-      } else {
-        editorWindow.loadFile(path.join(__dirname, "../renderer/index.html"), {
-          hash: `theme-editor?themeId=${themeId}`,
-        });
-      }
+      this.loadWindowURL(editorWindow, `theme-editor?themeId=${themeId}`);
 
       editorWindow.once("ready-to-show", () => {
         editorWindow.show();
-        this.mainWindow?.webContents.openDevTools();
         if (!app.isPackaged || isStaging) {
           editorWindow.webContents.openDevTools();
         }
@@ -470,12 +469,11 @@ export class WindowManager {
 
       editorWindow.webContents.on("before-input-event", (_event, input) => {
         if (input.key === "F12") {
-          this.mainWindow?.webContents.toggleDevTools();
+          editorWindow.webContents.toggleDevTools();
         }
       });
 
       editorWindow.on("close", () => {
-        this.mainWindow?.webContents.closeDevTools();
         this.editorWindows.delete(themeId);
       });
     }

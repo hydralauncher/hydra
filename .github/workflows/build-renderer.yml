@@ -4,7 +4,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-on: push
+on:
+  push:
+    branches: main
 
 jobs:
   build:
@@ -28,11 +30,11 @@ jobs:
           RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
 
       - name: Deploy to Cloudflare Pages
-        run: |
-          npx --yes wrangler@3 pages deploy out/renderer \
-            --project-name=hydra-staging \
-            --commit-dirty=true \
-            --branch=main
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes wrangler@3 pages deploy out/renderer \
+            --project-name="hydra" \
+            --commit-dirty=true \
+            --branch="main"
