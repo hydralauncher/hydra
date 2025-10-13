@@ -6,7 +6,7 @@ concurrency:
 
 on:
   push:
-    branches: main
+    branches: [main]
 
 jobs:
   build:
@@ -23,7 +23,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.18.0
+          node-version: 20.18.3
 
       - name: Install dependencies
         run: yarn --frozen-lockfile
