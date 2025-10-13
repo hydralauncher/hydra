@@ -12,7 +12,7 @@ import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 import type { Auth, User } from "@types";
 
-interface HydraApiOptions {
+export interface HydraApiOptions {
   needsAuth?: boolean;
   needsSubscription?: boolean;
   ifModifiedSince?: Date;

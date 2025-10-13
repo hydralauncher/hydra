@@ -82,26 +82,38 @@ export function UserProfileContextProvider({
     return "";
   };
 
-  const { t } = useTranslation("user_profile");
+  const { t, i18n } = useTranslation("user_profile");
 
   const { showErrorToast } = useToast();
   const navigate = useNavigate();
 
   const getUserStats = useCallback(async () => {
-    window.electron.getUserStats(userId).then((stats) => {
-      setUserStats(stats);
-    });
+    window.electron.hydraApi
+      .get<UserStats>(`/users/${userId}/stats`)
+      .then((stats) => {
+        setUserStats(stats);
+      });
   }, [userId]);
 
   const getUserLibraryGames = useCallback(
     async (sortBy?: string) => {
       try {
-        const response = await window.electron.getUserLibrary(
-          userId,
-          12,
-          0,
-          sortBy
-        );
+        const params = new URLSearchParams();
+        params.append("take", "12");
+        params.append("skip", "0");
+        if (sortBy) {
+          params.append("sortBy", sortBy);
+        }
+
+        const queryString = params.toString();
+        const url = queryString
+          ? `/users/${userId}/library?${queryString}`
+          : `/users/${userId}/library`;
+
+        const response = await window.electron.hydraApi.get<{
+          library: UserGame[];
+          pinnedGames: UserGame[];
+        }>(url);
 
         if (response) {
           setLibraryGames(response.library);
@@ -122,26 +134,36 @@ export function UserProfileContextProvider({
     getUserStats();
     getUserLibraryGames();
 
-    return window.electron.getUser(userId).then((userProfile) => {
-      if (userProfile) {
-        setUserProfile(userProfile);
+    return window.electron.hydraApi
+      .get<UserProfile | null>(`/users/${userId}`)
+      .then((userProfile) => {
+        if (userProfile) {
+          setUserProfile(userProfile);
 
-        if (userProfile.profileImageUrl) {
-          getHeroBackgroundFromImageUrl(userProfile.profileImageUrl).then(
-            (color) => setHeroBackground(color)
-          );
+          if (userProfile.profileImageUrl) {
+            getHeroBackgroundFromImageUrl(userProfile.profileImageUrl).then(
+              (color) => setHeroBackground(color)
+            );
+          }
+        } else {
+          showErrorToast(t("user_not_found"));
+          navigate(-1);
         }
-      } else {
-        showErrorToast(t("user_not_found"));
-        navigate(-1);
-      }
-    });
+      });
   }, [navigate, getUserStats, getUserLibraryGames, showErrorToast, userId, t]);
 
   const getBadges = useCallback(async () => {
-    const badges = await window.electron.getBadges();
+    const language = i18n.language.split("-")[0];
+    const params = new URLSearchParams({
+      locale: language,
+    });
+
+    const badges = await window.electron.hydraApi.get<Badge[]>(
+      `/badges?${params.toString()}`,
+      { needsAuth: false }
+    );
     setBadges(badges);
-  }, []);
+  }, [i18n]);
 
   useEffect(() => {
     setUserProfile(null);

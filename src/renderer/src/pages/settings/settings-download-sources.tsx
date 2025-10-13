@@ -23,6 +23,7 @@ import { downloadSourcesTable } from "@renderer/dexie";
 import { downloadSourcesWorker } from "@renderer/workers";
 import { useNavigate } from "react-router-dom";
 import { setFilters, clearFilters } from "@renderer/features";
+import { generateUUID } from "@renderer/helpers";
 import "./settings-download-sources.scss";
 
 export function SettingsDownloadSources() {
@@ -95,7 +96,7 @@ export function SettingsDownloadSources() {
   const handleRemoveAllDownloadSources = () => {
     setIsRemovingDownloadSource(true);
 
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     const channel = new BroadcastChannel(`download_sources:delete_all:${id}`);
 
     downloadSourcesWorker.postMessage(["DELETE_ALL_DOWNLOAD_SOURCES", id]);
@@ -120,7 +121,7 @@ export function SettingsDownloadSources() {
   const syncDownloadSources = async () => {
     setIsSyncingDownloadSources(true);
 
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     const channel = new BroadcastChannel(`download_sources:sync:${id}`);
 
     downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);

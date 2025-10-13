@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly MAIN_VITE_CHECKOUT_URL: string;
   readonly MAIN_VITE_EXTERNAL_RESOURCES_URL: string;
   readonly MAIN_VITE_WS_URL: string;
+  readonly MAIN_VITE_RENDERER_URL: string;
+  readonly ELECTRON_RENDERER_URL: string;
 }
 
 interface ImportMeta {

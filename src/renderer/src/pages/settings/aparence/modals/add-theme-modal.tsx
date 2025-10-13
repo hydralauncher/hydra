@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useCallback } from "react";
+import { generateUUID } from "@renderer/helpers";
 
 import "./modals.scss";
 
@@ -79,7 +80,7 @@ export function AddThemeModal({
   const onSubmit = useCallback(
     async (values: FormValues) => {
       const theme: Theme = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         name: values.name,
         isActive: false,
         author: userDetails?.id,
