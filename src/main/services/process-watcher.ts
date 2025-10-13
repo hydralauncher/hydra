@@ -79,11 +79,18 @@ const findGamePathByProcess = async (
   const executables = gameExecutables[gameId];
 
   for (const executable of executables) {
-    const pathSet = processMap.get(executable.exe);
+    const executablewithoutExtension = executable.exe.replace(/\.exe$/i, "");
+
+    const pathSet =
+      processMap.get(executable.exe) ??
+      processMap.get(executablewithoutExtension);
 
     if (pathSet) {
       for (const path of pathSet) {
-        if (path.toLowerCase().endsWith(executable.name)) {
+        if (
+          path.toLowerCase().endsWith(executable.name) ||
+          path.toLowerCase().endsWith(executablewithoutExtension)
+        ) {
           const gameKey = levelKeys.game("steam", gameId);
           const game = await gamesSublevel.get(gameKey);
 
@@ -124,7 +131,6 @@ const getSystemProcessMap = async () => {
     if (!key || !value) return;
 
     const STEAM_COMPAT_DATA_PATH = process.environ?.STEAM_COMPAT_DATA_PATH;
-
     if (STEAM_COMPAT_DATA_PATH) {
       winePrefixMap.set(value, STEAM_COMPAT_DATA_PATH);
     }
