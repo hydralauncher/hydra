@@ -30,7 +30,7 @@ export const ImportThemeModal = ({
 
   const handleImportTheme = async () => {
     const theme: Theme = {
-      id: crypto.randomUUID(),
+      id: `${Date.now()}-${Math.random()}`,
       name: themeName,
       isActive: false,
       author: authorId,

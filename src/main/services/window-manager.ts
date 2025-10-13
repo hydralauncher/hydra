@@ -58,12 +58,10 @@ export class WindowManager {
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
     if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      this.mainWindow?.loadURL(
-        `${process.env["ELECTRON_RENDERER_URL"]}#/${hash}`
-      );
+      this.mainWindow?.loadURL(`http://192.168.1.159:8001#/${hash}`);
     } else {
       this.mainWindow
-        ?.loadURL(`https://staging.hydralauncher.gg/#/${hash}`)
+        ?.loadURL(`http://192.168.1.159:8001/#/${hash}`)
         .catch(() => {
           this.mainWindow?.loadFile(
             path.join(__dirname, "../renderer/index.html"),

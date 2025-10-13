@@ -212,7 +212,7 @@ export function App() {
   useEffect(() => {
     updateRepacks();
 
-    const id = crypto.randomUUID();
+    const id = `${Date.now()}-${Math.random()}`;
     const channel = new BroadcastChannel(`download_sources:sync:${id}`);
 
     channel.onmessage = async (event: MessageEvent<number>) => {
