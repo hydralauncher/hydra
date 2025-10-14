@@ -210,25 +210,32 @@ export function RepacksModal({
             className={`repacks-modal__download-sources ${isFilterDrawerOpen ? "repacks-modal__download-sources--open" : ""}`}
           >
             <div className="repacks-modal__source-grid">
-              {downloadSources.map((source) => {
-                const label = source.name || source.url;
-                const truncatedLabel =
-                  label.length > 16 ? label.substring(0, 16) + "..." : label;
-                return (
-                  <div
-                    key={source.fingerprint}
-                    className="repacks-modal__source-item"
-                  >
-                    <CheckboxField
-                      label={truncatedLabel}
-                      checked={selectedFingerprints.includes(
-                        source.fingerprint
-                      )}
-                      onChange={() => toggleFingerprint(source.fingerprint)}
-                    />
-                  </div>
-                );
-              })}
+              {downloadSources
+                .filter(
+                  (
+                    source
+                  ): source is DownloadSource & { fingerprint: string } =>
+                    source.fingerprint !== undefined
+                )
+                .map((source) => {
+                  const label = source.name || source.url;
+                  const truncatedLabel =
+                    label.length > 16 ? label.substring(0, 16) + "..." : label;
+                  return (
+                    <div
+                      key={source.fingerprint}
+                      className="repacks-modal__source-item"
+                    >
+                      <CheckboxField
+                        label={truncatedLabel}
+                        checked={selectedFingerprints.includes(
+                          source.fingerprint
+                        )}
+                        onChange={() => toggleFingerprint(source.fingerprint)}
+                      />
+                    </div>
+                  );
+                })}
             </div>
           </div>
         </div>

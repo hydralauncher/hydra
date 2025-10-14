@@ -21,7 +21,7 @@ const sectionVariants = {
     height: 0,
     transition: {
       duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1],
+      ease: [0.25, 0.1, 0.25, 1] as const,
       opacity: { duration: 0.1 },
       y: { duration: 0.1 },
       height: { duration: 0.2 },
@@ -33,30 +33,30 @@ const sectionVariants = {
     height: "auto",
     transition: {
       duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1],
+      ease: [0.25, 0.1, 0.25, 1] as const,
       opacity: { duration: 0.2, delay: 0.1 },
       y: { duration: 0.3 },
       height: { duration: 0.3 },
     },
   },
-};
+} as const;
 
 const chevronVariants = {
   collapsed: {
     rotate: 0,
     transition: {
       duration: 0.2,
-      ease: "easeInOut",
+      ease: "easeInOut" as const,
     },
   },
   expanded: {
     rotate: 90,
     transition: {
       duration: 0.2,
-      ease: "easeInOut",
+      ease: "easeInOut" as const,
     },
   },
-};
+} as const;
 
 export function SettingsDebrid() {
   const { t } = useTranslation("settings");
