@@ -1,6 +1,5 @@
 import { HydraApi } from "@main/services";
-import { downloadSourcesSublevel } from "@main/level";
-import { importDownloadSourceToLocal } from "./helpers";
+import { importDownloadSourceToLocal, checkUrlExists } from "./helpers";
 
 export const syncDownloadSourcesFromApi = async () => {
   try {
@@ -8,15 +7,9 @@ export const syncDownloadSourcesFromApi = async () => {
       { url: string; createdAt: string; updatedAt: string }[]
     >("/profile/download-sources");
 
-    const localSources: { url: string }[] = [];
-    for await (const [, source] of downloadSourcesSublevel.iterator()) {
-      localSources.push(source);
-    }
-
-    const localUrls = new Set(localSources.map((s) => s.url));
-
     for (const apiSource of apiSources) {
-      if (!localUrls.has(apiSource.url)) {
+      const exists = await checkUrlExists(apiSource.url);
+      if (!exists) {
         await importDownloadSourceToLocal(apiSource.url, false);
       }
     }
