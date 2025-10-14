@@ -25,11 +25,6 @@
     overflow: hidden;
     border-radius: 8px;
 
-    @media (min-width: 1024px) {
-      width: 80%;
-      max-height: 400px;
-    }
-
     @media (min-width: 1280px) {
       width: 60%;
       max-height: 500px;
@@ -71,10 +66,6 @@
     overflow-x: auto;
     overflow-y: hidden;
     gap: calc(globals.$spacing-unit / 2);
-
-    @media (min-width: 1024px) {
-      width: 80%;
-    }
 
     @media (min-width: 1280px) {
       width: 60%;
