@@ -163,19 +163,52 @@ const addNewDownloads = async (
 
   for (const download of downloads) {
     const formattedTitle = formatRepackName(download.title);
-    const [firstLetter] = formattedTitle;
-    const games = steamGames[firstLetter] || [];
+    let gamesInSteam: FormattedSteamGame[] = [];
 
-    const gamesInSteam = games.filter((game) =>
-      formattedTitle.startsWith(game.formattedName)
-    );
+    // Only try to match if we have a valid formatted title
+    if (formattedTitle && formattedTitle.length > 0) {
+      const [firstLetter] = formattedTitle;
+      const games = steamGames[firstLetter] || [];
 
-    if (gamesInSteam.length === 0) continue;
+      // Try exact prefix match first
+      gamesInSteam = games.filter((game) =>
+        formattedTitle.startsWith(game.formattedName)
+      );
 
+      // If no exact prefix match, try contains match (more lenient)
+      if (gamesInSteam.length === 0) {
+        gamesInSteam = games.filter(
+          (game) =>
+            formattedTitle.includes(game.formattedName) ||
+            game.formattedName.includes(formattedTitle)
+        );
+      }
+
+      // If still no match, try checking all letters (not just first letter)
+      // This helps with repacks that use abbreviations or alternate naming
+      if (gamesInSteam.length === 0) {
+        for (const letter of Object.keys(steamGames)) {
+          const letterGames = steamGames[letter] || [];
+          const matches = letterGames.filter(
+            (game) =>
+              formattedTitle.includes(game.formattedName) ||
+              game.formattedName.includes(formattedTitle)
+          );
+          if (matches.length > 0) {
+            gamesInSteam = matches;
+            break;
+          }
+        }
+      }
+    }
+
+    // Add matched game IDs to source tracking
     for (const game of gamesInSteam) {
       objectIdsOnSource.add(String(game.id));
     }
 
+    // Create the repack even if no games matched
+    // This ensures all repacks from sources are imported
     const repack = {
       id: nextRepackId++,
       objectIds: gamesInSteam.map((game) => String(game.id)),
@@ -253,4 +286,27 @@ export const importDownloadSourceToLocal = async (
     ...downloadSource,
     objectIds,
   };
+};
+
+export const updateDownloadSourcePreservingTimestamp = async (
+  existingSource: DownloadSource,
+  url: string
+) => {
+  const response = await axios.get<z.infer<typeof downloadSourceSchema>>(url);
+
+  const updatedSource = {
+    ...existingSource,
+    name: response.data.name,
+    etag: response.headers["etag"] || null,
+    status: DownloadSourceStatus.UpToDate,
+    downloadCount: response.data.downloads.length,
+    updatedAt: new Date(),
+    // Preserve the original createdAt timestamp
+  };
+
+  await downloadSourcesSublevel.put(`${existingSource.id}`, updatedSource);
+
+  invalidateDownloadSourcesCache();
+
+  return updatedSource;
 };
