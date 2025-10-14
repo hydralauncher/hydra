@@ -35,7 +35,7 @@ export interface DownloadSource {
   status: DownloadSourceStatus;
   objectIds: string[];
   downloadCount: number;
-  fingerprint: string;
+  fingerprint?: string;
   etag: string | null;
   createdAt: Date;
   updatedAt: Date;

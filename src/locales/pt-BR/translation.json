@@ -435,6 +435,7 @@
     "found_download_option_one": "{{countFormatted}} opção de download encontrada",
     "found_download_option_other": "{{countFormatted}} opções de download encontradas",
     "import": "Importar",
+    "importing": "Importando...",
     "privacy": "Privacidade",
     "private": "Privado",
     "friends_only": "Apenas amigos",

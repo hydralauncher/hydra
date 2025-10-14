@@ -15,7 +15,6 @@ import {
   TextField,
   CheckboxField,
 } from "@renderer/components";
-import { downloadSourcesTable } from "@renderer/dexie";
 import type { DownloadSource } from "@types";
 import type { GameRepack } from "@types";
 
@@ -105,7 +104,7 @@ export function RepacksModal({
   }, [repacks, hashesInDebrid]);
 
   useEffect(() => {
-    downloadSourcesTable.toArray().then((sources) => {
+    window.electron.getDownloadSourcesList().then((sources) => {
       const uniqueRepackers = new Set(sortedRepacks.map((r) => r.repacker));
       const filteredSources = sources.filter(
         (s) => s.name && uniqueRepackers.has(s.name) && !!s.fingerprint
@@ -129,6 +128,7 @@ export function RepacksModal({
 
       return downloadSources.some(
         (src) =>
+          src.fingerprint &&
           selectedFingerprints.includes(src.fingerprint) &&
           src.name === repack.repacker
       );

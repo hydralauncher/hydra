@@ -9,6 +9,7 @@ import {
   gameRunningSlice,
   subscriptionSlice,
   repacksSlice,
+  downloadSourcesSlice,
   catalogueSearchSlice,
 } from "@renderer/features";
 
@@ -23,6 +24,7 @@ export const store = configureStore({
     gameRunning: gameRunningSlice.reducer,
     subscription: subscriptionSlice.reducer,
     repacks: repacksSlice.reducer,
+    downloadSources: downloadSourcesSlice.reducer,
     catalogueSearch: catalogueSearchSlice.reducer,
   },
 });

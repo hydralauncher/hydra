@@ -446,6 +446,7 @@
     "found_download_option_one": "Найден {{countFormatted}} вариант загрузки",
     "found_download_option_other": "Найдено {{countFormatted}} вариантов загрузки",
     "import": "Импортировать",
+    "importing": "Импортируется...",
     "public": "Публичный",
     "private": "Частный",
     "friends_only": "Только для друзей",

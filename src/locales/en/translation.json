@@ -447,6 +447,7 @@
     "found_download_option_one": "Found {{countFormatted}} download option",
     "found_download_option_other": "Found {{countFormatted}} download options",
     "import": "Import",
+    "importing": "Importing...",
     "public": "Public",
     "private": "Private",
     "friends_only": "Friends only",

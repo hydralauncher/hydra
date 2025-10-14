@@ -376,6 +376,7 @@
     "found_download_option_one": "Encontrada {{countFormatted}} fuente de descarga",
     "found_download_option_other": "Encontradas {{countFormatted}} opciones de descargas",
     "import": "Importar",
+    "importing": "Importando...",
     "public": "Público",
     "private": "Privado",
     "friends_only": "Sólo amigos",
