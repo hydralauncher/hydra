@@ -99,13 +99,24 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("authenticateTorBox", apiToken),
 
   /* Download sources */
-  putDownloadSource: (objectIds: string[]) =>
-    ipcRenderer.invoke("putDownloadSource", objectIds),
-  createDownloadSources: (urls: string[]) =>
-    ipcRenderer.invoke("createDownloadSources", urls),
+  addDownloadSource: (url: string) =>
+    ipcRenderer.invoke("addDownloadSource", url),
+  updateMissingFingerprints: () =>
+    ipcRenderer.invoke("updateMissingFingerprints"),
   removeDownloadSource: (url: string, removeAll?: boolean) =>
     ipcRenderer.invoke("removeDownloadSource", url, removeAll),
   getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
+  deleteDownloadSource: (id: number) =>
+    ipcRenderer.invoke("deleteDownloadSource", id),
+  deleteAllDownloadSources: () =>
+    ipcRenderer.invoke("deleteAllDownloadSources"),
+  validateDownloadSource: (url: string) =>
+    ipcRenderer.invoke("validateDownloadSource", url),
+  syncDownloadSources: () => ipcRenderer.invoke("syncDownloadSources"),
+  getDownloadSourcesList: () => ipcRenderer.invoke("getDownloadSourcesList"),
+  checkDownloadSourceExists: (url: string) =>
+    ipcRenderer.invoke("checkDownloadSourceExists", url),
+  getAllRepacks: () => ipcRenderer.invoke("getAllRepacks"),
 
   /* Library */
   toggleAutomaticCloudSync: (

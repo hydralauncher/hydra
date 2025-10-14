@@ -31,6 +31,9 @@ import type {
   AchievementNotificationInfo,
   Game,
   DiskUsage,
+  DownloadSource,
+  DownloadSourceValidationResult,
+  GameRepack,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -210,14 +213,21 @@ declare global {
     createSteamShortcut: (shop: GameShop, objectId: string) => Promise<void>;
 
     /* Download sources */
-    putDownloadSource: (
-      objectIds: string[]
-    ) => Promise<{ fingerprint: string }>;
-    createDownloadSources: (urls: string[]) => Promise<void>;
+    addDownloadSource: (url: string) => Promise<DownloadSource>;
+    updateMissingFingerprints: () => Promise<number>;
     removeDownloadSource: (url: string, removeAll?: boolean) => Promise<void>;
     getDownloadSources: () => Promise<
       Pick<DownloadSource, "url" | "createdAt" | "updatedAt">[]
     >;
+    deleteDownloadSource: (id: number) => Promise<void>;
+    deleteAllDownloadSources: () => Promise<void>;
+    validateDownloadSource: (
+      url: string
+    ) => Promise<DownloadSourceValidationResult>;
+    syncDownloadSources: () => Promise<number>;
+    getDownloadSourcesList: () => Promise<DownloadSource[]>;
+    checkDownloadSourceExists: (url: string) => Promise<boolean>;
+    getAllRepacks: () => Promise<GameRepack[]>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskUsage>;

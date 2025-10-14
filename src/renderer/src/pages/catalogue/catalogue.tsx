@@ -1,16 +1,10 @@
 import type { CatalogueSearchResult, DownloadSource } from "@types";
 
-import {
-  useAppDispatch,
-  useAppSelector,
-  useFormat,
-  useRepacks,
-} from "@renderer/hooks";
+import { useAppDispatch, useAppSelector, useFormat } from "@renderer/hooks";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import "./catalogue.scss";
 
-import { downloadSourcesTable } from "@renderer/dexie";
 import { FilterSection } from "./filter-section";
 import { setFilters, setPage } from "@renderer/features";
 import { useTranslation } from "react-i18next";
@@ -56,8 +50,6 @@ export default function Catalogue() {
 
   const { t, i18n } = useTranslation("catalogue");
 
-  const { getRepacksForObjectId } = useRepacks();
-
   const debouncedSearch = useRef(
     debounce(async (filters, pageSize, offset) => {
       const abortController = new AbortController();
@@ -95,10 +87,10 @@ export default function Catalogue() {
   }, [filters, page, debouncedSearch]);
 
   useEffect(() => {
-    downloadSourcesTable.toArray().then((sources) => {
+    window.electron.getDownloadSourcesList().then((sources) => {
       setDownloadSources(sources.filter((source) => !!source.fingerprint));
     });
-  }, [getRepacksForObjectId]);
+  }, []);
 
   const language = i18n.language.split("-")[0];
 
@@ -192,13 +184,15 @@ export default function Catalogue() {
       },
       {
         title: t("download_sources"),
-        items: downloadSources.map((source) => ({
-          label: source.name,
-          value: source.fingerprint,
-          checked: filters.downloadSourceFingerprints.includes(
-            source.fingerprint
-          ),
-        })),
+        items: downloadSources
+          .filter((source) => source.fingerprint)
+          .map((source) => ({
+            label: source.name,
+            value: source.fingerprint!,
+            checked: filters.downloadSourceFingerprints.includes(
+              source.fingerprint!
+            ),
+          })),
         key: "downloadSourceFingerprints",
       },
       {
