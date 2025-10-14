@@ -3,11 +3,7 @@ import axios, { AxiosError } from "axios";
 import { z } from "zod";
 import { downloadSourcesSublevel, repacksSublevel } from "@main/level";
 import { DownloadSourceStatus } from "@shared";
-import {
-  checkUrlExists,
-  invalidateDownloadSourcesCache,
-  invalidateIdCaches,
-} from "./helpers";
+import { invalidateDownloadSourcesCache } from "./helpers";
 
 const downloadSourceSchema = z.object({
   name: z.string().max(255),
@@ -157,60 +153,6 @@ const addNewDownloads = async (
   }
 };
 
-const deleteDownloadSource = async (id: number) => {
-  const repacksToDelete: string[] = [];
-
-  for await (const [key, repack] of repacksSublevel.iterator()) {
-    if (repack.downloadSourceId === id) {
-      repacksToDelete.push(key);
-    }
-  }
-
-  const batch = repacksSublevel.batch();
-  for (const key of repacksToDelete) {
-    batch.del(key);
-  }
-  await batch.write();
-
-  await downloadSourcesSublevel.del(`${id}`);
-
-  invalidateDownloadSourcesCache();
-  invalidateIdCaches();
-};
-
-const importDownloadSource = async (url: string) => {
-  const urlExists = await checkUrlExists(url);
-  if (urlExists) {
-    return;
-  }
-
-  const response = await axios.get<z.infer<typeof downloadSourceSchema>>(url);
-
-  const steamGames = await getSteamGames();
-
-  const now = new Date();
-
-  const nextId = await getNextId(downloadSourcesSublevel);
-
-  const downloadSource = {
-    id: nextId,
-    url,
-    name: response.data.name,
-    etag: response.headers["etag"] || null,
-    status: DownloadSourceStatus.UpToDate,
-    downloadCount: response.data.downloads.length,
-    objectIds: [],
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  await downloadSourcesSublevel.put(`${downloadSource.id}`, downloadSource);
-
-  invalidateDownloadSourcesCache();
-
-  await addNewDownloads(downloadSource, response.data.downloads, steamGames);
-};
-
 const syncDownloadSources = async (
   _event: Electron.IpcMainInvokeEvent
 ): Promise<number> => {
@@ -249,56 +191,65 @@ const syncDownloadSources = async (
       existingRepacks.push(repack);
     }
 
-    if (downloadSources.some((source) => !source.fingerprint)) {
-      await Promise.all(
-        downloadSources.map(async (source) => {
-          await deleteDownloadSource(source.id);
-          await importDownloadSource(source.url);
-        })
-      );
-    } else {
-      for (const downloadSource of downloadSources) {
-        const headers: Record<string, string> = {};
+    // Handle sources with missing fingerprints individually, don't delete all sources
+    const sourcesWithFingerprints = downloadSources.filter(
+      (source) => source.fingerprint
+    );
+    const sourcesWithoutFingerprints = downloadSources.filter(
+      (source) => !source.fingerprint
+    );
 
-        if (downloadSource.etag) {
-          headers["If-None-Match"] = downloadSource.etag;
-        }
+    // For sources without fingerprints, just continue with normal sync
+    // They will get fingerprints updated later by updateMissingFingerprints
+    const allSourcesToSync = [
+      ...sourcesWithFingerprints,
+      ...sourcesWithoutFingerprints,
+    ];
 
-        try {
-          const response = await axios.get(downloadSource.url, {
-            headers,
-          });
+    for (const downloadSource of allSourcesToSync) {
+      const headers: Record<string, string> = {};
 
-          const source = downloadSourceSchema.parse(response.data);
-          const steamGames = await getSteamGames();
+      if (downloadSource.etag) {
+        headers["If-None-Match"] = downloadSource.etag;
+      }
 
-          const repacks = source.downloads.filter(
-            (download) =>
-              !existingRepacks.some((repack) => repack.title === download.title)
-          );
+      try {
+        const response = await axios.get(downloadSource.url, {
+          headers,
+        });
 
-          await downloadSourcesSublevel.put(`${downloadSource.id}`, {
-            ...downloadSource,
-            etag: response.headers["etag"] || null,
-            downloadCount: source.downloads.length,
-            status: DownloadSourceStatus.UpToDate,
-          });
+        const source = downloadSourceSchema.parse(response.data);
+        const steamGames = await getSteamGames();
 
-          await addNewDownloads(downloadSource, repacks, steamGames);
+        const repacks = source.downloads.filter(
+          (download) =>
+            !existingRepacks.some((repack) => repack.title === download.title)
+        );
 
-          newRepacksCount += repacks.length;
-        } catch (err: unknown) {
-          const isNotModified = (err as AxiosError).response?.status === 304;
+        await downloadSourcesSublevel.put(`${downloadSource.id}`, {
+          ...downloadSource,
+          etag: response.headers["etag"] || null,
+          downloadCount: source.downloads.length,
+          status: DownloadSourceStatus.UpToDate,
+        });
 
-          await downloadSourcesSublevel.put(`${downloadSource.id}`, {
-            ...downloadSource,
-            status: isNotModified
-              ? DownloadSourceStatus.UpToDate
-              : DownloadSourceStatus.Errored,
-          });
-        }
+        await addNewDownloads(downloadSource, repacks, steamGames);
+
+        newRepacksCount += repacks.length;
+      } catch (err: unknown) {
+        const isNotModified = (err as AxiosError).response?.status === 304;
+
+        await downloadSourcesSublevel.put(`${downloadSource.id}`, {
+          ...downloadSource,
+          status: isNotModified
+            ? DownloadSourceStatus.UpToDate
+            : DownloadSourceStatus.Errored,
+        });
       }
     }
+
+    // Invalidate cache after all sync operations complete
+    invalidateDownloadSourcesCache();
 
     return newRepacksCount;
   } catch (err) {
