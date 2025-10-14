@@ -5,7 +5,7 @@ export const sectionVariants = {
     height: 0,
     transition: {
       duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1],
+      ease: [0.25, 0.1, 0.25, 1] as const,
       opacity: { duration: 0.1 },
       y: { duration: 0.1 },
       height: { duration: 0.2 },
@@ -17,13 +17,13 @@ export const sectionVariants = {
     height: "auto",
     transition: {
       duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1],
+      ease: [0.25, 0.1, 0.25, 1] as const,
       opacity: { duration: 0.2, delay: 0.1 },
       y: { duration: 0.3 },
       height: { duration: 0.3 },
     },
   },
-};
+} as const;
 
 export const gameCardVariants = {
   hidden: {
@@ -37,7 +37,7 @@ export const gameCardVariants = {
     scale: 1,
     transition: {
       duration: 0.4,
-      ease: [0.25, 0.1, 0.25, 1],
+      ease: [0.25, 0.1, 0.25, 1] as const,
     },
   },
   exit: {
@@ -46,10 +46,10 @@ export const gameCardVariants = {
     scale: 0.95,
     transition: {
       duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1],
+      ease: [0.25, 0.1, 0.25, 1] as const,
     },
   },
-};
+} as const;
 
 export const gameGridVariants = {
   hidden: {
@@ -76,16 +76,16 @@ export const chevronVariants = {
     rotate: 0,
     transition: {
       duration: 0.2,
-      ease: "easeInOut",
+      ease: "easeInOut" as const,
     },
   },
   expanded: {
     rotate: 90,
     transition: {
       duration: 0.2,
-      ease: "easeInOut",
+      ease: "easeInOut" as const,
     },
   },
-};
+} as const;
 
 export const GAME_STATS_ANIMATION_DURATION_IN_MS = 3500;
