@@ -2,6 +2,7 @@ import axios from "axios";
 import { z } from "zod";
 import { downloadSourcesSublevel, repacksSublevel } from "@main/level";
 import { DownloadSourceStatus } from "@shared";
+import crypto from "crypto";
 
 const downloadSourceSchema = z.object({
   name: z.string().max(255),
@@ -14,6 +15,46 @@ const downloadSourceSchema = z.object({
     })
   ),
 });
+
+// Pre-computed title-to-Steam-ID mapping
+type TitleHashMapping = Record<string, number[]>;
+let titleHashMappingCache: TitleHashMapping | null = null;
+let titleHashMappingCacheTime = 0;
+const TITLE_HASH_MAPPING_TTL = 86400000; // 24 hours
+
+const getTitleHashMapping = async (): Promise<TitleHashMapping> => {
+  const now = Date.now();
+  if (
+    titleHashMappingCache &&
+    now - titleHashMappingCacheTime < TITLE_HASH_MAPPING_TTL
+  ) {
+    return titleHashMappingCache;
+  }
+
+  try {
+    const response = await axios.get<TitleHashMapping>(
+      "https://cdn.losbroxas.org/results_a4c50f70c2.json",
+      {
+        timeout: 10000,
+      }
+    );
+
+    titleHashMappingCache = response.data;
+    titleHashMappingCacheTime = now;
+    console.log(
+      `✅ Loaded title hash mapping with ${Object.keys(response.data).length} entries`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch title hash mapping:", error);
+    // Return empty mapping on error - will fall back to fuzzy matching
+    return {};
+  }
+};
+
+const hashTitle = (title: string): string => {
+  return crypto.createHash("sha256").update(title).digest("hex");
+};
 
 type SteamGamesByLetter = Record<string, { id: string; name: string }[]>;
 type FormattedSteamGame = { id: string; name: string; formattedName: string };
@@ -161,57 +202,89 @@ const addNewDownloads = async (
 
   const batch = repacksSublevel.batch();
 
+  // Fetch the pre-computed hash mapping
+  const titleHashMapping = await getTitleHashMapping();
+  let hashMatchCount = 0;
+  let fuzzyMatchCount = 0;
+  let noMatchCount = 0;
+
   for (const download of downloads) {
-    const formattedTitle = formatRepackName(download.title);
-    let gamesInSteam: FormattedSteamGame[] = [];
+    let objectIds: string[] = [];
+    let usedHashMatch = false;
 
-    // Only try to match if we have a valid formatted title
-    if (formattedTitle && formattedTitle.length > 0) {
-      const [firstLetter] = formattedTitle;
-      const games = steamGames[firstLetter] || [];
+    // FIRST: Try hash-based lookup (fast and accurate)
+    const titleHash = hashTitle(download.title);
+    const steamIdsFromHash = titleHashMapping[titleHash];
 
-      // Try exact prefix match first
-      gamesInSteam = games.filter((game) =>
-        formattedTitle.startsWith(game.formattedName)
-      );
+    if (steamIdsFromHash && steamIdsFromHash.length > 0) {
+      // Found in hash mapping - trust it completely
+      hashMatchCount++;
+      usedHashMatch = true;
 
-      // If no exact prefix match, try contains match (more lenient)
-      if (gamesInSteam.length === 0) {
-        gamesInSteam = games.filter(
-          (game) =>
-            formattedTitle.includes(game.formattedName) ||
-            game.formattedName.includes(formattedTitle)
+      // Use the Steam IDs directly as strings (trust the hash mapping)
+      objectIds = steamIdsFromHash.map(String);
+    }
+
+    // FALLBACK: Use fuzzy matching ONLY if hash lookup found nothing
+    if (!usedHashMatch) {
+      let gamesInSteam: FormattedSteamGame[] = [];
+      const formattedTitle = formatRepackName(download.title);
+
+      if (formattedTitle && formattedTitle.length > 0) {
+        const [firstLetter] = formattedTitle;
+        const games = steamGames[firstLetter] || [];
+
+        // Try exact prefix match first
+        gamesInSteam = games.filter((game) =>
+          formattedTitle.startsWith(game.formattedName)
         );
-      }
 
-      // If still no match, try checking all letters (not just first letter)
-      // This helps with repacks that use abbreviations or alternate naming
-      if (gamesInSteam.length === 0) {
-        for (const letter of Object.keys(steamGames)) {
-          const letterGames = steamGames[letter] || [];
-          const matches = letterGames.filter(
+        // If no exact prefix match, try contains match (more lenient)
+        if (gamesInSteam.length === 0) {
+          gamesInSteam = games.filter(
             (game) =>
               formattedTitle.includes(game.formattedName) ||
               game.formattedName.includes(formattedTitle)
           );
-          if (matches.length > 0) {
-            gamesInSteam = matches;
-            break;
+        }
+
+        // If still no match, try checking all letters (not just first letter)
+        if (gamesInSteam.length === 0) {
+          for (const letter of Object.keys(steamGames)) {
+            const letterGames = steamGames[letter] || [];
+            const matches = letterGames.filter(
+              (game) =>
+                formattedTitle.includes(game.formattedName) ||
+                game.formattedName.includes(formattedTitle)
+            );
+            if (matches.length > 0) {
+              gamesInSteam = matches;
+              break;
+            }
           }
         }
+
+        if (gamesInSteam.length > 0) {
+          fuzzyMatchCount++;
+          objectIds = gamesInSteam.map((game) => String(game.id));
+        } else {
+          noMatchCount++;
+        }
+      } else {
+        noMatchCount++;
       }
     }
 
     // Add matched game IDs to source tracking
-    for (const game of gamesInSteam) {
-      objectIdsOnSource.add(String(game.id));
+    for (const id of objectIds) {
+      objectIdsOnSource.add(id);
     }
 
     // Create the repack even if no games matched
     // This ensures all repacks from sources are imported
     const repack = {
       id: nextRepackId++,
-      objectIds: gamesInSteam.map((game) => String(game.id)),
+      objectIds: objectIds,
       title: download.title,
       uris: download.uris,
       fileSize: download.fileSize,
@@ -226,6 +299,11 @@ const addNewDownloads = async (
   }
 
   await batch.write();
+
+  // Log matching statistics
+  console.log(
+    `📊 Matching stats for ${downloadSource.name}: Hash=${hashMatchCount}, Fuzzy=${fuzzyMatchCount}, None=${noMatchCount}`
+  );
 
   const existingSource = await downloadSourcesSublevel.get(
     `${downloadSource.id}`
