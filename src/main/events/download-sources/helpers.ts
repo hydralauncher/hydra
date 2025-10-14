@@ -282,6 +282,9 @@ export const importDownloadSourceToLocal = async (
     steamGames
   );
 
+  // Invalidate ID caches after creating new repacks to prevent ID collisions
+  invalidateIdCaches();
+
   return {
     ...downloadSource,
     objectIds,
