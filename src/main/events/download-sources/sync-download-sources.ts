@@ -3,7 +3,7 @@ import axios, { AxiosError } from "axios";
 import { z } from "zod";
 import { downloadSourcesSublevel, repacksSublevel } from "@main/level";
 import { DownloadSourceStatus } from "@shared";
-import { invalidateDownloadSourcesCache } from "./helpers";
+import { invalidateDownloadSourcesCache, invalidateIdCaches } from "./helpers";
 
 const downloadSourceSchema = z.object({
   name: z.string().max(255),
@@ -111,19 +111,52 @@ const addNewDownloads = async (
 
   for (const download of downloads) {
     const formattedTitle = formatRepackName(download.title);
-    const [firstLetter] = formattedTitle;
-    const games = steamGames[firstLetter] || [];
+    let gamesInSteam: FormattedSteamGame[] = [];
 
-    const gamesInSteam = games.filter((game) =>
-      formattedTitle.startsWith(game.formattedName)
-    );
+    // Only try to match if we have a valid formatted title
+    if (formattedTitle && formattedTitle.length > 0) {
+      const [firstLetter] = formattedTitle;
+      const games = steamGames[firstLetter] || [];
 
-    if (gamesInSteam.length === 0) continue;
+      // Try exact prefix match first
+      gamesInSteam = games.filter((game) =>
+        formattedTitle.startsWith(game.formattedName)
+      );
 
+      // If no exact prefix match, try contains match (more lenient)
+      if (gamesInSteam.length === 0) {
+        gamesInSteam = games.filter(
+          (game) =>
+            formattedTitle.includes(game.formattedName) ||
+            game.formattedName.includes(formattedTitle)
+        );
+      }
+
+      // If still no match, try checking all letters (not just first letter)
+      // This helps with repacks that use abbreviations or alternate naming
+      if (gamesInSteam.length === 0) {
+        for (const letter of Object.keys(steamGames)) {
+          const letterGames = steamGames[letter] || [];
+          const matches = letterGames.filter(
+            (game) =>
+              formattedTitle.includes(game.formattedName) ||
+              game.formattedName.includes(formattedTitle)
+          );
+          if (matches.length > 0) {
+            gamesInSteam = matches;
+            break;
+          }
+        }
+      }
+    }
+
+    // Add matched game IDs to source tracking
     for (const game of gamesInSteam) {
       objectIdsOnSource.add(String(game.id));
     }
 
+    // Create the repack even if no games matched
+    // This ensures all repacks from sources are imported
     const repack = {
       id: nextRepackId++,
       objectIds: gamesInSteam.map((game) => String(game.id)),
@@ -248,8 +281,9 @@ const syncDownloadSources = async (
       }
     }
 
-    // Invalidate cache after all sync operations complete
+    // Invalidate caches after all sync operations complete
     invalidateDownloadSourcesCache();
+    invalidateIdCaches();
 
     return newRepacksCount;
   } catch (err) {
