@@ -16,6 +16,8 @@ const downloadSourceSchema = z.object({
 });
 
 type SteamGamesByLetter = Record<string, { id: string; name: string }[]>;
+type FormattedSteamGame = { id: string; name: string; formattedName: string };
+type FormattedSteamGamesByLetter = Record<string, FormattedSteamGame[]>;
 
 const formatName = (name: string) => {
   return name
@@ -29,8 +31,48 @@ const formatRepackName = (name: string) => {
   return formatName(name.replace("[DL]", ""));
 };
 
+interface DownloadSource {
+  id: number;
+  url: string;
+  name: string;
+  etag: string | null;
+  status: number;
+  downloadCount: number;
+  objectIds: string[];
+  fingerprint?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+let downloadSourcesCache: Map<string, DownloadSource> | null = null;
+let downloadSourcesCacheTime = 0;
+const CACHE_TTL = 5000;
+
+const getDownloadSourcesMap = async (): Promise<
+  Map<string, DownloadSource>
+> => {
+  const now = Date.now();
+  if (downloadSourcesCache && now - downloadSourcesCacheTime < CACHE_TTL) {
+    return downloadSourcesCache;
+  }
+
+  const map = new Map();
+  for await (const [key, source] of downloadSourcesSublevel.iterator()) {
+    map.set(key, source);
+  }
+
+  downloadSourcesCache = map;
+  downloadSourcesCacheTime = now;
+  return map;
+};
+
+export const invalidateDownloadSourcesCache = () => {
+  downloadSourcesCache = null;
+};
+
 export const checkUrlExists = async (url: string): Promise<boolean> => {
-  for await (const [, source] of downloadSourcesSublevel.iterator()) {
+  const sources = await getDownloadSourcesMap();
+  for (const source of sources.values()) {
     if (source.url === url) {
       return true;
     }
@@ -38,12 +80,31 @@ export const checkUrlExists = async (url: string): Promise<boolean> => {
   return false;
 };
 
-const getSteamGames = async () => {
+let steamGamesCache: FormattedSteamGamesByLetter | null = null;
+let steamGamesCacheTime = 0;
+const STEAM_GAMES_CACHE_TTL = 300000;
+
+const getSteamGames = async (): Promise<FormattedSteamGamesByLetter> => {
+  const now = Date.now();
+  if (steamGamesCache && now - steamGamesCacheTime < STEAM_GAMES_CACHE_TTL) {
+    return steamGamesCache;
+  }
+
   const response = await axios.get<SteamGamesByLetter>(
     `${import.meta.env.MAIN_VITE_EXTERNAL_RESOURCES_URL}/steam-games-by-letter.json`
   );
 
-  return response.data;
+  const formattedData: FormattedSteamGamesByLetter = {};
+  for (const [letter, games] of Object.entries(response.data)) {
+    formattedData[letter] = games.map((game) => ({
+      ...game,
+      formattedName: formatName(game.name),
+    }));
+  }
+
+  steamGamesCache = formattedData;
+  steamGamesCacheTime = now;
+  return formattedData;
 };
 
 type SublevelIterator = AsyncIterable<[string, { id: number }]>;
@@ -52,25 +113,53 @@ interface SublevelWithId {
   iterator: () => SublevelIterator;
 }
 
+let maxRepackId: number | null = null;
+let maxDownloadSourceId: number | null = null;
+
 const getNextId = async (sublevel: SublevelWithId): Promise<number> => {
+  const isRepackSublevel = sublevel === repacksSublevel;
+  const isDownloadSourceSublevel = sublevel === downloadSourcesSublevel;
+
+  if (isRepackSublevel && maxRepackId !== null) {
+    return ++maxRepackId;
+  }
+
+  if (isDownloadSourceSublevel && maxDownloadSourceId !== null) {
+    return ++maxDownloadSourceId;
+  }
+
   let maxId = 0;
   for await (const [, value] of sublevel.iterator()) {
     if (value.id > maxId) {
       maxId = value.id;
     }
   }
+
+  if (isRepackSublevel) {
+    maxRepackId = maxId;
+  } else if (isDownloadSourceSublevel) {
+    maxDownloadSourceId = maxId;
+  }
+
   return maxId + 1;
+};
+
+export const invalidateIdCaches = () => {
+  maxRepackId = null;
+  maxDownloadSourceId = null;
 };
 
 const addNewDownloads = async (
   downloadSource: { id: number; name: string },
   downloads: z.infer<typeof downloadSourceSchema>["downloads"],
-  steamGames: SteamGamesByLetter
+  steamGames: FormattedSteamGamesByLetter
 ) => {
   const now = new Date();
   const objectIdsOnSource = new Set<string>();
 
   let nextRepackId = await getNextId(repacksSublevel);
+
+  const batch = repacksSublevel.batch();
 
   for (const download of downloads) {
     const formattedTitle = formatRepackName(download.title);
@@ -78,7 +167,7 @@ const addNewDownloads = async (
     const games = steamGames[firstLetter] || [];
 
     const gamesInSteam = games.filter((game) =>
-      formattedTitle.startsWith(formatName(game.name))
+      formattedTitle.startsWith(game.formattedName)
     );
 
     if (gamesInSteam.length === 0) continue;
@@ -100,8 +189,10 @@ const addNewDownloads = async (
       updatedAt: now,
     };
 
-    await repacksSublevel.put(`${repack.id}`, repack);
+    batch.put(`${repack.id}`, repack);
   }
+
+  await batch.write();
 
   const existingSource = await downloadSourcesSublevel.get(
     `${downloadSource.id}`
@@ -134,14 +225,6 @@ export const importDownloadSourceToLocal = async (
 
   const now = new Date();
 
-  const urlExistsBeforeInsert = await checkUrlExists(url);
-  if (urlExistsBeforeInsert) {
-    if (throwOnDuplicate) {
-      throw new Error("Download source with this URL already exists");
-    }
-    return null;
-  }
-
   const nextId = await getNextId(downloadSourcesSublevel);
 
   const downloadSource = {
@@ -157,6 +240,8 @@ export const importDownloadSourceToLocal = async (
   };
 
   await downloadSourcesSublevel.put(`${downloadSource.id}`, downloadSource);
+
+  invalidateDownloadSourcesCache();
 
   const objectIds = await addNewDownloads(
     downloadSource,
