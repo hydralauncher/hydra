@@ -224,6 +224,12 @@ $hero-height: 300px;
     margin-top: calc(globals.$spacing-unit * 3);
   }
 
+  &__reviews-container {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 4);
+  }
+
   &__reviews-separator {
     height: 1px;
     background: rgba(255, 255, 255, 0.1);
@@ -264,16 +270,6 @@ $hero-height: 300px;
   }
 
   &__review-item {
-    background: linear-gradient(
-      to right,
-      globals.$dark-background-color 0%,
-      globals.$dark-background-color 30%,
-      globals.$background-color 100%
-    );
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 6px;
-    padding: calc(globals.$spacing-unit * 2);
-    margin-bottom: calc(globals.$spacing-unit * 2);
     overflow: hidden;
     word-wrap: break-word;
   }

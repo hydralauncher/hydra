@@ -3,8 +3,9 @@ import { z } from "zod";
 import { downloadSourcesSublevel, repacksSublevel } from "@main/level";
 import { DownloadSourceStatus } from "@shared";
 import crypto from "crypto";
+import { logger, ResourceCache } from "@main/services";
 
-const downloadSourceSchema = z.object({
+export const downloadSourceSchema = z.object({
   name: z.string().max(255),
   downloads: z.array(
     z.object({
@@ -16,51 +17,49 @@ const downloadSourceSchema = z.object({
   ),
 });
 
-// Pre-computed title-to-Steam-ID mapping
-type TitleHashMapping = Record<string, number[]>;
-let titleHashMappingCache: TitleHashMapping | null = null;
-let titleHashMappingCacheTime = 0;
-const TITLE_HASH_MAPPING_TTL = 86400000; // 24 hours
+export type TitleHashMapping = Record<string, number[]>;
 
-const getTitleHashMapping = async (): Promise<TitleHashMapping> => {
-  const now = Date.now();
-  if (
-    titleHashMappingCache &&
-    now - titleHashMappingCacheTime < TITLE_HASH_MAPPING_TTL
-  ) {
+let titleHashMappingCache: TitleHashMapping | null = null;
+
+export const getTitleHashMapping = async (): Promise<TitleHashMapping> => {
+  if (titleHashMappingCache) {
     return titleHashMappingCache;
   }
 
   try {
-    const response = await axios.get<TitleHashMapping>(
-      "https://cdn.losbroxas.org/results_a4c50f70c2.json",
-      {
-        timeout: 10000,
-      }
-    );
+    const cached =
+      ResourceCache.getCachedData<TitleHashMapping>("sources-manifest");
+    if (cached) {
+      titleHashMappingCache = cached;
+      return cached;
+    }
 
-    titleHashMappingCache = response.data;
-    titleHashMappingCacheTime = now;
-    console.log(
-      `✅ Loaded title hash mapping with ${Object.keys(response.data).length} entries`
+    const fetched = await ResourceCache.fetchAndCache<TitleHashMapping>(
+      "sources-manifest",
+      "https://cdn.losbroxas.org/sources-manifest.json",
+      10000
     );
-    return response.data;
+    titleHashMappingCache = fetched;
+    return fetched;
   } catch (error) {
-    console.error("Failed to fetch title hash mapping:", error);
-    // Return empty mapping on error - will fall back to fuzzy matching
-    return {};
+    logger.error("Failed to fetch title hash mapping:", error);
+    return {} as TitleHashMapping;
   }
 };
 
-const hashTitle = (title: string): string => {
+export const hashTitle = (title: string): string => {
   return crypto.createHash("sha256").update(title).digest("hex");
 };
 
-type SteamGamesByLetter = Record<string, { id: string; name: string }[]>;
-type FormattedSteamGame = { id: string; name: string; formattedName: string };
-type FormattedSteamGamesByLetter = Record<string, FormattedSteamGame[]>;
+export type SteamGamesByLetter = Record<string, { id: string; name: string }[]>;
+export type FormattedSteamGame = {
+  id: string;
+  name: string;
+  formattedName: string;
+};
+export type FormattedSteamGamesByLetter = Record<string, FormattedSteamGame[]>;
 
-const formatName = (name: string) => {
+export const formatName = (name: string) => {
   return name
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -68,7 +67,7 @@ const formatName = (name: string) => {
     .replace(/[^a-z0-9]/g, "");
 };
 
-const formatRepackName = (name: string) => {
+export const formatRepackName = (name: string) => {
   return formatName(name.replace("[DL]", ""));
 };
 
@@ -85,30 +84,15 @@ interface DownloadSource {
   updatedAt: Date;
 }
 
-let downloadSourcesCache: Map<string, DownloadSource> | null = null;
-let downloadSourcesCacheTime = 0;
-const CACHE_TTL = 5000;
-
 const getDownloadSourcesMap = async (): Promise<
   Map<string, DownloadSource>
 > => {
-  const now = Date.now();
-  if (downloadSourcesCache && now - downloadSourcesCacheTime < CACHE_TTL) {
-    return downloadSourcesCache;
-  }
-
   const map = new Map();
   for await (const [key, source] of downloadSourcesSublevel.iterator()) {
     map.set(key, source);
   }
 
-  downloadSourcesCache = map;
-  downloadSourcesCacheTime = now;
   return map;
-};
-
-export const invalidateDownloadSourcesCache = () => {
-  downloadSourcesCache = null;
 };
 
 export const checkUrlExists = async (url: string): Promise<boolean> => {
@@ -121,43 +105,49 @@ export const checkUrlExists = async (url: string): Promise<boolean> => {
   return false;
 };
 
-let steamGamesCache: FormattedSteamGamesByLetter | null = null;
-let steamGamesCacheTime = 0;
-const STEAM_GAMES_CACHE_TTL = 300000;
+let steamGamesFormattedCache: FormattedSteamGamesByLetter | null = null;
 
-const getSteamGames = async (): Promise<FormattedSteamGamesByLetter> => {
-  const now = Date.now();
-  if (steamGamesCache && now - steamGamesCacheTime < STEAM_GAMES_CACHE_TTL) {
-    return steamGamesCache;
+export const getSteamGames = async (): Promise<FormattedSteamGamesByLetter> => {
+  if (steamGamesFormattedCache) {
+    return steamGamesFormattedCache;
   }
 
-  const response = await axios.get<SteamGamesByLetter>(
-    `${import.meta.env.MAIN_VITE_EXTERNAL_RESOURCES_URL}/steam-games-by-letter.json`
+  let steamGames: SteamGamesByLetter;
+
+  const cached = ResourceCache.getCachedData<SteamGamesByLetter>(
+    "steam-games-by-letter"
   );
+  if (cached) {
+    steamGames = cached;
+  } else {
+    steamGames = await ResourceCache.fetchAndCache<SteamGamesByLetter>(
+      "steam-games-by-letter",
+      `${import.meta.env.MAIN_VITE_EXTERNAL_RESOURCES_URL}/steam-games-by-letter.json`
+    );
+  }
 
   const formattedData: FormattedSteamGamesByLetter = {};
-  for (const [letter, games] of Object.entries(response.data)) {
+  for (const [letter, games] of Object.entries(steamGames)) {
     formattedData[letter] = games.map((game) => ({
       ...game,
       formattedName: formatName(game.name),
     }));
   }
 
-  steamGamesCache = formattedData;
-  steamGamesCacheTime = now;
+  steamGamesFormattedCache = formattedData;
   return formattedData;
 };
 
-type SublevelIterator = AsyncIterable<[string, { id: number }]>;
+export type SublevelIterator = AsyncIterable<[string, { id: number }]>;
 
-interface SublevelWithId {
+export interface SublevelWithId {
   iterator: () => SublevelIterator;
 }
 
 let maxRepackId: number | null = null;
 let maxDownloadSourceId: number | null = null;
 
-const getNextId = async (sublevel: SublevelWithId): Promise<number> => {
+export const getNextId = async (sublevel: SublevelWithId): Promise<number> => {
   const isRepackSublevel = sublevel === repacksSublevel;
   const isDownloadSourceSublevel = sublevel === downloadSourcesSublevel;
 
@@ -190,7 +180,7 @@ export const invalidateIdCaches = () => {
   maxDownloadSourceId = null;
 };
 
-const addNewDownloads = async (
+export const addNewDownloads = async (
   downloadSource: { id: number; name: string },
   downloads: z.infer<typeof downloadSourceSchema>["downloads"],
   steamGames: FormattedSteamGamesByLetter
@@ -202,7 +192,6 @@ const addNewDownloads = async (
 
   const batch = repacksSublevel.batch();
 
-  // Fetch the pre-computed hash mapping
   const titleHashMapping = await getTitleHashMapping();
   let hashMatchCount = 0;
   let fuzzyMatchCount = 0;
@@ -212,20 +201,16 @@ const addNewDownloads = async (
     let objectIds: string[] = [];
     let usedHashMatch = false;
 
-    // FIRST: Try hash-based lookup (fast and accurate)
     const titleHash = hashTitle(download.title);
     const steamIdsFromHash = titleHashMapping[titleHash];
 
     if (steamIdsFromHash && steamIdsFromHash.length > 0) {
-      // Found in hash mapping - trust it completely
       hashMatchCount++;
       usedHashMatch = true;
 
-      // Use the Steam IDs directly as strings (trust the hash mapping)
       objectIds = steamIdsFromHash.map(String);
     }
 
-    // FALLBACK: Use fuzzy matching ONLY if hash lookup found nothing
     if (!usedHashMatch) {
       let gamesInSteam: FormattedSteamGame[] = [];
       const formattedTitle = formatRepackName(download.title);
@@ -234,12 +219,10 @@ const addNewDownloads = async (
         const [firstLetter] = formattedTitle;
         const games = steamGames[firstLetter] || [];
 
-        // Try exact prefix match first
         gamesInSteam = games.filter((game) =>
           formattedTitle.startsWith(game.formattedName)
         );
 
-        // If no exact prefix match, try contains match (more lenient)
         if (gamesInSteam.length === 0) {
           gamesInSteam = games.filter(
             (game) =>
@@ -248,7 +231,6 @@ const addNewDownloads = async (
           );
         }
 
-        // If still no match, try checking all letters (not just first letter)
         if (gamesInSteam.length === 0) {
           for (const letter of Object.keys(steamGames)) {
             const letterGames = steamGames[letter] || [];
@@ -275,13 +257,10 @@ const addNewDownloads = async (
       }
     }
 
-    // Add matched game IDs to source tracking
     for (const id of objectIds) {
       objectIdsOnSource.add(id);
     }
 
-    // Create the repack even if no games matched
-    // This ensures all repacks from sources are imported
     const repack = {
       id: nextRepackId++,
       objectIds: objectIds,
@@ -300,9 +279,8 @@ const addNewDownloads = async (
 
   await batch.write();
 
-  // Log matching statistics
-  console.log(
-    `📊 Matching stats for ${downloadSource.name}: Hash=${hashMatchCount}, Fuzzy=${fuzzyMatchCount}, None=${noMatchCount}`
+  logger.info(
+    `Matching stats for ${downloadSource.name}: Hash=${hashMatchCount}, Fuzzy=${fuzzyMatchCount}, None=${noMatchCount}`
   );
 
   const existingSource = await downloadSourcesSublevel.get(
@@ -352,8 +330,6 @@ export const importDownloadSourceToLocal = async (
 
   await downloadSourcesSublevel.put(`${downloadSource.id}`, downloadSource);
 
-  invalidateDownloadSourcesCache();
-
   const objectIds = await addNewDownloads(
     downloadSource,
     response.data.downloads,
@@ -386,8 +362,6 @@ export const updateDownloadSourcePreservingTimestamp = async (
   };
 
   await downloadSourcesSublevel.put(`${existingSource.id}`, updatedSource);
-
-  invalidateDownloadSourcesCache();
 
   return updatedSource;
 };

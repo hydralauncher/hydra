@@ -501,6 +501,7 @@ export function GameReviews({
         )}
 
         <div
+          className="game-details__reviews-container"
           style={{
             opacity: reviewsLoading && reviews.length > 0 ? 0.5 : 1,
             transition: "opacity 0.2s ease",

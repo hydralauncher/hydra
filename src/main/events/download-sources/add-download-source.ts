@@ -1,10 +1,7 @@
 import { registerEvent } from "../register-event";
 import { downloadSourcesSublevel, repacksSublevel } from "@main/level";
-import { HydraApi } from "@main/services";
-import {
-  importDownloadSourceToLocal,
-  invalidateDownloadSourcesCache,
-} from "./helpers";
+import { HydraApi, logger } from "@main/services";
+import { importDownloadSourceToLocal } from "./helpers";
 
 const addDownloadSource = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -25,17 +22,6 @@ const addDownloadSource = async (
       repackIds.push(repack.id);
     }
   }
-
-  // Log for debugging - helps identify if repacks are being created
-  console.log(
-    `✅ Download source ${result.id} (${result.name}) created with ${repackCount} repacks`
-  );
-  console.log(
-    `   Repack IDs: [${repackIds.slice(0, 5).join(", ")}${repackIds.length > 5 ? "..." : ""}]`
-  );
-  console.log(
-    `   Object IDs: [${result.objectIds.slice(0, 5).join(", ")}${result.objectIds.length > 5 ? "..." : ""}]`
-  );
 
   await HydraApi.post("/profile/download-sources", {
     urls: [url],
@@ -74,17 +60,14 @@ const addDownloadSource = async (
   }
 
   if (finalRepackCount !== repackCount) {
-    console.warn(
-      `⚠️  Repack count mismatch! Before: ${repackCount}, After: ${finalRepackCount}`
+    logger.warn(
+      `Repack count mismatch! Before: ${repackCount}, After: ${finalRepackCount}`
     );
   } else {
-    console.log(
-      `✅ Final verification passed: ${finalRepackCount} repacks confirmed`
+    logger.info(
+      `Final verification passed: ${finalRepackCount} repacks confirmed`
     );
   }
-
-  // Invalidate cache to ensure fresh data on next read
-  invalidateDownloadSourcesCache();
 
   return {
     ...result,

@@ -1,4 +1,4 @@
-import { HydraApi } from "@main/services";
+import { HydraApi, logger } from "@main/services";
 import { importDownloadSourceToLocal, checkUrlExists } from "./helpers";
 
 export const syncDownloadSourcesFromApi = async () => {
@@ -14,6 +14,6 @@ export const syncDownloadSourcesFromApi = async () => {
       }
     }
   } catch (error) {
-    console.error("Failed to sync download sources from API:", error);
+    logger.error("Failed to sync download sources from API:", error);
   }
 };
