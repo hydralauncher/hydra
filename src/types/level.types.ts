@@ -99,7 +99,6 @@ export interface UserPreferences {
   language?: string;
   realDebridApiToken?: string | null;
   torBoxApiToken?: string | null;
-  allDebridApiKey?: string | null;
   preferQuitInsteadOfHiding?: boolean;
   runAtStartup?: boolean;
   startMinimized?: boolean;

@@ -14,7 +14,7 @@ export function SortOptions({ sortBy, onSortChange }: SortOptionsProps) {
 
   return (
     <div className="sort-options__container">
-      <span className="sort-options__label">Sort by:</span>
+      <span className="sort-options__label">{t("sort_by")}</span>
       <div className="sort-options__options">
         <button
           className={`sort-options__option ${sortBy === "achievementCount" ? "active" : ""}`}

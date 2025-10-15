@@ -15,7 +15,6 @@ import {
   TextField,
   CheckboxField,
 } from "@renderer/components";
-import { downloadSourcesTable } from "@renderer/dexie";
 import type { DownloadSource } from "@types";
 import type { GameRepack } from "@types";
 
@@ -105,7 +104,7 @@ export function RepacksModal({
   }, [repacks, hashesInDebrid]);
 
   useEffect(() => {
-    downloadSourcesTable.toArray().then((sources) => {
+    window.electron.getDownloadSourcesList().then((sources) => {
       const uniqueRepackers = new Set(sortedRepacks.map((r) => r.repacker));
       const filteredSources = sources.filter(
         (s) => s.name && uniqueRepackers.has(s.name) && !!s.fingerprint
@@ -129,6 +128,7 @@ export function RepacksModal({
 
       return downloadSources.some(
         (src) =>
+          src.fingerprint &&
           selectedFingerprints.includes(src.fingerprint) &&
           src.name === repack.repacker
       );
@@ -210,25 +210,32 @@ export function RepacksModal({
             className={`repacks-modal__download-sources ${isFilterDrawerOpen ? "repacks-modal__download-sources--open" : ""}`}
           >
             <div className="repacks-modal__source-grid">
-              {downloadSources.map((source) => {
-                const label = source.name || source.url;
-                const truncatedLabel =
-                  label.length > 16 ? label.substring(0, 16) + "..." : label;
-                return (
-                  <div
-                    key={source.fingerprint}
-                    className="repacks-modal__source-item"
-                  >
-                    <CheckboxField
-                      label={truncatedLabel}
-                      checked={selectedFingerprints.includes(
-                        source.fingerprint
-                      )}
-                      onChange={() => toggleFingerprint(source.fingerprint)}
-                    />
-                  </div>
-                );
-              })}
+              {downloadSources
+                .filter(
+                  (
+                    source
+                  ): source is DownloadSource & { fingerprint: string } =>
+                    source.fingerprint !== undefined
+                )
+                .map((source) => {
+                  const label = source.name || source.url;
+                  const truncatedLabel =
+                    label.length > 16 ? label.substring(0, 16) + "..." : label;
+                  return (
+                    <div
+                      key={source.fingerprint}
+                      className="repacks-modal__source-item"
+                    >
+                      <CheckboxField
+                        label={truncatedLabel}
+                        checked={selectedFingerprints.includes(
+                          source.fingerprint
+                        )}
+                        onChange={() => toggleFingerprint(source.fingerprint)}
+                      />
+                    </div>
+                  );
+                })}
             </div>
           </div>
         </div>
