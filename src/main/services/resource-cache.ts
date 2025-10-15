@@ -134,7 +134,7 @@ export class ResourceCache {
     const resources = [
       {
         name: "steam-games-by-letter",
-        url: `${process.env.MAIN_VITE_EXTERNAL_RESOURCES_URL}/steam-games-by-letter.json`,
+        url: `${import.meta.env.MAIN_VITE_EXTERNAL_RESOURCES_URL}/steam-games-by-letter.json`,
       },
       {
         name: "sources-manifest",
