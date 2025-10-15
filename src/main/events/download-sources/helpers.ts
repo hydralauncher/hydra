@@ -2,7 +2,7 @@ import axios from "axios";
 import { z } from "zod";
 import { downloadSourcesSublevel, repacksSublevel } from "@main/level";
 import { DownloadSourceStatus } from "@shared";
-import crypto from "crypto";
+import crypto from "node:crypto";
 import { logger, ResourceCache } from "@main/services";
 
 export const downloadSourceSchema = z.object({
@@ -62,9 +62,9 @@ export type FormattedSteamGamesByLetter = Record<string, FormattedSteamGame[]>;
 export const formatName = (name: string) => {
   return name
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
+    .replaceAll(/[^a-z0-9]/g, "");
 };
 
 export const formatRepackName = (name: string) => {

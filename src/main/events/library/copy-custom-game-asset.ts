@@ -1,7 +1,7 @@
 import { registerEvent } from "../register-event";
 import fs from "node:fs";
 import path from "node:path";
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { ASSETS_PATH } from "@main/constants";
 
 const copyCustomGameAsset = async (

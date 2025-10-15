@@ -15,11 +15,9 @@ const addDownloadSource = async (
   // Verify that repacks were actually written to the database (read-after-write)
   // This ensures all async operations are complete before proceeding
   let repackCount = 0;
-  const repackIds: number[] = [];
   for await (const [, repack] of repacksSublevel.iterator()) {
     if (repack.downloadSourceId === result.id) {
       repackCount++;
-      repackIds.push(repack.id);
     }
   }
 
