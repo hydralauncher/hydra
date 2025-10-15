@@ -1,6 +1,6 @@
 import { registerEvent } from "../register-event";
 import { downloadSourcesSublevel, repacksSublevel } from "@main/level";
-import { invalidateDownloadSourcesCache, invalidateIdCaches } from "./helpers";
+import { invalidateIdCaches } from "./helpers";
 
 const deleteDownloadSource = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -22,8 +22,6 @@ const deleteDownloadSource = async (
 
   await downloadSourcesSublevel.del(`${id}`);
 
-  // Invalidate caches after deletion
-  invalidateDownloadSourcesCache();
   invalidateIdCaches();
 };
 

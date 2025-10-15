@@ -1,6 +1,6 @@
 import { registerEvent } from "../register-event";
 import { downloadSourcesSublevel } from "@main/level";
-import { HydraApi } from "@main/services";
+import { HydraApi, logger } from "@main/services";
 
 const updateMissingFingerprints = async (
   _event: Electron.IpcMainInvokeEvent
@@ -27,7 +27,7 @@ const updateMissingFingerprints = async (
     return 0;
   }
 
-  console.log(
+  logger.info(
     `Updating fingerprints for ${sourcesNeedingFingerprints.length} sources`
   );
 
@@ -53,7 +53,7 @@ const updateMissingFingerprints = async (
           });
         }
       } catch (error) {
-        console.error(
+        logger.error(
           `Failed to update fingerprint for source ${source.id}:`,
           error
         );

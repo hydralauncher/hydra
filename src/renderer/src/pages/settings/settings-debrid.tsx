@@ -2,7 +2,6 @@ import { useState, useCallback, useMemo } from "react";
 import { useFeature, useAppSelector } from "@renderer/hooks";
 import { SettingsTorBox } from "./settings-torbox";
 import { SettingsRealDebrid } from "./settings-real-debrid";
-import { SettingsAllDebrid } from "./settings-all-debrid";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRightIcon, CheckCircleFillIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
@@ -11,7 +10,6 @@ import "./settings-debrid.scss";
 interface CollapseState {
   torbox: boolean;
   realDebrid: boolean;
-  allDebrid: boolean;
 }
 
 const sectionVariants = {
@@ -71,7 +69,6 @@ export function SettingsDebrid() {
     return {
       torbox: !userPreferences?.torBoxApiToken,
       realDebrid: !userPreferences?.realDebridApiToken,
-      allDebrid: !userPreferences?.allDebridApiKey,
     };
   }, [userPreferences]);
 
@@ -178,51 +175,6 @@ export function SettingsDebrid() {
           </AnimatePresence>
         </div>
       )}
-
-      <div className="settings-debrid__section">
-        <div className="settings-debrid__section-header">
-          <button
-            type="button"
-            className="settings-debrid__collapse-button"
-            onClick={() => toggleSection("allDebrid")}
-            aria-label={
-              collapseState.allDebrid
-                ? "Expand All-Debrid section"
-                : "Collapse All-Debrid section"
-            }
-          >
-            <motion.div
-              variants={chevronVariants}
-              animate={collapseState.allDebrid ? "collapsed" : "expanded"}
-            >
-              <ChevronRightIcon size={16} />
-            </motion.div>
-          </button>
-          <h3 className="settings-debrid__section-title">All-Debrid</h3>
-          <span className="settings-debrid__beta-badge">BETA</span>
-          {userPreferences?.allDebridApiKey && (
-            <CheckCircleFillIcon
-              size={16}
-              className="settings-debrid__check-icon"
-            />
-          )}
-        </div>
-
-        <AnimatePresence initial={true} mode="wait">
-          {!collapseState.allDebrid && (
-            <motion.div
-              key="alldebrid-content"
-              variants={sectionVariants}
-              initial="collapsed"
-              animate="expanded"
-              exit="collapsed"
-              layout
-            >
-              <SettingsAllDebrid />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
     </div>
   );
 }
