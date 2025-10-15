@@ -1,4 +1,3 @@
-import { repacksTable } from "@renderer/dexie";
 import { setRepacks } from "@renderer/features";
 import { useCallback } from "react";
 import { RootState } from "@renderer/store";
@@ -16,18 +15,11 @@ export function useRepacks() {
     [repacks]
   );
 
-  const updateRepacks = useCallback(() => {
-    repacksTable.toArray().then((repacks) => {
-      dispatch(
-        setRepacks(
-          JSON.parse(
-            JSON.stringify(
-              repacks.filter((repack) => Array.isArray(repack.objectIds))
-            )
-          )
-        )
-      );
-    });
+  const updateRepacks = useCallback(async () => {
+    const repacks = await window.electron.getAllRepacks();
+    dispatch(
+      setRepacks(repacks.filter((repack) => Array.isArray(repack.objectIds)))
+    );
   }, [dispatch]);
 
   return { getRepacksForObjectId, updateRepacks };

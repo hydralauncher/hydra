@@ -55,11 +55,8 @@
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background-color: var(--color-background-secondary);
-  background-image: linear-gradient(
-      45deg,
-      rgba(255, 255, 255, 0.1) 25%,
-      transparent 25%
-    ),
+  background-image:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%),
     linear-gradient(-45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%),
     linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.1) 75%),
     linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.1) 75%);
