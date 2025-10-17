@@ -345,6 +345,10 @@
     "delete_review_modal_description": "Esta ação não pode ser desfeita.",
     "delete_review_modal_delete_button": "Excluir",
     "delete_review_modal_cancel_button": "Cancelar",
+    "show_original": "Mostrar original",
+    "show_translation": "Mostrar tradução",
+    "show_original_translated_from": "Mostrar original (traduzido do {{language}})",
+    "hide_original": "Ocultar original",
     "rating_count": "Avaliação"
   },
   "activation": {

@@ -260,6 +260,10 @@ export interface GameReview {
     displayName: string;
     profileImageUrl: string | null;
   };
+  translations: {
+    [key: string]: string;
+  };
+  detectedLanguage: string;
 }
 
 export interface TrendingGame extends ShopAssets {
