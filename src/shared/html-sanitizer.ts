@@ -39,6 +39,12 @@ export function sanitizeHtml(html: string): string {
     }
   }
 
+  // Remove code and pre tags but keep their text content
+  for (const el of tempDiv.querySelectorAll("code, pre")) {
+    const textNode = document.createTextNode(el.textContent || "");
+    el.replaceWith(textNode);
+  }
+
   for (const el of tempDiv.querySelectorAll("*")) {
     for (const attr of Array.from(el.attributes)) {
       const name = attr.name.toLowerCase();

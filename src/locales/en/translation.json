@@ -357,7 +357,11 @@
     "delete_review_modal_description": "This action cannot be undone.",
     "delete_review_modal_delete_button": "Delete",
     "delete_review_modal_cancel_button": "Cancel",
-    "vote_failed": "Failed to register your vote. Please try again."
+    "vote_failed": "Failed to register your vote. Please try again.",
+    "show_original": "Show original",
+    "show_translation": "Show translation",
+    "show_original_translated_from": "Show original (translated from {{language}})",
+    "hide_original": "Hide original"
   },
   "activation": {
     "title": "Activate Hydra",
