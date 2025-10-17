@@ -66,10 +66,7 @@ export function UserProfileContextProvider({
   const isMe = userDetails?.id === userProfile?.id;
 
   const getHeroBackgroundFromImageUrl = async (imageUrl: string) => {
-    const output = await average(imageUrl, {
-      amount: 1,
-      format: "hex",
-    });
+    const output = await average(imageUrl, { amount: 1, format: "hex" });
 
     return `linear-gradient(135deg, ${darkenColor(output as string, 0.5)}, ${darkenColor(output as string, 0.6, 0.5)})`;
   };
@@ -135,28 +132,25 @@ export function UserProfileContextProvider({
     getUserLibraryGames();
 
     return window.electron.hydraApi
-      .get<UserProfile | null>(`/users/${userId}`)
+      .get<UserProfile>(`/users/${userId}`)
       .then((userProfile) => {
-        if (userProfile) {
-          setUserProfile(userProfile);
+        setUserProfile(userProfile);
 
-          if (userProfile.profileImageUrl) {
-            getHeroBackgroundFromImageUrl(userProfile.profileImageUrl).then(
-              (color) => setHeroBackground(color)
-            );
-          }
-        } else {
-          showErrorToast(t("user_not_found"));
-          navigate(-1);
+        if (userProfile.profileImageUrl) {
+          getHeroBackgroundFromImageUrl(userProfile.profileImageUrl).then(
+            (color) => setHeroBackground(color)
+          );
         }
+      })
+      .catch(() => {
+        showErrorToast(t("user_not_found"));
+        navigate(-1);
       });
   }, [navigate, getUserStats, getUserLibraryGames, showErrorToast, userId, t]);
 
   const getBadges = useCallback(async () => {
     const language = i18n.language.split("-")[0];
-    const params = new URLSearchParams({
-      locale: language,
-    });
+    const params = new URLSearchParams({ locale: language });
 
     const badges = await window.electron.hydraApi.get<Badge[]>(
       `/badges?${params.toString()}`,
