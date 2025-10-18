@@ -31,20 +31,10 @@ const syncDownloadSources = async (
       downloadSources.push(source);
     }
 
-    const existingRepacks: Array<{
-      id: number;
-      title: string;
-      uris: string[];
-      repacker: string;
-      fileSize: string | null;
-      objectIds: string[];
-      uploadDate: Date | string | null;
-      downloadSourceId: number;
-      createdAt: Date;
-      updatedAt: Date;
-    }> = [];
+    // Use a Set for O(1) lookups instead of O(n) with array.some()
+    const existingRepackTitles = new Set<string>();
     for await (const [, repack] of repacksSublevel.iterator()) {
-      existingRepacks.push(repack);
+      existingRepackTitles.add(repack.title);
     }
 
     // Handle sources with missing fingerprints individually, don't delete all sources
@@ -77,9 +67,9 @@ const syncDownloadSources = async (
         const source = downloadSourceSchema.parse(response.data);
         const steamGames = await getSteamGames();
 
+        // O(1) lookup instead of O(n) - massive performance improvement
         const repacks = source.downloads.filter(
-          (download) =>
-            !existingRepacks.some((repack) => repack.title === download.title)
+          (download) => !existingRepackTitles.has(download.title)
         );
 
         await downloadSourcesSublevel.put(`${downloadSource.id}`, {

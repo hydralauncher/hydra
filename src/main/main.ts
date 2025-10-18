@@ -17,6 +17,7 @@ import {
   Lock,
   DeckyPlugin,
   ResourceCache,
+  GameMatcherWorkerManager,
 } from "@main/services";
 
 export const loadState = async () => {
@@ -24,6 +25,9 @@ export const loadState = async () => {
 
   ResourceCache.initialize();
   await ResourceCache.updateResourcesOnStartup();
+
+  // Initialize game matcher worker thread
+  GameMatcherWorkerManager.initialize();
 
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,

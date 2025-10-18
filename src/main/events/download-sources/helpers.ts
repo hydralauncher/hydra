@@ -192,83 +192,30 @@ export const addNewDownloads = async (
 
   const batch = repacksSublevel.batch();
 
+  // Get title hash mapping and perform matching in worker thread
   const titleHashMapping = await getTitleHashMapping();
-  let hashMatchCount = 0;
-  let fuzzyMatchCount = 0;
-  let noMatchCount = 0;
 
-  for (const download of downloads) {
-    let objectIds: string[] = [];
-    let usedHashMatch = false;
+  const { GameMatcherWorkerManager } = await import("@main/services");
+  const matchResult = await GameMatcherWorkerManager.matchDownloads(
+    downloads,
+    steamGames,
+    titleHashMapping
+  );
 
-    const titleHash = hashTitle(download.title);
-    const steamIdsFromHash = titleHashMapping[titleHash];
-
-    if (steamIdsFromHash && steamIdsFromHash.length > 0) {
-      hashMatchCount++;
-      usedHashMatch = true;
-
-      objectIds = steamIdsFromHash.map(String);
-    }
-
-    if (!usedHashMatch) {
-      let gamesInSteam: FormattedSteamGame[] = [];
-      const formattedTitle = formatRepackName(download.title);
-
-      if (formattedTitle && formattedTitle.length > 0) {
-        const [firstLetter] = formattedTitle;
-        const games = steamGames[firstLetter] || [];
-
-        gamesInSteam = games.filter((game) =>
-          formattedTitle.startsWith(game.formattedName)
-        );
-
-        if (gamesInSteam.length === 0) {
-          gamesInSteam = games.filter(
-            (game) =>
-              formattedTitle.includes(game.formattedName) ||
-              game.formattedName.includes(formattedTitle)
-          );
-        }
-
-        if (gamesInSteam.length === 0) {
-          for (const letter of Object.keys(steamGames)) {
-            const letterGames = steamGames[letter] || [];
-            const matches = letterGames.filter(
-              (game) =>
-                formattedTitle.includes(game.formattedName) ||
-                game.formattedName.includes(formattedTitle)
-            );
-            if (matches.length > 0) {
-              gamesInSteam = matches;
-              break;
-            }
-          }
-        }
-
-        if (gamesInSteam.length > 0) {
-          fuzzyMatchCount++;
-          objectIds = gamesInSteam.map((game) => String(game.id));
-        } else {
-          noMatchCount++;
-        }
-      } else {
-        noMatchCount++;
-      }
-    }
-
-    for (const id of objectIds) {
+  // Process matched results and write to database
+  for (const matchedDownload of matchResult.matchedDownloads) {
+    for (const id of matchedDownload.objectIds) {
       objectIdsOnSource.add(id);
     }
 
     const repack = {
       id: nextRepackId++,
-      objectIds: objectIds,
-      title: download.title,
-      uris: download.uris,
-      fileSize: download.fileSize,
+      objectIds: matchedDownload.objectIds,
+      title: matchedDownload.title,
+      uris: matchedDownload.uris,
+      fileSize: matchedDownload.fileSize,
       repacker: downloadSource.name,
-      uploadDate: download.uploadDate,
+      uploadDate: matchedDownload.uploadDate,
       downloadSourceId: downloadSource.id,
       createdAt: now,
       updatedAt: now,
@@ -280,7 +227,7 @@ export const addNewDownloads = async (
   await batch.write();
 
   logger.info(
-    `Matching stats for ${downloadSource.name}: Hash=${hashMatchCount}, Fuzzy=${fuzzyMatchCount}, None=${noMatchCount}`
+    `Matching stats for ${downloadSource.name}: Hash=${matchResult.stats.hashMatchCount}, Fuzzy=${matchResult.stats.fuzzyMatchCount}, None=${matchResult.stats.noMatchCount}`
   );
 
   const existingSource = await downloadSourcesSublevel.get(
