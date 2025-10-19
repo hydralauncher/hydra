@@ -26,6 +26,7 @@ import nb from "./nb/translation.json";
 import et from "./et/translation.json";
 import bg from "./bg/translation.json";
 import uz from "./uz/translation.json";
+import ua from "./ua/translation.json";
 import sv from "./sv/translation.json";
 
 export default {
@@ -42,6 +43,7 @@ export default {
   ru,
   tr,
   be,
+  ua,
   uk,
   zh,
   id,
