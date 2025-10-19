@@ -71,8 +71,25 @@ export function AchievementList({
                     src={achievement.achievementImageUrl}
                     alt={`${achievement.displayName} screenshot`}
                     loading="lazy"
-                    onClick={() => handleImageClick(achievement.achievementImageUrl!, achievement.displayName)}
-                    style={{ cursor: 'pointer' }}
+                    onClick={() =>
+                      handleImageClick(
+                        achievement.achievementImageUrl,
+                        achievement.displayName
+                      )
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleImageClick(
+                          achievement.achievementImageUrl,
+                          achievement.displayName
+                        );
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`View ${achievement.displayName} screenshot in fullscreen`}
+                    style={{ cursor: "pointer" }}
                   />
                   <div className="achievements__item-custom-image-overlay">
                     <SearchIcon size={20} />
@@ -80,7 +97,7 @@ export function AchievementList({
                 </div>
               </div>
             )}
-            
+
             {achievement.points != undefined ? (
               <div
                 className="achievements__item-points"
@@ -103,7 +120,7 @@ export function AchievementList({
                 <p className="achievements__item-points-value">???</p>
               </button>
             )}
-            
+
             {achievement.unlockTime != null && (
               <div
                 className="achievements__item-unlock-time"
@@ -117,7 +134,7 @@ export function AchievementList({
           </div>
         </li>
       ))}
-      
+
       <FullscreenImageModal
         isOpen={fullscreenImage !== null}
         imageUrl={fullscreenImage?.url || ""}

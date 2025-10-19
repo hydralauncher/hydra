@@ -41,8 +41,21 @@ export function FullscreenImageModal({
     }
   };
 
+  const handleBackdropKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fullscreen-image-modal" onClick={handleBackdropClick}>
+    <div 
+      className="fullscreen-image-modal" 
+      onClick={handleBackdropClick}
+      onKeyDown={handleBackdropKeyDown}
+      role="dialog"
+      aria-modal="true"
+      tabIndex={-1}
+    >
       <div className="fullscreen-image-modal__container">
         <button
           className="fullscreen-image-modal__close-button"
@@ -51,7 +64,7 @@ export function FullscreenImageModal({
         >
           <XIcon size={24} />
         </button>
-        
+
         <div className="fullscreen-image-modal__image-container">
           <img
             src={imageUrl}

@@ -134,8 +134,10 @@ export function UserProfileContextProvider({
     // Get current language for API call
     const currentLanguage = i18n.language.split("-")[0];
     const supportedLanguages = ["pt", "ru", "es"];
-    const language = supportedLanguages.includes(currentLanguage) ? currentLanguage : "en";
-    
+    const language = supportedLanguages.includes(currentLanguage)
+      ? currentLanguage
+      : "en";
+
     const params = new URLSearchParams({ language });
 
     return window.electron.hydraApi
@@ -153,7 +155,15 @@ export function UserProfileContextProvider({
         showErrorToast(t("user_not_found"));
         navigate(-1);
       });
-  }, [navigate, getUserStats, getUserLibraryGames, showErrorToast, userId, t, i18n]);
+  }, [
+    navigate,
+    getUserStats,
+    getUserLibraryGames,
+    showErrorToast,
+    userId,
+    t,
+    i18n,
+  ]);
 
   const getBadges = useCallback(async () => {
     const language = i18n.language.split("-")[0];

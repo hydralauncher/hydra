@@ -39,7 +39,7 @@ export const getUnlockedAchievements = async (
     const userDetails = await db.get<string, any>(levelKeys.user, {
       valueEncoding: "json",
     });
-    
+
     if (userDetails?.id) {
       remoteUserAchievements = await HydraApi.get<UserAchievement[]>(
         `/users/${userDetails.id}/games/achievements`,
@@ -87,7 +87,8 @@ export const getUnlockedAchievements = async (
           ...achievementData,
           unlocked: true,
           unlockTime: unlockedAchievementData.unlockTime,
-          achievementImageUrl: remoteAchievementData?.achievementImageUrl || null,
+          achievementImageUrl:
+            remoteAchievementData?.achievementImageUrl || null,
         };
       }
 
