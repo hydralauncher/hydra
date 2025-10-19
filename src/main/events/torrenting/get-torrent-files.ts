@@ -8,7 +8,7 @@ const getTorrentFiles = async (
   _event: Electron.IpcMainInvokeEvent,
   magnetUri: string
 ): Promise<TorrentFile[]> => {
-  if (!magnetUri || !magnetUri.startsWith("magnet")) {
+  if (!magnetUri?.startsWith("magnet")) {
     throw new Error("Invalid magnet URI");
   }
 

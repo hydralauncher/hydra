@@ -142,11 +142,11 @@ def get_torrent_files():
     print(f"[torrent-files] Received request for magnet: {magnet_uri[:50] if magnet_uri else 'None'}...")
     
     if not magnet_uri or not magnet_uri.startswith('magnet'):
-        print(f"[torrent-files] Invalid magnet URI")
+        print("[torrent-files] Invalid magnet URI")
         return jsonify({"error": "Invalid magnet URI"}), 400
     
     try:
-        print(f"[torrent-files] Creating temporary torrent handle...")
+        print("[torrent-files] Creating temporary torrent handle...")
         # Create temporary torrent handle to get file info
         params = {
             'url': magnet_uri,
@@ -155,7 +155,7 @@ def get_torrent_files():
         }
         temp_handle = torrent_session.add_torrent(params)
         
-        print(f"[torrent-files] Waiting for metadata (max 20s)...")
+        print("[torrent-files] Waiting for metadata (max 20s)...")
         # Wait for metadata (up to 20 seconds)
         for i in range(80):
             if temp_handle.status().has_metadata:
@@ -164,7 +164,7 @@ def get_torrent_files():
             time.sleep(0.25)
         
         if not temp_handle.status().has_metadata:
-            print(f"[torrent-files] Metadata timeout after 20s")
+            print("[torrent-files] Metadata timeout after 20s")
             torrent_session.remove_torrent(temp_handle)
             return jsonify({"error": "Failed to fetch torrent metadata (timeout)"}), 408
         
