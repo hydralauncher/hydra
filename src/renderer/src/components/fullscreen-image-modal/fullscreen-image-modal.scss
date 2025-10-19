@@ -12,6 +12,18 @@
   animation: fadeIn 0.2s ease-out;
   cursor: pointer;
 
+  &__backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+
   &__container {
     position: relative;
     max-width: 95vw;
