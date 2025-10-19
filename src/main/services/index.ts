@@ -13,6 +13,7 @@ export * from "./game-files-manager";
 export * from "./common-redist-manager";
 export * from "./aria2";
 export * from "./ws";
+export * from "./screenshot";
 export * from "./system-path";
 export * from "./library-sync";
 export * from "./wine";

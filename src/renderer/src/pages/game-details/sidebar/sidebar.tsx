@@ -114,6 +114,7 @@ export function Sidebar() {
                     }`}
                     src={achievement.icon}
                     alt={achievement.displayName}
+                    loading="lazy"
                   />
                   <div>
                     <p>{achievement.displayName}</p>
@@ -164,6 +165,7 @@ export function Sidebar() {
                     }`}
                     src={achievement.icon}
                     alt={achievement.displayName}
+                    loading="lazy"
                   />
                   <div>
                     <p>{achievement.displayName}</p>

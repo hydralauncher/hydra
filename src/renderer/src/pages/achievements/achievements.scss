@@ -117,6 +117,70 @@ $logo-max-width: 200px;
       }
     }
 
+    &-image-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 4px 0;
+    }
+
+    &-icon-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: globals.$spacing-unit;
+    }
+
+    &-custom-image {
+      width: 120px;
+      height: 60px;
+      border-radius: 4px;
+      object-fit: cover;
+      opacity: 0.9;
+      transition: all 0.2s ease;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+
+    &-custom-image-wrapper {
+      position: relative;
+      display: inline-block;
+      cursor: pointer;
+
+      &:hover {
+        .achievements__item-custom-image {
+          filter: grayscale(50%) brightness(0.7);
+        }
+
+        .achievements__item-custom-image-overlay {
+          opacity: 1;
+        }
+      }
+    }
+
+    &-custom-image-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+      color: white;
+
+      svg {
+        filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+      }
+    }
+
     &-content {
       flex: 1;
     }
@@ -153,6 +217,7 @@ $logo-max-width: 200px;
       display: flex;
       flex-direction: column;
       gap: 8px;
+      align-items: end;
     }
 
     &-points {

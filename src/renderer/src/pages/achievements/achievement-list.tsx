@@ -2,9 +2,11 @@ import { useDate } from "@renderer/hooks";
 import type { UserAchievement } from "@types";
 import { useTranslation } from "react-i18next";
 import "./achievements.scss";
-import { EyeClosedIcon } from "@primer/octicons-react";
+import { EyeClosedIcon, SearchIcon } from "@primer/octicons-react";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import { useState } from "react";
+import { FullscreenImageModal } from "@renderer/components/fullscreen-image-modal";
 
 interface AchievementListProps {
   achievements: UserAchievement[];
@@ -16,17 +18,34 @@ export function AchievementList({
   const { t } = useTranslation("achievement");
   const { showHydraCloudModal } = useSubscription();
   const { formatDateTime } = useDate();
+  const [fullscreenImage, setFullscreenImage] = useState<{
+    url: string;
+    alt: string;
+  } | null>(null);
+
+  const handleImageClick = (imageUrl: string, achievementName: string) => {
+    setFullscreenImage({
+      url: imageUrl,
+      alt: `${achievementName} screenshot`,
+    });
+  };
+
+  const closeFullscreenImage = () => {
+    setFullscreenImage(null);
+  };
 
   return (
     <ul className="achievements__list">
       {achievements.map((achievement) => (
         <li key={achievement.name} className="achievements__item">
-          <img
-            className={`achievements__item-image ${!achievement.unlocked ? "achievements__item-image--locked" : ""}`}
-            src={achievement.icon}
-            alt={achievement.displayName}
-            loading="lazy"
-          />
+          <div className="achievements__item-icon-container">
+            <img
+              className={`achievements__item-image ${!achievement.unlocked ? "achievements__item-image--locked" : ""}`}
+              src={achievement.icon}
+              alt={achievement.displayName}
+              loading="lazy"
+            />
+          </div>
 
           <div className="achievements__item-content">
             <h4 className="achievements__item-title">
@@ -44,6 +63,24 @@ export function AchievementList({
           </div>
 
           <div className="achievements__item-meta">
+            {achievement.achievementImageUrl && achievement.unlocked && (
+              <div className="achievements__item-image-container">
+                <div className="achievements__item-custom-image-wrapper">
+                  <img
+                    className="achievements__item-custom-image"
+                    src={achievement.achievementImageUrl}
+                    alt={`${achievement.displayName} screenshot`}
+                    loading="lazy"
+                    onClick={() => handleImageClick(achievement.achievementImageUrl!, achievement.displayName)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <div className="achievements__item-custom-image-overlay">
+                    <SearchIcon size={20} />
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {achievement.points != undefined ? (
               <div
                 className="achievements__item-points"
@@ -66,6 +103,7 @@ export function AchievementList({
                 <p className="achievements__item-points-value">???</p>
               </button>
             )}
+            
             {achievement.unlockTime != null && (
               <div
                 className="achievements__item-unlock-time"
@@ -79,6 +117,13 @@ export function AchievementList({
           </div>
         </li>
       ))}
+      
+      <FullscreenImageModal
+        isOpen={fullscreenImage !== null}
+        imageUrl={fullscreenImage?.url || ""}
+        imageAlt={fullscreenImage?.alt || ""}
+        onClose={closeFullscreenImage}
+      />
     </ul>
   );
 }

@@ -27,6 +27,7 @@ export function SettingsBehavior() {
     showDownloadSpeedInMegabytes: false,
     extractFilesByDefault: true,
     enableSteamAchievements: false,
+    enableAchievementScreenshots: false,
   });
 
   const { t } = useTranslation("settings");
@@ -49,6 +50,8 @@ export function SettingsBehavior() {
         extractFilesByDefault: userPreferences.extractFilesByDefault ?? true,
         enableSteamAchievements:
           userPreferences.enableSteamAchievements ?? false,
+        enableAchievementScreenshots:
+          userPreferences.enableAchievementScreenshots ?? false,
       });
     }
   }, [userPreferences]);
@@ -187,6 +190,16 @@ export function SettingsBehavior() {
           <QuestionIcon size={12} />
         </small>
       </div>
+
+      <CheckboxField
+        label={t("enable_achievement_screenshots")}
+        checked={form.enableAchievementScreenshots}
+        onChange={() =>
+          handleChange({
+            enableAchievementScreenshots: !form.enableAchievementScreenshots,
+          })
+        }
+      />
     </>
   );
 }

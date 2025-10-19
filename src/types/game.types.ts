@@ -20,4 +20,5 @@ export interface SteamAchievement {
 export interface UserAchievement extends SteamAchievement {
   unlocked: boolean;
   unlockTime: number | null;
+  achievementImageUrl?: string | null;
 }

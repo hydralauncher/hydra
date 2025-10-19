@@ -176,4 +176,216 @@
       }
     }
   }
+
+  &__souvenirs-section {
+    margin-bottom: calc(globals.$spacing-unit * 3);
+  }
+
+  &__souvenirs-grid {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 2);
+    padding-bottom: calc(globals.$spacing-unit);
+    
+    &::-webkit-scrollbar {
+      height: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.5);
+      }
+    }
+  }
+
+  &__souvenir-card {
+    flex-shrink: 0;
+    width: 250px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all ease 0.2s;
+    
+    &:hover {
+      transform: translateY(-4px);
+      background: rgba(0, 0, 0, 0.4);
+      border-color: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  &__souvenir-card-header {
+    width: 100%;
+    height: 120px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  &__souvenir-achievement-image-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    
+    &:hover .profile-content__souvenir-achievement-image-overlay {
+      opacity: 1;
+    }
+  }
+
+  &__souvenir-achievement-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.2s ease;
+    
+
+  }
+
+  &__souvenir-achievement-image-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    
+    svg {
+      color: white;
+    }
+  }
+
+  &__souvenir-card-content {
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit);
+    position: relative;
+    overflow: hidden;
+  }
+
+  &__souvenir-card-gradient-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: linear-gradient(
+      to top,
+      rgba(27, 59, 52, 0.6) 1%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
+
+  &__souvenir-achievement-info {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1);
+    position: relative;
+    z-index: 2;
+  }
+
+  &__souvenir-achievement-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  &__souvenir-achievement-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  &__souvenir-game-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 1);
+    position: relative;
+    z-index: 2;
+  }
+
+  &__souvenir-game-left {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 0.75);
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__souvenir-game-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  &__souvenir-game-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.2;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  &__souvenir-unlock-time {
+    padding: 0;
+    flex-shrink: 0;
+    
+    small {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.5);
+      font-weight: 400;
+    }
+  }
+
+  &__souvenir-item {
+    flex-shrink: 0;
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform ease 0.2s;
+    
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+
+  &__souvenir-image {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    transition: border-color ease 0.2s;
+    
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+  }
 }
