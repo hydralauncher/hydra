@@ -9,7 +9,7 @@ import {
 } from "@renderer/components";
 import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
 import { Downloader, formatBytes, getDownloadersForUris } from "@shared";
-import type { GameRepack } from "@types";
+import type { GameRepack, TorrentFile } from "@types";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import { useAppSelector, useFeature, useToast } from "@renderer/hooks";
 import "./download-settings-modal.scss";
@@ -21,7 +21,9 @@ export interface DownloadSettingsModalProps {
     repack: GameRepack,
     downloader: Downloader,
     downloadPath: string,
-    automaticallyExtract: boolean
+    automaticallyExtract: boolean,
+    fileIndices?: number[],
+    selectedFilesSize?: number
   ) => Promise<{ ok: boolean; error?: string }>;
   repack: GameRepack | null;
 }
@@ -51,6 +53,10 @@ export function DownloadSettingsModal({
   const [hasWritePermission, setHasWritePermission] = useState<boolean | null>(
     null
   );
+  const [torrentFiles, setTorrentFiles] = useState<TorrentFile[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<Set<number>>(new Set());
+  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [sortBy, setSortBy] = useState<"name" | "size" | "downloading">("name");
 
   const { isFeatureEnabled, Feature } = useFeature();
 
@@ -75,8 +81,66 @@ export function DownloadSettingsModal({
     if (visible) {
       getDiskFreeSpace(selectedPath);
       checkFolderWritePermission(selectedPath);
+
+      // Fetch torrent files if it's a magnet link
+      const magnetUri = repack?.uris.find((uri) => uri.startsWith("magnet"));
+
+      console.log("Download settings modal:", {
+        magnetUri: magnetUri?.substring(0, 50) + "...",
+        selectedDownloader,
+        hasTorrentFiles: typeof window.electron.getTorrentFiles === "function",
+        repackUris: repack?.uris,
+      });
+
+      if (
+        magnetUri &&
+        selectedDownloader === Downloader.Torrent &&
+        typeof window.electron.getTorrentFiles === "function"
+      ) {
+        setLoadingFiles(true);
+        console.log(
+          "Fetching torrent files for:",
+          magnetUri.substring(0, 50) + "..."
+        );
+
+        window.electron
+          .getTorrentFiles(magnetUri)
+          .then((files) => {
+            console.log("Received torrent files:", files.length);
+            setTorrentFiles(files);
+            // Select all files by default
+            setSelectedFiles(new Set(files.map((f) => f.index)));
+          })
+          .catch((error) => {
+            console.error("Failed to fetch torrent files:", error);
+            console.error("Error details:", {
+              message: error?.message,
+              stack: error?.stack,
+              fullError: error,
+            });
+            showErrorToast(
+              t("error"),
+              error?.message || "Failed to fetch torrent files"
+            );
+            setTorrentFiles([]);
+          })
+          .finally(() => {
+            setLoadingFiles(false);
+          });
+      } else {
+        setTorrentFiles([]);
+        setSelectedFiles(new Set());
+      }
     }
-  }, [visible, checkFolderWritePermission, selectedPath]);
+  }, [
+    visible,
+    checkFolderWritePermission,
+    selectedPath,
+    repack,
+    selectedDownloader,
+    t,
+    showErrorToast,
+  ]);
 
   const downloaders = useMemo(() => {
     return getDownloadersForUris(repack?.uris ?? []);
@@ -150,11 +214,19 @@ export function DownloadSettingsModal({
       setDownloadStarting(true);
 
       try {
+        // Only pass file indices for torrent downloads with file selection
+        const fileIndices =
+          selectedDownloader === Downloader.Torrent && torrentFiles.length > 0
+            ? Array.from(selectedFiles)
+            : undefined;
+
         const response = await startDownload(
           repack,
           selectedDownloader!,
           selectedPath,
-          automaticExtractionEnabled
+          automaticExtractionEnabled,
+          fileIndices,
+          fileIndices ? selectedFilesSize : undefined
         );
 
         if (response.ok) {
@@ -173,6 +245,53 @@ export function DownloadSettingsModal({
     }
   };
 
+  const toggleFileSelection = (index: number) => {
+    const newSelection = new Set(selectedFiles);
+    if (newSelection.has(index)) {
+      newSelection.delete(index);
+    } else {
+      newSelection.add(index);
+    }
+    setSelectedFiles(newSelection);
+  };
+
+  const toggleAllFiles = () => {
+    if (selectedFiles.size === torrentFiles.length) {
+      setSelectedFiles(new Set());
+    } else {
+      setSelectedFiles(new Set(torrentFiles.map((f) => f.index)));
+    }
+  };
+
+  const sortedFiles = useMemo(() => {
+    const files = [...torrentFiles];
+    switch (sortBy) {
+      case "name":
+        return files.sort((a, b) => a.name.localeCompare(b.name));
+      case "size":
+        return files.sort((a, b) => a.size - b.size);
+      case "downloading":
+        return files.sort((a, b) => {
+          const aSelected = selectedFiles.has(a.index) ? 1 : 0;
+          const bSelected = selectedFiles.has(b.index) ? 1 : 0;
+          return bSelected - aSelected;
+        });
+      default:
+        return files;
+    }
+  }, [torrentFiles, sortBy, selectedFiles]);
+
+  // Show right panel if Torrent downloader is selected (even while loading)
+  const shouldShowFileSelection = selectedDownloader === Downloader.Torrent;
+
+  // Calculate total size of selected files
+  const selectedFilesSize = useMemo(() => {
+    if (torrentFiles.length === 0) return 0;
+    return torrentFiles
+      .filter((file) => selectedFiles.has(file.index))
+      .reduce((total, file) => total + file.size, 0);
+  }, [torrentFiles, selectedFiles]);
+
   return (
     <Modal
       visible={visible}
@@ -181,95 +300,173 @@ export function DownloadSettingsModal({
         space: formatBytes(diskFreeSpace ?? 0),
       })}
       onClose={onClose}
+      extraLarge={shouldShowFileSelection}
     >
       <div className="download-settings-modal__container">
-        <div className="download-settings-modal__downloads-path-field">
-          <span>{t("downloader")}</span>
+        <div className="download-settings-modal__left-column">
+          <div className="download-settings-modal__left-content">
+            <div className="download-settings-modal__downloads-path-field">
+              <span>{t("downloader")}</span>
 
-          <div className="download-settings-modal__downloaders">
-            {downloaders.map((downloader) => {
-              const shouldDisableButton =
-                (downloader === Downloader.RealDebrid &&
-                  !userPreferences?.realDebridApiToken) ||
-                (downloader === Downloader.TorBox &&
-                  !userPreferences?.torBoxApiToken) ||
-                (downloader === Downloader.Hydra &&
-                  !isFeatureEnabled(Feature.Nimbus));
+              <div className="download-settings-modal__downloaders">
+                {downloaders.map((downloader) => {
+                  const shouldDisableButton =
+                    (downloader === Downloader.RealDebrid &&
+                      !userPreferences?.realDebridApiToken) ||
+                    (downloader === Downloader.TorBox &&
+                      !userPreferences?.torBoxApiToken) ||
+                    (downloader === Downloader.Hydra &&
+                      !isFeatureEnabled(Feature.Nimbus));
 
-              return (
-                <Button
-                  key={downloader}
-                  className="download-settings-modal__downloader-option"
-                  theme={
-                    selectedDownloader === downloader ? "primary" : "outline"
-                  }
-                  disabled={shouldDisableButton}
-                  onClick={() => setSelectedDownloader(downloader)}
-                >
-                  {selectedDownloader === downloader && (
-                    <CheckCircleFillIcon className="download-settings-modal__downloader-icon" />
-                  )}
-                  {DOWNLOADER_NAME[downloader]}
-                </Button>
-              );
-            })}
+                  return (
+                    <Button
+                      key={downloader}
+                      className="download-settings-modal__downloader-option"
+                      theme={
+                        selectedDownloader === downloader
+                          ? "primary"
+                          : "outline"
+                      }
+                      disabled={shouldDisableButton}
+                      onClick={() => setSelectedDownloader(downloader)}
+                    >
+                      {selectedDownloader === downloader && (
+                        <CheckCircleFillIcon className="download-settings-modal__downloader-icon" />
+                      )}
+                      {DOWNLOADER_NAME[downloader]}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="download-settings-modal__downloads-path-field">
+              <TextField
+                value={selectedPath}
+                readOnly
+                disabled
+                label={t("download_path")}
+                error={
+                  hasWritePermission === false ? (
+                    <span
+                      className="download-settings-modal__path-error"
+                      data-open-article="cannot-write-directory"
+                    >
+                      {t("no_write_permission")}
+                    </span>
+                  ) : undefined
+                }
+                rightContent={
+                  <Button
+                    className="download-settings-modal__change-path-button"
+                    theme="outline"
+                    onClick={handleChooseDownloadsPath}
+                    disabled={downloadStarting}
+                  >
+                    {t("change")}
+                  </Button>
+                }
+              />
+
+              <p className="download-settings-modal__hint-text">
+                <Trans i18nKey="select_folder_hint" ns="game_details">
+                  <Link to="/settings" />
+                </Trans>
+              </p>
+            </div>
+          </div>
+
+          <div className="download-settings-modal__left-actions">
+            <CheckboxField
+              label={t("automatically_extract_downloaded_files")}
+              checked={automaticExtractionEnabled}
+              onChange={() =>
+                setAutomaticExtractionEnabled(!automaticExtractionEnabled)
+              }
+            />
+
+            <Button
+              onClick={handleStartClick}
+              disabled={
+                downloadStarting ||
+                selectedDownloader === null ||
+                !hasWritePermission ||
+                (shouldShowFileSelection &&
+                  torrentFiles.length > 0 &&
+                  selectedFiles.size === 0)
+              }
+            >
+              <DownloadIcon />
+              {t("download_now")}
+            </Button>
           </div>
         </div>
 
-        <div className="download-settings-modal__downloads-path-field">
-          <TextField
-            value={selectedPath}
-            readOnly
-            disabled
-            label={t("download_path")}
-            error={
-              hasWritePermission === false ? (
-                <span
-                  className="download-settings-modal__path-error"
-                  data-open-article="cannot-write-directory"
-                >
-                  {t("no_write_permission")}
-                </span>
-              ) : undefined
-            }
-            rightContent={
-              <Button
-                className="download-settings-modal__change-path-button"
-                theme="outline"
-                onClick={handleChooseDownloadsPath}
-                disabled={downloadStarting}
-              >
-                {t("change")}
-              </Button>
-            }
-          />
+        {shouldShowFileSelection && (
+          <>
+            <div className="download-settings-modal__separator" />
+            <div className="download-settings-modal__right-column">
+              <div className="download-settings-modal__file-selection-header">
+                <h3>{t("select_files")}</h3>
+                <div className="download-settings-modal__filter-controls">
+                  <button
+                    className={`download-settings-modal__filter-button ${sortBy === "name" ? "active" : ""}`}
+                    onClick={() => setSortBy("name")}
+                  >
+                    {t("name")}
+                  </button>
+                  <button
+                    className={`download-settings-modal__filter-button ${sortBy === "size" ? "active" : ""}`}
+                    onClick={() => setSortBy("size")}
+                  >
+                    {t("size")}
+                  </button>
+                  <button
+                    className={`download-settings-modal__filter-button ${sortBy === "downloading" ? "active" : ""}`}
+                    onClick={() => setSortBy("downloading")}
+                  >
+                    {t("downloading")}
+                  </button>
+                </div>
+              </div>
 
-          <p className="download-settings-modal__hint-text">
-            <Trans i18nKey="select_folder_hint" ns="game_details">
-              <Link to="/settings" />
-            </Trans>
-          </p>
-        </div>
-
-        <CheckboxField
-          label={t("automatically_extract_downloaded_files")}
-          checked={automaticExtractionEnabled}
-          onChange={() =>
-            setAutomaticExtractionEnabled(!automaticExtractionEnabled)
-          }
-        />
-
-        <Button
-          onClick={handleStartClick}
-          disabled={
-            downloadStarting ||
-            selectedDownloader === null ||
-            !hasWritePermission
-          }
-        >
-          <DownloadIcon />
-          {t("download_now")}
-        </Button>
+              {loadingFiles ? (
+                <div className="download-settings-modal__loading">
+                  {t("loading_files")}
+                </div>
+              ) : (
+                <div className="download-settings-modal__file-list">
+                  <div className="download-settings-modal__file-item download-settings-modal__file-item--header">
+                    <CheckboxField
+                      label={t("select_all")}
+                      checked={
+                        selectedFiles.size === torrentFiles.length &&
+                        torrentFiles.length > 0
+                      }
+                      onChange={toggleAllFiles}
+                    />
+                    <span>{t("size")}</span>
+                  </div>
+                  {sortedFiles.map((file) => (
+                    <div
+                      key={file.index}
+                      className="download-settings-modal__file-item"
+                    >
+                      <CheckboxField
+                        label={file.name}
+                        checked={selectedFiles.has(file.index)}
+                        onChange={() => toggleFileSelection(file.index)}
+                      />
+                      <span className="download-settings-modal__file-size">
+                        {formatBytes(file.size)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </Modal>
   );

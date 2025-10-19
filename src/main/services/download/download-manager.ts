@@ -364,6 +364,7 @@ export class DownloadManager {
           game_id: downloadId,
           url: download.uri,
           save_path: download.downloadPath,
+          file_indices: download.fileIndices,
         };
       case Downloader.RealDebrid: {
         const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);

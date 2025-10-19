@@ -1,11 +1,212 @@
 @use "../../../scss/globals.scss";
 
 .download-settings-modal {
+  // Override modal content scrolling - only file list should scroll
+  :global(.modal__content) {
+    overflow: hidden !important; // Prevent modal content from scrolling
+  }
+
   &__container {
     display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 3);
+    flex-direction: row;
+    gap: calc(globals.$spacing-unit * 2);
     width: 100%;
+    min-width: 900px;
+    min-height: 500px;
+    max-height: calc(90vh - 200px);
+    overflow: hidden;
+
+    @media (max-width: 1200px) {
+      min-width: unset;
+    }
+
+    @media (max-width: 1024px) {
+      flex-direction: column;
+      max-height: calc(90vh - 200px);
+    }
+  }
+
+  &__left-column {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    flex: 0 0 40%;
+    min-width: 350px;
+    overflow: hidden;
+
+    @media (max-width: 1024px) {
+      flex: 1;
+      min-width: unset;
+    }
+  }
+
+  &__left-content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    flex: 1;
+  }
+
+  &__left-actions {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    margin-top: auto; // Push to bottom
+    padding-top: calc(globals.$spacing-unit * 2);
+  }
+
+  &__separator {
+    width: 1px;
+    background-color: globals.$border-color;
+    margin: 0 calc(globals.$spacing-unit * 2);
+    flex-shrink: 0;
+
+    @media (max-width: 1024px) {
+      display: none;
+    }
+  }
+
+  &__right-column {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    flex: 1;
+    min-width: 450px;
+    overflow: hidden;
+
+    @media (max-width: 1200px) {
+      min-width: 300px;
+    }
+
+    @media (max-width: 1024px) {
+      min-width: unset;
+    }
+  }
+
+  &__file-selection-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: globals.$spacing-unit;
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+  }
+
+  &__filter-controls {
+    display: flex;
+    gap: 4px;
+  }
+
+  &__filter-button {
+    background: transparent;
+    border: none;
+    color: globals.$body-color;
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 400;
+    white-space: nowrap;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+
+    &.active {
+      background-color: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      font-weight: 500;
+    }
+  }
+
+  &__sort-controls {
+    display: flex;
+    gap: calc(globals.$spacing-unit / 2);
+
+    button {
+      flex: 1;
+      font-size: 12px;
+      padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
+    }
+  }
+
+  &__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: calc(globals.$spacing-unit * 4);
+    color: globals.$body-color;
+  }
+
+  &__file-list {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+    overflow-y: auto; // Vertical scroll for files
+    overflow-x: auto; // Allow horizontal scroll for long file names
+    flex: 1;
+    padding-right: globals.$spacing-unit;
+
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px; // Add height for horizontal scrollbar
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+    }
+  }
+
+  &__file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(globals.$spacing-unit / 2);
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    min-width: max-content; // Allow items to expand for long names
+
+    &:hover:not(&--header) {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    &--header {
+      font-weight: 600;
+      border-bottom: 1px solid globals.$border-color;
+      padding-bottom: globals.$spacing-unit;
+      margin-bottom: calc(globals.$spacing-unit / 2);
+    }
+
+    label {
+      flex: 1;
+      cursor: pointer;
+      white-space: nowrap; // Keep text on one line to allow horizontal scrolling
+      margin-right: calc(globals.$spacing-unit * 2); // Spacing before file size
+    }
+  }
+
+  &__file-size {
+    margin-left: calc(globals.$spacing-unit * 2);
+    color: globals.$body-color;
+    font-size: 12px;
+    white-space: nowrap;
   }
 
   &__downloads-path-field {

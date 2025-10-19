@@ -59,6 +59,8 @@ contextBridge.exposeInMainWorld("electron", {
   },
   checkDebridAvailability: (magnets: string[]) =>
     ipcRenderer.invoke("checkDebridAvailability", magnets),
+  getTorrentFiles: (magnetUri: string) =>
+    ipcRenderer.invoke("getTorrentFiles", magnetUri),
 
   /* Catalogue */
   getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>

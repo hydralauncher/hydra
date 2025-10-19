@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-import sys, json, urllib.parse, psutil
+import sys, json, urllib.parse, psutil, time
 from torrent_downloader import TorrentDownloader
 from http_downloader import HttpDownloader
 from profile_image_processor import ProfileImageProcessor
@@ -37,7 +37,7 @@ if start_download_payload:
         torrent_downloader = TorrentDownloader(torrent_session)
         downloads[initial_download['game_id']] = torrent_downloader
         try:
-            torrent_downloader.start_download(initial_download['url'], initial_download['save_path'])
+            torrent_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('file_indices'))
         except Exception as e:
             print("Error starting torrent download", e)
     else:
@@ -130,6 +130,67 @@ def seed_status():
 def healthcheck():
     return "ok", 200
 
+@app.route("/torrent-files", methods=["POST"])
+def get_torrent_files():
+    auth_error = validate_rpc_password()
+    if auth_error:
+        return auth_error
+    
+    data = request.get_json()
+    magnet_uri = data.get('magnet_uri')
+    
+    print(f"[torrent-files] Received request for magnet: {magnet_uri[:50] if magnet_uri else 'None'}...")
+    
+    if not magnet_uri or not magnet_uri.startswith('magnet'):
+        print(f"[torrent-files] Invalid magnet URI")
+        return jsonify({"error": "Invalid magnet URI"}), 400
+    
+    try:
+        print(f"[torrent-files] Creating temporary torrent handle...")
+        # Create temporary torrent handle to get file info
+        params = {
+            'url': magnet_uri,
+            'save_path': '/tmp' if sys.platform != 'win32' else 'C:\\Windows\\Temp',
+            'flags': lt.torrent_flags.upload_mode  # Don't start downloading
+        }
+        temp_handle = torrent_session.add_torrent(params)
+        
+        print(f"[torrent-files] Waiting for metadata (max 20s)...")
+        # Wait for metadata (up to 20 seconds)
+        for i in range(80):
+            if temp_handle.status().has_metadata:
+                print(f"[torrent-files] Metadata received after {i * 0.25}s")
+                break
+            time.sleep(0.25)
+        
+        if not temp_handle.status().has_metadata:
+            print(f"[torrent-files] Metadata timeout after 20s")
+            torrent_session.remove_torrent(temp_handle)
+            return jsonify({"error": "Failed to fetch torrent metadata (timeout)"}), 408
+        
+        # Get file information
+        info = temp_handle.get_torrent_info()
+        files = []
+        for i in range(info.num_files()):
+            file = info.file_at(i)
+            files.append({
+                'index': i,
+                'name': file.path,
+                'size': file.size
+            })
+        
+        print(f"[torrent-files] Found {len(files)} files")
+        
+        # Clean up temporary handle
+        torrent_session.remove_torrent(temp_handle)
+        
+        return jsonify(files), 200
+    except Exception as e:
+        print(f"[torrent-files] ERROR: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"{type(e).__name__}: {str(e)}"}), 500
+
 @app.route("/process-list", methods=["GET"])
 def process_list():
     auth_error = validate_rpc_password()
@@ -174,6 +235,7 @@ def action():
 
     if action == 'start':
         url = data.get('url')
+        file_indices = data.get('file_indices')  # Optional list of file indices to download
 
         existing_downloader = downloads.get(game_id)
 
@@ -187,11 +249,11 @@ def action():
                 http_multi_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
         elif url.startswith('magnet'):
             if existing_downloader and isinstance(existing_downloader, TorrentDownloader):
-                existing_downloader.start_download(url, data['save_path'])
+                existing_downloader.start_download(url, data['save_path'], file_indices)
             else:
                 torrent_downloader = TorrentDownloader(torrent_session)
                 downloads[game_id] = torrent_downloader
-                torrent_downloader.start_download(url, data['save_path'])
+                torrent_downloader.start_download(url, data['save_path'], file_indices)
         else:
             if existing_downloader and isinstance(existing_downloader, HttpDownloader):
                 existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))

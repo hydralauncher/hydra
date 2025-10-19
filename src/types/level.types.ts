@@ -77,6 +77,7 @@ export interface Download {
   timestamp: number;
   extracting: boolean;
   automaticallyExtract: boolean;
+  fileIndices?: number[];
 }
 
 export interface GameAchievement {

@@ -8,11 +8,16 @@
   min-width: 400px;
   max-width: 600px;
   color: globals.$body-color;
-  max-height: 100%;
+  max-height: 90vh; // Prevent modal from being too tall
+  margin: calc(globals.$spacing-unit * 2); // Add margin from edges
   border: solid 1px globals.$border-color;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+
+  @media (max-width: 1200px) {
+    margin: calc(globals.$spacing-unit * 1);
+  }
 
   &--closing {
     animation-name: scale-fade-out;
@@ -21,12 +26,22 @@
 
   &--large {
     width: 800px;
-    max-width: 800px;
+    max-width: calc(
+      100vw - calc(globals.$spacing-unit * 4)
+    ); // Prevent overflow on small screens
+  }
+
+  &--extra-large {
+    width: 1100px;
+    max-width: calc(
+      100vw - calc(globals.$spacing-unit * 4)
+    ); // Prevent overflow on small screens
   }
 
   &__content {
     height: 100%;
-    overflow: auto;
+    overflow-x: hidden; // Prevent horizontal scroll on modal content
+    overflow-y: auto; // Allow vertical scroll
     padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
   }
 
