@@ -61,14 +61,15 @@ export function DownloadSettingsModal({
   const { isFeatureEnabled, Feature } = useFeature();
 
   const getDiskFreeSpace = async (path: string) => {
-    const result = await window.electron.getDiskFreeSpace(path);
+    const result = await globalThis.electron.getDiskFreeSpace(path);
     setDiskFreeSpace(result.free);
   };
 
   const checkFolderWritePermission = useCallback(
     async (path: string) => {
       if (isFeatureEnabled(Feature.CheckDownloadWritePermission)) {
-        const result = await window.electron.checkFolderWritePermission(path);
+        const result =
+          await globalThis.electron.checkFolderWritePermission(path);
         setHasWritePermission(result);
       } else {
         setHasWritePermission(true);
@@ -85,17 +86,10 @@ export function DownloadSettingsModal({
       // Fetch torrent files if it's a magnet link
       const magnetUri = repack?.uris.find((uri) => uri.startsWith("magnet"));
 
-      console.log("Download settings modal:", {
-        magnetUri: magnetUri?.substring(0, 50) + "...",
-        selectedDownloader,
-        hasTorrentFiles: typeof window.electron.getTorrentFiles === "function",
-        repackUris: repack?.uris,
-      });
-
       if (
         magnetUri &&
         selectedDownloader === Downloader.Torrent &&
-        typeof window.electron.getTorrentFiles === "function"
+        typeof globalThis.electron.getTorrentFiles === "function"
       ) {
         setLoadingFiles(true);
         console.log(
@@ -103,7 +97,7 @@ export function DownloadSettingsModal({
           magnetUri.substring(0, 50) + "..."
         );
 
-        window.electron
+        globalThis.electron
           .getTorrentFiles(magnetUri)
           .then((files) => {
             console.log("Received torrent files:", files.length);
@@ -171,7 +165,7 @@ export function DownloadSettingsModal({
     if (userPreferences?.downloadsPath) {
       setSelectedPath(userPreferences.downloadsPath);
     } else {
-      window.electron
+      globalThis.electron
         .getDefaultDownloadsPath()
         .then((defaultDownloadsPath) => setSelectedPath(defaultDownloadsPath));
     }
@@ -198,7 +192,7 @@ export function DownloadSettingsModal({
   ]);
 
   const handleChooseDownloadsPath = async () => {
-    const { filePaths } = await window.electron.showOpenDialog({
+    const { filePaths } = await globalThis.electron.showOpenDialog({
       defaultPath: selectedPath,
       properties: ["openDirectory"],
     });

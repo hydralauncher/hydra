@@ -142,7 +142,7 @@ class TorrentDownloader:
         
         # Calculate cached size from the files we just set
         self.cached_file_size = sum(selected_file_sizes)
-        print(f"[torrent] File priorities set successfully.")
+        print("[torrent] File priorities set successfully.")
         print(f"[torrent] Total size of selected files: {self.cached_file_size} bytes ({self.cached_file_size / (1024**3):.2f} GB)")
 
     def start_download(self, magnet: str, save_path: str, file_indices=None):
@@ -212,26 +212,10 @@ class TorrentDownloader:
 
         status = self.torrent_handle.status()
         info = self.torrent_handle.get_torrent_info()
-        
-        # Calculate file size based on file priorities
-        file_size = 0
-        if info:
-            # Use cached value if available
-            if self.cached_file_size is not None and self.cached_file_size > 0:
-                file_size = self.cached_file_size
-            else:
-                # Calculate size of files with priority > 0
-                for i in range(info.num_files()):
-                    if self.torrent_handle.file_priority(i) > 0:
-                        file_size += info.file_at(i).size
-                
-                # If all files have priority 0 (shouldn't happen), use total size
-                if file_size == 0:
-                    file_size = info.total_size()
-                
-                # Cache for future status checks
-                self.cached_file_size = file_size
-        
+
+        # Delegate file size computation to helper to reduce cognitive complexity
+        file_size = self._calculate_file_size() if info else 0
+
         response = {
             'folderName': info.name() if info else "",
             'fileSize': file_size,
@@ -241,7 +225,35 @@ class TorrentDownloader:
             'numPeers': status.num_peers,
             'numSeeds': status.num_seeds,
             'status': status.state,
-            'bytesDownloaded': status.progress * file_size if info else status.all_time_download,
+            'bytesDownloaded': (status.progress * file_size) if info else status.all_time_download,
         }
 
         return response
+
+    def _calculate_file_size(self):
+        """Helper to calculate and cache file size based on file priorities."""
+        if self.torrent_handle is None:
+            return 0
+
+        info = self.torrent_handle.get_torrent_info()
+        if not info:
+            return 0
+
+        if self.cached_file_size is not None and self.cached_file_size > 0:
+            return self.cached_file_size
+
+        file_size = 0
+        for i in range(info.num_files()):
+            try:
+                if self.torrent_handle.file_priority(i) > 0:
+                    file_size += info.file_at(i).size
+            except Exception:
+                continue
+        if file_size == 0:
+            try:
+                file_size = info.total_size()
+            except Exception:
+                file_size = 0
+
+        self.cached_file_size = file_size
+        return file_size

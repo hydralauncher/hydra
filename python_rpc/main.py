@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-import sys, json, urllib.parse, psutil, time
+import sys, json, urllib.parse, psutil, time, tempfile
 from torrent_downloader import TorrentDownloader
 from http_downloader import HttpDownloader
 from profile_image_processor import ProfileImageProcessor
@@ -150,7 +150,7 @@ def get_torrent_files():
         # Create temporary torrent handle to get file info
         params = {
             'url': magnet_uri,
-            'save_path': '/tmp' if sys.platform != 'win32' else 'C:\\Windows\\Temp',
+            'save_path': tempfile.gettempdir(),
             'flags': lt.torrent_flags.upload_mode  # Don't start downloading
         }
         temp_handle = torrent_session.add_torrent(params)
