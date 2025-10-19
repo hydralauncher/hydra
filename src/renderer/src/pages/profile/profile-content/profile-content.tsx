@@ -3,7 +3,11 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ProfileHero } from "../profile-hero/profile-hero";
 import { useAppDispatch, useFormat, useDate } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
-import { TelescopeIcon, ChevronRightIcon, SearchIcon } from "@primer/octicons-react";
+import {
+  TelescopeIcon,
+  ChevronRightIcon,
+  SearchIcon,
+} from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
@@ -202,79 +206,96 @@ export function ProfileContent() {
                 </div>
               )}
 
-              {userProfile?.achievements && userProfile.achievements.length > 0 && (
-                <div className="profile-content__souvenirs-section">
-                  <div className="profile-content__section-header">
-                    <div className="profile-content__section-title-group">
-                      <h2>{t("souvenirs")}</h2>
-                      <span className="profile-content__section-badge">
-                        {userProfile.achievements.length}
-                      </span>
+              {userProfile?.achievements &&
+                userProfile.achievements.length > 0 && (
+                  <div className="profile-content__souvenirs-section">
+                    <div className="profile-content__section-header">
+                      <div className="profile-content__section-title-group">
+                        <h2>{t("souvenirs")}</h2>
+                        <span className="profile-content__section-badge">
+                          {userProfile.achievements.length}
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="profile-content__souvenirs-grid">
-                    {userProfile.achievements.map((achievement, index) => (
-                      <div
-                        key={`${achievement.gameTitle}-${achievement.name}-${index}`}
-                        className="profile-content__souvenir-card"
-                      >
-                        <div className="profile-content__souvenir-card-header">
-                          <div className="profile-content__souvenir-achievement-image-wrapper">
-                            <img
-                              src={achievement.achievementImageUrl}
-                              alt={achievement.name}
-                              className="profile-content__souvenir-achievement-image"
-                              loading="lazy"
-                              onClick={() => handleImageClick(achievement.achievementImageUrl, achievement.name)}
-                              style={{ cursor: 'pointer' }}
-                            />
-                            <div className="profile-content__souvenir-achievement-image-overlay">
-                              <SearchIcon size={20} />
+                    <div className="profile-content__souvenirs-grid">
+                      {userProfile.achievements.map((achievement, index) => (
+                        <div
+                          key={`${achievement.gameTitle}-${achievement.name}-${index}`}
+                          className="profile-content__souvenir-card"
+                        >
+                          <div className="profile-content__souvenir-card-header">
+                            <div className="profile-content__souvenir-achievement-image-wrapper">
+                              <img
+                                src={achievement.achievementImageUrl}
+                                alt={achievement.name}
+                                className="profile-content__souvenir-achievement-image"
+                                loading="lazy"
+                                onClick={() =>
+                                  handleImageClick(
+                                    achievement.achievementImageUrl,
+                                    achievement.name
+                                  )
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    handleImageClick(achievement.achievementImageUrl, achievement.name);
+                                  }
+                                }}
+                                tabIndex={0}
+                                role="button"
+                                aria-label={`View ${achievement.name} screenshot in fullscreen`}
+                                style={{ cursor: "pointer" }}
+                              />
+                              <div className="profile-content__souvenir-achievement-image-overlay">
+                                <SearchIcon size={20} />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        
-                        <div className="profile-content__souvenir-card-content">
-                          <div className="profile-content__souvenir-achievement-info">
-                            <img
-                              src={achievement.achievementIcon}
-                              alt=""
-                              className="profile-content__souvenir-achievement-icon"
-                              loading="lazy"
-                            />
-                            <span className="profile-content__souvenir-achievement-name">
-                              {achievement.name}
-                            </span>
-                          </div>
-                          
-                          <div className="profile-content__souvenir-game-info">
-                            <div className="profile-content__souvenir-game-left">
+
+                          <div className="profile-content__souvenir-card-content">
+                            <div className="profile-content__souvenir-achievement-info">
                               <img
-                                src={achievement.gameIconUrl}
+                                src={achievement.achievementIcon}
                                 alt=""
-                                className="profile-content__souvenir-game-icon"
+                                className="profile-content__souvenir-achievement-icon"
                                 loading="lazy"
                               />
-                              <span className="profile-content__souvenir-game-title">
-                                {achievement.gameTitle}
+                              <span className="profile-content__souvenir-achievement-name">
+                                {achievement.name}
                               </span>
                             </div>
-                            
-                            {achievement.unlockTime && (
-                              <div className="profile-content__souvenir-unlock-time">
-                                <small>{formatDateTime(achievement.unlockTime)}</small>
+
+                            <div className="profile-content__souvenir-game-info">
+                              <div className="profile-content__souvenir-game-left">
+                                <img
+                                  src={achievement.gameIconUrl}
+                                  alt=""
+                                  className="profile-content__souvenir-game-icon"
+                                  loading="lazy"
+                                />
+                                <span className="profile-content__souvenir-game-title">
+                                  {achievement.gameTitle}
+                                </span>
                               </div>
-                            )}
+
+                              {achievement.unlockTime && (
+                                <div className="profile-content__souvenir-unlock-time">
+                                  <small>
+                                    {formatDateTime(achievement.unlockTime)}
+                                  </small>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="profile-content__souvenir-card-gradient-overlay"></div>
                           </div>
-                          
-                          <div className="profile-content__souvenir-card-gradient-overlay"></div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {hasAnyGames && (
                 <SortOptions sortBy={sortBy} onSortChange={setSortBy} />
@@ -343,7 +364,7 @@ export function ProfileContent() {
       <ProfileHero />
 
       {content}
-      
+
       <FullscreenImageModal
         isOpen={fullscreenImage !== null}
         imageUrl={fullscreenImage?.url || ""}

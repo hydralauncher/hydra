@@ -104,8 +104,6 @@ export const mergeAchievements = async (
     publishNotification &&
     userPreferences.achievementNotificationsEnabled !== false
   ) {
-
-
     const filteredAchievements = newAchievements
       .toSorted((a, b) => {
         return a.unlockTime - b.unlockTime;
@@ -192,37 +190,57 @@ export const mergeAchievements = async (
         }
 
         // Capture and upload screenshot AFTER achievements are synced to server
-        if (newAchievements.length && userPreferences.enableAchievementScreenshots === true) {
+        if (
+          newAchievements.length &&
+          userPreferences.enableAchievementScreenshots === true
+        ) {
           try {
             // Import and trigger the upload process
-            const { uploadAchievementImage } = await import("@main/events/achievements/upload-achievement-image");
-            
+            const { uploadAchievementImage } = await import(
+              "@main/events/achievements/upload-achievement-image"
+            );
+
             // Upload the screenshot for each new achievement
             for (const achievement of newAchievements) {
               try {
                 // Find the achievement data to get the display name
-                const achievementData = achievementsData.find((steamAchievement) => {
-                  return (
-                    achievement.name.toUpperCase() ===
-                    steamAchievement.name.toUpperCase()
-                  );
-                });
-                
-                const achievementDisplayName = achievementData?.displayName || achievement.name;
-                
-                // Capture screenshot with game title and achievement name
-                const screenshotPath = await ScreenshotService.captureDesktopScreenshot(
-                  game.title,
-                  achievementDisplayName
+                const achievementData = achievementsData.find(
+                  (steamAchievement) => {
+                    return (
+                      achievement.name.toUpperCase() ===
+                      steamAchievement.name.toUpperCase()
+                    );
+                  }
                 );
-                
-                await uploadAchievementImage(game.objectId, achievement.name, screenshotPath, game.shop);
+
+                const achievementDisplayName =
+                  achievementData?.displayName || achievement.name;
+
+                // Capture screenshot with game title and achievement name
+                const screenshotPath =
+                  await ScreenshotService.captureDesktopScreenshot(
+                    game.title,
+                    achievementDisplayName
+                  );
+
+                await uploadAchievementImage(
+                  game.objectId,
+                  achievement.name,
+                  screenshotPath,
+                  game.shop
+                );
               } catch (error) {
-                achievementsLogger.error("Failed to upload achievement image", error);
+                achievementsLogger.error(
+                  "Failed to upload achievement image",
+                  error
+                );
               }
             }
           } catch (error) {
-            achievementsLogger.error("Failed to capture screenshot for achievement", error);
+            achievementsLogger.error(
+              "Failed to capture screenshot for achievement",
+              error
+            );
           }
         }
       })

@@ -1,4 +1,9 @@
-import { User, type ProfileVisibility, type UserDetails, type UserPreferences } from "@types";
+import {
+  User,
+  type ProfileVisibility,
+  type UserDetails,
+  type UserPreferences,
+} from "@types";
 import { HydraApi } from "../hydra-api";
 import { UserNotLoggedInError } from "@shared";
 import { logger } from "../logger";
@@ -13,7 +18,7 @@ export const getUserData = async () => {
       levelKeys.userPreferences,
       { valueEncoding: "json" }
     );
-    
+
     if (userPreferences?.language) {
       // Map supported languages (pt, ru, es) or fallback to en
       const supportedLanguages = ["pt", "ru", "es"];

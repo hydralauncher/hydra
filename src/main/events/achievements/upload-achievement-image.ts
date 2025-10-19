@@ -17,9 +17,9 @@ const uploadImageToCDN = async (imagePath: string): Promise<string> => {
   const fileSizeInBytes = stat.size;
 
   // Get presigned URL for achievement image
-  const response = await HydraApi.post<{ 
-    presignedUrl: string; 
-    achievementImageUrl: string; 
+  const response = await HydraApi.post<{
+    presignedUrl: string;
+    achievementImageUrl: string;
   }>("/presigned-urls/achievement-image", {
     imageExt: path.extname(imagePath).slice(1),
     imageLength: fileSizeInBytes,
@@ -42,11 +42,11 @@ const uploadImageToCDN = async (imagePath: string): Promise<string> => {
  */
 const storeImageLocally = async (imagePath: string): Promise<string> => {
   const fileBuffer = fs.readFileSync(imagePath);
-  const base64Image = fileBuffer.toString('base64');
+  const base64Image = fileBuffer.toString("base64");
   const mimeType = await fileTypeFromFile(imagePath);
-  
+
   // Create a data URL for local storage
-  return `data:${mimeType?.mime || 'image/jpeg'};base64,${base64Image}`;
+  return `data:${mimeType?.mime || "image/jpeg"};base64,${base64Image}`;
 };
 
 /**
@@ -77,31 +77,42 @@ export const uploadAchievementImage = async (
     let imageUrl: string;
 
     // Check if user has active subscription
-  const hasSubscription = await db
-    .get<string, User>(levelKeys.user, { valueEncoding: "json" })
-    .then((user) => {
-      const expiresAt = new Date(user?.subscription?.expiresAt ?? 0);
-      return expiresAt > new Date();
-    })
-    .catch(() => false);
+    const hasSubscription = await db
+      .get<string, User>(levelKeys.user, { valueEncoding: "json" })
+      .then((user) => {
+        const expiresAt = new Date(user?.subscription?.expiresAt ?? 0);
+        return expiresAt > new Date();
+      })
+      .catch(() => false);
 
     if (hasSubscription) {
       // Upload to CDN and update via API
       imageUrl = await uploadImageToCDN(imagePath);
       if (shop) {
-        await updateAchievementWithImageUrl(shop, gameId, achievementName, imageUrl);
+        await updateAchievementWithImageUrl(
+          shop,
+          gameId,
+          achievementName,
+          imageUrl
+        );
       }
-      logger.log(`Achievement image uploaded to CDN for ${gameId}:${achievementName}`);
+      logger.log(
+        `Achievement image uploaded to CDN for ${gameId}:${achievementName}`
+      );
     } else {
       // Store locally
       imageUrl = await storeImageLocally(imagePath);
-      logger.log(`Achievement image stored locally for ${gameId}:${achievementName}`);
+      logger.log(
+        `Achievement image stored locally for ${gameId}:${achievementName}`
+      );
     }
 
     return { success: true, imageUrl };
-
   } catch (error) {
-    logger.error(`Failed to upload achievement image for ${gameId}:${achievementName}:`, error);
+    logger.error(
+      `Failed to upload achievement image for ${gameId}:${achievementName}:`,
+      error
+    );
     throw error;
   }
 };
@@ -121,12 +132,19 @@ const uploadAchievementImageEvent = async (
   const { imagePath, gameId, achievementName, shop } = params;
 
   try {
-    const result = await uploadAchievementImage(gameId, achievementName, imagePath, shop);
+    const result = await uploadAchievementImage(
+      gameId,
+      achievementName,
+      imagePath,
+      shop
+    );
 
     // Update local database with image URL
     const achievementKey = levelKeys.game(shop, gameId);
-    const existingData = await gameAchievementsSublevel.get(achievementKey).catch(() => null);
-    
+    const existingData = await gameAchievementsSublevel
+      .get(achievementKey)
+      .catch(() => null);
+
     if (existingData) {
       await gameAchievementsSublevel.put(achievementKey, {
         ...existingData,
@@ -142,15 +160,17 @@ const uploadAchievementImageEvent = async (
     }
 
     return result;
-
   } catch (error) {
     // Clean up the temporary screenshot file even on error
     try {
       fs.unlinkSync(imagePath);
     } catch (cleanupError) {
-      logger.error(`Failed to cleanup screenshot file ${imagePath}:`, cleanupError);
+      logger.error(
+        `Failed to cleanup screenshot file ${imagePath}:`,
+        cleanupError
+      );
     }
-    
+
     throw error;
   }
 };

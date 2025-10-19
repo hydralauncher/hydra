@@ -185,20 +185,20 @@
     display: flex;
     gap: calc(globals.$spacing-unit * 2);
     padding-bottom: calc(globals.$spacing-unit);
-    
+
     &::-webkit-scrollbar {
       height: 6px;
     }
-    
+
     &::-webkit-scrollbar-track {
       background: rgba(255, 255, 255, 0.1);
       border-radius: 3px;
     }
-    
+
     &::-webkit-scrollbar-thumb {
       background: rgba(255, 255, 255, 0.3);
       border-radius: 3px;
-      
+
       &:hover {
         background: rgba(255, 255, 255, 0.5);
       }
@@ -213,7 +213,7 @@
     border-radius: 12px;
     overflow: hidden;
     transition: all ease 0.2s;
-    
+
     &:hover {
       transform: translateY(-4px);
       background: rgba(0, 0, 0, 0.4);
@@ -233,7 +233,7 @@
     position: relative;
     width: 100%;
     height: 100%;
-    
+
     &:hover .profile-content__souvenir-achievement-image-overlay {
       opacity: 1;
     }
@@ -244,8 +244,6 @@
     height: 100%;
     object-fit: cover;
     transition: transform 0.2s ease;
-    
-
   }
 
   &__souvenir-achievement-image-overlay {
@@ -261,7 +259,7 @@
     opacity: 0;
     transition: opacity 0.2s ease;
     pointer-events: none;
-    
+
     svg {
       color: white;
     }
@@ -356,7 +354,7 @@
   &__souvenir-unlock-time {
     padding: 0;
     flex-shrink: 0;
-    
+
     small {
       font-size: 11px;
       color: rgba(255, 255, 255, 0.5);
@@ -370,7 +368,7 @@
     border-radius: 8px;
     overflow: hidden;
     transition: transform ease 0.2s;
-    
+
     &:hover {
       transform: scale(1.05);
     }
@@ -383,7 +381,7 @@
     border-radius: 8px;
     border: 2px solid rgba(255, 255, 255, 0.1);
     transition: border-color ease 0.2s;
-    
+
     &:hover {
       border-color: rgba(255, 255, 255, 0.3);
     }
