@@ -226,28 +226,25 @@ export function ProfileContent() {
                         >
                           <div className="profile-content__souvenir-card-header">
                             <div className="profile-content__souvenir-achievement-image-wrapper">
-                              <img
-                                src={achievement.achievementImageUrl}
-                                alt={achievement.name}
-                                className="profile-content__souvenir-achievement-image"
-                                loading="lazy"
+                              <button
+                                type="button"
+                                className="profile-content__souvenir-image-button"
                                 onClick={() =>
                                   handleImageClick(
-                                    achievement.achievementImageUrl,
+                                    achievement.achievementImageUrl!,
                                     achievement.name
                                   )
                                 }
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
-                                    handleImageClick(achievement.achievementImageUrl, achievement.name);
-                                  }
-                                }}
-                                tabIndex={0}
-                                role="button"
                                 aria-label={`View ${achievement.name} screenshot in fullscreen`}
-                                style={{ cursor: "pointer" }}
-                              />
+                                style={{ cursor: "pointer", padding: 0, border: "none", background: "transparent" }}
+                              >
+                                <img
+                                  src={achievement.achievementImageUrl}
+                                  alt={achievement.name}
+                                  className="profile-content__souvenir-achievement-image"
+                                  loading="lazy"
+                                />
+                              </button>
                               <div className="profile-content__souvenir-achievement-image-overlay">
                                 <SearchIcon size={20} />
                               </div>

@@ -66,31 +66,25 @@ export function AchievementList({
             {achievement.achievementImageUrl && achievement.unlocked && (
               <div className="achievements__item-image-container">
                 <div className="achievements__item-custom-image-wrapper">
-                  <img
-                    className="achievements__item-custom-image"
-                    src={achievement.achievementImageUrl}
-                    alt={`${achievement.displayName} screenshot`}
-                    loading="lazy"
+                  <button
+                    type="button"
+                    className="achievements__item-image-button"
                     onClick={() =>
                       handleImageClick(
-                        achievement.achievementImageUrl,
+                        achievement.achievementImageUrl!,
                         achievement.displayName
                       )
                     }
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleImageClick(
-                          achievement.achievementImageUrl,
-                          achievement.displayName
-                        );
-                      }
-                    }}
-                    tabIndex={0}
-                    role="button"
                     aria-label={`View ${achievement.displayName} screenshot in fullscreen`}
-                    style={{ cursor: "pointer" }}
-                  />
+                    style={{ cursor: "pointer", padding: 0, border: "none", background: "transparent" }}
+                  >
+                    <img
+                      className="achievements__item-custom-image"
+                      src={achievement.achievementImageUrl}
+                      alt={`${achievement.displayName} screenshot`}
+                      loading="lazy"
+                    />
+                  </button>
                   <div className="achievements__item-custom-image-overlay">
                     <SearchIcon size={20} />
                   </div>

@@ -35,27 +35,19 @@ export function FullscreenImageModal({
 
   if (!isOpen) return null;
 
-  const handleBackdropClick = (event: React.MouseEvent) => {
-    if (event.target === event.currentTarget) {
-      onClose();
-    }
-  };
-
-  const handleBackdropKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Escape') {
-      onClose();
-    }
-  };
-
   return (
-    <div 
-      className="fullscreen-image-modal" 
-      onClick={handleBackdropClick}
-      onKeyDown={handleBackdropKeyDown}
+    <div
+      className="fullscreen-image-modal"
       role="dialog"
       aria-modal="true"
       tabIndex={-1}
     >
+      <button
+        type="button"
+        className="fullscreen-image-modal__backdrop"
+        onClick={onClose}
+        aria-label="Close fullscreen image"
+      />
       <div className="fullscreen-image-modal__container">
         <button
           className="fullscreen-image-modal__close-button"
