@@ -188,9 +188,19 @@ export interface UserDetails {
   featurebaseJwt: string;
   subscription: Subscription | null;
   karma: number;
+  achievements: ProfileAchievement[] | null;
   quirks?: {
     backupsPerGameLimit: number;
   };
+}
+
+export interface ProfileAchievement {
+  name: string;
+  achievementImageUrl: string;
+  unlockTime: number;
+  gameTitle: string;
+  gameIconUrl: string;
+  achievementIcon: string;
 }
 
 export interface UserProfile {
@@ -209,6 +219,7 @@ export interface UserProfile {
   bio: string;
   hasActiveSubscription: boolean;
   karma: number;
+  achievements: ProfileAchievement[] | null;
   quirks: {
     backupsPerGameLimit: number;
   };

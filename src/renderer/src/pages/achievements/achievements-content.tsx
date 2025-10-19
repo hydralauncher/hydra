@@ -50,6 +50,7 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
             className="achievements-content__profile-avatar"
             src={user.profileImageUrl}
             alt={user.displayName}
+            loading="lazy"
           />
         ) : (
           <PersonIcon size={24} />
@@ -150,6 +151,7 @@ export function AchievementsContent({
             className="achievements-content__comparison__small-avatar"
             src={user.profileImageUrl}
             alt={user.displayName}
+            loading="lazy"
           />
         ) : (
           <PersonIcon size={24} />
@@ -166,6 +168,7 @@ export function AchievementsContent({
         src={shopDetails?.assets?.libraryHeroImageUrl ?? ""}
         className="achievements-content__achievements-list__image"
         alt={gameTitle}
+        loading="lazy"
       />
 
       <section
@@ -186,6 +189,7 @@ export function AchievementsContent({
                   src={shopDetails?.assets?.logoImageUrl ?? ""}
                   className="achievements-content__achievements-list__section__container__hero__content__game-logo"
                   alt={gameTitle}
+                  loading="lazy"
                 />
               </Link>
             </div>

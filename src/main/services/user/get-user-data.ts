@@ -1,4 +1,4 @@
-import { User, type ProfileVisibility, type UserDetails } from "@types";
+import { User, type ProfileVisibility, type UserDetails, type UserPreferences } from "@types";
 import { HydraApi } from "../hydra-api";
 import { UserNotLoggedInError } from "@shared";
 import { logger } from "../logger";
@@ -6,7 +6,26 @@ import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 
 export const getUserData = async () => {
-  return HydraApi.get<UserDetails>(`/profile/me`)
+  // Get user language preference for API call
+  let language = "en"; // Default fallback
+  try {
+    const userPreferences = await db.get<string, UserPreferences | null>(
+      levelKeys.userPreferences,
+      { valueEncoding: "json" }
+    );
+    
+    if (userPreferences?.language) {
+      // Map supported languages (pt, ru, es) or fallback to en
+      const supportedLanguages = ["pt", "ru", "es"];
+      const userLang = userPreferences.language.split("-")[0];
+      language = supportedLanguages.includes(userLang) ? userLang : "en";
+    }
+  } catch (error) {
+    logger.error("Failed to get user preferences for language", error);
+  }
+
+  const params = new URLSearchParams({ language });
+  return HydraApi.get<UserDetails>(`/profile/me?${params.toString()}`)
     .then(async (me) => {
       try {
         const user = await db.get<string, User>(levelKeys.user, {

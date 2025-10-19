@@ -3,6 +3,8 @@ import { registerEvent } from "../register-event";
 import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
 import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
+import { HydraApi } from "@main/services";
+import { UserNotLoggedInError } from "@shared";
 
 export const getUnlockedAchievements = async (
   objectId: string,
@@ -31,12 +33,46 @@ export const getUnlockedAchievements = async (
 
   const unlockedAchievements = cachedAchievements?.unlockedAchievements ?? [];
 
+  // Try to get user achievements with image URLs from remote API
+  let remoteUserAchievements: UserAchievement[] = [];
+  try {
+    const userDetails = await db.get<string, any>(levelKeys.user, {
+      valueEncoding: "json",
+    });
+    
+    if (userDetails?.id) {
+      remoteUserAchievements = await HydraApi.get<UserAchievement[]>(
+        `/users/${userDetails.id}/games/achievements`,
+        {
+          shop,
+          objectId,
+          language: userPreferences?.language ?? "en",
+        }
+      );
+    }
+  } catch (error) {
+    // If API call fails, continue with local data only
+    if (!(error instanceof UserNotLoggedInError)) {
+      console.warn("Failed to fetch remote user achievements:", error);
+    }
+  }
+
   return achievementsData
     .map((achievementData) => {
       const unlockedAchievementData = unlockedAchievements.find(
         (localAchievement) => {
           return (
             localAchievement.name.toUpperCase() ==
+            achievementData.name.toUpperCase()
+          );
+        }
+      );
+
+      // Find corresponding remote achievement data for image URL
+      const remoteAchievementData = remoteUserAchievements.find(
+        (remoteAchievement) => {
+          return (
+            remoteAchievement.name.toUpperCase() ==
             achievementData.name.toUpperCase()
           );
         }
@@ -51,6 +87,7 @@ export const getUnlockedAchievements = async (
           ...achievementData,
           unlocked: true,
           unlockTime: unlockedAchievementData.unlockTime,
+          achievementImageUrl: remoteAchievementData?.achievementImageUrl || null,
         };
       }
 
@@ -63,6 +100,7 @@ export const getUnlockedAchievements = async (
           !achievementData.hidden || showHiddenAchievementsDescription
             ? achievementData.description
             : undefined,
+        achievementImageUrl: remoteAchievementData?.achievementImageUrl || null,
       };
     })
     .sort((a, b) => {
