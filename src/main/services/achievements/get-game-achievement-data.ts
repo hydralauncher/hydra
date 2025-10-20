@@ -5,15 +5,12 @@ import { logger } from "../logger";
 import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
 import { AxiosError } from "axios";
 
+const LOCAL_CACHE_EXPIRATION = 1000 * 60 * 60; // 1 hour
+
 const getModifiedSinceHeader = (
-  cachedAchievements: GameAchievement | undefined,
-  userLanguage: string
+  cachedAchievements: GameAchievement | undefined
 ): Date | undefined => {
   if (!cachedAchievements) {
-    return undefined;
-  }
-
-  if (userLanguage != cachedAchievements.language) {
     return undefined;
   }
 
@@ -31,7 +28,13 @@ export const getGameAchievementData = async (
 
   const cachedAchievements = await gameAchievementsSublevel.get(gameKey);
 
-  if (cachedAchievements?.achievements && useCachedData) {
+  if (cachedAchievements?.achievements && useCachedData)
+    return cachedAchievements.achievements;
+
+  if (
+    cachedAchievements?.achievements &&
+    Date.now() < (cachedAchievements.updatedAt ?? 0) + LOCAL_CACHE_EXPIRATION
+  ) {
     return cachedAchievements.achievements;
   }
 
@@ -47,15 +50,14 @@ export const getGameAchievementData = async (
       language,
     },
     {
-      ifModifiedSince: getModifiedSinceHeader(cachedAchievements, language),
+      ifModifiedSince: getModifiedSinceHeader(cachedAchievements),
     }
   )
     .then(async (achievements) => {
       await gameAchievementsSublevel.put(gameKey, {
         unlockedAchievements: cachedAchievements?.unlockedAchievements ?? [],
         achievements,
-        updatedAt: Date.now(),
-        language,
+        updatedAt: Date.now() + LOCAL_CACHE_EXPIRATION,
       });
 
       return achievements;
