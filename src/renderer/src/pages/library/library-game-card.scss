@@ -1,0 +1,206 @@
+@use "../../scss/globals.scss";
+
+.library-game-card {
+  &__wrapper {
+    cursor: pointer;
+    transition: all ease 0.2s;
+    box-shadow: 0 8px 10px -2px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    position: relative;
+    border: none;
+    background: none;
+    padding: 0;
+    border-radius: 4px;
+    overflow: hidden;
+    display: block;
+    container-type: inline-size;
+
+    &:before {
+      content: "";
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 172%;
+      position: absolute;
+      background: linear-gradient(
+        35deg,
+        rgba(0, 0, 0, 0.1) 0%,
+        rgba(0, 0, 0, 0.07) 51.5%,
+        rgba(255, 255, 255, 0.15) 64%,
+        rgba(255, 255, 255, 0.1) 100%
+      );
+      transition: all ease 0.3s;
+      transform: translateY(-36%);
+      opacity: 0.5;
+      z-index: 1;
+    }
+
+    &:hover {
+      transform: scale(1.05);
+    }
+
+    &:hover::before {
+      opacity: 1;
+      transform: translateY(-20%);
+    }
+  }
+
+  &__overlay {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.2) 20%, transparent 100%);
+    padding: 8px;
+    z-index: 2;
+  }
+
+  &__top-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  &__playtime {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: rgba(255, 255, 255, 0.8);
+    border: solid 1px rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all ease 0.2s;
+
+    &-long {
+      display: inline;
+      font-size: 12px;
+    }
+
+    &-short {
+      display: none;
+      font-size: 12px;
+    }
+
+    // When the card is narrow (less than 140px), show short format
+    @container (max-width: 140px) {
+      &-long {
+        display: none;
+      }
+
+      &-short {
+        display: inline;
+      }
+    }
+  }
+
+  &__manual-playtime {
+    color: globals.$warning-color;
+  }
+
+  &__action-button {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: solid 1px rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all ease 0.2s;
+    color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transform: scale(0.9);
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.8);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: scale(1.1);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  &__menu-button {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: solid 1px rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all ease 0.2s;
+    color: rgba(255, 255, 255, 0.8);
+    padding: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transform: scale(0.9);
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.6);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: scale(1.05);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  &__wrapper:hover &__action-button,
+  &__wrapper:hover &__menu-button {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  &__action-icon {
+    &--downloading {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+  }
+
+  &__game-image {
+    object-fit: cover;
+    border-radius: 4px;
+    width: 100%;
+    height: 100%;
+    min-width: 100%;
+    min-height: 100%;
+    display: block;
+    top: 0;
+    left: 0;
+    z-index: 0;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

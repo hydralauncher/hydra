@@ -1,0 +1,50 @@
+@use "../../scss/globals.scss";
+
+.library-view-options {
+  &__container {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit);
+  }
+
+  &__label {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    white-space: nowrap;
+  }
+
+  &__options {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit);
+    flex-wrap: wrap;
+    white-space: nowrap;
+  }
+
+  &__option {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit);
+    padding: 8px 16px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all ease 0.2s;
+    white-space: nowrap;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    &.active {
+      color: #c9aa71;
+      background: rgba(201, 170, 113, 0.15);
+    }
+  }
+}
