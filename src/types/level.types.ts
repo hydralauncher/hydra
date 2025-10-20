@@ -84,6 +84,7 @@ export interface GameAchievement {
   unlockedAchievements: UnlockedAchievement[];
   updatedAt: number | undefined;
   achievementImageUrl?: string | null;
+  language?: string;
 }
 
 export type AchievementCustomNotificationPosition =
