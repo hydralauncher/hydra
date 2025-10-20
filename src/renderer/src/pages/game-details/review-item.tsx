@@ -1,14 +1,17 @@
 import { TrashIcon, ClockIcon } from "@primer/octicons-react";
-import { ThumbsUp, ThumbsDown, Star } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Star, Languages } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { useState } from "react";
 import type { GameReview } from "@types";
 
 import { sanitizeHtml } from "@shared";
 import { useDate } from "@renderer/hooks";
 import { formatNumber } from "@renderer/helpers";
 import { Avatar } from "@renderer/components";
+
+import "./review-item.scss";
 
 interface ReviewItemProps {
   review: GameReview;
@@ -63,8 +66,44 @@ export function ReviewItem({
   onAnimationComplete,
 }: Readonly<ReviewItemProps>) {
   const navigate = useNavigate();
-  const { t } = useTranslation("game_details");
+  const { t, i18n } = useTranslation("game_details");
   const { formatDistance } = useDate();
+
+  const [showOriginal, setShowOriginal] = useState(false);
+
+  // Check if this is the user's own review
+  const isOwnReview = userDetailsId === review.user.id;
+
+  // Helper to get base language code (e.g., "pt" from "pt-BR")
+  const getBaseLanguage = (lang: string) => lang.split("-")[0];
+
+  // Check if the review is in a different language (comparing base language codes)
+  const isDifferentLanguage =
+    getBaseLanguage(review.detectedLanguage) !== getBaseLanguage(i18n.language);
+
+  // Check if translation is available and needed (but not for own reviews)
+  const needsTranslation =
+    !isOwnReview &&
+    isDifferentLanguage &&
+    review.translations &&
+    review.translations[i18n.language];
+
+  // Get the full language name using Intl.DisplayNames
+  const getLanguageName = (languageCode: string) => {
+    try {
+      const displayNames = new Intl.DisplayNames([i18n.language], {
+        type: "language",
+      });
+      return displayNames.of(languageCode) || languageCode.toUpperCase();
+    } catch {
+      return languageCode.toUpperCase();
+    }
+  };
+
+  // Determine which content to show - always show original for own reviews
+  const displayContent = needsTranslation
+    ? review.translations[i18n.language]
+    : review.reviewHtml;
 
   if (isBlocked && !isVisible) {
     return (
@@ -135,12 +174,41 @@ export function ReviewItem({
           ))}
         </div>
       </div>
-      <div
-        className="game-details__review-content"
-        dangerouslySetInnerHTML={{
-          __html: sanitizeHtml(review.reviewHtml),
-        }}
-      />
+      <div>
+        <div
+          className="game-details__review-content"
+          dangerouslySetInnerHTML={{
+            __html: sanitizeHtml(displayContent),
+          }}
+        />
+        {needsTranslation && (
+          <>
+            <button
+              className="game-details__review-translation-toggle"
+              onClick={() => setShowOriginal(!showOriginal)}
+            >
+              <Languages size={13} />
+              {showOriginal
+                ? t("hide_original")
+                : t("show_original_translated_from", {
+                    language: getLanguageName(review.detectedLanguage),
+                  })}
+            </button>
+            {showOriginal && (
+              <div
+                className="game-details__review-content"
+                style={{
+                  opacity: 0.6,
+                  marginTop: "12px",
+                }}
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeHtml(review.reviewHtml),
+                }}
+              />
+            )}
+          </>
+        )}
+      </div>
       <div className="game-details__review-actions">
         <div className="game-details__review-votes">
           <motion.button

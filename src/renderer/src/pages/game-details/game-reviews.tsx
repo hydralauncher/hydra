@@ -39,7 +39,7 @@ export function GameReviews({
   hasUserReviewed,
   onUserReviewedChange,
 }: Readonly<GameReviewsProps>) {
-  const { t } = useTranslation("game_details");
+  const { t, i18n } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
 
   const [reviews, setReviews] = useState<GameReview[]>([]);
@@ -129,9 +129,7 @@ export function GameReviews({
 
       const twoHoursInMilliseconds = 2 * 60 * 60 * 1000;
       const hasEnoughPlaytime =
-        game &&
-        game.playTimeInMilliseconds >= twoHoursInMilliseconds &&
-        !game.hasManuallyUpdatedPlaytime;
+        game && game.playTimeInMilliseconds >= twoHoursInMilliseconds;
 
       if (
         !hasReviewed &&
@@ -145,6 +143,8 @@ export function GameReviews({
       console.error("Failed to check user review:", error);
     }
   }, [objectId, userDetailsId, shop, game, onUserReviewedChange]);
+
+  console.log("reviews", reviews);
 
   const loadReviews = useCallback(
     async (reset = false) => {
@@ -164,6 +164,7 @@ export function GameReviews({
           take: "20",
           skip: skip.toString(),
           sortBy: reviewsSortBy,
+          language: i18n.language,
         });
 
         const response = await window.electron.hydraApi.get(
@@ -200,7 +201,7 @@ export function GameReviews({
         }
       }
     },
-    [objectId, shop, reviewsPage, reviewsSortBy]
+    [objectId, shop, reviewsPage, reviewsSortBy, i18n.language]
   );
 
   const handleVoteReview = async (
@@ -438,6 +439,8 @@ export function GameReviews({
       }
     });
   }, [reviews]);
+
+  console.log("reviews", reviews);
 
   return (
     <div className="game-details__reviews-section">
