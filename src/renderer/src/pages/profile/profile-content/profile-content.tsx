@@ -280,8 +280,6 @@ export function ProfileContent() {
                                   {achievement.gameTitle}
                                 </span>
                               </div>
-
-
                             </div>
                           </div>
 

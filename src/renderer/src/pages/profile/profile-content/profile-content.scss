@@ -297,7 +297,8 @@
   }
 
   // Show overlay on keyboard focus for accessibility
-  &__souvenir-image-button:focus-visible + &__souvenir-achievement-image-overlay {
+  &__souvenir-image-button:focus-visible
+    + &__souvenir-achievement-image-overlay {
     opacity: 1;
   }
 
@@ -323,6 +324,8 @@
       transparent 100%
     );
     pointer-events: none;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
   }
 
   &__souvenir-achievement-info {
@@ -387,8 +390,6 @@
     white-space: nowrap;
     text-overflow: ellipsis;
   }
-
-
 
   &__souvenir-item {
     flex-shrink: 0;
