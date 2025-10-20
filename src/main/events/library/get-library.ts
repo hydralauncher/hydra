@@ -22,10 +22,12 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               id: key,
               ...game,
               download: download ?? null,
+              // Spread gameAssets last to ensure all image URLs are properly set
               ...gameAssets,
-              // Ensure compatibility with LibraryGame type
-              libraryHeroImageUrl:
-                game.libraryHeroImageUrl ?? gameAssets?.libraryHeroImageUrl,
+              // Preserve custom image URLs from game if they exist
+              customIconUrl: game.customIconUrl,
+              customLogoImageUrl: game.customLogoImageUrl,
+              customHeroImageUrl: game.customHeroImageUrl,
             } as LibraryGame;
           })
       );

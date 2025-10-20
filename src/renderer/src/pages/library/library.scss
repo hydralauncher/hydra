@@ -1,0 +1,204 @@
+@use "../../scss/globals.scss";
+
+.library {
+  &__content {
+    padding: calc(globals.$spacing-unit * 3);
+    height: 100%;
+    width: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 3);
+    align-items: flex-start;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  &__page-header {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    width: 100%;
+  }
+
+  &__page-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  &__controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__controls-left {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit);
+  }
+
+  &__controls-right {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit);
+  }
+
+  &__header-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: end;
+    gap: calc(globals.$spacing-unit * 1);
+    &__left {
+      display: flex;
+      flex-direction: column;
+      gap: calc(globals.$spacing-unit * 1);
+    }
+  }
+  &__header-title {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  &__filter-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    white-space: nowrap;
+  }
+
+  &__separator {
+    width: 100%;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    margin: 0;
+  }
+
+  &__count {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 8px 16px;
+  }
+
+  &__count-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  &__count-number {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  &__no-games {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 4);
+  }
+
+  &__telescope-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
+  &__games-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: calc(globals.$spacing-unit * 2);
+    width: 100%;
+
+    // Grid view - larger cards
+    &--grid {
+      grid-template-columns: repeat(2, 1fr);
+
+      @container #{globals.$app-container} (min-width: 900px) {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      @container #{globals.$app-container} (min-width: 1300px) {
+        grid-template-columns: repeat(5, 1fr);
+      }
+
+      @container #{globals.$app-container} (min-width: 2000px) {
+        grid-template-columns: repeat(6, 1fr);
+      }
+
+      @container #{globals.$app-container} (min-width: 2600px) {
+        grid-template-columns: repeat(8, 1fr);
+      }
+
+      @container #{globals.$app-container} (min-width: 3000px) {
+        grid-template-columns: repeat(12, 1fr);
+      }
+    }
+
+    // Compact view - smaller cards
+    &--compact {
+      grid-template-columns: repeat(3, 1fr);
+
+      @container #{globals.$app-container} (min-width: 900px) {
+        grid-template-columns: repeat(5, 1fr);
+      }
+
+      @container #{globals.$app-container} (min-width: 1300px) {
+        grid-template-columns: repeat(7, 1fr);
+      }
+
+      @container #{globals.$app-container} (min-width: 2000px) {
+        grid-template-columns: repeat(9, 1fr);
+      }
+
+      @container #{globals.$app-container} (min-width: 2600px) {
+        grid-template-columns: repeat(12, 1fr);
+      }
+
+      @container #{globals.$app-container} (min-width: 3000px) {
+        grid-template-columns: repeat(16, 1fr);
+      }
+    }
+  }
+
+  &__games-list {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    width: 100%;
+
+    // Large view - 2 columns grid
+    &--large {
+      display: grid;
+      grid-template-columns: repeat(1, 1fr);
+
+      @container #{globals.$app-container} (min-width: 900px) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  }
+}
