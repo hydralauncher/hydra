@@ -76,7 +76,12 @@ export function AchievementList({
                       )
                     }
                     aria-label={`View ${achievement.displayName} screenshot in fullscreen`}
-                    style={{ cursor: "pointer", padding: 0, border: "none", background: "transparent" }}
+                    style={{
+                      cursor: "pointer",
+                      padding: 0,
+                      border: "none",
+                      background: "transparent",
+                    }}
                   >
                     <img
                       className="achievements__item-custom-image"
