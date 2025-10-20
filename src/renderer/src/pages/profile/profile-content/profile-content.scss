@@ -182,37 +182,40 @@
   }
 
   &__souvenirs-grid {
-    display: flex;
+    display: grid;
     gap: calc(globals.$spacing-unit * 2);
     padding-bottom: calc(globals.$spacing-unit);
+    grid-template-columns: repeat(2, 1fr);
 
-    &::-webkit-scrollbar {
-      height: 6px;
+    @container #{globals.$app-container} (min-width: 1000px) {
+      grid-template-columns: repeat(4, 1fr);
     }
 
-    &::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 3px;
+    @container #{globals.$app-container} (min-width: 1300px) {
+      grid-template-columns: repeat(5, 1fr);
     }
 
-    &::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.3);
-      border-radius: 3px;
+    @container #{globals.$app-container} (min-width: 2000px) {
+      grid-template-columns: repeat(6, 1fr);
+    }
 
-      &:hover {
-        background: rgba(255, 255, 255, 0.5);
-      }
+    @container #{globals.$app-container} (min-width: 2600px) {
+      grid-template-columns: repeat(8, 1fr);
+    }
+
+    @container #{globals.$app-container} (min-width: 3000px) {
+      grid-template-columns: repeat(12, 1fr);
     }
   }
 
   &__souvenir-card {
-    flex-shrink: 0;
-    width: 250px;
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     overflow: hidden;
     transition: all ease 0.2s;
+    position: relative;
+    container-type: inline-size;
 
     &:hover {
       transform: translateY(-4px);
@@ -220,11 +223,32 @@
       border-color: rgba(255, 255, 255, 0.2);
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     }
+
+    @container (max-width: 240px) {
+      .profile-content__souvenir-achievement-icon {
+        width: 20px;
+        height: 20px;
+      }
+
+      .profile-content__souvenir-achievement-name {
+        font-size: 13px;
+      }
+
+      .profile-content__souvenir-game-title {
+        font-size: 11px;
+      }
+    }
+
+    @container (max-width: 280px) {
+      .profile-content__souvenir-card-content {
+        gap: calc(globals.$spacing-unit * 0.75);
+      }
+    }
   }
 
   &__souvenir-card-header {
     width: 100%;
-    height: 120px;
+    aspect-ratio: 16/9;
     overflow: hidden;
     position: relative;
   }
@@ -233,6 +257,12 @@
     position: relative;
     width: 100%;
     height: 100%;
+
+    .profile-content__souvenir-image-button {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
 
     &:hover .profile-content__souvenir-achievement-image-overlay {
       opacity: 1;
@@ -244,6 +274,7 @@
     height: 100%;
     object-fit: cover;
     transition: transform 0.2s ease;
+    display: block;
   }
 
   &__souvenir-achievement-image-overlay {
@@ -265,6 +296,11 @@
     }
   }
 
+  // Show overlay on keyboard focus for accessibility
+  &__souvenir-image-button:focus-visible + &__souvenir-achievement-image-overlay {
+    opacity: 1;
+  }
+
   &__souvenir-card-content {
     padding: 16px;
     background: rgba(0, 0, 0, 0.8);
@@ -272,7 +308,6 @@
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit);
-    position: relative;
     overflow: hidden;
   }
 
@@ -312,10 +347,10 @@
     line-height: 1.3;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
+    white-space: nowrap;
+    display: block;
+    flex: 1;
+    min-width: 0;
   }
 
   &__souvenir-game-info {
@@ -325,6 +360,7 @@
     gap: calc(globals.$spacing-unit * 1);
     position: relative;
     z-index: 2;
+    min-width: 0;
   }
 
   &__souvenir-game-left {
@@ -349,18 +385,10 @@
     line-height: 1.2;
     overflow: hidden;
     white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
-  &__souvenir-unlock-time {
-    padding: 0;
-    flex-shrink: 0;
 
-    small {
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.5);
-      font-weight: 400;
-    }
-  }
 
   &__souvenir-item {
     flex-shrink: 0;

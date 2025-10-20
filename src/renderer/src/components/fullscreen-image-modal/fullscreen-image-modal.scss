@@ -35,9 +35,9 @@
   }
 
   &__close-button {
-    position: absolute;
-    top: -50px;
-    right: 0;
+    position: fixed;
+    top: 52px;
+    right: 32px;
     background: rgba(255, 255, 255, 0.1);
     border: none;
     border-radius: 50%;
@@ -50,6 +50,7 @@
     color: white;
     transition: background-color 0.2s ease;
     z-index: 10000;
+    pointer-events: auto;
 
     &:hover {
       background: rgba(255, 255, 255, 0.2);
@@ -103,8 +104,8 @@
 @media (max-width: 768px) {
   .fullscreen-image-modal {
     &__close-button {
-      top: 20px;
-      right: 20px;
+      top: 16px;
+      right: 16px;
       width: 36px;
       height: 36px;
     }
@@ -112,7 +113,23 @@
     &__container {
       max-width: 100vw;
       max-height: 100vh;
-      padding: 60px 20px 20px;
+      padding: 48px 16px 16px;
+    }
+  }
+}
+
+/* Extra safeguard for very low viewport heights */
+@media (max-height: 420px) {
+  .fullscreen-image-modal {
+    &__close-button {
+      top: 8px;
+      right: 8px;
+      width: 32px;
+      height: 32px;
+    }
+
+    &__container {
+      padding-top: 40px;
     }
   }
 }

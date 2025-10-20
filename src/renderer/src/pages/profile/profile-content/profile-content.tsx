@@ -1,7 +1,7 @@
 import { userProfileContext } from "@renderer/context";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ProfileHero } from "../profile-hero/profile-hero";
-import { useAppDispatch, useFormat, useDate } from "@renderer/hooks";
+import { useAppDispatch, useFormat } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import {
   TelescopeIcon,
@@ -107,7 +107,6 @@ export function ProfileContent() {
   }, [setStatsIndex, isAnimationRunning]);
 
   const { numberFormatter } = useFormat();
-  const { formatDateTime } = useDate();
 
   const usersAreFriends = useMemo(() => {
     return userProfile?.relation?.status === "ACCEPTED";
@@ -236,7 +235,12 @@ export function ProfileContent() {
                                   )
                                 }
                                 aria-label={`View ${achievement.name} screenshot in fullscreen`}
-                                style={{ cursor: "pointer", padding: 0, border: "none", background: "transparent" }}
+                                style={{
+                                  cursor: "pointer",
+                                  padding: 0,
+                                  border: "none",
+                                  background: "transparent",
+                                }}
                               >
                                 <img
                                   src={achievement.achievementImageUrl}
@@ -277,17 +281,11 @@ export function ProfileContent() {
                                 </span>
                               </div>
 
-                              {achievement.unlockTime && (
-                                <div className="profile-content__souvenir-unlock-time">
-                                  <small>
-                                    {formatDateTime(achievement.unlockTime)}
-                                  </small>
-                                </div>
-                              )}
-                            </div>
 
-                            <div className="profile-content__souvenir-card-gradient-overlay"></div>
+                            </div>
                           </div>
+
+                          <div className="profile-content__souvenir-card-gradient-overlay"></div>
                         </div>
                       ))}
                     </div>
