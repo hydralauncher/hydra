@@ -36,11 +36,7 @@ export function FullscreenImageModal({
   if (!isOpen) return null;
 
   return (
-    <dialog
-      className="fullscreen-image-modal"
-      aria-modal="true"
-      open
-    >
+    <dialog className="fullscreen-image-modal" aria-modal="true" open>
       <button
         type="button"
         className="fullscreen-image-modal__backdrop"

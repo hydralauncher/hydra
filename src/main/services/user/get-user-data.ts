@@ -11,8 +11,7 @@ import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 
 export const getUserData = async () => {
-  // Get user language preference for API call
-  let language = "en"; // Default fallback
+  let language = "en"; 
   try {
     const userPreferences = await db.get<string, UserPreferences | null>(
       levelKeys.userPreferences,
@@ -20,7 +19,6 @@ export const getUserData = async () => {
     );
 
     if (userPreferences?.language) {
-      // Map supported languages (pt, ru, es) or fallback to en
       const supportedLanguages = ["pt", "ru", "es"];
       const userLang = userPreferences.language.split("-")[0];
       language = supportedLanguages.includes(userLang) ? userLang : "en";
