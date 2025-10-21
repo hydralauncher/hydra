@@ -1,7 +1,6 @@
-import { desktopCapturer, nativeImage } from "electron";
+import { desktopCapturer, nativeImage, app } from "electron";
 import fs from "node:fs";
 import path from "node:path";
-import { app } from "electron";
 import { logger } from "./logger";
 
 export class ScreenshotService {
@@ -66,11 +65,11 @@ export class ScreenshotService {
       let filename: string;
 
       if (gameTitle && achievementName) {
-        const sanitizedGameTitle = gameTitle.replace(/[<>:"/\\|?*]/g, "_");
+        const sanitizedGameTitle = gameTitle.replaceAll(/[<>:"/\\|?*]/g, "_");
         const gameDir = path.join(screenshotsDir, sanitizedGameTitle);
         finalDir = gameDir;
 
-        const sanitizedAchievementName = achievementName.replace(
+        const sanitizedAchievementName = achievementName.replaceAll(
           /[<>:"/\\|?*]/g,
           "_"
         );
