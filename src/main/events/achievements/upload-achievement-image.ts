@@ -8,7 +8,6 @@ import { gameAchievementsSublevel, levelKeys, db } from "@main/level";
 import { logger } from "@main/services/logger";
 import type { GameShop, User } from "@types";
 
-
 const uploadImageToCDN = async (imagePath: string): Promise<string> => {
   const stat = fs.statSync(imagePath);
   const fileBuffer = fs.readFileSync(imagePath);
@@ -33,7 +32,6 @@ const uploadImageToCDN = async (imagePath: string): Promise<string> => {
   return response.achievementImageUrl;
 };
 
-
 const storeImageLocally = async (imagePath: string): Promise<string> => {
   const fileBuffer = fs.readFileSync(imagePath);
   const base64Image = fileBuffer.toString("base64");
@@ -41,7 +39,6 @@ const storeImageLocally = async (imagePath: string): Promise<string> => {
 
   return `data:${mimeType?.mime || "image/jpeg"};base64,${base64Image}`;
 };
-
 
 const updateAchievementWithImageUrl = async (
   shop: GameShop,
@@ -54,7 +51,6 @@ const updateAchievementWithImageUrl = async (
     { achievementImageUrl: imageUrl }
   );
 };
-
 
 export const uploadAchievementImage = async (
   gameId: string,
@@ -102,7 +98,6 @@ export const uploadAchievementImage = async (
     throw error;
   }
 };
-
 
 const uploadAchievementImageEvent = async (
   _event: Electron.IpcMainInvokeEvent,
