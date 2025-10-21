@@ -14,7 +14,7 @@ function isValidMagnet(uri?: string) {
 async function pingRpcOnce(): Promise<boolean> {
   try {
     const client = (PythonRPC.rpc as typeof axios) || axios;
-    await client.get("/ping", { timeout: 1000 });
+    await client.get("/healthcheck", { timeout: 1000 });
     return true;
   } catch (err) {
     return false;
