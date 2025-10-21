@@ -35,7 +35,7 @@ export interface DownloadSource {
   status: DownloadSourceStatus;
   objectIds: string[];
   downloadCount: number;
-  fingerprint: string;
+  fingerprint?: string;
   etag: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -260,6 +260,10 @@ export interface GameReview {
     displayName: string;
     profileImageUrl: string | null;
   };
+  translations: {
+    [key: string]: string;
+  };
+  detectedLanguage: string;
 }
 
 export interface TrendingGame extends ShopAssets {

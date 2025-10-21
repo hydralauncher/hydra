@@ -8,7 +8,6 @@ import {
   CommonRedistManager,
   TorBoxClient,
   RealDebridClient,
-  AllDebridClient,
   Aria2,
   DownloadManager,
   HydraApi,
@@ -17,10 +16,14 @@ import {
   Ludusavi,
   Lock,
   DeckyPlugin,
+  ResourceCache,
 } from "@main/services";
 
 export const loadState = async () => {
   await Lock.acquireLock();
+
+  ResourceCache.initialize();
+  await ResourceCache.updateResourcesOnStartup();
 
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
@@ -37,10 +40,6 @@ export const loadState = async () => {
 
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences.realDebridApiToken);
-  }
-
-  if (userPreferences?.allDebridApiKey) {
-    AllDebridClient.authorize(userPreferences.allDebridApiKey);
   }
 
   if (userPreferences?.torBoxApiToken) {
