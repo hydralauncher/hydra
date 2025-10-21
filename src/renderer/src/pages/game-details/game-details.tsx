@@ -102,7 +102,6 @@ export default function GameDetails() {
             automaticallyExtract: boolean
           ) => {
             const response = await startDownload({
-              repackId: repack.id,
               objectId: objectId!,
               title: gameTitle,
               downloader,
