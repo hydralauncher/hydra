@@ -70,6 +70,7 @@ export function AchievementList({
                     type="button"
                     className="achievements__item-image-button"
                     onClick={() =>
+                      achievement.achievementImageUrl &&
                       handleImageClick(
                         achievement.achievementImageUrl,
                         achievement.displayName
