@@ -107,7 +107,6 @@ export type AppUpdaterEvent =
 
 /* Events */
 export interface StartGameDownloadPayload {
-  repackId: number;
   objectId: string;
   title: string;
   shop: GameShop;
