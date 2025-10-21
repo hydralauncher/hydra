@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { createContext, useCallback, useEffect, useRef, useState } from "react";
 
 import { setHeaderTitle } from "@renderer/features";
 import { getSteamLanguage } from "@renderer/helpers";
@@ -13,11 +6,11 @@ import {
   useAppDispatch,
   useAppSelector,
   useDownload,
-  useRepacks,
   useUserDetails,
 } from "@renderer/hooks";
 
 import type {
+  GameRepack,
   GameShop,
   GameStats,
   LibraryGame,
@@ -84,12 +77,7 @@ export function GameDetailsContextProvider({
   const [isGameRunning, setIsGameRunning] = useState(false);
   const [showRepacksModal, setShowRepacksModal] = useState(false);
   const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
-
-  const { getRepacksForObjectId } = useRepacks();
-
-  const repacks = useMemo(() => {
-    return getRepacksForObjectId(objectId);
-  }, [getRepacksForObjectId, objectId]);
+  const [repacks, setRepacks] = useState<GameRepack[]>([]);
 
   const { i18n } = useTranslation("game_details");
   const location = useLocation();
@@ -287,19 +275,6 @@ export function GameDetailsContextProvider({
     }
   }, [location]);
 
-  const lastDownloadedOption = useMemo(() => {
-    if (game?.download) {
-      const repack = repacks.find((repack) =>
-        repack.uris.some((uri) => uri.includes(game.download!.uri))
-      );
-
-      if (!repack) return null;
-      return repack;
-    }
-
-    return null;
-  }, [game?.download, repacks]);
-
   useEffect(() => {
     const unsubscribe = window.electron.onUpdateAchievements(
       objectId,
@@ -314,6 +289,34 @@ export function GameDetailsContextProvider({
       unsubscribe();
     };
   }, [objectId, shop, userDetails]);
+
+  useEffect(() => {
+    const fetchDownloadSources = async () => {
+      try {
+        const sources = await window.electron.getDownloadSources();
+
+        const params = {
+          take: 100,
+          skip: 0,
+          downloadSourceIds: sources.map((source) => source.id),
+        };
+
+        const downloads = await window.electron.hydraApi.get<GameRepack[]>(
+          `/games/${shop}/${objectId}/download-sources`,
+          {
+            params,
+            needsAuth: false,
+          }
+        );
+
+        setRepacks(downloads);
+      } catch (error) {
+        console.error("Failed to fetch download sources:", error);
+      }
+    };
+
+    fetchDownloadSources();
+  }, [shop, objectId]);
 
   const getDownloadsPath = async () => {
     if (userPreferences?.downloadsPath) return userPreferences.downloadsPath;
@@ -359,7 +362,7 @@ export function GameDetailsContextProvider({
         stats,
         achievements,
         hasNSFWContentBlocked,
-        lastDownloadedOption,
+        lastDownloadedOption: null,
         setHasNSFWContentBlocked,
         selectGameExecutable,
         updateGame,

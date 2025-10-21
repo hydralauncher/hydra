@@ -16,29 +16,22 @@ export interface DiskUsage {
 }
 
 export interface GameRepack {
-  id: number;
+  id: string;
   title: string;
-  uris: string[];
-  repacker: string;
   fileSize: string | null;
-  objectIds: string[];
-  uploadDate: Date | string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  uris: string[];
+  uploadDate: string | null;
+  downloadSourceId: string;
+  downloadSourceName: string;
 }
 
 export interface DownloadSource {
-  id: number;
+  id: string;
   name: string;
   url: string;
-  repackCount: number;
   status: DownloadSourceStatus;
-  objectIds: string[];
   downloadCount: number;
   fingerprint?: string;
-  etag: string | null;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface ShopAssets {
@@ -51,6 +44,7 @@ export interface ShopAssets {
   logoImageUrl: string;
   logoPosition: string | null;
   coverImageUrl: string | null;
+  downloadSources: string[];
 }
 
 export type ShopDetails = SteamAppDetails & {
@@ -231,12 +225,6 @@ export interface DownloadSourceDownload {
   fileSize: string;
 }
 
-export interface DownloadSourceValidationResult {
-  name: string;
-  etag: string;
-  downloadCount: number;
-}
-
 export interface GameStats {
   downloadCount: number;
   playerCount: number;
@@ -366,7 +354,7 @@ export type CatalogueSearchResult = {
   title: string;
   shop: GameShop;
   genres: string[];
-} & Pick<ShopAssets, "libraryImageUrl">;
+} & Pick<ShopAssets, "libraryImageUrl" | "downloadSources">;
 
 export type LibraryGame = Game &
   Partial<ShopAssets> & {
