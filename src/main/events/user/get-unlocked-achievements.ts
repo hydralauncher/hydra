@@ -33,7 +33,6 @@ export const getUnlockedAchievements = async (
 
   const unlockedAchievements = cachedAchievements?.unlockedAchievements ?? [];
 
-  // Try to get user achievements with image URLs from remote API
   let remoteUserAchievements: UserAchievement[] = [];
   try {
     const userDetails = await db.get<string, any>(levelKeys.user, {
@@ -51,7 +50,6 @@ export const getUnlockedAchievements = async (
       );
     }
   } catch (error) {
-    // If API call fails, continue with local data only
     if (!(error instanceof UserNotLoggedInError)) {
       console.warn("Failed to fetch remote user achievements:", error);
     }
