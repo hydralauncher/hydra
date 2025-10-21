@@ -131,7 +131,6 @@ export function UserProfileContextProvider({
     getUserStats();
     getUserLibraryGames();
 
-    // Get current language for API call
     const currentLanguage = i18n.language.split("-")[0];
     const supportedLanguages = ["pt", "ru", "es"];
     const language = supportedLanguages.includes(currentLanguage)

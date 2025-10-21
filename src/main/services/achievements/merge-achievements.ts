@@ -190,21 +190,17 @@ export const mergeAchievements = async (
           );
         }
 
-        // Capture and upload screenshot AFTER achievements are synced to server
         if (
           newAchievements.length &&
           userPreferences.enableAchievementScreenshots === true
         ) {
           try {
-            // Import and trigger the upload process
             const { uploadAchievementImage } = await import(
               "@main/events/achievements/upload-achievement-image"
             );
 
-            // Upload the screenshot for each new achievement
             for (const achievement of newAchievements) {
               try {
-                // Find the achievement data to get the display name
                 const achievementData = achievementsData.find(
                   (steamAchievement) => {
                     return (
@@ -217,7 +213,6 @@ export const mergeAchievements = async (
                 const achievementDisplayName =
                   achievementData?.displayName || achievement.name;
 
-                // Capture screenshot with game title and achievement name
                 const screenshotPath =
                   await ScreenshotService.captureDesktopScreenshot(
                     game.title,

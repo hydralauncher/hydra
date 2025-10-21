@@ -8,15 +8,12 @@ import { gameAchievementsSublevel, levelKeys, db } from "@main/level";
 import { logger } from "@main/services/logger";
 import type { GameShop, User } from "@types";
 
-/**
- * Uploads an achievement image to CDN using presigned URL
- */
+
 const uploadImageToCDN = async (imagePath: string): Promise<string> => {
   const stat = fs.statSync(imagePath);
   const fileBuffer = fs.readFileSync(imagePath);
   const fileSizeInBytes = stat.size;
 
-  // Get presigned URL for achievement image
   const response = await HydraApi.post<{
     presignedUrl: string;
     achievementImageUrl: string;
@@ -27,7 +24,6 @@ const uploadImageToCDN = async (imagePath: string): Promise<string> => {
 
   const mimeType = await fileTypeFromFile(imagePath);
 
-  // Upload to CDN
   await axios.put(response.presignedUrl, fileBuffer, {
     headers: {
       "Content-Type": mimeType?.mime,
@@ -37,21 +33,16 @@ const uploadImageToCDN = async (imagePath: string): Promise<string> => {
   return response.achievementImageUrl;
 };
 
-/**
- * Stores achievement image locally in the database
- */
+
 const storeImageLocally = async (imagePath: string): Promise<string> => {
   const fileBuffer = fs.readFileSync(imagePath);
   const base64Image = fileBuffer.toString("base64");
   const mimeType = await fileTypeFromFile(imagePath);
 
-  // Create a data URL for local storage
   return `data:${mimeType?.mime || "image/jpeg"};base64,${base64Image}`;
 };
 
-/**
- * Updates the achievement with the image URL via API
- */
+
 const updateAchievementWithImageUrl = async (
   shop: GameShop,
   gameId: string,
@@ -64,9 +55,7 @@ const updateAchievementWithImageUrl = async (
   );
 };
 
-/**
- * Main function for uploading achievement images (called from mergeAchievements)
- */
+
 export const uploadAchievementImage = async (
   gameId: string,
   achievementName: string,
@@ -76,7 +65,6 @@ export const uploadAchievementImage = async (
   try {
     let imageUrl: string;
 
-    // Check if user has active subscription
     const hasSubscription = await db
       .get<string, User>(levelKeys.user, { valueEncoding: "json" })
       .then((user) => {
@@ -86,7 +74,6 @@ export const uploadAchievementImage = async (
       .catch(() => false);
 
     if (hasSubscription) {
-      // Upload to CDN and update via API
       imageUrl = await uploadImageToCDN(imagePath);
       if (shop) {
         await updateAchievementWithImageUrl(
@@ -100,7 +87,6 @@ export const uploadAchievementImage = async (
         `Achievement image uploaded to CDN for ${gameId}:${achievementName}`
       );
     } else {
-      // Store locally
       imageUrl = await storeImageLocally(imagePath);
       logger.log(
         `Achievement image stored locally for ${gameId}:${achievementName}`
@@ -117,9 +103,7 @@ export const uploadAchievementImage = async (
   }
 };
 
-/**
- * IPC event handler for uploading achievement images
- */
+
 const uploadAchievementImageEvent = async (
   _event: Electron.IpcMainInvokeEvent,
   params: {
@@ -139,7 +123,6 @@ const uploadAchievementImageEvent = async (
       shop
     );
 
-    // Update local database with image URL
     const achievementKey = levelKeys.game(shop, gameId);
     const existingData = await gameAchievementsSublevel
       .get(achievementKey)
@@ -152,7 +135,6 @@ const uploadAchievementImageEvent = async (
       });
     }
 
-    // Clean up the temporary screenshot file
     try {
       fs.unlinkSync(imagePath);
     } catch (error) {
@@ -161,7 +143,6 @@ const uploadAchievementImageEvent = async (
 
     return result;
   } catch (error) {
-    // Clean up the temporary screenshot file even on error
     try {
       fs.unlinkSync(imagePath);
     } catch (cleanupError) {

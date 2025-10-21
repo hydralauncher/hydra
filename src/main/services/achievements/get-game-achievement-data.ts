@@ -5,7 +5,6 @@ import { logger } from "../logger";
 import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
 import { AxiosError } from "axios";
 
-
 const getModifiedSinceHeader = (
   cachedAchievements: GameAchievement | undefined,
   userLanguage: string
@@ -32,8 +31,7 @@ export const getGameAchievementData = async (
 
   const cachedAchievements = await gameAchievementsSublevel.get(gameKey);
 
-
-  if(cachedAchievements?.achievements && useCachedData) {
+  if (cachedAchievements?.achievements && useCachedData) {
     return cachedAchievements.achievements;
   }
 

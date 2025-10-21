@@ -100,7 +100,6 @@
   }
 }
 
-// Mobile responsiveness
 @media (max-width: 768px) {
   .fullscreen-image-modal {
     &__close-button {
@@ -118,7 +117,6 @@
   }
 }
 
-/* Extra safeguard for very low viewport heights */
 @media (max-height: 420px) {
   .fullscreen-image-modal {
     &__close-button {
