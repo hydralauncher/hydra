@@ -1,6 +1,6 @@
 {
   "name": "hydralauncher",
-  "version": "3.7.0",
+  "version": "3.7.1",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
@@ -57,7 +57,6 @@
     "crc": "^4.3.2",
     "create-desktop-shortcuts": "^1.11.1",
     "date-fns": "^3.6.0",
-    "dexie": "^4.0.10",
     "electron-log": "^5.4.3",
     "electron-updater": "^6.6.2",
     "embla-carousel-autoplay": "^8.6.0",

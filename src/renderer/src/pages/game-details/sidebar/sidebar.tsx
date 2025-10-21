@@ -17,7 +17,6 @@ import {
   StarIcon,
 } from "@primer/octicons-react";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
-import { howLongToBeatEntriesTable } from "@renderer/dexie";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
 import { useSubscription } from "@renderer/hooks/use-subscription";
@@ -80,41 +79,22 @@ export function Sidebar() {
     if (objectId) {
       setHowLongToBeat({ isLoading: true, data: null });
 
-      howLongToBeatEntriesTable
-        .where({ shop, objectId })
-        .first()
-        .then(async (cachedHowLongToBeat) => {
-          if (cachedHowLongToBeat) {
-            setHowLongToBeat({
-              isLoading: false,
-              data: cachedHowLongToBeat.categories,
-            });
-          } else {
-            try {
-              const howLongToBeat = await window.electron.hydraApi.get<
-                HowLongToBeatCategory[] | null
-              >(`/games/${shop}/${objectId}/how-long-to-beat`, {
-                needsAuth: false,
-              });
-
-              if (howLongToBeat) {
-                howLongToBeatEntriesTable.add({
-                  objectId,
-                  shop: "steam",
-                  createdAt: new Date(),
-                  updatedAt: new Date(),
-                  categories: howLongToBeat,
-                });
-              }
-
-              setHowLongToBeat({ isLoading: false, data: howLongToBeat });
-            } catch (err) {
-              setHowLongToBeat({ isLoading: false, data: null });
-            }
+      // Directly fetch from API without checking cache
+      window.electron.hydraApi
+        .get<HowLongToBeatCategory[] | null>(
+          `/games/${shop}/${objectId}/how-long-to-beat`,
+          {
+            needsAuth: false,
           }
+        )
+        .then((howLongToBeatData) => {
+          setHowLongToBeat({ isLoading: false, data: howLongToBeatData });
+        })
+        .catch(() => {
+          setHowLongToBeat({ isLoading: false, data: null });
         });
     }
-  }, [objectId, shop, gameTitle]);
+  }, [objectId, shop]);
 
   return (
     <aside className="content-sidebar">
@@ -240,14 +220,6 @@ export function Sidebar() {
                     : (stats?.averageScore ?? null)
                 }
                 size={16}
-                showCalculating={
-                  !!(
-                    stats &&
-                    (stats.averageScore === null || stats.averageScore === 0)
-                  )
-                }
-                calculatingText={t("calculating", { ns: "game_card" })}
-                hideIcon={true}
               />
             </div>
           </div>

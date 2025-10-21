@@ -117,8 +117,6 @@ export function DownloadSettingsModal({
         return userPreferences?.realDebridApiToken;
       if (downloader === Downloader.TorBox)
         return userPreferences?.torBoxApiToken;
-      if (downloader === Downloader.AllDebrid)
-        return userPreferences?.allDebridApiKey;
       if (downloader === Downloader.Hydra)
         return isFeatureEnabled(Feature.Nimbus);
       return true;
@@ -133,7 +131,6 @@ export function DownloadSettingsModal({
     downloaders,
     userPreferences?.realDebridApiToken,
     userPreferences?.torBoxApiToken,
-    userPreferences?.allDebridApiKey,
   ]);
 
   const handleChooseDownloadsPath = async () => {
@@ -194,8 +191,6 @@ export function DownloadSettingsModal({
               const shouldDisableButton =
                 (downloader === Downloader.RealDebrid &&
                   !userPreferences?.realDebridApiToken) ||
-                (downloader === Downloader.AllDebrid &&
-                  !userPreferences?.allDebridApiKey) ||
                 (downloader === Downloader.TorBox &&
                   !userPreferences?.torBoxApiToken) ||
                 (downloader === Downloader.Hydra &&

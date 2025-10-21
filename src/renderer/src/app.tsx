@@ -20,14 +20,12 @@ import {
   setUserDetails,
   setProfileBackground,
   setGameRunning,
+  setIsImportingSources,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
-import { downloadSourcesWorker } from "./workers";
-import { downloadSourcesTable } from "./dexie";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
-import { generateUUID } from "./helpers";
 
 import { injectCustomCss, removeCustomCss } from "./helpers";
 import "./app.scss";
@@ -137,15 +135,6 @@ export function App() {
   }, [fetchUserDetails, updateUserDetails, dispatch]);
 
   const onSignIn = useCallback(() => {
-    window.electron.getDownloadSources().then((sources) => {
-      sources.forEach((source) => {
-        downloadSourcesWorker.postMessage([
-          "IMPORT_DOWNLOAD_SOURCE",
-          source.url,
-        ]);
-      });
-    });
-
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
@@ -211,41 +200,34 @@ export function App() {
   }, [dispatch, draggingDisabled]);
 
   useEffect(() => {
-    updateRepacks();
+    (async () => {
+      dispatch(setIsImportingSources(true));
 
-    const id = generateUUID();
-    const channel = new BroadcastChannel(`download_sources:sync:${id}`);
+      try {
+        // Initial repacks load
+        await updateRepacks();
 
-    channel.onmessage = async (event: MessageEvent<number>) => {
-      const newRepacksCount = event.data;
-      window.electron.publishNewRepacksNotification(newRepacksCount);
-      updateRepacks();
+        // Sync all local sources (check for updates)
+        const newRepacksCount = await window.electron.syncDownloadSources();
 
-      const downloadSources = await downloadSourcesTable.toArray();
+        if (newRepacksCount > 0) {
+          window.electron.publishNewRepacksNotification(newRepacksCount);
+        }
 
-      await Promise.all(
-        downloadSources
-          .filter((source) => !source.fingerprint)
-          .map(async (downloadSource) => {
-            const { fingerprint } = await window.electron.putDownloadSource(
-              downloadSource.objectIds
-            );
+        // Update fingerprints for sources that don't have them
+        await window.electron.updateMissingFingerprints();
 
-            return downloadSourcesTable.update(downloadSource.id, {
-              fingerprint,
-            });
-          })
-      );
-
-      channel.close();
-    };
-
-    downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
-
-    return () => {
-      channel.close();
-    };
-  }, [updateRepacks]);
+        // Update repacks AFTER all syncing and fingerprint updates are complete
+        await updateRepacks();
+      } catch (error) {
+        console.error("Error syncing download sources:", error);
+        // Still update repacks even if sync fails
+        await updateRepacks();
+      } finally {
+        dispatch(setIsImportingSources(false));
+      }
+    })();
+  }, [updateRepacks, dispatch]);
 
   const loadAndApplyTheme = useCallback(async () => {
     const activeTheme = await window.electron.getActiveCustomTheme();

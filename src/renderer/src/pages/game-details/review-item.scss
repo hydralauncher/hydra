@@ -1,0 +1,23 @@
+@use "../../scss/globals.scss";
+
+.game-details {
+  &__review-translation-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1);
+    margin-top: calc(globals.$spacing-unit * 1.5);
+    padding: 0;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.875rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+
+    &:hover {
+      text-decoration: underline;
+      color: rgba(255, 255, 255, 0.9);
+    }
+  }
+}

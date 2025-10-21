@@ -102,8 +102,14 @@ export class HydraApi {
       WindowManager.mainWindow.webContents.send("on-signin");
       await clearGamesRemoteIds();
       uploadGamesBatch();
+
       // WSClient.close();
       // WSClient.connect();
+
+      const { syncDownloadSourcesFromApi } = await import(
+        "../events/download-sources/sync-download-sources-from-api"
+      );
+      syncDownloadSourcesFromApi();
     }
   }
 

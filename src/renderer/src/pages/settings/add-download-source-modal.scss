@@ -1,5 +1,14 @@
 @use "../../scss/globals.scss";
 
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .add-download-source-modal {
   &__container {
     display: flex;
@@ -23,5 +32,10 @@
 
   &__validate-button {
     align-self: flex-end;
+  }
+
+  &__spinner {
+    animation: spin 1s linear infinite;
+    margin-right: calc(globals.$spacing-unit / 2);
   }
 }
