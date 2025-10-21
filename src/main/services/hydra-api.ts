@@ -105,11 +105,6 @@ export class HydraApi {
 
       // WSClient.close();
       // WSClient.connect();
-
-      const { syncDownloadSourcesFromApi } = await import(
-        "../events/download-sources/sync-download-sources-from-api"
-      );
-      syncDownloadSourcesFromApi();
     }
   }
 

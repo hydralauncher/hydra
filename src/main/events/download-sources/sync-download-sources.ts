@@ -1,105 +1,24 @@
+import { HydraApi } from "@main/services";
 import { registerEvent } from "../register-event";
-import axios, { AxiosError } from "axios";
-import { downloadSourcesSublevel, repacksSublevel } from "@main/level";
-import { DownloadSourceStatus } from "@shared";
-import {
-  invalidateIdCaches,
-  downloadSourceSchema,
-  getSteamGames,
-  addNewDownloads,
-} from "./helpers";
+import { downloadSourcesSublevel } from "@main/level";
+import type { DownloadSource } from "@types";
 
-const syncDownloadSources = async (
-  _event: Electron.IpcMainInvokeEvent
-): Promise<number> => {
-  let newRepacksCount = 0;
+const syncDownloadSources = async (_event: Electron.IpcMainInvokeEvent) => {
+  const downloadSources = await downloadSourcesSublevel.values().all();
 
-  try {
-    const downloadSources: Array<{
-      id: number;
-      url: string;
-      name: string;
-      etag: string | null;
-      status: number;
-      downloadCount: number;
-      objectIds: string[];
-      fingerprint?: string;
-      createdAt: Date;
-      updatedAt: Date;
-    }> = [];
-    for await (const [, source] of downloadSourcesSublevel.iterator()) {
-      downloadSources.push(source);
-    }
+  const response = await HydraApi.post<DownloadSource[]>(
+    "/download-sources/sync",
+    {
+      ids: downloadSources.map((downloadSource) => downloadSource.id),
+    },
+    { needsAuth: false }
+  );
 
-    // Use a Set for O(1) lookups instead of O(n) with array.some()
-    const existingRepackTitles = new Set<string>();
-    for await (const [, repack] of repacksSublevel.iterator()) {
-      existingRepackTitles.add(repack.title);
-    }
-
-    // Handle sources with missing fingerprints individually, don't delete all sources
-    const sourcesWithFingerprints = downloadSources.filter(
-      (source) => source.fingerprint
-    );
-    const sourcesWithoutFingerprints = downloadSources.filter(
-      (source) => !source.fingerprint
-    );
-
-    // For sources without fingerprints, just continue with normal sync
-    // They will get fingerprints updated later by updateMissingFingerprints
-    const allSourcesToSync = [
-      ...sourcesWithFingerprints,
-      ...sourcesWithoutFingerprints,
-    ];
-
-    for (const downloadSource of allSourcesToSync) {
-      const headers: Record<string, string> = {};
-
-      if (downloadSource.etag) {
-        headers["If-None-Match"] = downloadSource.etag;
-      }
-
-      try {
-        const response = await axios.get(downloadSource.url, {
-          headers,
-        });
-
-        const source = downloadSourceSchema.parse(response.data);
-        const steamGames = await getSteamGames();
-
-        // O(1) lookup instead of O(n) - massive performance improvement
-        const repacks = source.downloads.filter(
-          (download) => !existingRepackTitles.has(download.title)
-        );
-
-        await downloadSourcesSublevel.put(`${downloadSource.id}`, {
-          ...downloadSource,
-          etag: response.headers["etag"] || null,
-          downloadCount: source.downloads.length,
-          status: DownloadSourceStatus.UpToDate,
-        });
-
-        await addNewDownloads(downloadSource, repacks, steamGames);
-
-        newRepacksCount += repacks.length;
-      } catch (err: unknown) {
-        const isNotModified = (err as AxiosError).response?.status === 304;
-
-        await downloadSourcesSublevel.put(`${downloadSource.id}`, {
-          ...downloadSource,
-          status: isNotModified
-            ? DownloadSourceStatus.UpToDate
-            : DownloadSourceStatus.Errored,
-        });
-      }
-    }
-
-    invalidateIdCaches();
-
-    return newRepacksCount;
-  } catch (err) {
-    return -1;
+  for (const downloadSource of response) {
+    await downloadSourcesSublevel.put(downloadSource.id, downloadSource);
   }
+
+  return response;
 };
 
 registerEvent("syncDownloadSources", syncDownloadSources);

@@ -1,8 +1,8 @@
-import { HydraApi } from "@main/services";
+import { downloadSourcesSublevel } from "@main/level";
 import { registerEvent } from "../register-event";
 
 const getDownloadSources = async (_event: Electron.IpcMainInvokeEvent) => {
-  return HydraApi.get("/profile/download-sources");
+  return downloadSourcesSublevel.values().all();
 };
 
 registerEvent("getDownloadSources", getDownloadSources);

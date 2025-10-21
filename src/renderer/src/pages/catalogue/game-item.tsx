@@ -1,6 +1,6 @@
 import { Badge } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";
-import { useAppSelector, useRepacks, useLibrary } from "@renderer/hooks";
+import { useAppSelector, useLibrary } from "@renderer/hooks";
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -22,10 +22,6 @@ export function GameItem({ game }: GameItemProps) {
   const language = i18n.language.split("-")[0];
 
   const { steamGenres } = useAppSelector((state) => state.catalogueSearch);
-
-  const { getRepacksForObjectId } = useRepacks();
-
-  const repacks = getRepacksForObjectId(game.objectId);
 
   const [isAddingToLibrary, setIsAddingToLibrary] = useState(false);
 
@@ -62,10 +58,6 @@ export function GameItem({ game }: GameItemProps) {
       setIsAddingToLibrary(false);
     }
   };
-
-  const uniqueRepackers = useMemo(() => {
-    return Array.from(new Set(repacks.map((repack) => repack.repacker)));
-  }, [repacks]);
 
   const genres = useMemo(() => {
     return game.genres?.map((genre) => {
@@ -117,8 +109,8 @@ export function GameItem({ game }: GameItemProps) {
         <span className="game-item__genres">{genres.join(", ")}</span>
 
         <div className="game-item__repackers">
-          {uniqueRepackers.map((repacker) => (
-            <Badge key={repacker}>{repacker}</Badge>
+          {game.downloadSources.map((sourceName) => (
+            <Badge key={sourceName}>{sourceName}</Badge>
           ))}
         </div>
       </div>
