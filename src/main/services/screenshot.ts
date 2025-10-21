@@ -5,11 +5,10 @@ import { app } from "electron";
 import { logger } from "./logger";
 
 export class ScreenshotService {
-  private static readonly SCREENSHOT_QUALITY = 80; 
+  private static readonly SCREENSHOT_QUALITY = 80;
   private static readonly SCREENSHOT_FORMAT = "jpeg";
-  private static readonly MAX_WIDTH = 1280; 
-  private static readonly MAX_HEIGHT = 720; 
-
+  private static readonly MAX_WIDTH = 1280;
+  private static readonly MAX_HEIGHT = 720;
 
   private static compressImage(
     image: Electron.NativeImage
@@ -147,7 +146,7 @@ export class ScreenshotService {
       }
 
       const cleanupEmptyDirs = (dir: string) => {
-        if (dir === screenshotsDir) return; 
+        if (dir === screenshotsDir) return;
 
         try {
           const items = fs.readdirSync(dir);
@@ -156,6 +155,7 @@ export class ScreenshotService {
             logger.log(`Cleaned up empty directory: ${dir}`);
           }
         } catch (error) {
+          logger.error(`Failed to read directory ${dir}:`, error);
         }
       };
 
