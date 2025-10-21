@@ -83,6 +83,7 @@ export interface GameAchievement {
   achievements: SteamAchievement[];
   unlockedAchievements: UnlockedAchievement[];
   updatedAt: number | undefined;
+  language: string | undefined;
 }
 
 export type AchievementCustomNotificationPosition =
