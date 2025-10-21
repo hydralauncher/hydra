@@ -1,5 +1,5 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import axios from "axios";
 import { fileTypeFromFile } from "file-type";
 import { HydraApi } from "@main/services/hydra-api";

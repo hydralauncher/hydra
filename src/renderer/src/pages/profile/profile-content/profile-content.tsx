@@ -230,7 +230,7 @@ export function ProfileContent() {
                                 className="profile-content__souvenir-image-button"
                                 onClick={() =>
                                   handleImageClick(
-                                    achievement.achievementImageUrl!,
+                                    achievement.achievementImageUrl,
                                     achievement.name
                                   )
                                 }

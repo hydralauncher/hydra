@@ -71,7 +71,7 @@ export function AchievementList({
                     className="achievements__item-image-button"
                     onClick={() =>
                       handleImageClick(
-                        achievement.achievementImageUrl!,
+                        achievement.achievementImageUrl,
                         achievement.displayName
                       )
                     }

@@ -14,7 +14,7 @@ export function FullscreenImageModal({
   imageUrl,
   imageAlt,
   onClose,
-}: FullscreenImageModalProps) {
+}: Readonly<FullscreenImageModalProps>) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -36,11 +36,10 @@ export function FullscreenImageModal({
   if (!isOpen) return null;
 
   return (
-    <div
+    <dialog
       className="fullscreen-image-modal"
-      role="dialog"
       aria-modal="true"
-      tabIndex={-1}
+      open
     >
       <button
         type="button"
@@ -66,6 +65,6 @@ export function FullscreenImageModal({
           />
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }
