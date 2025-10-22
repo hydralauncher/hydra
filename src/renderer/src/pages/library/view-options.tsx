@@ -21,7 +21,6 @@ export function ViewOptions({ viewMode, onViewModeChange }: ViewOptionsProps) {
           title={t("grid_view")}
         >
           <AppsIcon size={16} />
-          <span>{t("Grid View")}</span>
         </button>
         <button
           className={`library-view-options__option ${viewMode === "compact" ? "active" : ""}`}
@@ -29,7 +28,6 @@ export function ViewOptions({ viewMode, onViewModeChange }: ViewOptionsProps) {
           title={t("compact_view")}
         >
           <SquareIcon size={16} />
-          <span>{t("Compact")}</span>
         </button>
         <button
           className={`library-view-options__option ${viewMode === "large" ? "active" : ""}`}
@@ -37,7 +35,6 @@ export function ViewOptions({ viewMode, onViewModeChange }: ViewOptionsProps) {
           title={t("large_view")}
         >
           <RowsIcon size={16} />
-          <span>{t("Large")}</span>
         </button>
       </div>
     </div>

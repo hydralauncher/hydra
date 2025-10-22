@@ -8,6 +8,7 @@ import { LibraryGameCard } from "./library-game-card";
 import { LibraryGameCardLarge } from "./library-game-card-large";
 import { ViewOptions, ViewMode } from "./view-options";
 import { FilterOptions, FilterOption } from "./filter-options";
+import { SearchBar } from "./search-bar";
 import "./library.scss";
 
 export default function Library() {
@@ -15,6 +16,7 @@ export default function Library() {
 
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const dispatch = useAppDispatch();
   const { t } = useTranslation("library");
   const { userDetails, fetchUserDetails } = useUserDetails();
@@ -53,27 +55,60 @@ export default function Library() {
     // Optional: resume animations if needed
   };
 
+  // Simple fuzzy search function
+  const fuzzySearch = (query: string, items: typeof library) => {
+    if (!query.trim()) return items;
+
+    const queryLower = query.toLowerCase();
+    return items.filter((game) => {
+      const titleLower = game.title.toLowerCase();
+      let matches = 0;
+      let queryIndex = 0;
+
+      for (
+        let i = 0;
+        i < titleLower.length && queryIndex < queryLower.length;
+        i++
+      ) {
+        if (titleLower[i] === queryLower[queryIndex]) {
+          matches++;
+          queryIndex++;
+        }
+      }
+
+      return queryIndex === queryLower.length;
+    });
+  };
+
   const filteredLibrary = useMemo(() => {
+    let filtered;
+
     switch (filterBy) {
       case "favourited":
-        return library.filter((game) => game.favorite);
+        filtered = library.filter((game) => game.favorite);
+        break;
       case "new":
-        return library.filter(
+        filtered = library.filter(
           (game) => (game.playTimeInMilliseconds || 0) === 0
         );
+        break;
       case "top10":
-        return library
+        filtered = library
           .slice()
           .sort(
             (a, b) =>
               (b.playTimeInMilliseconds || 0) - (a.playTimeInMilliseconds || 0)
           )
           .slice(0, 10);
+        break;
       case "all":
       default:
-        return library;
+        filtered = library;
     }
-  }, [library, filterBy]);
+
+    // Apply search filter
+    return fuzzySearch(searchQuery, filtered);
+  }, [library, filterBy, searchQuery]);
 
   // No sorting for now — rely on filteredLibrary
   const sortedLibrary = filteredLibrary;
@@ -112,6 +147,7 @@ export default function Library() {
               </div>
 
               <div className="library__controls-right">
+                <SearchBar value={searchQuery} onChange={setSearchQuery} />
                 <ViewOptions
                   viewMode={viewMode}
                   onViewModeChange={setViewMode}

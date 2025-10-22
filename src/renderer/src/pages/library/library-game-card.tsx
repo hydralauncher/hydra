@@ -5,10 +5,11 @@ import { useCallback, useState } from "react";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import {
   ClockIcon,
-  PlayIcon,
-  DownloadIcon,
   AlertFillIcon,
   ThreeBarsIcon,
+  TrophyIcon,
+  PlayIcon,
+  DownloadIcon,
 } from "@primer/octicons-react";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
@@ -163,27 +164,39 @@ export function LibraryGameCard({
             </button>
           </div>
 
-          {/* Action button - Play or Download */}
-          <button
-            type="button"
-            className="library-game-card__action-button"
-            onClick={handleActionClick}
-            title={game.executablePath ? t("play") : t("download")}
-          >
-            {isGameDownloading ? (
-              <DownloadIcon
-                size={16}
-                className="library-game-card__action-icon library-game-card__action-icon--downloading"
-              />
-            ) : game.executablePath ? (
-              <PlayIcon size={16} className="library-game-card__action-icon" />
-            ) : (
-              <DownloadIcon
-                size={16}
-                className="library-game-card__action-icon"
-              />
-            )}
-          </button>
+          {/* Achievements section - shown on hover */}
+          {(game.achievementCount ?? 0) > 0 && (
+            <div className="library-game-card__achievements">
+              <div className="library-game-card__achievement-header">
+                <div className="library-game-card__achievements-gap">
+                  <TrophyIcon
+                    size={14}
+                    className="library-game-card__achievement-trophy"
+                  />
+                  <span className="library-game-card__achievement-count">
+                    {game.unlockedAchievementCount ?? 0} /{" "}
+                    {game.achievementCount ?? 0}
+                  </span>
+                </div>
+                <span className="library-game-card__achievement-percentage">
+                  {Math.round(
+                    ((game.unlockedAchievementCount ?? 0) /
+                      (game.achievementCount ?? 1)) *
+                      100
+                  )}
+                  %
+                </span>
+              </div>
+              <div className="library-game-card__achievement-progress">
+                <div
+                  className="library-game-card__achievement-bar"
+                  style={{
+                    width: `${((game.unlockedAchievementCount ?? 0) / (game.achievementCount ?? 1)) * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <img

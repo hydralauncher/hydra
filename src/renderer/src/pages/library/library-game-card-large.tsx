@@ -8,6 +8,7 @@ import {
   ClockIcon,
   AlertFillIcon,
   ThreeBarsIcon,
+  TrophyIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { useCallback, useState } from "react";
@@ -130,14 +131,29 @@ export function LibraryGameCardLarge({ game }: LibraryGameCardLargeProps) {
         <div className="library-game-card-large__gradient" />
 
         <div className="library-game-card-large__overlay">
-          <button
-            type="button"
-            className="library-game-card-large__menu-button"
-            onClick={handleMenuButtonClick}
-            title="More options"
-          >
-            <ThreeBarsIcon size={16} />
-          </button>
+          <div className="library-game-card-large__top-section">
+            <div className="library-game-card-large__playtime">
+              {game.hasManuallyUpdatedPlaytime ? (
+                <AlertFillIcon
+                  size={11}
+                  className="library-game-card-large__manual-playtime"
+                />
+              ) : (
+                <ClockIcon size={11} />
+              )}
+              <span className="library-game-card-large__playtime-text">
+                {formatPlayTime(game.playTimeInMilliseconds)}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="library-game-card-large__menu-button"
+              onClick={handleMenuButtonClick}
+              title="More options"
+            >
+              <ThreeBarsIcon size={16} />
+            </button>
+          </div>
 
           <div className="library-game-card-large__logo-container">
             {logoImage ? (
@@ -152,19 +168,39 @@ export function LibraryGameCardLarge({ game }: LibraryGameCardLargeProps) {
           </div>
 
           <div className="library-game-card-large__info-bar">
-            <div className="library-game-card-large__playtime">
-              {game.hasManuallyUpdatedPlaytime ? (
-                <AlertFillIcon
-                  size={11}
-                  className="library-game-card-large__manual-playtime"
-                />
-              ) : (
-                <ClockIcon size={11} />
-              )}
-              <span className="library-game-card-large__playtime-text">
-                {formatPlayTime(game.playTimeInMilliseconds)}
-              </span>
-            </div>
+            {/* Achievements section */}
+            {(game.achievementCount ?? 0) > 0 && (
+              <div className="library-game-card-large__achievements">
+                <div className="library-game-card-large__achievement-header">
+                  <div className="library-game-card-large__achievements-gap">
+                    <TrophyIcon
+                      size={14}
+                      className="library-game-card-large__achievement-trophy"
+                    />
+                    <span className="library-game-card-large__achievement-count">
+                      {game.unlockedAchievementCount ?? 0} /{" "}
+                      {game.achievementCount ?? 0}
+                    </span>
+                  </div>
+                  <span className="library-game-card-large__achievement-percentage">
+                    {Math.round(
+                      ((game.unlockedAchievementCount ?? 0) /
+                        (game.achievementCount ?? 1)) *
+                        100
+                    )}
+                    %
+                  </span>
+                </div>
+                <div className="library-game-card-large__achievement-progress">
+                  <div
+                    className="library-game-card-large__achievement-bar"
+                    style={{
+                      width: `${((game.unlockedAchievementCount ?? 0) / (game.achievementCount ?? 1)) * 100}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
 
             <button
               type="button"
