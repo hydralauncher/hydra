@@ -22,6 +22,7 @@
     font-weight: 500;
     transition: all ease 0.2s;
     white-space: nowrap; /* prevent label and count from wrapping */
+    border: 1px solid rgba(0, 0, 0, 0.06);
 
     &:hover {
       color: rgba(255, 255, 255, 0.9);
@@ -29,14 +30,17 @@
     }
 
     &.active {
-      &.active {
-        color: rgba(255, 255, 255, 0.95);
-        background: rgba(255, 255, 255, 0.15);
+      color: #000;
+      background: #fff;
+      svg,
+      svg * {
+        fill: currentColor;
+        color: currentColor;
       }
 
       .library-filter-options__count {
-        background: rgba(255, 255, 255, 0.25);
-        color: rgba(255, 255, 255, 0.95);
+        background: #ebebeb;
+        color: rgba(0, 0, 0, 0.9);
       }
     }
   }

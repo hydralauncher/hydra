@@ -131,28 +131,41 @@
   }
 
   &__achievement-trophy {
-    color: #ffd700;
+    color: #fff;
     flex-shrink: 0;
   }
 
   &__achievement-progress {
+    margin-top: 8px;
     width: 100%;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    height: 4px;
+    transition: all ease 0.2s;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
     overflow: hidden;
+
+    &::-webkit-progress-bar {
+      background-color: transparent;
+      border-radius: 4px;
+    }
+
+    &::-webkit-progress-value {
+      background-color: globals.$muted-color;
+      border-radius: 4px;
+    }
   }
 
   &__achievement-bar {
     height: 100%;
-    background: linear-gradient(90deg, #ffd700, #ffed4e);
-    border-radius: 3px;
+    background-color: globals.$muted-color;
+    border-radius: 4px;
     transition: width 0.3s ease;
+    position: relative;
   }
 
   &__achievement-count {
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     color: rgba(255, 255, 255, 0.9);
     white-space: nowrap;
   }
