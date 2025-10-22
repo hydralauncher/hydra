@@ -6,7 +6,6 @@
   align-items: center;
   gap: calc(globals.$spacing-unit * 2);
   -webkit-app-region: drag;
-  width: 100%;
   padding: calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 3);
   color: globals.$muted-color;
   border-bottom: solid 1px rgba(255, 255, 255, 0.1);
