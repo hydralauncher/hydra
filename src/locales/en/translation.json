@@ -676,7 +676,10 @@
     "game_added_to_pinned": "Game added to pinned",
     "karma": "Karma",
     "karma_count": "karma",
-    "karma_description": "Earned from positive likes on reviews"
+    "karma_description": "Earned from positive likes on reviews",
+    "user_reviews": "User's Reviews",
+    "delete_review": "Delete Review",
+    "loading_reviews": "Loading reviews..."
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",
