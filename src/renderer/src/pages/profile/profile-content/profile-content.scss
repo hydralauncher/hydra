@@ -178,156 +178,156 @@
   }
 }
 
-  // Reviews minimal styles
-  .user-reviews__loading {
-    padding: calc(globals.$spacing-unit * 2);
-    color: rgba(255, 255, 255, 0.8);
+// Reviews minimal styles
+.user-reviews__loading {
+  padding: calc(globals.$spacing-unit * 2);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.user-reviews__empty {
+  text-align: center;
+  padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 2);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.user-reviews__list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+}
+
+.user-reviews__review-item {
+  border-radius: 8px;
+  padding: calc(globals.$spacing-unit * 2);
+}
+
+.user-reviews__review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: calc(globals.$spacing-unit * 1.5);
+}
+
+.user-reviews__review-game {
+  display: flex;
+  align-items: center;
+  gap: calc(globals.$spacing-unit);
+}
+
+.user-reviews__game-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.user-reviews__game-info {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 0.25);
+}
+
+.user-reviews__game-title {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+
+  &--clickable:hover {
+    text-decoration: underline;
+  }
+}
+
+.user-reviews__review-date {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: globals.$small-font-size;
+}
+
+.user-reviews__review-score-stars {
+  display: flex;
+  gap: calc(globals.$spacing-unit * 0.5);
+}
+
+.user-reviews__review-star-container {
+  display: flex;
+  align-items: center;
+}
+
+.user-reviews__review-content {
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.5;
+}
+
+.user-reviews__review-actions {
+  margin-top: calc(globals.$spacing-unit * 2);
+  padding-top: calc(globals.$spacing-unit);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-reviews__review-votes {
+  display: flex;
+  gap: calc(globals.$spacing-unit);
+}
+
+.user-reviews__vote-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: #ccc;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
   }
 
-  .user-reviews__empty {
-    text-align: center;
-    padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 2);
-    color: rgba(255, 255, 255, 0.6);
-  }
+  &--active {
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
 
-  .user-reviews__list {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
-  }
-
-  .user-reviews__review-item {
-    border-radius: 8px;
-    padding: calc(globals.$spacing-unit * 2);
-  }
-
-  .user-reviews__review-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: calc(globals.$spacing-unit * 1.5);
-  }
-
-  .user-reviews__review-game {
-    display: flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit);
-  }
-
-  .user-reviews__game-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    object-fit: cover;
-  }
-
-  .user-reviews__game-info {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 0.25);
-  }
-
-  .user-reviews__game-title {
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.9);
-    font-weight: 600;
-    cursor: pointer;
-    text-align: left;
-
-    &--clickable:hover {
-      text-decoration: underline;
+    svg {
+      fill: white;
     }
   }
+}
 
-  .user-reviews__review-date {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: globals.$small-font-size;
+.user-reviews__delete-review-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: #f44336;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(244, 67, 54, 0.2);
+    border-color: rgba(244, 67, 54, 0.4);
+    color: #ff7961;
+  }
+}
+
+.profile-content {
+  &__tab-panels {
+    display: block;
   }
 
-  .user-reviews__review-score-stars {
-    display: flex;
-    gap: calc(globals.$spacing-unit * 0.5);
+  &__tab-panel[hidden] {
+    display: none;
   }
-
-  .user-reviews__review-star-container {
-    display: flex;
-    align-items: center;
-  }
-
-  .user-reviews__review-content {
-    color: rgba(255, 255, 255, 0.85);
-    line-height: 1.5;
-  }
-
-  .user-reviews__review-actions {
-    margin-top: calc(globals.$spacing-unit * 2);
-    padding-top: calc(globals.$spacing-unit);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .user-reviews__review-votes {
-    display: flex;
-    gap: calc(globals.$spacing-unit);
-  }
-
-  .user-reviews__vote-button {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    padding: 6px 12px;
-    color: #ccc;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
-      color: #ffffff;
-    }
-
-    &--active {
-      color: #ffffff;
-      border-color: rgba(255, 255, 255, 0.3);
-
-      svg {
-        fill: white;
-      }
-    }
-  }
-
-  .user-reviews__delete-review-button {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(244, 67, 54, 0.1);
-    border: 1px solid rgba(244, 67, 54, 0.3);
-    border-radius: 6px;
-    padding: 6px 10px;
-    color: #f44336;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-      background: rgba(244, 67, 54, 0.2);
-      border-color: rgba(244, 67, 54, 0.4);
-      color: #ff7961;
-    }
-  }
-
-  .profile-content {
-    &__tab-panels {
-      display: block;
-    }
-  
-    &__tab-panel[hidden] {
-      display: none;
-    }
-  }
+}

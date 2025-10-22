@@ -1,7 +1,12 @@
 import { userProfileContext } from "@renderer/context";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ProfileHero } from "../profile-hero/profile-hero";
-import { useAppDispatch, useFormat, useDate, useUserDetails } from "@renderer/hooks";
+import {
+  useAppDispatch,
+  useFormat,
+  useDate,
+  useUserDetails,
+} from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { TelescopeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
@@ -26,7 +31,6 @@ import {
   GAME_STATS_ANIMATION_DURATION_IN_MS,
 } from "./profile-animations";
 import "./profile-content.scss";
-
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
 
@@ -79,7 +83,7 @@ export function ProfileContent() {
   const [isAnimationRunning, setIsAnimationRunning] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
   const statsAnimation = useRef(-1);
-  
+
   const [activeTab, setActiveTab] = useState<"library" | "reviews">("library");
 
   // User reviews state
@@ -116,7 +120,7 @@ export function ProfileContent() {
 
   const fetchUserReviews = async () => {
     if (!userProfile?.id) return;
-    
+
     setIsLoadingReviews(true);
     try {
       const response = await window.electron.hydraApi.get<UserReviewsResponse>(
@@ -134,15 +138,17 @@ export function ProfileContent() {
 
   const handleDeleteReview = async (reviewId: string) => {
     try {
-      const reviewToDeleteObj = reviews.find(review => review.id === reviewId);
+      const reviewToDeleteObj = reviews.find(
+        (review) => review.id === reviewId
+      );
       if (!reviewToDeleteObj) return;
-      
+
       await window.electron.hydraApi.delete(
         `/games/${reviewToDeleteObj.game.shop}/${reviewToDeleteObj.game.objectId}/reviews/${reviewId}`
       );
       // Remove the review from the local state
-      setReviews(prev => prev.filter(review => review.id !== reviewId));
-      setReviewsTotalCount(prev => prev - 1);
+      setReviews((prev) => prev.filter((review) => review.id !== reviewId));
+      setReviewsTotalCount((prev) => prev - 1);
     } catch (error) {
       console.error("Failed to delete review:", error);
     }
@@ -168,85 +174,89 @@ export function ProfileContent() {
   const handleVoteReview = async (reviewId: string, isUpvote: boolean) => {
     if (votingReviews.has(reviewId)) return;
 
-    setVotingReviews(prev => new Set(prev).add(reviewId));
+    setVotingReviews((prev) => new Set(prev).add(reviewId));
 
-    const review = reviews.find(r => r.id === reviewId);
+    const review = reviews.find((r) => r.id === reviewId);
     if (!review) return;
 
     const wasUpvoted = review.hasUpvoted;
     const wasDownvoted = review.hasDownvoted;
 
     // Optimistic update
-    setReviews(prev => prev.map(r => {
-      if (r.id !== reviewId) return r;
+    setReviews((prev) =>
+      prev.map((r) => {
+        if (r.id !== reviewId) return r;
 
-      let newUpvotes = r.upvotes;
-      let newDownvotes = r.downvotes;
-      let newHasUpvoted = r.hasUpvoted;
-      let newHasDownvoted = r.hasDownvoted;
+        let newUpvotes = r.upvotes;
+        let newDownvotes = r.downvotes;
+        let newHasUpvoted = r.hasUpvoted;
+        let newHasDownvoted = r.hasDownvoted;
 
-      if (isUpvote) {
-        if (wasUpvoted) {
-          // Remove upvote
-          newUpvotes--;
-          newHasUpvoted = false;
-        } else {
-          // Add upvote
-          newUpvotes++;
-          newHasUpvoted = true;
-          if (wasDownvoted) {
-            // Remove downvote if it was downvoted
-            newDownvotes--;
-            newHasDownvoted = false;
-          }
-        }
-      } else {
-        if (wasDownvoted) {
-          // Remove downvote
-          newDownvotes--;
-          newHasDownvoted = false;
-        } else {
-          // Add downvote
-          newDownvotes++;
-          newHasDownvoted = true;
+        if (isUpvote) {
           if (wasUpvoted) {
-            // Remove upvote if it was upvoted
+            // Remove upvote
             newUpvotes--;
             newHasUpvoted = false;
+          } else {
+            // Add upvote
+            newUpvotes++;
+            newHasUpvoted = true;
+            if (wasDownvoted) {
+              // Remove downvote if it was downvoted
+              newDownvotes--;
+              newHasDownvoted = false;
+            }
+          }
+        } else {
+          if (wasDownvoted) {
+            // Remove downvote
+            newDownvotes--;
+            newHasDownvoted = false;
+          } else {
+            // Add downvote
+            newDownvotes++;
+            newHasDownvoted = true;
+            if (wasUpvoted) {
+              // Remove upvote if it was upvoted
+              newUpvotes--;
+              newHasUpvoted = false;
+            }
           }
         }
-      }
 
-      return {
-        ...r,
-        upvotes: newUpvotes,
-        downvotes: newDownvotes,
-        hasUpvoted: newHasUpvoted,
-        hasDownvoted: newHasDownvoted,
-      };
-    }));
+        return {
+          ...r,
+          upvotes: newUpvotes,
+          downvotes: newDownvotes,
+          hasUpvoted: newHasUpvoted,
+          hasDownvoted: newHasDownvoted,
+        };
+      })
+    );
 
     try {
-      const endpoint = isUpvote ? 'upvote' : 'downvote';
+      const endpoint = isUpvote ? "upvote" : "downvote";
       await window.electron.hydraApi.put(
         `/games/${review.game.shop}/${review.game.objectId}/reviews/${reviewId}/${endpoint}`
       );
     } catch (error) {
       console.error("Failed to vote on review:", error);
-      
+
       // Rollback optimistic update on error
-      setReviews(prev => prev.map(r => {
-        if (r.id !== reviewId) return r;
-        return {
-          ...r,
-          upvotes: review.upvotes,
-          downvotes: review.downvotes,
-          hasUpvoted: review.hasUpvoted,
-          hasDownvoted: review.hasDownvoted,
-        };
-      }));
+      setReviews((prev) =>
+        prev.map((r) => {
+          if (r.id !== reviewId) return r;
+          return {
+            ...r,
+            upvotes: review.upvotes,
+            downvotes: review.downvotes,
+            hasUpvoted: review.hasUpvoted,
+            hasDownvoted: review.hasDownvoted,
+          };
+        })
+      );
     } finally {
-      setVotingReviews(prev => {
+      setVotingReviews((prev) => {
         const newSet = new Set(prev);
         newSet.delete(reviewId);
         return newSet;
@@ -364,10 +374,7 @@ export function ProfileContent() {
                       {/* render pinned games unconditionally */}
                       <ul className="profile-content__games-grid">
                         {pinnedGames?.map((game) => (
-                          <li
-                            key={game.objectId}
-                            style={{ listStyle: "none" }}
-                          >
+                          <li key={game.objectId} style={{ listStyle: "none" }}>
                             <UserLibraryGameCard
                               game={game}
                               statIndex={statsIndex}
@@ -433,7 +440,9 @@ export function ProfileContent() {
 
                 {/* render reviews content unconditionally */}
                 {isLoadingReviews ? (
-                  <div className="user-reviews__loading">{t("loading_reviews")}</div>
+                  <div className="user-reviews__loading">
+                    {t("loading_reviews")}
+                  </div>
                 ) : reviews.length === 0 ? (
                   <div className="user-reviews__empty">
                     <p>{t("no_reviews", "No reviews yet")}</p>
@@ -461,22 +470,35 @@ export function ProfileContent() {
                               <div className="user-reviews__game-info">
                                 <button
                                   className="user-reviews__game-title user-reviews__game-title--clickable"
-                                  onClick={() => navigate(buildGameDetailsPath(review.game))}
+                                  onClick={() =>
+                                    navigate(buildGameDetailsPath(review.game))
+                                  }
                                 >
                                   {review.game.title}
                                 </button>
                                 <div className="user-reviews__review-date">
-                                  {formatDistance(new Date(review.createdAt), new Date(), { addSuffix: true })}
+                                  {formatDistance(
+                                    new Date(review.createdAt),
+                                    new Date(),
+                                    { addSuffix: true }
+                                  )}
                                 </div>
                               </div>
                             </div>
 
                             <div className="user-reviews__review-score-stars">
                               {Array.from({ length: 5 }, (_, index) => (
-                                <div key={index} className="user-reviews__review-star-container">
+                                <div
+                                  key={index}
+                                  className="user-reviews__review-star-container"
+                                >
                                   <Star
                                     size={24}
-                                    fill={index < review.score ? "currentColor" : "none"}
+                                    fill={
+                                      index < review.score
+                                        ? "currentColor"
+                                        : "none"
+                                    }
                                     className={`user-reviews__review-star ${
                                       index < review.score
                                         ? `user-reviews__review-star--filled game-details__review-star--filled ${getScoreColorClass(review.score)}`
@@ -490,14 +512,18 @@ export function ProfileContent() {
 
                           <div
                             className="user-reviews__review-content"
-                            dangerouslySetInnerHTML={{ __html: review.reviewHtml }}
+                            dangerouslySetInnerHTML={{
+                              __html: review.reviewHtml,
+                            }}
                           />
 
                           <div className="user-reviews__review-actions">
                             <div className="user-reviews__review-votes">
                               <motion.button
                                 className={`user-reviews__vote-button ${review.hasUpvoted ? "user-reviews__vote-button--active" : ""}`}
-                                onClick={() => handleVoteReview(review.id, true)}
+                                onClick={() =>
+                                  handleVoteReview(review.id, true)
+                                }
                                 disabled={votingReviews.has(review.id)}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
@@ -518,7 +544,9 @@ export function ProfileContent() {
 
                               <motion.button
                                 className={`user-reviews__vote-button ${review.hasDownvoted ? "user-reviews__vote-button--active" : ""}`}
-                                onClick={() => handleVoteReview(review.id, false)}
+                                onClick={() =>
+                                  handleVoteReview(review.id, false)
+                                }
                                 disabled={votingReviews.has(review.id)}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
