@@ -584,13 +584,17 @@ $hero-height: 300px;
     z-index: 0;
 
     &::after {
-      content: '';
+      content: "";
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: linear-gradient(0deg, rgba(0, 0, 0, 0.3) 60%, transparent 100%);
+      background: linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.3) 60%,
+        transparent 100%
+      );
       z-index: 1;
       pointer-events: none;
       border-radius: inherit;
