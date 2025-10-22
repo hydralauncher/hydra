@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { CheckboxField } from "@renderer/components";
+import { CheckboxField, Button } from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
 import "./settings-behavior.scss";
@@ -209,6 +209,18 @@ export function SettingsBehavior() {
         >
           <QuestionIcon size={12} />
         </small>
+      </div>
+
+      <div className="settings-behavior__button-container">
+        <Button
+          theme="outline"
+          onClick={async () => {
+            const screenshotsPath = await window.electron.getScreenshotsPath();
+            window.electron.openFolder(screenshotsPath);
+          }}
+        >
+          {t("open_screenshots_directory")}
+        </Button>
       </div>
     </>
   );
