@@ -50,7 +50,7 @@ export function HeroPanel() {
     game?.download?.status === "paused";
 
   return (
-    <div className="hero-panel-wrapper">
+    <div className="hero-panel__container">
       <div className="hero-panel">
         <div className="hero-panel__content">{getInfo()}</div>
         <div className="hero-panel__actions">
