@@ -28,6 +28,7 @@ import bg from "./bg/translation.json";
 import uz from "./uz/translation.json";
 import fi from "./fi/translation.json";
 import sv from "./sv/translation.json";
+import lv from "./lv/translation.json"; 
 
 export default {
   "pt-BR": ptBR,
@@ -60,4 +61,5 @@ export default {
   et,
   uz,
   sv,
+  lv,
 };
