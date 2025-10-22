@@ -191,15 +191,25 @@ export function SettingsBehavior() {
         </small>
       </div>
 
-      <CheckboxField
-        label={t("enable_achievement_screenshots")}
-        checked={form.enableAchievementScreenshots}
-        onChange={() =>
-          handleChange({
-            enableAchievementScreenshots: !form.enableAchievementScreenshots,
-          })
-        }
-      />
+      <div className={`settings-behavior__checkbox-container--with-tooltip`}>
+        <CheckboxField
+          label={t("enable_achievement_screenshots")}
+          checked={form.enableAchievementScreenshots}
+          disabled={window.electron.platform === "linux"}
+          onChange={() =>
+            handleChange({
+              enableAchievementScreenshots: !form.enableAchievementScreenshots,
+            })
+          }
+        />
+
+        <small
+          className="settings-behavior__checkbox-container--tooltip"
+          data-open-article="achievement-souvenirs"
+        >
+          <QuestionIcon size={12} />
+        </small>
+      </div>
     </>
   );
 }
