@@ -11,7 +11,7 @@ import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 
 export const getUserData = async () => {
-  let language = "en"; 
+  let language = "en";
   try {
     const userPreferences = await db.get<string, UserPreferences | null>(
       levelKeys.userPreferences,

@@ -16,6 +16,7 @@ import { db, gameAchievementsSublevel, levelKeys } from "@main/level";
 import { getGameAchievementData } from "./get-game-achievement-data";
 import { AchievementWatcherManager } from "./achievement-watcher-manager";
 import { ScreenshotService } from "../screenshot";
+import { AchievementImageService } from "./achievement-image-service";
 
 const isRareAchievement = (points: number) => {
   const rawPercentage = (50 - Math.sqrt(points)) * 2;
@@ -195,10 +196,6 @@ export const mergeAchievements = async (
           userPreferences.enableAchievementScreenshots === true
         ) {
           try {
-            const { uploadAchievementImage } = await import(
-              "@main/events/achievements/upload-achievement-image"
-            );
-
             for (const achievement of newAchievements) {
               try {
                 const achievementData = achievementsData.find(
@@ -219,7 +216,7 @@ export const mergeAchievements = async (
                     achievementDisplayName
                   );
 
-                await uploadAchievementImage(
+                await AchievementImageService.uploadAchievementImage(
                   game.objectId,
                   achievement.name,
                   screenshotPath,
