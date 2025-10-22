@@ -161,26 +161,29 @@
 
     // Compact view - smaller cards
     &--compact {
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(auto-fill, 215px);
+      grid-auto-rows: 320px;
+      justify-content: start;
 
       @container #{globals.$app-container} (min-width: 900px) {
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(auto-fill, 215px);
       }
 
       @container #{globals.$app-container} (min-width: 1300px) {
-        grid-template-columns: repeat(7, 1fr);
+        grid-template-columns: repeat(auto-fill, 215px);
       }
 
+      /* keep same pattern for very large screens */
       @container #{globals.$app-container} (min-width: 2000px) {
-        grid-template-columns: repeat(9, 1fr);
+        grid-template-columns: repeat(auto-fill, 215px);
       }
 
       @container #{globals.$app-container} (min-width: 2600px) {
-        grid-template-columns: repeat(12, 1fr);
+        grid-template-columns: repeat(auto-fill, 215px);
       }
 
       @container #{globals.$app-container} (min-width: 3000px) {
-        grid-template-columns: repeat(16, 1fr);
+        grid-template-columns: repeat(auto-fill, 210px);
       }
     }
   }

@@ -14,7 +14,7 @@ import "./library.scss";
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
 
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewMode, setViewMode] = useState<ViewMode>("compact");
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const dispatch = useAppDispatch();
