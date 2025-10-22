@@ -54,7 +54,7 @@
     justify-content: space-between;
     height: 100%;
     width: 100%;
-    background: linear-gradient(0deg, rgba(0, 0, 0, 0.2) 20%, transparent 100%);
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.5) 5%, transparent 100%);
     padding: 8px;
     z-index: 2;
   }
@@ -106,6 +106,63 @@
     color: globals.$warning-color;
   }
 
+  &__achievements {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 8px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all ease 0.2s;
+    pointer-events: none;
+    width: 100%;
+  }
+  &__achievements-gap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__achievement-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: space-between;
+  }
+
+  &__achievement-trophy {
+    color: #ffd700;
+    flex-shrink: 0;
+  }
+
+  &__achievement-progress {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  &__achievement-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #ffd700, #ffed4e);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
+  &__achievement-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap;
+  }
+
+  &__achievement-percentage {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+  }
+
   &__action-button {
     position: absolute;
     bottom: 8px;
@@ -114,7 +171,7 @@
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: solid 1px rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
+    border-radius: 4px;
     width: 40px;
     height: 40px;
     display: flex;
@@ -173,6 +230,12 @@
   &__wrapper:hover &__menu-button {
     opacity: 1;
     transform: scale(1);
+  }
+
+  &__wrapper:hover &__achievements {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
   }
 
   &__action-icon {
