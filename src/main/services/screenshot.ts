@@ -2,6 +2,7 @@ import { desktopCapturer, nativeImage, app } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { logger } from "./logger";
+import { screenshotsPath } from "@main/constants";
 
 export class ScreenshotService {
   private static readonly SCREENSHOT_QUALITY = 80;
@@ -50,6 +51,8 @@ export class ScreenshotService {
         throw new Error("No desktop sources available for screenshot");
       }
 
+      console.log("sources", sources);
+
       const primaryScreen = sources[0];
 
       const originalImage = nativeImage.createFromDataURL(
@@ -58,15 +61,12 @@ export class ScreenshotService {
 
       const compressedImage = this.compressImage(originalImage);
 
-      const userDataPath = app.getPath("userData");
-      const screenshotsDir = path.join(userDataPath, "screenshots");
-
-      let finalDir = screenshotsDir;
+      let finalDir = screenshotsPath;
       let filename: string;
 
       if (gameTitle && achievementName) {
         const sanitizedGameTitle = gameTitle.replaceAll(/[<>:"/\\|?*]/g, "_");
-        const gameDir = path.join(screenshotsDir, sanitizedGameTitle);
+        const gameDir = path.join(screenshotsPath, sanitizedGameTitle);
         finalDir = gameDir;
 
         const sanitizedAchievementName = achievementName.replaceAll(
