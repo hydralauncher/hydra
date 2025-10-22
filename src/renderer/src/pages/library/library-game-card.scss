@@ -280,3 +280,10 @@
     opacity: 0.5;
   }
 }
+
+/* Force fixed size for compact grid cells so cards render at 220x320 */
+.library__games-grid--compact .library-game-card__wrapper {
+  width: 215px;
+  height: 320px;
+  aspect-ratio: unset;
+}
