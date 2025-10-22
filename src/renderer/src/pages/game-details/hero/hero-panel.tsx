@@ -61,7 +61,9 @@ export function HeroPanel() {
           <progress
             max={1}
             value={
-              isGameDownloading ? lastPacket?.progress : game?.download?.progress
+              isGameDownloading
+                ? lastPacket?.progress
+                : game?.download?.progress
             }
             className={`hero-panel__progress-bar ${
               game?.download?.status === "paused"
