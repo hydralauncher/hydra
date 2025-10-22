@@ -526,6 +526,7 @@
     "extract_files_by_default": "Extract files by default after download",
     "enable_steam_achievements": "Enable search for Steam achievements",
     "enable_achievement_screenshots": "Enable achievement screenshots",
+    "open_screenshots_directory": "Open screenshots directory",
     "achievement_custom_notification_position": "Achievement custom notification position",
     "top-left": "Top left",
     "top-center": "Top center",

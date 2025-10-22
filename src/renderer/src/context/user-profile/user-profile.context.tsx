@@ -1,6 +1,12 @@
 import { darkenColor } from "@renderer/helpers";
 import { useAppSelector, useToast } from "@renderer/hooks";
-import type { Badge, UserProfile, UserStats, UserGame, ProfileAchievement } from "@types";
+import type {
+  Badge,
+  UserProfile,
+  UserStats,
+  UserGame,
+  ProfileAchievement,
+} from "@types";
 import { average } from "color.js";
 
 import { createContext, useCallback, useEffect, useState } from "react";
@@ -150,17 +156,19 @@ export function UserProfileContextProvider({
 
     // Fetch achievements separately
     const achievementsPromise = window.electron.hydraApi
-      .get<ProfileAchievement[]>(`/users/${userId}/achievements?${params.toString()}`)
+      .get<
+        ProfileAchievement[]
+      >(`/users/${userId}/achievements?${params.toString()}`)
       .catch(() => null); // If achievements fail, just return null
 
-    return Promise.all([profilePromise, achievementsPromise])
-      .then(([userProfile, achievements]) => {
+    return Promise.all([profilePromise, achievementsPromise]).then(
+      ([userProfile, achievements]) => {
         // Merge achievements into the profile
         const profileWithAchievements = {
           ...userProfile,
           achievements: achievements || null,
         };
-        
+
         setUserProfile(profileWithAchievements);
 
         if (userProfile.profileImageUrl) {
@@ -168,7 +176,8 @@ export function UserProfileContextProvider({
             (color) => setHeroBackground(color)
           );
         }
-      });
+      }
+    );
   }, [
     navigate,
     getUserStats,
