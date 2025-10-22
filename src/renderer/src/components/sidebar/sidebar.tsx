@@ -244,6 +244,13 @@ export function Sidebar() {
     }
   };
 
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--sidebar-width",
+      `${sidebarWidth}px`
+    );
+  }, [sidebarWidth]);
+
   const handleSidebarGameClick = (
     event: React.MouseEvent,
     game: LibraryGame

@@ -113,6 +113,10 @@ progress[value] {
       globals.$dark-background-color 50%,
       globals.$background-color 100%
     );
+
+    > *:first-child {
+      padding-top: calc(globals.$spacing-unit * 10);
+    }
   }
 }
 

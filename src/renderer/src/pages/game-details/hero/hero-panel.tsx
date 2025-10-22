@@ -1,5 +1,6 @@
-import { useContext } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { createPortal } from "react-dom";
 
 import { useDate, useDownload } from "@renderer/hooks";
 
@@ -10,6 +11,8 @@ import { gameDetailsContext } from "@renderer/context";
 import "./hero-panel.scss";
 
 export function HeroPanel() {
+  const heroPanelRef = useRef<HTMLDivElement>(null);
+  const [isSticky, setIsSticky] = useState(false);
   const { t } = useTranslation("game_details");
 
   const { formatDate } = useDate();
@@ -49,8 +52,38 @@ export function HeroPanel() {
     (game?.download?.status === "active" && game?.download?.progress < 1) ||
     game?.download?.status === "paused";
 
-  return (
-    <div className="hero-panel">
+  // Отслеживаем скролл для sticky поведения
+  useEffect(() => {
+    if (!heroPanelRef.current) return undefined;
+
+    const handleScroll = () => {
+      if (!heroPanelRef.current) return;
+
+      const rect = heroPanelRef.current.getBoundingClientRect();
+      const containerContent = document.querySelector(".container__content");
+
+      if (containerContent) {
+        const containerRect = containerContent.getBoundingClientRect();
+        // Панель должна стать sticky когда она уходит за пределы видимости
+        setIsSticky(rect.bottom < containerRect.top);
+      }
+    };
+
+    const containerContent = document.querySelector(".container__content");
+    if (containerContent) {
+      containerContent.addEventListener("scroll", handleScroll);
+      handleScroll(); // Проверяем сразу
+
+      return () => {
+        containerContent.removeEventListener("scroll", handleScroll);
+      };
+    }
+
+    return undefined;
+  }, []);
+
+  const heroPanelContent = (
+    <>
       <div className="hero-panel__content">{getInfo()}</div>
       <div className="hero-panel__actions">
         <HeroPanelActions />
@@ -69,6 +102,25 @@ export function HeroPanel() {
           }`}
         />
       )}
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Оригинальная панель на своем месте */}
+      <div ref={heroPanelRef} className="hero-panel">
+        {heroPanelContent}
+      </div>
+
+      {/* Sticky копия в header при скролле */}
+      {isSticky &&
+        createPortal(
+          <div className="hero-panel hero-panel--sticky">
+            {heroPanelContent}
+          </div>,
+          document.getElementById("hero-panel-sticky-container") ||
+            document.body
+        )}
+    </>
   );
 }

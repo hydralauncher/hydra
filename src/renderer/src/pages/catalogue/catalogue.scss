@@ -18,6 +18,10 @@
     padding: 16px;
     border: 1px solid globals.$border-color;
     align-self: flex-start;
+    max-height: calc(95vh - 130px);
+    overflow-y: auto;
+    position: sticky;
+    top: 16px;
   }
 
   &__header {

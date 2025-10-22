@@ -25,7 +25,7 @@
     flex-direction: column;
     flex: 1;
     padding: calc(globals.$spacing-unit * 2);
-    gap: calc(globals.$spacing-unit * 2);
+    gap: globals.$spacing-unit;
     width: 100%;
     overflow: auto;
   }
@@ -45,7 +45,11 @@
     gap: calc(globals.$spacing-unit / 2);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto;
+  }
+
+  &__section:last-child &__menu {
+    min-height: 0;
   }
 
   &__menu-item {
@@ -138,6 +142,11 @@
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 2);
     padding-bottom: globals.$spacing-unit;
+
+    &:last-child {
+      min-height: 0;
+      overflow: hidden;
+    }
   }
 
   &__bottom-buttons {

@@ -139,6 +139,11 @@ export function Header() {
             )}
           </div>
         </section>
+
+        <div
+          id="hero-panel-sticky-container"
+          className="header__hero-panel-container"
+        ></div>
       </header>
       <AutoUpdateSubHeader />
     </>

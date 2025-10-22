@@ -26,6 +26,19 @@
     box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.8);
   }
 
+  &--sticky {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    border-top: solid 1px globals.$border-color;
+    box-shadow: none;
+    height: auto;
+    min-height: auto;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 3);
+    animation: slideDown 0.3s ease-out;
+  }
+
   &__content {
     display: flex;
     flex-direction: column;
@@ -68,5 +81,16 @@
     &--disabled {
       opacity: globals.$disabled-opacity;
     }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
