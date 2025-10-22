@@ -1,5 +1,5 @@
 import { LibraryGame } from "@types";
-import { useFormat, useDownload } from "@renderer/hooks";
+import { useFormat } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
 import { useCallback, useState } from "react";
 import { buildGameDetailsPath } from "@renderer/helpers";
@@ -8,8 +8,6 @@ import {
   AlertFillIcon,
   ThreeBarsIcon,
   TrophyIcon,
-  PlayIcon,
-  DownloadIcon,
 } from "@primer/octicons-react";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
@@ -32,14 +30,10 @@ export function LibraryGameCard({
   const { numberFormatter } = useFormat();
   const navigate = useNavigate();
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
-  const { lastPacket } = useDownload();
   const [contextMenu, setContextMenu] = useState<{
     visible: boolean;
     position: { x: number; y: number };
   }>({ visible: false, position: { x: 0, y: 0 } });
-
-  const isGameDownloading =
-    game?.download?.status === "active" && lastPacket?.gameId === game?.id;
 
   const formatPlayTime = useCallback(
     (playTimeInMilliseconds = 0, isShort = false) => {
@@ -64,23 +58,6 @@ export function LibraryGameCard({
 
   const handleCardClick = () => {
     navigate(buildGameDetailsPath(game));
-  };
-
-  const handleActionClick = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    if (game.executablePath) {
-      // Game is installed, launch it
-      window.electron.openGame(
-        game.shop,
-        game.objectId,
-        game.executablePath,
-        game.launchOptions
-      );
-    } else {
-      // Game is not installed, navigate to download options
-      navigate(buildGameDetailsPath(game));
-    }
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
