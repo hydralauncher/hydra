@@ -50,25 +50,27 @@ export function HeroPanel() {
     game?.download?.status === "paused";
 
   return (
-    <div className="hero-panel">
-      <div className="hero-panel__content">{getInfo()}</div>
-      <div className="hero-panel__actions">
-        <HeroPanelActions />
-      </div>
+    <div className="hero-panel-wrapper">
+      <div className="hero-panel">
+        <div className="hero-panel__content">{getInfo()}</div>
+        <div className="hero-panel__actions">
+          <HeroPanelActions />
+        </div>
 
-      {showProgressBar && (
-        <progress
-          max={1}
-          value={
-            isGameDownloading ? lastPacket?.progress : game?.download?.progress
-          }
-          className={`hero-panel__progress-bar ${
-            game?.download?.status === "paused"
-              ? "hero-panel__progress-bar--disabled"
-              : ""
-          }`}
-        />
-      )}
+        {showProgressBar && (
+          <progress
+            max={1}
+            value={
+              isGameDownloading ? lastPacket?.progress : game?.download?.progress
+            }
+            className={`hero-panel__progress-bar ${
+              game?.download?.status === "paused"
+                ? "hero-panel__progress-bar--disabled"
+                : ""
+            }`}
+          />
+        )}
+      </div>
     </div>
   );
 }
