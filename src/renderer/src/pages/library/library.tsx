@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLibrary, useAppDispatch, useUserDetails } from "@renderer/hooks";
+import { useLibrary, useAppDispatch } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { TelescopeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
@@ -19,7 +19,6 @@ export default function Library() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const dispatch = useAppDispatch();
   const { t } = useTranslation("library");
-  const { userDetails, fetchUserDetails } = useUserDetails();
 
   useEffect(() => {
     dispatch(setHeaderTitle(t("library")));
@@ -39,13 +38,6 @@ export default function Library() {
       unsubscribe();
     };
   }, [dispatch, t, updateLibrary]);
-
-  // Ensure we have the current user details available
-  useEffect(() => {
-    fetchUserDetails().catch(() => {
-      /* ignore errors - fallback to local state */
-    });
-  }, [fetchUserDetails]);
 
   const handleOnMouseEnterGameCard = () => {
     // Optional: pause animations if needed
@@ -128,12 +120,6 @@ export default function Library() {
       {hasGames && (
         <>
           <div className="library__page-header">
-            <h1 className="library__page-title">
-              {`${t("Welcome", { defaultValue: "Welcome" })} ${
-                userDetails?.displayName || "John Doe"
-              }`}
-            </h1>
-
             <div className="library__controls-row">
               <div className="library__controls-left">
                 <FilterOptions
