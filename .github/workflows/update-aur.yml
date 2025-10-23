@@ -68,7 +68,7 @@ jobs:
       - name: Check if update is needed
         id: check-update
         run: |
-          cd hydra-launcher-bin
+          cd ~/hydra-launcher-bin
           CURRENT_VERSION=$(grep '^pkgver=' hydra-launcher-bin/PKGBUILD | cut -d'=' -f2)
           NEW_VERSION="${{ steps.get-version.outputs.version }}"
 
