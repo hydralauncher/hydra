@@ -44,7 +44,6 @@ jobs:
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa -F ~/.ssh/config -o UserKnownHostsFile=$SSH_PATH/known_hosts"
 
           git clone ssh://aur@aur.archlinux.org/hydra-launcher-bin.git
-          cd hydra-launcher-bin
 
       - name: Get version to update
         id: get-version
@@ -84,6 +83,7 @@ jobs:
         if: steps.check-update.outputs.update_needed == 'true'
         run: |
           # Update pkgver in PKGBUILD
+          cd hydra-launcher-bin
           NEW_VERSION="${{ steps.get-version.outputs.version }}"
           NEW_VERSION=3.7.0
 
@@ -104,12 +104,14 @@ jobs:
       - name: Configure Git
         if: steps.check-update.outputs.update_needed == 'true'
         run: |
+          cd hydra-launcher-bin
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Commit and push changes
         if: steps.check-update.outputs.update_needed == 'true'
         run: |
+          cd hydra-launcher-bin
           git add PKGBUILD .SRCINFO
 
           echo "## Git Diff Preview"
