@@ -207,20 +207,18 @@ export function ProfileContent() {
               newHasDownvoted = false;
             }
           }
+        } else if (wasDownvoted) {
+          // Remove downvote
+          newDownvotes--;
+          newHasDownvoted = false;
         } else {
-          if (wasDownvoted) {
-            // Remove downvote
-            newDownvotes--;
-            newHasDownvoted = false;
-          } else {
-            // Add downvote
-            newDownvotes++;
-            newHasDownvoted = true;
-            if (wasUpvoted) {
-              // Remove upvote if it was upvoted
-              newUpvotes--;
-              newHasUpvoted = false;
-            }
+          // Add downvote
+          newDownvotes++;
+          newHasDownvoted = true;
+          if (wasUpvoted) {
+            // Remove upvote if it was upvoted
+            newUpvotes--;
+            newHasUpvoted = false;
           }
         }
 
