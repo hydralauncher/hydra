@@ -1,0 +1,120 @@
+name: Update AUR Package
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  update-aur:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+
+    steps:
+      - name: Checkout main repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm nodejs npm git base-devel
+
+      - name: Get version to update
+        id: get-version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            # Remove 'v' prefix if present
+            VERSION="${{ github.event.release.tag_name }}"
+            VERSION="${VERSION#v}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "source=release" >> $GITHUB_OUTPUT
+          else
+            # Get latest release version
+            VERSION=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "source=latest" >> $GITHUB_OUTPUT
+          fi
+          echo "Version to update: $VERSION"
+
+      - name: Setup SSH for AUR
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_rsa
+
+      - name: Clone AUR repository
+        run: |
+          git clone ssh://aur@aur.archlinux.org/hydra-launcher-bin.git
+
+      - name: Check if update is needed
+        id: check-update
+        run: |
+          cd hydra-launcher-bin
+          CURRENT_VERSION=$(grep '^pkgver=' hydra-launcher-bin/PKGBUILD | cut -d'=' -f2)
+          NEW_VERSION="${{ steps.get-version.outputs.version }}"
+
+          echo "Current AUR version: $CURRENT_VERSION"
+          echo "New version: $NEW_VERSION"
+
+          if [ "$CURRENT_VERSION" = "$NEW_VERSION" ]; then
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+            echo "No update needed - versions are the same"
+          else
+            echo "update_needed=true" >> $GITHUB_OUTPUT
+            echo "Update needed"
+          fi
+
+      - name: Update PKGBUILD and .SRCINFO
+        if: steps.check-update.outputs.update_needed == 'true'
+        run: |
+          cd hydra-launcher-bin
+          node ../scripts/update-pkgver.js "${{ steps.get-version.outputs.version }}" ./PKGBUILD
+          updpkgsums
+          makepkg --printsrcinfo > .SRCINFO
+
+      - name: Configure Git
+        if: steps.check-update.outputs.update_needed == 'true'
+        run: |
+          cd hydra-launcher-bin
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and push changes
+        if: steps.check-update.outputs.update_needed == 'true'
+        run: |
+          cd hydra-launcher-bin
+          git add PKGBUILD .SRCINFO
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+             COMMIT_MSG="Update to ${{ steps.get-version.outputs.version }}"
+             if [ "${{ steps.get-version.outputs.source }}" = "release" ]; then
+               COMMIT_MSG="$COMMIT_MSG (automated release update)"
+             else
+               COMMIT_MSG="$COMMIT_MSG (latest release)"
+             fi
+            
+            git commit -m "$COMMIT_MSG"
+            git push origin master
+            echo "Successfully updated AUR package to version ${{ steps.get-version.outputs.version }}"
+          fi
+
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## AUR Update Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.get-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Source**: ${{ steps.get-version.outputs.source }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Update needed**: ${{ steps.check-update.outputs.update_needed }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check-update.outputs.update_needed }}" = "true" ]; then
+            echo "- **Status**: ✅ AUR package updated successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Status**: ⏭️ No update needed" >> $GITHUB_STEP_SUMMARY
+          fi
