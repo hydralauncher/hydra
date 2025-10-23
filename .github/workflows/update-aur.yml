@@ -85,7 +85,20 @@ jobs:
       - name: Update PKGBUILD and .SRCINFO
         if: steps.check-update.outputs.update_needed == 'true'
         run: |
-          node ../scripts/update-pkgver.js "${{ steps.get-version.outputs.version }}" ./PKGBUILD
+          # Update pkgver in PKGBUILD
+          NEW_VERSION="${{ steps.get-version.outputs.version }}"
+
+          echo "Updating PKGBUILD pkgver to $NEW_VERSION"
+
+          # Read PKGBUILD and update pkgver line
+          sed -i "s/^pkgver=.*/pkgver=$NEW_VERSION/" ./PKGBUILD
+
+          # Reset pkgrel to 1 when version changes
+          sed -i "s/^pkgrel=.*/pkgrel=1/" "$PKGBUILD_PATH"
+
+          echo "✅ Successfully updated pkgver to $NEW_VERSION in $PKGBUILD_PATH"
+
+          # Update package checksums and generate .SRCINFO
           updpkgsums
           makepkg --printsrcinfo > .SRCINFO
 
