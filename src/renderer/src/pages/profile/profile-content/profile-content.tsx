@@ -437,17 +437,26 @@ export function ProfileContent() {
                 </div>
 
                 {/* render reviews content unconditionally */}
-                {isLoadingReviews ? (
-                  <div className="user-reviews__loading">
-                    {t("loading_reviews")}
-                  </div>
-                ) : reviews.length === 0 ? (
-                  <div className="user-reviews__empty">
-                    <p>{t("no_reviews", "No reviews yet")}</p>
-                  </div>
-                ) : (
-                  <div className="user-reviews__list">
-                    {reviews.map((review) => {
+                {(() => {
+                  if (isLoadingReviews) {
+                    return (
+                      <div className="user-reviews__loading">
+                        {t("loading_reviews")}
+                      </div>
+                    );
+                  }
+                  
+                  if (reviews.length === 0) {
+                    return (
+                      <div className="user-reviews__empty">
+                        <p>{t("no_reviews", "No reviews yet")}</p>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <div className="user-reviews__list">
+                      {reviews.map((review) => {
                       const isOwnReview = userDetails?.id === review.user.id;
 
                       return (
@@ -586,7 +595,8 @@ export function ProfileContent() {
                       );
                     })}
                   </div>
-                )}
+                  );
+                })()}
               </div>
             </div>
           </div>
