@@ -33,7 +33,11 @@ export default function Settings() {
     const categories = [
       { tabLabel: t("general"), contentTitle: t("general"), Icon: GearIcon },
       { tabLabel: t("behavior"), contentTitle: t("behavior"), Icon: ToolsIcon },
-      { tabLabel: t("achievements"), contentTitle: t("achievements"), Icon: TrophyIcon },
+      {
+        tabLabel: t("achievements"),
+        contentTitle: t("achievements"),
+        Icon: TrophyIcon,
+      },
       {
         tabLabel: t("download_sources"),
         contentTitle: t("download_sources"),
@@ -50,7 +54,11 @@ export default function Settings() {
     if (userDetails)
       return [
         ...categories,
-        { tabLabel: t("account"), contentTitle: t("account"), Icon: PersonIcon },
+        {
+          tabLabel: t("account"),
+          contentTitle: t("account"),
+          Icon: PersonIcon,
+        },
       ];
     return categories;
   }, [userDetails, t]);

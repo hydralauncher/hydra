@@ -10,7 +10,9 @@ import { AchievementCustomNotificationPosition } from "@types";
 export function SettingsAchievements() {
   const { t } = useTranslation("settings");
 
-  const userPreferences = useAppSelector((state) => state.userPreferences.value);
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
   const { updateUserPreferences } = useContext(settingsContext);
 
   const [form, setForm] = useState({
@@ -19,7 +21,8 @@ export function SettingsAchievements() {
     enableAchievementScreenshots: false,
     achievementNotificationsEnabled: true,
     achievementCustomNotificationsEnabled: true,
-    achievementCustomNotificationPosition: "top-left" as AchievementCustomNotificationPosition,
+    achievementCustomNotificationPosition:
+      "top-left" as AchievementCustomNotificationPosition,
   });
 
   useEffect(() => {
@@ -28,7 +31,8 @@ export function SettingsAchievements() {
         ...prev,
         showHiddenAchievementsDescription:
           userPreferences.showHiddenAchievementsDescription ?? false,
-        enableSteamAchievements: userPreferences.enableSteamAchievements ?? false,
+        enableSteamAchievements:
+          userPreferences.enableSteamAchievements ?? false,
         enableAchievementScreenshots:
           userPreferences.enableAchievementScreenshots ?? false,
         achievementNotificationsEnabled:
@@ -49,7 +53,11 @@ export function SettingsAchievements() {
       "bottom-left",
       "bottom-center",
       "bottom-right",
-    ].map((position) => ({ key: position, value: position, label: t(position) }));
+    ].map((position) => ({
+      key: position,
+      value: position,
+      label: t(position),
+    }));
   }, [t]);
 
   const handleChange = async (values: Partial<typeof form>) => {
@@ -69,13 +77,13 @@ export function SettingsAchievements() {
   return (
     <div className="settings-achievements">
       <div className="settings-achievements__section settings-achievements__section--achievements">
-
         <CheckboxField
           label={t("show_hidden_achievement_description")}
           checked={form.showHiddenAchievementsDescription}
           onChange={() =>
             handleChange({
-              showHiddenAchievementsDescription: !form.showHiddenAchievementsDescription,
+              showHiddenAchievementsDescription:
+                !form.showHiddenAchievementsDescription,
             })
           }
         />
@@ -85,7 +93,9 @@ export function SettingsAchievements() {
             label={t("enable_steam_achievements")}
             checked={form.enableSteamAchievements}
             onChange={() =>
-              handleChange({ enableSteamAchievements: !form.enableSteamAchievements })
+              handleChange({
+                enableSteamAchievements: !form.enableSteamAchievements,
+              })
             }
           />
 
@@ -104,7 +114,8 @@ export function SettingsAchievements() {
             disabled={window.electron.platform === "linux"}
             onChange={() =>
               handleChange({
-                enableAchievementScreenshots: !form.enableAchievementScreenshots,
+                enableAchievementScreenshots:
+                  !form.enableAchievementScreenshots,
               })
             }
           />
@@ -121,7 +132,8 @@ export function SettingsAchievements() {
           <Button
             theme="outline"
             onClick={async () => {
-              const screenshotsPath = await window.electron.getScreenshotsPath();
+              const screenshotsPath =
+                await window.electron.getScreenshotsPath();
               window.electron.openFolder(screenshotsPath);
             }}
           >
@@ -131,14 +143,17 @@ export function SettingsAchievements() {
       </div>
 
       <div className="settings-achievements__section settings-achievements__section--notifications">
-        <h3 className="settings-achievements__section-title">{t("notifications")}</h3>
+        <h3 className="settings-achievements__section-title">
+          {t("notifications")}
+        </h3>
 
         <CheckboxField
           label={t("enable_achievement_notifications")}
           checked={form.achievementNotificationsEnabled}
           onChange={async () => {
             await handleChange({
-              achievementNotificationsEnabled: !form.achievementNotificationsEnabled,
+              achievementNotificationsEnabled:
+                !form.achievementNotificationsEnabled,
             });
             window.electron.updateAchievementCustomNotificationWindow();
           }}
@@ -157,24 +172,27 @@ export function SettingsAchievements() {
           }}
         />
 
-        {form.achievementNotificationsEnabled && form.achievementCustomNotificationsEnabled && (
-          <>
-            <SelectField
-              className="settings-achievements__achievement-custom-notification-position__select-variation"
-              label={t("achievement_custom_notification_position")}
-              value={form.achievementCustomNotificationPosition}
-              onChange={handleChangeAchievementCustomNotificationPosition}
-              options={achievementCustomNotificationPositionOptions}
-            />
+        {form.achievementNotificationsEnabled &&
+          form.achievementCustomNotificationsEnabled && (
+            <>
+              <SelectField
+                className="settings-achievements__achievement-custom-notification-position__select-variation"
+                label={t("achievement_custom_notification_position")}
+                value={form.achievementCustomNotificationPosition}
+                onChange={handleChangeAchievementCustomNotificationPosition}
+                options={achievementCustomNotificationPositionOptions}
+              />
 
-            <Button
-              className="settings-achievements__test-achievement-notification-button"
-              onClick={() => window.electron.showAchievementTestNotification()}
-            >
-              {t("test_notification")}
-            </Button>
-          </>
-        )}
+              <Button
+                className="settings-achievements__test-achievement-notification-button"
+                onClick={() =>
+                  window.electron.showAchievementTestNotification()
+                }
+              >
+                {t("test_notification")}
+              </Button>
+            </>
+          )}
       </div>
     </div>
   );
