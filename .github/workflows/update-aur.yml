@@ -45,8 +45,6 @@ jobs:
 
           git clone ssh://aur@aur.archlinux.org/hydra-launcher-bin.git
           cd hydra-launcher-bin
-          pwd
-          ls
 
       - name: Get version to update
         id: get-version
@@ -67,10 +65,9 @@ jobs:
       - name: Check if update is needed
         id: check-update
         run: |
-          pwd
-          ls
           CURRENT_VERSION=$(grep '^pkgver=' hydra-launcher-bin/PKGBUILD | cut -d'=' -f2)
           NEW_VERSION="${{ steps.get-version.outputs.version }}"
+          NEW_VERSION="3.7.0"
 
           echo "Current AUR version: $CURRENT_VERSION"
           echo "New version: $NEW_VERSION"
@@ -88,6 +85,7 @@ jobs:
         run: |
           # Update pkgver in PKGBUILD
           NEW_VERSION="${{ steps.get-version.outputs.version }}"
+          NEW_VERSION=3.7.0
 
           echo "Updating PKGBUILD pkgver to $NEW_VERSION"
 
@@ -109,9 +107,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Show changes (workflow_dispatch only)
-        if: steps.check-update.outputs.update_needed == 'true' && github.event_name == 'workflow_dispatch'
+      - name: Commit and push changes
+        if: steps.check-update.outputs.update_needed == 'true'
         run: |
+          git add PKGBUILD .SRCINFO
+
           echo "## Git Diff Preview"
           echo "Changes that would be made:"
           git diff PKGBUILD .SRCINFO || echo "No changes to show"
@@ -120,18 +120,13 @@ jobs:
           git add PKGBUILD .SRCINFO
           git diff --staged || echo "No staged changes"
 
-      - name: Commit and push changes (release only)
-        if: steps.check-update.outputs.update_needed == 'true' && github.event_name == 'release'
-        run: |
-          git add PKGBUILD .SRCINFO
-
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
             COMMIT_MSG="Update to ${{ steps.get-version.outputs.version }} (automated release update)"
             
             git commit -m "$COMMIT_MSG"
-            git push origin master
+            # git push origin master
             echo "Successfully updated AUR package to version ${{ steps.get-version.outputs.version }}"
           fi
 
