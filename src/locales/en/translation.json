@@ -413,6 +413,7 @@
     "launch_with_system": "Launch Hydra on system start-up",
     "general": "General",
     "behavior": "Behavior",
+    "achievements": "Achievements",
     "download_sources": "Download sources",
     "language": "Language",
     "api_token": "API Token",

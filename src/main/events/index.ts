@@ -1,4 +1,9 @@
-import { appVersion, defaultDownloadsPath, isStaging, screenshotsPath } from "@main/constants";
+import {
+  appVersion,
+  defaultDownloadsPath,
+  isStaging,
+  screenshotsPath,
+} from "@main/constants";
 import { ipcMain } from "electron";
 
 import "./catalogue/get-game-shop-details";

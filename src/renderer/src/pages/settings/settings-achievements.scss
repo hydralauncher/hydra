@@ -1,6 +1,6 @@
 @use "../../scss/globals.scss";
 
-.settings-behavior {
+.settings-achievements {
   &__checkbox-container {
     opacity: globals.$disabled-opacity;
     cursor: not-allowed;
@@ -37,9 +37,24 @@
       margin-bottom: 16px;
     }
 
-    // Add spacing between elements in the section
     > * + * {
       margin-top: 16px;
     }
+
+    &--achievements {
+      // First section sits flush with container top
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+    }
+
+  }
+
+  &__achievement-custom-notification-position__select-variation {
+    max-width: 300px;
+  }
+
+  &__test-achievement-notification-button {
+    margin-top: 8px;
   }
 }

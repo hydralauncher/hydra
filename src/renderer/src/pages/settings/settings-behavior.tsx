@@ -1,11 +1,10 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { CheckboxField, Button } from "@renderer/components";
+import { CheckboxField } from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
 import "./settings-behavior.scss";
-import { QuestionIcon } from "@primer/octicons-react";
 
 export function SettingsBehavior() {
   const userPreferences = useAppSelector(
@@ -142,17 +141,6 @@ export function SettingsBehavior() {
       />
 
       <CheckboxField
-        label={t("show_hidden_achievement_description")}
-        checked={form.showHiddenAchievementsDescription}
-        onChange={() =>
-          handleChange({
-            showHiddenAchievementsDescription:
-              !form.showHiddenAchievementsDescription,
-          })
-        }
-      />
-
-      <CheckboxField
         label={t("show_download_speed_in_megabytes")}
         checked={form.showDownloadSpeedInMegabytes}
         onChange={() =>
@@ -172,56 +160,7 @@ export function SettingsBehavior() {
         }
       />
 
-      <div className={`settings-behavior__checkbox-container--with-tooltip`}>
-        <CheckboxField
-          label={t("enable_steam_achievements")}
-          checked={form.enableSteamAchievements}
-          onChange={() =>
-            handleChange({
-              enableSteamAchievements: !form.enableSteamAchievements,
-            })
-          }
-        />
 
-        <small
-          className="settings-behavior__checkbox-container--tooltip"
-          data-open-article="steam-achievements"
-        >
-          <QuestionIcon size={12} />
-        </small>
-      </div>
-
-      <div className={`settings-behavior__checkbox-container--with-tooltip`}>
-        <CheckboxField
-          label={t("enable_achievement_screenshots")}
-          checked={form.enableAchievementScreenshots}
-          disabled={window.electron.platform === "linux"}
-          onChange={() =>
-            handleChange({
-              enableAchievementScreenshots: !form.enableAchievementScreenshots,
-            })
-          }
-        />
-
-        <small
-          className="settings-behavior__checkbox-container--tooltip"
-          data-open-article="achievement-souvenirs"
-        >
-          <QuestionIcon size={12} />
-        </small>
-      </div>
-
-      <div className="settings-behavior__button-container">
-        <Button
-          theme="outline"
-          onClick={async () => {
-            const screenshotsPath = await window.electron.getScreenshotsPath();
-            window.electron.openFolder(screenshotsPath);
-          }}
-        >
-          {t("open_screenshots_directory")}
-        </Button>
-      </div>
     </>
   );
 }
