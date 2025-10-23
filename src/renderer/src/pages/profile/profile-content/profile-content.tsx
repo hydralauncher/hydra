@@ -25,10 +25,7 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import { Star, ThumbsUp, ThumbsDown, TrashIcon } from "lucide-react";
 import type { GameShop } from "@types";
 import { DeleteReviewModal } from "@renderer/pages/game-details/modals/delete-review-modal";
-import {
-
-  GAME_STATS_ANIMATION_DURATION_IN_MS,
-} from "./profile-animations";
+import { GAME_STATS_ANIMATION_DURATION_IN_MS } from "./profile-animations";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
