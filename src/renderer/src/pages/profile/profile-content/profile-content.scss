@@ -152,38 +152,38 @@
       grid-template-columns: repeat(12, 1fr);
     }
 
-  &--drag-over {
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px dashed rgba(255, 255, 255, 0.3);
-    position: relative;
-    transition: all ease 0.2s;
+    &--drag-over {
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px dashed rgba(255, 255, 255, 0.3);
+      position: relative;
+      transition: all ease 0.2s;
 
-    &::before {
-      content: "Drop here to " attr(data-action);
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: globals.$muted-color;
-      font-size: 14px;
-      font-weight: 500;
-      z-index: 10;
-      pointer-events: none;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 8px 16px;
-      border-radius: 4px;
-      backdrop-filter: blur(10px);
+      &::before {
+        content: "Drop here to " attr(data-action);
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: globals.$muted-color;
+        font-size: 14px;
+        font-weight: 500;
+        z-index: 10;
+        pointer-events: none;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 8px 16px;
+        border-radius: 4px;
+        backdrop-filter: blur(10px);
+      }
+    }
+
+    &__tab-panels {
+      display: block;
+    }
+
+    &__tab-panel[hidden] {
+      display: none;
     }
   }
-
-  &__tab-panels {
-    display: block;
-  }
-
-  &__tab-panel[hidden] {
-    display: none;
-  }
-}
 }
 
 // Reviews minimal styles
