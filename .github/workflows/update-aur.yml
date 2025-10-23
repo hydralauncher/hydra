@@ -41,8 +41,9 @@ jobs:
           eval "$(ssh-agent -s)"
           ssh-add ~/.ssh/id_rsa
 
-          # ssh-agent bash -c 'ssh-add ~/.ssh/id_rsa; git clone ssh://aur@aur.archlinux.org/hydra-launcher-bin.git'
-          git clone https://aur.archlinux.org/hydra-launcher-bin.git
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa -F ~/.ssh/config -o UserKnownHostsFile=$SSH_PATH/known_hosts"
+
+          git clone ssh://aur@aur.archlinux.org/hydra-launcher-bin.git
           cd hydra-launcher-bin
           pwd
           ls
