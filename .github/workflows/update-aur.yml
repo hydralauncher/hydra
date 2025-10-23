@@ -15,7 +15,7 @@ jobs:
       - name: Install dependencies
         run: |
           pacman -Syu --noconfirm
-          pacman -S --noconfirm nodejs npm git base-devel openssh jq
+          pacman -S --noconfirm nodejs npm git base-devel openssh jq pacman-contrib
 
       - name: Setup SSH for AUR
         run: |
