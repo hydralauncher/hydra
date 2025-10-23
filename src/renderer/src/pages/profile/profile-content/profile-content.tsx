@@ -437,166 +437,158 @@ export function ProfileContent() {
                 </div>
 
                 {/* render reviews content unconditionally */}
-                {(() => {
-                  if (isLoadingReviews) {
-                    return (
-                      <div className="user-reviews__loading">
-                        {t("loading_reviews")}
-                      </div>
-                    );
-                  }
-                  
-                  if (reviews.length === 0) {
-                    return (
-                      <div className="user-reviews__empty">
-                        <p>{t("no_reviews", "No reviews yet")}</p>
-                      </div>
-                    );
-                  }
-                  
-                  return (
-                    <div className="user-reviews__list">
-                      {reviews.map((review) => {
-                      const isOwnReview = userDetails?.id === review.user.id;
+                {isLoadingReviews && (
+                  <div className="user-reviews__loading">
+                    {t("loading_reviews")}
+                  </div>
+                )}
+                {!isLoadingReviews && reviews.length === 0 && (
+                  <div className="user-reviews__empty">
+                    <p>{t("no_reviews", "No reviews yet")}</p>
+                  </div>
+                )}
+                {!isLoadingReviews && reviews.length > 0 && (
+                  <div className="user-reviews__list">
+                    {reviews.map((review) => {
+                        const isOwnReview = userDetails?.id === review.user.id;
 
-                      return (
-                        <motion.div
-                          key={review.id}
-                          className="user-reviews__review-item"
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.3 }}
-                        >
-                          <div className="user-reviews__review-header">
-                            <div className="user-reviews__review-date">
-                              {formatDistance(
-                                new Date(review.createdAt),
-                                new Date(),
-                                { addSuffix: true }
-                              )}
-                            </div>
+                        return (
+                          <motion.div
+                            key={review.id}
+                            className="user-reviews__review-item"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <div className="user-reviews__review-header">
+                              <div className="user-reviews__review-date">
+                                {formatDistance(
+                                  new Date(review.createdAt),
+                                  new Date(),
+                                  { addSuffix: true }
+                                )}
+                              </div>
 
-                            <div className="user-reviews__review-score-stars">
-                              {Array.from({ length: 5 }, (_, index) => (
-                                <div
-                                  key={index}
-                                  className="user-reviews__review-star-container"
-                                >
-                                  <Star
-                                    size={24}
-                                    fill={
-                                      index < review.score
-                                        ? "currentColor"
-                                        : "none"
-                                    }
-                                    className={`user-reviews__review-star ${
-                                      index < review.score
-                                        ? `user-reviews__review-star--filled game-details__review-star--filled ${getScoreColorClass(review.score)}`
-                                        : "user-reviews__review-star--empty game-details__review-star--empty"
-                                    }`}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div
-                            className="user-reviews__review-content"
-                            dangerouslySetInnerHTML={{
-                              __html: review.reviewHtml,
-                            }}
-                          />
-
-                          <div className="user-reviews__review-footer">
-                            <div className="user-reviews__review-game">
-                              <div className="user-reviews__game-info">
-                                <div className="user-reviews__game-details">
-                                  <img
-                                    src={review.game.iconUrl}
-                                    alt={review.game.title}
-                                    className="user-reviews__game-icon"
-                                  />
-                                  <button
-                                    className="user-reviews__game-title user-reviews__game-title--clickable"
-                                    onClick={() =>
-                                      navigate(
-                                        buildGameDetailsPath(review.game)
-                                      )
-                                    }
+                              <div className="user-reviews__review-score-stars">
+                                {Array.from({ length: 5 }, (_, index) => (
+                                  <div
+                                    key={index}
+                                    className="user-reviews__review-star-container"
                                   >
-                                    {review.game.title}
-                                  </button>
+                                    <Star
+                                      size={24}
+                                      fill={
+                                        index < review.score
+                                          ? "currentColor"
+                                          : "none"
+                                      }
+                                      className={`user-reviews__review-star ${
+                                        index < review.score
+                                          ? `user-reviews__review-star--filled game-details__review-star--filled ${getScoreColorClass(review.score)}`
+                                          : "user-reviews__review-star--empty game-details__review-star--empty"
+                                      }`}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div
+                              className="user-reviews__review-content"
+                              dangerouslySetInnerHTML={{
+                                __html: review.reviewHtml,
+                              }}
+                            />
+
+                            <div className="user-reviews__review-footer">
+                              <div className="user-reviews__review-game">
+                                <div className="user-reviews__game-info">
+                                  <div className="user-reviews__game-details">
+                                    <img
+                                      src={review.game.iconUrl}
+                                      alt={review.game.title}
+                                      className="user-reviews__game-icon"
+                                    />
+                                    <button
+                                      className="user-reviews__game-title user-reviews__game-title--clickable"
+                                      onClick={() =>
+                                        navigate(
+                                          buildGameDetailsPath(review.game)
+                                        )
+                                      }
+                                    >
+                                      {review.game.title}
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
 
-                          <div className="user-reviews__review-actions">
-                            <div className="user-reviews__review-votes">
-                              <motion.button
-                                className={`user-reviews__vote-button ${review.hasUpvoted ? "user-reviews__vote-button--active" : ""}`}
-                                onClick={() =>
-                                  handleVoteReview(review.id, true)
-                                }
-                                disabled={votingReviews.has(review.id)}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                              >
-                                <ThumbsUp size={14} />
-                                <AnimatePresence mode="wait">
-                                  <motion.span
-                                    key={review.upvotes}
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: 10 }}
-                                    transition={{ duration: 0.2 }}
-                                  >
-                                    {review.upvotes}
-                                  </motion.span>
-                                </AnimatePresence>
-                              </motion.button>
+                            <div className="user-reviews__review-actions">
+                              <div className="user-reviews__review-votes">
+                                <motion.button
+                                  className={`user-reviews__vote-button ${review.hasUpvoted ? "user-reviews__vote-button--active" : ""}`}
+                                  onClick={() =>
+                                    handleVoteReview(review.id, true)
+                                  }
+                                  disabled={votingReviews.has(review.id)}
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                >
+                                  <ThumbsUp size={14} />
+                                  <AnimatePresence mode="wait">
+                                    <motion.span
+                                      key={review.upvotes}
+                                      initial={{ opacity: 0, y: -10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      exit={{ opacity: 0, y: 10 }}
+                                      transition={{ duration: 0.2 }}
+                                    >
+                                      {review.upvotes}
+                                    </motion.span>
+                                  </AnimatePresence>
+                                </motion.button>
 
-                              <motion.button
-                                className={`user-reviews__vote-button ${review.hasDownvoted ? "user-reviews__vote-button--active" : ""}`}
-                                onClick={() =>
-                                  handleVoteReview(review.id, false)
-                                }
-                                disabled={votingReviews.has(review.id)}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                              >
-                                <ThumbsDown size={14} />
-                                <AnimatePresence mode="wait">
-                                  <motion.span
-                                    key={review.downvotes}
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: 10 }}
-                                    transition={{ duration: 0.2 }}
-                                  >
-                                    {review.downvotes}
-                                  </motion.span>
-                                </AnimatePresence>
-                              </motion.button>
+                                <motion.button
+                                  className={`user-reviews__vote-button ${review.hasDownvoted ? "user-reviews__vote-button--active" : ""}`}
+                                  onClick={() =>
+                                    handleVoteReview(review.id, false)
+                                  }
+                                  disabled={votingReviews.has(review.id)}
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                >
+                                  <ThumbsDown size={14} />
+                                  <AnimatePresence mode="wait">
+                                    <motion.span
+                                      key={review.downvotes}
+                                      initial={{ opacity: 0, y: -10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      exit={{ opacity: 0, y: 10 }}
+                                      transition={{ duration: 0.2 }}
+                                    >
+                                      {review.downvotes}
+                                    </motion.span>
+                                  </AnimatePresence>
+                                </motion.button>
+                              </div>
+
+                              {isOwnReview && (
+                                <button
+                                  className="user-reviews__delete-review-button"
+                                  onClick={() => handleDeleteClick(review.id)}
+                                  title={t("delete_review")}
+                                >
+                                  <TrashIcon size={14} />
+                                  <span>{t("delete_review")}</span>
+                                </button>
+                              )}
                             </div>
-
-                            {isOwnReview && (
-                              <button
-                                className="user-reviews__delete-review-button"
-                                onClick={() => handleDeleteClick(review.id)}
-                                title={t("delete_review")}
-                              >
-                                <TrashIcon size={14} />
-                                <span>{t("delete_review")}</span>
-                              </button>
-                            )}
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                  );
-                })()}
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  )}
               </div>
             </div>
           </div>
