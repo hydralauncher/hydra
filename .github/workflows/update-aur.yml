@@ -117,21 +117,16 @@ jobs:
           sudo -u builder updpkgsums
           sudo -u builder makepkg --printsrcinfo > .SRCINFO
 
-      - name: Configure Git
-        if: steps.check-update.outputs.update_needed == 'true'
-        run: |
-          cd hydra-launcher-bin
-          pwd
-          ls -la
-          git config --global user.name "github-actions[bot]"
-          git config --galobal user.email "github-actions[bot]@users.noreply.github.com"
-
       - name: Commit and push changes
         if: steps.check-update.outputs.update_needed == 'true'
         run: |
           cd hydra-launcher-bin
           pwd
           ls -la
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
           git add PKGBUILD .SRCINFO
 
           echo "## Git Diff Preview"
