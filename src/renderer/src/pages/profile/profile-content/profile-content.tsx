@@ -512,7 +512,9 @@ export function ProfileContent() {
                                   <button
                                     className="user-reviews__game-title user-reviews__game-title--clickable"
                                     onClick={() =>
-                                      navigate(buildGameDetailsPath(review.game))
+                                      navigate(
+                                        buildGameDetailsPath(review.game)
+                                      )
                                     }
                                   >
                                     {review.game.title}
