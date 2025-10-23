@@ -86,7 +86,7 @@ jobs:
       - name: Update PKGBUILD and .SRCINFO
         if: steps.check-update.outputs.update_needed == 'true'
         run: |
-          cd hydra-launcher-bin
+          cd ~/hydra-launcher-bin
           node ../scripts/update-pkgver.js "${{ steps.get-version.outputs.version }}" ./PKGBUILD
           updpkgsums
           makepkg --printsrcinfo > .SRCINFO
@@ -94,14 +94,14 @@ jobs:
       - name: Configure Git
         if: steps.check-update.outputs.update_needed == 'true'
         run: |
-          cd hydra-launcher-bin
+          cd ~/hydra-launcher-bin
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Show changes (workflow_dispatch only)
         if: steps.check-update.outputs.update_needed == 'true' && github.event_name == 'workflow_dispatch'
         run: |
-          cd hydra-launcher-bin
+          cd ~/hydra-launcher-bin
           echo "## Git Diff Preview"
           echo "Changes that would be made:"
           git diff PKGBUILD .SRCINFO || echo "No changes to show"
@@ -113,7 +113,7 @@ jobs:
       - name: Commit and push changes (release only)
         if: steps.check-update.outputs.update_needed == 'true' && github.event_name == 'release'
         run: |
-          cd hydra-launcher-bin
+          cd ~/hydra-launcher-bin
           git add PKGBUILD .SRCINFO
 
           if git diff --staged --quiet; then
