@@ -4,8 +4,6 @@ on:
   workflow_dispatch:
   release:
     types: [published]
-  push:
-    branches: [main]
 
 jobs:
   update-aur:
@@ -82,7 +80,6 @@ jobs:
         run: |
           CURRENT_VERSION=$(grep '^pkgver=' hydra-launcher-bin/PKGBUILD | cut -d'=' -f2)
           NEW_VERSION="${{ steps.get-version.outputs.version }}"
-          NEW_VERSION="3.7.0"
 
           echo "Current AUR version: $CURRENT_VERSION"
           echo "New version: $NEW_VERSION"
@@ -101,7 +98,6 @@ jobs:
           # Update pkgver in PKGBUILD
           cd hydra-launcher-bin
           NEW_VERSION="${{ steps.get-version.outputs.version }}"
-          NEW_VERSION=3.7.0
 
           echo "Updating PKGBUILD pkgver to $NEW_VERSION"
 
@@ -121,8 +117,6 @@ jobs:
         if: steps.check-update.outputs.update_needed == 'true'
         run: |
           cd hydra-launcher-bin
-          pwd
-          ls -la
           git config --global --add safe.directory .
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -140,10 +134,10 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            COMMIT_MSG="Update to ${{ steps.get-version.outputs.version }} (automated release update)"
+            COMMIT_MSG="v${{ steps.get-version.outputs.version }}"
             
             git commit -m "$COMMIT_MSG"
-            # git push origin master
+            git push origin master
             echo "Successfully updated AUR package to version ${{ steps.get-version.outputs.version }}"
           fi
 
