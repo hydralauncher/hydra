@@ -119,7 +119,6 @@ export function SettingsGeneral() {
     }
   }, [userPreferences, defaultDownloadsPath]);
 
-
   const handleLanguageChange = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
@@ -133,7 +132,6 @@ export function SettingsGeneral() {
     setForm((prev) => ({ ...prev, ...values }));
     await updateUserPreferences(values);
   };
-
 
   const handleChooseDownloadsPath = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
@@ -238,7 +236,6 @@ export function SettingsGeneral() {
           })
         }
       />
-
 
       <h2 className="settings-general__section-title">{t("common_redist")}</h2>
 
