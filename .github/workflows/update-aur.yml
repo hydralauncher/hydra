@@ -56,7 +56,7 @@ jobs:
             echo "source=release" >> $GITHUB_OUTPUT
           else
             echo "Getting latest release version"
-            VERSION=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r '.tag_name')
+            VERSION=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r '.tag_name' | sed 's/^v//')
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "source=latest" >> $GITHUB_OUTPUT
           fi
