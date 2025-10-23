@@ -85,8 +85,20 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Commit and push changes
-        if: steps.check-update.outputs.update_needed == 'true'
+      - name: Show changes (workflow_dispatch only)
+        if: steps.check-update.outputs.update_needed == 'true' && github.event_name == 'workflow_dispatch'
+        run: |
+          cd hydra-launcher-bin
+          echo "## Git Diff Preview"
+          echo "Changes that would be made:"
+          git diff PKGBUILD .SRCINFO || echo "No changes to show"
+          echo ""
+          echo "Staged changes:"
+          git add PKGBUILD .SRCINFO
+          git diff --staged || echo "No staged changes"
+
+      - name: Commit and push changes (release only)
+        if: steps.check-update.outputs.update_needed == 'true' && github.event_name == 'release'
         run: |
           cd hydra-launcher-bin
           git add PKGBUILD .SRCINFO
@@ -94,12 +106,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-             COMMIT_MSG="Update to ${{ steps.get-version.outputs.version }}"
-             if [ "${{ steps.get-version.outputs.source }}" = "release" ]; then
-               COMMIT_MSG="$COMMIT_MSG (automated release update)"
-             else
-               COMMIT_MSG="$COMMIT_MSG (latest release)"
-             fi
+            COMMIT_MSG="Update to ${{ steps.get-version.outputs.version }} (automated release update)"
             
             git commit -m "$COMMIT_MSG"
             git push origin master
