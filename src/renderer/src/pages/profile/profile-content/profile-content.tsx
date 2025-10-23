@@ -108,6 +108,14 @@ export function ProfileContent() {
     }
   }, [sortBy, getUserLibraryGames, userProfile]);
 
+  // Clear reviews state and reset tab when switching users
+  useEffect(() => {
+    setReviews([]);
+    setReviewsTotalCount(0);
+    setIsLoadingReviews(false);
+    setActiveTab("library");
+  }, [userProfile?.id]);
+
   useEffect(() => {
     if (userProfile?.id) {
       fetchUserReviews();
