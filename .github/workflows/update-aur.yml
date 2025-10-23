@@ -43,6 +43,8 @@ jobs:
 
           # ssh-agent bash -c 'ssh-add ~/.ssh/id_rsa; git clone ssh://aur@aur.archlinux.org/hydra-launcher-bin.git'
           git clone https://aur.archlinux.org/hydra-launcher-bin.git
+          pwd
+          ls
 
       - name: Checkout main repository
         uses: actions/checkout@v4
@@ -68,6 +70,8 @@ jobs:
       - name: Check if update is needed
         id: check-update
         run: |
+          pwd
+          ls
           cd ~/hydra-launcher-bin
           CURRENT_VERSION=$(grep '^pkgver=' hydra-launcher-bin/PKGBUILD | cut -d'=' -f2)
           NEW_VERSION="${{ steps.get-version.outputs.version }}"
