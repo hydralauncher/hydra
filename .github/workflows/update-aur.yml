@@ -41,7 +41,8 @@ jobs:
           eval "$(ssh-agent -s)"
           ssh-add ~/.ssh/id_rsa
 
-          ssh-agent bash -c 'ssh-add ~/.ssh/id_rsa; git clone ssh://aur@aur.archlinux.org/hydra-launcher-bin.git'
+          # ssh-agent bash -c 'ssh-add ~/.ssh/id_rsa; git clone ssh://aur@aur.archlinux.org/hydra-launcher-bin.git'
+          git clone https://aur.archlinux.org/hydra-launcher-bin.git
 
       - name: Checkout main repository
         uses: actions/checkout@v4
