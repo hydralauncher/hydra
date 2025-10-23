@@ -181,7 +181,14 @@ export function ProfileContent() {
     setVotingReviews((prev) => new Set(prev).add(reviewId));
 
     const review = reviews.find((r) => r.id === reviewId);
-    if (!review) return;
+    if (!review) {
+      setVotingReviews((prev) => {
+        const next = new Set(prev);
+        next.delete(reviewId);
+        return next;
+      });
+      return;
+    }
 
     const wasUpvoted = review.hasUpvoted;
     const wasDownvoted = review.hasDownvoted;
@@ -258,11 +265,13 @@ export function ProfileContent() {
         })
       );
     } finally {
-      setVotingReviews((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(reviewId);
-        return newSet;
-      });
+      setTimeout(() => {
+        setVotingReviews((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(reviewId);
+          return newSet;
+        });
+      }, 500);
     }
   };
 
@@ -536,6 +545,10 @@ export function ProfileContent() {
                                   handleVoteReview(review.id, true)
                                 }
                                 disabled={votingReviews.has(review.id)}
+                                style={{
+                                  opacity: votingReviews.has(review.id) ? 0.5 : 1,
+                                  cursor: votingReviews.has(review.id) ? "not-allowed" : "pointer",
+                                }}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                               >
@@ -559,6 +572,10 @@ export function ProfileContent() {
                                   handleVoteReview(review.id, false)
                                 }
                                 disabled={votingReviews.has(review.id)}
+                                style={{
+                                  opacity: votingReviews.has(review.id) ? 0.5 : 1,
+                                  cursor: votingReviews.has(review.id) ? "not-allowed" : "pointer",
+                                }}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                               >
@@ -628,6 +645,12 @@ export function ProfileContent() {
 
     sortBy,
     activeTab,
+    // ensure reviews UI updates correctly
+    reviews,
+    reviewsTotalCount,
+    isLoadingReviews,
+    votingReviews,
+    deleteModalVisible,
   ]);
 
   return (
