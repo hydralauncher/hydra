@@ -461,29 +461,12 @@ export function ProfileContent() {
                           transition={{ duration: 0.3 }}
                         >
                           <div className="user-reviews__review-header">
-                            <div className="user-reviews__review-game">
-                              <img
-                                src={review.game.iconUrl}
-                                alt={review.game.title}
-                                className="user-reviews__game-icon"
-                              />
-                              <div className="user-reviews__game-info">
-                                <button
-                                  className="user-reviews__game-title user-reviews__game-title--clickable"
-                                  onClick={() =>
-                                    navigate(buildGameDetailsPath(review.game))
-                                  }
-                                >
-                                  {review.game.title}
-                                </button>
-                                <div className="user-reviews__review-date">
-                                  {formatDistance(
-                                    new Date(review.createdAt),
-                                    new Date(),
-                                    { addSuffix: true }
-                                  )}
-                                </div>
-                              </div>
+                            <div className="user-reviews__review-date">
+                              {formatDistance(
+                                new Date(review.createdAt),
+                                new Date(),
+                                { addSuffix: true }
+                              )}
                             </div>
 
                             <div className="user-reviews__review-score-stars">
@@ -516,6 +499,28 @@ export function ProfileContent() {
                               __html: review.reviewHtml,
                             }}
                           />
+
+                          <div className="user-reviews__review-footer">
+                            <div className="user-reviews__review-game">
+                              <div className="user-reviews__game-info">
+                                <div className="user-reviews__game-details">
+                                  <img
+                                    src={review.game.iconUrl}
+                                    alt={review.game.title}
+                                    className="user-reviews__game-icon"
+                                  />
+                                  <button
+                                    className="user-reviews__game-title user-reviews__game-title--clickable"
+                                    onClick={() =>
+                                      navigate(buildGameDetailsPath(review.game))
+                                    }
+                                  >
+                                    {review.game.title}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
 
                           <div className="user-reviews__review-actions">
                             <div className="user-reviews__review-votes">
