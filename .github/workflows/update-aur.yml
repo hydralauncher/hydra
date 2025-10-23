@@ -12,15 +12,26 @@ jobs:
       image: archlinux:latest
 
     steps:
-      - name: Checkout main repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - name: Install dependencies
         run: |
           pacman -Syu --noconfirm
           pacman -S --noconfirm nodejs npm git base-devel openssh jq
+
+      - name: Clone AUR repository
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan aur.archlinux.org > ~/.ssh/known_hosts
+          cat ~/.ssh/known_hosts
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_rsa
+          git clone ssh://aur@aur.archlinux.org/hydra-launcher-bin.git
+
+      - name: Checkout main repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Get version to update
         id: get-version
@@ -37,16 +48,6 @@ jobs:
           fi
 
           echo "Version to update: $VERSION"
-
-      - name: Clone AUR repository
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
-          eval "$(ssh-agent -s)"
-          ssh-add ~/.ssh/id_rsa
-          git clone ssh://aur@aur.archlinux.org/hydra-launcher-bin.git
 
       - name: Check if update is needed
         id: check-update
