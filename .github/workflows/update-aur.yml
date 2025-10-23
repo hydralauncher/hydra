@@ -34,6 +34,7 @@ jobs:
               IdentitiesOnly yes
               User aur
               UserKnownHostsFile ~/.ssh/known_hosts
+              StrictHostKeyChecking no
           EOF
 
           # Start SSH agent and add key
