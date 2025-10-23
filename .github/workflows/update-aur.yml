@@ -26,20 +26,19 @@ jobs:
         id: get-version
         run: |
           if [ "${{ github.event_name }}" = "release" ]; then
-            # Remove 'v' prefix if present
             VERSION="${{ github.event.release.tag_name }}"
-            VERSION="${VERSION#v}"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "source=release" >> $GITHUB_OUTPUT
           else
-            # Get latest release version
-            VERSION=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+            echo "Getting latest release version"
+            VERSION=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r '.tag_name')
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "source=latest" >> $GITHUB_OUTPUT
           fi
+
           echo "Version to update: $VERSION"
 
-      - name: Setup SSH for AUR
+      - name: Clone AUR repository
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
@@ -47,9 +46,6 @@ jobs:
           ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
           eval "$(ssh-agent -s)"
           ssh-add ~/.ssh/id_rsa
-
-      - name: Clone AUR repository
-        run: |
           git clone ssh://aur@aur.archlinux.org/hydra-launcher-bin.git
 
       - name: Check if update is needed
