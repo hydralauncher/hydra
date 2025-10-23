@@ -17,6 +17,17 @@ jobs:
           pacman -Syu --noconfirm
           pacman -S --noconfirm nodejs npm git base-devel openssh jq pacman-contrib
 
+      - name: Create builder user
+        run: |
+          # Create builder user with home directory
+          useradd -m -s /bin/bash builder
+
+          # Add builder to wheel group for sudo access
+          usermod -aG wheel builder
+
+          # Configure sudo for builder user (no password required)
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+
       - name: Setup SSH for AUR
         run: |
           mkdir -p ~/.ssh
@@ -44,6 +55,9 @@ jobs:
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa -F ~/.ssh/config -o UserKnownHostsFile=$SSH_PATH/known_hosts"
 
           git clone ssh://aur@aur.archlinux.org/hydra-launcher-bin.git
+
+          # Give builder user ownership of the repository
+          chown -R builder:builder hydra-launcher-bin
 
       - name: Get version to update
         id: get-version
@@ -97,9 +111,9 @@ jobs:
 
           echo "✅ Successfully updated pkgver to $NEW_VERSION in ./PKGBUILD"
 
-          # Update package checksums and generate .SRCINFO
-          updpkgsums
-          makepkg --printsrcinfo > .SRCINFO
+          # Update package checksums and generate .SRCINFO as builder user
+          sudo -u builder updpkgsums
+          sudo -u builder makepkg --printsrcinfo > .SRCINFO
 
       - name: Configure Git
         if: steps.check-update.outputs.update_needed == 'true'
