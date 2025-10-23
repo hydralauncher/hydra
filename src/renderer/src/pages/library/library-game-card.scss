@@ -37,7 +37,7 @@
     }
 
     &:hover {
-      transform: scale(1.05);
+      transform: scale(1.02);
     }
 
     &:hover::before {
@@ -215,8 +215,8 @@
     -webkit-backdrop-filter: blur(8px);
     border: solid 1px rgba(255, 255, 255, 0.15);
     border-radius: 4px;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;

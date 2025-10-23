@@ -9,9 +9,11 @@ import {
   AlertFillIcon,
   ThreeBarsIcon,
   TrophyIcon,
+  XIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { useCallback, useState } from "react";
+import { useGameActions } from "@renderer/components/game-context-menu/use-game-actions";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { GameContextMenu } from "@renderer/components";
 import "./library-game-card-large.scss";
@@ -66,18 +68,32 @@ export function LibraryGameCardLarge({ game }: LibraryGameCardLargeProps) {
     navigate(buildGameDetailsPath(game));
   };
 
+  const {
+    handlePlayGame,
+    handleOpenDownloadOptions,
+    handleCloseGame,
+    isGameRunning,
+  } = useGameActions(game);
+
   const handleActionClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (game.executablePath) {
-      window.electron.openGame(
-        game.shop,
-        game.objectId,
-        game.executablePath,
-        game.launchOptions
-      );
-    } else {
-      navigate(buildGameDetailsPath(game));
+    if (isGameRunning) {
+      try {
+        await handleCloseGame();
+      } catch (e) {
+        void e;
+      }
+      return;
+    }
+    try {
+      await handlePlayGame();
+    } catch (err) {
+      try {
+        handleOpenDownloadOptions();
+      } catch (e) {
+        void e;
+      }
     }
   };
 
@@ -214,6 +230,11 @@ export function LibraryGameCardLarge({ game }: LibraryGameCardLargeProps) {
                     className="library-game-card-large__action-icon--downloading"
                   />
                   {t("downloading")}
+                </>
+              ) : isGameRunning ? (
+                <>
+                  <XIcon size={16} />
+                  {t("close")}
                 </>
               ) : game.executablePath ? (
                 <>
