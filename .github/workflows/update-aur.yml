@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           pacman -Syu --noconfirm
-          pacman -S --noconfirm nodejs npm git base-devel
+          pacman -S --noconfirm nodejs npm git base-devel openssh
 
       - name: Get version to update
         id: get-version
