@@ -230,27 +230,24 @@
 
 .user-reviews__review-game {
   display: flex;
-  align-items: center;
   gap: calc(globals.$spacing-unit);
 }
 
 .user-reviews__game-icon {
   width: 24px;
   height: 24px;
-  border-radius: 8px;
   object-fit: cover;
 }
 
 .user-reviews__game-info {
   display: flex;
   flex-direction: column;
-  gap: calc(globals.$spacing-unit * 0.25);
 }
 
 .user-reviews__game-details {
   display: flex;
   align-items: center;
-  gap: calc(globals.$spacing-unit * 0.5);
+  gap: calc(globals.$spacing-unit * 0.75);
 }
 
 .user-reviews__game-title {
