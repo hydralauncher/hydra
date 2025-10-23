@@ -30,22 +30,17 @@ jobs:
           # Configure SSH to use the key
           cat > ~/.ssh/config << EOF
           Host aur.archlinux.org
-              HostName aur.archlinux.org
-              User aur
               IdentityFile ~/.ssh/id_rsa
-              StrictHostKeyChecking no
+              IdentitiesOnly yes
+              User aur
+              UserKnownHostsFile ~/.ssh/known_hosts
           EOF
 
           # Start SSH agent and add key
           eval "$(ssh-agent -s)"
           ssh-add ~/.ssh/id_rsa
 
-          # Test SSH connection
-          ssh aur@aur.archlinux.org "echo 'SSH connection successful'"
-
-      - name: Clone AUR repository
-        run: |
-          git clone ssh://aur@aur.archlinux.org/hydra-launcher-bin.git
+          ssh-agent bash -c 'ssh-add ~/.ssh/id_rsa; git clone ssh://aur@aur.archlinux.org/hydra-launcher-bin.git'
 
       - name: Checkout main repository
         uses: actions/checkout@v4
