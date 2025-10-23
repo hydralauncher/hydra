@@ -93,9 +93,9 @@ jobs:
           sed -i "s/^pkgver=.*/pkgver=$NEW_VERSION/" ./PKGBUILD
 
           # Reset pkgrel to 1 when version changes
-          sed -i "s/^pkgrel=.*/pkgrel=1/" "$PKGBUILD_PATH"
+          sed -i "s/^pkgrel=.*/pkgrel=1/" ./PKGBUILD
 
-          echo "✅ Successfully updated pkgver to $NEW_VERSION in $PKGBUILD_PATH"
+          echo "✅ Successfully updated pkgver to $NEW_VERSION in ./PKGBUILD"
 
           # Update package checksums and generate .SRCINFO
           updpkgsums
