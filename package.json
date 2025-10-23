@@ -116,7 +116,7 @@
     "@types/winreg": "^1.2.36",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.2.1",
-    "electron": "^33.4.11",
+    "electron": "^35.7.5",
     "electron-builder": "^26.0.12",
     "electron-vite": "^3.0.0",
     "eslint": "^8.56.0",
