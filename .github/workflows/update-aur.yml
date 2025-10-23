@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   release:
     types: [published]
+  push:
+    branches: [main]
 
 jobs:
   update-aur:
@@ -119,13 +121,17 @@ jobs:
         if: steps.check-update.outputs.update_needed == 'true'
         run: |
           cd hydra-launcher-bin
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          pwd
+          ls -la
+          git config --global user.name "github-actions[bot]"
+          git config --galobal user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Commit and push changes
         if: steps.check-update.outputs.update_needed == 'true'
         run: |
           cd hydra-launcher-bin
+          pwd
+          ls -la
           git add PKGBUILD .SRCINFO
 
           echo "## Git Diff Preview"
