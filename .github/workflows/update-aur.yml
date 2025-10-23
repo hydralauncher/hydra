@@ -17,15 +17,34 @@ jobs:
           pacman -Syu --noconfirm
           pacman -S --noconfirm nodejs npm git base-devel openssh jq
 
-      - name: Clone AUR repository
+      - name: Setup SSH for AUR
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan aur.archlinux.org > ~/.ssh/known_hosts
-          cat ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
+
+          # Add AUR host key to known_hosts
+          ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
+
+          # Configure SSH to use the key
+          cat > ~/.ssh/config << EOF
+          Host aur.archlinux.org
+              HostName aur.archlinux.org
+              User aur
+              IdentityFile ~/.ssh/id_rsa
+              StrictHostKeyChecking no
+          EOF
+
+          # Start SSH agent and add key
           eval "$(ssh-agent -s)"
           ssh-add ~/.ssh/id_rsa
+
+          # Test SSH connection
+          ssh aur@aur.archlinux.org "echo 'SSH connection successful'"
+
+      - name: Clone AUR repository
+        run: |
           git clone ssh://aur@aur.archlinux.org/hydra-launcher-bin.git
 
       - name: Checkout main repository
