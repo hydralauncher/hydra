@@ -569,27 +569,55 @@ $hero-height: 300px;
   &__hero-logo-backdrop {
     width: 100%;
     height: 100%;
-    background: linear-gradient(0deg, rgba(0, 0, 0, 0.3) 60%, transparent 100%);
     position: absolute;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
   }
+  &__hero-image-wrapper {
+    position: absolute;
+    width: 100%;
+    height: 384px;
+    max-height: 384px;
+    overflow: hidden;
+    border-radius: 0px 0px 8px 8px;
+    z-index: 0;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.3) 60%,
+        transparent 100%
+      );
+      z-index: 1;
+      pointer-events: none;
+      border-radius: inherit;
+    }
+
+    @media (min-width: 1250px) {
+      height: calc(350px + 82px);
+      min-height: calc(350px + 84px);
+    }
+  }
 
   &__hero-image {
     width: 100%;
-    height: calc($hero-height + 72px);
-    min-height: calc($hero-height + 72px);
+    height: 100%;
     object-fit: cover;
     object-position: top;
     transition: all ease 0.2s;
     position: absolute;
     z-index: 0;
+    border-radius: 0px 0px 8px 8px;
 
     @media (min-width: 1250px) {
       object-position: center;
-      height: calc(350px + 72px);
-      min-height: calc(350px + 72px);
     }
   }
 
