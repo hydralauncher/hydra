@@ -53,8 +53,6 @@ const getImageWithCustomPriority = (
 };
 
 export function GameDetailsContent() {
-  const heroRef = useRef<HTMLDivElement | null>(null);
-
   const { t } = useTranslation("game_details");
 
   const {
@@ -152,17 +150,11 @@ export function GameDetailsContent() {
       className={`game-details__wrapper ${hasNSFWContentBlocked ? "game-details__wrapper--blurred" : ""}`}
     >
       <section className="game-details__container">
-        <div ref={heroRef} className="game-details__hero">
+        <div className="game-details__hero">
           <img
             src={heroImage}
             className="game-details__hero-image"
             alt={game?.title}
-          />
-          <div
-            className="game-details__hero-backdrop"
-            style={{
-              flex: 1,
-            }}
           />
 
           <div
@@ -202,10 +194,12 @@ export function GameDetailsContent() {
                 )}
               </div>
             </div>
+
+            <div className="game-details__hero-panel">
+              <HeroPanel />
+            </div>
           </div>
         </div>
-
-        <HeroPanel />
 
         <div className="game-details__description-container">
           <div className="game-details__description-content">
