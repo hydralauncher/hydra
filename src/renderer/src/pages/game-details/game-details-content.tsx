@@ -153,11 +153,13 @@ export function GameDetailsContent() {
     >
       <section className="game-details__container">
         <div ref={heroRef} className="game-details__hero">
-          <img
-            src={heroImage}
-            className="game-details__hero-image"
-            alt={game?.title}
-          />
+          <div className="game-details__hero-image-wrapper">
+            <img
+              src={heroImage}
+              className="game-details__hero-image"
+              alt={game?.title}
+            />
+          </div>
           <div
             className="game-details__hero-backdrop"
             style={{
