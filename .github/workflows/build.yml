@@ -41,8 +41,6 @@ jobs:
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libarchive-tools
           yarn build:linux
         env:
           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
@@ -98,5 +96,4 @@ jobs:
             dist/*.tar.gz
             dist/*.yml
             dist/*.blockmap
-            dist/*.pacman
             dist/*.AppImage
