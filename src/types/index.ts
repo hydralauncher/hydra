@@ -196,7 +196,7 @@ export interface UserDetails {
 
 export interface ProfileAchievement {
   name: string;
-  achievementImageUrl: string;
+  imageUrl: string;
   unlockTime: number;
   gameTitle: string;
   gameIconUrl: string;

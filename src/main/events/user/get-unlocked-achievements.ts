@@ -85,8 +85,7 @@ export const getUnlockedAchievements = async (
           ...achievementData,
           unlocked: true,
           unlockTime: unlockedAchievementData.unlockTime,
-          achievementImageUrl:
-            remoteAchievementData?.achievementImageUrl || null,
+          imageUrl: remoteAchievementData?.imageUrl || null,
         };
       }
 
@@ -99,7 +98,7 @@ export const getUnlockedAchievements = async (
           !achievementData.hidden || showHiddenAchievementsDescription
             ? achievementData.description
             : undefined,
-        achievementImageUrl: remoteAchievementData?.achievementImageUrl || null,
+        imageUrl: remoteAchievementData?.imageUrl || null,
       };
     })
     .sort((a, b) => {
