@@ -83,7 +83,7 @@ export interface GameAchievement {
   achievements: SteamAchievement[];
   unlockedAchievements: UnlockedAchievement[];
   updatedAt: number | undefined;
-  achievementImageUrl?: string | null;
+  imageUrl?: string | null;
   language?: string;
 }
 

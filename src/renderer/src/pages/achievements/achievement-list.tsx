@@ -63,16 +63,16 @@ export function AchievementList({
           </div>
 
           <div className="achievements__item-meta">
-            {achievement.achievementImageUrl && achievement.unlocked && (
+            {achievement.imageUrl && achievement.unlocked && (
               <div className="achievements__item-image-container">
                 <div className="achievements__item-custom-image-wrapper">
                   <button
                     type="button"
                     className="achievements__item-image-button"
                     onClick={() =>
-                      achievement.achievementImageUrl &&
+                      achievement.imageUrl &&
                       handleImageClick(
-                        achievement.achievementImageUrl,
+                        achievement.imageUrl,
                         achievement.displayName
                       )
                     }
@@ -86,7 +86,7 @@ export function AchievementList({
                   >
                     <img
                       className="achievements__item-custom-image"
-                      src={achievement.achievementImageUrl}
+                      src={achievement.imageUrl}
                       alt={`${achievement.displayName} screenshot`}
                       loading="lazy"
                     />

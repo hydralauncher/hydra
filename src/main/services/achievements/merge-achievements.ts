@@ -161,6 +161,65 @@ export const mergeAchievements = async (
     }
   }
 
+  // For subscribers, capture and upload screenshots first to get image URLs
+  let achievementsWithImages = [...mergedLocalAchievements];
+  
+  if (
+    newAchievements.length &&
+    userPreferences.enableAchievementScreenshots === true
+  ) {
+    try {
+      for (const achievement of newAchievements) {
+        try {
+          const achievementData = achievementsData.find(
+            (steamAchievement) => {
+              return (
+                achievement.name.toUpperCase() ===
+                steamAchievement.name.toUpperCase()
+              );
+            }
+          );
+
+          const achievementDisplayName =
+            achievementData?.displayName || achievement.name;
+
+          const screenshotPath =
+            await ScreenshotService.captureDesktopScreenshot(
+              game.title,
+              achievementDisplayName
+            );
+
+          const uploadResult = await AchievementImageService.uploadAchievementImage(
+            game.objectId,
+            achievement.name,
+            screenshotPath
+          );
+
+          // Update the achievement with the image URL for API sync
+          const achievementIndex = achievementsWithImages.findIndex(
+            (a) => a.name.toUpperCase() === achievement.name.toUpperCase()
+          );
+          if (achievementIndex !== -1 && uploadResult.imageUrl) {
+            achievementsWithImages[achievementIndex] = {
+              ...achievementsWithImages[achievementIndex],
+              imageUrl: uploadResult.imageUrl,
+            };
+          }
+        } catch (error) {
+          achievementsLogger.error(
+            "Failed to upload achievement image",
+            error
+          );
+        }
+      }
+    } catch (error) {
+      achievementsLogger.error(
+        "Failed to capture screenshot for achievement",
+        error
+      );
+    }
+  }
+
   const shouldSyncWithRemote =
     game.remoteId &&
     (newAchievements.length || AchievementWatcherManager.hasFinishedPreSearch);
@@ -170,7 +229,7 @@ export const mergeAchievements = async (
       "/profile/games/achievements",
       {
         id: game.remoteId,
-        achievements: mergedLocalAchievements,
+        achievements: achievementsWithImages,
       },
       { needsSubscription: !newAchievements.length }
     )
@@ -186,55 +245,9 @@ export const mergeAchievements = async (
           await saveAchievementsOnLocal(
             game.objectId,
             game.shop,
-            mergedLocalAchievements,
+            achievementsWithImages,
             publishNotification
           );
-        }
-
-        if (
-          newAchievements.length &&
-          userPreferences.enableAchievementScreenshots === true
-        ) {
-          try {
-            for (const achievement of newAchievements) {
-              try {
-                const achievementData = achievementsData.find(
-                  (steamAchievement) => {
-                    return (
-                      achievement.name.toUpperCase() ===
-                      steamAchievement.name.toUpperCase()
-                    );
-                  }
-                );
-
-                const achievementDisplayName =
-                  achievementData?.displayName || achievement.name;
-
-                const screenshotPath =
-                  await ScreenshotService.captureDesktopScreenshot(
-                    game.title,
-                    achievementDisplayName
-                  );
-
-                await AchievementImageService.uploadAchievementImage(
-                  game.objectId,
-                  achievement.name,
-                  screenshotPath,
-                  game.shop
-                );
-              } catch (error) {
-                achievementsLogger.error(
-                  "Failed to upload achievement image",
-                  error
-                );
-              }
-            }
-          } catch (error) {
-            achievementsLogger.error(
-              "Failed to capture screenshot for achievement",
-              error
-            );
-          }
         }
       })
       .catch((err) => {
@@ -249,7 +262,7 @@ export const mergeAchievements = async (
         return saveAchievementsOnLocal(
           game.objectId,
           game.shop,
-          mergedLocalAchievements,
+          achievementsWithImages,
           publishNotification
         );
       })
@@ -260,7 +273,7 @@ export const mergeAchievements = async (
     await saveAchievementsOnLocal(
       game.objectId,
       game.shop,
-      mergedLocalAchievements,
+      achievementsWithImages,
       publishNotification
     );
   }

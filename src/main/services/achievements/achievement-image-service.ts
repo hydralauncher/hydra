@@ -15,7 +15,7 @@ export class AchievementImageService {
 
     const response = await HydraApi.post<{
       presignedUrl: string;
-      achievementImageUrl: string;
+      imageUrl: string;
     }>("/presigned-urls/achievement-image", {
       imageExt: path.extname(imagePath).slice(1),
       imageLength: fileSizeInBytes,
@@ -29,7 +29,7 @@ export class AchievementImageService {
       },
     });
 
-    return response.achievementImageUrl;
+    return response.imageUrl;
   }
 
   private static async storeImageLocally(imagePath: string): Promise<string> {
@@ -40,17 +40,6 @@ export class AchievementImageService {
     return `data:${mimeType?.mime || "image/jpeg"};base64,${base64Image}`;
   }
 
-  private static async updateAchievementWithImageUrl(
-    shop: GameShop,
-    gameId: string,
-    achievementName: string,
-    imageUrl: string
-  ): Promise<void> {
-    await HydraApi.patch(
-      `/profile/games/achievements/${shop}/${gameId}/${achievementName}/image`,
-      { achievementImageUrl: imageUrl }
-    );
-  }
 
   private static async hasActiveSubscription(): Promise<boolean> {
     return db
@@ -75,7 +64,7 @@ export class AchievementImageService {
     if (existingData) {
       await gameAchievementsSublevel.put(achievementKey, {
         ...existingData,
-        achievementImageUrl: imageUrl,
+        imageUrl,
       });
     }
   }
@@ -99,8 +88,7 @@ export class AchievementImageService {
   static async uploadAchievementImage(
     gameId: string,
     achievementName: string,
-    imagePath: string,
-    shop?: GameShop
+    imagePath: string
   ): Promise<{ success: boolean; imageUrl: string }> {
     try {
       let imageUrl: string;
@@ -109,14 +97,9 @@ export class AchievementImageService {
 
       if (hasSubscription) {
         imageUrl = await this.uploadImageToCDN(imagePath);
-        if (shop) {
-          await this.updateAchievementWithImageUrl(
-            shop,
-            gameId,
-            achievementName,
-            imageUrl
-          );
-        }
+        // Removed per new single-call sync: image URL will be included
+        // in the PUT /profile/games/achievements payload later.
+        // No direct API call here anymore.
         logger.log(
           `Achievement image uploaded to CDN for ${gameId}:${achievementName}`
         );
@@ -155,8 +138,7 @@ export class AchievementImageService {
       const result = await this.uploadAchievementImage(
         gameId,
         achievementName,
-        imagePath,
-        shop
+        imagePath
       );
 
       await this.updateLocalAchievementData(shop, gameId, result.imageUrl);
