@@ -14,6 +14,7 @@ export interface ModalProps {
   description?: string;
   onClose: () => void;
   large?: boolean;
+  extraLarge?: boolean;
   children: React.ReactNode;
   clickOutsideToClose?: boolean;
 }
@@ -24,6 +25,7 @@ export function Modal({
   description,
   onClose,
   large,
+  extraLarge,
   children,
   clickOutsideToClose = true,
 }: ModalProps) {
@@ -113,6 +115,7 @@ export function Modal({
         className={cn("modal", {
           "modal--closing": isClosing,
           "modal--large": large,
+          "modal--extra-large": extraLarge,
         })}
         role="dialog"
         aria-labelledby={title}

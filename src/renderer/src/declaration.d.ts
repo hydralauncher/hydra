@@ -33,6 +33,7 @@ import type {
   DownloadSource,
   DownloadSourceValidationResult,
   GameRepack,
+  TorrentFile,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -62,6 +63,7 @@ declare global {
     checkDebridAvailability: (
       magnets: string[]
     ) => Promise<Record<string, boolean>>;
+    getTorrentFiles: (magnetUri: string) => Promise<TorrentFile[]>;
 
     /* Catalogue */
     getGameShopDetails: (

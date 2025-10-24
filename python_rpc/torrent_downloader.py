@@ -5,6 +5,7 @@ class TorrentDownloader:
         self.torrent_handle = None
         self.session = torrent_session
         self.flags = flags
+        self.cached_file_size = None  # Cache for selected files size
         self.trackers = [
             "udp://tracker.opentrackr.org:1337/announce",
             "http://tracker.opentrackr.org:1337/announce",
@@ -102,10 +103,88 @@ class TorrentDownloader:
             "http://bvarf.tracker.sh:2086/announce",
         ]
 
-    def start_download(self, magnet: str, save_path: str):
-        params = {'url': magnet, 'save_path': save_path, 'trackers': self.trackers, 'flags': self.flags}
+    def _wait_for_metadata(self, timeout_seconds=30):
+        """Wait for torrent metadata to become available."""
+        import time
+        max_iterations = int(timeout_seconds / 0.25)
+        
+        for i in range(max_iterations):
+            if self.torrent_handle.status().has_metadata:
+                print(f"[torrent] Metadata available after {i * 0.25:.2f}s")
+                return True
+            time.sleep(0.25)
+        
+        print("[torrent] WARNING: Metadata not available after 30s, downloading all files")
+        return False
+    
+    def _set_file_priorities(self, file_indices):
+        """Set file priorities for selective download."""
+        info = self.torrent_handle.get_torrent_info()
+        num_files = info.num_files()
+        print(f"[torrent] Torrent has {num_files} files total")
+        print(f"[torrent] Setting priorities for file indices: {file_indices}")
+        
+        # Set all files to priority 0 (don't download) first
+        for i in range(num_files):
+            self.torrent_handle.file_priority(i, 0)
+        
+        # Then set selected files to priority 4 (normal download)
+        selected_file_sizes = []
+        for idx in file_indices:
+            if 0 <= idx < num_files:
+                self.torrent_handle.file_priority(idx, 4)
+                file_info = info.file_at(idx)
+                file_size = file_info.size
+                selected_file_sizes.append(file_size)
+                print(f"[torrent] File {idx}: {file_info.path} - Size: {file_size} bytes - Priority set to 4 (download)")
+            else:
+                print(f"[torrent] WARNING: File index {idx} out of range (0-{num_files-1})")
+        
+        # Calculate cached size from the files we just set
+        self.cached_file_size = sum(selected_file_sizes)
+        print("[torrent] File priorities set successfully.")
+        print(f"[torrent] Total size of selected files: {self.cached_file_size} bytes ({self.cached_file_size / (1024**3):.2f} GB)")
+
+    def start_download(self, magnet: str, save_path: str, file_indices=None):
+        # Add torrent initially paused to prevent auto-download before setting priorities
+        temp_flags = self.flags
+        if file_indices is not None and len(file_indices) > 0:
+            temp_flags = lt.torrent_flags.paused | lt.torrent_flags.auto_managed
+        
+        params = {'url': magnet, 'save_path': save_path, 'trackers': self.trackers, 'flags': temp_flags}
         self.torrent_handle = self.session.add_torrent(params)
+        
+        # If file_indices is provided, wait for metadata then set file priorities
+        if file_indices is not None and len(file_indices) > 0:
+            print(f"[torrent] Selective download requested for {len(file_indices)} files")
+            print(f"[torrent] File indices to download: {file_indices}")
+            
+            if self._wait_for_metadata():
+                self._set_file_priorities(file_indices)
+        
+        # Resume the torrent to start downloading
         self.torrent_handle.resume()
+
+    def get_files(self):
+        """Get list of files in the torrent"""
+        if self.torrent_handle is None:
+            return None
+        
+        info = self.torrent_handle.get_torrent_info()
+        if not info:
+            return None
+        
+        files = []
+        for i in range(info.num_files()):
+            file = info.file_at(i)
+            files.append({
+                'index': i,
+                'name': file.path,
+                'size': file.size,
+                'priority': self.torrent_handle.file_priority(i)
+            })
+        
+        return files
 
     def pause_download(self):
         if self.torrent_handle:
@@ -133,17 +212,48 @@ class TorrentDownloader:
 
         status = self.torrent_handle.status()
         info = self.torrent_handle.get_torrent_info()
-        
+
+        # Delegate file size computation to helper to reduce cognitive complexity
+        file_size = self._calculate_file_size() if info else 0
+
         response = {
             'folderName': info.name() if info else "",
-            'fileSize': info.total_size() if info else 0,
+            'fileSize': file_size,
             'progress': status.progress,
             'downloadSpeed': status.download_rate,
             'uploadSpeed': status.upload_rate,
             'numPeers': status.num_peers,
             'numSeeds': status.num_seeds,
             'status': status.state,
-            'bytesDownloaded': status.progress * info.total_size() if info else status.all_time_download,
+            'bytesDownloaded': (status.progress * file_size) if info else status.all_time_download,
         }
 
         return response
+
+    def _calculate_file_size(self):
+        """Helper to calculate and cache file size based on file priorities."""
+        if self.torrent_handle is None:
+            return 0
+
+        info = self.torrent_handle.get_torrent_info()
+        if not info:
+            return 0
+
+        if self.cached_file_size is not None and self.cached_file_size > 0:
+            return self.cached_file_size
+
+        file_size = 0
+        for i in range(info.num_files()):
+            try:
+                if self.torrent_handle.file_priority(i) > 0:
+                    file_size += info.file_at(i).size
+            except Exception:
+                continue
+        if file_size == 0:
+            try:
+                file_size = info.total_size()
+            except Exception:
+                file_size = 0
+
+        self.cached_file_size = file_size
+        return file_size

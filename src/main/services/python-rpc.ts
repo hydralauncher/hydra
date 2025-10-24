@@ -106,9 +106,16 @@ export class PythonRPC {
         "main.py"
       );
 
-      const childProcess = cp.spawn("python3", [scriptPath, ...commonArgs], {
-        stdio: ["inherit", "inherit"],
-      });
+      // Use 'py' on Windows, 'python3' on other platforms
+      const pythonCommand = process.platform === "win32" ? "py" : "python3";
+
+      const childProcess = cp.spawn(
+        pythonCommand,
+        [scriptPath, ...commonArgs],
+        {
+          stdio: ["inherit", "inherit"],
+        }
+      );
 
       this.logStderr(childProcess.stderr);
 
@@ -116,6 +123,10 @@ export class PythonRPC {
     }
 
     this.rpc.defaults.headers.common["x-hydra-rpc-password"] = rpcPassword;
+  }
+
+  public static isRunning(): boolean {
+    return this.pythonProcess !== null;
   }
 
   public static kill() {

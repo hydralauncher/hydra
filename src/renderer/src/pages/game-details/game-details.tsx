@@ -99,7 +99,9 @@ export default function GameDetails() {
             repack: GameRepack,
             downloader: Downloader,
             downloadPath: string,
-            automaticallyExtract: boolean
+            automaticallyExtract: boolean,
+            fileIndices?: number[],
+            selectedFilesSize?: number
           ) => {
             const response = await startDownload({
               repackId: repack.id,
@@ -110,6 +112,8 @@ export default function GameDetails() {
               downloadPath,
               uri: selectRepackUri(repack, downloader),
               automaticallyExtract: automaticallyExtract,
+              fileIndices,
+              selectedFilesSize,
             });
 
             if (response.ok) {
