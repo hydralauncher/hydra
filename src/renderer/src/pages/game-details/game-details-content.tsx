@@ -17,6 +17,7 @@ import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import { useUserDetails, useLibrary } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./game-details.scss";
+import "./hero.scss";
 
 const processMediaElements = (document: Document) => {
   const $images = Array.from(document.querySelectorAll("img"));
