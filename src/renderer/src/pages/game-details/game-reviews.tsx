@@ -144,8 +144,6 @@ export function GameReviews({
     }
   }, [objectId, userDetailsId, shop, game, onUserReviewedChange]);
 
-  console.log("reviews", reviews);
-
   const loadReviews = useCallback(
     async (reset = false) => {
       if (!objectId) return;
@@ -439,8 +437,6 @@ export function GameReviews({
       }
     });
   }, [reviews]);
-
-  console.log("reviews", reviews);
 
   return (
     <div className="game-details__reviews-section">

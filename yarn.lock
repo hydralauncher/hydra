@@ -4658,7 +4658,7 @@ electron-vite@^3.0.0:
     magic-string "^0.30.17"
     picocolors "^1.1.1"
 
-electron@^35.7.5:
+electron@^35.2.1:
   version "35.7.5"
   resolved "https://registry.yarnpkg.com/electron/-/electron-35.7.5.tgz#294a4aebb2ad2a884de730c410f2358d061e8d53"
   integrity sha512-dnL+JvLraKZl7iusXTVTGYs10TKfzUi30uEDTqsmTm0guN9V2tbOjTzyIZbh9n3ygUjgEYyo+igAwMRXIi3IPw==
