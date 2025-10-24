@@ -9,6 +9,7 @@ import { ReviewForm } from "./review-form";
 import { ReviewItem } from "./review-item";
 import { ReviewSortOptions } from "./review-sort-options";
 import { ReviewPromptBanner } from "./review-prompt-banner";
+import "./game-reviews.scss";
 import { useToast } from "@renderer/hooks";
 
 type ReviewSortOption =
@@ -143,8 +144,6 @@ export function GameReviews({
       console.error("Failed to check user review:", error);
     }
   }, [objectId, userDetailsId, shop, game, onUserReviewedChange]);
-
-  console.log("reviews", reviews);
 
   const loadReviews = useCallback(
     async (reset = false) => {
@@ -439,8 +438,6 @@ export function GameReviews({
       }
     });
   }, [reviews]);
-
-  console.log("reviews", reviews);
 
   return (
     <div className="game-details__reviews-section">

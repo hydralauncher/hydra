@@ -30,7 +30,18 @@
   &__content {
     display: flex;
     flex-direction: column;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 0.5);
+
+    p {
+      font-size: globals.$small-font-size;
+      color: globals.$muted-color;
+      font-weight: 400;
+      margin: 0;
+
+      &:first-child {
+        font-weight: 600;
+      }
+    }
   }
 
   &__actions {
