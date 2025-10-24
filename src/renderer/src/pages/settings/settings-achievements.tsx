@@ -131,6 +131,7 @@ export function SettingsAchievements() {
         <div className="settings-achievements__button-container">
           <Button
             theme="outline"
+            disabled={window.electron.platform === "linux"}
             onClick={async () => {
               const screenshotsPath =
                 await window.electron.getScreenshotsPath();
