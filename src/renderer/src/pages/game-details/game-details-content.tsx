@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { PencilIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 
@@ -17,6 +17,7 @@ import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import { useUserDetails, useLibrary } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./game-details.scss";
+import "./hero.scss";
 
 const processMediaElements = (document: Document) => {
   const $images = Array.from(document.querySelectorAll("img"));
@@ -53,8 +54,6 @@ const getImageWithCustomPriority = (
 };
 
 export function GameDetailsContent() {
-  const heroRef = useRef<HTMLDivElement | null>(null);
-
   const { t } = useTranslation("game_details");
 
   const {
@@ -152,17 +151,11 @@ export function GameDetailsContent() {
       className={`game-details__wrapper ${hasNSFWContentBlocked ? "game-details__wrapper--blurred" : ""}`}
     >
       <section className="game-details__container">
-        <div ref={heroRef} className="game-details__hero">
+        <div className="game-details__hero">
           <img
             src={heroImage}
             className="game-details__hero-image"
             alt={game?.title}
-          />
-          <div
-            className="game-details__hero-backdrop"
-            style={{
-              flex: 1,
-            }}
           />
 
           <div
@@ -202,10 +195,12 @@ export function GameDetailsContent() {
                 )}
               </div>
             </div>
+
+            <div className="game-details__hero-panel">
+              <HeroPanel />
+            </div>
           </div>
         </div>
-
-        <HeroPanel />
 
         <div className="game-details__description-container">
           <div className="game-details__description-content">
