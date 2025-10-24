@@ -546,8 +546,12 @@ export function ProfileContent() {
                                 }
                                 disabled={votingReviews.has(review.id)}
                                 style={{
-                                  opacity: votingReviews.has(review.id) ? 0.5 : 1,
-                                  cursor: votingReviews.has(review.id) ? "not-allowed" : "pointer",
+                                  opacity: votingReviews.has(review.id)
+                                    ? 0.5
+                                    : 1,
+                                  cursor: votingReviews.has(review.id)
+                                    ? "not-allowed"
+                                    : "pointer",
                                 }}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
@@ -573,8 +577,12 @@ export function ProfileContent() {
                                 }
                                 disabled={votingReviews.has(review.id)}
                                 style={{
-                                  opacity: votingReviews.has(review.id) ? 0.5 : 1,
-                                  cursor: votingReviews.has(review.id) ? "not-allowed" : "pointer",
+                                  opacity: votingReviews.has(review.id)
+                                    ? 0.5
+                                    : 1,
+                                  cursor: votingReviews.has(review.id)
+                                    ? "not-allowed"
+                                    : "pointer",
                                 }}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
