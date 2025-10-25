@@ -74,7 +74,7 @@ const syncDownloadSources = async (
           headers,
         });
 
-        const source = downloadSourceSchema.parse(response.data);
+        const source = await downloadSourceSchema.validate(response.data);
         const steamGames = await getSteamGames();
 
         const repacks = source.downloads.filter(

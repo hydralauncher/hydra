@@ -1,26 +1,29 @@
 import { registerEvent } from "../register-event";
 import axios from "axios";
-import { z } from "zod";
+import * as yup from "yup";
 
-const downloadSourceSchema = z.object({
-  name: z.string().max(255),
-  downloads: z.array(
-    z.object({
-      title: z.string().max(255),
-      uris: z.array(z.string()),
-      uploadDate: z.string().max(255),
-      fileSize: z.string().max(255),
-    })
-  ),
+const downloadSourceSchema = yup.object({
+  name: yup.string().max(255).required(),
+  downloads: yup
+    .array(
+      yup.object({
+        title: yup.string().max(255).required(),
+        uris: yup.array(yup.string().required()).required(),
+        uploadDate: yup.string().max(255).required(),
+        fileSize: yup.string().max(255).required(),
+      })
+    )
+    .required(),
 });
 
 const validateDownloadSource = async (
   _event: Electron.IpcMainInvokeEvent,
   url: string
 ) => {
-  const response = await axios.get<z.infer<typeof downloadSourceSchema>>(url);
+  const response = await axios.get(url);
 
-  const { name } = downloadSourceSchema.parse(response.data);
+  const validatedData = await downloadSourceSchema.validate(response.data);
+  const { name } = validatedData;
 
   return {
     name,

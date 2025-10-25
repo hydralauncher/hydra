@@ -1,20 +1,22 @@
 import axios from "axios";
-import { z } from "zod";
+import * as yup from "yup";
 import { downloadSourcesSublevel, repacksSublevel } from "@main/level";
 import { DownloadSourceStatus } from "@shared";
 import crypto from "node:crypto";
 import { logger, ResourceCache } from "@main/services";
 
-export const downloadSourceSchema = z.object({
-  name: z.string().max(255),
-  downloads: z.array(
-    z.object({
-      title: z.string().max(255),
-      uris: z.array(z.string()),
-      uploadDate: z.string().max(255),
-      fileSize: z.string().max(255),
-    })
-  ),
+export const downloadSourceSchema = yup.object({
+  name: yup.string().max(255).required(),
+  downloads: yup
+    .array(
+      yup.object({
+        title: yup.string().max(255).required(),
+        uris: yup.array(yup.string().required()).required(),
+        uploadDate: yup.string().max(255).required(),
+        fileSize: yup.string().max(255).required(),
+      })
+    )
+    .required(),
 });
 
 export type TitleHashMapping = Record<string, number[]>;
@@ -182,7 +184,7 @@ export const invalidateIdCaches = () => {
 
 export const addNewDownloads = async (
   downloadSource: { id: number; name: string },
-  downloads: z.infer<typeof downloadSourceSchema>["downloads"],
+  downloads: yup.InferType<typeof downloadSourceSchema>["downloads"],
   steamGames: FormattedSteamGamesByLetter
 ) => {
   const now = new Date();
@@ -308,7 +310,8 @@ export const importDownloadSourceToLocal = async (
     return null;
   }
 
-  const response = await axios.get<z.infer<typeof downloadSourceSchema>>(url);
+  const response = await axios.get(url);
+  const validatedData = await downloadSourceSchema.validate(response.data);
 
   const steamGames = await getSteamGames();
 
@@ -319,10 +322,10 @@ export const importDownloadSourceToLocal = async (
   const downloadSource = {
     id: nextId,
     url,
-    name: response.data.name,
+    name: validatedData.name,
     etag: response.headers["etag"] || null,
     status: DownloadSourceStatus.UpToDate,
-    downloadCount: response.data.downloads.length,
+    downloadCount: validatedData.downloads.length,
     objectIds: [],
     createdAt: now,
     updatedAt: now,
@@ -332,7 +335,7 @@ export const importDownloadSourceToLocal = async (
 
   const objectIds = await addNewDownloads(
     downloadSource,
-    response.data.downloads,
+    validatedData.downloads,
     steamGames
   );
 
@@ -349,14 +352,15 @@ export const updateDownloadSourcePreservingTimestamp = async (
   existingSource: DownloadSource,
   url: string
 ) => {
-  const response = await axios.get<z.infer<typeof downloadSourceSchema>>(url);
+  const response = await axios.get(url);
+  const validatedData = await downloadSourceSchema.validate(response.data);
 
   const updatedSource = {
     ...existingSource,
-    name: response.data.name,
+    name: validatedData.name,
     etag: response.headers["etag"] || null,
     status: DownloadSourceStatus.UpToDate,
-    downloadCount: response.data.downloads.length,
+    downloadCount: validatedData.downloads.length,
     updatedAt: new Date(),
     // Preserve the original createdAt timestamp
   };
