@@ -7,4 +7,3 @@ export * from "./game-achievements";
 export * from "./keys";
 export * from "./themes";
 export * from "./download-sources";
-export * from "./repacks";

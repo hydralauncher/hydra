@@ -38,4 +38,11 @@
     animation: spin 1s linear infinite;
     margin-right: calc(globals.$spacing-unit / 2);
   }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: globals.$spacing-unit;
+    margin-top: calc(globals.$spacing-unit * 2);
+  }
 }

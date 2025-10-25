@@ -8,8 +8,6 @@ import {
   userDetailsSlice,
   gameRunningSlice,
   subscriptionSlice,
-  repacksSlice,
-  downloadSourcesSlice,
   catalogueSearchSlice,
 } from "@renderer/features";
 
@@ -23,8 +21,6 @@ export const store = configureStore({
     userDetails: userDetailsSlice.reducer,
     gameRunning: gameRunningSlice.reducer,
     subscription: subscriptionSlice.reducer,
-    repacks: repacksSlice.reducer,
-    downloadSources: downloadSourcesSlice.reducer,
     catalogueSearch: catalogueSearchSlice.reducer,
   },
 });

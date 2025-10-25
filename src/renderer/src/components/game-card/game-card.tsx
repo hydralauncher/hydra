@@ -1,5 +1,5 @@
 import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
-import type { GameStats } from "@types";
+import type { GameStats, ShopAssets } from "@types";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 
@@ -8,15 +8,15 @@ import "./game-card.scss";
 import { useTranslation } from "react-i18next";
 import { Badge } from "../badge/badge";
 import { StarRating } from "../star-rating/star-rating";
-import { useCallback, useState, useMemo } from "react";
-import { useFormat, useRepacks } from "@renderer/hooks";
+import { useCallback, useState } from "react";
+import { useFormat } from "@renderer/hooks";
 
 export interface GameCardProps
   extends React.DetailedHTMLProps<
     React.ButtonHTMLAttributes<HTMLButtonElement>,
     HTMLButtonElement
   > {
-  game: any;
+  game: ShopAssets;
 }
 
 const shopIcon = {
@@ -28,13 +28,6 @@ export function GameCard({ game, ...props }: GameCardProps) {
 
   const [stats, setStats] = useState<GameStats | null>(null);
 
-  const { getRepacksForObjectId } = useRepacks();
-  const repacks = getRepacksForObjectId(game.objectId);
-
-  const uniqueRepackers = Array.from(
-    new Set(repacks.map((repack) => repack.repacker))
-  );
-
   const handleHover = useCallback(() => {
     if (!stats) {
       window.electron.getGameStats(game.objectId, game.shop).then((stats) => {
@@ -45,14 +38,7 @@ export function GameCard({ game, ...props }: GameCardProps) {
 
   const { numberFormatter } = useFormat();
 
-  const firstThreeRepackers = useMemo(
-    () => uniqueRepackers.slice(0, 3),
-    [uniqueRepackers]
-  );
-  const remainingCount = useMemo(
-    () => uniqueRepackers.length - 3,
-    [uniqueRepackers]
-  );
+  console.log("game", game);
 
   return (
     <button
@@ -75,18 +61,20 @@ export function GameCard({ game, ...props }: GameCardProps) {
             <p className="game-card__title">{game.title}</p>
           </div>
 
-          {uniqueRepackers.length > 0 ? (
+          {game.downloadSources.length > 0 ? (
             <ul className="game-card__download-options">
-              {firstThreeRepackers.map((repacker) => (
-                <li key={repacker}>
-                  <Badge>{repacker}</Badge>
+              {game.downloadSources.slice(0, 3).map((sourceName) => (
+                <li key={sourceName}>
+                  <Badge>{sourceName}</Badge>
                 </li>
               ))}
-              {remainingCount > 0 && (
+              {game.downloadSources.length > 3 && (
                 <li>
                   <Badge>
-                    +{remainingCount}{" "}
-                    {t("game_card:available", { count: remainingCount })}
+                    +{game.downloadSources.length - 3}{" "}
+                    {t("game_card:available", {
+                      count: game.downloadSources.length - 3,
+                    })}
                   </Badge>
                 </li>
               )}

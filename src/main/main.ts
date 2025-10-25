@@ -16,14 +16,10 @@ import {
   Ludusavi,
   Lock,
   DeckyPlugin,
-  ResourceCache,
 } from "@main/services";
 
 export const loadState = async () => {
   await Lock.acquireLock();
-
-  ResourceCache.initialize();
-  await ResourceCache.updateResourcesOnStartup();
 
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,

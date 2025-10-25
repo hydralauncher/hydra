@@ -72,6 +72,7 @@ export const mergeWithRemoteGames = async () => {
           logoImageUrl: game.logoImageUrl,
           iconUrl: game.iconUrl,
           logoPosition: game.logoPosition,
+          downloadSources: game.downloadSources,
         });
       }
     })

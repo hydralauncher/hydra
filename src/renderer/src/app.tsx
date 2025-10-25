@@ -7,7 +7,6 @@ import {
   useAppSelector,
   useDownload,
   useLibrary,
-  useRepacks,
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
@@ -20,7 +19,6 @@ import {
   setUserDetails,
   setProfileBackground,
   setGameRunning,
-  setIsImportingSources,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
@@ -39,8 +37,6 @@ export function App() {
   const { updateLibrary, library } = useLibrary();
 
   const { t } = useTranslation("app");
-
-  const { updateRepacks } = useRepacks();
 
   const { clearDownload, setLastPacket } = useDownload();
 
@@ -198,36 +194,6 @@ export function App() {
       childList: true,
     });
   }, [dispatch, draggingDisabled]);
-
-  useEffect(() => {
-    (async () => {
-      dispatch(setIsImportingSources(true));
-
-      try {
-        // Initial repacks load
-        await updateRepacks();
-
-        // Sync all local sources (check for updates)
-        const newRepacksCount = await window.electron.syncDownloadSources();
-
-        if (newRepacksCount > 0) {
-          window.electron.publishNewRepacksNotification(newRepacksCount);
-        }
-
-        // Update fingerprints for sources that don't have them
-        await window.electron.updateMissingFingerprints();
-
-        // Update repacks AFTER all syncing and fingerprint updates are complete
-        await updateRepacks();
-      } catch (error) {
-        console.error("Error syncing download sources:", error);
-        // Still update repacks even if sync fails
-        await updateRepacks();
-      } finally {
-        dispatch(setIsImportingSources(false));
-      }
-    })();
-  }, [updateRepacks, dispatch]);
 
   const loadAndApplyTheme = useCallback(async () => {
     const activeTheme = await window.electron.getActiveCustomTheme();

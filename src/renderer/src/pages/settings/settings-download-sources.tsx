@@ -16,7 +16,7 @@ import {
   TrashIcon,
 } from "@primer/octicons-react";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
-import { useAppDispatch, useRepacks, useToast } from "@renderer/hooks";
+import { useAppDispatch, useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
 import { settingsContext } from "@renderer/context";
 import { useNavigate } from "react-router-dom";
@@ -35,7 +35,6 @@ export function SettingsDownloadSources() {
     useState(false);
   const [isRemovingDownloadSource, setIsRemovingDownloadSource] =
     useState(false);
-  const [isFetchingSources, setIsFetchingSources] = useState(true);
 
   const { sourceUrl, clearSourceUrl } = useContext(settingsContext);
 
@@ -46,37 +45,29 @@ export function SettingsDownloadSources() {
 
   const navigate = useNavigate();
 
-  const { updateRepacks } = useRepacks();
-
-  const getDownloadSources = async () => {
-    await window.electron
-      .getDownloadSourcesList()
-      .then((sources) => {
-        setDownloadSources(sources);
-      })
-      .finally(() => {
-        setIsFetchingSources(false);
-      });
-  };
-
-  useEffect(() => {
-    getDownloadSources();
-  }, []);
-
   useEffect(() => {
     if (sourceUrl) setShowAddDownloadSourceModal(true);
   }, [sourceUrl]);
+
+  useEffect(() => {
+    const fetchDownloadSources = async () => {
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources);
+    };
+
+    fetchDownloadSources();
+  }, []);
 
   const handleRemoveSource = async (downloadSource: DownloadSource) => {
     setIsRemovingDownloadSource(true);
 
     try {
-      await window.electron.deleteDownloadSource(downloadSource.id);
-      await window.electron.removeDownloadSource(downloadSource.url);
-
+      await window.electron.removeDownloadSource(false, downloadSource.id);
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources as DownloadSource[]);
       showSuccessToast(t("removed_download_source"));
-      await getDownloadSources();
-      updateRepacks();
+    } catch (error) {
+      console.error("Failed to remove download source:", error);
     } finally {
       setIsRemovingDownloadSource(false);
     }
@@ -86,53 +77,44 @@ export function SettingsDownloadSources() {
     setIsRemovingDownloadSource(true);
 
     try {
-      await window.electron.deleteAllDownloadSources();
-      await window.electron.removeDownloadSource("", true);
-
-      showSuccessToast(t("removed_download_sources"));
-      await getDownloadSources();
-      setShowConfirmationDeleteAllSourcesModal(false);
-      updateRepacks();
+      await window.electron.removeDownloadSource(true);
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources as DownloadSource[]);
+      showSuccessToast(t("removed_all_download_sources"));
+    } catch (error) {
+      console.error("Failed to remove all download sources:", error);
     } finally {
       setIsRemovingDownloadSource(false);
+      setShowConfirmationDeleteAllSourcesModal(false);
     }
   };
 
   const handleAddDownloadSource = async () => {
-    // Refresh sources list and repacks after import completes
-    await getDownloadSources();
-
-    // Force repacks update to ensure UI reflects new data
-    await updateRepacks();
-
-    showSuccessToast(t("added_download_source"));
+    try {
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources as DownloadSource[]);
+    } catch (error) {
+      console.error("Failed to refresh download sources:", error);
+    }
   };
 
   const syncDownloadSources = async () => {
     setIsSyncingDownloadSources(true);
-
     try {
-      // Sync local sources (check for updates)
-      await window.electron.syncDownloadSources();
-
-      // Refresh sources and repacks AFTER sync completes
-      await getDownloadSources();
-      await updateRepacks();
-
-      showSuccessToast(t("download_sources_synced"));
-    } catch (error) {
-      console.error("Error syncing download sources:", error);
-      // Still refresh the UI even if sync fails
-      await getDownloadSources();
-      await updateRepacks();
+      const sources = await window.electron.syncDownloadSources();
+      setDownloadSources(sources);
     } finally {
       setIsSyncingDownloadSources(false);
     }
   };
 
   const statusTitle = {
-    [DownloadSourceStatus.UpToDate]: t("download_source_up_to_date"),
-    [DownloadSourceStatus.Errored]: t("download_source_errored"),
+    [DownloadSourceStatus.PendingMatching]: t(
+      "download_source_pending_matching"
+    ),
+    [DownloadSourceStatus.Matched]: t("download_source_matched"),
+    [DownloadSourceStatus.Matching]: t("download_source_matching"),
+    [DownloadSourceStatus.Failed]: t("download_source_failed"),
   };
 
   const handleModalClose = () => {
@@ -180,8 +162,7 @@ export function SettingsDownloadSources() {
           disabled={
             !downloadSources.length ||
             isSyncingDownloadSources ||
-            isRemovingDownloadSource ||
-            isFetchingSources
+            isRemovingDownloadSource
           }
           onClick={syncDownloadSources}
         >
@@ -197,8 +178,7 @@ export function SettingsDownloadSources() {
             disabled={
               isRemovingDownloadSource ||
               isSyncingDownloadSources ||
-              !downloadSources.length ||
-              isFetchingSources
+              !downloadSources.length
             }
           >
             <TrashIcon />
@@ -209,11 +189,7 @@ export function SettingsDownloadSources() {
             type="button"
             theme="outline"
             onClick={() => setShowAddDownloadSourceModal(true)}
-            disabled={
-              isSyncingDownloadSources ||
-              isFetchingSources ||
-              isRemovingDownloadSource
-            }
+            disabled={isSyncingDownloadSources || isRemovingDownloadSource}
           >
             <PlusCircleIcon />
             {t("add_download_source")}

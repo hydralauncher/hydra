@@ -40,14 +40,20 @@ export default function Home() {
       setCurrentCatalogueCategory(category);
       setIsLoading(true);
 
-      const params = new URLSearchParams({
-        take: "12",
-        skip: "0",
-      });
+      const downloadSources = await window.electron.getDownloadSources();
+
+      const params = {
+        take: 12,
+        skip: 0,
+        downloadSourceIds: downloadSources.map((source) => source.id),
+      };
 
       const catalogue = await window.electron.hydraApi.get<ShopAssets[]>(
-        `/catalogue/${category}?${params.toString()}`,
-        { needsAuth: false }
+        `/catalogue/${category}`,
+        {
+          params,
+          needsAuth: false,
+        }
       );
 
       setCatalogue((prev) => ({ ...prev, [category]: catalogue }));
