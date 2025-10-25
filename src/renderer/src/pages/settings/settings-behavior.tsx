@@ -5,7 +5,6 @@ import { CheckboxField } from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
 import "./settings-behavior.scss";
-import { QuestionIcon } from "@primer/octicons-react";
 
 export function SettingsBehavior() {
   const userPreferences = useAppSelector(
@@ -27,6 +26,7 @@ export function SettingsBehavior() {
     showDownloadSpeedInMegabytes: false,
     extractFilesByDefault: true,
     enableSteamAchievements: false,
+    enableAchievementScreenshots: false,
   });
 
   const { t } = useTranslation("settings");
@@ -49,6 +49,8 @@ export function SettingsBehavior() {
         extractFilesByDefault: userPreferences.extractFilesByDefault ?? true,
         enableSteamAchievements:
           userPreferences.enableSteamAchievements ?? false,
+        enableAchievementScreenshots:
+          userPreferences.enableAchievementScreenshots ?? false,
       });
     }
   }, [userPreferences]);
@@ -139,17 +141,6 @@ export function SettingsBehavior() {
       />
 
       <CheckboxField
-        label={t("show_hidden_achievement_description")}
-        checked={form.showHiddenAchievementsDescription}
-        onChange={() =>
-          handleChange({
-            showHiddenAchievementsDescription:
-              !form.showHiddenAchievementsDescription,
-          })
-        }
-      />
-
-      <CheckboxField
         label={t("show_download_speed_in_megabytes")}
         checked={form.showDownloadSpeedInMegabytes}
         onChange={() =>
@@ -168,25 +159,6 @@ export function SettingsBehavior() {
           })
         }
       />
-
-      <div className={`settings-behavior__checkbox-container--with-tooltip`}>
-        <CheckboxField
-          label={t("enable_steam_achievements")}
-          checked={form.enableSteamAchievements}
-          onChange={() =>
-            handleChange({
-              enableSteamAchievements: !form.enableSteamAchievements,
-            })
-          }
-        />
-
-        <small
-          className="settings-behavior__checkbox-container--tooltip"
-          data-open-article="steam-achievements"
-        >
-          <QuestionIcon size={12} />
-        </small>
-      </div>
     </>
   );
 }

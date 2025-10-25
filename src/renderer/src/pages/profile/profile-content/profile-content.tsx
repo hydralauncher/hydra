@@ -3,7 +3,11 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ProfileHero } from "../profile-hero/profile-hero";
 import { useAppDispatch, useFormat } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
-import { TelescopeIcon, ChevronRightIcon } from "@primer/octicons-react";
+import {
+  TelescopeIcon,
+  ChevronRightIcon,
+  SearchIcon,
+} from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
@@ -20,6 +24,7 @@ import {
   chevronVariants,
   GAME_STATS_ANIMATION_DURATION_IN_MS,
 } from "./profile-animations";
+import { FullscreenImageModal } from "@renderer/components/fullscreen-image-modal";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
@@ -36,6 +41,10 @@ export function ProfileContent() {
   const [statsIndex, setStatsIndex] = useState(0);
   const [isAnimationRunning, setIsAnimationRunning] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
+  const [fullscreenImage, setFullscreenImage] = useState<{
+    url: string;
+    alt: string;
+  } | null>(null);
   const statsAnimation = useRef(-1);
   const { toggleSection, isPinnedCollapsed } = useSectionCollapse();
 
@@ -63,6 +72,17 @@ export function ProfileContent() {
 
   const handleOnMouseLeaveGameCard = () => {
     setIsAnimationRunning(true);
+  };
+
+  const handleImageClick = (imageUrl: string, achievementName: string) => {
+    setFullscreenImage({
+      url: imageUrl,
+      alt: `${achievementName} screenshot`,
+    });
+  };
+
+  const closeFullscreenImage = () => {
+    setFullscreenImage(null);
   };
 
   useEffect(() => {
@@ -113,10 +133,6 @@ export function ProfileContent() {
     return (
       <section className="profile-content__section">
         <div className="profile-content__main">
-          {hasAnyGames && (
-            <SortOptions sortBy={sortBy} onSortChange={setSortBy} />
-          )}
-
           {!hasAnyGames && (
             <div className="profile-content__no-games">
               <div className="profile-content__telescope-icon">
@@ -189,6 +205,95 @@ export function ProfileContent() {
                 </div>
               )}
 
+              {userProfile?.achievements &&
+                userProfile.achievements.length > 0 && (
+                  <div className="profile-content__images-section">
+                    <div className="profile-content__section-header">
+                      <div className="profile-content__section-title-group">
+                        <h2>{t("souvenirs")}</h2>
+                        <span className="profile-content__section-badge">
+                          {userProfile.achievements.length}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="profile-content__images-grid">
+                      {userProfile.achievements.map((achievement, index) => (
+                        <div
+                          key={`${achievement.gameTitle}-${achievement.name}-${index}`}
+                          className="profile-content__image-card"
+                        >
+                          <div className="profile-content__image-card-header">
+                            <div className="profile-content__image-achievement-image-wrapper">
+                              <button
+                                type="button"
+                                className="profile-content__image-button"
+                                onClick={() =>
+                                  handleImageClick(
+                                    achievement.imageUrl,
+                                    achievement.name
+                                  )
+                                }
+                                aria-label={`View ${achievement.name} screenshot in fullscreen`}
+                                style={{
+                                  cursor: "pointer",
+                                  padding: 0,
+                                  border: "none",
+                                  background: "transparent",
+                                }}
+                              >
+                                <img
+                                  src={achievement.imageUrl}
+                                  alt={achievement.name}
+                                  className="profile-content__image-achievement-image"
+                                  loading="lazy"
+                                />
+                              </button>
+                              <div className="profile-content__image-achievement-image-overlay">
+                                <SearchIcon size={20} />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="profile-content__image-card-content">
+                            <div className="profile-content__image-achievement-info">
+                              <img
+                                src={achievement.achievementIcon}
+                                alt=""
+                                className="profile-content__image-achievement-icon"
+                                loading="lazy"
+                              />
+                              <span className="profile-content__image-achievement-name">
+                                {achievement.name}
+                              </span>
+                            </div>
+
+                            <div className="profile-content__image-game-info">
+                              <div className="profile-content__image-game-left">
+                                <img
+                                  src={achievement.gameIconUrl}
+                                  alt=""
+                                  className="profile-content__image-game-icon"
+                                  loading="lazy"
+                                />
+                                <span className="profile-content__image-game-title">
+                                  {achievement.gameTitle}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="profile-content__image-card-gradient-overlay"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {hasAnyGames && (
+                <SortOptions sortBy={sortBy} onSortChange={setSortBy} />
+              )}
+
               {hasGames && (
                 <div>
                   <div className="profile-content__section-header">
@@ -252,6 +357,13 @@ export function ProfileContent() {
       <ProfileHero />
 
       {content}
+
+      <FullscreenImageModal
+        isOpen={fullscreenImage !== null}
+        imageUrl={fullscreenImage?.url || ""}
+        imageAlt={fullscreenImage?.alt || ""}
+        onClose={closeFullscreenImage}
+      />
     </div>
   );
 }
