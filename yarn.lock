@@ -4646,7 +4646,7 @@ electron-updater@^6.6.2:
     semver "^7.6.3"
     tiny-typed-emitter "^2.1.0"
 
-electron-vite@^3.0.0:
+electron-vite@^3.1.0:
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/electron-vite/-/electron-vite-3.1.0.tgz#1784907a83d23c6c8093ec68b8e414a74d814385"
   integrity sha512-M7aAzaRvSl5VO+6KN4neJCYLHLpF/iWo5ztchI/+wMxIieDZQqpbCYfaEHHHPH6eupEzfvZdLYdPdmvGqoVe0Q==
@@ -4658,10 +4658,10 @@ electron-vite@^3.0.0:
     magic-string "^0.30.17"
     picocolors "^1.1.1"
 
-electron@^35.2.1:
-  version "35.7.5"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-35.7.5.tgz#294a4aebb2ad2a884de730c410f2358d061e8d53"
-  integrity sha512-dnL+JvLraKZl7iusXTVTGYs10TKfzUi30uEDTqsmTm0guN9V2tbOjTzyIZbh9n3ygUjgEYyo+igAwMRXIi3IPw==
+electron@^37.7.1:
+  version "37.7.1"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-37.7.1.tgz#7d771b3d3365b5458f8bc758385defee14387034"
+  integrity sha512-2EmIqWv4T8BtgFQosB3/0Fezs09X3l0wXhIzes/cNt/GI+UDljbQr3NiF2J9WnqP0aFSbUEfztGUQMiX+qDvsw==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^22.7.7"
