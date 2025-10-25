@@ -2,6 +2,7 @@ import { Star } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { EditorContent, Editor } from "@tiptap/react";
 import { Button } from "@renderer/components";
+import "./review-form.scss";
 
 interface ReviewFormProps {
   editor: Editor | null;

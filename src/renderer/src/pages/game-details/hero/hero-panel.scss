@@ -20,11 +20,6 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
 
-  &__container {
-    padding: 0px 12px 12px;
-    margin: 0;
-  }
-
   &--stuck {
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(12px);
@@ -35,7 +30,18 @@
   &__content {
     display: flex;
     flex-direction: column;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 0.5);
+
+    p {
+      font-size: globals.$small-font-size;
+      color: globals.$muted-color;
+      font-weight: 400;
+      margin: 0;
+
+      &:first-child {
+        font-weight: 600;
+      }
+    }
   }
 
   &__actions {
