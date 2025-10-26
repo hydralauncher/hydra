@@ -55,11 +55,8 @@ const saveAchievementsOnLocal = async (
     });
 };
 
-export const mergeAchievements = async (
-  game: Game,
-  achievements: UnlockedAchievement[],
-  publishNotification: boolean
-) => {
+// Helpers extracted to lower cognitive complexity
+const getLocalData = async (game: Game) => {
   const gameKey = levelKeys.game(game.shop, game.objectId);
 
   let localGameAchievement = await gameAchievementsSublevel.get(gameKey);
@@ -75,11 +72,20 @@ export const mergeAchievements = async (
     localGameAchievement = await gameAchievementsSublevel.get(gameKey);
   }
 
-  const achievementsData = localGameAchievement?.achievements ?? [];
-  const unlockedAchievements = localGameAchievement?.unlockedAchievements ?? [];
+  return {
+    achievementsData: localGameAchievement?.achievements ?? [],
+    unlockedAchievements: localGameAchievement?.unlockedAchievements ?? [],
+    userPreferences,
+    gameKey,
+  };
+};
 
+const computeNewAndMergedAchievements = (
+  incoming: UnlockedAchievement[],
+  unlockedAchievements: UnlockedAchievement[]
+) => {
   const newAchievementsMap = new Map(
-    achievements.toReversed().map((achievement) => {
+    incoming.toReversed().map((achievement) => {
       return [achievement.name.toUpperCase(), achievement];
     })
   );
@@ -99,123 +105,154 @@ export const mergeAchievements = async (
       };
     });
 
-  const mergedLocalAchievements = unlockedAchievements.concat(newAchievements);
+  return {
+    newAchievements,
+    mergedLocalAchievements: unlockedAchievements.concat(newAchievements),
+  };
+};
 
+const publishAchievementNotificationIfNeeded = (
+  game: Game,
+  newAchievements: UnlockedAchievement[],
+  unlockedAchievements: UnlockedAchievement[],
+  achievementsData: any[],
+  userPreferences: UserPreferences,
+  mergedLocalCount: number,
+  publishNotification: boolean
+) => {
   if (
-    newAchievements.length &&
-    publishNotification &&
-    userPreferences.achievementNotificationsEnabled !== false
+    !newAchievements.length ||
+    !publishNotification ||
+    userPreferences.achievementNotificationsEnabled === false
   ) {
-    const filteredAchievements = newAchievements
-      .toSorted((a, b) => {
-        return a.unlockTime - b.unlockTime;
-      })
-      .map((achievement) => {
-        return achievementsData.find((steamAchievement) => {
-          return (
-            achievement.name.toUpperCase() ===
-            steamAchievement.name.toUpperCase()
-          );
-        });
-      })
-      .filter((achievement) => !!achievement);
-
-    const achievementsInfo: AchievementNotificationInfo[] =
-      filteredAchievements.map((achievement, index) => {
-        return {
-          title: achievement.displayName,
-          description: achievement.description,
-          points: achievement.points,
-          isHidden: achievement.hidden,
-          isRare: achievement.points
-            ? isRareAchievement(achievement.points)
-            : false,
-          isPlatinum:
-            index === filteredAchievements.length - 1 &&
-            newAchievements.length + unlockedAchievements.length ===
-              achievementsData.length,
-          iconUrl: achievement.icon,
-        };
-      });
-
-    achievementsLogger.log(
-      "Publishing achievement notification",
-      game.objectId,
-      game.title
-    );
-
-    if (userPreferences.achievementCustomNotificationsEnabled !== false) {
-      WindowManager.notificationWindow?.webContents.send(
-        "on-achievement-unlocked",
-        userPreferences.achievementCustomNotificationPosition ?? "top-left",
-        achievementsInfo
-      );
-    } else {
-      publishNewAchievementNotification({
-        achievements: achievementsInfo,
-        unlockedAchievementCount: mergedLocalAchievements.length,
-        totalAchievementCount: achievementsData.length,
-        gameTitle: game.title,
-        gameIcon: game.iconUrl,
-      });
-    }
+    return;
   }
 
-  // For subscribers, capture and upload screenshots first to get image URLs
+  const filteredAchievements = newAchievements
+    .toSorted((a, b) => a.unlockTime - b.unlockTime)
+    .map((achievement) => {
+      return achievementsData.find((steamAchievement: any) => {
+        return (
+          achievement.name.toUpperCase() === steamAchievement.name.toUpperCase()
+        );
+      });
+    })
+    .filter((achievement) => !!achievement);
+
+  const achievementsInfo: AchievementNotificationInfo[] =
+    filteredAchievements.map((achievement: any, index: number) => {
+      return {
+        title: achievement.displayName,
+        description: achievement.description,
+        points: achievement.points,
+        isHidden: achievement.hidden,
+        isRare: achievement.points
+          ? isRareAchievement(achievement.points)
+          : false,
+        isPlatinum:
+          index === filteredAchievements.length - 1 &&
+          newAchievements.length + unlockedAchievements.length ===
+            achievementsData.length,
+        iconUrl: achievement.icon,
+      };
+    });
+
+  achievementsLogger.log(
+    "Publishing achievement notification",
+    game.objectId,
+    game.title
+  );
+
+  if (userPreferences.achievementCustomNotificationsEnabled !== false) {
+    WindowManager.notificationWindow?.webContents.send(
+      "on-achievement-unlocked",
+      userPreferences.achievementCustomNotificationPosition ?? "top-left",
+      achievementsInfo
+    );
+  } else {
+    publishNewAchievementNotification({
+      achievements: achievementsInfo,
+      unlockedAchievementCount: mergedLocalCount,
+      totalAchievementCount: achievementsData.length,
+      gameTitle: game.title,
+      gameIcon: game.iconUrl,
+    });
+  }
+};
+
+const addImagesToNewAchievementsIfEnabled = async (
+  newAchievements: UnlockedAchievement[],
+  achievementsData: any[],
+  mergedLocalAchievements: UnlockedAchievement[],
+  game: Game,
+  userPreferences: UserPreferences
+): Promise<UnlockedAchievement[]> => {
   const achievementsWithImages = [...mergedLocalAchievements];
 
   if (
-    newAchievements.length &&
-    userPreferences.enableAchievementScreenshots === true
+    !newAchievements.length ||
+    userPreferences.enableAchievementScreenshots !== true
   ) {
-    try {
-      for (const achievement of newAchievements) {
-        try {
-          const achievementData = achievementsData.find((steamAchievement) => {
+    return achievementsWithImages;
+  }
+
+  try {
+    for (const achievement of newAchievements) {
+      try {
+        const achievementData = achievementsData.find(
+          (steamAchievement: any) => {
             return (
               achievement.name.toUpperCase() ===
               steamAchievement.name.toUpperCase()
             );
-          });
-
-          const achievementDisplayName =
-            achievementData?.displayName || achievement.name;
-
-          const screenshotPath =
-            await ScreenshotService.captureDesktopScreenshot(
-              game.title,
-              achievementDisplayName
-            );
-
-          const uploadResult =
-            await AchievementImageService.uploadAchievementImage(
-              game.objectId,
-              achievement.name,
-              screenshotPath
-            );
-
-          // Update the achievement with the image URL for API sync
-          const achievementIndex = achievementsWithImages.findIndex(
-            (a) => a.name.toUpperCase() === achievement.name.toUpperCase()
-          );
-          if (achievementIndex !== -1 && uploadResult.imageUrl) {
-            achievementsWithImages[achievementIndex] = {
-              ...achievementsWithImages[achievementIndex],
-              imageUrl: uploadResult.imageUrl,
-            };
           }
-        } catch (error) {
-          achievementsLogger.error("Failed to upload achievement image", error);
+        );
+
+        const achievementDisplayName =
+          achievementData?.displayName || achievement.name;
+
+        const screenshotPath = await ScreenshotService.captureDesktopScreenshot(
+          game.title,
+          achievementDisplayName
+        );
+
+        const uploadResult =
+          await AchievementImageService.uploadAchievementImage(
+            game.objectId,
+            achievement.name,
+            screenshotPath
+          );
+
+        const achievementIndex = achievementsWithImages.findIndex(
+          (a) => a.name.toUpperCase() === achievement.name.toUpperCase()
+        );
+        if (achievementIndex !== -1 && uploadResult.imageUrl) {
+          achievementsWithImages[achievementIndex] = {
+            ...achievementsWithImages[achievementIndex],
+            imageUrl: uploadResult.imageUrl,
+          };
         }
+      } catch (error) {
+        achievementsLogger.error("Failed to upload achievement image", error);
       }
-    } catch (error) {
-      achievementsLogger.error(
-        "Failed to capture screenshot for achievement",
-        error
-      );
     }
+  } catch (error) {
+    achievementsLogger.error(
+      "Failed to capture screenshot for achievement",
+      error
+    );
   }
 
+  return achievementsWithImages;
+};
+
+const syncAchievements = async (
+  game: Game,
+  publishNotification: boolean,
+  achievementsWithImages: UnlockedAchievement[],
+  newAchievements: UnlockedAchievement[],
+  gameKey: string
+) => {
   const shouldSyncWithRemote =
     game.remoteId &&
     (newAchievements.length || AchievementWatcherManager.hasFinishedPreSearch);
@@ -273,6 +310,44 @@ export const mergeAchievements = async (
       publishNotification
     );
   }
+};
+
+export const mergeAchievements = async (
+  game: Game,
+  achievements: UnlockedAchievement[],
+  publishNotification: boolean
+) => {
+  const { achievementsData, unlockedAchievements, userPreferences, gameKey } =
+    await getLocalData(game);
+
+  const { newAchievements, mergedLocalAchievements } =
+    computeNewAndMergedAchievements(achievements, unlockedAchievements);
+
+  publishAchievementNotificationIfNeeded(
+    game,
+    newAchievements,
+    unlockedAchievements,
+    achievementsData,
+    userPreferences,
+    mergedLocalAchievements.length,
+    publishNotification
+  );
+
+  const achievementsWithImages = await addImagesToNewAchievementsIfEnabled(
+    newAchievements,
+    achievementsData,
+    mergedLocalAchievements,
+    game,
+    userPreferences
+  );
+
+  await syncAchievements(
+    game,
+    publishNotification,
+    achievementsWithImages,
+    newAchievements,
+    gameKey
+  );
 
   return newAchievements.length;
 };
