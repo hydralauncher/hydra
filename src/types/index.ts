@@ -32,6 +32,8 @@ export interface DownloadSource {
   status: DownloadSourceStatus;
   downloadCount: number;
   fingerprint?: string;
+  isRemote?: true;
+  createdAt: string;
 }
 
 export interface ShopAssets {

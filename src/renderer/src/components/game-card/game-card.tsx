@@ -38,8 +38,6 @@ export function GameCard({ game, ...props }: GameCardProps) {
 
   const { numberFormatter } = useFormat();
 
-  console.log("game", game);
-
   return (
     <button
       {...props}

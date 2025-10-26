@@ -17,6 +17,7 @@ import {
   Lock,
   DeckyPlugin,
 } from "@main/services";
+import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 
 export const loadState = async () => {
   await Lock.acquireLock();
@@ -51,6 +52,7 @@ export const loadState = async () => {
 
   await HydraApi.setupApi().then(() => {
     uploadGamesBatch();
+    void migrateDownloadSources();
     // WSClient.connect();
   });
 
