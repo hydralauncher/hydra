@@ -103,6 +103,8 @@ export function SettingsDownloadSources() {
     try {
       const sources = await window.electron.syncDownloadSources();
       setDownloadSources(sources);
+
+      showSuccessToast(t("download_sources_synced_successfully"));
     } finally {
       setIsSyncingDownloadSources(false);
     }

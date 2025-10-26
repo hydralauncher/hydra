@@ -2,6 +2,7 @@ import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services/hydra-api";
 import { downloadSourcesSublevel } from "@main/level";
 import type { DownloadSource } from "@types";
+import { logger } from "@main/services";
 
 const addDownloadSource = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -22,22 +23,19 @@ const addDownloadSource = async (
           urls: [url],
         });
       } catch (error) {
-        console.error("Failed to add download source to profile:", error);
+        logger.error("Failed to add download source to profile:", error);
       }
     }
 
-    const downloadSourceForStorage = {
+    await downloadSourcesSublevel.put(downloadSource.id, {
       ...downloadSource,
-      fingerprint: downloadSource.fingerprint || "",
-    };
-    await downloadSourcesSublevel.put(
-      downloadSource.id,
-      downloadSourceForStorage
-    );
+      isRemote: true,
+      createdAt: new Date().toISOString(),
+    });
 
     return downloadSource;
   } catch (error) {
-    console.error("Failed to add download source:", error);
+    logger.error("Failed to add download source:", error);
     throw error;
   }
 };
