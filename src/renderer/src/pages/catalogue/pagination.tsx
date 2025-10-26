@@ -31,11 +31,15 @@ export function Pagination({
   if (totalPages <= 1) return null;
 
   const visiblePages = 3;
+  const isLastThree = totalPages > 3 && page >= totalPages - 2;
 
   let startPage = Math.max(1, page - 1);
   let endPage = startPage + visiblePages - 1;
 
-  if (endPage > totalPages) {
+  if (isLastThree) {
+    startPage = Math.max(1, totalPages - 2);
+    endPage = totalPages;
+  } else if (endPage > totalPages) {
     endPage = totalPages;
     startPage = Math.max(1, endPage - visiblePages + 1);
   }
@@ -64,6 +68,72 @@ export function Pagination({
         <ChevronLeftIcon />
       </Button>
 
+      {isLastThree && startPage > 1 && (
+        <>
+          <Button
+            theme="outline"
+            className="pagination__button"
+            onClick={() => onPageChange(1)}
+          >
+            {formatNumber(1)}
+          </Button>
+          {isJumpOpen ? (
+            <input
+              ref={jumpInputRef}
+              type="number"
+              min={1}
+              max={totalPages}
+              className="pagination__page-input"
+              value={jumpValue}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "") {
+                  setJumpValue("");
+                  return;
+                }
+                const num = Number(val);
+                if (Number.isNaN(num)) {
+                  return;
+                }
+                if (num < 1) {
+                  setJumpValue("1");
+                  return;
+                }
+                if (num > totalPages) {
+                  setJumpValue(String(totalPages));
+                  return;
+                }
+                setJumpValue(val);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (jumpValue.trim() === "") return;
+                  const parsed = Number(jumpValue);
+                  if (Number.isNaN(parsed)) return;
+                  const target = Math.max(1, Math.min(totalPages, parsed));
+                  onPageChange(target);
+                  setIsJumpOpen(false);
+                } else if (e.key === "Escape") {
+                  setIsJumpOpen(false);
+                }
+              }}
+              onBlur={() => {
+                setIsJumpOpen(false);
+              }}
+              aria-label="Go to page"
+            />
+          ) : (
+            <Button
+              theme="outline"
+              className="pagination__button"
+              onClick={() => setIsJumpOpen(true)}
+            >
+              ...
+            </Button>
+          )}
+        </>
+      )}
+
       {Array.from(
         { length: endPage - startPage + 1 },
         (_, i) => startPage + i
@@ -78,7 +148,7 @@ export function Pagination({
         </Button>
       ))}
 
-      {page < totalPages - 1 && (
+      {!isLastThree && page < totalPages - 1 && (
         <>
           {isJumpOpen ? (
             <input
