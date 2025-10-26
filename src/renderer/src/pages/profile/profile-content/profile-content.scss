@@ -216,29 +216,29 @@
     transition: all ease 0.2s;
     position: relative;
     container-type: inline-size;
-  
+
     &:hover {
       transform: translateY(-4px);
       background: rgba(0, 0, 0, 0.4);
       border-color: rgba(255, 255, 255, 0.2);
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     }
-  
+
     @container (max-width: 240px) {
       .profile-content__image-achievement-icon {
         width: 20px;
         height: 20px;
       }
-  
+
       .profile-content__image-achievement-name {
         font-size: 13px;
       }
-  
+
       .profile-content__image-game-title {
         font-size: 11px;
       }
     }
-  
+
     @container (max-width: 280px) {
       .profile-content__image-card-content {
         gap: calc(globals.$spacing-unit * 0.75);
@@ -257,13 +257,13 @@
     position: relative;
     width: 100%;
     height: 100%;
-  
+
     .profile-content__image-button {
       width: 100%;
       height: 100%;
       display: block;
     }
-  
+
     &:hover .profile-content__image-achievement-image-overlay {
       opacity: 1;
     }
@@ -290,15 +290,14 @@
     opacity: 0;
     transition: opacity 0.2s ease;
     pointer-events: none;
-  
+
     svg {
       color: white;
     }
   }
 
   // Show overlay on keyboard focus for accessibility
-  &__image-button:focus-visible
-    + &__image-achievement-image-overlay {
+  &__image-button:focus-visible + &__image-achievement-image-overlay {
     opacity: 1;
   }
 
@@ -397,7 +396,7 @@
     border-radius: 8px;
     overflow: hidden;
     transition: transform ease 0.2s;
-  
+
     &:hover {
       transform: scale(1.05);
     }
@@ -410,7 +409,7 @@
     border-radius: 8px;
     border: 2px solid rgba(255, 255, 255, 0.1);
     transition: border-color ease 0.2s;
-  
+
     &:hover {
       border-color: rgba(255, 255, 255, 0.3);
     }
