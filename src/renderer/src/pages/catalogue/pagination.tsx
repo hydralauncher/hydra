@@ -2,8 +2,49 @@ import { Button } from "@renderer/components/button/button";
 import { ChevronLeftIcon, ChevronRightIcon } from "@primer/octicons-react";
 import { useFormat } from "@renderer/hooks/use-format";
 import { useEffect, useRef, useState } from "react";
-import type { ChangeEvent, KeyboardEvent } from "react";
+import type { ChangeEvent, KeyboardEvent, RefObject } from "react";
 import "./pagination.scss";
+
+interface JumpControlProps {
+  isOpen: boolean;
+  value: string;
+  totalPages: number;
+  inputRef: RefObject<HTMLInputElement>;
+  onOpen: () => void;
+  onClose: () => void;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
+}
+
+function JumpControl({
+  isOpen,
+  value,
+  totalPages,
+  inputRef,
+  onOpen,
+  onClose,
+  onChange,
+  onKeyDown,
+}: JumpControlProps) {
+  return isOpen ? (
+    <input
+      ref={inputRef}
+      type="number"
+      min={1}
+      max={totalPages}
+      className="pagination__page-input"
+      value={value}
+      onChange={onChange}
+      onKeyDown={onKeyDown}
+      onBlur={onClose}
+      aria-label="Go to page"
+    />
+  ) : (
+    <Button theme="outline" className="pagination__button" onClick={onOpen}>
+      ...
+    </Button>
+  );
+}
 
 interface PaginationProps {
   page: number;
@@ -79,32 +120,6 @@ export function Pagination({
     }
   };
 
-  const JumpControl = () =>
-    isJumpOpen ? (
-      <input
-        ref={jumpInputRef}
-        type="number"
-        min={1}
-        max={totalPages}
-        className="pagination__page-input"
-        value={jumpValue}
-        onChange={onJumpChange}
-        onKeyDown={onJumpKeyDown}
-        onBlur={() => {
-          setIsJumpOpen(false);
-        }}
-        aria-label="Go to page"
-      />
-    ) : (
-      <Button
-        theme="outline"
-        className="pagination__button"
-        onClick={() => setIsJumpOpen(true)}
-      >
-        ...
-      </Button>
-    );
-
   return (
     <div className="pagination">
       {startPage > 1 && (
@@ -138,7 +153,16 @@ export function Pagination({
           >
             {formatNumber(1)}
           </Button>
-          <JumpControl />
+          <JumpControl
+            isOpen={isJumpOpen}
+            value={jumpValue}
+            totalPages={totalPages}
+            inputRef={jumpInputRef}
+            onOpen={() => setIsJumpOpen(true)}
+            onClose={() => setIsJumpOpen(false)}
+            onChange={onJumpChange}
+            onKeyDown={onJumpKeyDown}
+          />
         </>
       )}
 
@@ -158,7 +182,16 @@ export function Pagination({
 
       {!isLastThree && page < totalPages - 1 && (
         <>
-          <JumpControl />
+          <JumpControl
+            isOpen={isJumpOpen}
+            value={jumpValue}
+            totalPages={totalPages}
+            inputRef={jumpInputRef}
+            onOpen={() => setIsJumpOpen(true)}
+            onClose={() => setIsJumpOpen(false)}
+            onChange={onJumpChange}
+            onKeyDown={onJumpKeyDown}
+          />
 
           <Button
             theme="outline"
