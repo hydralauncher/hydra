@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   TextField,
   Button,
@@ -119,21 +119,6 @@ export function SettingsGeneral() {
     }
   }, [userPreferences, defaultDownloadsPath]);
 
-  const achievementCustomNotificationPositionOptions = useMemo(() => {
-    return [
-      "top-left",
-      "top-center",
-      "top-right",
-      "bottom-left",
-      "bottom-center",
-      "bottom-right",
-    ].map((position) => ({
-      key: position,
-      value: position,
-      label: t(position),
-    }));
-  }, [t]);
-
   const handleLanguageChange = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
@@ -146,16 +131,6 @@ export function SettingsGeneral() {
   const handleChange = async (values: Partial<typeof form>) => {
     setForm((prev) => ({ ...prev, ...values }));
     await updateUserPreferences(values);
-  };
-
-  const handleChangeAchievementCustomNotificationPosition = async (
-    event: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    const value = event.target.value as AchievementCustomNotificationPosition;
-
-    await handleChange({ achievementCustomNotificationPosition: value });
-
-    window.electron.updateAchievementCustomNotificationWindow();
   };
 
   const handleChooseDownloadsPath = async () => {
@@ -261,53 +236,6 @@ export function SettingsGeneral() {
           })
         }
       />
-
-      <CheckboxField
-        label={t("enable_achievement_notifications")}
-        checked={form.achievementNotificationsEnabled}
-        onChange={async () => {
-          await handleChange({
-            achievementNotificationsEnabled:
-              !form.achievementNotificationsEnabled,
-          });
-
-          window.electron.updateAchievementCustomNotificationWindow();
-        }}
-      />
-
-      <CheckboxField
-        label={t("enable_achievement_custom_notifications")}
-        checked={form.achievementCustomNotificationsEnabled}
-        disabled={!form.achievementNotificationsEnabled}
-        onChange={async () => {
-          await handleChange({
-            achievementCustomNotificationsEnabled:
-              !form.achievementCustomNotificationsEnabled,
-          });
-
-          window.electron.updateAchievementCustomNotificationWindow();
-        }}
-      />
-
-      {form.achievementNotificationsEnabled &&
-        form.achievementCustomNotificationsEnabled && (
-          <>
-            <SelectField
-              className="settings-general__achievement-custom-notification-position__select-variation"
-              label={t("achievement_custom_notification_position")}
-              value={form.achievementCustomNotificationPosition}
-              onChange={handleChangeAchievementCustomNotificationPosition}
-              options={achievementCustomNotificationPositionOptions}
-            />
-
-            <Button
-              className="settings-general__test-achievement-notification-button"
-              onClick={() => window.electron.showAchievementTestNotification()}
-            >
-              {t("test_notification")}
-            </Button>
-          </>
-        )}
 
       <h2 className="settings-general__section-title">{t("common_redist")}</h2>
 
