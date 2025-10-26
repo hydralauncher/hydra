@@ -162,8 +162,8 @@ export const mergeAchievements = async (
   }
 
   // For subscribers, capture and upload screenshots first to get image URLs
-  let achievementsWithImages = [...mergedLocalAchievements];
-  
+  const achievementsWithImages = [...mergedLocalAchievements];
+
   if (
     newAchievements.length &&
     userPreferences.enableAchievementScreenshots === true
@@ -171,14 +171,12 @@ export const mergeAchievements = async (
     try {
       for (const achievement of newAchievements) {
         try {
-          const achievementData = achievementsData.find(
-            (steamAchievement) => {
-              return (
-                achievement.name.toUpperCase() ===
-                steamAchievement.name.toUpperCase()
-              );
-            }
-          );
+          const achievementData = achievementsData.find((steamAchievement) => {
+            return (
+              achievement.name.toUpperCase() ===
+              steamAchievement.name.toUpperCase()
+            );
+          });
 
           const achievementDisplayName =
             achievementData?.displayName || achievement.name;
@@ -189,11 +187,12 @@ export const mergeAchievements = async (
               achievementDisplayName
             );
 
-          const uploadResult = await AchievementImageService.uploadAchievementImage(
-            game.objectId,
-            achievement.name,
-            screenshotPath
-          );
+          const uploadResult =
+            await AchievementImageService.uploadAchievementImage(
+              game.objectId,
+              achievement.name,
+              screenshotPath
+            );
 
           // Update the achievement with the image URL for API sync
           const achievementIndex = achievementsWithImages.findIndex(
@@ -206,10 +205,7 @@ export const mergeAchievements = async (
             };
           }
         } catch (error) {
-          achievementsLogger.error(
-            "Failed to upload achievement image",
-            error
-          );
+          achievementsLogger.error("Failed to upload achievement image", error);
         }
       }
     } catch (error) {

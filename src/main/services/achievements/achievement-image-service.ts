@@ -40,7 +40,6 @@ export class AchievementImageService {
     return `data:${mimeType?.mime || "image/jpeg"};base64,${base64Image}`;
   }
 
-
   private static async hasActiveSubscription(): Promise<boolean> {
     return db
       .get<string, User>(levelKeys.user, { valueEncoding: "json" })
