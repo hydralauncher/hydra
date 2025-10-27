@@ -255,6 +255,7 @@ export interface GameReview {
   isBlocked: boolean;
   hasUpvoted: boolean;
   hasDownvoted: boolean;
+  playTimeInSeconds?: number;
   user: {
     id: string;
     displayName: string;

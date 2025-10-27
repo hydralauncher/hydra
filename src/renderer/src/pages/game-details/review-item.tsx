@@ -7,9 +7,10 @@ import { useState } from "react";
 import type { GameReview } from "@types";
 
 import { sanitizeHtml } from "@shared";
-import { useDate } from "@renderer/hooks";
+import { useDate, useFormat } from "@renderer/hooks";
 import { formatNumber } from "@renderer/helpers";
 import { Avatar } from "@renderer/components";
+import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 
 import "./review-item.scss";
 
@@ -29,12 +30,7 @@ interface ReviewItemProps {
   ) => void;
 }
 
-const getScoreColorClass = (score: number): string => {
-  if (score >= 1 && score <= 2) return "game-details__review-score--red";
-  if (score >= 3 && score <= 3) return "game-details__review-score--yellow";
-  if (score >= 4 && score <= 5) return "game-details__review-score--green";
-  return "";
-};
+
 
 const getRatingText = (score: number, t: (key: string) => string): string => {
   switch (score) {
@@ -68,6 +64,7 @@ export function ReviewItem({
   const navigate = useNavigate();
   const { t, i18n } = useTranslation("game_details");
   const { formatDistance } = useDate();
+  const { numberFormatter } = useFormat();
 
   const [showOriginal, setShowOriginal] = useState(false);
 
@@ -98,6 +95,20 @@ export function ReviewItem({
     } catch {
       return languageCode.toUpperCase();
     }
+  };
+
+  // Format playtime similar to hero panel
+  const formatPlayTime = (playTimeInSeconds: number) => {
+    const minutes = playTimeInSeconds / 60;
+
+    if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
+      return t("amount_minutes", {
+        amount: minutes.toFixed(0),
+      });
+    }
+
+    const hours = minutes / 60;
+    return t("amount_hours", { amount: numberFormatter.format(hours) });
   };
 
   // Determine which content to show - always show original for own reviews
@@ -144,34 +155,37 @@ export function ReviewItem({
             >
               {review.user.displayName || "Anonymous"}
             </button>
-            <div className="game-details__review-date">
-              <ClockIcon size={12} />
-              {formatDistance(new Date(review.createdAt), new Date(), {
-                addSuffix: true,
-              })}
+            <div className="game-details__review-meta-row">
+              <div
+              className="game-details__review-score-stars"
+              title={getRatingText(review.score, t)}
+            >
+              <Star
+                size={12}
+                className="game-details__review-star game-details__review-star--filled"
+              />
+              <span className="game-details__review-score-text">
+                {review.score}/5
+              </span>
+            </div>
+              {review.playTimeInSeconds && review.playTimeInSeconds > 0 && (
+                <div className="game-details__review-playtime">
+                  <ClockIcon size={12} />
+                  <span>
+                    {t("played_for")} {formatPlayTime(review.playTimeInSeconds)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
-        <div
-          className="game-details__review-score-stars"
-          title={getRatingText(review.score, t)}
-        >
-          {[1, 2, 3, 4, 5].map((starValue) => (
-            <Star
-              key={starValue}
-              size={20}
-              fill={starValue <= review.score ? "currentColor" : "none"}
-              className={`game-details__review-star ${
-                starValue <= review.score
-                  ? "game-details__review-star--filled"
-                  : "game-details__review-star--empty"
-              } ${
-                starValue <= review.score
-                  ? getScoreColorClass(review.score)
-                  : ""
-              }`}
-            />
-          ))}
+        <div className="game-details__review-right">
+          <div className="game-details__review-date">
+            <ClockIcon size={12} />
+            {formatDistance(new Date(review.createdAt), new Date(), {
+              addSuffix: true,
+            })}
+          </div>
         </div>
       </div>
       <div>
