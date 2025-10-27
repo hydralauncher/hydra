@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Button, Modal, TextField } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useForm } from "react-hook-form";
+import { logger } from "@renderer/logger";
 
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -55,10 +56,10 @@ export function AddDownloadSourceModal({
       onClose();
       onAddDownloadSource();
     } catch (error) {
-      console.error("Failed to add download source:", error);
+      logger.error("Failed to add download source:", error);
       setError("url", {
         type: "server",
-        message: "Failed to add download source. Please try again.",
+        message: t("failed_add_download_source"),
       });
     } finally {
       setIsLoading(false);

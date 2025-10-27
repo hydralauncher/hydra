@@ -22,6 +22,7 @@ import { settingsContext } from "@renderer/context";
 import { useNavigate } from "react-router-dom";
 import { setFilters, clearFilters } from "@renderer/features";
 import "./settings-download-sources.scss";
+import { logger } from "@renderer/logger";
 
 export function SettingsDownloadSources() {
   const [
@@ -58,6 +59,30 @@ export function SettingsDownloadSources() {
     fetchDownloadSources();
   }, []);
 
+  useEffect(() => {
+    const hasPendingOrMatchingSource = downloadSources.some(
+      (source) =>
+        source.status === DownloadSourceStatus.PendingMatching ||
+        source.status === DownloadSourceStatus.Matching
+    );
+
+    if (!hasPendingOrMatchingSource || !downloadSources.length) {
+      return;
+    }
+
+    const intervalId = setInterval(async () => {
+      try {
+        await window.electron.syncDownloadSources();
+        const sources = await window.electron.getDownloadSources();
+        setDownloadSources(sources);
+      } catch (error) {
+        logger.error("Failed to fetch download sources:", error);
+      }
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [downloadSources]);
+
   const handleRemoveSource = async (downloadSource: DownloadSource) => {
     setIsRemovingDownloadSource(true);
 
@@ -67,7 +92,7 @@ export function SettingsDownloadSources() {
       setDownloadSources(sources as DownloadSource[]);
       showSuccessToast(t("removed_download_source"));
     } catch (error) {
-      console.error("Failed to remove download source:", error);
+      logger.error("Failed to remove download source:", error);
     } finally {
       setIsRemovingDownloadSource(false);
     }
@@ -82,7 +107,7 @@ export function SettingsDownloadSources() {
       setDownloadSources(sources as DownloadSource[]);
       showSuccessToast(t("removed_all_download_sources"));
     } catch (error) {
-      console.error("Failed to remove all download sources:", error);
+      logger.error("Failed to remove all download sources:", error);
     } finally {
       setIsRemovingDownloadSource(false);
       setShowConfirmationDeleteAllSourcesModal(false);
@@ -94,7 +119,7 @@ export function SettingsDownloadSources() {
       const sources = await window.electron.getDownloadSources();
       setDownloadSources(sources as DownloadSource[]);
     } catch (error) {
-      console.error("Failed to refresh download sources:", error);
+      logger.error("Failed to refresh download sources:", error);
     }
   };
 
@@ -127,7 +152,7 @@ export function SettingsDownloadSources() {
 
   const navigateToCatalogue = (fingerprint?: string) => {
     if (!fingerprint) {
-      console.error("Cannot navigate: fingerprint is undefined");
+      logger.error("Cannot navigate: fingerprint is undefined");
       return;
     }
 
@@ -202,16 +227,25 @@ export function SettingsDownloadSources() {
 
       <ul className="settings-download-sources__list">
         {downloadSources.map((downloadSource) => {
+          const isPendingOrMatching =
+            downloadSource.status === DownloadSourceStatus.PendingMatching ||
+            downloadSource.status === DownloadSourceStatus.Matching;
+
           return (
             <li
               key={downloadSource.id}
-              className={`settings-download-sources__item ${isSyncingDownloadSources ? "settings-download-sources__item--syncing" : ""}`}
+              className={`settings-download-sources__item ${isSyncingDownloadSources ? "settings-download-sources__item--syncing" : ""} ${isPendingOrMatching ? "settings-download-sources__item--pending" : ""}`}
             >
               <div className="settings-download-sources__item-header">
                 <h2>{downloadSource.name}</h2>
 
                 <div style={{ display: "flex" }}>
-                  <Badge>{statusTitle[downloadSource.status]}</Badge>
+                  <Badge>
+                    {isPendingOrMatching && (
+                      <SyncIcon className="settings-download-sources__spinner" />
+                    )}
+                    {statusTitle[downloadSource.status]}
+                  </Badge>
                 </div>
 
                 <button
@@ -223,11 +257,13 @@ export function SettingsDownloadSources() {
                   }
                 >
                   <small>
-                    {t("download_count", {
-                      count: downloadSource.downloadCount,
-                      countFormatted:
-                        downloadSource.downloadCount.toLocaleString(),
-                    })}
+                    {isPendingOrMatching
+                      ? t("download_source_no_information")
+                      : t("download_count", {
+                          count: downloadSource.downloadCount,
+                          countFormatted:
+                            downloadSource.downloadCount.toLocaleString(),
+                        })}
                   </small>
                 </button>
               </div>
