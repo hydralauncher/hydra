@@ -173,7 +173,7 @@ export function ReviewItem({
                   <ClockIcon size={12} />
                   <span>
                     {t("review_played_for")}{" "}
-                    {formatPlayTime(review.playTimeInSeconds!)}
+                    {formatPlayTime(review.playTimeInSeconds || 0)}
                   </span>
                 </div>
               )}
