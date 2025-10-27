@@ -166,12 +166,14 @@ export function ReviewItem({
                   {review.score}/5
                 </span>
               </div>
-              {review.playTimeInSeconds && review.playTimeInSeconds > 0 && (
+              {Boolean(
+                review.playTimeInSeconds && review.playTimeInSeconds > 0
+              ) && (
                 <div className="game-details__review-playtime">
                   <ClockIcon size={12} />
                   <span>
                     {t("review_played_for")}{" "}
-                    {formatPlayTime(review.playTimeInSeconds)}
+                    {formatPlayTime(review.playTimeInSeconds!)}
                   </span>
                 </div>
               )}
