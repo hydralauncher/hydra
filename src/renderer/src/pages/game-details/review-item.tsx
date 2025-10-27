@@ -30,8 +30,6 @@ interface ReviewItemProps {
   ) => void;
 }
 
-
-
 const getRatingText = (score: number, t: (key: string) => string): string => {
   switch (score) {
     case 1:
@@ -157,22 +155,23 @@ export function ReviewItem({
             </button>
             <div className="game-details__review-meta-row">
               <div
-              className="game-details__review-score-stars"
-              title={getRatingText(review.score, t)}
-            >
-              <Star
-                size={12}
-                className="game-details__review-star game-details__review-star--filled"
-              />
-              <span className="game-details__review-score-text">
-                {review.score}/5
-              </span>
-            </div>
+                className="game-details__review-score-stars"
+                title={getRatingText(review.score, t)}
+              >
+                <Star
+                  size={12}
+                  className="game-details__review-star game-details__review-star--filled"
+                />
+                <span className="game-details__review-score-text">
+                  {review.score}/5
+                </span>
+              </div>
               {review.playTimeInSeconds && review.playTimeInSeconds > 0 && (
                 <div className="game-details__review-playtime">
                   <ClockIcon size={12} />
                   <span>
-                    {t("played_for")} {formatPlayTime(review.playTimeInSeconds)}
+                    {t("review_played_for")}{" "}
+                    {formatPlayTime(review.playTimeInSeconds)}
                   </span>
                 </div>
               )}
