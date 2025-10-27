@@ -36,26 +36,14 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Download OpenSSL 1.1.1w installer
-        if: matrix.os == 'windows-2022'
-        shell: pwsh
-        run: |
-          $url = "https://slproweb.com/download/Win64OpenSSL-1_1_1w.exe"
-          $out = "$env:RUNNER_TEMP\Win64OpenSSL-1_1_1w.exe"
-          Invoke-WebRequest $url -OutFile $out
-
-      - name: Silent install OpenSSL 1.1.1w
-        if: matrix.os == 'windows-2022'
-        shell: pwsh
-        run: |
-          $installer = "$env:RUNNER_TEMP\Win64OpenSSL-1_1_1w.exe"
-          if (!(Test-Path $installer)) { Write-Error "Installer not found: $installer"; exit 1 }
-          $dest = Join-Path $env:ProgramFiles "OpenSSL-Win64"
-          $args = "/VERYSILENT /SUPPRESSMSGBOXES /SP- /NORESTART /DIR=""$dest"""
-          Start-Process -FilePath $installer -ArgumentList $args -Wait -NoNewWindow
-
       - name: Build with cx_Freeze
         run: python python_rpc/setup.py build
+
+      - name: Copy OpenSSL DLLs
+        if: matrix.os == 'windows-2022'
+        run: |
+          cp hydra-python-rpc/lib/libcrypto-1_1.dll hydra-python-rpc/lib/libcrypto-1_1-x64.dll
+          cp hydra-python-rpc/lib/libssl-1_1.dll hydra-python-rpc/lib/libssl-1_1-x64.dll
 
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
