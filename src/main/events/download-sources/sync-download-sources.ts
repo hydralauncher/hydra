@@ -15,10 +15,15 @@ const syncDownloadSources = async (_event: Electron.IpcMainInvokeEvent) => {
   );
 
   for (const downloadSource of response) {
-    await downloadSourcesSublevel.put(downloadSource.id, downloadSource);
-  }
+    const existingDownloadSource = downloadSources.find(
+      (source) => source.id === downloadSource.id
+    );
 
-  return response;
+    await downloadSourcesSublevel.put(downloadSource.id, {
+      ...existingDownloadSource,
+      ...downloadSource,
+    });
+  }
 };
 
 registerEvent("syncDownloadSources", syncDownloadSources);
