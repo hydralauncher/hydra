@@ -133,7 +133,7 @@ export function SettingsRealDebrid() {
               {t("save_changes")}
             </Button>
           }
-          placeholder="API Token"
+          placeholder={t("api_token")}
           hint={
             <Trans i18nKey="debrid_api_token_hint" ns="settings">
               <Link to={REAL_DEBRID_API_TOKEN_URL} />

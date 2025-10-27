@@ -1,0 +1,29 @@
+# Hydra Project Rules
+
+## Logging
+
+- **Always use `logger` instead of `console` for logging** in both main and renderer processes
+- In main process: `import { logger } from "@main/services";`
+- In renderer process: `import { logger } from "@renderer/logger";`
+- Replace all instances of:
+  - `console.log()` → `logger.log()`
+  - `console.error()` → `logger.error()`
+  - `console.warn()` → `logger.warn()`
+  - `console.info()` → `logger.info()`
+  - `console.debug()` → `logger.debug()`
+- Do not use `console` for any logging purposes
+
+## Internationalization (i18n)
+
+- All user-facing strings must be translated using i18next
+- Use the `useTranslation` hook in React components: `const { t } = useTranslation("namespace");`
+- Add new translation keys to `src/locales/en/translation.json`
+- Never hardcode English strings in the UI code
+- Placeholder text in form fields must also be translated
+
+## Code Style
+
+- Use ESLint and Prettier for code formatting
+- Follow TypeScript strict mode conventions
+- Use async/await instead of promises when possible
+- Prefer named exports over default exports for utilities and services

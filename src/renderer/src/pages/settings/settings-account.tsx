@@ -201,7 +201,7 @@ export function SettingsAccount() {
       </section>
 
       <section className="settings-account__section">
-        <h3>Hydra Cloud</h3>
+        <h3>{t("hydra_cloud")}</h3>
         <div className="settings-account__subscription-info">
           {getHydraCloudSectionContent().description}
         </div>
