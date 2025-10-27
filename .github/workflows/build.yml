@@ -7,93 +7,118 @@ concurrency:
 on: pull_request
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        os: [self-hosted, ubuntu-latest]
-      fail-fast: false
-
-    runs-on: ${{ matrix.os }}
-
+  verify-openssl:
+    runs-on: windows-2022
     steps:
-      - name: Check out Git repository
+      - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.18.3
-
-      - name: Install dependencies
-        run: yarn --frozen-lockfile
-
-      - name: Install Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.9
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Build with cx_Freeze
-        run: python python_rpc/setup.py build
-
-      - name: Build Linux
-        if: matrix.os == 'ubuntu-latest'
+      - name: Verify OpenSSL 1.1 DLLs exist
+        shell: pwsh
         run: |
-          yarn build:linux
-        env:
-          MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
-          MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
-          MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_STAGING_CHECKOUT_URL }}
-          MAIN_VITE_WS_URL: ${{ vars.MAIN_VITE_WS_STAGING_URL }}
-          RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
-          MAIN_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          RENDERER_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
-          RENDERER_VITE_REAL_DEBRID_REFERRAL_ID: ${{ vars.RENDERER_VITE_REAL_DEBRID_REFERRAL_ID }}
-          RENDERER_VITE_TORBOX_REFERRAL_CODE: ${{ vars.RENDERER_VITE_TORBOX_REFERRAL_CODE }}
+          $dll1 = "vendor/openssl-1.1/win64/libcrypto-1_1-x64.dll"
+          $dll2 = "vendor/openssl-1.1/win64/libssl-1_1-x64.dll"
 
-      - name: Build Windows
-        if: matrix.os == 'windows-2022'
-        run: yarn build:win
-        env:
-          MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
-          MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
-          MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_STAGING_CHECKOUT_URL }}
-          MAIN_VITE_WS_URL: ${{ vars.MAIN_VITE_WS_STAGING_URL }}
-          RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
-          MAIN_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          RENDERER_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
-          RENDERER_VITE_REAL_DEBRID_REFERRAL_ID: ${{ vars.RENDERER_VITE_REAL_DEBRID_REFERRAL_ID }}
-          RENDERER_VITE_TORBOX_REFERRAL_CODE: ${{ vars.RENDERER_VITE_TORBOX_REFERRAL_CODE }}
+          $missing = @()
 
-      - name: Upload build
-        env:
-          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
-          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
-          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
-          S3_BUILDS_BUCKET_NAME: ${{ secrets.S3_BUILDS_BUCKET_NAME }}
-          BUILDS_URL: ${{ secrets.BUILDS_URL }}
-          BUILD_WEBHOOK_URL: ${{ secrets.BUILD_WEBHOOK_URL }}
-          GITHUB_ACTOR: ${{ github.actor }}
-        run: node scripts/upload-build.cjs
+          if (-not (Test-Path $dll1)) { $missing += $dll1 }
+          if (-not (Test-Path $dll2)) { $missing += $dll2 }
 
-      - name: Create artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Build-${{ matrix.os }}
-          path: |
-            dist/*-portable.exe
-            dist/*.zip
-            dist/*.dmg
-            dist/*.deb
-            dist/*.rpm
-            dist/*.tar.gz
-            dist/*.yml
-            dist/*.blockmap
-            dist/*.AppImage
+          if ($missing.Count -gt 0) {
+            Write-Error "Missing required OpenSSL 1.1 DLLs:`n$($missing -join "`n")"
+            exit 1
+          } else {
+            Write-Host "✅ Both OpenSSL 1.1 DLLs found"
+          }
+
+# jobs:
+#   build:
+#     strategy:
+#       matrix:
+#         os: [windows-2022, ubuntu-latest]
+#       fail-fast: false
+
+#     runs-on: ${{ matrix.os }}
+
+#     steps:
+#       - name: Check out Git repository
+#         uses: actions/checkout@v4
+
+#       - name: Install Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: 20.18.3
+
+#       - name: Install dependencies
+#         run: yarn --frozen-lockfile
+
+#       - name: Install Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: 3.9
+
+#       - name: Install dependencies
+#         run: pip install -r requirements.txt
+
+#       - name: Build with cx_Freeze
+#         run: python python_rpc/setup.py build
+
+#       - name: Build Linux
+#         if: matrix.os == 'ubuntu-latest'
+#         run: |
+#           yarn build:linux
+#         env:
+#           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
+#           MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
+#           MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_STAGING_CHECKOUT_URL }}
+#           MAIN_VITE_WS_URL: ${{ vars.MAIN_VITE_WS_STAGING_URL }}
+#           RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
+#           MAIN_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+#           RENDERER_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
+#           RENDERER_VITE_REAL_DEBRID_REFERRAL_ID: ${{ vars.RENDERER_VITE_REAL_DEBRID_REFERRAL_ID }}
+#           RENDERER_VITE_TORBOX_REFERRAL_CODE: ${{ vars.RENDERER_VITE_TORBOX_REFERRAL_CODE }}
+
+#       - name: Build Windows
+#         if: matrix.os == 'windows-2022'
+#         run: yarn build:win
+#         env:
+#           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
+#           MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
+#           MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_STAGING_CHECKOUT_URL }}
+#           MAIN_VITE_WS_URL: ${{ vars.MAIN_VITE_WS_STAGING_URL }}
+#           RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
+#           MAIN_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+#           RENDERER_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
+#           RENDERER_VITE_REAL_DEBRID_REFERRAL_ID: ${{ vars.RENDERER_VITE_REAL_DEBRID_REFERRAL_ID }}
+#           RENDERER_VITE_TORBOX_REFERRAL_CODE: ${{ vars.RENDERER_VITE_TORBOX_REFERRAL_CODE }}
+
+#       - name: Upload build
+#         env:
+#           BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+#           S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+#           S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+#           S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+#           S3_BUILDS_BUCKET_NAME: ${{ secrets.S3_BUILDS_BUCKET_NAME }}
+#           BUILDS_URL: ${{ secrets.BUILDS_URL }}
+#           BUILD_WEBHOOK_URL: ${{ secrets.BUILD_WEBHOOK_URL }}
+#           GITHUB_ACTOR: ${{ github.actor }}
+#         run: node scripts/upload-build.cjs
+
+#       - name: Create artifact
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: Build-${{ matrix.os }}
+#           path: |
+#             dist/*-portable.exe
+#             dist/*.zip
+#             dist/*.dmg
+#             dist/*.deb
+#             dist/*.rpm
+#             dist/*.tar.gz
+#             dist/*.yml
+#             dist/*.blockmap
+#             dist/*.AppImage
