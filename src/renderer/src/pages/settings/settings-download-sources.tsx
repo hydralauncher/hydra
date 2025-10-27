@@ -101,8 +101,9 @@ export function SettingsDownloadSources() {
   const syncDownloadSources = async () => {
     setIsSyncingDownloadSources(true);
     try {
-      const sources = await window.electron.syncDownloadSources();
-      setDownloadSources(sources);
+      await window.electron.syncDownloadSources();
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources as DownloadSource[]);
 
       showSuccessToast(t("download_sources_synced_successfully"));
     } finally {
