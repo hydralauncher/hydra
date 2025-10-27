@@ -462,6 +462,7 @@ export class WindowManager {
 
       editorWindow.once("ready-to-show", () => {
         editorWindow.show();
+        this.mainWindow?.webContents.openDevTools();
         if (!app.isPackaged || isStaging) {
           editorWindow.webContents.openDevTools();
         }
@@ -474,6 +475,7 @@ export class WindowManager {
       });
 
       editorWindow.on("close", () => {
+        this.mainWindow?.webContents.closeDevTools();
         this.editorWindows.delete(themeId);
       });
     }
