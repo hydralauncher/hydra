@@ -116,9 +116,9 @@
     "@types/winreg": "^1.2.36",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.2.1",
-    "electron": "^33.4.11",
+    "electron": "^37.7.1",
     "electron-builder": "^26.0.12",
-    "electron-vite": "^3.0.0",
+    "electron-vite": "^4.0.1",
     "eslint": "^8.56.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.4",
@@ -130,7 +130,7 @@
     "sass-embedded": "^1.80.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
-    "vite": "5.4.20",
+    "vite": "5.4.21",
     "vite-plugin-svgr": "^4.5.0"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
