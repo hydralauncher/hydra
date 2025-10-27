@@ -10,7 +10,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-2022, ubuntu-latest]
+        os: [self-hosted, ubuntu-latest]
       fail-fast: false
 
     runs-on: ${{ matrix.os }}
