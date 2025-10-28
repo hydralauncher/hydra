@@ -118,6 +118,8 @@ export interface UserPreferences {
   showDownloadSpeedInMegabytes?: boolean;
   extractFilesByDefault?: boolean;
   enableSteamAchievements?: boolean;
+  autoplayGameTrailers?: boolean;
+  hideToTrayOnGameStart?: boolean;
 }
 
 export interface ScreenState {
