@@ -6,23 +6,38 @@ concurrency:
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - release/**
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      BRANCH_NAME: ${{ github.ref_name }}
+
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Install Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22.21.0
+          cache: 'yarn'
+
+      - name: Enable Corepack (Yarn)
+        run: corepack enable
 
       - name: Install dependencies
-        run: yarn --frozen-lockfile --ignore-scripts
+        run: yarn install --frozen-lockfile --ignore-scripts
 
       - name: Build Renderer
         run: yarn build
@@ -36,5 +51,5 @@ jobs:
         run: |
           npx --yes wrangler@3 pages deploy out/renderer \
             --project-name="hydra" \
-            --commit-dirty=true \
-            --branch="main"
+            --branch "$BRANCH_NAME" \
+            --commit-dirty
