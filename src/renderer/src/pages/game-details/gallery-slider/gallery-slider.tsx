@@ -7,11 +7,16 @@ import {
 } from "@primer/octicons-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { gameDetailsContext } from "@renderer/context";
+import { useAppSelector } from "@renderer/hooks";
 import "./gallery-slider.scss";
 
 export function GallerySlider() {
   const { shopDetails } = useContext(gameDetailsContext);
   const { t } = useTranslation("game_details");
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+  const autoplayEnabled = userPreferences?.autoplayGameTrailers !== false;
 
   const hasScreenshots = shopDetails && shopDetails.screenshots?.length;
 
@@ -164,7 +169,7 @@ export function GallerySlider() {
                   poster={item.poster}
                   loop
                   muted
-                  autoPlay
+                  autoPlay={autoplayEnabled}
                   tabIndex={-1}
                 >
                   <source src={item.videoSrc} />

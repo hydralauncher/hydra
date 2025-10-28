@@ -4,7 +4,8 @@ import type { Game, GameRunning } from "@types";
 import { PythonRPC } from "./python-rpc";
 import axios from "axios";
 import { ProcessPayload } from "./download/types";
-import { gamesSublevel, levelKeys } from "@main/level";
+import { db, gamesSublevel, levelKeys } from "@main/level";
+import type { UserPreferences } from "@types";
 import { CloudSync } from "./cloud-sync";
 import { logger } from "./logger";
 import path from "path";
@@ -208,6 +209,18 @@ function onOpenGame(game: Game) {
     firstTick: now,
     lastSyncTick: now,
   });
+
+  // Hide Hydra to tray on game startup if enabled
+  db
+    .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+      valueEncoding: "json",
+    })
+    .then((userPreferences) => {
+      if (userPreferences?.hideToTrayOnGameStart) {
+        WindowManager.mainWindow?.hide();
+      }
+    })
+    .catch(() => {});
 
   if (game.remoteId) {
     updateGamePlaytime(
