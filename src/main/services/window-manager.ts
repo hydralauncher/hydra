@@ -462,6 +462,7 @@ export class WindowManager {
 
       editorWindow.once("ready-to-show", () => {
         editorWindow.show();
+        this.mainWindow?.webContents.openDevTools();
         if (!app.isPackaged || isStaging) {
           editorWindow.webContents.openDevTools();
         }
@@ -469,11 +470,12 @@ export class WindowManager {
 
       editorWindow.webContents.on("before-input-event", (_event, input) => {
         if (input.key === "F12") {
-          editorWindow.webContents.toggleDevTools();
+          this.mainWindow?.webContents.toggleDevTools();
         }
       });
 
       editorWindow.on("close", () => {
+        this.mainWindow?.webContents.closeDevTools();
         this.editorWindows.delete(themeId);
       });
     }
