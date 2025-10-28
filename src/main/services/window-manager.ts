@@ -68,7 +68,7 @@ export class WindowManager {
       // Try to load from remote URL in production
       try {
         await window.loadURL(
-          `https://release-${this.formatVersionNumber(appVersion)}.${import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN}#/${hash}`
+          `https://release-v${this.formatVersionNumber(appVersion)}.${import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN}#/${hash}`
         );
       } catch (error) {
         // Fall back to local file if remote URL fails
