@@ -1,11 +1,10 @@
 import { WindowManager } from "./window-manager";
 import { createGame, updateGamePlaytime } from "./library-sync";
-import type { Game, GameRunning } from "@types";
+import type { Game, GameRunning, UserPreferences } from "@types";
 import { PythonRPC } from "./python-rpc";
 import axios from "axios";
 import { ProcessPayload } from "./download/types";
 import { db, gamesSublevel, levelKeys } from "@main/level";
-import type { UserPreferences } from "@types";
 import { CloudSync } from "./cloud-sync";
 import { logger } from "./logger";
 import path from "path";
