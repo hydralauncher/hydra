@@ -39,4 +39,3 @@ export const syncDownloadSourcesFromApi = async () => {
     logger.error("Failed to sync download sources from API:", error);
   }
 };
-

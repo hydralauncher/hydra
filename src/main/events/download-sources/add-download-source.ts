@@ -11,7 +11,7 @@ const addDownloadSource = async (
   try {
     const existingSources = await downloadSourcesSublevel.values().all();
     const urlExists = existingSources.some((source) => source.url === url);
-    
+
     if (urlExists) {
       throw new Error("Download source with this URL already exists");
     }

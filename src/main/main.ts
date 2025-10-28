@@ -53,10 +53,8 @@ export const loadState = async () => {
   await HydraApi.setupApi().then(async () => {
     uploadGamesBatch();
     void migrateDownloadSources();
-    
-    const { syncDownloadSourcesFromApi } = await import(
-      "./services/user"
-    );
+
+    const { syncDownloadSourcesFromApi } = await import("./services/user");
     void syncDownloadSourcesFromApi();
     // WSClient.connect();
   });
