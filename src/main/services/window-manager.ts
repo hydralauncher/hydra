@@ -24,7 +24,8 @@ import type {
   UserPreferences,
 } from "@types";
 import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
-import { isStaging } from "@main/constants";
+import { appVersion, isStaging } from "@main/constants";
+import { logger } from "./logger";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -54,6 +55,10 @@ export class WindowManager {
       show: false,
     };
 
+  private static formatVersionNumber(version: string) {
+    return version.replaceAll(".", "-");
+  }
+
   private static async loadWindowURL(window: BrowserWindow, hash: string = "") {
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
@@ -63,12 +68,12 @@ export class WindowManager {
       // Try to load from remote URL in production
       try {
         await window.loadURL(
-          `${import.meta.env.MAIN_VITE_RENDERER_URL}#/${hash}`
+          `https://release-${this.formatVersionNumber(appVersion)}.${import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN}#/${hash}`
         );
       } catch (error) {
         // Fall back to local file if remote URL fails
-        console.error(
-          "Failed to load from MAIN_VITE_RENDERER_URL, falling back to local file:",
+        logger.error(
+          "Failed to load from MAIN_VITE_LAUNCHER_SUBDOMAIN, falling back to local file:",
           error
         );
         window.loadFile(path.join(__dirname, "../renderer/index.html"), {
