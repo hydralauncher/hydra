@@ -211,10 +211,9 @@ function onOpenGame(game: Game) {
   });
 
   // Hide Hydra to tray on game startup if enabled
-  db
-    .get<string, UserPreferences | null>(levelKeys.userPreferences, {
-      valueEncoding: "json",
-    })
+  db.get<string, UserPreferences | null>(levelKeys.userPreferences, {
+    valueEncoding: "json",
+  })
     .then((userPreferences) => {
       if (userPreferences?.hideToTrayOnGameStart) {
         WindowManager.mainWindow?.hide();
