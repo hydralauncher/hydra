@@ -18,3 +18,4 @@ export * from "./library-sync";
 export * from "./wine";
 export * from "./lock";
 export * from "./decky-plugin";
+export * from "./user";

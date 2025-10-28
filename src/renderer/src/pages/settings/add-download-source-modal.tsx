@@ -57,9 +57,13 @@ export function AddDownloadSourceModal({
       onAddDownloadSource();
     } catch (error) {
       logger.error("Failed to add download source:", error);
+      const errorMessage = error instanceof Error && error.message.includes("already exists")
+        ? t("download_source_already_exists")
+        : t("failed_add_download_source");
+      
       setError("url", {
         type: "server",
-        message: t("failed_add_download_source"),
+        message: errorMessage,
       });
     } finally {
       setIsLoading(false);

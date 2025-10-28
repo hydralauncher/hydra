@@ -50,9 +50,14 @@ export const loadState = async () => {
     DeckyPlugin.checkAndUpdateIfOutdated();
   }
 
-  await HydraApi.setupApi().then(() => {
+  await HydraApi.setupApi().then(async () => {
     uploadGamesBatch();
     void migrateDownloadSources();
+    
+    const { syncDownloadSourcesFromApi } = await import(
+      "./services/user"
+    );
+    void syncDownloadSourcesFromApi();
     // WSClient.connect();
   });
 

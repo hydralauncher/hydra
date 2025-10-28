@@ -13,7 +13,7 @@ const removeDownloadSource = async (
 
   if (downloadSourceId) params.set("downloadSourceId", downloadSourceId);
 
-  if (HydraApi.isLoggedIn()) {
+  if (HydraApi.isLoggedIn() && HydraApi.hasActiveSubscription()) {
     void HydraApi.delete(`/profile/download-sources?${params.toString()}`);
   }
 
