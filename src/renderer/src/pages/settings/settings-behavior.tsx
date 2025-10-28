@@ -51,10 +51,8 @@ export function SettingsBehavior() {
         extractFilesByDefault: userPreferences.extractFilesByDefault ?? true,
         enableSteamAchievements:
           userPreferences.enableSteamAchievements ?? false,
-        autoplayGameTrailers:
-          userPreferences.autoplayGameTrailers ?? true,
-        hideToTrayOnGameStart:
-          userPreferences.hideToTrayOnGameStart ?? false,
+        autoplayGameTrailers: userPreferences.autoplayGameTrailers ?? true,
+        hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
       });
     }
   }, [userPreferences]);
