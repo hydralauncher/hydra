@@ -138,6 +138,9 @@ jobs:
             COMMIT_MSG="v${{ steps.get-version.outputs.version }}"
             
             git commit -m "$COMMIT_MSG"
+            
+            export GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa -F ~/.ssh/config -o UserKnownHostsFile=$SSH_PATH/known_hosts"
+
             git push origin master
             echo "Successfully updated AUR package to version ${{ steps.get-version.outputs.version }}"
           fi
